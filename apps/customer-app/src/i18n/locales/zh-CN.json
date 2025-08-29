@@ -1,0 +1,354 @@
+{
+  "common": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "close": "关闭",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息",
+    "retry": "重试",
+    "home": "首页",
+    "menu": "菜单",
+    "cart": "购物车",
+    "order": "订单",
+    "total": "总计",
+    "subtotal": "小计",
+    "quantity": "数量",
+    "price": "价格",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "clear": "清除",
+    "apply": "应用",
+    "reset": "重置"
+  },
+  "navigation": {
+    "home": "首页",
+    "menu": "菜单",
+    "cart": "购物车",
+    "orders": "订单",
+    "profile": "个人资料",
+    "about": "关于我们",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "contact": "联系我们",
+    "help": "帮助中心"
+  },
+  "home": {
+    "title": "欢迎来到 MakanMakan",
+    "subtitle": "扫描二维码开始点餐",
+    "scanQR": "扫描二维码",
+    "manualInput": "手动输入",
+    "restaurantId": "餐厅编号",
+    "tableId": "桌号",
+    "recentOrders": "最近订单",
+    "noRecentOrders": "暂无最近订单",
+    "features": {
+      "title": "服务特色",
+      "qrOrder": "二维码点餐",
+      "qrOrderDesc": "扫描桌上二维码即可开始点餐",
+      "realtime": "实时追踪",
+      "realtimeDesc": "实时查看订单制作进度",
+      "payment": "多种付款",
+      "paymentDesc": "支持现金、信用卡等多种付款方式"
+    }
+  },
+  "qrScan": {
+    "title": "扫描二维码",
+    "instruction": "将相机对准桌上的二维码",
+    "permissionDenied": "需要相机权限才能扫描二维码",
+    "allowCamera": "允许相机权限",
+    "invalidQR": "无效的二维码",
+    "scanError": "扫描失败，请重试",
+    "manualInput": "手动输入餐厅和桌号"
+  },
+  "menu": {
+    "title": "菜单",
+    "categories": "分类",
+    "allCategories": "全部分类",
+    "featured": "招牌推荐",
+    "popular": "热门商品",
+    "search": "搜索菜品",
+    "searchPlaceholder": "请输入菜品名称...",
+    "noResults": "没有找到相关菜品",
+    "unavailable": "暂时无法提供",
+    "outOfStock": "已售完",
+    "spiceLevel": "辣度",
+    "dietary": "饮食偏好",
+    "vegetarian": "素食",
+    "vegan": "纯素",
+    "glutenFree": "无麸质",
+    "addToCart": "加入购物车",
+    "customize": "定制",
+    "itemDetails": "商品详情"
+  },
+  "menuItem": {
+    "title": "商品详情",
+    "description": "商品描述",
+    "ingredients": "成分",
+    "allergens": "过敏原",
+    "nutritionInfo": "营养信息",
+    "calories": "卡路里",
+    "protein": "蛋白质",
+    "carbs": "碳水化合物",
+    "fat": "脂肪",
+    "size": "尺寸",
+    "options": "选项",
+    "addOns": "加购项目",
+    "notes": "特殊需求",
+    "notesPlaceholder": "请输入特殊需求（如：不要洋葱）...",
+    "required": "必选",
+    "optional": "可选",
+    "selectSize": "请选择尺寸",
+    "selectOptions": "请选择必要选项"
+  },
+  "customization": {
+    "title": "选择规格",
+    "size": "尺寸",
+    "options": "定制选项",
+    "addOns": "加购项目",
+    "notes": "备注",
+    "notesPlaceholder": "请输入特殊需求...",
+    "required": "必选",
+    "priceAdjustment": "价格调整",
+    "totalPrice": "总价格",
+    "confirmSelection": "确认选择",
+    "invalidSelection": "请完成必选项目"
+  },
+  "cart": {
+    "title": "购物车",
+    "empty": "购物车是空的",
+    "emptyDesc": "快去菜单看看有什么好吃的吧！",
+    "goToMenu": "前往菜单",
+    "items": "商品",
+    "itemCount": "{count} 项商品",
+    "subtotal": "小计",
+    "serviceCharge": "服务费",
+    "tax": "税费",
+    "discount": "折扣",
+    "total": "总计",
+    "checkout": "结账",
+    "continueOrdering": "继续点餐",
+    "clear": "清空购物车",
+    "clearConfirm": "确定要清空购物车吗？",
+    "updateQuantity": "更新数量",
+    "remove": "移除",
+    "addNotes": "新增",
+    "editNotes": "编辑",
+    "hideNotes": "收起",
+    "notes": "备注",
+    "itemTotal": "项目总计"
+  },
+  "order": {
+    "title": "订单确认",
+    "orderNumber": "订单编号",
+    "status": {
+      "pending": "待确认",
+      "confirmed": "已确认",
+      "preparing": "制作中",
+      "ready": "准备完成",
+      "delivered": "已送达",
+      "paid": "已完成",
+      "cancelled": "已取消"
+    },
+    "tracking": {
+      "title": "订单追踪",
+      "estimatedTime": "预估时间",
+      "currentStatus": "目前状态",
+      "timeline": "处理流程",
+      "orderReceived": "订单已接收",
+      "confirmed": "餐厅已确认",
+      "preparing": "正在制作中",
+      "ready": "餐点准备完成",
+      "served": "已送达"
+    },
+    "details": {
+      "customerInfo": "顾客信息",
+      "customerName": "顾客姓名",
+      "phone": "联系电话",
+      "table": "桌号",
+      "orderTime": "下单时间",
+      "items": "订购项目",
+      "notes": "备注",
+      "payment": "付款信息"
+    },
+    "actions": {
+      "cancel": "取消订单",
+      "reorder": "再次订购",
+      "viewReceipt": "查看收据",
+      "callService": "呼叫服务",
+      "feedback": "意见反馈"
+    },
+    "placeOrder": "提交订单",
+    "orderPlaced": "订单已提交",
+    "orderPlacedDesc": "您的订单已成功提交，请耐心等候",
+    "paymentMethod": "付款方式",
+    "payNow": "立即付款",
+    "payLater": "稍后付款"
+  },
+  "service": {
+    "title": "服务请求",
+    "requestService": "呼叫服务",
+    "serviceTypes": {
+      "water": "加水",
+      "napkins": "纸巾",
+      "utensils": "餐具",
+      "assistance": "协助",
+      "bill": "结账",
+      "other": "其他"
+    },
+    "message": "留言",
+    "messagePlaceholder": "请描述您需要的服务...",
+    "priority": "优先级",
+    "priorities": {
+      "low": "一般",
+      "normal": "普通",
+      "high": "优先",
+      "urgent": "紧急"
+    },
+    "submit": "发送请求",
+    "submitted": "请求已发送",
+    "estimatedResponse": "预估回应时间",
+    "minutes": "分钟"
+  },
+  "payment": {
+    "title": "付款",
+    "methods": {
+      "cash": "现金",
+      "card": "信用卡",
+      "online": "在线付款",
+      "ewallet": "电子钱包"
+    },
+    "selectMethod": "选择付款方式",
+    "processing": "处理中...",
+    "success": "付款成功",
+    "failed": "付款失败",
+    "retry": "重新付款",
+    "receipt": "收据",
+    "downloadReceipt": "下载收据"
+  },
+  "profile": {
+    "title": "个人资料",
+    "name": "姓名",
+    "email": "电子邮件",
+    "phone": "电话",
+    "preferences": "偏好设置",
+    "language": "语言",
+    "notifications": "通知设置",
+    "orderHistory": "订单历史",
+    "favorites": "我的收藏",
+    "logout": "退出登录"
+  },
+  "errors": {
+    "general": "发生错误",
+    "generalDesc": "很抱歉，系统发生了未预期的错误",
+    "network": "网络连接失败",
+    "networkDesc": "请检查您的网络连接",
+    "notFound": "页面不存在",
+    "notFoundDesc": "很抱歉，您要查找的页面不存在或已被移除",
+    "unauthorized": "无权限",
+    "unauthorizedDesc": "您没有权限访问此页面",
+    "serverError": "服务器错误",
+    "serverErrorDesc": "服务器暂时无法处理您的请求",
+    "timeout": "请求超时",
+    "timeoutDesc": "请求处理时间过长，请重试",
+    "validation": "数据验证失败",
+    "validationDesc": "请检查您输入的数据是否正确",
+    "restaurantNotFound": "找不到餐厅",
+    "tableNotFound": "找不到桌号",
+    "menuNotAvailable": "菜单暂时无法加载",
+    "orderFailed": "下单失败",
+    "paymentFailed": "付款失败"
+  },
+  "validation": {
+    "required": "此字段为必填",
+    "email": "请输入有效的电子邮件",
+    "phone": "请输入有效的电话号码",
+    "minLength": "至少需要 {min} 个字符",
+    "maxLength": "不能超过 {max} 个字符",
+    "numeric": "请输入数字",
+    "positiveNumber": "请输入正数",
+    "invalidFormat": "格式不正确"
+  },
+  "time": {
+    "now": "现在",
+    "minutes": "分钟",
+    "hours": "小时",
+    "days": "天",
+    "ago": "前",
+    "later": "后",
+    "estimated": "预估",
+    "actual": "实际"
+  },
+  "restaurant": {
+    "info": "餐厅信息",
+    "hours": "营业时间",
+    "address": "地址",
+    "phone": "电话",
+    "closed": "休息中",
+    "openingSoon": "即将营业",
+    "closingSoon": "即将结束营业"
+  },
+  "about": {
+    "title": "关于我们",
+    "description": "MakanMakan 是一个现代化的餐厅管理系统，致力于提供最佳的点餐体验。我们利用先进的技术，为餐厅和顾客打造无缝的服务体验。",
+    "features": {
+      "title": "我们的服务",
+      "qrOrder": "二维码扫码点餐",
+      "tracking": "实时订单追踪",
+      "payment": "多种支付方式",
+      "customization": "定制餐点选项",
+      "management": "餐厅运营管理"
+    },
+    "contact": {
+      "title": "联系我们",
+      "description": "如有任何问题或建议，欢迎通过客服渠道与我们联系。"
+    }
+  },
+  "privacy": {
+    "title": "隐私政策",
+    "dataCollection": {
+      "title": "数据收集",
+      "description": "我们仅收集必要的数据以提供服务，包括订单信息、联系方式等。"
+    },
+    "dataUsage": {
+      "title": "数据使用",
+      "description": "收集的数据仅用于处理订单、提供客户服务以及改善服务质量。"
+    },
+    "dataProtection": {
+      "title": "数据保护",
+      "description": "我们采用适当的技术和组织措施来保护您的个人数据安全。"
+    },
+    "contact": {
+      "title": "联系我们",
+      "description": "如有任何隐私相关问题，请通过客服渠道与我们联系。"
+    }
+  },
+  "terms": {
+    "title": "服务条款",
+    "usage": {
+      "title": "服务使用",
+      "description": "使用本服务即表示您同意遵守相关条款与规范。"
+    },
+    "responsibility": {
+      "title": "用户责任",
+      "description": "用户应确保所提供信息的正确性，并遵守相关法律法规。"
+    },
+    "disclaimer": {
+      "title": "免责声明",
+      "description": "本服务按现状提供，我们不对服务的完整性或适用性作出保证。"
+    },
+    "changes": {
+      "title": "条款变更",
+      "description": "我们保留随时修改这些条款的权利，修改后的条款将在网站上公布。"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700');
+
+// Variables
+$bg: #2B2D42;
+$header-bg: url("https://static.pexels.com/photos/5928/salad-healthy-diet-spinach.jpg") no-repeat center;
+$font: 'Open Sans', sans-serif;
+
+// Colors
+$white: #fff;
+$black: #212129;
+$grey: #BCBCBC;
+$border: #EF233C;
+$hover: #A3031D;
+
+* {
+   margin: 0;
+   padding: 0;
+   font-family: $font;
+   text-decoration: none;
+   outline: none;
+   border: none;
+   
+   -webkit-box-sizing: border-box;
+   -moz-box-sizing: border-box;
+   -ms-box-sizing: border-box;
+   -o-box-sizing: border-box;
+   box-sizing: border-box;
+}
+
+img {
+   max-width: 100%;
+}
+
+html, body {
+   height: 100%;
+}
+
+body {
+   background: $bg;
+}
+
+.wrapper {
+   background: $white;
+   max-width: 400px;
+   position: relative;
+   margin: 20px auto;
+   box-shadow: 0px 0px 40px 10px $black;
+   .header {
+      min-height: 250px;
+      background: $header-bg;
+      opacity: 0.9;
+      background-size: cover;
+   }
+   .name {
+      font-size: 1.4em;
+      text-align: center;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 20px;
+   }
+   .border {
+      border: $border 2px solid;
+      position: relative;
+      margin: 0 auto;
+      width: 64px;
+   }
+   .info {
+      margin-top: -11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 30px;
+   }
+   // .grey-border {
+   //    position: relative;
+   //    border: $grey 1px solid;
+   //    bottom: 20px;
+   // }
+   .button {
+      background: $black;
+      color: $white;
+      font-weight: bold;
+      text-transform: uppercase;
+      display: block;
+      text-align: center;
+      padding: 8px 0;
+      transition: 300ms;
+      &:hover {
+         background: $hover;
+         transition: 300ms;
+      }
+   }
+}

@@ -1,0 +1,354 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
+    "retry": "Retry",
+    "home": "Home",
+    "menu": "Menu",
+    "cart": "Cart",
+    "order": "Order",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "quantity": "Quantity",
+    "price": "Price",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "apply": "Apply",
+    "reset": "Reset"
+  },
+  "navigation": {
+    "home": "Home",
+    "menu": "Menu",
+    "cart": "Cart",
+    "orders": "Orders",
+    "profile": "Profile",
+    "about": "About",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact",
+    "help": "Help Center"
+  },
+  "home": {
+    "title": "Welcome to MakanMakan",
+    "subtitle": "Scan QR Code to Start Ordering",
+    "scanQR": "Scan QR Code",
+    "manualInput": "Manual Input",
+    "restaurantId": "Restaurant ID",
+    "tableId": "Table ID",
+    "recentOrders": "Recent Orders",
+    "noRecentOrders": "No recent orders",
+    "features": {
+      "title": "Our Features",
+      "qrOrder": "QR Code Ordering",
+      "qrOrderDesc": "Scan the QR code on your table to start ordering",
+      "realtime": "Real-time Tracking",
+      "realtimeDesc": "Track your order status in real-time",
+      "payment": "Multiple Payment",
+      "paymentDesc": "Support cash, credit card and various payment methods"
+    }
+  },
+  "qrScan": {
+    "title": "Scan QR Code",
+    "instruction": "Point your camera at the QR code on the table",
+    "permissionDenied": "Camera permission is required to scan QR code",
+    "allowCamera": "Allow Camera Permission",
+    "invalidQR": "Invalid QR Code",
+    "scanError": "Scan failed, please try again",
+    "manualInput": "Manually enter restaurant and table number"
+  },
+  "menu": {
+    "title": "Menu",
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "featured": "Featured",
+    "popular": "Popular",
+    "search": "Search dishes",
+    "searchPlaceholder": "Enter dish name...",
+    "noResults": "No dishes found",
+    "unavailable": "Currently unavailable",
+    "outOfStock": "Out of stock",
+    "spiceLevel": "Spice Level",
+    "dietary": "Dietary",
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "glutenFree": "Gluten Free",
+    "addToCart": "Add to Cart",
+    "customize": "Customize",
+    "itemDetails": "Item Details"
+  },
+  "menuItem": {
+    "title": "Item Details",
+    "description": "Description",
+    "ingredients": "Ingredients",
+    "allergens": "Allergens",
+    "nutritionInfo": "Nutrition Information",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbohydrates",
+    "fat": "Fat",
+    "size": "Size",
+    "options": "Options",
+    "addOns": "Add-ons",
+    "notes": "Special Requests",
+    "notesPlaceholder": "Enter special requests (e.g., no onions)...",
+    "required": "Required",
+    "optional": "Optional",
+    "selectSize": "Please select size",
+    "selectOptions": "Please select required options"
+  },
+  "customization": {
+    "title": "Choose Options",
+    "size": "Size",
+    "options": "Customization Options",
+    "addOns": "Add-ons",
+    "notes": "Notes",
+    "notesPlaceholder": "Enter special requests...",
+    "required": "Required",
+    "priceAdjustment": "Price Adjustment",
+    "totalPrice": "Total Price",
+    "confirmSelection": "Confirm Selection",
+    "invalidSelection": "Please complete required items"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Cart is empty",
+    "emptyDesc": "Go to menu and add some delicious items!",
+    "goToMenu": "Go to Menu",
+    "items": "Items",
+    "itemCount": "{count} item | {count} items",
+    "subtotal": "Subtotal",
+    "serviceCharge": "Service Charge",
+    "tax": "Tax",
+    "discount": "Discount",
+    "total": "Total",
+    "checkout": "Checkout",
+    "continueOrdering": "Continue Ordering",
+    "clear": "Clear Cart",
+    "clearConfirm": "Are you sure you want to clear the cart?",
+    "updateQuantity": "Update Quantity",
+    "remove": "Remove",
+    "addNotes": "Add",
+    "editNotes": "Edit",
+    "hideNotes": "Hide",
+    "notes": "Notes",
+    "itemTotal": "Item Total"
+  },
+  "order": {
+    "title": "Order Confirmation",
+    "orderNumber": "Order Number",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "delivered": "Delivered",
+      "paid": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "tracking": {
+      "title": "Order Tracking",
+      "estimatedTime": "Estimated Time",
+      "currentStatus": "Current Status",
+      "timeline": "Process Timeline",
+      "orderReceived": "Order Received",
+      "confirmed": "Restaurant Confirmed",
+      "preparing": "Being Prepared",
+      "ready": "Ready for Pickup",
+      "served": "Served"
+    },
+    "details": {
+      "customerInfo": "Customer Information",
+      "customerName": "Customer Name",
+      "phone": "Phone",
+      "table": "Table",
+      "orderTime": "Order Time",
+      "items": "Order Items",
+      "notes": "Notes",
+      "payment": "Payment Information"
+    },
+    "actions": {
+      "cancel": "Cancel Order",
+      "reorder": "Reorder",
+      "viewReceipt": "View Receipt",
+      "callService": "Call Service",
+      "feedback": "Feedback"
+    },
+    "placeOrder": "Place Order",
+    "orderPlaced": "Order Placed",
+    "orderPlacedDesc": "Your order has been successfully placed, please wait",
+    "paymentMethod": "Payment Method",
+    "payNow": "Pay Now",
+    "payLater": "Pay Later"
+  },
+  "service": {
+    "title": "Service Request",
+    "requestService": "Request Service",
+    "serviceTypes": {
+      "water": "Water",
+      "napkins": "Napkins",
+      "utensils": "Utensils",
+      "assistance": "Assistance",
+      "bill": "Bill",
+      "other": "Other"
+    },
+    "message": "Message",
+    "messagePlaceholder": "Please describe the service you need...",
+    "priority": "Priority",
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "submit": "Submit Request",
+    "submitted": "Request Submitted",
+    "estimatedResponse": "Estimated Response Time",
+    "minutes": "minutes"
+  },
+  "payment": {
+    "title": "Payment",
+    "methods": {
+      "cash": "Cash",
+      "card": "Credit Card",
+      "online": "Online Payment",
+      "ewallet": "E-wallet"
+    },
+    "selectMethod": "Select Payment Method",
+    "processing": "Processing...",
+    "success": "Payment Successful",
+    "failed": "Payment Failed",
+    "retry": "Retry Payment",
+    "receipt": "Receipt",
+    "downloadReceipt": "Download Receipt"
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "preferences": "Preferences",
+    "language": "Language",
+    "notifications": "Notification Settings",
+    "orderHistory": "Order History",
+    "favorites": "Favorites",
+    "logout": "Logout"
+  },
+  "errors": {
+    "general": "An Error Occurred",
+    "generalDesc": "Sorry, an unexpected error occurred",
+    "network": "Network Connection Failed",
+    "networkDesc": "Please check your network connection",
+    "notFound": "Page Not Found",
+    "notFoundDesc": "Sorry, the page you're looking for doesn't exist or has been removed",
+    "unauthorized": "Unauthorized",
+    "unauthorizedDesc": "You don't have permission to access this page",
+    "serverError": "Server Error",
+    "serverErrorDesc": "The server is temporarily unable to process your request",
+    "timeout": "Request Timeout",
+    "timeoutDesc": "The request took too long to process, please try again",
+    "validation": "Validation Failed",
+    "validationDesc": "Please check if your input data is correct",
+    "restaurantNotFound": "Restaurant Not Found",
+    "tableNotFound": "Table Not Found",
+    "menuNotAvailable": "Menu temporarily unavailable",
+    "orderFailed": "Order Failed",
+    "paymentFailed": "Payment Failed"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email",
+    "phone": "Please enter a valid phone number",
+    "minLength": "At least {min} characters required",
+    "maxLength": "Cannot exceed {max} characters",
+    "numeric": "Please enter numbers only",
+    "positiveNumber": "Please enter a positive number",
+    "invalidFormat": "Invalid format"
+  },
+  "time": {
+    "now": "Now",
+    "minutes": "minutes",
+    "hours": "hours",
+    "days": "days",
+    "ago": "ago",
+    "later": "later",
+    "estimated": "estimated",
+    "actual": "actual"
+  },
+  "restaurant": {
+    "info": "Restaurant Information",
+    "hours": "Business Hours",
+    "address": "Address",
+    "phone": "Phone",
+    "closed": "Closed",
+    "openingSoon": "Opening Soon",
+    "closingSoon": "Closing Soon"
+  },
+  "about": {
+    "title": "About Us",
+    "description": "MakanMakan is a modern restaurant management system dedicated to providing the best dining experience. We use advanced technology to create seamless service experiences for restaurants and customers.",
+    "features": {
+      "title": "Our Services",
+      "qrOrder": "QR Code Ordering",
+      "tracking": "Real-time Order Tracking",
+      "payment": "Multiple Payment Methods",
+      "customization": "Custom Meal Options",
+      "management": "Restaurant Operations Management"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "If you have any questions or suggestions, please feel free to contact us through customer service channels."
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "dataCollection": {
+      "title": "Data Collection",
+      "description": "We only collect necessary data to provide services, including order information, contact details, etc."
+    },
+    "dataUsage": {
+      "title": "Data Usage",
+      "description": "Collected data is only used for order processing, customer service, and service quality improvement."
+    },
+    "dataProtection": {
+      "title": "Data Protection",
+      "description": "We adopt appropriate technical and organizational measures to protect the security of your personal data."
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "If you have any privacy-related questions, please contact us through customer service channels."
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "usage": {
+      "title": "Service Usage",
+      "description": "Using this service means you agree to comply with relevant terms and regulations."
+    },
+    "responsibility": {
+      "title": "User Responsibility",
+      "description": "Users should ensure the accuracy of the information provided and comply with relevant laws and regulations."
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "description": "This service is provided as is, and we do not guarantee the completeness or applicability of the service."
+    },
+    "changes": {
+      "title": "Terms Changes",
+      "description": "We reserve the right to modify these terms at any time, and the modified terms will be published on the website."
+    }
+  }
+}

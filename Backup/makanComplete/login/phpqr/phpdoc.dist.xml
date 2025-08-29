@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpdocumentor>
+    <transformations>
+        <template name="responsive-twig"/>
+		<target>docs</target>
+    </transformations>
+    <files>
+    	<directory>src</directory>
+    </files>
+</phpdocumentor>

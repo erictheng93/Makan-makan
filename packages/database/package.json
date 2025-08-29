@@ -1,0 +1,31 @@
+{
+  "name": "@makanmakan/database",
+  "version": "1.0.0",
+  "description": "Database layer with Drizzle ORM for MakanMakan",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql",
+    "db:migrate:staging": "wrangler d1 migrations apply makanmakan-staging --env staging",
+    "db:migrate:prod": "wrangler d1 migrations apply makanmakan-prod --env production",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.33.0",
+    "@cloudflare/d1": "^1.0.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.24.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "peerDependencies": {
+    "@makanmakan/shared-types": "workspace:*"
+  }
+}

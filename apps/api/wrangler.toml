@@ -1,0 +1,66 @@
+# Cloudflare Workers configuration
+name = "makanmakan-api"
+main = "src/index.ts"
+compatibility_date = "2024-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Variables
+[vars]
+NODE_ENV = "development"
+JWT_SECRET = "your-super-secret-jwt-key-change-in-production"
+API_VERSION = "v1"
+
+# D1 Database bindings
+[[d1_databases]]
+binding = "DB"
+database_name = "makanmakan-local"
+database_id = "local"
+
+# KV namespace for caching
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# R2 bucket for file storage
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "makanmakan-images"
+
+# Durable Objects for real-time features
+[[durable_objects.bindings]]
+name = "REALTIME_ORDERS"
+class_name = "RealtimeOrders"
+
+# Queue for background jobs
+[[queues.producers]]
+binding = "JOB_QUEUE"
+queue = "makanmakan-jobs"
+
+# Staging environment
+[env.staging]
+name = "makanmakan-api-staging"
+vars = { NODE_ENV = "staging", API_VERSION = "v1" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-staging"
+database_id = "your-staging-d1-database-id"
+
+# Production environment  
+[env.production]
+name = "makanmakan-api-prod"
+vars = { NODE_ENV = "production", API_VERSION = "v1" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-prod"
+database_id = "your-production-d1-database-id"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Limits and performance
+[limits]
+cpu_ms = 1000

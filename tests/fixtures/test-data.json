@@ -1,0 +1,316 @@
+{
+  "restaurants": [
+    {
+      "id": "test-restaurant-123",
+      "name": "美味餐廳",
+      "description": "E2E 測試專用餐廳",
+      "address": "台北市信義區測試路 123 號",
+      "phone": "02-1234-5678",
+      "settings": {
+        "accepting_orders": true,
+        "estimated_prep_time": 15,
+        "tax_rate": 0.1
+      }
+    }
+  ],
+  
+  "categories": [
+    {
+      "id": 1,
+      "restaurant_id": "test-restaurant-123",
+      "name": "主食",
+      "display_order": 1,
+      "active": true
+    },
+    {
+      "id": 2,
+      "restaurant_id": "test-restaurant-123", 
+      "name": "飲料",
+      "display_order": 2,
+      "active": true
+    },
+    {
+      "id": 3,
+      "restaurant_id": "test-restaurant-123",
+      "name": "甜點",
+      "display_order": 3,
+      "active": true
+    }
+  ],
+
+  "menu_items": [
+    {
+      "id": 1,
+      "restaurant_id": "test-restaurant-123",
+      "category_id": 1,
+      "name": "紅燒牛肉麵",
+      "description": "香濃湯頭配軟嫩牛肉，經典台式口味",
+      "price": 180,
+      "image_url": "/images/test/beef-noodles.jpg",
+      "available": true,
+      "preparation_time": 12,
+      "customization_options": [
+        {
+          "id": 1,
+          "name": "辣度",
+          "type": "radio",
+          "required": false,
+          "options": [
+            {"value": "mild", "label": "小辣", "price": 0},
+            {"value": "medium", "label": "中辣", "price": 0},
+            {"value": "hot", "label": "大辣", "price": 0}
+          ]
+        },
+        {
+          "id": 2,
+          "name": "額外配料",
+          "type": "checkbox",
+          "required": false,
+          "options": [
+            {"value": "cheese", "label": "加起司", "price": 20},
+            {"value": "egg", "label": "加蛋", "price": 15},
+            {"value": "vegetables", "label": "加青菜", "price": 10}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "restaurant_id": "test-restaurant-123",
+      "category_id": 1,
+      "name": "招牌排骨飯",
+      "description": "酥脆排骨配滷蛋青菜，古早味便當",
+      "price": 150,
+      "image_url": "/images/test/pork-rice.jpg",
+      "available": true,
+      "preparation_time": 8,
+      "customization_options": []
+    },
+    {
+      "id": 3,
+      "restaurant_id": "test-restaurant-123",
+      "category_id": 2,
+      "name": "珍珠奶茶",
+      "description": "經典珍珠奶茶，QQ珍珠配濃郁奶香",
+      "price": 60,
+      "image_url": "/images/test/bubble-tea.jpg",
+      "available": true,
+      "preparation_time": 5,
+      "customization_options": [
+        {
+          "id": 3,
+          "name": "甜度",
+          "type": "radio",
+          "required": true,
+          "options": [
+            {"value": "no_sugar", "label": "無糖", "price": 0},
+            {"value": "half_sugar", "label": "半糖", "price": 0},
+            {"value": "full_sugar", "label": "全糖", "price": 0}
+          ]
+        },
+        {
+          "id": 4,
+          "name": "冰塊",
+          "type": "radio",
+          "required": true,
+          "options": [
+            {"value": "no_ice", "label": "去冰", "price": 0},
+            {"value": "less_ice", "label": "少冰", "price": 0},
+            {"value": "normal_ice", "label": "正常冰", "price": 0}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "restaurant_id": "test-restaurant-123",
+      "category_id": 3,
+      "name": "招牌提拉米蘇",
+      "description": "義式經典甜點，濃郁咖啡香",
+      "price": 120,
+      "image_url": "/images/test/tiramisu.jpg",
+      "available": false,
+      "preparation_time": 3,
+      "customization_options": []
+    }
+  ],
+
+  "tables": [
+    {
+      "id": 1,
+      "restaurant_id": "test-restaurant-123",
+      "number": "1",
+      "seats": 4,
+      "active": true,
+      "qr_code_url": "/qr/test-restaurant-123/table-1.png"
+    },
+    {
+      "id": 2,
+      "restaurant_id": "test-restaurant-123",
+      "number": "2", 
+      "seats": 2,
+      "active": true,
+      "qr_code_url": "/qr/test-restaurant-123/table-2.png"
+    },
+    {
+      "id": 3,
+      "restaurant_id": "test-restaurant-123",
+      "number": "VIP-1",
+      "seats": 8,
+      "active": true,
+      "qr_code_url": "/qr/test-restaurant-123/table-vip-1.png"
+    }
+  ],
+
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@test-restaurant.com",
+      "password": "hashed_password_here",
+      "name": "測試管理員",
+      "role": 0,
+      "restaurant_id": "test-restaurant-123",
+      "active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "email": "owner@test-restaurant.com", 
+      "password": "hashed_password_here",
+      "name": "測試店主",
+      "role": 1,
+      "restaurant_id": "test-restaurant-123",
+      "active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "email": "chef@test-restaurant.com",
+      "password": "hashed_password_here",
+      "name": "測試廚師",
+      "role": 2,
+      "restaurant_id": "test-restaurant-123",
+      "active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "test_orders": [
+    {
+      "id": "test-order-001",
+      "restaurant_id": "test-restaurant-123",
+      "table_id": 1,
+      "customer_name": "測試顧客一",
+      "customer_phone": "0912345678",
+      "customer_email": "test1@example.com",
+      "status": "pending",
+      "items": [
+        {
+          "menu_item_id": 1,
+          "quantity": 2,
+          "unit_price": 180,
+          "customizations": {
+            "spice_level": "medium",
+            "extras": ["cheese"]
+          },
+          "special_notes": "少油"
+        },
+        {
+          "menu_item_id": 3,
+          "quantity": 1,
+          "unit_price": 60,
+          "customizations": {
+            "sweetness": "half_sugar",
+            "ice_level": "less_ice"
+          }
+        }
+      ],
+      "subtotal": 420,
+      "tax": 42,
+      "total": 462,
+      "notes": "測試訂單備註",
+      "created_at": "2024-01-15T12:30:00Z"
+    },
+    {
+      "id": "test-order-002",
+      "restaurant_id": "test-restaurant-123",
+      "table_id": 2,
+      "customer_name": "測試顧客二",
+      "customer_phone": "0987654321",
+      "status": "confirmed",
+      "items": [
+        {
+          "menu_item_id": 2,
+          "quantity": 1,
+          "unit_price": 150,
+          "customizations": {},
+          "special_notes": ""
+        }
+      ],
+      "subtotal": 150,
+      "tax": 15,
+      "total": 165,
+      "created_at": "2024-01-15T13:00:00Z",
+      "confirmed_at": "2024-01-15T13:01:00Z"
+    }
+  ],
+
+  "api_responses": {
+    "menu_success": {
+      "success": true,
+      "data": {
+        "restaurant": {
+          "id": "test-restaurant-123",
+          "name": "美味餐廳"
+        },
+        "categories": "{{categories}}",
+        "items": "{{menu_items}}"
+      }
+    },
+    "order_success": {
+      "success": true,
+      "data": {
+        "order_id": "{{generated_order_id}}",
+        "status": "pending",
+        "estimated_time": 15
+      }
+    },
+    "error_400": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "請求資料驗證失敗",
+        "details": []
+      }
+    },
+    "error_404": {
+      "success": false,
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "找不到指定的資源"
+      }
+    },
+    "error_500": {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_ERROR", 
+        "message": "伺服器內部錯誤，請稍後再試"
+      }
+    }
+  },
+
+  "performance_benchmarks": {
+    "page_load_time": {
+      "target": 3000,
+      "warning": 2000
+    },
+    "api_response_time": {
+      "target": 1000,
+      "warning": 500
+    },
+    "image_load_time": {
+      "target": 2000,
+      "warning": 1000
+    }
+  }
+}

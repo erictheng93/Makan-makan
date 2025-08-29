@@ -1,0 +1,345 @@
+name: 🧪 MakanMakan 測試流水線
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '10'
+
+jobs:
+  # 程式碼品質檢查
+  lint-and-typecheck:
+    name: 📝 程式碼檢查
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🔍 ESLint 檢查
+        run: pnpm run lint
+        
+      - name: 🎯 TypeScript 型別檢查
+        run: pnpm run typecheck
+        
+      - name: 💅 Prettier 格式檢查
+        run: pnpm exec prettier --check "**/*.{ts,js,vue,json,md}"
+
+  # 單元測試
+  unit-tests:
+    name: 🧪 單元測試
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🧪 執行單元測試
+        run: pnpm run test:unit
+        
+      - name: 📊 產生覆蓋率報告
+        run: pnpm run test:coverage
+        
+      - name: ☂️ 上傳覆蓋率到 Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          flags: unit-tests
+          name: unit-tests-node-${{ matrix.node-version }}
+          
+      - name: 📎 上傳測試結果
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results-node-${{ matrix.node-version }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  # Cloudflare Workers 測試
+  workers-tests:
+    name: ⚡ Workers 測試
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🔧 安裝 Wrangler CLI
+        run: pnpm add -g wrangler
+        
+      - name: ⚡ 測試 Cloudflare Workers
+        run: pnpm run test:workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
+      - name: 📊 Workers 整合測試
+        run: pnpm run test:workers:integration
+        env:
+          TEST_D1_DATABASE: ${{ secrets.TEST_D1_DATABASE }}
+          TEST_KV_NAMESPACE: ${{ secrets.TEST_KV_NAMESPACE }}
+
+  # E2E 測試
+  e2e-tests:
+    name: 🎭 E2E 測試
+    runs-on: ubuntu-latest
+    needs: [unit-tests, workers-tests]
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🎭 安裝 Playwright
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        
+      - name: 🏗️ 建置應用程式
+        run: pnpm run build
+        
+      - name: 🚀 啟動測試服務器
+        run: |
+          pnpm run preview &
+          echo $! > server.pid
+          
+      - name: ⏳ 等待服務器啟動
+        run: npx wait-on http://localhost:4173 --timeout 60000
+        
+      - name: 🧪 執行 E2E 測試 (${{ matrix.browser }})
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          E2E_BASE_URL: http://localhost:4173
+          
+      - name: 🛑 停止測試服務器
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+            rm server.pid
+          fi
+          
+      - name: 📎 上傳測試報告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 7
+          
+      - name: 📸 上傳測試截圖
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 7
+
+  # 效能測試
+  performance-tests:
+    name: 🚀 效能測試
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🏗️ 建置應用程式
+        run: pnpm run build
+        
+      - name: 🚀 效能測試 (Lighthouse CI)
+        run: |
+          pnpm add -g @lhci/cli@0.12.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # 安全性測試
+  security-tests:
+    name: 🔐 安全性測試
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔍 依賴漏洞掃描
+        run: pnpm audit --audit-level high
+        
+      - name: 🔒 CodeQL 分析
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          
+      - name: 🔍 執行 CodeQL 分析
+        uses: github/codeql-action/analyze@v3
+
+  # 測試結果彙總
+  test-summary:
+    name: 📊 測試結果彙總
+    runs-on: ubuntu-latest
+    needs: [unit-tests, workers-tests, e2e-tests]
+    if: always()
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 📥 下載測試結果
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+          
+      - name: 📊 產生測試報告
+        run: |
+          echo "## 🧪 測試結果摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 檢查各項測試狀態
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "✅ 單元測試: 通過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ 單元測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.workers-tests.result }}" == "success" ]; then
+            echo "✅ Workers 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ E2E 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ E2E 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📎 測試報告和截圖請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
+
+  # 部署到測試環境 (僅在所有測試通過時)
+  deploy-staging:
+    name: 🚀 部署到測試環境
+    runs-on: ubuntu-latest
+    needs: [unit-tests, workers-tests, e2e-tests, security-tests]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+        
+      - name: 🏗️ 建置應用程式
+        run: pnpm run build
+        
+      - name: 🚀 部署到 Cloudflare (Staging)
+        run: pnpm run deploy:staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
+      - name: 🧪 部署後煙霧測試
+        run: npm run test:smoke:staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}

@@ -1,0 +1,75 @@
+name = "makanmakan-image-processor"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Images API configuration
+[vars]
+IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
+MAX_IMAGE_SIZE_MB = "10"
+ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
+
+# Image variants configuration
+DEFAULT_VARIANTS = "thumbnail,small,medium,large,original"
+THUMBNAIL_SIZE = "150x150"
+SMALL_SIZE = "300x300"
+MEDIUM_SIZE = "600x600"
+LARGE_SIZE = "1200x1200"
+
+# Security settings
+MAX_UPLOADS_PER_MINUTE = "20"
+MAX_TRANSFORMS_PER_MINUTE = "100"
+
+[env.staging]
+name = "makanmakan-image-processor-staging"
+
+[env.staging.vars]
+NODE_ENV = "staging"
+API_VERSION = "v1"
+
+[[env.staging.r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "makanmakan-images-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "IMAGE_CACHE"
+id = "your_staging_kv_namespace_id"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-staging"
+database_id = "your_staging_db_id"
+
+[env.production]
+name = "makanmakan-image-processor-prod"
+
+[env.production.vars]
+NODE_ENV = "production"
+API_VERSION = "v1"
+
+[[env.production.r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "makanmakan-images-prod"
+
+[[env.production.kv_namespaces]]
+binding = "IMAGE_CACHE"
+id = "your_production_kv_namespace_id"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-prod"
+database_id = "your_production_db_id"
+
+# Development environment
+[[kv_namespaces]]
+binding = "IMAGE_CACHE"
+id = "your_dev_kv_namespace_id"
+
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "makanmakan-images-dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "makanmakan-local"
+database_id = "your_local_db_id"

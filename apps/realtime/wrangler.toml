@@ -1,0 +1,37 @@
+name = "makanmakan-realtime"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[durable_objects]
+bindings = [
+  { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeSession"]
+
+[env.staging]
+name = "makanmakan-realtime-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-staging"
+database_id = "staging-db-id"
+
+[[env.staging.kv_namespaces]]
+binding = "CACHE"
+id = "staging-cache-id"
+
+[env.production]
+name = "makanmakan-realtime-prod"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-prod"
+database_id = "prod-db-id"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "prod-cache-id"

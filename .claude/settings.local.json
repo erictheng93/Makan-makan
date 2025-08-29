@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install)",
+      "Bash(npx typescript:*)",
+      "Bash(npm install:*)",
+      "Bash(tsc --noEmit)",
+      "Bash(tsc:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm update:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)",
+      "Bash(find:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(cat:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm run test:unit:*)",
+      "Bash(npx tsc:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

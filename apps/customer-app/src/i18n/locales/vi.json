@@ -1,0 +1,354 @@
+{
+  "common": {
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước đó",
+    "close": "Đóng",
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "success": "Thành công",
+    "warning": "Cảnh báo",
+    "info": "Thông tin",
+    "retry": "Thử lại",
+    "home": "Trang chủ",
+    "menu": "Thực đơn",
+    "cart": "Giỏ hàng",
+    "order": "Đơn hàng",
+    "total": "Tổng cộng",
+    "subtotal": "Tạm tính",
+    "quantity": "Số lượng",
+    "price": "Giá",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "sort": "Sắp xếp",
+    "clear": "Xóa",
+    "apply": "Áp dụng",
+    "reset": "Đặt lại"
+  },
+  "navigation": {
+    "home": "Trang chủ",
+    "menu": "Thực đơn",
+    "cart": "Giỏ hàng",
+    "orders": "Đơn hàng",
+    "profile": "Hồ sơ",
+    "about": "Về chúng tôi",
+    "privacy": "Chính sách bảo mật",
+    "terms": "Điều khoản dịch vụ",
+    "contact": "Liên hệ",
+    "help": "Trung tâm trợ giúp"
+  },
+  "home": {
+    "title": "Chào mừng đến với MakanMakan",
+    "subtitle": "Quét mã QR để bắt đầu đặt món",
+    "scanQR": "Quét mã QR",
+    "manualInput": "Nhập thủ công",
+    "restaurantId": "Mã nhà hàng",
+    "tableId": "Số bàn",
+    "recentOrders": "Đơn hàng gần đây",
+    "noRecentOrders": "Không có đơn hàng gần đây",
+    "features": {
+      "title": "Tính năng của chúng tôi",
+      "qrOrder": "Đặt món bằng mã QR",
+      "qrOrderDesc": "Quét mã QR trên bàn để bắt đầu đặt món",
+      "realtime": "Theo dõi thời gian thực",
+      "realtimeDesc": "Theo dõi tình trạng đơn hàng theo thời gian thực",
+      "payment": "Nhiều hình thức thanh toán",
+      "paymentDesc": "Hỗ trợ tiền mặt, thẻ tín dụng và nhiều phương thức thanh toán khác"
+    }
+  },
+  "qrScan": {
+    "title": "Quét mã QR",
+    "instruction": "Hướng camera về phía mã QR trên bàn",
+    "permissionDenied": "Cần quyền truy cập camera để quét mã QR",
+    "allowCamera": "Cho phép quyền truy cập camera",
+    "invalidQR": "Mã QR không hợp lệ",
+    "scanError": "Quét thất bại, vui lòng thử lại",
+    "manualInput": "Nhập thủ công mã nhà hàng và số bàn"
+  },
+  "menu": {
+    "title": "Thực đơn",
+    "categories": "Danh mục",
+    "allCategories": "Tất cả danh mục",
+    "featured": "Đề xuất đặc biệt",
+    "popular": "Món phổ biến",
+    "search": "Tìm kiếm món ăn",
+    "searchPlaceholder": "Nhập tên món ăn...",
+    "noResults": "Không tìm thấy món ăn nào",
+    "unavailable": "Hiện không có sẵn",
+    "outOfStock": "Hết hàng",
+    "spiceLevel": "Độ cay",
+    "dietary": "Chế độ ăn",
+    "vegetarian": "Chay",
+    "vegan": "Thuần chay",
+    "glutenFree": "Không chứa gluten",
+    "addToCart": "Thêm vào giỏ hàng",
+    "customize": "Tùy chỉnh",
+    "itemDetails": "Chi tiết món ăn"
+  },
+  "menuItem": {
+    "title": "Chi tiết món ăn",
+    "description": "Mô tả",
+    "ingredients": "Thành phần",
+    "allergens": "Chất gây dị ứng",
+    "nutritionInfo": "Thông tin dinh dưỡng",
+    "calories": "Calo",
+    "protein": "Protein",
+    "carbs": "Carbohydrate",
+    "fat": "Chất béo",
+    "size": "Kích cỡ",
+    "options": "Tùy chọn",
+    "addOns": "Món thêm",
+    "notes": "Yêu cầu đặc biệt",
+    "notesPlaceholder": "Nhập yêu cầu đặc biệt (ví dụ: không hành)...",
+    "required": "Bắt buộc",
+    "optional": "Tùy chọn",
+    "selectSize": "Vui lòng chọn kích cỡ",
+    "selectOptions": "Vui lòng chọn các tùy chọn bắt buộc"
+  },
+  "customization": {
+    "title": "Chọn tùy chọn",
+    "size": "Kích cỡ",
+    "options": "Tùy chọn tùy chỉnh",
+    "addOns": "Món thêm",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Nhập yêu cầu đặc biệt...",
+    "required": "Bắt buộc",
+    "priceAdjustment": "Điều chỉnh giá",
+    "totalPrice": "Tổng giá",
+    "confirmSelection": "Xác nhận lựa chọn",
+    "invalidSelection": "Vui lòng hoàn thành các mục bắt buộc"
+  },
+  "cart": {
+    "title": "Giỏ hàng",
+    "empty": "Giỏ hàng trống",
+    "emptyDesc": "Hãy đi đến thực đơn và thêm một số món ngon!",
+    "goToMenu": "Đi đến thực đơn",
+    "items": "Món ăn",
+    "itemCount": "{count} món ăn",
+    "subtotal": "Tạm tính",
+    "serviceCharge": "Phí dịch vụ",
+    "tax": "Thuế",
+    "discount": "Giảm giá",
+    "total": "Tổng cộng",
+    "checkout": "Thanh toán",
+    "continueOrdering": "Tiếp tục đặt món",
+    "clear": "Xóa giỏ hàng",
+    "clearConfirm": "Bạn có chắc chắn muốn xóa giỏ hàng?",
+    "updateQuantity": "Cập nhật số lượng",
+    "remove": "Xóa",
+    "addNotes": "Thêm",
+    "editNotes": "Chỉnh sửa",
+    "hideNotes": "Ẩn",
+    "notes": "Ghi chú",
+    "itemTotal": "Tổng cộng món"
+  },
+  "order": {
+    "title": "Xác nhận đơn hàng",
+    "orderNumber": "Số đơn hàng",
+    "status": {
+      "pending": "Đang chờ",
+      "confirmed": "Đã xác nhận",
+      "preparing": "Đang chuẩn bị",
+      "ready": "Sẵn sàng",
+      "delivered": "Đã giao",
+      "paid": "Đã hoàn thành",
+      "cancelled": "Đã hủy"
+    },
+    "tracking": {
+      "title": "Theo dõi đơn hàng",
+      "estimatedTime": "Thời gian dự kiến",
+      "currentStatus": "Tình trạng hiện tại",
+      "timeline": "Quy trình xử lý",
+      "orderReceived": "Đã nhận đơn hàng",
+      "confirmed": "Nhà hàng đã xác nhận",
+      "preparing": "Đang chuẩn bị",
+      "ready": "Món ăn đã sẵn sàng",
+      "served": "Đã phục vụ"
+    },
+    "details": {
+      "customerInfo": "Thông tin khách hàng",
+      "customerName": "Tên khách hàng",
+      "phone": "Điện thoại",
+      "table": "Số bàn",
+      "orderTime": "Thời gian đặt hàng",
+      "items": "Món đã đặt",
+      "notes": "Ghi chú",
+      "payment": "Thông tin thanh toán"
+    },
+    "actions": {
+      "cancel": "Hủy đơn hàng",
+      "reorder": "Đặt lại",
+      "viewReceipt": "Xem hóa đơn",
+      "callService": "Gọi phục vụ",
+      "feedback": "Phản hồi"
+    },
+    "placeOrder": "Đặt hàng",
+    "orderPlaced": "Đã đặt hàng",
+    "orderPlacedDesc": "Đơn hàng của bạn đã được đặt thành công, vui lòng chờ",
+    "paymentMethod": "Phương thức thanh toán",
+    "payNow": "Thanh toán ngay",
+    "payLater": "Thanh toán sau"
+  },
+  "service": {
+    "title": "Yêu cầu dịch vụ",
+    "requestService": "Yêu cầu dịch vụ",
+    "serviceTypes": {
+      "water": "Nước",
+      "napkins": "Khăn giấy",
+      "utensils": "Dụng cụ ăn",
+      "assistance": "Hỗ trợ",
+      "bill": "Hóa đơn",
+      "other": "Khác"
+    },
+    "message": "Tin nhắn",
+    "messagePlaceholder": "Vui lòng mô tả dịch vụ bạn cần...",
+    "priority": "Độ ưu tiên",
+    "priorities": {
+      "low": "Thấp",
+      "normal": "Bình thường",
+      "high": "Cao",
+      "urgent": "Khẩn cấp"
+    },
+    "submit": "Gửi yêu cầu",
+    "submitted": "Đã gửi yêu cầu",
+    "estimatedResponse": "Thời gian phản hồi dự kiến",
+    "minutes": "phút"
+  },
+  "payment": {
+    "title": "Thanh toán",
+    "methods": {
+      "cash": "Tiền mặt",
+      "card": "Thẻ tín dụng",
+      "online": "Thanh toán trực tuyến",
+      "ewallet": "Ví điện tử"
+    },
+    "selectMethod": "Chọn phương thức thanh toán",
+    "processing": "Đang xử lý...",
+    "success": "Thanh toán thành công",
+    "failed": "Thanh toán thất bại",
+    "retry": "Thử thanh toán lại",
+    "receipt": "Hóa đơn",
+    "downloadReceipt": "Tải hóa đơn"
+  },
+  "profile": {
+    "title": "Hồ sơ",
+    "name": "Tên",
+    "email": "Email",
+    "phone": "Điện thoại",
+    "preferences": "Tùy chọn",
+    "language": "Ngôn ngữ",
+    "notifications": "Cài đặt thông báo",
+    "orderHistory": "Lịch sử đơn hàng",
+    "favorites": "Yêu thích",
+    "logout": "Đăng xuất"
+  },
+  "errors": {
+    "general": "Đã xảy ra lỗi",
+    "generalDesc": "Xin lỗi, đã xảy ra lỗi không mong muốn",
+    "network": "Kết nối mạng thất bại",
+    "networkDesc": "Vui lòng kiểm tra kết nối mạng của bạn",
+    "notFound": "Không tìm thấy trang",
+    "notFoundDesc": "Xin lỗi, trang bạn tìm kiếm không tồn tại hoặc đã bị xóa",
+    "unauthorized": "Không có quyền",
+    "unauthorizedDesc": "Bạn không có quyền truy cập trang này",
+    "serverError": "Lỗi máy chủ",
+    "serverErrorDesc": "Máy chủ tạm thời không thể xử lý yêu cầu của bạn",
+    "timeout": "Hết thời gian chờ",
+    "timeoutDesc": "Yêu cầu xử lý quá lâu, vui lòng thử lại",
+    "validation": "Xác thực dữ liệu thất bại",
+    "validationDesc": "Vui lòng kiểm tra xem dữ liệu đầu vào của bạn có đúng không",
+    "restaurantNotFound": "Không tìm thấy nhà hàng",
+    "tableNotFound": "Không tìm thấy bàn",
+    "menuNotAvailable": "Thực đơn tạm thời không có sẵn",
+    "orderFailed": "Đặt hàng thất bại",
+    "paymentFailed": "Thanh toán thất bại"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "email": "Vui lòng nhập email hợp lệ",
+    "phone": "Vui lòng nhập số điện thoại hợp lệ",
+    "minLength": "Ít nhất {min} ký tự là bắt buộc",
+    "maxLength": "Không thể vượt quá {max} ký tự",
+    "numeric": "Vui lòng chỉ nhập số",
+    "positiveNumber": "Vui lòng nhập số dương",
+    "invalidFormat": "Định dạng không hợp lệ"
+  },
+  "time": {
+    "now": "Bây giờ",
+    "minutes": "phút",
+    "hours": "giờ",
+    "days": "ngày",
+    "ago": "trước",
+    "later": "sau",
+    "estimated": "dự kiến",
+    "actual": "thực tế"
+  },
+  "restaurant": {
+    "info": "Thông tin nhà hàng",
+    "hours": "Giờ hoạt động",
+    "address": "Địa chỉ",
+    "phone": "Điện thoại",
+    "closed": "Đóng cửa",
+    "openingSoon": "Sắp mở cửa",
+    "closingSoon": "Sắp đóng cửa"
+  },
+  "about": {
+    "title": "Về chúng tôi",
+    "description": "MakanMakan là một hệ thống quản lý nhà hàng hiện đại, cam kết mang đến trải nghiệm ăn uống tốt nhất. Chúng tôi sử dụng công nghệ tiên tiến để tạo ra trải nghiệm dịch vụ liền mạch cho nhà hàng và khách hàng.",
+    "features": {
+      "title": "Dịch vụ của chúng tôi",
+      "qrOrder": "Đặt món bằng mã QR",
+      "tracking": "Theo dõi đơn hàng theo thời gian thực",
+      "payment": "Nhiều phương thức thanh toán",
+      "customization": "Tùy chọn món ăn tùy chỉnh",
+      "management": "Quản lý vận hành nhà hàng"
+    },
+    "contact": {
+      "title": "Liên hệ với chúng tôi",
+      "description": "Nếu bạn có bất kỳ câu hỏi hoặc đề xuất nào, vui lòng liên hệ với chúng tôi qua các kênh chăm sóc khách hàng."
+    }
+  },
+  "privacy": {
+    "title": "Chính sách bảo mật",
+    "dataCollection": {
+      "title": "Thu thập dữ liệu",
+      "description": "Chúng tôi chỉ thu thập dữ liệu cần thiết để cung cấp dịch vụ, bao gồm thông tin đơn hàng, chi tiết liên hệ, v.v."
+    },
+    "dataUsage": {
+      "title": "Sử dụng dữ liệu",
+      "description": "Dữ liệu được thu thập chỉ được sử dụng để xử lý đơn hàng, cung cấp dịch vụ khách hàng và cải thiện chất lượng dịch vụ."
+    },
+    "dataProtection": {
+      "title": "Bảo vệ dữ liệu",
+      "description": "Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức thích hợp để bảo vệ an toàn dữ liệu cá nhân của bạn."
+    },
+    "contact": {
+      "title": "Liên hệ với chúng tôi",
+      "description": "Nếu bạn có bất kỳ câu hỏi nào liên quan đến quyền riêng tư, vui lòng liên hệ với chúng tôi qua các kênh chăm sóc khách hàng."
+    }
+  },
+  "terms": {
+    "title": "Điều khoản dịch vụ",
+    "usage": {
+      "title": "Sử dụng dịch vụ",
+      "description": "Việc sử dụng dịch vụ này có nghĩa là bạn đồng ý tuân thủ các điều khoản và quy định có liên quan."
+    },
+    "responsibility": {
+      "title": "Trách nhiệm người dùng",
+      "description": "Người dùng phải đảm bảo tính chính xác của thông tin được cung cấp và tuân thủ các luật và quy định có liên quan."
+    },
+    "disclaimer": {
+      "title": "Từ chối trách nhiệm",
+      "description": "Dịch vụ này được cung cấp như hiện tại, chúng tôi không đảm bảo về tính đầy đủ hoặc khả năng áp dụng của dịch vụ."
+    },
+    "changes": {
+      "title": "Thay đổi điều khoản",
+      "description": "Chúng tôi có quyền sửa đổi các điều khoản này bất cứ lúc nào, các điều khoản đã sửa đổi sẽ được công bố trên trang web."
+    }
+  }
+}

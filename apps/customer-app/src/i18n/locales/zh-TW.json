@@ -1,0 +1,354 @@
+{
+  "common": {
+    "confirm": "確認",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "close": "關閉",
+    "loading": "載入中...",
+    "error": "錯誤",
+    "success": "成功",
+    "warning": "警告",
+    "info": "資訊",
+    "retry": "重試",
+    "home": "首頁",
+    "menu": "菜單",
+    "cart": "購物車",
+    "order": "訂單",
+    "total": "總計",
+    "subtotal": "小計",
+    "quantity": "數量",
+    "price": "價格",
+    "search": "搜尋",
+    "filter": "篩選",
+    "sort": "排序",
+    "clear": "清除",
+    "apply": "套用",
+    "reset": "重設"
+  },
+  "navigation": {
+    "home": "首頁",
+    "menu": "菜單",
+    "cart": "購物車",
+    "orders": "訂單",
+    "profile": "個人資料",
+    "about": "關於我們",
+    "privacy": "隱私權政策",
+    "terms": "服務條款",
+    "contact": "聯絡我們",
+    "help": "幫助中心"
+  },
+  "home": {
+    "title": "歡迎來到 MakanMakan",
+    "subtitle": "掃描 QR Code 開始點餐",
+    "scanQR": "掃描 QR Code",
+    "manualInput": "手動輸入",
+    "restaurantId": "餐廳編號",
+    "tableId": "桌號",
+    "recentOrders": "最近訂單",
+    "noRecentOrders": "尚無最近訂單",
+    "features": {
+      "title": "服務特色",
+      "qrOrder": "QR Code 點餐",
+      "qrOrderDesc": "掃描桌上 QR Code 即可開始點餐",
+      "realtime": "即時追蹤",
+      "realtimeDesc": "即時查看訂單製作進度",
+      "payment": "多種付款",
+      "paymentDesc": "支援現金、信用卡等多種付款方式"
+    }
+  },
+  "qrScan": {
+    "title": "掃描 QR Code",
+    "instruction": "將相機對準桌上的 QR Code",
+    "permissionDenied": "需要相機權限才能掃描 QR Code",
+    "allowCamera": "允許相機權限",
+    "invalidQR": "無效的 QR Code",
+    "scanError": "掃描失敗，請重試",
+    "manualInput": "手動輸入餐廳和桌號"
+  },
+  "menu": {
+    "title": "菜單",
+    "categories": "分類",
+    "allCategories": "全部分類",
+    "featured": "招牌推薦",
+    "popular": "熱門商品",
+    "search": "搜尋菜品",
+    "searchPlaceholder": "請輸入菜品名稱...",
+    "noResults": "沒有找到相關菜品",
+    "unavailable": "暫時無法提供",
+    "outOfStock": "已售完",
+    "spiceLevel": "辣度",
+    "dietary": "飲食偏好",
+    "vegetarian": "素食",
+    "vegan": "純素",
+    "glutenFree": "無麩質",
+    "addToCart": "加入購物車",
+    "customize": "客製化",
+    "itemDetails": "商品詳情"
+  },
+  "menuItem": {
+    "title": "商品詳情",
+    "description": "商品描述",
+    "ingredients": "成分",
+    "allergens": "過敏原",
+    "nutritionInfo": "營養資訊",
+    "calories": "卡路里",
+    "protein": "蛋白質",
+    "carbs": "碳水化合物",
+    "fat": "脂肪",
+    "size": "尺寸",
+    "options": "選項",
+    "addOns": "加購項目",
+    "notes": "特殊需求",
+    "notesPlaceholder": "請輸入特殊需求（如：不要洋蔥）...",
+    "required": "必選",
+    "optional": "可選",
+    "selectSize": "請選擇尺寸",
+    "selectOptions": "請選擇必要選項"
+  },
+  "customization": {
+    "title": "選擇規格",
+    "size": "尺寸",
+    "options": "客製化選項",
+    "addOns": "加購項目",
+    "notes": "備註",
+    "notesPlaceholder": "請輸入特殊需求...",
+    "required": "必選",
+    "priceAdjustment": "價格調整",
+    "totalPrice": "總價格",
+    "confirmSelection": "確認選擇",
+    "invalidSelection": "請完成必選項目"
+  },
+  "cart": {
+    "title": "購物車",
+    "empty": "購物車是空的",
+    "emptyDesc": "快去菜單看看有什麼好吃的吧！",
+    "goToMenu": "前往菜單",
+    "items": "商品",
+    "itemCount": "{count} 項商品",
+    "subtotal": "小計",
+    "serviceCharge": "服務費",
+    "tax": "稅費",
+    "discount": "折扣",
+    "total": "總計",
+    "checkout": "結帳",
+    "continueOrdering": "繼續點餐",
+    "clear": "清空購物車",
+    "clearConfirm": "確定要清空購物車嗎？",
+    "updateQuantity": "更新數量",
+    "remove": "移除",
+    "addNotes": "新增",
+    "editNotes": "編輯",
+    "hideNotes": "收起",
+    "notes": "備註",
+    "itemTotal": "項目總計"
+  },
+  "order": {
+    "title": "訂單確認",
+    "orderNumber": "訂單編號",
+    "status": {
+      "pending": "待確認",
+      "confirmed": "已確認",
+      "preparing": "製作中",
+      "ready": "準備完成",
+      "delivered": "已送達",
+      "paid": "已完成",
+      "cancelled": "已取消"
+    },
+    "tracking": {
+      "title": "訂單追蹤",
+      "estimatedTime": "預估時間",
+      "currentStatus": "目前狀態",
+      "timeline": "處理流程",
+      "orderReceived": "訂單已接收",
+      "confirmed": "餐廳已確認",
+      "preparing": "正在製作中",
+      "ready": "餐點準備完成",
+      "served": "已送達"
+    },
+    "details": {
+      "customerInfo": "顧客資訊",
+      "customerName": "顧客姓名",
+      "phone": "聯絡電話",
+      "table": "桌號",
+      "orderTime": "下單時間",
+      "items": "訂購項目",
+      "notes": "備註",
+      "payment": "付款資訊"
+    },
+    "actions": {
+      "cancel": "取消訂單",
+      "reorder": "再次訂購",
+      "viewReceipt": "查看收據",
+      "callService": "呼叫服務",
+      "feedback": "意見回饋"
+    },
+    "placeOrder": "送出訂單",
+    "orderPlaced": "訂單已送出",
+    "orderPlacedDesc": "您的訂單已成功送出，請耐心等候",
+    "paymentMethod": "付款方式",
+    "payNow": "立即付款",
+    "payLater": "稍後付款"
+  },
+  "service": {
+    "title": "服務請求",
+    "requestService": "呼叫服務",
+    "serviceTypes": {
+      "water": "加水",
+      "napkins": "紙巾",
+      "utensils": "餐具",
+      "assistance": "協助",
+      "bill": "結帳",
+      "other": "其他"
+    },
+    "message": "留言",
+    "messagePlaceholder": "請描述您需要的服務...",
+    "priority": "優先級",
+    "priorities": {
+      "low": "一般",
+      "normal": "普通",
+      "high": "優先",
+      "urgent": "緊急"
+    },
+    "submit": "發送請求",
+    "submitted": "請求已發送",
+    "estimatedResponse": "預估回應時間",
+    "minutes": "分鐘"
+  },
+  "payment": {
+    "title": "付款",
+    "methods": {
+      "cash": "現金",
+      "card": "信用卡",
+      "online": "線上付款",
+      "ewallet": "電子錢包"
+    },
+    "selectMethod": "選擇付款方式",
+    "processing": "處理中...",
+    "success": "付款成功",
+    "failed": "付款失敗",
+    "retry": "重新付款",
+    "receipt": "收據",
+    "downloadReceipt": "下載收據"
+  },
+  "profile": {
+    "title": "個人資料",
+    "name": "姓名",
+    "email": "電子郵件",
+    "phone": "電話",
+    "preferences": "偏好設定",
+    "language": "語言",
+    "notifications": "通知設定",
+    "orderHistory": "訂單歷史",
+    "favorites": "我的最愛",
+    "logout": "登出"
+  },
+  "errors": {
+    "general": "發生錯誤",
+    "generalDesc": "很抱歉，系統發生了未預期的錯誤",
+    "network": "網路連接失敗",
+    "networkDesc": "請檢查您的網路連接",
+    "notFound": "頁面不存在",
+    "notFoundDesc": "很抱歉，您要查找的頁面不存在或已被移除",
+    "unauthorized": "無權限",
+    "unauthorizedDesc": "您沒有權限存取此頁面",
+    "serverError": "伺服器錯誤",
+    "serverErrorDesc": "伺服器暫時無法處理您的請求",
+    "timeout": "請求超時",
+    "timeoutDesc": "請求處理時間過長，請重試",
+    "validation": "資料驗證失敗",
+    "validationDesc": "請檢查您輸入的資料是否正確",
+    "restaurantNotFound": "找不到餐廳",
+    "tableNotFound": "找不到桌號",
+    "menuNotAvailable": "菜單暫時無法載入",
+    "orderFailed": "下單失敗",
+    "paymentFailed": "付款失敗"
+  },
+  "validation": {
+    "required": "此欄位為必填",
+    "email": "請輸入有效的電子郵件",
+    "phone": "請輸入有效的電話號碼",
+    "minLength": "至少需要 {min} 個字元",
+    "maxLength": "不能超過 {max} 個字元",
+    "numeric": "請輸入數字",
+    "positiveNumber": "請輸入正數",
+    "invalidFormat": "格式不正確"
+  },
+  "time": {
+    "now": "現在",
+    "minutes": "分鐘",
+    "hours": "小時",
+    "days": "天",
+    "ago": "前",
+    "later": "後",
+    "estimated": "預估",
+    "actual": "實際"
+  },
+  "restaurant": {
+    "info": "餐廳資訊",
+    "hours": "營業時間",
+    "address": "地址",
+    "phone": "電話",
+    "closed": "休息中",
+    "openingSoon": "即將營業",
+    "closingSoon": "即將結束營業"
+  },
+  "about": {
+    "title": "關於我們",
+    "description": "MakanMakan 是一個現代化的餐廳管理系統，致力於提供最佳的點餐體驗。我們利用先進的技術，為餐廳和顧客打造無縫的服務體驗。",
+    "features": {
+      "title": "我們的服務",
+      "qrOrder": "QR Code 掃碼點餐",
+      "tracking": "即時訂單追蹤",
+      "payment": "多種支付方式",
+      "customization": "客製化餐點選項",
+      "management": "餐廳營運管理"
+    },
+    "contact": {
+      "title": "聯絡我們",
+      "description": "如有任何問題或建議，歡迎透過客服管道與我們聯絡。"
+    }
+  },
+  "privacy": {
+    "title": "隱私權政策",
+    "dataCollection": {
+      "title": "資料收集",
+      "description": "我們僅收集必要的資料以提供服務，包括訂單資訊、聯絡方式等。"
+    },
+    "dataUsage": {
+      "title": "資料使用",
+      "description": "收集的資料僅用於處理訂單、提供客戶服務以及改善服務品質。"
+    },
+    "dataProtection": {
+      "title": "資料保護",
+      "description": "我們採用適當的技術和組織措施來保護您的個人資料安全。"
+    },
+    "contact": {
+      "title": "聯絡我們",
+      "description": "如有任何隱私權相關問題，請透過客服管道與我們聯絡。"
+    }
+  },
+  "terms": {
+    "title": "服務條款",
+    "usage": {
+      "title": "服務使用",
+      "description": "使用本服務即表示您同意遵守相關條款與規範。"
+    },
+    "responsibility": {
+      "title": "用戶責任",
+      "description": "用戶應確保所提供資訊的正確性，並遵守相關法律法規。"
+    },
+    "disclaimer": {
+      "title": "免責聲明",
+      "description": "本服務按現況提供，我們不對服務的完整性或適用性作出保證。"
+    },
+    "changes": {
+      "title": "條款變更",
+      "description": "我們保留隨時修改這些條款的權利，修改後的條款將在網站上公佈。"
+    }
+  }
+}

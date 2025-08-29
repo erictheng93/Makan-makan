@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "composite": true,
+    "declarationMap": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@makanmakan/shared-types": ["packages/shared-types/src"],
+      "@makanmakan/shared-types/*": ["packages/shared-types/src/*"],
+      "@makanmakan/database": ["packages/database/src"],
+      "@makanmakan/database/*": ["packages/database/src/*"],
+      "@makanmakan/utils": ["packages/utils/src"],
+      "@makanmakan/utils/*": ["packages/utils/src/*"]
+    }
+  },
+  "files": [],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "legacy",
+    ".wrangler",
+    "**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./apps/customer-app"
+    },
+    {
+      "path": "./apps/admin-dashboard"
+    },
+    {
+      "path": "./packages/shared-types"
+    }
+  ]
+}

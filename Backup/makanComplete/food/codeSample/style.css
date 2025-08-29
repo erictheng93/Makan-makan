@@ -1,0 +1,40 @@
+.title-bar {
+  background-color: white;
+  border: 1px solid #808080;
+}
+
+.special-menu-button {
+  cursor: pointer;
+  /**font-weight: bold; **/
+  text-align: left; 
+  width: 100%;
+}
+.tabs vertical{
+  font-weight: bolder; 	
+}
+.button1 {
+	background-color:indianred;
+  border: none;
+  color: white;
+  padding: 5px 5px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
+.thumbnail{
+	
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px;
+  width: 250px;
+
+}
+.a{
+	padding: 20px;
+}
+
+body {
+  margin-top: 1.5rem;
+	font-size: 20px;
+}

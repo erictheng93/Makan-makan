@@ -1,0 +1,6 @@
+{
+    "require-dev": {
+    	"phpdocumentor/phpdocumentor": "2.9.0",
+		"phpdocumentor/template-zend": "1.3.2"
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@makanmakan/shared-types",
+  "version": "1.0.0",
+  "description": "共用TypeScript型別定義",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
