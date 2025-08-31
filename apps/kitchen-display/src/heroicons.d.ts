@@ -109,6 +109,11 @@ declare module '@heroicons/vue/24/outline' {
   export const EllipsisHorizontalIcon: HeroIcon
   export const EllipsisVerticalIcon: HeroIcon
   export const ExclamationIcon: HeroIcon
+  export const CubeIcon: HeroIcon
+  export const RocketLaunchIcon: HeroIcon
+  export const Square2StackIcon: HeroIcon
+  export const Squares2X2Icon: HeroIcon
+  export const SunIcon: HeroIcon
   
   // Add any additional icons as needed
   const icons: { [key: string]: HeroIcon }

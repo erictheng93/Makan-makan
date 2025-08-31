@@ -1,7 +1,5 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref, computed, onMounted } from 'vue';
-import { PlusIcon, MagnifyingGlassIcon, UserIcon, UserGroupIcon, CrownIcon, TruckIcon, CalculatorIcon } from '@heroicons/vue/24/outline';
-import { ChefHatIcon } from '@heroicons/vue/24/solid';
+import { PlusIcon, MagnifyingGlassIcon, UserIcon, UserGroupIcon, StarIcon, ListBulletIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline';
 // 響應式數據
 const searchQuery = ref('');
 const roleFilter = ref('');
@@ -67,7 +65,7 @@ const userForm = ref({
     password: '',
     fullName: '',
     email: '',
-    role: '',
+    role: 1,
     status: 'active'
 });
 // 計算屬性
@@ -102,10 +100,10 @@ const filteredUsers = computed(() => {
 // 方法
 const getRoleIcon = (role) => {
     const icons = {
-        1: CrownIcon,
-        2: ChefHatIcon,
-        3: TruckIcon,
-        4: CalculatorIcon
+        1: StarIcon,
+        2: UserIcon, // ChefHatIcon placeholder
+        3: ListBulletIcon,
+        4: CurrencyDollarIcon
     };
     return icons[role] || UserIcon;
 };
@@ -177,7 +175,7 @@ const closeUserModal = () => {
         password: '',
         fullName: '',
         email: '',
-        role: '',
+        role: 1,
         status: 'active'
     };
 };
@@ -1336,10 +1334,6 @@ const __VLS_self = (await import('vue')).defineComponent({
         MagnifyingGlassIcon: MagnifyingGlassIcon,
         UserIcon: UserIcon,
         UserGroupIcon: UserGroupIcon,
-        CrownIcon: CrownIcon,
-        TruckIcon: TruckIcon,
-        CalculatorIcon: CalculatorIcon,
-        ChefHatIcon: ChefHatIcon,
         searchQuery: searchQuery,
         roleFilter: roleFilter,
         statusFilter: statusFilter,

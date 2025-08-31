@@ -87,9 +87,9 @@ export function useStatisticsSocket(options: {
         isConnecting.value = false
       }
 
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error)
-      error.value = error instanceof Error ? error.message : 'Failed to create WebSocket connection'
+    } catch (err) {
+      console.error('Failed to create WebSocket connection:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to create WebSocket connection'
       isConnecting.value = false
     }
   }
@@ -159,7 +159,7 @@ export function useStatisticsSocket(options: {
     }
   }
 
-  const handleOrderEvent = (message: StatisticsSocketEvent) => {
+  const handleOrderEvent = (_message: StatisticsSocketEvent) => {
     // 訂單事件發生時，觸發統計數據刷新
     setTimeout(() => {
       statisticsService.fetchDashboardData()

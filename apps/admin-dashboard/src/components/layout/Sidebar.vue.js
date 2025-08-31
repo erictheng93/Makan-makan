@@ -1,9 +1,8 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { UserRole } from '@/types';
-import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, User } from 'lucide-vue-next';
+import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, Settings, User } from 'lucide-vue-next';
 const __VLS_props = defineProps();
 const __VLS_emit = defineEmits();
 const route = useRoute();
@@ -50,6 +49,13 @@ const navigationItems = computed(() => [
         path: '/dashboard/analytics',
         label: '數據分析',
         icon: BarChart3,
+        visible: authStore.canAccessAdminFeatures
+    },
+    {
+        name: 'settings',
+        path: '/dashboard/settings',
+        label: '系統設定',
+        icon: Settings,
         visible: authStore.canAccessAdminFeatures
     },
     {

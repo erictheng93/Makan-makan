@@ -112,7 +112,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { KitchenErrorHandler, ErrorType, ErrorSeverity } from '@/utils/errorHandler'
+import { KitchenErrorHandler } from '@/utils/errorHandler'
 import { useStatisticsSSE } from '@/composables/useStatisticsSSE'
 import { api } from '@/services/api'
 
@@ -184,7 +184,7 @@ const toggleSSE = () => {
 }
 
 const forceSSEReconnect = () => {
-  sse.forceReconnect()
+  sse.reconnect()
   addErrorLog('sse', 'low', 'SSE 強制重連')
 }
 

@@ -17,7 +17,7 @@ export const handleValidationError = (error: z.ZodError) => {
 }
 
 // 請求體驗證中間件
-export const validateBody = <T>(schema: z.ZodSchema<T>) => {
+export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const body = await c.req.json()
@@ -37,7 +37,7 @@ export const validateBody = <T>(schema: z.ZodSchema<T>) => {
 }
 
 // 查詢參數驗證中間件
-export const validateQuery = <T>(schema: z.ZodSchema<T>) => {
+export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const query = c.req.query()
@@ -56,7 +56,7 @@ export const validateQuery = <T>(schema: z.ZodSchema<T>) => {
 }
 
 // 路徑參數驗證中間件
-export const validateParams = <T>(schema: z.ZodSchema<T>) => {
+export const validateParams = <T = any>(schema: z.ZodType<T, any, any>) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const params = c.req.param()

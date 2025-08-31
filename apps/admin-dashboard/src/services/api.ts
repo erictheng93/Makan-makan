@@ -1,6 +1,11 @@
-import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '@/types'
-import { KitchenErrorHandler, ErrorType } from '@/utils/errorHandler'
+import { KitchenErrorHandler } from '@/utils/errorHandler'
+
+// Extend AxiosRequestConfig to include retry property
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean
+}
 
 class ApiService {
   private instance: AxiosInstance
@@ -32,7 +37,7 @@ class ApiService {
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config
+        const originalRequest = error.config as ExtendedAxiosRequestConfig
 
         // 處理 401 未授權錯誤的自動 token 刷新
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {

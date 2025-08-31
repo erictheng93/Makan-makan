@@ -8,7 +8,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/LoginView.vue'),
+    component: () => import('../views/LoginView.vue'),
     meta: {
       requiresAuth: false,
       title: '廚房系統登入'
@@ -17,7 +17,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/kitchen/:restaurantId',
     name: 'Kitchen',
-    component: () => import('@/views/EnhancedKitchenDashboard.vue'),
+    component: () => import('../views/EnhancedKitchenDashboard.vue'),
     props: route => ({
       restaurantId: parseInt(route.params.restaurantId as string)
     }),
@@ -30,7 +30,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/kitchen-classic/:restaurantId',
     name: 'KitchenClassic',
-    component: () => import('@/views/KitchenDashboard.vue'),
+    component: () => import('../views/KitchenDashboard.vue'),
     props: route => ({
       restaurantId: parseInt(route.params.restaurantId as string)
     }),
@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/settings',
     name: 'Settings',
-    component: () => import('@/views/SettingsView.vue'),
+    component: () => import('../views/SettingsView.vue'),
     meta: {
       requiresAuth: true,
       title: '系統設定'
@@ -52,7 +52,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/history',
     name: 'History',
-    component: () => import('@/views/HistoryView.vue'),
+    component: () => import('../views/HistoryView.vue'),
     meta: {
       requiresAuth: true,
       title: '歷史記錄'
@@ -61,7 +61,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/test-sse',
     name: 'TestSSE',
-    component: () => import('@/views/TestSSEView.vue'),
+    component: () => import('../views/TestSSEView.vue'),
     meta: {
       requiresAuth: true,
       title: 'SSE 測試'
@@ -70,7 +70,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/unauthorized',
     name: 'Unauthorized',
-    component: () => import('@/views/UnauthorizedView.vue'),
+    component: () => import('../views/UnauthorizedView.vue'),
     meta: {
       requiresAuth: false,
       title: '權限不足'
@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/NotFoundView.vue'),
+    component: () => import('../views/NotFoundView.vue'),
     meta: {
       requiresAuth: false,
       title: '頁面不存在'

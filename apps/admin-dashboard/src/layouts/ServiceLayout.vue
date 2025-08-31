@@ -7,7 +7,7 @@
           <!-- 左側 Logo 和標題 -->
           <div class="flex items-center">
             <div class="flex-shrink-0 flex items-center">
-              <TruckIcon class="h-8 w-8 text-blue-600 mr-3" />
+              <ListBulletIcon class="h-8 w-8 text-blue-600 mr-3" />
               <h1 class="text-xl font-bold text-gray-900">MakanMakan</h1>
               <span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
                 送菜員
@@ -43,7 +43,7 @@
 
             <!-- 今日績效快顯 -->
             <div class="hidden sm:flex items-center bg-green-50 px-3 py-1 rounded-full">
-              <TrophyIcon class="h-4 w-4 text-green-600 mr-1" />
+              <StarIcon class="h-4 w-4 text-green-600 mr-1" />
               <span class="text-sm font-medium text-green-800">今日: {{ todayDelivered }}單</span>
             </div>
 
@@ -210,11 +210,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import type { SystemNotification, UrgentOrderAlert } from '@/types'
 import {
-  TruckIcon,
   BellIcon,
   UserIcon,
   ChevronDownIcon,
@@ -222,7 +222,8 @@ import {
   ExclamationTriangleIcon,
   PlusIcon,
   ArrowPathIcon,
-  TrophyIcon
+  ListBulletIcon,
+  StarIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -232,7 +233,7 @@ const authStore = useAuthStore()
 const showUserMenu = ref(false)
 const showNotifications = ref(false)
 const showQuickActions = ref(false)
-const urgentOrderAlert = ref(null)
+const urgentOrderAlert = ref<UrgentOrderAlert | null>(null)
 
 // 模擬數據
 const currentUser = ref({
@@ -245,7 +246,7 @@ const deliveringCount = ref(2)
 const todayDelivered = ref(12)
 const unreadNotifications = ref(2)
 
-const notifications = ref([
+const notifications = ref<SystemNotification[]>([
   {
     id: 1,
     type: 'urgent_order',
@@ -330,7 +331,7 @@ const refreshData = () => {
   window.location.reload()
 }
 
-const handleNotificationClick = (notification) => {
+const handleNotificationClick = (notification: SystemNotification) => {
   if (!notification.read) {
     notification.read = true
     unreadNotifications.value = Math.max(0, unreadNotifications.value - 1)
@@ -349,16 +350,16 @@ const markAllAsRead = () => {
 }
 
 const getNotificationIcon = (type: string) => {
-  const icons = {
+  const icons: Record<string, any> = {
     urgent_order: ExclamationTriangleIcon,
     new_order: BellIcon,
-    achievement: TrophyIcon
+    achievement: StarIcon
   }
   return icons[type] || BellIcon
 }
 
 const getNotificationIconClass = (type: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     urgent_order: 'text-red-500',
     new_order: 'text-blue-500',
     achievement: 'text-green-500'
@@ -403,8 +404,8 @@ const showUrgentOrderAlert = (message: string) => {
 }
 
 // 點擊外部關閉選單
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.relative')) {
+const handleClickOutside = (event: Event) => {
+  if (!((event.target as Element)?.closest?.('.relative'))) {
     showUserMenu.value = false
     showQuickActions.value = false
   }

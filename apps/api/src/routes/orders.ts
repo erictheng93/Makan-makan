@@ -2,7 +2,37 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole, requireRestaurantAccess } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
+import { createDatabase, OrderService } from '@makanmakan/database'
 import type { Env } from '../types/env'
+
+// SSE 廣播輔助函數
+async function broadcastOrderUpdate(env: Env, orderId: number, orderData: any, restaurantId: number, targetRoles?: number[]) {
+  try {
+    // 調用 SSE 廣播端點
+    const response = await fetch(`${(env as any).API_BASE_URL || 'http://localhost:8787'}/api/v1/sse/broadcast/order-update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(env as any).INTERNAL_API_TOKEN || 'internal'}`
+      },
+      body: JSON.stringify({
+        orderId,
+        orderData,
+        restaurantId,
+        targetRoles
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`SSE broadcast failed: ${response.status}`)
+    }
+    
+    console.log(`Order update broadcasted successfully for order ${orderId}`)
+  } catch (error) {
+    console.error('Failed to broadcast order update via SSE:', error)
+    // 不拋出錯誤，因為這是非關鍵功能
+  }
+}
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -43,115 +73,54 @@ const orderFilterSchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
 })
 
-// Helper function to calculate order totals
-function calculateOrderTotals(items: any[]) {
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.06 // 6% tax
-  const total = subtotal + tax
-  
-  return {
-    subtotal: Number(subtotal.toFixed(2)),
-    tax: Number(tax.toFixed(2)),
-    total: Number(total.toFixed(2))
-  }
-}
 
 /**
  * 創建新訂單 (公開 API - 客戶下單)
  * POST /api/v1/orders
  */
 app.post('/', 
-  validateBody(createOrderSchema),
+  validateBody(createOrderSchema as any),
   async (c) => {
     try {
       const data = c.get('validatedBody')
+      const db = createDatabase(c.env.DB)
+      const orderService = new OrderService(c.env.DB as any)
       
-      // 計算訂單總金額
-      const totals = calculateOrderTotals(data.items)
-      const orderNumber = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-      
-      // 插入訂單
-      const orderResult = await c.env.DB.prepare(`
-        INSERT INTO orders (
-          restaurant_id, table_id, order_number, customer_name, customer_phone, customer_email,
-          order_type, status, subtotal, tax, total, notes, scheduled_time, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(
-        data.restaurantId,
-        data.tableId || null,
-        orderNumber,
-        data.customerName || null,
-        data.customerPhone || null,
-        data.customerEmail || null,
-        data.orderType,
-        totals.subtotal,
-        totals.tax,
-        totals.total,
-        data.notes || null,
-        data.scheduledTime || null
-      ).run()
-      
-      const orderId = orderResult.meta.last_row_id as number
-      
-      // 插入訂單項目
-      for (const item of data.items) {
-        await c.env.DB.prepare(`
-          INSERT INTO order_items (
-            order_id, menu_item_id, quantity, unit_price, subtotal,
-            customizations, notes, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        `).bind(
-          orderId,
-          item.menuItemId,
-          item.quantity,
-          item.price,
-          item.price * item.quantity,
-          item.customizations ? JSON.stringify(item.customizations) : null,
-          item.notes || null
-        ).run()
+      // 轉換資料格式
+      const createOrderData = {
+        restaurantId: data.restaurantId,
+        tableId: data.tableId,
+        customerInfo: {
+          name: data.customerName,
+          phone: data.customerPhone,
+          email: data.customerEmail
+        },
+        items: data.items.map((item: any) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes
+        })),
+        notes: data.notes
       }
       
-      // 獲取完整訂單資料返回
-      const order = await c.env.DB.prepare(`
-        SELECT 
-          o.*,
-          r.name as restaurant_name,
-          t.name as table_name
-        FROM orders o
-        LEFT JOIN restaurants r ON o.restaurant_id = r.id
-        LEFT JOIN tables t ON o.table_id = t.id
-        WHERE o.id = ?
-      `).bind(orderId).first()
+      // 使用 OrderService 創建訂單
+      const order = await orderService.createOrder(createOrderData)
       
-      const orderItems = await c.env.DB.prepare(`
-        SELECT 
-          oi.*,
-          mi.name as menu_item_name,
-          mi.image_url as menu_item_image
-        FROM order_items oi
-        JOIN menu_items mi ON oi.menu_item_id = mi.id
-        WHERE oi.order_id = ?
-      `).bind(orderId).all()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        null, // 客戶下單，沒有用戶ID
-        'create_order',
-        'orders',
-        JSON.stringify({ orderId, orderNumber, restaurantId: data.restaurantId })
-      ).run()
-      
-      const response = {
-        ...order,
-        items: orderItems.results || []
-      }
+      // 廣播新訂單給廚房和管理人員
+      c.executionCtx?.waitUntil(
+        broadcastOrderUpdate(
+          c.env, 
+          order.id, 
+          order, 
+          data.restaurantId, 
+          [0, 1, 2] // 通知管理員、店主、廚師
+        )
+      )
       
       return c.json({
         success: true,
-        data: response
+        data: order
       }, 201)
       
     } catch (error) {
@@ -171,100 +140,44 @@ app.post('/',
 app.get('/',
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]), // 所有員工角色都可以查看
-  validateQuery(orderFilterSchema),
+  validateQuery(orderFilterSchema as any),
   async (c) => {
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
+      const orderService = new OrderService(c.env.DB as any)
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      // 轉換過濾條件
+      const filters: any = {}
       
       // 角色權限過濾
       if (user.role !== 0) { // 非管理員只能查看自己餐廳的訂單
-        whereConditions.push('o.restaurant_id = ?')
-        params.push(user.restaurantId)
-      }
-      
-      // 其他過濾條件
-      if (query.restaurantId) {
-        whereConditions.push('o.restaurant_id = ?')
-        params.push(query.restaurantId)
+        filters.restaurantId = user.restaurantId
+      } else if (query.restaurantId) {
+        filters.restaurantId = query.restaurantId
       }
       
       if (query.status) {
-        whereConditions.push('o.status = ?')
-        params.push(query.status)
-      }
-      
-      if (query.orderType) {
-        whereConditions.push('o.order_type = ?')
-        params.push(query.orderType)
+        filters.status = query.status
       }
       
       if (query.tableId) {
-        whereConditions.push('o.table_id = ?')
-        params.push(query.tableId)
+        filters.tableId = query.tableId
       }
       
-      if (query.customerName) {
-        whereConditions.push('o.customer_name LIKE ?')
-        params.push(`%${query.customerName}%`)
+      if (query.dateFrom || query.dateTo) {
+        const dateFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(0)
+        const dateTo = query.dateTo ? new Date(query.dateTo) : new Date()
+        filters.dateRange = [dateFrom, dateTo]
       }
-      
-      if (query.dateFrom) {
-        whereConditions.push('o.created_at >= ?')
-        params.push(query.dateFrom)
-      }
-      
-      if (query.dateTo) {
-        whereConditions.push('o.created_at <= ?')
-        params.push(query.dateTo)
-      }
-      
-      // 獲取總數
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM orders o
-        WHERE ${whereConditions.join(' AND ')}
-      `
-      const countResult = await c.env.DB.prepare(countQuery).bind(...params).first()
-      const total = countResult?.total || 0
-      
-      // 分頁計算
-      const offset = (query.page - 1) * query.limit
       
       // 獲取訂單列表
-      const ordersQuery = `
-        SELECT 
-          o.*,
-          r.name as restaurant_name,
-          t.name as table_name,
-          COUNT(oi.id) as item_count
-        FROM orders o
-        LEFT JOIN restaurants r ON o.restaurant_id = r.id
-        LEFT JOIN tables t ON o.table_id = t.id
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        WHERE ${whereConditions.join(' AND ')}
-        GROUP BY o.id
-        ORDER BY o.created_at DESC
-        LIMIT ? OFFSET ?
-      `
-      
-      const ordersResult = await c.env.DB.prepare(ordersQuery)
-        .bind(...params, query.limit, offset).all()
-      
-      const pagination = {
-        page: query.page,
-        limit: query.limit,
-        total,
-        pages: Math.ceil(total / query.limit)
-      }
+      const result = await orderService.getOrders(filters, query.page, query.limit)
       
       return c.json({
         success: true,
-        data: ordersResult.results || [],
-        pagination
+        data: result.orders,
+        pagination: result.pagination
       })
       
     } catch (error) {
@@ -284,24 +197,15 @@ app.get('/',
 app.get('/:id',
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]),
-  validateParams(commonSchemas.idParam),
+  validateParams(commonSchemas.idParam as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
+      const orderService = new OrderService(c.env.DB as any)
       
-      // 獲取訂單基本資訊
-      const order = await c.env.DB.prepare(`
-        SELECT 
-          o.*,
-          r.name as restaurant_name,
-          t.name as table_name,
-          t.qr_code as table_qr_code
-        FROM orders o
-        LEFT JOIN restaurants r ON o.restaurant_id = r.id
-        LEFT JOIN tables t ON o.table_id = t.id
-        WHERE o.id = ?
-      `).bind(id).first()
+      // 獲取訂單詳情
+      const order = await orderService.getOrder(parseInt(id))
       
       if (!order) {
         return c.json({
@@ -311,36 +215,16 @@ app.get('/:id',
       }
       
       // 權限檢查
-      if (user.role !== 0 && user.restaurantId !== order.restaurant_id) {
+      if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 獲取訂單項目
-      const items = await c.env.DB.prepare(`
-        SELECT 
-          oi.*,
-          mi.name as menu_item_name,
-          mi.description as menu_item_description,
-          mi.image_url as menu_item_image,
-          c.name as category_name
-        FROM order_items oi
-        JOIN menu_items mi ON oi.menu_item_id = mi.id
-        LEFT JOIN categories c ON mi.category_id = c.id
-        WHERE oi.order_id = ?
-        ORDER BY oi.id
-      `).bind(id).all()
-      
-      const response = {
-        ...order,
-        items: items.results || []
-      }
-      
       return c.json({
         success: true,
-        data: response
+        data: order
       })
       
     } catch (error) {
@@ -360,18 +244,17 @@ app.get('/:id',
 app.put('/:id/status',
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]),
-  validateParams(commonSchemas.idParam),
-  validateBody(updateOrderStatusSchema),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(updateOrderStatusSchema as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
+      const orderService = new OrderService(c.env.DB as any)
       
       // 獲取現有訂單
-      const existingOrder = await c.env.DB.prepare(`
-        SELECT * FROM orders WHERE id = ?
-      `).bind(id).first()
+      const existingOrder = await orderService.getOrder(parseInt(id))
       
       if (!existingOrder) {
         return c.json({
@@ -381,7 +264,7 @@ app.put('/:id/status',
       }
       
       // 權限檢查
-      if (user.role !== 0 && user.restaurantId !== existingOrder.restaurant_id) {
+      if (user.role !== 0 && user.restaurantId !== existingOrder.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
@@ -404,57 +287,42 @@ app.put('/:id/status',
         }, 403)
       }
       
-      // 更新訂單狀態
-      const updateResult = await c.env.DB.prepare(`
-        UPDATE orders 
-        SET status = ?, 
-            estimated_ready_time = ?,
-            updated_at = datetime('now'),
-            updated_by = ?
-        WHERE id = ?
-      `).bind(data.status, data.estimatedReadyTime || null, user.id, id).run()
+      // 使用 OrderService 更新狀態
+      const updatedOrder = await orderService.updateOrderStatus(parseInt(id), {
+        status: data.status,
+        notes: data.notes
+      })
       
-      if (updateResult.changes === 0) {
-        return c.json({
-          success: false,
-          error: 'Failed to update order'
-        }, 500)
+      // 根據訂單狀態確定目標角色
+      let targetRoles: number[] = []
+      switch (data.status) {
+        case 'confirmed':
+          targetRoles = [0, 1, 2] // 管理員、店主、廚師
+          break
+        case 'preparing':
+          targetRoles = [0, 1, 3] // 管理員、店主、服務員
+          break
+        case 'ready':
+          targetRoles = [0, 1, 3] // 管理員、店主、服務員
+          break
+        case 'completed':
+          targetRoles = [0, 1] // 管理員、店主
+          break
+        case 'cancelled':
+          targetRoles = [0, 1, 2, 3] // 所有相關人員
+          break
+        default:
+          targetRoles = [0, 1] // 預設通知管理員和店主
       }
       
-      // 記錄狀態變更歷史
-      await c.env.DB.prepare(`
-        INSERT INTO order_status_history (
-          order_id, old_status, new_status, changed_by, notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, datetime('now'))
-      `).bind(id, existingOrder.status, data.status, user.id, data.notes || null).run()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'update_order_status',
-        'orders',
-        JSON.stringify({ 
-          orderId: id, 
-          oldStatus: existingOrder.status, 
-          newStatus: data.status,
-          estimatedReadyTime: data.estimatedReadyTime 
-        })
-      ).run()
-      
-      // TODO: 廣播狀態更新給廚房系統 (如果有實時更新需求)
+      // 異步廣播更新，不阻塞主要回應
+      c.executionCtx?.waitUntil(
+        broadcastOrderUpdate(c.env, parseInt(id), updatedOrder, existingOrder.restaurantId, targetRoles)
+      )
       
       return c.json({
         success: true,
-        data: {
-          id,
-          status: data.status,
-          estimatedReadyTime: data.estimatedReadyTime,
-          updatedAt: new Date().toISOString(),
-          updatedBy: user.id
-        }
+        data: updatedOrder
       })
       
     } catch (error) {
@@ -474,16 +342,15 @@ app.put('/:id/status',
 app.delete('/:id',
   authMiddleware,
   requireRole([0, 1]), // 只有管理員和店主可以取消訂單
-  validateParams(commonSchemas.idParam),
+  validateParams(commonSchemas.idParam as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
+      const orderService = new OrderService(c.env.DB as any)
       
       // 獲取訂單資訊
-      const order = await c.env.DB.prepare(`
-        SELECT * FROM orders WHERE id = ?
-      `).bind(id).first()
+      const order = await orderService.getOrder(parseInt(id))
       
       if (!order) {
         return c.json({
@@ -493,47 +360,26 @@ app.delete('/:id',
       }
       
       // 權限檢查
-      if (user.role !== 0 && user.restaurantId !== order.restaurant_id) {
+      if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 檢查訂單是否可以取消
-      if (order.status === 'completed' || order.status === 'cancelled') {
-        return c.json({
-          success: false,
-          error: 'Cannot cancel completed or already cancelled order'
-        }, 400)
-      }
+      // 使用 OrderService 取消訂單
+      const cancelledOrder = await orderService.cancelOrder(parseInt(id), 'Cancelled by user')
       
-      // 更新訂單狀態為已取消
-      await c.env.DB.prepare(`
-        UPDATE orders 
-        SET status = 'cancelled',
-            updated_at = datetime('now'),
-            updated_by = ?
-        WHERE id = ?
-      `).bind(user.id, id).run()
-      
-      // 記錄狀態變更歷史
-      await c.env.DB.prepare(`
-        INSERT INTO order_status_history (
-          order_id, old_status, new_status, changed_by, notes, created_at
-        ) VALUES (?, ?, 'cancelled', ?, 'Order cancelled by user', datetime('now'))
-      `).bind(id, order.status, user.id).run()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'cancel_order',
-        'orders',
-        JSON.stringify({ orderId: id, reason: 'Cancelled by user' })
-      ).run()
+      // 廣播訂單取消通知
+      c.executionCtx?.waitUntil(
+        broadcastOrderUpdate(
+          c.env, 
+          parseInt(id), 
+          cancelledOrder, 
+          order.restaurantId, 
+          [0, 1, 2, 3] // 通知所有相關人員
+        )
+      )
       
       return c.json({
         success: true,
@@ -561,85 +407,41 @@ app.get('/stats',
     restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
     dateFrom: z.string().datetime().optional(),
     dateTo: z.string().datetime().optional()
-  })),
+  }) as any),
   async (c) => {
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
+      const orderService = new OrderService(c.env.DB as any)
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
-      
-      // 權限過濾
+      // 確定餐廳 ID
+      let restaurantId: number | undefined
       if (user.role === 1) { // 店主只能查看自己餐廳
-        whereConditions.push('restaurant_id = ?')
-        params.push(user.restaurantId)
+        restaurantId = user.restaurantId
       } else if (query.restaurantId) {
-        whereConditions.push('restaurant_id = ?')
-        params.push(query.restaurantId)
+        restaurantId = query.restaurantId
       }
       
-      // 日期過濾
-      if (query.dateFrom) {
-        whereConditions.push('created_at >= ?')
-        params.push(query.dateFrom)
+      if (!restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Restaurant ID is required'
+        }, 400)
       }
       
-      if (query.dateTo) {
-        whereConditions.push('created_at <= ?')
-        params.push(query.dateTo)
-      }
+      // 設定日期範圍
+      const dateFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(new Date().setDate(new Date().getDate() - 30))
+      const dateTo = query.dateTo ? new Date(query.dateTo) : new Date()
       
-      const whereClause = whereConditions.join(' AND ')
-      
-      // 總訂單統計
-      const totalStats = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(*) as total_orders,
-          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
-          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
-          SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_orders,
-          SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as total_revenue,
-          AVG(CASE WHEN status = 'completed' THEN total ELSE NULL END) as avg_order_value
-        FROM orders 
-        WHERE ${whereClause}
-      `).bind(...params).first()
-      
-      // 按日期統計
-      const dailyStats = await c.env.DB.prepare(`
-        SELECT 
-          DATE(created_at) as date,
-          COUNT(*) as orders,
-          SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as revenue
-        FROM orders 
-        WHERE ${whereClause}
-        GROUP BY DATE(created_at)
-        ORDER BY date DESC
-        LIMIT 30
-      `).bind(...params).all()
-      
-      // 按訂單類型統計
-      const typeStats = await c.env.DB.prepare(`
-        SELECT 
-          order_type,
-          COUNT(*) as count,
-          SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as revenue
-        FROM orders 
-        WHERE ${whereClause}
-        GROUP BY order_type
-      `).bind(...params).all()
+      // 獲取統計資料
+      const dailyStats = await orderService.getDailyOrderStats(restaurantId, new Date())
       
       return c.json({
         success: true,
         data: {
-          summary: {
-            ...totalStats,
-            total_revenue: Number((totalStats?.total_revenue || 0).toFixed(2)),
-            avg_order_value: Number((totalStats?.avg_order_value || 0).toFixed(2))
-          },
-          daily: dailyStats.results || [],
-          byType: typeStats.results || []
+          summary: dailyStats,
+          daily: [], // TODO: 實現每日統計
+          byType: [] // TODO: 實現類型統計
         }
       })
       

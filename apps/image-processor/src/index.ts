@@ -5,7 +5,7 @@ import { timing } from 'hono/timing'
 import { corsMiddleware } from './middleware/auth'
 import imagesRouter from './routes/images'
 import analyticsRouter from './routes/analytics'
-import type { Env } from './types/env'
+import type { Env } from './types/env'\nimport { createDbConnection } from '@makanmakan/database'\nimport { sql, count } from 'drizzle-orm'\nimport { images, imageViews, imageProcessingJobs } from '@makanmakan/database'
 
 // 創建主應用
 const app = new Hono<{ Bindings: Env }>()
@@ -96,7 +96,10 @@ app.get('/health', async (c) => {
     
     try {
       const dbStart = Date.now()
-      await c.env.DB.prepare('SELECT 1 as test').first()
+      // Use Drizzle ORM for health check
+      const db = createDbConnection(c.env.DB)
+      const healthResult = await db.select({ test: sql<number>`1` }).limit(1)
+      const isHealthy = healthResult[0]?.test === 1
       dbResponseTime = Date.now() - dbStart
     } catch (error) {
       dbStatus = 'unhealthy'
@@ -263,10 +266,11 @@ export default {
 // 清理過期的處理作業記錄（保留 7 天）
 async function cleanupExpiredJobs(env: Env) {
   try {
-    const result = await env.DB.prepare(`
-      DELETE FROM image_processing_jobs 
-      WHERE created_at < datetime('now', '-7 days')
-    `).run()
+    // Use Drizzle ORM for cleanup
+    const db = createDbConnection(env.DB)
+    const result = await db
+      .delete(imageProcessingJobs)
+      .where(sql`${imageProcessingJobs.createdAt} < datetime('now', '-7 days')`)
     
     console.log(`Cleaned up ${result.changes} expired processing jobs`)
   } catch (error) {
@@ -277,10 +281,10 @@ async function cleanupExpiredJobs(env: Env) {
 // 清理舊的視圖記錄（保留 30 天）
 async function cleanupOldViews(env: Env) {
   try {
-    const result = await env.DB.prepare(`
-      DELETE FROM image_views 
-      WHERE viewed_at < datetime('now', '-30 days')
-    `).run()
+    // Use Drizzle ORM for cleanup
+    const viewsResult = await db
+      .delete(imageViews)
+      .where(sql`${imageViews.viewedAt} < datetime('now', '-30 days')`)
     
     console.log(`Cleaned up ${result.changes} old view records`)
   } catch (error) {
@@ -314,23 +318,28 @@ async function sendDailyStats(env: Env) {
     yesterday.setDate(yesterday.getDate() - 1)
     const dateStr = yesterday.toISOString().split('T')[0]
     
-    const stats = await env.DB.prepare(`
-      SELECT 
-        COUNT(*) as images_uploaded,
-        SUM(size) as total_size,
-        COUNT(DISTINCT restaurant_id) as active_restaurants
-      FROM images 
-      WHERE DATE(uploaded_at) = ?
-    `).bind(dateStr).first()
+    // Use Drizzle ORM for daily statistics
+    const db = createDbConnection(env.DB)
+    const statsResult = await db
+      .select({
+        images_uploaded: count(),
+        total_size: sql<number>`SUM(${images.size})`,
+        active_restaurants: sql<number>`COUNT(DISTINCT ${images.restaurantId})`
+      })
+      .from(images)
+      .where(sql`DATE(${images.uploadedAt}) = ${dateStr}`)
+      .then(results => results[0])
     
-    const processingStats = await env.DB.prepare(`
-      SELECT 
-        COUNT(*) as jobs_processed,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as jobs_completed,
-        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as jobs_failed
-      FROM image_processing_jobs 
-      WHERE DATE(created_at) = ?
-    `).bind(dateStr).first()
+    // Use Drizzle ORM for processing statistics
+    const processingStatsResult = await db
+      .select({
+        jobs_processed: count(),
+        jobs_completed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'completed' THEN 1 ELSE 0 END)`,
+        jobs_failed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'failed' THEN 1 ELSE 0 END)`
+      })
+      .from(imageProcessingJobs)
+      .where(sql`DATE(${imageProcessingJobs.createdAt}) = ${dateStr}`)
+      .then(results => results[0])
     
     if (env.SLACK_WEBHOOK_URL) {
       await sendSlackMessage(env.SLACK_WEBHOOK_URL, {

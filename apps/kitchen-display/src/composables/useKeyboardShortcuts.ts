@@ -218,7 +218,7 @@ export function useKeyboardShortcuts() {
 
   // Utility functions
   const getCategoryTitle = (category: string): string => {
-    const titles = {
+    const titles: Record<string, string> = {
       orders: '訂單管理',
       navigation: '導航操作',
       filters: '篩選功能',

@@ -1,32 +1,47 @@
 export interface Notification {
     id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: 'success' | 'error' | 'warning' | 'info' | 'order_ready' | 'order_urgent';
     title: string;
     message: string;
     sound?: boolean;
     persistent?: boolean;
     createdAt: Date;
     read?: boolean;
+    data?: {
+        orderNumber?: string;
+        tableNumber?: string | number;
+        [key: string]: any;
+    };
 }
 export declare const useNotificationStore: import("pinia").StoreDefinition<"notification", Pick<{
     notifications: Readonly<import("vue").Ref<readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[], readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[]>>;
     unreadCount: import("vue").ComputedRef<number>;
     soundEnabled: Readonly<import("vue").Ref<boolean, boolean>>;
@@ -45,22 +60,32 @@ export declare const useNotificationStore: import("pinia").StoreDefinition<"noti
 }, "notifications" | "soundEnabled">, Pick<{
     notifications: Readonly<import("vue").Ref<readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[], readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[]>>;
     unreadCount: import("vue").ComputedRef<number>;
     soundEnabled: Readonly<import("vue").Ref<boolean, boolean>>;
@@ -79,22 +104,32 @@ export declare const useNotificationStore: import("pinia").StoreDefinition<"noti
 }, "unreadCount">, Pick<{
     notifications: Readonly<import("vue").Ref<readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[], readonly {
         readonly id: string;
-        readonly type: "success" | "error" | "warning" | "info";
+        readonly type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
         readonly title: string;
         readonly message: string;
         readonly sound?: boolean | undefined;
         readonly persistent?: boolean | undefined;
         readonly createdAt: Date;
         readonly read?: boolean | undefined;
+        readonly data?: {
+            readonly [x: string]: any;
+            readonly orderNumber?: string | undefined;
+            readonly tableNumber?: string | number | undefined;
+        } | undefined;
     }[]>>;
     unreadCount: import("vue").ComputedRef<number>;
     soundEnabled: Readonly<import("vue").Ref<boolean, boolean>>;
@@ -110,4 +145,4 @@ export declare const useNotificationStore: import("pinia").StoreDefinition<"noti
     error: (title: string, message: string, options?: Partial<Notification>) => string;
     warning: (title: string, message: string, options?: Partial<Notification>) => string;
     info: (title: string, message: string, options?: Partial<Notification>) => string;
-}, "error" | "success" | "warning" | "info" | "addNotification" | "removeNotification" | "markAsRead" | "markAllAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;
+}, "markAllAsRead" | "error" | "warning" | "info" | "success" | "addNotification" | "removeNotification" | "markAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;

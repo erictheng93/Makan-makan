@@ -55,7 +55,7 @@ describe('ErrorBoundary.vue', () => {
     it('沒有錯誤時不應該顯示錯誤頁面', () => {
       wrapper = mount(ErrorBoundary, {
         slots: {
-          default: ThrowingComponent
+          default: () => ThrowingComponent
         },
         props: {
           shouldThrow: false

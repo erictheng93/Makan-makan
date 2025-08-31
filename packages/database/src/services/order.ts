@@ -88,7 +88,7 @@ export class OrderService extends BaseService {
         
         if (item.customizations?.addOns) {
           for (const addOn of item.customizations.addOns) {
-            unitPrice += addOn.price * (addOn.quantity || 1)
+            unitPrice += addOn.unitPrice * (addOn.quantity || 1)
           }
         }
 
@@ -104,8 +104,8 @@ export class OrderService extends BaseService {
           notes: item.notes,
           itemSnapshot: {
             name: menuItem.name,
-            description: menuItem.description,
-            imageUrl: menuItem.imageUrl,
+            description: menuItem.description || undefined,
+            imageUrl: menuItem.imageUrl || undefined,
             category: 'category' // 需要從關聯獲取
           }
         })
@@ -395,12 +395,12 @@ export class OrderService extends BaseService {
         throw new Error('Order not found')
       }
 
-      if (!['pending', 'confirmed'].includes(order.status)) {
+      if (![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.status as any)) {
         throw new Error('Order cannot be cancelled')
       }
 
       // 恢復庫存
-      for (const item of order.items) {
+      for (const item of order.items || []) {
         await this.db
           .update(menuItems)
           .set({

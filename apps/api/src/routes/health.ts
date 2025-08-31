@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
+import { validateQuery } from '../middleware/validation'
+import { createDatabase, AnalyticsService, sql, count, eq, gte, and, orders, users, restaurants, auditLogs } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -68,11 +70,14 @@ app.get('/', async (c) => {
     // 檢查資料庫連接
     let dbStatus: ServiceCheck
     try {
-      const result = await c.env.DB.prepare('SELECT 1 as test').first()
+      // Use Drizzle ORM for health check
+      const db = createDatabase(c.env.DB)
+      const result = await db.select({ test: sql<number>`1` }).from(users).limit(1)
+      const testResult = result[0]
       const responseTime = Date.now() - startTime
       dbStatus = {
         name: 'database',
-        status: result?.test === 1 ? 'healthy' : 'unhealthy',
+        status: testResult?.test === 1 ? 'healthy' : 'unhealthy',
         responseTime,
         lastCheck: new Date().toISOString()
       }
@@ -173,53 +178,60 @@ app.get('/detailed',
           'Authorization': c.req.header('Authorization') || ''
         }
       })
-      const basicData = await basicHealth.json()
+      const basicData = await basicHealth.json() as { status: string }
       
       // 獲取系統指標
       const metrics = getSystemMetrics()
       
       // 檢查資料庫性能
       const dbPerformanceStart = Date.now()
-      const tableStats = await c.env.DB.prepare(`
-        SELECT 
-          'orders' as table_name,
-          COUNT(*) as row_count
-        FROM orders
-        UNION ALL
-        SELECT 
-          'users' as table_name,
-          COUNT(*) as row_count
-        FROM users
-        UNION ALL
-        SELECT 
-          'restaurants' as table_name,
-          COUNT(*) as row_count
-        FROM restaurants
-      `).all()
+      const db = createDatabase(c.env.DB)
+      
+      // 獲取表統計
+      const ordersCount = await db.select({ count: count() }).from(orders)
+      const usersCount = await db.select({ count: count() }).from(users)
+      const restaurantsCount = await db.select({ count: count() }).from(restaurants)
+      
+      const tableStats = [
+        { table_name: 'orders', row_count: ordersCount[0]?.count || 0 },
+        { table_name: 'users', row_count: usersCount[0]?.count || 0 },
+        { table_name: 'restaurants', row_count: restaurantsCount[0]?.count || 0 }
+      ]
+      
       const dbPerformanceTime = Date.now() - dbPerformanceStart
       
       // 檢查最近的錯誤日誌
-      const recentErrors = await c.env.DB.prepare(`
-        SELECT action, resource, details, created_at
-        FROM audit_logs 
-        WHERE action LIKE '%error%' OR action LIKE '%fail%'
-        ORDER BY created_at DESC 
-        LIMIT 10
-      `).all()
+      const recentErrors = await db
+        .select({
+          action: auditLogs.action,
+          resource: auditLogs.resource,
+          description: auditLogs.description,
+          created_at: auditLogs.createdAt
+        })
+        .from(auditLogs)
+        .where(
+          sql`${auditLogs.action} LIKE '%error%' OR ${auditLogs.action} LIKE '%fail%'`
+        )
+        .orderBy(sql`${auditLogs.createdAt} DESC`)
+        .limit(10)
       
       // 檢查系統負載
       const currentTime = new Date()
       const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000)
       
-      const systemLoad = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(*) as total_requests,
-          COUNT(CASE WHEN created_at >= ? THEN 1 END) as recent_requests,
-          COUNT(DISTINCT restaurant_id) as active_restaurants,
-          AVG(total) as avg_order_value
-        FROM orders
-        WHERE created_at >= datetime('now', '-24 hours')
-      `).bind(oneHourAgo.toISOString()).first()
+      const twentyFourHoursAgo = new Date()
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+      
+      const systemLoad = await db
+        .select({
+          total_requests: count(),
+          recent_requests: sql<number>`COUNT(CASE WHEN ${orders.createdAt} >= ${oneHourAgo.toISOString()} THEN 1 END)`,
+          active_restaurants: sql<number>`COUNT(DISTINCT ${orders.restaurantId})`,
+          avg_order_value: sql<number>`AVG(${orders.totalAmount})`
+        })
+        .from(orders)
+        .where(gte(orders.createdAt, twentyFourHoursAgo))
+        .then(result => result[0])
       
       // API端點響應時間測試
       const endpointTests = [
@@ -281,11 +293,11 @@ app.get('/detailed',
         metrics,
         performance: {
           database_response_time: dbPerformanceTime,
-          table_statistics: tableStats.results || [],
+          table_statistics: tableStats,
           endpoint_health: endpointHealth
         },
         system_load: systemLoad,
-        recent_errors: (recentErrors.results || []).slice(0, 5),
+        recent_errors: recentErrors.slice(0, 5),
         health_score: Math.round(healthScore),
         recommendations: generateRecommendations(healthScore, metrics, endpointHealth),
         timestamp: new Date().toISOString(),
@@ -317,17 +329,26 @@ app.get('/metrics',
       const { format } = c.get('validatedQuery')
       const metrics = getSystemMetrics()
       
+      const db = createDatabase(c.env.DB)
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      const oneHourAgo = new Date()
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1)
+      const twentyFourHoursAgo = new Date()
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+      
       // 獲取業務指標
-      const businessMetrics = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(CASE WHEN created_at >= datetime('now', '-1 hour') THEN 1 END) as orders_last_hour,
-          COUNT(CASE WHEN created_at >= datetime('now', '-24 hours') THEN 1 END) as orders_last_24h,
-          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
-          COUNT(CASE WHEN status = 'preparing' THEN 1 END) as preparing_orders,
-          COUNT(*) as total_orders
-        FROM orders
-        WHERE created_at >= datetime('now', '-7 days')
-      `).first()
+      const businessMetrics = await db
+        .select({
+          orders_last_hour: sql<number>`COUNT(CASE WHEN ${orders.createdAt} >= ${oneHourAgo.toISOString()} THEN 1 END)`,
+          orders_last_24h: sql<number>`COUNT(CASE WHEN ${orders.createdAt} >= ${twentyFourHoursAgo.toISOString()} THEN 1 END)`,
+          pending_orders: sql<number>`COUNT(CASE WHEN ${orders.status} = 'pending' THEN 1 END)`,
+          preparing_orders: sql<number>`COUNT(CASE WHEN ${orders.status} = 'preparing' THEN 1 END)`,
+          total_orders: count()
+        })
+        .from(orders)
+        .where(gte(orders.createdAt, sevenDaysAgo))
+        .then(result => result[0])
       
       if (format === 'prometheus') {
         // Prometheus格式輸出
@@ -400,7 +421,10 @@ makanmakan_error_rate_percent ${metrics.requests?.errorRate || 0}
 app.get('/ready', async (c) => {
   try {
     // 檢查關鍵服務是否就緒
-    const dbReady = await c.env.DB.prepare('SELECT 1').first()
+    // Use Drizzle ORM for readiness check
+    const db = createDatabase(c.env.DB)
+    const readyResult = await db.select({ test: sql<number>`1` }).from(users).limit(1)
+    const dbReady = readyResult[0]?.test === 1
     const kvReady = await c.env.CACHE_KV.get('health-check') !== undefined ? true : 
                     await c.env.CACHE_KV.put('ready-test', 'ok', { expirationTtl: 60 }) !== undefined
     
@@ -484,25 +508,5 @@ function generateRecommendations(
   return recommendations
 }
 
-// 中間件輔助函數
-const validateQuery = (schema: z.ZodSchema) => {
-  return async (c: any, next: any) => {
-    try {
-      const query = c.req.query()
-      const validated = schema.parse(query)
-      c.set('validatedQuery', validated)
-      await next()
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return c.json({
-          success: false,
-          error: 'Invalid query parameters',
-          details: error.errors
-        }, 400)
-      }
-      throw error
-    }
-  }
-}
 
 export default app

@@ -2,12 +2,24 @@ import { BaseEntity, Status, BusinessHours } from './common';
 
 export interface Restaurant extends BaseEntity {
   name: string;
+  type?: string;
+  category?: string;
   description?: string;
   address?: string;
+  district?: string;
+  city?: string;
   phone?: string;
   email?: string;
+  website?: string;
   businessHours?: BusinessHours;
   logoUrl?: string;
+  bannerUrl?: string;
+  imageUrls?: string[];
+  isAvailable?: boolean;
+  isActive?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  totalOrders?: number;
   status: Status;
   planType: PlanType;
   settings?: RestaurantSettings;

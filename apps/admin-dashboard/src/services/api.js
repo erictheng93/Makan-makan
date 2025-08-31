@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { KitchenErrorHandler } from '@/utils/errorHandler';
 class ApiService {
     constructor() {
         Object.defineProperty(this, "instance", {
@@ -26,12 +27,14 @@ class ApiService {
         }, (error) => Promise.reject(error));
         this.instance.interceptors.response.use((response) => response, async (error) => {
             const originalRequest = error.config;
-            if (error.response?.status === 401 && !originalRequest._retry) {
+            // 處理 401 未授權錯誤的自動 token 刷新
+            if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
                 originalRequest._retry = true;
                 try {
                     const refreshResponse = await this.instance.post('/auth/refresh');
                     const newToken = refreshResponse.data.data.token;
                     localStorage.setItem('auth_token', newToken);
+                    originalRequest.headers = originalRequest.headers || {};
                     originalRequest.headers.Authorization = `Bearer ${newToken}`;
                     return this.instance(originalRequest);
                 }
@@ -41,7 +44,14 @@ class ApiService {
                     return Promise.reject(refreshError);
                 }
             }
-            return Promise.reject(error);
+            // 使用增強的錯誤處理器處理所有其他錯誤
+            const errorDetails = KitchenErrorHandler.handleAPIError(error, {
+                url: error.config?.url,
+                method: error.config?.method,
+                status: error.response?.status,
+                data: error.response?.data
+            });
+            return Promise.reject(errorDetails);
         });
     }
     setAuthToken(token) {

@@ -3,13 +3,18 @@ import { ref, computed, readonly } from 'vue'
 
 export interface Notification {
   id: string
-  type: 'success' | 'error' | 'warning' | 'info'
+  type: 'success' | 'error' | 'warning' | 'info' | 'order_ready' | 'order_urgent'
   title: string
   message: string
   sound?: boolean
   persistent?: boolean
   createdAt: Date
   read?: boolean
+  data?: {
+    orderNumber?: string
+    tableNumber?: string | number
+    [key: string]: any
+  }
 }
 
 export const useNotificationStore = defineStore('notification', () => {
@@ -83,11 +88,13 @@ export const useNotificationStore = defineStore('notification', () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       
       // Different frequencies for different notification types
-      const frequencies = {
+      const frequencies: Record<string, number> = {
         success: 880,
         info: 660,
         warning: 554,
-        error: 440
+        error: 440,
+        order_ready: 880,
+        order_urgent: 554
       }
       
       const frequency = frequencies[type]

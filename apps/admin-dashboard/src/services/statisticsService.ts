@@ -1,5 +1,5 @@
 // Comprehensive statistics dashboard service for real-time data management
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { api } from './api'
 
 export interface RealtimeStats {
@@ -196,7 +196,8 @@ class StatisticsService {
         Object.assign(this.dashboardData, response.data.data)
         this.lastUpdated.value = new Date()
       } else {
-        throw new Error(response.data.error || 'Failed to fetch dashboard data')
+        const errorObj = response.data.error || 'Failed to fetch dashboard data'
+        throw new Error(typeof errorObj === 'string' ? errorObj : JSON.stringify(errorObj))
       }
     } catch (error) {
       this.error.value = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -239,7 +240,8 @@ class StatisticsService {
         Object.assign(this.detailedPerformance, response.data.data)
         this.lastUpdated.value = new Date()
       } else {
-        throw new Error(response.data.error || 'Failed to fetch detailed performance data')
+        const errorObj = response.data.error || 'Failed to fetch detailed performance data'
+        throw new Error(typeof errorObj === 'string' ? errorObj : JSON.stringify(errorObj))
       }
     } catch (error) {
       this.error.value = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -360,7 +362,7 @@ class StatisticsService {
   }
 
   public getStatusColor(status: string): string {
-    const colors = {
+    const colors: Record<string, string> = {
       pending: 'text-yellow-600 bg-yellow-100',
       preparing: 'text-blue-600 bg-blue-100',
       ready: 'text-green-600 bg-green-100',

@@ -153,7 +153,7 @@ const isActiveRoute = (path: string) => {
 }
 
 const getRoleLabel = (role?: UserRole) => {
-  const roleLabels = {
+  const roleLabels: Record<number, string> = {
     [UserRole.ADMIN]: '系統管理員',
     [UserRole.OWNER]: '店主',
     [UserRole.CHEF]: '廚師',

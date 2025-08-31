@@ -1,5 +1,5 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onUnmounted } from 'vue'
+import { useToast, POSITION } from 'vue-toastification'
 
 interface OrderStatusUpdate {
   orderId: string
@@ -82,7 +82,7 @@ export function useRealtimeOrderStatus() {
     activeOrders.value.set(notification.orderId, orderUpdate)
     
     toast.success(`新訂單！桌號 ${notification.tableNumber}`, {
-      position: 'top-right',
+      position: POSITION.TOP_RIGHT,
       timeout: 8000
     })
     

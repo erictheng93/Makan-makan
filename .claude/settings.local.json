@@ -1,31 +1,28 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mv:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
       "Bash(npm run typecheck:*)",
+      "Bash(tree:*)",
+      "Bash(npm run:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm install)",
-      "Bash(npx typescript:*)",
-      "Bash(npm install:*)",
-      "Bash(tsc --noEmit)",
-      "Bash(tsc:*)",
-      "Bash(pnpm install:*)",
-      "Bash(pnpm run:*)",
-      "Bash(pnpm update:*)",
-      "Bash(pnpm add:*)",
-      "Bash(pnpm install:*)",
-      "Bash(find:*)",
       "Bash(npx vitest run:*)",
       "Bash(npx vue-tsc:*)",
-      "Bash(cat:*)",
-      "Bash(npx playwright:*)",
-      "Bash(npm:*)",
+      "WebSearch",
+      "WebFetch(domain:unpkg.com)",
+      "WebFetch(domain:app.unpkg.com)",
+      "WebFetch(domain:heroicons.com)",
       "Bash(node:*)",
+      "Bash(grep:*)",
       "Bash(find:*)",
-      "Bash(pnpm:*)",
-      "Bash(npm run test:unit:*)",
-      "Bash(npx tsc:*)"
+      "Bash(for file in menu.ts restaurants.ts system.ts)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(npm ls:*)"
     ],
+    "deny": [],
+    "ask": [],
     "defaultMode": "acceptEdits"
   }
 }

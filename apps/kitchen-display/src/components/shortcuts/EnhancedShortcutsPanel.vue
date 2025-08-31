@@ -46,19 +46,19 @@
       <!-- Quick Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.enabledShortcuts.length }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.enabledShortcuts?.length || 0 }}</div>
           <div class="text-sm text-gray-500">已啟用</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.stats.totalExecutions }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.stats?.totalExecutions || 0 }}</div>
           <div class="text-sm text-gray-500">總使用次數</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats.successRate) }}%</div>
+          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats?.successRate || 0) }}%</div>
           <div class="text-sm text-gray-500">成功率</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats.averageExecutionTime) }}ms</div>
+          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats?.averageExecutionTime || 0) }}ms</div>
           <div class="text-sm text-gray-500">平均執行時間</div>
         </div>
       </div>
@@ -83,17 +83,17 @@
             <button
               v-for="(category, categoryName) in shortcuts.shortcutsByCategory"
               :key="categoryName"
-              @click="activeCategory = categoryName"
+              @click="activeCategory = String(categoryName)"
               :class="[
                 'py-2 px-1 border-b-2 font-medium text-sm',
-                activeCategory === categoryName
+                activeCategory === String(categoryName)
                   ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               ]"
             >
-              {{ getCategoryName(categoryName) }}
+              {{ getCategoryName(String(categoryName)) }}
               <span class="ml-1 bg-gray-100 text-gray-900 rounded-full px-2 py-1 text-xs">
-                {{ category.filter(s => s.enabled).length }}
+                {{ Array.isArray(category) ? category.filter((s: any) => s.enabled).length : 0 }}
               </span>
             </button>
           </nav>

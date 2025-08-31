@@ -403,7 +403,7 @@ const getStatusText = () => {
 }
 
 const getActionTypeText = (type: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     start_cooking: '開始製作',
     mark_ready: '標記完成',
     update_status: '更新狀態',

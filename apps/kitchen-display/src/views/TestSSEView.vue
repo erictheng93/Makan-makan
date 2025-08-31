@@ -265,7 +265,7 @@ const getStatusText = (status: ConnectionStatus) => {
 }
 
 const getEventTypeClass = (type: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'NEW_ORDER': 'px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs',
     'ORDER_UPDATE': 'px-2 py-1 bg-green-100 text-green-800 rounded text-xs',
     'ORDER_CANCELLED': 'px-2 py-1 bg-red-100 text-red-800 rounded text-xs',
@@ -278,7 +278,7 @@ const getEventTypeClass = (type: string) => {
 }
 
 const getEventTypeText = (type: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'NEW_ORDER': '新訂單',
     'ORDER_UPDATE': '狀態更新',
     'ORDER_CANCELLED': '訂單取消',

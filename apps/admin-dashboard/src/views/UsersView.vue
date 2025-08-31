@@ -345,18 +345,31 @@ import {
   MagnifyingGlassIcon,
   UserIcon,
   UserGroupIcon,
-  CrownIcon,
-  TruckIcon,
-  CalculatorIcon
+  StarIcon,
+  ListBulletIcon,
+  CurrencyDollarIcon
 } from '@heroicons/vue/24/outline'
-import { ChefHatIcon } from '@heroicons/vue/24/solid'
+// ChefHatIcon placeholder - using UserIcon instead
+
+// Type definitions
+interface User {
+  id: number
+  username: string
+  fullName: string
+  email: string
+  role: number
+  status: string
+  lastLoginAt: string | null
+  createdAt: string
+  password?: string
+}
 
 // 響應式數據
 const searchQuery = ref('')
 const roleFilter = ref('')
 const statusFilter = ref('')
 const showUserModal = ref(false)
-const editingUser = ref(null)
+const editingUser = ref<User | null>(null)
 
 // 模擬用戶數據
 const users = ref([
@@ -418,7 +431,7 @@ const userForm = ref({
   password: '',
   fullName: '',
   email: '',
-  role: '',
+  role: 1,
   status: 'active'
 })
 
@@ -461,17 +474,17 @@ const filteredUsers = computed(() => {
 
 // 方法
 const getRoleIcon = (role: number) => {
-  const icons = {
-    1: CrownIcon,
-    2: ChefHatIcon,
-    3: TruckIcon,
-    4: CalculatorIcon
+  const icons: Record<number, any> = {
+    1: StarIcon,
+    2: UserIcon, // ChefHatIcon placeholder
+    3: ListBulletIcon,
+    4: CurrencyDollarIcon
   }
   return icons[role] || UserIcon
 }
 
 const getRoleBadgeClass = (role: number) => {
-  const classes = {
+  const classes: Record<number, string> = {
     1: 'bg-purple-100 text-purple-800',
     2: 'bg-orange-100 text-orange-800',
     3: 'bg-green-100 text-green-800',
@@ -481,7 +494,7 @@ const getRoleBadgeClass = (role: number) => {
 }
 
 const getRoleText = (role: number) => {
-  const texts = {
+  const texts: Record<number, string> = {
     1: '店主',
     2: '廚師',
     3: '送菜員',
@@ -491,7 +504,7 @@ const getRoleText = (role: number) => {
 }
 
 const getStatusBadgeClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'active': 'bg-green-100 text-green-800',
     'inactive': 'bg-red-100 text-red-800',
     'suspended': 'bg-yellow-100 text-yellow-800'
@@ -500,7 +513,7 @@ const getStatusBadgeClass = (status: string) => {
 }
 
 const getStatusText = (status: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'active': '活躍',
     'inactive': '停用',
     'suspended': '暫停'
@@ -516,19 +529,19 @@ const formatDate = (dateTime: string) => {
   return new Date(dateTime).toLocaleDateString('zh-TW')
 }
 
-const editUser = (user) => {
+const editUser = (user: User) => {
   editingUser.value = user
   userForm.value = { ...user }
   showUserModal.value = true
 }
 
-const resetPassword = async (user) => {
+const resetPassword = async (user: User) => {
   if (confirm(`確定要重置 ${user.username} 的密碼嗎？新密碼將會發送到用戶 Email。`)) {
     alert('密碼重置郵件已發送！')
   }
 }
 
-const toggleUserStatus = async (user) => {
+const toggleUserStatus = async (user: User) => {
   const newStatus = user.status === 'active' ? 'inactive' : 'active'
   const action = newStatus === 'active' ? '啟用' : '停用'
   
@@ -548,7 +561,7 @@ const closeUserModal = () => {
     password: '',
     fullName: '',
     email: '',
-    role: '',
+    role: 1,
     status: 'active'
   }
 }
@@ -556,7 +569,7 @@ const closeUserModal = () => {
 const saveUser = async () => {
   if (editingUser.value) {
     // 更新現有用戶
-    const index = users.value.findIndex(u => u.id === editingUser.value.id)
+    const index = users.value.findIndex(u => u.id === editingUser.value!.id)
     if (index > -1) {
       users.value[index] = { ...users.value[index], ...userForm.value }
     }

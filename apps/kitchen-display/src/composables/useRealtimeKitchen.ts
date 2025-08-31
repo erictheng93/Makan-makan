@@ -143,7 +143,7 @@ export function useRealtimeKitchen() {
       kitchenOrders.value.set(orderId, updatedOrder)
       
       // Check if all items are complete
-      const allComplete = updatedItems.every(item => item.completed)
+      const allComplete = updatedItems.every(item => (item as any).completed)
       if (allComplete) {
         updateOrderStatus(orderId, 'ready')
       }

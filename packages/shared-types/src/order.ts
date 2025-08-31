@@ -4,20 +4,35 @@ import { MenuItem, MenuItemOptions } from './menu';
 export interface Order extends BaseEntity {
   restaurantId: number;
   tableId: number;
+  customerId?: number;
   orderNumber: string;
   customerName?: string;
   customerPhone?: string;
+  customerInfo?: any;
+  subtotal: number; // in cents
+  taxAmount?: number; // in cents
+  serviceCharge?: number; // in cents
+  discountAmount?: number; // in cents
   totalAmount: number; // in cents
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
   notes?: string;
-  estimatedTime?: number; // minutes
+  internalNotes?: string;
+  estimatedPrepTime?: number; // minutes
+  actualPrepTime?: number; // minutes
   confirmedAt?: string;
-  preparedAt?: string;
+  preparingAt?: string;
+  readyAt?: string;
   deliveredAt?: string;
   paidAt?: string;
+  cancelledAt?: string;
+  rating?: number;
+  reviewComment?: string;
   items?: OrderItem[];
+  restaurant?: any;
+  table?: any;
+  customer?: any;
 }
 
 export enum OrderStatus {
@@ -65,13 +80,17 @@ export interface SelectedCustomizations {
   };
   options?: {
     id: string;
-    name: string;
+    optionName: string;    // option category name (e.g., "spice level")
+    choiceId: string;
+    choiceName: string;    // selected choice name (e.g., "medium spicy")
     priceAdjustment?: number;
   }[];
   addOns?: {
     id: string;
     name: string;
-    price: number;
+    unitPrice: number;
+    quantity: number;
+    totalPrice: number;
   }[];
   specialInstructions?: string;
 }

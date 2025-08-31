@@ -3,7 +3,7 @@ import { Howl } from 'howler'
 import { ref, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
 
-export interface AudioBuffer {
+export interface CachedAudioBuffer {
   buffer: AudioBuffer
   source?: AudioBufferSourceNode
 }
@@ -50,7 +50,7 @@ export type SoundType =
 class EnhancedAudioNotificationService {
   // Web Audio API
   private audioContext: AudioContext | null = null
-  private audioBuffers: Map<SoundType, AudioBuffer> = new Map()
+  private audioBuffers: Map<SoundType, CachedAudioBuffer> = new Map()
   private gainNode: GainNode | null = null
   private reverbNode: ConvolverNode | null = null
   private bassBoostNode: BiquadFilterNode | null = null
@@ -158,6 +158,22 @@ class EnhancedAudioNotificationService {
     // Connect effects chain
     this.bassBoostNode.connect(this.reverbNode)
     this.reverbNode.connect(this.gainNode)
+  }
+
+  // Initialize Howler.js fallback
+  private async initializeHowlerFallback(): Promise<void> {
+    try {
+      // Howler.js global settings
+      const Howler = (window as any).Howler
+      if (Howler) {
+        Howler.volume(this.settings.masterVolume)
+        Howler.mute(!this.settings.enabled)
+      }
+      console.log('Howler.js fallback initialized')
+    } catch (error) {
+      console.error('Howler.js fallback initialization failed:', error)
+      throw error
+    }
   }
 
   // Create reverb impulse response

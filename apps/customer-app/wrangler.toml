@@ -2,11 +2,25 @@ name = "makanmakan-customer"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Environment variables for customer app
+[vars]
+VITE_API_BASE_URL = "http://localhost:8787/api/v1"
+VITE_NODE_ENV = "development"
+
 [env.production]
+name = "makanmakan-customer-prod"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
+vars = { 
+  VITE_API_BASE_URL = "https://api.makanmakan.app/api/v1",
+  VITE_NODE_ENV = "production"
+}
 
 [env.staging]
 name = "makanmakan-customer-staging"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
+vars = { 
+  VITE_API_BASE_URL = "https://api-staging.makanmakan.app/api/v1",
+  VITE_NODE_ENV = "staging"
+}

@@ -356,6 +356,97 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
     }
   }
 
+  // Focus management for keyboard navigation
+  const focusedOrderId = ref<number | null>(null)
+  const focusedOrder = computed(() => {
+    if (!focusedOrderId.value) return null
+    // This would need to be connected to the actual orders data
+    return { id: focusedOrderId.value }
+  })
+
+  // Order operations
+  const completeOrder = async (orderId: number) => {
+    // TODO: Implement actual order completion API call
+    console.log(`Completing order ${orderId}`)
+    // This would call the API to mark order as complete
+  }
+
+  const startCooking = async (orderId: number) => {
+    // TODO: Implement actual start cooking API call
+    console.log(`Starting cooking for order ${orderId}`)
+    // This would call the API to start cooking process
+  }
+
+  // Navigation methods
+  const selectNextOrder = (allOrders: any[] = []) => {
+    if (allOrders.length === 0) return
+    
+    const currentIndex = focusedOrderId.value 
+      ? allOrders.findIndex(order => order.id === focusedOrderId.value)
+      : -1
+    
+    const nextIndex = (currentIndex + 1) % allOrders.length
+    focusedOrderId.value = allOrders[nextIndex]?.id || null
+    
+    if (focusedOrderId.value) {
+      selectOrder(focusedOrderId.value)
+    }
+  }
+
+  const selectPreviousOrder = (allOrders: any[] = []) => {
+    if (allOrders.length === 0) return
+    
+    const currentIndex = focusedOrderId.value 
+      ? allOrders.findIndex(order => order.id === focusedOrderId.value)
+      : -1
+    
+    const prevIndex = currentIndex <= 0 ? allOrders.length - 1 : currentIndex - 1
+    focusedOrderId.value = allOrders[prevIndex]?.id || null
+    
+    if (focusedOrderId.value) {
+      selectOrder(focusedOrderId.value)
+    }
+  }
+
+  const selectFirstOrder = (allOrders: any[] = []) => {
+    if (allOrders.length === 0) return
+    focusedOrderId.value = allOrders[0]?.id || null
+    if (focusedOrderId.value) {
+      selectOrder(focusedOrderId.value)
+    }
+  }
+
+  const selectLastOrder = (allOrders: any[] = []) => {
+    if (allOrders.length === 0) return
+    focusedOrderId.value = allOrders[allOrders.length - 1]?.id || null
+    if (focusedOrderId.value) {
+      selectOrder(focusedOrderId.value)
+    }
+  }
+
+  const selectAllVisibleOrders = (visibleOrders: any[] = []) => {
+    visibleOrders.forEach(order => selectOrder(order.id))
+  }
+
+  // Filter operations
+  const applyFilter = (filterType: string, value: any) => {
+    setFilter(filterType as keyof OrderFilter, value)
+  }
+
+  // Refresh operations
+  const refreshOrders = async () => {
+    // TODO: Implement actual order refresh from API
+    console.log('Refreshing orders')
+    // This would call the API to fetch latest orders
+  }
+
+  // Batch operations
+  const batchOperation = async (operation: string, orderIds: number[]) => {
+    // TODO: Implement actual batch operations
+    console.log(`Performing ${operation} on orders:`, orderIds)
+    // This would call the appropriate API endpoints for batch operations
+  }
+
   // Reset all management state
   const resetManagementState = () => {
     deselectAll()
@@ -364,6 +455,7 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
     viewMode.value = 'card'
     showCompletedOrders.value = false
     autoRefreshEnabled.value = true
+    focusedOrderId.value = null
   }
 
   return {
@@ -425,6 +517,30 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
 
     // Quick filters
     quickFilters,
+
+    // Focus management
+    focusedOrderId,
+    focusedOrder,
+
+    // Order operations
+    completeOrder,
+    startCooking,
+
+    // Navigation methods
+    selectNextOrder,
+    selectPreviousOrder,
+    selectFirstOrder,
+    selectLastOrder,
+    selectAllVisibleOrders,
+
+    // Filter operations  
+    applyFilter,
+
+    // Refresh operations
+    refreshOrders,
+
+    // Batch operations
+    batchOperation,
 
     // Reset
     resetManagementState

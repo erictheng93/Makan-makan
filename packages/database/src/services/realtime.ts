@@ -1,4 +1,6 @@
-import type { D1Database, KVNamespace } from '@cloudflare/workers-types'
+import type { Database as D1Database } from '@cloudflare/d1'
+import { BaseService } from './base'
+import { OrderService } from './order'
 
 interface RealtimeMessage {
   type: 'order_update' | 'kitchen_status' | 'table_notification' | 'system_alert'
@@ -8,12 +10,21 @@ interface RealtimeMessage {
   timestamp?: string
 }
 
-export class RealtimeService {
+export class RealtimeService extends BaseService {
+  private orderService: OrderService
+  private cache?: any // KV namespace type not available
+  private realtimeUrl: string
+  
   constructor(
-    private db: D1Database,
-    private cache: KVNamespace,
-    private realtimeUrl: string
-  ) {}
+    db: D1Database,
+    cache: any, // KVNamespace
+    realtimeUrl: string
+  ) {
+    super(db)
+    this.cache = cache
+    this.realtimeUrl = realtimeUrl
+    this.orderService = new OrderService(db)
+  }
 
   // Broadcast message to specific room
   async broadcast(
@@ -156,12 +167,11 @@ export class RealtimeService {
     estimatedTime?: number
   ): Promise<boolean> {
     try {
-      // Update database
-      await this.db.prepare(`
-        UPDATE orders 
-        SET status = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).bind(newStatus, orderId).run()
+      // Update database using OrderService
+      await this.orderService.updateOrderStatus(
+        parseInt(orderId), 
+        { status: newStatus as any }
+      )
 
       // Cache the status
       await this.cacheOrderStatus(orderId, {

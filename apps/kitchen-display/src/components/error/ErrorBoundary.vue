@@ -168,15 +168,9 @@ function captureError(err: Error, context: string) {
 
   // Report error to service
   errorReportingService.reportError(err, {
-    context,
+    component: context,
     url: window.location.href,
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-    systemStatus: {
-      networkStatus: networkStatus.value,
-      storageAvailable: storageAvailable.value,
-      memoryStatus: memoryStatus.value
-    }
+    userAgent: navigator.userAgent
   })
 
   // Show toast notification for non-critical errors
@@ -300,14 +294,14 @@ function setupSystemMonitoring() {
 }
 
 // Recovery helpers
-export function resetErrorBoundary() {
+const resetErrorBoundary = () => {
   hasError.value = false
   error.value = null
   errorMessage.value = ''
   errorDetails.value = ''
 }
 
-export function isInSafeMode(): boolean {
+const isInSafeMode = (): boolean => {
   return safeMode.value
 }
 

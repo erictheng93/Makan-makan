@@ -2,35 +2,46 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
+import { UserService, AuthService, USER_ROLES } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
 
-// 用戶角色定義
-const USER_ROLES = {
-  0: 'Admin',         // 系統管理員
-  1: 'Shop Owner',    // 店主
-  2: 'Chef',          // 廚師
-  3: 'Service Crew',  // 送菜員
-  4: 'Cashier'        // 收銀員
+// 用戶角色名稱映射
+const USER_ROLE_NAMES = {
+  [USER_ROLES.ADMIN]: 'Admin',
+  [USER_ROLES.OWNER]: 'Shop Owner',
+  [USER_ROLES.CHEF]: 'Chef',
+  [USER_ROLES.SERVICE]: 'Service Crew',
+  [USER_ROLES.CASHIER]: 'Cashier',
+  [USER_ROLES.CUSTOMER]: 'Customer'
 } as const
 
 // 驗證 schemas
 const createUserSchema = z.object({
   username: z.string().min(3).max(50),
-  password: z.string().min(6).max(100),
-  role: z.number().int().min(0).max(4),
-  restaurantId: z.number().int().positive().optional(),
+  fullName: z.string().min(1).max(100),
   email: z.string().email().optional(),
-  fullName: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
-  permissions: z.any().optional(),
-  isActive: z.boolean().default(true)
+  password: z.string().min(6).max(100),
+  role: z.number().int().min(0).max(5),
+  restaurantId: z.number().int().positive().optional(),
+  address: z.string().max(200).optional(),
+  dateOfBirth: z.string().optional(),
+  profileImageUrl: z.string().url().optional(),
+  preferences: z.any().optional()
 })
 
-const updateUserSchema = createUserSchema.partial().omit({ username: true, password: true }).extend({
-  newPassword: z.string().min(6).max(100).optional(),
-  currentPassword: z.string().min(6).max(100).optional()
+const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  phone: z.string().max(20).optional(),
+  fullName: z.string().min(1).max(100).optional(),
+  address: z.string().max(200).optional(),
+  dateOfBirth: z.string().optional(),
+  profileImageUrl: z.string().url().optional(),
+  preferences: z.any().optional(),
+  isActive: z.boolean().optional(),
+  isVerified: z.boolean().optional()
 })
 
 const updatePasswordSchema = z.object({
@@ -46,7 +57,8 @@ const userFilterSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
   role: z.string().regex(/^\d+$/).transform(Number).optional(),
   isActive: z.string().transform(val => val === 'true').optional(),
-  search: z.string().optional(), // 搜尋用戶名或全名
+  isVerified: z.string().transform(val => val === 'true').optional(),
+  search: z.string().optional(),
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
 })
@@ -54,11 +66,12 @@ const userFilterSchema = z.object({
 // 權限檢查輔助函數
 function canManageUser(currentUser: any, targetRole: number, targetRestaurantId?: number): boolean {
   // 管理員可以管理所有人
-  if (currentUser.role === 0) return true
+  if (currentUser.role === USER_ROLES.ADMIN) return true
   
-  // 店主只能管理自己餐廳的員工（角色 2-4）
-  if (currentUser.role === 1) {
-    return targetRole >= 2 && targetRole <= 4 && targetRestaurantId === currentUser.restaurantId
+  // 店主只能管理自己餐廳的員工（角色 2-5）
+  if (currentUser.role === USER_ROLES.OWNER) {
+    return targetRole >= USER_ROLES.CHEF && targetRole <= USER_ROLES.CUSTOMER && 
+           targetRestaurantId === currentUser.restaurantId
   }
   
   return false
@@ -70,93 +83,40 @@ function canManageUser(currentUser: any, targetRole: number, targetRestaurantId?
  */
 app.get('/',
   authMiddleware,
-  requireRole([0, 1]), // 只有管理員和店主可以查看用戶列表
-  validateQuery(userFilterSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(userFilterSchema as any),
   async (c) => {
     try {
       const query = c.get('validatedQuery')
-      const user = c.get('user')
+      const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
       
-      let whereConditions = ['u.id IS NOT NULL']
-      let params: any[] = []
-      
-      // 權限過濾
-      if (user.role === 1) { // 店主只能查看自己餐廳的員工
-        whereConditions.push('(u.role >= 2 AND u.restaurant_id = ?)')
-        params.push(user.restaurantId)
+      let filters = {
+        ...query,
+        page: query.page,
+        limit: query.limit
       }
       
-      // 其他過濾條件
-      if (query.restaurantId) {
-        whereConditions.push('u.restaurant_id = ?')
-        params.push(query.restaurantId)
+      // 權限過濾：店主只能查看自己餐廳的用戶
+      if (currentUser.role === USER_ROLES.OWNER) {
+        filters.restaurantId = currentUser.restaurantId
       }
       
-      if (query.role !== undefined) {
-        whereConditions.push('u.role = ?')
-        params.push(query.role)
-      }
-      
-      if (query.isActive !== undefined) {
-        whereConditions.push('u.status = ?')
-        params.push(query.isActive ? 'active' : 'inactive')
-      }
-      
-      if (query.search) {
-        whereConditions.push('(u.username LIKE ? OR u.full_name LIKE ? OR u.email LIKE ?)')
-        const searchTerm = `%${query.search}%`
-        params.push(searchTerm, searchTerm, searchTerm)
-      }
-      
-      // 獲取總數
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM users u
-        WHERE ${whereConditions.join(' AND ')}
-      `
-      const countResult = await c.env.DB.prepare(countQuery).bind(...params).first()
-      const total = countResult?.total || 0
-      
-      // 分頁計算
-      const offset = (query.page - 1) * query.limit
-      
-      // 獲取用戶列表
-      const usersQuery = `
-        SELECT 
-          u.id, u.username, u.role, u.restaurant_id, u.email, 
-          u.full_name, u.phone, u.status, u.last_login, u.created_at,
-          r.name as restaurant_name,
-          COUNT(CASE WHEN al.created_at >= datetime('now', '-30 days') THEN 1 END) as recent_activity
-        FROM users u
-        LEFT JOIN restaurants r ON u.restaurant_id = r.id
-        LEFT JOIN audit_logs al ON u.id = al.user_id
-        WHERE ${whereConditions.join(' AND ')}
-        GROUP BY u.id
-        ORDER BY u.created_at DESC
-        LIMIT ? OFFSET ?
-      `
-      
-      const usersResult = await c.env.DB.prepare(usersQuery)
-        .bind(...params, query.limit, offset).all()
+      const result = currentUser.role === USER_ROLES.ADMIN 
+        ? await userService.getAllUsers(filters)
+        : await userService.getRestaurantUsers(currentUser.restaurantId!, filters)
       
       // 格式化用戶資料
-      const users = (usersResult.results || []).map((user: any) => ({
+      const formattedUsers = result.users.map((user: any) => ({
         ...user,
-        role_name: USER_ROLES[user.role as keyof typeof USER_ROLES] || 'Unknown',
-        is_active: user.status === 'active'
+        role_name: USER_ROLE_NAMES[user.role as keyof typeof USER_ROLE_NAMES] || 'Unknown',
+        is_active: user.isActive
       }))
-      
-      const pagination = {
-        page: query.page,
-        limit: query.limit,
-        total,
-        pages: Math.ceil(total / query.limit)
-      }
       
       return c.json({
         success: true,
-        data: users,
-        pagination
+        data: formattedUsers,
+        pagination: result.pagination
       })
       
     } catch (error) {
@@ -175,21 +135,15 @@ app.get('/',
  */
 app.get('/:id',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]), // 所有角色都可以查看用戶資料
-  validateParams(commonSchemas.idParam),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF, USER_ROLES.SERVICE, USER_ROLES.CASHIER, USER_ROLES.CUSTOMER]),
+  validateParams(commonSchemas.idParam as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
       
-      const targetUser = await c.env.DB.prepare(`
-        SELECT 
-          u.*,
-          r.name as restaurant_name
-        FROM users u
-        LEFT JOIN restaurants r ON u.restaurant_id = r.id
-        WHERE u.id = ?
-      `).bind(id).first()
+      const targetUser = await userService.getUserById(parseInt(id))
       
       if (!targetUser) {
         return c.json({
@@ -200,9 +154,9 @@ app.get('/:id',
       
       // 權限檢查
       const canView = 
-        currentUser.role === 0 || // 管理員可以查看所有人
+        currentUser.role === USER_ROLES.ADMIN || // 管理員可以查看所有人
         currentUser.id === parseInt(id) || // 用戶可以查看自己
-        (currentUser.role === 1 && targetUser.restaurant_id === currentUser.restaurantId) // 店主可以查看同餐廳員工
+        (currentUser.role === USER_ROLES.OWNER && targetUser.restaurantId === currentUser.restaurantId) // 店主可以查看同餐廳員工
       
       if (!canView) {
         return c.json({
@@ -211,36 +165,27 @@ app.get('/:id',
         }, 403)
       }
       
-      // 獲取用戶活動記錄（僅管理員和店主，以及用戶自己）
-      let recentActivity = []
-      if (currentUser.role <= 1 || currentUser.id === parseInt(id)) {
-        const activityResult = await c.env.DB.prepare(`
-          SELECT action, resource, details, created_at
-          FROM audit_logs 
-          WHERE user_id = ? 
-          ORDER BY created_at DESC 
-          LIMIT 10
-        `).bind(id).all()
-        
-        recentActivity = activityResult.results || []
-      }
-      
-      // 隱藏敏感資料
+      // 格式化用戶資料
       const safeUser = {
         id: targetUser.id,
         username: targetUser.username,
         role: targetUser.role,
-        role_name: USER_ROLES[targetUser.role as keyof typeof USER_ROLES] || 'Unknown',
-        restaurant_id: targetUser.restaurant_id,
-        restaurant_name: targetUser.restaurant_name,
+        role_name: USER_ROLE_NAMES[targetUser.role as keyof typeof USER_ROLE_NAMES] || 'Unknown',
+        restaurantId: targetUser.restaurantId,
         email: targetUser.email,
-        full_name: targetUser.full_name,
+        fullName: targetUser.fullName,
         phone: targetUser.phone,
-        status: targetUser.status,
-        is_active: targetUser.status === 'active',
-        last_login: targetUser.last_login,
-        created_at: targetUser.created_at,
-        recent_activity: recentActivity
+        address: targetUser.address,
+        dateOfBirth: targetUser.dateOfBirth,
+        profileImageUrl: targetUser.profileImageUrl,
+        isActive: targetUser.isActive,
+        isVerified: targetUser.isVerified,
+        preferences: targetUser.preferences,
+        totalOrders: targetUser.totalOrders,
+        totalSpent: targetUser.totalSpent,
+        lastLoginAt: targetUser.lastLoginAt,
+        createdAt: targetUser.createdAt,
+        updatedAt: targetUser.updatedAt
       }
       
       return c.json({
@@ -264,12 +209,13 @@ app.get('/:id',
  */
 app.post('/',
   authMiddleware,
-  requireRole([0, 1]), // 只有管理員和店主可以創建用戶
-  validateBody(createUserSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateBody(createUserSchema as any),
   async (c) => {
     try {
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
       
       // 權限檢查
       if (!canManageUser(currentUser, data.role, data.restaurantId)) {
@@ -279,83 +225,24 @@ app.post('/',
         }, 403)
       }
       
-      // 檢查用戶名是否已存在
-      const existingUser = await c.env.DB.prepare(`
-        SELECT id FROM users WHERE username = ?
-      `).bind(data.username).first()
-      
-      if (existingUser) {
-        return c.json({
-          success: false,
-          error: 'Username already exists'
-        }, 409)
-      }
-      
-      // 檢查郵箱是否已存在（如果提供）
-      if (data.email) {
-        const existingEmail = await c.env.DB.prepare(`
-          SELECT id FROM users WHERE email = ?
-        `).bind(data.email).first()
-        
-        if (existingEmail) {
-          return c.json({
-            success: false,
-            error: 'Email already exists'
-          }, 409)
-        }
-      }
-      
-      // 創建用戶（實際項目中應該對密碼進行加密）
-      const result = await c.env.DB.prepare(`
-        INSERT INTO users (
-          username, password, role, restaurant_id, email, full_name, 
-          phone, status, permissions, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(
-        data.username,
-        data.password, // 注意：實際項目中應該使用 bcrypt 等加密
-        data.role,
-        data.restaurantId || null,
-        data.email || null,
-        data.fullName || null,
-        data.phone || null,
-        data.isActive ? 'active' : 'inactive',
-        data.permissions ? JSON.stringify(data.permissions) : null
-      ).run()
-      
-      const userId = result.meta.last_row_id as number
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        currentUser.id,
-        'create_user',
-        'users',
-        JSON.stringify({ 
-          createdUserId: userId, 
-          username: data.username, 
-          role: data.role,
-          restaurantId: data.restaurantId 
-        })
-      ).run()
-      
-      // 獲取創建的用戶資料
-      const newUser = await c.env.DB.prepare(`
-        SELECT 
-          u.id, u.username, u.role, u.restaurant_id, u.email, 
-          u.full_name, u.phone, u.status, u.created_at,
-          r.name as restaurant_name
-        FROM users u
-        LEFT JOIN restaurants r ON u.restaurant_id = r.id
-        WHERE u.id = ?
-      `).bind(userId).first()
+      const newUser = await userService.createUser({
+        username: data.username,
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+        role: data.role,
+        restaurantId: data.restaurantId,
+        address: data.address,
+        dateOfBirth: data.dateOfBirth,
+        profileImageUrl: data.profileImageUrl,
+        preferences: data.preferences
+      })
       
       const response = {
         ...newUser,
-        role_name: USER_ROLES[newUser.role as keyof typeof USER_ROLES] || 'Unknown',
-        is_active: newUser.status === 'active'
+        role_name: USER_ROLE_NAMES[newUser.role as keyof typeof USER_ROLE_NAMES] || 'Unknown',
+        is_active: newUser.isActive
       }
       
       return c.json({
@@ -379,18 +266,17 @@ app.post('/',
  */
 app.put('/:id',
   authMiddleware,
-  validateParams(commonSchemas.idParam),
-  validateBody(updateUserSchema),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(updateUserSchema as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
       
       // 獲取目標用戶
-      const targetUser = await c.env.DB.prepare(`
-        SELECT * FROM users WHERE id = ?
-      `).bind(id).first()
+      const targetUser = await userService.getUserById(parseInt(id))
       
       if (!targetUser) {
         return c.json({
@@ -401,9 +287,9 @@ app.put('/:id',
       
       // 權限檢查
       const canUpdate = 
-        currentUser.role === 0 || // 管理員可以更新所有人
-        currentUser.id === parseInt(id) || // 用戶可以更新自己（但有限制）
-        (currentUser.role === 1 && canManageUser(currentUser, targetUser.role, targetUser.restaurant_id))
+        currentUser.role === USER_ROLES.ADMIN || // 管理員可以更新所有人
+        currentUser.id === parseInt(id) || // 用戶可以更新自己
+        (currentUser.role === USER_ROLES.OWNER && canManageUser(currentUser, targetUser.role, targetUser.restaurantId))
       
       if (!canUpdate) {
         return c.json({
@@ -412,143 +298,12 @@ app.put('/:id',
         }, 403)
       }
       
-      // 用戶自己更新時的限制
-      if (currentUser.id === parseInt(id)) {
-        // 不能修改自己的角色和餐廳
-        if (data.role !== undefined || data.restaurantId !== undefined) {
-          return c.json({
-            success: false,
-            error: 'Cannot modify your own role or restaurant assignment'
-          }, 403)
-        }
-      }
-      
-      // 檢查郵箱重複
-      if (data.email && data.email !== targetUser.email) {
-        const existingEmail = await c.env.DB.prepare(`
-          SELECT id FROM users WHERE email = ? AND id != ?
-        `).bind(data.email, id).first()
-        
-        if (existingEmail) {
-          return c.json({
-            success: false,
-            error: 'Email already exists'
-          }, 409)
-        }
-      }
-      
-      // 如果要修改密碼，驗證舊密碼
-      if (data.newPassword) {
-        if (!data.currentPassword) {
-          return c.json({
-            success: false,
-            error: 'Current password required to change password'
-          }, 400)
-        }
-        
-        if (targetUser.password !== data.currentPassword) {
-          return c.json({
-            success: false,
-            error: 'Current password is incorrect'
-          }, 400)
-        }
-      }
-      
-      // 構建更新查詢
-      const updateFields = []
-      const updateParams = []
-      
-      if (data.role !== undefined && currentUser.id !== parseInt(id)) {
-        updateFields.push('role = ?')
-        updateParams.push(data.role)
-      }
-      
-      if (data.restaurantId !== undefined && currentUser.id !== parseInt(id)) {
-        updateFields.push('restaurant_id = ?')
-        updateParams.push(data.restaurantId)
-      }
-      
-      if (data.email !== undefined) {
-        updateFields.push('email = ?')
-        updateParams.push(data.email)
-      }
-      
-      if (data.fullName !== undefined) {
-        updateFields.push('full_name = ?')
-        updateParams.push(data.fullName)
-      }
-      
-      if (data.phone !== undefined) {
-        updateFields.push('phone = ?')
-        updateParams.push(data.phone)
-      }
-      
-      if (data.isActive !== undefined && currentUser.role <= 1) {
-        updateFields.push('status = ?')
-        updateParams.push(data.isActive ? 'active' : 'inactive')
-      }
-      
-      if (data.newPassword) {
-        updateFields.push('password = ?')
-        updateParams.push(data.newPassword) // 實際應該加密
-      }
-      
-      if (data.permissions !== undefined) {
-        updateFields.push('permissions = ?')
-        updateParams.push(JSON.stringify(data.permissions))
-      }
-      
-      if (updateFields.length === 0) {
-        return c.json({
-          success: false,
-          error: 'No fields to update'
-        }, 400)
-      }
-      
-      updateFields.push('updated_at = datetime(\'now\')')
-      updateParams.push(id)
-      
-      const updateQuery = `
-        UPDATE users 
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-      `
-      
-      await c.env.DB.prepare(updateQuery).bind(...updateParams).run()
-      
-      // 記錄審計日誌
-      const changes = Object.keys(data).reduce((acc: any, key) => {
-        if (key !== 'currentPassword' && key !== 'newPassword') {
-          acc[key] = data[key as keyof typeof data]
-        }
-        return acc
-      }, {})
-      
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        currentUser.id,
-        'update_user',
-        'users',
-        JSON.stringify({ targetUserId: id, changes })
-      ).run()
-      
-      // 獲取更新後的用戶資料
-      const updatedUser = await c.env.DB.prepare(`
-        SELECT 
-          u.id, u.username, u.role, u.restaurant_id, u.email, 
-          u.full_name, u.phone, u.status, u.updated_at,
-          r.name as restaurant_name
-        FROM users u
-        LEFT JOIN restaurants r ON u.restaurant_id = r.id
-        WHERE u.id = ?
-      `).bind(id).first()
+      const updatedUser = await userService.updateUser(parseInt(id), data)
       
       const response = {
         ...updatedUser,
-        role_name: USER_ROLES[updatedUser.role as keyof typeof USER_ROLES] || 'Unknown',
-        is_active: updatedUser.status === 'active'
+        role_name: USER_ROLE_NAMES[updatedUser.role as keyof typeof USER_ROLE_NAMES] || 'Unknown',
+        is_active: updatedUser.isActive
       }
       
       return c.json({
@@ -572,58 +327,31 @@ app.put('/:id',
  */
 app.post('/:id/password',
   authMiddleware,
-  validateParams(commonSchemas.idParam),
-  validateBody(updatePasswordSchema),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(updatePasswordSchema as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const { currentPassword, newPassword } = c.get('validatedBody')
       const currentUser = c.get('user')
+      const authService = new AuthService(c.env.DB as any)
       
       // 只有用戶自己或管理員可以修改密碼
-      if (currentUser.id !== parseInt(id) && currentUser.role !== 0) {
+      if (currentUser.id !== parseInt(id) && currentUser.role !== USER_ROLES.ADMIN) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      const targetUser = await c.env.DB.prepare(`
-        SELECT password FROM users WHERE id = ?
-      `).bind(id).first()
+      const result = await authService.changePassword(parseInt(id), currentPassword, newPassword)
       
-      if (!targetUser) {
+      if (!result.success) {
         return c.json({
           success: false,
-          error: 'User not found'
-        }, 404)
-      }
-      
-      // 驗證當前密碼
-      if (targetUser.password !== currentPassword) {
-        return c.json({
-          success: false,
-          error: 'Current password is incorrect'
+          error: result.error
         }, 400)
       }
-      
-      // 更新密碼
-      await c.env.DB.prepare(`
-        UPDATE users 
-        SET password = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(newPassword, id).run() // 實際應該加密
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        currentUser.id,
-        'change_password',
-        'users',
-        JSON.stringify({ targetUserId: id })
-      ).run()
       
       return c.json({
         success: true,
@@ -646,21 +374,20 @@ app.post('/:id/password',
  */
 app.patch('/:id/status',
   authMiddleware,
-  requireRole([0, 1]), // 只有管理員和店主
-  validateParams(commonSchemas.idParam),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
   validateBody(z.object({
     isActive: z.boolean(),
     reason: z.string().max(200).optional()
-  })),
+  }) as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const { isActive, reason } = c.get('validatedBody')
+      const { isActive } = c.get('validatedBody')
       const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
       
-      const targetUser = await c.env.DB.prepare(`
-        SELECT * FROM users WHERE id = ?
-      `).bind(id).first()
+      const targetUser = await userService.getUserById(parseInt(id))
       
       if (!targetUser) {
         return c.json({
@@ -670,7 +397,7 @@ app.patch('/:id/status',
       }
       
       // 權限檢查
-      if (!canManageUser(currentUser, targetUser.role, targetUser.restaurant_id)) {
+      if (!canManageUser(currentUser, targetUser.role, targetUser.restaurantId)) {
         return c.json({
           success: false,
           error: 'Insufficient permissions'
@@ -678,31 +405,14 @@ app.patch('/:id/status',
       }
       
       // 不能停用自己
-      if (currentUser.id === parseInt(id)) {
+      if (currentUser.id === parseInt(id) && !isActive) {
         return c.json({
           success: false,
           error: 'Cannot deactivate your own account'
         }, 400)
       }
       
-      const newStatus = isActive ? 'active' : 'inactive'
-      
-      await c.env.DB.prepare(`
-        UPDATE users 
-        SET status = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(newStatus, id).run()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        currentUser.id,
-        isActive ? 'activate_user' : 'deactivate_user',
-        'users',
-        JSON.stringify({ targetUserId: id, reason: reason || 'No reason provided' })
-      ).run()
+      await userService.updateUser(parseInt(id), { isActive })
       
       return c.json({
         success: true,
@@ -720,88 +430,165 @@ app.patch('/:id/status',
 )
 
 /**
+ * 驗證用戶
+ * PATCH /api/v1/users/:id/verify
+ */
+app.patch('/:id/verify',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
+      
+      const targetUser = await userService.getUserById(parseInt(id))
+      
+      if (!targetUser) {
+        return c.json({
+          success: false,
+          error: 'User not found'
+        }, 404)
+      }
+      
+      // 權限檢查
+      if (!canManageUser(currentUser, targetUser.role, targetUser.restaurantId)) {
+        return c.json({
+          success: false,
+          error: 'Insufficient permissions'
+        }, 403)
+      }
+      
+      const success = await userService.verifyUser(parseInt(id))
+      
+      if (!success) {
+        return c.json({
+          success: false,
+          error: 'Failed to verify user'
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        message: 'User verified successfully'
+      })
+      
+    } catch (error) {
+      console.error('Verify user error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to verify user'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 重設用戶密碼
+ * POST /api/v1/users/:id/reset-password
+ */
+app.post('/:id/reset-password',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(z.object({
+    newPassword: z.string().min(6).max(100)
+  }) as any),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { newPassword } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
+      
+      const targetUser = await userService.getUserById(parseInt(id))
+      
+      if (!targetUser) {
+        return c.json({
+          success: false,
+          error: 'User not found'
+        }, 404)
+      }
+      
+      // 權限檢查
+      if (!canManageUser(currentUser, targetUser.role, targetUser.restaurantId)) {
+        return c.json({
+          success: false,
+          error: 'Insufficient permissions'
+        }, 403)
+      }
+      
+      const success = await userService.resetPassword(parseInt(id), newPassword)
+      
+      if (!success) {
+        return c.json({
+          success: false,
+          error: 'Failed to reset password'
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        message: 'Password reset successfully'
+      })
+      
+    } catch (error) {
+      console.error('Reset password error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to reset password'
+      }, 500)
+    }
+  }
+)
+
+/**
  * 獲取用戶統計
  * GET /api/v1/users/stats
  */
 app.get('/stats',
   authMiddleware,
-  requireRole([0, 1]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(z.object({
     restaurantId: z.string().regex(/^\d+$/).transform(Number).optional()
-  })),
+  }) as any),
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedQuery')
       const currentUser = c.get('user')
-      
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const userService = new UserService(c.env.DB as any)
       
       // 權限過濾
-      if (currentUser.role === 1) {
-        whereConditions.push('restaurant_id = ?')
-        params.push(currentUser.restaurantId)
+      let targetRestaurantId: number | undefined
+      if (currentUser.role === USER_ROLES.OWNER) {
+        targetRestaurantId = currentUser.restaurantId
       } else if (restaurantId) {
-        whereConditions.push('restaurant_id = ?')
-        params.push(restaurantId)
+        targetRestaurantId = restaurantId
       }
       
-      const whereClause = whereConditions.join(' AND ')
-      
-      // 基本統計
-      const basicStats = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(*) as total_users,
-          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_users,
-          SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive_users,
-          SUM(CASE WHEN last_login >= datetime('now', '-7 days') THEN 1 ELSE 0 END) as weekly_active_users,
-          SUM(CASE WHEN created_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END) as new_users_month
-        FROM users 
-        WHERE ${whereClause}
-      `).bind(...params).first()
-      
-      // 按角色統計
-      const roleStats = await c.env.DB.prepare(`
-        SELECT 
-          role,
-          COUNT(*) as count,
-          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count
-        FROM users 
-        WHERE ${whereClause}
-        GROUP BY role
-        ORDER BY role
-      `).bind(...params).all()
-      
-      // 按餐廳統計（僅管理員可見）
-      let restaurantStats = []
-      if (currentUser.role === 0) {
-        const restaurantResult = await c.env.DB.prepare(`
-          SELECT 
-            r.id,
-            r.name,
-            COUNT(u.id) as user_count,
-            SUM(CASE WHEN u.status = 'active' THEN 1 ELSE 0 END) as active_users
-          FROM restaurants r
-          LEFT JOIN users u ON r.id = u.restaurant_id
-          GROUP BY r.id, r.name
-          ORDER BY user_count DESC
-        `).all()
-        
-        restaurantStats = restaurantResult.results || []
-      }
+      const stats = await userService.getUserStats(targetRestaurantId)
       
       // 格式化角色統計
-      const formattedRoleStats = (roleStats.results || []).map((stat: any) => ({
-        ...stat,
-        role_name: USER_ROLES[stat.role as keyof typeof USER_ROLES] || 'Unknown'
-      }))
+      const formattedByRole = Object.entries(stats.byRole).reduce((acc, [role, count]) => {
+        const roleNum = parseInt(role)
+        acc[roleNum] = {
+          count,
+          role_name: USER_ROLE_NAMES[roleNum as keyof typeof USER_ROLE_NAMES] || 'Unknown'
+        }
+        return acc
+      }, {} as any)
       
       return c.json({
         success: true,
         data: {
-          summary: basicStats,
-          by_role: formattedRoleStats,
-          by_restaurant: restaurantStats
+          summary: {
+            total_users: stats.totalUsers,
+            active_users: stats.activeUsers,
+            inactive_users: stats.totalUsers - stats.activeUsers,
+            new_users_month: stats.recentRegistrations
+          },
+          by_role: formattedByRole
         }
       })
       
@@ -810,6 +597,54 @@ app.get('/stats',
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch user statistics'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 搜尋用戶
+ * GET /api/v1/users/search
+ */
+app.get('/search',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(z.object({
+    query: z.string().min(1),
+    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10')
+  }) as any),
+  async (c) => {
+    try {
+      const { query, restaurantId, limit } = c.get('validatedQuery')
+      const currentUser = c.get('user')
+      const userService = new UserService(c.env.DB as any)
+      
+      // 權限過濾
+      let targetRestaurantId: number | undefined
+      if (currentUser.role === USER_ROLES.OWNER) {
+        targetRestaurantId = currentUser.restaurantId
+      } else if (restaurantId) {
+        targetRestaurantId = restaurantId
+      }
+      
+      const results = await userService.searchUsers(query, targetRestaurantId, limit)
+      
+      const formattedResults = results.map((user: any) => ({
+        ...user,
+        role_name: USER_ROLE_NAMES[user.role as keyof typeof USER_ROLE_NAMES] || 'Unknown'
+      }))
+      
+      return c.json({
+        success: true,
+        data: formattedResults
+      })
+      
+    } catch (error) {
+      console.error('Search users error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to search users'
       }, 500)
     }
   }

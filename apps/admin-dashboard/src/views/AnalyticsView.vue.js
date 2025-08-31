@@ -1,4 +1,3 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref, onMounted } from 'vue';
 import { CurrencyDollarIcon, ShoppingBagIcon, CalculatorIcon, TableCellsIcon, ChartBarIcon, DocumentArrowDownIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon } from '@heroicons/vue/24/outline';
 // 響應式數據

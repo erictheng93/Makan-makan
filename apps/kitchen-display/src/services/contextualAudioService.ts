@@ -21,9 +21,9 @@ export interface ContextualNotification {
   context: KitchenContext
   urgency: UrgencyLevel
   orderData?: {
-    id: string
-    priority: string
-    waitTime: number
+    id?: string
+    priority?: string
+    waitTime?: number
     tableNumber?: string
     specialInstructions?: boolean
     allergyAlert?: boolean
@@ -563,21 +563,21 @@ class ContextualAudioService {
       Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000) : 0
     
     await this.sendContextualNotification('new-order', {
-      id: order.id,
+      id: order.id.toString(),
       priority: order.priority || 'normal',
       waitTime,
-      tableNumber: order.tableNumber,
+      tableNumber: order.tableName,
       specialInstructions: !!(order.notes && order.notes.length > 0),
-      allergyAlert: order.items?.some(item => item.allergens?.length > 0)
+      allergyAlert: order.items?.some(item => (item as any).allergens?.length > 0)
     })
   }
 
   async notifyOrderReady(order: KitchenOrder): Promise<void> {
     await this.sendContextualNotification('order-ready', {
-      id: order.id,
+      id: order.id.toString(),
       priority: order.priority || 'normal',
       waitTime: 0,
-      tableNumber: order.tableNumber
+      tableNumber: order.tableName
     })
   }
 

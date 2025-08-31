@@ -235,8 +235,10 @@ const handleClearCache = () => {
     // 清理 sessionStorage
     sessionStorage.clear()
     
-    // 清理應用緩存
-    errorHandler.clearCache && errorHandler.clearCache()
+    // Clear application cache if method exists
+    if ('clearCache' in errorHandler && typeof errorHandler.clearCache === 'function') {
+      errorHandler.clearCache()
+    }
     
     alert('緩存已清理，請刷新頁面')
   } catch (error) {

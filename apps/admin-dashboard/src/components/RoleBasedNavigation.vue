@@ -249,7 +249,7 @@ const visibleNavItems = computed(() => {
 const roleDisplayName = computed(() => {
   if (!authStore.user) return ''
   
-  const roleNames = {
+  const roleNames: Record<number, string> = {
     [UserRole.ADMIN]: '系統管理員',
     [UserRole.OWNER]: '店主',
     [UserRole.CHEF]: '廚師',
@@ -264,7 +264,7 @@ const roleDisplayName = computed(() => {
 const roleColorClass = computed(() => {
   if (!authStore.user) return 'bg-gray-100 text-gray-800'
   
-  const roleColors = {
+  const roleColors: Record<number, string> = {
     [UserRole.ADMIN]: 'bg-red-100 text-red-800',
     [UserRole.OWNER]: 'bg-purple-100 text-purple-800',
     [UserRole.CHEF]: 'bg-orange-100 text-orange-800',
@@ -293,7 +293,7 @@ const handleRoleSwitch = (event: Event) => {
   
   if (!role) return
   
-  const roleRoutes = {
+  const roleRoutes: Record<string, string> = {
     owner: '/owner',
     chef: '/kitchen',
     service: '/service',

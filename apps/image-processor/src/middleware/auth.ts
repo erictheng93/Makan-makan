@@ -1,6 +1,9 @@
 import { Context, Next } from 'hono'
 import { verify } from 'jsonwebtoken'
 import type { Env } from '../types/env'
+import { createDbConnection } from '@makanmakan/database'
+import { eq } from 'drizzle-orm'
+import { images } from '@makanmakan/database'
 
 export interface AuthUser {
   id: number
@@ -156,12 +159,18 @@ export const checkImageAccess = async (c: Context<{ Bindings: Env }>, next: Next
       return
     }
 
-    // 檢查圖片是否屬於用戶的餐廳
-    const imageResult = await c.env.DB.prepare(`
-      SELECT restaurant_id, uploaded_by 
-      FROM images 
-      WHERE id = ?
-    `).bind(imageId).first()
+    // 檢查圖片是否屬於用戶的餐廳 - Use Drizzle ORM
+    const db = createDbConnection(c.env.DB)
+    const imageResults = await db
+      .select({
+        restaurant_id: images.restaurantId,
+        uploaded_by: images.uploadedBy
+      })
+      .from(images)
+      .where(eq(images.id, imageId))
+      .limit(1)
+    
+    const imageResult = imageResults[0] || null
 
     if (!imageResult) {
       return c.json({

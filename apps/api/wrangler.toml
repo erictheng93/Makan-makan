@@ -4,11 +4,13 @@ main = "src/index.ts"
 compatibility_date = "2024-08-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Variables
+# Variables (non-sensitive only)
 [vars]
 NODE_ENV = "development"
-JWT_SECRET = "your-super-secret-jwt-key-change-in-production"
 API_VERSION = "v1"
+
+# SECURITY NOTE: JWT_SECRET should be set via 'wrangler secret put JWT_SECRET'
+# Never put sensitive values in wrangler.toml as they are visible in version control
 
 # D1 Database bindings
 [[d1_databases]]
@@ -21,6 +23,12 @@ database_id = "local"
 binding = "CACHE_KV"
 id = "your-kv-namespace-id"
 preview_id = "your-preview-kv-namespace-id"
+
+# KV namespace for JWT token blacklisting (security)
+[[kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "your-token-blacklist-kv-id"
+preview_id = "your-token-blacklist-preview-id"
 
 # R2 bucket for file storage
 [[r2_buckets]]
@@ -47,6 +55,14 @@ binding = "DB"
 database_name = "makanmakan-staging"
 database_id = "your-staging-d1-database-id"
 
+[[env.staging.kv_namespaces]]
+binding = "CACHE_KV"
+id = "your-staging-kv-namespace-id"
+
+[[env.staging.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "your-staging-token-blacklist-kv-id"
+
 # Production environment  
 [env.production]
 name = "makanmakan-api-prod"
@@ -56,6 +72,14 @@ vars = { NODE_ENV = "production", API_VERSION = "v1" }
 binding = "DB"
 database_name = "makanmakan-prod"
 database_id = "your-production-d1-database-id"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE_KV"
+id = "your-production-kv-namespace-id"
+
+[[env.production.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "your-production-token-blacklist-kv-id"
 
 # Build configuration
 [build]

@@ -125,7 +125,7 @@ const currentUser = computed(() => authStore.user)
 
 const availablePermissions = computed(() => {
   const role = currentUser.value?.role
-  const permissions = {
+  const permissions: Record<number, string[]> = {
     0: [ // Admin
       '系統管理',
       '用戶管理',
@@ -156,12 +156,12 @@ const availablePermissions = computed(() => {
       '付款處理'
     ]
   }
-  return permissions[role] || ['基本功能']
+  return permissions[role!] || ['基本功能']
 })
 
 // 方法
 const getRoleText = (role: number) => {
-  const roles = {
+  const roles: Record<number, string> = {
     0: '系統管理員',
     1: '店主',
     2: '廚師',

@@ -61,6 +61,7 @@ import {
   ArrowTrendingDownIcon,
   MinusIcon
 } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
 
 interface Props {
   title: string
@@ -77,7 +78,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // 圖標組件映射
-const iconComponents = {
+const iconComponents: Record<string, Component> = {
   QueueListIcon,
   CheckCircleIcon,
   ClockIcon,

@@ -20,6 +20,58 @@ export const useAuthStore = defineStore('auth', () => {
     const canManageOrders = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER]));
     const canManageMenu = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER]));
     const canViewKitchen = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF]));
+    const canAccessService = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE]));
+    const canAccessCashier = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER]));
+    const canAccessOwnerDashboard = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER]));
+    const canManageStaff = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER]));
+    const canViewAnalytics = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER]));
+    const canManageSettings = computed(() => hasPermission([UserRole.ADMIN, UserRole.OWNER]));
+    // 根據用戶角色返回預設路由
+    const getDefaultRoute = () => {
+        if (!user.value)
+            return '/login';
+        switch (user.value.role) {
+            case UserRole.ADMIN:
+                return '/dashboard';
+            case UserRole.OWNER:
+                return '/owner';
+            case UserRole.CHEF:
+                return '/kitchen';
+            case UserRole.SERVICE:
+                return '/service';
+            case UserRole.CASHIER:
+                return '/cashier';
+            default:
+                return '/dashboard';
+        }
+    };
+    // 檢查用戶是否可以訪問特定路由
+    const canAccessRoute = (routeName) => {
+        if (!user.value)
+            return false;
+        const routePermissions = {
+            'Dashboard': [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF, UserRole.SERVICE, UserRole.CASHIER],
+            'DashboardHome': [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF, UserRole.SERVICE, UserRole.CASHIER],
+            'Orders': [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
+            'Menu': [UserRole.ADMIN, UserRole.OWNER],
+            'Tables': [UserRole.ADMIN, UserRole.OWNER],
+            'Users': [UserRole.ADMIN, UserRole.OWNER],
+            'Analytics': [UserRole.ADMIN, UserRole.OWNER],
+            'Settings': [UserRole.ADMIN, UserRole.OWNER],
+            'Kitchen': [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
+            'KitchenDisplay': [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
+            'Service': [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
+            'ServiceDelivery': [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
+            'Cashier': [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+            'CashierPOS': [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+            'Owner': [UserRole.ADMIN, UserRole.OWNER],
+            'OwnerDashboard': [UserRole.ADMIN, UserRole.OWNER]
+        };
+        const requiredRoles = routePermissions[routeName];
+        if (!requiredRoles)
+            return true; // 如果沒有定義權限，允許訪問
+        return hasPermission(requiredRoles);
+    };
     const login = async (username, password) => {
         isLoading.value = true;
         try {
@@ -101,6 +153,14 @@ export const useAuthStore = defineStore('auth', () => {
         canManageOrders,
         canManageMenu,
         canViewKitchen,
+        canAccessService,
+        canAccessCashier,
+        canAccessOwnerDashboard,
+        canManageStaff,
+        canViewAnalytics,
+        canManageSettings,
+        getDefaultRoute,
+        canAccessRoute,
         login,
         logout,
         checkAuth,

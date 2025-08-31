@@ -1165,9 +1165,10 @@ export async function healthCheck(request: Request, env: Env): Promise<Response>
   };
   
   try {
-    // 檢查資料庫連接
-    await env.DB.prepare('SELECT 1').first();
-    checks.checks.database = true;
+    // 檢查資料庫連接 - 使用 Drizzle ORM
+    const db = drizzle(env.DB, { schema });
+    const result = await db.select({ test: sql<number>`1` }).limit(1);
+    checks.checks.database = result[0]?.test === 1;
   } catch (error) {
     console.error('Database health check failed:', error);
   }

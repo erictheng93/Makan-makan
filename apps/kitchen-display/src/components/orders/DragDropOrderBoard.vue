@@ -239,7 +239,7 @@ const setupSortable = () => {
       
       onMove: (evt) => {
         const targetStatus = evt.to.dataset.status
-        dragOverColumn.value = targetStatus
+        dragOverColumn.value = targetStatus || null
         return true
       }
     })

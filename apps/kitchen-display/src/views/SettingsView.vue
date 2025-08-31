@@ -265,7 +265,7 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import ArrowLeftIcon from '@heroicons/vue/24/outline/ArrowLeftIcon'
 import { useSettingsStore } from '@/stores/settings'
 import { useToast } from 'vue-toastification'
 import { storeToRefs } from 'pinia'

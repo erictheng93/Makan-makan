@@ -62,7 +62,7 @@ app.get('/:restaurantId',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       // 嘗試從快取獲取
       const cacheKey = `menu:${restaurantId}`
@@ -107,7 +107,7 @@ app.get('/:restaurantId/featured',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       const items = await menuService.getFeaturedItems(restaurantId, limit)
       
@@ -135,7 +135,7 @@ app.get('/:restaurantId/popular',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       const items = await menuService.getPopularItems(restaurantId, limit)
       
@@ -161,7 +161,7 @@ app.get('/:restaurantId/search',
     try {
       const { restaurantId } = c.get('validatedParams')
       const query = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       // 處理價格範圍
       const priceRange = (query.minPrice || query.maxPrice) 
@@ -170,7 +170,7 @@ app.get('/:restaurantId/search',
       
       // 處理飲食偏好
       const dietaryPreferences = query.dietaryPreferences 
-        ? query.dietaryPreferences.split(',').map(s => s.trim())
+        ? query.dietaryPreferences.split(',').map((s: string) => s.trim())
         : undefined
       
       const filters = {
@@ -212,7 +212,7 @@ app.get('/items/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       const item = await menuService.getMenuItem(id)
       
@@ -251,7 +251,7 @@ app.post('/:restaurantId/items',
     try {
       const { restaurantId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       const item = await menuService.createMenuItem({
         ...data,
@@ -286,7 +286,7 @@ app.put('/items/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       // 獲取菜品以檢查餐廳權限
       const existingItem = await menuService.getMenuItem(id)
@@ -340,7 +340,7 @@ app.patch('/:restaurantId/items/availability',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { updates } = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       await menuService.batchUpdateAvailability(restaurantId, updates)
       
@@ -372,7 +372,7 @@ app.post('/:restaurantId/categories',
     try {
       const { restaurantId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB)
+      const menuService = new MenuService(c.env.DB as any)
       
       const category = await menuService.createCategory({
         ...data,

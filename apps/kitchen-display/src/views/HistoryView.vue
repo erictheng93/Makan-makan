@@ -35,5 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import ArrowLeftIcon from '@heroicons/vue/24/outline/ArrowLeftIcon'
+import ClockIcon from '@heroicons/vue/24/outline/ClockIcon'
 </script>

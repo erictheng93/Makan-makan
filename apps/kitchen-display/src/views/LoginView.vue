@@ -108,13 +108,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
-import { 
-  UserIcon, 
-  LockClosedIcon, 
-  EyeIcon, 
-  EyeSlashIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline'
+import UserIcon from '@heroicons/vue/24/outline/UserIcon'
+import LockClosedIcon from '@heroicons/vue/24/outline/LockClosedIcon'
+import EyeIcon from '@heroicons/vue/24/outline/EyeIcon'
+import EyeSlashIcon from '@heroicons/vue/24/outline/EyeSlashIcon'
+import ExclamationTriangleIcon from '@heroicons/vue/24/outline/ExclamationTriangleIcon'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 

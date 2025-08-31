@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
-import { validateJSON } from '../middleware/validation'
+import { validateBody } from '../middleware/validation'
+import { createDatabase, ErrorReportingService, sql, type CreateErrorReportData } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -29,58 +30,38 @@ const errorReportSchema = z.object({
  */
 app.post('/error-report',
   authMiddleware,
-  validateJSON(errorReportSchema),
+  validateBody(errorReportSchema),
   async (c) => {
     try {
-      const { errors } = c.get('validatedData')
+      const { errors } = c.get('validatedBody')
       const user = c.get('user')
       
       console.log(`Received ${errors.length} error reports from user ${user.id}`)
       
       // 過濾掉低嚴重性的錯誤（可選）
-      const significantErrors = errors.filter(error => 
+      const significantErrors = errors.filter((error: any) => 
         error.severity === 'high' || error.severity === 'critical'
       )
       
-      // 存儲錯誤報告到數據庫
-      const errorReports = errors.map(error => ({
-        user_id: user.id,
-        restaurant_id: user.restaurantId,
-        error_type: error.type,
+      const errorReportingService = new ErrorReportingService(c.env.DB as any)
+      
+      // 準備錯誤報告資料
+      const errorReportsData: CreateErrorReportData[] = errors.map((error: any) => ({
+        userId: user.id,
+        restaurantId: user.restaurantId,
+        errorType: error.type,
         severity: error.severity,
-        error_code: error.code?.toString(),
-        error_message: error.message,
-        error_context: JSON.stringify(error.context || {}),
-        original_error: JSON.stringify(error.originalError || {}),
-        user_agent: error.userAgent || c.req.header('User-Agent'),
+        errorCode: error.code?.toString(),
+        errorMessage: error.message,
+        errorContext: error.context,
+        originalError: error.originalError,
+        userAgent: error.userAgent || c.req.header('User-Agent'),
         url: error.url,
-        timestamp: error.timestamp,
-        created_at: new Date().toISOString()
+        timestamp: error.timestamp
       }))
       
-      // 批量插入錯誤報告
-      for (const report of errorReports) {
-        await c.env.DB.prepare(`
-          INSERT INTO error_reports (
-            user_id, restaurant_id, error_type, severity, error_code,
-            error_message, error_context, original_error, user_agent,
-            url, timestamp, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          report.user_id,
-          report.restaurant_id,
-          report.error_type,
-          report.severity,
-          report.error_code,
-          report.error_message,
-          report.error_context,
-          report.original_error,
-          report.user_agent,
-          report.url,
-          report.timestamp,
-          report.created_at
-        ).run()
-      }
+      // 批量創建錯誤報告
+      await errorReportingService.createBulkErrorReports(errorReportsData)
       
       // 對於關鍵錯誤，發送即時通知
       if (significantErrors.length > 0) {
@@ -118,7 +99,11 @@ app.get('/health', async (c) => {
   try {
     const healthChecks = await Promise.allSettled([
       // 數據庫健康檢查
-      c.env.DB.prepare('SELECT 1').first(),
+      (async () => {
+        const db = createDatabase(c.env.DB)
+        const result = await db.select({ test: sql<number>`1` }).from(sql`(SELECT 1)`).limit(1)
+        return result[0]
+      })(),
       
       // KV 健康檢查
       c.env.CACHE_KV ? c.env.CACHE_KV.get('health-check') : Promise.resolve(null),
@@ -176,78 +161,42 @@ app.get('/error-stats',
     try {
       const user = c.get('user')
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const errorReportingService = new ErrorReportingService(c.env.DB as any)
       
-      // 店主只能看自己餐廳的錯誤統計
-      if (user.role === 1) {
-        whereConditions.push('restaurant_id = ?')
-        params.push(user.restaurantId)
-      }
+      // 確定範圍
+      const now = new Date()
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
       
-      const whereClause = whereConditions.join(' AND ')
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
       
-      // 獲取過去24小時的錯誤統計
-      const last24hStats = await c.env.DB.prepare(`
-        SELECT 
-          error_type,
-          severity,
-          COUNT(*) as error_count,
-          MAX(timestamp) as latest_error
-        FROM error_reports 
-        WHERE ${whereClause} AND timestamp >= datetime('now', '-24 hours')
-        GROUP BY error_type, severity
-        ORDER BY error_count DESC
-      `).bind(...params).all()
-      
-      // 獲取過去7天的錯誤趨勢
-      const weeklyTrend = await c.env.DB.prepare(`
-        SELECT 
-          DATE(timestamp) as error_date,
-          error_type,
-          COUNT(*) as error_count
-        FROM error_reports 
-        WHERE ${whereClause} AND timestamp >= datetime('now', '-7 days')
-        GROUP BY DATE(timestamp), error_type
-        ORDER BY error_date DESC, error_count DESC
-      `).bind(...params).all()
+      // 獲取統計資料
+      const stats = await errorReportingService.getErrorStats(
+        user.role === 1 ? user.restaurantId : undefined,
+        [yesterday, now]
+      )
       
       // 獲取最常見的錯誤
-      const commonErrors = await c.env.DB.prepare(`
-        SELECT 
-          error_message,
-          error_type,
-          severity,
-          COUNT(*) as occurrence_count,
-          MAX(timestamp) as latest_occurrence
-        FROM error_reports 
-        WHERE ${whereClause} AND timestamp >= datetime('now', '-7 days')
-        GROUP BY error_message, error_type, severity
-        HAVING occurrence_count >= 3
-        ORDER BY occurrence_count DESC
-        LIMIT 10
-      `).bind(...params).all()
-      
-      // 受影響用戶統計
-      const affectedUsers = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(DISTINCT user_id) as unique_users,
-          COUNT(*) as total_errors
-        FROM error_reports 
-        WHERE ${whereClause} AND timestamp >= datetime('now', '-24 hours')
-      `).bind(...params).first()
+      const commonErrors = await errorReportingService.getCommonErrors(
+        user.role === 1 ? user.restaurantId : undefined,
+        10
+      )
       
       return c.json({
         success: true,
         data: {
           summary: {
-            total_errors_24h: affectedUsers?.total_errors || 0,
-            unique_users_affected: affectedUsers?.unique_users || 0,
+            total_errors_24h: stats.totalErrors,
+            unique_users_affected: stats.uniqueUsers,
             error_rate: 0 // 需要根據總請求數計算
           },
-          stats_24h: last24hStats.results || [],
-          weekly_trend: weeklyTrend.results || [],
-          common_errors: commonErrors.results || []
+          stats_24h: Object.entries(stats.errorsByType).map(([type, count]) => ({
+            error_type: type,
+            error_count: count
+          })),
+          weekly_trend: stats.errorTrend,
+          common_errors: commonErrors || []
         }
       })
       
@@ -273,17 +222,16 @@ app.delete('/error-reports/cleanup',
   requireRole([0]), // 僅管理員
   async (c) => {
     try {
-      // 刪除超過30天的錯誤報告
-      const result = await c.env.DB.prepare(`
-        DELETE FROM error_reports 
-        WHERE created_at < datetime('now', '-30 days')
-      `).run()
+      const errorReportingService = new ErrorReportingService(c.env.DB as any)
+      
+      // 清理舉30天的錯誤報告
+      const deletedCount = await errorReportingService.cleanupOldErrorReports(30)
       
       return c.json({
         success: true,
-        message: `Cleaned up ${result.changes} old error reports`,
+        message: `Cleaned up ${deletedCount} old error reports`,
         data: {
-          deleted_count: result.changes
+          deleted_count: deletedCount
         }
       })
       

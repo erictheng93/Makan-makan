@@ -1,5 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'vue-toastification'
+import { useToast, POSITION } from 'vue-toastification'
 
 interface OrderUpdate {
   orderId: string
@@ -63,7 +63,7 @@ export function useRealtimeNotifications() {
     
     if (message) {
       toast.info(message, {
-        position: 'top-center',
+        position: POSITION.TOP_CENTER,
         timeout: 5000
       })
     }

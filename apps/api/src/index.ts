@@ -15,6 +15,8 @@ import usersRouter from './routes/users'
 import analyticsRouter from './routes/analytics'
 import qrcodeRouter from './routes/qrcode'
 import healthRouter from './routes/health'
+import sseRouter from './routes/sse'
+import systemRouter from './routes/system'
 import type { Env } from './types/env'
 
 // 創建主應用
@@ -89,6 +91,8 @@ app.get('/info', (c) => {
       users: '/api/v1/users',
       analytics: '/api/v1/analytics',
       kitchen: '/api/v1/kitchen',
+      sse: '/api/v1/sse',
+      system: '/api/v1/system',
       qr: '/api/v1/qr',
       health: '/health',
       docs: '/docs'
@@ -112,6 +116,8 @@ apiV1.use('/orders/*', authMiddleware)
 apiV1.use('/tables/*', authMiddleware)
 apiV1.use('/users/*', authMiddleware)
 apiV1.use('/analytics/*', authMiddleware)
+apiV1.use('/sse/*', authMiddleware)
+apiV1.use('/system/*', authMiddleware)
 
 apiV1.route('/restaurants', restaurantsRouter)
 apiV1.route('/menu', menuRouter)
@@ -120,6 +126,8 @@ apiV1.route('/orders', ordersRouter)
 apiV1.route('/tables', tablesRouter)
 apiV1.route('/users', usersRouter)
 apiV1.route('/analytics', analyticsRouter)
+apiV1.route('/sse', sseRouter)
+apiV1.route('/system', systemRouter)
 
 // 掛載 API 路由
 app.route('/api/v1', apiV1)

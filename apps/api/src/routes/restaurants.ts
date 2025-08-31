@@ -43,7 +43,7 @@ app.get('/',
   async (c) => {
     try {
       const query = c.get('validatedQuery')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       const result = await restaurantService.getRestaurants(query)
       
@@ -68,7 +68,7 @@ app.get('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       const restaurant = await restaurantService.getRestaurant(id)
       
@@ -101,7 +101,7 @@ app.post('/',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       const restaurant = await restaurantService.createRestaurant(data)
       
@@ -130,7 +130,7 @@ app.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       // 店主只能更新自己的餐廳
       if (user.role === 1 && user.restaurantId !== id) {
@@ -164,7 +164,7 @@ app.delete('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       await restaurantService.deactivateRestaurant(id)
       
@@ -191,7 +191,7 @@ app.get('/:id/stats',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       // 店主只能查看自己的餐廳統計
       if (user.role === 1 && user.restaurantId !== id) {
@@ -223,13 +223,13 @@ app.get('/nearby/:district',
     district: z.string().min(1)
   })),
   validateQuery(z.object({
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10')
-  })),
+    limit: z.string().regex(/^\d+$/).transform(Number).default('10')
+  }) as any),
   async (c) => {
     try {
       const { district } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       const restaurants = await restaurantService.searchNearbyRestaurants(district, limit)
       
@@ -250,12 +250,12 @@ app.get('/nearby/:district',
 // 獲取熱門餐廳（公開 API）
 app.get('/popular',
   validateQuery(z.object({
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10')
-  })),
+    limit: z.string().regex(/^\d+$/).transform(Number).default('10')
+  }) as any),
   async (c) => {
     try {
       const { limit } = c.get('validatedQuery')
-      const restaurantService = new RestaurantService(c.env.DB)
+      const restaurantService = new RestaurantService(c.env.DB as any)
       
       const restaurants = await restaurantService.getPopularRestaurants(limit)
       

@@ -1,6 +1,5 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref, computed, onMounted } from 'vue';
-import { PlusIcon, MagnifyingGlassIcon, QrCodeIcon, CheckCircleIcon, UserGroupIcon, ClockIcon, WrenchScrewdriverIcon, MapPinIcon, DocumentTextIcon, TableCellsIcon } from '@heroicons/vue/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, PhotoIcon, CheckCircleIcon, UserGroupIcon, ClockIcon, MapPinIcon, DocumentTextIcon, TableCellsIcon } from '@heroicons/vue/24/outline';
 // 響應式數據
 const searchQuery = ref('');
 const statusFilter = ref('');
@@ -250,10 +249,10 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [generateAllQRCodes,];
-const __VLS_0 = {}.QrCodeIcon;
-/** @type {[typeof __VLS_components.QrCodeIcon, ]} */ ;
+const __VLS_0 = {}.PhotoIcon;
+/** @type {[typeof __VLS_components.PhotoIcon, ]} */ ;
 // @ts-ignore
-QrCodeIcon;
+PhotoIcon;
 // @ts-ignore
 const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
     ...{ class: "h-4 w-4 mr-2" },
@@ -584,10 +583,10 @@ for (const [table] of __VLS_getVForSourceType((__VLS_ctx.filteredTables))) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "w-20 h-20 bg-white border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center" },
     });
-    const __VLS_50 = {}.QrCodeIcon;
-    /** @type {[typeof __VLS_components.QrCodeIcon, ]} */ ;
+    const __VLS_50 = {}.PhotoIcon;
+    /** @type {[typeof __VLS_components.PhotoIcon, ]} */ ;
     // @ts-ignore
-    QrCodeIcon;
+    PhotoIcon;
     // @ts-ignore
     const __VLS_51 = __VLS_asFunctionalComponent(__VLS_50, new __VLS_50({
         ...{ class: "h-8 w-8 text-gray-400" },
@@ -859,10 +858,10 @@ if (__VLS_ctx.showQRModal) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "text-center" },
     });
-    const __VLS_65 = {}.QrCodeIcon;
-    /** @type {[typeof __VLS_components.QrCodeIcon, ]} */ ;
+    const __VLS_65 = {}.PhotoIcon;
+    /** @type {[typeof __VLS_components.PhotoIcon, ]} */ ;
     // @ts-ignore
-    QrCodeIcon;
+    PhotoIcon;
     // @ts-ignore
     const __VLS_66 = __VLS_asFunctionalComponent(__VLS_65, new __VLS_65({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-2" },
@@ -1383,11 +1382,10 @@ const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         PlusIcon: PlusIcon,
         MagnifyingGlassIcon: MagnifyingGlassIcon,
-        QrCodeIcon: QrCodeIcon,
+        PhotoIcon: PhotoIcon,
         CheckCircleIcon: CheckCircleIcon,
         UserGroupIcon: UserGroupIcon,
         ClockIcon: ClockIcon,
-        WrenchScrewdriverIcon: WrenchScrewdriverIcon,
         MapPinIcon: MapPinIcon,
         DocumentTextIcon: DocumentTextIcon,
         TableCellsIcon: TableCellsIcon,

@@ -205,7 +205,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Emits
-defineEmits<{
+const emit = defineEmits<{
   logout: []
   refresh: []
   reconnect: []
@@ -264,10 +264,4 @@ onUnmounted(() => {
 })
 
 // Handle refresh state (could be managed by parent)
-const emit = defineEmits<{
-  logout: []
-  refresh: []
-  'toggle-fullscreen': []
-  'open-settings': []
-}>()
 </script>

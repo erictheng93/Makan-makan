@@ -411,7 +411,9 @@ const handleConfirm = () => {
       return {
         id: addOn.id,
         name: addOn.name,
-        price: addOn.price
+        unitPrice: addOn.price,
+        quantity: 1,
+        totalPrice: addOn.price
       }
     })
   }

@@ -392,16 +392,16 @@
                     class="hover:bg-gray-50"
                   >
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {{ getMetricDisplayName(name) }}
+                      {{ getMetricDisplayName(String(name)) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {{ formatMetricValue(metric.avg, getMetricUnit(name)) }}
+                      {{ formatMetricValue(metric.avg, getMetricUnit(String(name))) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {{ formatMetricValue(metric.p95, getMetricUnit(name)) }}
+                      {{ formatMetricValue(metric.p95, getMetricUnit(String(name))) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {{ formatMetricValue(metric.max, getMetricUnit(name)) }}
+                      {{ formatMetricValue(metric.max, getMetricUnit(String(name))) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {{ metric.count }}
@@ -419,16 +419,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import {
-  ChartBarIcon,
-  ExclamationTriangleIcon,
-  GlobeAltIcon,
-  BoltIcon,
-  CpuChipIcon,
-  FilmIcon,
-  XMarkIcon,
-  LightBulbIcon
-} from '@heroicons/vue/24/outline'
+import ChartBarIcon from '@heroicons/vue/24/outline/ChartBarIcon'
+import ExclamationTriangleIcon from '@heroicons/vue/24/outline/ExclamationTriangleIcon'
+import GlobeAltIcon from '@heroicons/vue/24/outline/GlobeAltIcon'
+import BoltIcon from '@heroicons/vue/24/outline/BoltIcon'
+import CpuChipIcon from '@heroicons/vue/24/outline/CpuChipIcon'
+import FilmIcon from '@heroicons/vue/24/outline/FilmIcon'
+import XMarkIcon from '@heroicons/vue/24/outline/XMarkIcon'
+import LightBulbIcon from '@heroicons/vue/24/outline/LightBulbIcon'
 import { useToast } from 'vue-toastification'
 import { performanceService } from '@/services/performanceService'
 import type { PerformanceAlert } from '@/services/performanceService'
@@ -544,7 +542,7 @@ const getAlertClass = (severity: string): string => {
 }
 
 const getMetricDisplayName = (name: string): string => {
-  const names = {
+  const names: Record<string, string> = {
     'page-load-time': '頁面載入時間',
     'api-response-time': 'API 響應時間',
     'memory-usage': '記憶體使用率',
@@ -557,7 +555,7 @@ const getMetricDisplayName = (name: string): string => {
 }
 
 const getMetricUnit = (name: string): string => {
-  const units = {
+  const units: Record<string, string> = {
     'page-load-time': 'ms',
     'api-response-time': 'ms',
     'memory-usage': '%',
@@ -599,8 +597,9 @@ const exportData = () => {
 // Start real-time updates
 onMounted(() => {
   updateInterval = setInterval(() => {
-    // Force reactivity update
-    performanceService.systemInfo.value = performanceService.collectSystemInfo()
+    // The performance service will handle its own updates
+    // Just trigger reactivity by accessing the reactive properties
+    performanceService.systemInfo.value
   }, 5000)
 })
 

@@ -243,22 +243,22 @@
       
       <div class="stats-grid">
         <div class="stat-item">
-          <div class="stat-value">{{ statistics.totalPlayed }}</div>
+          <div class="stat-value">{{ statistics?.totalPlayed ?? 0 }}</div>
           <div class="stat-label">總播放次數</div>
         </div>
         
         <div class="stat-item">
-          <div class="stat-value">{{ statistics.todayPlayed }}</div>
+          <div class="stat-value">{{ statistics?.todayPlayed ?? 0 }}</div>
           <div class="stat-label">今日播放次數</div>
         </div>
         
         <div class="stat-item">
-          <div class="stat-value">{{ statistics.mostPlayed }}</div>
+          <div class="stat-value">{{ statistics?.mostPlayed ?? '無' }}</div>
           <div class="stat-label">最常播放音效</div>
         </div>
         
         <div class="stat-item">
-          <div class="stat-value">{{ formatTime(statistics.lastPlayed) }}</div>
+          <div class="stat-value">{{ formatTime(statistics?.lastPlayed ?? 0) }}</div>
           <div class="stat-label">最後播放時間</div>
         </div>
       </div>
@@ -316,7 +316,12 @@ const toast = useToast()
 const settings = reactive({ ...enhancedAudioService.settings })
 const isWebAudioSupported = computed(() => enhancedAudioService.isWebAudioSupported.value)
 const isTestingAll = ref(false)
-const statistics = ref(null)
+const statistics = ref<{
+  totalPlayed: number;
+  todayPlayed: number;
+  mostPlayed: string;
+  lastPlayed: number;
+} | null>(null)
 const importFile = ref<HTMLInputElement>()
 
 // Volume as percentage for UI

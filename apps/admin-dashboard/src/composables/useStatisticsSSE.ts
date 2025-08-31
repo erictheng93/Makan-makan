@@ -117,13 +117,13 @@ export function useStatisticsSSE(options: {
         }
       }
 
-    } catch (error) {
-      console.error('Failed to create SSE connection:', error)
-      error.value = error instanceof Error ? error.message : 'Failed to create SSE connection'
+    } catch (err) {
+      console.error('Failed to create SSE connection:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to create SSE connection'
       isConnecting.value = false
       
       // 使用錯誤處理器處理連接創建錯誤
-      KitchenErrorHandler.handleAPIError(error, { context: 'SSE connection creation' })
+      KitchenErrorHandler.handleAPIError(err, { context: 'SSE connection creation' })
     }
   }
 

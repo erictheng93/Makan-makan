@@ -117,7 +117,7 @@ import {
   UsersIcon,
   Cog6ToothIcon,
   CurrencyDollarIcon,
-  ClipboardDocumentListIcon,
+  ClipboardDocumentIcon,
   ExclamationTriangleIcon,
   ChartPieIcon
 } from '@heroicons/vue/24/outline'
@@ -132,7 +132,7 @@ const tabs = [
   { key: 'analytics', label: '營運分析', icon: ChartBarIcon },
   { key: 'staff', label: '員工管理', icon: UsersIcon },
   { key: 'finance', label: '財務報表', icon: CurrencyDollarIcon },
-  { key: 'operations', label: '營運管理', icon: ClipboardDocumentListIcon },
+  { key: 'operations', label: '營運管理', icon: ClipboardDocumentIcon },
   { key: 'settings', label: '店鋪設定', icon: Cog6ToothIcon }
 ]
 

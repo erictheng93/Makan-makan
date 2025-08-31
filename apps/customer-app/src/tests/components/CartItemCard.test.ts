@@ -39,10 +39,10 @@ describe('CartItemCard.vue', () => {
     customizations: {
       size: { id: '2', name: '大碗', priceAdjustment: 2000 },
       options: [
-        { id: '1', name: '小辣', priceAdjustment: 0 }
+        { id: '1', optionName: '辣度', choiceId: 'mild', choiceName: '小辣', priceAdjustment: 0 }
       ],
       addOns: [
-        { id: '1', name: '滷蛋', price: 1000 }
+        { id: '1', name: '滷蛋', unitPrice: 1000, quantity: 1, totalPrice: 1000 }
       ]
     },
     notes: '不要香菜'

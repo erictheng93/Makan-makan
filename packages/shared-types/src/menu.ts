@@ -14,7 +14,9 @@ export interface MenuItem extends BaseEntity {
   categoryId: number;
   name: string;
   description?: string;
+  ingredients?: string;
   price: number; // in cents
+  originalPrice?: number; // original price for promotional items
   imageUrl?: string;
   imageVariants?: ImageVariants;
   dietaryInfo?: DietaryInfo;
@@ -23,6 +25,10 @@ export interface MenuItem extends BaseEntity {
   sortOrder: number;
   isAvailable: boolean;
   isFeatured: boolean;
+  isPopular?: boolean;
+  preparationTime?: number; // preparation time in minutes
+  calories?: number; // calorie content
+  allergens?: string[]; // allergen information
   inventoryCount: number; // -1 for unlimited
   orderCount: number;
   category?: Category; // populated when needed
@@ -88,7 +94,7 @@ export interface UpdateMenuItemRequest extends Partial<CreateMenuItemRequest> {
 
 export interface MenuStructure {
   categories: Category[];
-  items: MenuItem[];
+  menuItems: MenuItem[];
 }
 
 export interface PopularMenuItem extends MenuItem {

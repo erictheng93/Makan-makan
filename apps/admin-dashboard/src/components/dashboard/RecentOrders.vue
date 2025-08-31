@@ -94,14 +94,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+// Remove unused computed import
 import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import { 
   ShoppingCart, 
   Clock, 
   CheckCircle, 
-  AlertCircle, 
   XCircle,
   Utensils,
   Package
@@ -126,7 +125,7 @@ interface RecentOrdersProps {
   maxOrders?: number
 }
 
-const props = withDefaults(defineProps<RecentOrdersProps>(), {
+withDefaults(defineProps<RecentOrdersProps>(), {
   loading: false,
   maxOrders: 10
 })

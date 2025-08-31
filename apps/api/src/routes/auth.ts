@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { sign } from 'jsonwebtoken'
-import { authMiddleware } from '../middleware/auth'
+import { authMiddleware, blacklistToken } from '../middleware/auth'
+import { AuthService } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 interface LoginRequest {
@@ -10,6 +10,8 @@ interface LoginRequest {
 
 interface RegisterRequest {
   username: string
+  fullName: string
+  email?: string
   password: string
   role: number
   restaurantId?: number
@@ -29,61 +31,31 @@ authRouter.post('/login', async (c) => {
       }, 400)
     }
 
-    // 查詢用戶
-    const user = await c.env.DB.prepare(`
-      SELECT id, username, password, role, restaurant_id, status, created_at
-      FROM users 
-      WHERE username = ? AND status = 'active'
-    `).bind(username).first()
+    const authService = new AuthService(c.env.DB as any)
+    
+    const result = await authService.login({
+      username,
+      password,
+      deviceInfo: {
+        userAgent: c.req.header('User-Agent'),
+        ipAddress: c.req.header('CF-Connecting-IP') || 'unknown'
+      }
+    })
 
-    if (!user) {
+    if (!result.success) {
       return c.json({
         success: false,
-        error: 'Invalid username or password'
+        error: result.error
       }, 401)
     }
-
-    // 驗證密碼 (實際項目中應該使用 bcrypt 或其他加密方法)
-    if (user.password !== password) {
-      return c.json({
-        success: false,
-        error: 'Invalid username or password'
-      }, 401)
-    }
-
-    // 生成 JWT Token
-    const token = sign(
-      {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        restaurantId: user.restaurant_id
-      },
-      c.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    )
-
-    // 記錄登入活動
-    await c.env.DB.prepare(`
-      INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(
-      user.id,
-      'login',
-      'auth',
-      JSON.stringify({ ip: c.req.header('CF-Connecting-IP') || 'unknown' })
-    ).run()
 
     return c.json({
       success: true,
       data: {
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          restaurantId: user.restaurant_id
-        }
+        token: result.tokens?.accessToken,
+        refreshToken: result.tokens?.refreshToken,
+        expiresAt: result.tokens?.expiresAt,
+        user: result.user
       }
     })
 
@@ -109,25 +81,13 @@ authRouter.post('/register', authMiddleware, async (c) => {
       }, 403)
     }
 
-    const { username, password, role, restaurantId }: RegisterRequest = await c.req.json()
+    const { username, fullName, email, password, role, restaurantId }: RegisterRequest = await c.req.json()
     
-    if (!username || !password || role === undefined) {
+    if (!username || !password || !fullName || role === undefined) {
       return c.json({
         success: false,
-        error: 'Username, password and role are required'
+        error: 'Username, fullName, password and role are required'
       }, 400)
-    }
-
-    // 檢查用戶名是否已存在
-    const existingUser = await c.env.DB.prepare(`
-      SELECT id FROM users WHERE username = ?
-    `).bind(username).first()
-
-    if (existingUser) {
-      return c.json({
-        success: false,
-        error: 'Username already exists'
-      }, 409)
     }
 
     // 驗證角色權限
@@ -138,31 +98,27 @@ authRouter.post('/register', authMiddleware, async (c) => {
       }, 403)
     }
 
-    // 插入新用戶
-    const result = await c.env.DB.prepare(`
-      INSERT INTO users (username, password, role, restaurant_id, status, created_at)
-      VALUES (?, ?, ?, ?, 'active', datetime('now'))
-    `).bind(username, password, role, restaurantId || null).run()
+    const authService = new AuthService(c.env.DB as any)
+    
+    const result = await authService.register({
+      username,
+      fullName,
+      email,
+      password,
+      role,
+      restaurantId
+    })
 
-    // 記錄註冊活動
-    await c.env.DB.prepare(`
-      INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(
-      currentUser.id,
-      'create_user',
-      'users',
-      JSON.stringify({ newUserId: result.meta.last_row_id, username, role })
-    ).run()
+    if (!result.success) {
+      return c.json({
+        success: false,
+        error: result.error
+      }, result.error?.includes('already exists') ? 409 : 400)
+    }
 
     return c.json({
       success: true,
-      data: {
-        id: result.meta.last_row_id,
-        username,
-        role,
-        restaurantId
-      }
+      data: result.user
     })
 
   } catch (error) {
@@ -175,46 +131,35 @@ authRouter.post('/register', authMiddleware, async (c) => {
 })
 
 // 刷新 Token
-authRouter.post('/refresh', authMiddleware, async (c) => {
+authRouter.post('/refresh', async (c) => {
   try {
-    const user = c.get('user')
-
-    // 重新驗證用戶狀態
-    const currentUser = await c.env.DB.prepare(`
-      SELECT id, username, role, restaurant_id, status
-      FROM users 
-      WHERE id = ? AND status = 'active'
-    `).bind(user.id).first()
-
-    if (!currentUser) {
+    const refreshToken = c.req.header('X-Refresh-Token')
+    
+    if (!refreshToken) {
       return c.json({
         success: false,
-        error: 'User account not found or inactive'
-      }, 401)
+        error: 'Refresh token is required'
+      }, 400)
     }
 
-    // 生成新的 JWT Token
-    const token = sign(
-      {
-        id: currentUser.id,
-        username: currentUser.username,
-        role: currentUser.role,
-        restaurantId: currentUser.restaurant_id
-      },
-      c.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    )
+    const authService = new AuthService(c.env.DB as any)
+    
+    const result = await authService.refreshToken(refreshToken)
+
+    if (!result.success) {
+      return c.json({
+        success: false,
+        error: result.error
+      }, 401)
+    }
 
     return c.json({
       success: true,
       data: {
-        token,
-        user: {
-          id: currentUser.id,
-          username: currentUser.username,
-          role: currentUser.role,
-          restaurantId: currentUser.restaurant_id
-        }
+        token: result.tokens?.accessToken,
+        refreshToken: result.tokens?.refreshToken,
+        expiresAt: result.tokens?.expiresAt,
+        user: result.user
       }
     })
 
@@ -231,17 +176,24 @@ authRouter.post('/refresh', authMiddleware, async (c) => {
 authRouter.post('/logout', authMiddleware, async (c) => {
   try {
     const user = c.get('user')
+    const authHeader = c.req.header('Authorization')
+    
+    let token: string | undefined
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+      
+      // 將 token 加入黑名單
+      try {
+        await blacklistToken(c, token)
+      } catch (error) {
+        console.error('Failed to blacklist token:', error)
+      }
+    }
 
-    // 記錄登出活動
-    await c.env.DB.prepare(`
-      INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(
-      user.id,
-      'logout',
-      'auth',
-      JSON.stringify({ ip: c.req.header('CF-Connecting-IP') || 'unknown' })
-    ).run()
+    const authService = new AuthService(c.env.DB as any)
+    
+    // 使用戶的 sessions 失效
+    await authService.logout(user.id, token)
 
     return c.json({
       success: true,
@@ -261,33 +213,29 @@ authRouter.post('/logout', authMiddleware, async (c) => {
 authRouter.get('/me', authMiddleware, async (c) => {
   try {
     const user = c.get('user')
-
-    // 獲取完整的用戶資訊
-    const userInfo = await c.env.DB.prepare(`
-      SELECT u.id, u.username, u.role, u.restaurant_id, u.created_at,
-             r.name as restaurant_name
-      FROM users u
-      LEFT JOIN restaurants r ON u.restaurant_id = r.id
-      WHERE u.id = ? AND u.status = 'active'
-    `).bind(user.id).first()
-
-    if (!userInfo) {
+    const authService = new AuthService(c.env.DB as any)
+    
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return c.json({
         success: false,
-        error: 'User not found'
-      }, 404)
+        error: 'Authorization token required'
+      }, 401)
+    }
+    
+    const token = authHeader.substring(7)
+    const validation = await authService.validateToken(token)
+    
+    if (!validation.valid) {
+      return c.json({
+        success: false,
+        error: validation.error || 'Invalid token'
+      }, 401)
     }
 
     return c.json({
       success: true,
-      data: {
-        id: userInfo.id,
-        username: userInfo.username,
-        role: userInfo.role,
-        restaurantId: userInfo.restaurant_id,
-        restaurantName: userInfo.restaurant_name,
-        createdAt: userInfo.created_at
-      }
+      data: validation.user
     })
 
   } catch (error) {

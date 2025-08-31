@@ -190,7 +190,7 @@ import {
   MagnifyingGlassIcon,
   PlayIcon,
   InformationCircleIcon,
-  CogIcon,
+  Cog6ToothIcon as CogIcon,
   FunnelIcon,
   RocketLaunchIcon,
   CubeIcon
@@ -259,7 +259,7 @@ const enabledShortcuts = computed(() =>
 
 // Methods
 const getCategoryIcon = (category: string) => {
-  const icons = {
+  const icons: Record<string, any> = {
     orders: CubeIcon,
     navigation: RocketLaunchIcon,
     filters: FunnelIcon,
@@ -269,7 +269,7 @@ const getCategoryIcon = (category: string) => {
 }
 
 const formatKey = (key: string): string => {
-  const symbols: { [key: string]: string } = {
+  const symbols: Record<string, string> = {
     'Ctrl': '⌃',
     'Cmd': '⌘',
     'Alt': '⌥',

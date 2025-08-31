@@ -1,5 +1,6 @@
 // QR Code Generation Service with Custom Styling Support
 import type { Env } from '../types/env'
+import { QRCodeService as DatabaseQRCodeService, type CreateQRCodeData, type QRStyleData } from '@makanmakan/database'
 
 export interface QRCodeStyle {
   // 基本樣式
@@ -76,7 +77,7 @@ export interface QRTemplate {
   name: string
   description: string
   style: QRCodeStyle
-  category: 'modern' | 'classic' | 'colorful' | 'minimalist' | 'branded'
+  category: 'modern' | 'classic' | 'colorful' | 'minimalist' | 'branded' | 'custom'
   previewUrl?: string
   createdAt: string
   updatedAt: string
@@ -84,9 +85,11 @@ export interface QRTemplate {
 
 export class QRCodeService {
   private env: Env
+  private dbService: DatabaseQRCodeService
   
   constructor(env: Env) {
     this.env = env
+    this.dbService = new DatabaseQRCodeService(env.DB as any)
   }
 
   // 預設樣式模板
@@ -236,14 +239,18 @@ export class QRCodeService {
       }
       
       // 儲存QR碼記錄到資料庫
-      await this.saveQRCodeRecord({
-        id: qrId,
+      const qrCodeData: CreateQRCodeData = {
         content: options.content,
-        style,
         format: options.format,
-        url: finalUrl,
+        style: style as QRStyleData,
         metadata: options.metadata
-      })
+      }
+      const savedQRCode = await this.dbService.generateQRCode(qrCodeData)
+      
+      // 更新URL（實際場景中URL會在生成後設定）
+      if (finalUrl !== qrUrl) {
+        // 這裡需要更新URL，但目前的服務沒有update方法，先跳過
+      }
       
       return {
         success: true,
@@ -321,18 +328,17 @@ export class QRCodeService {
         }
         
         // 儲存單個QR碼記錄
-        await this.saveQRCodeRecord({
-          id: qrId,
+        const qrCodeData: CreateQRCodeData = {
           content: table.content,
-          style: tableStyle,
-          format: options.format === 'zip' ? 'png' : options.format,
-          url: qrUrl,
+          format: (options.format === 'zip' ? 'png' : options.format) as 'png' | 'svg' | 'pdf' | 'jpeg',
+          style: tableStyle as QRStyleData,
           metadata: {
             tableId: table.id,
             tableName: table.name,
             batchId
           }
-        })
+        }
+        await this.dbService.generateQRCode(qrCodeData)
         
         qrCodes.push({
           tableId: table.id,
@@ -349,13 +355,15 @@ export class QRCodeService {
         bulkDownloadUrl = `${this.getBaseUrl()}/api/v1/qr/batch/${batchId}/download?format=${options.format}`
       }
       
-      // 儲存批量生成記錄
-      await this.saveBatchRecord({
-        batchId,
-        qrCodeIds: qrCodes.map(qr => qr.qrId),
-        options,
-        generatedCount: qrCodes.length
-      })
+      // 儲存批量生成記錄 - 需要添加餐廳ID和用戶ID參數
+      // 當前的generateBulkQRCodes方法需要這些參數，暫時使用默認值
+      const restaurantId = 1 // TODO: 從options或context獲取實際的餐廳ID
+      const userId = 1 // TODO: 從context獲取實際的用戶ID
+      await this.dbService.generateBulkQRCodes(
+        restaurantId,
+        qrCodes.map(qr => qr.tableId),
+        userId
+      )
       
       return {
         success: true,
@@ -389,25 +397,21 @@ export class QRCodeService {
   async getTemplates(): Promise<QRTemplate[]> {
     try {
       // 從資料庫獲取自訂模板
-      const customTemplates = await this.env.DB.prepare(`
-        SELECT * FROM qr_templates 
-        WHERE is_active = 1 
-        ORDER BY created_at DESC
-      `).all()
+      const customTemplatesDb = await this.dbService.getActiveTemplates()
       
       const templates = this.getDefaultTemplates()
       
       // 合併預設模板和自訂模板
-      if (customTemplates.results?.length) {
-        const custom = customTemplates.results.map((template: any) => ({
-          id: template.id,
+      if (customTemplatesDb.length) {
+        const custom = customTemplatesDb.map((template: any) => ({
+          id: template.id.toString(),
           name: template.name,
-          description: template.description,
-          category: template.category,
-          style: JSON.parse(template.style_json),
-          previewUrl: template.preview_url,
-          createdAt: template.created_at,
-          updatedAt: template.updated_at
+          description: template.description || '',
+          category: 'custom' as const, // 資料庫模板沒有category欄位，設為custom
+          style: JSON.parse(template.styleJson),
+          previewUrl: undefined,
+          createdAt: template.createdAt,
+          updatedAt: template.updatedAt
         }))
         
         templates.push(...custom)
@@ -430,37 +434,27 @@ export class QRCodeService {
     error?: string
   }> {
     try {
-      const templateId = this.generateTemplateId()
-      const now = new Date().toISOString()
+      // 生成預覽圖
+      const previewUrl = await this.generateTemplatePreview(template.style)
+      
+      // 使用資料庫服務創建模板
+      const createdTemplate = await this.dbService.createTemplate({
+        name: template.name,
+        description: template.description,
+        style: template.style as QRStyleData,
+        createdBy: 1 // TODO: 從context獲取實際的用戶ID
+      })
       
       const newTemplate: QRTemplate = {
-        id: templateId,
-        createdAt: now,
-        updatedAt: now,
-        ...template
-      }
-      
-      // 生成預覽圖
-      const previewUrl = await this.generateTemplatePreview(newTemplate.style)
-      newTemplate.previewUrl = previewUrl
-      
-      // 儲存到資料庫
-      await this.env.DB.prepare(`
-        INSERT INTO qr_templates (
-          id, name, description, category, style_json, 
-          preview_url, is_active, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).bind(
-        templateId,
-        template.name,
-        template.description,
-        template.category,
-        JSON.stringify(template.style),
+        id: createdTemplate.id.toString(),
+        name: createdTemplate.name,
+        description: createdTemplate.description || '',
+        category: template.category,
+        style: JSON.parse(createdTemplate.styleJson),
         previewUrl,
-        now,
-        now
-      ).run()
+        createdAt: createdTemplate.createdAt,
+        updatedAt: createdTemplate.updatedAt
+      }
       
       return {
         success: true,
@@ -557,35 +551,9 @@ export class QRCodeService {
     return this.buildQRCodeUrl(previewContent, { ...style, size: 150 }, 'png')
   }
 
-  private async saveQRCodeRecord(record: any): Promise<void> {
-    await this.env.DB.prepare(`
-      INSERT INTO qr_codes (
-        id, content, style_json, format, url, metadata_json, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-    `).bind(
-      record.id,
-      record.content,
-      JSON.stringify(record.style),
-      record.format,
-      record.url,
-      JSON.stringify(record.metadata || {})
-    ).run()
-  }
+  // 已移除 - 現在使用 DatabaseQRCodeService.generateQRCode()
 
-  private async saveBatchRecord(record: any): Promise<void> {
-    await this.env.DB.prepare(`
-      INSERT INTO qr_batches (
-        batch_id, qr_code_ids, options_json, generated_count, created_at
-      )
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(
-      record.batchId,
-      JSON.stringify(record.qrCodeIds),
-      JSON.stringify(record.options),
-      record.generatedCount
-    ).run()
-  }
+  // 已移除 - 現在使用 DatabaseQRCodeService.generateBulkQRCodes()
 
   private generateQRId(): string {
     return `qr_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`

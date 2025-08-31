@@ -1,13 +1,13 @@
 import { drizzle } from 'drizzle-orm/d1'
-import type { D1Database } from '@cloudflare/d1'
+import type { Database as D1Database } from '@cloudflare/d1'
 import * as schema from '../schema'
 
 // 基礎服務類別
 export class BaseService {
-  protected db: ReturnType<typeof drizzle>
+  protected db: ReturnType<typeof drizzle<typeof schema>>
 
   constructor(d1: D1Database) {
-    this.db = drizzle(d1, { 
+    this.db = drizzle(d1 as any, { 
       schema,
       logger: process.env.NODE_ENV === 'development'
     })

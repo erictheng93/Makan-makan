@@ -153,7 +153,7 @@ class OwnerService {
     }
   }
 
-  async getStaffActivity(restaurantId?: number): Promise<StaffActivity[]> {
+  async getStaffActivity(_restaurantId?: number): Promise<StaffActivity[]> {
     try {
       // 模擬員工活動數據，實際應該從 API 獲取
       return [

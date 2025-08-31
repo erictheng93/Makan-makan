@@ -1,8 +1,7 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { formatDistanceToNow } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { ShoppingCart, Clock, CheckCircle, XCircle, Utensils, Package } from 'lucide-vue-next';
-const props = withDefaults(defineProps(), {
+const __VLS_props = withDefaults(defineProps(), {
     loading: false,
     maxOrders: 10
 });

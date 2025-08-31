@@ -22,6 +22,8 @@ export interface KitchenOrderItem {
   startedAt?: string
   completedAt?: string
   priority: 'normal' | 'high' | 'urgent'
+  cookingTime?: number // 實際製作時間（分鐘）
+  price?: number // 單品價格
 }
 
 export interface KitchenOrder {
@@ -39,6 +41,8 @@ export interface KitchenOrder {
   totalItems: number
   priority: 'normal' | 'high' | 'urgent'
   elapsedTime: number // 已等待時間（分鐘）
+  assignedChef?: string | number // 指派的廚師ID
+  totalAmount?: number // 訂單總金額（分）
 }
 
 export interface OrderStatusUpdate {

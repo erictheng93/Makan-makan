@@ -344,7 +344,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import {
   CpuChipIcon,
   ArrowPathIcon,
@@ -395,12 +395,12 @@ const keyMetrics = computed(() =>
 
 // Component for trend icons
 const TrendIcon = ({ trend, class: className }: { trend: 'up' | 'down' | 'stable', class?: string }) => {
-  const iconMap = {
+  const iconMap: Record<string, any> = {
     up: ArrowTrendingUpIcon,
     down: ArrowTrendingDownIcon,
     stable: MinusIcon
   }
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     up: 'text-red-500',
     down: 'text-green-500',
     stable: 'text-gray-400'
@@ -448,7 +448,7 @@ const resolveAlert = (alertId: string) => {
 
 // Utility functions
 const getHealthStatusIcon = (status: string) => {
-  const iconMap = {
+  const iconMap: Record<string, any> = {
     healthy: CheckCircleIcon,
     warning: ExclamationTriangleIcon,
     critical: XCircleIcon
@@ -457,7 +457,7 @@ const getHealthStatusIcon = (status: string) => {
 }
 
 const getHealthStatusColor = (status: string, type: 'bg' | 'badge') => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     healthy: type === 'bg' ? 'bg-green-500' : 'bg-green-100 text-green-800',
     warning: type === 'bg' ? 'bg-yellow-500' : 'bg-yellow-100 text-yellow-800',
     critical: type === 'bg' ? 'bg-red-500' : 'bg-red-100 text-red-800'
@@ -466,7 +466,7 @@ const getHealthStatusColor = (status: string, type: 'bg' | 'badge') => {
 }
 
 const getHealthStatusText = (status: string) => {
-  const textMap = {
+  const textMap: Record<string, string> = {
     healthy: '健康',
     warning: '警告',
     critical: '嚴重'
@@ -475,7 +475,7 @@ const getHealthStatusText = (status: string) => {
 }
 
 const getAlertSeverityColor = (severity: string) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     info: 'bg-blue-400',
     warning: 'bg-yellow-400',
     critical: 'bg-red-500'
@@ -484,7 +484,7 @@ const getAlertSeverityColor = (severity: string) => {
 }
 
 const getComponentStatusColor = (status: string) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     online: 'bg-green-100 text-green-800',
     degraded: 'bg-yellow-100 text-yellow-800',
     offline: 'bg-red-100 text-red-800'
@@ -493,7 +493,7 @@ const getComponentStatusColor = (status: string) => {
 }
 
 const getComponentStatusText = (status: string) => {
-  const textMap = {
+  const textMap: Record<string, string> = {
     online: '在線',
     degraded: '降級',
     offline: '離線'
@@ -502,7 +502,7 @@ const getComponentStatusText = (status: string) => {
 }
 
 const getMetricStatusColor = (status: string) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     healthy: 'bg-green-500',
     warning: 'bg-yellow-500',
     critical: 'bg-red-500'
@@ -511,7 +511,7 @@ const getMetricStatusColor = (status: string) => {
 }
 
 const getMetricStatusText = (status: string) => {
-  const textMap = {
+  const textMap: Record<string, string> = {
     healthy: '正常',
     warning: '警告',
     critical: '嚴重'
@@ -578,7 +578,7 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 const getDiagnosticName = (test: string) => {
-  const nameMap = {
+  const nameMap: Record<string, string> = {
     networkConnectivity: '網路連線',
     localStorage: '本地儲存',
     webWorkers: 'Web Workers',

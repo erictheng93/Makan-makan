@@ -272,6 +272,8 @@ export class RestaurantService extends BaseService {
       rating: restaurant.rating,
       reviewCount: restaurant.reviewCount,
       totalOrders: restaurant.totalOrders,
+      status: restaurant.isActive ? 1 : 0, // Status.ACTIVE : Status.INACTIVE
+      planType: restaurant.planType || 0,
       createdAt: restaurant.createdAt,
       updatedAt: restaurant.updatedAt
     }

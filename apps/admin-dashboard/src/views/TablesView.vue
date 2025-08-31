@@ -11,7 +11,7 @@
           @click="generateAllQRCodes"
           class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
-          <QrCodeIcon class="h-4 w-4 mr-2" />
+          <PhotoIcon class="h-4 w-4 mr-2" />
           批量生成 QR 碼
         </button>
         <button
@@ -153,7 +153,7 @@
           <div class="mb-4 text-center">
             <div class="inline-block p-3 bg-gray-50 rounded-lg">
               <div class="w-20 h-20 bg-white border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                <QrCodeIcon class="h-8 w-8 text-gray-400" />
+                <PhotoIcon class="h-8 w-8 text-gray-400" />
               </div>
             </div>
           </div>
@@ -307,7 +307,7 @@
               <div class="inline-block p-4 bg-white border rounded-lg">
                 <div class="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                   <div class="text-center">
-                    <QrCodeIcon class="mx-auto h-16 w-16 text-gray-400 mb-2" />
+                    <PhotoIcon class="mx-auto h-16 w-16 text-gray-400 mb-2" />
                     <p class="text-sm text-gray-500">QR 碼預覽</p>
                     <p class="text-xs text-gray-400 mt-1">{{ selectedTable?.qrCode }}</p>
                   </div>
@@ -347,11 +347,11 @@ import { ref, computed, onMounted } from 'vue'
 import {
   PlusIcon,
   MagnifyingGlassIcon,
-  QrCodeIcon,
+  PhotoIcon,
   CheckCircleIcon,
   UserGroupIcon,
   ClockIcon,
-  WrenchScrewdriverIcon,
+  WrenchIcon,
   MapPinIcon,
   DocumentTextIcon,
   TableCellsIcon
@@ -467,7 +467,7 @@ const filteredTables = computed(() => {
 
 // 方法
 const getStatusColor = (status: string) => {
-  const colors = {
+  const colors: Record<string, string> = {
     'available': 'bg-green-500',
     'occupied': 'bg-red-500',
     'reserved': 'bg-yellow-500',
@@ -477,7 +477,7 @@ const getStatusColor = (status: string) => {
 }
 
 const getStatusBadgeClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'available': 'bg-green-100 text-green-800',
     'occupied': 'bg-red-100 text-red-800',
     'reserved': 'bg-yellow-100 text-yellow-800',
@@ -487,7 +487,7 @@ const getStatusBadgeClass = (status: string) => {
 }
 
 const getStatusText = (status: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'available': '可用',
     'occupied': '使用中',
     'reserved': '已預約',
@@ -497,7 +497,7 @@ const getStatusText = (status: string) => {
 }
 
 const getStatusButtonClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'available': 'bg-red-600 text-white hover:bg-red-700',
     'occupied': 'bg-green-600 text-white hover:bg-green-700',
     'reserved': 'bg-blue-600 text-white hover:bg-blue-700',
@@ -507,7 +507,7 @@ const getStatusButtonClass = (status: string) => {
 }
 
 const getStatusButtonText = (status: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'available': '使用',
     'occupied': '清理',
     'reserved': '入座',
@@ -525,19 +525,19 @@ const generateAllQRCodes = async () => {
   }
 }
 
-const viewQRCode = (table) => {
+const viewQRCode = (table: any) => {
   selectedTable.value = table
   showQRModal.value = true
 }
 
-const editTable = (table) => {
+const editTable = (table: any) => {
   editingTable.value = table
   tableForm.value = { ...table }
   showTableModal.value = true
 }
 
-const changeTableStatus = async (table) => {
-  const statusFlow = {
+const changeTableStatus = async (table: any) => {
+  const statusFlow: Record<string, string> = {
     'available': 'occupied',
     'occupied': 'available',
     'reserved': 'occupied',

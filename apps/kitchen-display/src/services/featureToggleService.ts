@@ -131,8 +131,10 @@ class FeatureToggleService {
     if (feature) {
       feature.enabled = true
       feature.metadata = {
-        ...feature.metadata,
-        updatedAt: new Date().toISOString()
+        version: feature.metadata?.version || '1.0.0',
+        createdAt: feature.metadata?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        author: feature.metadata?.author
       }
       this.saveToStorage()
     }
@@ -143,8 +145,10 @@ class FeatureToggleService {
     if (feature) {
       feature.enabled = false
       feature.metadata = {
-        ...feature.metadata,
-        updatedAt: new Date().toISOString()
+        version: feature.metadata?.version || '1.0.0',
+        createdAt: feature.metadata?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        author: feature.metadata?.author
       }
       this.saveToStorage()
     }
@@ -167,8 +171,10 @@ class FeatureToggleService {
     if (feature) {
       Object.assign(feature, updates)
       feature.metadata = {
-        ...feature.metadata,
-        updatedAt: new Date().toISOString()
+        version: feature.metadata?.version || '1.0.0',
+        createdAt: feature.metadata?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        author: feature.metadata?.author
       }
       this.saveToStorage()
     }
@@ -206,8 +212,10 @@ class FeatureToggleService {
 
     config.value = value
     config.metadata = {
-      ...config.metadata,
-      updatedAt: new Date().toISOString()
+      version: config.metadata?.version || '1.0.0',
+      createdAt: config.metadata?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      author: config.metadata?.author
     }
     
     this.saveToStorage()
@@ -216,10 +224,10 @@ class FeatureToggleService {
 
   public addConfiguration(configuration: Configuration): void {
     configuration.metadata = {
-      version: '1.0.0',
-      createdAt: new Date().toISOString(),
+      version: configuration.metadata?.version || '1.0.0',
+      createdAt: configuration.metadata?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      ...configuration.metadata
+      author: configuration.metadata?.author
     }
     
     this.configurations.value[configuration.key] = configuration
@@ -231,8 +239,10 @@ class FeatureToggleService {
     if (config) {
       Object.assign(config, updates)
       config.metadata = {
-        ...config.metadata,
-        updatedAt: new Date().toISOString()
+        version: config.metadata?.version || '1.0.0',
+        createdAt: config.metadata?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        author: config.metadata?.author
       }
       this.saveToStorage()
     }
@@ -264,8 +274,10 @@ class FeatureToggleService {
     if (profile) {
       Object.assign(profile, updates)
       profile.metadata = {
-        ...profile.metadata,
-        updatedAt: new Date().toISOString()
+        version: profile.metadata?.version || '1.0.0',
+        createdAt: profile.metadata?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        author: profile.metadata?.author
       }
       this.saveToStorage()
     }

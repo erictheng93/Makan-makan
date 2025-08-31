@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole, requireRestaurantAccess } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
+import { TableService, USER_ROLES } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -9,64 +10,67 @@ const app = new Hono<{ Bindings: Env }>()
 // 驗證 schemas
 const createTableSchema = z.object({
   restaurantId: z.number().int().positive(),
-  name: z.string().min(1).max(50),
+  number: z.string().min(1).max(50),
+  name: z.string().min(1).max(50).optional(),
   capacity: z.number().int().positive(),
   location: z.string().max(100).optional(),
-  floor: z.string().max(20).optional().default('1F'),
+  floor: z.number().int().positive().optional().default(1),
   section: z.string().max(50).optional(),
-  isActive: z.boolean().default(true),
-  qrCodeSize: z.enum(['small', 'medium', 'large']).default('medium'),
-  customQrData: z.any().optional()
+  features: z.object({
+    hasChargingPort: z.boolean().optional(),
+    hasWifi: z.boolean().optional(),
+    isAccessible: z.boolean().optional(),
+    hasView: z.boolean().optional(),
+    isQuietZone: z.boolean().optional(),
+    smokingAllowed: z.boolean().optional()
+  }).optional(),
+  isReservable: z.boolean().optional().default(true)
 })
 
-const updateTableSchema = createTableSchema.partial().omit({ restaurantId: true })
+const updateTableSchema = z.object({
+  number: z.string().min(1).max(50).optional(),
+  name: z.string().min(1).max(50).optional(),
+  capacity: z.number().int().positive().optional(),
+  location: z.string().max(100).optional(),
+  floor: z.number().int().positive().optional(),
+  section: z.string().max(50).optional(),
+  features: z.object({
+    hasChargingPort: z.boolean().optional(),
+    hasWifi: z.boolean().optional(),
+    isAccessible: z.boolean().optional(),
+    hasView: z.boolean().optional(),
+    isQuietZone: z.boolean().optional(),
+    smokingAllowed: z.boolean().optional()
+  }).optional(),
+  isActive: z.boolean().optional(),
+  isReservable: z.boolean().optional(),
+  maintenanceNotes: z.string().max(500).optional()
+})
 
 const generateQRBulkSchema = z.object({
   restaurantId: z.number().int().positive(),
-  tables: z.array(z.object({
-    id: z.number().int().positive(),
+  tableIds: z.array(z.number().int().positive()).min(1).max(50),
+  options: z.object({
+    size: z.enum(['small', 'medium', 'large']).default('medium'),
+    format: z.enum(['png', 'svg', 'pdf']).default('png'),
+    includeTableInfo: z.boolean().default(true),
     customData: z.any().optional()
-  })).min(1).max(50), // 限制一次最多50個QR碼
-  format: z.enum(['png', 'svg', 'pdf']).default('png'),
-  size: z.enum(['small', 'medium', 'large']).default('medium'),
-  includeTableInfo: z.boolean().default(true)
+  }).optional()
 })
 
 const tableFilterSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  floor: z.string().optional(),
+  floor: z.string().regex(/^\d+$/).transform(Number).optional(),
   section: z.string().optional(),
+  isOccupied: z.string().transform(val => val === 'true').optional(),
   isActive: z.string().transform(val => val === 'true').optional(),
+  isReservable: z.string().transform(val => val === 'true').optional(),
   minCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
   maxCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
+  search: z.string().optional(),
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
 })
-
-// QR碼生成輔助函數
-function generateQRCodeUrl(tableId: number, restaurantId: number, customData?: any): string {
-  const baseUrl = process.env.CLIENT_BASE_URL || 'https://makanmakan.com'
-  const qrData = {
-    type: 'table',
-    tableId,
-    restaurantId,
-    timestamp: new Date().toISOString(),
-    ...customData
-  }
-  
-  return `${baseUrl}/order?data=${encodeURIComponent(JSON.stringify(qrData))}`
-}
-
-function getQRCodeImageUrl(content: string, size: 'small' | 'medium' | 'large' = 'medium'): string {
-  const sizes = {
-    small: '150x150',
-    medium: '200x200',
-    large: '300x300'
-  }
-  
-  // 使用 QR Server API 生成QR碼圖片
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${sizes[size]}&data=${encodeURIComponent(content)}`
-}
 
 /**
  * 獲取餐廳桌位列表
@@ -74,102 +78,36 @@ function getQRCodeImageUrl(content: string, size: 'small' | 'medium' | 'large' =
  */
 app.get('/',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]),
-  validateQuery(tableFilterSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF, USER_ROLES.SERVICE, USER_ROLES.CASHIER]),
+  validateQuery(tableFilterSchema as any),
   async (c) => {
     try {
-      const query = c.get('validatedQuery')
-      const user = c.get('user')
+      const filters = c.get('validatedQuery')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
-      
-      // 權限過濾
-      if (user.role !== 0) { // 非管理員只能查看自己餐廳的桌位
-        whereConditions.push('t.restaurant_id = ?')
-        params.push(user.restaurantId)
+      // 權限過濾：非管理員只能查看自己餐廳的桌子
+      let restaurantId = filters.restaurantId
+      if (currentUser.role !== USER_ROLES.ADMIN) {
+        restaurantId = currentUser.restaurantId
       }
       
-      // 其他過濾條件
-      if (query.restaurantId) {
-        whereConditions.push('t.restaurant_id = ?')
-        params.push(query.restaurantId)
+      if (!restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Restaurant ID is required'
+        }, 400)
       }
       
-      if (query.floor) {
-        whereConditions.push('t.floor = ?')
-        params.push(query.floor)
-      }
-      
-      if (query.section) {
-        whereConditions.push('t.section = ?')
-        params.push(query.section)
-      }
-      
-      if (query.isActive !== undefined) {
-        whereConditions.push('t.is_active = ?')
-        params.push(query.isActive ? 1 : 0)
-      }
-      
-      if (query.minCapacity) {
-        whereConditions.push('t.capacity >= ?')
-        params.push(query.minCapacity)
-      }
-      
-      if (query.maxCapacity) {
-        whereConditions.push('t.capacity <= ?')
-        params.push(query.maxCapacity)
-      }
-      
-      // 獲取總數
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM tables t
-        WHERE ${whereConditions.join(' AND ')}
-      `
-      const countResult = await c.env.DB.prepare(countQuery).bind(...params).first()
-      const total = countResult?.total || 0
-      
-      // 分頁計算
-      const offset = (query.page - 1) * query.limit
-      
-      // 獲取桌位列表
-      const tablesQuery = `
-        SELECT 
-          t.*,
-          r.name as restaurant_name,
-          COUNT(CASE WHEN o.status IN ('pending', 'confirmed', 'preparing') THEN 1 END) as active_orders
-        FROM tables t
-        LEFT JOIN restaurants r ON t.restaurant_id = r.id
-        LEFT JOIN orders o ON t.id = o.table_id 
-        WHERE ${whereConditions.join(' AND ')}
-        GROUP BY t.id
-        ORDER BY t.floor, t.section, t.name
-        LIMIT ? OFFSET ?
-      `
-      
-      const tablesResult = await c.env.DB.prepare(tablesQuery)
-        .bind(...params, query.limit, offset).all()
-      
-      // 為每個桌位生成QR碼URL
-      const tables = (tablesResult.results || []).map((table: any) => ({
-        ...table,
-        qr_code_url: table.qr_code || generateQRCodeUrl(table.id, table.restaurant_id),
-        qr_image_url: getQRCodeImageUrl(table.qr_code || generateQRCodeUrl(table.id, table.restaurant_id), 'medium'),
-        is_occupied: table.active_orders > 0
-      }))
-      
-      const pagination = {
-        page: query.page,
-        limit: query.limit,
-        total,
-        pages: Math.ceil(total / query.limit)
-      }
+      const result = await tableService.getRestaurantTables(restaurantId, {
+        ...filters,
+        restaurantId: undefined // Remove from filters since it's used as parameter
+      })
       
       return c.json({
         success: true,
-        data: tables,
-        pagination
+        data: result.tables,
+        pagination: result.pagination
       })
       
     } catch (error) {
@@ -188,22 +126,15 @@ app.get('/',
  */
 app.get('/:id',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]),
-  validateParams(commonSchemas.idParam),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF, USER_ROLES.SERVICE, USER_ROLES.CASHIER]),
+  validateParams(commonSchemas.idParam as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const user = c.get('user')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      const table = await c.env.DB.prepare(`
-        SELECT 
-          t.*,
-          r.name as restaurant_name,
-          r.address as restaurant_address
-        FROM tables t
-        LEFT JOIN restaurants r ON t.restaurant_id = r.id
-        WHERE t.id = ?
-      `).bind(id).first()
+      const table = await tableService.getTableById(parseInt(id))
       
       if (!table) {
         return c.json({
@@ -212,39 +143,17 @@ app.get('/:id',
         }, 404)
       }
       
-      // 權限檢查
-      if (user.role !== 0 && user.restaurantId !== table.restaurant_id) {
+      // 權限檢查：非管理員只能查看自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && table.restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 獲取最近的訂單
-      const recentOrders = await c.env.DB.prepare(`
-        SELECT 
-          id, order_number, status, total, customer_name,
-          created_at, updated_at
-        FROM orders 
-        WHERE table_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT 5
-      `).bind(id).all()
-      
-      // 生成QR碼資料
-      const qrCodeUrl = table.qr_code || generateQRCodeUrl(table.id, table.restaurant_id)
-      const qrImageUrl = getQRCodeImageUrl(qrCodeUrl, table.qr_code_size || 'medium')
-      
-      const response = {
-        ...table,
-        qr_code_url: qrCodeUrl,
-        qr_image_url: qrImageUrl,
-        recent_orders: recentOrders.results || []
-      }
-      
       return c.json({
         success: true,
-        data: response
+        data: table
       })
       
     } catch (error) {
@@ -258,95 +167,42 @@ app.get('/:id',
 )
 
 /**
- * 創建桌位
+ * 創建新桌位
  * POST /api/v1/tables
  */
 app.post('/',
   authMiddleware,
-  requireRole([0, 1]), // 管理員和店主
-  validateBody(createTableSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateBody(createTableSchema as any),
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const user = c.get('user')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== data.restaurantId) {
+      // 權限檢查：非管理員只能為自己的餐廳創建桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && data.restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
-          error: 'Access denied'
+          error: 'Can only create tables for your own restaurant'
         }, 403)
       }
       
-      // 檢查同餐廳內桌位名稱是否重複
-      const existingTable = await c.env.DB.prepare(`
-        SELECT id FROM tables 
-        WHERE restaurant_id = ? AND name = ?
-      `).bind(data.restaurantId, data.name).first()
-      
-      if (existingTable) {
-        return c.json({
-          success: false,
-          error: 'Table name already exists in this restaurant'
-        }, 409)
-      }
-      
-      // 生成QR碼
-      const qrCodeUrl = generateQRCodeUrl(0, data.restaurantId, data.customQrData) // 0作為佔位符，稍後更新
-      
-      const result = await c.env.DB.prepare(`
-        INSERT INTO tables (
-          restaurant_id, name, capacity, location, floor, section, 
-          is_active, qr_code, qr_code_size, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(
-        data.restaurantId,
-        data.name,
-        data.capacity,
-        data.location || null,
-        data.floor,
-        data.section || null,
-        data.isActive ? 1 : 0,
-        qrCodeUrl,
-        data.qrCodeSize
-      ).run()
-      
-      const tableId = result.meta.last_row_id as number
-      
-      // 更新QR碼URL包含真實的桌位ID
-      const finalQrCodeUrl = generateQRCodeUrl(tableId, data.restaurantId, data.customQrData)
-      await c.env.DB.prepare(`
-        UPDATE tables SET qr_code = ? WHERE id = ?
-      `).bind(finalQrCodeUrl, tableId).run()
-      
-      // 獲取創建的桌位
-      const newTable = await c.env.DB.prepare(`
-        SELECT t.*, r.name as restaurant_name
-        FROM tables t
-        LEFT JOIN restaurants r ON t.restaurant_id = r.id
-        WHERE t.id = ?
-      `).bind(tableId).first()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'create_table',
-        'tables',
-        JSON.stringify({ tableId, name: data.name, restaurantId: data.restaurantId })
-      ).run()
-      
-      const response = {
-        ...newTable,
-        qr_code_url: finalQrCodeUrl,
-        qr_image_url: getQRCodeImageUrl(finalQrCodeUrl, data.qrCodeSize)
-      }
+      const newTable = await tableService.createTable({
+        restaurantId: data.restaurantId,
+        number: data.number,
+        name: data.name,
+        capacity: data.capacity,
+        location: data.location,
+        floor: data.floor,
+        section: data.section,
+        features: data.features,
+        isReservable: data.isReservable
+      })
       
       return c.json({
         success: true,
-        data: response
+        data: newTable
       }, 201)
       
     } catch (error) {
@@ -360,24 +216,22 @@ app.post('/',
 )
 
 /**
- * 更新桌位
+ * 更新桌位資訊
  * PUT /api/v1/tables/:id
  */
 app.put('/:id',
   authMiddleware,
-  requireRole([0, 1]), // 管理員和店主
-  validateParams(commonSchemas.idParam),
-  validateBody(updateTableSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(updateTableSchema as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const user = c.get('user')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      // 獲取現有桌位
-      const existingTable = await c.env.DB.prepare(`
-        SELECT * FROM tables WHERE id = ?
-      `).bind(id).first()
+      const existingTable = await tableService.getTableById(parseInt(id))
       
       if (!existingTable) {
         return c.json({
@@ -386,125 +240,19 @@ app.put('/:id',
         }, 404)
       }
       
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== existingTable.restaurant_id) {
+      // 權限檢查：非管理員只能更新自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && existingTable.restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 如果要更新名稱，檢查是否重複
-      if (data.name && data.name !== existingTable.name) {
-        const duplicateTable = await c.env.DB.prepare(`
-          SELECT id FROM tables 
-          WHERE restaurant_id = ? AND name = ? AND id != ?
-        `).bind(existingTable.restaurant_id, data.name, id).first()
-        
-        if (duplicateTable) {
-          return c.json({
-            success: false,
-            error: 'Table name already exists in this restaurant'
-          }, 409)
-        }
-      }
-      
-      // 構建更新查詢
-      const updateFields = []
-      const updateParams = []
-      
-      if (data.name !== undefined) {
-        updateFields.push('name = ?')
-        updateParams.push(data.name)
-      }
-      
-      if (data.capacity !== undefined) {
-        updateFields.push('capacity = ?')
-        updateParams.push(data.capacity)
-      }
-      
-      if (data.location !== undefined) {
-        updateFields.push('location = ?')
-        updateParams.push(data.location)
-      }
-      
-      if (data.floor !== undefined) {
-        updateFields.push('floor = ?')
-        updateParams.push(data.floor)
-      }
-      
-      if (data.section !== undefined) {
-        updateFields.push('section = ?')
-        updateParams.push(data.section)
-      }
-      
-      if (data.isActive !== undefined) {
-        updateFields.push('is_active = ?')
-        updateParams.push(data.isActive ? 1 : 0)
-      }
-      
-      // 如果需要重新生成QR碼
-      if (data.qrCodeSize !== undefined || data.customQrData !== undefined) {
-        const newQrCodeUrl = generateQRCodeUrl(
-          parseInt(id), 
-          existingTable.restaurant_id, 
-          data.customQrData
-        )
-        updateFields.push('qr_code = ?')
-        updateParams.push(newQrCodeUrl)
-        
-        if (data.qrCodeSize) {
-          updateFields.push('qr_code_size = ?')
-          updateParams.push(data.qrCodeSize)
-        }
-      }
-      
-      if (updateFields.length === 0) {
-        return c.json({
-          success: false,
-          error: 'No fields to update'
-        }, 400)
-      }
-      
-      updateFields.push('updated_at = datetime(\'now\')')
-      updateParams.push(id)
-      
-      const updateQuery = `
-        UPDATE tables 
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-      `
-      
-      await c.env.DB.prepare(updateQuery).bind(...updateParams).run()
-      
-      // 獲取更新後的桌位
-      const updatedTable = await c.env.DB.prepare(`
-        SELECT t.*, r.name as restaurant_name
-        FROM tables t
-        LEFT JOIN restaurants r ON t.restaurant_id = r.id
-        WHERE t.id = ?
-      `).bind(id).first()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'update_table',
-        'tables',
-        JSON.stringify({ tableId: id, changes: data })
-      ).run()
-      
-      const response = {
-        ...updatedTable,
-        qr_code_url: updatedTable.qr_code,
-        qr_image_url: getQRCodeImageUrl(updatedTable.qr_code, updatedTable.qr_code_size || 'medium')
-      }
+      const updatedTable = await tableService.updateTable(parseInt(id), data)
       
       return c.json({
         success: true,
-        data: response
+        data: updatedTable
       })
       
     } catch (error) {
@@ -523,67 +271,43 @@ app.put('/:id',
  */
 app.delete('/:id',
   authMiddleware,
-  requireRole([0, 1]), // 管理員和店主
-  validateParams(commonSchemas.idParam),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const user = c.get('user')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      const table = await c.env.DB.prepare(`
-        SELECT * FROM tables WHERE id = ?
-      `).bind(id).first()
+      const existingTable = await tableService.getTableById(parseInt(id))
       
-      if (!table) {
+      if (!existingTable) {
         return c.json({
           success: false,
           error: 'Table not found'
         }, 404)
       }
       
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== table.restaurant_id) {
+      // 權限檢查：非管理員只能刪除自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && existingTable.restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 檢查是否有進行中的訂單
-      const activeOrders = await c.env.DB.prepare(`
-        SELECT COUNT(*) as count
-        FROM orders 
-        WHERE table_id = ? AND status IN ('pending', 'confirmed', 'preparing', 'ready')
-      `).bind(id).first()
+      const success = await tableService.deleteTable(parseInt(id))
       
-      if ((activeOrders?.count || 0) > 0) {
+      if (!success) {
         return c.json({
           success: false,
-          error: 'Cannot delete table with active orders'
-        }, 400)
+          error: 'Failed to delete table'
+        }, 500)
       }
-      
-      // 軟刪除：設置為不活躍
-      await c.env.DB.prepare(`
-        UPDATE tables 
-        SET is_active = 0, updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(id).run()
-      
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'delete_table',
-        'tables',
-        JSON.stringify({ tableId: id, name: table.name })
-      ).run()
       
       return c.json({
         success: true,
-        message: 'Table deactivated successfully'
+        message: 'Table deleted successfully'
       })
       
     } catch (error) {
@@ -597,91 +321,288 @@ app.delete('/:id',
 )
 
 /**
- * 批量生成QR碼
- * POST /api/v1/tables/qr/bulk
+ * 佔用桌位
+ * POST /api/v1/tables/:id/occupy
  */
-app.post('/qr/bulk',
+app.post('/:id/occupy',
   authMiddleware,
-  requireRole([0, 1]), // 管理員和店主
-  validateBody(generateQRBulkSchema),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE, USER_ROLES.CASHIER]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(z.object({
+    orderId: z.number().int().positive(),
+    occupiedBy: z.string().max(100).optional(),
+    estimatedMinutes: z.number().int().positive().optional()
+  })),
   async (c) => {
     try {
-      const data = c.get('validatedBody')
-      const user = c.get('user')
+      const { id } = c.get('validatedParams')
+      const { orderId, occupiedBy, estimatedMinutes } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== data.restaurantId) {
+      const table = await tableService.getTableById(parseInt(id))
+      
+      if (!table) {
+        return c.json({
+          success: false,
+          error: 'Table not found'
+        }, 404)
+      }
+      
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && table.restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      const qrCodes = []
-      
-      for (const tableRef of data.tables) {
-        // 獲取桌位信息
-        const table = await c.env.DB.prepare(`
-          SELECT * FROM tables 
-          WHERE id = ? AND restaurant_id = ?
-        `).bind(tableRef.id, data.restaurantId).first()
-        
-        if (!table) {
-          continue // 跳過不存在的桌位
-        }
-        
-        const qrCodeUrl = generateQRCodeUrl(table.id, data.restaurantId, tableRef.customData)
-        const qrImageUrl = getQRCodeImageUrl(qrCodeUrl, data.size)
-        
-        qrCodes.push({
-          tableId: table.id,
-          tableName: table.name,
-          floor: table.floor,
-          section: table.section,
-          capacity: table.capacity,
-          qrCodeUrl,
-          qrImageUrl,
-          downloadUrl: `${qrImageUrl}&download=1`, // 直接下載連結
-          includeInfo: data.includeTableInfo
-        })
-        
-        // 更新桌位的QR碼
-        await c.env.DB.prepare(`
-          UPDATE tables 
-          SET qr_code = ?, qr_code_size = ?, updated_at = datetime('now')
-          WHERE id = ?
-        `).bind(qrCodeUrl, data.size, table.id).run()
+      if (table.isOccupied) {
+        return c.json({
+          success: false,
+          error: 'Table is already occupied'
+        }, 400)
       }
       
-      // 記錄審計日誌
-      await c.env.DB.prepare(`
-        INSERT INTO audit_logs (user_id, action, resource, details, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(
-        user.id,
-        'bulk_generate_qr',
-        'tables',
-        JSON.stringify({ 
-          restaurantId: data.restaurantId, 
-          tableCount: qrCodes.length,
-          format: data.format,
-          size: data.size 
-        })
-      ).run()
+      const success = await tableService.occupyTable(parseInt(id), orderId, occupiedBy, estimatedMinutes)
+      
+      if (!success) {
+        return c.json({
+          success: false,
+          error: 'Failed to occupy table'
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        message: 'Table occupied successfully'
+      })
+      
+    } catch (error) {
+      console.error('Occupy table error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to occupy table'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 釋放桌位
+ * POST /api/v1/tables/:id/release
+ */
+app.post('/:id/release',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE, USER_ROLES.CASHIER]),
+  validateParams(commonSchemas.idParam as any),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
+      
+      const table = await tableService.getTableById(parseInt(id))
+      
+      if (!table) {
+        return c.json({
+          success: false,
+          error: 'Table not found'
+        }, 404)
+      }
+      
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && table.restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+      
+      const success = await tableService.releaseTable(parseInt(id))
+      
+      if (!success) {
+        return c.json({
+          success: false,
+          error: 'Failed to release table'
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        message: 'Table released successfully'
+      })
+      
+    } catch (error) {
+      console.error('Release table error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to release table'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 標記桌位已清潔
+ * POST /api/v1/tables/:id/clean
+ */
+app.post('/:id/clean',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(z.object({
+    notes: z.string().max(200).optional()
+  })),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { notes } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
+      
+      const table = await tableService.getTableById(parseInt(id))
+      
+      if (!table) {
+        return c.json({
+          success: false,
+          error: 'Table not found'
+        }, 404)
+      }
+      
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && table.restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+      
+      const success = await tableService.markTableCleaned(parseInt(id), notes)
+      
+      if (!success) {
+        return c.json({
+          success: false,
+          error: 'Failed to mark table as cleaned'
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        message: 'Table marked as cleaned successfully'
+      })
+      
+    } catch (error) {
+      console.error('Mark table cleaned error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to mark table as cleaned'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 重新生成桌位QR碼
+ * POST /api/v1/tables/:id/regenerate-qr
+ */
+app.post('/:id/regenerate-qr',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(z.object({
+    customData: z.any().optional()
+  })),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { customData } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
+      
+      const table = await tableService.getTableById(parseInt(id))
+      
+      if (!table) {
+        return c.json({
+          success: false,
+          error: 'Table not found'
+        }, 404)
+      }
+      
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && table.restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+      
+      const result = await tableService.regenerateQRCode(parseInt(id), customData)
+      
+      if (!result.success) {
+        return c.json({
+          success: false,
+          error: result.error
+        }, 500)
+      }
       
       return c.json({
         success: true,
         data: {
-          generated: qrCodes.length,
-          qrCodes,
-          format: data.format,
-          size: data.size,
-          generatedAt: new Date().toISOString()
-        }
+          qrCode: result.qrCode
+        },
+        message: 'QR code regenerated successfully'
       })
       
     } catch (error) {
-      console.error('Bulk generate QR codes error:', error)
+      console.error('Regenerate QR code error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to regenerate QR code'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 批量生成QR碼
+ * POST /api/v1/tables/bulk-qr
+ */
+app.post('/bulk-qr',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateBody(generateQRBulkSchema),
+  async (c) => {
+    try {
+      const { restaurantId, tableIds, options = {} } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
+      
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+      
+      const result = await tableService.generateBulkQRCodes(restaurantId, tableIds, options)
+      
+      if (!result.success) {
+        return c.json({
+          success: false,
+          error: result.error
+        }, 500)
+      }
+      
+      return c.json({
+        success: true,
+        data: result.qrCodes,
+        message: 'QR codes generated successfully'
+      })
+      
+    } catch (error) {
+      console.error('Generate bulk QR codes error:', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate QR codes'
@@ -691,138 +612,76 @@ app.post('/qr/bulk',
 )
 
 /**
- * 獲取桌位QR碼
- * GET /api/v1/tables/:id/qr
+ * 獲取可用桌位
+ * GET /api/v1/tables/available
  */
-app.get('/:id/qr',
-  validateParams(commonSchemas.idParam),
-  validateQuery(z.object({
-    size: z.enum(['small', 'medium', 'large']).optional().default('medium'),
-    format: z.enum(['png', 'svg']).optional().default('png')
-  })),
-  async (c) => {
-    try {
-      const { id } = c.get('validatedParams')
-      const { size, format } = c.get('validatedQuery')
-      
-      const table = await c.env.DB.prepare(`
-        SELECT t.*, r.name as restaurant_name
-        FROM tables t
-        LEFT JOIN restaurants r ON t.restaurant_id = r.id
-        WHERE t.id = ? AND t.is_active = 1
-      `).bind(id).first()
-      
-      if (!table) {
-        return c.json({
-          success: false,
-          error: 'Table not found or inactive'
-        }, 404)
-      }
-      
-      const qrCodeUrl = table.qr_code || generateQRCodeUrl(table.id, table.restaurant_id)
-      const qrImageUrl = getQRCodeImageUrl(qrCodeUrl, size)
-      
-      return c.json({
-        success: true,
-        data: {
-          tableId: table.id,
-          tableName: table.name,
-          restaurantName: table.restaurant_name,
-          qrCodeUrl,
-          qrImageUrl,
-          downloadUrl: `${qrImageUrl}&download=1`,
-          format,
-          size
-        }
-      })
-      
-    } catch (error) {
-      console.error('Get table QR code error:', error)
-      return c.json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get QR code'
-      }, 500)
-    }
-  }
-)
-
-/**
- * 獲取餐廳桌位統計
- * GET /api/v1/tables/stats/:restaurantId
- */
-app.get('/stats/:restaurantId',
+app.get('/available',
   authMiddleware,
-  requireRole([0, 1]),
-  validateParams(z.object({
-    restaurantId: z.string().regex(/^\d+$/).transform(Number)
-  })),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE, USER_ROLES.CASHIER]),
+  validateQuery(z.object({
+    restaurantId: z.string().regex(/^\d+$/).transform(Number),
+    capacity: z.string().regex(/^\d+$/).transform(Number).optional()
+  }) as any),
   async (c) => {
     try {
-      const { restaurantId } = c.get('validatedParams')
-      const user = c.get('user')
+      const { restaurantId, capacity } = c.get('validatedQuery')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
       
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== restaurantId) {
+      // 權限檢查：非管理員只能查看自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
         return c.json({
           success: false,
           error: 'Access denied'
         }, 403)
       }
       
-      // 基本統計
-      const basicStats = await c.env.DB.prepare(`
-        SELECT 
-          COUNT(*) as total_tables,
-          SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_tables,
-          SUM(capacity) as total_capacity,
-          AVG(capacity) as avg_capacity
-        FROM tables 
-        WHERE restaurant_id = ?
-      `).bind(restaurantId).first()
-      
-      // 按樓層統計
-      const floorStats = await c.env.DB.prepare(`
-        SELECT 
-          floor,
-          COUNT(*) as table_count,
-          SUM(capacity) as total_capacity,
-          SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_tables
-        FROM tables 
-        WHERE restaurant_id = ?
-        GROUP BY floor
-        ORDER BY floor
-      `).bind(restaurantId).all()
-      
-      // 使用率統計（基於今日訂單）
-      const utilizationStats = await c.env.DB.prepare(`
-        SELECT 
-          t.id,
-          t.name,
-          t.capacity,
-          COUNT(CASE WHEN DATE(o.created_at) = DATE('now') THEN 1 END) as orders_today,
-          COUNT(CASE WHEN o.status IN ('pending', 'confirmed', 'preparing') THEN 1 END) as current_orders
-        FROM tables t
-        LEFT JOIN orders o ON t.id = o.table_id
-        WHERE t.restaurant_id = ? AND t.is_active = 1
-        GROUP BY t.id
-        ORDER BY orders_today DESC
-      `).bind(restaurantId).all()
-      
-      const occupancyRate = (utilizationStats.results || []).reduce((acc: number, table: any) => {
-        return acc + (table.current_orders > 0 ? 1 : 0)
-      }, 0) / Math.max((basicStats?.active_tables || 1), 1) * 100
+      const availableTables = await tableService.getAvailableTables(restaurantId, capacity)
       
       return c.json({
         success: true,
-        data: {
-          summary: {
-            ...basicStats,
-            occupancy_rate: Number(occupancyRate.toFixed(2)),
-            avg_capacity: Number((basicStats?.avg_capacity || 0).toFixed(1))
-          },
-          by_floor: floorStats.results || [],
-          utilization: utilizationStats.results || []
-        }
+        data: availableTables
+      })
+      
+    } catch (error) {
+      console.error('Get available tables error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch available tables'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 獲取桌位統計
+ * GET /api/v1/tables/stats
+ */
+app.get('/stats',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(z.object({
+    restaurantId: z.string().regex(/^\d+$/).transform(Number)
+  }) as any),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedQuery')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any)
+      
+      // 權限檢查：非管理員只能查看自己餐廳的統計
+      if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+      
+      const stats = await tableService.getTableStats(restaurantId)
+      
+      return c.json({
+        success: true,
+        data: stats
       })
       
     } catch (error) {
@@ -830,6 +689,58 @@ app.get('/stats/:restaurantId',
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch table statistics'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 根據QR碼獲取桌位資訊
+ * GET /api/v1/tables/qr/:qrCode
+ */
+app.get('/qr/:qrCode',
+  validateParams(z.object({
+    qrCode: z.string()
+  })),
+  async (c) => {
+    try {
+      const { qrCode } = c.get('validatedParams')
+      const tableService = new TableService(c.env.DB as any)
+      
+      const table = await tableService.getTableByQRCode(decodeURIComponent(qrCode))
+      
+      if (!table) {
+        return c.json({
+          success: false,
+          error: 'Invalid QR code or table not found'
+        }, 404)
+      }
+      
+      // 只返回公開資訊
+      const publicTableInfo = {
+        id: table.id,
+        restaurantId: table.restaurantId,
+        number: table.number,
+        name: table.name,
+        capacity: table.capacity,
+        location: table.location,
+        floor: table.floor,
+        section: table.section,
+        features: table.features,
+        isActive: table.isActive,
+        isOccupied: table.isOccupied
+      }
+      
+      return c.json({
+        success: true,
+        data: publicTableInfo
+      })
+      
+    } catch (error) {
+      console.error('Get table by QR code error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch table information'
       }, 500)
     }
   }

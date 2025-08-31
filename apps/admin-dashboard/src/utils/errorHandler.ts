@@ -1,4 +1,6 @@
-import { ElMessage, ElNotification } from 'element-plus'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 // 錯誤類型定義
 export enum ErrorType {
@@ -138,7 +140,7 @@ class ErrorReportingService {
     } catch (error) {
       console.error('Error reporting failed:', error)
       // 延遲重試
-      setTimeout(() => this.processReportQueue(), 30000)
+      setTimeout(() => void this.processReportQueue(), 30000)
     }
 
     this.isReporting = false
@@ -148,9 +150,9 @@ class ErrorReportingService {
 // 主要錯誤處理器
 export class ErrorHandler {
   private static instance: ErrorHandler
-  private offlineManager = new OfflineManager()
-  private reportingService = new ErrorReportingService()
-  private userNotificationEnabled = true
+  public offlineManager = new OfflineManager()
+  public reportingService = new ErrorReportingService()
+  public userNotificationEnabled = true
 
   static getInstance(): ErrorHandler {
     if (!ErrorHandler.instance) {
@@ -202,7 +204,7 @@ export class ErrorHandler {
       code = error.response.status
       message = error.response.data?.error?.message || '服務器錯誤'
       
-      if (code >= 500) {
+      if (typeof code === 'number' && code >= 500) {
         severity = ErrorSeverity.HIGH
       } else if (code === 403 || code === 401) {
         type = ErrorType.PERMISSION
@@ -229,28 +231,15 @@ export class ErrorHandler {
     const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000
 
     if (error.severity === ErrorSeverity.CRITICAL) {
-      ElNotification({
-        title: '嚴重錯誤',
-        message: error.message,
-        type: 'error',
-        duration: 0, // 不自動關閉
-        position: 'top-right'
-      })
+      toast.error(`嚴重錯誤: ${error.message}`, { timeout: false })
     } else if (error.severity === ErrorSeverity.HIGH) {
-      ElNotification({
-        title: '系統錯誤',
-        message: error.message,
-        type: 'error',
-        duration,
-        position: 'top-right'
-      })
+      toast.error(`系統錯誤: ${error.message}`, { timeout: duration })
     } else {
-      ElMessage({
-        message: error.message,
-        type: error.severity === ErrorSeverity.LOW ? 'warning' : 'error',
-        duration,
-        showClose: true
-      })
+      if (error.severity === ErrorSeverity.LOW) {
+        toast.warning(error.message, { timeout: duration })
+      } else {
+        toast.error(error.message, { timeout: duration })
+      }
     }
   }
 
@@ -270,7 +259,6 @@ export class KitchenErrorHandler extends ErrorHandler {
   private sseReconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000 // 1秒
-  private sseEventSource: EventSource | null = null
 
   static handleSSEError(error: Event, eventSource?: EventSource) {
     const handler = ErrorHandler.getInstance() as KitchenErrorHandler
@@ -279,7 +267,7 @@ export class KitchenErrorHandler extends ErrorHandler {
 
   static handleAPIError(error: any, context?: Record<string, any>) {
     const handler = ErrorHandler.getInstance()
-    return handler.handleAPIRequest(error, context)
+    return handler.handleError(error, context)
   }
 
   // 處理 SSE 連接錯誤
@@ -304,11 +292,7 @@ export class KitchenErrorHandler extends ErrorHandler {
 
     // 顯示連接狀態
     if (this.userNotificationEnabled) {
-      ElMessage({
-        message: '實時連接中斷，正在嘗試重新連接...',
-        type: 'warning',
-        duration: 3000
-      })
+      toast.warning('實時連接中斷，正在嘗試重新連接...', { timeout: 3000 })
     }
 
     // 自動重連
@@ -316,15 +300,9 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // SSE 自動重連
-  private attemptSSEReconnect(eventSource?: EventSource) {
+  private attemptSSEReconnect(_eventSource?: EventSource) {
     if (this.sseReconnectAttempts >= this.maxReconnectAttempts) {
-      ElNotification({
-        title: '連接失敗',
-        message: '無法重新建立實時連接，請刷新頁面',
-        type: 'error',
-        duration: 0,
-        position: 'top-right'
-      })
+      toast.error('連接失敗: 無法重新建立實時連接，請刷新頁面', { timeout: false })
       return
     }
 
@@ -333,7 +311,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     // 指數退避重連策略
     const delay = this.reconnectDelay * Math.pow(2, this.sseReconnectAttempts - 1)
     
-    setTimeout(() => {
+    setTimeout((): void => {
       try {
         console.log(`Attempting SSE reconnection ${this.sseReconnectAttempts}/${this.maxReconnectAttempts}`)
         
@@ -348,7 +326,7 @@ export class KitchenErrorHandler extends ErrorHandler {
         
       } catch (error) {
         console.error('SSE reconnection failed:', error)
-        this.attemptSSEReconnect(eventSource)
+        this.attemptSSEReconnect()
       }
     }, delay)
   }
@@ -359,16 +337,12 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // 設置 SSE 連接成功
-  setSSEConnected(eventSource: EventSource) {
-    this.sseEventSource = eventSource
+  setSSEConnected(_eventSource: EventSource) {
+    // Store event source reference if needed
     this.resetSSEReconnectAttempts()
     
     if (this.sseReconnectAttempts > 0) {
-      ElMessage({
-        message: '實時連接已恢復',
-        type: 'success',
-        duration: 2000
-      })
+      toast.success('實時連接已恢復', { timeout: 2000 })
     }
   }
 
@@ -390,20 +364,17 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // 處理離線請求
-  private handleOfflineRequest(originalError: any, context?: Record<string, any>): Promise<any> {
-    ElMessage({
-      message: '當前網絡不可用，請求將在網絡恢復後重新嘗試',
-      type: 'warning',
-      duration: 5000
-    })
+  private handleOfflineRequest(_originalError: any, _context?: Record<string, any>): Promise<any> {
+    const toast = useToast()
+    toast.warning('當前網絡不可用，請求將在網絡恢復後重新嘗試')
 
-    return new Promise((resolve, reject) => {
+    return new Promise((_resolve: (value?: any) => void, reject: (reason?: any) => void) => {
       // 創建重試請求函數
       const retryRequest = async () => {
         try {
           // 這裡應該重新執行原始請求
           // 實際實現需要根據具體的 API 客戶端來決定
-          console.log('Retrying request after network recovery:', context)
+          console.log('Retrying request after network recovery:', _context)
           // resolve(retriedResult)
           reject(new Error('Request retry not implemented'))
         } catch (error) {
@@ -417,33 +388,26 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // 處理 Token 刷新
-  private async handleTokenRefresh(originalError: any, context?: Record<string, any>): Promise<any> {
+  private async handleTokenRefresh(_originalError: any, _context?: Record<string, any>): Promise<any> {
     try {
       // 嘗試刷新 token
       const authStore = await import('@/stores/auth').then(m => m.useAuthStore())
-      const success = await authStore().refreshToken()
+      const success = await authStore.refreshToken()
       
       if (success) {
-        ElMessage({
-          message: '登入狀態已更新，請重新嘗試',
-          type: 'info',
-          duration: 3000
-        })
+        const toast = useToast()
+        toast.info('登入狀態已更新，請重新嘗試')
         // 這裡應該重新執行原始請求
         return Promise.reject(new Error('Please retry the request'))
       } else {
         // Token 刷新失敗，跳轉到登入頁
-        ElMessage({
-          message: '登入已過期，請重新登入',
-          type: 'error',
-          duration: 5000
-        })
+        toast.error('登入已過期，請重新登入', { timeout: 5000 })
         window.location.href = '/login'
-        return Promise.reject(originalError)
+        return Promise.reject(_originalError)
       }
     } catch (error) {
       console.error('Token refresh failed:', error)
-      return Promise.reject(originalError)
+      return Promise.reject(_originalError)
     }
   }
 }
@@ -455,14 +419,14 @@ export const kitchenErrorHandler = KitchenErrorHandler.getInstance() as KitchenE
 // 全局錯誤處理器
 export function setupGlobalErrorHandler() {
   // 處理未捕獲的 Promise 錯誤
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent): void => {
     console.error('Unhandled promise rejection:', event.reason)
     errorHandler.handleError(event.reason, { type: 'unhandledRejection' })
     event.preventDefault() // 防止錯誤在控制台顯示
   })
 
   // 處理未捕獲的 JavaScript 錯誤
-  window.addEventListener('error', (event) => {
+  window.addEventListener('error', (event: ErrorEvent): void => {
     console.error('Unhandled error:', event.error)
     errorHandler.handleError(event.error, { 
       type: 'globalError',
@@ -473,20 +437,11 @@ export function setupGlobalErrorHandler() {
   })
 
   // 監聽網絡狀態變化
-  errorHandler.getOfflineManager().onStatusChange((isOnline) => {
+  errorHandler.getOfflineManager().onStatusChange((isOnline: boolean): void => {
     if (isOnline) {
-      ElMessage({
-        message: '網絡連接已恢復',
-        type: 'success',
-        duration: 2000
-      })
+      toast.success('網絡連接已恢復', { timeout: 2000 })
     } else {
-      ElMessage({
-        message: '網絡連接已斷開，將在離線模式下運行',
-        type: 'warning',
-        duration: 0,
-        showClose: true
-      })
+      toast.warning('網絡連接已斷開，將在離線模式下運行', { timeout: false })
     }
   })
 }

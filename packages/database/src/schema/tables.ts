@@ -1,7 +1,6 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 import { restaurants } from './restaurants'
-import { orders } from './orders'
 
 export const tables = sqliteTable('tables', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -38,7 +37,7 @@ export const tables = sqliteTable('tables', {
   }>(),
   
   // 目前使用狀況
-  currentOrderId: integer('current_order_id').references(() => orders.id),
+  currentOrderId: integer('current_order_id'),
   occupiedAt: integer('occupied_at', { mode: 'timestamp' }),
   occupiedBy: text('occupied_by'), // 使用者標識
   estimatedFreeAt: integer('estimated_free_at', { mode: 'timestamp' }),
@@ -61,14 +60,9 @@ export const tables = sqliteTable('tables', {
   qrCodeIdx: index('tables_qr_code_idx').on(table.qrCode),
 }))
 
-export const tableRelations = relations(tables, ({ one, many }) => ({
+export const tableRelations = relations(tables, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [tables.restaurantId],
     references: [restaurants.id],
   }),
-  currentOrder: one(orders, {
-    fields: [tables.currentOrderId],
-    references: [orders.id],
-  }),
-  orders: many(orders),
 }))

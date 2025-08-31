@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Clock } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/order'
 import { format } from 'date-fns'
@@ -44,7 +44,7 @@ const orderStore = useOrderStore()
 const currentTime = ref('')
 const pendingOrdersCount = computed(() => orderStore.pendingOrdersCount)
 
-let timeInterval: number
+let timeInterval: NodeJS.Timeout | null = null
 
 const updateTime = () => {
   currentTime.value = format(new Date(), 'yyyy/MM/dd HH:mm:ss')

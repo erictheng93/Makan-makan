@@ -168,9 +168,9 @@ class PerformanceService {
   }
 
   private collectNavigationMetrics(entry: PerformanceNavigationTiming) {
-    this.recordMetric('page-load-time', entry.loadEventEnd - entry.navigationStart, 'ms', 'system')
-    this.recordMetric('dom-content-loaded', entry.domContentLoadedEventEnd - entry.navigationStart, 'ms', 'system')
-    this.recordMetric('first-byte', entry.responseStart - entry.navigationStart, 'ms', 'network')
+    this.recordMetric('page-load-time', entry.loadEventEnd - entry.startTime, 'ms', 'system')
+    this.recordMetric('dom-content-loaded', entry.domContentLoadedEventEnd - entry.startTime, 'ms', 'system')
+    this.recordMetric('first-byte', entry.responseStart - entry.startTime, 'ms', 'network')
   }
 
   private collectResourceMetrics(entry: PerformanceResourceTiming) {

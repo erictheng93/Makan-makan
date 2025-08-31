@@ -39,8 +39,8 @@ api.interceptors.response.use(
         // 嘗試刷新 token
         const refreshResponse = await authApi.refreshToken()
         if (refreshResponse.success) {
-          const newToken = refreshResponse.data.token
-          localStorage.setItem('kitchen_auth_token', newToken)
+          const newToken = refreshResponse.data?.token
+          localStorage.setItem('kitchen_auth_token', newToken || '')
           
           // 重新發送原請求
           original.headers.Authorization = `Bearer ${newToken}`

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { streamSSE } from 'hono/streaming'
+import { streamSSE, type SSEStreamingApi } from 'hono/streaming'
 import { authMiddleware } from '../middleware/auth'
 import type { Env } from '../types/env'
 
@@ -9,7 +9,7 @@ const app = new Hono<{ Bindings: Env }>()
 const connections = new Map<string, {
   restaurantId: number
   userId: number
-  controller?: ReadableStreamDefaultController
+  controller?: SSEStreamingApi
   lastHeartbeat: number
 }>()
 
@@ -34,7 +34,7 @@ function broadcastToKitchen(restaurantId: number, event: KitchenSSEEvent) {
     if (connection.restaurantId === restaurantId && connection.controller) {
       try {
         const eventData = formatSSEEvent(event)
-        connection.controller.enqueue(`${eventData}\n\n`)
+        connection.controller?.writeSSE({ data: eventData })
         sentCount++
       } catch (error) {
         console.error(`Failed to send event to connection ${connectionId}:`, error)

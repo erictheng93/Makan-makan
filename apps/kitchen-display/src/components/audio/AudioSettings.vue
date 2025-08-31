@@ -315,7 +315,7 @@ const soundCategories = reactive({
 
 // Methods
 const getSoundLabel = (soundType: SoundType): string => {
-  const labels = {
+  const labels: Record<string, string> = {
     newOrder: '新訂單',
     orderReady: '訂單準備完成',
     orderUrgent: '緊急訂單',
@@ -347,10 +347,10 @@ const updateMasterVolume = () => {
 }
 
 const updateCategorySettings = (categoryKey: string) => {
-  const category = soundCategories[categoryKey]
+  const category = (soundCategories as Record<string, any>)[categoryKey]
   // Enable/disable all sounds in category
-  category.sounds.forEach(soundType => {
-    soundSettings[soundType].enabled = category.enabled
+  category.sounds.forEach((soundType: SoundType) => {
+    soundSettings[soundType as keyof typeof soundSettings].enabled = category.enabled
   })
   updateAllSoundSettings()
 }

@@ -231,7 +231,7 @@ import {
   TrendingDownIcon,
   MinusIcon,
   PlusIcon,
-  CogIcon,
+  Cog6ToothIcon,
   DocumentTextIcon,
   BellIcon,
   ExclamationTriangleIcon,
@@ -294,7 +294,7 @@ const quickActions = ref([
   { key: 'add-staff', label: '新增員工', icon: UserPlusIcon },
   { key: 'update-menu', label: '更新菜單', icon: DocumentTextIcon },
   { key: 'view-reports', label: '查看報表', icon: ClipboardDocumentListIcon },
-  { key: 'system-settings', label: '系統設定', icon: CogIcon },
+  { key: 'system-settings', label: '系統設定', icon: Cog6ToothIcon },
   { key: 'send-notification', label: '發送通知', icon: BellIcon },
   { key: 'emergency', label: '緊急處理', icon: ExclamationTriangleIcon }
 ])

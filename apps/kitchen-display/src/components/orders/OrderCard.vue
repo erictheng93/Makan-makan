@@ -211,7 +211,7 @@ const { showEstimatedTime, showCustomerNames, keyboardShortcuts, urgentThreshold
 
 // Computed
 const getCardClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'pending': 'border-l-4 border-l-yellow-400 bg-yellow-50',
     'preparing': 'border-l-4 border-l-blue-500 bg-blue-50',
     'ready': 'border-l-4 border-l-green-500 bg-green-50'
@@ -220,7 +220,7 @@ const getCardClass = (status: string) => {
 }
 
 const getPriorityClass = (priority: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'normal': 'status-badge bg-gray-100 text-gray-700',
     'high': 'status-badge bg-orange-100 text-orange-700',
     'urgent': 'status-badge bg-red-100 text-red-700 animate-pulse'
@@ -229,7 +229,7 @@ const getPriorityClass = (priority: string) => {
 }
 
 const getPriorityText = (priority: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'normal': '普通',
     'high': '重要',
     'urgent': '緊急'
@@ -247,7 +247,7 @@ const getTimeClass = (elapsedMinutes: number) => {
 }
 
 const getItemStatusIcon = (status: string) => {
-  const icons = {
+  const icons: Record<string, any> = {
     'pending': ClockIcon,
     'preparing': FireIcon,
     'ready': CheckCircleIcon,
@@ -257,7 +257,7 @@ const getItemStatusIcon = (status: string) => {
 }
 
 const getItemStatusClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'pending': 'text-yellow-500',
     'preparing': 'text-blue-500',
     'ready': 'text-green-500',

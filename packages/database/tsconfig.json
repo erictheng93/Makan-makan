@@ -15,7 +15,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "dist",
-    "rootDir": "src",
     "paths": {
       "@makanmakan/shared-types": ["../shared-types/src"]
     }

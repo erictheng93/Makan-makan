@@ -380,7 +380,6 @@ import {
   ArrowPathIcon,
   DocumentArrowDownIcon,
   ClockIcon,
-  QueueListIcon,
   CheckCircleIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -395,7 +394,6 @@ const {
   isConnected,
   isConnecting,
   error: sseError,
-  connect: connectSSE,
   disconnect: disconnectSSE,
   reconnect
 } = useStatisticsSSE()
@@ -459,7 +457,7 @@ const formatDate = (dateString: string) => {
 }
 
 const getStatusText = (status: string) => {
-  const statusMap = {
+  const statusMap: Record<string, string> = {
     pending: '待確認',
     preparing: '製作中',
     ready: '待取餐',

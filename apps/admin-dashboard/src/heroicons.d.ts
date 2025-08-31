@@ -109,6 +109,27 @@ declare module '@heroicons/vue/24/outline' {
   export const EllipsisHorizontalIcon: HeroIcon
   export const EllipsisVerticalIcon: HeroIcon
   export const ExclamationIcon: HeroIcon
+  export const ListBulletIcon: HeroIcon
+  export const WrenchIcon: HeroIcon
+  export const ArrowLeftIcon: HeroIcon
+  export const UserPlusIcon: HeroIcon
+  export const ClipboardDocumentListIcon: HeroIcon
+  export const NumberedListIcon: HeroIcon
+  export const CubeIcon: HeroIcon
+  export const RocketLaunchIcon: HeroIcon
+  export const Bars3Icon: HeroIcon
+  export const CalculatorIcon: HeroIcon
+  export const CursorArrowRaysIcon: HeroIcon
+  export const HandRaisedIcon: HeroIcon
+  export const EyeSlashIcon: HeroIcon
+  export const CakeIcon: HeroIcon
+  export const QuestionMarkCircleIcon: HeroIcon
+  export const TruckIcon: HeroIcon
+  export const MapIcon: HeroIcon
+  export const BanknotesIcon: HeroIcon
+  export const DevicePhoneMobileIcon: HeroIcon
+  export const BuildingLibraryIcon: HeroIcon
+  export const CookingPotIcon: HeroIcon
   
   // Add any additional icons as needed
   const icons: { [key: string]: HeroIcon }
@@ -128,6 +149,17 @@ declare module '@heroicons/vue/24/solid' {
   export const XMarkIcon: HeroIcon
   export const BellIcon: HeroIcon
   export const UserIcon: HeroIcon
+  export const CreditCardIcon: HeroIcon
+  export const BanknotesIcon: HeroIcon
+  export const DevicePhoneMobileIcon: HeroIcon
+  export const BuildingLibraryIcon: HeroIcon
+  export const ChartBarIcon: HeroIcon
+  export const ShoppingBagIcon: HeroIcon
+  export const UserGroupIcon: HeroIcon
+  export const CakeIcon: HeroIcon
+  export const TableCellsIcon: HeroIcon
+  export const CalculatorIcon: HeroIcon
+  export const CookingPotIcon: HeroIcon
   
   // Add any additional solid icons as needed
   const icons: { [key: string]: HeroIcon }

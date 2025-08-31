@@ -444,7 +444,7 @@ class AudioAccessibilityService {
     console.log('Voice command received:', command)
     
     // Map voice commands to actions (multi-language support)
-    const commands = {
+    const commands: Record<string, () => void> = {
       // English
       'complete order': () => this.triggerKeyboardShortcut('quick_complete'),
       'next order': () => this.triggerKeyboardShortcut('toggle_order_status'),

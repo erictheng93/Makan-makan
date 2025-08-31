@@ -8,7 +8,7 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql",
+    "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0003_qrcode_system.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0008_create_error_reports.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0009_additional_tables.sql",
     "db:migrate:staging": "wrangler d1 migrations apply makanmakan-staging --env staging",
     "db:migrate:prod": "wrangler d1 migrations apply makanmakan-prod --env production",
     "db:studio": "drizzle-kit studio",
@@ -16,14 +16,19 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.33.0",
-    "@cloudflare/d1": "^1.0.0"
+    "@cloudflare/d1": "^1.0.0",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "drizzle-kit": "^0.24.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5"
   },
   "peerDependencies": {
     "@makanmakan/shared-types": "workspace:*"

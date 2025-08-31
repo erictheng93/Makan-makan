@@ -79,7 +79,7 @@
 
     <!-- Key Press Visualization -->
     <div 
-      v-if="showKeyPresses && activeKeys.length > 0" 
+      v-if="showKeyPresses && activeKeys.size > 0" 
       class="key-press-display"
     >
       <div class="pressed-keys">
@@ -192,7 +192,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useKeyboardShortcuts, type KeyboardShortcut } from '@/composables/useKeyboardShortcuts'
 // Icon component temporarily removed - TODO: Replace with heroicons
 
 // Composables
@@ -242,7 +242,7 @@ const contextHint = ref<{
 
 const learningMode = ref(false)
 const learningKeys = ref<string[]>([])
-const learningMatch = ref(null)
+const learningMatch = ref<KeyboardShortcut | null>(null)
 
 // Computed
 const lastActionName = computed(() => {
@@ -255,7 +255,7 @@ const lastActionName = computed(() => {
 
 // Methods
 const formatKey = (key: string): string => {
-  const keyMap = {
+  const keyMap: Record<string, string> = {
     'Space': '␣',
     'Enter': '↵', 
     'Tab': '⇥',
@@ -294,7 +294,7 @@ const getActionIcon = (action: string, type: string): string => {
   if (type === 'error') return 'x-circle'
   if (type === 'warning') return 'alert-triangle'
   
-  const actionIcons = {
+  const actionIcons: Record<string, string> = {
     'quick_complete': 'check-circle',
     'toggle_order_status': 'refresh-cw',
     'toggle_fullscreen': 'maximize',

@@ -1,14 +1,29 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/order';
-import { ArrowPathIcon, ClockIcon, PlayIcon, CheckCircleIcon, HandRaisedIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline';
+import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue';
+import { ArrowPathIcon, ClockIcon, PlayIcon, CheckCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon, ChartBarIcon, SpeakerWaveIcon } from '@heroicons/vue/24/outline';
 const orderStore = useOrderStore();
 // 響應式數據
 const currentTime = ref('');
 const isAutoRefresh = ref(true);
 const notificationSound = ref(null);
+const soundEnabled = ref(true);
+const isLoadingOrders = ref(false);
+const hasMoreOrders = ref(false);
+const currentOrderPage = ref(1);
+const orderPageSize = ref(30);
 let timeInterval = null;
 let refreshInterval = null;
+// 廚房績效數據
+const kitchenStats = ref({
+    avgCompletionTime: 18,
+    efficiencyScore: 87,
+    onTimeRate: 92,
+    todayCompleted: 45,
+    preparationSpeed: 85,
+    qualityScore: 94,
+    workload: 68
+});
 // 模擬廚房訂單數據
 const orders = ref([
     {
@@ -94,6 +109,14 @@ const orderStats = computed(() => ({
     ready: orders.value.filter(o => o.status === 'ready').length,
     served: orders.value.filter(o => o.status === 'served').length
 }));
+// 績效計算屬性
+const avgCompletionTime = computed(() => kitchenStats.value.avgCompletionTime);
+const efficiencyScore = computed(() => kitchenStats.value.efficiencyScore);
+const onTimeRate = computed(() => kitchenStats.value.onTimeRate);
+const todayCompleted = computed(() => kitchenStats.value.todayCompleted);
+const preparationSpeed = computed(() => kitchenStats.value.preparationSpeed);
+const qualityScore = computed(() => kitchenStats.value.qualityScore);
+const workload = computed(() => kitchenStats.value.workload);
 // 方法
 const updateCurrentTime = () => {
     currentTime.value = new Date().toLocaleString('zh-TW', {
@@ -106,9 +129,54 @@ const updateCurrentTime = () => {
     });
 };
 const refreshOrders = async () => {
-    // 模擬API調用
-    console.log('Refreshing kitchen orders...');
-    // 在實際應用中，這裡會調用 API 獲取最新訂單
+    isLoadingOrders.value = true;
+    try {
+        // 模擬API調用
+        console.log('Refreshing kitchen orders...');
+        // 在實際應用中，這裡會調用 API 獲取最新訂單
+        // Reset pagination
+        currentOrderPage.value = 1;
+        hasMoreOrders.value = orders.value.length >= orderPageSize.value;
+    }
+    finally {
+        isLoadingOrders.value = false;
+    }
+};
+const loadMoreKitchenOrders = async () => {
+    if (isLoadingOrders.value || !hasMoreOrders.value)
+        return;
+    isLoadingOrders.value = true;
+    try {
+        currentOrderPage.value++;
+        // 模擬載入更多訂單
+        console.log(`Loading more kitchen orders - page ${currentOrderPage.value}`);
+        // 模擬新增一些訂單
+        const newOrders = Array.from({ length: 5 }, (_, i) => ({
+            id: orders.value.length + i + 1,
+            orderNumber: `ORD-${String(orders.value.length + i + 1).padStart(3, '0')}`,
+            tableNumber: `T${String((orders.value.length + i) % 10 + 1).padStart(2, '0')}`,
+            status: ['pending', 'confirmed', 'preparing', 'ready'][Math.floor(Math.random() * 4)],
+            priority: Math.random() > 0.7 ? 'high' : 'normal',
+            createdAt: new Date(Date.now() - Math.random() * 30 * 60 * 1000).toISOString(),
+            estimatedReadyTime: new Date(Date.now() + Math.random() * 20 * 60 * 1000).toISOString(),
+            items: [{
+                    id: orders.value.length + i + 1,
+                    menuItemName: ['招牌炒飯', '冰奶茶', '春卷', '南洋咖啡'][Math.floor(Math.random() * 4)],
+                    quantity: Math.floor(Math.random() * 3) + 1,
+                    specialInstructions: Math.random() > 0.5 ? '不要蔥' : '',
+                    customizations: Math.random() > 0.5 ? { '辣度': '中辣' } : {}
+                }]
+        }));
+        orders.value.push(...newOrders);
+        // Check if there are more items to load
+        hasMoreOrders.value = newOrders.length >= 5;
+    }
+    finally {
+        isLoadingOrders.value = false;
+    }
+};
+const onLoadMoreOrders = () => {
+    console.log('Kitchen orders load more event triggered');
 };
 const getOrderCardClass = (order) => {
     const baseClass = 'bg-white';
@@ -199,12 +267,44 @@ const togglePriority = (order) => {
     }
 };
 const playNotificationSound = () => {
+    if (!soundEnabled.value)
+        return;
     try {
         notificationSound.value?.play();
     }
     catch (error) {
         console.log('Could not play notification sound:', error);
     }
+};
+const getEfficiencyColor = (score) => {
+    if (score >= 90)
+        return 'text-green-600';
+    if (score >= 80)
+        return 'text-yellow-600';
+    return 'text-red-600';
+};
+// 計算預計完成時間（基於歷史數據和當前負載）
+const calculateEstimatedTime = (order) => {
+    const baseTime = 15; // 基礎時間15分鐘
+    const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const complexityFactor = itemCount * 2; // 每個菜品增加2分鐘
+    const loadFactor = Math.max(0, (workload.value - 50) * 0.2); // 高負載時增加時間
+    return Math.round(baseTime + complexityFactor + loadFactor);
+};
+// 更新廚房統計數據
+const updateKitchenStats = () => {
+    // 模擬統計數據更新
+    const completedToday = orders.value.filter(o => o.status === 'served').length;
+    const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready;
+    kitchenStats.value = {
+        ...kitchenStats.value,
+        todayCompleted: completedToday,
+        workload: Math.min(100, (orderStats.value.preparing / 8) * 100), // 假設最大並發8單
+        onTimeRate: Math.max(80, 100 - (orderStats.value.pending * 2)) // 待處理越多，準時率越低
+    };
+};
+const toggleSound = () => {
+    soundEnabled.value = !soundEnabled.value;
 };
 // 生命周期
 onMounted(() => {
@@ -214,8 +314,11 @@ onMounted(() => {
     refreshInterval = setInterval(() => {
         if (isAutoRefresh.value) {
             refreshOrders();
+            updateKitchenStats();
         }
     }, 10000); // 每10秒刷新一次
+    // 初始化統計數據
+    updateKitchenStats();
 });
 onUnmounted(() => {
     if (timeInterval)
@@ -274,6 +377,29 @@ const __VLS_2 = __VLS_1({
 (__VLS_ctx.isAutoRefresh ? '自動刷新中' : '手動刷新');
 // @ts-ignore
 [isAutoRefresh,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.toggleSound) },
+    ...{ class: ([
+            'flex items-center px-4 py-2 rounded-lg transition-colors',
+            __VLS_ctx.soundEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+        ]) },
+});
+// @ts-ignore
+[toggleSound, soundEnabled,];
+const __VLS_5 = {}.SpeakerWaveIcon;
+/** @type {[typeof __VLS_components.SpeakerWaveIcon, ]} */ ;
+// @ts-ignore
+SpeakerWaveIcon;
+// @ts-ignore
+const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+    ...{ class: "h-4 w-4 mr-2" },
+}));
+const __VLS_7 = __VLS_6({
+    ...{ class: "h-4 w-4 mr-2" },
+}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+(__VLS_ctx.soundEnabled ? '音效開啟' : '音效關閉');
+// @ts-ignore
+[soundEnabled,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
@@ -290,7 +416,7 @@ __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
     ...{ class: "ml-2 text-sm text-gray-700" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" },
+    ...{ class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "bg-yellow-100 rounded-lg p-6 border-l-4 border-yellow-500" },
@@ -298,17 +424,17 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
-const __VLS_5 = {}.ClockIcon;
+const __VLS_10 = {}.ClockIcon;
 /** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
 // @ts-ignore
 ClockIcon;
 // @ts-ignore
-const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+const __VLS_11 = __VLS_asFunctionalComponent(__VLS_10, new __VLS_10({
     ...{ class: "h-8 w-8 text-yellow-600 mr-3" },
 }));
-const __VLS_7 = __VLS_6({
+const __VLS_12 = __VLS_11({
     ...{ class: "h-8 w-8 text-yellow-600 mr-3" },
-}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+}, ...__VLS_functionalComponentArgsRest(__VLS_11));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
     ...{ class: "text-sm font-medium text-yellow-800" },
@@ -325,17 +451,17 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
-const __VLS_10 = {}.PlayIcon;
+const __VLS_15 = {}.PlayIcon;
 /** @type {[typeof __VLS_components.PlayIcon, ]} */ ;
 // @ts-ignore
 PlayIcon;
 // @ts-ignore
-const __VLS_11 = __VLS_asFunctionalComponent(__VLS_10, new __VLS_10({
+const __VLS_16 = __VLS_asFunctionalComponent(__VLS_15, new __VLS_15({
     ...{ class: "h-8 w-8 text-blue-600 mr-3" },
 }));
-const __VLS_12 = __VLS_11({
+const __VLS_17 = __VLS_16({
     ...{ class: "h-8 w-8 text-blue-600 mr-3" },
-}, ...__VLS_functionalComponentArgsRest(__VLS_11));
+}, ...__VLS_functionalComponentArgsRest(__VLS_16));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
     ...{ class: "text-sm font-medium text-blue-800" },
@@ -352,17 +478,17 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
-const __VLS_15 = {}.CheckCircleIcon;
+const __VLS_20 = {}.CheckCircleIcon;
 /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
 // @ts-ignore
 CheckCircleIcon;
 // @ts-ignore
-const __VLS_16 = __VLS_asFunctionalComponent(__VLS_15, new __VLS_15({
+const __VLS_21 = __VLS_asFunctionalComponent(__VLS_20, new __VLS_20({
     ...{ class: "h-8 w-8 text-green-600 mr-3" },
 }));
-const __VLS_17 = __VLS_16({
+const __VLS_22 = __VLS_21({
     ...{ class: "h-8 w-8 text-green-600 mr-3" },
-}, ...__VLS_functionalComponentArgsRest(__VLS_16));
+}, ...__VLS_functionalComponentArgsRest(__VLS_21));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
     ...{ class: "text-sm font-medium text-green-800" },
@@ -374,42 +500,193 @@ __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
 // @ts-ignore
 [orderStats,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "bg-gray-100 rounded-lg p-6 border-l-4 border-gray-500" },
+    ...{ class: "bg-purple-100 rounded-lg p-6 border-l-4 border-purple-500" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
-const __VLS_20 = {}.HandRaisedIcon;
-/** @type {[typeof __VLS_components.HandRaisedIcon, ]} */ ;
+const __VLS_25 = {}.ChartBarIcon;
+/** @type {[typeof __VLS_components.ChartBarIcon, ]} */ ;
 // @ts-ignore
-HandRaisedIcon;
+ChartBarIcon;
 // @ts-ignore
-const __VLS_21 = __VLS_asFunctionalComponent(__VLS_20, new __VLS_20({
-    ...{ class: "h-8 w-8 text-gray-600 mr-3" },
+const __VLS_26 = __VLS_asFunctionalComponent(__VLS_25, new __VLS_25({
+    ...{ class: "h-8 w-8 text-purple-600 mr-3" },
 }));
-const __VLS_22 = __VLS_21({
-    ...{ class: "h-8 w-8 text-gray-600 mr-3" },
-}, ...__VLS_functionalComponentArgsRest(__VLS_21));
+const __VLS_27 = __VLS_26({
+    ...{ class: "h-8 w-8 text-purple-600 mr-3" },
+}, ...__VLS_functionalComponentArgsRest(__VLS_26));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
-    ...{ class: "text-sm font-medium text-gray-800" },
+    ...{ class: "text-sm font-medium text-purple-800" },
 });
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
-    ...{ class: "text-2xl font-bold text-gray-900" },
+    ...{ class: "text-2xl font-bold text-purple-900" },
 });
-(__VLS_ctx.orderStats.served);
+(__VLS_ctx.avgCompletionTime);
 // @ts-ignore
-[orderStats,];
+[avgCompletionTime,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" },
+    ...{ class: "bg-white rounded-lg shadow p-6 mb-8" },
 });
-for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
-    // @ts-ignore
-    [kitchenOrders,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex items-center justify-between mb-4" },
+});
+__VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
+    ...{ class: "text-xl font-semibold text-gray-900" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex items-center space-x-4" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-sm text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-lg font-bold" },
+    ...{ class: (__VLS_ctx.getEfficiencyColor(__VLS_ctx.efficiencyScore)) },
+});
+// @ts-ignore
+[getEfficiencyColor, efficiencyScore,];
+(__VLS_ctx.efficiencyScore);
+// @ts-ignore
+[efficiencyScore,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-sm text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-lg font-bold" },
+    ...{ class: (__VLS_ctx.getEfficiencyColor(__VLS_ctx.onTimeRate)) },
+});
+// @ts-ignore
+[getEfficiencyColor, onTimeRate,];
+(__VLS_ctx.onTimeRate);
+// @ts-ignore
+[onTimeRate,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-sm text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-lg font-bold text-green-600" },
+});
+(__VLS_ctx.todayCompleted);
+// @ts-ignore
+[todayCompleted,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "grid grid-cols-1 md:grid-cols-3 gap-4" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex justify-between text-sm mb-1" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "font-medium" },
+});
+(__VLS_ctx.preparationSpeed);
+// @ts-ignore
+[preparationSpeed,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "w-full bg-gray-200 rounded-full h-2" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "bg-blue-500 h-2 rounded-full transition-all duration-300" },
+    ...{ style: ({ width: `${__VLS_ctx.preparationSpeed}%` }) },
+});
+// @ts-ignore
+[preparationSpeed,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex justify-between text-sm mb-1" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "font-medium" },
+});
+(__VLS_ctx.qualityScore);
+// @ts-ignore
+[qualityScore,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "w-full bg-gray-200 rounded-full h-2" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "bg-green-500 h-2 rounded-full transition-all duration-300" },
+    ...{ style: ({ width: `${__VLS_ctx.qualityScore}%` }) },
+});
+// @ts-ignore
+[qualityScore,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex justify-between text-sm mb-1" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-gray-600" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "font-medium" },
+});
+(__VLS_ctx.workload);
+// @ts-ignore
+[workload,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "w-full bg-gray-200 rounded-full h-2" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "h-2 rounded-full transition-all duration-300" },
+    ...{ class: (__VLS_ctx.workload > 80 ? 'bg-red-500' : __VLS_ctx.workload > 60 ? 'bg-yellow-500' : 'bg-green-500') },
+    ...{ style: ({ width: `${__VLS_ctx.workload}%` }) },
+});
+// @ts-ignore
+[workload, workload, workload,];
+/** @type {[typeof VirtualOrderGrid, typeof VirtualOrderGrid, ]} */ ;
+// @ts-ignore
+const __VLS_30 = __VLS_asFunctionalComponent(VirtualOrderGrid, new VirtualOrderGrid({
+    ...{ 'onLoadMore': {} },
+    orders: (__VLS_ctx.kitchenOrders),
+    itemHeight: (320),
+    containerHeight: (800),
+    columnsCount: (3),
+    bufferSize: (2),
+    loading: (__VLS_ctx.isLoadingOrders),
+    hasMore: (__VLS_ctx.hasMoreOrders),
+    loadMore: (__VLS_ctx.loadMoreKitchenOrders),
+}));
+const __VLS_31 = __VLS_30({
+    ...{ 'onLoadMore': {} },
+    orders: (__VLS_ctx.kitchenOrders),
+    itemHeight: (320),
+    containerHeight: (800),
+    columnsCount: (3),
+    bufferSize: (2),
+    loading: (__VLS_ctx.isLoadingOrders),
+    hasMore: (__VLS_ctx.hasMoreOrders),
+    loadMore: (__VLS_ctx.loadMoreKitchenOrders),
+}, ...__VLS_functionalComponentArgsRest(__VLS_30));
+let __VLS_33;
+let __VLS_34;
+const __VLS_35 = ({ loadMore: {} },
+    { onLoadMore: (__VLS_ctx.onLoadMoreOrders) });
+const { default: __VLS_36 } = __VLS_32.slots;
+// @ts-ignore
+[kitchenOrders, isLoadingOrders, hasMoreOrders, loadMoreKitchenOrders, onLoadMoreOrders,];
+{
+    const { default: __VLS_37 } = __VLS_32.slots;
+    const [{ order }] = __VLS_getSlotParameters(__VLS_37);
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        key: (order.id),
         ...{ class: (__VLS_ctx.getOrderCardClass(order)) },
-        ...{ class: "rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300" },
+        ...{ class: "rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 h-full" },
     });
     // @ts-ignore
     [getOrderCardClass,];
@@ -425,14 +702,14 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
     });
     // @ts-ignore
     [getStatusIconClass,];
-    const __VLS_25 = ((__VLS_ctx.getStatusIcon(order.status)));
+    const __VLS_38 = ((__VLS_ctx.getStatusIcon(order.status)));
     // @ts-ignore
-    const __VLS_26 = __VLS_asFunctionalComponent(__VLS_25, new __VLS_25({
+    const __VLS_39 = __VLS_asFunctionalComponent(__VLS_38, new __VLS_38({
         ...{ class: "h-6 w-6" },
     }));
-    const __VLS_27 = __VLS_26({
+    const __VLS_40 = __VLS_39({
         ...{ class: "h-6 w-6" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_26));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_39));
     // @ts-ignore
     [getStatusIcon,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
@@ -486,17 +763,17 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
             __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
                 ...{ class: "text-sm text-orange-600 mt-1" },
             });
-            const __VLS_30 = {}.ExclamationTriangleIcon;
+            const __VLS_43 = {}.ExclamationTriangleIcon;
             /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ ;
             // @ts-ignore
             ExclamationTriangleIcon;
             // @ts-ignore
-            const __VLS_31 = __VLS_asFunctionalComponent(__VLS_30, new __VLS_30({
+            const __VLS_44 = __VLS_asFunctionalComponent(__VLS_43, new __VLS_43({
                 ...{ class: "w-4 h-4 inline mr-1" },
             }));
-            const __VLS_32 = __VLS_31({
+            const __VLS_45 = __VLS_44({
                 ...{ class: "w-4 h-4 inline mr-1" },
-            }, ...__VLS_functionalComponentArgsRest(__VLS_31));
+            }, ...__VLS_functionalComponentArgsRest(__VLS_44));
             (item.specialInstructions);
         }
         if (item.customizations && Object.keys(item.customizations).length > 0) {
@@ -591,61 +868,92 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
             ...{ class: (order.priority === 'high' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200') },
             ...{ class: "px-3 py-2 rounded-lg transition-colors" },
         });
-        const __VLS_35 = {}.ExclamationCircleIcon;
+        const __VLS_48 = {}.ExclamationCircleIcon;
         /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ ;
         // @ts-ignore
         ExclamationCircleIcon;
         // @ts-ignore
-        const __VLS_36 = __VLS_asFunctionalComponent(__VLS_35, new __VLS_35({
+        const __VLS_49 = __VLS_asFunctionalComponent(__VLS_48, new __VLS_48({
             ...{ class: "w-5 h-5" },
         }));
-        const __VLS_37 = __VLS_36({
+        const __VLS_50 = __VLS_49({
             ...{ class: "w-5 h-5" },
-        }, ...__VLS_functionalComponentArgsRest(__VLS_36));
+        }, ...__VLS_functionalComponentArgsRest(__VLS_49));
+    }
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "mt-4 pt-4 border-t border-gray-200" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "flex items-center justify-between text-sm mb-2" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "flex items-center" },
+    });
+    const __VLS_53 = {}.ClockIcon;
+    /** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
+    // @ts-ignore
+    ClockIcon;
+    // @ts-ignore
+    const __VLS_54 = __VLS_asFunctionalComponent(__VLS_53, new __VLS_53({
+        ...{ class: "w-4 h-4 text-gray-500 mr-2" },
+    }));
+    const __VLS_55 = __VLS_54({
+        ...{ class: "w-4 h-4 text-gray-500 mr-2" },
+    }, ...__VLS_functionalComponentArgsRest(__VLS_54));
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "text-gray-600" },
+    });
+    (__VLS_ctx.calculateEstimatedTime(order));
+    // @ts-ignore
+    [calculateEstimatedTime,];
+    if (order.status === 'preparing') {
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex items-center" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "w-20 bg-gray-200 rounded-full h-1 mr-2" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "bg-blue-500 h-1 rounded-full transition-all duration-300" },
+            ...{ style: ({ width: `${Math.min(100, (__VLS_ctx.getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt)) : 0) / __VLS_ctx.calculateEstimatedTime(order) * 100)}%` }) },
+        });
+        // @ts-ignore
+        [getTimeElapsed, getTimeElapsed, calculateEstimatedTime,];
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "text-xs text-gray-500" },
+        });
+        (Math.min(100, Math.round((__VLS_ctx.getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt)) : 0) / __VLS_ctx.calculateEstimatedTime(order) * 100)));
+        // @ts-ignore
+        [getTimeElapsed, getTimeElapsed, calculateEstimatedTime,];
     }
     if (order.estimatedReadyTime) {
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "mt-4 pt-4 border-t border-gray-200" },
+            ...{ class: "flex items-center text-xs text-gray-500" },
         });
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "flex items-center text-sm" },
-        });
-        const __VLS_40 = {}.ClockIcon;
-        /** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
-        // @ts-ignore
-        ClockIcon;
-        // @ts-ignore
-        const __VLS_41 = __VLS_asFunctionalComponent(__VLS_40, new __VLS_40({
-            ...{ class: "w-4 h-4 text-gray-500 mr-2" },
-        }));
-        const __VLS_42 = __VLS_41({
-            ...{ class: "w-4 h-4 text-gray-500 mr-2" },
-        }, ...__VLS_functionalComponentArgsRest(__VLS_41));
-        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-            ...{ class: "text-gray-600" },
-        });
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
         (__VLS_ctx.formatTime(order.estimatedReadyTime));
         // @ts-ignore
         [formatTime,];
     }
 }
+var __VLS_32;
 if (__VLS_ctx.kitchenOrders.length === 0) {
     // @ts-ignore
     [kitchenOrders,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "col-span-full text-center py-12" },
+        ...{ class: "text-center py-12" },
     });
-    const __VLS_45 = {}.CheckCircleIcon;
+    const __VLS_58 = {}.CheckCircleIcon;
     /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
     // @ts-ignore
     CheckCircleIcon;
     // @ts-ignore
-    const __VLS_46 = __VLS_asFunctionalComponent(__VLS_45, new __VLS_45({
+    const __VLS_59 = __VLS_asFunctionalComponent(__VLS_58, new __VLS_58({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-4" },
     }));
-    const __VLS_47 = __VLS_46({
+    const __VLS_60 = __VLS_59({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-4" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_46));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_59));
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
         ...{ class: "text-xl font-medium text-gray-900 mb-2" },
     });
@@ -691,6 +999,15 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 /** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded']} */ ;
 /** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
@@ -700,7 +1017,8 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 /** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ ;
@@ -754,34 +1072,109 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 /** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-green-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-100']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-purple-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['h-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['xl:grid-cols-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
@@ -898,13 +1291,34 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 /** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['w-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['h-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['col-span-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-20']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-12']} */ ;
 /** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
@@ -920,20 +1334,34 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
+        VirtualOrderGrid: VirtualOrderGrid,
         ArrowPathIcon: ArrowPathIcon,
         ClockIcon: ClockIcon,
         PlayIcon: PlayIcon,
         CheckCircleIcon: CheckCircleIcon,
-        HandRaisedIcon: HandRaisedIcon,
         ExclamationTriangleIcon: ExclamationTriangleIcon,
         ExclamationCircleIcon: ExclamationCircleIcon,
+        ChartBarIcon: ChartBarIcon,
+        SpeakerWaveIcon: SpeakerWaveIcon,
         currentTime: currentTime,
         isAutoRefresh: isAutoRefresh,
         notificationSound: notificationSound,
+        soundEnabled: soundEnabled,
+        isLoadingOrders: isLoadingOrders,
+        hasMoreOrders: hasMoreOrders,
         pendingOrders: pendingOrders,
         kitchenOrders: kitchenOrders,
         orderStats: orderStats,
+        avgCompletionTime: avgCompletionTime,
+        efficiencyScore: efficiencyScore,
+        onTimeRate: onTimeRate,
+        todayCompleted: todayCompleted,
+        preparationSpeed: preparationSpeed,
+        qualityScore: qualityScore,
+        workload: workload,
         refreshOrders: refreshOrders,
+        loadMoreKitchenOrders: loadMoreKitchenOrders,
+        onLoadMoreOrders: onLoadMoreOrders,
         getOrderCardClass: getOrderCardClass,
         getStatusIcon: getStatusIcon,
         getStatusIconClass: getStatusIconClass,
@@ -946,6 +1374,9 @@ const __VLS_self = (await import('vue')).defineComponent({
         markReady: markReady,
         markServed: markServed,
         togglePriority: togglePriority,
+        getEfficiencyColor: getEfficiencyColor,
+        calculateEstimatedTime: calculateEstimatedTime,
+        toggleSound: toggleSound,
     }),
 });
 export default (await import('vue')).defineComponent({});

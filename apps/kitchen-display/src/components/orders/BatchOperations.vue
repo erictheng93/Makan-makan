@@ -91,7 +91,7 @@
       <div class="flex flex-wrap gap-3">
         <!-- Start Cooking -->
         <button
-          v-if="canBatchStartCooking"
+          v-if="canBatchStartCooking(selectedOrders)"
           @click="confirmBatchStart"
           :disabled="isProcessing"
           class="btn-kitchen-primary flex items-center space-x-2"
@@ -105,7 +105,7 @@
 
         <!-- Mark Ready -->
         <button
-          v-if="canBatchMarkReady"
+          v-if="canBatchMarkReady(selectedOrders)"
           @click="confirmBatchReady"
           :disabled="isProcessing"
           class="btn-kitchen-success flex items-center space-x-2"
@@ -216,9 +216,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onClickOutside } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { onClickOutside } from '@vueuse/core'
 import {
-  CheckSquareIcon,
+  Squares2X2Icon as CheckSquareIcon,
   PlayIcon,
   CheckIcon,
   ExclamationTriangleIcon,
@@ -254,12 +255,15 @@ const toast = useToast()
 const orderManagementStore = useOrderManagementStore()
 const { 
   selectedOrdersCount, 
-  hasSelectedOrders,
+  hasSelectedOrders
+} = storeToRefs(orderManagementStore)
+
+const { 
   getBatchOperationSummary,
   canBatchStartCooking,
   canBatchMarkReady,
   getSelectedOrdersData
-} = storeToRefs(orderManagementStore)
+} = orderManagementStore
 
 const {
   selectAll,
@@ -282,8 +286,8 @@ const urgentCount = computed(() =>
   props.orders.filter(order => order.priority === 'urgent').length
 )
 
-const selectedOrders = computed(() => getSelectedOrdersData.value(props.orders))
-const batchSummary = computed(() => getBatchOperationSummary.value(selectedOrders.value))
+const selectedOrders = computed(() => getSelectedOrdersData(props.orders))
+const batchSummary = computed(() => getBatchOperationSummary(selectedOrders.value))
 
 // Methods
 const selectAllPending = () => {

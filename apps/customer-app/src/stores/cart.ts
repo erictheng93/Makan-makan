@@ -130,7 +130,7 @@ export const useCartStore = defineStore('cart', () => {
     // 計算加購項目價格
     if (customizations.addOns && customizations.addOns.length > 0) {
       for (const addOn of customizations.addOns) {
-        price += addOn.price
+        price += addOn.unitPrice
       }
     }
 

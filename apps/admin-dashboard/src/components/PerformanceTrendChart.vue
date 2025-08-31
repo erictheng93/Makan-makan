@@ -321,7 +321,7 @@ const updateChart = () => {
 
 // 輔助函數
 const getMetricLabel = (metric: string) => {
-  const labels = {
+  const labels: Record<string, string> = {
     completion_rate: '完成率 (%)',
     avg_prep_time: '平均時間 (分鐘)',
     revenue: '營收 (RM)',
@@ -331,7 +331,7 @@ const getMetricLabel = (metric: string) => {
 }
 
 const getMetricColor = (metric: string, alpha = 1) => {
-  const colors = {
+  const colors: Record<string, string> = {
     completion_rate: `rgba(34, 197, 94, ${alpha})`, // green
     avg_prep_time: `rgba(59, 130, 246, ${alpha})`, // blue  
     revenue: `rgba(168, 85, 247, ${alpha})`, // purple
@@ -356,7 +356,7 @@ const formatValue = (value: number, metric: string) => {
 }
 
 const getTrendText = (direction: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     up: '上升',
     down: '下降',
     stable: '穩定'

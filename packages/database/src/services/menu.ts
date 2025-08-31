@@ -76,25 +76,20 @@ export class MenuService extends BaseService {
       await this.updateCategoryItemCounts(restaurantId)
 
       return {
-        restaurant: {
-          id: restaurant.id,
-          name: restaurant.name,
-          type: restaurant.type,
-          address: restaurant.address,
-          phone: restaurant.phone,
-          isAvailable: restaurant.isAvailable
-        },
-        categories: restaurant.categories.map(cat => ({
+        categories: restaurant.categories.map((cat: any) => ({
           id: cat.id,
+          restaurantId: cat.restaurantId,
           name: cat.name,
           description: cat.description,
           sortOrder: cat.sortOrder,
-          isActive: cat.isActive,
+          status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
           imageUrl: cat.imageUrl,
-          itemCount: cat.menuItems.length
+          itemCount: cat.menuItems.length,
+          createdAt: cat.createdAt,
+          updatedAt: cat.updatedAt
         })),
-        menuItems: restaurant.categories.flatMap(cat => 
-          cat.menuItems.map(item => this.mapToMenuItem(item))
+        menuItems: restaurant.categories.flatMap((cat: any) => 
+          cat.menuItems.map((item: any) => this.mapToMenuItem(item))
         )
       }
     } catch (error) {
@@ -167,7 +162,7 @@ export class MenuService extends BaseService {
           and(
             sql`${menuItems.price} >= ${minPrice}`,
             sql`${menuItems.price} <= ${maxPrice}`
-          )
+          )!
         )
       }
 
@@ -197,13 +192,11 @@ export class MenuService extends BaseService {
         conditions.push(sql`(${dietaryConditions.join(' OR ')})`)
       }
 
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-
       // 查詢結果
       const items = await this.db
         .select()
         .from(menuItems)
-        .where(whereClause)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(menuItems.isFeatured), desc(menuItems.orderCount), asc(menuItems.sortOrder))
         .limit(limit)
         .offset(offset)
@@ -212,7 +205,7 @@ export class MenuService extends BaseService {
       const [{ totalCount }] = await this.db
         .select({ totalCount: count() })
         .from(menuItems)
-        .where(whereClause)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
 
       return {
         items: items.map(item => this.mapToMenuItem(item)),
@@ -421,13 +414,7 @@ export class MenuService extends BaseService {
       dietaryInfo: item.dietaryInfo,
       allergens: item.allergens,
       options: item.options,
-      availableHours: item.availableHours,
       orderCount: item.orderCount,
-      rating: item.rating,
-      reviewCount: item.reviewCount,
-      viewCount: item.viewCount,
-      tags: item.tags,
-      keywords: item.keywords,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
     }

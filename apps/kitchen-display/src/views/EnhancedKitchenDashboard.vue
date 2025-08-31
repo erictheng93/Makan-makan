@@ -539,10 +539,8 @@ const handlePriorityUpdate = async (orderId: number, priority: string) => {
 const handleThresholdsUpdate = async (warningThreshold: number, urgentThreshold: number) => {
   try {
     // Update settings store
-    settingsStore.updateSettings({
-      warningThreshold,
-      urgentThreshold
-    })
+    settingsStore.updateSetting('warningThreshold', warningThreshold)
+    settingsStore.updateSetting('urgentThreshold', urgentThreshold)
     
     toast.success('時間閾值設置已更新！')
   } catch (error: any) {

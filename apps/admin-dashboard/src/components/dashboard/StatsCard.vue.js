@@ -1,4 +1,3 @@
-/// <reference types="C:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/admin-dashboard/node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { computed } from 'vue';
 import { ShoppingCart, DollarSign, TrendingUp, TrendingDown, CheckCircle, Users, Clock, Package } from 'lucide-vue-next';
 const props = withDefaults(defineProps(), {

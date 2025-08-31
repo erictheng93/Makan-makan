@@ -448,7 +448,7 @@ const showErrorDetails = (error: ErrorReport) => {
 }
 
 const getSeverityColor = (severity: string): string => {
-  const colors = {
+  const colors: Record<string, string> = {
     low: 'bg-green-400',
     medium: 'bg-yellow-400', 
     high: 'bg-orange-400',
@@ -458,7 +458,7 @@ const getSeverityColor = (severity: string): string => {
 }
 
 const getSeverityBadgeColor = (severity: string): string => {
-  const colors = {
+  const colors: Record<string, string> = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-yellow-100 text-yellow-800',
     high: 'bg-orange-100 text-orange-800', 
