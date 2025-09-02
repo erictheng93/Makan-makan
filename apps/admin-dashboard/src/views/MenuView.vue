@@ -98,14 +98,14 @@
             :quality="80"
             :progressive="true"
           >
-            <template #loading>
+            <!-- <template #loading>
               <div class="w-full h-48 bg-gray-200 rounded-t-lg animate-pulse flex items-center justify-center">
                 <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
               </div>
-            </template>
-            <template #error="{ retry }">
+            </template> -->
+            <!-- <template #error="{ retry }: { retry: () => void }">
               <div class="w-full h-48 bg-gray-100 rounded-t-lg flex flex-col items-center justify-center text-gray-400">
                 <svg class="w-8 h-8 mb-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
@@ -118,7 +118,7 @@
                   重試
                 </button>
               </div>
-            </template>
+            </template> -->
           </LazyImage>
           <div class="absolute top-2 right-2">
             <span
@@ -426,8 +426,8 @@ const categoryFilter = ref('')
 const statusFilter = ref('')
 const showCategoryModal = ref(false)
 const showMenuItemModal = ref(false)
-const editingCategory = ref(null)
-const editingMenuItem = ref(null)
+const editingCategory = ref<any>(null)
+const editingMenuItem = ref<any>(null)
 
 // 模擬數據
 const categories = ref([
@@ -509,13 +509,13 @@ const getCategoryName = (categoryId: number) => {
   return category ? category.name : '未知分類'
 }
 
-const editMenuItem = (item) => {
+const editMenuItem = (item: any) => {
   editingMenuItem.value = item
   menuItemForm.value = { ...item }
   showMenuItemModal.value = true
 }
 
-const deleteMenuItem = async (item) => {
+const deleteMenuItem = async (item: any) => {
   if (confirm(`確定要刪除菜品「${item.name}」嗎？`)) {
     const index = menuItems.value.findIndex(i => i.id === item.id)
     if (index > -1) {
@@ -524,7 +524,7 @@ const deleteMenuItem = async (item) => {
   }
 }
 
-const toggleMenuItemStatus = async (item) => {
+const toggleMenuItemStatus = async (item: any) => {
   const index = menuItems.value.findIndex(i => i.id === item.id)
   if (index > -1) {
     menuItems.value[index].isAvailable = !menuItems.value[index].isAvailable
@@ -561,7 +561,7 @@ const closeMenuItemModal = () => {
 const saveCategory = async () => {
   if (editingCategory.value) {
     // 更新現有分類
-    const index = categories.value.findIndex(c => c.id === editingCategory.value.id)
+    const index = categories.value.findIndex(c => editingCategory.value && c.id === editingCategory.value.id)
     if (index > -1) {
       categories.value[index] = { ...categories.value[index], ...categoryForm.value }
     }
@@ -580,17 +580,18 @@ const saveCategory = async () => {
 const saveMenuItem = async () => {
   if (editingMenuItem.value) {
     // 更新現有菜品
-    const index = menuItems.value.findIndex(i => i.id === editingMenuItem.value.id)
+    const index = menuItems.value.findIndex(i => editingMenuItem.value && i.id === editingMenuItem.value.id)
     if (index > -1) {
-      menuItems.value[index] = { ...menuItems.value[index], ...menuItemForm.value }
+      menuItems.value[index] = { ...menuItems.value[index], ...menuItemForm.value, categoryId: parseInt(menuItemForm.value.categoryId), imageUrl: menuItemForm.value.imageUrl || null } as any
     }
   } else {
     // 新增菜品
     const newMenuItem = {
       id: Math.max(...menuItems.value.map(i => i.id)) + 1,
-      ...menuItemForm.value
+      ...menuItemForm.value,
+      categoryId: parseInt(menuItemForm.value.categoryId)
     }
-    menuItems.value.push(newMenuItem)
+    menuItems.value.push(newMenuItem as any)
   }
   closeMenuItemModal()
 }

@@ -48,11 +48,11 @@
           <!-- Refresh button -->
           <button
             @click="refreshStats"
-            :disabled="statsService.isLoading"
+            :disabled="statsService.isLoading.value"
             class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors disabled:opacity-50"
             title="立即更新"
           >
-            <ArrowPathIcon :class="['w-5 h-5 text-white', { 'animate-spin': statsService.isLoading }]" />
+            <ArrowPathIcon :class="['w-5 h-5 text-white', { 'animate-spin': statsService.isLoading.value }]" />
           </button>
         </div>
       </div>
@@ -480,7 +480,7 @@
       <!-- Export and Actions -->
       <div class="flex items-center justify-between pt-6 border-t border-gray-200">
         <div class="text-sm text-gray-500">
-          最後更新: {{ formatLastUpdate(statsService.lastUpdated) }}
+          最後更新: {{ formatLastUpdate(statsService.lastUpdated.value) }}
         </div>
         <div class="flex items-center space-x-3">
           <button
@@ -543,7 +543,7 @@ const maxTrendValue = computed(() => {
 
 // Methods
 const updateTimeRange = () => {
-  const ranges = {
+  const ranges: Record<string, { start: Date; end: Date; label: string }> = {
     '1h': {
       start: new Date(Date.now() - 60 * 60 * 1000),
       end: new Date(),
@@ -566,7 +566,7 @@ const updateTimeRange = () => {
     }
   }
   
-  const range = ranges[selectedTimeRange.value]
+  const range = ranges[selectedTimeRange.value as keyof typeof ranges]
   if (range) {
     statsService.setTimeRange(range)
     toast.success(`時間範圍已更新為: ${range.label}`)

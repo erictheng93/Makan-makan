@@ -155,11 +155,11 @@ const handleSubmit = async () => {
 }
 
 // Clear errors when user types
-const clearErrors = () => {
-  errors.username = ''
-  errors.password = ''
-  error.value = ''
-}
+// const clearErrors = () => {
+//   errors.username = ''
+//   errors.password = ''
+//   error.value = ''
+// }
 
 // Auto-redirect if already authenticated
 onMounted(() => {

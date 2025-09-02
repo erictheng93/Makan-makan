@@ -351,7 +351,6 @@ import {
   CheckCircleIcon,
   UserGroupIcon,
   ClockIcon,
-  WrenchIcon,
   MapPinIcon,
   DocumentTextIcon,
   TableCellsIcon
@@ -363,8 +362,8 @@ const statusFilter = ref('')
 const capacityFilter = ref('')
 const showTableModal = ref(false)
 const showQRModal = ref(false)
-const editingTable = ref(null)
-const selectedTable = ref(null)
+const editingTable = ref<any>(null)
+const selectedTable = ref<any>(null)
 
 // 模擬桌台數據
 const tables = ref([
@@ -571,7 +570,7 @@ const closeTableModal = () => {
 const saveTable = async () => {
   if (editingTable.value) {
     // 更新現有桌台
-    const index = tables.value.findIndex(t => t.id === editingTable.value.id)
+    const index = tables.value.findIndex(t => t.id === editingTable.value!.id)
     if (index > -1) {
       tables.value[index] = { ...tables.value[index], ...tableForm.value }
     }

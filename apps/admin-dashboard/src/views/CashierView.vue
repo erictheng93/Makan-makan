@@ -532,14 +532,40 @@ import {
   BuildingLibraryIcon
 } from '@heroicons/vue/24/solid'
 
+// Type definitions
+interface OrderItem {
+  id: number
+  menuItemName: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+interface CashierOrder {
+  id: number
+  orderNumber: string
+  tableNumber: string
+  customerName: string
+  status: string
+  paymentStatus: string
+  createdAt: string
+  subtotal: number
+  serviceCharge: number
+  taxAmount: number
+  discountAmount: number
+  totalAmount: number
+  paymentMethod?: string
+  items: OrderItem[]
+}
+
 // 響應式數據
 const currentTime = ref('')
 const searchQuery = ref('')
-const selectedOrder = ref(null)
+const selectedOrder = ref<CashierOrder | null>(null)
 const selectedPaymentMethod = ref('cash')
 const cashReceived = ref(0)
 const showPaymentSuccess = ref(false)
-const completedOrder = ref(null)
+const completedOrder = ref<CashierOrder | null>(null)
 
 // 新增的狀態
 const showShiftReport = ref(false)
@@ -547,7 +573,7 @@ const showRefundDialog = ref(false)
 const actualCashAmount = ref(0)
 const todayRevenue = ref(1250.75)
 
-let timeInterval = null
+let timeInterval: NodeJS.Timeout | null = null
 
 // 班次資訊
 const currentShift = ref({
@@ -689,7 +715,7 @@ const refreshOrders = async () => {
   console.log('Refreshing cashier orders...')
 }
 
-const selectOrder = (order) => {
+const selectOrder = (order: CashierOrder) => {
   selectedOrder.value = order
   cashReceived.value = 0
   selectedPaymentMethod.value = 'cash'
@@ -711,7 +737,7 @@ const formatDateTime = (dateTime: string) => {
 }
 
 const getOrderStatusClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'ready': 'bg-green-100 text-green-800',
     'served': 'bg-blue-100 text-blue-800',
     'completed': 'bg-gray-100 text-gray-800'
@@ -720,7 +746,7 @@ const getOrderStatusClass = (status: string) => {
 }
 
 const getOrderStatusText = (status: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'ready': '待取餐',
     'served': '已送達',
     'completed': '已完成'
@@ -733,13 +759,13 @@ const processPayment = async () => {
 
   try {
     // 模擬支付處理
-    const orderIndex = orders.value.findIndex(o => o.id === selectedOrder.value.id)
+    const orderIndex = orders.value.findIndex(o => o.id === selectedOrder.value!.id)
     if (orderIndex > -1) {
       orders.value[orderIndex].paymentStatus = 'paid'
-      orders.value[orderIndex].status = 'completed'
-      orders.value[orderIndex].paymentMethod = selectedPaymentMethod.value
+      orders.value[orderIndex].status = 'completed' as string
+      (orders.value[orderIndex] as CashierOrder).paymentMethod = selectedPaymentMethod.value
       
-      completedOrder.value = { ...selectedOrder.value }
+      completedOrder.value = { ...selectedOrder.value! }
       showPaymentSuccess.value = true
       selectedOrder.value = null
     }
@@ -833,7 +859,7 @@ const processRefund = async () => {
 }
 
 const getRefundReasonText = (reason: string) => {
-  const reasons = {
+  const reasons: Record<string, string> = {
     quality_issue: '菜品品質問題',
     wrong_order: '上錯菜',
     customer_change: '客戶改變主意',

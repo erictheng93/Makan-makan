@@ -484,6 +484,9 @@ importers:
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      hono:
+        specifier: ^4.9.5
+        version: 4.9.5
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20231218.0
@@ -3486,6 +3489,10 @@ packages:
 
   hono@4.9.4:
     resolution: {integrity: sha512-61hl6MF6ojTl/8QSRu5ran6GXt+6zsngIUN95KzF5v5UjiX/xnrLR358BNRawwIRO49JwUqJqQe3Rb2v559R8Q==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.9.5:
+    resolution: {integrity: sha512-aLAVl5/67ifNnoFVxnhR89dpmSLsgwBprw/PT671ASwUpJqmd7Ne8KPTQo37DbRZfgpHaHeZ4bPVUvbOkeedMw==}
     engines: {node: '>=16.9.0'}
 
   howler@2.2.4:
@@ -7993,6 +8000,8 @@ snapshots:
   hono@3.12.12: {}
 
   hono@4.9.4: {}
+
+  hono@4.9.5: {}
 
   howler@2.2.4: {}
 

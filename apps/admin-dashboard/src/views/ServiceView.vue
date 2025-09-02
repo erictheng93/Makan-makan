@@ -454,6 +454,28 @@ import {
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 
+// Type definitions
+interface CustomerInfo {
+  name: string
+  phone: string
+}
+
+interface ServiceOrder {
+  id: number
+  orderNumber: string
+  tableNumber: string
+  orderType: string
+  status: string
+  priority: string
+  readyAt: string
+  deliveryStartTime?: string | null
+  customerInfo: CustomerInfo
+  deliveryNotes?: string
+  assignedTo?: string
+  deliveredAt?: string
+  items: any[]
+}
+
 // 響應式數據
 const currentTime = ref('')
 const selectedTable = ref('')
@@ -465,19 +487,23 @@ const avgDeliveryTime = ref(8)
 // 模態框狀態
 const showContactDialog = ref(false)
 const showIssueDialog = ref(false)
-const selectedOrderForContact = ref(null)
+const selectedOrderForContact = ref<ServiceOrder | null>(null)
 
 // 問題回報數據
-const issueData = ref({
+const issueData = ref<{
+  orderId: number | null
+  type: string
+  description: string
+}>({
   orderId: null,
   type: '',
   description: ''
 })
 
-let timeInterval = null
+let timeInterval: NodeJS.Timeout | null = null
 
 // 模擬訂單數據
-const orders = ref([
+const orders = ref<ServiceOrder[]>([
   {
     id: 1,
     orderNumber: 'ORD-001',
@@ -625,7 +651,7 @@ const refreshOrders = async () => {
   // 實際應用中會調用API獲取最新訂單
 }
 
-const startDelivery = async (order) => {
+const startDelivery = async (order: ServiceOrder) => {
   try {
     const index = orders.value.findIndex(o => o.id === order.id)
     if (index > -1) {
@@ -638,7 +664,7 @@ const startDelivery = async (order) => {
   }
 }
 
-const completeDelivery = async (order) => {
+const completeDelivery = async (order: ServiceOrder) => {
   try {
     const index = orders.value.findIndex(o => o.id === order.id)
     if (index > -1) {
@@ -649,7 +675,9 @@ const completeDelivery = async (order) => {
       todayDelivered.value++
       
       // 添加到今日記錄
-      const duration = Math.round((new Date().getTime() - new Date(order.deliveryStartTime).getTime()) / (1000 * 60))
+      const duration = order.deliveryStartTime 
+        ? Math.round((new Date().getTime() - new Date(order.deliveryStartTime).getTime()) / (1000 * 60))
+        : 0
       todayDeliveryRecords.value.unshift({
         id: Date.now(),
         orderNumber: order.orderNumber,
@@ -662,12 +690,12 @@ const completeDelivery = async (order) => {
   }
 }
 
-const contactCustomer = (order) => {
+const contactCustomer = (order: ServiceOrder) => {
   selectedOrderForContact.value = order
   showContactDialog.value = true
 }
 
-const reportIssue = (order) => {
+const reportIssue = (order: ServiceOrder) => {
   issueData.value.orderId = order.id
   showIssueDialog.value = true
 }
@@ -709,7 +737,7 @@ const submitIssue = () => {
 
 // 輔助方法
 const getStatusIcon = (status: string) => {
-  const icons = {
+  const icons: Record<string, any> = {
     'ready': TruckIcon,
     'delivering': MapIcon,
     'delivered': CheckCircleIcon
@@ -718,7 +746,7 @@ const getStatusIcon = (status: string) => {
 }
 
 const getStatusIconClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'ready': 'bg-orange-100 text-orange-600',
     'delivering': 'bg-blue-100 text-blue-600',
     'delivered': 'bg-green-100 text-green-600'
@@ -747,14 +775,16 @@ const getTimeElapsed = (dateTime: string) => {
   return `${hours} 小時前`
 }
 
-const getDeliveryDuration = (startTime: string) => {
+const getDeliveryDuration = (startTime: string | null | undefined) => {
+  if (!startTime) return '-'
   const now = new Date()
   const start = new Date(startTime)
   const diffInMinutes = Math.floor((now.getTime() - start.getTime()) / (1000 * 60))
   return `${diffInMinutes} 分鐘`
 }
 
-const formatTime = (dateTime: string | Date) => {
+const formatTime = (dateTime: string | Date | null | undefined) => {
+  if (!dateTime) return '-'
   const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime
   return date.toLocaleTimeString('zh-TW', {
     hour: '2-digit',
@@ -763,7 +793,7 @@ const formatTime = (dateTime: string | Date) => {
 }
 
 const getIssueTypeText = (type: string) => {
-  const types = {
+  const types: Record<string, string> = {
     'wrong_order': '訂單錯誤',
     'missing_items': '缺少餐點',
     'quality_issue': '餐點品質問題',

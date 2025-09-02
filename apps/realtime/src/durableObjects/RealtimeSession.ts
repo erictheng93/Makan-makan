@@ -182,7 +182,7 @@ export class RealtimeSession implements DurableObject {
       // Broadcast to all connections in this room
       let sentCount = 0
       for (const [socket, connectionInfo] of this.connections) {
-        if (socket.readyState === WebSocket.READY_STATE_OPEN) {
+        if (socket.readyState === WebSocket.OPEN) {
           this.sendMessage(socket, message)
           sentCount++
         }
@@ -221,7 +221,7 @@ export class RealtimeSession implements DurableObject {
   }
 
   private sendMessage(socket: WebSocket, message: WebSocketMessage): void {
-    if (socket.readyState === WebSocket.READY_STATE_OPEN) {
+    if (socket.readyState === WebSocket.OPEN) {
       const payload = {
         ...message,
         timestamp: message.timestamp || new Date().toISOString()
@@ -232,7 +232,7 @@ export class RealtimeSession implements DurableObject {
 
   private broadcastToRoom(targetType: string, message: WebSocketMessage): void {
     for (const [socket, connectionInfo] of this.connections) {
-      if (connectionInfo.type === targetType && socket.readyState === WebSocket.READY_STATE_OPEN) {
+      if (connectionInfo.type === targetType && socket.readyState === WebSocket.OPEN) {
         this.sendMessage(socket, message)
       }
     }
@@ -247,7 +247,7 @@ export class RealtimeSession implements DurableObject {
 
     // Send to all relevant connections
     for (const [socket, connectionInfo] of this.connections) {
-      if (socket.readyState === WebSocket.READY_STATE_OPEN) {
+      if (socket.readyState === WebSocket.OPEN) {
         // Customize message based on connection type
         let customizedMessage = { ...message }
         

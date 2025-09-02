@@ -228,9 +228,9 @@ import {
   UsersIcon,
   ChartBarIcon,
   TrendingUpIcon,
-  TrendingDownIcon,
+  // TrendingDownIcon,
   MinusIcon,
-  PlusIcon,
+  // PlusIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
   BellIcon,
@@ -354,15 +354,7 @@ const getStatusText = (status: string) => {
   return statusMap[status as keyof typeof statusMap] || status
 }
 
-const handleQuickAction = (action: string) => {
-  console.log('Quick action:', action)
-  // 處理快速操作
-}
-
-const handleEmergencyAlert = (alertId: number, action: string) => {
-  console.log('Emergency alert action:', alertId, action)
-  // 處理緊急警報
-}
+// Duplicate function declarations removed - see implementations below
 
 const authStore = useAuthStore()
 const isLoading = ref(true)

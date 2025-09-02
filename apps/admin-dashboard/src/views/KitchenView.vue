@@ -141,22 +141,13 @@
     </div>
 
     <!-- 訂單卡片區域 -->
-    <VirtualOrderGrid
-      :orders="kitchenOrders"
-      :item-height="320"
-      :container-height="800"
-      :columns-count="3"
-      :buffer-size="2"
-      :loading="isLoadingOrders"
-      :has-more="hasMoreOrders"
-      :load-more="loadMoreKitchenOrders"
-      @load-more="onLoadMoreOrders"
-    >
-      <template #default="{ order }">
-        <div
-          :class="getOrderCardClass(order)"
-          class="rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 h-full"
-        >
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div
+        v-for="order in kitchenOrders"
+        :key="order.id"
+        :class="getOrderCardClass(order)"
+        class="rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 h-full"
+      >
         <!-- 訂單標題 -->
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center">
@@ -271,8 +262,8 @@
           </div>
         </div>
         </div>
-      </template>
-    </VirtualOrderGrid>
+      </div>
+    </div>
 
     <!-- 空狀態 -->
     <div v-if="kitchenOrders.length === 0" class="text-center py-12">
@@ -290,33 +281,30 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useOrderStore } from '@/stores/order'
-import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue'
+// import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue'
 import {
   ArrowPathIcon,
   ClockIcon,
   PlayIcon,
   CheckCircleIcon,
-  HandRaisedIcon,
   ExclamationTriangleIcon,
   ExclamationCircleIcon,
   ChartBarIcon,
   SpeakerWaveIcon
 } from '@heroicons/vue/24/outline'
 
-const orderStore = useOrderStore()
 
 // 響應式數據
 const currentTime = ref('')
 const isAutoRefresh = ref(true)
-const notificationSound = ref(null)
+const notificationSound = ref<HTMLAudioElement | null>(null)
 const soundEnabled = ref(true)
 const isLoadingOrders = ref(false)
 const hasMoreOrders = ref(false)
 const currentOrderPage = ref(1)
 const orderPageSize = ref(30)
-let timeInterval = null
-let refreshInterval = null
+let timeInterval: NodeJS.Timeout | null = null
+let refreshInterval: NodeJS.Timeout | null = null
 
 // 廚房績效數據
 const kitchenStats = ref({
@@ -452,6 +440,7 @@ const refreshOrders = async () => {
   }
 }
 
+/*
 const loadMoreKitchenOrders = async () => {
   if (isLoadingOrders.value || !hasMoreOrders.value) return
   
@@ -488,14 +477,17 @@ const loadMoreKitchenOrders = async () => {
     isLoadingOrders.value = false
   }
 }
+*/
 
+/*
 const onLoadMoreOrders = () => {
   console.log('Kitchen orders load more event triggered')
 }
+*/
 
-const getOrderCardClass = (order) => {
+const getOrderCardClass = (order: any) => {
   const baseClass = 'bg-white'
-  const statusClasses = {
+  const statusClasses: Record<string, string> = {
     'pending': 'border-yellow-400',
     'confirmed': 'border-blue-400',
     'preparing': 'border-orange-400',
@@ -506,7 +498,7 @@ const getOrderCardClass = (order) => {
 }
 
 const getStatusIcon = (status: string) => {
-  const icons = {
+  const icons: Record<string, any> = {
     'pending': ClockIcon,
     'confirmed': PlayIcon,
     'preparing': PlayIcon,
@@ -516,7 +508,7 @@ const getStatusIcon = (status: string) => {
 }
 
 const getStatusIconClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'pending': 'bg-yellow-100 text-yellow-600',
     'confirmed': 'bg-blue-100 text-blue-600',
     'preparing': 'bg-orange-100 text-orange-600',
@@ -553,7 +545,7 @@ const formatTime = (dateTime: string) => {
   })
 }
 
-const confirmOrder = async (order) => {
+const confirmOrder = async (order: any) => {
   const index = orders.value.findIndex(o => o.id === order.id)
   if (index > -1) {
     orders.value[index].status = 'confirmed'
@@ -561,7 +553,7 @@ const confirmOrder = async (order) => {
   }
 }
 
-const startCooking = async (order) => {
+const startCooking = async (order: any) => {
   const index = orders.value.findIndex(o => o.id === order.id)
   if (index > -1) {
     orders.value[index].status = 'preparing'
@@ -570,7 +562,7 @@ const startCooking = async (order) => {
   }
 }
 
-const markReady = async (order) => {
+const markReady = async (order: any) => {
   const index = orders.value.findIndex(o => o.id === order.id)
   if (index > -1) {
     orders.value[index].status = 'ready'
@@ -578,14 +570,14 @@ const markReady = async (order) => {
   }
 }
 
-const markServed = async (order) => {
+const markServed = async (order: any) => {
   const index = orders.value.findIndex(o => o.id === order.id)
   if (index > -1) {
     orders.value[index].status = 'served'
   }
 }
 
-const togglePriority = (order) => {
+const togglePriority = (order: any) => {
   const index = orders.value.findIndex(o => o.id === order.id)
   if (index > -1) {
     orders.value[index].priority = orders.value[index].priority === 'high' ? 'normal' : 'high'
@@ -609,9 +601,9 @@ const getEfficiencyColor = (score: number) => {
 }
 
 // 計算預計完成時間（基於歷史數據和當前負載）
-const calculateEstimatedTime = (order) => {
+const calculateEstimatedTime = (order: any) => {
   const baseTime = 15 // 基礎時間15分鐘
-  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
+  const itemCount = order.items.reduce((sum: number, item: any) => sum + item.quantity, 0)
   const complexityFactor = itemCount * 2 // 每個菜品增加2分鐘
   const loadFactor = Math.max(0, (workload.value - 50) * 0.2) // 高負載時增加時間
   
@@ -622,7 +614,7 @@ const calculateEstimatedTime = (order) => {
 const updateKitchenStats = () => {
   // 模擬統計數據更新
   const completedToday = orders.value.filter(o => o.status === 'served').length
-  const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready
+  // const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready
   
   kitchenStats.value = {
     ...kitchenStats.value,

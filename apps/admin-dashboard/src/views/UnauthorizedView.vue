@@ -44,9 +44,9 @@
               <span>角色:</span>
               <span class="font-medium">{{ getRoleText(currentUser.role) }}</span>
             </div>
-            <div v-if="currentUser.restaurantName" class="flex justify-between">
+            <div v-if="(currentUser as any).restaurantName" class="flex justify-between">
               <span>餐廳:</span>
-              <span class="font-medium">{{ currentUser.restaurantName }}</span>
+              <span class="font-medium">{{ (currentUser as any).restaurantName }}</span>
             </div>
           </div>
         </div>

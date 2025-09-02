@@ -370,7 +370,7 @@ const handleConfirm = () => {
   }
 
   // 客製化選項
-  const options: Array<{id: string; name: string; priceAdjustment?: number}> = []
+  const options: Array<{id: string; optionName: string; choiceId: string; choiceName: string; priceAdjustment?: number}> = []
   
   if (props.item.options?.customizations) {
     for (const option of props.item.options.customizations) {
@@ -381,7 +381,9 @@ const handleConfirm = () => {
         if (choice) {
           options.push({
             id: choice.id,
-            name: choice.name,
+            optionName: option.name,
+            choiceId: choice.id,
+            choiceName: choice.name,
             priceAdjustment: choice.priceAdjustment
           })
         }
@@ -391,7 +393,9 @@ const handleConfirm = () => {
           if (choice) {
             options.push({
               id: choice.id,
-              name: choice.name,
+              optionName: option.name,
+              choiceId: choice.id,
+              choiceName: choice.name,
               priceAdjustment: choice.priceAdjustment
             })
           }

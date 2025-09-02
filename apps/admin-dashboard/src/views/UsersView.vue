@@ -250,7 +250,7 @@
                     v-model="userForm.username"
                     type="text"
                     required
-                    :disabled="editingUser"
+                    :disabled="!!editingUser"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                   />
                 </div>
@@ -531,7 +531,14 @@ const formatDate = (dateTime: string) => {
 
 const editUser = (user: User) => {
   editingUser.value = user
-  userForm.value = { ...user }
+  userForm.value = {
+    username: user.username,
+    password: '', // Don't populate existing password
+    fullName: (user as any).fullName || '',
+    email: user.email,
+    role: user.role,
+    status: (user as any).status || 'active'
+  }
   showUserModal.value = true
 }
 

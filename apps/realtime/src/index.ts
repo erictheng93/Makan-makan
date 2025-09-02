@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { cors } from 'hono/cors'
 import type { Env } from './types/env'
 
@@ -16,7 +16,7 @@ app.use('*', cors({
 }))
 
 // Health check endpoint
-app.get('/health', (c) => {
+app.get('/health', (c: Context<{ Bindings: Env }>) => {
   return c.json({
     status: 'healthy',
     service: 'makanmakan-realtime',
@@ -27,7 +27,7 @@ app.get('/health', (c) => {
 })
 
 // WebSocket connection endpoint for customers
-app.get('/customer/:tableId', async (c) => {
+app.get('/customer/:tableId', async (c: Context<{ Bindings: Env }>) => {
   const tableId = c.req.param('tableId')
   
   if (!tableId) {
@@ -43,7 +43,7 @@ app.get('/customer/:tableId', async (c) => {
 })
 
 // WebSocket connection endpoint for admin dashboard
-app.get('/admin/:restaurantId', async (c) => {
+app.get('/admin/:restaurantId', async (c: Context<{ Bindings: Env }>) => {
   const restaurantId = c.req.param('restaurantId')
   
   if (!restaurantId) {
@@ -58,7 +58,7 @@ app.get('/admin/:restaurantId', async (c) => {
 })
 
 // WebSocket connection endpoint for kitchen display
-app.get('/kitchen/:restaurantId', async (c) => {
+app.get('/kitchen/:restaurantId', async (c: Context<{ Bindings: Env }>) => {
   const restaurantId = c.req.param('restaurantId')
   
   if (!restaurantId) {
@@ -73,7 +73,7 @@ app.get('/kitchen/:restaurantId', async (c) => {
 })
 
 // Broadcast message to specific room (used by API server)
-app.post('/broadcast/:roomType/:roomId', async (c) => {
+app.post('/broadcast/:roomType/:roomId', async (c: Context<{ Bindings: Env }>) => {
   const roomType = c.req.param('roomType') // customer, admin, kitchen
   const roomId = c.req.param('roomId') // tableId or restaurantId
   
@@ -91,7 +91,8 @@ app.post('/broadcast/:roomType/:roomId', async (c) => {
       body: JSON.stringify(body)
     }))
 
-    return c.json(await response.json())
+    const data = await response.json() as Record<string, unknown>
+    return c.json(data)
   } catch (error) {
     console.error('Broadcast error:', error)
     return c.json({ error: 'Failed to broadcast message' }, 500)
@@ -99,7 +100,7 @@ app.post('/broadcast/:roomType/:roomId', async (c) => {
 })
 
 // Get connection statistics
-app.get('/stats/:roomType/:roomId', async (c) => {
+app.get('/stats/:roomType/:roomId', async (c: Context<{ Bindings: Env }>) => {
   const roomType = c.req.param('roomType')
   const roomId = c.req.param('roomId')
   
@@ -111,7 +112,8 @@ app.get('/stats/:roomType/:roomId', async (c) => {
       method: 'GET'
     }))
 
-    return c.json(await response.json())
+    const data = await response.json() as Record<string, unknown>
+    return c.json(data)
   } catch (error) {
     console.error('Stats error:', error)
     return c.json({ error: 'Failed to get statistics' }, 500)
@@ -119,7 +121,7 @@ app.get('/stats/:roomType/:roomId', async (c) => {
 })
 
 // 404 handler
-app.notFound((c) => {
+app.notFound((c: Context<{ Bindings: Env }>) => {
   return c.json({
     error: 'Realtime endpoint not found',
     path: c.req.path,
@@ -135,7 +137,7 @@ app.notFound((c) => {
 })
 
 // Error handler
-app.onError((error, c) => {
+app.onError((error: Error, c: Context<{ Bindings: Env }>) => {
   console.error('Realtime service error:', error)
   return c.json({
     error: 'Internal server error',

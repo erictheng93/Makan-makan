@@ -310,7 +310,7 @@ const canCancelOrder = computed(() => {
 
 const estimatedTime = computed(() => {
   if (!order.value || order.value.status >= 3) return null
-  return order.value.estimatedTime || null
+  return order.value.estimatedPrepTime || null
 })
 
 const orderTimeline = computed(() => {
@@ -342,7 +342,7 @@ const orderTimeline = computed(() => {
       status: 3,
       title: '準備完成',
       description: '餐點已製作完成',
-      time: order.value.preparedAt,
+      time: order.value.readyAt,
       completed: order.value.status >= 3
     },
     {

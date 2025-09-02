@@ -711,7 +711,10 @@ class SystemHealthService {
 
   private testPerformanceAPI(): boolean {
     try {
-      return !!(performance && performance.now && performance.mark && typeof performance.mark === 'function')
+      // Test if performance.mark can be called without error
+      performance.mark('test-mark')
+      performance.clearMarks('test-mark')
+      return !!(performance && performance.now)
     } catch {
       return false
     }

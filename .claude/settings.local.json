@@ -19,7 +19,8 @@
       "Bash(for file in menu.ts restaurants.ts system.ts)",
       "Bash(do echo \"=== $file ===\")",
       "Bash(done)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": [],

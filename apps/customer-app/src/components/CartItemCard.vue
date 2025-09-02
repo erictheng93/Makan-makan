@@ -150,7 +150,7 @@ const customizationText = computed(() => {
 
   // 客製化選項 - options is now an array of objects
   if (customizations.options && customizations.options.length > 0) {
-    const optionNames = customizations.options.map(option => option.name)
+    const optionNames = customizations.options.map(option => option.choiceName)
     parts.push(...optionNames)
   }
 

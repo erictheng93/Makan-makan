@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import type { KitchenOrder } from '@/types'
+import type { KitchenOrder } from '@/types/index'
 
 interface Props {
   orders: KitchenOrder[]

@@ -98,7 +98,7 @@ const customizationText = computed(() => {
 
   // 客製化選項
   if (customizations.options && customizations.options.length > 0) {
-    const optionNames = customizations.options.map(opt => opt.name)
+    const optionNames = customizations.options.map(opt => opt.choiceName)
     parts.push(...optionNames)
   }
 

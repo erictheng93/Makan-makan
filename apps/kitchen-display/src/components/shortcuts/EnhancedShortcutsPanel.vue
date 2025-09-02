@@ -46,19 +46,19 @@
       <!-- Quick Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.enabledShortcuts?.length || 0 }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.enabledShortcuts.value?.length || 0 }}</div>
           <div class="text-sm text-gray-500">已啟用</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.stats?.totalExecutions || 0 }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ shortcuts.stats.value?.totalExecutions || 0 }}</div>
           <div class="text-sm text-gray-500">總使用次數</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats?.successRate || 0) }}%</div>
+          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats.value?.successRate || 0) }}%</div>
           <div class="text-sm text-gray-500">成功率</div>
         </div>
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats?.averageExecutionTime || 0) }}ms</div>
+          <div class="text-2xl font-bold text-gray-900">{{ Math.round(shortcuts.stats.value?.averageExecutionTime || 0) }}ms</div>
           <div class="text-sm text-gray-500">平均執行時間</div>
         </div>
       </div>
@@ -102,7 +102,7 @@
         <!-- Shortcuts List -->
         <div class="mt-4 space-y-3">
           <div
-            v-for="shortcut in shortcuts.shortcutsByCategory[activeCategory]"
+            v-for="shortcut in shortcuts.shortcutsByCategory.value[activeCategory]"
             :key="shortcut.id"
             class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
           >
@@ -183,11 +183,11 @@
       </div>
 
       <!-- Most Used Shortcuts -->
-      <div v-if="shortcuts.stats.mostUsed.length > 0">
+      <div v-if="shortcuts.stats.value.mostUsed?.length > 0">
         <h4 class="text-sm font-medium text-gray-700 mb-3">最常使用的快捷鍵</h4>
         <div class="space-y-2">
           <div
-            v-for="usage in shortcuts.stats.mostUsed.slice(0, 5)"
+            v-for="usage in shortcuts.stats.value.mostUsed?.slice(0, 5) || []"
             :key="usage.shortcutId"
             class="flex items-center justify-between text-sm"
           >
@@ -197,7 +197,7 @@
               <div class="w-16 bg-gray-200 rounded-full h-1">
                 <div 
                   class="bg-purple-500 h-1 rounded-full"
-                  :style="{ width: `${(usage.count / Math.max(...shortcuts.stats.mostUsed.map(u => u.count))) * 100}%` }"
+                  :style="{ width: `${(usage.count / Math.max(...(shortcuts.stats.value.mostUsed?.map((u: any) => u.count) || [1]))) * 100}%` }"
                 ></div>
               </div>
             </div>
@@ -206,11 +206,11 @@
       </div>
 
       <!-- Recent Executions -->
-      <div v-if="shortcuts.stats.recentExecutions.length > 0">
+      <div v-if="shortcuts.stats.value.recentExecutions?.length > 0">
         <h4 class="text-sm font-medium text-gray-700 mb-3">最近執行記錄</h4>
         <div class="space-y-2 max-h-32 overflow-y-auto">
           <div
-            v-for="execution in shortcuts.stats.recentExecutions"
+            v-for="execution in shortcuts.stats.value.recentExecutions || []"
             :key="execution.timestamp"
             class="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded p-2"
           >
@@ -273,18 +273,18 @@
 
     <!-- Visual Feedback Overlay -->
     <div
-      v-if="shortcuts.visualFeedback.show"
+      v-if="shortcuts.visualFeedback.value.show"
       :class="[
         'fixed z-50 pointer-events-none transform transition-all duration-500',
         getVisualFeedbackClass()
       ]"
       :style="{
-        left: `${shortcuts.visualFeedback.position.x}px`,
-        top: `${shortcuts.visualFeedback.position.y}px`
+        left: `${shortcuts.visualFeedback.value.position.x}px`,
+        top: `${shortcuts.visualFeedback.value.position.y}px`
       }"
     >
       <div class="bg-white rounded-lg shadow-lg px-3 py-2 text-sm font-medium">
-        {{ shortcuts.visualFeedback.message }}
+        {{ shortcuts.visualFeedback.value.message }}
       </div>
     </div>
   </div>
@@ -316,7 +316,7 @@ const toggleShortcuts = () => {
 }
 
 const getCategoryName = (category: string): string => {
-  const names = {
+  const names: Record<string, string> = {
     orders: '訂單操作',
     navigation: '導航功能',
     filters: '篩選功能',
@@ -327,7 +327,7 @@ const getCategoryName = (category: string): string => {
 }
 
 const getColorClass = (color?: string): string => {
-  const colors = {
+  const colors: Record<string, string> = {
     red: 'bg-red-500',
     green: 'bg-green-500',
     blue: 'bg-blue-500',
@@ -336,7 +336,7 @@ const getColorClass = (color?: string): string => {
     orange: 'bg-orange-500',
     gray: 'bg-gray-500'
   }
-  return colors[color] || 'bg-gray-500'
+  return colors[color || 'gray'] || 'bg-gray-500'
 }
 
 const formatKey = (key: string): string => {

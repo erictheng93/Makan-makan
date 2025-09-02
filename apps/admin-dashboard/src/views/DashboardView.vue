@@ -71,9 +71,9 @@
           </select>
         </div>
         <RevenueChart 
-          :data="revenueChart" 
+          :data="revenueChart as any" 
           :loading="isLoading"
-          :period="revenueChartPeriod"
+          :period="revenueChartPeriod as 'daily' | 'weekly' | 'monthly'"
         />
       </div>
 
@@ -92,9 +92,9 @@
           </select>
         </div>
         <OrdersChart 
-          :data="ordersChart" 
+          :data="ordersChart as any" 
           :loading="isLoading"
-          :period="ordersChartPeriod"
+          :period="ordersChartPeriod as 'daily' | 'weekly' | 'monthly'"
         />
       </div>
     </div>
@@ -106,7 +106,7 @@
         <div class="card p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門菜品</h3>
           <TopMenuItems 
-            :items="topMenuItems" 
+            :items="topMenuItems as any" 
             :loading="isLoading"
           />
         </div>
@@ -172,6 +172,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useOrderStore } from '@/stores/order'
+import { OrderStatus } from '@/types'
 import { useDashboardPolling } from '@/composables/usePolling'
 import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
@@ -232,18 +233,16 @@ const formatPercentage = (value: number) => {
 const refreshData = async () => {
   await Promise.all([
     dashboardStore.fetchDashboardStats(),
-    orderStore.fetchOrders({ status: ['pending', 'confirmed', 'preparing', 'ready'] })
+    orderStore.fetchOrders({ status: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY] })
   ])
 }
 
 const updateRevenueChart = async () => {
-  const data = await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value as any)
-  // Update chart data
+  await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value as 'daily' | 'weekly' | 'monthly')
 }
 
 const updateOrdersChart = async () => {
-  const data = await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value as any)
-  // Update chart data
+  await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value as 'daily' | 'weekly' | 'monthly')
 }
 
 onMounted(async () => {
