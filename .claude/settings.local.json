@@ -20,7 +20,11 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(done)",
       "Bash(npm ls:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(where pnpm)",
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(echo $PATH)"
     ],
     "deny": [],
     "ask": [],
