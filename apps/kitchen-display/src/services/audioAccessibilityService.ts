@@ -1,5 +1,5 @@
 // Audio Accessibility Service - Comprehensive accessibility features for kitchen display audio
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { enhancedAudioService } from './enhancedAudioService'
 import type { SoundType } from './enhancedAudioService'
 
@@ -551,7 +551,7 @@ class AudioAccessibilityService {
     return 'notification'
   }
 
-  private getConfirmationMessage(command: string): string {
+  private getConfirmationMessage(_command: string): string {
     return this.settings.languagePreference.startsWith('zh') 
       ? '指令已執行' 
       : 'Command executed'

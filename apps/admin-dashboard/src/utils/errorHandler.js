@@ -1,6 +1,6 @@
 import { ElMessage, ElNotification } from 'element-plus';
 // 錯誤類型定義
-export var ErrorType;
+export let ErrorType;
 (function (ErrorType) {
     ErrorType["NETWORK"] = "network";
     ErrorType["API"] = "api";
@@ -9,7 +9,7 @@ export var ErrorType;
     ErrorType["PERMISSION"] = "permission";
     ErrorType["UNKNOWN"] = "unknown";
 })(ErrorType || (ErrorType = {}));
-export var ErrorSeverity;
+export let ErrorSeverity;
 (function (ErrorSeverity) {
     ErrorSeverity["LOW"] = "low";
     ErrorSeverity["MEDIUM"] = "medium";
@@ -424,7 +424,7 @@ export class KitchenErrorHandler extends ErrorHandler {
         });
     }
     // 處理 Token 刷新
-    async handleTokenRefresh(originalError, context) {
+    async handleTokenRefresh(originalError, _context) {
         try {
             // 嘗試刷新 token
             const authStore = await import('@/stores/auth').then(m => m.useAuthStore());

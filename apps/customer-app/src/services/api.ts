@@ -1,7 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import type { 
   ApiResponse, 
-  ApiError, 
   ApiErrorCode,
   PaginatedResponse 
 } from '@makanmakan/shared-types'

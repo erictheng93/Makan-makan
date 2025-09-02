@@ -1,5 +1,5 @@
 // Enhanced keyboard shortcuts with visual feedback and customization
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import { enhancedAudioService } from '@/services/enhancedAudioService'
 import { useOrderManagementStore } from '@/stores/orderManagement'
@@ -372,7 +372,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
   }
 
   // Shortcut execution
-  const executeShortcut = async (shortcut: KeyboardShortcut, event: KeyboardEvent): Promise<boolean> => {
+  const executeShortcut = async (shortcut: KeyboardShortcut, _event: KeyboardEvent): Promise<boolean> => {
     try {
       switch (shortcut.action) {
         case 'complete_selected_order':

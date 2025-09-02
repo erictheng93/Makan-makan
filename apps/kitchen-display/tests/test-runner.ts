@@ -1,5 +1,5 @@
 // Test runner utility for organizing and running integration tests
-import { describe, it, beforeAll, afterAll } from 'vitest'
+// Test framework utilities available globally in Vitest
 
 // Test suite configuration
 export interface TestSuiteConfig {
@@ -253,7 +253,7 @@ export class TestEnvironment {
       case 'online':
         Object.defineProperty(navigator, 'onLine', { value: true, writable: true })
         break
-      case 'slow':
+      case 'slow': {
         // Mock slow network by adding delays to fetch
         const originalFetch = global.fetch
         global.fetch = (...args) => 
@@ -261,6 +261,7 @@ export class TestEnvironment {
             setTimeout(() => resolve(originalFetch(...args)), 2000)
           )
         break
+      }
     }
   }
 

@@ -91,7 +91,7 @@ app.get('/',
       const currentUser = c.get('user')
       const userService = new UserService(c.env.DB as any)
       
-      let filters = {
+      const filters = {
         ...query,
         page: query.page,
         limit: query.limit

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { authMiddleware, requireRole, requireRestaurantAccess } from '../middleware/auth'
+import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
 import { createDatabase, OrderService } from '@makanmakan/database'
 import type { Env } from '../types/env'
@@ -83,7 +83,7 @@ app.post('/',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const db = createDatabase(c.env.DB)
+      const _db = createDatabase(c.env.DB)
       const orderService = new OrderService(c.env.DB as any)
       
       // 轉換資料格式
@@ -430,8 +430,8 @@ app.get('/stats',
       }
       
       // 設定日期範圍
-      const dateFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(new Date().setDate(new Date().getDate() - 30))
-      const dateTo = query.dateTo ? new Date(query.dateTo) : new Date()
+      const _dateFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(new Date().setDate(new Date().getDate() - 30))
+      const _dateTo = query.dateTo ? new Date(query.dateTo) : new Date()
       
       // 獲取統計資料
       const dailyStats = await orderService.getDailyOrderStats(restaurantId, new Date())

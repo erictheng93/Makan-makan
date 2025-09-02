@@ -55,5 +55,5 @@ declare global {
   var documentElementMock: HTMLElement
 }
 
-;(global as any).localStorageMock = localStorageMock
+(global as any).localStorageMock = localStorageMock
 ;(global as any).documentElementMock = documentElementMock

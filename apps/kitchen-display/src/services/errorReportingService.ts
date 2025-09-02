@@ -1,5 +1,5 @@
 // Comprehensive error reporting and handling service
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { performanceService } from './performanceService'
 
 export interface ErrorReport {

@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useToast } from 'vue-toastification'
-import type { KitchenOrder } from '@/types'
+// Remove unused import
 
 // Keyboard shortcut configuration
 export interface KeyboardShortcut {

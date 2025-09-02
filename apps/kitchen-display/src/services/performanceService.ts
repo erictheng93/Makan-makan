@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 // Performance metric types
 export interface PerformanceMetric {
@@ -231,7 +231,7 @@ class PerformanceService {
   }
 
   private measureFrameRate() {
-    let lastTime = performance.now()
+    const lastTime = performance.now()
     let frameCount = 0
     const targetFrames = 10
 
@@ -282,7 +282,7 @@ class PerformanceService {
     performance.mark(`${name}-start`)
   }
 
-  public endMeasure(name: string, category: PerformanceMetric['category'] = 'user') {
+  public endMeasure(name: string, _category: PerformanceMetric['category'] = 'user') {
     const endMark = `${name}-end`
     performance.mark(endMark)
     performance.measure(name, `${name}-start`, endMark)
@@ -324,7 +324,6 @@ class PerformanceService {
 
       if (recentMetrics.length === 0) return
 
-      const avgValue = recentMetrics.reduce((sum, m) => sum + m.value, 0) / recentMetrics.length
       const latestValue = recentMetrics[recentMetrics.length - 1].value
 
       if (latestValue >= thresholds.critical) {

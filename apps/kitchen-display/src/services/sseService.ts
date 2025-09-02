@@ -99,7 +99,7 @@ export class KitchenSSEService {
     if (!this.eventSource) return
 
     // 連接成功
-    this.eventSource.onopen = (event) => {
+    this.eventSource.onopen = (_event) => {
       console.log('SSE connection opened')
       this.reconnectAttempts = 0
       this.lastHeartbeat = Date.now()

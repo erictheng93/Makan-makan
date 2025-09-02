@@ -2,11 +2,11 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { AnalyticsService } from '@makanmakan/database'
 import { authMiddleware, requireRole } from '../middleware/auth'
-import { validateQuery, validateParams } from '../middleware/validation'
+import { validateQuery } from '../middleware/validation'
 import type { Env } from '../types/env'
 
 // Database query result types
-interface DashboardMetrics {
+interface _DashboardMetrics {
   total_orders: number
   completed_orders: number
   cancelled_orders: number
@@ -15,31 +15,31 @@ interface DashboardMetrics {
   unique_customers: number
 }
 
-interface OrderStatusStats {
+interface _OrderStatusStats {
   status: string
   count: number
 }
 
-interface OrderTypeStats {
+interface _OrderTypeStats {
   order_type: string
   count: number
   revenue: number
 }
 
-interface PopularItem {
+interface _PopularItem {
   name: string
   total_quantity: number
   total_revenue: number
   order_count: number
 }
 
-interface HourlyStats {
+interface _HourlyStats {
   hour: string
   orders: number
   revenue: number
 }
 
-interface RevenueData {
+interface _RevenueData {
   period: string
   order_count: number
   total_revenue: number
@@ -86,7 +86,7 @@ function getDateGroupBySQL(groupBy: string, dateColumn: string = 'created_at'): 
 }
 
 // 輔助函數：計算同期比較日期
-function getComparisonDateRange(dateFrom?: string, dateTo?: string): { compDateFrom: string; compDateTo: string } | null {
+function _getComparisonDateRange(dateFrom?: string, dateTo?: string): { compDateFrom: string; compDateTo: string } | null {
   if (!dateFrom || !dateTo) return null
   
   const startDate = new Date(dateFrom)
@@ -126,9 +126,9 @@ app.get('/dashboard',
       
       // 確定時間範圍
       let dateCondition = ''
-      let dateParams: any[] = []
+      const dateParams: any[] = []
       
-      const now = new Date()
+      const _now = new Date()
       switch (period) {
         case 'today':
           dateCondition = "DATE(created_at) = DATE('now')"
@@ -144,15 +144,15 @@ app.get('/dashboard',
           break
       }
       
-      let whereConditions = [dateCondition]
-      let params = [...dateParams]
+      const whereConditions = [dateCondition]
+      const params = [...dateParams]
       
       if (targetRestaurantId) {
         whereConditions.push('restaurant_id = ?')
         params.push(targetRestaurantId)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -188,8 +188,8 @@ app.get('/revenue',
       const query = c.get('validatedQuery')
       const user = c.get('user')
       
-      let whereConditions = ["status = 'completed'"]
-      let params: any[] = []
+      const whereConditions = ["status = 'completed'"]
+      const params: any[] = []
       
       // 權限檢查
       if (user.role === 1) {
@@ -211,8 +211,8 @@ app.get('/revenue',
         params.push(query.dateTo)
       }
       
-      const whereClause = whereConditions.join(' AND ')
-      const dateGroupBy = getDateGroupBySQL(query.groupBy)
+      const _whereClause = whereConditions.join(' AND ')
+      const _dateGroupBy = getDateGroupBySQL(query.groupBy)
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -254,8 +254,8 @@ app.get('/products',
       const query = c.get('validatedQuery')
       const user = c.get('user')
       
-      let whereConditions = ["o.status = 'completed'"]
-      let params: any[] = []
+      const whereConditions = ["o.status = 'completed'"]
+      const params: any[] = []
       
       // 權限檢查
       if (user.role === 1) {
@@ -277,7 +277,7 @@ app.get('/products',
         params.push(query.dateTo)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -318,8 +318,8 @@ app.get('/customers',
       const query = c.get('validatedQuery')
       const user = c.get('user')
       
-      let whereConditions = ["status = 'completed'"]
-      let params: any[] = []
+      const whereConditions = ["status = 'completed'"]
+      const params: any[] = []
       
       // 權限檢查
       if (user.role === 1) {
@@ -341,7 +341,7 @@ app.get('/customers',
         params.push(query.dateTo)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -382,8 +382,8 @@ app.get('/performance',
       const query = c.get('validatedQuery')
       const user = c.get('user')
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const whereConditions = ['1=1']
+      const params: any[] = []
       
       // 權限檢查
       if (user.role >= 1) {
@@ -405,7 +405,7 @@ app.get('/performance',
         params.push(query.dateTo)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -500,15 +500,15 @@ app.get('/realtime-dashboard',
         targetRestaurantId = user.restaurantId
       }
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const whereConditions = ['1=1']
+      const params: any[] = []
       
       if (targetRestaurantId) {
         whereConditions.push('restaurant_id = ?')
         params.push(targetRestaurantId)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -548,8 +548,8 @@ app.get('/detailed-performance',
       const query = c.get('validatedQuery')
       const user = c.get('user')
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const whereConditions = ['1=1']
+      const params: any[] = []
       
       // 權限檢查
       if (user.role >= 1) {
@@ -571,7 +571,7 @@ app.get('/detailed-performance',
         params.push(query.dateTo)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -612,7 +612,7 @@ app.get('/sse',
   async (c) => {
     try {
       const user = c.get('user')
-      const lastEventId = c.req.query('lastEventId')
+      const _lastEventId = c.req.query('lastEventId')
       
       // 設置 SSE 標頭
       c.header('Content-Type', 'text/event-stream')
@@ -648,15 +648,15 @@ app.get('/sse',
                 targetRestaurantId = user.restaurantId
               }
               
-              let whereConditions = ['1=1']
-              let params: any[] = []
+              const whereConditions = ['1=1']
+              const params: any[] = []
               
               if (targetRestaurantId) {
                 whereConditions.push('restaurant_id = ?')
                 params.push(targetRestaurantId)
               }
               
-              const whereClause = whereConditions.join(' AND ')
+              const _whereClause = whereConditions.join(' AND ')
               
               // 使用 AnalyticsService 獲取實時數據
               const analyticsService = new AnalyticsService(c.env.DB as any)
@@ -743,15 +743,15 @@ app.get('/owner-dashboard',
         targetRestaurantId = user.restaurantId
       }
       
-      let whereConditions = ['1=1']
-      let params: any[] = []
+      const whereConditions = ['1=1']
+      const params: any[] = []
       
       if (targetRestaurantId) {
         whereConditions.push('restaurant_id = ?')
         params.push(targetRestaurantId)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       
@@ -798,8 +798,8 @@ app.get('/financial-report',
         targetRestaurantId = user.restaurantId
       }
       
-      let whereConditions = ["status = 'completed'"]
-      let params: any[] = []
+      const whereConditions = ["status = 'completed'"]
+      const params: any[] = []
       
       if (targetRestaurantId) {
         whereConditions.push('restaurant_id = ?')
@@ -815,7 +815,7 @@ app.get('/financial-report',
         params.push(query.year)
       }
       
-      const whereClause = whereConditions.join(' AND ')
+      const _whereClause = whereConditions.join(' AND ')
       
       const analyticsService = new AnalyticsService(c.env.DB as any)
       

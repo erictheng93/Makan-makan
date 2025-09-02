@@ -1,4 +1,4 @@
-export var UserRole;
+export let UserRole;
 (function (UserRole) {
     UserRole[UserRole["ADMIN"] = 0] = "ADMIN";
     UserRole[UserRole["OWNER"] = 1] = "OWNER";
@@ -6,7 +6,7 @@ export var UserRole;
     UserRole[UserRole["SERVICE"] = 3] = "SERVICE";
     UserRole[UserRole["CASHIER"] = 4] = "CASHIER";
 })(UserRole || (UserRole = {}));
-export var OrderStatus;
+export let OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "pending";
     OrderStatus["CONFIRMED"] = "confirmed";

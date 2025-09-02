@@ -4,9 +4,7 @@ import { kitchenApi } from '@/services/kitchenApi'
 import type { 
   KitchenOrder, 
   KitchenStats, 
-  KitchenSSEEvent, 
-  OrderStatus,
-  ItemStatus 
+  KitchenSSEEvent
 } from '@/types'
 
 export const useOrdersStore = defineStore('orders', () => {
@@ -129,7 +127,7 @@ export const useOrdersStore = defineStore('orders', () => {
   const handleOrderStatusUpdate = (event: KitchenSSEEvent) => {
     if (event.orderId && event.payload) {
       const orderId = event.orderId
-      const { itemId, status, updatedAt, updatedBy, notes } = event.payload
+      const { itemId, status, updatedAt, notes } = event.payload
       
       const orderIndex = orders.value.findIndex(o => o.id === orderId)
       if (orderIndex !== -1) {

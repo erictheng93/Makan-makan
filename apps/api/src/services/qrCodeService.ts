@@ -245,7 +245,7 @@ export class QRCodeService {
         style: style as QRStyleData,
         metadata: options.metadata
       }
-      const savedQRCode = await this.dbService.generateQRCode(qrCodeData)
+      const _savedQRCode = await this.dbService.generateQRCode(qrCodeData)
       
       // 更新URL（實際場景中URL會在生成後設定）
       if (finalUrl !== qrUrl) {
@@ -513,12 +513,12 @@ export class QRCodeService {
     content: string, 
     style: QRCodeStyle, 
     format: string,
-    qrId: string
+    _qrId: string
   ): Promise<string> {
     // 這裡會使用更高級的QR碼生成服務
     // 可以整合 QuickChart.io, QR-Code-Styling 或自建服務
     
-    const advancedParams = {
+    const _advancedParams = {
       text: content,
       width: style.size,
       height: style.size,

@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { KitchenOrder, KitchenOrderItem } from '@/types'
+import type { KitchenOrder } from '@/types'
 
 // Offline storage types
 export interface OfflineAction {

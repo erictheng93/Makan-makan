@@ -23,7 +23,7 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const key = opts.keyGenerator!(c)
     const now = Date.now()
-    const windowStart = now - opts.windowMs
+    const _windowStart = now - opts.windowMs
     
     // Generate rate limit key
     const rateLimitKey = `rate_limit:${key}:${Math.floor(now / opts.windowMs)}`

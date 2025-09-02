@@ -1,9 +1,8 @@
 // Comprehensive system health monitoring and diagnostics service
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { performanceService } from './performanceService'
 import { errorReportingService } from './errorReportingService'
 import { offlineService } from './offlineService'
-import { audioService } from './audioService'
 
 export interface SystemHealthMetric {
   id: string
@@ -184,7 +183,7 @@ class SystemHealthService {
     return this.systemAlerts.value.filter(a => !a.resolved)
   }
 
-  public runDiagnostics(): Promise<{
+  public async runDiagnostics(): Promise<{
     networkConnectivity: boolean
     localStorage: boolean
     webWorkers: boolean
@@ -193,22 +192,20 @@ class SystemHealthService {
     permissions: boolean
     browserCompatibility: boolean
   }> {
-    return new Promise(async (resolve) => {
-      const diagnostics = {
-        networkConnectivity: await this.testNetworkConnectivity(),
-        localStorage: this.testLocalStorage(),
-        webWorkers: this.testWebWorkers(),
-        audioContext: this.testAudioContext(),
-        performance: this.testPerformanceAPI(),
-        permissions: await this.testPermissions(),
-        browserCompatibility: this.testBrowserCompatibility()
-      }
-      
-      // Log diagnostics results
-      console.log('System diagnostics completed:', diagnostics)
-      
-      resolve(diagnostics)
-    })
+    const diagnostics = {
+      networkConnectivity: await this.testNetworkConnectivity(),
+      localStorage: this.testLocalStorage(),
+      webWorkers: this.testWebWorkers(),
+      audioContext: this.testAudioContext(),
+      performance: this.testPerformanceAPI(),
+      permissions: await this.testPermissions(),
+      browserCompatibility: this.testBrowserCompatibility()
+    }
+    
+    // Log diagnostics results
+    console.log('System diagnostics completed:', diagnostics)
+    
+    return diagnostics
   }
 
   public getSystemStats(): {
@@ -434,13 +431,14 @@ class SystemHealthService {
             healthScore = performanceService.config.value.enabled ? 100 : 0
             break
             
-          case 'error-reporting':
+          case 'error-reporting': {
             const errorStats = errorReportingService.getErrorStats()
             status = errorStats.errorRate > 10 ? 'degraded' : 'online'
             healthScore = Math.max(100 - errorStats.errorRate * 5, 0)
             break
+          }
             
-          case 'network':
+          case 'network': {
             const connectivityStart = performance.now()
             const isConnected = await this.testNetworkConnectivity()
             responseTime = performance.now() - connectivityStart
@@ -448,12 +446,14 @@ class SystemHealthService {
             status = isConnected ? 'online' : 'offline'
             healthScore = isConnected ? 100 : 0
             break
+          }
             
-          case 'storage':
+          case 'storage': {
             const storageWorking = this.testLocalStorage()
             status = storageWorking ? 'online' : 'offline'
             healthScore = storageWorking ? 100 : 0
             break
+          }
         }
       } catch (error) {
         console.error(`Health check failed for component ${component.id}:`, error)

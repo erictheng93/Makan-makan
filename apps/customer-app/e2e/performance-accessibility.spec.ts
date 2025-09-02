@@ -405,7 +405,7 @@ test.describe('性能與可存取性測試', () => {
         expect(focusInModal).toBe(true)
         
         // 測試 Tab 鍵是否被困在模態框內
-        const initialFocus = await page.evaluate(() => document.activeElement?.tagName)
+        const _initialFocus = await page.evaluate(() => document.activeElement?.tagName)
         
         // 按 Tab 多次
         for (let i = 0; i < 5; i++) {

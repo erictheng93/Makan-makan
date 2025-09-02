@@ -85,7 +85,7 @@ class AudioService {
 
   private initializeSounds() {
     // Initialize Howl instances for each sound type
-    Object.entries(SOUND_PATHS).forEach(([type, path]) => {
+    Object.entries(SOUND_PATHS).forEach(([type, _path]) => {
       const soundType = type as SoundType
       
       // For demo purposes, we'll use the Web Audio API to generate sounds
@@ -392,14 +392,11 @@ class AudioService {
     return this.play(type, { priority: 'urgent' })
   }
 
-  public testAllSounds(): Promise<void> {
-    return new Promise(async (resolve) => {
-      for (const [type] of this.sounds) {
-        await this.testSound(type)
-        await new Promise(r => setTimeout(r, 500)) // Wait between tests
-      }
-      resolve()
-    })
+  public async testAllSounds(): Promise<void> {
+    for (const [type] of this.sounds) {
+      await this.testSound(type)
+      await new Promise(r => setTimeout(r, 500)) // Wait between tests
+    }
   }
 }
 

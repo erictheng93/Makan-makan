@@ -138,7 +138,7 @@ app.post('/bulk',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const qrService = new QRCodeService(c.env.DB)
+      const _qrService = new QRCodeService(c.env.DB)
       
       // Note: generateBulkQRCodes expects different parameters than what's passed
       // For now, return a structured response while bulk generation is implemented

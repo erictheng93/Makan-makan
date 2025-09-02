@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateQuery } from '../middleware/validation'
-import { createDatabase, AnalyticsService, sql, count, eq, gte, and, orders, users, restaurants, auditLogs } from '@makanmakan/database'
+import { createDatabase, sql, count, gte, orders, users, restaurants, auditLogs } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()

@@ -142,7 +142,7 @@ export default {
   fetch: app.fetch,
   
   // 計畫任務處理器
-  scheduled: async (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+  scheduled: async (event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) => {
     console.log('Scheduled event triggered:', event.cron)
     
     // 清理過期會話

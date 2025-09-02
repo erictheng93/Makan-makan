@@ -1,0 +1,44 @@
+# Build outputs
+dist/
+build/
+.output/
+.nuxt/
+.next/
+out/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Generated files
+*.d.ts
+*.tsbuildinfo
+
+# Test outputs
+coverage/
+test-results/
+playwright-report/
+.nyc_output/
+
+# Cloudflare Workers
+.wrangler/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+.tmp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment files
+.env*
+!.env.example

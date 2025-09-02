@@ -255,7 +255,7 @@ describe('Keyboard Shortcuts Integration Tests', () => {
     it('should handle rapid key presses', async () => {
       const { handleKeyDown } = useKeyboardShortcuts()
       
-      const events = Array.from({ length: 10 }, (_, i) => 
+      const events = Array.from({ length: 10 }, () => 
         new KeyboardEvent('keydown', { key: 'f', ctrlKey: true })
       )
       

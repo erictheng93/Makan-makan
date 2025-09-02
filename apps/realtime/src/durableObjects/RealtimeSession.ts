@@ -181,7 +181,7 @@ export class RealtimeSession implements DurableObject {
       
       // Broadcast to all connections in this room
       let sentCount = 0
-      for (const [socket, connectionInfo] of this.connections) {
+      for (const [socket] of this.connections) {
         if (socket.readyState === WebSocket.OPEN) {
           this.sendMessage(socket, message)
           sentCount++
@@ -203,7 +203,7 @@ export class RealtimeSession implements DurableObject {
     }
   }
 
-  private async handleStats(request: Request): Promise<Response> {
+  private async handleStats(_request: Request): Promise<Response> {
     const stats = {
       roomInfo: this.roomInfo,
       connectionCount: this.connections.size,
@@ -249,7 +249,7 @@ export class RealtimeSession implements DurableObject {
     for (const [socket, connectionInfo] of this.connections) {
       if (socket.readyState === WebSocket.OPEN) {
         // Customize message based on connection type
-        let customizedMessage = { ...message }
+        const customizedMessage = { ...message }
         
         if (connectionInfo.type === 'customer') {
           // Only send updates for this customer's orders

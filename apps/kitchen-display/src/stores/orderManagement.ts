@@ -161,10 +161,11 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
         case 'elapsedTime':
           comparison = a.elapsedTime - b.elapsedTime
           break
-        case 'priority':
+        case 'priority': {
           const priorityOrder = { 'urgent': 3, 'high': 2, 'normal': 1 }
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority]
           break
+        }
         case 'tableId':
           comparison = a.tableId - b.tableId
           break

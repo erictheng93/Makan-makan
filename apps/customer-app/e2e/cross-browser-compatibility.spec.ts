@@ -1,4 +1,4 @@
-import { test, expect, devices } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { TestHelpers, TestDataGenerator } from './utils/test-helpers'
 
 test.describe('跨瀏覽器相容性測試', () => {
@@ -40,7 +40,7 @@ test.describe('跨瀏覽器相容性測試', () => {
     
     // 測試 CSS Grid 和 Flexbox 支援
     const cssSupport = await page.evaluate(() => {
-      const testElement = document.createElement('div')
+      const _testElement = document.createElement('div')
       return {
         grid: CSS.supports('display', 'grid'),
         flexbox: CSS.supports('display', 'flex'),
@@ -222,7 +222,7 @@ test.describe('跨瀏覽器相容性測試', () => {
       delete (window as any).IntersectionObserver
       
       // 模擬舊版 CSS 支援
-      const originalSupports = CSS.supports
+      const _originalSupports = CSS.supports
       CSS.supports = () => false
     })
     
@@ -270,7 +270,7 @@ test.describe('跨瀏覽器相容性測試', () => {
     await helpers.waitForPageLoad()
     
     // 檢查載入指示器
-    const loadingIndicator = page.locator('[data-testid="loading"]')
+    const _loadingIndicator = page.locator('[data-testid="loading"]')
     
     // 在慢速網路下，載入指示器應該會顯示
     // (需要快速檢查，因為載入完成後會消失)
@@ -310,7 +310,7 @@ test.describe('跨瀏覽器相容性測試', () => {
     // 測試高對比度模式
     await page.emulateMedia({ colorScheme: 'dark' })
     
-    const darkModeApplied = await page.evaluate(() => {
+    const _darkModeApplied = await page.evaluate(() => {
       return getComputedStyle(document.body).backgroundColor !== 'rgb(255, 255, 255)'
     })
     

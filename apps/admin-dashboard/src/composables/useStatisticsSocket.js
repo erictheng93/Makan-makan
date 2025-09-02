@@ -122,7 +122,7 @@ export function useStatisticsSocket(options = {}) {
                 console.log('Unknown message type:', message.type);
         }
     };
-    const handleOrderEvent = (message) => {
+    const handleOrderEvent = (_message) => {
         // 訂單事件發生時，觸發統計數據刷新
         setTimeout(() => {
             statisticsService.fetchDashboardData();

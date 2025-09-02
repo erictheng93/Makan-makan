@@ -149,10 +149,10 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ 
+/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ 
+/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ 
+/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ 
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -162,7 +162,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "virtual-grid-container grid gap-6" },
     ...{ class: (__VLS_ctx.gridCols) },
 });
-/** @type {typeof __VLS_ctx.container} */ ;
+/** @type {typeof __VLS_ctx.container} */ 
 // @ts-ignore
 [handleScroll, containerHeight, gridCols, container,];
 if (__VLS_ctx.beforeHeight > 0) {
@@ -223,23 +223,23 @@ if (__VLS_ctx.loading && __VLS_ctx.hasMore) {
         ...{ class: "ml-3 text-gray-600" },
     });
 }
-/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['virtual-grid-loading']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-spin']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-b-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-blue-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['ml-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['virtual-grid-container']} */ 
+/** @type {__VLS_StyleScopedClasses['grid']} */ 
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
+/** @type {__VLS_StyleScopedClasses['virtual-grid-item']} */ 
+/** @type {__VLS_StyleScopedClasses['virtual-grid-loading']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['h-full']} */ 
+/** @type {__VLS_StyleScopedClasses['animate-spin']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
+/** @type {__VLS_StyleScopedClasses['h-8']} */ 
+/** @type {__VLS_StyleScopedClasses['w-8']} */ 
+/** @type {__VLS_StyleScopedClasses['border-b-2']} */ 
+/** @type {__VLS_StyleScopedClasses['border-blue-600']} */ 
+/** @type {__VLS_StyleScopedClasses['ml-3']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
 // @ts-ignore
 var __VLS_1 = __VLS_0;
 var __VLS_dollars;
@@ -263,4 +263,4 @@ const __VLS_component = (await import('vue')).defineComponent({
     props: {},
 });
 export default {};
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

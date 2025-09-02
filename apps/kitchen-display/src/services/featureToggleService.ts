@@ -1,5 +1,5 @@
 // Feature toggle and configuration management service
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { errorReportingService } from './errorReportingService'
 
 export interface FeatureFlag {

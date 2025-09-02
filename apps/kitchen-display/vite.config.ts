@@ -77,13 +77,10 @@ export default defineConfig({
             return 'vendor'
           }
         },
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop()?.split('.')[0] : 'chunk'
+        chunkFileNames: () => {
           return `assets/[name]-[hash].js`
         },
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name!.split('.')
-          const extType = info[info.length - 1]
           if (/\.(mp3|wav|ogg|m4a)$/i.test(assetInfo.name!)) {
             return `assets/audio/[name]-[hash][extname]`
           }

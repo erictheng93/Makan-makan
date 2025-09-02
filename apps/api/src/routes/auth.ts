@@ -212,7 +212,7 @@ authRouter.post('/logout', authMiddleware, async (c) => {
 // 獲取當前用戶資訊
 authRouter.get('/me', authMiddleware, async (c) => {
   try {
-    const user = c.get('user')
+    const _user = c.get('user')
     const authService = new AuthService(c.env.DB as any)
     
     const authHeader = c.req.header('Authorization')

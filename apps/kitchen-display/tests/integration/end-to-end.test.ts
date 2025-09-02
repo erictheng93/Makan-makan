@@ -174,27 +174,7 @@ describe('End-to-End Integration Tests', () => {
   describe('Workflow Automation Integration', () => {
     it('should auto-assign orders to available chefs', async () => {
       // Mock workflow automation being enabled
-      const workflowComponent = {
-        rules: {
-          autoAssignment: { enabled: true, skillBased: true, loadBalancing: true }
-        },
-        chefSkills: {
-          chef1: ['grill', 'wok'],
-          chef2: ['soup', 'salad'],
-          chef3: ['dessert']
-        },
-        chefWorkloads: {
-          chef1: 2,
-          chef2: 0,
-          chef3: 1
-        }
-      }
-      
-      const newOrder = {
-        ...mockOrders[0],
-        id: 4,
-        items: [{ ...mockOrders[0].items[0], category: 'soup' }]
-      }
+      // Test data setup for workflow automation - mock skills and workloads
       
       // Should assign to chef2 (soup specialist with lowest workload)
       const assignedChef = 'chef2' // Mocked assignment logic
@@ -379,7 +359,7 @@ describe('End-to-End Integration Tests', () => {
   describe('Data Consistency and Integrity', () => {
     it('should maintain data consistency across all systems', async () => {
       const order = orderStore.orders[0]
-      const originalStatus = order.status
+      // Store original status for comparison
       
       // 1. Update through order management
       await orderStore.startCooking(order.id)

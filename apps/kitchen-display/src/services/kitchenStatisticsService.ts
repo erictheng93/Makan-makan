@@ -1,5 +1,5 @@
 // Comprehensive kitchen statistics and analytics service
-import { ref, computed, reactive } from 'vue'
+import { ref, reactive } from 'vue'
 import { useOrderManagementStore } from '@/stores/orderManagement'
 import type { KitchenOrder } from '@/types'
 

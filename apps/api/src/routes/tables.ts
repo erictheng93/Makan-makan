@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { authMiddleware, requireRole, requireRestaurantAccess } from '../middleware/auth'
+import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
 import { TableService, USER_ROLES } from '@makanmakan/database'
 import type { Env } from '../types/env'

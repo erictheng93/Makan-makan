@@ -1,5 +1,5 @@
 // Contextual Audio Notification Service
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { enhancedAudioService, type SoundType } from './enhancedAudioService'
 import type { KitchenOrder } from '@/types'
 
@@ -247,7 +247,6 @@ class ContextualAudioService {
     }
   ): Promise<void> {
     const context = options?.ignoreContext ? 'preparation' : this.detectCurrentContext()
-    const profile = CONTEXT_PROFILES[context]
     
     // Calculate urgency based on order data and context
     const urgency = this.calculateUrgency(type, orderData, context, options?.forceUrgency)
