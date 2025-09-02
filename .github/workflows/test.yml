@@ -20,16 +20,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
@@ -57,16 +57,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
@@ -105,16 +105,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
@@ -148,16 +148,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
@@ -216,16 +216,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
@@ -316,16 +316,16 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
         
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
