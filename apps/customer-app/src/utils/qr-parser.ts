@@ -4,10 +4,10 @@
  */
 
 export interface QRData {
-  restaurantId: number
-  tableId: number
-  source: 'json' | 'url' | 'simple'
-  raw?: string
+  restaurantId: number;
+  tableId: number;
+  source: "json" | "url" | "simple";
+  raw?: string;
 }
 
 /**
@@ -18,27 +18,27 @@ export interface QRData {
 export function parseQRContent(content: string): QRData | null {
   try {
     // 嘗試解析 JSON 格式
-    const jsonResult = parseJSONFormat(content)
+    const jsonResult = parseJSONFormat(content);
     if (jsonResult) {
-      return jsonResult
+      return jsonResult;
     }
 
     // 嘗試解析 URL 格式
-    const urlResult = parseURLFormat(content)
+    const urlResult = parseURLFormat(content);
     if (urlResult) {
-      return urlResult
+      return urlResult;
     }
 
     // 嘗試解析簡單格式
-    const simpleResult = parseSimpleFormat(content)
+    const simpleResult = parseSimpleFormat(content);
     if (simpleResult) {
-      return simpleResult
+      return simpleResult;
     }
 
-    return null
+    return null;
   } catch (error) {
-    console.error('Failed to parse QR content:', error)
-    return null
+    console.error("Failed to parse QR content:", error);
+    return null;
   }
 }
 
@@ -48,23 +48,25 @@ export function parseQRContent(content: string): QRData | null {
  */
 function parseJSONFormat(content: string): QRData | null {
   try {
-    const data = JSON.parse(content)
-    
-    if (data && 
-        typeof data.restaurantId === 'number' && 
-        typeof data.tableId === 'number') {
+    const data = JSON.parse(content);
+
+    if (
+      data &&
+      typeof data.restaurantId === "number" &&
+      typeof data.tableId === "number"
+    ) {
       return {
         restaurantId: data.restaurantId,
         tableId: data.tableId,
-        source: 'json',
-        raw: content
-      }
+        source: "json",
+        raw: content,
+      };
     }
   } catch (error) {
     // 不是 JSON 格式，繼續嘗試其他格式
   }
-  
-  return null
+
+  return null;
 }
 
 /**
@@ -75,52 +77,54 @@ function parseJSONFormat(content: string): QRData | null {
  */
 function parseURLFormat(content: string): QRData | null {
   try {
-    const url = new URL(content)
-    
+    const url = new URL(content);
+
     // 標準路徑格式: /restaurant/123/table/5
-    const pathMatch1 = url.pathname.match(/\/restaurant\/(\d+)\/table\/(\d+)/)
+    const pathMatch1 = url.pathname.match(/\/restaurant\/(\d+)\/table\/(\d+)/);
     if (pathMatch1) {
       return {
         restaurantId: parseInt(pathMatch1[1]),
         tableId: parseInt(pathMatch1[2]),
-        source: 'url',
-        raw: content
-      }
+        source: "url",
+        raw: content,
+      };
     }
 
     // 簡短路徑格式: /r/123/t/5
-    const pathMatch2 = url.pathname.match(/\/r\/(\d+)\/t\/(\d+)/)
+    const pathMatch2 = url.pathname.match(/\/r\/(\d+)\/t\/(\d+)/);
     if (pathMatch2) {
       return {
         restaurantId: parseInt(pathMatch2[1]),
         tableId: parseInt(pathMatch2[2]),
-        source: 'url',
-        raw: content
-      }
+        source: "url",
+        raw: content,
+      };
     }
 
     // 查詢參數格式: ?restaurant=123&table=5
-    const restaurantParam = url.searchParams.get('restaurant') || url.searchParams.get('r')
-    const tableParam = url.searchParams.get('table') || url.searchParams.get('t')
-    
+    const restaurantParam =
+      url.searchParams.get("restaurant") || url.searchParams.get("r");
+    const tableParam =
+      url.searchParams.get("table") || url.searchParams.get("t");
+
     if (restaurantParam && tableParam) {
-      const restaurantId = parseInt(restaurantParam)
-      const tableId = parseInt(tableParam)
-      
+      const restaurantId = parseInt(restaurantParam);
+      const tableId = parseInt(tableParam);
+
       if (!isNaN(restaurantId) && !isNaN(tableId)) {
         return {
           restaurantId,
           tableId,
-          source: 'url',
-          raw: content
-        }
+          source: "url",
+          raw: content,
+        };
       }
     }
   } catch (error) {
     // 不是有效的 URL
   }
 
-  return null
+  return null;
 }
 
 /**
@@ -131,86 +135,88 @@ function parseURLFormat(content: string): QRData | null {
  */
 function parseSimpleFormat(content: string): QRData | null {
   // 格式: "123:5"
-  const colonMatch = content.match(/^(\d+):(\d+)$/)
+  const colonMatch = content.match(/^(\d+):(\d+)$/);
   if (colonMatch) {
     return {
       restaurantId: parseInt(colonMatch[1]),
       tableId: parseInt(colonMatch[2]),
-      source: 'simple',
-      raw: content
-    }
+      source: "simple",
+      raw: content,
+    };
   }
 
   // 格式: "R123T5"
-  const rtMatch = content.match(/^R(\d+)T(\d+)$/i)
+  const rtMatch = content.match(/^R(\d+)T(\d+)$/i);
   if (rtMatch) {
     return {
       restaurantId: parseInt(rtMatch[1]),
       tableId: parseInt(rtMatch[2]),
-      source: 'simple',
-      raw: content
-    }
+      source: "simple",
+      raw: content,
+    };
   }
 
   // 格式: "123-5"
-  const dashMatch = content.match(/^(\d+)-(\d+)$/)
+  const dashMatch = content.match(/^(\d+)-(\d+)$/);
   if (dashMatch) {
     return {
       restaurantId: parseInt(dashMatch[1]),
       tableId: parseInt(dashMatch[2]),
-      source: 'simple',
-      raw: content
-    }
+      source: "simple",
+      raw: content,
+    };
   }
 
-  return null
+  return null;
 }
 
 /**
  * 驗證 QR 資料的有效性
  */
 export function validateQRData(data: QRData): boolean {
-  return data.restaurantId > 0 && 
-         data.tableId > 0 && 
-         Number.isInteger(data.restaurantId) && 
-         Number.isInteger(data.tableId)
+  return (
+    data.restaurantId > 0 &&
+    data.tableId > 0 &&
+    Number.isInteger(data.restaurantId) &&
+    Number.isInteger(data.tableId)
+  );
 }
 
 /**
  * 生成 QR Code 內容（用於測試或管理）
  */
 export function generateQRContent(
-  restaurantId: number, 
-  tableId: number, 
-  format: 'json' | 'url' | 'simple' = 'json'
+  restaurantId: number,
+  tableId: number,
+  format: "json" | "url" | "simple" = "json",
 ): string {
   switch (format) {
-    case 'json':
-      return JSON.stringify({ restaurantId, tableId })
-    
-    case 'url':
-      return `https://makanmakan.app/restaurant/${restaurantId}/table/${tableId}`
-    
-    case 'simple':
-      return `${restaurantId}:${tableId}`
-    
+    case "json":
+      return JSON.stringify({ restaurantId, tableId });
+
+    case "url":
+      return `https://makanmakan.app/restaurant/${restaurantId}/table/${tableId}`;
+
+    case "simple":
+      return `${restaurantId}:${tableId}`;
+
     default:
-      return JSON.stringify({ restaurantId, tableId })
+      return JSON.stringify({ restaurantId, tableId });
   }
 }
 
 /**
  * 獲取 QR Code 格式描述
  */
-export function getQRFormatDescription(source: QRData['source']): string {
+export function getQRFormatDescription(source: QRData["source"]): string {
   switch (source) {
-    case 'json':
-      return 'JSON 格式'
-    case 'url':
-      return 'URL 連結格式'
-    case 'simple':
-      return '簡單文字格式'
+    case "json":
+      return "JSON 格式";
+    case "url":
+      return "URL 連結格式";
+    case "simple":
+      return "簡單文字格式";
     default:
-      return '未知格式'
+      return "未知格式";
   }
 }

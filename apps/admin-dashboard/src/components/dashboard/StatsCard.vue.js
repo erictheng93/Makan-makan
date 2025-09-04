@@ -174,46 +174,46 @@ const __VLS_7 = __VLS_6({
 }, ...__VLS_functionalComponentArgsRest(__VLS_6));
 // @ts-ignore
 [iconComponent, iconColorClass,];
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:shadow-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-shadow']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['ml-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-12']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
-var __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:shadow-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['transition-shadow']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ 
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['w-4']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
+/** @type {__VLS_StyleScopedClasses['ml-4']} */ 
+/** @type {__VLS_StyleScopedClasses['w-12']} */ 
+/** @type {__VLS_StyleScopedClasses['h-12']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['w-6']} */ 
+/** @type {__VLS_StyleScopedClasses['h-6']} */ 
+let __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         iconComponent: iconComponent,
@@ -232,4 +232,4 @@ export default (await import('vue')).defineComponent({
     __typeProps: {},
     props: {},
 });
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

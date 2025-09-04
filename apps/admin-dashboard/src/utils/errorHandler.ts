@@ -1,218 +1,223 @@
-import { useToast } from 'vue-toastification'
+import { useToast } from "vue-toastification";
 
-const toast = useToast()
+const toast = useToast();
 
 // 錯誤類型定義
 export enum ErrorType {
-  NETWORK = 'network',
-  API = 'api',
-  SSE = 'sse',
-  VALIDATION = 'validation',
-  PERMISSION = 'permission',
-  UNKNOWN = 'unknown'
+  NETWORK = "network",
+  API = "api",
+  SSE = "sse",
+  VALIDATION = "validation",
+  PERMISSION = "permission",
+  UNKNOWN = "unknown",
 }
 
 export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 export interface ErrorDetails {
-  type: ErrorType
-  severity: ErrorSeverity
-  code?: string | number
-  message: string
-  originalError?: any
-  context?: Record<string, any>
-  timestamp: Date
-  userAgent?: string
-  url?: string
-  userId?: number | string
-  restaurantId?: number | string
+  type: ErrorType;
+  severity: ErrorSeverity;
+  code?: string | number;
+  message: string;
+  originalError?: any;
+  context?: Record<string, any>;
+  timestamp: Date;
+  userAgent?: string;
+  url?: string;
+  userId?: number | string;
+  restaurantId?: number | string;
 }
 
 // 離線狀態管理
 class OfflineManager {
-  private isOnline = navigator.onLine
-  private callbacks: Array<(isOnline: boolean) => void> = []
-  private pendingRequests: Array<() => Promise<any>> = []
+  private isOnline = navigator.onLine;
+  private callbacks: Array<(isOnline: boolean) => void> = [];
+  private pendingRequests: Array<() => Promise<any>> = [];
 
   constructor() {
-    this.setupEventListeners()
+    this.setupEventListeners();
   }
 
   private setupEventListeners() {
-    window.addEventListener('online', () => {
-      this.isOnline = true
-      this.notifyCallbacks()
-      this.processPendingRequests()
-    })
+    window.addEventListener("online", () => {
+      this.isOnline = true;
+      this.notifyCallbacks();
+      this.processPendingRequests();
+    });
 
-    window.addEventListener('offline', () => {
-      this.isOnline = false
-      this.notifyCallbacks()
-    })
+    window.addEventListener("offline", () => {
+      this.isOnline = false;
+      this.notifyCallbacks();
+    });
   }
 
   private notifyCallbacks() {
-    this.callbacks.forEach(callback => callback(this.isOnline))
+    this.callbacks.forEach((callback) => callback(this.isOnline));
   }
 
   private async processPendingRequests() {
-    const requests = [...this.pendingRequests]
-    this.pendingRequests = []
+    const requests = [...this.pendingRequests];
+    this.pendingRequests = [];
 
     for (const request of requests) {
       try {
-        await request()
+        await request();
       } catch (error) {
-        console.error('Failed to process pending request:', error)
+        console.error("Failed to process pending request:", error);
         // 重新加入失敗的請求
-        this.pendingRequests.push(request)
+        this.pendingRequests.push(request);
       }
     }
   }
 
   onStatusChange(callback: (isOnline: boolean) => void) {
-    this.callbacks.push(callback)
-    callback(this.isOnline) // 立即回調當前狀態
+    this.callbacks.push(callback);
+    callback(this.isOnline); // 立即回調當前狀態
   }
 
   addPendingRequest(request: () => Promise<any>) {
-    this.pendingRequests.push(request)
+    this.pendingRequests.push(request);
   }
 
   getStatus() {
-    return this.isOnline
+    return this.isOnline;
   }
 }
 
 // 錯誤上報服務
 class ErrorReportingService {
-  private readonly REPORT_ENDPOINT = '/api/v1/system/error-report'
-  private reportQueue: ErrorDetails[] = []
-  private isReporting = false
+  private readonly REPORT_ENDPOINT = "/api/v1/system/error-report";
+  private reportQueue: ErrorDetails[] = [];
+  private isReporting = false;
 
   async reportError(error: ErrorDetails) {
     // 添加到報告隊列
     this.reportQueue.push({
       ...error,
       userAgent: navigator.userAgent,
-      url: window.location.href
-    })
+      url: window.location.href,
+    });
 
     // 如果當前沒有在報告中，開始報告
     if (!this.isReporting) {
-      this.processReportQueue()
+      this.processReportQueue();
     }
   }
 
   private async processReportQueue() {
     if (this.reportQueue.length === 0) {
-      this.isReporting = false
-      return
+      this.isReporting = false;
+      return;
     }
 
-    this.isReporting = true
+    this.isReporting = true;
 
     try {
-      const errors = [...this.reportQueue]
-      this.reportQueue = []
+      const errors = [...this.reportQueue];
+      this.reportQueue = [];
 
       const response = await fetch(this.REPORT_ENDPOINT, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
-        body: JSON.stringify({ errors })
-      })
+        body: JSON.stringify({ errors }),
+      });
 
       if (!response.ok) {
         // 如果報告失敗，重新加入隊列
-        this.reportQueue.unshift(...errors)
-        throw new Error(`Report failed: ${response.status}`)
+        this.reportQueue.unshift(...errors);
+        throw new Error(`Report failed: ${response.status}`);
       }
 
-      console.log(`Successfully reported ${errors.length} errors`)
+      console.log(`Successfully reported ${errors.length} errors`);
     } catch (error) {
-      console.error('Error reporting failed:', error)
+      console.error("Error reporting failed:", error);
       // 延遲重試
-      setTimeout(() => void this.processReportQueue(), 30000)
+      setTimeout(() => void this.processReportQueue(), 30000);
     }
 
-    this.isReporting = false
+    this.isReporting = false;
   }
 }
 
 // 主要錯誤處理器
 export class ErrorHandler {
-  private static instance: ErrorHandler
-  public offlineManager = new OfflineManager()
-  public reportingService = new ErrorReportingService()
-  public userNotificationEnabled = true
+  private static instance: ErrorHandler;
+  public offlineManager = new OfflineManager();
+  public reportingService = new ErrorReportingService();
+  public userNotificationEnabled = true;
 
   static getInstance(): ErrorHandler {
     if (!ErrorHandler.instance) {
-      ErrorHandler.instance = new ErrorHandler()
+      ErrorHandler.instance = new ErrorHandler();
     }
-    return ErrorHandler.instance
+    return ErrorHandler.instance;
   }
 
   // 處理一般錯誤
   handleError(error: any, context?: Record<string, any>): ErrorDetails {
-    const errorDetails = this.parseError(error, context)
-    
+    const errorDetails = this.parseError(error, context);
+
     // 記錄錯誤
-    console.error('Error handled:', errorDetails)
-    
+    console.error("Error handled:", errorDetails);
+
     // 上報錯誤（高嚴重性）
-    if (errorDetails.severity === ErrorSeverity.HIGH || 
-        errorDetails.severity === ErrorSeverity.CRITICAL) {
-      this.reportingService.reportError(errorDetails)
+    if (
+      errorDetails.severity === ErrorSeverity.HIGH ||
+      errorDetails.severity === ErrorSeverity.CRITICAL
+    ) {
+      this.reportingService.reportError(errorDetails);
     }
-    
+
     // 顯示用戶提示
     if (this.userNotificationEnabled) {
-      this.showUserNotification(errorDetails)
+      this.showUserNotification(errorDetails);
     }
-    
-    return errorDetails
+
+    return errorDetails;
   }
 
   // 解析錯誤
   private parseError(error: any, context?: Record<string, any>): ErrorDetails {
-    let type = ErrorType.UNKNOWN
-    let severity = ErrorSeverity.MEDIUM
-    let message = '發生了未知錯誤'
-    let code: string | number | undefined
+    let type = ErrorType.UNKNOWN;
+    let severity = ErrorSeverity.MEDIUM;
+    let message = "發生了未知錯誤";
+    let code: string | number | undefined;
 
     // 根據錯誤類型進行分類
     if (error instanceof TypeError || error instanceof ReferenceError) {
-      type = ErrorType.VALIDATION
-      severity = ErrorSeverity.LOW
-      message = '輸入驗證錯誤'
-    } else if (error?.name === 'NetworkError' || error?.code === 'NETWORK_ERROR') {
-      type = ErrorType.NETWORK
-      severity = ErrorSeverity.HIGH
-      message = '網絡連接錯誤，請檢查您的網絡連接'
+      type = ErrorType.VALIDATION;
+      severity = ErrorSeverity.LOW;
+      message = "輸入驗證錯誤";
+    } else if (
+      error?.name === "NetworkError" ||
+      error?.code === "NETWORK_ERROR"
+    ) {
+      type = ErrorType.NETWORK;
+      severity = ErrorSeverity.HIGH;
+      message = "網絡連接錯誤，請檢查您的網絡連接";
     } else if (error?.response) {
       // API 錯誤
-      type = ErrorType.API
-      code = error.response.status
-      message = error.response.data?.error?.message || '服務器錯誤'
-      
-      if (typeof code === 'number' && code >= 500) {
-        severity = ErrorSeverity.HIGH
+      type = ErrorType.API;
+      code = error.response.status;
+      message = error.response.data?.error?.message || "服務器錯誤";
+
+      if (typeof code === "number" && code >= 500) {
+        severity = ErrorSeverity.HIGH;
       } else if (code === 403 || code === 401) {
-        type = ErrorType.PERMISSION
-        severity = ErrorSeverity.MEDIUM
-        message = '權限不足或登入已過期'
+        type = ErrorType.PERMISSION;
+        severity = ErrorSeverity.MEDIUM;
+        message = "權限不足或登入已過期";
       }
     } else if (error?.message) {
-      message = error.message
+      message = error.message;
     }
 
     return {
@@ -222,52 +227,52 @@ export class ErrorHandler {
       message,
       originalError: error,
       context,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    };
   }
 
   // 顯示用戶提示
   private showUserNotification(error: ErrorDetails) {
-    const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000
+    const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000;
 
     if (error.severity === ErrorSeverity.CRITICAL) {
-      toast.error(`嚴重錯誤: ${error.message}`, { timeout: false })
+      toast.error(`嚴重錯誤: ${error.message}`, { timeout: false });
     } else if (error.severity === ErrorSeverity.HIGH) {
-      toast.error(`系統錯誤: ${error.message}`, { timeout: duration })
+      toast.error(`系統錯誤: ${error.message}`, { timeout: duration });
     } else {
       if (error.severity === ErrorSeverity.LOW) {
-        toast.warning(error.message, { timeout: duration })
+        toast.warning(error.message, { timeout: duration });
       } else {
-        toast.error(error.message, { timeout: duration })
+        toast.error(error.message, { timeout: duration });
       }
     }
   }
 
   // 設置用戶通知狀態
   setUserNotificationEnabled(enabled: boolean) {
-    this.userNotificationEnabled = enabled
+    this.userNotificationEnabled = enabled;
   }
 
   // 獲取離線管理器
   getOfflineManager() {
-    return this.offlineManager
+    return this.offlineManager;
   }
 }
 
 // 廚房專用錯誤處理器
 export class KitchenErrorHandler extends ErrorHandler {
-  private sseReconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private reconnectDelay = 1000 // 1秒
+  private sseReconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000; // 1秒
 
   static handleSSEError(error: Event, eventSource?: EventSource) {
-    const handler = ErrorHandler.getInstance() as KitchenErrorHandler
-    return handler.handleSSEConnectionError(error, eventSource)
+    const handler = ErrorHandler.getInstance() as KitchenErrorHandler;
+    return handler.handleSSEConnectionError(error, eventSource);
   }
 
   static handleAPIError(error: any, context?: Record<string, any>) {
-    const handler = ErrorHandler.getInstance()
-    return handler.handleError(error, context)
+    const handler = ErrorHandler.getInstance();
+    return handler.handleError(error, context);
   }
 
   // 處理 SSE 連接錯誤
@@ -275,175 +280,201 @@ export class KitchenErrorHandler extends ErrorHandler {
     const errorDetails: ErrorDetails = {
       type: ErrorType.SSE,
       severity: ErrorSeverity.HIGH,
-      message: 'SSE 連接中斷',
+      message: "SSE 連接中斷",
       originalError: error,
-      context: { 
+      context: {
         readyState: eventSource?.readyState,
         url: eventSource?.url,
-        reconnectAttempts: this.sseReconnectAttempts
+        reconnectAttempts: this.sseReconnectAttempts,
       },
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    };
 
-    console.error('SSE Connection Error:', errorDetails)
-    
+    console.error("SSE Connection Error:", errorDetails);
+
     // 上報錯誤
-    this.reportingService.reportError(errorDetails)
+    this.reportingService.reportError(errorDetails);
 
     // 顯示連接狀態
     if (this.userNotificationEnabled) {
-      toast.warning('實時連接中斷，正在嘗試重新連接...', { timeout: 3000 })
+      toast.warning("實時連接中斷，正在嘗試重新連接...", { timeout: 3000 });
     }
 
     // 自動重連
-    this.attemptSSEReconnect(eventSource)
+    this.attemptSSEReconnect(eventSource);
   }
 
   // SSE 自動重連
   private attemptSSEReconnect(_eventSource?: EventSource) {
     if (this.sseReconnectAttempts >= this.maxReconnectAttempts) {
-      toast.error('連接失敗: 無法重新建立實時連接，請刷新頁面', { timeout: false })
-      return
+      toast.error("連接失敗: 無法重新建立實時連接，請刷新頁面", {
+        timeout: false,
+      });
+      return;
     }
 
-    this.sseReconnectAttempts++
-    
+    this.sseReconnectAttempts++;
+
     // 指數退避重連策略
-    const delay = this.reconnectDelay * Math.pow(2, this.sseReconnectAttempts - 1)
-    
+    const delay =
+      this.reconnectDelay * Math.pow(2, this.sseReconnectAttempts - 1);
+
     setTimeout((): void => {
       try {
-        console.log(`Attempting SSE reconnection ${this.sseReconnectAttempts}/${this.maxReconnectAttempts}`)
-        
+        console.log(
+          `Attempting SSE reconnection ${this.sseReconnectAttempts}/${this.maxReconnectAttempts}`,
+        );
+
         // 重新建立 SSE 連接的邏輯應該由呼叫方提供
         // 這裡觸發一個自定義事件，讓元件處理重連
-        window.dispatchEvent(new CustomEvent('sse-reconnect-attempt', {
-          detail: { 
-            attempt: this.sseReconnectAttempts,
-            maxAttempts: this.maxReconnectAttempts
-          }
-        }))
-        
+        window.dispatchEvent(
+          new CustomEvent("sse-reconnect-attempt", {
+            detail: {
+              attempt: this.sseReconnectAttempts,
+              maxAttempts: this.maxReconnectAttempts,
+            },
+          }),
+        );
       } catch (error) {
-        console.error('SSE reconnection failed:', error)
-        this.attemptSSEReconnect()
+        console.error("SSE reconnection failed:", error);
+        this.attemptSSEReconnect();
       }
-    }, delay)
+    }, delay);
   }
 
   // 重置 SSE 重連計數
   resetSSEReconnectAttempts() {
-    this.sseReconnectAttempts = 0
+    this.sseReconnectAttempts = 0;
   }
 
   // 設置 SSE 連接成功
   setSSEConnected(_eventSource: EventSource) {
     // Store event source reference if needed
-    this.resetSSEReconnectAttempts()
-    
+    this.resetSSEReconnectAttempts();
+
     if (this.sseReconnectAttempts > 0) {
-      toast.success('實時連接已恢復', { timeout: 2000 })
+      toast.success("實時連接已恢復", { timeout: 2000 });
     }
   }
 
   // 處理 API 請求錯誤
   handleAPIRequest(error: any, context?: Record<string, any>): Promise<any> {
-    const errorDetails = this.handleError(error, context)
+    const errorDetails = this.handleError(error, context);
 
     // 如果是網絡錯誤且處於離線狀態
-    if (errorDetails.type === ErrorType.NETWORK && !this.offlineManager.getStatus()) {
-      return this.handleOfflineRequest(error, context)
+    if (
+      errorDetails.type === ErrorType.NETWORK &&
+      !this.offlineManager.getStatus()
+    ) {
+      return this.handleOfflineRequest(error, context);
     }
 
     // 如果是權限錯誤，嘗試刷新 token
-    if (errorDetails.type === ErrorType.PERMISSION && errorDetails.code === 401) {
-      return this.handleTokenRefresh(error, context)
+    if (
+      errorDetails.type === ErrorType.PERMISSION &&
+      errorDetails.code === 401
+    ) {
+      return this.handleTokenRefresh(error, context);
     }
 
-    return Promise.reject(errorDetails)
+    return Promise.reject(errorDetails);
   }
 
   // 處理離線請求
-  private handleOfflineRequest(_originalError: any, _context?: Record<string, any>): Promise<any> {
-    const toast = useToast()
-    toast.warning('當前網絡不可用，請求將在網絡恢復後重新嘗試')
+  private handleOfflineRequest(
+    _originalError: any,
+    _context?: Record<string, any>,
+  ): Promise<any> {
+    const toast = useToast();
+    toast.warning("當前網絡不可用，請求將在網絡恢復後重新嘗試");
 
-    return new Promise((_resolve: (value?: any) => void, reject: (reason?: any) => void) => {
-      // 創建重試請求函數
-      const retryRequest = async () => {
-        try {
-          // 這裡應該重新執行原始請求
-          // 實際實現需要根據具體的 API 客戶端來決定
-          console.log('Retrying request after network recovery:', _context)
-          // resolve(retriedResult)
-          reject(new Error('Request retry not implemented'))
-        } catch (error) {
-          reject(error)
-        }
-      }
+    return new Promise(
+      (_resolve: (value?: any) => void, reject: (reason?: any) => void) => {
+        // 創建重試請求函數
+        const retryRequest = async () => {
+          try {
+            // 這裡應該重新執行原始請求
+            // 實際實現需要根據具體的 API 客戶端來決定
+            console.log("Retrying request after network recovery:", _context);
+            // resolve(retriedResult)
+            reject(new Error("Request retry not implemented"));
+          } catch (error) {
+            reject(error);
+          }
+        };
 
-      // 添加到離線隊列
-      this.offlineManager.addPendingRequest(retryRequest)
-    })
+        // 添加到離線隊列
+        this.offlineManager.addPendingRequest(retryRequest);
+      },
+    );
   }
 
   // 處理 Token 刷新
-  private async handleTokenRefresh(_originalError: any, _context?: Record<string, any>): Promise<any> {
+  private async handleTokenRefresh(
+    _originalError: any,
+    _context?: Record<string, any>,
+  ): Promise<any> {
     try {
       // 嘗試刷新 token
-      const authStore = await import('@/stores/auth').then(m => m.useAuthStore())
-      const success = await authStore.refreshToken()
-      
+      const authStore = await import("@/stores/auth").then((m) =>
+        m.useAuthStore(),
+      );
+      const success = await authStore.refreshToken();
+
       if (success) {
-        const toast = useToast()
-        toast.info('登入狀態已更新，請重新嘗試')
+        const toast = useToast();
+        toast.info("登入狀態已更新，請重新嘗試");
         // 這裡應該重新執行原始請求
-        return Promise.reject(new Error('Please retry the request'))
+        return Promise.reject(new Error("Please retry the request"));
       } else {
         // Token 刷新失敗，跳轉到登入頁
-        toast.error('登入已過期，請重新登入', { timeout: 5000 })
-        window.location.href = '/login'
-        return Promise.reject(_originalError)
+        toast.error("登入已過期，請重新登入", { timeout: 5000 });
+        window.location.href = "/login";
+        return Promise.reject(_originalError);
       }
     } catch (error) {
-      console.error('Token refresh failed:', error)
-      return Promise.reject(_originalError)
+      console.error("Token refresh failed:", error);
+      return Promise.reject(_originalError);
     }
   }
 }
 
 // 導出單例實例
-export const errorHandler = ErrorHandler.getInstance()
-export const kitchenErrorHandler = KitchenErrorHandler.getInstance() as KitchenErrorHandler
+export const errorHandler = ErrorHandler.getInstance();
+export const kitchenErrorHandler =
+  KitchenErrorHandler.getInstance() as KitchenErrorHandler;
 
 // 全局錯誤處理器
 export function setupGlobalErrorHandler() {
   // 處理未捕獲的 Promise 錯誤
-  window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent): void => {
-    console.error('Unhandled promise rejection:', event.reason)
-    errorHandler.handleError(event.reason, { type: 'unhandledRejection' })
-    event.preventDefault() // 防止錯誤在控制台顯示
-  })
+  window.addEventListener(
+    "unhandledrejection",
+    (event: PromiseRejectionEvent): void => {
+      console.error("Unhandled promise rejection:", event.reason);
+      errorHandler.handleError(event.reason, { type: "unhandledRejection" });
+      event.preventDefault(); // 防止錯誤在控制台顯示
+    },
+  );
 
   // 處理未捕獲的 JavaScript 錯誤
-  window.addEventListener('error', (event: ErrorEvent): void => {
-    console.error('Unhandled error:', event.error)
-    errorHandler.handleError(event.error, { 
-      type: 'globalError',
+  window.addEventListener("error", (event: ErrorEvent): void => {
+    console.error("Unhandled error:", event.error);
+    errorHandler.handleError(event.error, {
+      type: "globalError",
       filename: event.filename,
       lineno: event.lineno,
-      colno: event.colno
-    })
-  })
+      colno: event.colno,
+    });
+  });
 
   // 監聽網絡狀態變化
   errorHandler.getOfflineManager().onStatusChange((isOnline: boolean): void => {
     if (isOnline) {
-      toast.success('網絡連接已恢復', { timeout: 2000 })
+      toast.success("網絡連接已恢復", { timeout: 2000 });
     } else {
-      toast.warning('網絡連接已斷開，將在離線模式下運行', { timeout: false })
+      toast.warning("網絡連接已斷開，將在離線模式下運行", { timeout: false });
     }
-  })
+  });
 }
 
-export default ErrorHandler
+export default ErrorHandler;

@@ -11,8 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src --ext .ts,.js --fix",
-    "lint:fix": "eslint src --ext .ts,.js --fix",
+    "lint": "eslint src --ext .vue,.ts,.js --fix",
+    "lint:fix": "eslint src --ext .vue,.ts,.js --fix",
     "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-admin-staging",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-admin"
   },

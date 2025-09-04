@@ -6,8 +6,8 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <button
-              @click="$router.back()"
               class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+              @click="$router.back()"
             >
               <ArrowLeftIcon class="w-5 h-5 text-gray-600" />
             </button>
@@ -23,10 +23,7 @@
         <ClockIcon class="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h2 class="text-lg font-semibold text-gray-900 mb-2">歷史記錄功能</h2>
         <p class="text-gray-600 mb-4">此功能將在後續版本中實現</p>
-        <button
-          @click="$router.back()"
-          class="btn-kitchen-primary px-6 py-3"
-        >
+        <button class="btn-kitchen-primary px-6 py-3" @click="$router.back()">
           返回廚房系統
         </button>
       </div>
@@ -35,6 +32,6 @@
 </template>
 
 <script setup lang="ts">
-import ArrowLeftIcon from '@heroicons/vue/24/outline/ArrowLeftIcon'
-import ClockIcon from '@heroicons/vue/24/outline/ClockIcon'
+import ArrowLeftIcon from "@heroicons/vue/24/outline/ArrowLeftIcon";
+import ClockIcon from "@heroicons/vue/24/outline/ClockIcon";
 </script>

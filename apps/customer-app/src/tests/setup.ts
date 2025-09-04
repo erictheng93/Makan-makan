@@ -1,59 +1,61 @@
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
 // Mock localStorage with proper implementation
 const localStorageMock = {
   getItem: vi.fn((key: string) => {
-    if (key === 'makanmakan_language') return 'zh-TW'
-    return null
+    if (key === "makanmakan_language") return "zh-TW";
+    return null;
   }),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
-}
+};
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
-  writable: true
-})
+  writable: true,
+});
 
 // Mock navigator
-Object.defineProperty(window, 'navigator', {
+Object.defineProperty(window, "navigator", {
   value: {
-    language: 'zh-TW',
-    languages: ['zh-TW', 'zh', 'en'],
+    language: "zh-TW",
+    languages: ["zh-TW", "zh", "en"],
   },
-  writable: true
-})
+  writable: true,
+});
 
 // Mock document.documentElement
 const documentElementMock = {
-  lang: 'zh-TW',
-  dir: 'ltr'
-}
-Object.defineProperty(document, 'documentElement', {
+  lang: "zh-TW",
+  dir: "ltr",
+};
+Object.defineProperty(document, "documentElement", {
   value: documentElementMock,
-  writable: true
-})
+  writable: true,
+});
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
-  disconnect: vi.fn()
-}))
+  disconnect: vi.fn(),
+}));
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
-  disconnect: vi.fn()
-}))
+  disconnect: vi.fn(),
+}));
 
 // Make mocks available globally for tests
 declare global {
-  var localStorageMock: Storage
-  var documentElementMock: HTMLElement
+  // eslint-disable-next-line no-var
+  var localStorageMock: Storage;
+  // eslint-disable-next-line no-var
+  var documentElementMock: HTMLElement;
 }
 
-(global as any).localStorageMock = localStorageMock
-;(global as any).documentElementMock = documentElementMock
+(global as any).localStorageMock = localStorageMock;
+(global as any).documentElementMock = documentElementMock;

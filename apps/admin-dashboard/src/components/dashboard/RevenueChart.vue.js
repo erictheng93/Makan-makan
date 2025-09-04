@@ -203,7 +203,7 @@ else if (!__VLS_ctx.data || __VLS_ctx.data.length === 0) {
         ...{ class: "text-center" },
     });
     const __VLS_0 = {}.BarChart3;
-    /** @type {[typeof __VLS_components.BarChart3, ]} */ ;
+    /** @type {[typeof __VLS_components.BarChart3, ]} */ 
     // @ts-ignore
     BarChart3;
     // @ts-ignore
@@ -220,52 +220,52 @@ else {
         ref: "chartCanvas",
         ...{ class: "w-full h-full" },
     });
-    /** @type {typeof __VLS_ctx.chartCanvas} */ ;
+    /** @type {typeof __VLS_ctx.chartCanvas} */ 
     // @ts-ignore
     [chartCanvas,];
 }
-/** @type {__VLS_StyleScopedClasses['h-80']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-10']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-10']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-3/4']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-5/6']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-16']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-16']} */ ;
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
-var __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['h-80']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['h-full']} */ 
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
+/** @type {__VLS_StyleScopedClasses['w-full']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['h-10']} */ 
+/** @type {__VLS_StyleScopedClasses['w-10']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
+/** @type {__VLS_StyleScopedClasses['py-1']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['w-3/4']} */ 
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['w-5/6']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['h-full']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
+/** @type {__VLS_StyleScopedClasses['text-center']} */ 
+/** @type {__VLS_StyleScopedClasses['w-16']} */ 
+/** @type {__VLS_StyleScopedClasses['h-16']} */ 
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['w-full']} */ 
+/** @type {__VLS_StyleScopedClasses['h-full']} */ 
+let __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         BarChart3: BarChart3,
@@ -278,4 +278,4 @@ export default (await import('vue')).defineComponent({
     __typeProps: {},
     props: {},
 });
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

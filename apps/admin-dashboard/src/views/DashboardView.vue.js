@@ -107,7 +107,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [refreshData, isLoading, isLoading,];
 const __VLS_0 = {}.RefreshCw;
-/** @type {[typeof __VLS_components.RefreshCw, ]} */ ;
+/** @type {[typeof __VLS_components.RefreshCw, ]} */ 
 // @ts-ignore
 RefreshCw;
 // @ts-ignore
@@ -124,7 +124,7 @@ const __VLS_2 = __VLS_1({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" },
 });
-/** @type {[typeof StatsCard, ]} */ ;
+/** @type {[typeof StatsCard, ]} */ 
 // @ts-ignore
 const __VLS_5 = __VLS_asFunctionalComponent(StatsCard, new StatsCard({
     title: "今日訂單",
@@ -142,7 +142,7 @@ const __VLS_6 = __VLS_5({
 }, ...__VLS_functionalComponentArgsRest(__VLS_5));
 // @ts-ignore
 [isLoading, todayOrders,];
-/** @type {[typeof StatsCard, ]} */ ;
+/** @type {[typeof StatsCard, ]} */ 
 // @ts-ignore
 const __VLS_9 = __VLS_asFunctionalComponent(StatsCard, new StatsCard({
     title: "今日營收",
@@ -160,7 +160,7 @@ const __VLS_10 = __VLS_9({
 }, ...__VLS_functionalComponentArgsRest(__VLS_9));
 // @ts-ignore
 [isLoading, formatCurrency, todayRevenue,];
-/** @type {[typeof StatsCard, ]} */ ;
+/** @type {[typeof StatsCard, ]} */ 
 // @ts-ignore
 const __VLS_13 = __VLS_asFunctionalComponent(StatsCard, new StatsCard({
     title: "平均客單價",
@@ -178,7 +178,7 @@ const __VLS_14 = __VLS_13({
 }, ...__VLS_functionalComponentArgsRest(__VLS_13));
 // @ts-ignore
 [isLoading, formatCurrency, averageOrderValue,];
-/** @type {[typeof StatsCard, ]} */ ;
+/** @type {[typeof StatsCard, ]} */ 
 // @ts-ignore
 const __VLS_17 = __VLS_asFunctionalComponent(StatsCard, new StatsCard({
     title: "完成率",
@@ -224,7 +224,7 @@ __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
 __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
     value: "monthly",
 });
-/** @type {[typeof RevenueChart, ]} */ ;
+/** @type {[typeof RevenueChart, ]} */ 
 // @ts-ignore
 const __VLS_21 = __VLS_asFunctionalComponent(RevenueChart, new RevenueChart({
     data: __VLS_ctx.revenueChart,
@@ -263,7 +263,7 @@ __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
 __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
     value: "monthly",
 });
-/** @type {[typeof OrdersChart, ]} */ ;
+/** @type {[typeof OrdersChart, ]} */ 
 // @ts-ignore
 const __VLS_25 = __VLS_asFunctionalComponent(OrdersChart, new OrdersChart({
     data: __VLS_ctx.ordersChart,
@@ -289,7 +289,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
     ...{ class: "text-lg font-semibold text-gray-900 mb-4" },
 });
-/** @type {[typeof TopMenuItems, ]} */ ;
+/** @type {[typeof TopMenuItems, ]} */ 
 // @ts-ignore
 const __VLS_29 = __VLS_asFunctionalComponent(TopMenuItems, new TopMenuItems({
     items: __VLS_ctx.topMenuItems,
@@ -311,7 +311,7 @@ __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
     ...{ class: "text-lg font-semibold text-gray-900" },
 });
 const __VLS_33 = {}.RouterLink;
-/** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+/** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ 
 // @ts-ignore
 RouterLink;
 // @ts-ignore
@@ -324,8 +324,8 @@ const __VLS_35 = __VLS_34({
     ...{ class: "text-primary-600 hover:text-primary-700 text-sm font-medium" },
 }, ...__VLS_functionalComponentArgsRest(__VLS_34));
 const { default: __VLS_37 } = __VLS_36.slots;
-var __VLS_36;
-/** @type {[typeof RecentOrders, ]} */ ;
+let __VLS_36;
+/** @type {[typeof RecentOrders, ]} */ 
 // @ts-ignore
 const __VLS_38 = __VLS_asFunctionalComponent(RecentOrders, new RecentOrders({
     loading: (__VLS_ctx.orderStore.isLoading),
@@ -348,7 +348,7 @@ if (__VLS_ctx.canAccessAdminFeatures) {
         ...{ class: "grid grid-cols-2 md:grid-cols-4 gap-4" },
     });
     const __VLS_42 = {}.RouterLink;
-    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ 
     // @ts-ignore
     RouterLink;
     // @ts-ignore
@@ -362,7 +362,7 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     }, ...__VLS_functionalComponentArgsRest(__VLS_43));
     const { default: __VLS_46 } = __VLS_45.slots;
     const __VLS_47 = {}.Menu;
-    /** @type {[typeof __VLS_components.Menu, ]} */ ;
+    /** @type {[typeof __VLS_components.Menu, ]} */ 
     // @ts-ignore
     Menu;
     // @ts-ignore
@@ -375,9 +375,9 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "text-sm font-medium text-gray-900" },
     });
-    var __VLS_45;
+    let __VLS_45;
     const __VLS_52 = {}.RouterLink;
-    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ 
     // @ts-ignore
     RouterLink;
     // @ts-ignore
@@ -391,7 +391,7 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     }, ...__VLS_functionalComponentArgsRest(__VLS_53));
     const { default: __VLS_56 } = __VLS_55.slots;
     const __VLS_57 = {}.Table;
-    /** @type {[typeof __VLS_components.Table, ]} */ ;
+    /** @type {[typeof __VLS_components.Table, ]} */ 
     // @ts-ignore
     Table;
     // @ts-ignore
@@ -404,9 +404,9 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "text-sm font-medium text-gray-900" },
     });
-    var __VLS_55;
+    let __VLS_55;
     const __VLS_62 = {}.RouterLink;
-    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ 
     // @ts-ignore
     RouterLink;
     // @ts-ignore
@@ -420,7 +420,7 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     }, ...__VLS_functionalComponentArgsRest(__VLS_63));
     const { default: __VLS_66 } = __VLS_65.slots;
     const __VLS_67 = {}.Users;
-    /** @type {[typeof __VLS_components.Users, ]} */ ;
+    /** @type {[typeof __VLS_components.Users, ]} */ 
     // @ts-ignore
     Users;
     // @ts-ignore
@@ -433,9 +433,9 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "text-sm font-medium text-gray-900" },
     });
-    var __VLS_65;
+    let __VLS_65;
     const __VLS_72 = {}.RouterLink;
-    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ 
     // @ts-ignore
     RouterLink;
     // @ts-ignore
@@ -449,7 +449,7 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     }, ...__VLS_functionalComponentArgsRest(__VLS_73));
     const { default: __VLS_76 } = __VLS_75.slots;
     const __VLS_77 = {}.BarChart3;
-    /** @type {[typeof __VLS_components.BarChart3, ]} */ ;
+    /** @type {[typeof __VLS_components.BarChart3, ]} */ 
     // @ts-ignore
     BarChart3;
     // @ts-ignore
@@ -462,153 +462,153 @@ if (__VLS_ctx.canAccessAdminFeatures) {
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "text-sm font-medium text-gray-900" },
     });
-    var __VLS_75;
+    let __VLS_75;
 }
-/** @type {__VLS_StyleScopedClasses['space-y-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-secondary']} */ ;
-/** @type {__VLS_StyleScopedClasses['opacity-50']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-spin']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-auto']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-auto']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['lg:col-span-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:text-primary-700']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid-cols-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-6']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-3']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
+/** @type {__VLS_StyleScopedClasses['btn-secondary']} */ 
+/** @type {__VLS_StyleScopedClasses['opacity-50']} */ 
+/** @type {__VLS_StyleScopedClasses['w-4']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
+/** @type {__VLS_StyleScopedClasses['animate-spin']} */ 
+/** @type {__VLS_StyleScopedClasses['grid']} */ 
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ 
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-4']} */ 
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
+/** @type {__VLS_StyleScopedClasses['grid']} */ 
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-2']} */ 
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['form-input']} */ 
+/** @type {__VLS_StyleScopedClasses['w-auto']} */ 
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['form-input']} */ 
+/** @type {__VLS_StyleScopedClasses['w-auto']} */ 
+/** @type {__VLS_StyleScopedClasses['grid']} */ 
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ 
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
+/** @type {__VLS_StyleScopedClasses['lg:col-span-2']} */ 
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:text-primary-700']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['card']} */ 
+/** @type {__VLS_StyleScopedClasses['p-6']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['grid']} */ 
+/** @type {__VLS_StyleScopedClasses['grid-cols-2']} */ 
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-4']} */ 
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['p-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ 
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
 /** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ 
+/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['p-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ 
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
+/** @type {__VLS_StyleScopedClasses['w-8']} */ 
+/** @type {__VLS_StyleScopedClasses['h-8']} */ 
+/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['p-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ 
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
+/** @type {__VLS_StyleScopedClasses['w-8']} */ 
+/** @type {__VLS_StyleScopedClasses['h-8']} */ 
+/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['p-4']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ 
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
+/** @type {__VLS_StyleScopedClasses['w-8']} */ 
+/** @type {__VLS_StyleScopedClasses['h-8']} */ 
 /** @type {__VLS_StyleScopedClasses['text-primary-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-100']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-primary-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-var __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+let __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         RefreshCw: RefreshCw,
@@ -643,4 +643,4 @@ const __VLS_self = (await import('vue')).defineComponent({
     }),
 });
 export default (await import('vue')).defineComponent({});
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

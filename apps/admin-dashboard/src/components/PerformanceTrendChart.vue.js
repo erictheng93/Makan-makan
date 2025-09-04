@@ -283,8 +283,8 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -347,7 +347,7 @@ __VLS_asFunctionalElement(__VLS_elements.canvas, __VLS_elements.canvas)({
     height: (__VLS_ctx.height),
     ...{ class: "max-w-full" },
 });
-/** @type {typeof __VLS_ctx.chartCanvas} */ ;
+/** @type {typeof __VLS_ctx.chartCanvas} */ 
 // @ts-ignore
 [width, height, chartCanvas,];
 if (__VLS_ctx.isLoading) {
@@ -376,7 +376,7 @@ if (!__VLS_ctx.isLoading && (!__VLS_ctx.data || __VLS_ctx.data.length === 0)) {
         ...{ class: "text-center" },
     });
     const __VLS_0 = {}.ChartBarIcon;
-    /** @type {[typeof __VLS_components.ChartBarIcon, ]} */ ;
+    /** @type {[typeof __VLS_components.ChartBarIcon, ]} */ 
     // @ts-ignore
     ChartBarIcon;
     // @ts-ignore
@@ -420,7 +420,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_5 = {}.ArrowTrendingUpIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ ;
+        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ 
         // @ts-ignore
         ArrowTrendingUpIcon;
         // @ts-ignore
@@ -435,7 +435,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_10 = {}.ArrowTrendingDownIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ ;
+        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ 
         // @ts-ignore
         ArrowTrendingDownIcon;
         // @ts-ignore
@@ -450,7 +450,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_15 = {}.MinusIcon;
-        /** @type {[typeof __VLS_components.MinusIcon, ]} */ ;
+        /** @type {[typeof __VLS_components.MinusIcon, ]} */ 
         // @ts-ignore
         MinusIcon;
         // @ts-ignore
@@ -484,108 +484,108 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [exportChart,];
-/** @type {__VLS_StyleScopedClasses['performance-trend-chart']} */ ;
+/** @type {__VLS_StyleScopedClasses['performance-trend-chart']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['border']} */ 
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['px-2']} */ 
+/** @type {__VLS_StyleScopedClasses['py-1']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['border']} */ 
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['px-2']} */ 
+/** @type {__VLS_StyleScopedClasses['py-1']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
+/** @type {__VLS_StyleScopedClasses['loading']} */ 
+/** @type {__VLS_StyleScopedClasses['max-w-full']} */ 
+/** @type {__VLS_StyleScopedClasses['absolute']} */ 
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-opacity-75']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
+/** @type {__VLS_StyleScopedClasses['animate-spin']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
+/** @type {__VLS_StyleScopedClasses['h-6']} */ 
+/** @type {__VLS_StyleScopedClasses['w-6']} */ 
+/** @type {__VLS_StyleScopedClasses['border-b-2']} */ 
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
+/** @type {__VLS_StyleScopedClasses['absolute']} */ 
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
+/** @type {__VLS_StyleScopedClasses['text-center']} */ 
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
+/** @type {__VLS_StyleScopedClasses['h-12']} */ 
+/** @type {__VLS_StyleScopedClasses['w-12']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['w-3']} */ 
+/** @type {__VLS_StyleScopedClasses['h-3']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['w-4']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-green-500']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
+/** @type {__VLS_StyleScopedClasses['w-4']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-red-500']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
+/** @type {__VLS_StyleScopedClasses['w-4']} */ 
+/** @type {__VLS_StyleScopedClasses['h-4']} */ 
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['border']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['border']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['loading']} */ ;
-/** @type {__VLS_StyleScopedClasses['max-w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-opacity-75']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-spin']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-b-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-12']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-green-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-red-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ ;
-/** @type {__VLS_StyleScopedClasses['underline']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:text-green-800']} */ ;
-/** @type {__VLS_StyleScopedClasses['underline']} */ ;
-var __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ 
+/** @type {__VLS_StyleScopedClasses['underline']} */ 
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
+/** @type {__VLS_StyleScopedClasses['hover:text-green-800']} */ 
+/** @type {__VLS_StyleScopedClasses['underline']} */ 
+let __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ChartBarIcon: ChartBarIcon,
@@ -610,4 +610,4 @@ export default (await import('vue')).defineComponent({
     __typeProps: {},
     props: {},
 });
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

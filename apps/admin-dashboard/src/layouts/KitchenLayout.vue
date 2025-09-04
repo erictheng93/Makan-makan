@@ -9,25 +9,24 @@
             <span>{{ currentTime }}</span>
           </div>
         </div>
-        
+
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
             <span class="text-sm text-gray-300">待處理訂單</span>
-            <span class="bg-red-600 text-white px-3 py-1 rounded-full text-lg font-bold">
+            <span
+              class="bg-red-600 text-white px-3 py-1 rounded-full text-lg font-bold"
+            >
               {{ pendingOrdersCount }}
             </span>
           </div>
-          
-          <button 
-            @click="$router.push('/dashboard')"
-            class="btn-secondary"
-          >
+
+          <button class="btn-secondary" @click="$router.push('/dashboard')">
             返回管理介面
           </button>
         </div>
       </div>
     </header>
-    
+
     <main class="h-full overflow-hidden p-6">
       <router-view />
     </main>
@@ -35,29 +34,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Clock } from 'lucide-vue-next'
-import { useOrderStore } from '@/stores/order'
-import { format } from 'date-fns'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { Clock } from "lucide-vue-next";
+import { useOrderStore } from "@/stores/order";
+import { format } from "date-fns";
 
-const orderStore = useOrderStore()
-const currentTime = ref('')
-const pendingOrdersCount = computed(() => orderStore.pendingOrdersCount)
+const orderStore = useOrderStore();
+const currentTime = ref("");
+const pendingOrdersCount = computed(() => orderStore.pendingOrdersCount);
 
-let timeInterval: NodeJS.Timeout | null = null
+let timeInterval: NodeJS.Timeout | null = null;
 
 const updateTime = () => {
-  currentTime.value = format(new Date(), 'yyyy/MM/dd HH:mm:ss')
-}
+  currentTime.value = format(new Date(), "yyyy/MM/dd HH:mm:ss");
+};
 
 onMounted(() => {
-  updateTime()
-  timeInterval = setInterval(updateTime, 1000)
-})
+  updateTime();
+  timeInterval = setInterval(updateTime, 1000);
+});
 
 onUnmounted(() => {
   if (timeInterval) {
-    clearInterval(timeInterval)
+    clearInterval(timeInterval);
   }
-})
+});
 </script>

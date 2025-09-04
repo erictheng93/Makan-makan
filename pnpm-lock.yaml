@@ -424,6 +424,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^5.0.0
         version: 5.2.4(vite@5.4.19(@types/node@20.19.11)(terser@5.43.1))(vue@3.5.19(typescript@5.9.2))
+      '@vue/eslint-config-prettier':
+        specifier: ^8.0.0
+        version: 8.0.0(eslint@8.57.1)(prettier@3.6.2)
       '@vue/eslint-config-typescript':
         specifier: ^12.0.0
         version: 12.0.0(eslint-plugin-vue@9.33.0(eslint@8.57.1))(eslint@8.57.1)(typescript@5.9.2)
@@ -6875,7 +6878,7 @@ snapshots:
       std-env: 3.9.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.0)
+      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@26.1.0)(terser@5.44.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -6965,7 +6968,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.0)
+      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.43.1)
 
   '@vitest/utils@1.6.1':
     dependencies:

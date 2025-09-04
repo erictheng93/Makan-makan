@@ -7,26 +7,49 @@
         <div class="px-4 py-3 border-b border-gray-100">
           <div class="flex items-center justify-between">
             <button
-              @click="router.push('/')"
               class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              @click="router.push('/')"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
 
             <div class="flex-1 text-center">
-              <h1 class="font-semibold text-gray-900">{{ restaurant?.name || '載入中...' }}</h1>
+              <h1 class="font-semibold text-gray-900">
+                {{ restaurant?.name || "載入中..." }}
+              </h1>
               <p class="text-sm text-gray-500">桌號 {{ tableId }}</p>
             </div>
 
             <button
-              @click="router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)"
               class="relative w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              @click="
+                router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
+              "
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L6 2H3m4 11a3 3 0 100 6 3 3 0 000-6zm10 0a3 3 0 100 6 3 3 0 000-6z" />
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L6 2H3m4 11a3 3 0 100 6 3 3 0 000-6zm10 0a3 3 0 100 6 3 3 0 000-6z"
+                />
               </svg>
               <!-- 購物車數量徽章 -->
               <div
@@ -45,13 +68,13 @@
             <button
               v-for="category in categories"
               :key="category.id"
-              @click="scrollToCategory(category.id)"
               :class="[
                 'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                 activeCategoryId === category.id
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
               ]"
+              @click="scrollToCategory(category.id)"
             >
               {{ category.name }}
             </button>
@@ -64,23 +87,38 @@
     <main class="max-w-md mx-auto pb-20">
       <!-- 載入狀態 -->
       <div v-if="isLoading" class="p-8 text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
+        />
         <p class="text-gray-600">正在載入菜單...</p>
       </div>
 
       <!-- 錯誤狀態 -->
       <div v-else-if="error" class="p-8 text-center">
-        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div
+          class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <svg
+            class="w-8 h-8 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">載入失敗</h3>
-        <p class="text-gray-600 mb-4">{{ error }}</p>
+        <p class="text-gray-600 mb-4">
+          {{ error }}
+        </p>
         <button
-          @click="() => refetch()"
           class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          @click="() => refetch()"
         >
           重新載入
         </button>
@@ -96,16 +134,26 @@
             :placeholder="t('menu.searchPlaceholder')"
             class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
-          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" 
-               fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
 
         <!-- 推薦菜品 -->
         <section v-if="featuredItems.length > 0" class="mb-8">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">🌟 {{ t('menu.featured') }}</h2>
+          <h2 class="text-xl font-bold text-gray-900 mb-4">
+            🌟 {{ t("menu.featured") }}
+          </h2>
           <div class="grid gap-4">
             <MenuItemCard
               v-for="item in featuredItems"
@@ -121,13 +169,18 @@
         <!-- 分類菜單 -->
         <section
           v-for="category in filteredCategories"
-          :key="category.id"
           :id="`category-${category.id}`"
+          :key="category.id"
           class="scroll-mt-32"
         >
-          <h2 class="text-xl font-bold text-gray-900 mb-4 sticky top-32 bg-gray-50 py-2 z-10">
+          <h2
+            class="text-xl font-bold text-gray-900 mb-4 sticky top-32 bg-gray-50 py-2 z-10"
+          >
             {{ category.name }}
-            <span v-if="category.description" class="text-sm font-normal text-gray-500 block">
+            <span
+              v-if="category.description"
+              class="text-sm font-normal text-gray-500 block"
+            >
               {{ category.description }}
             </span>
           </h2>
@@ -143,21 +196,42 @@
           </div>
 
           <!-- 分類內無菜品提示 -->
-          <div v-if="getItemsByCategory(category.id).length === 0" class="py-8 text-center text-gray-500">
+          <div
+            v-if="getItemsByCategory(category.id).length === 0"
+            class="py-8 text-center text-gray-500"
+          >
             <p>此分類暫無可用菜品</p>
           </div>
         </section>
 
         <!-- 搜尋無結果 -->
-        <div v-if="searchQuery && filteredCategories.length === 0" class="py-12 text-center">
-          <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <div
+          v-if="searchQuery && filteredCategories.length === 0"
+          class="py-12 text-center"
+        >
+          <div
+            class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-8 h-8 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('menu.noResults') }}</h3>
-          <p class="text-gray-600">{{ t('menu.search') }}</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">
+            {{ t("menu.noResults") }}
+          </h3>
+          <p class="text-gray-600">
+            {{ t("menu.search") }}
+          </p>
         </div>
       </div>
     </main>
@@ -168,11 +242,15 @@
       class="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto"
     >
       <button
-        @click="router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)"
         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg transition-colors flex items-center justify-between"
+        @click="
+          router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
+        "
       >
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+          <div
+            class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+          >
             <span class="text-sm font-bold">{{ cartStore.itemCount }}</span>
           </div>
           <span>查看購物車</span>
@@ -204,194 +282,190 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-import { useQuery } from '@tanstack/vue-query'
-import { useToast } from 'vue-toastification'
-import { useI18n } from '@/composables/useI18n'
-import { useAppStore } from '@/stores/app'
-import { useCartStore } from '@/stores/cart'
-import MenuItemCard from '@/components/MenuItemCard.vue'
-import MenuItemModal from '@/components/MenuItemModal.vue'
-import CustomizationModal from '@/components/CustomizationModal.vue'
-import { menuApi } from '@/services/menuApi'
-import { formatPrice } from '@/utils/format'
-import type { 
-  Restaurant, 
-  MenuStructure, 
-  MenuItem, 
+import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { useRouter } from "vue-router";
+import { useQuery } from "@tanstack/vue-query";
+import { useToast } from "vue-toastification";
+import { useI18n } from "@/composables/useI18n";
+import { useAppStore } from "@/stores/app";
+import { useCartStore } from "@/stores/cart";
+import MenuItemCard from "@/components/MenuItemCard.vue";
+import MenuItemModal from "@/components/MenuItemModal.vue";
+import CustomizationModal from "@/components/CustomizationModal.vue";
+import { menuApi } from "@/services/menuApi";
+import { formatPrice } from "@/utils/format";
+import type {
+  Restaurant,
+  MenuStructure,
+  MenuItem,
   Category,
-  SelectedCustomizations 
-} from '@makanmakan/shared-types'
+  SelectedCustomizations,
+} from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{
-  restaurantId: number
-  tableId: number
-}>()
+  restaurantId: number;
+  tableId: number;
+}>();
 
 // Composables
-const router = useRouter()
-const toast = useToast()
-const { t } = useI18n()
-const appStore = useAppStore()
-const cartStore = useCartStore()
+const router = useRouter();
+const toast = useToast();
+const { t } = useI18n();
+const appStore = useAppStore();
+const cartStore = useCartStore();
 
 // State
-const searchQuery = ref('')
-const activeCategoryId = ref<number | null>(null)
-const selectedItem = ref<MenuItem | null>(null)
-const customizingItem = ref<MenuItem | null>(null)
-const showItemModal = ref(false)
-const showCustomizationModal = ref(false)
+const searchQuery = ref("");
+const activeCategoryId = ref<number | null>(null);
+const selectedItem = ref<MenuItem | null>(null);
+const customizingItem = ref<MenuItem | null>(null);
+const showItemModal = ref(false);
+const showCustomizationModal = ref(false);
 
 // 初始化購物車
 onMounted(() => {
-  cartStore.initializeCart(props.restaurantId, props.tableId)
-})
+  cartStore.initializeCart(props.restaurantId, props.tableId);
+});
 
 // API Queries
-const { 
-  data: restaurant, 
-  isLoading: isLoadingRestaurant 
-} = useQuery({
-  queryKey: ['restaurant', props.restaurantId],
+const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
+  queryKey: ["restaurant", props.restaurantId],
   queryFn: () => menuApi.getRestaurant(props.restaurantId),
-  staleTime: 5 * 60 * 1000 // 5分鐘
-})
+  staleTime: 5 * 60 * 1000, // 5分鐘
+});
 
-const { 
-  data: menuStructure, 
+const {
+  data: menuStructure,
   isLoading: isLoadingMenu,
   error: menuError,
-  refetch 
+  refetch,
 } = useQuery({
-  queryKey: ['menu', props.restaurantId],
+  queryKey: ["menu", props.restaurantId],
   queryFn: () => menuApi.getMenu(props.restaurantId),
   staleTime: 2 * 60 * 1000, // 2分鐘
-  refetchOnWindowFocus: true
-})
+  refetchOnWindowFocus: true,
+});
 
 // Computed
-const isLoading = computed(() => isLoadingRestaurant.value || isLoadingMenu.value)
-const error = computed(() => menuError.value?.message || null)
+const isLoading = computed(
+  () => isLoadingRestaurant.value || isLoadingMenu.value,
+);
+const error = computed(() => menuError.value?.message || null);
 
-const categories = computed(() => menuStructure.value?.categories || [])
-const menuItems = computed(() => menuStructure.value?.menuItems || [])
+const categories = computed(() => menuStructure.value?.categories || []);
+const menuItems = computed(() => menuStructure.value?.menuItems || []);
 
-const featuredItems = computed(() => 
-  menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable)
-)
+const featuredItems = computed(() =>
+  menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
+);
 
 const filteredCategories = computed(() => {
   if (!searchQuery.value.trim()) {
-    return categories.value.filter(category => 
-      getItemsByCategory(category.id).length > 0
-    )
+    return categories.value.filter(
+      (category) => getItemsByCategory(category.id).length > 0,
+    );
   }
 
-  const query = searchQuery.value.toLowerCase().trim()
+  const query = searchQuery.value.toLowerCase().trim();
   return categories.value.filter((category: any) => {
-    const categoryItems = getItemsByCategory(category.id)
-    return categoryItems.some((item: any) => 
-      item.name.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query)
-    )
-  })
-})
+    const categoryItems = getItemsByCategory(category.id);
+    return categoryItems.some(
+      (item: any) =>
+        item.name.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query),
+    );
+  });
+});
 
 // Methods
 const getItemsByCategory = (categoryId: number) => {
-  let items = menuItems.value.filter((item: any) => 
-    item.categoryId === categoryId && item.isAvailable
-  )
+  let items = menuItems.value.filter(
+    (item: any) => item.categoryId === categoryId && item.isAvailable,
+  );
 
   if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    items = items.filter((item: any) => 
-      item.name.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query)
-    )
+    const query = searchQuery.value.toLowerCase().trim();
+    items = items.filter(
+      (item: any) =>
+        item.name.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query),
+    );
   }
 
-  return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder)
-}
+  return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+};
 
 const scrollToCategory = (categoryId: number) => {
-  activeCategoryId.value = categoryId
-  const element = document.getElementById(`category-${categoryId}`)
+  activeCategoryId.value = categoryId;
+  const element = document.getElementById(`category-${categoryId}`);
   if (element) {
-    element.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start'
-    })
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
-}
+};
 
 const handleAddToCart = (data: {
-  item: MenuItem
-  quantity: number
-  customizations?: SelectedCustomizations
-  notes?: string
+  item: MenuItem;
+  quantity: number;
+  customizations?: SelectedCustomizations;
+  notes?: string;
 }) => {
-  cartStore.addItem(
-    data.item,
-    data.quantity,
-    data.customizations,
-    data.notes
-  )
+  cartStore.addItem(data.item, data.quantity, data.customizations, data.notes);
 
-  toast.success(`已加入 ${data.item.name} x${data.quantity}`)
+  toast.success(`已加入 ${data.item.name} x${data.quantity}`);
 
   // 關閉彈窗
-  showItemModal.value = false
-  showCustomizationModal.value = false
-  selectedItem.value = null
-  customizingItem.value = null
-}
+  showItemModal.value = false;
+  showCustomizationModal.value = false;
+  selectedItem.value = null;
+  customizingItem.value = null;
+};
 
 const handleViewDetails = (item: MenuItem) => {
-  selectedItem.value = item
-  showItemModal.value = true
-}
+  selectedItem.value = item;
+  showItemModal.value = true;
+};
 
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
   const sections = categories.value.map((category: any) => ({
     id: category.id,
-    element: document.getElementById(`category-${category.id}`)
-  }))
+    element: document.getElementById(`category-${category.id}`),
+  }));
 
-  const scrollTop = window.pageYOffset
-  const windowHeight = window.innerHeight
+  const scrollTop = window.pageYOffset;
+  const windowHeight = window.innerHeight;
 
   for (let i = sections.length - 1; i >= 0; i--) {
-    const section = sections[i]
+    const section = sections[i];
     if (section.element) {
-      const rect = section.element.getBoundingClientRect()
+      const rect = section.element.getBoundingClientRect();
       if (rect.top <= windowHeight / 3) {
-        activeCategoryId.value = section.id
-        break
+        activeCategoryId.value = section.id;
+        break;
       }
     }
   }
-}
+};
 
 onMounted(() => {
-  window.addEventListener('scroll', updateActiveCategoryOnScroll)
-  
+  window.addEventListener("scroll", updateActiveCategoryOnScroll);
+
   // 設定餐廳上下文
   if (restaurant.value) {
-    appStore.setRestaurantContext(restaurant.value, props.tableId)
+    appStore.setRestaurantContext(restaurant.value, props.tableId);
   }
-})
+});
 
 // 監聽餐廳資料變化
 watch(restaurant, (newRestaurant) => {
   if (newRestaurant) {
-    appStore.setRestaurantContext(newRestaurant, props.tableId)
+    appStore.setRestaurantContext(newRestaurant, props.tableId);
   }
-})
+});
 </script>
 
 <style scoped>

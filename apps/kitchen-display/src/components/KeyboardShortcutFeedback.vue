@@ -2,197 +2,186 @@
   <div class="keyboard-feedback-container">
     <!-- Shortcut Help Overlay -->
     <Teleport to="body">
-      <div 
-        v-if="showHelp" 
-        class="shortcut-help-overlay"
-        @click="hideHelp"
-      >
+      <div v-if="showHelp" class="shortcut-help-overlay" @click="hideHelp">
         <div class="shortcut-help-panel" @click.stop>
           <div class="help-header">
             <h2>鍵盤快捷鍵</h2>
-            <button @click="hideHelp" class="close-button">
+            <button class="close-button" @click="hideHelp">
               <!-- <Icon name="x" size="20" /> -->
             </button>
           </div>
-          
+
           <div class="shortcut-groups">
-            <div 
-              v-for="group in shortcutGroups" 
+            <div
+              v-for="group in shortcutGroups"
               :key="group.category"
               class="shortcut-group"
             >
-              <h3 class="group-title">{{ group.title }}</h3>
+              <h3 class="group-title">
+                {{ group.title }}
+              </h3>
               <div class="shortcuts-list">
-                <div 
-                  v-for="shortcut in group.shortcuts" 
+                <div
+                  v-for="shortcut in group.shortcuts"
                   :key="shortcut.id"
                   class="shortcut-item"
                   :class="{ disabled: !shortcut.enabled }"
                 >
                   <div class="shortcut-keys">
-                    <kbd 
-                      v-for="key in shortcut.keys" 
-                      :key="key"
-                      class="key"
-                    >
+                    <kbd v-for="key in shortcut.keys" :key="key" class="key">
                       {{ formatKey(key) }}
                     </kbd>
                   </div>
                   <div class="shortcut-info">
-                    <div class="shortcut-name">{{ shortcut.name }}</div>
-                    <div class="shortcut-description">{{ shortcut.description }}</div>
+                    <div class="shortcut-name">
+                      {{ shortcut.name }}
+                    </div>
+                    <div class="shortcut-description">
+                      {{ shortcut.description }}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div class="help-footer">
-            <p>按 <kbd>?</kbd> 或 <kbd>Esc</kbd> 關閉此幫助</p>
-          </div>
+        </div>
+
+        <div class="help-footer">
+          <p>按 <kbd>?</kbd> 或 <kbd>Esc</kbd> 關閉此幫助</p>
         </div>
       </div>
     </Teleport>
+  </div>
 
-    <!-- Action Feedback Toast -->
-    <Teleport to="body">
-      <Transition name="feedback-toast">
-        <div 
-          v-if="showActionFeedback" 
-          class="action-feedback-toast"
-          :class="actionFeedback.type"
-        >
-          <!-- <Icon :name="actionFeedback.icon" class="feedback-icon" /> -->
-          <span class="feedback-text">{{ actionFeedback.text }}</span>
-          <div class="feedback-shortcut">
-            <kbd 
-              v-for="key in actionFeedback.keys" 
-              :key="key"
-              class="feedback-key"
-            >
-              {{ formatKey(key) }}
-            </kbd>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- Key Press Visualization -->
-    <div 
-      v-if="showKeyPresses && activeKeys.size > 0" 
-      class="key-press-display"
-    >
-      <div class="pressed-keys">
-        <kbd 
-          v-for="key in activeKeys" 
-          :key="key"
-          class="pressed-key"
-        >
-          {{ formatKey(key) }}
-        </kbd>
-      </div>
-    </div>
-
-    <!-- Shortcut Status Bar -->
-    <div v-if="showStatusBar" class="shortcut-status-bar">
-      <div class="status-section">
-        <!-- <Icon name="keyboard" size="16" /> -->
-        <span>快捷鍵: {{ enabled ? '啟用' : '停用' }}</span>
-      </div>
-      
-      <div class="status-section">
-        <!-- <Icon name="zap" size="16" /> -->
-        <span>最後動作: {{ lastActionName || '無' }}</span>
-      </div>
-      
-      <div class="status-section actions">
-        <button 
-          @click="toggleEnabled" 
-          class="status-button"
-          :class="{ active: enabled }"
-        >
-          <!-- <Icon :name="enabled ? 'toggle-right' : 'toggle-left'" size="14" /> -->
-        </button>
-        
-        <button 
-          @click="toggleHelp" 
-          class="status-button"
-        >
-          <!-- <Icon name="help-circle" size="14" /> -->
-        </button>
-      </div>
-    </div>
-
-    <!-- Contextual Hints -->
-    <Transition name="hint-fade">
-      <div 
-        v-if="contextHint && showContextHints" 
-        class="context-hint"
-        :class="contextHint.type"
+  <!-- Action Feedback Toast -->
+  <Teleport to="body">
+    <Transition name="feedback-toast">
+      <div
+        v-if="showActionFeedback"
+        class="action-feedback-toast"
+        :class="actionFeedback.type"
       >
-        <!-- <Icon :name="contextHint.icon" class="hint-icon" /> -->
-        <div class="hint-content">
-          <div class="hint-text">{{ contextHint.text }}</div>
-          <div class="hint-shortcut">
-            <kbd 
-              v-for="key in contextHint.keys" 
-              :key="key"
-              class="hint-key"
-            >
-              {{ formatKey(key) }}
-            </kbd>
-          </div>
+        <!-- <Icon :name="actionFeedback.icon" class="feedback-icon" /> -->
+        <span class="feedback-text">{{ actionFeedback.text }}</span>
+        <div class="feedback-shortcut">
+          <kbd
+            v-for="key in actionFeedback.keys"
+            :key="key"
+            class="feedback-key"
+          >
+            {{ formatKey(key) }}
+          </kbd>
         </div>
-        <button @click="dismissHint" class="hint-dismiss">
-          <!-- <Icon name="x" size="14" /> -->
-        </button>
       </div>
     </Transition>
+  </Teleport>
 
-    <!-- Shortcut Learning Mode -->
-    <div v-if="learningMode" class="learning-overlay">
-      <div class="learning-panel">
-        <h3>學習模式</h3>
-        <p>按下任意鍵盤組合來查看對應的快捷鍵功能</p>
-        
-        <div v-if="learningKeys.length > 0" class="learning-current">
-          <div class="learning-keys">
-            <kbd 
-              v-for="key in learningKeys" 
-              :key="key"
-              class="learning-key"
-            >
-              {{ formatKey(key) }}
-            </kbd>
-          </div>
-          
-          <div v-if="learningMatch" class="learning-match">
-            <!-- <Icon name="check-circle" class="match-icon" /> -->
-            <div class="match-info">
-              <div class="match-name">{{ learningMatch.name }}</div>
-              <div class="match-description">{{ learningMatch.description }}</div>
-            </div>
-          </div>
-          
-          <div v-else class="learning-no-match">
-            <!-- <Icon name="minus-circle" class="no-match-icon" /> -->
-            <span>此組合鍵未設定快捷鍵</span>
-          </div>
+  <!-- Key Press Visualization -->
+  <div v-if="showKeyPresses && activeKeys.size > 0" class="key-press-display">
+    <div class="pressed-keys">
+      <kbd v-for="key in activeKeys" :key="key" class="pressed-key">
+        {{ formatKey(key) }}
+      </kbd>
+    </div>
+  </div>
+
+  <!-- Shortcut Status Bar -->
+  <div v-if="showStatusBar" class="shortcut-status-bar">
+    <div class="status-section">
+      <!-- <Icon name="keyboard" size="16" /> -->
+      <span>快捷鍵: {{ enabled ? "啟用" : "停用" }}</span>
+    </div>
+
+    <div class="status-section">
+      <!-- <Icon name="zap" size="16" /> -->
+      <span>最後動作: {{ lastActionName || "無" }}</span>
+    </div>
+
+    <div class="status-section actions">
+      <button
+        class="status-button"
+        :class="{ active: enabled }"
+        @click="toggleEnabled"
+      >
+        <!-- <Icon :name="enabled ? 'toggle-right' : 'toggle-left'" size="14" /> -->
+      </button>
+
+      <button class="status-button" @click="toggleHelp">
+        <!-- <Icon name="help-circle" size="14" /> -->
+      </button>
+    </div>
+  </div>
+
+  <!-- Contextual Hints -->
+  <Transition name="hint-fade">
+    <div
+      v-if="contextHint && showContextHints"
+      class="context-hint"
+      :class="contextHint.type"
+    >
+      <!-- <Icon :name="contextHint.icon" class="hint-icon" /> -->
+      <div class="hint-content">
+        <div class="hint-text">
+          {{ contextHint.text }}
         </div>
-        
-        <div class="learning-controls">
-          <button @click="exitLearningMode" class="learning-exit">
-            退出學習模式
-          </button>
+        <div class="hint-shortcut">
+          <kbd v-for="key in contextHint.keys" :key="key" class="hint-key">
+            {{ formatKey(key) }}
+          </kbd>
         </div>
       </div>
+      <button class="hint-dismiss" @click="dismissHint">
+        <!-- <Icon name="x" size="14" /> -->
+      </button>
+    </div>
+  </Transition>
+
+  <!-- Shortcut Learning Mode -->
+  <div v-if="learningMode" class="learning-overlay">
+    <div class="learning-panel">
+      <h3>學習模式</h3>
+      <p>按下任意鍵盤組合來查看對應的快捷鍵功能</p>
+
+      <div v-if="learningKeys.length > 0" class="learning-current">
+        <div class="learning-keys">
+          <kbd v-for="key in learningKeys" :key="key" class="learning-key">
+            {{ formatKey(key) }}
+          </kbd>
+        </div>
+
+        <div v-if="learningMatch" class="learning-match">
+          <!-- <Icon name="check-circle" class="match-icon" /> -->
+          <div class="match-info">
+            <div class="match-name">
+              {{ learningMatch.name }}
+            </div>
+            <div class="match-description">
+              {{ learningMatch.description }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="learning-no-match">
+        <!-- <Icon name="minus-circle" class="no-match-icon" /> -->
+        <span>此組合鍵未設定快捷鍵</span>
+      </div>
+    </div>
+
+    <div class="learning-controls">
+      <button class="learning-exit" @click="exitLearningMode">
+        退出學習模式
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useKeyboardShortcuts, type KeyboardShortcut } from '@/composables/useKeyboardShortcuts'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
+import {
+  useKeyboardShortcuts,
+  type KeyboardShortcut,
+} from "@/composables/useKeyboardShortcuts";
 // Icon component temporarily removed - TODO: Replace with heroicons
 
 // Composables
@@ -206,241 +195,251 @@ const {
   toggleHelp,
   hideHelp,
   toggle: toggleEnabled,
-  formatShortcut
-} = useKeyboardShortcuts()
+} = useKeyboardShortcuts();
 
 // Props
 interface Props {
-  showStatusBar?: boolean
-  showKeyPresses?: boolean
-  showContextHints?: boolean
-  enableLearningMode?: boolean
+  showStatusBar?: boolean;
+  showKeyPresses?: boolean;
+  showContextHints?: boolean;
+  enableLearningMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showStatusBar: true,
-  showKeyPresses: true, 
+  showKeyPresses: true,
   showContextHints: true,
-  enableLearningMode: false
-})
+  enableLearningMode: false,
+});
 
 // State
-const showActionFeedback = ref(false)
+const showActionFeedback = ref(false);
 const actionFeedback = reactive({
-  type: 'success',
-  icon: 'check',
-  text: '',
-  keys: [] as string[]
-})
+  type: "success",
+  icon: "check",
+  text: "",
+  keys: [] as string[],
+});
 
 const contextHint = ref<{
-  type: string
-  icon: string
-  text: string
-  keys: string[]
-} | null>(null)
+  type: string;
+  icon: string;
+  text: string;
+  keys: string[];
+} | null>(null);
 
-const learningMode = ref(false)
-const learningKeys = ref<string[]>([])
-const learningMatch = ref<KeyboardShortcut | null>(null)
+const learningMode = ref(false);
+const learningKeys = ref<string[]>([]);
+const learningMatch = ref<KeyboardShortcut | null>(null);
 
 // Computed
 const lastActionName = computed(() => {
-  if (actionQueue.value.length === 0) return null
-  
-  const lastAction = actionQueue.value[actionQueue.value.length - 1]
-  const shortcut = shortcuts.value.find(s => s.action === lastAction)
-  return shortcut?.name || lastAction
-})
+  if (actionQueue.value.length === 0) return null;
+
+  const lastAction = actionQueue.value[actionQueue.value.length - 1];
+  const shortcut = shortcuts.value.find((s) => s.action === lastAction);
+  return shortcut?.name || lastAction;
+});
 
 // Methods
 const formatKey = (key: string): string => {
   const keyMap: Record<string, string> = {
-    'Space': '␣',
-    'Enter': '↵', 
-    'Tab': '⇥',
-    'Escape': '⎋',
-    'Backspace': '⌫',
-    'Delete': '⌦',
-    'ArrowUp': '↑',
-    'ArrowDown': '↓',
-    'ArrowLeft': '←',
-    'ArrowRight': '→',
-    'Ctrl': '⌃',
-    'Cmd': '⌘',
-    'Alt': '⌥',
-    'Shift': '⇧'
-  }
-  return keyMap[key] || key.toUpperCase()
-}
+    Space: "␣",
+    Enter: "↵",
+    Tab: "⇥",
+    Escape: "⎋",
+    Backspace: "⌫",
+    Delete: "⌦",
+    ArrowUp: "↑",
+    ArrowDown: "↓",
+    ArrowLeft: "←",
+    ArrowRight: "→",
+    Ctrl: "⌃",
+    Cmd: "⌘",
+    Alt: "⌥",
+    Shift: "⇧",
+  };
+  return keyMap[key] || key.toUpperCase();
+};
 
-const showActionFeedbackMessage = (action: string, type = 'success') => {
-  const shortcut = shortcuts.value.find(s => s.action === action)
-  if (!shortcut) return
+const showActionFeedbackMessage = (action: string, type = "success") => {
+  const shortcut = shortcuts.value.find((s) => s.action === action);
+  if (!shortcut) return;
 
-  actionFeedback.type = type
-  actionFeedback.icon = getActionIcon(action, type)
-  actionFeedback.text = shortcut.name
-  actionFeedback.keys = shortcut.keys
+  actionFeedback.type = type;
+  actionFeedback.icon = getActionIcon(action, type);
+  actionFeedback.text = shortcut.name;
+  actionFeedback.keys = shortcut.keys;
 
-  showActionFeedback.value = true
-  
+  showActionFeedback.value = true;
+
   setTimeout(() => {
-    showActionFeedback.value = false
-  }, 2000)
-}
+    showActionFeedback.value = false;
+  }, 2000);
+};
 
 const getActionIcon = (action: string, type: string): string => {
-  if (type === 'error') return 'x-circle'
-  if (type === 'warning') return 'alert-triangle'
-  
-  const actionIcons: Record<string, string> = {
-    'quick_complete': 'check-circle',
-    'toggle_order_status': 'refresh-cw',
-    'toggle_fullscreen': 'maximize',
-    'toggle_audio': 'volume-2',
-    'refresh_orders': 'refresh-cw',
-    'show_shortcuts': 'help-circle'
-  }
-  
-  return actionIcons[action] || 'check'
-}
+  if (type === "error") return "x-circle";
+  if (type === "warning") return "alert-triangle";
 
-const showContextHint = (text: string, keys: string[], type = 'info', icon = 'info') => {
-  if (!props.showContextHints) return
-  
+  const actionIcons: Record<string, string> = {
+    quick_complete: "check-circle",
+    toggle_order_status: "refresh-cw",
+    toggle_fullscreen: "maximize",
+    toggle_audio: "volume-2",
+    refresh_orders: "refresh-cw",
+    show_shortcuts: "help-circle",
+  };
+
+  return actionIcons[action] || "check";
+};
+
+const showContextHint = (
+  text: string,
+  keys: string[],
+  type = "info",
+  icon = "info",
+) => {
+  if (!props.showContextHints) return;
+
   contextHint.value = {
     type,
     icon,
     text,
-    keys
-  }
-  
+    keys,
+  };
+
   // Auto dismiss after 5 seconds
   setTimeout(() => {
     if (contextHint.value && contextHint.value.text === text) {
-      contextHint.value = null
+      contextHint.value = null;
     }
-  }, 5000)
-}
+  }, 5000);
+};
 
 const dismissHint = () => {
-  contextHint.value = null
-}
+  contextHint.value = null;
+};
 
 const enterLearningMode = () => {
-  if (!props.enableLearningMode) return
-  
-  learningMode.value = true
-  learningKeys.value = []
-  learningMatch.value = null
-}
+  if (!props.enableLearningMode) return;
+
+  learningMode.value = true;
+  learningKeys.value = [];
+  learningMatch.value = null;
+};
 
 const exitLearningMode = () => {
-  learningMode.value = false
-  learningKeys.value = []
-  learningMatch.value = null
-}
+  learningMode.value = false;
+  learningKeys.value = [];
+  learningMatch.value = null;
+};
 
 const updateLearningKeys = (keys: string[]) => {
-  learningKeys.value = [...keys]
-  
+  learningKeys.value = [...keys];
+
   // Find matching shortcut
-  const match = shortcuts.value.find(shortcut => {
-    return shortcut.keys.length === keys.length &&
-           shortcut.keys.every(key => keys.includes(key))
-  })
-  
-  learningMatch.value = match || null
-}
+  const match = shortcuts.value.find((shortcut) => {
+    return (
+      shortcut.keys.length === keys.length &&
+      shortcut.keys.every((key) => keys.includes(key))
+    );
+  });
+
+  learningMatch.value = match || null;
+};
 
 // Context-aware hints based on current state
 const checkContextualHints = () => {
   // Example contextual hints
-  const currentHour = new Date().getHours()
-  
+  const currentHour = new Date().getHours();
+
   if (currentHour >= 11 && currentHour <= 14) {
     // Lunch rush hints
     setTimeout(() => {
       showContextHint(
-        '午餐時間到了！按空格鍵快速完成訂單',
-        ['Space'],
-        'info',
-        'clock'
-      )
-    }, 5000)
+        "午餐時間到了！按空格鍵快速完成訂單",
+        ["Space"],
+        "info",
+        "clock",
+      );
+    }, 5000);
   }
-  
+
   if (currentHour >= 18 && currentHour <= 21) {
     // Dinner rush hints
     setTimeout(() => {
       showContextHint(
-        '晚餐繁忙時段，按 M 切換音效提醒',
-        ['M'],
-        'warning',
-        'volume-2'
-      )
-    }, 3000)
+        "晚餐繁忙時段，按 M 切換音效提醒",
+        ["M"],
+        "warning",
+        "volume-2",
+      );
+    }, 3000);
   }
-}
+};
 
 // Event listeners for learning mode
 const handleLearningKeyDown = (event: KeyboardEvent) => {
-  if (!learningMode.value) return
-  
-  const keys = []
-  if (event.ctrlKey) keys.push('Ctrl')
-  if (event.altKey) keys.push('Alt') 
-  if (event.shiftKey) keys.push('Shift')
-  if (event.metaKey) keys.push('Cmd')
-  
-  const key = event.key === ' ' ? 'Space' : event.key
+  if (!learningMode.value) return;
+
+  const keys = [];
+  if (event.ctrlKey) keys.push("Ctrl");
+  if (event.altKey) keys.push("Alt");
+  if (event.shiftKey) keys.push("Shift");
+  if (event.metaKey) keys.push("Cmd");
+
+  const key = event.key === " " ? "Space" : event.key;
   if (!keys.includes(key) && key.length === 1) {
-    keys.push(key)
+    keys.push(key);
   }
-  
-  updateLearningKeys(keys)
-}
+
+  updateLearningKeys(keys);
+};
 
 const handleLearningKeyUp = () => {
   if (learningMode.value) {
-    learningKeys.value = []
-    learningMatch.value = null
+    learningKeys.value = [];
+    learningMatch.value = null;
   }
-}
+};
 
 // Watchers
-watch(() => actionQueue.value, (newQueue, oldQueue) => {
-  if (newQueue.length > (oldQueue?.length || 0)) {
-    const lastAction = newQueue[newQueue.length - 1]
-    showActionFeedbackMessage(lastAction)
-  }
-}, { deep: true })
+watch(
+  () => actionQueue.value,
+  (newQueue, oldQueue) => {
+    if (newQueue.length > (oldQueue?.length || 0)) {
+      const lastAction = newQueue[newQueue.length - 1];
+      showActionFeedbackMessage(lastAction);
+    }
+  },
+  { deep: true },
+);
 
 // Lifecycle
 onMounted(() => {
-  checkContextualHints()
-  
+  checkContextualHints();
+
   if (props.enableLearningMode) {
-    document.addEventListener('keydown', handleLearningKeyDown)
-    document.addEventListener('keyup', handleLearningKeyUp)
+    document.addEventListener("keydown", handleLearningKeyDown);
+    document.addEventListener("keyup", handleLearningKeyUp);
   }
-})
+});
 
 onUnmounted(() => {
   if (props.enableLearningMode) {
-    document.removeEventListener('keydown', handleLearningKeyDown)
-    document.removeEventListener('keyup', handleLearningKeyUp)
+    document.removeEventListener("keydown", handleLearningKeyDown);
+    document.removeEventListener("keyup", handleLearningKeyUp);
   }
-})
+});
 
 // Expose methods for parent components
 defineExpose({
   showActionFeedbackMessage,
   showContextHint,
   enterLearningMode,
-  exitLearningMode
-})
+  exitLearningMode,
+});
 </script>
 
 <style scoped>
@@ -927,20 +926,20 @@ defineExpose({
     margin: 20px;
     max-height: calc(100vh - 40px);
   }
-  
+
   .action-feedback-toast {
     left: 20px;
     right: 20px;
     max-width: none;
   }
-  
+
   .context-hint {
     left: 20px;
     right: 20px;
     transform: translateY(-50%);
     max-width: none;
   }
-  
+
   .learning-panel {
     margin: 20px;
     padding: 24px;

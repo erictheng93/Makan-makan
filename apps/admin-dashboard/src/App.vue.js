@@ -14,16 +14,16 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "min-h-screen" },
 });
 const __VLS_0 = {}.RouterView;
-/** @type {[typeof __VLS_components.RouterView, typeof __VLS_components.routerView, ]} */ ;
+/** @type {[typeof __VLS_components.RouterView, typeof __VLS_components.routerView, ]} */ 
 // @ts-ignore
 RouterView;
 // @ts-ignore
 const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
 const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
-/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ ;
-var __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ 
+let __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({}),
 });
 export default (await import('vue')).defineComponent({});
-; /* PartiallyEnd: #4569/main.vue */
+ /* PartiallyEnd: #4569/main.vue */

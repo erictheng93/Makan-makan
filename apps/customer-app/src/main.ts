@@ -1,24 +1,24 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import { VueQueryPlugin } from '@tanstack/vue-query'
-import Toast from 'vue-toastification'
-import 'vue-toastification/dist/index.css'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import { VueQueryPlugin } from "@tanstack/vue-query";
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
 
-import App from './App.vue'
-import router from './router'
-import { setupI18n } from './i18n'
-import './assets/css/main.css'
+import App from "./App.vue";
+import router from "./router";
+import { setupI18n } from "./i18n";
+import "./assets/css/main.css";
 
-const app = createApp(App)
+const app = createApp(App);
 
 // Pinia store
-app.use(createPinia())
+app.use(createPinia());
 
 // Vue Router
-app.use(router)
+app.use(router);
 
 // Vue I18n for internationalization
-setupI18n(app)
+setupI18n(app);
 
 // Vue Query for API state management
 app.use(VueQueryPlugin, {
@@ -31,11 +31,11 @@ app.use(VueQueryPlugin, {
       },
     },
   },
-})
+});
 
 // Toast notifications
 app.use(Toast, {
-  position: 'top-center',
+  position: "top-center",
   timeout: 3000,
   closeOnClick: true,
   pauseOnFocusLoss: true,
@@ -44,9 +44,9 @@ app.use(Toast, {
   draggablePercent: 0.6,
   showCloseButtonOnHover: false,
   hideProgressBar: false,
-  closeButton: 'button',
+  closeButton: "button",
   icon: true,
-  rtl: false
-})
+  rtl: false,
+});
 
-app.mount('#app')
+app.mount("#app");

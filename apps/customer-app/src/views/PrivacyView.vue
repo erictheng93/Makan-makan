@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50">
     <div class="max-w-4xl mx-auto py-8 px-4">
       <h1 class="text-3xl font-bold text-gray-900 mb-8">隱私權政策</h1>
-      
+
       <div class="bg-white rounded-lg shadow-sm p-6 space-y-6">
         <section>
           <h2 class="text-xl font-semibold text-gray-900 mb-4">資料收集</h2>

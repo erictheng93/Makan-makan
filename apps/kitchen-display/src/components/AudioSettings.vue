@@ -6,14 +6,14 @@
         <!-- <Icon name="volume-2" class="title-icon" /> -->
         音效設定
       </h3>
-      
+
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.enabled"
-            @change="updateSettings"
+            type="checkbox"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           啟用音效通知
         </label>
@@ -24,14 +24,14 @@
         <label class="setting-label">主音量</label>
         <div class="volume-control">
           <!-- <Icon name="volume-1" class="volume-icon" /> -->
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
+          <input
             v-model="volumePercent"
-            @input="updateVolume"
+            type="range"
+            min="0"
+            max="100"
             :disabled="!settings.enabled"
             class="volume-slider"
+            @input="updateVolume"
           />
           <!-- <Icon name="volume-2" class="volume-icon" /> -->
           <span class="volume-display">{{ volumePercent }}%</span>
@@ -40,36 +40,41 @@
 
       <div class="setting-item" :class="{ disabled: !settings.enabled }">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.useWebAudio"
-            @change="updateSettings"
+            type="checkbox"
             :disabled="!settings.enabled || !isWebAudioSupported"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           使用高級音效引擎 (Web Audio API)
         </label>
         <p class="setting-description">
           提供更好的音質和特效，需要現代瀏覽器支援
-          <span v-if="!isWebAudioSupported" class="unsupported">(此瀏覽器不支援)</span>
+          <span v-if="!isWebAudioSupported" class="unsupported"
+            >(此瀏覽器不支援)</span
+          >
         </p>
       </div>
     </div>
 
     <!-- Audio Effects -->
-    <div class="settings-section" v-if="settings.useWebAudio && settings.enabled">
+    <div
+      v-if="settings.useWebAudio && settings.enabled"
+      class="settings-section"
+    >
       <h3 class="section-title">
         <!-- <Icon name="music" class="title-icon" /> -->
         音效特效
       </h3>
-      
+
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.effects.reverb"
-            @change="updateSettings"
+            type="checkbox"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           混響效果
         </label>
@@ -78,11 +83,11 @@
 
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.effects.bass"
-            @change="updateSettings"
+            type="checkbox"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           低音增強
         </label>
@@ -91,11 +96,11 @@
 
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.spatialAudio"
-            @change="updateSettings"
+            type="checkbox"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           3D 空間音效
         </label>
@@ -109,15 +114,15 @@
         <!-- <Icon name="brain" class="title-icon" /> -->
         智慧功能
       </h3>
-      
+
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.adaptiveVolume"
-            @change="updateSettings"
+            type="checkbox"
             :disabled="!settings.enabled"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           自適應音量
         </label>
@@ -126,12 +131,12 @@
 
       <div class="setting-item">
         <label class="setting-label">
-          <input 
-            type="checkbox" 
+          <input
             v-model="settings.contextAware"
-            @change="updateSettings"
+            type="checkbox"
             :disabled="!settings.enabled"
             class="setting-checkbox"
+            @change="updateSettings"
           />
           情境感知通知
         </label>
@@ -145,42 +150,45 @@
         <!-- <Icon name="sliders" class="title-icon" /> -->
         個別音效設定
       </h3>
-      
+
       <div class="sound-settings-grid">
-        <div 
-          v-for="soundType in soundTypes" 
+        <div
+          v-for="soundType in soundTypes"
           :key="soundType.id"
           class="sound-setting"
         >
           <div class="sound-header">
             <label class="sound-label">
-              <input 
-                type="checkbox" 
+              <input
                 v-model="soundType.enabled"
-                @change="updateSoundSettings"
+                type="checkbox"
                 :disabled="!settings.enabled"
                 class="setting-checkbox"
+                @change="updateSoundSettings"
               />
               {{ soundType.name }}
             </label>
-            <button 
-              @click="testSound(soundType.id)"
+            <button
               :disabled="!settings.enabled || !soundType.enabled"
               class="test-button"
+              @click="testSound(soundType.id)"
             >
               <!-- <Icon name="play" size="14" /> -->
             </button>
           </div>
-          
-          <div class="sound-volume" :class="{ disabled: !soundType.enabled || !settings.enabled }">
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
+
+          <div
+            class="sound-volume"
+            :class="{ disabled: !soundType.enabled || !settings.enabled }"
+          >
+            <input
               v-model="soundType.volume"
-              @input="updateSoundSettings"
+              type="range"
+              min="0"
+              max="100"
               :disabled="!settings.enabled || !soundType.enabled"
               class="sound-slider"
+              @input="updateSoundSettings"
             />
             <span class="sound-volume-display">{{ soundType.volume }}%</span>
           </div>
@@ -194,71 +202,79 @@
         <!-- <Icon name="headphones" class="title-icon" /> -->
         音效測試
       </h3>
-      
+
       <div class="test-controls">
-        <button 
-          @click="testNewOrder"
+        <button
           :disabled="!settings.enabled"
           class="test-control-button primary"
+          @click="testNewOrder"
         >
           <!-- <Icon name="bell" /> -->
           測試新訂單
         </button>
-        
-        <button 
-          @click="testUrgentAlert"
+
+        <button
           :disabled="!settings.enabled"
           class="test-control-button warning"
+          @click="testUrgentAlert"
         >
           <!-- <Icon name="alert-triangle" /> -->
           測試緊急警報
         </button>
-        
-        <button 
-          @click="testOrderReady"
+
+        <button
           :disabled="!settings.enabled"
           class="test-control-button success"
+          @click="testOrderReady"
         >
           <!-- <Icon name="check-circle" /> -->
           測試訂單完成
         </button>
-        
-        <button 
-          @click="testAllSounds"
+
+        <button
           :disabled="!settings.enabled || isTestingAll"
           class="test-control-button secondary"
+          @click="testAllSounds"
         >
           <!-- <Icon :name="isTestingAll ? 'loader' : 'play-circle'" :class="{ spinning: isTestingAll }" /> -->
-          {{ isTestingAll ? '測試中...' : '測試所有音效' }}
+          {{ isTestingAll ? "測試中..." : "測試所有音效" }}
         </button>
       </div>
     </div>
 
     <!-- Statistics -->
-    <div class="settings-section" v-if="statistics">
+    <div v-if="statistics" class="settings-section">
       <h3 class="section-title">
         <!-- <Icon name="bar-chart-3" class="title-icon" /> -->
         音效統計
       </h3>
-      
+
       <div class="stats-grid">
         <div class="stat-item">
-          <div class="stat-value">{{ statistics?.totalPlayed ?? 0 }}</div>
+          <div class="stat-value">
+            {{ statistics?.totalPlayed ?? 0 }}
+          </div>
           <div class="stat-label">總播放次數</div>
         </div>
-        
+
         <div class="stat-item">
-          <div class="stat-value">{{ statistics?.todayPlayed ?? 0 }}</div>
+          <div class="stat-value">
+            {{ statistics?.todayPlayed ?? 0 }}
+          </div>
           <div class="stat-label">今日播放次數</div>
         </div>
-        
+
         <div class="stat-item">
-          <div class="stat-value">{{ statistics?.mostPlayed ?? '無' }}</div>
+          <div class="stat-value">
+            {{ statistics?.mostPlayed ?? "無" }}
+          </div>
           <div class="stat-label">最常播放音效</div>
         </div>
-        
+
         <div class="stat-item">
-          <div class="stat-value">{{ formatTime(statistics?.lastPlayed ?? 0) }}</div>
+          <div class="stat-value">
+            {{ formatTime(statistics?.lastPlayed ?? 0) }}
+          </div>
           <div class="stat-label">最後播放時間</div>
         </div>
       </div>
@@ -270,28 +286,28 @@
         <!-- <Icon name="settings" class="title-icon" /> -->
         重設選項
       </h3>
-      
+
       <div class="reset-controls">
-        <button @click="resetToDefaults" class="reset-button">
+        <button class="reset-button" @click="resetToDefaults">
           <!-- <Icon name="rotate-ccw" /> -->
           重設為預設值
         </button>
-        
-        <button @click="exportSettings" class="export-button">
+
+        <button class="export-button" @click="exportSettings">
           <!-- <Icon name="download" /> -->
           匯出設定
         </button>
-        
-        <button @click="importSettingsClick" class="import-button">
+
+        <button class="import-button" @click="importSettingsClick">
           <!-- <Icon name="upload" /> -->
           匯入設定
         </button>
-        <input 
+        <input
           ref="importFile"
           type="file"
           accept=".json"
-          @change="importSettings"
           style="display: none"
+          @change="importSettings"
         />
       </div>
     </div>
@@ -299,112 +315,118 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useToast } from 'vue-toastification'
-import { enhancedAudioService } from '@/services/enhancedAudioService'
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useToast } from "vue-toastification";
+import { enhancedAudioService } from "@/services/enhancedAudioService";
 // Icon component temporarily removed - TODO: Replace with heroicons
 
 // Props & Emits
-const emit = defineEmits<{
-  close: []
-}>()
+const _emit = defineEmits<{
+  close: [];
+}>();
 
 // Composables
-const toast = useToast()
+const toast = useToast();
 
 // Reactive state
-const settings = reactive({ ...enhancedAudioService.settings })
-const isWebAudioSupported = computed(() => enhancedAudioService.isWebAudioSupported.value)
-const isTestingAll = ref(false)
+const settings = reactive({ ...enhancedAudioService.settings });
+const isWebAudioSupported = computed(
+  () => enhancedAudioService.isWebAudioSupported.value,
+);
+const isTestingAll = ref(false);
 const statistics = ref<{
   totalPlayed: number;
   todayPlayed: number;
   mostPlayed: string;
   lastPlayed: number;
-} | null>(null)
-const importFile = ref<HTMLInputElement>()
+} | null>(null);
+const importFile = ref<HTMLInputElement>();
 
 // Volume as percentage for UI
 const volumePercent = computed({
   get: () => Math.round(settings.masterVolume * 100),
   set: (value) => {
-    settings.masterVolume = value / 100
-  }
-})
+    settings.masterVolume = value / 100;
+  },
+});
 
 // Sound types configuration
 const soundTypes = reactive([
-  { id: 'new-order', name: '新訂單', enabled: true, volume: 80 },
-  { id: 'order-ready', name: '訂單完成', enabled: true, volume: 90 },
-  { id: 'urgent-alert', name: '緊急警報', enabled: true, volume: 100 },
-  { id: 'order-complete', name: '訂單交付', enabled: true, volume: 70 },
-  { id: 'warning', name: '警告', enabled: true, volume: 80 },
-  { id: 'success', name: '成功', enabled: true, volume: 60 },
-  { id: 'error', name: '錯誤', enabled: true, volume: 80 },
-  { id: 'notification', name: '通知', enabled: true, volume: 50 },
-  { id: 'bell', name: '鈴聲', enabled: true, volume: 70 },
-  { id: 'chime', name: '提示音', enabled: true, volume: 60 }
-])
+  { id: "new-order", name: "新訂單", enabled: true, volume: 80 },
+  { id: "order-ready", name: "訂單完成", enabled: true, volume: 90 },
+  { id: "urgent-alert", name: "緊急警報", enabled: true, volume: 100 },
+  { id: "order-complete", name: "訂單交付", enabled: true, volume: 70 },
+  { id: "warning", name: "警告", enabled: true, volume: 80 },
+  { id: "success", name: "成功", enabled: true, volume: 60 },
+  { id: "error", name: "錯誤", enabled: true, volume: 80 },
+  { id: "notification", name: "通知", enabled: true, volume: 50 },
+  { id: "bell", name: "鈴聲", enabled: true, volume: 70 },
+  { id: "chime", name: "提示音", enabled: true, volume: 60 },
+]);
 
 // Watchers
-watch(() => settings, (newSettings) => {
-  Object.assign(enhancedAudioService.settings, newSettings)
-}, { deep: true })
+watch(
+  () => settings,
+  (newSettings) => {
+    Object.assign(enhancedAudioService.settings, newSettings);
+  },
+  { deep: true },
+);
 
 // Methods
 const updateSettings = () => {
-  Object.assign(enhancedAudioService.settings, settings)
-  toast.success('設定已更新')
-}
+  Object.assign(enhancedAudioService.settings, settings);
+  toast.success("設定已更新");
+};
 
 const updateVolume = () => {
-  enhancedAudioService.setMasterVolume(settings.masterVolume)
-  toast.info(`音量設定為 ${volumePercent.value}%`)
-}
+  enhancedAudioService.setMasterVolume(settings.masterVolume);
+  toast.info(`音量設定為 ${volumePercent.value}%`);
+};
 
 const updateSoundSettings = () => {
   // Update individual sound settings
-  toast.success('音效設定已更新')
-}
+  toast.success("音效設定已更新");
+};
 
 const testSound = async (soundType: string) => {
   try {
     await enhancedAudioService.playSound(soundType as any, {
-      priority: 'medium'
-    })
+      priority: "medium",
+    });
   } catch (error) {
-    toast.error('音效測試失敗')
+    toast.error("音效測試失敗");
   }
-}
+};
 
 const testNewOrder = async () => {
   await enhancedAudioService.playNewOrderAlert({
-    tableNumber: '測試桌號'
-  })
-}
+    tableNumber: "測試桌號",
+  });
+};
 
 const testUrgentAlert = async () => {
-  await enhancedAudioService.playUrgentAlert('測試緊急警報')
-}
+  await enhancedAudioService.playUrgentAlert("測試緊急警報");
+};
 
 const testOrderReady = async () => {
-  await enhancedAudioService.playOrderReadyAlert('TEST-001')
-}
+  await enhancedAudioService.playOrderReadyAlert("TEST-001");
+};
 
 const testAllSounds = async () => {
-  isTestingAll.value = true
-  
+  isTestingAll.value = true;
+
   try {
     for (const soundType of soundTypes) {
       if (soundType.enabled) {
-        await testSound(soundType.id)
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await testSound(soundType.id);
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
   } finally {
-    isTestingAll.value = false
+    isTestingAll.value = false;
   }
-}
+};
 
 const resetToDefaults = () => {
   // Reset to default settings
@@ -416,94 +438,96 @@ const resetToDefaults = () => {
     effects: {
       reverb: false,
       echo: false,
-      bass: false
+      bass: false,
     },
     adaptiveVolume: true,
-    contextAware: true
-  })
-  
-  updateSettings()
-  toast.success('設定已重設為預設值')
-}
+    contextAware: true,
+  });
+
+  updateSettings();
+  toast.success("設定已重設為預設值");
+};
 
 const exportSettings = () => {
   const exportData = {
     audioSettings: settings,
     soundSettings: soundTypes,
     exportedAt: new Date().toISOString(),
-    version: '1.0'
-  }
-  
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `kitchen-audio-settings-${new Date().toISOString().split('T')[0]}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-  
-  toast.success('設定已匯出')
-}
+    version: "1.0",
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kitchen-audio-settings-${new Date().toISOString().split("T")[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  toast.success("設定已匯出");
+};
 
 const importSettingsClick = () => {
-  importFile.value?.click()
-}
+  importFile.value?.click();
+};
 
 const importSettings = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  
-  const reader = new FileReader()
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const data = JSON.parse(e.target?.result as string)
-      
+      const data = JSON.parse(e.target?.result as string);
+
       if (data.audioSettings) {
-        Object.assign(settings, data.audioSettings)
+        Object.assign(settings, data.audioSettings);
       }
-      
+
       if (data.soundSettings) {
-        Object.assign(soundTypes, data.soundSettings)
+        Object.assign(soundTypes, data.soundSettings);
       }
-      
-      updateSettings()
-      toast.success('設定已匯入')
+
+      updateSettings();
+      toast.success("設定已匯入");
     } catch (error) {
-      toast.error('匯入失敗：無效的設定檔案')
+      toast.error("匯入失敗：無效的設定檔案");
     }
-  }
-  
-  reader.readAsText(file)
-}
+  };
+
+  reader.readAsText(file);
+};
 
 const loadStatistics = () => {
   // Load audio statistics (would be implemented with actual data)
   statistics.value = {
     totalPlayed: 1250,
     todayPlayed: 45,
-    mostPlayed: '新訂單',
-    lastPlayed: Date.now() - 5 * 60 * 1000 // 5 minutes ago
-  }
-}
+    mostPlayed: "新訂單",
+    lastPlayed: Date.now() - 5 * 60 * 1000, // 5 minutes ago
+  };
+};
 
 const formatTime = (timestamp: number) => {
-  const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / (1000 * 60))
-  
-  if (minutes < 1) return '剛才'
-  if (minutes < 60) return `${minutes} 分鐘前`
-  
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小時前`
-  
-  const days = Math.floor(hours / 24)
-  return `${days} 天前`
-}
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / (1000 * 60));
+
+  if (minutes < 1) return "剛才";
+  if (minutes < 60) return `${minutes} 分鐘前`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小時前`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} 天前`;
+};
 
 // Lifecycle
 onMounted(() => {
-  loadStatistics()
-})
+  loadStatistics();
+});
 </script>
 
 <style scoped>
@@ -746,8 +770,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .stats-grid {
@@ -834,15 +862,15 @@ onMounted(() => {
     padding: 16px;
     margin: 16px;
   }
-  
+
   .sound-settings-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .test-controls {
     flex-direction: column;
   }
-  
+
   .reset-controls {
     flex-direction: column;
   }

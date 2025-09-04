@@ -6,7 +6,9 @@
       class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50"
     >
       <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"
+        />
         <p class="mt-4 text-gray-600">載入中...</p>
       </div>
     </div>
@@ -20,51 +22,52 @@
     </ErrorBoundary>
 
     <!-- 全域通知 -->
-    <div id="toast-container"></div>
+    <div id="toast-container" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onErrorCaptured } from 'vue'
-import { RouterView } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import ErrorBoundary from '@/components/ErrorBoundary.vue'
-import { useAppStore } from '@/stores/app'
+import { ref, onMounted, onErrorCaptured } from "vue";
+import { RouterView } from "vue-router";
+import { useToast } from "vue-toastification";
+import ErrorBoundary from "@/components/ErrorBoundary.vue";
+import { useAppStore } from "@/stores/app";
 
-const appStore = useAppStore()
-const toast = useToast()
-const isLoading = ref(true)
+const appStore = useAppStore();
+const toast = useToast();
+const isLoading = ref(true);
 
 // 應用初始化
 onMounted(async () => {
   try {
-    await appStore.initialize()
+    await appStore.initialize();
   } catch (error) {
-    console.error('應用初始化失敗:', error)
-    toast.error('應用載入失敗，請刷新頁面重試')
+    console.error("應用初始化失敗:", error);
+    toast.error("應用載入失敗，請刷新頁面重試");
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-})
+});
 
 // 全域錯誤處理
 onErrorCaptured((error: Error) => {
-  console.error('Vue錯誤:', error)
-  toast.error('發生未預期的錯誤')
-  return false
-})
+  console.error("Vue錯誤:", error);
+  toast.error("發生未預期的錯誤");
+  return false;
+});
 
 // PWA 更新提示
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
       .then(() => {
-        console.log('Service Worker 註冊成功')
+        console.log("Service Worker 註冊成功");
       })
       .catch(() => {
-        console.log('Service Worker 註冊失敗')
-      })
-  })
+        console.log("Service Worker 註冊失敗");
+      });
+  });
 }
 </script>
 
@@ -77,7 +80,13 @@ if ('serviceWorker' in navigator) {
 }
 
 html {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

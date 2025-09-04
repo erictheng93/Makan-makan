@@ -1,139 +1,159 @@
-import { ref, computed, onUnmounted } from 'vue'
-import { useToast, POSITION } from 'vue-toastification'
+import { ref, computed, onUnmounted } from "vue";
+import { useToast, POSITION } from "vue-toastification";
 
 interface OrderStatusUpdate {
-  orderId: string
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
-  tableNumber?: string
-  customerName?: string
-  timestamp: string
+  orderId: string;
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "delivered"
+    | "cancelled";
+  tableNumber?: string;
+  customerName?: string;
+  timestamp: string;
 }
 
 interface NewOrderNotification {
-  type: 'new_order'
-  orderId: string
-  tableNumber: string
+  type: "new_order";
+  orderId: string;
+  tableNumber: string;
   items: Array<{
-    name: string
-    quantity: number
-    specialInstructions?: string
-  }>
-  totalAmount: number
+    name: string;
+    quantity: number;
+    specialInstructions?: string;
+  }>;
+  totalAmount: number;
 }
 
 export function useRealtimeOrderStatus() {
-  const isConnected = ref(false)
-  const wsConnection = ref<WebSocket | null>(null)
-  const activeOrders = ref<Map<string, OrderStatusUpdate>>(new Map())
-  const toast = useToast()
+  const isConnected = ref(false);
+  const wsConnection = ref<WebSocket | null>(null);
+  const activeOrders = ref<Map<string, OrderStatusUpdate>>(new Map());
+  const toast = useToast();
 
-  const ordersArray = computed(() => Array.from(activeOrders.value.values()))
-  const pendingOrdersCount = computed(() => 
-    ordersArray.value.filter(order => order.status === 'pending').length
-  )
+  const ordersArray = computed(() => Array.from(activeOrders.value.values()));
+  const pendingOrdersCount = computed(
+    () =>
+      ordersArray.value.filter((order) => order.status === "pending").length,
+  );
 
   const connect = (restaurantId: string) => {
-    const wsUrl = `${import.meta.env.VITE_REALTIME_WS_URL || 'wss://realtime.makanmakan.com'}/admin/${restaurantId}`
-    
+    const wsUrl = `${import.meta.env.VITE_REALTIME_WS_URL || "wss://realtime.makanmakan.com"}/admin/${restaurantId}`;
+
     try {
-      wsConnection.value = new WebSocket(wsUrl)
-      
+      wsConnection.value = new WebSocket(wsUrl);
+
       wsConnection.value.onopen = () => {
-        isConnected.value = true
-        console.log('Connected to admin realtime service')
-      }
-      
+        isConnected.value = true;
+        console.log("Connected to admin realtime service");
+      };
+
       wsConnection.value.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data)
-          
-          if (message.type === 'new_order') {
-            handleNewOrder(message as NewOrderNotification)
-          } else if (message.type === 'order_update') {
-            handleOrderUpdate(message as OrderStatusUpdate)
+          const message = JSON.parse(event.data);
+
+          if (message.type === "new_order") {
+            handleNewOrder(message as NewOrderNotification);
+          } else if (message.type === "order_update") {
+            handleOrderUpdate(message as OrderStatusUpdate);
           }
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error)
+          console.error("Failed to parse WebSocket message:", error);
         }
-      }
-      
+      };
+
       wsConnection.value.onclose = () => {
-        isConnected.value = false
-        console.log('Disconnected from admin realtime service')
+        isConnected.value = false;
+        console.log("Disconnected from admin realtime service");
         // Attempt reconnection
         setTimeout(() => {
-          if (!isConnected.value) connect(restaurantId)
-        }, 5000)
-      }
-      
+          if (!isConnected.value) connect(restaurantId);
+        }, 5000);
+      };
     } catch (error) {
-      console.error('Failed to connect to admin WebSocket:', error)
+      console.error("Failed to connect to admin WebSocket:", error);
     }
-  }
+  };
 
   const handleNewOrder = (notification: NewOrderNotification) => {
     const orderUpdate: OrderStatusUpdate = {
       orderId: notification.orderId,
-      status: 'pending',
+      status: "pending",
       tableNumber: notification.tableNumber,
-      timestamp: new Date().toISOString()
-    }
-    
-    activeOrders.value.set(notification.orderId, orderUpdate)
-    
+      timestamp: new Date().toISOString(),
+    };
+
+    activeOrders.value.set(notification.orderId, orderUpdate);
+
     toast.success(`新訂單！桌號 ${notification.tableNumber}`, {
       position: POSITION.TOP_RIGHT,
-      timeout: 8000
-    })
-    
+      timeout: 8000,
+    });
+
     // Play notification sound
-    playNotificationSound()
-  }
+    playNotificationSound();
+  };
 
   const handleOrderUpdate = (update: OrderStatusUpdate) => {
-    activeOrders.value.set(update.orderId, update)
-    
-    if (update.status === 'delivered' || update.status === 'cancelled') {
+    activeOrders.value.set(update.orderId, update);
+
+    if (update.status === "delivered" || update.status === "cancelled") {
       // Remove from active orders after 30 seconds
       setTimeout(() => {
-        activeOrders.value.delete(update.orderId)
-      }, 30000)
+        activeOrders.value.delete(update.orderId);
+      }, 30000);
     }
-  }
+  };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatusUpdate['status']) => {
-    const order = activeOrders.value.get(orderId)
+  const updateOrderStatus = (
+    orderId: string,
+    status: OrderStatusUpdate["status"],
+  ) => {
+    const order = activeOrders.value.get(orderId);
     if (order) {
-      const updatedOrder = { ...order, status, timestamp: new Date().toISOString() }
-      activeOrders.value.set(orderId, updatedOrder)
-      
+      const updatedOrder = {
+        ...order,
+        status,
+        timestamp: new Date().toISOString(),
+      };
+      activeOrders.value.set(orderId, updatedOrder);
+
       // Send update to server
-      if (wsConnection.value && wsConnection.value.readyState === WebSocket.OPEN) {
-        wsConnection.value.send(JSON.stringify({
-          type: 'status_update',
-          orderId,
-          status
-        }))
+      if (
+        wsConnection.value &&
+        wsConnection.value.readyState === WebSocket.OPEN
+      ) {
+        wsConnection.value.send(
+          JSON.stringify({
+            type: "status_update",
+            orderId,
+            status,
+          }),
+        );
       }
     }
-  }
+  };
 
   const playNotificationSound = () => {
-    const audio = new Audio('/notification.mp3')
-    audio.play().catch(e => console.log('Could not play notification sound:', e))
-  }
+    const audio = new Audio("/notification.mp3");
+    audio
+      .play()
+      .catch((e) => console.log("Could not play notification sound:", e));
+  };
 
   const disconnect = () => {
     if (wsConnection.value) {
-      wsConnection.value.close()
-      wsConnection.value = null
-      isConnected.value = false
+      wsConnection.value.close();
+      wsConnection.value = null;
+      isConnected.value = false;
     }
-  }
+  };
 
   onUnmounted(() => {
-    disconnect()
-  })
+    disconnect();
+  });
 
   return {
     isConnected,
@@ -141,6 +161,6 @@ export function useRealtimeOrderStatus() {
     pendingOrdersCount,
     connect,
     disconnect,
-    updateOrderStatus
-  }
+    updateOrderStatus,
+  };
 }

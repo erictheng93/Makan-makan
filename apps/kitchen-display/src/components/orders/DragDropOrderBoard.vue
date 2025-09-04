@@ -6,7 +6,9 @@
         <h2 class="text-xl font-semibold text-gray-900 flex items-center">
           <ClockIcon class="w-6 h-6 mr-2 text-yellow-500" />
           待處理訂單
-          <span class="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm">
+          <span
+            class="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm"
+          >
             {{ pendingOrders.length }}
           </span>
         </h2>
@@ -16,7 +18,10 @@
         ref="pendingColumn"
         :class="[
           'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
-          { 'bg-yellow-50 border-2 border-dashed border-yellow-300': dragOverColumn === 'pending' }
+          {
+            'bg-yellow-50 border-2 border-dashed border-yellow-300':
+              dragOverColumn === 'pending',
+          },
         ]"
         data-status="pending"
       >
@@ -33,8 +38,11 @@
           @view-details="handleViewDetails"
           @toggle-selection="handleToggleSelection"
         />
-        
-        <div v-if="pendingOrders.length === 0" class="empty-state text-center py-8 text-gray-500">
+
+        <div
+          v-if="pendingOrders.length === 0"
+          class="empty-state text-center py-8 text-gray-500"
+        >
           <ClockIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>目前沒有待處理的訂單</p>
           <p class="text-sm text-gray-400 mt-1">新訂單會自動出現在這裡</p>
@@ -48,7 +56,9 @@
         <h2 class="text-xl font-semibold text-gray-900 flex items-center">
           <FireIcon class="w-6 h-6 mr-2 text-blue-500" />
           製作中訂單
-          <span class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+          <span
+            class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm"
+          >
             {{ preparingOrders.length }}
           </span>
         </h2>
@@ -58,7 +68,10 @@
         ref="preparingColumn"
         :class="[
           'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
-          { 'bg-blue-50 border-2 border-dashed border-blue-300': dragOverColumn === 'preparing' }
+          {
+            'bg-blue-50 border-2 border-dashed border-blue-300':
+              dragOverColumn === 'preparing',
+          },
         ]"
         data-status="preparing"
       >
@@ -75,8 +88,11 @@
           @view-details="handleViewDetails"
           @toggle-selection="handleToggleSelection"
         />
-        
-        <div v-if="preparingOrders.length === 0" class="empty-state text-center py-8 text-gray-500">
+
+        <div
+          v-if="preparingOrders.length === 0"
+          class="empty-state text-center py-8 text-gray-500"
+        >
           <FireIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>目前沒有正在製作的訂單</p>
           <p class="text-sm text-gray-400 mt-1">拖拽待處理訂單到此處開始製作</p>
@@ -90,7 +106,9 @@
         <h2 class="text-xl font-semibold text-gray-900 flex items-center">
           <CheckCircleIcon class="w-6 h-6 mr-2 text-green-500" />
           準備完成
-          <span class="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+          <span
+            class="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm"
+          >
             {{ readyOrders.length }}
           </span>
         </h2>
@@ -100,7 +118,10 @@
         ref="readyColumn"
         :class="[
           'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
-          { 'bg-green-50 border-2 border-dashed border-green-300': dragOverColumn === 'ready' }
+          {
+            'bg-green-50 border-2 border-dashed border-green-300':
+              dragOverColumn === 'ready',
+          },
         ]"
         data-status="ready"
       >
@@ -117,8 +138,11 @@
           @view-details="handleViewDetails"
           @toggle-selection="handleToggleSelection"
         />
-        
-        <div v-if="readyOrders.length === 0" class="empty-state text-center py-8 text-gray-500">
+
+        <div
+          v-if="readyOrders.length === 0"
+          class="empty-state text-center py-8 text-gray-500"
+        >
           <CheckCircleIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>目前沒有準備完成的訂單</p>
           <p class="text-sm text-gray-400 mt-1">拖拽製作中訂單到此處標記完成</p>
@@ -128,10 +152,23 @@
   </div>
 
   <!-- Drag Instructions -->
-  <div v-if="showDragInstructions" class="drag-instructions mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+  <div
+    v-if="showDragInstructions"
+    class="drag-instructions mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+  >
     <div class="flex items-center space-x-2 text-blue-700 mb-2">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
       </svg>
       <span class="font-medium">拖拽操作說明</span>
     </div>
@@ -142,8 +179,8 @@
       <li>• 拖拽時會顯示視覺提示效果</li>
     </ul>
     <button
-      @click="hideDragInstructions"
       class="mt-2 text-xs text-blue-500 hover:text-blue-700"
+      @click="hideDragInstructions"
     >
       不再顯示
     </button>
@@ -151,157 +188,173 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useSortable } from '@vueuse/integrations/useSortable'
-import { useToast } from 'vue-toastification'
-import { 
-  ClockIcon, 
-  FireIcon, 
-  CheckCircleIcon 
-} from '@heroicons/vue/24/outline'
-import { useOrderManagementStore } from '@/stores/orderManagement'
-import type { KitchenOrder } from '@/types'
-import DraggableOrderCard from './DraggableOrderCard.vue'
+import { ref, onMounted, nextTick } from "vue";
+import { useSortable } from "@vueuse/integrations/useSortable";
+import { useToast } from "vue-toastification";
+import {
+  ClockIcon,
+  FireIcon,
+  CheckCircleIcon,
+} from "@heroicons/vue/24/outline";
+import { useOrderManagementStore } from "@/stores/orderManagement";
+import type { KitchenOrder } from "@/types";
+import DraggableOrderCard from "./DraggableOrderCard.vue";
 
 // Props
 interface Props {
-  pendingOrders: KitchenOrder[]
-  preparingOrders: KitchenOrder[]
-  readyOrders: KitchenOrder[]
+  pendingOrders: KitchenOrder[];
+  preparingOrders: KitchenOrder[];
+  readyOrders: KitchenOrder[];
 }
 
-const props = defineProps<Props>()
+defineProps<Props>();
 
 // Emits
 const emit = defineEmits<{
-  'start-cooking': [orderId: number, itemId: number]
-  'mark-ready': [orderId: number, itemId: number]
-  'view-details': [order: KitchenOrder]
-  'order-status-changed': [orderId: number, newStatus: 'pending' | 'preparing' | 'ready']
-  'batch-start-order': [orderId: number]
-  'batch-complete-order': [orderId: number]
-  'toggle-selection': [orderId: number]
-}>()
+  "start-cooking": [orderId: number, itemId: number];
+  "mark-ready": [orderId: number, itemId: number];
+  "view-details": [order: KitchenOrder];
+  "order-status-changed": [
+    orderId: number,
+    newStatus: "pending" | "preparing" | "ready",
+  ];
+  "batch-start-order": [orderId: number];
+  "batch-complete-order": [orderId: number];
+  "toggle-selection": [orderId: number];
+}>();
 
-const toast = useToast()
+const toast = useToast();
 
 // Order Management Store
-const orderManagementStore = useOrderManagementStore()
-const { isOrderSelected, toggleOrderSelection } = orderManagementStore
+const orderManagementStore = useOrderManagementStore();
+const { isOrderSelected, toggleOrderSelection } = orderManagementStore;
 
 // State
-const pendingColumn = ref<HTMLElement>()
-const preparingColumn = ref<HTMLElement>()
-const readyColumn = ref<HTMLElement>()
-const draggedOrderId = ref<number | null>(null)
-const dragOverColumn = ref<string | null>(null)
-const showDragInstructions = ref(true)
+const pendingColumn = ref<HTMLElement>();
+const preparingColumn = ref<HTMLElement>();
+const readyColumn = ref<HTMLElement>();
+const draggedOrderId = ref<number | null>(null);
+const dragOverColumn = ref<string | null>(null);
+const showDragInstructions = ref(true);
 
 // Drag and Drop Setup
 const setupSortable = () => {
-  if (!pendingColumn.value || !preparingColumn.value || !readyColumn.value) return
+  if (!pendingColumn.value || !preparingColumn.value || !readyColumn.value)
+    return;
 
   const columns = [
-    { element: pendingColumn.value, status: 'pending' },
-    { element: preparingColumn.value, status: 'preparing' },
-    { element: readyColumn.value, status: 'ready' }
-  ]
+    { element: pendingColumn.value, status: "pending" },
+    { element: preparingColumn.value, status: "preparing" },
+    { element: readyColumn.value, status: "ready" },
+  ];
 
-  columns.forEach(({ element, status }) => {
+  columns.forEach(({ element, status: _status }) => {
     useSortable(element, [], {
-      group: 'kitchen-orders',
+      group: "kitchen-orders",
       animation: 200,
-      ghostClass: 'sortable-ghost',
-      dragClass: 'sortable-drag',
-      chosenClass: 'sortable-chosen',
+      ghostClass: "sortable-ghost",
+      dragClass: "sortable-drag",
+      chosenClass: "sortable-chosen",
       forceFallback: true,
-      fallbackClass: 'sortable-fallback',
-      
+      fallbackClass: "sortable-fallback",
+
       onStart: (evt) => {
-        const orderId = Number(evt.item.dataset.orderId)
-        draggedOrderId.value = orderId
-        document.body.classList.add('dragging-order')
+        const orderId = Number(evt.item.dataset.orderId);
+        draggedOrderId.value = orderId;
+        document.body.classList.add("dragging-order");
       },
-      
+
       onEnd: (evt) => {
-        draggedOrderId.value = null
-        dragOverColumn.value = null
-        document.body.classList.remove('dragging-order')
-        
-        const orderId = Number(evt.item.dataset.orderId)
-        const newStatus = evt.to.dataset.status as 'pending' | 'preparing' | 'ready'
-        const oldStatus = evt.from.dataset.status as 'pending' | 'preparing' | 'ready'
-        
+        draggedOrderId.value = null;
+        dragOverColumn.value = null;
+        document.body.classList.remove("dragging-order");
+
+        const orderId = Number(evt.item.dataset.orderId);
+        const newStatus = evt.to.dataset.status as
+          | "pending"
+          | "preparing"
+          | "ready";
+        const oldStatus = evt.from.dataset.status as
+          | "pending"
+          | "preparing"
+          | "ready";
+
         if (newStatus !== oldStatus && orderId) {
-          handleStatusChange(orderId, newStatus, oldStatus)
+          handleStatusChange(orderId, newStatus, oldStatus);
         }
       },
-      
+
       onMove: (evt) => {
-        const targetStatus = evt.to.dataset.status
-        dragOverColumn.value = targetStatus || null
-        return true
-      }
-    })
-  })
-}
+        const targetStatus = evt.to.dataset.status;
+        dragOverColumn.value = targetStatus || null;
+        return true;
+      },
+    });
+  });
+};
 
 // Methods
-const handleStatusChange = async (orderId: number, newStatus: string, oldStatus: string) => {
+const handleStatusChange = async (
+  orderId: number,
+  newStatus: string,
+  oldStatus: string,
+) => {
   try {
-    emit('order-status-changed', orderId, newStatus as any)
-    
+    emit("order-status-changed", orderId, newStatus as any);
+
     // Show feedback based on status change
-    if (oldStatus === 'pending' && newStatus === 'preparing') {
-      emit('batch-start-order', orderId)
-      toast.success('訂單已開始製作！')
-    } else if (oldStatus === 'preparing' && newStatus === 'ready') {
-      emit('batch-complete-order', orderId)
-      toast.success('訂單製作完成！')
-    } else if (oldStatus === 'ready' && newStatus === 'preparing') {
-      toast.info('訂單已移回製作中')
-    } else if (oldStatus === 'preparing' && newStatus === 'pending') {
-      toast.info('訂單已移回待處理')
+    if (oldStatus === "pending" && newStatus === "preparing") {
+      emit("batch-start-order", orderId);
+      toast.success("訂單已開始製作！");
+    } else if (oldStatus === "preparing" && newStatus === "ready") {
+      emit("batch-complete-order", orderId);
+      toast.success("訂單製作完成！");
+    } else if (oldStatus === "ready" && newStatus === "preparing") {
+      toast.info("訂單已移回製作中");
+    } else if (oldStatus === "preparing" && newStatus === "pending") {
+      toast.info("訂單已移回待處理");
     }
   } catch (error: any) {
-    console.error('Status change failed:', error)
-    toast.error('狀態更新失敗：' + error.message)
+    console.error("Status change failed:", error);
+    toast.error("狀態更新失敗：" + error.message);
   }
-}
+};
 
 const handleStartCooking = (orderId: number, itemId: number) => {
-  emit('start-cooking', orderId, itemId)
-}
+  emit("start-cooking", orderId, itemId);
+};
 
 const handleMarkReady = (orderId: number, itemId: number) => {
-  emit('mark-ready', orderId, itemId)
-}
+  emit("mark-ready", orderId, itemId);
+};
 
 const handleViewDetails = (order: KitchenOrder) => {
-  emit('view-details', order)
-}
+  emit("view-details", order);
+};
 
 const handleToggleSelection = (orderId: number) => {
-  toggleOrderSelection(orderId)
-  emit('toggle-selection', orderId)
-}
+  toggleOrderSelection(orderId);
+  emit("toggle-selection", orderId);
+};
 
 const hideDragInstructions = () => {
-  showDragInstructions.value = false
-  localStorage.setItem('kitchen-hide-drag-instructions', 'true')
-}
+  showDragInstructions.value = false;
+  localStorage.setItem("kitchen-hide-drag-instructions", "true");
+};
 
 // Lifecycle
 onMounted(async () => {
   // Check if user has hidden instructions before
-  const hideInstructions = localStorage.getItem('kitchen-hide-drag-instructions')
-  if (hideInstructions === 'true') {
-    showDragInstructions.value = false
+  const hideInstructions = localStorage.getItem(
+    "kitchen-hide-drag-instructions",
+  );
+  if (hideInstructions === "true") {
+    showDragInstructions.value = false;
   }
-  
-  await nextTick()
-  setupSortable()
-})
+
+  await nextTick();
+  setupSortable();
+});
 </script>
 
 <style scoped>
@@ -315,9 +368,13 @@ onMounted(async () => {
 }
 
 .order-list {
-  background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.4)
+  );
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -345,7 +402,9 @@ onMounted(async () => {
 :global(.sortable-drag) {
   opacity: 1;
   transform: rotate(3deg) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 :global(.sortable-chosen) {
@@ -362,7 +421,7 @@ onMounted(async () => {
 }
 
 .order-list::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 

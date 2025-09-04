@@ -2,8 +2,8 @@
   <div class="language-switcher">
     <div class="relative">
       <button
-        @click="toggleDropdown"
         class="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        @click="toggleDropdown"
       >
         <span class="text-lg">{{ currentLanguageInfo?.flag }}</span>
         <span class="font-medium">{{ currentLanguageInfo?.name }}</span>
@@ -14,10 +14,15 @@
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
-      
+
       <div
         v-show="isOpen"
         class="absolute top-full left-0 mt-1 w-full min-w-max bg-white border border-gray-300 rounded-lg shadow-lg z-50"
@@ -26,11 +31,11 @@
           <button
             v-for="language in supportedLanguages"
             :key="language.code"
-            @click="selectLanguage(language.code)"
             class="w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
             :class="{
-              'bg-orange-50 text-orange-700': currentLanguage === language.code
+              'bg-orange-50 text-orange-700': currentLanguage === language.code,
             }"
+            @click="selectLanguage(language.code)"
           >
             <span class="text-lg">{{ language.flag }}</span>
             <span class="font-medium">{{ language.name }}</span>
@@ -54,40 +59,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useI18n } from '@/composables/useI18n'
-import type { SupportedLanguage } from '@/i18n'
+import { ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/composables/useI18n";
+import type { SupportedLanguage } from "@/i18n";
 
 const {
   currentLanguage,
   currentLanguageInfo,
   supportedLanguages,
-  changeLanguage
-} = useI18n()
+  changeLanguage,
+} = useI18n();
 
-const isOpen = ref(false)
+const isOpen = ref(false);
 
 const toggleDropdown = () => {
-  isOpen.value = !isOpen.value
-}
+  isOpen.value = !isOpen.value;
+};
 
 const selectLanguage = (language: SupportedLanguage) => {
-  changeLanguage(language)
-  isOpen.value = false
-}
+  changeLanguage(language);
+  isOpen.value = false;
+};
 
 const closeDropdown = (event: MouseEvent) => {
-  const target = event.target as Element
-  if (!target.closest('.language-switcher')) {
-    isOpen.value = false
+  const target = event.target as Element;
+  if (!target.closest(".language-switcher")) {
+    isOpen.value = false;
   }
-}
+};
 
 onMounted(() => {
-  document.addEventListener('click', closeDropdown)
-})
+  document.addEventListener("click", closeDropdown);
+});
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeDropdown)
-})
+  document.removeEventListener("click", closeDropdown);
+});
 </script>

@@ -1,13 +1,19 @@
 <template>
-  <div class="workflow-automation bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+  <div
+    class="workflow-automation bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6"
+  >
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+        <div
+          class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
+        >
           <CogIcon class="w-5 h-5 text-purple-600" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">廚房工作流程自動化</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            廚房工作流程自動化
+          </h3>
           <p class="text-sm text-gray-600">智能任務分配和流程優化</p>
         </div>
       </div>
@@ -15,27 +21,29 @@
       <div class="flex items-center space-x-3">
         <!-- Automation Status -->
         <div class="flex items-center space-x-2">
-          <div :class="[
-            'w-3 h-3 rounded-full',
-            automationActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
-          ]"></div>
+          <div
+            :class="[
+              'w-3 h-3 rounded-full',
+              automationActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300',
+            ]"
+          />
           <span class="text-sm font-medium text-gray-700">
-            自動化{{ automationActive ? '啟用' : '停用' }}
+            自動化{{ automationActive ? "啟用" : "停用" }}
           </span>
         </div>
 
         <!-- Master Toggle -->
         <button
-          @click="toggleAutomation"
           :class="[
             'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2',
-            automationActive ? 'bg-purple-600' : 'bg-gray-200'
+            automationActive ? 'bg-purple-600' : 'bg-gray-200',
           ]"
+          @click="toggleAutomation"
         >
           <span
             :class="[
               'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-              automationActive ? 'translate-x-5' : 'translate-x-0'
+              automationActive ? 'translate-x-5' : 'translate-x-0',
             ]"
           />
         </button>
@@ -45,7 +53,7 @@
     <!-- Workflow Rules Configuration -->
     <div class="mb-6">
       <h4 class="text-md font-semibold text-gray-900 mb-4">自動化規則配置</h4>
-      
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Auto Assignment Rules -->
         <div class="bg-gray-50 rounded-lg p-4">
@@ -57,7 +65,7 @@
               class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
           </div>
-          
+
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">基於廚師技能分配</span>
@@ -99,10 +107,12 @@
               class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
           </div>
-          
+
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-600 mb-1">自動開始延遲</label>
+              <label class="block text-sm text-gray-600 mb-1"
+                >自動開始延遲</label
+              >
               <div class="flex items-center space-x-2">
                 <input
                   v-model.number="rules.autoProgression.startDelay"
@@ -116,7 +126,9 @@
               </div>
             </div>
             <div>
-              <label class="block text-sm text-gray-600 mb-1">自動完成延遲</label>
+              <label class="block text-sm text-gray-600 mb-1"
+                >自動完成延遲</label
+              >
               <div class="flex items-center space-x-2">
                 <input
                   v-model.number="rules.autoProgression.completeDelay"
@@ -142,7 +154,7 @@
               class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
           </div>
-          
+
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">依烹飪時間排序</span>
@@ -184,7 +196,7 @@
               class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
           </div>
-          
+
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">自動品質檢查</span>
@@ -203,7 +215,10 @@
                   type="number"
                   min="30"
                   max="300"
-                  :disabled="!rules.qualityControl.enabled || !rules.qualityControl.autoCheck"
+                  :disabled="
+                    !rules.qualityControl.enabled ||
+                    !rules.qualityControl.autoCheck
+                  "
                   class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 <span class="text-sm text-gray-500">秒</span>
@@ -217,22 +232,30 @@
     <!-- Automation Statistics -->
     <div class="mb-6">
       <h4 class="text-md font-semibold text-gray-900 mb-4">自動化統計</h4>
-      
+
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="text-center p-3 bg-green-50 rounded-lg">
-          <div class="text-2xl font-bold text-green-600">{{ automationStats.tasksAutomated }}</div>
+          <div class="text-2xl font-bold text-green-600">
+            {{ automationStats.tasksAutomated }}
+          </div>
           <div class="text-sm text-green-600">自動化任務</div>
         </div>
         <div class="text-center p-3 bg-blue-50 rounded-lg">
-          <div class="text-2xl font-bold text-blue-600">{{ automationStats.timeSaved }}</div>
+          <div class="text-2xl font-bold text-blue-600">
+            {{ automationStats.timeSaved }}
+          </div>
           <div class="text-sm text-blue-600">節省時間</div>
         </div>
         <div class="text-center p-3 bg-purple-50 rounded-lg">
-          <div class="text-2xl font-bold text-purple-600">{{ automationStats.efficiencyGain }}%</div>
+          <div class="text-2xl font-bold text-purple-600">
+            {{ automationStats.efficiencyGain }}%
+          </div>
           <div class="text-sm text-purple-600">效率提升</div>
         </div>
         <div class="text-center p-3 bg-orange-50 rounded-lg">
-          <div class="text-2xl font-bold text-orange-600">{{ automationStats.errorReduction }}%</div>
+          <div class="text-2xl font-bold text-orange-600">
+            {{ automationStats.errorReduction }}%
+          </div>
           <div class="text-sm text-orange-600">錯誤降低</div>
         </div>
       </div>
@@ -241,7 +264,7 @@
     <!-- Active Workflows -->
     <div class="mb-6">
       <h4 class="text-md font-semibold text-gray-900 mb-4">活動工作流程</h4>
-      
+
       <div class="space-y-3">
         <div
           v-for="workflow in activeWorkflows"
@@ -249,72 +272,86 @@
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
         >
           <div class="flex items-center space-x-3">
-            <div :class="[
-              'w-3 h-3 rounded-full',
-              workflow.status === 'running' ? 'bg-green-500 animate-pulse' : 
-              workflow.status === 'paused' ? 'bg-yellow-500' : 'bg-gray-400'
-            ]"></div>
+            <div
+              :class="[
+                'w-3 h-3 rounded-full',
+                workflow.status === 'running'
+                  ? 'bg-green-500 animate-pulse'
+                  : workflow.status === 'paused'
+                    ? 'bg-yellow-500'
+                    : 'bg-gray-400',
+              ]"
+            />
             <div>
-              <div class="font-medium text-gray-900">{{ workflow.name }}</div>
-              <div class="text-sm text-gray-600">{{ workflow.description }}</div>
+              <div class="font-medium text-gray-900">
+                {{ workflow.name }}
+              </div>
+              <div class="text-sm text-gray-600">
+                {{ workflow.description }}
+              </div>
             </div>
           </div>
-          
           <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-500">{{ workflow.progress }}% 完成</span>
+            <span class="text-sm text-gray-500"
+              >{{ workflow.progress }}% 完成</span
+            >
             <button
-              @click="toggleWorkflow(workflow.id)"
               :class="[
                 'px-3 py-1 text-xs rounded-lg',
-                workflow.status === 'running' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 
-                'bg-green-100 text-green-700 hover:bg-green-200'
+                workflow.status === 'running'
+                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200',
               ]"
+              @click="toggleWorkflow(workflow.id)"
             >
-              {{ workflow.status === 'running' ? '暫停' : '開始' }}
+              {{ workflow.status === "running" ? "暫停" : "開始" }}
             </button>
           </div>
         </div>
-        
-        <div v-if="activeWorkflows.length === 0" class="text-center py-6 text-gray-500">
-          <CogIcon class="w-8 h-8 mx-auto mb-2 text-gray-300" />
-          <p>目前沒有活動的工作流程</p>
-        </div>
+      </div>
+
+      <div
+        v-if="activeWorkflows.length === 0"
+        class="text-center py-6 text-gray-500"
+      >
+        <CogIcon class="w-8 h-8 mx-auto mb-2 text-gray-300" />
+        <p>目前沒有活動的工作流程</p>
       </div>
     </div>
+  </div>
 
-    <!-- Control Actions -->
-    <div class="flex justify-between items-center">
-      <div class="flex space-x-3">
-        <button
-          @click="saveWorkflowRules"
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-        >
-          保存規則
-        </button>
-        
-        <button
-          @click="resetToDefaults"
-          class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-        >
-          重設預設值
-        </button>
-      </div>
+  <!-- Control Actions -->
+  <div class="flex justify-between items-center">
+    <div class="flex space-x-3">
+      <button
+        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        @click="saveWorkflowRules"
+      >
+        保存規則
+      </button>
 
-      <div class="flex space-x-3">
-        <button
-          @click="exportWorkflowConfig"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          導出配置
-        </button>
-        
-        <button
-          @click="showWorkflowReport"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          查看報告
-        </button>
-      </div>
+      <button
+        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+        @click="resetToDefaults"
+      >
+        重設預設值
+      </button>
+    </div>
+
+    <div class="flex space-x-3">
+      <button
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        @click="exportWorkflowConfig"
+      >
+        導出配置
+      </button>
+
+      <button
+        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        @click="showWorkflowReport"
+      >
+        查看報告
+      </button>
     </div>
   </div>
 
@@ -323,24 +360,36 @@
     v-if="showReportModal"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white rounded-xl p-6 max-w-2xl max-h-96 overflow-y-auto mx-4">
+    <div
+      class="bg-white rounded-xl p-6 max-w-2xl max-h-96 overflow-y-auto mx-4"
+    >
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-900">工作流程報告</h3>
         <button
-          @click="showReportModal = false"
           class="text-gray-400 hover:text-gray-600"
+          @click="showReportModal = false"
         >
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
-      
+
       <div class="space-y-4">
-        <div v-for="report in workflowReports" :key="report.id" class="border-b pb-3">
+        <div
+          v-for="report in workflowReports"
+          :key="report.id"
+          class="border-b pb-3"
+        >
           <div class="flex justify-between items-start mb-2">
-            <div class="font-medium text-gray-900">{{ report.title }}</div>
-            <div class="text-sm text-gray-500">{{ report.timestamp }}</div>
+            <div class="font-medium text-gray-900">
+              {{ report.title }}
+            </div>
+            <div class="text-sm text-gray-500">
+              {{ report.timestamp }}
+            </div>
           </div>
-          <div class="text-sm text-gray-600">{{ report.description }}</div>
+          <div class="text-sm text-gray-600">
+            {{ report.description }}
+          </div>
           <div class="mt-2 flex space-x-4 text-sm">
             <span class="text-green-600">成功: {{ report.success }}</span>
             <span class="text-red-600">失敗: {{ report.failed }}</span>
@@ -353,168 +402,170 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { Cog6ToothIcon as CogIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import { useToast } from 'vue-toastification'
-import type { KitchenOrder } from '@/types'
+import { ref, reactive, onMounted, watch } from "vue";
+import { Cog6ToothIcon as CogIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+import { useToast } from "vue-toastification";
+import type { KitchenOrder } from "@/types";
 
 // Props
 interface Props {
-  orders: KitchenOrder[]
+  orders: KitchenOrder[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 // Emits
 const emit = defineEmits<{
-  'workflow-updated': [rules: WorkflowRules]
-  'auto-assignment': [orderId: number, assigneeId: number]
-  'auto-progression': [orderId: number, action: string]
-}>()
+  "workflow-updated": [rules: WorkflowRules];
+  "auto-assignment": [orderId: number, assigneeId: number];
+  "auto-progression": [orderId: number, action: string];
+}>();
 
 // Types
 interface WorkflowRules {
   autoAssignment: {
-    enabled: boolean
-    skillBased: boolean
-    loadBalancing: boolean
-    priorityFirst: boolean
-  }
+    enabled: boolean;
+    skillBased: boolean;
+    loadBalancing: boolean;
+    priorityFirst: boolean;
+  };
   autoProgression: {
-    enabled: boolean
-    startDelay: number
-    completeDelay: number
-  }
+    enabled: boolean;
+    startDelay: number;
+    completeDelay: number;
+  };
   smartScheduling: {
-    enabled: boolean
-    cookingTimeBased: boolean
-    batchSimilar: boolean
-    prepTimeConsidered: boolean
-  }
+    enabled: boolean;
+    cookingTimeBased: boolean;
+    batchSimilar: boolean;
+    prepTimeConsidered: boolean;
+  };
   qualityControl: {
-    enabled: boolean
-    autoCheck: boolean
-    checkInterval: number
-  }
+    enabled: boolean;
+    autoCheck: boolean;
+    checkInterval: number;
+  };
 }
 
 interface ActiveWorkflow {
-  id: string
-  name: string
-  description: string
-  status: 'running' | 'paused' | 'stopped'
-  progress: number
+  id: string;
+  name: string;
+  description: string;
+  status: "running" | "paused" | "stopped";
+  progress: number;
 }
 
-const toast = useToast()
+const toast = useToast();
 
 // State
-const automationActive = ref(true)
-const showReportModal = ref(false)
+const automationActive = ref(true);
+const showReportModal = ref(false);
 
 const rules = reactive<WorkflowRules>({
   autoAssignment: {
     enabled: true,
     skillBased: true,
     loadBalancing: true,
-    priorityFirst: true
+    priorityFirst: true,
   },
   autoProgression: {
     enabled: false,
     startDelay: 2,
-    completeDelay: 5
+    completeDelay: 5,
   },
   smartScheduling: {
     enabled: true,
     cookingTimeBased: true,
     batchSimilar: false,
-    prepTimeConsidered: true
+    prepTimeConsidered: true,
   },
   qualityControl: {
     enabled: true,
     autoCheck: false,
-    checkInterval: 120
-  }
-})
+    checkInterval: 120,
+  },
+});
 
 const activeWorkflows = ref<ActiveWorkflow[]>([
   {
-    id: '1',
-    name: '智能訂單分配',
-    description: '基於廚師技能和負載自動分配新訂單',
-    status: 'running',
-    progress: 85
+    id: "1",
+    name: "智能訂單分配",
+    description: "基於廚師技能和負載自動分配新訂單",
+    status: "running",
+    progress: 85,
   },
   {
-    id: '2',
-    name: '批次處理優化',
-    description: '將相似訂單批次處理以提高效率',
-    status: 'running',
-    progress: 60
+    id: "2",
+    name: "批次處理優化",
+    description: "將相似訂單批次處理以提高效率",
+    status: "running",
+    progress: 60,
   },
   {
-    id: '3',
-    name: '品質監控',
-    description: '自動監控訂單完成品質和時間',
-    status: 'paused',
-    progress: 30
-  }
-])
+    id: "3",
+    name: "品質監控",
+    description: "自動監控訂單完成品質和時間",
+    status: "paused",
+    progress: 30,
+  },
+]);
 
 const automationStats = reactive({
   tasksAutomated: 156,
-  timeSaved: '2.3h',
+  timeSaved: "2.3h",
   efficiencyGain: 23,
-  errorReduction: 18
-})
+  errorReduction: 18,
+});
 
 const workflowReports = ref([
   {
-    id: '1',
-    title: '自動分配系統運行報告',
-    description: '在過去1小時內成功自動分配了45個訂單',
-    timestamp: '15:30',
+    id: "1",
+    title: "自動分配系統運行報告",
+    description: "在過去1小時內成功自動分配了45個訂單",
+    timestamp: "15:30",
     success: 45,
     failed: 2,
-    timeSaved: '25分鐘'
+    timeSaved: "25分鐘",
   },
   {
-    id: '2',
-    title: '智能排程優化報告',
-    description: '通過批次處理優化減少了30%的等待時間',
-    timestamp: '14:45',
+    id: "2",
+    title: "智能排程優化報告",
+    description: "通過批次處理優化減少了30%的等待時間",
+    timestamp: "14:45",
     success: 28,
     failed: 0,
-    timeSaved: '18分鐘'
-  }
-])
+    timeSaved: "18分鐘",
+  },
+]);
 
 // Methods
 const toggleAutomation = () => {
-  automationActive.value = !automationActive.value
-  toast.success(`工作流程自動化已${automationActive.value ? '啟用' : '停用'}`)
-  
+  automationActive.value = !automationActive.value;
+  toast.success(`工作流程自動化已${automationActive.value ? "啟用" : "停用"}`);
+
   if (automationActive.value) {
-    startAutomationProcesses()
+    startAutomationProcesses();
   } else {
-    stopAutomationProcesses()
+    stopAutomationProcesses();
   }
-}
+};
 
 const toggleWorkflow = (workflowId: string) => {
-  const workflow = activeWorkflows.value.find(w => w.id === workflowId)
+  const workflow = activeWorkflows.value.find((w) => w.id === workflowId);
   if (workflow) {
-    workflow.status = workflow.status === 'running' ? 'paused' : 'running'
-    toast.info(`工作流程"${workflow.name}"已${workflow.status === 'running' ? '開始' : '暫停'}`)
+    workflow.status = workflow.status === "running" ? "paused" : "running";
+    toast.info(
+      `工作流程"${workflow.name}"已${workflow.status === "running" ? "開始" : "暫停"}`,
+    );
   }
-}
+};
 
 const saveWorkflowRules = () => {
   // Save rules to localStorage or API
-  localStorage.setItem('kitchen-workflow-rules', JSON.stringify(rules))
-  emit('workflow-updated', rules)
-  toast.success('工作流程規則已保存')
-}
+  localStorage.setItem("kitchen-workflow-rules", JSON.stringify(rules));
+  emit("workflow-updated", rules);
+  toast.success("工作流程規則已保存");
+};
 
 const resetToDefaults = () => {
   Object.assign(rules, {
@@ -522,161 +573,173 @@ const resetToDefaults = () => {
       enabled: true,
       skillBased: true,
       loadBalancing: true,
-      priorityFirst: true
+      priorityFirst: true,
     },
     autoProgression: {
       enabled: false,
       startDelay: 2,
-      completeDelay: 5
+      completeDelay: 5,
     },
     smartScheduling: {
       enabled: true,
       cookingTimeBased: true,
       batchSimilar: false,
-      prepTimeConsidered: true
+      prepTimeConsidered: true,
     },
     qualityControl: {
       enabled: true,
       autoCheck: false,
-      checkInterval: 120
-    }
-  })
-  toast.success('已重設為預設配置')
-}
+      checkInterval: 120,
+    },
+  });
+  toast.success("已重設為預設配置");
+};
 
 const exportWorkflowConfig = () => {
   const config = {
     rules,
     automationActive: automationActive.value,
     activeWorkflows: activeWorkflows.value,
-    exportedAt: new Date().toISOString()
-  }
-  
-  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `workflow-config-${new Date().toISOString().split('T')[0]}.json`
-  link.click()
-  
-  toast.success('工作流程配置已導出')
-}
+    exportedAt: new Date().toISOString(),
+  };
+
+  const blob = new Blob([JSON.stringify(config, null, 2)], {
+    type: "application/json",
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `workflow-config-${new Date().toISOString().split("T")[0]}.json`;
+  link.click();
+
+  toast.success("工作流程配置已導出");
+};
 
 const showWorkflowReport = () => {
-  showReportModal.value = true
-}
+  showReportModal.value = true;
+};
 
 const startAutomationProcesses = () => {
   // Start background processes for automation
-  activeWorkflows.value.forEach(workflow => {
-    if (workflow.status === 'paused') {
-      workflow.status = 'running'
+  activeWorkflows.value.forEach((workflow) => {
+    if (workflow.status === "paused") {
+      workflow.status = "running";
     }
-  })
-}
+  });
+};
 
 const stopAutomationProcesses = () => {
   // Stop all running workflows
-  activeWorkflows.value.forEach(workflow => {
-    if (workflow.status === 'running') {
-      workflow.status = 'paused'
+  activeWorkflows.value.forEach((workflow) => {
+    if (workflow.status === "running") {
+      workflow.status = "paused";
     }
-  })
-}
+  });
+};
 
 // Automation Logic
 const processAutoAssignment = () => {
-  if (!rules.autoAssignment.enabled || !automationActive.value) return
-  
+  if (!rules.autoAssignment.enabled || !automationActive.value) return;
+
   // Find unassigned orders
-  const unassignedOrders = props.orders.filter(order => 
-    order.status === 1 && !order.assignedChef
-  )
-  
-  unassignedOrders.forEach(order => {
-    if (rules.autoAssignment.priorityFirst && order.priority === 'urgent') {
+  const unassignedOrders = props.orders.filter(
+    (order) => order.status === 1 && !order.assignedChef,
+  );
+
+  unassignedOrders.forEach((order) => {
+    if (rules.autoAssignment.priorityFirst && order.priority === "urgent") {
       // Assign to best available chef for urgent orders
-      emit('auto-assignment', order.id, getBestChefForOrder(order))
+      emit("auto-assignment", order.id, getBestChefForOrder(order));
     } else if (rules.autoAssignment.loadBalancing) {
       // Assign based on load balancing
-      emit('auto-assignment', order.id, getLeastLoadedChef())
+      emit("auto-assignment", order.id, getLeastLoadedChef());
     }
-  })
-}
+  });
+};
 
 const processAutoProgression = () => {
-  if (!rules.autoProgression.enabled || !automationActive.value) return
-  
+  if (!rules.autoProgression.enabled || !automationActive.value) return;
+
   // Auto-start ready orders
   setTimeout(() => {
-    const readyToStart = props.orders.filter(order => 
-      order.status === 1 && order.assignedChef
-    )
-    
-    readyToStart.forEach(order => {
-      emit('auto-progression', order.id, 'start_cooking')
-    })
-  }, rules.autoProgression.startDelay * 1000)
-  
+    const readyToStart = props.orders.filter(
+      (order) => order.status === 1 && order.assignedChef,
+    );
+
+    readyToStart.forEach((order) => {
+      emit("auto-progression", order.id, "start_cooking");
+    });
+  }, rules.autoProgression.startDelay * 1000);
+
   // Auto-complete finished orders
   setTimeout(() => {
-    const readyToComplete = props.orders.filter(order => 
-      order.status === 2 && order.estimatedTime && 
-      order.elapsedTime >= order.estimatedTime
-    )
-    
-    readyToComplete.forEach(order => {
-      emit('auto-progression', order.id, 'mark_ready')
-    })
-  }, rules.autoProgression.completeDelay * 1000)
-}
+    const readyToComplete = props.orders.filter(
+      (order) =>
+        order.status === 2 &&
+        order.estimatedTime &&
+        order.elapsedTime >= order.estimatedTime,
+    );
 
-const getBestChefForOrder = (order: KitchenOrder): number => {
+    readyToComplete.forEach((order) => {
+      emit("auto-progression", order.id, "mark_ready");
+    });
+  }, rules.autoProgression.completeDelay * 1000);
+};
+
+const getBestChefForOrder = (_order: KitchenOrder): number => {
   // Simulate chef selection logic
-  return Math.floor(Math.random() * 5) + 1
-}
+  return Math.floor(Math.random() * 5) + 1;
+};
 
 const getLeastLoadedChef = (): number => {
   // Simulate load balancing logic
-  return Math.floor(Math.random() * 5) + 1
-}
+  return Math.floor(Math.random() * 5) + 1;
+};
 
 // Watchers
-watch(() => props.orders, () => {
-  if (automationActive.value) {
-    processAutoAssignment()
-    processAutoProgression()
-  }
-}, { deep: true })
+watch(
+  () => props.orders,
+  () => {
+    if (automationActive.value) {
+      processAutoAssignment();
+      processAutoProgression();
+    }
+  },
+  { deep: true },
+);
 
 // Lifecycle
 onMounted(() => {
   // Load saved rules
-  const savedRules = localStorage.getItem('kitchen-workflow-rules')
+  const savedRules = localStorage.getItem("kitchen-workflow-rules");
   if (savedRules) {
-    Object.assign(rules, JSON.parse(savedRules))
+    Object.assign(rules, JSON.parse(savedRules));
   }
-  
+
   // Start automation if enabled
   if (automationActive.value) {
-    startAutomationProcesses()
+    startAutomationProcesses();
   }
-  
+
   // Update statistics periodically
   setInterval(() => {
-    automationStats.tasksAutomated += Math.floor(Math.random() * 3)
-    automationStats.efficiencyGain = Math.min(50, automationStats.efficiencyGain + Math.random())
-  }, 30000)
-})
+    automationStats.tasksAutomated += Math.floor(Math.random() * 3);
+    automationStats.efficiencyGain = Math.min(
+      50,
+      automationStats.efficiencyGain + Math.random(),
+    );
+  }, 30000);
+});
 </script>
 
 <style scoped>
 /* Custom animations */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: .5;
+    opacity: 0.5;
   }
 }
 

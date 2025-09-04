@@ -7,16 +7,17 @@
         <p class="text-gray-600">歡迎回來，{{ user?.username }}</p>
       </div>
       <div class="flex items-center space-x-3">
-        <div class="text-sm text-gray-500">
-          最後更新: {{ lastUpdatedText }}
-        </div>
+        <div class="text-sm text-gray-500">最後更新: {{ lastUpdatedText }}</div>
         <button
-          @click="refreshData"
           :disabled="isLoading"
           class="btn-secondary"
           :class="{ 'opacity-50': isLoading }"
+          @click="refreshData"
         >
-          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': isLoading }" />
+          <RefreshCw
+            class="w-4 h-4 mr-2"
+            :class="{ 'animate-spin': isLoading }"
+          />
           重新整理
         </button>
       </div>
@@ -60,18 +61,18 @@
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">營收趨勢</h3>
-          <select 
-            v-model="revenueChartPeriod" 
-            @change="updateRevenueChart"
+          <select
+            v-model="revenueChartPeriod"
             class="form-input w-auto"
+            @change="updateRevenueChart"
           >
             <option value="daily">今日</option>
             <option value="weekly">本週</option>
             <option value="monthly">本月</option>
           </select>
         </div>
-        <RevenueChart 
-          :data="revenueChart as any" 
+        <RevenueChart
+          :data="revenueChart as any"
           :loading="isLoading"
           :period="revenueChartPeriod as 'daily' | 'weekly' | 'monthly'"
         />
@@ -81,18 +82,18 @@
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">訂單趨勢</h3>
-          <select 
-            v-model="ordersChartPeriod" 
-            @change="updateOrdersChart"
+          <select
+            v-model="ordersChartPeriod"
             class="form-input w-auto"
+            @change="updateOrdersChart"
           >
             <option value="daily">今日</option>
             <option value="weekly">本週</option>
             <option value="monthly">本月</option>
           </select>
         </div>
-        <OrdersChart 
-          :data="ordersChart as any" 
+        <OrdersChart
+          :data="ordersChart as any"
           :loading="isLoading"
           :period="ordersChartPeriod as 'daily' | 'weekly' | 'monthly'"
         />
@@ -105,10 +106,7 @@
       <div class="lg:col-span-2">
         <div class="card p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門菜品</h3>
-          <TopMenuItems 
-            :items="topMenuItems as any" 
-            :loading="isLoading"
-          />
+          <TopMenuItems :items="topMenuItems as any" :loading="isLoading" />
         </div>
       </div>
 
@@ -116,8 +114,8 @@
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">最新訂單</h3>
-          <router-link 
-            to="/dashboard/orders" 
+          <router-link
+            to="/dashboard/orders"
             class="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
             查看全部
@@ -138,7 +136,7 @@
           <Menu class="w-8 h-8 text-primary-600 mb-2" />
           <span class="text-sm font-medium text-gray-900">管理菜單</span>
         </router-link>
-        
+
         <router-link
           to="/dashboard/tables"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -146,7 +144,7 @@
           <Table class="w-8 h-8 text-primary-600 mb-2" />
           <span class="text-sm font-medium text-gray-900">管理桌台</span>
         </router-link>
-        
+
         <router-link
           to="/dashboard/users"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -154,7 +152,7 @@
           <Users class="w-8 h-8 text-primary-600 mb-2" />
           <span class="text-sm font-medium text-gray-900">員工管理</span>
         </router-link>
-        
+
         <router-link
           to="/dashboard/analytics"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -168,94 +166,99 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useDashboardStore } from '@/stores/dashboard'
-import { useOrderStore } from '@/stores/order'
-import { OrderStatus } from '@/types'
-import { useDashboardPolling } from '@/composables/usePolling'
-import { formatDistanceToNow } from 'date-fns'
-import { zhTW } from 'date-fns/locale'
-import {
-  RefreshCw,
-  Menu,
-  Table,
-  Users,
-  BarChart3
-} from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { useDashboardStore } from "@/stores/dashboard";
+import { useOrderStore } from "@/stores/order";
+import { OrderStatus } from "@/types";
+import { useDashboardPolling } from "@/composables/usePolling";
+import { formatDistanceToNow } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { RefreshCw, Menu, Table, Users, BarChart3 } from "lucide-vue-next";
 
 // Components (these would be implemented separately)
-import StatsCard from '@/components/dashboard/StatsCard.vue'
-import RevenueChart from '@/components/dashboard/RevenueChart.vue'
-import OrdersChart from '@/components/dashboard/OrdersChart.vue'
-import TopMenuItems from '@/components/dashboard/TopMenuItems.vue'
-import RecentOrders from '@/components/dashboard/RecentOrders.vue'
+import StatsCard from "@/components/dashboard/StatsCard.vue";
+import RevenueChart from "@/components/dashboard/RevenueChart.vue";
+import OrdersChart from "@/components/dashboard/OrdersChart.vue";
+import TopMenuItems from "@/components/dashboard/TopMenuItems.vue";
+import RecentOrders from "@/components/dashboard/RecentOrders.vue";
 
-const authStore = useAuthStore()
-const dashboardStore = useDashboardStore()
-const orderStore = useOrderStore()
+const authStore = useAuthStore();
+const dashboardStore = useDashboardStore();
+const orderStore = useOrderStore();
 
-const revenueChartPeriod = ref('daily')
-const ordersChartPeriod = ref('daily')
+const revenueChartPeriod = ref("daily");
+const ordersChartPeriod = ref("daily");
 
 // Start auto-refresh for dashboard data
-const { start: startPolling, stop: stopPolling } = useDashboardPolling(30000)
+const { start: startPolling, stop: stopPolling } = useDashboardPolling(30000);
 
-const user = computed(() => authStore.user)
-const isLoading = computed(() => dashboardStore.isLoading)
-const canAccessAdminFeatures = computed(() => authStore.canAccessAdminFeatures)
+const user = computed(() => authStore.user);
+const isLoading = computed(() => dashboardStore.isLoading);
+const canAccessAdminFeatures = computed(() => authStore.canAccessAdminFeatures);
 
 // Dashboard stats
-const todayOrders = computed(() => dashboardStore.todayOrders)
-const todayRevenue = computed(() => dashboardStore.todayRevenue)
-const averageOrderValue = computed(() => dashboardStore.averageOrderValue)
-const completionRate = computed(() => dashboardStore.completionRate)
-const topMenuItems = computed(() => dashboardStore.topMenuItems)
-const revenueChart = computed(() => dashboardStore.revenueChart)
-const ordersChart = computed(() => dashboardStore.ordersChart)
+const todayOrders = computed(() => dashboardStore.todayOrders);
+const todayRevenue = computed(() => dashboardStore.todayRevenue);
+const averageOrderValue = computed(() => dashboardStore.averageOrderValue);
+const completionRate = computed(() => dashboardStore.completionRate);
+const topMenuItems = computed(() => dashboardStore.topMenuItems);
+const revenueChart = computed(() => dashboardStore.revenueChart);
+const ordersChart = computed(() => dashboardStore.ordersChart);
 
 const lastUpdatedText = computed(() => {
-  if (!dashboardStore.lastUpdated) return '從未更新'
+  if (!dashboardStore.lastUpdated) return "從未更新";
   return formatDistanceToNow(dashboardStore.lastUpdated, {
     addSuffix: true,
-    locale: zhTW
-  })
-})
+    locale: zhTW,
+  });
+});
 
 const formatCurrency = (amount: number) => {
-  return dashboardStore.formatCurrency(amount)
-}
+  return dashboardStore.formatCurrency(amount);
+};
 
 const formatPercentage = (value: number) => {
-  return dashboardStore.formatPercentage(value)
-}
+  return dashboardStore.formatPercentage(value);
+};
 
 const refreshData = async () => {
   await Promise.all([
     dashboardStore.fetchDashboardStats(),
-    orderStore.fetchOrders({ status: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY] })
-  ])
-}
+    orderStore.fetchOrders({
+      status: [
+        OrderStatus.PENDING,
+        OrderStatus.CONFIRMED,
+        OrderStatus.PREPARING,
+        OrderStatus.READY,
+      ],
+    }),
+  ]);
+};
 
 const updateRevenueChart = async () => {
-  await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value as 'daily' | 'weekly' | 'monthly')
-}
+  await dashboardStore.fetchRevenueAnalytics(
+    revenueChartPeriod.value as "daily" | "weekly" | "monthly",
+  );
+};
 
 const updateOrdersChart = async () => {
-  await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value as 'daily' | 'weekly' | 'monthly')
-}
+  await dashboardStore.fetchOrderAnalytics(
+    ordersChartPeriod.value as "daily" | "weekly" | "monthly",
+  );
+};
 
 onMounted(async () => {
   // Initial data load
-  await refreshData()
-  
+  await refreshData();
+
   // Start auto-refresh
-  startPolling()
-  dashboardStore.startAutoRefresh(30000)
-})
+  startPolling();
+  dashboardStore.startAutoRefresh(30000);
+});
 
 onUnmounted(() => {
-  stopPolling()
-  dashboardStore.stopAutoRefresh()
-})
+  stopPolling();
+  dashboardStore.stopAutoRefresh();
+});
 </script>

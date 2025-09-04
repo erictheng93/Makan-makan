@@ -1,463 +1,506 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { useSettingsStore } from './settings'
-import type { 
-  KitchenOrder, 
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import { useSettingsStore } from "./settings";
+import type {
+  KitchenOrder,
   KitchenOrderItem,
   OrderStatus,
-  ItemStatus
-} from '@/types'
+  ItemStatus,
+} from "@/types";
 
 export interface OrderFilter {
-  status?: OrderStatus[]
-  priority?: ('normal' | 'high' | 'urgent')[]
-  searchText?: string
-  minElapsedTime?: number
-  maxElapsedTime?: number
-  tableIds?: number[]
-  hasNotes?: boolean
-  hasCustomizations?: boolean
+  status?: OrderStatus[];
+  priority?: ("normal" | "high" | "urgent")[];
+  searchText?: string;
+  minElapsedTime?: number;
+  maxElapsedTime?: number;
+  tableIds?: number[];
+  hasNotes?: boolean;
+  hasCustomizations?: boolean;
 }
 
 export interface OrderSort {
-  field: 'createdAt' | 'elapsedTime' | 'priority' | 'tableId' | 'totalItems'
-  direction: 'asc' | 'desc'
+  field: "createdAt" | "elapsedTime" | "priority" | "tableId" | "totalItems";
+  direction: "asc" | "desc";
 }
 
-export const useOrderManagementStore = defineStore('orderManagement', () => {
-  const settingsStore = useSettingsStore()
+export const useOrderManagementStore = defineStore("orderManagement", () => {
+  const settingsStore = useSettingsStore();
 
   // State
-  const selectedOrders = ref<Set<number>>(new Set())
-  const filters = ref<OrderFilter>({})
+  const selectedOrders = ref<Set<number>>(new Set());
+  const filters = ref<OrderFilter>({});
   const sortBy = ref<OrderSort>({
-    field: 'createdAt',
-    direction: 'asc'
-  })
-  const viewMode = ref<'card' | 'list' | 'compact'>('card')
-  const showCompletedOrders = ref(false)
-  const autoRefreshEnabled = ref(true)
+    field: "createdAt",
+    direction: "asc",
+  });
+  const viewMode = ref<"card" | "list" | "compact">("card");
+  const showCompletedOrders = ref(false);
+  const autoRefreshEnabled = ref(true);
 
   // Selection Management
   const selectOrder = (orderId: number) => {
-    selectedOrders.value.add(orderId)
-  }
+    selectedOrders.value.add(orderId);
+  };
 
   const deselectOrder = (orderId: number) => {
-    selectedOrders.value.delete(orderId)
-  }
+    selectedOrders.value.delete(orderId);
+  };
 
   const toggleOrderSelection = (orderId: number) => {
     if (selectedOrders.value.has(orderId)) {
-      deselectOrder(orderId)
+      deselectOrder(orderId);
     } else {
-      selectOrder(orderId)
+      selectOrder(orderId);
     }
-  }
+  };
 
   const selectAll = (orders: KitchenOrder[]) => {
-    orders.forEach(order => {
-      selectedOrders.value.add(order.id)
-    })
-  }
+    orders.forEach((order) => {
+      selectedOrders.value.add(order.id);
+    });
+  };
 
   const deselectAll = () => {
-    selectedOrders.value.clear()
-  }
+    selectedOrders.value.clear();
+  };
 
   const isOrderSelected = (orderId: number) => {
-    return selectedOrders.value.has(orderId)
-  }
+    return selectedOrders.value.has(orderId);
+  };
 
   // Computed
-  const selectedOrdersCount = computed(() => selectedOrders.value.size)
-  const hasSelectedOrders = computed(() => selectedOrders.value.size > 0)
+  const selectedOrdersCount = computed(() => selectedOrders.value.size);
+  const hasSelectedOrders = computed(() => selectedOrders.value.size > 0);
 
   // Filtering Logic
   const filterOrders = (orders: KitchenOrder[]): KitchenOrder[] => {
-    let filtered = [...orders]
+    let filtered = [...orders];
 
     // Status filter
     if (filters.value.status && filters.value.status.length > 0) {
-      filtered = filtered.filter(order => 
-        filters.value.status!.includes(order.status)
-      )
+      filtered = filtered.filter((order) =>
+        filters.value.status!.includes(order.status),
+      );
     }
 
     // Priority filter
     if (filters.value.priority && filters.value.priority.length > 0) {
-      filtered = filtered.filter(order => 
-        filters.value.priority!.includes(order.priority)
-      )
+      filtered = filtered.filter((order) =>
+        filters.value.priority!.includes(order.priority),
+      );
     }
 
     // Search text filter
-    if (filters.value.searchText && filters.value.searchText.trim() !== '') {
-      const searchText = filters.value.searchText.toLowerCase()
-      filtered = filtered.filter(order => {
-        const matchesOrderNumber = order.orderNumber.toLowerCase().includes(searchText)
-        const matchesCustomerName = order.customerName?.toLowerCase().includes(searchText)
-        const matchesTableName = order.tableName.toLowerCase().includes(searchText)
-        const matchesNotes = order.notes?.toLowerCase().includes(searchText)
-        const matchesItemName = order.items.some(item => 
-          item.name.toLowerCase().includes(searchText)
-        )
-        
-        return matchesOrderNumber || matchesCustomerName || matchesTableName || 
-               matchesNotes || matchesItemName
-      })
+    if (filters.value.searchText && filters.value.searchText.trim() !== "") {
+      const searchText = filters.value.searchText.toLowerCase();
+      filtered = filtered.filter((order) => {
+        const matchesOrderNumber = order.orderNumber
+          .toLowerCase()
+          .includes(searchText);
+        const matchesCustomerName = order.customerName
+          ?.toLowerCase()
+          .includes(searchText);
+        const matchesTableName = order.tableName
+          .toLowerCase()
+          .includes(searchText);
+        const matchesNotes = order.notes?.toLowerCase().includes(searchText);
+        const matchesItemName = order.items.some((item) =>
+          item.name.toLowerCase().includes(searchText),
+        );
+
+        return (
+          matchesOrderNumber ||
+          matchesCustomerName ||
+          matchesTableName ||
+          matchesNotes ||
+          matchesItemName
+        );
+      });
     }
 
     // Elapsed time filter
     if (filters.value.minElapsedTime !== undefined) {
-      filtered = filtered.filter(order => 
-        order.elapsedTime >= filters.value.minElapsedTime!
-      )
+      filtered = filtered.filter(
+        (order) => order.elapsedTime >= filters.value.minElapsedTime!,
+      );
     }
 
     if (filters.value.maxElapsedTime !== undefined) {
-      filtered = filtered.filter(order => 
-        order.elapsedTime <= filters.value.maxElapsedTime!
-      )
+      filtered = filtered.filter(
+        (order) => order.elapsedTime <= filters.value.maxElapsedTime!,
+      );
     }
 
     // Table filter
     if (filters.value.tableIds && filters.value.tableIds.length > 0) {
-      filtered = filtered.filter(order => 
-        filters.value.tableIds!.includes(order.tableId)
-      )
+      filtered = filtered.filter((order) =>
+        filters.value.tableIds!.includes(order.tableId),
+      );
     }
 
     // Has notes filter
     if (filters.value.hasNotes === true) {
-      filtered = filtered.filter(order => order.notes && order.notes.trim() !== '')
+      filtered = filtered.filter(
+        (order) => order.notes && order.notes.trim() !== "",
+      );
     } else if (filters.value.hasNotes === false) {
-      filtered = filtered.filter(order => !order.notes || order.notes.trim() === '')
+      filtered = filtered.filter(
+        (order) => !order.notes || order.notes.trim() === "",
+      );
     }
 
     // Has customizations filter
     if (filters.value.hasCustomizations === true) {
-      filtered = filtered.filter(order => 
-        order.items.some(item => item.customizations && item.customizations.length > 0)
-      )
+      filtered = filtered.filter((order) =>
+        order.items.some(
+          (item) => item.customizations && item.customizations.length > 0,
+        ),
+      );
     } else if (filters.value.hasCustomizations === false) {
-      filtered = filtered.filter(order => 
-        !order.items.some(item => item.customizations && item.customizations.length > 0)
-      )
+      filtered = filtered.filter(
+        (order) =>
+          !order.items.some(
+            (item) => item.customizations && item.customizations.length > 0,
+          ),
+      );
     }
 
-    return filtered
-  }
+    return filtered;
+  };
 
   // Sorting Logic
   const sortOrders = (orders: KitchenOrder[]): KitchenOrder[] => {
     const sorted = [...orders].sort((a, b) => {
-      let comparison = 0
+      let comparison = 0;
 
       switch (sortBy.value.field) {
-        case 'createdAt':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          break
-        case 'elapsedTime':
-          comparison = a.elapsedTime - b.elapsedTime
-          break
-        case 'priority': {
-          const priorityOrder = { 'urgent': 3, 'high': 2, 'normal': 1 }
-          comparison = priorityOrder[a.priority] - priorityOrder[b.priority]
-          break
+        case "createdAt":
+          comparison =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case "elapsedTime":
+          comparison = a.elapsedTime - b.elapsedTime;
+          break;
+        case "priority": {
+          const priorityOrder = { urgent: 3, high: 2, normal: 1 };
+          comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+          break;
         }
-        case 'tableId':
-          comparison = a.tableId - b.tableId
-          break
-        case 'totalItems':
-          comparison = a.totalItems - b.totalItems
-          break
+        case "tableId":
+          comparison = a.tableId - b.tableId;
+          break;
+        case "totalItems":
+          comparison = a.totalItems - b.totalItems;
+          break;
       }
 
-      return sortBy.value.direction === 'asc' ? comparison : -comparison
-    })
+      return sortBy.value.direction === "asc" ? comparison : -comparison;
+    });
 
-    return sorted
-  }
+    return sorted;
+  };
 
   // Priority Management
-  const calculateOrderPriority = (order: KitchenOrder): 'normal' | 'high' | 'urgent' => {
-    const { urgentThreshold, warningThreshold } = settingsStore.settings
+  const calculateOrderPriority = (
+    order: KitchenOrder,
+  ): "normal" | "high" | "urgent" => {
+    const { urgentThreshold, warningThreshold } = settingsStore.settings;
 
     if (order.elapsedTime >= urgentThreshold) {
-      return 'urgent'
+      return "urgent";
     } else if (order.elapsedTime >= warningThreshold) {
-      return 'high'
+      return "high";
     } else {
-      return 'normal'
+      return "normal";
     }
-  }
+  };
 
   const updateOrderPriorities = (orders: KitchenOrder[]): KitchenOrder[] => {
-    return orders.map(order => ({
+    return orders.map((order) => ({
       ...order,
-      priority: calculateOrderPriority(order)
-    }))
-  }
+      priority: calculateOrderPriority(order),
+    }));
+  };
 
   // Time Management
   const calculateElapsedTime = (order: KitchenOrder): number => {
-    const createdTime = new Date(order.createdAt).getTime()
-    const now = Date.now()
-    return Math.floor((now - createdTime) / (1000 * 60)) // Minutes
-  }
+    const createdTime = new Date(order.createdAt).getTime();
+    const now = Date.now();
+    return Math.floor((now - createdTime) / (1000 * 60)); // Minutes
+  };
 
   const updateElapsedTimes = (orders: KitchenOrder[]): KitchenOrder[] => {
-    return orders.map(order => ({
+    return orders.map((order) => ({
       ...order,
-      elapsedTime: calculateElapsedTime(order)
-    }))
-  }
+      elapsedTime: calculateElapsedTime(order),
+    }));
+  };
 
   // Item Status Management
   const getNextItemStatus = (currentStatus: ItemStatus): ItemStatus => {
     const statusFlow: Record<ItemStatus, ItemStatus> = {
-      'pending': 'preparing',
-      'preparing': 'ready',
-      'ready': 'completed',
-      'completed': 'completed'
-    }
-    return statusFlow[currentStatus]
-  }
+      pending: "preparing",
+      preparing: "ready",
+      ready: "completed",
+      completed: "completed",
+    };
+    return statusFlow[currentStatus];
+  };
 
   const canAdvanceItemStatus = (status: ItemStatus): boolean => {
-    return status !== 'ready' && status !== 'completed'
-  }
+    return status !== "ready" && status !== "completed";
+  };
 
-  const getItemsByStatus = (order: KitchenOrder, status: ItemStatus): KitchenOrderItem[] => {
-    return order.items.filter(item => item.status === status)
-  }
+  const getItemsByStatus = (
+    order: KitchenOrder,
+    status: ItemStatus,
+  ): KitchenOrderItem[] => {
+    return order.items.filter((item) => item.status === status);
+  };
 
   const getOrderProgress = (order: KitchenOrder): number => {
-    const totalItems = order.items.length
-    if (totalItems === 0) return 0
+    const totalItems = order.items.length;
+    if (totalItems === 0) return 0;
 
-    const completedItems = order.items.filter(item => 
-      item.status === 'ready' || item.status === 'completed'
-    ).length
+    const completedItems = order.items.filter(
+      (item) => item.status === "ready" || item.status === "completed",
+    ).length;
 
-    return Math.round((completedItems / totalItems) * 100)
-  }
+    return Math.round((completedItems / totalItems) * 100);
+  };
 
   // Batch Operations
   const getSelectedOrdersData = (allOrders: KitchenOrder[]) => {
-    return allOrders.filter(order => selectedOrders.value.has(order.id))
-  }
+    return allOrders.filter((order) => selectedOrders.value.has(order.id));
+  };
 
   const canBatchStartCooking = (orders: KitchenOrder[]): boolean => {
-    return orders.some(order => 
-      order.items.some(item => item.status === 'pending')
-    )
-  }
+    return orders.some((order) =>
+      order.items.some((item) => item.status === "pending"),
+    );
+  };
 
   const canBatchMarkReady = (orders: KitchenOrder[]): boolean => {
-    return orders.some(order => 
-      order.items.some(item => item.status === 'preparing')
-    )
-  }
+    return orders.some((order) =>
+      order.items.some((item) => item.status === "preparing"),
+    );
+  };
 
   const getBatchOperationSummary = (orders: KitchenOrder[]) => {
-    const totalOrders = orders.length
-    const totalItems = orders.reduce((sum, order) => sum + order.items.length, 0)
-    const pendingItems = orders.reduce((sum, order) => 
-      sum + order.items.filter(item => item.status === 'pending').length, 0)
-    const preparingItems = orders.reduce((sum, order) => 
-      sum + order.items.filter(item => item.status === 'preparing').length, 0)
+    const totalOrders = orders.length;
+    const totalItems = orders.reduce(
+      (sum, order) => sum + order.items.length,
+      0,
+    );
+    const pendingItems = orders.reduce(
+      (sum, order) =>
+        sum + order.items.filter((item) => item.status === "pending").length,
+      0,
+    );
+    const preparingItems = orders.reduce(
+      (sum, order) =>
+        sum + order.items.filter((item) => item.status === "preparing").length,
+      0,
+    );
 
     return {
       totalOrders,
       totalItems,
       pendingItems,
-      preparingItems
-    }
-  }
+      preparingItems,
+    };
+  };
 
   // Filter Management
   const setFilter = (key: keyof OrderFilter, value: any) => {
-    filters.value[key] = value
-  }
+    filters.value[key] = value;
+  };
 
   const clearFilters = () => {
-    filters.value = {}
-  }
+    filters.value = {};
+  };
 
   const hasActiveFilters = computed(() => {
-    return Object.keys(filters.value).some(key => {
-      const value = filters.value[key as keyof OrderFilter]
+    return Object.keys(filters.value).some((key) => {
+      const value = filters.value[key as keyof OrderFilter];
       if (Array.isArray(value)) {
-        return value.length > 0
+        return value.length > 0;
       }
-      return value !== undefined && value !== null && value !== ''
-    })
-  })
+      return value !== undefined && value !== null && value !== "";
+    });
+  });
 
   // Sort Management
-  const setSorting = (field: OrderSort['field'], direction?: OrderSort['direction']) => {
+  const setSorting = (
+    field: OrderSort["field"],
+    direction?: OrderSort["direction"],
+  ) => {
     if (sortBy.value.field === field && !direction) {
       // Toggle direction if same field
-      sortBy.value.direction = sortBy.value.direction === 'asc' ? 'desc' : 'asc'
+      sortBy.value.direction =
+        sortBy.value.direction === "asc" ? "desc" : "asc";
     } else {
-      sortBy.value.field = field
-      sortBy.value.direction = direction || 'asc'
+      sortBy.value.field = field;
+      sortBy.value.direction = direction || "asc";
     }
-  }
+  };
 
   // View Management
-  const setViewMode = (mode: 'card' | 'list' | 'compact') => {
-    viewMode.value = mode
-  }
+  const setViewMode = (mode: "card" | "list" | "compact") => {
+    viewMode.value = mode;
+  };
 
   const toggleCompletedOrders = () => {
-    showCompletedOrders.value = !showCompletedOrders.value
-  }
+    showCompletedOrders.value = !showCompletedOrders.value;
+  };
 
   // Auto-refresh Management
   const toggleAutoRefresh = () => {
-    autoRefreshEnabled.value = !autoRefreshEnabled.value
-  }
+    autoRefreshEnabled.value = !autoRefreshEnabled.value;
+  };
 
   // Drag and Drop Status Management
-  const moveOrderToStatus = (orderId: number, newStatus: 'pending' | 'preparing' | 'ready') => {
+  const moveOrderToStatus = (
+    orderId: number,
+    newStatus: "pending" | "preparing" | "ready",
+  ) => {
     // This would trigger API calls to update order status
     // For now, we'll emit an event that the parent component can handle
-    return { orderId, newStatus }
-  }
+    return { orderId, newStatus };
+  };
 
   const batchStartAllItems = (orderId: number) => {
     // Start all pending items in an order
-    return { orderId, action: 'start_all' }
-  }
+    return { orderId, action: "start_all" };
+  };
 
   const batchCompleteAllItems = (orderId: number) => {
-    // Complete all preparing items in an order  
-    return { orderId, action: 'complete_all' }
-  }
+    // Complete all preparing items in an order
+    return { orderId, action: "complete_all" };
+  };
 
   // Quick Filters
   const quickFilters = {
     showUrgentOnly: () => {
-      setFilter('priority', ['urgent'])
+      setFilter("priority", ["urgent"]);
     },
     showPendingOnly: () => {
-      setFilter('status', [1]) // CONFIRMED
+      setFilter("status", [1]); // CONFIRMED
     },
     showPreparingOnly: () => {
-      setFilter('status', [2]) // PREPARING
+      setFilter("status", [2]); // PREPARING
     },
     showWithNotes: () => {
-      setFilter('hasNotes', true)
+      setFilter("hasNotes", true);
     },
     showOverdue: () => {
-      setFilter('minElapsedTime', settingsStore.settings.urgentThreshold)
-    }
-  }
+      setFilter("minElapsedTime", settingsStore.settings.urgentThreshold);
+    },
+  };
 
   // Focus management for keyboard navigation
-  const focusedOrderId = ref<number | null>(null)
+  const focusedOrderId = ref<number | null>(null);
   const focusedOrder = computed(() => {
-    if (!focusedOrderId.value) return null
+    if (!focusedOrderId.value) return null;
     // This would need to be connected to the actual orders data
-    return { id: focusedOrderId.value }
-  })
+    return { id: focusedOrderId.value };
+  });
 
   // Order operations
   const completeOrder = async (orderId: number) => {
     // TODO: Implement actual order completion API call
-    console.log(`Completing order ${orderId}`)
+    console.log(`Completing order ${orderId}`);
     // This would call the API to mark order as complete
-  }
+  };
 
   const startCooking = async (orderId: number) => {
     // TODO: Implement actual start cooking API call
-    console.log(`Starting cooking for order ${orderId}`)
+    console.log(`Starting cooking for order ${orderId}`);
     // This would call the API to start cooking process
-  }
+  };
 
   // Navigation methods
   const selectNextOrder = (allOrders: any[] = []) => {
-    if (allOrders.length === 0) return
-    
-    const currentIndex = focusedOrderId.value 
-      ? allOrders.findIndex(order => order.id === focusedOrderId.value)
-      : -1
-    
-    const nextIndex = (currentIndex + 1) % allOrders.length
-    focusedOrderId.value = allOrders[nextIndex]?.id || null
-    
+    if (allOrders.length === 0) return;
+
+    const currentIndex = focusedOrderId.value
+      ? allOrders.findIndex((order) => order.id === focusedOrderId.value)
+      : -1;
+
+    const nextIndex = (currentIndex + 1) % allOrders.length;
+    focusedOrderId.value = allOrders[nextIndex]?.id || null;
+
     if (focusedOrderId.value) {
-      selectOrder(focusedOrderId.value)
+      selectOrder(focusedOrderId.value);
     }
-  }
+  };
 
   const selectPreviousOrder = (allOrders: any[] = []) => {
-    if (allOrders.length === 0) return
-    
-    const currentIndex = focusedOrderId.value 
-      ? allOrders.findIndex(order => order.id === focusedOrderId.value)
-      : -1
-    
-    const prevIndex = currentIndex <= 0 ? allOrders.length - 1 : currentIndex - 1
-    focusedOrderId.value = allOrders[prevIndex]?.id || null
-    
+    if (allOrders.length === 0) return;
+
+    const currentIndex = focusedOrderId.value
+      ? allOrders.findIndex((order) => order.id === focusedOrderId.value)
+      : -1;
+
+    const prevIndex =
+      currentIndex <= 0 ? allOrders.length - 1 : currentIndex - 1;
+    focusedOrderId.value = allOrders[prevIndex]?.id || null;
+
     if (focusedOrderId.value) {
-      selectOrder(focusedOrderId.value)
+      selectOrder(focusedOrderId.value);
     }
-  }
+  };
 
   const selectFirstOrder = (allOrders: any[] = []) => {
-    if (allOrders.length === 0) return
-    focusedOrderId.value = allOrders[0]?.id || null
+    if (allOrders.length === 0) return;
+    focusedOrderId.value = allOrders[0]?.id || null;
     if (focusedOrderId.value) {
-      selectOrder(focusedOrderId.value)
+      selectOrder(focusedOrderId.value);
     }
-  }
+  };
 
   const selectLastOrder = (allOrders: any[] = []) => {
-    if (allOrders.length === 0) return
-    focusedOrderId.value = allOrders[allOrders.length - 1]?.id || null
+    if (allOrders.length === 0) return;
+    focusedOrderId.value = allOrders[allOrders.length - 1]?.id || null;
     if (focusedOrderId.value) {
-      selectOrder(focusedOrderId.value)
+      selectOrder(focusedOrderId.value);
     }
-  }
+  };
 
   const selectAllVisibleOrders = (visibleOrders: any[] = []) => {
-    visibleOrders.forEach(order => selectOrder(order.id))
-  }
+    visibleOrders.forEach((order) => selectOrder(order.id));
+  };
 
   // Filter operations
   const applyFilter = (filterType: string, value: any) => {
-    setFilter(filterType as keyof OrderFilter, value)
-  }
+    setFilter(filterType as keyof OrderFilter, value);
+  };
 
   // Refresh operations
   const refreshOrders = async () => {
     // TODO: Implement actual order refresh from API
-    console.log('Refreshing orders')
+    console.log("Refreshing orders");
     // This would call the API to fetch latest orders
-  }
+  };
 
   // Batch operations
   const batchOperation = async (operation: string, orderIds: number[]) => {
     // TODO: Implement actual batch operations
-    console.log(`Performing ${operation} on orders:`, orderIds)
+    console.log(`Performing ${operation} on orders:`, orderIds);
     // This would call the appropriate API endpoints for batch operations
-  }
+  };
 
   // Reset all management state
   const resetManagementState = () => {
-    deselectAll()
-    clearFilters()
-    sortBy.value = { field: 'createdAt', direction: 'asc' }
-    viewMode.value = 'card'
-    showCompletedOrders.value = false
-    autoRefreshEnabled.value = true
-    focusedOrderId.value = null
-  }
+    deselectAll();
+    clearFilters();
+    sortBy.value = { field: "createdAt", direction: "asc" };
+    viewMode.value = "card";
+    showCompletedOrders.value = false;
+    autoRefreshEnabled.value = true;
+    focusedOrderId.value = null;
+  };
 
   return {
     // State
@@ -534,7 +577,7 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
     selectLastOrder,
     selectAllVisibleOrders,
 
-    // Filter operations  
+    // Filter operations
     applyFilter,
 
     // Refresh operations
@@ -544,6 +587,6 @@ export const useOrderManagementStore = defineStore('orderManagement', () => {
     batchOperation,
 
     // Reset
-    resetManagementState
-  }
-})
+    resetManagementState,
+  };
+});
