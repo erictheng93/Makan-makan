@@ -5,7 +5,7 @@ import StatCard from '@/components/StatCard.vue';
 import PerformanceTrendChart from '@/components/PerformanceTrendChart.vue';
 import { ArrowPathIcon, DocumentArrowDownIcon, ClockIcon, CheckCircleIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon, WifiIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 // SSE 實時更新
-const { isConnected, isConnecting, error: sseError, connect: connectSSE, disconnect: disconnectSSE, reconnect } = useStatisticsSSE();
+const { isConnected, isConnecting, error: sseError, disconnect: disconnectSSE, reconnect } = useStatisticsSSE();
 // SSE 連線狀態指示
 const connectionStatus = computed(() => {
     if (isConnected.value)

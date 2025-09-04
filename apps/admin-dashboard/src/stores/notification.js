@@ -59,7 +59,9 @@ export const useNotificationStore = defineStore('notification', () => {
                 success: 880,
                 info: 660,
                 warning: 554,
-                error: 440
+                error: 440,
+                order_ready: 880,
+                order_urgent: 554
             };
             const frequency = frequencies[type];
             const duration = 0.2;

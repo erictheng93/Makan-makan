@@ -48,7 +48,31 @@ export const corsMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
   c.res.headers.set('X-Frame-Options', 'DENY') 
   c.res.headers.set('X-XSS-Protection', '1; mode=block')
   c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  c.res.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+  c.res.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()')
+  
+  // SECURITY ENHANCEMENT: Add comprehensive Content Security Policy
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://api.cloudflare.com https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: https: blob:",
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https: wss: https://*.makanmakan.app https://api.cloudflare.com",
+    "media-src 'self' data: blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests"
+  ].join('; ')
+  
+  c.res.headers.set('Content-Security-Policy', cspDirectives)
+  
+  // Additional security headers
+  c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  c.res.headers.set('X-DNS-Prefetch-Control', 'off')
+  c.res.headers.set('X-Download-Options', 'noopen')
+  c.res.headers.set('X-Permitted-Cross-Domain-Policies', 'none')
 
   // 處理 preflight 請求
   if (c.req.method === 'OPTIONS') {

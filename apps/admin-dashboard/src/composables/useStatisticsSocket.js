@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { statisticsService } from '@/services/statisticsService';
 export function useStatisticsSocket(options = {}) {
-    const { url = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8787'}/statistics`, autoConnect = true, retryAttempts = 5, retryDelay = 3000 } = options;
+    const { url = `${import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8787'}/statistics`, autoConnect = true, retryAttempts = 5, retryDelay = 3000 } = options;
     // Reactive state
     const isConnected = ref(false);
     const isConnecting = ref(false);
@@ -60,9 +60,9 @@ export function useStatisticsSocket(options = {}) {
                 isConnecting.value = false;
             };
         }
-        catch (error) {
-            console.error('Failed to create WebSocket connection:', error);
-            error.value = error instanceof Error ? error.message : 'Failed to create WebSocket connection';
+        catch (err) {
+            console.error('Failed to create WebSocket connection:', err);
+            error.value = err instanceof Error ? err.message : 'Failed to create WebSocket connection';
             isConnecting.value = false;
         }
     };

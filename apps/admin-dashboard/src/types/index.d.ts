@@ -181,3 +181,14 @@ export interface NotificationSettings {
     systemAlerts: boolean;
     sound: boolean;
 }
+export interface SystemNotification {
+    id: number;
+    type: 'urgent_order' | 'new_order' | 'achievement' | 'system_alert';
+    title: string;
+    message: string;
+    createdAt: string;
+    read: boolean;
+}
+export interface UrgentOrderAlert {
+    message: string;
+}

@@ -33,7 +33,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/service" | "/dashboard" | "/kitchen" | "/cashier" | "/owner";
+    getDefaultRoute: () => "/login" | "/dashboard" | "/owner" | "/kitchen" | "/service" | "/cashier";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;
@@ -79,7 +79,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/service" | "/dashboard" | "/kitchen" | "/cashier" | "/owner";
+    getDefaultRoute: () => "/login" | "/dashboard" | "/owner" | "/kitchen" | "/service" | "/cashier";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;
@@ -125,7 +125,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/service" | "/dashboard" | "/kitchen" | "/cashier" | "/owner";
+    getDefaultRoute: () => "/login" | "/dashboard" | "/owner" | "/kitchen" | "/service" | "/cashier";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;

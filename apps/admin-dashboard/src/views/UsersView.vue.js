@@ -149,7 +149,14 @@ const formatDate = (dateTime) => {
 };
 const editUser = (user) => {
     editingUser.value = user;
-    userForm.value = { ...user };
+    userForm.value = {
+        username: user.username,
+        password: '', // Don't populate existing password
+        fullName: user.fullName || '',
+        email: user.email,
+        role: user.role,
+        status: user.status || 'active'
+    };
     showUserModal.value = true;
 };
 const resetPassword = async (user) => {
@@ -744,7 +751,7 @@ if (__VLS_ctx.showUserModal) {
         value: (__VLS_ctx.userForm.username),
         type: "text",
         required: true,
-        disabled: (__VLS_ctx.editingUser),
+        disabled: (!!__VLS_ctx.editingUser),
         ...{ class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100" },
     });
     // @ts-ignore

@@ -23,7 +23,7 @@ app.get('/dashboard',
       const imageService = new ImageService(c.env)
 
       // Apply access control
-      let options = { ...query }
+      const options = { ...query }
       if (user.role !== 0) {
         options.restaurantId = user.restaurantId
       }
@@ -67,7 +67,7 @@ app.get('/storage',
       const dbImageService = new DatabaseImageService(c.env.DB)
 
       // Apply access control
-      let options = { ...query }
+      const options = { ...query }
       if (user.role !== 0) {
         options.restaurantId = user.restaurantId
       }
@@ -104,7 +104,7 @@ app.get('/usage',
       const dbImageService = new DatabaseImageService(c.env.DB)
 
       // Apply access control
-      let options = { ...query }
+      const options = { ...query }
       if (user.role !== 0) {
         options.restaurantId = user.restaurantId
       }
@@ -141,7 +141,7 @@ app.get('/performance',
       const dbImageService = new DatabaseImageService(c.env.DB)
 
       // Apply access control
-      let options = { ...query }
+      const options = { ...query }
       if (user.role !== 0) {
         options.restaurantId = user.restaurantId
       }

@@ -18,11 +18,15 @@ name = "makanmakan-realtime-staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-staging"
-database_id = "staging-db-id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-staging
+database_id = "STAGING_DB_ID_TO_BE_REPLACED"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE"
-id = "staging-cache-id"
+# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
+# Run: wrangler kv:namespace create "REALTIME_CACHE" --env staging
+id = "STAGING_KV_ID_TO_BE_REPLACED"
 
 [env.production]
 name = "makanmakan-realtime-prod"
@@ -30,8 +34,12 @@ name = "makanmakan-realtime-prod"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
-database_id = "prod-db-id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-prod
+database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE"
-id = "prod-cache-id"
+# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
+# Run: wrangler kv:namespace create "REALTIME_CACHE" --env production
+id = "PRODUCTION_KV_ID_TO_BE_REPLACED"

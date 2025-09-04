@@ -1,8 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useOrderStore } from '@/stores/order';
-import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue';
+// import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue'
 import { ArrowPathIcon, ClockIcon, PlayIcon, CheckCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon, ChartBarIcon, SpeakerWaveIcon } from '@heroicons/vue/24/outline';
-const orderStore = useOrderStore();
 // 響應式數據
 const currentTime = ref('');
 const isAutoRefresh = ref(true);
@@ -142,42 +140,49 @@ const refreshOrders = async () => {
         isLoadingOrders.value = false;
     }
 };
+/*
 const loadMoreKitchenOrders = async () => {
-    if (isLoadingOrders.value || !hasMoreOrders.value)
-        return;
-    isLoadingOrders.value = true;
-    try {
-        currentOrderPage.value++;
-        // 模擬載入更多訂單
-        console.log(`Loading more kitchen orders - page ${currentOrderPage.value}`);
-        // 模擬新增一些訂單
-        const newOrders = Array.from({ length: 5 }, (_, i) => ({
-            id: orders.value.length + i + 1,
-            orderNumber: `ORD-${String(orders.value.length + i + 1).padStart(3, '0')}`,
-            tableNumber: `T${String((orders.value.length + i) % 10 + 1).padStart(2, '0')}`,
-            status: ['pending', 'confirmed', 'preparing', 'ready'][Math.floor(Math.random() * 4)],
-            priority: Math.random() > 0.7 ? 'high' : 'normal',
-            createdAt: new Date(Date.now() - Math.random() * 30 * 60 * 1000).toISOString(),
-            estimatedReadyTime: new Date(Date.now() + Math.random() * 20 * 60 * 1000).toISOString(),
-            items: [{
-                    id: orders.value.length + i + 1,
-                    menuItemName: ['招牌炒飯', '冰奶茶', '春卷', '南洋咖啡'][Math.floor(Math.random() * 4)],
-                    quantity: Math.floor(Math.random() * 3) + 1,
-                    specialInstructions: Math.random() > 0.5 ? '不要蔥' : '',
-                    customizations: Math.random() > 0.5 ? { '辣度': '中辣' } : {}
-                }]
-        }));
-        orders.value.push(...newOrders);
-        // Check if there are more items to load
-        hasMoreOrders.value = newOrders.length >= 5;
-    }
-    finally {
-        isLoadingOrders.value = false;
-    }
-};
+  if (isLoadingOrders.value || !hasMoreOrders.value) return
+  
+  isLoadingOrders.value = true
+  try {
+    currentOrderPage.value++
+    
+    // 模擬載入更多訂單
+    console.log(`Loading more kitchen orders - page ${currentOrderPage.value}`)
+    
+    // 模擬新增一些訂單
+    const newOrders = Array.from({ length: 5 }, (_, i) => ({
+      id: orders.value.length + i + 1,
+      orderNumber: `ORD-${String(orders.value.length + i + 1).padStart(3, '0')}`,
+      tableNumber: `T${String((orders.value.length + i) % 10 + 1).padStart(2, '0')}`,
+      status: ['pending', 'confirmed', 'preparing', 'ready'][Math.floor(Math.random() * 4)],
+      priority: Math.random() > 0.7 ? 'high' : 'normal',
+      createdAt: new Date(Date.now() - Math.random() * 30 * 60 * 1000).toISOString(),
+      estimatedReadyTime: new Date(Date.now() + Math.random() * 20 * 60 * 1000).toISOString(),
+      items: [{
+        id: orders.value.length + i + 1,
+        menuItemName: ['招牌炒飯', '冰奶茶', '春卷', '南洋咖啡'][Math.floor(Math.random() * 4)],
+        quantity: Math.floor(Math.random() * 3) + 1,
+        specialInstructions: Math.random() > 0.5 ? '不要蔥' : '',
+        customizations: Math.random() > 0.5 ? { '辣度': '中辣' } : {}
+      }]
+    }))
+    
+    orders.value.push(...newOrders)
+    
+    // Check if there are more items to load
+    hasMoreOrders.value = newOrders.length >= 5
+  } finally {
+    isLoadingOrders.value = false
+  }
+}
+*/
+/*
 const onLoadMoreOrders = () => {
-    console.log('Kitchen orders load more event triggered');
-};
+  console.log('Kitchen orders load more event triggered')
+}
+*/
 const getOrderCardClass = (order) => {
     const baseClass = 'bg-white';
     const statusClasses = {
@@ -295,7 +300,7 @@ const calculateEstimatedTime = (order) => {
 const updateKitchenStats = () => {
     // 模擬統計數據更新
     const completedToday = orders.value.filter(o => o.status === 'served').length;
-    const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready;
+    // const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready
     kitchenStats.value = {
         ...kitchenStats.value,
         todayCompleted: completedToday,
@@ -650,41 +655,14 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 });
 // @ts-ignore
 [workload, workload, workload,];
-/** @type {[typeof VirtualOrderGrid, typeof VirtualOrderGrid, ]} */ ;
-// @ts-ignore
-const __VLS_30 = __VLS_asFunctionalComponent(VirtualOrderGrid, new VirtualOrderGrid({
-    ...{ 'onLoadMore': {} },
-    orders: (__VLS_ctx.kitchenOrders),
-    itemHeight: (320),
-    containerHeight: (800),
-    columnsCount: (3),
-    bufferSize: (2),
-    loading: (__VLS_ctx.isLoadingOrders),
-    hasMore: (__VLS_ctx.hasMoreOrders),
-    loadMore: (__VLS_ctx.loadMoreKitchenOrders),
-}));
-const __VLS_31 = __VLS_30({
-    ...{ 'onLoadMore': {} },
-    orders: (__VLS_ctx.kitchenOrders),
-    itemHeight: (320),
-    containerHeight: (800),
-    columnsCount: (3),
-    bufferSize: (2),
-    loading: (__VLS_ctx.isLoadingOrders),
-    hasMore: (__VLS_ctx.hasMoreOrders),
-    loadMore: (__VLS_ctx.loadMoreKitchenOrders),
-}, ...__VLS_functionalComponentArgsRest(__VLS_30));
-let __VLS_33;
-let __VLS_34;
-const __VLS_35 = ({ loadMore: {} },
-    { onLoadMore: (__VLS_ctx.onLoadMoreOrders) });
-const { default: __VLS_36 } = __VLS_32.slots;
-// @ts-ignore
-[kitchenOrders, isLoadingOrders, hasMoreOrders, loadMoreKitchenOrders, onLoadMoreOrders,];
-{
-    const { default: __VLS_37 } = __VLS_32.slots;
-    const [{ order }] = __VLS_getSlotParameters(__VLS_37);
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" },
+});
+for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
+    // @ts-ignore
+    [kitchenOrders,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        key: (order.id),
         ...{ class: (__VLS_ctx.getOrderCardClass(order)) },
         ...{ class: "rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 h-full" },
     });
@@ -702,14 +680,14 @@ const { default: __VLS_36 } = __VLS_32.slots;
     });
     // @ts-ignore
     [getStatusIconClass,];
-    const __VLS_38 = ((__VLS_ctx.getStatusIcon(order.status)));
+    const __VLS_30 = ((__VLS_ctx.getStatusIcon(order.status)));
     // @ts-ignore
-    const __VLS_39 = __VLS_asFunctionalComponent(__VLS_38, new __VLS_38({
+    const __VLS_31 = __VLS_asFunctionalComponent(__VLS_30, new __VLS_30({
         ...{ class: "h-6 w-6" },
     }));
-    const __VLS_40 = __VLS_39({
+    const __VLS_32 = __VLS_31({
         ...{ class: "h-6 w-6" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_39));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_31));
     // @ts-ignore
     [getStatusIcon,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
@@ -763,17 +741,17 @@ const { default: __VLS_36 } = __VLS_32.slots;
             __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
                 ...{ class: "text-sm text-orange-600 mt-1" },
             });
-            const __VLS_43 = {}.ExclamationTriangleIcon;
+            const __VLS_35 = {}.ExclamationTriangleIcon;
             /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ ;
             // @ts-ignore
             ExclamationTriangleIcon;
             // @ts-ignore
-            const __VLS_44 = __VLS_asFunctionalComponent(__VLS_43, new __VLS_43({
+            const __VLS_36 = __VLS_asFunctionalComponent(__VLS_35, new __VLS_35({
                 ...{ class: "w-4 h-4 inline mr-1" },
             }));
-            const __VLS_45 = __VLS_44({
+            const __VLS_37 = __VLS_36({
                 ...{ class: "w-4 h-4 inline mr-1" },
-            }, ...__VLS_functionalComponentArgsRest(__VLS_44));
+            }, ...__VLS_functionalComponentArgsRest(__VLS_36));
             (item.specialInstructions);
         }
         if (item.customizations && Object.keys(item.customizations).length > 0) {
@@ -868,17 +846,17 @@ const { default: __VLS_36 } = __VLS_32.slots;
             ...{ class: (order.priority === 'high' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200') },
             ...{ class: "px-3 py-2 rounded-lg transition-colors" },
         });
-        const __VLS_48 = {}.ExclamationCircleIcon;
+        const __VLS_40 = {}.ExclamationCircleIcon;
         /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ ;
         // @ts-ignore
         ExclamationCircleIcon;
         // @ts-ignore
-        const __VLS_49 = __VLS_asFunctionalComponent(__VLS_48, new __VLS_48({
+        const __VLS_41 = __VLS_asFunctionalComponent(__VLS_40, new __VLS_40({
             ...{ class: "w-5 h-5" },
         }));
-        const __VLS_50 = __VLS_49({
+        const __VLS_42 = __VLS_41({
             ...{ class: "w-5 h-5" },
-        }, ...__VLS_functionalComponentArgsRest(__VLS_49));
+        }, ...__VLS_functionalComponentArgsRest(__VLS_41));
     }
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "mt-4 pt-4 border-t border-gray-200" },
@@ -889,17 +867,17 @@ const { default: __VLS_36 } = __VLS_32.slots;
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex items-center" },
     });
-    const __VLS_53 = {}.ClockIcon;
+    const __VLS_45 = {}.ClockIcon;
     /** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
     // @ts-ignore
     ClockIcon;
     // @ts-ignore
-    const __VLS_54 = __VLS_asFunctionalComponent(__VLS_53, new __VLS_53({
+    const __VLS_46 = __VLS_asFunctionalComponent(__VLS_45, new __VLS_45({
         ...{ class: "w-4 h-4 text-gray-500 mr-2" },
     }));
-    const __VLS_55 = __VLS_54({
+    const __VLS_47 = __VLS_46({
         ...{ class: "w-4 h-4 text-gray-500 mr-2" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_54));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_46));
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "text-gray-600" },
     });
@@ -936,24 +914,23 @@ const { default: __VLS_36 } = __VLS_32.slots;
         [formatTime,];
     }
 }
-var __VLS_32;
 if (__VLS_ctx.kitchenOrders.length === 0) {
     // @ts-ignore
     [kitchenOrders,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "text-center py-12" },
     });
-    const __VLS_58 = {}.CheckCircleIcon;
+    const __VLS_50 = {}.CheckCircleIcon;
     /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
     // @ts-ignore
     CheckCircleIcon;
     // @ts-ignore
-    const __VLS_59 = __VLS_asFunctionalComponent(__VLS_58, new __VLS_58({
+    const __VLS_51 = __VLS_asFunctionalComponent(__VLS_50, new __VLS_50({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-4" },
     }));
-    const __VLS_60 = __VLS_59({
+    const __VLS_52 = __VLS_51({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-4" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_59));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_51));
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
         ...{ class: "text-xl font-medium text-gray-900 mb-2" },
     });
@@ -1168,6 +1145,11 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['xl:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-6']} */ ;
@@ -1334,7 +1316,6 @@ __VLS_asFunctionalElement(__VLS_elements.source)({
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
-        VirtualOrderGrid: VirtualOrderGrid,
         ArrowPathIcon: ArrowPathIcon,
         ClockIcon: ClockIcon,
         PlayIcon: PlayIcon,
@@ -1347,8 +1328,6 @@ const __VLS_self = (await import('vue')).defineComponent({
         isAutoRefresh: isAutoRefresh,
         notificationSound: notificationSound,
         soundEnabled: soundEnabled,
-        isLoadingOrders: isLoadingOrders,
-        hasMoreOrders: hasMoreOrders,
         pendingOrders: pendingOrders,
         kitchenOrders: kitchenOrders,
         orderStats: orderStats,
@@ -1360,8 +1339,6 @@ const __VLS_self = (await import('vue')).defineComponent({
         qualityScore: qualityScore,
         workload: workload,
         refreshOrders: refreshOrders,
-        loadMoreKitchenOrders: loadMoreKitchenOrders,
-        onLoadMoreOrders: onLoadMoreOrders,
         getOrderCardClass: getOrderCardClass,
         getStatusIcon: getStatusIcon,
         getStatusIconClass: getStatusIconClass,

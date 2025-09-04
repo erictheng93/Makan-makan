@@ -14,6 +14,12 @@ node_modules/
 *.d.ts
 *.tsbuildinfo
 
+# Vue compiled files (TypeScript compiler output)
+**/*.vue.js
+**/*.vue.d.ts
+src/**/*.vue.js
+src/**/*.vue.d.ts
+
 # Test outputs
 coverage/
 test-results/
@@ -42,3 +48,15 @@ Thumbs.db
 # Environment files
 .env*
 !.env.example
+
+# Legacy/backup files
+Backup/
+legacy/
+js/
+login/
+order/
+
+# Vendor/third-party files
+**/jquery*.js
+**/vendor/
+**/bootstrap*.js

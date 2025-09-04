@@ -1,5 +1,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
-import { CurrencyDollarIcon, ShoppingCartIcon, UsersIcon, ChartBarIcon, TrendingUpIcon, MinusIcon, CogIcon, DocumentTextIcon, BellIcon, ExclamationTriangleIcon, ClipboardDocumentListIcon, UserPlusIcon } from '@heroicons/vue/24/outline';
+import { CurrencyDollarIcon, ShoppingCartIcon, UsersIcon, ChartBarIcon, TrendingUpIcon, 
+// TrendingDownIcon,
+MinusIcon, 
+// PlusIcon,
+Cog6ToothIcon, DocumentTextIcon, BellIcon, ExclamationTriangleIcon, ClipboardDocumentListIcon, UserPlusIcon } from '@heroicons/vue/24/outline';
 import { ownerService } from '@/services/ownerService';
 import { useAuthStore } from '@/stores/auth';
 // KPI 指標
@@ -54,7 +58,7 @@ const quickActions = ref([
     { key: 'add-staff', label: '新增員工', icon: UserPlusIcon },
     { key: 'update-menu', label: '更新菜單', icon: DocumentTextIcon },
     { key: 'view-reports', label: '查看報表', icon: ClipboardDocumentListIcon },
-    { key: 'system-settings', label: '系統設定', icon: CogIcon },
+    { key: 'system-settings', label: '系統設定', icon: Cog6ToothIcon },
     { key: 'send-notification', label: '發送通知', icon: BellIcon },
     { key: 'emergency', label: '緊急處理', icon: ExclamationTriangleIcon }
 ]);
@@ -106,14 +110,7 @@ const getStatusText = (status) => {
     };
     return statusMap[status] || status;
 };
-const handleQuickAction = (action) => {
-    console.log('Quick action:', action);
-    // 處理快速操作
-};
-const handleEmergencyAlert = (alertId, action) => {
-    console.log('Emergency alert action:', alertId, action);
-    // 處理緊急警報
-};
+// Duplicate function declarations removed - see implementations below
 const authStore = useAuthStore();
 const isLoading = ref(true);
 const error = ref(null);

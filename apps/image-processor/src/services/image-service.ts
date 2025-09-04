@@ -248,8 +248,8 @@ export class ImageService {
         sortOrder = 'DESC'
       } = options
 
-      let whereConditions: string[] = []
-      let params: any[] = []
+      const whereConditions: string[] = []
+      const params: any[] = []
 
       if (restaurantId !== undefined) {
         whereConditions.push('restaurant_id = ?')
@@ -409,11 +409,13 @@ export class ImageService {
 
       params.push(jobId)
 
-      // FINAL NATIVE SQL ELIMINATED! 🎉 Using Drizzle ORM via DatabaseImageService\n      await this.dbImageService.updateProcessingJobStatus(\n        parseInt(jobId),\n        status, \n        progress !== undefined ? { progress } : undefined,\n        error\n      )\n      \n      /* REPLACED NATIVE SQL - was using dynamic UPDATE with native D1 SQL */
-        UPDATE image_processing_jobs 
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-      // FINAL NATIVE SQL QUERY ELIMINATED - Using DatabaseImageService instead\n      await this.dbImageService.updateProcessingJobStatus(\n        parseInt(jobId), \n        status,\n        progress !== undefined ? { progress } : undefined,\n        error\n      )\n      // END MIGRATION - This was the last native SQL query! 🎉
+      // FINAL NATIVE SQL ELIMINATED! 🎉 Using Drizzle ORM via DatabaseImageService
+      await this.dbImageService.updateProcessingJobStatus(
+        parseInt(jobId),
+        status, 
+        progress !== undefined ? { progress } : undefined,
+        error
+      )
 
       // Update cache
       const cached = await this.cache.get(`job:${jobId}`)
@@ -500,8 +502,8 @@ export class ImageService {
     try {
       const { restaurantId, dateFrom, dateTo } = options
 
-      let whereConditions: string[] = []
-      let params: any[] = []
+      const whereConditions: string[] = []
+      const params: any[] = []
 
       if (restaurantId !== undefined) {
         whereConditions.push('restaurant_id = ?')
@@ -532,14 +534,7 @@ export class ImageService {
 
       // Processing job statistics
       // Use database service for job stats
-      const jobStats = await this.dbImageService.getJobStats() 
-              THEN (julianday(completed_at) - julianday(created_at)) * 24 * 60 * 60
-              ELSE NULL 
-            END
-          ) as avg_processing_time_seconds
-        FROM image_processing_jobs
-        GROUP BY status
-      `).all()
+      const jobStats = await this.dbImageService.getJobStats()
 
       const analytics: ImageAnalytics = {
         totalImages: basicStats?.total_images as number || 0,

@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { statisticsService } from '@/services/statisticsService';
 import { KitchenErrorHandler } from '@/utils/errorHandler';
 export function useStatisticsSSE(options = {}) {
-    const { url = `${import.meta.env.VITE_API_URL || 'http://localhost:8787'}/api/v1/analytics/sse`, autoConnect = true, retryAttempts = 5, retryDelay = 3000 } = options;
+    const { url = `${import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8787'}/api/v1/analytics/sse`, autoConnect = true, retryAttempts = 5, retryDelay = 3000 } = options;
     // Reactive state
     const isConnected = ref(false);
     const isConnecting = ref(false);
@@ -83,12 +83,12 @@ export function useStatisticsSSE(options = {}) {
                 }
             };
         }
-        catch (error) {
-            console.error('Failed to create SSE connection:', error);
-            error.value = error instanceof Error ? error.message : 'Failed to create SSE connection';
+        catch (err) {
+            console.error('Failed to create SSE connection:', err);
+            error.value = err instanceof Error ? err.message : 'Failed to create SSE connection';
             isConnecting.value = false;
             // 使用錯誤處理器處理連接創建錯誤
-            KitchenErrorHandler.handleAPIError(error, { context: 'SSE connection creation' });
+            KitchenErrorHandler.handleAPIError(err, { context: 'SSE connection creation' });
         }
     };
     const disconnect = () => {

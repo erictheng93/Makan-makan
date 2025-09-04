@@ -3,6 +3,37 @@
  * 提供類型安全的 localStorage 操作和過期管理
  */
 
+// Storage data types
+export interface CartData {
+  items: Array<{
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+    customizations?: Record<string, unknown>;
+  }>;
+  totalAmount: number;
+  notes?: string;
+  customerInfo?: {
+    name?: string;
+    phone?: string;
+  };
+}
+
+export interface MenuData {
+  items: unknown[];
+  categories: unknown[];
+  lastUpdated: number;
+}
+
+export interface RestaurantData {
+  id: number;
+  name: string;
+  address?: string;
+  businessHours?: Record<string, unknown>;
+  lastUpdated: number;
+}
+
 export interface StorageOptions {
   /** 過期時間（毫秒）*/
   expires?: number
@@ -10,7 +41,7 @@ export interface StorageOptions {
   encrypt?: boolean
 }
 
-export interface StorageItem<T = any> {
+export interface StorageItem<T = unknown> {
   value: T
   expires?: number
   created: number
@@ -259,7 +290,7 @@ export const cacheStorage = new StorageManager('makanmakan_cache_')
  * 購物車存儲助手
  */
 export const cartStorageHelper = {
-  saveCart(restaurantId: number, tableId: number, cartData: any, expires: number = 24 * 60 * 60 * 1000) {
+  saveCart(restaurantId: number, tableId: number, cartData: CartData, expires: number = 24 * 60 * 60 * 1000) {
     const key = `${restaurantId}_${tableId}`
     return cartStorage.set(key, cartData, { expires })
   },
@@ -284,7 +315,7 @@ export const cartStorageHelper = {
  * 用戶偏好存儲助手
  */
 export const userPreferenceHelper = {
-  setPreference(key: string, value: any) {
+  setPreference(key: string, value: unknown) {
     return userStorage.set(key, value)
   },
 
@@ -313,7 +344,7 @@ export const userPreferenceHelper = {
  * 快取存儲助手
  */
 export const cacheHelper = {
-  setCache(key: string, data: any, expires: number = 5 * 60 * 1000) {
+  setCache(key: string, data: unknown, expires: number = 5 * 60 * 1000) {
     return cacheStorage.set(key, data, { expires })
   },
 
@@ -330,7 +361,7 @@ export const cacheHelper = {
   },
 
   // 餐廳菜單快取
-  cacheMenu(restaurantId: number, menuData: any) {
+  cacheMenu(restaurantId: number, menuData: MenuData) {
     return this.setCache(`menu_${restaurantId}`, menuData, 10 * 60 * 1000) // 10分鐘
   },
 
@@ -339,7 +370,7 @@ export const cacheHelper = {
   },
 
   // 餐廳資訊快取
-  cacheRestaurant(restaurantId: number, restaurantData: any) {
+  cacheRestaurant(restaurantId: number, restaurantData: RestaurantData) {
     return this.setCache(`restaurant_${restaurantId}`, restaurantData, 30 * 60 * 1000) // 30分鐘
   },
 

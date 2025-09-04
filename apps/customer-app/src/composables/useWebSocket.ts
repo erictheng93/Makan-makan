@@ -283,8 +283,8 @@ export function useOrderTracking(orderId: number) {
     onMessage: (data: WebSocketMessage) => {
       if (data.type === 'order_update' && data.data) {
         orderUpdates.value.push(data.data)
-        if (data.data.status) {
-          currentStatus.value = data.data.status
+        if (data.data.status !== undefined) {
+          currentStatus.value = String(data.data.status)
         }
       }
     },

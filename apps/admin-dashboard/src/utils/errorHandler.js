@@ -1,6 +1,7 @@
-import { ElMessage, ElNotification } from 'element-plus';
+import { useToast } from 'vue-toastification';
+const toast = useToast();
 // 錯誤類型定義
-export let ErrorType;
+export var ErrorType;
 (function (ErrorType) {
     ErrorType["NETWORK"] = "network";
     ErrorType["API"] = "api";
@@ -9,7 +10,7 @@ export let ErrorType;
     ErrorType["PERMISSION"] = "permission";
     ErrorType["UNKNOWN"] = "unknown";
 })(ErrorType || (ErrorType = {}));
-export let ErrorSeverity;
+export var ErrorSeverity;
 (function (ErrorSeverity) {
     ErrorSeverity["LOW"] = "low";
     ErrorSeverity["MEDIUM"] = "medium";
@@ -139,7 +140,7 @@ class ErrorReportingService {
         catch (error) {
             console.error('Error reporting failed:', error);
             // 延遲重試
-            setTimeout(() => this.processReportQueue(), 30000);
+            setTimeout(() => void this.processReportQueue(), 30000);
         }
         this.isReporting = false;
     }
@@ -210,7 +211,7 @@ export class ErrorHandler {
             type = ErrorType.API;
             code = error.response.status;
             message = error.response.data?.error?.message || '服務器錯誤';
-            if (code >= 500) {
+            if (typeof code === 'number' && code >= 500) {
                 severity = ErrorSeverity.HIGH;
             }
             else if (code === 403 || code === 401) {
@@ -236,30 +237,18 @@ export class ErrorHandler {
     showUserNotification(error) {
         const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000;
         if (error.severity === ErrorSeverity.CRITICAL) {
-            ElNotification({
-                title: '嚴重錯誤',
-                message: error.message,
-                type: 'error',
-                duration: 0, // 不自動關閉
-                position: 'top-right'
-            });
+            toast.error(`嚴重錯誤: ${error.message}`, { timeout: false });
         }
         else if (error.severity === ErrorSeverity.HIGH) {
-            ElNotification({
-                title: '系統錯誤',
-                message: error.message,
-                type: 'error',
-                duration,
-                position: 'top-right'
-            });
+            toast.error(`系統錯誤: ${error.message}`, { timeout: duration });
         }
         else {
-            ElMessage({
-                message: error.message,
-                type: error.severity === ErrorSeverity.LOW ? 'warning' : 'error',
-                duration,
-                showClose: true
-            });
+            if (error.severity === ErrorSeverity.LOW) {
+                toast.warning(error.message, { timeout: duration });
+            }
+            else {
+                toast.error(error.message, { timeout: duration });
+            }
         }
     }
     // 設置用戶通知狀態
@@ -293,12 +282,6 @@ export class KitchenErrorHandler extends ErrorHandler {
             writable: true,
             value: 1000
         }); // 1秒
-        Object.defineProperty(this, "sseEventSource", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: null
-        });
     }
     static handleSSEError(error, eventSource) {
         const handler = ErrorHandler.getInstance();
@@ -306,7 +289,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     }
     static handleAPIError(error, context) {
         const handler = ErrorHandler.getInstance();
-        return handler.handleAPIRequest(error, context);
+        return handler.handleError(error, context);
     }
     // 處理 SSE 連接錯誤
     handleSSEConnectionError(error, eventSource) {
@@ -327,25 +310,15 @@ export class KitchenErrorHandler extends ErrorHandler {
         this.reportingService.reportError(errorDetails);
         // 顯示連接狀態
         if (this.userNotificationEnabled) {
-            ElMessage({
-                message: '實時連接中斷，正在嘗試重新連接...',
-                type: 'warning',
-                duration: 3000
-            });
+            toast.warning('實時連接中斷，正在嘗試重新連接...', { timeout: 3000 });
         }
         // 自動重連
         this.attemptSSEReconnect(eventSource);
     }
     // SSE 自動重連
-    attemptSSEReconnect(eventSource) {
+    attemptSSEReconnect(_eventSource) {
         if (this.sseReconnectAttempts >= this.maxReconnectAttempts) {
-            ElNotification({
-                title: '連接失敗',
-                message: '無法重新建立實時連接，請刷新頁面',
-                type: 'error',
-                duration: 0,
-                position: 'top-right'
-            });
+            toast.error('連接失敗: 無法重新建立實時連接，請刷新頁面', { timeout: false });
             return;
         }
         this.sseReconnectAttempts++;
@@ -365,7 +338,7 @@ export class KitchenErrorHandler extends ErrorHandler {
             }
             catch (error) {
                 console.error('SSE reconnection failed:', error);
-                this.attemptSSEReconnect(eventSource);
+                this.attemptSSEReconnect();
             }
         }, delay);
     }
@@ -374,15 +347,11 @@ export class KitchenErrorHandler extends ErrorHandler {
         this.sseReconnectAttempts = 0;
     }
     // 設置 SSE 連接成功
-    setSSEConnected(eventSource) {
-        this.sseEventSource = eventSource;
+    setSSEConnected(_eventSource) {
+        // Store event source reference if needed
         this.resetSSEReconnectAttempts();
         if (this.sseReconnectAttempts > 0) {
-            ElMessage({
-                message: '實時連接已恢復',
-                type: 'success',
-                duration: 2000
-            });
+            toast.success('實時連接已恢復', { timeout: 2000 });
         }
     }
     // 處理 API 請求錯誤
@@ -399,19 +368,16 @@ export class KitchenErrorHandler extends ErrorHandler {
         return Promise.reject(errorDetails);
     }
     // 處理離線請求
-    handleOfflineRequest(originalError, context) {
-        ElMessage({
-            message: '當前網絡不可用，請求將在網絡恢復後重新嘗試',
-            type: 'warning',
-            duration: 5000
-        });
-        return new Promise((resolve, reject) => {
+    handleOfflineRequest(_originalError, _context) {
+        const toast = useToast();
+        toast.warning('當前網絡不可用，請求將在網絡恢復後重新嘗試');
+        return new Promise((_resolve, reject) => {
             // 創建重試請求函數
             const retryRequest = async () => {
                 try {
                     // 這裡應該重新執行原始請求
                     // 實際實現需要根據具體的 API 客戶端來決定
-                    console.log('Retrying request after network recovery:', context);
+                    console.log('Retrying request after network recovery:', _context);
                     // resolve(retriedResult)
                     reject(new Error('Request retry not implemented'));
                 }
@@ -424,34 +390,27 @@ export class KitchenErrorHandler extends ErrorHandler {
         });
     }
     // 處理 Token 刷新
-    async handleTokenRefresh(originalError, _context) {
+    async handleTokenRefresh(_originalError, _context) {
         try {
             // 嘗試刷新 token
             const authStore = await import('@/stores/auth').then(m => m.useAuthStore());
-            const success = await authStore().refreshToken();
+            const success = await authStore.refreshToken();
             if (success) {
-                ElMessage({
-                    message: '登入狀態已更新，請重新嘗試',
-                    type: 'info',
-                    duration: 3000
-                });
+                const toast = useToast();
+                toast.info('登入狀態已更新，請重新嘗試');
                 // 這裡應該重新執行原始請求
                 return Promise.reject(new Error('Please retry the request'));
             }
             else {
                 // Token 刷新失敗，跳轉到登入頁
-                ElMessage({
-                    message: '登入已過期，請重新登入',
-                    type: 'error',
-                    duration: 5000
-                });
+                toast.error('登入已過期，請重新登入', { timeout: 5000 });
                 window.location.href = '/login';
-                return Promise.reject(originalError);
+                return Promise.reject(_originalError);
             }
         }
         catch (error) {
             console.error('Token refresh failed:', error);
-            return Promise.reject(originalError);
+            return Promise.reject(_originalError);
         }
     }
 }
@@ -479,19 +438,10 @@ export function setupGlobalErrorHandler() {
     // 監聽網絡狀態變化
     errorHandler.getOfflineManager().onStatusChange((isOnline) => {
         if (isOnline) {
-            ElMessage({
-                message: '網絡連接已恢復',
-                type: 'success',
-                duration: 2000
-            });
+            toast.success('網絡連接已恢復', { timeout: 2000 });
         }
         else {
-            ElMessage({
-                message: '網絡連接已斷開，將在離線模式下運行',
-                type: 'warning',
-                duration: 0,
-                showClose: true
-            });
+            toast.warning('網絡連接已斷開，將在離線模式下運行', { timeout: false });
         }
     });
 }

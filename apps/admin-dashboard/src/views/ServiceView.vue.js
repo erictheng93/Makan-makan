@@ -177,7 +177,9 @@ const completeDelivery = async (order) => {
             // 更新統計
             todayDelivered.value++;
             // 添加到今日記錄
-            const duration = Math.round((new Date().getTime() - new Date(order.deliveryStartTime).getTime()) / (1000 * 60));
+            const duration = order.deliveryStartTime
+                ? Math.round((new Date().getTime() - new Date(order.deliveryStartTime).getTime()) / (1000 * 60))
+                : 0;
             todayDeliveryRecords.value.unshift({
                 id: Date.now(),
                 orderNumber: order.orderNumber,
@@ -265,12 +267,16 @@ const getTimeElapsed = (dateTime) => {
     return `${hours} 小時前`;
 };
 const getDeliveryDuration = (startTime) => {
+    if (!startTime)
+        return '-';
     const now = new Date();
     const start = new Date(startTime);
     const diffInMinutes = Math.floor((now.getTime() - start.getTime()) / (1000 * 60));
     return `${diffInMinutes} 分鐘`;
 };
 const formatTime = (dateTime) => {
+    if (!dateTime)
+        return '-';
     const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
     return date.toLocaleTimeString('zh-TW', {
         hour: '2-digit',

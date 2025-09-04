@@ -25,7 +25,7 @@ app.config.errorHandler = (error, instance, info) => {
 };
 // 全局警告處理 (開發模式)
 if (import.meta.env.DEV) {
-    app.config.warnHandler = (msg, instance, trace) => {
+    app.config.warnHandler = (msg, _instance, trace) => {
         console.warn('Vue warning:', msg, trace);
     };
 }

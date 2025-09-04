@@ -80,7 +80,7 @@ export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboa
     };
     startAutoRefresh: (intervalMs?: number) => void;
     stopAutoRefresh: () => void;
-}, "stats" | "isLoading" | "error" | "lastUpdated">, Pick<{
+}, "error" | "isLoading" | "stats" | "lastUpdated">, Pick<{
     stats: Readonly<import("vue").Ref<{
         readonly todayOrders: number;
         readonly todayRevenue: number;

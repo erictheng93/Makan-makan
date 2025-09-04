@@ -310,7 +310,7 @@ export declare const useOrderStore: import("pinia").StoreDefinition<"order", Pic
     markReady: (orderId: number) => Promise<boolean>;
     completeOrder: (orderId: number) => Promise<boolean>;
     cancelOrder: (orderId: number, reason?: string) => Promise<boolean>;
-}, "isLoading" | "error" | "orders">, Pick<{
+}, "error" | "isLoading" | "orders">, Pick<{
     orders: Readonly<import("vue").Ref<readonly {
         readonly id: number;
         readonly restaurantId: number;

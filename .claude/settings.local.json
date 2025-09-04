@@ -24,7 +24,8 @@
       "Bash(where pnpm)",
       "Bash(pnpm:*)",
       "Bash(npm:*)",
-      "Bash(echo $PATH)"
+      "Bash(echo $PATH)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": [],

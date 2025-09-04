@@ -2,6 +2,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useNotificationStore } from '@/stores/notification';
 import { useRouter } from 'vue-router';
 import { format } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
 import { Bell, AlertTriangle, ShoppingCart, CheckCircle, Info, Clock, User } from 'lucide-vue-next';
 const __VLS_emit = defineEmits();
 const notificationStore = useNotificationStore();

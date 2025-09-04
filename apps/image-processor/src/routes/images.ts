@@ -286,7 +286,7 @@ app.get('/',
       const imageService = new ImageService(c.env)
 
       // Apply access control
-      let options = { ...query }
+      const options = { ...query }
       
       // Non-admins can only see their restaurant's images
       if (user.role !== 0) {
@@ -549,13 +549,14 @@ app.post('/bulk',
           }
 
           switch (operation) {
-            case 'delete':
+            case 'delete': {
               const deleteResult = await cloudflareImages.deleteImage(imageId)
               if (deleteResult.success) {
                 await imageService.deleteImageMetadata(imageId)
               }
               results.push({ imageId, success: deleteResult.success, error: deleteResult.error })
               break
+            }
 
             case 'update_category':
               if (data?.category) {
@@ -579,11 +580,12 @@ app.post('/bulk',
               }
               break
 
-            case 'generate_variants':
+            case 'generate_variants': {
               // This would trigger variant generation
               const jobResult = await imageService.createProcessingJob(imageId, [], ['all'])
               results.push({ imageId, success: jobResult.success, jobId: jobResult.jobId, error: jobResult.error })
               break
+            }
 
             default:
               results.push({ imageId, success: false, error: 'Unknown operation' })

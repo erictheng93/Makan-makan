@@ -48,14 +48,29 @@ export const mockOrderStore = {
     fetchOrders: vi.fn(),
     updateOrderStatus: vi.fn()
 };
-// Mock Element Plus components if needed
+// Mock Element Plus components
 vi.mock('element-plus', () => ({
-    ElMessage: vi.fn(),
-    ElNotification: vi.fn(),
+    ElMessage: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn()
+    },
+    ElNotification: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn()
+    },
     ElMessageBox: {
-        confirm: vi.fn(),
-        alert: vi.fn(),
-        prompt: vi.fn()
+        confirm: vi.fn(() => Promise.resolve('confirm')),
+        alert: vi.fn(() => Promise.resolve()),
+        prompt: vi.fn(() => Promise.resolve({ value: 'test' }))
+    },
+    ElLoading: {
+        service: vi.fn(() => ({
+            close: vi.fn()
+        }))
     }
 }));
 // Mock SSE composable
@@ -75,7 +90,7 @@ config.global.mocks = {
 // Mock fetch globally
 global.fetch = vi.fn();
 // Mock EventSource for SSE testing
-global.EventSource = vi.fn(() => ({
+global.EventSource = vi.fn().mockImplementation(() => ({
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     close: vi.fn(),

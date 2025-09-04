@@ -37,11 +37,18 @@ declare class OfflineManager {
     addPendingRequest(request: () => Promise<any>): void;
     getStatus(): boolean;
 }
+declare class ErrorReportingService {
+    private readonly REPORT_ENDPOINT;
+    private reportQueue;
+    private isReporting;
+    reportError(error: ErrorDetails): Promise<void>;
+    private processReportQueue;
+}
 export declare class ErrorHandler {
     private static instance;
-    private offlineManager;
-    private reportingService;
-    private userNotificationEnabled;
+    offlineManager: OfflineManager;
+    reportingService: ErrorReportingService;
+    userNotificationEnabled: boolean;
     static getInstance(): ErrorHandler;
     handleError(error: any, context?: Record<string, any>): ErrorDetails;
     private parseError;
@@ -53,13 +60,12 @@ export declare class KitchenErrorHandler extends ErrorHandler {
     private sseReconnectAttempts;
     private maxReconnectAttempts;
     private reconnectDelay;
-    private sseEventSource;
     static handleSSEError(error: Event, eventSource?: EventSource): void;
-    static handleAPIError(error: any, context?: Record<string, any>): any;
+    static handleAPIError(error: any, context?: Record<string, any>): ErrorDetails;
     handleSSEConnectionError(error: Event, eventSource?: EventSource): void;
     private attemptSSEReconnect;
     resetSSEReconnectAttempts(): void;
-    setSSEConnected(eventSource: EventSource): void;
+    setSSEConnected(_eventSource: EventSource): void;
     handleAPIRequest(error: any, context?: Record<string, any>): Promise<any>;
     private handleOfflineRequest;
     private handleTokenRefresh;

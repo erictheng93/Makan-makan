@@ -12,11 +12,11 @@ export default defineConfig({
     }
   },
   server: {
-    host: true,
+    host: 'localhost', // SECURITY FIX: Restrict to localhost only in development
     port: 3002, // 不同於 admin-dashboard 的 3001
     proxy: {
       '/api': {
-        target: 'http://localhost:8787',
+        target: process.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8787',
         changeOrigin: true
       }
     }
@@ -24,7 +24,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== 'production', // SECURITY FIX: Disable sourcemaps in production
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {

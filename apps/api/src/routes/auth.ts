@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { authMiddleware, blacklistToken } from '../middleware/auth'
 import { AuthService } from '@makanmakan/database'
+import { ErrorSanitizer, createSafeErrorResponse } from '../utils/errorSanitizer'
 import type { Env } from '../types/env'
 
 interface LoginRequest {
@@ -60,11 +61,9 @@ authRouter.post('/login', async (c) => {
     })
 
   } catch (error) {
-    console.error('Login error:', error)
-    return c.json({
-      success: false,
-      error: 'Login failed'
-    }, 500)
+    // SECURITY ENHANCEMENT: Use sanitized error handling
+    const sanitized = ErrorSanitizer.logAndSanitize(error, 'AUTH_LOGIN')
+    return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
 
@@ -239,11 +238,9 @@ authRouter.get('/me', authMiddleware, async (c) => {
     })
 
   } catch (error) {
-    console.error('Get user info error:', error)
-    return c.json({
-      success: false,
-      error: 'Failed to get user information'
-    }, 500)
+    // SECURITY ENHANCEMENT: Use sanitized error handling
+    const sanitized = ErrorSanitizer.logAndSanitize(error, 'AUTH_USER_INFO')
+    return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
 

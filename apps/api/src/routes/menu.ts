@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { MenuService } from '@makanmakan/database'
 import { authMiddleware, requireRole, requireRestaurantAccess, optionalAuth } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
+import { menuCache, invalidateMenuCache, cacheHealthMiddleware } from '../middleware/cache'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -59,29 +60,14 @@ const categorySchema = z.object({
 // 獲取完整菜單（公開 API）
 app.get('/:restaurantId',
   validateParams(commonSchemas.restaurantIdParam),
+  menuCache(), // 使用新的快取中間件
+  cacheHealthMiddleware(), // 添加快取健康檢查
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
       const menuService = new MenuService(c.env.DB as any)
       
-      // 嘗試從快取獲取
-      const cacheKey = `menu:${restaurantId}`
-      const cached = await c.env.CACHE_KV.get(cacheKey)
-      
-      if (cached) {
-        return c.json({
-          success: true,
-          data: JSON.parse(cached),
-          fromCache: true
-        })
-      }
-      
       const menu = await menuService.getMenu(restaurantId)
-      
-      // 快取菜單（5分鐘）
-      await c.env.CACHE_KV.put(cacheKey, JSON.stringify(menu), {
-        expirationTtl: 300
-      })
       
       return c.json({
         success: true,
@@ -247,6 +233,7 @@ app.post('/:restaurantId/items',
   requireRestaurantAccess('restaurantId'),
   validateParams(commonSchemas.restaurantIdParam),
   validateBody(menuItemSchema),
+  invalidateMenuCache, // 使用新的快取失效中間件
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
@@ -257,9 +244,6 @@ app.post('/:restaurantId/items',
         ...data,
         restaurantId
       })
-      
-      // 清除相關快取
-      await c.env.CACHE_KV.delete(`menu:${restaurantId}`)
       
       return c.json({
         success: true,
@@ -281,6 +265,7 @@ app.put('/items/:id',
   requireRole([0, 1, 2]), // 管理員、店主、廚師
   validateParams(commonSchemas.idParam),
   validateBody(updateMenuItemSchema),
+  invalidateMenuCache, // 使用新的快取失效中間件
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
@@ -307,9 +292,6 @@ app.put('/items/:id',
       
       const item = await menuService.updateMenuItem(id, data)
       
-      // 清除相關快取
-      await c.env.CACHE_KV.delete(`menu:${existingItem.restaurantId}`)
-      
       return c.json({
         success: true,
         data: item
@@ -330,6 +312,7 @@ app.patch('/:restaurantId/items/availability',
   requireRole([0, 1, 2]), // 管理員、店主、廚師
   requireRestaurantAccess('restaurantId'),
   validateParams(commonSchemas.restaurantIdParam),
+  invalidateMenuCache, // 使用新的快取失效中間件
   validateBody(z.object({
     updates: z.array(z.object({
       id: z.number().int().positive(),
@@ -343,9 +326,6 @@ app.patch('/:restaurantId/items/availability',
       const menuService = new MenuService(c.env.DB as any)
       
       await menuService.batchUpdateAvailability(restaurantId, updates)
-      
-      // 清除相關快取
-      await c.env.CACHE_KV.delete(`menu:${restaurantId}`)
       
       return c.json({
         success: true,
@@ -368,6 +348,7 @@ app.post('/:restaurantId/categories',
   requireRestaurantAccess('restaurantId'),
   validateParams(commonSchemas.restaurantIdParam),
   validateBody(categorySchema),
+  invalidateMenuCache, // 使用新的快取失效中間件
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
@@ -378,9 +359,6 @@ app.post('/:restaurantId/categories',
         ...data,
         restaurantId
       })
-      
-      // 清除相關快取
-      await c.env.CACHE_KV.delete(`menu:${restaurantId}`)
       
       return c.json({
         success: true,

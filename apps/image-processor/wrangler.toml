@@ -33,12 +33,16 @@ bucket_name = "makanmakan-images-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "IMAGE_CACHE"
-id = "your_staging_kv_namespace_id"
+# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
+# Run: wrangler kv:namespace create "IMAGE_CACHE" --env staging
+id = "STAGING_KV_ID_TO_BE_REPLACED"
 
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-staging"
-database_id = "your_staging_db_id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-staging
+database_id = "STAGING_DB_ID_TO_BE_REPLACED"
 
 [env.production]
 name = "makanmakan-image-processor-prod"
@@ -53,17 +57,23 @@ bucket_name = "makanmakan-images-prod"
 
 [[env.production.kv_namespaces]]
 binding = "IMAGE_CACHE"
-id = "your_production_kv_namespace_id"
+# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
+# Run: wrangler kv:namespace create "IMAGE_CACHE" --env production
+id = "PRODUCTION_KV_ID_TO_BE_REPLACED"
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
-database_id = "your_production_db_id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-prod
+database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
 
 # Development environment
 [[kv_namespaces]]
 binding = "IMAGE_CACHE"
-id = "your_dev_kv_namespace_id"
+# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
+# Run: wrangler kv:namespace create "IMAGE_CACHE" --preview
+id = "DEV_KV_ID_TO_BE_REPLACED"
 
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
@@ -72,4 +82,6 @@ bucket_name = "makanmakan-images-dev"
 [[d1_databases]]
 binding = "DB"
 database_name = "makanmakan-local"
-database_id = "your_local_db_id"
+# TODO: Replace with local D1 database ID
+# Run: wrangler d1 create makanmakan-local --local
+database_id = "LOCAL_DB_ID_TO_BE_REPLACED"

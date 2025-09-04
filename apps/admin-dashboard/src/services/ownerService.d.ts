@@ -77,7 +77,7 @@ declare class OwnerService {
         month?: string;
     }): Promise<FinancialReportData>;
     getRealtimeOrders(restaurantId?: number): Promise<RealtimeOrder[]>;
-    getStaffActivity(restaurantId?: number): Promise<StaffActivity[]>;
+    getStaffActivity(_restaurantId?: number): Promise<StaffActivity[]>;
     handleQuickAction(action: string): Promise<void>;
     private showNotificationDialog;
     private handleEmergency;

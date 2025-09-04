@@ -28,10 +28,10 @@ function hidePopup2() {
  window.onclick = function(event) {
      if (!event.target.matches('.thePopup')) {
 
-         var dropdowns = document.getElementsByClassName("popup_content");
-         var i;
+         let dropdowns = document.getElementsByClassName("popup_content");
+         let i;
          for (i = 0; i < dropdowns.length; i++) {
-             var openDropdown = dropdowns[i];
+             let openDropdown = dropdowns[i];
              //if (openDropdown.classList.contains('show')) {
            //      openDropdown.classList.remove('show');
             // }

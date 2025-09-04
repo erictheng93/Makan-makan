@@ -159,7 +159,7 @@ const showUrgentOrderAlert = (message) => {
 };
 // 點擊外部關閉選單
 const handleClickOutside = (event) => {
-    if (!event.target.closest('.relative')) {
+    if (!(event.target?.closest?.('.relative'))) {
         showUserMenu.value = false;
         showQuickActions.value = false;
     }

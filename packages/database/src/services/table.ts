@@ -370,9 +370,7 @@ export class TableService extends BaseService {
 
       // 更新使用統計
       // TODO: Drizzle ORM doesn't return changes count directly
-      if (true) {
-        await this.updateTableUsageStats(tableId)
-      }
+      await this.updateTableUsageStats(tableId)
 
       return true // TODO: Drizzle ORM doesn't return changes count directly
 
@@ -525,12 +523,12 @@ export class TableService extends BaseService {
           .update(tables)
           .set({
             qrCode,
-            qrCodeVersion: (await this.db
+            qrCodeVersion: ((await this.db
               .select({ qrCodeVersion: tables.qrCodeVersion })
               .from(tables)
               .where(eq(tables.id, tableId))
               .get()
-            )?.qrCodeVersion! + 1,
+            )?.qrCodeVersion || 0) + 1,
             updatedAt: new Date()
           })
           .where(eq(tables.id, tableId))
@@ -700,12 +698,12 @@ export class TableService extends BaseService {
       await this.db
         .update(tables)
         .set({
-          totalUsage: (await this.db
+          totalUsage: ((await this.db
             .select({ totalUsage: tables.totalUsage })
             .from(tables)
             .where(eq(tables.id, tableId))
             .get()
-          )?.totalUsage! + 1,
+          )?.totalUsage || 0) + 1,
           updatedAt: new Date()
         })
         .where(eq(tables.id, tableId))

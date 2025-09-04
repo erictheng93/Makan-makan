@@ -261,7 +261,6 @@
             <span>目標完成時間: {{ formatTime(order.estimatedReadyTime) }}</span>
           </div>
         </div>
-        </div>
       </div>
     </div>
 
@@ -273,9 +272,9 @@
     </div>
 
     <!-- 通知音效 -->
-    <audio ref="notificationSound" preload="auto">
+    <!-- <audio ref="notificationSound" preload="auto">
       <source src="/notification.mp3" type="audio/mpeg">
-    </audio>
+    </audio> -->
   </div>
 </template>
 

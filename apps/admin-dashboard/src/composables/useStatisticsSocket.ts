@@ -15,7 +15,7 @@ export function useStatisticsSocket(options: {
   retryDelay?: number
 } = {}) {
   const {
-    url = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8787'}/statistics`,
+    url = `${import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8787'}/statistics`,
     autoConnect = true,
     retryAttempts = 5,
     retryDelay = 3000

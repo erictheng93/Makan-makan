@@ -55,7 +55,7 @@ const performSearch = () => {
     ];
     for (const mapping of searchMappings) {
         if (mapping.keywords.some(keyword => query.includes(keyword))) {
-            const userRole = authStore.user?.role || 4;
+            // const userRole = authStore.user?.role || 4
             const targetLink = navigationLinks.value.find(link => link.path === mapping.path);
             if (targetLink) {
                 router.push(mapping.path);

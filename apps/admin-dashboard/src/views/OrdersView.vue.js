@@ -1,6 +1,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useOrderStore } from '@/stores/order';
-import VirtualScrollList from '../../../packages/shared/components/VirtualScrollList.vue';
+import { OrderStatus } from '@/types';
 import { ClockIcon, CheckCircleIcon, XCircleIcon, MagnifyingGlassIcon, ArrowPathIcon, ShoppingBagIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { CookingPotIcon } from '@heroicons/vue/24/solid';
 const orderStore = useOrderStore();
@@ -13,25 +13,32 @@ const isLoading = ref(false);
 const hasMore = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(50);
+// Helper functions for missing properties
+const getOrderNumber = (order) => `ORD-${order.id.toString().padStart(6, '0')}`;
+const getTableNumber = (order) => order.tableId ? `T${order.tableId.toString().padStart(2, '0')}` : '外帶';
+const getCustomerName = (order) => order.customerInfo?.name || '客人';
+const getOrderType = (order) => order.tableId ? 'dine_in' : 'takeaway';
+const getMenuItemName = (item) => `菜品 #${item.menuItemId}`; // In real app, would lookup from menu
+const getItemTotalPrice = (item) => (item.unitPrice * item.quantity).toFixed(2);
 // 計算屬性
 const stats = computed(() => ({
-    pending: orderStore.orders.filter(o => o.status === 'pending').length,
-    preparing: orderStore.orders.filter(o => ['confirmed', 'preparing'].includes(o.status)).length,
-    completed: orderStore.orders.filter(o => o.status === 'completed').length,
-    cancelled: orderStore.orders.filter(o => o.status === 'cancelled').length
+    pending: orderStore.orders.filter(o => o.status === OrderStatus.PENDING).length,
+    preparing: orderStore.orders.filter(o => [OrderStatus.CONFIRMED, OrderStatus.PREPARING].includes(o.status)).length,
+    completed: orderStore.orders.filter(o => o.status === OrderStatus.COMPLETED).length,
+    cancelled: orderStore.orders.filter(o => o.status === OrderStatus.CANCELLED).length
 }));
 const filteredOrders = computed(() => {
-    let filtered = orderStore.orders;
+    let filtered = [...orderStore.orders];
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(order => order.orderNumber.toLowerCase().includes(query) ||
-            order.customerName?.toLowerCase().includes(query));
+        filtered = filtered.filter(order => getOrderNumber(order).toLowerCase().includes(query) ||
+            getCustomerName(order).toLowerCase().includes(query));
     }
     if (statusFilter.value) {
         filtered = filtered.filter(order => order.status === statusFilter.value);
     }
     if (typeFilter.value) {
-        filtered = filtered.filter(order => order.orderType === typeFilter.value);
+        filtered = filtered.filter(order => getOrderType(order) === typeFilter.value);
     }
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 });
@@ -55,7 +62,7 @@ const loadMoreOrders = async () => {
     try {
         currentPage.value++;
         // In a real implementation, this would fetch the next page
-        await orderStore.fetchOrdersPage(currentPage.value, pageSize.value);
+        await orderStore.fetchOrders({ page: currentPage.value, limit: pageSize.value });
         // Check if there are more items to load
         hasMore.value = orderStore.orders.length % pageSize.value === 0;
     }
@@ -63,10 +70,7 @@ const loadMoreOrders = async () => {
         isLoading.value = false;
     }
 };
-const onLoadMore = () => {
-    // Additional handling for load more event
-    console.log('Loading more orders...');
-};
+// Removed onLoadMore function since we're using a simple button approach instead of virtual scroll events
 const viewOrderDetails = (order) => {
     selectedOrder.value = order;
 };
@@ -77,8 +81,8 @@ const updateOrderStatus = async (order) => {
     }
 };
 const cancelOrder = async (order) => {
-    if (confirm(`確定要取消訂單 ${order.orderNumber} 嗎？`)) {
-        await orderStore.updateOrderStatus(order.id, 'cancelled');
+    if (confirm(`確定要取消訂單 ${getOrderNumber(order)} 嗎？`)) {
+        await orderStore.updateOrderStatus(order.id, OrderStatus.CANCELLED);
     }
 };
 const canUpdateStatus = (status) => {
@@ -408,65 +412,44 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
 if (__VLS_ctx.filteredOrders.length > 0) {
     // @ts-ignore
     [filteredOrders,];
-    /** @type {[typeof VirtualScrollList, typeof VirtualScrollList, ]} */ ;
-    // @ts-ignore
-    const __VLS_30 = __VLS_asFunctionalComponent(VirtualScrollList, new VirtualScrollList({
-        ...{ 'onLoadMore': {} },
-        items: (__VLS_ctx.filteredOrders),
-        itemHeight: (64),
-        containerHeight: (500),
-        bufferSize: (3),
-        getItemKey: ((order) => order.id),
-        loading: (__VLS_ctx.isLoading),
-        hasMore: (__VLS_ctx.hasMore),
-        loadMore: (__VLS_ctx.loadMoreOrders),
-    }));
-    const __VLS_31 = __VLS_30({
-        ...{ 'onLoadMore': {} },
-        items: (__VLS_ctx.filteredOrders),
-        itemHeight: (64),
-        containerHeight: (500),
-        bufferSize: (3),
-        getItemKey: ((order) => order.id),
-        loading: (__VLS_ctx.isLoading),
-        hasMore: (__VLS_ctx.hasMore),
-        loadMore: (__VLS_ctx.loadMoreOrders),
-    }, ...__VLS_functionalComponentArgsRest(__VLS_30));
-    let __VLS_33;
-    let __VLS_34;
-    const __VLS_35 = ({ loadMore: {} },
-        { onLoadMore: (__VLS_ctx.onLoadMore) });
-    const { default: __VLS_36 } = __VLS_32.slots;
-    // @ts-ignore
-    [filteredOrders, isLoading, hasMore, loadMoreOrders, onLoadMore,];
-    {
-        const { default: __VLS_37 } = __VLS_32.slots;
-        const [{ item: order, index }] = __VLS_getSlotParameters(__VLS_37);
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "max-h-[500px] overflow-y-auto" },
+    });
+    for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
+        // @ts-ignore
+        [filteredOrders,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            key: (order.id),
             ...{ class: "grid grid-cols-8 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center" },
         });
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: "text-sm font-medium text-gray-900" },
         });
-        (order.orderNumber);
+        (__VLS_ctx.getOrderNumber(order));
+        // @ts-ignore
+        [getOrderNumber,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: "text-sm text-gray-500" },
         });
-        (order.tableNumber || '-');
+        (__VLS_ctx.getTableNumber(order));
+        // @ts-ignore
+        [getTableNumber,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: "text-sm text-gray-500" },
         });
-        (order.customerName || '客戶');
+        (__VLS_ctx.getCustomerName(order));
+        // @ts-ignore
+        [getCustomerName,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
         __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-            ...{ class: (__VLS_ctx.getTypeClass(order.orderType)) },
+            ...{ class: (__VLS_ctx.getTypeClass(__VLS_ctx.getOrderType(order))) },
             ...{ class: "px-2 inline-flex text-xs leading-5 font-semibold rounded-full" },
         });
         // @ts-ignore
-        [getTypeClass,];
-        (__VLS_ctx.getTypeText(order.orderType));
+        [getTypeClass, getOrderType,];
+        (__VLS_ctx.getTypeText(__VLS_ctx.getOrderType(order)));
         // @ts-ignore
-        [getTypeText,];
+        [getOrderType, getTypeText,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
         __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
             ...{ class: (__VLS_ctx.getStatusClass(order.status)) },
@@ -536,7 +519,28 @@ if (__VLS_ctx.filteredOrders.length > 0) {
             });
         }
     }
-    var __VLS_32;
+    if (__VLS_ctx.hasMore) {
+        // @ts-ignore
+        [hasMore,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "p-4 text-center" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+            ...{ onClick: (__VLS_ctx.loadMoreOrders) },
+            disabled: (__VLS_ctx.isLoading),
+            ...{ class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" },
+        });
+        // @ts-ignore
+        [loadMoreOrders, isLoading,];
+        if (__VLS_ctx.isLoading) {
+            // @ts-ignore
+            [isLoading,];
+            __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        }
+        else {
+            __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        }
+    }
 }
 if (__VLS_ctx.filteredOrders.length === 0) {
     // @ts-ignore
@@ -544,17 +548,17 @@ if (__VLS_ctx.filteredOrders.length === 0) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "text-center py-12" },
     });
-    const __VLS_38 = {}.ShoppingBagIcon;
+    const __VLS_30 = {}.ShoppingBagIcon;
     /** @type {[typeof __VLS_components.ShoppingBagIcon, ]} */ ;
     // @ts-ignore
     ShoppingBagIcon;
     // @ts-ignore
-    const __VLS_39 = __VLS_asFunctionalComponent(__VLS_38, new __VLS_38({
+    const __VLS_31 = __VLS_asFunctionalComponent(__VLS_30, new __VLS_30({
         ...{ class: "mx-auto h-12 w-12 text-gray-400" },
     }));
-    const __VLS_40 = __VLS_39({
+    const __VLS_32 = __VLS_31({
         ...{ class: "mx-auto h-12 w-12 text-gray-400" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_39));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_31));
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
         ...{ class: "mt-2 text-sm font-medium text-gray-900" },
     });
@@ -593,9 +597,9 @@ if (__VLS_ctx.selectedOrder) {
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
         ...{ class: "text-lg font-semibold" },
     });
-    (__VLS_ctx.selectedOrder.orderNumber);
+    (__VLS_ctx.getOrderNumber(__VLS_ctx.selectedOrder));
     // @ts-ignore
-    [selectedOrder,];
+    [getOrderNumber, selectedOrder,];
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(__VLS_ctx.selectedOrder))
@@ -606,17 +610,17 @@ if (__VLS_ctx.selectedOrder) {
             } },
         ...{ class: "text-gray-400 hover:text-gray-600" },
     });
-    const __VLS_43 = {}.XMarkIcon;
+    const __VLS_35 = {}.XMarkIcon;
     /** @type {[typeof __VLS_components.XMarkIcon, ]} */ ;
     // @ts-ignore
     XMarkIcon;
     // @ts-ignore
-    const __VLS_44 = __VLS_asFunctionalComponent(__VLS_43, new __VLS_43({
+    const __VLS_36 = __VLS_asFunctionalComponent(__VLS_35, new __VLS_35({
         ...{ class: "h-6 w-6" },
     }));
-    const __VLS_45 = __VLS_44({
+    const __VLS_37 = __VLS_36({
         ...{ class: "h-6 w-6" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_44));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_36));
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "space-y-4" },
     });
@@ -630,9 +634,9 @@ if (__VLS_ctx.selectedOrder) {
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-900" },
     });
-    (__VLS_ctx.selectedOrder.tableNumber || '-');
+    (__VLS_ctx.getTableNumber(__VLS_ctx.selectedOrder));
     // @ts-ignore
-    [selectedOrder,];
+    [getTableNumber, selectedOrder,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         ...{ class: "block text-sm font-medium text-gray-700" },
@@ -640,9 +644,9 @@ if (__VLS_ctx.selectedOrder) {
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-900" },
     });
-    (__VLS_ctx.selectedOrder.customerName || '客戶');
+    (__VLS_ctx.getCustomerName(__VLS_ctx.selectedOrder));
     // @ts-ignore
-    [selectedOrder,];
+    [getCustomerName, selectedOrder,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         ...{ class: "block text-sm font-medium text-gray-700" },
@@ -650,9 +654,9 @@ if (__VLS_ctx.selectedOrder) {
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-900" },
     });
-    (__VLS_ctx.getTypeText(__VLS_ctx.selectedOrder.orderType));
+    (__VLS_ctx.getTypeText(__VLS_ctx.getOrderType(__VLS_ctx.selectedOrder)));
     // @ts-ignore
-    [getTypeText, selectedOrder,];
+    [getOrderType, getTypeText, selectedOrder,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         ...{ class: "block text-sm font-medium text-gray-700" },
@@ -684,7 +688,9 @@ if (__VLS_ctx.selectedOrder) {
         __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
             ...{ class: "font-medium" },
         });
-        (item.menuItemName);
+        (__VLS_ctx.getMenuItemName(item));
+        // @ts-ignore
+        [getMenuItemName,];
         __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
             ...{ class: "text-sm text-gray-500" },
         });
@@ -692,7 +698,9 @@ if (__VLS_ctx.selectedOrder) {
         __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
             ...{ class: "font-medium" },
         });
-        (item.totalPrice);
+        (__VLS_ctx.getItemTotalPrice(item));
+        // @ts-ignore
+        [getItemTotalPrice,];
     }
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "border-t pt-4" },
@@ -869,6 +877,8 @@ if (__VLS_ctx.selectedOrder) {
 /** @type {__VLS_StyleScopedClasses['tracking-wider']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-t-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-h-[500px]']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid-cols-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
@@ -912,6 +922,16 @@ if (__VLS_ctx.selectedOrder) {
 /** @type {__VLS_StyleScopedClasses['hover:text-green-900']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-red-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:text-red-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-12']} */ ;
 /** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
@@ -1007,7 +1027,6 @@ if (__VLS_ctx.selectedOrder) {
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
-        VirtualScrollList: VirtualScrollList,
         ClockIcon: ClockIcon,
         CheckCircleIcon: CheckCircleIcon,
         XCircleIcon: XCircleIcon,
@@ -1022,11 +1041,16 @@ const __VLS_self = (await import('vue')).defineComponent({
         selectedOrder: selectedOrder,
         isLoading: isLoading,
         hasMore: hasMore,
+        getOrderNumber: getOrderNumber,
+        getTableNumber: getTableNumber,
+        getCustomerName: getCustomerName,
+        getOrderType: getOrderType,
+        getMenuItemName: getMenuItemName,
+        getItemTotalPrice: getItemTotalPrice,
         stats: stats,
         filteredOrders: filteredOrders,
         refreshOrders: refreshOrders,
         loadMoreOrders: loadMoreOrders,
-        onLoadMore: onLoadMore,
         viewOrderDetails: viewOrderDetails,
         updateOrderStatus: updateOrderStatus,
         cancelOrder: cancelOrder,

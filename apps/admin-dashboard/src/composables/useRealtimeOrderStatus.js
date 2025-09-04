@@ -1,5 +1,5 @@
 import { ref, computed, onUnmounted } from 'vue';
-import { useToast } from 'vue-toastification';
+import { useToast, POSITION } from 'vue-toastification';
 export function useRealtimeOrderStatus() {
     const isConnected = ref(false);
     const wsConnection = ref(null);
@@ -52,7 +52,7 @@ export function useRealtimeOrderStatus() {
         };
         activeOrders.value.set(notification.orderId, orderUpdate);
         toast.success(`新訂單！桌號 ${notification.tableNumber}`, {
-            position: 'top-right',
+            position: POSITION.TOP_RIGHT,
             timeout: 8000
         });
         // Play notification sound

@@ -27,8 +27,8 @@ module.exports = {
     'playwright-report/',
     'test-results/',
     '.wrangler/',
+    'legacy/',
     '**/*.vue',
-    '**/*.vue.js',
   ],
   overrides: [
     {
@@ -39,6 +39,7 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
         '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unused-expressions': 'off',
       },
     },
     {
@@ -48,6 +49,13 @@ module.exports = {
       },
       rules: {
         'no-unused-vars': 'warn',
+      },
+    },
+    {
+      files: ['**/*.vue'],
+      rules: {
+        'no-unused-vars': 'warn',
+        'no-console': 'off',
       },
     },
     {

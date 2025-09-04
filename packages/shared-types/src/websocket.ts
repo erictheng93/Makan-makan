@@ -1,4 +1,45 @@
-import { OrderStatus, OrderItemStatus } from './order';
+import { OrderStatus, OrderItemStatus, Order } from './order';
+
+// Order update data structure
+export interface OrderUpdateData {
+  order: Partial<Order>;
+  restaurantId: number;
+  status?: OrderStatus;
+  previousStatus?: OrderStatus;
+  estimatedTime?: number;
+  message?: string;
+}
+
+// Restaurant status data structure
+export interface RestaurantStatusData {
+  restaurantId: number;
+  isOpen: boolean;
+  capacity?: number;
+  currentOrders?: number;
+  averageWaitTime?: number;
+}
+
+// Notification data structure
+export interface NotificationData {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: number;
+  actionUrl?: string;
+  persistUntilRead?: boolean;
+}
+
+// Menu update data structure
+export interface MenuUpdateData {
+  restaurantId: number;
+  menuItemId: number;
+  action: 'added' | 'updated' | 'removed' | 'availability_changed';
+  isAvailable?: boolean;
+  price?: number;
+  name?: string;
+  description?: string;
+}
 
 // WebSocket 訊息基礎結構
 export interface BaseWebSocketMessage {
@@ -75,25 +116,25 @@ export interface PongMessage extends BaseWebSocketMessage {
 // 訂單更新訊息（前端用）
 export interface OrderUpdateMessage extends BaseWebSocketMessage {
   type: 'order_update';
-  data: any;
+  data: OrderUpdateData;
 }
 
 // 餐廳狀態更新訊息（前端用）
 export interface RestaurantStatusUpdateMessage extends BaseWebSocketMessage {
   type: 'restaurant_status_update';
-  data: any;
+  data: RestaurantStatusData;
 }
 
 // 通知訊息（前端用）
 export interface NotificationMessage extends BaseWebSocketMessage {
   type: 'notification';
-  data: any;
+  data: NotificationData;
 }
 
 // 菜單更新訊息（前端用）
 export interface MenuUpdateMessage extends BaseWebSocketMessage {
   type: 'menu_update';
-  data: any;
+  data: MenuUpdateData;
 }
 
 // 聯合類型：所有WebSocket訊息類型
@@ -143,12 +184,12 @@ export interface UseWebSocketOptions {
 
 // WebSocket connection return type for composable
 export interface UseWebSocketReturn {
-  ws: any;
+  ws: WebSocket | null;
   connectionStatus: string;
   isConnected: boolean;
   connect: () => void;
   disconnect: () => void;
-  send: (message: any) => void;
+  send: (message: WebSocketMessage) => void;
   subscribe: (channel: string) => boolean;
   unsubscribe: (channel: string) => boolean;
 }

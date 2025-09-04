@@ -3,17 +3,21 @@ import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
 import { createDatabase, OrderService } from '@makanmakan/database'
+import type { Order } from '@makanmakan/shared-types'
 import type { Env } from '../types/env'
 
 // SSE 廣播輔助函數
-async function broadcastOrderUpdate(env: Env, orderId: number, orderData: any, restaurantId: number, targetRoles?: number[]) {
+async function broadcastOrderUpdate(env: Env, orderId: number, orderData: Partial<Order>, restaurantId: number, targetRoles?: number[]) {
   try {
     // 調用 SSE 廣播端點
-    const response = await fetch(`${(env as any).API_BASE_URL || 'http://localhost:8787'}/api/v1/sse/broadcast/order-update`, {
+    const apiBaseUrl = env.API_BASE_URL || 'http://localhost:8787'
+    const internalToken = env.INTERNAL_API_TOKEN || 'internal'
+    
+    const response = await fetch(`${apiBaseUrl}/api/v1/sse/broadcast/order-update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(env as any).INTERNAL_API_TOKEN || 'internal'}`
+        'Authorization': `Bearer ${internalToken}`
       },
       body: JSON.stringify({
         orderId,
@@ -75,16 +79,24 @@ const orderFilterSchema = z.object({
 
 
 /**
- * 創建新訂單 (公開 API - 客戶下單)
+ * 創建新訂單 (需要身份驗證 - 客戶下單)
  * POST /api/v1/orders
+ * Security: Requires authentication to prevent abuse and ensure order tracking
  */
 app.post('/', 
+  authMiddleware, // SECURITY FIX: Add authentication requirement
   validateBody(createOrderSchema as any),
   async (c) => {
     try {
       const data = c.get('validatedBody')
+      const user = c.get('user') // Get authenticated user from middleware
       const _db = createDatabase(c.env.DB)
       const orderService = new OrderService(c.env.DB as any)
+      
+      // Security: Verify restaurant access if user has restaurant constraints
+      if (user.restaurantId && user.restaurantId !== data.restaurantId) {
+        return c.json({ success: false, error: 'Access denied to this restaurant' }, 403)
+      }
       
       // 轉換資料格式
       const createOrderData = {

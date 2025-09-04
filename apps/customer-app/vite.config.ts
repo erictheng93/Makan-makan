@@ -97,7 +97,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== 'production', // SECURITY FIX: Disable sourcemaps in production
     rollupOptions: {
       output: {
         manualChunks: {
@@ -113,7 +113,7 @@ export default defineConfig({
     cssMinify: true,
   },
   server: {
-    host: true,
+    host: 'localhost', // SECURITY FIX: Restrict to localhost only in development
     port: 3000,
     proxy: {
       '/api': {
@@ -129,7 +129,7 @@ export default defineConfig({
     },
   },
   preview: {
-    host: true,
+    host: 'localhost', // SECURITY FIX: Restrict preview to localhost
     port: 3000,
   },
   optimizeDeps: {
@@ -145,7 +145,7 @@ export default defineConfig({
     exclude: ['@zxing/library'],
   },
   css: {
-    devSourcemap: true,
+    devSourcemap: process.env.NODE_ENV !== 'production', // SECURITY FIX: Disable CSS sourcemaps in production
   },
   // 環境變量配置
   envPrefix: 'VITE_',

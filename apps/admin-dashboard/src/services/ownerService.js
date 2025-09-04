@@ -78,13 +78,19 @@ class OwnerService {
         }
     }
     async getStaffActivity(_restaurantId) {
-        // 模擬員工活動數據，實際應該從 API 獲取
-        return [
-            { id: 1, name: '張小明', role: '廚師', status: 'online', performance: 98 },
-            { id: 2, name: '李美華', role: '送菜員', status: 'busy', performance: 95 },
-            { id: 3, name: '王大偉', role: '收銀員', status: 'online', performance: 92 },
-            { id: 4, name: '陳小芳', role: '廚師', status: 'offline', performance: 88 }
-        ];
+        try {
+            // 模擬員工活動數據，實際應該從 API 獲取
+            return [
+                { id: 1, name: '張小明', role: '廚師', status: 'online', performance: 98 },
+                { id: 2, name: '李美華', role: '送菜員', status: 'busy', performance: 95 },
+                { id: 3, name: '王大偉', role: '收銀員', status: 'online', performance: 92 },
+                { id: 4, name: '陳小芳', role: '廚師', status: 'offline', performance: 88 }
+            ];
+        }
+        catch (error) {
+            console.error('Error fetching staff activity:', error);
+            throw error;
+        }
     }
     async handleQuickAction(action) {
         try {

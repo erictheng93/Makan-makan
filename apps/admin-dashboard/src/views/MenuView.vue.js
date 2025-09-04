@@ -124,7 +124,7 @@ const closeMenuItemModal = () => {
 const saveCategory = async () => {
     if (editingCategory.value) {
         // 更新現有分類
-        const index = categories.value.findIndex(c => c.id === editingCategory.value.id);
+        const index = categories.value.findIndex(c => editingCategory.value && c.id === editingCategory.value.id);
         if (index > -1) {
             categories.value[index] = { ...categories.value[index], ...categoryForm.value };
         }
@@ -143,16 +143,17 @@ const saveCategory = async () => {
 const saveMenuItem = async () => {
     if (editingMenuItem.value) {
         // 更新現有菜品
-        const index = menuItems.value.findIndex(i => i.id === editingMenuItem.value.id);
+        const index = menuItems.value.findIndex(i => editingMenuItem.value && i.id === editingMenuItem.value.id);
         if (index > -1) {
-            menuItems.value[index] = { ...menuItems.value[index], ...menuItemForm.value };
+            menuItems.value[index] = { ...menuItems.value[index], ...menuItemForm.value, categoryId: parseInt(menuItemForm.value.categoryId), imageUrl: menuItemForm.value.imageUrl || null };
         }
     }
     else {
         // 新增菜品
         const newMenuItem = {
             id: Math.max(...menuItems.value.map(i => i.id)) + 1,
-            ...menuItemForm.value
+            ...menuItemForm.value,
+            categoryId: parseInt(menuItemForm.value.categoryId)
         };
         menuItems.value.push(newMenuItem);
     }
@@ -354,42 +355,6 @@ for (const [item] of __VLS_getVForSourceType((__VLS_ctx.filteredMenuItems))) {
         progressive: (true),
     }, ...__VLS_functionalComponentArgsRest(__VLS_15));
     const { default: __VLS_18 } = __VLS_17.slots;
-    {
-        const { loading: __VLS_19 } = __VLS_17.slots;
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "w-full h-48 bg-gray-200 rounded-t-lg animate-pulse flex items-center justify-center" },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
-            ...{ class: "w-8 h-8 text-gray-400" },
-            fill: "currentColor",
-            viewBox: "0 0 24 24",
-        });
-        __VLS_asFunctionalElement(__VLS_elements.path)({
-            d: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
-        });
-    }
-    {
-        const { error: __VLS_20 } = __VLS_17.slots;
-        const [{ retry }] = __VLS_getSlotParameters(__VLS_20);
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "w-full h-48 bg-gray-100 rounded-t-lg flex flex-col items-center justify-center text-gray-400" },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
-            ...{ class: "w-8 h-8 mb-2" },
-            fill: "currentColor",
-            viewBox: "0 0 24 24",
-        });
-        __VLS_asFunctionalElement(__VLS_elements.path)({
-            d: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z",
-        });
-        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-            ...{ class: "text-xs" },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-            ...{ onClick: (retry) },
-            ...{ class: "mt-1 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 transition-colors" },
-        });
-    }
     var __VLS_17;
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "absolute top-2 right-2" },
@@ -450,17 +415,17 @@ for (const [item] of __VLS_getVForSourceType((__VLS_ctx.filteredMenuItems))) {
         ...{ class: "p-1 text-gray-400 hover:text-blue-600 transition-colors" },
         title: "編輯",
     });
-    const __VLS_21 = {}.PencilIcon;
+    const __VLS_19 = {}.PencilIcon;
     /** @type {[typeof __VLS_components.PencilIcon, ]} */ ;
     // @ts-ignore
     PencilIcon;
     // @ts-ignore
-    const __VLS_22 = __VLS_asFunctionalComponent(__VLS_21, new __VLS_21({
+    const __VLS_20 = __VLS_asFunctionalComponent(__VLS_19, new __VLS_19({
         ...{ class: "h-4 w-4" },
     }));
-    const __VLS_23 = __VLS_22({
+    const __VLS_21 = __VLS_20({
         ...{ class: "h-4 w-4" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_22));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_20));
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 __VLS_ctx.toggleMenuItemStatus(item);
@@ -475,14 +440,14 @@ for (const [item] of __VLS_getVForSourceType((__VLS_ctx.filteredMenuItems))) {
             ]) },
         title: (item.isAvailable ? '停用' : '啟用'),
     });
-    const __VLS_26 = ((item.isAvailable ? __VLS_ctx.EyeSlashIcon : __VLS_ctx.EyeIcon));
+    const __VLS_24 = ((item.isAvailable ? __VLS_ctx.EyeSlashIcon : __VLS_ctx.EyeIcon));
     // @ts-ignore
-    const __VLS_27 = __VLS_asFunctionalComponent(__VLS_26, new __VLS_26({
+    const __VLS_25 = __VLS_asFunctionalComponent(__VLS_24, new __VLS_24({
         ...{ class: "h-4 w-4" },
     }));
-    const __VLS_28 = __VLS_27({
+    const __VLS_26 = __VLS_25({
         ...{ class: "h-4 w-4" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_27));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_25));
     // @ts-ignore
     [EyeSlashIcon, EyeIcon,];
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -494,17 +459,17 @@ for (const [item] of __VLS_getVForSourceType((__VLS_ctx.filteredMenuItems))) {
         ...{ class: "p-1 text-gray-400 hover:text-red-600 transition-colors" },
         title: "刪除",
     });
-    const __VLS_31 = {}.TrashIcon;
+    const __VLS_29 = {}.TrashIcon;
     /** @type {[typeof __VLS_components.TrashIcon, ]} */ ;
     // @ts-ignore
     TrashIcon;
     // @ts-ignore
-    const __VLS_32 = __VLS_asFunctionalComponent(__VLS_31, new __VLS_31({
+    const __VLS_30 = __VLS_asFunctionalComponent(__VLS_29, new __VLS_29({
         ...{ class: "h-4 w-4" },
     }));
-    const __VLS_33 = __VLS_32({
+    const __VLS_31 = __VLS_30({
         ...{ class: "h-4 w-4" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_32));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_30));
 }
 if (__VLS_ctx.filteredMenuItems.length === 0) {
     // @ts-ignore
@@ -512,17 +477,17 @@ if (__VLS_ctx.filteredMenuItems.length === 0) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "col-span-full text-center py-12" },
     });
-    const __VLS_36 = {}.CakeIcon;
+    const __VLS_34 = {}.CakeIcon;
     /** @type {[typeof __VLS_components.CakeIcon, ]} */ ;
     // @ts-ignore
     CakeIcon;
     // @ts-ignore
-    const __VLS_37 = __VLS_asFunctionalComponent(__VLS_36, new __VLS_36({
+    const __VLS_35 = __VLS_asFunctionalComponent(__VLS_34, new __VLS_34({
         ...{ class: "mx-auto h-12 w-12 text-gray-400" },
     }));
-    const __VLS_38 = __VLS_37({
+    const __VLS_36 = __VLS_35({
         ...{ class: "mx-auto h-12 w-12 text-gray-400" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_37));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_35));
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
         ...{ class: "mt-2 text-sm font-medium text-gray-900" },
     });
@@ -539,17 +504,17 @@ if (__VLS_ctx.filteredMenuItems.length === 0) {
             } },
         ...{ class: "mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" },
     });
-    const __VLS_41 = {}.PlusIcon;
+    const __VLS_39 = {}.PlusIcon;
     /** @type {[typeof __VLS_components.PlusIcon, ]} */ ;
     // @ts-ignore
     PlusIcon;
     // @ts-ignore
-    const __VLS_42 = __VLS_asFunctionalComponent(__VLS_41, new __VLS_41({
+    const __VLS_40 = __VLS_asFunctionalComponent(__VLS_39, new __VLS_39({
         ...{ class: "h-4 w-4 mr-2" },
     }));
-    const __VLS_43 = __VLS_42({
+    const __VLS_41 = __VLS_40({
         ...{ class: "h-4 w-4 mr-2" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_42));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_40));
 }
 if (__VLS_ctx.showCategoryModal) {
     // @ts-ignore
@@ -945,38 +910,6 @@ if (__VLS_ctx.showMenuItemModal) {
 /** @type {__VLS_StyleScopedClasses['hover:shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-shadow']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-48']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-t-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-48']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-t-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
 /** @type {__VLS_StyleScopedClasses['absolute']} */ ;
 /** @type {__VLS_StyleScopedClasses['top-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['right-2']} */ ;

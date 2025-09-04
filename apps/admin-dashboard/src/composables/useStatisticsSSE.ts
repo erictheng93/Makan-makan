@@ -17,7 +17,7 @@ export function useStatisticsSSE(options: {
   retryDelay?: number
 } = {}) {
   const {
-    url = `${import.meta.env.VITE_API_URL || 'http://localhost:8787'}/api/v1/analytics/sse`,
+    url = `${import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8787'}/api/v1/analytics/sse`,
     autoConnect = true,
     retryAttempts = 5,
     retryDelay = 3000

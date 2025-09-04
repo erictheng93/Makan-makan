@@ -1,4 +1,4 @@
-import { eq, and, desc, lt } from 'drizzle-orm'
+import { eq, and, desc, lt, gt } from 'drizzle-orm'
 import { BaseService } from './base'
 import { users, sessions } from '../schema'
 import * as bcrypt from 'bcryptjs'
@@ -104,13 +104,16 @@ export class AuthService extends BaseService {
       }
 
       // 生成 JWT tokens
-      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret'
+      const jwtSecret = process.env.JWT_SECRET
+      if (!jwtSecret || jwtSecret.length < 32) {
+        throw new Error('JWT_SECRET must be set and at least 32 characters for security')
+      }
       const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24小時
       const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7天
 
       const accessToken = sign(
         { 
-          userId: user.id, 
+          id: user.id, 
           username: user.username, 
           role: user.role,
           restaurantId: user.restaurantId
@@ -233,7 +236,10 @@ export class AuthService extends BaseService {
   // 刷新 token
   async refreshToken(refreshToken: string): Promise<AuthResult> {
     try {
-      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret'
+      const jwtSecret = process.env.JWT_SECRET
+      if (!jwtSecret || jwtSecret.length < 32) {
+        throw new Error('JWT_SECRET must be set and at least 32 characters for security')
+      }
       
       // 驗證 refresh token
       const decoded = verify(refreshToken, jwtSecret) as any
@@ -295,7 +301,7 @@ export class AuthService extends BaseService {
       const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000)
       const accessToken = sign(
         { 
-          userId: user.id, 
+          id: user.id, 
           username: user.username, 
           role: user.role,
           restaurantId: user.restaurantId
@@ -389,7 +395,10 @@ export class AuthService extends BaseService {
   // 驗證 token 並取得用戶資訊
   async validateToken(token: string): Promise<{ valid: boolean; user?: any; error?: string }> {
     try {
-      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret'
+      const jwtSecret = process.env.JWT_SECRET
+      if (!jwtSecret || jwtSecret.length < 32) {
+        throw new Error('JWT_SECRET must be set and at least 32 characters for security')
+      }
       
       // 驗證 JWT
       const decoded = verify(token, jwtSecret) as any
@@ -402,7 +411,7 @@ export class AuthService extends BaseService {
           and(
             eq(sessions.token, token),
             eq(sessions.isActive, true),
-            lt(sessions.expiresAt, new Date())
+            gt(sessions.expiresAt, new Date())
           )
         )
         .get()

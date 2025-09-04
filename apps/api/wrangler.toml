@@ -8,6 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 NODE_ENV = "development"
 API_VERSION = "v1"
+API_BASE_URL = "http://localhost:8787"
 
 # SECURITY NOTE: JWT_SECRET should be set via 'wrangler secret put JWT_SECRET'
 # Never put sensitive values in wrangler.toml as they are visible in version control
@@ -21,14 +22,14 @@ database_id = "local"
 # KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE_KV"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
+id = "makanmakan-cache-dev"
+preview_id = "makanmakan-cache-preview"
 
 # KV namespace for JWT token blacklisting (security)
 [[kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "your-token-blacklist-kv-id"
-preview_id = "your-token-blacklist-preview-id"
+id = "makanmakan-tokens-dev"
+preview_id = "makanmakan-tokens-preview"
 
 # R2 bucket for file storage
 [[r2_buckets]]
@@ -48,38 +49,42 @@ queue = "makanmakan-jobs"
 # Staging environment
 [env.staging]
 name = "makanmakan-api-staging"
-vars = { NODE_ENV = "staging", API_VERSION = "v1" }
+vars = { NODE_ENV = "staging", API_VERSION = "v1", API_BASE_URL = "https://api-staging.makanmakan.com" }
 
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-staging"
-database_id = "your-staging-d1-database-id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-staging
+database_id = "STAGING_DB_ID_TO_BE_REPLACED"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
-id = "your-staging-kv-namespace-id"
+id = "makanmakan-cache-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "your-staging-token-blacklist-kv-id"
+id = "makanmakan-tokens-staging"
 
 # Production environment  
 [env.production]
 name = "makanmakan-api-prod"
-vars = { NODE_ENV = "production", API_VERSION = "v1" }
+vars = { NODE_ENV = "production", API_VERSION = "v1", API_BASE_URL = "https://api.makanmakan.com" }
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
-database_id = "your-production-d1-database-id"
+# TODO: Replace with actual D1 database ID from Cloudflare dashboard
+# Run: wrangler d1 create makanmakan-prod
+database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "your-production-kv-namespace-id"
+id = "makanmakan-cache-prod"
 
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "your-production-token-blacklist-kv-id"
+id = "makanmakan-tokens-prod"
 
 # Build configuration
 [build]

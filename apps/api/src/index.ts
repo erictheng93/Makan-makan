@@ -5,6 +5,12 @@ import { timing } from 'hono/timing'
 import { cors } from 'hono/cors'
 import { authMiddleware } from './middleware/auth'
 import { rateLimitMiddleware } from './middleware/rateLimit'
+import { 
+  metricsMiddleware, 
+  errorMonitoringMiddleware, 
+  healthCheckMiddleware,
+  monitoringStatsMiddleware 
+} from './middleware/monitoring'
 import restaurantsRouter from './routes/restaurants'
 import menuRouter from './routes/menu'
 import authRouter from './routes/auth'
@@ -17,6 +23,9 @@ import qrcodeRouter from './routes/qrcode'
 import healthRouter from './routes/health'
 import sseRouter from './routes/sse'
 import systemRouter from './routes/system'
+import cacheRouter from './routes/cache'
+import monitoringRouter from './routes/monitoring'
+import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
 // 創建主應用
@@ -27,32 +36,37 @@ app.use('*', cors({
   origin: ['https://customer.makanmakan.com', 'https://admin.makanmakan.com', 'https://kitchen.makanmakan.com'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  exposeHeaders: ['X-Request-ID'],
+  exposeHeaders: ['X-Request-ID', 'X-Response-Time', 'X-Cache', 'X-Cache-Hit-Rate'],
   credentials: true
 }))
 app.use('*', logger())
 app.use('*', timing())
 app.use('*', prettyJSON())
 app.use('*', rateLimitMiddleware())
+app.use('*', metricsMiddleware())
+app.use('*', errorMonitoringMiddleware())
+app.use('*', monitoringStatsMiddleware())
 
-// 錯誤處理中間件
+// 錯誤處理中間件 - SECURITY ENHANCED
 app.onError((err, c) => {
-  console.error('Global error handler:', err)
+  // Log the original error securely and get sanitized version
+  const sanitized = ErrorSanitizer.logAndSanitize(err, 'GLOBAL_ERROR_HANDLER')
   
-  // 開發環境顯示詳細錯誤
+  // 開發環境顯示稍微詳細的錯誤但仍然是安全的
   if (c.env.NODE_ENV === 'development') {
     return c.json({
       success: false,
-      error: err.message,
-      stack: err.stack
+      error: sanitized.message,
+      code: sanitized.code,
+      type: sanitized.type,
+      timestamp: new Date().toISOString(),
+      // Only in development: add request ID for debugging
+      requestId: Math.random().toString(36).substring(7)
     }, 500)
   }
   
-  // 生產環境隱藏詳細錯誤
-  return c.json({
-    success: false,
-    error: 'Internal server error'
-  }, 500)
+  // 生產環境完全安全的錯誤響應
+  return c.json(createSafeErrorResponse(err, 500), 500)
 })
 
 // 404 處理
@@ -65,7 +79,7 @@ app.notFound((c) => {
 })
 
 // 基本健康檢查端點（向後兼容）
-app.get('/health', (c) => c.redirect('/api/v1/health'))
+app.get('/health', healthCheckMiddleware(), (c) => c.redirect('/api/v1/monitoring/health'))
 
 // API 資訊端點
 app.get('/info', (c) => {
@@ -80,7 +94,9 @@ app.get('/info', (c) => {
       'Order processing',
       'Real-time updates',
       'Multi-language support',
-      'Role-based access control'
+      'Role-based access control',
+      'Comprehensive caching system',
+      'Cache monitoring and management'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -94,6 +110,8 @@ app.get('/info', (c) => {
       sse: '/api/v1/sse',
       system: '/api/v1/system',
       qr: '/api/v1/qr',
+      cache: '/api/v1/cache',
+      monitoring: '/api/v1/monitoring',
       health: '/health',
       docs: '/docs'
     }
@@ -118,6 +136,8 @@ apiV1.use('/users/*', authMiddleware)
 apiV1.use('/analytics/*', authMiddleware)
 apiV1.use('/sse/*', authMiddleware)
 apiV1.use('/system/*', authMiddleware)
+apiV1.use('/cache/*', authMiddleware)
+apiV1.use('/monitoring/*', authMiddleware)
 
 apiV1.route('/restaurants', restaurantsRouter)
 apiV1.route('/menu', menuRouter)
@@ -128,6 +148,8 @@ apiV1.route('/users', usersRouter)
 apiV1.route('/analytics', analyticsRouter)
 apiV1.route('/sse', sseRouter)
 apiV1.route('/system', systemRouter)
+apiV1.route('/cache', cacheRouter)
+apiV1.route('/monitoring', monitoringRouter)
 
 // 掛載 API 路由
 app.route('/api/v1', apiV1)

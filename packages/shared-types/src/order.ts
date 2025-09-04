@@ -1,6 +1,46 @@
 import { BaseEntity } from './common';
 import { MenuItem, MenuItemOptions } from './menu';
 
+// Customer information interface
+export interface CustomerInfo {
+  name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  preferences?: Record<string, unknown>;
+}
+
+// Table information interface
+export interface TableInfo {
+  id: number;
+  number: string;
+  seats: number;
+  location?: string;
+  qrCode?: string;
+}
+
+// Restaurant information interface  
+export interface RestaurantInfo {
+  id: number;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  businessHours?: Record<string, unknown>;
+}
+
+// Customer profile interface
+export interface CustomerProfile {
+  id: number;
+  username: string;
+  email?: string;
+  phone?: string;
+  fullName: string;
+  address?: string;
+  profileImageUrl?: string;
+  preferences?: Record<string, unknown>;
+}
+
 export interface Order extends BaseEntity {
   restaurantId: number;
   tableId: number;
@@ -8,7 +48,7 @@ export interface Order extends BaseEntity {
   orderNumber: string;
   customerName?: string;
   customerPhone?: string;
-  customerInfo?: any;
+  customerInfo?: CustomerInfo;
   subtotal: number; // in cents
   taxAmount?: number; // in cents
   serviceCharge?: number; // in cents
@@ -30,9 +70,9 @@ export interface Order extends BaseEntity {
   rating?: number;
   reviewComment?: string;
   items?: OrderItem[];
-  restaurant?: any;
-  table?: any;
-  customer?: any;
+  restaurant?: RestaurantInfo;
+  table?: TableInfo;
+  customer?: CustomerProfile;
 }
 
 export enum OrderStatus {

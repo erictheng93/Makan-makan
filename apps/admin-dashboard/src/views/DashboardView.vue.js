@@ -2,6 +2,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useDashboardStore } from '@/stores/dashboard';
 import { useOrderStore } from '@/stores/order';
+import { OrderStatus } from '@/types';
 import { useDashboardPolling } from '@/composables/usePolling';
 import { formatDistanceToNow } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -47,16 +48,14 @@ const formatPercentage = (value) => {
 const refreshData = async () => {
     await Promise.all([
         dashboardStore.fetchDashboardStats(),
-        orderStore.fetchOrders({ status: ['pending', 'confirmed', 'preparing', 'ready'] })
+        orderStore.fetchOrders({ status: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY] })
     ]);
 };
 const updateRevenueChart = async () => {
-    const data = await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value);
-    // Update chart data
+    await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value);
 };
 const updateOrdersChart = async () => {
-    const data = await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value);
-    // Update chart data
+    await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value);
 };
 onMounted(async () => {
     // Initial data load
@@ -228,14 +227,14 @@ __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
 /** @type {[typeof RevenueChart, ]} */ ;
 // @ts-ignore
 const __VLS_21 = __VLS_asFunctionalComponent(RevenueChart, new RevenueChart({
-    data: (__VLS_ctx.revenueChart),
+    data: __VLS_ctx.revenueChart,
     loading: (__VLS_ctx.isLoading),
-    period: (__VLS_ctx.revenueChartPeriod),
+    period: __VLS_ctx.revenueChartPeriod,
 }));
 const __VLS_22 = __VLS_21({
-    data: (__VLS_ctx.revenueChart),
+    data: __VLS_ctx.revenueChart,
     loading: (__VLS_ctx.isLoading),
-    period: (__VLS_ctx.revenueChartPeriod),
+    period: __VLS_ctx.revenueChartPeriod,
 }, ...__VLS_functionalComponentArgsRest(__VLS_21));
 // @ts-ignore
 [isLoading, revenueChartPeriod, revenueChart,];
@@ -267,14 +266,14 @@ __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
 /** @type {[typeof OrdersChart, ]} */ ;
 // @ts-ignore
 const __VLS_25 = __VLS_asFunctionalComponent(OrdersChart, new OrdersChart({
-    data: (__VLS_ctx.ordersChart),
+    data: __VLS_ctx.ordersChart,
     loading: (__VLS_ctx.isLoading),
-    period: (__VLS_ctx.ordersChartPeriod),
+    period: __VLS_ctx.ordersChartPeriod,
 }));
 const __VLS_26 = __VLS_25({
-    data: (__VLS_ctx.ordersChart),
+    data: __VLS_ctx.ordersChart,
     loading: (__VLS_ctx.isLoading),
-    period: (__VLS_ctx.ordersChartPeriod),
+    period: __VLS_ctx.ordersChartPeriod,
 }, ...__VLS_functionalComponentArgsRest(__VLS_25));
 // @ts-ignore
 [isLoading, ordersChartPeriod, ordersChart,];
@@ -293,11 +292,11 @@ __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
 /** @type {[typeof TopMenuItems, ]} */ ;
 // @ts-ignore
 const __VLS_29 = __VLS_asFunctionalComponent(TopMenuItems, new TopMenuItems({
-    items: (__VLS_ctx.topMenuItems),
+    items: __VLS_ctx.topMenuItems,
     loading: (__VLS_ctx.isLoading),
 }));
 const __VLS_30 = __VLS_29({
-    items: (__VLS_ctx.topMenuItems),
+    items: __VLS_ctx.topMenuItems,
     loading: (__VLS_ctx.isLoading),
 }, ...__VLS_functionalComponentArgsRest(__VLS_29));
 // @ts-ignore

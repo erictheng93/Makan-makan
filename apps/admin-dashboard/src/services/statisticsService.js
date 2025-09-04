@@ -115,7 +115,8 @@ class StatisticsService {
                 this.lastUpdated.value = new Date();
             }
             else {
-                throw new Error(response.data.error || 'Failed to fetch dashboard data');
+                const errorObj = response.data.error || 'Failed to fetch dashboard data';
+                throw new Error(typeof errorObj === 'string' ? errorObj : JSON.stringify(errorObj));
             }
         }
         catch (error) {
@@ -151,7 +152,8 @@ class StatisticsService {
                 this.lastUpdated.value = new Date();
             }
             else {
-                throw new Error(response.data.error || 'Failed to fetch detailed performance data');
+                const errorObj = response.data.error || 'Failed to fetch detailed performance data';
+                throw new Error(typeof errorObj === 'string' ? errorObj : JSON.stringify(errorObj));
             }
         }
         catch (error) {
