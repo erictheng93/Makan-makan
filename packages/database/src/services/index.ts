@@ -11,6 +11,9 @@ export { TableService } from './table'
 export { AnalyticsService } from './analytics'
 export { ErrorReportingService } from './error-reporting'
 export { QRCodeService } from './qrcode'
+export { GroupOrderService } from './GroupOrderService'
+export { POSService } from './POSService'
+export { QueueService } from './QueueService'
 export { ImageService } from './image'
 
 // 匯出類型定義
@@ -43,6 +46,41 @@ export type {
   QRStyleData,
   QRCodeStats
 } from './qrcode'
+
+export type {
+  GroupOrder,
+  GroupMember,
+  GroupCartItem,
+  SplitBill,
+  CreateGroupOrderRequest,
+  CreateGroupOrderResponse,
+  JoinGroupRequest,
+  JoinGroupResponse
+} from './GroupOrderService'
+
+export type {
+  CashRegister,
+  CashShift,
+  CashMovement,
+  Receipt,
+  Refund,
+  CreateRegisterRequest,
+  StartShiftRequest,
+  EndShiftRequest,
+  CashMovementRequest,
+  PrintReceiptRequest,
+  ProcessRefundRequest
+} from './POSService'
+
+export type {
+  WaitingQueue,
+  QueueNotification,
+  QueueSettings,
+  JoinQueueRequest,
+  JoinQueueResponse,
+  QueuePositionResponse,
+  CallNextRequest
+} from './QueueService'
 
 export type {
   ImageAnalyticsOptions,

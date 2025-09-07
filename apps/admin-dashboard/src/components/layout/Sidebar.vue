@@ -75,6 +75,8 @@ import {
   Calculator,
   Settings,
   User,
+  CreditCard,
+  Clock,
 } from "lucide-vue-next";
 
 interface Props {
@@ -133,6 +135,40 @@ const navigationItems = computed(() => [
     label: "數據分析",
     icon: BarChart3,
     visible: authStore.canAccessAdminFeatures,
+  },
+  {
+    name: "pos",
+    path: "/dashboard/pos",
+    label: "POS系統",
+    icon: CreditCard,
+    visible: authStore.hasPermission([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.CASHIER,
+    ]),
+  },
+  {
+    name: "group-orders",
+    path: "/dashboard/group-orders",
+    label: "團體訂單",
+    icon: Users,
+    visible: authStore.hasPermission([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.SERVICE,
+      UserRole.CASHIER,
+    ]),
+  },
+  {
+    name: "queue",
+    path: "/dashboard/queue",
+    label: "候位管理",
+    icon: Clock,
+    visible: authStore.hasPermission([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.SERVICE,
+    ]),
   },
   {
     name: "settings",

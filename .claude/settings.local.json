@@ -84,7 +84,12 @@
       "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app\\src\\views/**)",
       "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app\\src\\views/**)",
       "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app\\src\\views/**)",
-      "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app\\src\\tests/**)"
+      "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app\\src\\tests/**)",
+      "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\admin-dashboard/**)",
+      "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app/**)",
+      "WebFetch(domain:lucide.dev)",
+      "Bash(awk:*)",
+      "Read(//c//**)"
     ],
     "deny": [],
     "ask": [],

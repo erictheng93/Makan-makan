@@ -213,7 +213,7 @@ declare class StatisticsService {
         restaurantId?: number;
         dateFrom?: string;
         dateTo?: string;
-        groupBy?: 'day' | 'week' | 'month' | 'year';
+        groupBy?: "day" | "week" | "month" | "year";
         limit?: number;
         includeStaffMetrics?: boolean;
         includeItemAnalysis?: boolean;
@@ -230,7 +230,7 @@ declare class StatisticsService {
     get urgentOrders(): ActiveOrder[];
     get slowestCategories(): CategoryTime[];
     get peakHours(): HourlyCompletionRate[];
-    get performanceTrendDirection(): 'up' | 'down' | 'stable';
+    get performanceTrendDirection(): "up" | "down" | "stable";
     formatTime(minutes: number): string;
     formatCurrency(amount: number): string;
     getStatusColor(status: string): string;

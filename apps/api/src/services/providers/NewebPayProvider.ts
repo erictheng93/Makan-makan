@@ -1,0 +1,379 @@
+import crypto from 'crypto'
+import {
+  PaymentProvider,
+  PaymentRequest,
+  PaymentResult,
+  RefundRequest,
+  RefundResult,
+  WebhookResult,
+  PaymentStatus,
+  CountryCode,
+  PaymentProviderConfig
+} from '@makanmakan/shared-types'
+
+interface NewebPayConfig {
+  merchantId: string
+  hashKey: string
+  hashIV: string
+  paymentUrl: string
+  queryUrl: string
+  version: string
+  notifyUrl: string
+  returnUrl: string
+  email: string
+  loginType: number
+  testMode: boolean
+  clientBackUrl: string
+  paymentTimeout: number
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface NewebPayResponse {
+  Status: string
+  Message: string
+  Result: string
+  MerchantID: string
+  Version: string
+  TradeInfo: string
+  TradeSha: string
+}
+
+export class NewebPayProvider extends PaymentProvider {
+  readonly name = 'newebpay'
+  readonly displayName = '藍新金流'
+  readonly supportedCountries: CountryCode[] = ['TW']
+  readonly supportedMethods = ['newebpay', 'credit_card', 'bank_transfer', 'digital_wallet']
+
+  private newebpayConfig: NewebPayConfig
+
+  constructor(config: PaymentProviderConfig & { newebpayConfig: NewebPayConfig }) {
+    super(config)
+    this.newebpayConfig = config.newebpayConfig
+  }
+
+  async createPayment(request: PaymentRequest): Promise<PaymentResult> {
+    try {
+      // 驗證國家和貨幣
+      if (request.country !== 'TW' || request.currency !== 'TWD') {
+        throw new Error('NewebPay only supports Taiwan (TW) and TWD currency')
+      }
+
+      // 生成商家訂單編號
+      const merchantOrderNo = this.generateMerchantOrderNo(request.orderId)
+      
+      // 準備交易資料
+      const tradeInfo = {
+        MerchantID: this.newebpayConfig.merchantId,
+        RespondType: 'JSON',
+        TimeStamp: Math.floor(Date.now() / 1000).toString(),
+        Version: this.newebpayConfig.version,
+        MerchantOrderNo: merchantOrderNo,
+        Amt: Math.round(request.amount).toString(),
+        ItemDesc: `Order ${request.orderId} - Restaurant ${request.restaurantId}`,
+        Email: request.customerInfo?.email || this.newebpayConfig.email,
+        LoginType: this.newebpayConfig.loginType,
+        NotifyURL: this.newebpayConfig.notifyUrl,
+        ReturnURL: request.returnUrl || this.newebpayConfig.returnUrl,
+        ClientBackURL: this.newebpayConfig.clientBackUrl,
+        // 支付方式設定
+        CREDIT: this.shouldEnablePaymentMethod(request.method, 'credit_card') ? 1 : 0,
+        WEBATM: this.shouldEnablePaymentMethod(request.method, 'bank_transfer') ? 1 : 0,
+        VACC: this.shouldEnablePaymentMethod(request.method, 'bank_transfer') ? 1 : 0,
+        CVS: this.shouldEnablePaymentMethod(request.method, 'digital_wallet') ? 1 : 0,
+        BARCODE: this.shouldEnablePaymentMethod(request.method, 'digital_wallet') ? 1 : 0,
+        // 如果沒有指定特定方式，則開啟所有方式
+        ...(request.method === 'newebpay' ? {
+          CREDIT: 1,
+          WEBATM: 1,
+          VACC: 1,
+          CVS: 1,
+          BARCODE: 1
+        } : {})
+      }
+
+      // 加密交易資料
+      const tradeInfoEncrypted = this.encryptTradeInfo(tradeInfo)
+      const tradeSha = this.generateTradeSha(tradeInfoEncrypted)
+
+      // 準備 NewebPay 參數
+      const newebpayParams = {
+        MerchantID: this.newebpayConfig.merchantId,
+        TradeInfo: tradeInfoEncrypted,
+        TradeSha: tradeSha,
+        Version: this.newebpayConfig.version
+      }
+
+      // 準備表單 HTML
+      const formHtml = this.generateFormHtml(newebpayParams)
+
+      return {
+        success: true,
+        transactionId: merchantOrderNo,
+        status: 'pending',
+        redirectUrl: this.newebpayConfig.paymentUrl,
+        metadata: {
+          formHtml,
+          newebpayParams,
+          provider: 'newebpay'
+        }
+      }
+
+    } catch (error) {
+      console.error('NewebPay payment creation failed:', error)
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        error: {
+          code: 'NEWEBPAY_ERROR',
+          message: (error as Error).message
+        }
+      }
+    }
+  }
+
+  async getPaymentStatus(transactionId: string): Promise<PaymentStatus> {
+    try {
+      const queryData = {
+        MerchantID: this.newebpayConfig.merchantId,
+        Version: this.newebpayConfig.version,
+        RespondType: 'JSON',
+        CheckValue: '',
+        TimeStamp: Math.floor(Date.now() / 1000).toString(),
+        MerchantOrderNo: transactionId
+      }
+
+      // 生成檢查碼
+      const checkValue = this.generateQueryCheckValue(queryData)
+      queryData.CheckValue = checkValue
+
+      // 發送查詢請求到 NewebPay
+      const response = await fetch(this.newebpayConfig.queryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(queryData).toString()
+      })
+
+      const result = await response.text()
+      
+      try {
+        const parsed = JSON.parse(result)
+        const status = parsed.Result?.TradeStatus || parsed.Status
+        
+        // NewebPay 狀態碼對應
+        switch (status) {
+          case '1':
+          case 'SUCCESS':
+            return 'completed'
+          case '0':
+          case 'FAIL':
+            return 'failed'
+          case 'TRA10100':
+            return 'pending'
+          default:
+            return 'pending'
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse NewebPay query response:', parseError)
+        return 'pending'
+      }
+
+    } catch (error) {
+      console.error('Failed to query NewebPay payment status:', error)
+      return 'pending'
+    }
+  }
+
+  async refundPayment(request: RefundRequest): Promise<RefundResult> {
+    // NewebPay 的退款需要通過後台管理介面或特殊 API
+    return {
+      success: false,
+      refundId: '',
+      amount: request.amount || 0,
+      status: 'failed',
+      error: {
+        code: 'REFUND_NOT_SUPPORTED',
+        message: 'NewebPay refunds must be processed through merchant backend'
+      }
+    }
+  }
+
+  async handleWebhook(payload: any, _signature?: string): Promise<WebhookResult> {
+    try {
+      // NewebPay 會以 POST 表單格式發送通知
+      const params = typeof payload === 'string' 
+        ? new URLSearchParams(payload)
+        : new URLSearchParams(Object.entries(payload).map(([k, v]) => [k, String(v)]))
+
+      const status = params.get('Status')
+      const _message = params.get('Message')
+      const tradeInfo = params.get('TradeInfo')
+      const tradeSha = params.get('TradeSha')
+
+      if (!tradeInfo || !tradeSha) {
+        throw new Error('Missing TradeInfo or TradeSha in NewebPay notification')
+      }
+
+      // 驗證簽名
+      const expectedTradeSha = this.generateTradeSha(tradeInfo)
+      if (tradeSha !== expectedTradeSha) {
+        throw new Error('Invalid TradeSha in NewebPay notification')
+      }
+
+      // 解密交易資料
+      const decryptedData = this.decryptTradeInfo(tradeInfo)
+      const tradeData = JSON.parse(decryptedData)
+
+      let newStatus: PaymentStatus = 'pending'
+      if (status === 'SUCCESS' || tradeData.Status === 'SUCCESS') {
+        newStatus = 'completed'
+      } else if (status === 'FAIL' || tradeData.Status === 'FAIL') {
+        newStatus = 'failed'
+      }
+
+      return {
+        processed: true,
+        transactionId: tradeData.MerchantOrderNo || '',
+        newStatus,
+        shouldUpdateOrder: newStatus === 'completed',
+        metadata: {
+          newebpayTradeNo: tradeData.TradeNo,
+          paymentType: tradeData.PaymentType,
+          payTime: tradeData.PayTime,
+          ip: tradeData.IP
+        }
+      }
+
+    } catch (error) {
+      console.error('NewebPay webhook processing error:', error)
+      return {
+        processed: false,
+        error: (error as Error).message
+      }
+    }
+  }
+
+  validateConfig(): boolean {
+    try {
+      const required = ['merchantId', 'hashKey', 'hashIV', 'paymentUrl', 'notifyUrl']
+      for (const key of required) {
+        if (!this.newebpayConfig[key as keyof NewebPayConfig]) {
+          console.error(`Missing required NewebPay config: ${key}`)
+          return false
+        }
+      }
+
+      // 檢查商家代碼格式
+      if (!/^MS\d+$/.test(this.newebpayConfig.merchantId)) {
+        console.error('Invalid NewebPay Merchant ID format (should start with MS)')
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('NewebPay config validation error:', error)
+      return false
+    }
+  }
+
+  // =============================================
+  // 私有方法
+  // =============================================
+
+  private generateMerchantOrderNo(orderId: string): string {
+    // NewebPay 要求：英數字，長度30字元內
+    const timestamp = Date.now().toString()
+    const randomStr = Math.random().toString(36).substring(2, 8)
+    return `NP${orderId}_${timestamp}_${randomStr}`.substring(0, 30)
+  }
+
+  private shouldEnablePaymentMethod(requestMethod: string, checkMethod: string): boolean {
+    return requestMethod === checkMethod || requestMethod === 'newebpay'
+  }
+
+  private encryptTradeInfo(tradeInfo: Record<string, any>): string {
+    // 1. 將交易資料轉為 JSON 字串
+    const jsonString = JSON.stringify(tradeInfo)
+    
+    // 2. 使用 AES-256-CBC 加密
+    const cipher = crypto.createCipher('aes256', this.newebpayConfig.hashKey)
+    let encrypted = cipher.update(jsonString, 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+    
+    return encrypted.toLowerCase()
+  }
+
+  private decryptTradeInfo(encryptedData: string): string {
+    // 使用 AES-256-CBC 解密
+    const decipher = crypto.createDecipher('aes256', this.newebpayConfig.hashKey)
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
+    decrypted += decipher.final('utf8')
+    
+    return decrypted
+  }
+
+  private generateTradeSha(tradeInfo: string): string {
+    // TradeSha = SHA256(`HashKey=${HashKey}&${TradeInfo}&HashIV=${HashIV}`)
+    const stringToHash = `HashKey=${this.newebpayConfig.hashKey}&${tradeInfo}&HashIV=${this.newebpayConfig.hashIV}`
+    
+    return crypto
+      .createHash('sha256')
+      .update(stringToHash, 'utf8')
+      .digest('hex')
+      .toUpperCase()
+  }
+
+  private generateQueryCheckValue(queryData: Omit<any, 'CheckValue'>): string {
+    // 組合查詢檢查碼字串
+    const params = [
+      `IV=${this.newebpayConfig.hashIV}`,
+      `Amt=${queryData.Amt || ''}`,
+      `MerchantID=${queryData.MerchantID}`,
+      `MerchantOrderNo=${queryData.MerchantOrderNo}`,
+      `Key=${this.newebpayConfig.hashKey}`
+    ]
+    
+    const stringToHash = params.join('&')
+    
+    return crypto
+      .createHash('sha256')
+      .update(stringToHash, 'utf8')
+      .digest('hex')
+      .toUpperCase()
+  }
+
+  private generateFormHtml(params: Record<string, any>): string {
+    const inputs = Object.entries(params)
+      .map(([key, value]) => `<input type="hidden" name="${key}" value="${value}">`)
+      .join('\n        ')
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>正在跳轉到藍新金流支付頁面...</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>正在跳轉到支付頁面...</h2>
+        <p>如果頁面沒有自動跳轉，請點擊下方按鈕</p>
+        <form id="newebpayForm" method="post" action="${this.newebpayConfig.paymentUrl}">
+        ${inputs}
+            <button type="submit" style="background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                前往藍新金流付款
+            </button>
+        </form>
+    </div>
+    <script>
+        // 自動提交表單
+        setTimeout(function() {
+            document.getElementById('newebpayForm').submit();
+        }, 1000);
+    </script>
+</body>
+</html>`
+  }
+}

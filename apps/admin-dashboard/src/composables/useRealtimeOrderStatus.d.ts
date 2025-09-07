@@ -1,6 +1,6 @@
 interface OrderStatusUpdate {
     orderId: string;
-    status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+    status: "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled";
     tableNumber?: string;
     customerName?: string;
     timestamp: string;

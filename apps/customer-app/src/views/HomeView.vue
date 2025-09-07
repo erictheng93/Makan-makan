@@ -13,9 +13,7 @@
               <span class="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-gray-900">
-                MakanMakan
-              </h1>
+              <h1 class="text-xl font-bold text-gray-900">MakanMakan</h1>
               <p class="text-sm text-gray-500">
                 {{ t("home.subtitle") }}
               </p>
@@ -42,13 +40,13 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2" 
+              stroke-width="2"
               d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
             />
           </svg>
         </div>
         <h2 class="text-2xl font-bold text-gray-900 mb-2">
-          {{ t('home.title') }}
+          {{ t("home.title") }}
         </h2>
         <p class="text-gray-600 text-base">
           {{ t("home.subtitle") }}
@@ -71,7 +69,7 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2" 
+              stroke-width="2"
               d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M12 12h-4.01M12 12v4m6-4h.01M12 8h.01"
             />
           </svg>
@@ -92,7 +90,7 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2" 
+              stroke-width="2"
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
             />
           </svg>
@@ -101,12 +99,9 @@
       </div>
 
       <!-- 最近使用的餐廳 -->
-      <div
-        v-if="recentRestaurants.length > 0"
-        class="mt-12"
-      >
+      <div v-if="recentRestaurants.length > 0" class="mt-12">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          {{ t('home.recentOrders') }}
+          {{ t("home.recentOrders") }}
         </h3>
         <div class="space-y-3">
           <button
@@ -128,7 +123,7 @@
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2" 
+                    stroke-width="2"
                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H7m2 0v-9m10 9v-9M9 8h6m-6 4h6"
                   />
                 </svg>
@@ -162,7 +157,7 @@
       <!-- 功能介紹 -->
       <div class="mt-12 space-y-6">
         <h3 class="text-lg font-semibold text-gray-900">
-          {{ t('home.features.title') }}
+          {{ t("home.features.title") }}
         </h3>
 
         <div class="grid gap-4">
@@ -179,17 +174,17 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2" 
+                  stroke-width="2"
                   d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
             </div>
             <div>
               <h4 class="font-medium text-gray-900">
-                {{ t('home.features.qrOrder') }}
+                {{ t("home.features.qrOrder") }}
               </h4>
               <p class="text-sm text-gray-600">
-                {{ t('home.features.qrOrderDesc') }}
+                {{ t("home.features.qrOrderDesc") }}
               </p>
             </div>
           </div>
@@ -207,23 +202,23 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2" 
+                  stroke-width="2"
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2" 
+                  stroke-width="2"
                   d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                 />
               </svg>
             </div>
             <div>
               <h4 class="font-medium text-gray-900">
-                {{ t('home.features.realtime') }}
+                {{ t("home.features.realtime") }}
               </h4>
               <p class="text-sm text-gray-600">
-                {{ t('home.features.realtimeDesc') }}
+                {{ t("home.features.realtimeDesc") }}
               </p>
             </div>
           </div>
@@ -241,17 +236,17 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2" 
+                  stroke-width="2"
                   d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
             </div>
             <div>
               <h4 class="font-medium text-gray-900">
-                {{ t('home.features.payment') }}
+                {{ t("home.features.payment") }}
               </h4>
               <p class="text-sm text-gray-600">
-                {{ t('home.features.paymentDesc') }}
+                {{ t("home.features.paymentDesc") }}
               </p>
             </div>
           </div>
@@ -322,7 +317,7 @@ const startQRScan = () => {
   router.push("/scan");
 };
 
-const selectRecentRestaurant = (restaurant: Restaurant) => {
+const selectRecentRestaurant = (_restaurant: Restaurant) => {
   // 這裡應該要求用戶輸入桌號，或者從歷史記錄中取得
   showManualInput.value = true;
 };

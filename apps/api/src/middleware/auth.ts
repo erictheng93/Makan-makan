@@ -46,11 +46,46 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
       return c.json({ error: 'Invalid token' }, 401)
     }
 
-    // 檢查 token 是否即將過期 (剩餘時間少於1小時)
+    // Enhanced JWT validation checks
     const now = Math.floor(Date.now() / 1000)
+    
+    // Check token expiration
+    if (!decoded.exp || decoded.exp <= now) {
+      return c.json({ error: 'Token has expired' }, 401)
+    }
+    
+    // Check token issued at time (prevent future tokens)
+    if (decoded.iat && decoded.iat > now + 60) { // Allow 60 second clock skew
+      return c.json({ error: 'Token issued in future' }, 401)
+    }
+    
+    // Check not before claim
+    if (decoded.nbf && decoded.nbf > now + 60) { // Allow 60 second clock skew
+      return c.json({ error: 'Token not yet valid' }, 401)
+    }
+    
+    // Validate required claims
+    if (!decoded.id || !decoded.username || typeof decoded.role !== 'number') {
+      return c.json({ error: 'Invalid token claims' }, 401)
+    }
+    
+    // Validate role is within expected range (0-4)
+    if (decoded.role < 0 || decoded.role > 4) {
+      return c.json({ error: 'Invalid role in token' }, 401)
+    }
+    
+    // Check token age (reject tokens older than 24 hours without refresh)
+    const tokenAge = now - (decoded.iat || 0)
+    const maxTokenAge = 24 * 60 * 60 // 24 hours
+    if (tokenAge > maxTokenAge) {
+      return c.json({ error: 'Token too old, please refresh' }, 401)
+    }
+    
+    // Check if token is about to expire (recommend refresh within 1 hour)
     const timeUntilExpiry = decoded.exp - now
     if (timeUntilExpiry < 3600) { // 1 hour
       c.header('X-Token-Refresh-Recommended', 'true')
+      c.header('X-Token-Expires-In', timeUntilExpiry.toString())
     }
 
     // 設置用戶資訊到 context

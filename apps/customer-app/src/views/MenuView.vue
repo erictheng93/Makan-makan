@@ -282,7 +282,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
@@ -295,10 +295,7 @@ import CustomizationModal from "@/components/CustomizationModal.vue";
 import { menuApi } from "@/services/menuApi";
 import { formatPrice } from "@/utils/format";
 import type {
-  Restaurant,
-  MenuStructure,
   MenuItem,
-  Category,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 
@@ -436,7 +433,7 @@ const updateActiveCategoryOnScroll = () => {
     element: document.getElementById(`category-${category.id}`),
   }));
 
-  const scrollTop = window.pageYOffset;
+  const _scrollTop = window.pageYOffset;
   const windowHeight = window.innerHeight;
 
   for (let i = sections.length - 1; i >= 0; i--) {

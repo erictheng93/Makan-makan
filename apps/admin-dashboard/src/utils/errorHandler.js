@@ -376,7 +376,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     return Promise.reject(errorDetails);
   }
   // 處理離線請求
-  handleOfflineRequest(_originalError, _context) {
+  handleOfflineRequest() {
     const toast = useToast();
     toast.warning("當前網絡不可用，請求將在網絡恢復後重新嘗試");
     return new Promise((_resolve, reject) => {
@@ -385,7 +385,7 @@ export class KitchenErrorHandler extends ErrorHandler {
         try {
           // 這裡應該重新執行原始請求
           // 實際實現需要根據具體的 API 客戶端來決定
-          console.log("Retrying request after network recovery:", _context);
+          console.log("Retrying request after network recovery");
           // resolve(retriedResult)
           reject(new Error("Request retry not implemented"));
         } catch (error) {

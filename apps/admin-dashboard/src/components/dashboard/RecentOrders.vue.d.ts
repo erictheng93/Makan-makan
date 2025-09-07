@@ -1,4 +1,4 @@
-type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+type OrderStatus = "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled";
 interface RecentOrder {
     id: string;
     orderNumber: string;
@@ -21,6 +21,7 @@ declare const _default: import("vue").DefineComponent<RecentOrdersProps, {}, {},
     onOrderClick?: ((order: RecentOrder) => any) | undefined;
     onShowMore?: (() => any) | undefined;
 }>, {
+    orders: RecentOrder[];
     loading: boolean;
     maxOrders: number;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;

@@ -1,9 +1,9 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ArrowPathIcon, TruckIcon, MapIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon, ExclamationCircleIcon, UserIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ArrowPathIcon, TruckIcon, MapIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon, ExclamationCircleIcon, UserIcon, XMarkIcon, } from "@heroicons/vue/24/outline";
 // 響應式數據
-const currentTime = ref('');
-const selectedTable = ref('');
-const selectedPriority = ref('');
+const currentTime = ref("");
+const selectedTable = ref("");
+const selectedPriority = ref("");
 const todayDelivered = ref(12);
 const deliveryEfficiency = ref(87);
 const avgDeliveryTime = ref(8);
@@ -14,182 +14,184 @@ const selectedOrderForContact = ref(null);
 // 問題回報數據
 const issueData = ref({
     orderId: null,
-    type: '',
-    description: ''
+    type: "",
+    description: "",
 });
 let timeInterval = null;
 // 模擬訂單數據
 const orders = ref([
     {
         id: 1,
-        orderNumber: 'ORD-001',
-        tableNumber: 'T01',
-        orderType: 'dine_in',
-        status: 'ready',
-        priority: 'normal',
+        orderNumber: "ORD-001",
+        tableNumber: "T01",
+        orderType: "dine_in",
+        status: "ready",
+        priority: "normal",
         readyAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         deliveryStartTime: null,
         customerInfo: {
-            name: '張先生',
-            phone: '012-345-6789'
+            name: "張先生",
+            phone: "012-345-6789",
         },
-        deliveryNotes: '請小心，有小朋友',
+        deliveryNotes: "請小心，有小朋友",
         items: [
             {
                 id: 1,
-                menuItemName: '招牌炒飯',
+                menuItemName: "招牌炒飯",
                 quantity: 2,
-                specialInstructions: '不要蔥',
-                customizations: { '辣度': '中辣' }
+                specialInstructions: "不要蔥",
+                customizations: { 辣度: "中辣" },
             },
             {
                 id: 2,
-                menuItemName: '冰奶茶',
+                menuItemName: "冰奶茶",
                 quantity: 1,
-                specialInstructions: '',
-                customizations: { '甜度': '半糖' }
-            }
-        ]
+                specialInstructions: "",
+                customizations: { 甜度: "半糖" },
+            },
+        ],
     },
     {
         id: 2,
-        orderNumber: 'ORD-002',
-        tableNumber: 'T03',
-        orderType: 'dine_in',
-        status: 'delivering',
-        priority: 'high',
+        orderNumber: "ORD-002",
+        tableNumber: "T03",
+        orderType: "dine_in",
+        status: "delivering",
+        priority: "high",
         readyAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
         deliveryStartTime: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-        assignedTo: 'current_user', // 假設當前用戶ID
+        assignedTo: "current_user", // 假設當前用戶ID
         customerInfo: {
-            name: '李小姐',
-            phone: '016-789-0123'
+            name: "李小姐",
+            phone: "016-789-0123",
         },
         items: [
             {
                 id: 3,
-                menuItemName: '春卷',
+                menuItemName: "春卷",
                 quantity: 3,
-                specialInstructions: '要蘸醬',
-                customizations: {}
-            }
-        ]
+                specialInstructions: "要蘸醬",
+                customizations: {},
+            },
+        ],
     },
     {
         id: 3,
-        orderNumber: 'ORD-003',
-        tableNumber: 'T05',
-        orderType: 'dine_in',
-        status: 'ready',
-        priority: 'normal',
+        orderNumber: "ORD-003",
+        tableNumber: "T05",
+        orderType: "dine_in",
+        status: "ready",
+        priority: "normal",
         readyAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
         customerInfo: {
-            name: '王先生',
-            phone: '019-456-7890'
+            name: "王先生",
+            phone: "019-456-7890",
         },
         items: [
             {
                 id: 4,
-                menuItemName: '南洋咖啡',
+                menuItemName: "南洋咖啡",
                 quantity: 2,
-                specialInstructions: '',
-                customizations: { '甜度': '正常', '濃度': '濃' }
-            }
-        ]
-    }
+                specialInstructions: "",
+                customizations: { 甜度: "正常", 濃度: "濃" },
+            },
+        ],
+    },
 ]);
 // 今日配送記錄
 const todayDeliveryRecords = ref([
-    { id: 1, orderNumber: 'ORD-010', completedAt: '10:30', duration: 6 },
-    { id: 2, orderNumber: 'ORD-011', completedAt: '11:15', duration: 8 },
-    { id: 3, orderNumber: 'ORD-012', completedAt: '12:05', duration: 7 },
-    { id: 4, orderNumber: 'ORD-013', completedAt: '13:20', duration: 5 }
+    { id: 1, orderNumber: "ORD-010", completedAt: "10:30", duration: 6 },
+    { id: 2, orderNumber: "ORD-011", completedAt: "11:15", duration: 8 },
+    { id: 3, orderNumber: "ORD-012", completedAt: "12:05", duration: 7 },
+    { id: 4, orderNumber: "ORD-013", completedAt: "13:20", duration: 5 },
 ]);
 // 計算屬性
 const orderStats = computed(() => ({
-    readyForDelivery: orders.value.filter(o => o.status === 'ready').length,
-    delivering: orders.value.filter(o => o.status === 'delivering').length,
-    delivered: orders.value.filter(o => o.status === 'delivered').length
+    readyForDelivery: orders.value.filter((o) => o.status === "ready").length,
+    delivering: orders.value.filter((o) => o.status === "delivering").length,
+    delivered: orders.value.filter((o) => o.status === "delivered").length,
 }));
 const availableTables = computed(() => {
-    const tables = new Set(orders.value.map(o => o.tableNumber).filter(Boolean));
+    const tables = new Set(orders.value.map((o) => o.tableNumber).filter(Boolean));
     return Array.from(tables).sort();
 });
 const filteredOrders = computed(() => {
-    let filtered = orders.value.filter(o => ['ready', 'delivering'].includes(o.status));
+    let filtered = orders.value.filter((o) => ["ready", "delivering"].includes(o.status));
     if (selectedTable.value) {
-        filtered = filtered.filter(o => o.tableNumber === selectedTable.value);
+        filtered = filtered.filter((o) => o.tableNumber === selectedTable.value);
     }
     if (selectedPriority.value) {
-        filtered = filtered.filter(o => o.priority === selectedPriority.value);
+        filtered = filtered.filter((o) => o.priority === selectedPriority.value);
     }
     // 按優先級和時間排序
     return filtered.sort((a, b) => {
         // 優先級排序
-        if (a.priority === 'high' && b.priority !== 'high')
+        if (a.priority === "high" && b.priority !== "high")
             return -1;
-        if (b.priority === 'high' && a.priority !== 'high')
+        if (b.priority === "high" && a.priority !== "high")
             return 1;
         // 時間排序
         return new Date(a.readyAt).getTime() - new Date(b.readyAt).getTime();
     });
 });
 const myActiveDeliveries = computed(() => {
-    return orders.value.filter(o => o.status === 'delivering' && o.assignedTo === 'current_user');
+    return orders.value.filter((o) => o.status === "delivering" && o.assignedTo === "current_user");
 });
 const todayStats = computed(() => ({
     completed: todayDelivered.value,
     avgTime: avgDeliveryTime.value,
     onTimeRate: 92,
-    rating: 4.8
+    rating: 4.8,
 }));
 // 方法
 const updateCurrentTime = () => {
-    currentTime.value = new Date().toLocaleTimeString('zh-TW', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+    currentTime.value = new Date().toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
     });
 };
 const refreshOrders = async () => {
-    console.log('Refreshing service orders...');
+    console.log("Refreshing service orders...");
     // 實際應用中會調用API獲取最新訂單
 };
 const startDelivery = async (order) => {
     try {
-        const index = orders.value.findIndex(o => o.id === order.id);
+        const index = orders.value.findIndex((o) => o.id === order.id);
         if (index > -1) {
-            orders.value[index].status = 'delivering';
+            orders.value[index].status = "delivering";
             orders.value[index].deliveryStartTime = new Date().toISOString();
-            orders.value[index].assignedTo = 'current_user';
+            orders.value[index].assignedTo = "current_user";
         }
     }
     catch (error) {
-        console.error('Start delivery error:', error);
+        console.error("Start delivery error:", error);
     }
 };
 const completeDelivery = async (order) => {
     try {
-        const index = orders.value.findIndex(o => o.id === order.id);
+        const index = orders.value.findIndex((o) => o.id === order.id);
         if (index > -1) {
-            orders.value[index].status = 'delivered';
+            orders.value[index].status = "delivered";
             orders.value[index].deliveredAt = new Date().toISOString();
             // 更新統計
             todayDelivered.value++;
             // 添加到今日記錄
             const duration = order.deliveryStartTime
-                ? Math.round((new Date().getTime() - new Date(order.deliveryStartTime).getTime()) / (1000 * 60))
+                ? Math.round((new Date().getTime() -
+                    new Date(order.deliveryStartTime).getTime()) /
+                    (1000 * 60))
                 : 0;
             todayDeliveryRecords.value.unshift({
                 id: Date.now(),
                 orderNumber: order.orderNumber,
                 completedAt: formatTime(new Date().toISOString()),
-                duration
+                duration,
             });
         }
     }
     catch (error) {
-        console.error('Complete delivery error:', error);
+        console.error("Complete delivery error:", error);
     }
 };
 const contactCustomer = (order) => {
@@ -208,8 +210,8 @@ const closeIssueDialog = () => {
     showIssueDialog.value = false;
     issueData.value = {
         orderId: null,
-        type: '',
-        description: ''
+        type: "",
+        description: "",
     };
 };
 const makePhoneCall = () => {
@@ -233,34 +235,34 @@ const submitIssue = () => {
 // 輔助方法
 const getStatusIcon = (status) => {
     const icons = {
-        'ready': TruckIcon,
-        'delivering': MapIcon,
-        'delivered': CheckCircleIcon
+        ready: TruckIcon,
+        delivering: MapIcon,
+        delivered: CheckCircleIcon,
     };
     return icons[status] || TruckIcon;
 };
 const getStatusIconClass = (status) => {
     const classes = {
-        'ready': 'bg-orange-100 text-orange-600',
-        'delivering': 'bg-blue-100 text-blue-600',
-        'delivered': 'bg-green-100 text-green-600'
+        ready: "bg-orange-100 text-orange-600",
+        delivering: "bg-blue-100 text-blue-600",
+        delivered: "bg-green-100 text-green-600",
     };
-    return classes[status] || 'bg-gray-100 text-gray-600';
+    return classes[status] || "bg-gray-100 text-gray-600";
 };
 const getPriorityBadgeClass = (priority) => {
-    return priority === 'high'
-        ? 'bg-red-100 text-red-800'
-        : 'bg-gray-100 text-gray-600';
+    return priority === "high"
+        ? "bg-red-100 text-red-800"
+        : "bg-gray-100 text-gray-600";
 };
 const getPriorityText = (priority) => {
-    return priority === 'high' ? '緊急' : '普通';
+    return priority === "high" ? "緊急" : "普通";
 };
 const getTimeElapsed = (dateTime) => {
     const now = new Date();
     const time = new Date(dateTime);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
     if (diffInMinutes < 1)
-        return '剛準備好';
+        return "剛準備好";
     if (diffInMinutes < 60)
         return `${diffInMinutes} 分鐘前`;
     const hours = Math.floor(diffInMinutes / 60);
@@ -268,7 +270,7 @@ const getTimeElapsed = (dateTime) => {
 };
 const getDeliveryDuration = (startTime) => {
     if (!startTime)
-        return '-';
+        return "-";
     const now = new Date();
     const start = new Date(startTime);
     const diffInMinutes = Math.floor((now.getTime() - start.getTime()) / (1000 * 60));
@@ -276,21 +278,21 @@ const getDeliveryDuration = (startTime) => {
 };
 const formatTime = (dateTime) => {
     if (!dateTime)
-        return '-';
-    const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
-    return date.toLocaleTimeString('zh-TW', {
-        hour: '2-digit',
-        minute: '2-digit'
+        return "-";
+    const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+    return date.toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
     });
 };
 const getIssueTypeText = (type) => {
     const types = {
-        'wrong_order': '訂單錯誤',
-        'missing_items': '缺少餐點',
-        'quality_issue': '餐點品質問題',
-        'customer_unavailable': '客戶無法聯絡',
-        'access_issue': '無法到達桌台',
-        'other': '其他問題'
+        wrong_order: "訂單錯誤",
+        missing_items: "缺少餐點",
+        quality_issue: "餐點品質問題",
+        customer_unavailable: "客戶無法聯絡",
+        access_issue: "無法到達桌台",
+        other: "其他問題",
     };
     return types[type] || type;
 };
@@ -308,7 +310,7 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['service-view']} */ 
+/** @type {__VLS_StyleScopedClasses['service-view']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -361,7 +363,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [refreshOrders,];
 const __VLS_0 = {}.ArrowPathIcon;
-/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ 
+/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ ;
 // @ts-ignore
 ArrowPathIcon;
 // @ts-ignore
@@ -381,7 +383,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_5 = {}.TruckIcon;
-/** @type {[typeof __VLS_components.TruckIcon, ]} */ 
+/** @type {[typeof __VLS_components.TruckIcon, ]} */ ;
 // @ts-ignore
 TruckIcon;
 // @ts-ignore
@@ -408,7 +410,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_10 = {}.MapIcon;
-/** @type {[typeof __VLS_components.MapIcon, ]} */ 
+/** @type {[typeof __VLS_components.MapIcon, ]} */ ;
 // @ts-ignore
 MapIcon;
 // @ts-ignore
@@ -435,7 +437,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_15 = {}.CheckCircleIcon;
-/** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ 
+/** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
 // @ts-ignore
 CheckCircleIcon;
 // @ts-ignore
@@ -462,7 +464,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_20 = {}.ClockIcon;
-/** @type {[typeof __VLS_components.ClockIcon, ]} */ 
+/** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
 // @ts-ignore
 ClockIcon;
 // @ts-ignore
@@ -582,7 +584,9 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-600" },
     });
-    (order.orderType === 'dine_in' ? `桌號 ${order.tableNumber}` : '外帶/外送');
+    (order.orderType === "dine_in"
+        ? `桌號 ${order.tableNumber}`
+        : "外帶/外送");
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "ml-4 flex items-center space-x-2" },
     });
@@ -628,7 +632,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
                 ...{ class: "ml-2 text-orange-600" },
             });
             const __VLS_30 = {}.ExclamationTriangleIcon;
-            /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ 
+            /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ ;
             // @ts-ignore
             ExclamationTriangleIcon;
             // @ts-ignore
@@ -643,7 +647,8 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
             });
             (item.specialInstructions);
         }
-        if (item.customizations && Object.keys(item.customizations).length > 0) {
+        if (item.customizations &&
+            Object.keys(item.customizations).length > 0) {
             __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
                 ...{ class: "flex flex-wrap gap-1" },
             });
@@ -665,7 +670,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
             ...{ class: "flex items-center" },
         });
         const __VLS_35 = {}.UserIcon;
-        /** @type {[typeof __VLS_components.UserIcon, ]} */ 
+        /** @type {[typeof __VLS_components.UserIcon, ]} */ ;
         // @ts-ignore
         UserIcon;
         // @ts-ignore
@@ -692,7 +697,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
             ...{ class: "flex items-start" },
         });
         const __VLS_40 = {}.ExclamationCircleIcon;
-        /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ ;
         // @ts-ignore
         ExclamationCircleIcon;
         // @ts-ignore
@@ -725,7 +730,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.filteredOrders))) {
     else if (order.status === 'delivering') {
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (...[$event]) => {
-                    if (order.status === 'ready')
+                    if (!!(order.status === 'ready'))
                         return;
                     if (!(order.status === 'delivering'))
                         return;
@@ -760,7 +765,7 @@ if (__VLS_ctx.filteredOrders.length === 0) {
         ...{ class: "p-12 text-center" },
     });
     const __VLS_45 = {}.CheckCircleIcon;
-    /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ 
+    /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
     // @ts-ignore
     CheckCircleIcon;
     // @ts-ignore
@@ -846,7 +851,7 @@ else {
         ...{ class: "text-center py-6" },
     });
     const __VLS_50 = {}.TruckIcon;
-    /** @type {[typeof __VLS_components.TruckIcon, ]} */ 
+    /** @type {[typeof __VLS_components.TruckIcon, ]} */ ;
     // @ts-ignore
     TruckIcon;
     // @ts-ignore
@@ -939,9 +944,13 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "w-full bg-gray-200 rounded-full h-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: "h-2 rounded-full transition-all duration-300" },
-    ...{ class: (__VLS_ctx.deliveryEfficiency >= 90 ? 'bg-green-500' : __VLS_ctx.deliveryEfficiency >= 70 ? 'bg-yellow-500' : 'bg-red-500') },
+    ...{ class: (__VLS_ctx.deliveryEfficiency >= 90
+            ? 'bg-green-500'
+            : __VLS_ctx.deliveryEfficiency >= 70
+                ? 'bg-yellow-500'
+                : 'bg-red-500') },
     ...{ style: ({ width: `${__VLS_ctx.deliveryEfficiency}%` }) },
 });
 // @ts-ignore
@@ -962,7 +971,7 @@ for (const [record] of __VLS_getVForSourceType((__VLS_ctx.todayDeliveryRecords))
         key: (record.id),
         ...{ class: "flex items-center text-sm" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    __VLS_asFunctionalElement(__VLS_elements.div)({
         ...{ class: "w-2 h-2 bg-green-500 rounded-full mr-3" },
     });
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
@@ -989,7 +998,7 @@ if (__VLS_ctx.showContactDialog) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex items-center justify-center min-h-screen px-4" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    __VLS_asFunctionalElement(__VLS_elements.div)({
         ...{ onClick: (__VLS_ctx.closeContactDialog) },
         ...{ class: "fixed inset-0 bg-black opacity-30" },
     });
@@ -1011,7 +1020,7 @@ if (__VLS_ctx.showContactDialog) {
     // @ts-ignore
     [closeContactDialog,];
     const __VLS_55 = {}.XMarkIcon;
-    /** @type {[typeof __VLS_components.XMarkIcon, ]} */ 
+    /** @type {[typeof __VLS_components.XMarkIcon, ]} */ ;
     // @ts-ignore
     XMarkIcon;
     // @ts-ignore
@@ -1087,7 +1096,7 @@ if (__VLS_ctx.showIssueDialog) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex items-center justify-center min-h-screen px-4" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    __VLS_asFunctionalElement(__VLS_elements.div)({
         ...{ onClick: (__VLS_ctx.closeIssueDialog) },
         ...{ class: "fixed inset-0 bg-black opacity-30" },
     });
@@ -1109,7 +1118,7 @@ if (__VLS_ctx.showIssueDialog) {
     // @ts-ignore
     [closeIssueDialog,];
     const __VLS_60 = {}.XMarkIcon;
-    /** @type {[typeof __VLS_components.XMarkIcon, ]} */ 
+    /** @type {[typeof __VLS_components.XMarkIcon, ]} */ ;
     // @ts-ignore
     XMarkIcon;
     // @ts-ignore
@@ -1157,7 +1166,7 @@ if (__VLS_ctx.showIssueDialog) {
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         ...{ class: "block text-sm font-medium text-gray-700 mb-1" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
+    __VLS_asFunctionalElement(__VLS_elements.textarea)({
         value: (__VLS_ctx.issueData.description),
         rows: "3",
         ...{ class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" },
@@ -1182,574 +1191,574 @@ if (__VLS_ctx.showIssueDialog) {
     // @ts-ignore
     [issueData, issueData, submitIssue,];
 }
-/** @type {__VLS_StyleScopedClasses['service-view']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-3xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-800']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-right']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-4']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-8']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-orange-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-orange-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-orange-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-orange-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-green-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-purple-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-purple-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-900']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-8']} */ 
-/** @type {__VLS_StyleScopedClasses['lg:col-span-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-b']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['divide-y']} */ 
-/** @type {__VLS_StyleScopedClasses['divide-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-start']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-6']} */ 
-/** @type {__VLS_StyleScopedClasses['h-6']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['inline']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-wrap']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-1']} */ 
-/** @type {__VLS_StyleScopedClasses['inline-block']} */ 
-/** @type {__VLS_StyleScopedClasses['px-1']} */ 
-/** @type {__VLS_StyleScopedClasses['py-0.5']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-yellow-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['p-2']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-start']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-0.5']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-6']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-700']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-red-200']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['p-12']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['h-16']} */ 
-/** @type {__VLS_StyleScopedClasses['w-16']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-6']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-right']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['py-6']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-4']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-2']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-green-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-purple-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['max-h-48']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['w-2']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['fixed']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['z-50']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['fixed']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-black']} */ 
-/** @type {__VLS_StyleScopedClasses['opacity-30']} */ 
-/** @type {__VLS_StyleScopedClasses['relative']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['max-w-md']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
+/** @type {__VLS_StyleScopedClasses['service-view']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['fixed']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['z-50']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['fixed']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-black']} */ 
-/** @type {__VLS_StyleScopedClasses['opacity-30']} */ 
-/** @type {__VLS_StyleScopedClasses['relative']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['max-w-md']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-4']} */ 
-/** @type {__VLS_StyleScopedClasses['block']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['block']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-3xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-right']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-orange-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-orange-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-orange-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-orange-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:col-span-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-end']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-3']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-red-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['divide-y']} */ ;
+/** @type {__VLS_StyleScopedClasses['divide-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-start']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-wrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline-block']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-yellow-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-start']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-red-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-right']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-h-48']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['fixed']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['z-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['fixed']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-black']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-30']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['fixed']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['z-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['fixed']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-black']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-30']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['block']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['block']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-end']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-red-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ArrowPathIcon: ArrowPathIcon,
@@ -1797,4 +1806,4 @@ const __VLS_self = (await import('vue')).defineComponent({
     }),
 });
 export default (await import('vue')).defineComponent({});
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

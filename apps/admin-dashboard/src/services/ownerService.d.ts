@@ -64,7 +64,7 @@ interface StaffActivity {
     id: number;
     name: string;
     role: string;
-    status: 'online' | 'busy' | 'offline';
+    status: "online" | "busy" | "offline";
     performance: number;
 }
 declare class OwnerService {
@@ -72,7 +72,7 @@ declare class OwnerService {
     getDashboardData(restaurantId?: number): Promise<OwnerDashboardData>;
     getFinancialReport(options?: {
         restaurantId?: number;
-        period?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+        period?: "daily" | "weekly" | "monthly" | "yearly";
         year?: string;
         month?: string;
     }): Promise<FinancialReportData>;

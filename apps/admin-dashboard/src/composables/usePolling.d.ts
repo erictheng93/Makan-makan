@@ -1,4 +1,4 @@
-import { type Ref } from 'vue';
+import { type Ref } from "vue";
 interface UsePollingReturn<T> {
     data: Ref<T | null>;
     isLoading: Ref<boolean>;

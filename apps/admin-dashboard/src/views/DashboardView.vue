@@ -128,7 +128,7 @@
     <!-- Quick Actions -->
     <div v-if="canAccessAdminFeatures" class="card p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <router-link
           to="/dashboard/menu"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -154,6 +154,30 @@
         </router-link>
 
         <router-link
+          to="/dashboard/pos"
+          class="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+        >
+          <CreditCard class="w-8 h-8 text-green-600 mb-2" />
+          <span class="text-sm font-medium text-gray-900">POS系統</span>
+        </router-link>
+
+        <router-link
+          to="/dashboard/group-orders"
+          class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          <Users class="w-8 h-8 text-blue-600 mb-2" />
+          <span class="text-sm font-medium text-gray-900">團體訂單</span>
+        </router-link>
+
+        <router-link
+          to="/dashboard/queue"
+          class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+        >
+          <Clock class="w-8 h-8 text-purple-600 mb-2" />
+          <span class="text-sm font-medium text-gray-900">候位管理</span>
+        </router-link>
+
+        <router-link
           to="/dashboard/analytics"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -174,7 +198,15 @@ import { OrderStatus } from "@/types";
 import { useDashboardPolling } from "@/composables/usePolling";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { RefreshCw, Menu, Table, Users, BarChart3 } from "lucide-vue-next";
+import {
+  RefreshCw,
+  Menu,
+  Table,
+  Users,
+  BarChart3,
+  CreditCard,
+  Clock,
+} from "lucide-vue-next";
 
 // Components (these would be implemented separately)
 import StatsCard from "@/components/dashboard/StatsCard.vue";

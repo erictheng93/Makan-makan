@@ -9,7 +9,7 @@ interface OrderDataPoint {
 interface OrdersChartProps {
     data: OrderDataPoint[];
     loading?: boolean;
-    period: 'daily' | 'weekly' | 'monthly';
+    period: "daily" | "weekly" | "monthly";
 }
 declare const _default: import("vue").DefineComponent<OrdersChartProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<OrdersChartProps> & Readonly<{}>, {
     loading: boolean;

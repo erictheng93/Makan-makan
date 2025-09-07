@@ -94,6 +94,38 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
+      {
+        path: "pos",
+        name: "POS",
+        component: () => import("@/views/POSView.vue"),
+        meta: {
+          title: "POS系統",
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+        },
+      },
+      {
+        path: "group-orders",
+        name: "GroupOrders",
+        component: () => import("@/views/GroupOrdersView.vue"),
+        meta: {
+          title: "團體訂單",
+          roles: [
+            UserRole.ADMIN,
+            UserRole.OWNER,
+            UserRole.SERVICE,
+            UserRole.CASHIER,
+          ],
+        },
+      },
+      {
+        path: "queue",
+        name: "Queue",
+        component: () => import("@/views/QueueView.vue"),
+        meta: {
+          title: "候位管理",
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
+        },
+      },
     ],
   },
   {

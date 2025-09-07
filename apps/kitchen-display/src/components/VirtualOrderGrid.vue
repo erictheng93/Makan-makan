@@ -144,7 +144,7 @@ const handleScroll = async (event: Event) => {
   scrollTop.value = target.scrollTop;
 
   // Check if we need to load more items
-  if (props.hasMore && !isLoadingMore.value && props.loadMore) {
+  if (props.hasMore === true && !isLoadingMore.value) {
     const scrolledPercentage =
       (target.scrollTop + target.clientHeight) / target.scrollHeight;
     if (scrolledPercentage > 0.9) {
@@ -155,7 +155,7 @@ const handleScroll = async (event: Event) => {
 };
 
 const loadMoreItems = async () => {
-  if (isLoadingMore.value || !props.loadMore) return;
+  if (isLoadingMore.value) return;
 
   try {
     isLoadingMore.value = true;

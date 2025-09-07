@@ -1,11 +1,11 @@
-import { ref, onMounted, onUnmounted } from 'vue';
-import { KitchenErrorHandler } from '@/utils/errorHandler';
-import { useStatisticsSSE } from '@/composables/useStatisticsSSE';
-import { api } from '@/services/api';
+import { ref, onMounted, onUnmounted } from "vue";
+import { KitchenErrorHandler } from "@/utils/errorHandler";
+import { useStatisticsSSE } from "@/composables/useStatisticsSSE";
+import { api } from "@/services/api";
 // SSE 連接狀態
 const sse = useStatisticsSSE({ autoConnect: false });
 const sseStatus = ref({
-    isConnected: false
+    isConnected: false,
 });
 // 網絡狀態
 const isOnline = ref(navigator.onLine);
@@ -15,39 +15,43 @@ const errorLogs = ref([]);
 const testNetworkError = async () => {
     try {
         // 模擬網絡錯誤
-        const error = new Error('Network connection failed');
-        error.name = 'NetworkError';
+        const error = new Error("Network connection failed");
+        error.name = "NetworkError";
         throw error;
     }
     catch (error) {
-        KitchenErrorHandler.handleAPIError(error, { context: 'Manual network error test' });
-        addErrorLog('network', 'high', '網絡連接失敗');
+        KitchenErrorHandler.handleAPIError(error, {
+            context: "Manual network error test",
+        });
+        addErrorLog("network", "high", "網絡連接失敗");
     }
 };
 const testAPIError = async () => {
     try {
         // 發送一個會失敗的 API 請求
-        await api.get('/non-existent-endpoint');
+        await api.get("/non-existent-endpoint");
     }
     catch (error) {
-        addErrorLog('api', 'medium', 'API 端點不存在');
+        addErrorLog("api", "medium", "API 端點不存在");
     }
 };
 const testAuthError = async () => {
     try {
         // 模擬認證錯誤
-        const error = new Error('Authentication failed');
+        const error = new Error("Authentication failed");
         Object.assign(error, {
             response: {
                 status: 401,
-                data: { error: { message: 'Token expired' } }
-            }
+                data: { error: { message: "Token expired" } },
+            },
         });
         throw error;
     }
     catch (error) {
-        KitchenErrorHandler.handleAPIError(error, { context: 'Manual auth error test' });
-        addErrorLog('permission', 'high', '認證令牌已過期');
+        KitchenErrorHandler.handleAPIError(error, {
+            context: "Manual auth error test",
+        });
+        addErrorLog("permission", "high", "認證令牌已過期");
     }
 };
 // SSE 測試方法
@@ -63,7 +67,7 @@ const toggleSSE = () => {
 };
 const forceSSEReconnect = () => {
     sse.reconnect();
-    addErrorLog('sse', 'low', 'SSE 強制重連');
+    addErrorLog("sse", "low", "SSE 強制重連");
 };
 // 離線模式測試
 const simulateOffline = () => {
@@ -71,27 +75,27 @@ const simulateOffline = () => {
     isOnline.value = !isOnline.value;
     // 觸發離線/在線事件
     if (isOnline.value) {
-        window.dispatchEvent(new Event('online'));
+        window.dispatchEvent(new Event("online"));
     }
     else {
-        window.dispatchEvent(new Event('offline'));
+        window.dispatchEvent(new Event("offline"));
     }
-    addErrorLog('network', 'medium', isOnline.value ? '網絡已恢復' : '網絡已斷開');
+    addErrorLog("network", "medium", isOnline.value ? "網絡已恢復" : "網絡已斷開");
 };
 const testOfflineRequest = async () => {
     if (!isOnline.value) {
         try {
             // 在離線狀態下嘗試 API 請求
-            await api.get('/analytics/dashboard', {
-                offlineStrategy: 'queue'
+            await api.get("/analytics/dashboard", {
+                offlineStrategy: "queue",
             });
         }
         catch (error) {
-            addErrorLog('network', 'medium', '離線請求已排隊');
+            addErrorLog("network", "medium", "離線請求已排隊");
         }
     }
     else {
-        addErrorLog('info', 'low', '當前處於在線狀態');
+        addErrorLog("info", "low", "當前處於在線狀態");
     }
 };
 // 工具方法
@@ -100,7 +104,7 @@ const addErrorLog = (type, severity, message) => {
         type,
         severity,
         message,
-        timestamp: new Date()
+        timestamp: new Date(),
     });
     // 限制日誌數量
     if (errorLogs.value.length > 50) {
@@ -123,14 +127,14 @@ const handleSSEStatusChange = () => {
 };
 onMounted(() => {
     // 監聽網絡狀態
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
+    window.addEventListener("online", handleOnlineStatusChange);
+    window.addEventListener("offline", handleOnlineStatusChange);
     // 監聽 SSE 狀態變化
     setInterval(handleSSEStatusChange, 1000);
 });
 onUnmounted(() => {
-    window.removeEventListener('online', handleOnlineStatusChange);
-    window.removeEventListener('offline', handleOnlineStatusChange);
+    window.removeEventListener("online", handleOnlineStatusChange);
+    window.removeEventListener("offline", handleOnlineStatusChange);
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -144,7 +148,7 @@ __VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
     ...{ class: "text-xl font-bold" },
 });
 const __VLS_0 = {}.ErrorDisplay;
-/** @type {[typeof __VLS_components.ErrorDisplay, ]} */ 
+/** @type {[typeof __VLS_components.ErrorDisplay, ]} */ ;
 // @ts-ignore
 ErrorDisplay;
 // @ts-ignore
@@ -202,10 +206,10 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center space-x-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: ([
             'w-3 h-3 rounded-full',
-            __VLS_ctx.sseStatus.isConnected ? 'bg-green-500' : 'bg-red-500'
+            __VLS_ctx.sseStatus.isConnected ? 'bg-green-500' : 'bg-red-500',
         ]) },
 });
 // @ts-ignore
@@ -213,7 +217,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
     ...{ class: "text-sm" },
 });
-(__VLS_ctx.sseStatus.isConnected ? '已連接' : '已斷開');
+(__VLS_ctx.sseStatus.isConnected ? "已連接" : "已斷開");
 // @ts-ignore
 [sseStatus,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -222,7 +226,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [toggleSSE,];
-(__VLS_ctx.sseStatus.isConnected ? '斷開 SSE' : '連接 SSE');
+(__VLS_ctx.sseStatus.isConnected ? "斷開 SSE" : "連接 SSE");
 // @ts-ignore
 [sseStatus,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -243,10 +247,10 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center space-x-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: ([
             'w-3 h-3 rounded-full',
-            __VLS_ctx.isOnline ? 'bg-green-500' : 'bg-red-500'
+            __VLS_ctx.isOnline ? 'bg-green-500' : 'bg-red-500',
         ]) },
 });
 // @ts-ignore
@@ -254,7 +258,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
     ...{ class: "text-sm" },
 });
-(__VLS_ctx.isOnline ? '在線' : '離線');
+(__VLS_ctx.isOnline ? "在線" : "離線");
 // @ts-ignore
 [isOnline,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -287,7 +291,7 @@ for (const [log, index] of __VLS_getVForSourceType((__VLS_ctx.errorLogs))) {
         ...{ class: ({
                 'border-red-500': log.severity === 'high' || log.severity === 'critical',
                 'border-yellow-500': log.severity === 'medium',
-                'border-blue-500': log.severity === 'low'
+                'border-blue-500': log.severity === 'low',
             }) },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -321,134 +325,134 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [clearErrorLogs,];
-/** @type {__VLS_StyleScopedClasses['space-y-4']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ 
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-4']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-red-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-orange-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-orange-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-yellow-600']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['w-3']} */ 
-/** @type {__VLS_StyleScopedClasses['h-3']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-purple-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-purple-600']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['w-3']} */ 
-/** @type {__VLS_StyleScopedClasses['h-3']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-indigo-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
+/** @type {__VLS_StyleScopedClasses['space-y-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-red-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-orange-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-orange-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-yellow-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-purple-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-indigo-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:bg-indigo-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
-/** @type {__VLS_StyleScopedClasses['max-h-64']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['font-mono']} */ 
-/** @type {__VLS_StyleScopedClasses['p-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-red-500']} */ 
-/** @type {__VLS_StyleScopedClasses['border-yellow-500']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['items-start']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['py-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-h-64']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-mono']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-red-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-yellow-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-start']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         sseStatus: sseStatus,
@@ -466,4 +470,4 @@ const __VLS_self = (await import('vue')).defineComponent({
     }),
 });
 export default (await import('vue')).defineComponent({});
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

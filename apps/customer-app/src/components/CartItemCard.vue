@@ -175,10 +175,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { formatPrice } from "@/utils/format";
-import type {
-  CartItem,
-  SelectedCustomizations,
-} from "@makanmakan/shared-types";
+import type { CartItem } from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{

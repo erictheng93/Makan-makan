@@ -5,8 +5,10 @@ import * as schema from '../schema'
 // 基礎服務類別
 export class BaseService {
   protected db: ReturnType<typeof drizzle<typeof schema>>
+  protected d1: D1Database
 
   constructor(d1: D1Database) {
+    this.d1 = d1
     this.db = drizzle(d1 as any, { 
       schema,
       logger: process.env.NODE_ENV === 'development'

@@ -1,4 +1,4 @@
-import type { PerformanceTrend } from '@/services/statisticsService';
+import type { PerformanceTrend } from "@/services/statisticsService";
 interface Props {
     data: PerformanceTrend[];
     title?: string;

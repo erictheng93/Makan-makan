@@ -62,7 +62,7 @@ authRouter.post('/login', async (c) => {
 
   } catch (error) {
     // SECURITY ENHANCEMENT: Use sanitized error handling
-    const sanitized = ErrorSanitizer.logAndSanitize(error, 'AUTH_LOGIN')
+    ErrorSanitizer.logAndSanitize(error, 'AUTH_LOGIN')
     return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
@@ -121,11 +121,9 @@ authRouter.post('/register', authMiddleware, async (c) => {
     })
 
   } catch (error) {
-    console.error('Registration error:', error)
-    return c.json({
-      success: false,
-      error: 'Registration failed'
-    }, 500)
+    // SECURITY ENHANCEMENT: Use sanitized error handling
+    ErrorSanitizer.logAndSanitize(error, 'AUTH_REGISTER')
+    return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
 
@@ -163,11 +161,9 @@ authRouter.post('/refresh', async (c) => {
     })
 
   } catch (error) {
-    console.error('Token refresh error:', error)
-    return c.json({
-      success: false,
-      error: 'Token refresh failed'
-    }, 500)
+    // SECURITY ENHANCEMENT: Use sanitized error handling
+    ErrorSanitizer.logAndSanitize(error, 'AUTH_REFRESH_TOKEN')
+    return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
 
@@ -185,7 +181,8 @@ authRouter.post('/logout', authMiddleware, async (c) => {
       try {
         await blacklistToken(c, token)
       } catch (error) {
-        console.error('Failed to blacklist token:', error)
+        // SECURITY NOTE: Log token blacklist failures but don't expose to client
+        ErrorSanitizer.logAndSanitize(error, 'AUTH_TOKEN_BLACKLIST')
       }
     }
 
@@ -200,11 +197,9 @@ authRouter.post('/logout', authMiddleware, async (c) => {
     })
 
   } catch (error) {
-    console.error('Logout error:', error)
-    return c.json({
-      success: false,
-      error: 'Logout failed'
-    }, 500)
+    // SECURITY ENHANCEMENT: Use sanitized error handling
+    ErrorSanitizer.logAndSanitize(error, 'AUTH_LOGOUT')
+    return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })
 
@@ -239,7 +234,7 @@ authRouter.get('/me', authMiddleware, async (c) => {
 
   } catch (error) {
     // SECURITY ENHANCEMENT: Use sanitized error handling
-    const sanitized = ErrorSanitizer.logAndSanitize(error, 'AUTH_USER_INFO')
+    ErrorSanitizer.logAndSanitize(error, 'AUTH_USER_INFO')
     return c.json(createSafeErrorResponse(error, 500), 500)
   }
 })

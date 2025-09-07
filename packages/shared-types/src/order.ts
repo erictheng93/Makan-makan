@@ -55,8 +55,8 @@ export interface Order extends BaseEntity {
   discountAmount?: number; // in cents
   totalAmount: number; // in cents
   status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  paymentMethod?: PaymentMethod;
+  paymentStatus: OrderPaymentStatus;
+  paymentMethod?: OrderPaymentMethod;
   notes?: string;
   internalNotes?: string;
   estimatedPrepTime?: number; // minutes
@@ -85,13 +85,13 @@ export enum OrderStatus {
   CANCELLED = 6
 }
 
-export enum PaymentStatus {
+export enum OrderPaymentStatus {
   PENDING = 0,
   PAID = 1,
   FAILED = 2
 }
 
-export type PaymentMethod = 'cash' | 'card' | 'online' | 'ewallet';
+export type OrderPaymentMethod = 'cash' | 'card' | 'online' | 'ewallet';
 
 export interface OrderItem extends BaseEntity {
   orderId: number;
@@ -170,7 +170,7 @@ export interface OrderSummary {
 
 export interface OrderFilters {
   status?: OrderStatus[];
-  paymentStatus?: PaymentStatus[];
+  paymentStatus?: OrderPaymentStatus[];
   tableId?: number;
   customerPhone?: string;
   dateFrom?: string;

@@ -107,37 +107,37 @@
                     {{ shortcut.description }}
                   </div>
                 </div>
-              </div>
 
-              <div class="flex items-center space-x-2 ml-4">
-                <!-- Status indicator -->
-                <div
-                  :class="[
-                    'w-2 h-2 rounded-full',
-                    shortcut.enabled ? 'bg-green-500' : 'bg-gray-300',
-                  ]"
-                />
+                <div class="flex items-center space-x-2 ml-4">
+                  <!-- Status indicator -->
+                  <div
+                    :class="[
+                      'w-2 h-2 rounded-full',
+                      shortcut.enabled ? 'bg-green-500' : 'bg-gray-300',
+                    ]"
+                  />
 
-                <!-- Keyboard shortcut -->
-                <div class="flex items-center space-x-1">
-                  <kbd
-                    v-for="(key, index) in shortcut.keys"
-                    :key="index"
-                    class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono"
+                  <!-- Keyboard shortcut -->
+                  <div class="flex items-center space-x-1">
+                    <kbd
+                      v-for="(key, index) in shortcut.keys"
+                      :key="index"
+                      class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono"
+                    >
+                      {{ formatKey(key) }}
+                    </kbd>
+                  </div>
+
+                  <!-- Test button -->
+                  <button
+                    :disabled="!shortcut.enabled"
+                    class="p-1 text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                    title="測試快捷鍵"
+                    @click="testShortcut(shortcut)"
                   >
-                    {{ formatKey(key) }}
-                  </kbd>
+                    <PlayIcon class="w-4 h-4" />
+                  </button>
                 </div>
-
-                <!-- Test button -->
-                <button
-                  :disabled="!shortcut.enabled"
-                  class="p-1 text-blue-600 hover:text-blue-700 disabled:text-gray-400"
-                  title="測試快捷鍵"
-                  @click="testShortcut(shortcut)"
-                >
-                  <PlayIcon class="w-4 h-4" />
-                </button>
               </div>
             </div>
           </div>

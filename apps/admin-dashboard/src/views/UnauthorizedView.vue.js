@@ -1,7 +1,7 @@
-import { computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import { ShieldExclamationIcon, ExclamationTriangleIcon, InformationCircleIcon, ArrowLeftIcon, HomeIcon } from '@heroicons/vue/24/outline';
+import { computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { ShieldExclamationIcon, ExclamationTriangleIcon, InformationCircleIcon, ArrowLeftIcon, HomeIcon, } from "@heroicons/vue/24/outline";
 const router = useRouter();
 const authStore = useAuthStore();
 // 計算屬性
@@ -10,47 +10,52 @@ const availablePermissions = computed(() => {
     const role = currentUser.value?.role;
     const permissions = {
         0: [
-            '系統管理',
-            '用戶管理',
-            '餐廳管理',
-            '數據分析',
-            '所有功能'
+            // Admin
+            "系統管理",
+            "用戶管理",
+            "餐廳管理",
+            "數據分析",
+            "所有功能",
         ],
         1: [
-            '餐廳管理',
-            '員工管理',
-            '菜單管理',
-            '訂單管理',
-            '數據分析'
+            // Owner
+            "餐廳管理",
+            "員工管理",
+            "菜單管理",
+            "訂單管理",
+            "數據分析",
         ],
         2: [
-            '廚房顯示系統',
-            '訂單處理',
-            '菜單查看'
+            // Chef
+            "廚房顯示系統",
+            "訂單處理",
+            "菜單查看",
         ],
         3: [
-            '訂單管理',
-            '桌台管理',
-            '送餐服務'
+            // Service
+            "訂單管理",
+            "桌台管理",
+            "送餐服務",
         ],
         4: [
-            '收銀台',
-            '訂單結帳',
-            '付款處理'
-        ]
+            // Cashier
+            "收銀台",
+            "訂單結帳",
+            "付款處理",
+        ],
     };
-    return permissions[role] || ['基本功能'];
+    return permissions[role] || ["基本功能"];
 });
 // 方法
 const getRoleText = (role) => {
     const roles = {
-        0: '系統管理員',
-        1: '店主',
-        2: '廚師',
-        3: '送菜員',
-        4: '收銀員'
+        0: "系統管理員",
+        1: "店主",
+        2: "廚師",
+        3: "送菜員",
+        4: "收銀員",
     };
-    return roles[role] || '未知角色';
+    return roles[role] || "未知角色";
 };
 const goBack = () => {
     if (window.history.length > 1) {
@@ -61,16 +66,16 @@ const goBack = () => {
     }
 };
 const goToDashboard = () => {
-    router.push('/dashboard');
+    router.push("/dashboard");
 };
 // 生命周期
 onMounted(() => {
     // 記錄未授權訪問嘗試
-    console.warn('Unauthorized access attempt:', {
+    console.warn("Unauthorized access attempt:", {
         user: currentUser.value?.username,
         role: currentUser.value?.role,
         timestamp: new Date().toISOString(),
-        path: router.currentRoute.value.path
+        path: router.currentRoute.value.path,
     });
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
@@ -93,7 +98,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "mx-auto" },
 });
 const __VLS_0 = {}.ShieldExclamationIcon;
-/** @type {[typeof __VLS_components.ShieldExclamationIcon, ]} */ 
+/** @type {[typeof __VLS_components.ShieldExclamationIcon, ]} */ ;
 // @ts-ignore
 ShieldExclamationIcon;
 // @ts-ignore
@@ -120,7 +125,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex-shrink-0" },
 });
 const __VLS_5 = {}.ExclamationTriangleIcon;
-/** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ 
+/** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ ;
 // @ts-ignore
 ExclamationTriangleIcon;
 // @ts-ignore
@@ -197,7 +202,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex-shrink-0" },
 });
 const __VLS_10 = {}.InformationCircleIcon;
-/** @type {[typeof __VLS_components.InformationCircleIcon, ]} */ 
+/** @type {[typeof __VLS_components.InformationCircleIcon, ]} */ ;
 // @ts-ignore
 InformationCircleIcon;
 // @ts-ignore
@@ -237,7 +242,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [goBack,];
 const __VLS_15 = {}.ArrowLeftIcon;
-/** @type {[typeof __VLS_components.ArrowLeftIcon, ]} */ 
+/** @type {[typeof __VLS_components.ArrowLeftIcon, ]} */ ;
 // @ts-ignore
 ArrowLeftIcon;
 // @ts-ignore
@@ -254,7 +259,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [goToDashboard,];
 const __VLS_20 = {}.HomeIcon;
-/** @type {[typeof __VLS_components.HomeIcon, ]} */ 
+/** @type {[typeof __VLS_components.HomeIcon, ]} */ ;
 // @ts-ignore
 HomeIcon;
 // @ts-ignore
@@ -277,147 +282,147 @@ __VLS_asFunctionalElement(__VLS_elements.a, __VLS_elements.a)({
     href: "mailto:admin@makanmakan.com",
     ...{ class: "hover:text-blue-800 transition-colors" },
 });
-/** @type {__VLS_StyleScopedClasses['unauthorized-view']} */ 
-/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['py-12']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['sm:px-6']} */ 
-/** @type {__VLS_StyleScopedClasses['lg:px-8']} */ 
-/** @type {__VLS_StyleScopedClasses['max-w-md']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['h-24']} */ 
-/** @type {__VLS_StyleScopedClasses['w-24']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-400']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-3xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-red-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-md']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-400']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-800']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-700']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-md']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-md']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-400']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['list-disc']} */ 
-/** @type {__VLS_StyleScopedClasses['list-inside']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-col']} */ 
-/** @type {__VLS_StyleScopedClasses['sm:flex-row']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
+/** @type {__VLS_StyleScopedClasses['unauthorized-view']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-h-screen']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['sm:px-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:px-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-24']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-24']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-3xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-50']} */ ;
 /** @type {__VLS_StyleScopedClasses['border']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-md']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:outline-none']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-offset-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-transparent']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-md']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:outline-none']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-offset-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ 
+/** @type {__VLS_StyleScopedClasses['border-red-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-disc']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-inside']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
+/** @type {__VLS_StyleScopedClasses['sm:flex-row']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:outline-none']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-offset-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:outline-none']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-offset-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ShieldExclamationIcon: ShieldExclamationIcon,
@@ -433,4 +438,4 @@ const __VLS_self = (await import('vue')).defineComponent({
     }),
 });
 export default (await import('vue')).defineComponent({});
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

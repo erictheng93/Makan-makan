@@ -1,38 +1,41 @@
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Chart } from 'chart.js';
-import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/vue/24/outline';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler, } from "chart.js";
+import { Chart } from "chart.js";
+import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon, } from "@heroicons/vue/24/outline";
 // 註冊 Chart.js 組件
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 const props = withDefaults(defineProps(), {
-    title: '績效趨勢圖',
+    title: "績效趨勢圖",
     width: 800,
     height: 400,
-    isLoading: false
+    isLoading: false,
 });
 // 圖表狀態
 const chartCanvas = ref(null);
 const chartInstance = ref(null);
-const chartType = ref('line');
-const selectedMetric = ref('completion_rate');
+const chartType = ref("line");
+const selectedMetric = ref("completion_rate");
 const isFullscreen = ref(false);
 // 計算圖表數據
 const chartData = computed(() => {
     if (!props.data || props.data.length === 0)
         return null;
-    const labels = props.data.map(item => {
+    const labels = props.data.map((item) => {
         const date = new Date(item.date);
-        return date.toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
+        return date.toLocaleDateString("zh-TW", {
+            month: "2-digit",
+            day: "2-digit",
+        });
     });
-    const values = props.data.map(item => {
+    const values = props.data.map((item) => {
         switch (selectedMetric.value) {
-            case 'completion_rate':
+            case "completion_rate":
                 return item.completion_rate;
-            case 'avg_prep_time':
+            case "avg_prep_time":
                 return Math.round(item.avg_prep_time || 0);
-            case 'revenue':
+            case "revenue":
                 return item.revenue;
-            case 'total_orders':
+            case "total_orders":
                 return item.total_orders;
             default:
                 return 0;
@@ -40,34 +43,36 @@ const chartData = computed(() => {
     });
     return {
         labels,
-        datasets: [{
+        datasets: [
+            {
                 label: getMetricLabel(selectedMetric.value),
                 data: values,
                 borderColor: getMetricColor(selectedMetric.value),
-                backgroundColor: chartType.value === 'area'
+                backgroundColor: chartType.value === "area"
                     ? getMetricColor(selectedMetric.value, 0.2)
                     : getMetricColor(selectedMetric.value, 0.8),
                 borderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6,
-                fill: chartType.value === 'area',
-                tension: 0.4
-            }]
+                fill: chartType.value === "area",
+                tension: 0.4,
+            },
+        ],
     };
 });
 // 計算平均值
 const averageValue = computed(() => {
     if (!props.data || props.data.length === 0)
         return null;
-    const values = props.data.map(item => {
+    const values = props.data.map((item) => {
         switch (selectedMetric.value) {
-            case 'completion_rate':
+            case "completion_rate":
                 return item.completion_rate;
-            case 'avg_prep_time':
+            case "avg_prep_time":
                 return item.avg_prep_time || 0;
-            case 'revenue':
+            case "revenue":
                 return item.revenue;
-            case 'total_orders':
+            case "total_orders":
                 return item.total_orders;
             default:
                 return 0;
@@ -83,13 +88,13 @@ const trendDirection = computed(() => {
     const earlier = props.data.slice(Math.floor(props.data.length / 2));
     const recentAvg = recent.reduce((sum, item) => {
         switch (selectedMetric.value) {
-            case 'completion_rate':
+            case "completion_rate":
                 return sum + item.completion_rate;
-            case 'avg_prep_time':
+            case "avg_prep_time":
                 return sum + (item.avg_prep_time || 0);
-            case 'revenue':
+            case "revenue":
                 return sum + item.revenue;
-            case 'total_orders':
+            case "total_orders":
                 return sum + item.total_orders;
             default:
                 return sum;
@@ -97,13 +102,13 @@ const trendDirection = computed(() => {
     }, 0) / recent.length;
     const earlierAvg = earlier.reduce((sum, item) => {
         switch (selectedMetric.value) {
-            case 'completion_rate':
+            case "completion_rate":
                 return sum + item.completion_rate;
-            case 'avg_prep_time':
+            case "avg_prep_time":
                 return sum + (item.avg_prep_time || 0);
-            case 'revenue':
+            case "revenue":
                 return sum + item.revenue;
-            case 'total_orders':
+            case "total_orders":
                 return sum + item.total_orders;
             default:
                 return sum;
@@ -112,8 +117,8 @@ const trendDirection = computed(() => {
     const difference = recentAvg - earlierAvg;
     const threshold = earlierAvg * 0.05; // 5% threshold
     if (Math.abs(difference) < threshold)
-        return 'stable';
-    return difference > 0 ? 'up' : 'down';
+        return "stable";
+    return difference > 0 ? "up" : "down";
 });
 // 圖表配置
 const chartOptions = computed(() => ({
@@ -121,45 +126,45 @@ const chartOptions = computed(() => ({
     maintainAspectRatio: false,
     interaction: {
         intersect: false,
-        mode: 'index',
+        mode: "index",
     },
     plugins: {
         legend: {
-            display: false
+            display: false,
         },
         tooltip: {
             callbacks: {
                 label: (context) => {
-                    const label = context.dataset.label || '';
+                    const label = context.dataset.label || "";
                     const value = formatValue(context.parsed.y, selectedMetric.value);
                     return `${label}: ${value}`;
-                }
-            }
-        }
+                },
+            },
+        },
     },
     scales: {
         x: {
             grid: {
                 display: true,
-                color: 'rgba(0, 0, 0, 0.05)'
-            }
+                color: "rgba(0, 0, 0, 0.05)",
+            },
         },
         y: {
-            beginAtZero: selectedMetric.value !== 'revenue',
+            beginAtZero: selectedMetric.value !== "revenue",
             grid: {
                 display: true,
-                color: 'rgba(0, 0, 0, 0.05)'
+                color: "rgba(0, 0, 0, 0.05)",
             },
             ticks: {
-                callback: (value) => formatValue(value, selectedMetric.value)
-            }
-        }
+                callback: (value) => formatValue(value, selectedMetric.value),
+            },
+        },
     },
     elements: {
         point: {
-            hoverBackgroundColor: getMetricColor(selectedMetric.value)
-        }
-    }
+            hoverBackgroundColor: getMetricColor(selectedMetric.value),
+        },
+    },
 }));
 // 創建或更新圖表
 const createChart = () => {
@@ -168,13 +173,13 @@ const createChart = () => {
     if (chartInstance.value) {
         chartInstance.value.destroy();
     }
-    const ctx = chartCanvas.value.getContext('2d');
+    const ctx = chartCanvas.value.getContext("2d");
     if (!ctx)
         return;
     chartInstance.value = new Chart(ctx, {
-        type: chartType.value === 'area' ? 'line' : chartType.value,
+        type: chartType.value === "area" ? "line" : chartType.value,
         data: chartData.value,
-        options: chartOptions.value
+        options: chartOptions.value,
     });
 };
 // 更新圖表
@@ -183,36 +188,36 @@ const updateChart = () => {
         return;
     chartInstance.value.data = chartData.value;
     chartInstance.value.options = chartOptions.value;
-    chartInstance.value.update('resize');
+    chartInstance.value.update("resize");
 };
 // 輔助函數
 const getMetricLabel = (metric) => {
     const labels = {
-        completion_rate: '完成率 (%)',
-        avg_prep_time: '平均時間 (分鐘)',
-        revenue: '營收 (RM)',
-        total_orders: '訂單數量'
+        completion_rate: "完成率 (%)",
+        avg_prep_time: "平均時間 (分鐘)",
+        revenue: "營收 (RM)",
+        total_orders: "訂單數量",
     };
     return labels[metric] || metric;
 };
 const getMetricColor = (metric, alpha = 1) => {
     const colors = {
         completion_rate: `rgba(34, 197, 94, ${alpha})`, // green
-        avg_prep_time: `rgba(59, 130, 246, ${alpha})`, // blue  
+        avg_prep_time: `rgba(59, 130, 246, ${alpha})`, // blue
         revenue: `rgba(168, 85, 247, ${alpha})`, // purple
-        total_orders: `rgba(245, 158, 11, ${alpha})` // amber
+        total_orders: `rgba(245, 158, 11, ${alpha})`, // amber
     };
     return colors[metric] || `rgba(107, 114, 128, ${alpha})`;
 };
 const formatValue = (value, metric) => {
     switch (metric) {
-        case 'completion_rate':
+        case "completion_rate":
             return `${value.toFixed(1)}%`;
-        case 'avg_prep_time':
+        case "avg_prep_time":
             return `${Math.round(value)}分鐘`;
-        case 'revenue':
+        case "revenue":
             return `RM${value.toFixed(2)}`;
-        case 'total_orders':
+        case "total_orders":
             return `${value}筆`;
         default:
             return value.toString();
@@ -220,9 +225,9 @@ const formatValue = (value, metric) => {
 };
 const getTrendText = (direction) => {
     const texts = {
-        up: '上升',
-        down: '下降',
-        stable: '穩定'
+        up: "上升",
+        down: "下降",
+        stable: "穩定",
     };
     return texts[direction] || direction;
 };
@@ -234,8 +239,8 @@ const exportChart = () => {
     if (!chartInstance.value)
         return;
     const url = chartInstance.value.toBase64Image();
-    const link = document.createElement('a');
-    link.download = `performance-trend-${selectedMetric.value}-${new Date().toISOString().split('T')[0]}.png`;
+    const link = document.createElement("a");
+    link.download = `performance-trend-${selectedMetric.value}-${new Date().toISOString().split("T")[0]}.png`;
     link.href = url;
     link.click();
 };
@@ -274,17 +279,17 @@ onUnmounted(() => {
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_withDefaultsArg = (function (t) { return t; })({
-    title: '績效趨勢圖',
+    title: "績效趨勢圖",
     width: 800,
     height: 400,
-    isLoading: false
+    isLoading: false,
 });
 const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -337,17 +342,17 @@ __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "chart-container" },
-    ...{ class: ({ 'loading': __VLS_ctx.isLoading }) },
+    ...{ class: ({ loading: __VLS_ctx.isLoading }) },
 });
 // @ts-ignore
 [isLoading,];
-__VLS_asFunctionalElement(__VLS_elements.canvas, __VLS_elements.canvas)({
+__VLS_asFunctionalElement(__VLS_elements.canvas)({
     ref: "chartCanvas",
     width: (__VLS_ctx.width),
     height: (__VLS_ctx.height),
     ...{ class: "max-w-full" },
 });
-/** @type {typeof __VLS_ctx.chartCanvas} */ 
+/** @type {typeof __VLS_ctx.chartCanvas} */ ;
 // @ts-ignore
 [width, height, chartCanvas,];
 if (__VLS_ctx.isLoading) {
@@ -359,7 +364,7 @@ if (__VLS_ctx.isLoading) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex items-center space-x-2" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    __VLS_asFunctionalElement(__VLS_elements.div)({
         ...{ class: "animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" },
     });
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
@@ -376,7 +381,7 @@ if (!__VLS_ctx.isLoading && (!__VLS_ctx.data || __VLS_ctx.data.length === 0)) {
         ...{ class: "text-center" },
     });
     const __VLS_0 = {}.ChartBarIcon;
-    /** @type {[typeof __VLS_components.ChartBarIcon, ]} */ 
+    /** @type {[typeof __VLS_components.ChartBarIcon, ]} */ ;
     // @ts-ignore
     ChartBarIcon;
     // @ts-ignore
@@ -402,7 +407,7 @@ if (__VLS_ctx.averageValue !== null) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex items-center" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    __VLS_asFunctionalElement(__VLS_elements.span)({
         ...{ class: "w-3 h-3 bg-blue-500 rounded-full mr-1" },
     });
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
@@ -420,7 +425,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_5 = {}.ArrowTrendingUpIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ ;
         // @ts-ignore
         ArrowTrendingUpIcon;
         // @ts-ignore
@@ -435,7 +440,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_10 = {}.ArrowTrendingDownIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ ;
         // @ts-ignore
         ArrowTrendingDownIcon;
         // @ts-ignore
@@ -450,7 +455,7 @@ if (__VLS_ctx.trendDirection) {
         // @ts-ignore
         [trendDirection,];
         const __VLS_15 = {}.MinusIcon;
-        /** @type {[typeof __VLS_components.MinusIcon, ]} */ 
+        /** @type {[typeof __VLS_components.MinusIcon, ]} */ ;
         // @ts-ignore
         MinusIcon;
         // @ts-ignore
@@ -475,7 +480,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [toggleFullscreen,];
-(__VLS_ctx.isFullscreen ? '退出全屏' : '全屏顯示');
+(__VLS_ctx.isFullscreen ? "退出全屏" : "全屏顯示");
 // @ts-ignore
 [isFullscreen,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -484,108 +489,108 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [exportChart,];
-/** @type {__VLS_StyleScopedClasses['performance-trend-chart']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['chart-container']} */ 
-/** @type {__VLS_StyleScopedClasses['loading']} */ 
-/** @type {__VLS_StyleScopedClasses['max-w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['absolute']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-opacity-75']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['animate-spin']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-6']} */ 
-/** @type {__VLS_StyleScopedClasses['w-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-b-2']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['absolute']} */ 
-/** @type {__VLS_StyleScopedClasses['inset-0']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['h-12']} */ 
-/** @type {__VLS_StyleScopedClasses['w-12']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-3']} */ 
-/** @type {__VLS_StyleScopedClasses['h-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
+/** @type {__VLS_StyleScopedClasses['performance-trend-chart']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['underline']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-green-800']} */ 
-/** @type {__VLS_StyleScopedClasses['underline']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['chart-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['loading']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-opacity-75']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-spin']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['underline']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-green-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['underline']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ChartBarIcon: ChartBarIcon,
@@ -610,4 +615,4 @@ export default (await import('vue')).defineComponent({
     __typeProps: {},
     props: {},
 });
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

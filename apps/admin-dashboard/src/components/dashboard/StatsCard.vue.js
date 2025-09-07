@@ -1,48 +1,50 @@
-import { computed } from 'vue';
-import { ShoppingCart, DollarSign, TrendingUp, TrendingDown, CheckCircle, Users, Clock, Package } from 'lucide-vue-next';
+import { computed } from "vue";
+import { ShoppingCart, DollarSign, TrendingUp, TrendingDown, CheckCircle, Users, Clock, Package, } from "lucide-vue-next";
 const props = withDefaults(defineProps(), {
-    loading: false
+    loading: false,
+    trend: undefined,
+    subtitle: undefined,
 });
 const iconMap = {
-    'shopping-cart': ShoppingCart,
-    'dollar-sign': DollarSign,
-    'trending-up': TrendingUp,
-    'check-circle': CheckCircle,
-    'users': Users,
-    'clock': Clock,
-    'package': Package
+    "shopping-cart": ShoppingCart,
+    "dollar-sign": DollarSign,
+    "trending-up": TrendingUp,
+    "check-circle": CheckCircle,
+    users: Users,
+    clock: Clock,
+    package: Package,
 };
 const colorMap = {
     blue: {
-        text: 'text-blue-600',
-        iconBg: 'bg-blue-100',
-        iconColor: 'text-blue-600'
+        text: "text-blue-600",
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
     },
     green: {
-        text: 'text-green-600',
-        iconBg: 'bg-green-100',
-        iconColor: 'text-green-600'
+        text: "text-green-600",
+        iconBg: "bg-green-100",
+        iconColor: "text-green-600",
     },
     purple: {
-        text: 'text-purple-600',
-        iconBg: 'bg-purple-100',
-        iconColor: 'text-purple-600'
+        text: "text-purple-600",
+        iconBg: "bg-purple-100",
+        iconColor: "text-purple-600",
     },
     orange: {
-        text: 'text-orange-600',
-        iconBg: 'bg-orange-100',
-        iconColor: 'text-orange-600'
+        text: "text-orange-600",
+        iconBg: "bg-orange-100",
+        iconColor: "text-orange-600",
     },
     red: {
-        text: 'text-red-600',
-        iconBg: 'bg-red-100',
-        iconColor: 'text-red-600'
+        text: "text-red-600",
+        iconBg: "bg-red-100",
+        iconColor: "text-red-600",
     },
     indigo: {
-        text: 'text-indigo-600',
-        iconBg: 'bg-indigo-100',
-        iconColor: 'text-indigo-600'
-    }
+        text: "text-indigo-600",
+        iconBg: "bg-indigo-100",
+        iconColor: "text-indigo-600",
+    },
 };
 const iconComponent = computed(() => {
     return iconMap[props.icon] || ShoppingCart;
@@ -51,7 +53,7 @@ const textColorClass = computed(() => colorMap[props.color].text);
 const iconBgClass = computed(() => colorMap[props.color].iconBg);
 const iconColorClass = computed(() => colorMap[props.color].iconColor);
 const displayValue = computed(() => {
-    if (typeof props.value === 'number') {
+    if (typeof props.value === "number") {
         return props.value.toLocaleString();
     }
     return props.value;
@@ -63,18 +65,20 @@ const trendIcon = computed(() => {
 });
 const trendColorClass = computed(() => {
     if (!props.trend)
-        return '';
-    return props.trend.value >= 0 ? 'text-green-600' : 'text-red-600';
+        return "";
+    return props.trend.value >= 0 ? "text-green-600" : "text-red-600";
 });
 const trendText = computed(() => {
     if (!props.trend)
-        return '';
-    const sign = props.trend.value >= 0 ? '+' : '';
+        return "";
+    const sign = props.trend.value >= 0 ? "+" : "";
     return `${sign}${props.trend.value.toFixed(1)}% ${props.trend.period}`;
 });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_withDefaultsArg = (function (t) { return t; })({
-    loading: false
+    loading: false,
+    trend: undefined,
+    subtitle: undefined,
 });
 const __VLS_ctx = {};
 let __VLS_elements;
@@ -174,46 +178,46 @@ const __VLS_7 = __VLS_6({
 }, ...__VLS_functionalComponentArgsRest(__VLS_6));
 // @ts-ignore
 [iconComponent, iconColorClass,];
-/** @type {__VLS_StyleScopedClasses['card']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:shadow-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-12']} */ 
-/** @type {__VLS_StyleScopedClasses['h-12']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-6']} */ 
-/** @type {__VLS_StyleScopedClasses['h-6']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['card']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:shadow-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         iconComponent: iconComponent,
@@ -232,4 +236,4 @@ export default (await import('vue')).defineComponent({
     __typeProps: {},
     props: {},
 });
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

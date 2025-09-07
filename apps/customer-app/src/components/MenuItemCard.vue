@@ -277,7 +277,7 @@ const getImageUrl = (url: string) => {
   return url;
 };
 
-const handleImageError = (event: Event) => {
+const _handleImageError = (event: Event) => {
   // 圖片載入失敗時的處理
   const img = event.target as HTMLImageElement;
   img.style.display = "none";

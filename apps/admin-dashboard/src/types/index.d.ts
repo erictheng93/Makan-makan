@@ -71,7 +71,7 @@ export interface MenuCategory {
 export interface MenuCustomization {
     id: string;
     name: string;
-    type: 'single' | 'multiple';
+    type: "single" | "multiple";
     required: boolean;
     options: CustomizationOption[];
 }
@@ -168,10 +168,10 @@ export interface PaginationParams {
     page: number;
     limit: number;
     sort?: string;
-    order?: 'asc' | 'desc';
+    order?: "asc" | "desc";
 }
 export interface SSEEvent {
-    type: 'order_update' | 'menu_update' | 'system_notification';
+    type: "order_update" | "menu_update" | "system_notification";
     data: any;
     timestamp: string;
 }
@@ -183,7 +183,7 @@ export interface NotificationSettings {
 }
 export interface SystemNotification {
     id: number;
-    type: 'urgent_order' | 'new_order' | 'achievement' | 'system_alert';
+    type: "urgent_order" | "new_order" | "achievement" | "system_alert";
     title: string;
     message: string;
     createdAt: string;

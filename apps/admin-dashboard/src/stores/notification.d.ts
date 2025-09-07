@@ -1,6 +1,6 @@
 export interface Notification {
     id: string;
-    type: 'success' | 'error' | 'warning' | 'info' | 'order_ready' | 'order_urgent';
+    type: "success" | "error" | "warning" | "info" | "order_ready" | "order_urgent";
     title: string;
     message: string;
     sound?: boolean;
@@ -145,4 +145,4 @@ export declare const useNotificationStore: import("pinia").StoreDefinition<"noti
     error: (title: string, message: string, options?: Partial<Notification>) => string;
     warning: (title: string, message: string, options?: Partial<Notification>) => string;
     info: (title: string, message: string, options?: Partial<Notification>) => string;
-}, "error" | "success" | "warning" | "info" | "addNotification" | "removeNotification" | "markAsRead" | "markAllAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;
+}, "error" | "info" | "warning" | "success" | "addNotification" | "removeNotification" | "markAsRead" | "markAllAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;

@@ -298,11 +298,7 @@ import {
   TruckIcon,
   XCircleIcon,
 } from "@heroicons/vue/24/outline";
-import type {
-  Order,
-  OrderStatus,
-  WebSocketMessage,
-} from "@makanmakan/shared-types";
+import type { OrderStatus, WebSocketMessage } from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{

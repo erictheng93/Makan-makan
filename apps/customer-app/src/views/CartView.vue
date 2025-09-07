@@ -25,14 +25,16 @@
 
           <div class="flex-1 text-center">
             <h1 class="text-lg font-semibold text-gray-900">
-              {{ t('cart.title') }}
+              {{ t("cart.title") }}
             </h1>
             <p class="text-sm text-gray-500">
-              {{ restaurant?.name }} · {{ t('order.details.table') }} {{ tableId }}
+              {{ restaurant?.name }} · {{ t("order.details.table") }}
+              {{ tableId }}
             </p>
           </div>
 
-          <div class="w-8 h-8" /> <!-- 占位符保持居中 -->
+          <div class="w-8 h-8" />
+          <!-- 占位符保持居中 -->
         </div>
       </div>
     </nav>
@@ -40,10 +42,7 @@
     <!-- 主要內容 -->
     <main class="max-w-md mx-auto">
       <!-- 空購物車狀態 -->
-      <div
-        v-if="cartStore.isEmpty"
-        class="px-4 py-16 text-center"
-      >
+      <div v-if="cartStore.isEmpty" class="px-4 py-16 text-center">
         <div
           class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
         >
@@ -56,13 +55,13 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2" 
+              stroke-width="2"
               d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L6 2H3m4 11a3 3 0 100 6 3 3 0 000-6zm10 0a3 3 0 100 6 3 3 0 000-6z"
             />
           </svg>
         </div>
         <h2 class="text-xl font-semibold text-gray-900 mb-2">
-          {{ t('cart.empty') }}
+          {{ t("cart.empty") }}
         </h2>
         <p class="text-gray-600 mb-8">
           {{ t("cart.emptyDesc") }}
@@ -76,10 +75,7 @@
       </div>
 
       <!-- 購物車項目 -->
-      <div
-        v-else
-        class="px-4 py-6 space-y-6"
-      >
+      <div v-else class="px-4 py-6 space-y-6">
         <!-- 餐點列表 -->
         <div class="space-y-4">
           <CartItemCard
@@ -95,7 +91,7 @@
         <!-- 訂單摘要 -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            {{ t('order.title') }}
+            {{ t("order.title") }}
           </h3>
 
           <div class="space-y-3">
@@ -115,10 +111,7 @@
             </div>
 
             <!-- 稅費 -->
-            <div
-              v-if="tax > 0"
-              class="flex justify-between text-gray-600"
-            >
+            <div v-if="tax > 0" class="flex justify-between text-gray-600">
               <span>{{ t("cart.tax") }}</span>
               <span>${{ formatPrice(tax) }}</span>
             </div>
@@ -133,7 +126,7 @@
             </div>
 
             <!-- 分隔線 -->
-            <hr class="border-gray-200">
+            <hr class="border-gray-200" />
 
             <!-- 總計 -->
             <div
@@ -165,7 +158,7 @@
         <!-- 顧客資訊 -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            {{ t('order.details.customerInfo') }}
+            {{ t("order.details.customerInfo") }}
           </h3>
 
           <div class="space-y-4">
@@ -184,7 +177,7 @@
                 type="text"
                 :placeholder="t('order.details.customerName')"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
+              />
             </div>
 
             <div>
@@ -200,7 +193,7 @@
                 type="tel"
                 :placeholder="t('order.details.phone')"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
+              />
             </div>
           </div>
         </div>
@@ -223,7 +216,9 @@
             class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"
           />
           <span v-if="isSubmitting">{{ t("order.placeOrder") }}...</span>
-          <span v-else>{{ t("order.placeOrder") }} · ${{ formatPrice(totalAmount) }}</span>
+          <span v-else
+            >{{ t("order.placeOrder") }} · ${{ formatPrice(totalAmount) }}</span
+          >
         </button>
 
         <div class="mt-3 text-center">
@@ -272,7 +267,7 @@ import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import { orderApi } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { formatPrice } from "@/utils/format";
-import type { Restaurant, CreateOrderRequest } from "@makanmakan/shared-types";
+import type { CreateOrderRequest } from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{

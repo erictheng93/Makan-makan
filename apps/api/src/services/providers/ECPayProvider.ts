@@ -1,0 +1,359 @@
+import crypto from 'crypto'
+import {
+  PaymentProvider,
+  PaymentRequest,
+  PaymentResult,
+  RefundRequest,
+  RefundResult,
+  WebhookResult,
+  PaymentStatus,
+  CountryCode,
+  PaymentProviderConfig
+} from '@makanmakan/shared-types'
+
+interface ECPayConfig {
+  merchantId: string
+  hashKey: string
+  hashIV: string
+  checkoutUrl: string
+  queryUrl: string
+  testMode: boolean
+  returnUrl: string
+  notifyUrl: string
+  clientBackUrl: string
+  itemName: string
+  paymentTimeout: number
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface ECPayResponse {
+  MerchantID: string
+  MerchantTradeNo: string
+  PaymentDate: string
+  PaymentType: string
+  PaymentTypeChargeFee: string
+  RtnCode: number
+  RtnMsg: string
+  SimulatePaid: number
+  TradeAmt: number
+  TradeDate: string
+  TradeNo: string
+  CheckMacValue: string
+}
+
+export class ECPayProvider extends PaymentProvider {
+  readonly name = 'ecpay'
+  readonly displayName = 'ECPay'
+  readonly supportedCountries: CountryCode[] = ['TW']
+  readonly supportedMethods = ['ecpay', 'credit_card', 'bank_transfer']
+
+  private ecpayConfig: ECPayConfig
+
+  constructor(config: PaymentProviderConfig & { ecpayConfig: ECPayConfig }) {
+    super(config)
+    this.ecpayConfig = config.ecpayConfig
+  }
+
+  async createPayment(request: PaymentRequest): Promise<PaymentResult> {
+    try {
+      // 驗證國家和貨幣
+      if (request.country !== 'TW' || request.currency !== 'TWD') {
+        throw new Error('ECPay only supports Taiwan (TW) and TWD currency')
+      }
+
+      // 生成商家訂單編號
+      const merchantTradeNo = this.generateMerchantTradeNo(request.orderId)
+      
+      // 準備 ECPay 參數
+      const ecpayParams = {
+        MerchantID: this.ecpayConfig.merchantId,
+        MerchantTradeNo: merchantTradeNo,
+        MerchantTradeDate: this.formatDate(new Date()),
+        PaymentType: 'aio',
+        TotalAmount: Math.round(request.amount).toString(),
+        TradeDesc: `Order ${request.orderId}`,
+        ItemName: this.ecpayConfig.itemName || 'MakanMakan Order',
+        ReturnURL: this.ecpayConfig.notifyUrl,
+        ChoosePayment: this.mapPaymentMethod(request.method),
+        ClientBackURL: request.returnUrl || this.ecpayConfig.clientBackUrl,
+        ItemURL: '',
+        Remark: '',
+        ChooseSubPayment: '',
+        OrderResultURL: '',
+        NeedExtraPaidInfo: 'N',
+        DeviceSource: '',
+        IgnorePayment: '',
+        PlatformID: '',
+        InvoiceMark: 'N',
+        CustomField1: request.restaurantId.toString(),
+        CustomField2: request.orderId,
+        CustomField3: '',
+        CustomField4: '',
+        EncryptType: 1
+      }
+
+      // 生成檢查碼
+      const checkMacValue = this.generateCheckMacValue(ecpayParams)
+      ecpayParams['CheckMacValue'] = checkMacValue
+
+      // 準備表單 HTML
+      const formHtml = this.generateFormHtml(ecpayParams)
+
+      return {
+        success: true,
+        transactionId: merchantTradeNo,
+        status: 'pending',
+        redirectUrl: this.ecpayConfig.checkoutUrl,
+        metadata: {
+          formHtml,
+          ecpayParams,
+          provider: 'ecpay'
+        }
+      }
+
+    } catch (error) {
+      console.error('ECPay payment creation failed:', error)
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        error: {
+          code: 'ECPAY_ERROR',
+          message: (error as Error).message
+        }
+      }
+    }
+  }
+
+  async getPaymentStatus(transactionId: string): Promise<PaymentStatus> {
+    try {
+      const queryParams = {
+        MerchantID: this.ecpayConfig.merchantId,
+        MerchantTradeNo: transactionId,
+        TimeStamp: Math.floor(Date.now() / 1000).toString()
+      }
+
+      const checkMacValue = this.generateCheckMacValue(queryParams)
+      queryParams['CheckMacValue'] = checkMacValue
+
+      // 發送查詢請求到 ECPay
+      const response = await fetch(this.ecpayConfig.queryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(queryParams).toString()
+      })
+
+      const result = await response.text()
+      
+      // 解析 ECPay 回應（通常是 URL encoded 格式）
+      const params = new URLSearchParams(result)
+      const rtnCode = params.get('RtnCode')
+      const paymentDate = params.get('PaymentDate')
+
+      if (rtnCode === '1' && paymentDate) {
+        return 'completed'
+      } else if (rtnCode === '0') {
+        return 'failed'
+      }
+      
+      return 'pending'
+
+    } catch (error) {
+      console.error('Failed to query ECPay payment status:', error)
+      return 'pending'
+    }
+  }
+
+  async refundPayment(request: RefundRequest): Promise<RefundResult> {
+    // ECPay 的退款通常需要通過後台管理介面手動處理
+    // 或者需要額外的退款 API（需要額外申請）
+    return {
+      success: false,
+      refundId: '',
+      amount: request.amount || 0,
+      status: 'failed',
+      error: {
+        code: 'REFUND_NOT_SUPPORTED',
+        message: 'ECPay refunds must be processed through merchant backend'
+      }
+    }
+  }
+
+  async handleWebhook(payload: any, _signature?: string): Promise<WebhookResult> {
+    try {
+      // ECPay 會以 POST 表單格式發送通知
+      const params = typeof payload === 'string' 
+        ? new URLSearchParams(payload)
+        : new URLSearchParams(Object.entries(payload).map(([k, v]) => [k, String(v)]))
+
+      const receivedCheckMac = params.get('CheckMacValue')
+      if (!receivedCheckMac) {
+        throw new Error('Missing CheckMacValue in ECPay notification')
+      }
+
+      // 移除 CheckMacValue 後重新計算
+      const paramObj: Record<string, any> = {}
+      params.forEach((value, key) => {
+        if (key !== 'CheckMacValue') {
+          paramObj[key] = value
+        }
+      })
+
+      // 驗證檢查碼
+      const expectedCheckMac = this.generateCheckMacValue(paramObj)
+      if (receivedCheckMac !== expectedCheckMac) {
+        throw new Error('Invalid CheckMacValue in ECPay notification')
+      }
+
+      // 解析支付結果
+      const rtnCode = params.get('RtnCode')
+      const merchantTradeNo = params.get('MerchantTradeNo')
+      const tradeNo = params.get('TradeNo')
+      
+      let newStatus: PaymentStatus = 'pending'
+      if (rtnCode === '1') {
+        newStatus = 'completed'
+      } else if (rtnCode === '0') {
+        newStatus = 'failed'
+      }
+
+      return {
+        processed: true,
+        transactionId: merchantTradeNo || '',
+        newStatus,
+        shouldUpdateOrder: newStatus === 'completed',
+        metadata: {
+          ecpayTradeNo: tradeNo,
+          paymentDate: params.get('PaymentDate'),
+          paymentType: params.get('PaymentType')
+        }
+      }
+
+    } catch (error) {
+      console.error('ECPay webhook processing error:', error)
+      return {
+        processed: false,
+        error: (error as Error).message
+      }
+    }
+  }
+
+  validateConfig(): boolean {
+    try {
+      const required = ['merchantId', 'hashKey', 'hashIV', 'checkoutUrl', 'notifyUrl']
+      for (const key of required) {
+        if (!this.ecpayConfig[key as keyof ECPayConfig]) {
+          console.error(`Missing required ECPay config: ${key}`)
+          return false
+        }
+      }
+
+      // 檢查 Merchant ID 格式
+      if (!/^\d{7}$/.test(this.ecpayConfig.merchantId)) {
+        console.error('Invalid ECPay Merchant ID format (should be 7 digits)')
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('ECPay config validation error:', error)
+      return false
+    }
+  }
+
+  // =============================================
+  // 私有方法
+  // =============================================
+
+  private generateMerchantTradeNo(orderId: string): string {
+    // ECPay 要求：英數字，長度20字元內
+    const timestamp = Date.now().toString()
+    const randomStr = Math.random().toString(36).substring(2, 8)
+    return `MM${orderId}_${timestamp}_${randomStr}`.substring(0, 20)
+  }
+
+  private formatDate(date: Date): string {
+    // ECPay 要求格式：yyyy/MM/dd HH:mm:ss
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`
+  }
+
+  private mapPaymentMethod(method: string): string {
+    // ECPay 支付方式對應
+    const methodMap: Record<string, string> = {
+      'credit_card': 'Credit',
+      'bank_transfer': 'ATM',
+      'ecpay': 'ALL'
+    }
+    
+    return methodMap[method] || 'ALL'
+  }
+
+  private generateCheckMacValue(params: Record<string, any>): string {
+    // 1. 參數排序（按照 key 的英文字母排序）
+    const sortedKeys = Object.keys(params).sort()
+    
+    // 2. 組成字串，格式：key1=value1&key2=value2...
+    const queryString = sortedKeys
+      .map(key => `${key}=${params[key]}`)
+      .join('&')
+    
+    // 3. 前後加上 HashKey 和 HashIV
+    const stringToHash = `HashKey=${this.ecpayConfig.hashKey}&${queryString}&HashIV=${this.ecpayConfig.hashIV}`
+    
+    // 4. URL encode
+    const encodedString = encodeURIComponent(stringToHash)
+      .replace(/%20/g, '+')      // 空格轉換為 +
+      .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    
+    // 5. 轉小寫
+    const lowerCaseString = encodedString.toLowerCase()
+    
+    // 6. SHA256 hash
+    const hash = crypto.createHash('sha256').update(lowerCaseString).digest('hex')
+    
+    // 7. 轉大寫
+    return hash.toUpperCase()
+  }
+
+  private generateFormHtml(params: Record<string, any>): string {
+    const inputs = Object.entries(params)
+      .map(([key, value]) => `<input type="hidden" name="${key}" value="${value}">`)
+      .join('\n        ')
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>正在跳轉到 ECPay 支付頁面...</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>正在跳轉到支付頁面...</h2>
+        <p>如果頁面沒有自動跳轉，請點擊下方按鈕</p>
+        <form id="ecpayForm" method="post" action="${this.ecpayConfig.checkoutUrl}">
+        ${inputs}
+            <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                前往支付
+            </button>
+        </form>
+    </div>
+    <script>
+        // 自動提交表單
+        setTimeout(function() {
+            document.getElementById('ecpayForm').submit();
+        }, 1000);
+    </script>
+</body>
+</html>`
+  }
+}

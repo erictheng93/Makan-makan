@@ -1,4 +1,4 @@
-import type { ChartData } from '@/types';
+import type { ChartData } from "@/types";
 export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboard", Pick<{
     stats: Readonly<import("vue").Ref<{
         readonly todayOrders: number;
@@ -80,7 +80,7 @@ export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboa
     };
     startAutoRefresh: (intervalMs?: number) => void;
     stopAutoRefresh: () => void;
-}, "error" | "isLoading" | "stats" | "lastUpdated">, Pick<{
+}, "isLoading" | "stats" | "error" | "lastUpdated">, Pick<{
     stats: Readonly<import("vue").Ref<{
         readonly todayOrders: number;
         readonly todayRevenue: number;

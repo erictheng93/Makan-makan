@@ -1,0 +1,440 @@
+-- Payment System Seed Data Migration
+-- Version: 0022
+-- Description: 添加支付系統的種子數據和配置範例
+
+-- =============================================
+-- 1. 更新支付提供商配置 (添加測試模式配置)
+-- =============================================
+
+-- 更新 Stripe 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/stripe',
+  config_schema = JSON('{
+    "publishableKey": {"type": "string", "required": true, "description": "Stripe publishable key"},
+    "secretKey": {"type": "string", "required": true, "description": "Stripe secret key"},
+    "webhookSecret": {"type": "string", "required": true, "description": "Stripe webhook secret"},
+    "paymentMethodTypes": {"type": "array", "default": ["card"], "description": "Supported payment methods"},
+    "automaticTax": {"type": "boolean", "default": false, "description": "Enable automatic tax calculation"},
+    "requireAuthentication": {"type": "string", "enum": ["automatic", "always", "never"], "default": "automatic"},
+    "captureMethod": {"type": "string", "enum": ["automatic", "manual"], "default": "automatic"},
+    "confirmationMethod": {"type": "string", "enum": ["automatic", "manual"], "default": "automatic"}
+  }')
+WHERE name = 'stripe';
+
+-- 更新 ECPay 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/ecpay',
+  config_schema = JSON('{
+    "merchantId": {"type": "string", "required": true, "pattern": "^[0-9]{7}$", "description": "ECPay 7-digit merchant ID"},
+    "hashKey": {"type": "string", "required": true, "description": "ECPay hash key"},
+    "hashIV": {"type": "string", "required": true, "description": "ECPay hash IV"},
+    "checkoutUrl": {"type": "string", "default": "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5"},
+    "queryUrl": {"type": "string", "default": "https://payment.ecpay.com.tw/Cashier/QueryTradeInfo/V5"},
+    "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
+    "notifyUrl": {"type": "string", "required": true, "description": "Webhook notification URL"},
+    "clientBackUrl": {"type": "string", "required": true, "description": "Client return URL"},
+    "itemName": {"type": "string", "default": "MakanMakan Order"}
+  }')
+WHERE name = 'ecpay';
+
+-- 更新 iPay88 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/ipay88',
+  config_schema = JSON('{
+    "merchantCode": {"type": "string", "required": true, "description": "iPay88 merchant code"},
+    "merchantKey": {"type": "string", "required": true, "description": "iPay88 merchant key"},
+    "paymentUrl": {"type": "string", "default": "https://payment.ipay88.com.my/epayment/entry.asp"},
+    "queryUrl": {"type": "string", "default": "https://payment.ipay88.com.my/epayment/enquiry.asp"},
+    "responseUrl": {"type": "string", "required": true, "description": "Response URL after payment"},
+    "backendUrl": {"type": "string", "required": true, "description": "Backend notification URL"},
+    "language": {"type": "string", "default": "UTF-8", "description": "Language encoding"}
+  }')
+WHERE name = 'ipay88';
+
+-- 更新 NewebPay 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/newebpay',
+  config_schema = JSON('{
+    "merchantId": {"type": "string", "required": true, "pattern": "^MS[0-9]+$", "description": "NewebPay merchant ID (starts with MS)"},
+    "hashKey": {"type": "string", "required": true, "description": "NewebPay hash key"},
+    "hashIV": {"type": "string", "required": true, "description": "NewebPay hash IV"},
+    "paymentUrl": {"type": "string", "default": "https://ccore.newebpay.com/MPG/mpg_gateway"},
+    "queryUrl": {"type": "string", "default": "https://ccore.newebpay.com/API/QueryTradeInfo"},
+    "version": {"type": "string", "default": "2.0"},
+    "notifyUrl": {"type": "string", "required": true, "description": "Webhook notification URL"},
+    "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
+    "email": {"type": "string", "required": true, "description": "Default email for transactions"},
+    "loginType": {"type": "number", "default": 0, "description": "Login type (0=不須登入)"}
+  }')
+WHERE name = 'newebpay';
+
+-- 更新 LINE Pay 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/linepay',
+  config_schema = JSON('{
+    "channelId": {"type": "string", "required": true, "pattern": "^[0-9]+$", "description": "LINE Pay channel ID"},
+    "channelSecret": {"type": "string", "required": true, "description": "LINE Pay channel secret"},
+    "merchantId": {"type": "string", "required": true, "description": "LINE Pay merchant ID"},
+    "apiUrl": {"type": "string", "default": "https://sandbox-api-pay.line.me"},
+    "version": {"type": "string", "default": "v3"},
+    "environment": {"type": "string", "default": "SANDBOX", "enum": ["SANDBOX", "REAL"]},
+    "confirmUrl": {"type": "string", "required": true, "description": "Confirm URL after payment"},
+    "cancelUrl": {"type": "string", "required": true, "description": "Cancel URL"},
+    "locale": {"type": "string", "default": "zh_TW", "enum": ["zh_TW", "en", "ja", "ko"]},
+    "currency": {"type": "string", "default": "TWD"}
+  }')
+WHERE name = 'linepay';
+
+-- 更新 UniPay 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/unipay',
+  config_schema = JSON('{
+    "merchantId": {"type": "string", "required": true, "pattern": "^[0-9]{7}$", "description": "UniPay 7-digit merchant ID"},
+    "hashKey": {"type": "string", "required": true, "description": "UniPay hash key"},
+    "hashIV": {"type": "string", "required": true, "description": "UniPay hash IV"},
+    "paymentUrl": {"type": "string", "default": "https://payment.unipay.com.tw/UniPay/CheckOut"},
+    "queryUrl": {"type": "string", "default": "https://payment.unipay.com.tw/UniPay/QueryTradeInfo"},
+    "version": {"type": "string", "default": "1.0"},
+    "notifyUrl": {"type": "string", "required": true, "description": "Webhook notification URL"},
+    "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
+    "itemName": {"type": "string", "default": "MakanMakan Order"}
+  }')
+WHERE name = 'unipay';
+
+-- 更新 VNPay 配置
+UPDATE payment_providers SET 
+  webhook_endpoint = '/api/v1/payments/webhook/vnpay',
+  config_schema = JSON('{
+    "tmnCode": {"type": "string", "required": true, "pattern": "^[A-Z0-9]{8}$", "description": "VNPay 8-character terminal code"},
+    "hashSecret": {"type": "string", "required": true, "description": "VNPay hash secret"},
+    "paymentUrl": {"type": "string", "default": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"},
+    "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
+    "ipnUrl": {"type": "string", "required": true, "description": "IPN notification URL"},
+    "version": {"type": "string", "default": "2.1.0"},
+    "command": {"type": "string", "default": "pay"},
+    "orderType": {"type": "string", "default": "other"},
+    "locale": {"type": "string", "default": "vn", "enum": ["vn", "en"]},
+    "currCode": {"type": "string", "default": "VND"},
+    "timeZone": {"type": "string", "default": "+07:00"}
+  }')
+WHERE name = 'vnpay';
+
+-- =============================================
+-- 2. 插入測試模式的提供商配置範例
+-- =============================================
+
+-- Stripe 測試配置 (台灣)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'TW',
+  1,
+  1,
+  JSON('{
+    "publishableKey": "pk_test_YOUR_PUBLISHABLE_KEY_HERE",
+    "secretKey": "sk_test_YOUR_SECRET_KEY_HERE",
+    "webhookSecret": "whsec_YOUR_WEBHOOK_SECRET_HERE",
+    "paymentMethodTypes": ["card", "alipay"],
+    "automaticTax": false,
+    "requireAuthentication": "automatic",
+    "captureMethod": "automatic",
+    "confirmationMethod": "automatic",
+    "minimumAmount": 1,
+    "maximumAmount": 1000000,
+    "paymentTimeout": 1800,
+    "webhookTimeout": 20000,
+    "maxRetries": 3,
+    "blockSuspiciousPayments": true
+  }'),
+  'test_config_hash_stripe_tw'
+FROM payment_providers p WHERE p.name = 'stripe';
+
+-- Stripe 測試配置 (馬來西亞)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'MY',
+  1,
+  1,
+  JSON('{
+    "publishableKey": "pk_test_YOUR_PUBLISHABLE_KEY_HERE",
+    "secretKey": "sk_test_YOUR_SECRET_KEY_HERE",
+    "webhookSecret": "whsec_YOUR_WEBHOOK_SECRET_HERE",
+    "paymentMethodTypes": ["card", "grabpay", "alipay"],
+    "automaticTax": false,
+    "requireAuthentication": "automatic",
+    "captureMethod": "automatic",
+    "confirmationMethod": "automatic",
+    "minimumAmount": 0.5,
+    "maximumAmount": 50000,
+    "paymentTimeout": 1800,
+    "webhookTimeout": 20000,
+    "maxRetries": 3,
+    "blockSuspiciousPayments": true
+  }'),
+  'test_config_hash_stripe_my'
+FROM payment_providers p WHERE p.name = 'stripe';
+
+-- Stripe 測試配置 (越南)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'VN',
+  1,
+  1,
+  JSON('{
+    "publishableKey": "pk_test_YOUR_PUBLISHABLE_KEY_HERE",
+    "secretKey": "sk_test_YOUR_SECRET_KEY_HERE",
+    "webhookSecret": "whsec_YOUR_WEBHOOK_SECRET_HERE",
+    "paymentMethodTypes": ["card", "alipay"],
+    "automaticTax": false,
+    "requireAuthentication": "automatic",
+    "captureMethod": "automatic",
+    "confirmationMethod": "automatic",
+    "minimumAmount": 10000,
+    "maximumAmount": 50000000,
+    "paymentTimeout": 1800,
+    "webhookTimeout": 20000,
+    "maxRetries": 3,
+    "blockSuspiciousPayments": true
+  }'),
+  'test_config_hash_stripe_vn'
+FROM payment_providers p WHERE p.name = 'stripe';
+
+-- ECPay 測試配置 (台灣)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'TW',
+  0, -- 備用提供商
+  1,
+  JSON('{
+    "merchantId": "2000132",
+    "hashKey": "5294y06JbISpM5x9",
+    "hashIV": "v77hoKGq4kWxNNIS",
+    "checkoutUrl": "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5",
+    "queryUrl": "https://payment-stage.ecpay.com.tw/Cashier/QueryTradeInfo/V5",
+    "returnUrl": "https://your-domain.com/payment/ecpay/return",
+    "notifyUrl": "https://your-domain.com/api/v1/payments/webhook/ecpay",
+    "clientBackUrl": "https://your-domain.com/payment/result",
+    "itemName": "MakanMakan Order",
+    "paymentTimeout": 1800
+  }'),
+  'test_config_hash_ecpay_tw'
+FROM payment_providers p WHERE p.name = 'ecpay';
+
+-- iPay88 測試配置 (馬來西亞)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'MY',
+  0, -- 備用提供商
+  1,
+  JSON('{
+    "merchantCode": "M12345",
+    "merchantKey": "test_merchant_key_here",
+    "paymentUrl": "https://sandbox.ipay88.com.my/epayment/entry.asp",
+    "queryUrl": "https://sandbox.ipay88.com.my/epayment/enquiry.asp",
+    "responseUrl": "https://your-domain.com/payment/ipay88/return",
+    "backendUrl": "https://your-domain.com/api/v1/payments/webhook/ipay88",
+    "language": "UTF-8"
+  }'),
+  'test_config_hash_ipay88_my'
+FROM payment_providers p WHERE p.name = 'ipay88';
+
+-- VNPay 測試配置 (越南)
+INSERT OR IGNORE INTO payment_provider_configs (
+  provider_id, 
+  country_code, 
+  is_primary, 
+  is_test_mode, 
+  config_data, 
+  config_hash
+) 
+SELECT 
+  p.id,
+  'VN',
+  0, -- 備用提供商
+  1,
+  JSON('{
+    "tmnCode": "TESTCODE",
+    "hashSecret": "test_hash_secret_key_here",
+    "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    "returnUrl": "https://your-domain.com/payment/vnpay/return",
+    "ipnUrl": "https://your-domain.com/api/v1/payments/webhook/vnpay",
+    "version": "2.1.0",
+    "command": "pay",
+    "orderType": "other",
+    "locale": "vn",
+    "currCode": "VND",
+    "timeZone": "+07:00"
+  }'),
+  'test_config_hash_vnpay_vn'
+FROM payment_providers p WHERE p.name = 'vnpay';
+
+-- =============================================
+-- 3. 插入支付方式映射數據
+-- =============================================
+
+-- 創建支付方式映射表 (如果需要更詳細的映射)
+CREATE TABLE IF NOT EXISTS payment_method_mappings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider_name TEXT NOT NULL,
+  country_code TEXT NOT NULL,
+  internal_method TEXT NOT NULL,
+  provider_method TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(provider_name, country_code, internal_method)
+);
+
+-- Stripe 支付方式映射
+INSERT OR IGNORE INTO payment_method_mappings 
+  (provider_name, country_code, internal_method, provider_method, display_name, sort_order) 
+VALUES
+  ('stripe', 'TW', 'credit_card', 'card', '信用卡', 1),
+  ('stripe', 'TW', 'debit_card', 'card', '金融卡', 2),
+  ('stripe', 'MY', 'credit_card', 'card', 'Credit Card', 1),
+  ('stripe', 'MY', 'debit_card', 'card', 'Debit Card', 2),
+  ('stripe', 'MY', 'grab_pay', 'grabpay', 'GrabPay', 3),
+  ('stripe', 'VN', 'credit_card', 'card', 'Thẻ tín dụng', 1),
+  ('stripe', 'VN', 'debit_card', 'card', 'Thẻ ghi nợ', 2);
+
+-- ECPay 支付方式映射
+INSERT OR IGNORE INTO payment_method_mappings 
+  (provider_name, country_code, internal_method, provider_method, display_name, sort_order) 
+VALUES
+  ('ecpay', 'TW', 'credit_card', 'Credit', '信用卡', 1),
+  ('ecpay', 'TW', 'bank_transfer', 'ATM', 'ATM 轉帳', 2),
+  ('ecpay', 'TW', 'ecpay', 'ALL', '綠界支付', 3);
+
+-- iPay88 支付方式映射
+INSERT OR IGNORE INTO payment_method_mappings 
+  (provider_name, country_code, internal_method, provider_method, display_name, sort_order) 
+VALUES
+  ('ipay88', 'MY', 'fpx', '6', 'FPX Online Banking', 1),
+  ('ipay88', 'MY', 'credit_card', '2', 'Credit Card', 2),
+  ('ipay88', 'MY', 'touch_n_go', '161', "Touch 'n Go eWallet", 3);
+
+-- VNPay 支付方式映射
+INSERT OR IGNORE INTO payment_method_mappings 
+  (provider_name, country_code, internal_method, provider_method, display_name, sort_order) 
+VALUES
+  ('vnpay', 'VN', 'bank_transfer', 'VNBANK', 'Chuyển khoản ngân hàng', 1),
+  ('vnpay', 'VN', 'momo', 'MOMO', 'Ví MoMo', 2),
+  ('vnpay', 'VN', 'viet_qr', 'VIETQR', 'VietQR', 3),
+  ('vnpay', 'VN', 'vnpay', '', 'VNPay', 4);
+
+-- =============================================
+-- 4. 創建支付狀態轉換記錄表
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS payment_status_transitions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  transaction_id TEXT NOT NULL,
+  from_status TEXT NOT NULL,
+  to_status TEXT NOT NULL,
+  reason TEXT,
+  metadata TEXT, -- JSON
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (transaction_id) REFERENCES payment_transactions(transaction_id)
+);
+
+CREATE INDEX idx_payment_status_transitions_transaction ON payment_status_transitions(transaction_id);
+CREATE INDEX idx_payment_status_transitions_created ON payment_status_transitions(created_at);
+
+-- =============================================
+-- 5. 創建支付配置變更審計表
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS payment_config_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider_name TEXT NOT NULL,
+  country_code TEXT NOT NULL,
+  action TEXT NOT NULL, -- 'CREATE', 'UPDATE', 'DELETE', 'ACTIVATE', 'DEACTIVATE'
+  old_config TEXT, -- JSON
+  new_config TEXT, -- JSON
+  changed_by TEXT, -- User ID or system
+  change_reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_payment_config_audit_provider ON payment_config_audit(provider_name);
+CREATE INDEX idx_payment_config_audit_country ON payment_config_audit(country_code);
+CREATE INDEX idx_payment_config_audit_created ON payment_config_audit(created_at);
+
+-- =============================================
+-- 6. 插入系統配置
+-- =============================================
+
+-- 創建系統配置表
+CREATE TABLE IF NOT EXISTS payment_system_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setting_key TEXT NOT NULL UNIQUE,
+  setting_value TEXT NOT NULL,
+  description TEXT,
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  updated_by TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 插入預設系統設定
+INSERT OR IGNORE INTO payment_system_settings (setting_key, setting_value, description) VALUES
+  ('default_payment_timeout', '1800', 'Default payment timeout in seconds (30 minutes)'),
+  ('max_payment_retries', '3', 'Maximum number of payment retry attempts'),
+  ('webhook_retry_intervals', '[60,300,900,3600]', 'Webhook retry intervals in seconds (JSON array)'),
+  ('payment_currency_precision', '2', 'Decimal places for payment amounts'),
+  ('enable_payment_logging', 'true', 'Enable detailed payment logging'),
+  ('enable_fraud_detection', 'true', 'Enable basic fraud detection'),
+  ('min_transaction_amount', '{"TWD": 1, "MYR": 0.5, "VND": 10000}', 'Minimum transaction amounts by currency (JSON)'),
+  ('max_transaction_amount', '{"TWD": 1000000, "MYR": 50000, "VND": 50000000}', 'Maximum transaction amounts by currency (JSON)'),
+  ('supported_currencies', '["TWD", "MYR", "VND"]', 'List of supported currencies (JSON array)'),
+  ('payment_page_timeout', '900', 'Payment page timeout in seconds (15 minutes)');
+
+-- 創建索引
+CREATE INDEX IF NOT EXISTS idx_payment_system_settings_key ON payment_system_settings(setting_key);
+
+-- =============================================
+-- 記錄遷移完成
+-- =============================================
+
+INSERT INTO schema_migrations (version, applied_at) VALUES ('0022', CURRENT_TIMESTAMP)
+  ON CONFLICT(version) DO UPDATE SET applied_at = CURRENT_TIMESTAMP;

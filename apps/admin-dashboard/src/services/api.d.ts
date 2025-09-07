@@ -1,5 +1,5 @@
-import { type AxiosResponse } from 'axios';
-import type { ApiResponse } from '@/types';
+import { type AxiosResponse } from "axios";
+import type { ApiResponse } from "@/types";
 declare class ApiService {
     private instance;
     constructor();
@@ -13,4 +13,5 @@ declare class ApiService {
     upload(url: string, formData: FormData): Promise<AxiosResponse<any>>;
 }
 export declare const api: ApiService;
+export declare const apiClient: ApiService;
 export {};

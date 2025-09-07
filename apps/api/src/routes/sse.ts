@@ -367,6 +367,368 @@ app.get('/connections', authMiddleware, async (c) => {
 })
 
 /**
+ * GROUP ORDERS - Broadcast group order created
+ * POST /api/v1/sse/broadcast/group-created
+ */
+app.post('/broadcast/group-created', async (c) => {
+  try {
+    const { groupOrderId, restaurantId, tableId, shareCode } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `group_created_${Date.now()}_${groupOrderId}`,
+      event: 'group-created',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          shareCode,
+          tableId,
+          action: 'group_created'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(restaurantId, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'group_created',
+        groupOrderId,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast group creation:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast group creation'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast member joined
+ * POST /api/v1/sse/broadcast/member-joined
+ */
+app.post('/broadcast/member-joined', async (c) => {
+  try {
+    const { groupOrderId, memberId, memberName, restaurantId } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `member_joined_${Date.now()}_${memberId}`,
+      event: 'member-joined',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          memberId,
+          memberName,
+          action: 'member_joined'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(restaurantId, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'member_joined',
+        groupOrderId,
+        memberId,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast member join:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast member join'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast cart updated
+ * POST /api/v1/sse/broadcast/cart-updated
+ */
+app.post('/broadcast/cart-updated', async (c) => {
+  try {
+    const { groupOrderId, memberId, action, item, itemId, updates } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `cart_updated_${Date.now()}_${groupOrderId}`,
+      event: 'cart-updated',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          memberId,
+          action, // 'add', 'update', 'remove'
+          item,
+          itemId,
+          updates
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1 // Will be passed in payload or derived from group order
+      }
+    }
+    
+    // Get restaurant ID from group order (simplified - should query DB)
+    const restaurantId = 1 // TODO: Query restaurant ID from group order
+    const sentCount = broadcastToRestaurant(restaurantId, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'cart_updated',
+        groupOrderId,
+        action,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast cart update:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast cart update'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast split initiated
+ * POST /api/v1/sse/broadcast/split-initiated
+ */
+app.post('/broadcast/split-initiated', async (c) => {
+  try {
+    const { groupOrderId, splitType, splitBills } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `split_initiated_${Date.now()}_${groupOrderId}`,
+      event: 'split-initiated',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          splitType,
+          splitBills,
+          action: 'split_initiated'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1 // TODO: Query restaurant ID from group order
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(1, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'split_initiated',
+        groupOrderId,
+        splitType,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast split initiation:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast split initiation'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast payment completed
+ * POST /api/v1/sse/broadcast/payment-completed
+ */
+app.post('/broadcast/payment-completed', async (c) => {
+  try {
+    const { groupOrderId, memberId, amount, paymentMethod } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `payment_completed_${Date.now()}_${memberId}`,
+      event: 'payment-completed',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          memberId,
+          amount,
+          paymentMethod,
+          action: 'payment_completed'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1 // TODO: Query restaurant ID from group order
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(1, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'payment_completed',
+        groupOrderId,
+        memberId,
+        amount,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast payment completion:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast payment completion'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast member left
+ * POST /api/v1/sse/broadcast/member-left
+ */
+app.post('/broadcast/member-left', async (c) => {
+  try {
+    const { groupOrderId, memberId } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `member_left_${Date.now()}_${memberId}`,
+      event: 'member-left',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          memberId,
+          action: 'member_left'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1 // TODO: Query restaurant ID from group order
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(1, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'member_left',
+        groupOrderId,
+        memberId,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast member leave:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast member leave'
+    }, 500)
+  }
+})
+
+/**
+ * KITCHEN - Broadcast new kitchen order
+ * POST /api/v1/sse/broadcast/kitchen-order
+ */
+app.post('/broadcast/kitchen-order', async (c) => {
+  try {
+    const { restaurantId, targetRoles, orderData } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `kitchen_order_${Date.now()}_${orderData.orderId}`,
+      event: 'kitchen-order',
+      data: {
+        type: 'order_update',
+        payload: {
+          ...orderData,
+          action: 'new_kitchen_order'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId,
+        targetRoles: targetRoles || [2] // Default to kitchen role
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(restaurantId, event, targetRoles)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'kitchen_order',
+        orderId: orderData.orderId,
+        restaurantId,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast kitchen order:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast kitchen order'
+    }, 500)
+  }
+})
+
+/**
+ * GROUP ORDERS - Broadcast group order completed
+ * POST /api/v1/sse/broadcast/group-order-completed
+ */
+app.post('/broadcast/group-order-completed', async (c) => {
+  try {
+    const { groupOrderId, completedAt } = await c.req.json()
+    
+    const event: SSEEvent = {
+      id: `group_completed_${Date.now()}_${groupOrderId}`,
+      event: 'group-order-completed',
+      data: {
+        type: 'order_update',
+        payload: {
+          groupOrderId,
+          completedAt,
+          action: 'group_order_completed'
+        },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1 // TODO: Query restaurant ID from group order
+      }
+    }
+    
+    const sentCount = broadcastToRestaurant(1, event)
+    
+    return c.json({
+      success: true,
+      data: {
+        event_type: 'group_order_completed',
+        groupOrderId,
+        completedAt,
+        sentCount
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('Failed to broadcast group completion:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to broadcast group completion'
+    }, 500)
+  }
+})
+
+/**
  * 廣播測試端點 (開發用)
  * POST /api/v1/sse/broadcast-test
  */

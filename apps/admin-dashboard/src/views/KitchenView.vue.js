@@ -1,8 +1,8 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
 // import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue'
-import { ArrowPathIcon, ClockIcon, PlayIcon, CheckCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon, ChartBarIcon, SpeakerWaveIcon } from '@heroicons/vue/24/outline';
+import { ArrowPathIcon, ClockIcon, PlayIcon, CheckCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon, ChartBarIcon, SpeakerWaveIcon, } from "@heroicons/vue/24/outline";
 // 響應式數據
-const currentTime = ref('');
+const currentTime = ref("");
 const isAutoRefresh = ref(true);
 const notificationSound = ref(null);
 const soundEnabled = ref(true);
@@ -20,92 +20,92 @@ const kitchenStats = ref({
     todayCompleted: 45,
     preparationSpeed: 85,
     qualityScore: 94,
-    workload: 68
+    workload: 68,
 });
 // 模擬廚房訂單數據
 const orders = ref([
     {
         id: 1,
-        orderNumber: 'ORD-001',
-        tableNumber: 'T01',
-        status: 'pending',
-        priority: 'normal',
+        orderNumber: "ORD-001",
+        tableNumber: "T01",
+        status: "pending",
+        priority: "normal",
         createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         estimatedReadyTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         items: [
             {
                 id: 1,
-                menuItemName: '招牌炒飯',
+                menuItemName: "招牌炒飯",
                 quantity: 2,
-                specialInstructions: '不要蔥',
-                customizations: { '辣度': '中辣', '配菜': '加蛋' }
+                specialInstructions: "不要蔥",
+                customizations: { 辣度: "中辣", 配菜: "加蛋" },
             },
             {
                 id: 2,
-                menuItemName: '冰奶茶',
+                menuItemName: "冰奶茶",
                 quantity: 1,
-                specialInstructions: '',
-                customizations: { '甜度': '半糖', '冰量': '正常冰' }
-            }
-        ]
+                specialInstructions: "",
+                customizations: { 甜度: "半糖", 冰量: "正常冰" },
+            },
+        ],
     },
     {
         id: 2,
-        orderNumber: 'ORD-002',
-        tableNumber: 'T03',
-        status: 'preparing',
-        priority: 'high',
+        orderNumber: "ORD-002",
+        tableNumber: "T03",
+        status: "preparing",
+        priority: "high",
         createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
         estimatedReadyTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
         items: [
             {
                 id: 3,
-                menuItemName: '春卷',
+                menuItemName: "春卷",
                 quantity: 1,
-                specialInstructions: '要蘸醬',
-                customizations: {}
-            }
-        ]
+                specialInstructions: "要蘸醬",
+                customizations: {},
+            },
+        ],
     },
     {
         id: 3,
-        orderNumber: 'ORD-003',
-        tableNumber: 'T05',
-        status: 'ready',
-        priority: 'normal',
+        orderNumber: "ORD-003",
+        tableNumber: "T05",
+        status: "ready",
+        priority: "normal",
         createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
         estimatedReadyTime: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
         items: [
             {
                 id: 4,
-                menuItemName: '南洋咖啡',
+                menuItemName: "南洋咖啡",
                 quantity: 2,
-                specialInstructions: '',
-                customizations: { '甜度': '正常', '濃度': '濃' }
-            }
-        ]
-    }
+                specialInstructions: "",
+                customizations: { 甜度: "正常", 濃度: "濃" },
+            },
+        ],
+    },
 ]);
 // 計算屬性
-const pendingOrders = computed(() => orders.value.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status)));
+const pendingOrders = computed(() => orders.value.filter((o) => ["pending", "confirmed", "preparing"].includes(o.status)));
 const kitchenOrders = computed(() => {
     return orders.value
-        .filter(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status))
+        .filter((o) => ["pending", "confirmed", "preparing", "ready"].includes(o.status))
         .sort((a, b) => {
         // 優先級排序
-        if (a.priority === 'high' && b.priority !== 'high')
+        if (a.priority === "high" && b.priority !== "high")
             return -1;
-        if (b.priority === 'high' && a.priority !== 'high')
+        if (b.priority === "high" && a.priority !== "high")
             return 1;
         // 時間排序
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 });
 const orderStats = computed(() => ({
-    pending: orders.value.filter(o => o.status === 'pending').length,
-    preparing: orders.value.filter(o => ['confirmed', 'preparing'].includes(o.status)).length,
-    ready: orders.value.filter(o => o.status === 'ready').length,
-    served: orders.value.filter(o => o.status === 'served').length
+    pending: orders.value.filter((o) => o.status === "pending").length,
+    preparing: orders.value.filter((o) => ["confirmed", "preparing"].includes(o.status)).length,
+    ready: orders.value.filter((o) => o.status === "ready").length,
+    served: orders.value.filter((o) => o.status === "served").length,
 }));
 // 績效計算屬性
 const avgCompletionTime = computed(() => kitchenStats.value.avgCompletionTime);
@@ -117,20 +117,20 @@ const qualityScore = computed(() => kitchenStats.value.qualityScore);
 const workload = computed(() => kitchenStats.value.workload);
 // 方法
 const updateCurrentTime = () => {
-    currentTime.value = new Date().toLocaleString('zh-TW', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+    currentTime.value = new Date().toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
     });
 };
 const refreshOrders = async () => {
     isLoadingOrders.value = true;
     try {
         // 模擬API調用
-        console.log('Refreshing kitchen orders...');
+        console.log("Refreshing kitchen orders...");
         // 在實際應用中，這裡會調用 API 獲取最新訂單
         // Reset pagination
         currentOrderPage.value = 1;
@@ -184,91 +184,92 @@ const onLoadMoreOrders = () => {
 }
 */
 const getOrderCardClass = (order) => {
-    const baseClass = 'bg-white';
+    const baseClass = "bg-white";
     const statusClasses = {
-        'pending': 'border-yellow-400',
-        'confirmed': 'border-blue-400',
-        'preparing': 'border-orange-400',
-        'ready': 'border-green-400'
+        pending: "border-yellow-400",
+        confirmed: "border-blue-400",
+        preparing: "border-orange-400",
+        ready: "border-green-400",
     };
-    const priorityClass = order.priority === 'high' ? 'ring-2 ring-red-300' : '';
-    return `${baseClass} ${statusClasses[order.status] || 'border-gray-400'} ${priorityClass}`;
+    const priorityClass = order.priority === "high" ? "ring-2 ring-red-300" : "";
+    return `${baseClass} ${statusClasses[order.status] || "border-gray-400"} ${priorityClass}`;
 };
 const getStatusIcon = (status) => {
     const icons = {
-        'pending': ClockIcon,
-        'confirmed': PlayIcon,
-        'preparing': PlayIcon,
-        'ready': CheckCircleIcon
+        pending: ClockIcon,
+        confirmed: PlayIcon,
+        preparing: PlayIcon,
+        ready: CheckCircleIcon,
     };
     return icons[status] || ClockIcon;
 };
 const getStatusIconClass = (status) => {
     const classes = {
-        'pending': 'bg-yellow-100 text-yellow-600',
-        'confirmed': 'bg-blue-100 text-blue-600',
-        'preparing': 'bg-orange-100 text-orange-600',
-        'ready': 'bg-green-100 text-green-600'
+        pending: "bg-yellow-100 text-yellow-600",
+        confirmed: "bg-blue-100 text-blue-600",
+        preparing: "bg-orange-100 text-orange-600",
+        ready: "bg-green-100 text-green-600",
     };
-    return classes[status] || 'bg-gray-100 text-gray-600';
+    return classes[status] || "bg-gray-100 text-gray-600";
 };
 const getPriorityBadgeClass = (priority) => {
-    return priority === 'high'
-        ? 'bg-red-100 text-red-800'
-        : 'bg-gray-100 text-gray-600';
+    return priority === "high"
+        ? "bg-red-100 text-red-800"
+        : "bg-gray-100 text-gray-600";
 };
 const getPriorityText = (priority) => {
-    return priority === 'high' ? '緊急' : '普通';
+    return priority === "high" ? "緊急" : "普通";
 };
 const getTimeElapsed = (createdAt) => {
     const now = new Date();
     const created = new Date(createdAt);
     const diffInMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
     if (diffInMinutes < 1)
-        return '剛下單';
+        return "剛下單";
     if (diffInMinutes < 60)
         return `${diffInMinutes} 分鐘前`;
     const hours = Math.floor(diffInMinutes / 60);
     return `${hours} 小時前`;
 };
 const formatTime = (dateTime) => {
-    return new Date(dateTime).toLocaleTimeString('zh-TW', {
-        hour: '2-digit',
-        minute: '2-digit'
+    return new Date(dateTime).toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
     });
 };
 const confirmOrder = async (order) => {
-    const index = orders.value.findIndex(o => o.id === order.id);
+    const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
-        orders.value[index].status = 'confirmed';
+        orders.value[index].status = "confirmed";
         playNotificationSound();
     }
 };
 const startCooking = async (order) => {
-    const index = orders.value.findIndex(o => o.id === order.id);
+    const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
-        orders.value[index].status = 'preparing';
+        orders.value[index].status = "preparing";
         // 設置預計完成時間（例如：15分鐘後）
         orders.value[index].estimatedReadyTime = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     }
 };
 const markReady = async (order) => {
-    const index = orders.value.findIndex(o => o.id === order.id);
+    const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
-        orders.value[index].status = 'ready';
+        orders.value[index].status = "ready";
         playNotificationSound();
     }
 };
 const markServed = async (order) => {
-    const index = orders.value.findIndex(o => o.id === order.id);
+    const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
-        orders.value[index].status = 'served';
+        orders.value[index].status = "served";
     }
 };
 const togglePriority = (order) => {
-    const index = orders.value.findIndex(o => o.id === order.id);
+    const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
-        orders.value[index].priority = orders.value[index].priority === 'high' ? 'normal' : 'high';
+        orders.value[index].priority =
+            orders.value[index].priority === "high" ? "normal" : "high";
     }
 };
 const playNotificationSound = () => {
@@ -278,15 +279,15 @@ const playNotificationSound = () => {
         notificationSound.value?.play();
     }
     catch (error) {
-        console.log('Could not play notification sound:', error);
+        console.log("Could not play notification sound:", error);
     }
 };
 const getEfficiencyColor = (score) => {
     if (score >= 90)
-        return 'text-green-600';
+        return "text-green-600";
     if (score >= 80)
-        return 'text-yellow-600';
-    return 'text-red-600';
+        return "text-yellow-600";
+    return "text-red-600";
 };
 // 計算預計完成時間（基於歷史數據和當前負載）
 const calculateEstimatedTime = (order) => {
@@ -299,13 +300,13 @@ const calculateEstimatedTime = (order) => {
 // 更新廚房統計數據
 const updateKitchenStats = () => {
     // 模擬統計數據更新
-    const completedToday = orders.value.filter(o => o.status === 'served').length;
+    const completedToday = orders.value.filter((o) => o.status === "served").length;
     // const totalProcessed = completedToday + orderStats.value.preparing + orderStats.value.ready
     kitchenStats.value = {
         ...kitchenStats.value,
         todayCompleted: completedToday,
         workload: Math.min(100, (orderStats.value.preparing / 8) * 100), // 假設最大並發8單
-        onTimeRate: Math.max(80, 100 - (orderStats.value.pending * 2)) // 待處理越多，準時率越低
+        onTimeRate: Math.max(80, 100 - orderStats.value.pending * 2), // 待處理越多，準時率越低
     };
 };
 const toggleSound = () => {
@@ -336,7 +337,7 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['kitchen-view']} */ 
+/** @type {__VLS_StyleScopedClasses['kitchen-view']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -367,7 +368,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [refreshOrders, isAutoRefresh,];
 const __VLS_0 = {}.ArrowPathIcon;
-/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ 
+/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ ;
 // @ts-ignore
 ArrowPathIcon;
 // @ts-ignore
@@ -379,20 +380,22 @@ const __VLS_2 = __VLS_1({
 }, ...__VLS_functionalComponentArgsRest(__VLS_1));
 // @ts-ignore
 [isAutoRefresh,];
-(__VLS_ctx.isAutoRefresh ? '自動刷新中' : '手動刷新');
+(__VLS_ctx.isAutoRefresh ? "自動刷新中" : "手動刷新");
 // @ts-ignore
 [isAutoRefresh,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     ...{ onClick: (__VLS_ctx.toggleSound) },
     ...{ class: ([
             'flex items-center px-4 py-2 rounded-lg transition-colors',
-            __VLS_ctx.soundEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+            __VLS_ctx.soundEnabled
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-700 hover:bg-gray-400',
         ]) },
 });
 // @ts-ignore
 [toggleSound, soundEnabled,];
 const __VLS_5 = {}.SpeakerWaveIcon;
-/** @type {[typeof __VLS_components.SpeakerWaveIcon, ]} */ 
+/** @type {[typeof __VLS_components.SpeakerWaveIcon, ]} */ ;
 // @ts-ignore
 SpeakerWaveIcon;
 // @ts-ignore
@@ -402,7 +405,7 @@ const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
 const __VLS_7 = __VLS_6({
     ...{ class: "h-4 w-4 mr-2" },
 }, ...__VLS_functionalComponentArgsRest(__VLS_6));
-(__VLS_ctx.soundEnabled ? '音效開啟' : '音效關閉');
+(__VLS_ctx.soundEnabled ? "音效開啟" : "音效關閉");
 // @ts-ignore
 [soundEnabled,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -430,7 +433,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_10 = {}.ClockIcon;
-/** @type {[typeof __VLS_components.ClockIcon, ]} */ 
+/** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
 // @ts-ignore
 ClockIcon;
 // @ts-ignore
@@ -457,7 +460,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_15 = {}.PlayIcon;
-/** @type {[typeof __VLS_components.PlayIcon, ]} */ 
+/** @type {[typeof __VLS_components.PlayIcon, ]} */ ;
 // @ts-ignore
 PlayIcon;
 // @ts-ignore
@@ -484,7 +487,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_20 = {}.CheckCircleIcon;
-/** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ 
+/** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
 // @ts-ignore
 CheckCircleIcon;
 // @ts-ignore
@@ -511,7 +514,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center" },
 });
 const __VLS_25 = {}.ChartBarIcon;
-/** @type {[typeof __VLS_components.ChartBarIcon, ]} */ 
+/** @type {[typeof __VLS_components.ChartBarIcon, ]} */ ;
 // @ts-ignore
 ChartBarIcon;
 // @ts-ignore
@@ -604,7 +607,7 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "w-full bg-gray-200 rounded-full h-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: "bg-blue-500 h-2 rounded-full transition-all duration-300" },
     ...{ style: ({ width: `${__VLS_ctx.preparationSpeed}%` }) },
 });
@@ -626,7 +629,7 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "w-full bg-gray-200 rounded-full h-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: "bg-green-500 h-2 rounded-full transition-all duration-300" },
     ...{ style: ({ width: `${__VLS_ctx.qualityScore}%` }) },
 });
@@ -648,9 +651,13 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "w-full bg-gray-200 rounded-full h-2" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+__VLS_asFunctionalElement(__VLS_elements.div)({
     ...{ class: "h-2 rounded-full transition-all duration-300" },
-    ...{ class: (__VLS_ctx.workload > 80 ? 'bg-red-500' : __VLS_ctx.workload > 60 ? 'bg-yellow-500' : 'bg-green-500') },
+    ...{ class: (__VLS_ctx.workload > 80
+            ? 'bg-red-500'
+            : __VLS_ctx.workload > 60
+                ? 'bg-yellow-500'
+                : 'bg-green-500') },
     ...{ style: ({ width: `${__VLS_ctx.workload}%` }) },
 });
 // @ts-ignore
@@ -698,7 +705,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-600" },
     });
-    (order.tableNumber || 'N/A');
+    (order.tableNumber || "N/A");
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "text-right" },
     });
@@ -742,7 +749,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
                 ...{ class: "text-sm text-orange-600 mt-1" },
             });
             const __VLS_35 = {}.ExclamationTriangleIcon;
-            /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ 
+            /** @type {[typeof __VLS_components.ExclamationTriangleIcon, ]} */ ;
             // @ts-ignore
             ExclamationTriangleIcon;
             // @ts-ignore
@@ -754,7 +761,8 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
             }, ...__VLS_functionalComponentArgsRest(__VLS_36));
             (item.specialInstructions);
         }
-        if (item.customizations && Object.keys(item.customizations).length > 0) {
+        if (item.customizations &&
+            Object.keys(item.customizations).length > 0) {
             __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
                 ...{ class: "mt-1" },
             });
@@ -789,7 +797,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
     else if (order.status === 'confirmed') {
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (...[$event]) => {
-                    if (order.status === 'pending')
+                    if (!!(order.status === 'pending'))
                         return;
                     if (!(order.status === 'confirmed'))
                         return;
@@ -803,9 +811,9 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
     else if (order.status === 'preparing') {
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (...[$event]) => {
-                    if (order.status === 'pending')
+                    if (!!(order.status === 'pending'))
                         return;
-                    if (order.status === 'confirmed')
+                    if (!!(order.status === 'confirmed'))
                         return;
                     if (!(order.status === 'preparing'))
                         return;
@@ -819,11 +827,11 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
     else if (order.status === 'ready') {
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (...[$event]) => {
-                    if (order.status === 'pending')
+                    if (!!(order.status === 'pending'))
                         return;
-                    if (order.status === 'confirmed')
+                    if (!!(order.status === 'confirmed'))
                         return;
-                    if (order.status === 'preparing')
+                    if (!!(order.status === 'preparing'))
                         return;
                     if (!(order.status === 'ready'))
                         return;
@@ -843,11 +851,13 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
                     // @ts-ignore
                     [togglePriority,];
                 } },
-            ...{ class: (order.priority === 'high' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200') },
+            ...{ class: (order.priority === 'high'
+                    ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200') },
             ...{ class: "px-3 py-2 rounded-lg transition-colors" },
         });
         const __VLS_40 = {}.ExclamationCircleIcon;
-        /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ExclamationCircleIcon, ]} */ ;
         // @ts-ignore
         ExclamationCircleIcon;
         // @ts-ignore
@@ -868,7 +878,7 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
         ...{ class: "flex items-center" },
     });
     const __VLS_45 = {}.ClockIcon;
-    /** @type {[typeof __VLS_components.ClockIcon, ]} */ 
+    /** @type {[typeof __VLS_components.ClockIcon, ]} */ ;
     // @ts-ignore
     ClockIcon;
     // @ts-ignore
@@ -891,16 +901,22 @@ for (const [order] of __VLS_getVForSourceType((__VLS_ctx.kitchenOrders))) {
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: "w-20 bg-gray-200 rounded-full h-1 mr-2" },
         });
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        __VLS_asFunctionalElement(__VLS_elements.div)({
             ...{ class: "bg-blue-500 h-1 rounded-full transition-all duration-300" },
-            ...{ style: ({ width: `${Math.min(100, (__VLS_ctx.getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt)) : 0) / __VLS_ctx.calculateEstimatedTime(order) * 100)}%` }) },
+            ...{ style: ({
+                    width: `${Math.min(100, ((__VLS_ctx.getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt)) : 0) / __VLS_ctx.calculateEstimatedTime(order)) * 100)}%`,
+                }) },
         });
         // @ts-ignore
         [getTimeElapsed, getTimeElapsed, calculateEstimatedTime,];
         __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
             ...{ class: "text-xs text-gray-500" },
         });
-        (Math.min(100, Math.round((__VLS_ctx.getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt)) : 0) / __VLS_ctx.calculateEstimatedTime(order) * 100)));
+        (Math.min(100, Math.round(((__VLS_ctx.getTimeElapsed(order.createdAt).includes("分鐘前")
+            ? parseInt(__VLS_ctx.getTimeElapsed(order.createdAt))
+            : 0) /
+            __VLS_ctx.calculateEstimatedTime(order)) *
+            100)));
         // @ts-ignore
         [getTimeElapsed, getTimeElapsed, calculateEstimatedTime,];
     }
@@ -921,7 +937,7 @@ if (__VLS_ctx.kitchenOrders.length === 0) {
         ...{ class: "text-center py-12" },
     });
     const __VLS_50 = {}.CheckCircleIcon;
-    /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ 
+    /** @type {[typeof __VLS_components.CheckCircleIcon, ]} */ ;
     // @ts-ignore
     CheckCircleIcon;
     // @ts-ignore
@@ -938,382 +954,371 @@ if (__VLS_ctx.kitchenOrders.length === 0) {
         ...{ class: "text-gray-500" },
     });
 }
-__VLS_asFunctionalElement(__VLS_elements.audio, __VLS_elements.audio)({
-    ref: "notificationSound",
-    preload: "auto",
-});
-/** @type {typeof __VLS_ctx.notificationSound} */ 
-// @ts-ignore
-[notificationSound,];
-__VLS_asFunctionalElement(__VLS_elements.source)({
-    src: "/notification.mp3",
-    type: "audio/mpeg",
-});
-/** @type {__VLS_StyleScopedClasses['kitchen-view']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-3xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ 
-/** @type {__VLS_StyleScopedClasses['lg:grid-cols-4']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-8']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-yellow-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-purple-100']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-purple-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-purple-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-8']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
+/** @type {__VLS_StyleScopedClasses['kitchen-view']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-3xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-3']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['grid']} */ 
-/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ 
-/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ 
-/** @type {__VLS_StyleScopedClasses['xl:grid-cols-3']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-6']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['h-full']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['p-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['h-6']} */ 
-/** @type {__VLS_StyleScopedClasses['w-6']} */ 
-/** @type {__VLS_StyleScopedClasses['text-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-right']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['space-y-3']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-3']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['inline']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-wrap']} */ 
-/** @type {__VLS_StyleScopedClasses['gap-1']} */ 
-/** @type {__VLS_StyleScopedClasses['inline-block']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-yellow-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-yellow-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-purple-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-purple-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['pt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-t']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-20']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-1']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['h-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['py-12']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['h-16']} */ 
-/** @type {__VLS_StyleScopedClasses['w-16']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['lg:grid-cols-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-yellow-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-purple-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['md:grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['xl:grid-cols-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-right']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-orange-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-wrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline-block']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-yellow-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-blue-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-yellow-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-yellow-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-purple-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-purple-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['pt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-t']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-20']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ArrowPathIcon: ArrowPathIcon,
@@ -1326,7 +1331,6 @@ const __VLS_self = (await import('vue')).defineComponent({
         SpeakerWaveIcon: SpeakerWaveIcon,
         currentTime: currentTime,
         isAutoRefresh: isAutoRefresh,
-        notificationSound: notificationSound,
         soundEnabled: soundEnabled,
         pendingOrders: pendingOrders,
         kitchenOrders: kitchenOrders,
@@ -1357,4 +1361,4 @@ const __VLS_self = (await import('vue')).defineComponent({
     }),
 });
 export default (await import('vue')).defineComponent({});
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

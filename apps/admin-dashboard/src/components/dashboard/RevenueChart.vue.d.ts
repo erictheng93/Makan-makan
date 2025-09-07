@@ -6,7 +6,7 @@ interface RevenueDataPoint {
 interface RevenueChartProps {
     data: RevenueDataPoint[];
     loading?: boolean;
-    period: 'daily' | 'weekly' | 'monthly';
+    period: "daily" | "weekly" | "monthly";
 }
 declare const _default: import("vue").DefineComponent<RevenueChartProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<RevenueChartProps> & Readonly<{}>, {
     loading: boolean;

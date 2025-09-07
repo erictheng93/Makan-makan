@@ -1,5 +1,5 @@
 export interface StatisticsSocketEvent {
-    type: 'order_created' | 'order_updated' | 'order_completed' | 'order_cancelled' | 'statistics_update';
+    type: "order_created" | "order_updated" | "order_completed" | "order_cancelled" | "statistics_update";
     data: any;
     timestamp: string;
 }

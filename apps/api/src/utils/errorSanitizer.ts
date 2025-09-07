@@ -208,7 +208,7 @@ export class ErrorSanitizer {
   /**
    * Creates a safe error response for API endpoints
    */
-  public static createErrorResponse(error: unknown, statusCode: number = 500) {
+  public static createErrorResponse(error: unknown, _statusCode: number = 500) {
     const sanitized = this.sanitizeError(error)
     
     return {

@@ -1,5 +1,5 @@
 export interface StatisticsSSEEvent {
-    type: 'order_created' | 'order_updated' | 'order_completed' | 'order_cancelled' | 'statistics_update' | 'heartbeat';
+    type: "order_created" | "order_updated" | "order_completed" | "order_cancelled" | "statistics_update" | "heartbeat";
     data: any;
     timestamp: string;
     id?: string;

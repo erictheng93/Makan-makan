@@ -8,3 +8,6 @@ export * from './order';
 export * from './table';
 export * from './websocket';
 export * from './common';
+export * from './payment';
+export * from './stripe';
+export * from './printer';

@@ -506,6 +506,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      zod:
+        specifier: ^3.22.0
+        version: 3.22.3
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.6
@@ -6878,7 +6881,7 @@ snapshots:
       std-env: 3.9.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@26.1.0)(terser@5.44.0)
+      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -6968,7 +6971,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.43.1)
+      vitest: 1.6.1(@types/node@20.19.11)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.0)
 
   '@vitest/utils@1.6.1':
     dependencies:

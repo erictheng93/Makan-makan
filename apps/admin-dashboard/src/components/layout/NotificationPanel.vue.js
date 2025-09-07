@@ -1,9 +1,9 @@
-import { computed, ref, onMounted } from 'vue';
-import { useNotificationStore } from '@/stores/notification';
-import { useRouter } from 'vue-router';
-import { format } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
-import { Bell, AlertTriangle, ShoppingCart, CheckCircle, Info, Clock, User } from 'lucide-vue-next';
+import { computed, ref, onMounted } from "vue";
+import { useNotificationStore } from "@/stores/notification";
+import { useRouter } from "vue-router";
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { Bell, AlertTriangle, ShoppingCart, CheckCircle, Info, Clock, User, } from "lucide-vue-next";
 const __VLS_emit = defineEmits();
 const notificationStore = useNotificationStore();
 const router = useRouter();
@@ -26,7 +26,7 @@ const markAllAsRead = () => {
     notificationStore.markAllAsRead();
 };
 const clearAll = () => {
-    if (confirm('確定要清除所有通知嗎？')) {
+    if (confirm("確定要清除所有通知嗎？")) {
         notificationStore.clearAll();
     }
 };
@@ -48,37 +48,38 @@ const handleNotificationClick = (notification) => {
         markAsRead(notification.id);
     }
     // 根據通知類型導航到相應頁面
-    if (notification.type === 'order_new' || notification.type === 'order_urgent') {
-        router.push('/dashboard/orders');
+    if (notification.type === "order_new" ||
+        notification.type === "order_urgent") {
+        router.push("/dashboard/orders");
     }
-    else if (notification.type === 'order_ready') {
+    else if (notification.type === "order_ready") {
         if (userCanAccessService()) {
-            router.push('/service');
+            router.push("/service");
         }
         else {
-            router.push('/dashboard/orders');
+            router.push("/dashboard/orders");
         }
     }
-    else if (notification.type === 'system_alert') {
-        router.push('/dashboard/analytics');
+    else if (notification.type === "system_alert") {
+        router.push("/dashboard/analytics");
     }
 };
 const handleOrderAction = (notification, action) => {
-    console.log('Handle order action:', action, notification);
-    if (action === 'deliver') {
-        router.push('/service');
+    console.log("Handle order action:", action, notification);
+    if (action === "deliver") {
+        router.push("/service");
     }
-    else if (action === 'prioritize') {
+    else if (action === "prioritize") {
         // 優先處理邏輯
-        alert('已將訂單標記為優先處理');
+        alert("已將訂單標記為優先處理");
         markAsRead(notification.id);
     }
 };
 const showAllNotifications = () => {
-    router.push('/dashboard/notifications');
+    router.push("/dashboard/notifications");
 };
 const hasActionButtons = (notification) => {
-    return ['order_ready', 'order_urgent'].includes(notification.type);
+    return ["order_ready", "order_urgent"].includes(notification.type);
 };
 const userCanAccessService = () => {
     // 檢查用戶是否有服務權限
@@ -87,48 +88,48 @@ const userCanAccessService = () => {
 // 通知圖標映射
 const getNotificationIcon = (type) => {
     const iconMap = {
-        'order_new': ShoppingCart,
-        'order_urgent': AlertTriangle,
-        'order_ready': CheckCircle,
-        'system_alert': Info,
-        'staff_update': User,
-        'reminder': Clock
+        order_new: ShoppingCart,
+        order_urgent: AlertTriangle,
+        order_ready: CheckCircle,
+        system_alert: Info,
+        staff_update: User,
+        reminder: Clock,
     };
     return iconMap[type] || Bell;
 };
 const getNotificationIconBg = (type) => {
     const bgMap = {
-        'order_new': 'bg-blue-100',
-        'order_urgent': 'bg-red-100',
-        'order_ready': 'bg-green-100',
-        'system_alert': 'bg-yellow-100',
-        'staff_update': 'bg-purple-100',
-        'reminder': 'bg-gray-100'
+        order_new: "bg-blue-100",
+        order_urgent: "bg-red-100",
+        order_ready: "bg-green-100",
+        system_alert: "bg-yellow-100",
+        staff_update: "bg-purple-100",
+        reminder: "bg-gray-100",
     };
-    return bgMap[type] || 'bg-gray-100';
+    return bgMap[type] || "bg-gray-100";
 };
 const getNotificationIconColor = (type) => {
     const colorMap = {
-        'order_new': 'text-blue-600',
-        'order_urgent': 'text-red-600',
-        'order_ready': 'text-green-600',
-        'system_alert': 'text-yellow-600',
-        'staff_update': 'text-purple-600',
-        'reminder': 'text-gray-600'
+        order_new: "text-blue-600",
+        order_urgent: "text-red-600",
+        order_ready: "text-green-600",
+        system_alert: "text-yellow-600",
+        staff_update: "text-purple-600",
+        reminder: "text-gray-600",
     };
-    return colorMap[type] || 'text-gray-600';
+    return colorMap[type] || "text-gray-600";
 };
 const formatTime = (dateTime) => {
     const now = new Date();
     const diff = now.getTime() - dateTime.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
     if (minutes < 1)
-        return '剛剛';
+        return "剛剛";
     if (minutes < 60)
         return `${minutes} 分鐘前`;
     if (minutes < 24 * 60)
         return `${Math.floor(minutes / 60)} 小時前`;
-    return format(dateTime, 'MM/dd HH:mm', { locale: zhTW });
+    return format(dateTime, "MM/dd HH:mm", { locale: zhTW });
 };
 onMounted(() => {
     notificationStore.initializeSoundSetting();
@@ -138,9 +139,9 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -153,7 +154,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex items-center space-x-2" },
 });
 const __VLS_0 = {}.Bell;
-/** @type {[typeof __VLS_components.Bell, ]} */ 
+/** @type {[typeof __VLS_components.Bell, ]} */ ;
 // @ts-ignore
 Bell;
 // @ts-ignore
@@ -172,7 +173,7 @@ if (__VLS_ctx.unreadCount > 0) {
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
         ...{ class: "bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[1.25rem] text-center" },
     });
-    (__VLS_ctx.unreadCount > 99 ? '99+' : __VLS_ctx.unreadCount);
+    (__VLS_ctx.unreadCount > 99 ? "99+" : __VLS_ctx.unreadCount);
     // @ts-ignore
     [unreadCount, unreadCount,];
 }
@@ -185,7 +186,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     ...{ class: "text-gray-400 hover:text-gray-600 transition-colors" },
 });
 const __VLS_5 = {}.XMarkIcon;
-/** @type {[typeof __VLS_components.XMarkIcon, ]} */ 
+/** @type {[typeof __VLS_components.XMarkIcon, ]} */ ;
 // @ts-ignore
 XMarkIcon;
 // @ts-ignore
@@ -228,7 +229,7 @@ if (__VLS_ctx.soundEnabled) {
     // @ts-ignore
     [soundEnabled,];
     const __VLS_10 = {}.SpeakerWaveIcon;
-    /** @type {[typeof __VLS_components.SpeakerWaveIcon, ]} */ 
+    /** @type {[typeof __VLS_components.SpeakerWaveIcon, ]} */ ;
     // @ts-ignore
     SpeakerWaveIcon;
     // @ts-ignore
@@ -241,7 +242,7 @@ if (__VLS_ctx.soundEnabled) {
 }
 else {
     const __VLS_15 = {}.SpeakerXMarkIcon;
-    /** @type {[typeof __VLS_components.SpeakerXMarkIcon, ]} */ 
+    /** @type {[typeof __VLS_components.SpeakerXMarkIcon, ]} */ ;
     // @ts-ignore
     SpeakerXMarkIcon;
     // @ts-ignore
@@ -259,7 +260,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [refreshNotifications,];
 const __VLS_20 = {}.ArrowPathIcon;
-/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ 
+/** @type {[typeof __VLS_components.ArrowPathIcon, ]} */ ;
 // @ts-ignore
 ArrowPathIcon;
 // @ts-ignore
@@ -283,7 +284,7 @@ if (__VLS_ctx.notifications.length === 0) {
         ...{ class: "p-8 text-center" },
     });
     const __VLS_25 = {}.Bell;
-    /** @type {[typeof __VLS_components.Bell, ]} */ 
+    /** @type {[typeof __VLS_components.Bell, ]} */ ;
     // @ts-ignore
     Bell;
     // @ts-ignore
@@ -306,7 +307,7 @@ else {
         [sortedNotifications,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ onClick: (...[$event]) => {
-                    if (__VLS_ctx.notifications.length === 0)
+                    if (!!(__VLS_ctx.notifications.length === 0))
                         return;
                     __VLS_ctx.handleNotificationClick(notification);
                     // @ts-ignore
@@ -314,7 +315,9 @@ else {
                 } },
             key: (notification.id),
             ...{ class: "p-4 hover:bg-gray-50 cursor-pointer transition-colors" },
-            ...{ class: ({ 'bg-blue-50 border-l-4 border-blue-500': !notification.read }) },
+            ...{ class: ({
+                    'bg-blue-50 border-l-4 border-blue-500': !notification.read,
+                }) },
         });
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: "flex items-start space-x-3" },
@@ -325,7 +328,7 @@ else {
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ class: ([
                     'w-8 h-8 rounded-full flex items-center justify-center',
-                    __VLS_ctx.getNotificationIconBg(notification.type)
+                    __VLS_ctx.getNotificationIconBg(notification.type),
                 ]) },
         });
         // @ts-ignore
@@ -335,13 +338,13 @@ else {
         const __VLS_31 = __VLS_asFunctionalComponent(__VLS_30, new __VLS_30({
             ...{ class: ([
                     'w-4 h-4',
-                    __VLS_ctx.getNotificationIconColor(notification.type)
+                    __VLS_ctx.getNotificationIconColor(notification.type),
                 ]) },
         }));
         const __VLS_32 = __VLS_31({
             ...{ class: ([
                     'w-4 h-4',
-                    __VLS_ctx.getNotificationIconColor(notification.type)
+                    __VLS_ctx.getNotificationIconColor(notification.type),
                 ]) },
         }, ...__VLS_functionalComponentArgsRest(__VLS_31));
         // @ts-ignore
@@ -360,7 +363,7 @@ else {
             ...{ class: "flex items-center space-x-2" },
         });
         if (!notification.read) {
-            __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            __VLS_asFunctionalElement(__VLS_elements.span)({
                 ...{ class: "w-2 h-2 bg-blue-500 rounded-full" },
             });
         }
@@ -400,7 +403,7 @@ else {
             if (notification.type === 'order_ready') {
                 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
                     ...{ onClick: (...[$event]) => {
-                            if (__VLS_ctx.notifications.length === 0)
+                            if (!!(__VLS_ctx.notifications.length === 0))
                                 return;
                             if (!(__VLS_ctx.hasActionButtons(notification)))
                                 return;
@@ -416,7 +419,7 @@ else {
             if (notification.type === 'order_urgent') {
                 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
                     ...{ onClick: (...[$event]) => {
-                            if (__VLS_ctx.notifications.length === 0)
+                            if (!!(__VLS_ctx.notifications.length === 0))
                                 return;
                             if (!(__VLS_ctx.hasActionButtons(notification)))
                                 return;
@@ -431,7 +434,7 @@ else {
             }
             __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
                 ...{ onClick: (...[$event]) => {
-                        if (__VLS_ctx.notifications.length === 0)
+                        if (!!(__VLS_ctx.notifications.length === 0))
                             return;
                         if (!(__VLS_ctx.hasActionButtons(notification)))
                             return;
@@ -464,203 +467,203 @@ if (__VLS_ctx.notifications.length > 0) {
     // @ts-ignore
     [showAllNotifications,];
 }
-/** @type {__VLS_StyleScopedClasses['fixed']} */ 
-/** @type {__VLS_StyleScopedClasses['right-0']} */ 
-/** @type {__VLS_StyleScopedClasses['top-16']} */ 
-/** @type {__VLS_StyleScopedClasses['w-80']} */ 
-/** @type {__VLS_StyleScopedClasses['max-w-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['z-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-bl-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-hidden']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border-b']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['w-5']} */ 
-/** @type {__VLS_StyleScopedClasses['h-5']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-0.5']} */ 
-/** @type {__VLS_StyleScopedClasses['min-w-[1.25rem]']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['px-4']} */ 
-/** @type {__VLS_StyleScopedClasses['py-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border-b']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-3']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-600']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-red-800']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['p-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ 
-/** @type {__VLS_StyleScopedClasses['p-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['animate-spin']} */ 
-/** @type {__VLS_StyleScopedClasses['max-h-96']} */ 
-/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['p-8']} */ 
-/** @type {__VLS_StyleScopedClasses['text-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-12']} */ 
-/** @type {__VLS_StyleScopedClasses['h-12']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['mx-auto']} */ 
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ 
+/** @type {__VLS_StyleScopedClasses['fixed']} */ ;
+/** @type {__VLS_StyleScopedClasses['right-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['top-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-80']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['z-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-bl-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-hidden']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-w-[1.25rem]']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-red-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-spin']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-h-96']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['divide-y']} */ 
-/** @type {__VLS_StyleScopedClasses['divide-gray-100']} */ 
-/** @type {__VLS_StyleScopedClasses['p-4']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['cursor-pointer']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-start']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-0.5']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-center']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['min-w-0']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['truncate']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['w-2']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['line-clamp-2']} */ 
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['divide-y']} */ ;
+/** @type {__VLS_StyleScopedClasses['divide-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['cursor-pointer']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-start']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-w-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['truncate']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['whitespace-nowrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['line-clamp-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['inline-flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ 
-/** @type {__VLS_StyleScopedClasses['inline-flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['px-2']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-1']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-3']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['space-x-2']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-red-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-white']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-red-700']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ 
-/** @type {__VLS_StyleScopedClasses['px-3']} */ 
-/** @type {__VLS_StyleScopedClasses['py-1']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:bg-gray-300']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ 
-/** @type {__VLS_StyleScopedClasses['border-t']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ 
-/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-colors']} */ 
-let __VLS_dollars;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline-flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline-flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-blue-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-x-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-green-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-red-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-t']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-blue-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:text-blue-800']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         Bell: Bell,
@@ -688,4 +691,4 @@ const __VLS_self = (await import('vue')).defineComponent({
 export default (await import('vue')).defineComponent({
     __typeEmits: {},
 });
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */

@@ -1,7 +1,10 @@
-import { computed } from 'vue';
-import { QueueListIcon, CheckCircleIcon, ClockIcon, ChartBarIcon, CurrencyDollarIcon, UserGroupIcon, ShoppingBagIcon, TableCellsIcon, ExclamationTriangleIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/vue/24/outline';
+import { computed } from "vue";
+import { QueueListIcon, CheckCircleIcon, ClockIcon, ChartBarIcon, CurrencyDollarIcon, UserGroupIcon, ShoppingBagIcon, TableCellsIcon, ExclamationTriangleIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon, } from "@heroicons/vue/24/outline";
 const props = withDefaults(defineProps(), {
-    color: 'blue'
+    color: "blue",
+    subtitle: undefined,
+    trend: undefined,
+    progress: undefined,
 });
 // 圖標組件映射
 const iconComponents = {
@@ -13,7 +16,7 @@ const iconComponents = {
     UserGroupIcon,
     ShoppingBagIcon,
     TableCellsIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon,
 };
 const iconComponent = computed(() => {
     return iconComponents[props.icon] || ChartBarIcon;
@@ -21,41 +24,41 @@ const iconComponent = computed(() => {
 // 顏色樣式計算
 const colorClasses = {
     green: {
-        border: 'border-l-green-500',
-        iconBg: 'bg-green-100',
-        icon: 'text-green-600',
-        progress: 'bg-green-500'
+        border: "border-l-green-500",
+        iconBg: "bg-green-100",
+        icon: "text-green-600",
+        progress: "bg-green-500",
     },
     blue: {
-        border: 'border-l-blue-500',
-        iconBg: 'bg-blue-100',
-        icon: 'text-blue-600',
-        progress: 'bg-blue-500'
+        border: "border-l-blue-500",
+        iconBg: "bg-blue-100",
+        icon: "text-blue-600",
+        progress: "bg-blue-500",
     },
     yellow: {
-        border: 'border-l-yellow-500',
-        iconBg: 'bg-yellow-100',
-        icon: 'text-yellow-600',
-        progress: 'bg-yellow-500'
+        border: "border-l-yellow-500",
+        iconBg: "bg-yellow-100",
+        icon: "text-yellow-600",
+        progress: "bg-yellow-500",
     },
     red: {
-        border: 'border-l-red-500',
-        iconBg: 'bg-red-100',
-        icon: 'text-red-600',
-        progress: 'bg-red-500'
+        border: "border-l-red-500",
+        iconBg: "bg-red-100",
+        icon: "text-red-600",
+        progress: "bg-red-500",
     },
     purple: {
-        border: 'border-l-purple-500',
-        iconBg: 'bg-purple-100',
-        icon: 'text-purple-600',
-        progress: 'bg-purple-500'
+        border: "border-l-purple-500",
+        iconBg: "bg-purple-100",
+        icon: "text-purple-600",
+        progress: "bg-purple-500",
     },
     gray: {
-        border: 'border-l-gray-500',
-        iconBg: 'bg-gray-100',
-        icon: 'text-gray-600',
-        progress: 'bg-gray-500'
-    }
+        border: "border-l-gray-500",
+        iconBg: "bg-gray-100",
+        icon: "text-gray-600",
+        progress: "bg-gray-500",
+    },
 };
 const borderColor = computed(() => colorClasses[props.color].border);
 const iconBgColor = computed(() => colorClasses[props.color].iconBg);
@@ -63,13 +66,16 @@ const iconColor = computed(() => colorClasses[props.color].icon);
 const progressColor = computed(() => colorClasses[props.color].progress);
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_withDefaultsArg = (function (t) { return t; })({
-    color: 'blue'
+    color: "blue",
+    subtitle: undefined,
+    trend: undefined,
+    progress: undefined,
 });
 const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -131,7 +137,7 @@ if (__VLS_ctx.trend) {
         // @ts-ignore
         [trend,];
         const __VLS_5 = {}.ArrowTrendingUpIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ArrowTrendingUpIcon, ]} */ ;
         // @ts-ignore
         ArrowTrendingUpIcon;
         // @ts-ignore
@@ -146,7 +152,7 @@ if (__VLS_ctx.trend) {
         // @ts-ignore
         [trend,];
         const __VLS_10 = {}.ArrowTrendingDownIcon;
-        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ 
+        /** @type {[typeof __VLS_components.ArrowTrendingDownIcon, ]} */ ;
         // @ts-ignore
         ArrowTrendingDownIcon;
         // @ts-ignore
@@ -161,7 +167,7 @@ if (__VLS_ctx.trend) {
         // @ts-ignore
         [trend,];
         const __VLS_15 = {}.MinusIcon;
-        /** @type {[typeof __VLS_components.MinusIcon, ]} */ 
+        /** @type {[typeof __VLS_components.MinusIcon, ]} */ ;
         // @ts-ignore
         MinusIcon;
         // @ts-ignore
@@ -192,7 +198,7 @@ if (__VLS_ctx.progress !== undefined) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "w-full bg-gray-200 rounded-full h-2" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    __VLS_asFunctionalElement(__VLS_elements.div)({
         ...{ class: "h-2 rounded-full transition-all duration-300 ease-in-out" },
         ...{ class: (__VLS_ctx.progressColor) },
         ...{ style: ({ width: `${Math.min(__VLS_ctx.progress, 100)}%` }) },
@@ -217,68 +223,68 @@ if (__VLS_ctx.$slots.extra) {
     });
     var __VLS_20 = {};
 }
-/** @type {__VLS_StyleScopedClasses['bg-white']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['p-6']} */ 
-/** @type {__VLS_StyleScopedClasses['border-l-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ 
-/** @type {__VLS_StyleScopedClasses['p-3']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ 
-/** @type {__VLS_StyleScopedClasses['h-8']} */ 
-/** @type {__VLS_StyleScopedClasses['w-8']} */ 
-/** @type {__VLS_StyleScopedClasses['ml-4']} */ 
-/** @type {__VLS_StyleScopedClasses['flex-1']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ 
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ 
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['items-center']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-green-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-red-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['h-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-4']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mr-1']} */ 
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['w-full']} */ 
-/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['h-2']} */ 
-/** @type {__VLS_StyleScopedClasses['rounded-full']} */ 
-/** @type {__VLS_StyleScopedClasses['transition-all']} */ 
-/** @type {__VLS_StyleScopedClasses['duration-300']} */ 
-/** @type {__VLS_StyleScopedClasses['ease-in-out']} */ 
-/** @type {__VLS_StyleScopedClasses['flex']} */ 
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ 
-/** @type {__VLS_StyleScopedClasses['text-xs']} */ 
-/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-1']} */ 
-/** @type {__VLS_StyleScopedClasses['mt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['pt-4']} */ 
-/** @type {__VLS_StyleScopedClasses['border-t']} */ 
-/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ 
+/** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-shrink-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-900']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mr-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['ease-in-out']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['pt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-t']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-200']} */ ;
 // @ts-ignore
-let __VLS_21 = __VLS_20;
-let __VLS_dollars;
+var __VLS_21 = __VLS_20;
+var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         ArrowTrendingUpIcon: ArrowTrendingUpIcon,
@@ -298,4 +304,4 @@ const __VLS_component = (await import('vue')).defineComponent({
     props: {},
 });
 export default {};
- /* PartiallyEnd: #4569/main.vue */
+; /* PartiallyEnd: #4569/main.vue */
