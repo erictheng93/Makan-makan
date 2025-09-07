@@ -102,37 +102,11 @@
       >
         <!-- 菜品圖片 -->
         <div class="relative">
-          <LazyImage
+          <img
             :src="item.imageUrl || '/placeholder-food.jpg'"
             :alt="item.name"
-            container-class="w-full h-48"
-            image-class="w-full h-48 object-cover rounded-t-lg"
-            :show-loading-skeleton="true"
-            :quality="80"
-            :progressive="true"
-          >
-            <!-- <template #loading>
-              <div class="w-full h-48 bg-gray-200 rounded-t-lg animate-pulse flex items-center justify-center">
-                <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              </div>
-            </template> -->
-            <!-- <template #error="{ retry }: { retry: () => void }">
-              <div class="w-full h-48 bg-gray-100 rounded-t-lg flex flex-col items-center justify-center text-gray-400">
-                <svg class="w-8 h-8 mb-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
-                </svg>
-                <span class="text-xs">載入失敗</span>
-                <button 
-                  @click="retry"
-                  class="mt-1 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-                >
-                  重試
-                </button>
-              </div>
-            </template> -->
-          </LazyImage>
+            class="w-full h-48 object-cover rounded-t-lg"
+          />
           <div class="absolute top-2 right-2">
             <span
               :class="[
@@ -462,7 +436,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import LazyImage from "../../../packages/shared/components/LazyImage.vue";
+// import LazyImage from "../../../packages/shared/components/LazyImage.vue";
 import {
   PlusIcon,
   MagnifyingGlassIcon,

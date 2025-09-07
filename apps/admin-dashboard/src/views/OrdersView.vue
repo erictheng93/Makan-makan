@@ -19,7 +19,7 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
           <div class="p-2 bg-blue-100 rounded-lg">
-            <CookingPotIcon class="h-6 w-6 text-blue-600" />
+            <ShoppingBagIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
             <h3 class="text-lg font-semibold text-gray-900">製作中</h3>
@@ -330,7 +330,7 @@ import {
   ShoppingBagIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
-import { CookingPotIcon } from "@heroicons/vue/24/solid";
+// import CookingPotIcon from "@heroicons/vue/24/solid/CookingPotIcon";
 
 const orderStore = useOrderStore();
 
