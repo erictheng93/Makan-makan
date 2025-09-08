@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import PaymentProcessing from "../PaymentProcessing.vue";
 
@@ -165,7 +165,7 @@ describe("PaymentProcessing", () => {
       expect(wrapper.text()).toContain("很抱歉，您的支付處理過程中遇到問題");
     });
 
-    it("displays error details when available", () => {
+    it("displays error details when available", async () => {
       wrapper = createWrapper({
         status: "error",
         errorDetails: {

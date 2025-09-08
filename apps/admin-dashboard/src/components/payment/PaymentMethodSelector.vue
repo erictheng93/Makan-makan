@@ -151,8 +151,8 @@ import {
   BanknotesIcon,
   DevicePhoneMobileIcon,
   BuildingLibraryIcon,
-  QrCodeIcon,
 } from "@heroicons/vue/24/solid";
+import QrCodeIcon from "@heroicons/vue/24/solid/QrCodeIcon";
 import type { PaymentMethod, CountryCode } from "@makanmakan/shared-types";
 
 // Props
@@ -376,6 +376,39 @@ const paymentMethodsConfig: Record<
     iconComponent: BanknotesIcon,
     processingTime: "即時",
     features: ["multi_bank", "comprehensive"],
+    recommended: false,
+    disabled: false,
+  },
+
+  newebpay: {
+    displayName: "藍新金流",
+    description: "台灣藍新金流支付",
+    fullDescription: "台灣知名的第三方支付服務，支援多種付款方式。",
+    iconComponent: CreditCardIconSolid,
+    processingTime: "即時",
+    features: ["multi_payment"],
+    recommended: false,
+    disabled: false,
+  },
+
+  unipay: {
+    displayName: "統一支付",
+    description: "統一集團支付服務",
+    fullDescription: "統一集團旗下的支付服務，整合多種支付管道。",
+    iconComponent: CreditCardIconSolid,
+    processingTime: "即時",
+    features: ["unified"],
+    recommended: false,
+    disabled: false,
+  },
+
+  touch_n_go_direct: {
+    displayName: "Touch 'n Go Direct",
+    description: "Touch 'n Go 直接付款",
+    fullDescription: "Touch 'n Go 電子錢包直接付款，無需 QR 碼掃描。",
+    iconComponent: DevicePhoneMobileIcon,
+    processingTime: "即時",
+    features: ["direct_payment"],
     recommended: false,
     disabled: false,
   },

@@ -86,19 +86,22 @@ describe("PaymentSteps", () => {
     it("calculates progress percentage correctly", () => {
       const wrapper = createWrapper({ currentStep: "details" });
 
-      expect(wrapper.vm.progressPercentage).toBe(67); // (2/3) * 100 rounded
+      const progressFill = wrapper.find(".progress-fill");
+      expect(progressFill.attributes("style")).toContain("width: 67%");
     });
 
     it("handles invalid current step gracefully", () => {
       const wrapper = createWrapper({ currentStep: "invalid" });
 
-      expect(wrapper.vm.progressPercentage).toBe(33); // Falls back to first step
+      const progressFill = wrapper.find(".progress-fill");
+      expect(progressFill.attributes("style")).toContain("width: 33%");
     });
 
     it("handles empty steps array", () => {
       const wrapper = createWrapper({ steps: [] });
 
-      expect(wrapper.vm.progressPercentage).toBe(0);
+      const progressFill = wrapper.find(".progress-fill");
+      expect(progressFill.attributes("style")).toContain("width: 0%");
     });
   });
 
@@ -128,17 +131,22 @@ describe("PaymentSteps", () => {
   });
 
   describe("Step Navigation", () => {
-    it("identifies current step index correctly", () => {
+    it("identifies current step correctly", () => {
       const wrapper = createWrapper({ currentStep: "details" });
 
-      expect(wrapper.vm.currentStepIndex).toBe(1);
+      const currentStepElement = wrapper.find(".step-current");
+      expect(currentStepElement.exists()).toBe(true);
+
+      const stepNumber = currentStepElement.find(".step-number");
+      expect(stepNumber.text()).toBe("2"); // Second step (index 1)
     });
 
-    it("gets current step object correctly", () => {
+    it("displays current step content correctly", () => {
       const wrapper = createWrapper({ currentStep: "processing" });
 
-      expect(wrapper.vm.currentStep?.key).toBe("processing");
-      expect(wrapper.vm.currentStep?.label).toBe("處理付款");
+      const currentStepElement = wrapper.find(".step-current");
+      const stepLabel = currentStepElement.find(".step-label");
+      expect(stepLabel.text()).toBe("處理付款");
     });
   });
 
@@ -248,8 +256,8 @@ describe("PaymentSteps", () => {
     it("handles missing current step gracefully", () => {
       const wrapper = createWrapper({ currentStep: "nonexistent" });
 
-      expect(wrapper.vm.currentStepIndex).toBe(-1);
-      expect(wrapper.vm.currentStep).toBeUndefined();
+      const currentStepElement = wrapper.find(".step-current");
+      expect(currentStepElement.exists()).toBe(false);
     });
   });
 });

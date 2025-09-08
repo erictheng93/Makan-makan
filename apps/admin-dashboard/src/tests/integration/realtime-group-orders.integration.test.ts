@@ -23,7 +23,7 @@ import { useRealtimeGroupOrders } from "@/composables/useRealtimeGroupOrders";
 import { groupOrderBroadcastService } from "@/services/groupOrderBroadcastService";
 import { collaborativeOrderService } from "@/services/collaborativeOrderService";
 import { realtimeResilienceService } from "@/services/realtimeResilienceService";
-import { realtimeService } from "@/services/realtimeService";
+// import { realtimeService } from "@/services/realtimeService"; // Unused in tests
 
 // 測試工具
 import { createMockWebSocket, MockWebSocket } from "../utils/mockWebSocket";
@@ -169,8 +169,10 @@ describe("實時群組訂單集成測試", () => {
 
   describe("多用戶協作功能", () => {
     it("應該正確處理多用戶同時加入", async () => {
-      const groupOrder1 = useRealtimeGroupOrders();
-      const groupOrder2 = useRealtimeGroupOrders();
+      // Create multiple group order instances for collaboration testing
+      // Multiple group order instances are created for testing but not directly used
+      // const _groupOrder1 = useRealtimeGroupOrders();
+      // const _groupOrder2 = useRealtimeGroupOrders();
 
       // 初始化協作環境
       await collaborativeOrderService.initializeCollaboration(
@@ -381,7 +383,11 @@ describe("實時群組訂單集成測試", () => {
 
     it("應該處理離線操作", async () => {
       // 模擬離線狀態
-      global.navigator.onLine = false;
+      // Mock navigator.onLine for testing offline scenarios
+      Object.defineProperty(global.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
 
       // 添加離線操作
       realtimeResilienceService.addOfflineOperation({
@@ -404,7 +410,11 @@ describe("實時群組訂單集成測試", () => {
       expect(offlineOps[0].operation.data.menuItemName).toBe("離線商品");
 
       // 模擬網絡恢復
-      global.navigator.onLine = true;
+      // Mock navigator.onLine for testing online scenarios
+      Object.defineProperty(global.navigator, "onLine", {
+        value: true,
+        configurable: true,
+      });
 
       // 觸發離線操作處理
       window.dispatchEvent(new Event("online"));
@@ -417,7 +427,7 @@ describe("實時群組訂單集成測試", () => {
     });
 
     it("應該適應網絡質量變化", async () => {
-      const initialState = realtimeResilienceService.getConnectionState();
+      // const _initialState = realtimeResilienceService.getConnectionState(); // State captured for test setup
 
       // 模擬網絡質量變化
       const mockConnection = {
@@ -507,11 +517,15 @@ describe("實時群組訂單集成測試", () => {
       myMemberId.value = "member-1";
 
       // 模擬網絡中斷
-      global.navigator.onLine = false;
+      // Mock navigator.onLine for testing offline scenarios
+      Object.defineProperty(global.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
       mockWebSocket.close();
 
       // 嘗試離線操作
-      const offlineResult = await addCartItem({
+      await addCartItem({
         menuItemId: 999,
         menuItemName: "離線商品",
         quantity: 1,
@@ -523,7 +537,11 @@ describe("實時群組訂單集成測試", () => {
       expect(offlineOps.length).toBeGreaterThan(0);
 
       // 模擬網絡恢復
-      global.navigator.onLine = true;
+      // Mock navigator.onLine for testing online scenarios
+      Object.defineProperty(global.navigator, "onLine", {
+        value: true,
+        configurable: true,
+      });
       mockWebSocket.open();
 
       // 觸發重連
@@ -639,7 +657,7 @@ describe("實時群組訂單集成測試", () => {
       // 處理數據
       for (const op of operations) {
         realtimeResilienceService.recordError({
-          type: "test",
+          type: "data",
           severity: "low",
           message: `Test error ${op.id}`,
           details: op.data,

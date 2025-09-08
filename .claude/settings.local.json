@@ -89,7 +89,8 @@
       "Read(/C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\customer-app/**)",
       "WebFetch(domain:lucide.dev)",
       "Bash(awk:*)",
-      "Read(//c//**)"
+      "Read(//c//**)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": [],

@@ -20,6 +20,7 @@
           <PaymentMethodSelector
             v-model="selectedPaymentMethod"
             :available-methods="availablePaymentMethods"
+            :country="country"
             :loading="loadingMethods"
             @method-selected="handleMethodSelected"
           />
@@ -99,6 +100,10 @@
             <h3 class="section-title">信用卡資訊</h3>
             <StripeCardElement
               :client-secret="clientSecret"
+              :publishable-key="stripePublishableKey"
+              :amount="amount"
+              :currency="currency"
+              :country="country"
               :loading="processingPayment"
               @payment-success="handlePaymentSuccess"
               @payment-error="handlePaymentError"
@@ -204,6 +209,10 @@ const emit = defineEmits<Emits>();
 // Composables
 const { t: _t } = useI18n();
 const paymentStore = usePaymentStore();
+
+// Stripe 配置
+const stripePublishableKey =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_default";
 
 // 響應式狀態
 const currentStep = ref<"method" | "details" | "processing">("method");
@@ -336,9 +345,12 @@ const processPayment = async () => {
   }
 };
 
-const handlePaymentSuccess = (transactionId: string) => {
+const handlePaymentSuccess = (data: {
+  transactionId: string;
+  paymentMethod: any;
+}) => {
   paymentStatus.value = "success";
-  emit("payment-success", transactionId);
+  emit("payment-success", data.transactionId);
 };
 
 const handlePaymentError = (error: string) => {

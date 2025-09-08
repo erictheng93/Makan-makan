@@ -3,6 +3,8 @@
  * 用於測試實時功能
  */
 
+import { vi } from "vitest";
+
 export class MockWebSocket {
   public readyState: number = WebSocket.CONNECTING;
   public url: string;
@@ -221,7 +223,7 @@ export function createMockWebSocket(): MockWebSocket & {
     .fn()
     .mockImplementation((url: string, protocol?: string) => {
       return new MockWebSocket(url, protocol);
-    });
+    }) as any;
 
   // 添加WebSocket常量
   MockWebSocketConstructor.CONNECTING = WebSocket.CONNECTING;

@@ -105,13 +105,10 @@ class RealtimeResilienceService {
   private readonly OFFLINE_OPERATION_TTL = 7 * 24 * 60 * 60 * 1000; // 7天
   private readonly CONNECTION_HEALTH_CHECK_INTERVAL = 5000; // 5秒
   private readonly LATENCY_SAMPLES = 10;
-  private readonly STABLE_CONNECTION_THRESHOLD = 30000; // 30秒
-
   // 內部狀態
   private latencySamples: number[] = [];
   private healthCheckInterval?: number;
   private recoveryInProgress = new Set<string>();
-  private lastPingTime = 0;
 
   constructor() {
     this.initializeResilienceSystem();

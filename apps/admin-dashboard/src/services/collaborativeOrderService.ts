@@ -284,7 +284,7 @@ class CollaborativeOrderService {
   ): Promise<{ allowed: boolean; reason?: string }> {
     // 檢查必需權限
     for (const permission of rule.required) {
-      const result = this.checkPermission(permission, user, context);
+      const result = this.evaluatePermission(permission, user, context);
       if (!result) {
         return {
           allowed: false,
@@ -310,7 +310,7 @@ class CollaborativeOrderService {
   /**
    * 檢查單個權限
    */
-  private checkPermission(
+  private evaluatePermission(
     permission: Permission,
     user: any,
     context: any,

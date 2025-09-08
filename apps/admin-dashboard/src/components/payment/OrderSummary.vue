@@ -254,7 +254,7 @@ interface Props {
   selectedPaymentMethod?: PaymentMethod;
 }
 
-const _props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showBreakdown: true,
   loading: false,
 });
@@ -291,21 +291,24 @@ const getTaxRate = (country: CountryCode): number => {
 };
 
 const getPaymentMethodName = (method: PaymentMethod): string => {
-  const names = {
+  const names: Record<PaymentMethod, string> = {
     credit_card: "信用卡",
     debit_card: "金融卡",
     bank_transfer: "銀行轉帳",
-    e_wallet: "電子錢包",
-    cash_on_delivery: "貨到付款",
-    installment: "分期付款",
-    points_payment: "點數支付",
-    gift_card: "禮品卡",
-    store_credit: "商店信用",
-    buy_now_pay_later: "先買後付",
-    cryptocurrency: "加密貨幣",
-    mobile_payment: "手機支付",
-    prepaid_card: "預付卡",
-    loyalty_points: "會員積分",
+    digital_wallet: "數位錢包",
+    cash: "現金",
+    ecpay: "ECPay",
+    newebpay: "藍新金流",
+    line_pay: "LINE Pay",
+    unipay: "統一支付",
+    fpx: "FPX",
+    touch_n_go: "Touch 'n Go",
+    touch_n_go_direct: "Touch 'n Go Direct",
+    grab_pay: "Grab Pay",
+    momo: "MoMo",
+    zalo_pay: "ZaloPay",
+    viet_qr: "VietQR",
+    vnpay: "VNPay",
   };
   return names[method] || method;
 };

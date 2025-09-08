@@ -160,14 +160,15 @@ export class TestEventListener {
   private events: Array<{ type: string; data: any; timestamp: number }> = [];
 
   on(type: string, handler: (data: any) => void): () => void {
-    const listener = (event: CustomEvent) => {
-      if (event.detail.type === type) {
+    const listener = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.type === type) {
         this.events.push({
           type,
-          data: event.detail.data,
+          data: customEvent.detail.data,
           timestamp: Date.now(),
         });
-        handler(event.detail.data);
+        handler(customEvent.detail.data);
       }
     };
 

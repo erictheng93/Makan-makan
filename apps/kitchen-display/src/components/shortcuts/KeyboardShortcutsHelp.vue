@@ -227,7 +227,10 @@ import {
 } from "@heroicons/vue/24/outline";
 import { useToast } from "vue-toastification";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
-import type { ShortcutGroup } from "@/composables/useKeyboardShortcuts";
+import type {
+  ShortcutGroup,
+  KeyboardShortcut,
+} from "@/composables/useKeyboardShortcuts";
 
 // Props
 interface Props {
@@ -265,13 +268,15 @@ const filteredGroups = computed((): ShortcutGroup[] => {
   const query = searchQuery.value.toLowerCase();
 
   return shortcutGroups.value
-    .map((group) => ({
+    .map((group: ShortcutGroup) => ({
       ...group,
       shortcuts: group.shortcuts.filter(
-        (shortcut) =>
+        (shortcut: KeyboardShortcut) =>
           shortcut.name.toLowerCase().includes(query) ||
           shortcut.description.toLowerCase().includes(query) ||
-          shortcut.keys.some((key) => key.toLowerCase().includes(query)),
+          shortcut.keys.some((key: string) =>
+            key.toLowerCase().includes(query),
+          ),
       ),
     }))
     .filter((group) => group.shortcuts.length > 0);
@@ -320,7 +325,7 @@ const formatKey = (key: string): string => {
   return symbols[key] || key;
 };
 
-const testShortcut = (shortcut: any) => {
+const testShortcut = (shortcut: KeyboardShortcut) => {
   if (!shortcut.enabled) return;
 
   toast.info(`測試快捷鍵: ${shortcut.name}`, { timeout: 1500 });

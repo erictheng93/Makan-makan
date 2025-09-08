@@ -118,10 +118,10 @@ import {
 import {
   ExclamationCircleIcon,
   LockClosedIcon,
-  ShieldCheckIcon,
   CreditCardIcon,
   ChevronDownIcon,
 } from "@heroicons/vue/24/outline";
+import ShieldCheckIcon from "@heroicons/vue/24/outline/ShieldCheckIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 
 // Props
@@ -226,16 +226,6 @@ const testCards = [
 
 // Stripe 外觀主題
 const getStripeTheme = () => {
-  const _baseStyle = {
-    fontSize: "16px",
-    color: "#1f2937",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    "::placeholder": {
-      color: "#9ca3af",
-    },
-  };
-
   return {
     theme: "stripe" as const,
     variables: {
@@ -327,7 +317,7 @@ const initializeStripe = async () => {
       isCardFocused.value = false;
     });
 
-    cardElement.on("change", (event) => {
+    cardElement.on("change", (event: any) => {
       isCardComplete.value = event.complete;
       cardError.value = event.error?.message || "";
 

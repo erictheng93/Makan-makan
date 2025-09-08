@@ -529,7 +529,7 @@ export class AdvancedRealtimeSession extends DurableObject {
           
           conn.socket.close(1000, 'Session hibernating')
         } catch (error) {
-          console.error(`Failed to close connection ${id}:`, error)
+          console.error(`Failed to close connection ${_id}:`, error)
         }
       }
 
