@@ -2,7 +2,14 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware/auth'
 import { validateBody, validateParams } from '../middleware/validation'
-import { PrinterService } from '@makanmakan/database'
+// import { PrinterService } from '@makanmakan/database' // Temporarily disabled
+
+// Temporary mock PrinterService
+class PrinterService {
+  constructor(_config: any) {
+    console.warn('Using mock PrinterService - print functionality disabled')
+  }
+}
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()

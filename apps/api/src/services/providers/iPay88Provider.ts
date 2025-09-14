@@ -160,7 +160,7 @@ export class iPay88Provider extends PaymentProvider {
       const _remark = lines[3] // 第四行是備註
       const _transId = lines[4] // 第五行是交易 ID
       const _authCode = lines[5] // 第六行是授權碼
-      const signature = lines[6] // 第七行是簽名
+      const responseSignature = lines[6] // 第七行是簽名
 
       // 驗證簽名
       const expectedSignature = this.generateQueryResponseSignature(
@@ -171,7 +171,7 @@ export class iPay88Provider extends PaymentProvider {
         status
       )
 
-      if (signature !== expectedSignature) {
+      if (responseSignature !== expectedSignature) {
         console.warn('iPay88 query response signature mismatch')
         return 'pending'
       }
