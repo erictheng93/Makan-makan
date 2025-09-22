@@ -434,7 +434,7 @@ app.post('/:imageId/process',
     try {
       const { imageId } = c.get('validatedParams')
       const { transformations = [], variants = [], format, quality } = c.get('validatedBody')
-      const cloudflareImages = new CloudflareImagesAPI(c.env)
+      const _cloudflareImages = new CloudflareImagesAPI(c.env)
       const imageService = new ImageService(c.env)
 
       // Create processing job
@@ -629,9 +629,9 @@ async function processImageAsync(
   jobId: string,
   imageId: string,
   transformations: any[],
-  variants: string[],
-  format?: string,
-  quality?: number
+  _variants: string[],
+  _format?: string,
+  _quality?: number
 ) {
   const imageService = new ImageService(env)
   const cloudflareImages = new CloudflareImagesAPI(env)

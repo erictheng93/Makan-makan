@@ -29,8 +29,8 @@ import ordersRouter from './routes/orders'
 import groupOrdersRouter from './routes/groupOrders'
 import posRouter from './routes/pos'
 import queueRouter from './routes/queue'
-import { payments as paymentsRouter } from './routes/payments'
-import printRouter from './routes/print'
+// import { payments as paymentsRouter } from './routes/payments' // Disabled
+// import printRouter from './routes/print' // Disabled
 import tablesRouter from './routes/tables'
 import usersRouter from './routes/users'
 import analyticsRouter from './routes/analytics'
@@ -40,6 +40,7 @@ import sseRouter from './routes/sse'
 import systemRouter from './routes/system'
 import cacheRouter from './routes/cache'
 import monitoringRouter from './routes/monitoring'
+import couponsRouter from './routes/coupons'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -158,6 +159,7 @@ app.get('/info', (c) => {
       'Real-time updates',
       'Multi-language support',
       'Role-based access control',
+      'Coupon and discount management',
       'Comprehensive caching system',
       'Cache monitoring and management'
     ],
@@ -180,6 +182,7 @@ app.get('/info', (c) => {
       qr: '/api/v1/qr',
       cache: '/api/v1/cache',
       monitoring: '/api/v1/monitoring',
+      coupons: '/api/v1/coupons',
       health: '/health',
       docs: '/docs'
     }
@@ -194,7 +197,8 @@ apiV1.route('/auth', authRouter)
 apiV1.route('/health', healthRouter)
 apiV1.route('/qr', qrcodeRouter)
 apiV1.route('/queue', queueRouter) // 候位系統部分端點為公開
-apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證
+// apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證 - Disabled
+apiV1.route('/coupons', couponsRouter) // 優惠券驗證端點為公開，管理端點需要認證
 
 // 受保護的路由（需要認證）
 apiV1.use('/restaurants/*', authMiddleware)
@@ -218,8 +222,8 @@ apiV1.route('/kitchen', kitchenRouter)
 apiV1.route('/orders', ordersRouter)
 apiV1.route('/orders/group', groupOrdersRouter)
 apiV1.route('/pos', posRouter)
-apiV1.route('/payments', paymentsRouter)
-apiV1.route('/print', printRouter)
+// apiV1.route('/payments', paymentsRouter) // Disabled
+// apiV1.route('/print', printRouter) // Disabled
 apiV1.route('/tables', tablesRouter)
 apiV1.route('/users', usersRouter)
 apiV1.route('/analytics', analyticsRouter)

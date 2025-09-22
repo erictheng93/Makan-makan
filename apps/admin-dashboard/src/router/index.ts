@@ -95,6 +95,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "coupons",
+        name: "Coupons",
+        component: () => import("@/views/CouponsView.vue"),
+        meta: {
+          title: "優惠券管理",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
         path: "pos",
         name: "POS",
         component: () => import("@/views/POSView.vue"),

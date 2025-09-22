@@ -142,6 +142,7 @@ export interface CreateOrderRequest {
   customerPhone?: string;
   items: CreateOrderItemRequest[];
   notes?: string;
+  couponCode?: string; // 優惠券代碼
 }
 
 export interface CreateOrderItemRequest {

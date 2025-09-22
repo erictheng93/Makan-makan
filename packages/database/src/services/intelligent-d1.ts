@@ -92,7 +92,7 @@ export class IntelligentD1Service extends BaseService {
     
     // Try cache first (unless high priority requiring fresh data)
     if (options.priority !== 'high' && options.cacheKey && this.cacheManager) {
-      const cached = await this.cacheManager.get<T[]>(options.cacheKey)
+      const cached = await this.cacheManager.get(options.cacheKey) as T[]
       if (cached) {
         // Record cache hit
         this.recordQueryMetric('cache_hit', querySignature, Date.now() - startTime)

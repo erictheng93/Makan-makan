@@ -11,7 +11,7 @@ import type {
   PrinterBrand,
   PrinterCapabilities,
   PrinterConnection 
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 export interface PrinterDriverFactory {
   createDriver(device: PrinterDevice, config?: any): Promise<any>
@@ -273,7 +273,7 @@ export class DefaultPrinterDriverFactory implements PrinterDriverFactory {
           ...baseCapabilities,
           paperSizes: [
             ...baseCapabilities.paperSizes,
-            { width: 112, height: 0, name: '112mm' } // Star 支援更寬紙張
+            { width: 58, height: 0, name: '58mm' } // Star 支援更寬紙張
           ]
         }
       
@@ -447,13 +447,13 @@ export class DefaultPrinterDriverFactory implements PrinterDriverFactory {
     return undefined
   }
 
-  private determinePaperWidth(model: string): 58 | 80 | 112 {
+  private determinePaperWidth(model: string): 58 | 80 | 58 {
     const modelLower = model.toLowerCase()
     
     if (modelLower.includes('58') || modelLower.includes('narrow')) {
       return 58
-    } else if (modelLower.includes('112') || modelLower.includes('wide')) {
-      return 112
+    } else if (modelLower.includes('58') || modelLower.includes('wide')) {
+      return 58
     } else {
       return 80 // 預設 80mm
     }

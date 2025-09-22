@@ -77,6 +77,7 @@ import {
   User,
   CreditCard,
   Clock,
+  Ticket as TicketIcon,
 } from "lucide-vue-next";
 
 interface Props {
@@ -127,6 +128,13 @@ const navigationItems = computed(() => [
     path: "/dashboard/users",
     label: "員工管理",
     icon: Users,
+    visible: authStore.canAccessAdminFeatures,
+  },
+  {
+    name: "coupons",
+    path: "/dashboard/coupons",
+    label: "優惠券管理",
+    icon: TicketIcon,
     visible: authStore.canAccessAdminFeatures,
   },
   {

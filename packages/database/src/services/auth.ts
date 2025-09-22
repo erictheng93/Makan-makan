@@ -66,26 +66,24 @@ export class AuthService extends BaseService {
   // 用戶登入
   async login(data: LoginData): Promise<AuthResult> {
     try {
-      // 查詢活躍用戶
-      const user = await this.db
-        .select({
-          id: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          passwordHash: users.passwordHash,
-          role: users.role,
-          restaurantId: users.restaurantId,
-          isActive: users.isActive,
-          isVerified: users.isVerified
-        })
-        .from(users)
-        .where(
-          and(
-            eq(users.username, data.username),
-            eq(users.isActive, true)
-          )
+      // 查詢活躍用戶 - Using sql`` to match actual database schema
+      const user = await this.db.select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        passwordHash: users.passwordHash,
+        role: users.role,
+        restaurantId: users.restaurantId,
+        isActive: users.isActive
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.username, data.username),
+          eq(users.isActive, true)
         )
-        .get()
+      )
+      .get()
 
       if (!user) {
         return {
@@ -142,7 +140,7 @@ export class AuthService extends BaseService {
 
       await this.createSession(sessionData)
 
-      // 更新最後登入時間
+      // 更新最後登入時間 - Using Drizzle ORM
       await this.db
         .update(users)
         .set({ 

@@ -1,0 +1,120 @@
+# MakanMakan Backup Scheduler - Cloudflare Workers Configuration
+# Automated backup scheduling and system monitoring
+
+name = "makanmakan-backup-scheduler"
+main = "../../apps/api/src/workers/backup-scheduler.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron Triggers for automated scheduling
+[triggers]
+crons = [
+  "*/5 * * * *",    # Every 5 minutes - Health checks and monitoring
+  "0 */6 * * *",    # Every 6 hours - Process scheduled backups
+  "0 2 * * *",      # Daily at 2 AM - Cleanup and maintenance
+  "0 0 * * 0"       # Weekly on Sunday - Generate reports and alerts
+]
+
+# Default variables for development
+[vars]
+NODE_ENV = "development"
+LOG_LEVEL = "debug"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "makanmakan-local"
+database_id = "local"
+
+# KV namespace for backup metadata
+[[kv_namespaces]]
+binding = "BACKUP_KV"
+id = "makanmakan-backup-dev"
+
+# R2 bucket for backup storage
+[[r2_buckets]]
+binding = "BACKUP_STORAGE"
+bucket_name = "makanmakan-backups-dev"
+
+# Analytics for monitoring
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "makanmakan-backup-metrics-dev"
+
+# === DEVELOPMENT ENVIRONMENT ===
+[env.development]
+name = "makanmakan-backup-scheduler-dev"
+[env.development.vars]
+NODE_ENV = "development"
+LOG_LEVEL = "debug"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-local"
+database_id = "local"
+
+[[env.development.kv_namespaces]]
+binding = "BACKUP_KV"
+id = "makanmakan-backup-dev"
+
+[[env.development.r2_buckets]]
+binding = "BACKUP_STORAGE"
+bucket_name = "makanmakan-backups-dev"
+
+[[env.development.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "makanmakan-backup-metrics-dev"
+
+# === STAGING ENVIRONMENT ===
+[env.staging]
+name = "makanmakan-backup-scheduler-staging"
+[env.staging.vars]
+NODE_ENV = "staging"
+LOG_LEVEL = "info"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-staging"
+database_id = "staging-db-id"
+
+[[env.staging.kv_namespaces]]
+binding = "BACKUP_KV"
+id = "makanmakan-backup-staging"
+
+[[env.staging.r2_buckets]]
+binding = "BACKUP_STORAGE"
+bucket_name = "makanmakan-backups-staging"
+
+[[env.staging.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "makanmakan-backup-metrics-staging"
+
+# === PRODUCTION ENVIRONMENT ===
+[env.production]
+name = "makanmakan-backup-scheduler-prod"
+[env.production.vars]
+NODE_ENV = "production"
+LOG_LEVEL = "warn"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "makanmakan-prod"
+database_id = "production-db-id"
+
+[[env.production.kv_namespaces]]
+binding = "BACKUP_KV"
+id = "makanmakan-backup-prod"
+
+[[env.production.r2_buckets]]
+binding = "BACKUP_STORAGE"
+bucket_name = "makanmakan-backups-prod"
+
+[[env.production.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "makanmakan-backup-metrics-prod"
+
+# Smart placement for production
+[env.production.placement]
+mode = "smart"
+strategy = "closest"
+hints = ["asia-southeast1"]

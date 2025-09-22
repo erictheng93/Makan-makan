@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation'
-import { createDatabase, OrderService } from '@makanmakan/database'
+import { createDatabase, OrderService, CouponService } from '@makanmakan/database'
 import type { Order } from '@makanmakan/shared-types'
 import type { Env } from '../types/env'
 
@@ -56,7 +56,8 @@ const createOrderSchema = z.object({
   })).min(1),
   notes: z.string().max(500).optional(),
   orderType: z.enum(['dine_in', 'takeaway', 'delivery']).default('dine_in'),
-  scheduledTime: z.string().datetime().optional()
+  scheduledTime: z.string().datetime().optional(),
+  couponCode: z.string().max(50).optional() // 優惠券代碼
 })
 
 const updateOrderStatusSchema = z.object({
@@ -77,6 +78,79 @@ const orderFilterSchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
 })
 
+const previewCouponSchema = z.object({
+  restaurantId: z.number().int().positive(),
+  couponCode: z.string().min(1).max(50),
+  orderAmount: z.number().positive(),
+  userId: z.number().int().positive().optional(),
+  menuItems: z.array(z.object({
+    menuItemId: z.number().int().positive(),
+    quantity: z.number().int().positive()
+  })).optional()
+})
+
+
+/**
+ * 預覽優惠券折扣效果 (不創建訂單)
+ * POST /api/v1/orders/preview-coupon
+ */
+app.post('/preview-coupon',
+  authMiddleware,
+  validateBody(previewCouponSchema as any),
+  async (c) => {
+    try {
+      const data = c.get('validatedBody')
+      const user = c.get('user')
+      const couponService = new CouponService(c.env.DB as any)
+
+      // 驗證優惠券並計算折扣
+      const validationResult = await couponService.validateCoupon(
+        data.couponCode,
+        data.restaurantId.toString(),
+        data.orderAmount,
+        data.userId || user.id,
+        data.menuItems
+      )
+
+      if (validationResult.valid) {
+        return c.json({
+          success: true,
+          data: {
+            valid: true,
+            coupon: {
+              code: validationResult.coupon.code,
+              name: validationResult.coupon.name,
+              discountType: validationResult.coupon.discountType,
+              discountValue: validationResult.coupon.discountValue
+            },
+            originalAmount: data.orderAmount,
+            discountAmount: validationResult.discountAmount,
+            finalAmount: validationResult.finalAmount,
+            savings: validationResult.discountAmount
+          }
+        })
+      } else {
+        return c.json({
+          success: true,
+          data: {
+            valid: false,
+            error: validationResult.error,
+            originalAmount: data.orderAmount,
+            discountAmount: 0,
+            finalAmount: data.orderAmount
+          }
+        })
+      }
+
+    } catch (error) {
+      console.error('Coupon preview error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to preview coupon'
+      }, 500)
+    }
+  }
+)
 
 /**
  * 創建新訂單 (需要身份驗證 - 客戶下單)
@@ -113,7 +187,8 @@ app.post('/',
           customizations: item.customizations,
           notes: item.notes
         })),
-        notes: data.notes
+        notes: data.notes,
+        couponCode: data.couponCode // 添加優惠券代碼
       }
       
       // 使用 OrderService 創建訂單

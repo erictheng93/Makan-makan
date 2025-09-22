@@ -222,12 +222,17 @@
                 </div>
                 <div
                   v-if="selectedOrder.discountAmount > 0"
-                  class="flex justify-between text-sm text-green-600"
+                  class="text-sm text-green-600"
                 >
-                  <span>折扣:</span>
-                  <span
-                    >-RM{{ formatMoney(selectedOrder.discountAmount) }}</span
-                  >
+                  <div class="flex justify-between">
+                    <span v-if="selectedOrder.couponCode">
+                      優惠券 ({{ selectedOrder.couponCode }}):
+                    </span>
+                    <span v-else>折扣:</span>
+                    <span
+                      >-RM{{ formatMoney(selectedOrder.discountAmount) }}</span
+                    >
+                  </div>
                 </div>
                 <div
                   class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200"
@@ -658,6 +663,7 @@ interface CashierOrder {
   discountAmount: number;
   totalAmount: number;
   paymentMethod?: string;
+  couponCode?: string; // 優惠券代碼
   items: OrderItem[];
 }
 
@@ -770,6 +776,7 @@ const orders = ref([
     taxAmount: 1.88,
     discountAmount: 5.0,
     totalAmount: 28.23,
+    couponCode: "WELCOME10", // 示例優惠券代碼
     items: [
       {
         id: 4,

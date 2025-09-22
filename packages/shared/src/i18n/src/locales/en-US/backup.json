@@ -1,0 +1,129 @@
+{
+  "backup": {
+    "dashboard": {
+      "title": "Backup Management"
+    },
+    "actions": {
+      "create": "Create Backup",
+      "refresh": "Refresh",
+      "download": "Download",
+      "restore": "Restore",
+      "delete": "Delete",
+      "details": "View Details"
+    },
+    "health": {
+      "healthy": "System Healthy",
+      "warning": "Warning",
+      "critical": "Critical Issues",
+      "unknown": "Status Unknown",
+      "loading": "Checking system health...",
+      "failuresDetected": "{count} backup failures in the last 24 hours",
+      "backupsRunning": "{count} backup(s) currently running",
+      "allSystemsNormal": "All backup systems operating normally"
+    },
+    "metrics": {
+      "running": "Running",
+      "failed24h": "Failed (24h)",
+      "duration": "Duration",
+      "compression": "Compression",
+      "uploadSpeed": "Upload Speed"
+    },
+    "stats": {
+      "totalBackups": "Total Backups",
+      "successful": "Successful",
+      "storageUsed": "Storage Used",
+      "estimatedCost": "Est. Cost"
+    },
+    "recent": {
+      "title": "Recent Backups",
+      "viewAll": "View All"
+    },
+    "empty": {
+      "title": "No Backups Yet",
+      "description": "Create your first backup to protect your restaurant data.",
+      "createFirst": "Create First Backup"
+    },
+    "alerts": {
+      "title": "System Alerts"
+    },
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "processing": "Processing..."
+    },
+    "types": {
+      "full": "Full Backup",
+      "incremental": "Incremental",
+      "differential": "Differential",
+      "fullDescription": "Complete backup of all selected data",
+      "incrementalDescription": "Only data changed since last backup",
+      "differentialDescription": "Data changed since last full backup"
+    },
+    "details": {
+      "id": "Backup ID",
+      "configuration": "Configuration",
+      "manual": "Manual Backup",
+      "recordsCount": "Records Count",
+      "storage": "Storage",
+      "encrypted": "Encrypted",
+      "checksum": "Checksum",
+      "tables": "Tables Included",
+      "performance": "Performance Metrics"
+    },
+    "create": {
+      "title": "Create New Backup",
+      "basicInfo": "Basic Information",
+      "name": "Backup Name",
+      "namePlaceholder": "e.g., Monthly Backup - March 2024",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional description of this backup",
+      "type": "Backup Type",
+      "configuration": "Configuration",
+      "useConfiguration": "Configuration Mode",
+      "useExisting": "Use existing configuration",
+      "manualConfig": "Manual configuration",
+      "selectConfig": "Select Configuration",
+      "selectConfigPlaceholder": "Choose a backup configuration",
+      "advancedOptions": "Advanced Options",
+      "tableSelection": "Table Selection",
+      "allTables": "All tables",
+      "includeTables": "Include specific tables",
+      "excludeTables": "Exclude specific tables",
+      "tablesToInclude": "Tables to Include",
+      "tablesToExclude": "Tables to Exclude",
+      "execution": "Execution Options",
+      "forceImmediate": "Execute immediately",
+      "forceImmediateDescription": "Start backup immediately instead of queuing",
+      "creating": "Creating...",
+      "create": "Create Backup"
+    },
+    "restore": {
+      "title": "Restore from Backup",
+      "warning": "Warning: Data Restore",
+      "warningMessage": "Restoring from backup will modify your current data. Please ensure you understand the implications.",
+      "selectType": "Restore Type",
+      "full": "Full Restore",
+      "selective": "Selective Restore",
+      "fullDescription": "Restore all data from backup",
+      "selectiveDescription": "Choose specific tables to restore",
+      "overwriteExisting": "Overwrite existing data",
+      "safety": "Safety Confirmation",
+      "backupVerified": "I have verified this backup is correct",
+      "risksAcknowledged": "I acknowledge the risks of data loss",
+      "confirmationPhrase": "Type \"I understand the risks\" to continue",
+      "confirmationPlaceholder": "I understand the risks",
+      "restoring": "Restoring...",
+      "restore": "Start Restore"
+    },
+    "errors": {
+      "nameRequired": "Backup name is required",
+      "nameTooLong": "Backup name is too long (max 100 characters)"
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete backup \"{name}\"? This action cannot be undone."
+    }
+  }
+}

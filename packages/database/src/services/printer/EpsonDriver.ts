@@ -9,7 +9,7 @@ import type {
   PrinterDevice, 
   PrintCommand,
   PrintContent 
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 export interface EpsonDriverConfig {
   connection: {
@@ -32,7 +32,11 @@ export interface EpsonDriverConfig {
 export class EpsonDriver extends PrinterDriver {
   private connection: any = null
   private driverConfig: EpsonDriverConfig
-  private isConnected = false
+  private _isConnected = false
+
+  isConnected(): boolean {
+    return this._isConnected
+  }
 
   constructor(device: PrinterDevice, config: EpsonDriverConfig) {
     super(device, config)
@@ -50,7 +54,7 @@ export class EpsonDriver extends PrinterDriver {
       // 測試連線
       const testResult = await this.testConnection()
       if (testResult) {
-        this.isConnected = true
+        this._isConnected = true
         this.device.status = 'online'
         this.device.lastSeen = new Date()
         return true
@@ -66,13 +70,13 @@ export class EpsonDriver extends PrinterDriver {
 
   async disconnect(): Promise<void> {
     try {
-      if (this.connection && this.isConnected) {
+      if (this.connection && this._isConnected) {
         await this.closeConnection()
       }
     } catch (error) {
       console.error(`Error disconnecting Epson printer ${this.device.id}:`, error)
     } finally {
-      this.isConnected = false
+      this._isConnected = false
       this.device.status = 'offline'
       this.connection = null
     }
@@ -183,7 +187,7 @@ export class EpsonDriver extends PrinterDriver {
   // =============================================
 
   async print(commands: Buffer): Promise<boolean> {
-    if (!this.isConnected || !this.connection) {
+    if (!this._isConnected || !this.connection) {
       throw new Error('Printer not connected')
     }
 
@@ -197,7 +201,7 @@ export class EpsonDriver extends PrinterDriver {
   }
 
   async getStatus(): Promise<PrinterDevice['status']> {
-    if (!this.isConnected) {
+    if (!this._isConnected) {
       return 'offline'
     }
 

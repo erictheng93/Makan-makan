@@ -1,13 +1,13 @@
 import { PaymentOrchestrator } from './PaymentOrchestrator'
 import { PaymentConfigManager } from './PaymentConfigManager'
-import { StripeProvider } from './providers/StripeProvider'
-import { ECPayProvider } from './providers/ECPayProvider'
-import { NewebPayProvider } from './providers/NewebPayProvider'
-import { LinePayProvider } from './providers/LinePayProvider'
-import { UniPayProvider } from './providers/UniPayProvider'
-import { iPay88Provider } from './providers/iPay88Provider'
-import { TouchNGoDirectProvider } from './providers/TouchNGoDirectProvider'
-import { VNPayProvider } from './providers/VNPayProvider'
+// import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
+// import { ECPayProvider } from './providers/ECPayProvider' // Disabled
+// import { NewebPayProvider } from './providers/NewebPayProvider' // Disabled
+// import { LinePayProvider } from './providers/LinePayProvider' // Disabled
+// import { UniPayProvider } from './providers/UniPayProvider' // Disabled
+// import { iPay88Provider } from './providers/iPay88Provider' // Disabled
+// import { TouchNGoDirectProvider } from './providers/TouchNGoDirectProvider' // Disabled
+// import { VNPayProvider } from './providers/VNPayProvider' // Disabled
 import {
   PaymentRequest,
   PaymentResult,
@@ -60,8 +60,10 @@ export class PaymentService {
         try {
           switch (providerConfig.name) {
             case 'stripe':
-              await this.registerStripeProvider(providerConfig)
+              // await this.registerStripeProvider(providerConfig) // Temporarily disabled
+              console.warn('Stripe provider is temporarily disabled')
               break
+            /* Disabled providers
             case 'ecpay':
               await this.registerECPayProvider(providerConfig)
               break
@@ -71,6 +73,8 @@ export class PaymentService {
             case 'linepay':
               await this.registerLinePayProvider(providerConfig)
               break
+            */
+            /* Disabled providers
             case 'unipay':
               await this.registerUniPayProvider(providerConfig)
               break
@@ -83,6 +87,7 @@ export class PaymentService {
             case 'vnpay':
               await this.registerVNPayProvider(providerConfig)
               break
+            */
             default:
               console.warn(`Unknown payment provider: ${providerConfig.name}`)
           }
@@ -97,6 +102,7 @@ export class PaymentService {
     }
   }
 
+  /* // Temporarily disabled - Stripe provider
   private async registerStripeProvider(providerConfig: any): Promise<void> {
     // 為每個支持的國家註冊 Stripe 提供商
     for (const country of providerConfig.supportedCountries) {
@@ -136,7 +142,9 @@ export class PaymentService {
       }
     }
   }
+  */ // End of temporarily disabled Stripe provider
 
+  /* Disabled providers
   private async registerECPayProvider(providerConfig: any): Promise<void> {
     const config = await this.configManager.getProviderConfig('ecpay', 'TW')
     if (!config) return
@@ -166,6 +174,7 @@ export class PaymentService {
     }
   }
 
+  /* Disabled
   private async registeriPay88Provider(providerConfig: any): Promise<void> {
     const config = await this.configManager.getProviderConfig('ipay88', 'MY')
     if (!config) return
@@ -281,7 +290,9 @@ export class PaymentService {
       console.error('Failed to register LINE Pay provider:', error)
     }
   }
+  */ // End of disabled providers
 
+  /* Already disabled
   private async registerUniPayProvider(providerConfig: any): Promise<void> {
     const config = await this.configManager.getProviderConfig('unipay', 'TW')
     if (!config) return
@@ -340,6 +351,7 @@ export class PaymentService {
       console.error('Failed to register VNPay provider:', error)
     }
   }
+  */
 
   private getCurrencyForCountry(country: string): string {
     const currencyMap: Record<string, string> = {

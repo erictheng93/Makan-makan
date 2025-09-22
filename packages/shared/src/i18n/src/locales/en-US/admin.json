@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "restaurants": "Restaurants",
+    "users": "Users",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "backup": "Backup"
+  },
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "totalRestaurants": "Total Restaurants",
+    "totalUsers": "Total Users",
+    "monthlyRevenue": "Monthly Revenue",
+    "systemHealth": "System Health"
+  },
+  "backup": {
+    "title": "Backup Management",
+    "createBackup": "Create Backup",
+    "restoreBackup": "Restore Backup",
+    "backupHistory": "Backup History",
+    "autoBackup": "Auto Backup",
+    "backupStatus": "Backup Status",
+    "downloadBackup": "Download Backup"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "salesReport": "Sales Report",
+    "userActivity": "User Activity",
+    "systemMetrics": "System Metrics",
+    "exportData": "Export Data"
+  },
+  "restaurant": {
+    "title": "Restaurant Management",
+    "table": "Table",
+    "room": "Room",
+    "menu": "Menu",
+    "order": "Order",
+    "kitchen": "Kitchen",
+    "customer": "Customer",
+    "staff": "Staff"
+  },
+  "orders": {
+    "title": "Order Management",
+    "newOrder": "New Order",
+    "orderNumber": "Order Number",
+    "customer": "Customer",
+    "table": "Table",
+    "items": "Items",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount",
+    "total": "Total",
+    "status": {
+      "pending": "Pending",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "served": "Served",
+      "cancelled": "Cancelled"
+    }
+  }
+}

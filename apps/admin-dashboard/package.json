@@ -19,6 +19,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.0",
     "@heroicons/vue": "^2.0.0",
+    "@makanmakan/i18n": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
     "@tailwindcss/forms": "^0.5.0",
     "@vueuse/core": "^10.7.0",
@@ -35,16 +36,17 @@
     "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
+    "@pinia/testing": "^0.1.0",
     "@types/lodash-es": "^4.17.0",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
     "@vue/eslint-config-prettier": "^8.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/test-utils": "^2.4.0",
-    "@vitest/coverage-v8": "^1.0.0",
-    "@vitest/ui": "^1.0.0",
-    "@pinia/testing": "^0.1.0",
     "autoprefixer": "^10.4.0",
+    "eslint-define-config": "^2.1.0",
     "eslint-plugin-vue": "^9.0.0",
     "jsdom": "^23.0.0",
     "postcss": "^8.4.0",

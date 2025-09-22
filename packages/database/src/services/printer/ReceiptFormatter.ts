@@ -15,7 +15,7 @@ import type {
   ReceiptItem,
   ReceiptSummary,
   ReceiptFooter
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 // =============================================
 // 地區特定格式化器
@@ -107,7 +107,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
     return {
       restaurantInfo: {
         name: restaurant.name,
-        nameLocal: restaurant.nameLocal || restaurant.name,
+        // nameLocal: restaurant.nameLocal || restaurant.name,
         address: restaurant.address,
         addressLocal: restaurant.addressLocal,
         phone: restaurant.phone,
@@ -133,13 +133,13 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
   formatItems(items: any[]): PrintContent['items'] {
     return items.map(item => ({
       name: item.name,
-      nameLocal: item.nameLocal,
+      // nameLocal: item.nameLocal,
       quantity: item.quantity,
       unitPrice: item.price,
       totalPrice: item.price * item.quantity,
       modifiers: item.modifiers?.map((mod: any) => ({
         name: mod.name,
-        nameLocal: mod.nameLocal,
+        // nameLocal: mod.nameLocal,
         price: mod.price
       })),
       category: item.category,
@@ -156,7 +156,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
       subtotal,
       tax: [{
         name: 'Tax',
-        nameLocal: '營業稅',
+        // nameLocal: '營業稅',
         rate: 0.05,
         amount: taxAmount,
         taxableAmount: subtotal
@@ -228,7 +228,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
     // 實際實作中會從資料庫獲取
     return {
       name: 'MakanMakan Restaurant',
-      nameLocal: '好呷餐廳',
+      // nameLocal: '好呷餐廳',
       address: '台北市信義區信義路五段7號',
       addressLocal: '台北市信義區信義路五段7號',
       phone: '02-8101-8888',
@@ -266,7 +266,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
     return {
       restaurantInfo: {
         name: restaurant.name,
-        nameLocal: restaurant.nameLocal, // 馬來文名稱
+        // nameLocal: restaurant.nameLocal, // 馬來文名稱
         address: restaurant.address,
         addressLocal: restaurant.addressLocal,
         phone: restaurant.phone,
@@ -286,13 +286,13 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
   formatItems(items: any[]): PrintContent['items'] {
     return items.map(item => ({
       name: item.name,
-      nameLocal: item.nameLocal, // 馬來文名稱
+      // nameLocal: item.nameLocal, // 馬來文名稱
       quantity: item.quantity,
       unitPrice: item.price,
       totalPrice: item.price * item.quantity,
       modifiers: item.modifiers?.map((mod: any) => ({
         name: mod.name,
-        nameLocal: mod.nameLocal,
+        // nameLocal: mod.nameLocal,
         price: mod.price
       }))
     }))
@@ -306,7 +306,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
       subtotal,
       tax: [{
         name: 'SST',
-        nameLocal: 'SST',
+        // nameLocal: 'SST',
         rate: 0.06,
         amount: sstAmount,
         taxableAmount: subtotal
@@ -361,7 +361,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
   private getRestaurantInfo(restaurantId: number): any {
     return {
       name: 'MakanMakan Restaurant',
-      nameLocal: 'Restoran MakanMakan',
+      // nameLocal: 'Restoran MakanMakan',
       address: 'Lot 1-01, Jalan Bukit Bintang, 55100 Kuala Lumpur',
       addressLocal: 'Lot 1-01, Jalan Bukit Bintang, 55100 Kuala Lumpur',
       phone: '+60-3-2141-8888',
@@ -398,7 +398,7 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
     return {
       restaurantInfo: {
         name: restaurant.name,
-        nameLocal: restaurant.nameLocal, // 越南文名稱
+        // nameLocal: restaurant.nameLocal, // 越南文名稱
         address: restaurant.address,
         addressLocal: restaurant.addressLocal,
         phone: restaurant.phone,
@@ -418,13 +418,13 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
   formatItems(items: any[]): PrintContent['items'] {
     return items.map(item => ({
       name: item.name,
-      nameLocal: item.nameLocal, // 越南文名稱
+      // nameLocal: item.nameLocal, // 越南文名稱
       quantity: item.quantity,
       unitPrice: item.price,
       totalPrice: item.price * item.quantity,
       modifiers: item.modifiers?.map((mod: any) => ({
         name: mod.name,
-        nameLocal: mod.nameLocal,
+        // nameLocal: mod.nameLocal,
         price: mod.price
       }))
     }))
@@ -439,7 +439,7 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
       subtotal: totalWithoutVAT,
       tax: [{
         name: 'VAT',
-        nameLocal: 'VAT',
+        // nameLocal: 'VAT',
         rate: 0.10,
         amount: vatAmount,
         taxableAmount: totalWithoutVAT
@@ -495,7 +495,7 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
   private getRestaurantInfo(restaurantId: number): any {
     return {
       name: 'MakanMakan Restaurant',
-      nameLocal: 'Nhà Hàng MakanMakan',
+      // nameLocal: 'Nhà Hàng MakanMakan',
       address: '123 Nguyen Hue Street, District 1, Ho Chi Minh City',
       addressLocal: '123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh',
       phone: '+84-28-3823-4567',
@@ -595,7 +595,7 @@ export class ReceiptFormattingService {
       },
       tax: {
         name: 'Tax',
-        nameLocal: '營業稅',
+        // nameLocal: '營業稅',
         rate: 0.05,
         inclusive: false,
         displayFormat: '營業稅 (5%)'

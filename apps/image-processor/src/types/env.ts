@@ -30,7 +30,10 @@ export interface Env {
   
   // JWT secret for authentication
   JWT_SECRET: string
-  
+
+  // API key for authentication
+  API_KEY?: string
+
   // Slack webhook for notifications
   SLACK_WEBHOOK_URL?: string
 }

@@ -5,7 +5,7 @@ import type {
   ImageAnalytics,
   ImageTransformation 
 } from '../types/env'
-import { ImageService as DatabaseImageService, type CreateImageData } from '@makanmakan/database/services'
+import { ImageService as DatabaseImageService, type CreateImageData } from '@makanmakan/database'
 
 /**
  * Image service for database operations and metadata management
@@ -244,8 +244,8 @@ export class ImageService {
         tags,
         page = 1,
         limit = 20,
-        sortBy = 'uploaded_at',
-        sortOrder = 'DESC'
+        sortBy: _sortBy = 'uploaded_at',
+        sortOrder: _sortOrder = 'DESC'
       } = options
 
       const whereConditions: string[] = []
@@ -273,7 +273,7 @@ export class ImageService {
         tags.forEach(tag => params.push(`%"${tag}"%`))
       }
 
-      const whereClause = whereConditions.length > 0 
+      const _whereClause = whereConditions.length > 0 
         ? `WHERE ${whereConditions.join(' AND ')}`
         : ''
 
@@ -520,7 +520,7 @@ export class ImageService {
         params.push(dateTo)
       }
 
-      const whereClause = whereConditions.length > 0 
+      const _whereClause = whereConditions.length > 0 
         ? `WHERE ${whereConditions.join(' AND ')}`
         : ''
 

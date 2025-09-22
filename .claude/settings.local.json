@@ -90,7 +90,12 @@
       "WebFetch(domain:lucide.dev)",
       "Bash(awk:*)",
       "Read(//c//**)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(where node)",
+      "Bash(where wrangler)",
+      "Bash(npx vitest:*)",
+      "Bash(curl:*)",
+      "Read(//c/Users/minim/OneDrive/文档/Code/**)"
     ],
     "deny": [],
     "ask": [],

@@ -4,6 +4,7 @@ import { router } from "./router";
 import App from "./App.vue";
 import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
+import i18n from "./i18n";
 import "./assets/css/main.css";
 
 const app = createApp(App);
@@ -11,6 +12,7 @@ const pinia = createPinia();
 
 app.use(pinia);
 app.use(router);
+app.use(i18n);
 
 // 註冊全局組件
 app.component("ErrorDisplay", ErrorDisplay);

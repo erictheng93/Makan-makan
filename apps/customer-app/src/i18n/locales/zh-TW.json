@@ -28,7 +28,8 @@
     "sort": "排序",
     "clear": "清除",
     "apply": "套用",
-    "reset": "重設"
+    "reset": "重設",
+    "off": "折扣"
   },
   "navigation": {
     "home": "首頁",
@@ -145,7 +146,25 @@
     "editNotes": "編輯",
     "hideNotes": "收起",
     "notes": "備註",
-    "itemTotal": "項目總計"
+    "itemTotal": "項目總計",
+    "couponCode": "優惠券代碼",
+    "couponPlaceholder": "請輸入優惠券代碼",
+    "applyCoupon": "使用",
+    "removeCoupon": "移除優惠券",
+    "coupons": "優惠券",
+    "viewAvailable": "查看可用優惠券",
+    "availableCoupons": "可用優惠券",
+    "noCouponsAvailable": "目前沒有可用的優惠券",
+    "orEnterCode": "或手動輸入優惠券代碼",
+    "saving": "節省",
+    "minOrder": "最低消費",
+    "maxDiscount": "最高折扣",
+    "validUntil": "有效期至",
+    "percentage": "百分比折扣",
+    "fixedAmount": "固定金額折扣",
+    "recommendedForYou": "為您推薦",
+    "potentialSaving": "預計節省",
+    "use": "使用"
   },
   "order": {
     "title": "訂單確認",

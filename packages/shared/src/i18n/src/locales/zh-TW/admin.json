@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "dashboard": "儀表板",
+    "restaurants": "餐廳管理",
+    "users": "用戶管理",
+    "analytics": "數據分析",
+    "settings": "系統設定",
+    "backup": "備份管理"
+  },
+  "dashboard": {
+    "title": "管理儀表板",
+    "totalRestaurants": "餐廳總數",
+    "totalUsers": "用戶總數",
+    "monthlyRevenue": "月營收",
+    "systemHealth": "系統健康狀態"
+  },
+  "backup": {
+    "title": "備份管理",
+    "createBackup": "建立備份",
+    "restoreBackup": "恢復備份",
+    "backupHistory": "備份歷史",
+    "autoBackup": "自動備份",
+    "backupStatus": "備份狀態",
+    "downloadBackup": "下載備份"
+  },
+  "analytics": {
+    "title": "數據分析",
+    "salesReport": "銷售報告",
+    "userActivity": "用戶活動",
+    "systemMetrics": "系統指標",
+    "exportData": "導出數據"
+  },
+  "restaurant": {
+    "title": "餐廳管理",
+    "table": "桌位",
+    "room": "房間",
+    "menu": "菜單",
+    "order": "訂單",
+    "kitchen": "廚房",
+    "customer": "客戶",
+    "staff": "員工"
+  },
+  "orders": {
+    "title": "訂單管理",
+    "newOrder": "新訂單",
+    "orderNumber": "訂單號碼",
+    "customer": "客戶",
+    "table": "桌位",
+    "items": "項目",
+    "subtotal": "小計",
+    "tax": "稅金",
+    "discount": "折扣",
+    "total": "總計",
+    "status": {
+      "pending": "等待中",
+      "preparing": "準備中",
+      "ready": "完成",
+      "served": "已送出",
+      "cancelled": "已取消"
+    }
+  }
+}

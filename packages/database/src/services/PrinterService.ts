@@ -15,7 +15,7 @@ import type {
   CountryCode,
   PrintJobStatus,
   PrintStatistics
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 // =============================================
 // 抽象打印機驅動類

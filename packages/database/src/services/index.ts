@@ -15,6 +15,7 @@ export { GroupOrderService } from './GroupOrderService'
 export { POSService } from './POSService'
 export { QueueService } from './QueueService'
 export { ImageService } from './image'
+export { CouponService } from './coupon'
 
 // 匯出類型定義
 export type { 
@@ -89,3 +90,10 @@ export type {
   PerformanceAnalytics,
   CreateImageData
 } from './image'
+
+export type {
+  CouponValidationResult,
+  CreateCouponData,
+  UseCouponData,
+  CouponFilters
+} from './coupon'

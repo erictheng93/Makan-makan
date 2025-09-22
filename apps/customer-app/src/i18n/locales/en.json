@@ -28,7 +28,8 @@
     "sort": "Sort",
     "clear": "Clear",
     "apply": "Apply",
-    "reset": "Reset"
+    "reset": "Reset",
+    "off": "off"
   },
   "navigation": {
     "home": "Home",
@@ -145,7 +146,25 @@
     "editNotes": "Edit",
     "hideNotes": "Hide",
     "notes": "Notes",
-    "itemTotal": "Item Total"
+    "itemTotal": "Item Total",
+    "couponCode": "Coupon Code",
+    "couponPlaceholder": "Enter coupon code",
+    "applyCoupon": "Apply",
+    "removeCoupon": "Remove Coupon",
+    "coupons": "Coupons",
+    "viewAvailable": "View Available Coupons",
+    "availableCoupons": "Available Coupons",
+    "noCouponsAvailable": "No coupons available",
+    "orEnterCode": "Or enter coupon code manually",
+    "saving": "Saving",
+    "minOrder": "Min Order",
+    "maxDiscount": "Max Discount",
+    "validUntil": "Valid Until",
+    "percentage": "Percentage Discount",
+    "fixedAmount": "Fixed Amount Discount",
+    "recommendedForYou": "Recommended for You",
+    "potentialSaving": "Potential Saving",
+    "use": "Use"
   },
   "order": {
     "title": "Order Confirmation",

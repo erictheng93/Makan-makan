@@ -1,0 +1,129 @@
+{
+  "backup": {
+    "dashboard": {
+      "title": "備份管理"
+    },
+    "actions": {
+      "create": "建立備份",
+      "refresh": "重新整理",
+      "download": "下載",
+      "restore": "還原",
+      "delete": "刪除",
+      "details": "查看詳細"
+    },
+    "health": {
+      "healthy": "系統健康",
+      "warning": "警告",
+      "critical": "嚴重問題",
+      "unknown": "狀態未知",
+      "loading": "檢查系統健康狀態...",
+      "failuresDetected": "過去24小時內有 {count} 次備份失敗",
+      "backupsRunning": "目前有 {count} 個備份正在執行",
+      "allSystemsNormal": "所有備份系統運行正常"
+    },
+    "metrics": {
+      "running": "執行中",
+      "failed24h": "失敗 (24h)",
+      "duration": "持續時間",
+      "compression": "壓縮率",
+      "uploadSpeed": "上傳速度"
+    },
+    "stats": {
+      "totalBackups": "總備份數",
+      "successful": "成功",
+      "storageUsed": "已使用儲存空間",
+      "estimatedCost": "預估成本"
+    },
+    "recent": {
+      "title": "最近的備份",
+      "viewAll": "查看全部"
+    },
+    "empty": {
+      "title": "尚無備份",
+      "description": "建立您的第一個備份以保護餐廳資料。",
+      "createFirst": "建立第一個備份"
+    },
+    "alerts": {
+      "title": "系統警示"
+    },
+    "status": {
+      "pending": "等待中",
+      "in_progress": "進行中",
+      "completed": "已完成",
+      "failed": "失敗",
+      "cancelled": "已取消",
+      "processing": "處理中..."
+    },
+    "types": {
+      "full": "完整備份",
+      "incremental": "增量備份",
+      "differential": "差異備份",
+      "fullDescription": "完整備份所有選定的資料",
+      "incrementalDescription": "僅備份自上次備份後變更的資料",
+      "differentialDescription": "備份自上次完整備份後變更的資料"
+    },
+    "details": {
+      "id": "備份ID",
+      "configuration": "配置",
+      "manual": "手動備份",
+      "recordsCount": "記錄數量",
+      "storage": "儲存",
+      "encrypted": "已加密",
+      "checksum": "檢查碼",
+      "tables": "包含的資料表",
+      "performance": "效能指標"
+    },
+    "create": {
+      "title": "建立新備份",
+      "basicInfo": "基本資訊",
+      "name": "備份名稱",
+      "namePlaceholder": "例如：2024年3月月度備份",
+      "description": "描述",
+      "descriptionPlaceholder": "此備份的選填描述",
+      "type": "備份類型",
+      "configuration": "配置",
+      "useConfiguration": "配置模式",
+      "useExisting": "使用現有配置",
+      "manualConfig": "手動配置",
+      "selectConfig": "選擇配置",
+      "selectConfigPlaceholder": "選擇備份配置",
+      "advancedOptions": "進階選項",
+      "tableSelection": "資料表選擇",
+      "allTables": "所有資料表",
+      "includeTables": "包含特定資料表",
+      "excludeTables": "排除特定資料表",
+      "tablesToInclude": "要包含的資料表",
+      "tablesToExclude": "要排除的資料表",
+      "execution": "執行選項",
+      "forceImmediate": "立即執行",
+      "forceImmediateDescription": "立即開始備份而非排入佇列",
+      "creating": "建立中...",
+      "create": "建立備份"
+    },
+    "restore": {
+      "title": "從備份還原",
+      "warning": "警告：資料還原",
+      "warningMessage": "從備份還原將會修改您目前的資料。請確保您理解其影響。",
+      "selectType": "還原類型",
+      "full": "完整還原",
+      "selective": "選擇性還原",
+      "fullDescription": "從備份還原所有資料",
+      "selectiveDescription": "選擇特定資料表進行還原",
+      "overwriteExisting": "覆蓋現有資料",
+      "safety": "安全確認",
+      "backupVerified": "我已驗證此備份是正確的",
+      "risksAcknowledged": "我理解資料遺失的風險",
+      "confirmationPhrase": "輸入「我理解風險」以繼續",
+      "confirmationPlaceholder": "我理解風險",
+      "restoring": "還原中...",
+      "restore": "開始還原"
+    },
+    "errors": {
+      "nameRequired": "備份名稱為必填",
+      "nameTooLong": "備份名稱太長（最多100個字元）"
+    },
+    "confirm": {
+      "delete": "您確定要刪除備份「{name}」嗎？此動作無法復原。"
+    }
+  }
+}

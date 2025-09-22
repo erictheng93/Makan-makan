@@ -138,6 +138,276 @@
           </div>
         </div>
 
+        <!-- 優惠券區域 -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <!-- 區域標題 -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("cart.coupons") }}
+            </h3>
+            <button
+              v-if="!showAvailableCoupons"
+              class="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              @click="toggleAvailableCoupons"
+            >
+              {{ t("cart.viewAvailable") }}
+            </button>
+          </div>
+
+          <!-- 可用優惠券列表 -->
+          <div v-if="showAvailableCoupons" class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-md font-medium text-gray-800">
+                {{ t("cart.availableCoupons") }}
+              </h4>
+              <button
+                class="text-sm text-gray-500 hover:text-gray-700"
+                @click="toggleAvailableCoupons"
+              >
+                {{ t("common.close") }}
+              </button>
+            </div>
+
+            <!-- 加載中 -->
+            <div v-if="isLoadingCoupons" class="flex justify-center py-4">
+              <div
+                class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"
+              />
+            </div>
+
+            <!-- 無可用優惠券 -->
+            <div
+              v-else-if="!availableCoupons.length"
+              class="text-center py-4 text-gray-500"
+            >
+              {{ t("cart.noCouponsAvailable") }}
+            </div>
+
+            <!-- 優惠券列表 -->
+            <div v-else class="space-y-3 max-h-60 overflow-y-auto">
+              <div
+                v-for="coupon in availableCoupons"
+                :key="coupon.id"
+                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                :class="{
+                  'ring-2 ring-indigo-500 bg-indigo-50':
+                    selectedCoupon?.id === coupon.id,
+                }"
+                @click="selectCoupon(coupon)"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                      <h5 class="font-semibold text-gray-900">
+                        {{ coupon.name }}
+                      </h5>
+                      <span
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                        :class="getCouponTypeClass(coupon.discountType)"
+                      >
+                        {{ getCouponTypeText(coupon.discountType) }}
+                      </span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">
+                      {{ coupon.description }}
+                    </p>
+
+                    <!-- 折扣信息 -->
+                    <div class="mt-2 flex items-center space-x-4 text-sm">
+                      <span class="text-indigo-600 font-semibold">
+                        {{ formatCouponDiscount(coupon) }}
+                      </span>
+                      <span v-if="coupon.minOrderAmount" class="text-gray-500">
+                        {{ t("cart.minOrder") }}: ${{
+                          formatPrice(coupon.minOrderAmount)
+                        }}
+                      </span>
+                      <span
+                        v-if="
+                          coupon.maxDiscountAmount &&
+                          coupon.discountType === 'percentage'
+                        "
+                        class="text-gray-500"
+                      >
+                        {{ t("cart.maxDiscount") }}: ${{
+                          formatPrice(coupon.maxDiscountAmount)
+                        }}
+                      </span>
+                    </div>
+
+                    <!-- 有效期 -->
+                    <div class="mt-2 text-xs text-gray-400">
+                      {{ t("cart.validUntil") }}:
+                      {{ formatCouponExpiry(coupon.validTo) }}
+                    </div>
+                  </div>
+
+                  <!-- 選擇指示器 -->
+                  <div class="ml-3">
+                    <div
+                      v-if="selectedCoupon?.id === coupon.id"
+                      class="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center"
+                    >
+                      <svg
+                        class="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <div
+                      v-else
+                      class="w-5 h-5 border-2 border-gray-300 rounded-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 應用選擇的優惠券 -->
+            <div
+              v-if="selectedCoupon && !appliedCoupon"
+              class="mt-4 pt-4 border-t border-gray-200"
+            >
+              <button
+                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium"
+                @click="applyCouponFromList"
+              >
+                {{ t("cart.applyCoupon") }} -
+                {{ formatCouponDiscount(selectedCoupon) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 手動輸入優惠券 -->
+          <div>
+            <div class="flex items-center space-x-2 mb-3">
+              <span class="text-sm font-medium text-gray-700">{{
+                t("cart.orEnterCode")
+              }}</span>
+              <div class="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <div class="flex space-x-3">
+              <input
+                id="coupon-code"
+                v-model="couponCode"
+                type="text"
+                :placeholder="t('cart.couponPlaceholder')"
+                :disabled="isValidatingCoupon"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+                @input="onCouponInput"
+                @keyup.enter="validateCoupon"
+              />
+              <button
+                :disabled="!couponCode.trim() || isValidatingCoupon"
+                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
+                @click="validateCoupon"
+              >
+                <div
+                  v-if="isValidatingCoupon"
+                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-1"
+                />
+                <span v-else>{{ t("cart.applyCoupon") }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 優惠券驗證狀態 -->
+          <div v-if="couponValidationMessage" class="mt-3">
+            <div
+              v-if="couponValidationError"
+              class="flex items-center text-sm text-red-600"
+            >
+              <svg
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {{ couponValidationMessage }}
+            </div>
+            <div v-else class="flex items-center text-sm text-green-600">
+              <svg
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              {{ couponValidationMessage }}
+            </div>
+          </div>
+
+          <!-- 已應用的優惠券 -->
+          <div
+            v-if="appliedCoupon"
+            class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg"
+          >
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <svg
+                    class="w-5 h-5 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span class="text-sm font-medium text-green-800">{{
+                    appliedCoupon.name || appliedCoupon.code
+                  }}</span>
+                </div>
+                <p class="text-sm text-green-600 mt-1">
+                  {{ t("cart.saving") }} ${{
+                    formatPrice(couponDiscountAmount)
+                  }}
+                </p>
+              </div>
+              <button
+                class="text-sm text-green-600 hover:text-green-800 font-medium"
+                @click="clearCoupon"
+              >
+                {{ t("cart.removeCoupon") }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 智能推薦優惠券 -->
+        <CouponRecommendation
+          v-if="!appliedCoupon && availableCoupons.length > 0"
+          :coupons="availableCoupons"
+          :order-amount="cartStore.subtotal"
+          @select-coupon="selectAndApplyCoupon"
+        />
+
         <!-- 備註欄位 -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <label
@@ -264,6 +534,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useCartStore } from "@/stores/cart";
 import CartItemCard from "@/components/CartItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
+import CouponRecommendation from "@/components/CouponRecommendation.vue";
 import { orderApi } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { formatPrice } from "@/utils/format";
@@ -289,6 +560,20 @@ const customerInfo = ref({
 });
 const showConfirmation = ref(false);
 const isSubmitting = ref(false);
+
+// 優惠券相關狀態
+const couponCode = ref("");
+const appliedCoupon = ref<any>(null);
+const isValidatingCoupon = ref(false);
+const couponValidationMessage = ref("");
+const couponValidationError = ref(false);
+const couponDiscountAmount = ref(0);
+
+// 可用優惠券列表相關狀態
+const showAvailableCoupons = ref(false);
+const isLoadingCoupons = ref(false);
+const availableCoupons = ref<any[]>([]);
+const selectedCoupon = ref<any>(null);
 
 // API Queries
 const { data: restaurant } = useQuery({
@@ -327,8 +612,7 @@ const tax = computed(() => {
 });
 
 const discount = computed(() => {
-  // 這裡可以實作折扣邏輯
-  return 0;
+  return couponDiscountAmount.value;
 });
 
 const totalAmount = computed(() => {
@@ -373,6 +657,191 @@ const handleSubmitOrder = () => {
   showConfirmation.value = true;
 };
 
+// 優惠券相關方法
+const onCouponInput = () => {
+  // 清除之前的驗證狀態
+  couponValidationMessage.value = "";
+  couponValidationError.value = false;
+};
+
+// Client-side coupon code validation
+const validateCouponCode = (code: string): { isValid: boolean; error?: string } => {
+  if (!code || typeof code !== 'string') {
+    return { isValid: false, error: '請輸入優惠券代碼' };
+  }
+
+  const trimmedCode = code.trim();
+
+  if (trimmedCode.length === 0) {
+    return { isValid: false, error: '請輸入優惠券代碼' };
+  }
+
+  if (trimmedCode.length > 50) {
+    return { isValid: false, error: '優惠券代碼不能超過50個字符' };
+  }
+
+  // Allow alphanumeric characters, hyphens, and underscores only
+  if (!/^[A-Za-z0-9\-_]+$/.test(trimmedCode)) {
+    return { isValid: false, error: '優惠券代碼只能包含字母、數字、連字符和下劃線' };
+  }
+
+  return { isValid: true };
+};
+
+const validateCoupon = async () => {
+  if (!couponCode.value.trim()) return;
+
+  // Client-side input validation
+  const validation = validateCouponCode(couponCode.value);
+  if (!validation.isValid) {
+    couponValidationMessage.value = validation.error || '';
+    couponValidationError.value = true;
+    return;
+  }
+
+  isValidatingCoupon.value = true;
+  couponValidationMessage.value = "";
+  couponValidationError.value = false;
+
+  try {
+    // Sanitize input: trim whitespace and convert to uppercase
+    const sanitizedCode = couponCode.value.trim().toUpperCase();
+
+    const response = await fetch("/api/v1/coupons/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: sanitizedCode,
+        restaurantId: props.restaurantId.toString(),
+        orderAmount: cartStore.subtotal,
+        menuItems: cartStore.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+        })),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.success && result.data.valid) {
+      // 驗證成功
+      appliedCoupon.value = result.data.coupon;
+      couponDiscountAmount.value = result.data.discountAmount || 0;
+      couponValidationMessage.value = `優惠券已套用！節省 $${formatPrice(couponDiscountAmount.value)}`;
+      couponValidationError.value = false;
+    } else {
+      // 驗證失敗
+      appliedCoupon.value = null;
+      couponDiscountAmount.value = 0;
+      couponValidationMessage.value = result.data?.error || "優惠券驗證失敗";
+      couponValidationError.value = true;
+    }
+  } catch (error) {
+    console.error("Coupon validation error:", error);
+    appliedCoupon.value = null;
+    couponDiscountAmount.value = 0;
+    couponValidationMessage.value = "驗證過程中發生錯誤，請稍後再試";
+    couponValidationError.value = true;
+  } finally {
+    isValidatingCoupon.value = false;
+  }
+};
+
+const clearCoupon = () => {
+  couponCode.value = "";
+  appliedCoupon.value = null;
+  couponDiscountAmount.value = 0;
+  couponValidationMessage.value = "";
+  couponValidationError.value = false;
+  selectedCoupon.value = null;
+};
+
+// 可用優惠券相關方法
+const toggleAvailableCoupons = async () => {
+  showAvailableCoupons.value = !showAvailableCoupons.value;
+  if (showAvailableCoupons.value && availableCoupons.value.length === 0) {
+    await loadAvailableCoupons();
+  }
+};
+
+const loadAvailableCoupons = async () => {
+  if (isLoadingCoupons.value) return;
+
+  isLoadingCoupons.value = true;
+  try {
+    const response = await fetch(
+      `/api/v1/coupons/available/${props.restaurantId}`,
+    );
+    const result = await response.json();
+
+    if (result.success) {
+      availableCoupons.value = result.data || [];
+    } else {
+      console.error("Failed to load available coupons:", result.error);
+      availableCoupons.value = [];
+    }
+  } catch (error) {
+    console.error("Error loading available coupons:", error);
+    availableCoupons.value = [];
+  } finally {
+    isLoadingCoupons.value = false;
+  }
+};
+
+const selectCoupon = (coupon: any) => {
+  if (appliedCoupon.value) return; // 如果已有應用的優惠券，不允許選擇
+  selectedCoupon.value = selectedCoupon.value?.id === coupon.id ? null : coupon;
+};
+
+const applyCouponFromList = async () => {
+  if (!selectedCoupon.value) return;
+
+  // 使用選中的優惠券代碼進行驗證
+  couponCode.value = selectedCoupon.value.code;
+  await validateCoupon();
+};
+
+// 優惠券格式化方法
+const formatCouponDiscount = (coupon: any) => {
+  if (coupon.discountType === "percentage") {
+    return `${coupon.discountValue}% ${t("common.off")}`;
+  } else {
+    return `$${formatPrice(coupon.discountValue)} ${t("common.off")}`;
+  }
+};
+
+const formatCouponExpiry = (dateString: any) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("zh-TW", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch (error) {
+    return dateString;
+  }
+};
+
+const getCouponTypeClass = (discountType: any) => {
+  return discountType === "percentage"
+    ? "bg-blue-100 text-blue-800"
+    : "bg-green-100 text-green-800";
+};
+
+const getCouponTypeText = (discountType: any) => {
+  return discountType === "percentage"
+    ? t("cart.percentage")
+    : t("cart.fixedAmount");
+};
+
+const selectAndApplyCoupon = async (coupon: any) => {
+  selectedCoupon.value = coupon;
+  await applyCouponFromList();
+};
+
 const submitOrder = async () => {
   try {
     isSubmitting.value = true;
@@ -391,6 +860,9 @@ const submitOrder = async () => {
         notes: item.notes,
       })),
       notes: orderNotes.value.trim() || undefined,
+      couponCode: appliedCoupon.value
+        ? couponCode.value.trim().toUpperCase()
+        : undefined,
     };
 
     // 提交訂單

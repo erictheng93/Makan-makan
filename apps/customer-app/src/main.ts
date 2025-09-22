@@ -9,6 +9,10 @@ import router from "./router";
 import { setupI18n } from "./i18n";
 import "./assets/css/main.css";
 
+// Performance optimizations
+import { PWAPerformanceManager } from "./utils/pwa-performance-optimizer";
+import { optimizedOfflineStorage } from "./utils/offline-storage-optimized";
+
 const app = createApp(App);
 
 // Pinia store
@@ -48,5 +52,44 @@ app.use(Toast, {
   icon: true,
   rtl: false,
 });
+
+// Initialize PWA performance optimizations
+async function initializePWAOptimizations() {
+  try {
+    // Initialize performance manager
+    const performanceManager = new PWAPerformanceManager();
+    await performanceManager.initializeOptimizations();
+
+    // Initialize optimized storage
+    await optimizedOfflineStorage.initialize();
+
+    // Make managers globally available
+    (window as any).pwaPerformanceManager = performanceManager;
+    (window as any).optimizedStorage = optimizedOfflineStorage;
+
+    console.log('✅ PWA performance optimizations initialized');
+  } catch (error) {
+    console.error('⚠️ PWA optimization initialization failed:', error);
+  }
+}
+
+// Register optimized service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw-optimized.js')
+    .then((registration) => {
+      console.log('✅ Optimized Service Worker registered:', registration);
+      return initializePWAOptimizations();
+    })
+    .catch((error) => {
+      console.error('⚠️ Service Worker registration failed:', error);
+      // Fallback to regular SW
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('✅ Fallback Service Worker registered'))
+        .catch((fallbackError) => console.error('❌ All Service Worker registration failed:', fallbackError));
+    });
+} else {
+  // Initialize optimizations even without SW support
+  initializePWAOptimizations();
+}
 
 app.mount("#app");

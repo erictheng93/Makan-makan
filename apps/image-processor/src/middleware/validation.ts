@@ -225,7 +225,7 @@ export const validateImageDimensions = (options: {
         // 在實際應用中，這裡需要解析圖片來獲取尺寸
         // 由於 Workers 環境限制，這裡提供基本的文件大小檢查
         
-        const { maxWidth, maxHeight, minWidth, minHeight, aspectRatio } = options
+        const { maxWidth: _maxWidth, maxHeight: _maxHeight, minWidth: _minWidth, minHeight: _minHeight, aspectRatio: _aspectRatio } = options
         
         // 注意：在 Workers 中解析圖片尺寸需要使用 WebP 或其他支持的 API
         // 這裡提供一個簡化的實現示例

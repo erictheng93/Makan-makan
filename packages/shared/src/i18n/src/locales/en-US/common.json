@@ -1,0 +1,52 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "confirm": "Confirm",
+    "close": "Close",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "yes": "Yes",
+    "no": "No",
+    "active": "Active",
+    "inactive": "Inactive",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Finish",
+    "back": "Back",
+    "total": "Total",
+    "count": "Count",
+    "name": "Name",
+    "description": "Description",
+    "status": "Status",
+    "date": "Date",
+    "time": "Time"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "password": "Password must be at least 8 characters",
+    "passwordConfirm": "Passwords do not match",
+    "minLength": "Minimum {min} characters required",
+    "maxLength": "Maximum {max} characters allowed",
+    "invalidFormat": "Invalid format"
+  },
+  "messages": {
+    "saveSuccess": "Saved successfully",
+    "saveError": "Save failed",
+    "deleteConfirm": "Are you sure you want to delete this item?",
+    "deleteSuccess": "Deleted successfully",
+    "deleteError": "Delete failed",
+    "loadError": "Failed to load data",
+    "networkError": "Network error occurred",
+    "permissionDenied": "Permission denied",
+    "sessionExpired": "Session expired. Please login again."
+  }
+}

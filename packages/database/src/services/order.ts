@@ -111,14 +111,41 @@ export class OrderService extends BaseService {
         })
       }
 
-      // 計算稅金和服務費
+      // 優惠券驗證和折扣計算
+      let discountAmount = 0
+      let validatedCoupon = null
+      
+      if (data.couponCode) {
+        // 導入優惠券服務
+        const { CouponService } = await import('./coupon')
+        const couponService = new CouponService(this.d1)
+        
+        // 驗證優惠券
+        const validationResult = await couponService.validateCoupon(
+          data.couponCode,
+          data.restaurantId.toString(),
+          subtotal,
+          data.customerId,
+          data.items
+        )
+
+        if (validationResult.valid) {
+          discountAmount = validationResult.discountAmount || 0
+          validatedCoupon = validationResult.coupon
+        } else {
+          throw new Error(`優惠券驗證失敗: ${validationResult.error}`)
+        }
+      }
+
+      // 計算稅金和服務費（考慮折扣）
       const settings = restaurant.settings || {}
       const taxRate = settings.taxRate || 0
       const serviceChargeRate = settings.serviceChargeRate || 0
       const { taxAmount, serviceCharge, totalAmount } = this.calculateOrderTotal(
         subtotal,
         taxRate,
-        serviceChargeRate
+        serviceChargeRate,
+        discountAmount
       )
 
       // 生成訂單號碼
@@ -135,9 +162,11 @@ export class OrderService extends BaseService {
           subtotal,
           taxAmount,
           serviceCharge,
+          discountAmount,
           totalAmount,
           customerInfo: data.customerInfo,
           notes: data.notes,
+          couponCode: data.couponCode,
           estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData)
         })
         .returning()
@@ -152,6 +181,21 @@ export class OrderService extends BaseService {
           }))
         )
         .returning()
+
+      // 記錄優惠券使用情況
+      if (validatedCoupon && discountAmount > 0) {
+        const { CouponService } = await import('./coupon')
+        const couponService = new CouponService(this.d1)
+        
+        await couponService.useCoupon({
+          couponId: validatedCoupon.id,
+          orderId: order.id,
+          userId: data.customerId,
+          discountAmount,
+          originalAmount: subtotal,
+          finalAmount: totalAmount
+        })
+      }
 
       // 更新菜品訂購次數和庫存
       for (let i = 0; i < data.items.length; i++) {

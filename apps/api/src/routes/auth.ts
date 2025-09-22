@@ -20,11 +20,11 @@ interface RegisterRequest {
 
 const authRouter = new Hono<{ Bindings: Env }>()
 
-// 用戶登入
+// 用戶登入 - Secure implementation with proper password verification
 authRouter.post('/login', async (c) => {
   try {
     const { username, password }: LoginRequest = await c.req.json()
-    
+
     if (!username || !password) {
       return c.json({
         success: false,
@@ -32,16 +32,28 @@ authRouter.post('/login', async (c) => {
       }, 400)
     }
 
+    // Use AuthService for secure login with bcrypt password verification
     const authService = new AuthService(c.env.DB as any)
-    
-    const result = await authService.login({
+
+    // Extract device and location info for session tracking
+    const userAgent = c.req.header('User-Agent')
+    const cfConnectingIp = c.req.header('CF-Connecting-IP')
+    const cfIpCountry = c.req.header('CF-IPCountry')
+
+    const loginData = {
       username,
       password,
       deviceInfo: {
-        userAgent: c.req.header('User-Agent'),
-        ipAddress: c.req.header('CF-Connecting-IP') || 'unknown'
+        userAgent,
+        ipAddress: cfConnectingIp,
+        platform: userAgent?.includes('Mobile') ? 'mobile' : 'desktop'
+      },
+      location: {
+        country: cfIpCountry
       }
-    })
+    }
+
+    const result = await authService.login(loginData)
 
     if (!result.success) {
       return c.json({

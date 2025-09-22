@@ -9,7 +9,7 @@ import type {
   PrinterDevice, 
   PrintCommand,
   PrintContent 
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 export interface CitizenDriverConfig {
   connection: {
@@ -112,7 +112,11 @@ class CitizenCommands extends ESCPOSCommands {
 export class CitizenDriver extends PrinterDriver {
   private connection: any = null
   private driverConfig: CitizenDriverConfig
-  private isConnected = false
+  private _isConnected = false
+
+  isConnected(): boolean {
+    return this._isConnected
+  }
 
   constructor(device: PrinterDevice, config: CitizenDriverConfig) {
     super(device, config)
@@ -132,7 +136,7 @@ export class CitizenDriver extends PrinterDriver {
       
       const testResult = await this.testConnection()
       if (testResult) {
-        this.isConnected = true
+        this._isConnected = true
         this.device.status = 'online'
         this.device.lastSeen = new Date()
         
@@ -152,13 +156,13 @@ export class CitizenDriver extends PrinterDriver {
 
   async disconnect(): Promise<void> {
     try {
-      if (this.connection && this.isConnected) {
+      if (this.connection && this._isConnected) {
         await this.closeConnection()
       }
     } catch (error) {
       console.error(`Error disconnecting Citizen printer ${this.device.id}:`, error)
     } finally {
-      this.isConnected = false
+      this._isConnected = false
       this.device.status = 'offline'
       this.connection = null
     }
@@ -296,7 +300,7 @@ export class CitizenDriver extends PrinterDriver {
   // =============================================
 
   async print(commands: Buffer): Promise<boolean> {
-    if (!this.isConnected || !this.connection) {
+    if (!this._isConnected || !this.connection) {
       throw new Error('Citizen printer not connected')
     }
 
@@ -310,7 +314,7 @@ export class CitizenDriver extends PrinterDriver {
   }
 
   async getStatus(): Promise<PrinterDevice['status']> {
-    if (!this.isConnected) {
+    if (!this._isConnected) {
       return 'offline'
     }
 

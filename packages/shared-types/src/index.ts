@@ -11,3 +11,4 @@ export * from './common';
 export * from './payment';
 export * from './stripe';
 export * from './printer';
+export * from './backup';

@@ -1,4 +1,4 @@
-import type { Env, CloudflareImagesResponse, ImageMetadata, ImageTransformation } from '../types/env'
+import type { Env, CloudflareImagesResponse, ImageTransformation } from '../types/env'
 
 /**
  * Cloudflare Images API integration utility class
@@ -350,7 +350,7 @@ export class CloudflareImagesAPI {
   generateSignedURL(
     imageId: string,
     accountHash: string,
-    expireSeconds: number = 3600
+    _expireSeconds: number = 3600
   ): string {
     // Note: This would require implementing JWT signing for Cloudflare Images
     // For now, return the direct URL
@@ -428,7 +428,7 @@ export const ImageUtils = {
   /**
    * Determine best format for image delivery
    */
-  getBestFormat(acceptHeader: string = '', userAgent: string = ''): string {
+  getBestFormat(acceptHeader: string = '', _userAgent: string = ''): string {
     // Check if browser supports WebP
     if (acceptHeader.includes('image/webp')) {
       return 'webp'
