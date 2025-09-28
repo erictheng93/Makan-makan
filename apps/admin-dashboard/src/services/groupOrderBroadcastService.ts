@@ -611,7 +611,7 @@ class GroupOrderBroadcastService {
     this.operationQueue.delete(groupOrderId);
 
     // 清理相關的確認記錄
-    for (const [messageId, _acks] of this.acknowledgments) {
+    for (const [messageId] of this.acknowledgments) {
       if (messageId.startsWith(groupOrderId)) {
         this.acknowledgments.delete(messageId);
       }

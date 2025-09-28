@@ -242,7 +242,15 @@ backup.get('/:id/download', async (c) => {
       }
       backupData = await object.text()
     } else if (backup.storage_provider === 'kv') {
-      backupData = await c.env.BACKUP_KV.get(`backup:${backupId}`)
+      const kvData = await c.env.BACKUP_KV.get(`backup:${backupId}`)
+      if (kvData) {
+        backupData = kvData
+      } else {
+        return c.json({
+          success: false,
+          error: "Backup file not found in KV storage"
+        }, 404)
+      }
       if (!backupData) {
         return c.json({
           success: false,

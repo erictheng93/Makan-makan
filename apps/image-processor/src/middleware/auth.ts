@@ -1,16 +1,9 @@
 import { Context, Next } from 'hono'
-// TODO: Fix imports when packages are properly configured
-// import { verify } from 'jsonwebtoken'
 import type { Env } from '../types/env'
-// import { createDbConnection } from '@makanmakan/database'
-// import { eq } from 'drizzle-orm'
-// import { images } from '@makanmakan/database'
+import { createDatabase, eq, images } from '@makanmakan/database'
 
-// Temporary mock implementations
-const verify = (token: string, secret: string) => ({ id: 1, username: 'test', role: 0, restaurantId: 1 })
-const createDbConnection = (db: any) => ({ select: () => ({ from: () => ({ where: () => ({ first: async () => null }) }) }) })
-const eq = (a: any, b: any) => true
-const images = {}
+// TODO: Add proper JWT verification when jsonwebtoken is available
+const verify = (_token: string, _secret: string) => ({ id: 1, username: 'test', role: 0, restaurantId: 1 })
 
 export interface AuthUser {
   id: number
@@ -167,7 +160,7 @@ export const checkImageAccess = async (c: Context<{ Bindings: Env }>, next: Next
     }
 
     // 檢查圖片是否屬於用戶的餐廳 - Use Drizzle ORM
-    const db = createDbConnection(c.env.DB)
+    const db = createDatabase(c.env.DB)
     const imageResults = await db
       .select({
         restaurant_id: images.restaurantId,
@@ -176,7 +169,7 @@ export const checkImageAccess = async (c: Context<{ Bindings: Env }>, next: Next
       .from(images)
       .where(eq(images.id, imageId))
       .limit(1)
-    
+
     const imageResult = imageResults[0] || null
 
     if (!imageResult) {
@@ -279,7 +272,7 @@ export const corsMiddleware = async (c: Context, next: Next) => {
 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
-    return c.text('', { status: 204 })
+    return new Response('', { status: 204 })
   }
 
   await next()

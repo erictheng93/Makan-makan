@@ -45,6 +45,7 @@ export interface BackupRecord {
   storage_provider: StorageProvider
   storage_path: string
   encryption_enabled: boolean
+  compression_enabled: boolean
   checksum: string
   started_at: string
   completed_at?: string

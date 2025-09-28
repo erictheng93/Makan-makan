@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1'
-import type { Database as D1Database } from '@cloudflare/d1'
+import type { D1Database } from '@cloudflare/workers-types'
 import * as schema from '../schema'
 
 // 基礎服務類別
@@ -9,7 +9,7 @@ export class BaseService {
 
   constructor(d1: D1Database) {
     this.d1 = d1
-    this.db = drizzle(d1 as any, { 
+    this.db = drizzle(d1, {
       schema,
       logger: process.env.NODE_ENV === 'development'
     })

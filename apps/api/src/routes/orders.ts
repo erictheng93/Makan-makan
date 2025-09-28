@@ -212,9 +212,83 @@ app.post('/',
       
     } catch (error) {
       console.error('Create order error:', error)
+
+      // 檢查是否為最低消費驗證錯誤
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create order'
+      const isMinOrderError = errorMessage.includes('訂單未達最低消費標準') || errorMessage.includes('minimum order')
+      const isValidationError = errorMessage.includes('不可用') || errorMessage.includes('not available') ||
+                               errorMessage.includes('庫存不足') || errorMessage.includes('insufficient') ||
+                               isMinOrderError
+
       return c.json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create order'
+        error: errorMessage,
+        type: isMinOrderError ? 'MINIMUM_ORDER_NOT_MET' :
+              isValidationError ? 'VALIDATION_ERROR' : 'SERVER_ERROR'
+      }, isValidationError ? 400 : 500)
+    }
+  }
+)
+
+/**
+ * 獲取餐廳最低消費設定
+ * GET /api/v1/orders/restaurant/:restaurantId/minimum-order
+ */
+app.get('/restaurant/:restaurantId/minimum-order',
+  validateParams(z.object({
+    restaurantId: z.string().regex(/^\d+$/).transform(Number)
+  }) as any),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const orderService = new OrderService(c.env.DB as any)
+
+      const minOrderInfo = await orderService.getMinimumOrderAmount(restaurantId)
+
+      return c.json({
+        success: true,
+        data: minOrderInfo
+      })
+
+    } catch (error) {
+      console.error('Get minimum order error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get minimum order amount'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 驗證訂單是否符合最低消費
+ * POST /api/v1/orders/restaurant/:restaurantId/validate-minimum
+ */
+app.post('/restaurant/:restaurantId/validate-minimum',
+  validateParams(z.object({
+    restaurantId: z.string().regex(/^\d+$/).transform(Number)
+  }) as any),
+  validateBody(z.object({
+    orderAmount: z.number().positive()
+  }) as any),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const { orderAmount } = c.get('validatedBody')
+      const orderService = new OrderService(c.env.DB as any)
+
+      const validation = await orderService.validateMinimumOrder(restaurantId, orderAmount)
+
+      return c.json({
+        success: true,
+        data: validation
+      })
+
+    } catch (error) {
+      console.error('Validate minimum order error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to validate minimum order'
       }, 500)
     }
   }

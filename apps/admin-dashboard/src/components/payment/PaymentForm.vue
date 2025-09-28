@@ -165,7 +165,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useI18n } from "vue-i18n";
 import { usePaymentStore } from "@/stores/payment";
 import type {
   PaymentRequest,
@@ -207,7 +206,6 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 // Composables
-const { t: _t } = useI18n();
 const paymentStore = usePaymentStore();
 
 // Stripe 配置

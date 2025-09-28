@@ -367,7 +367,7 @@ export class PrinterService {
 
   constructor(config: PrintServiceConfig) {
     this.config = config
-    this.queue = new PrintJobQueue(config.queue.maxSize)
+    this.queue = new PrintJobQueue(config.queue.maxQueueSize)
     this.regionManager = new RegionManager()
     
     // 覆寫佇列的處理方法

@@ -813,7 +813,7 @@ export class GroupOrderService extends BaseService {
 
       return {
         success: true,
-        cleaned: result.changes || 0
+        cleaned: result.meta.changes || 0
       }
 
     } catch (error) {

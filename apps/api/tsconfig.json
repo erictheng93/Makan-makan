@@ -9,13 +9,15 @@
     "allowJs": true,
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["@cloudflare/workers-types"],
+    "skipLibCheck": true,
     "paths": {
       "@makanmakan/database": ["../../packages/database/src"],
-      "@makanmakan/shared-types": ["../../packages/shared-types/src"]
+      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
+      "@makanmakan/queue-core": ["../../packages/queue-core/src"],
+      "@makanmakan/queue-service": ["../../packages/queue-service/src"]
     }
   },
   "include": [
@@ -23,6 +25,7 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "src/shared/templates"
   ]
 }

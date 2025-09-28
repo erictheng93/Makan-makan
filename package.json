@@ -35,7 +35,17 @@
     "db:seed:local": "wrangler d1 execute makanmakan-local --local --file=./scripts/seed-local.sql",
     "db:seed:staging": "wrangler d1 execute makanmakan-staging --env staging --file=./scripts/seed-staging.sql",
     "deploy:staging": "pnpm run build && pnpm -r run deploy:staging",
-    "deploy:prod": "pnpm run build && pnpm -r run deploy:prod"
+    "deploy:prod": "pnpm run build && pnpm -r run deploy:prod",
+    "feature:create": "node scripts/migration/create-feature.js",
+    "feature:migrate": "node scripts/migration/migrate-routes.js",
+    "feature:update-imports": "node scripts/migration/update-imports.js",
+    "test:qr-codes": "cd apps/api && npm run test -- src/features/qr-codes",
+    "build:qr-codes": "cd apps/api && npm run build",
+    "build:queue-core": "pnpm --filter @makanmakan/queue-core run build",
+    "build:queue-service": "pnpm --filter @makanmakan/queue-service run build",
+    "dev:queue-core": "pnpm --filter @makanmakan/queue-core run dev",
+    "dev:queue-service": "pnpm --filter @makanmakan/queue-service run dev",
+    "queue:typecheck": "pnpm --filter @makanmakan/queue-core run typecheck && pnpm --filter @makanmakan/queue-service run typecheck"
   },
   "keywords": [
     "restaurant",

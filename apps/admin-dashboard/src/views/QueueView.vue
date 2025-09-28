@@ -191,15 +191,15 @@
                       <ClockIcon class="w-4 h-4 mr-1" />
                       <span>等待 {{ getWaitTime(queueItem.joinedAt) }}分</span>
 
-                      <span v-if="queueItem.tablePreference" class="mx-2"
+                      <span v-if="queueItem.tablePreferences?.length" class="mx-2"
                         >•</span
                       >
                       <BuildingStorefrontIcon
-                        v-if="queueItem.tablePreference"
+                        v-if="queueItem.tablePreferences?.length"
                         class="w-4 h-4 mr-1"
                       />
-                      <span v-if="queueItem.tablePreference">{{
-                        queueItem.tablePreference
+                      <span v-if="queueItem.tablePreferences?.length">{{
+                        queueItem.tablePreferences.join(', ')
                       }}</span>
                     </div>
                   </div>
@@ -487,7 +487,7 @@
                 >聯絡電話</label
               >
               <input
-                v-model="newQueueItem.phoneNumber"
+                v-model="newQueueItem.customerPhone"
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="輸入聯絡電話"
@@ -511,7 +511,7 @@
                 >桌位偏好</label
               >
               <select
-                v-model="newQueueItem.tablePreference"
+                v-model="newQueueItem.tablePreferences"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">無偏好</option>
@@ -602,9 +602,9 @@
                   <span class="text-gray-600">人數:</span>
                   {{ selectedQueueItem.partySize }} 人
                 </p>
-                <p v-if="selectedQueueItem.tablePreference">
+                <p v-if="selectedQueueItem.tablePreferences?.length">
                   <span class="text-gray-600">偏好:</span>
-                  {{ selectedQueueItem.tablePreference }}
+                  {{ selectedQueueItem.tablePreferences.join(', ') }}
                 </p>
                 <p>
                   <span class="text-gray-600">等待時間:</span>
@@ -692,24 +692,12 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon";
+import { queueService, type QueueItem } from "@/services/queueService";
+import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
+import { useAuthStore } from "@/stores/auth";
 
-// 型別定義
-interface QueueItem {
-  id: string;
-  queueNumber: number;
-  customerName: string | null;
-  phoneNumber: string;
-  partySize: number;
-  tablePreference: string | null;
-  specialRequests: string | null;
-  priority: number;
-  status: "waiting" | "called" | "seated" | "no_show" | "cancelled";
-  joinedAt: string;
-  calledAt: string | null;
-  seatedAt: string | null;
-  estimatedWaitTime: number;
-  notes: string | null;
-}
+// 使用新的類型定義 - 已從 queueService 導入
+// QueueItem 現在來自模組化服務
 
 interface Table {
   id: string;
@@ -722,6 +710,13 @@ interface Table {
 }
 
 // 響應式狀態
+const authStore = useAuthStore();
+const {
+  // isConnected,
+  // getRecentQueueUpdates,
+  // getUpdateCountByStatus
+} = useRealtimeQueue();
+
 const queueFilter = ref("");
 const tableViewFilter = ref("all");
 const selectedQueueItem = ref<QueueItem | null>(null);
@@ -730,80 +725,55 @@ const showAddDialog = ref(false);
 const showSeatDialog = ref(false);
 const autoAssignment = ref(true);
 
-// 統計數據
-const currentWaiting = ref(8);
-const avgWaitTime = ref(15);
-const availableTables = ref(12);
-const occupiedTables = ref(8);
-const todayServed = ref(45);
-const overdueQueue = ref(2);
+// 數據狀態
+const queueItems = ref<QueueItem[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const queueStatus = ref<any>(null);
 
-// 表單數據
+// 統計數據 - 從新 API 和即時數據計算
+const currentWaiting = computed(() => {
+  return queueStatus.value?.queue?.total_waiting || 0;
+});
+
+const avgWaitTime = computed(() => {
+  return queueStatus.value?.queue?.avg_estimated_wait || 0;
+});
+
+const availableTables = ref(12); // 暫時保留，等待桌位 API 整合
+const occupiedTables = ref(8);
+const todayServed = computed(() => {
+  return queueStatus.value?.activity?.seated_today || 0;
+});
+const overdueQueue = computed(() => {
+  // 計算超過預期等待時間的候位
+  return queueItems.value.filter(item => {
+    if (item.status !== 'waiting') return false;
+    const waitTime = getWaitTime(item.joinedAt);
+    return waitTime > (item.estimatedWaitMinutes + 10); // 超過預估時間10分鐘
+  }).length;
+});
+
+// 表單數據 - 適配新 API 結構
 const newQueueItem = ref({
   customerName: "",
-  phoneNumber: "",
+  customerPhone: "",
+  customerEmail: "",
   partySize: 2,
-  tablePreference: "",
+  tablePreferences: [] as number[],
   specialRequests: "",
+  queueType: 'walkin' as 'walkin' | 'online' | 'phone',
+  notificationMethods: ['sms'] as string[],
   isVIP: false,
 });
 
 const seatAssignment = ref({
-  tableId: "",
+  tableId: "" as string | number,
   notes: "",
 });
 
-// 模擬排隊數據
-const queueItems = ref<QueueItem[]>([
-  {
-    id: "queue_001",
-    queueNumber: 1,
-    customerName: "張先生",
-    phoneNumber: "012-3456789",
-    partySize: 4,
-    tablePreference: "window",
-    specialRequests: "需要兒童座椅",
-    priority: 1,
-    status: "called",
-    joinedAt: new Date(Date.now() - 1800000).toISOString(), // 30分鐘前
-    calledAt: new Date(Date.now() - 300000).toISOString(), // 5分鐘前
-    seatedAt: null,
-    estimatedWaitTime: 20,
-    notes: "VIP顧客",
-  },
-  {
-    id: "queue_002",
-    queueNumber: 2,
-    customerName: "李小姐",
-    phoneNumber: "012-9876543",
-    partySize: 2,
-    tablePreference: "quiet",
-    specialRequests: null,
-    priority: 0,
-    status: "waiting",
-    joinedAt: new Date(Date.now() - 1200000).toISOString(), // 20分鐘前
-    calledAt: null,
-    seatedAt: null,
-    estimatedWaitTime: 15,
-    notes: null,
-  },
-  {
-    id: "queue_003",
-    queueNumber: 3,
-    customerName: null,
-    phoneNumber: "012-5555555",
-    partySize: 6,
-    tablePreference: null,
-    specialRequests: "輪椅通道",
-    priority: 0,
-    status: "waiting",
-    joinedAt: new Date(Date.now() - 900000).toISOString(), // 15分鐘前
-    calledAt: null,
-    seatedAt: null,
-    estimatedWaitTime: 25,
-    notes: null,
-  },
-]);
+// 排隊數據現在從 API 獲取
+// queueItems 在響應式狀態部分已定義
 
 // 模擬桌位數據
 const tables = ref<Table[]>([
@@ -929,10 +899,10 @@ const recommendedTables = computed(() => {
       }
 
       // 偏好匹配（簡化處理）
-      if (selectedQueueItem.value?.tablePreference) {
+      if (selectedQueueItem.value?.tablePreferences?.length) {
         if (table.number.includes("1") || table.number.includes("2")) {
           // 假設靠窗
-          if (selectedQueueItem.value.tablePreference === "window") score += 15;
+          if (selectedQueueItem.value.tablePreferences.includes(1)) score += 15; // 1 = window preference
         }
       }
 
@@ -943,7 +913,9 @@ const recommendedTables = computed(() => {
 });
 
 const canAddToQueue = computed(() => {
-  return newQueueItem.value.phoneNumber && newQueueItem.value.partySize > 0;
+  return newQueueItem.value.customerName &&
+         (newQueueItem.value.customerPhone || newQueueItem.value.customerEmail) &&
+         newQueueItem.value.partySize > 0;
 });
 
 // 工具方法
@@ -974,33 +946,39 @@ const getQueueNumberColor = (status: string) => {
   const colors: Record<string, string> = {
     waiting: "bg-blue-100 text-blue-800",
     called: "bg-yellow-100 text-yellow-800",
+    notified: "bg-purple-100 text-purple-800",
     seated: "bg-green-100 text-green-800",
     no_show: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
+    expired: "bg-orange-100 text-orange-800",
   };
   return colors[status] || "bg-gray-100 text-gray-800";
-};
-
-const getStatusClass = (status: string) => {
-  const classes: Record<string, string> = {
-    waiting: "bg-blue-100 text-blue-800",
-    called: "bg-yellow-100 text-yellow-800",
-    seated: "bg-green-100 text-green-800",
-    no_show: "bg-red-100 text-red-800",
-    cancelled: "bg-gray-100 text-gray-800",
-  };
-  return classes[status] || "bg-gray-100 text-gray-800";
 };
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
     waiting: "候位中",
     called: "已叫號",
+    notified: "已通知",
     seated: "已入座",
     no_show: "未到場",
     cancelled: "已取消",
+    expired: "已過期",
   };
   return texts[status] || status;
+};
+
+const getStatusClass = (status: string) => {
+  const classes: Record<string, string> = {
+    waiting: "bg-blue-100 text-blue-800",
+    called: "bg-yellow-100 text-yellow-800",
+    notified: "bg-purple-100 text-purple-800",
+    seated: "bg-green-100 text-green-800",
+    no_show: "bg-red-100 text-red-800",
+    cancelled: "bg-gray-100 text-gray-800",
+    expired: "bg-orange-100 text-orange-800",
+  };
+  return classes[status] || "bg-gray-100 text-gray-800";
 };
 
 const getTableStatusColor = (status: string) => {
@@ -1046,30 +1024,72 @@ const toggleTableView = (filter: string) => {
   tableViewFilter.value = filter;
 };
 
+// API 方法 - 使用新模組化服務
 const refreshQueue = async () => {
-  console.log("Refreshing queue...");
+  if (!authStore.user?.restaurantId) return;
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const [queueData, statusData] = await Promise.all([
+      queueService.getQueue(authStore.user.restaurantId),
+      queueService.getQueueStatus(authStore.user.restaurantId)
+    ]);
+
+    queueItems.value = queueData;
+    queueStatus.value = statusData;
+  } catch (err) {
+    error.value = '獲取候位數據失敗';
+    console.error('Failed to refresh queue:', err);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const callNextCustomer = () => {
-  const nextCustomer = queueItems.value.find(
-    (item) => item.status === "waiting",
-  );
-  if (nextCustomer) {
-    callCustomer(nextCustomer);
-  } else {
-    alert("目前沒有等待中的顧客");
+const callNextCustomer = async () => {
+  if (!authStore.user?.restaurantId) return;
+
+  try {
+    const result = await queueService.callNext(authStore.user.restaurantId, {});
+
+    if (result.success && result.data) {
+      // 更新本地數據
+      const index = queueItems.value.findIndex(item => item.id === result.data!.id);
+      if (index !== -1) {
+        queueItems.value[index] = result.data;
+      }
+      alert(`已呼叫 ${result.data.customerName || `排號 ${result.data.queueNumber}`}`);
+    } else {
+      alert(result.error || '呼叫失敗');
+    }
+  } catch (err) {
+    alert('呼叫操作失敗，請重試');
+    console.error('Failed to call next customer:', err);
   }
 };
 
 const callCustomer = async (queueItem: QueueItem) => {
+  if (!authStore.user?.restaurantId) return;
+
   try {
-    queueItem.status = "called";
-    queueItem.calledAt = new Date().toISOString();
-    alert(
-      `已呼叫 ${queueItem.customerName || `排號 ${queueItem.queueNumber}`}`,
-    );
+    const result = await queueService.callNext(authStore.user.restaurantId, {
+      specificQueueId: queueItem.id
+    });
+
+    if (result.success && result.data) {
+      // 更新本地數據
+      const index = queueItems.value.findIndex(item => item.id === queueItem.id);
+      if (index !== -1) {
+        queueItems.value[index] = result.data;
+      }
+      alert(`已呼叫 ${queueItem.customerName || `排號 ${queueItem.queueNumber}`}`);
+    } else {
+      alert(result.error || '呼叫失敗');
+    }
   } catch (error) {
     alert("呼叫失敗，請重試");
+    console.error('Failed to call customer:', error);
   }
 };
 
@@ -1083,10 +1103,13 @@ const addToQueue = () => {
   showAddDialog.value = true;
   newQueueItem.value = {
     customerName: "",
-    phoneNumber: "",
+    customerPhone: "",
+    customerEmail: "",
     partySize: 2,
-    tablePreference: "",
+    tablePreferences: [],
     specialRequests: "",
+    queueType: 'walkin',
+    notificationMethods: ['sms'],
     isVIP: false,
   };
 };
@@ -1096,35 +1119,39 @@ const closeAddDialog = () => {
 };
 
 const submitAddToQueue = async () => {
-  if (!canAddToQueue.value) return;
+  if (!canAddToQueue.value || !authStore.user?.restaurantId) return;
+
+  loading.value = true;
 
   try {
-    const nextNumber =
-      Math.max(...queueItems.value.map((item) => item.queueNumber)) + 1;
-
-    const newItem: QueueItem = {
-      id: `queue_${Date.now()}`,
-      queueNumber: nextNumber,
-      customerName: newQueueItem.value.customerName || null,
-      phoneNumber: newQueueItem.value.phoneNumber,
+    const joinData = {
+      restaurantId: authStore.user.restaurantId,
+      customerName: newQueueItem.value.customerName,
+      customerPhone: newQueueItem.value.customerPhone,
+      customerEmail: newQueueItem.value.customerEmail,
       partySize: newQueueItem.value.partySize,
-      tablePreference: newQueueItem.value.tablePreference || null,
-      specialRequests: newQueueItem.value.specialRequests || null,
-      priority: newQueueItem.value.isVIP ? 1 : 0,
-      status: "waiting",
-      joinedAt: new Date().toISOString(),
-      calledAt: null,
-      seatedAt: null,
-      estimatedWaitTime: avgWaitTime.value,
-      notes: newQueueItem.value.isVIP ? "VIP顧客" : null,
+      specialRequests: newQueueItem.value.specialRequests || undefined,
+      queueType: newQueueItem.value.queueType,
+      tablePreferences: newQueueItem.value.tablePreferences,
+      notificationMethods: newQueueItem.value.notificationMethods,
     };
 
-    queueItems.value.push(newItem);
-    closeAddDialog();
+    const result = await queueService.joinQueue(joinData);
 
-    alert(`已加入排隊！排號: ${nextNumber}`);
+    if (result.success && result.data) {
+      closeAddDialog();
+      alert(`已加入排隊！排號: ${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`);
+
+      // 刷新隊列數據
+      await refreshQueue();
+    } else {
+      alert(result.error || '加入排隊失敗');
+    }
   } catch (error) {
     alert("加入排隊失敗，請重試");
+    console.error('Failed to add to queue:', error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -1137,23 +1164,34 @@ const confirmSeatAssignment = async () => {
   if (!selectedQueueItem.value || !seatAssignment.value.tableId) return;
 
   try {
-    // 更新排隊狀態
-    selectedQueueItem.value.status = "seated";
-    selectedQueueItem.value.seatedAt = new Date().toISOString();
+    const result = await queueService.seatCustomer(selectedQueueItem.value.id, {
+      tableId: Number(seatAssignment.value.tableId)
+    });
 
-    // 更新桌位狀態
-    const table = tables.value.find(
-      (t) => t.id === seatAssignment.value.tableId,
-    );
-    if (table) {
-      table.status = "occupied";
-      table.occupiedSince = new Date().toISOString();
+    if (result.success) {
+      // 更新本地數據
+      const index = queueItems.value.findIndex(item => item.id === selectedQueueItem.value!.id);
+      if (index !== -1) {
+        queueItems.value[index].status = "seated";
+        queueItems.value[index].seatedAt = new Date().toISOString();
+        queueItems.value[index].assignedTableId = Number(seatAssignment.value.tableId);
+      }
+
+      // 更新桌位狀態 (等待桌位 API 整合)
+      const table = tables.value.find(t => t.id === seatAssignment.value.tableId.toString());
+      if (table) {
+        table.status = "occupied";
+        table.occupiedSince = new Date().toISOString();
+      }
+
+      closeSeatDialog();
+      alert("座位安排完成！");
+    } else {
+      alert(result.error || '座位安排失敗');
     }
-
-    closeSeatDialog();
-    alert("座位安排完成！");
   } catch (error) {
     alert("座位安排失敗，請重試");
+    console.error('Failed to seat customer:', error);
   }
 };
 
@@ -1206,16 +1244,27 @@ const openDisplaySettings = () => {
   alert("顯示設定功能開發中...");
 };
 
+// 監聽即時更新
+// watch(queueUpdates, () => {
+//   // 當有新的即時更新時，刷新隊列數據
+//   refreshQueue();
+// }, { deep: true });
+
 // 生命週期
 onMounted(async () => {
+  // 初始化加載數據
+  await refreshQueue();
+
   // 初始化時選擇第一個排隊項目
   if (queueItems.value.length > 0) {
     selectedQueueItem.value = queueItems.value[0];
   }
 
   // 自動刷新數據
-  setInterval(() => {
-    // 更新統計數據
+  setInterval(async () => {
+    if (!loading.value) {
+      await refreshQueue();
+    }
   }, 30000); // 每30秒更新一次
 });
 </script>

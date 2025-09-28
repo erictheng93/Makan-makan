@@ -14,6 +14,7 @@ export { QRCodeService } from './qrcode'
 export { GroupOrderService } from './GroupOrderService'
 export { POSService } from './POSService'
 export { QueueService } from './QueueService'
+export { QueueServiceModular } from './QueueServiceModular'
 export { ImageService } from './image'
 export { CouponService } from './coupon'
 

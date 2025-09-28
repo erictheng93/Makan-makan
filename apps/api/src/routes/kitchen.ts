@@ -83,14 +83,25 @@ function cleanupExpiredConnections() {
   }
 }
 
-// 定期清理過期連接
-setInterval(cleanupExpiredConnections, 60 * 1000) // 每分鐘清理一次
+// 清理過期連接 - 使用懶初始化，避免全域範圍的 setInterval
+let cleanupInitialized = false
+function initializeCleanup() {
+  if (!cleanupInitialized) {
+    cleanupInitialized = true
+    // 在 Worker 環境中，使用定期清理策略而非全域 setInterval
+    // 清理邏輯將在每次請求時觸發檢查
+  }
+}
 
 /**
  * SSE 端點 - 廚房事件流
  * GET /api/v1/kitchen/{restaurantId}/events
  */
 app.get('/:restaurantId/events', authMiddleware, async (c) => {
+  // 初始化清理並觸發清理檢查
+  initializeCleanup()
+  cleanupExpiredConnections()
+
   const restaurantId = parseInt(c.req.param('restaurantId'))
   const user = c.get('user')
   

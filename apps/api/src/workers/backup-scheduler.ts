@@ -22,7 +22,7 @@ interface Env {
 }
 
 export default {
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     const trigger = event.cron
     console.log(`Backup scheduler triggered: ${trigger}`)
 
@@ -56,7 +56,7 @@ export default {
       env.ANALYTICS?.writeDataPoint({
         blobs: [
           'backup_scheduler_error',
-          error.message || 'Unknown error'
+          error instanceof Error ? error.message : String(error) || 'Unknown error'
         ],
         doubles: [Date.now()],
         indexes: ['error']
@@ -173,7 +173,7 @@ async function handleScheduledBackups(backupService: BackupService, env: Env, an
         await createRestaurantAlert(backupService, config.restaurant_id, {
           severity: 'high',
           title: 'Scheduled Backup Failed',
-          message: `Failed to start scheduled backup "${config.name}": ${error.message}`,
+          message: `Failed to start scheduled backup "${config.name}": ${error instanceof Error ? error.message : String(error)}`,
           alert_type: 'schedule_missed'
         })
 
@@ -302,7 +302,7 @@ function shouldRunBackup(config: BackupConfiguration & { last_run_at?: string; c
   const cronParts = config.schedule_cron.split(' ')
   if (cronParts.length !== 5) return false
 
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = cronParts
+  const [minute, hour] = cronParts
 
   // For this example, only handle simple daily backups (0 2 * * *)
   if (hour === '2' && minute === '0') {
@@ -420,7 +420,7 @@ async function createSystemAlert(backupService: BackupService, alert: {
   related_backup_id?: string
 }) {
   // Create system-wide alert (restaurant_id = 'system')
-  await backupService.createAlertPublicPublic('system', alert)
+  await backupService.createAlertPublicPublic({ ...alert, restaurant_id: "system" })
 }
 
 async function createRestaurantAlert(backupService: BackupService, restaurantId: string, alert: {
@@ -430,5 +430,5 @@ async function createRestaurantAlert(backupService: BackupService, restaurantId:
   message: string
   related_backup_id?: string
 }) {
-  await backupService.createAlertPublicPublic(restaurantId, alert)
+  await backupService.createAlertPublicPublic({ ...alert, restaurant_id: restaurantId })
 }

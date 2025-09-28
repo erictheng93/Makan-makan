@@ -1,4 +1,4 @@
-import type { Database as D1Database } from '@cloudflare/d1'
+import type { D1Database } from '@cloudflare/workers-types'
 import { BaseService } from './base'
 import { OrderService } from './order'
 

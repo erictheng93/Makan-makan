@@ -1,0 +1,55 @@
+{
+  "name": "@makanmakan/queue-core",
+  "version": "1.0.0",
+  "description": "MakanMakan Queue System - Core Types and Interfaces",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": ["queue", "restaurant", "types"],
+  "author": "MakanMakan Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
+  },
+  "dependencies": {
+    "zod": "^3.22.0",
+    "@makanmakan/shared-types": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./validators": {
+      "import": "./dist/validators/index.js",
+      "require": "./dist/validators/index.js",
+      "types": "./dist/validators/index.d.ts"
+    },
+    "./performance/queue-cache": {
+      "import": "./dist/performance/queue-cache.js",
+      "require": "./dist/performance/queue-cache.js",
+      "types": "./dist/performance/queue-cache.d.ts"
+    },
+    "./print": {
+      "import": "./dist/print/index.js",
+      "require": "./dist/print/index.js",
+      "types": "./dist/print/index.d.ts"
+    }
+  }
+}

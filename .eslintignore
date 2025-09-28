@@ -60,3 +60,6 @@ order/
 **/jquery*.js
 **/vendor/
 **/bootstrap*.js
+# Template files with placeholder syntax
+**/templates/**/*
+**/shared/templates/**/*

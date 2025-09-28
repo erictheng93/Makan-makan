@@ -13,7 +13,7 @@ import { createI18n } from 'vue-i18n'
 type AdminDashboardMessages = Record<string, any>
 
 // Create basic i18n instance for admin dashboard
-export const i18n = createI18n<AdminDashboardMessages>({
+export const i18n: any = createI18n<AdminDashboardMessages>({
   legacy: false,
   locale: 'en-US',
   fallbackLocale: 'en-US',

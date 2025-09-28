@@ -13,7 +13,7 @@ import type {
 
 export interface EpsonDriverConfig {
   connection: {
-    type: 'usb' | 'network' | 'serial'
+    type: 'usb' | 'network' | 'serial' | 'bluetooth'
     path?: string // USB 設備路徑或序列埠
     host?: string // 網路 IP
     port?: number // 網路埠號

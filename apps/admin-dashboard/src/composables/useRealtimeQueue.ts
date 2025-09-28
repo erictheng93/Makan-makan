@@ -11,11 +11,13 @@ export interface RealtimeQueueUpdate {
   queueNumber: number;
   customerName?: string;
   partySize: number;
-  status: string;
+  status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
   waitTime?: number;
   tableNumber?: string;
   timestamp: string;
-  type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+  type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+  estimatedWaitMinutes?: number;
+  actualWaitMinutes?: number;
 }
 
 export interface RealtimeTableUpdate {
@@ -46,26 +48,30 @@ export function useRealtimeQueue() {
     peakWaitTime: 0,
   });
 
-  // 候位更新處理函數
+  // 候位更新處理函數 - 適配新模組化事件結構
   const handleQueueUpdate = (message: SSEMessage) => {
     const update: RealtimeQueueUpdate = {
-      queueId: message.data.id,
-      queueNumber: message.data.queueNumber,
-      customerName: message.data.customerName,
-      partySize: message.data.partySize,
-      status: message.data.status,
-      waitTime: message.data.waitTime,
-      tableNumber: message.data.tableNumber,
+      queueId: message.data.queueId || message.data.id,
+      queueNumber: message.data.queueNumber || message.data.queue_number,
+      customerName: message.data.customerName || message.data.customer_name,
+      partySize: message.data.partySize || message.data.party_size || 1,
+      status: message.data.status || "waiting",
+      waitTime: message.data.waitTime || message.data.actualWaitMinutes,
+      tableNumber: message.data.tableNumber || message.data.table_number,
+      estimatedWaitMinutes: message.data.estimatedWaitMinutes || message.data.estimated_wait_minutes,
+      actualWaitMinutes: message.data.actualWaitMinutes || message.data.actual_wait_minutes,
       timestamp: message.timestamp,
       type: message.type.includes("joined")
         ? "joined"
         : message.type.includes("called")
           ? "called"
-          : message.type.includes("seated")
-            ? "seated"
-            : message.type.includes("no_show")
-              ? "no_show"
-              : "cancelled",
+          : message.type.includes("notified")
+            ? "notified"
+            : message.type.includes("seated")
+              ? "seated"
+              : message.type.includes("no_show")
+                ? "no_show"
+                : "cancelled",
     };
 
     queueUpdates.value.unshift(update);
@@ -80,15 +86,31 @@ export function useRealtimeQueue() {
 
     console.log("Queue update received:", update);
 
-    // 觸發通知（可選）
+    // 觸發通知（可選）- 增強通知內容
     if (update.type === "joined") {
       showQueueNotification(
-        `新顧客加入排隊: ${update.customerName || `排號 ${update.queueNumber}`}`,
+        `新顧客加入排隊: ${update.customerName || `排號 ${update.queueNumber}`} (${update.partySize}人)`,
+        "info"
+      );
+    } else if (update.type === "called") {
+      showQueueNotification(
+        `叫號: ${update.customerName || `排號 ${update.queueNumber}`}`,
+        "success"
+      );
+    } else if (update.type === "seated") {
+      showQueueNotification(
+        `入座完成: ${update.customerName || `排號 ${update.queueNumber}`}`,
+        "success"
       );
     } else if (update.type === "no_show") {
       showQueueNotification(
         `未到場: ${update.customerName || `排號 ${update.queueNumber}`}`,
         "warning",
+      );
+    } else if (update.type === "cancelled") {
+      showQueueNotification(
+        `已取消: ${update.customerName || `排號 ${update.queueNumber}`}`,
+        "info"
       );
     }
   };
@@ -189,10 +211,11 @@ export function useRealtimeQueue() {
       return;
     }
 
-    // 訂閱候位相關事件
+    // 訂閱候位相關事件 - 包含新的 notified 事件
     const queueEventTypes = [
       REALTIME_EVENTS.QUEUE_JOINED,
       REALTIME_EVENTS.QUEUE_CALLED,
+      REALTIME_EVENTS.QUEUE_NOTIFIED, // 新增通知事件
       REALTIME_EVENTS.QUEUE_SEATED,
       REALTIME_EVENTS.QUEUE_NO_SHOW,
       REALTIME_EVENTS.QUEUE_CANCELLED,
@@ -269,13 +292,34 @@ export function useRealtimeQueue() {
     );
   };
 
-  // 檢查是否有待處理的叫號
+  // 檢查是否有待處理的叫號 - 包含 notified 狀態
   const hasPendingCalls = () => {
     return queueUpdates.value.some(
       (update) =>
-        update.type === "called" &&
+        (update.type === "called" || update.type === "notified") &&
         new Date().getTime() - new Date(update.timestamp).getTime() < 300000, // 5分鐘內
     );
+  };
+
+  // 獲取特定狀態的候位更新數量
+  const getUpdateCountByStatus = (status: string) => {
+    return queueUpdates.value.filter((update) => update.status === status).length;
+  };
+
+  // 獲取平均等待時間
+  const getAverageWaitTime = () => {
+    const seatedUpdates = queueUpdates.value.filter(
+      (update) => update.type === "seated" && update.actualWaitMinutes
+    );
+
+    if (seatedUpdates.length === 0) return 0;
+
+    const totalWait = seatedUpdates.reduce(
+      (sum, update) => sum + (update.actualWaitMinutes || 0),
+      0
+    );
+
+    return Math.round(totalWait / seatedUpdates.length);
   };
 
   // 獲取可用桌位數量
@@ -345,6 +389,8 @@ export function useRealtimeQueue() {
     getTableUpdatesByNumber,
     hasPendingCalls,
     getAvailableTablesCount,
+    getUpdateCountByStatus,
+    getAverageWaitTime,
     requestNotificationPermission,
   };
 }

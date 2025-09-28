@@ -67,25 +67,32 @@ async function initializePWAOptimizations() {
     (window as any).pwaPerformanceManager = performanceManager;
     (window as any).optimizedStorage = optimizedOfflineStorage;
 
-    console.log('✅ PWA performance optimizations initialized');
+    console.log("✅ PWA performance optimizations initialized");
   } catch (error) {
-    console.error('⚠️ PWA optimization initialization failed:', error);
+    console.error("⚠️ PWA optimization initialization failed:", error);
   }
 }
 
 // Register optimized service worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw-optimized.js')
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/sw-optimized.js")
     .then((registration) => {
-      console.log('✅ Optimized Service Worker registered:', registration);
+      console.log("✅ Optimized Service Worker registered:", registration);
       return initializePWAOptimizations();
     })
     .catch((error) => {
-      console.error('⚠️ Service Worker registration failed:', error);
+      console.error("⚠️ Service Worker registration failed:", error);
       // Fallback to regular SW
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ Fallback Service Worker registered'))
-        .catch((fallbackError) => console.error('❌ All Service Worker registration failed:', fallbackError));
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => console.log("✅ Fallback Service Worker registered"))
+        .catch((fallbackError) =>
+          console.error(
+            "❌ All Service Worker registration failed:",
+            fallbackError,
+          ),
+        );
     });
 } else {
   // Initialize optimizations even without SW support

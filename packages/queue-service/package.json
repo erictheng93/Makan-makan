@@ -1,0 +1,40 @@
+{
+  "name": "@makanmakan/queue-service",
+  "version": "1.0.0",
+  "description": "MakanMakan Queue System - Service Layer Implementation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["queue", "restaurant", "service"],
+  "author": "MakanMakan Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@makanmakan/queue-core": "workspace:*",
+    "zod": "^3.22.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.js",
+      "require": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    },
+    "./repositories": {
+      "import": "./dist/repositories/index.js",
+      "require": "./dist/repositories/index.js",
+      "types": "./dist/repositories/index.d.ts"
+    }
+  }
+}

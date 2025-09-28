@@ -174,10 +174,10 @@ export const blacklistToken = async (c: Context<{ Bindings: Env }>, token: strin
 export const optionalAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   try {
     const authHeader = c.req.header('Authorization')
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7)
-      
+
       // 檢查黑名單
       if (c.env.TOKEN_BLACKLIST) {
         const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`)
@@ -187,7 +187,7 @@ export const optionalAuth = async (c: Context<{ Bindings: Env }>, next: Next) =>
           return
         }
       }
-      
+
       const decoded = await verify(token, c.env.JWT_SECRET) as any
 
       if (decoded && typeof decoded === 'object') {
@@ -206,3 +206,6 @@ export const optionalAuth = async (c: Context<{ Bindings: Env }>, next: Next) =>
     await next()
   }
 }
+
+// 別名為了向後兼容
+export const requireAuth = authMiddleware

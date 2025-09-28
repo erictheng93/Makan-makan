@@ -998,7 +998,7 @@ export class QueueService extends BaseService {
 
       return {
         success: true,
-        cleaned: (noShowResult.changes || 0) + (cleanupResult.changes || 0)
+        cleaned: (noShowResult.meta.changes || 0) + (cleanupResult.meta.changes || 0)
       }
 
     } catch (error) {

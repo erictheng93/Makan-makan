@@ -4,31 +4,13 @@
  */
 
 import { Hono } from 'hono'
-import { z } from 'zod'
-import { authMiddleware, requireRole } from '../middleware/auth'
-import { validateBody } from '../middleware/validation'
+import { authMiddleware, requireRole } from '../../../middleware/auth'
+import { validateBody } from '../../../middleware/validation'
 import { createCacheService, CACHE_STRATEGIES } from '../services/CacheService'
-import type { Env } from '../types/env'
+import { invalidateTagsSchema, warmupSchema, cleanupSchema } from '../schemas/validation'
+import type { Env } from '../../../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
-
-// 驗證 schemas
-const invalidateTagsSchema = z.object({
-  tags: z.array(z.string()).min(1).max(10),
-  reason: z.string().max(200).optional()
-})
-
-const warmupSchema = z.object({
-  keys: z.array(z.object({
-    key: z.string(),
-    strategy: z.enum(['MENU', 'RESTAURANT', 'ANALYTICS', 'SESSION', 'TABLE', 'QR_CODE'])
-  })).min(1).max(50)
-})
-
-const cleanupSchema = z.object({
-  maxAge: z.number().int().positive().max(86400).optional().default(3600), // 1小時默認
-  dryRun: z.boolean().optional().default(false)
-})
 
 // 獲取快取統計（管理員專用）
 app.get('/stats',

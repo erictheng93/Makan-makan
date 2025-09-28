@@ -8,19 +8,19 @@ export * from './services'
 export { drizzle } from 'drizzle-orm/d1'
 export { sql, count, eq, gte, and, lte, desc, asc, sum, avg, between } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/d1'
-import type { Database as D1Database } from '@cloudflare/d1'
+import type { D1Database } from '@cloudflare/workers-types'
 import * as schema from './schema'
 
 // 工具函數 - 使用 Cloudflare Workers 內建 D1Database 類型
-export function createDatabase(d1: D1Database) {
-  return drizzle(d1 as any, { 
+export function createDatabase(d1: D1Database, isDevelopment: boolean = false) {
+  return drizzle(d1, {
     schema,
-    logger: process.env.NODE_ENV === 'development'
+    logger: isDevelopment
   })
 }
 
 // 導入必要的 D1Database 類型
-export type { Database as D1Database } from '@cloudflare/d1'
+export type { D1Database } from '@cloudflare/workers-types'
 
 // 重新導出 Database 類型作為向後兼容別名
 export type Database = D1Database

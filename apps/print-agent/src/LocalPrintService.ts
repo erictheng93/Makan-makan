@@ -6,8 +6,7 @@
 import express from 'express'
 import { WebSocketServer, WebSocket } from 'ws'
 import cors from 'cors'
-import { PrinterService } from '@makanmakan/database/src/services/PrinterService'
-import { DefaultPrinterDriverFactory } from '@makanmakan/database/src/services/printer/PrinterDriverFactory'
+import { PrintAgentService } from './services/PrintAgentService'
 import type {
   PrintRequest,
   PrintResponse,
@@ -44,8 +43,7 @@ export interface LocalPrintServiceConfig {
 
 export class LocalPrintService {
   private config: LocalPrintServiceConfig
-  private printerService: PrinterService
-  private driverFactory: DefaultPrinterDriverFactory
+  private printAgentService: PrintAgentService
   private expressApp: express.Application
   private wsServer: WebSocketServer
   private connectedClients: Set<WebSocket> = new Set()
@@ -55,31 +53,8 @@ export class LocalPrintService {
 
   constructor(config: LocalPrintServiceConfig) {
     this.config = config
-    this.driverFactory = new DefaultPrinterDriverFactory()
-    
-    // 初始化 PrinterService 配置
-    const printerServiceConfig: PrintServiceConfig = {
-      serviceId: `local-print-${config.restaurantId}`,
-      serviceName: config.serviceName,
-      version: '1.0.0',
-      devices: [],
-      regions: {} as any, // 會從雲端載入
-      templates: {} as any, // 會從雲端載入
-      queue: {
-        maxSize: config.maxQueueSize,
-        maxRetries: config.maxRetries,
-        retryDelay: config.retryDelay,
-        batchSize: 5
-      },
-      network: {
-        serverPort: config.port,
-        apiKey: config.apiKey,
-        cloudEndpoint: config.cloudEndpoint,
-        heartbeatInterval: config.heartbeatInterval
-      }
-    }
+    this.printAgentService = new PrintAgentService(config)
 
-    this.printerService = new PrinterService(printerServiceConfig)
     this.setupExpressApp()
     this.setupWebSocket()
     this.setupEventHandlers()

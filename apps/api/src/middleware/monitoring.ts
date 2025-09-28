@@ -4,7 +4,7 @@
  */
 
 import { Context, Next } from 'hono'
-import { createMonitoringService } from '../services/MonitoringService'
+import { createMonitoringService } from '../features/monitoring'
 import type { Env } from '../types/env'
 
 // 請求指標收集中間件

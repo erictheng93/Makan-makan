@@ -128,6 +128,70 @@
             <!-- 分隔線 -->
             <hr class="border-gray-200" />
 
+            <!-- 最低消費提醒 -->
+            <div
+              v-if="minimumOrderEnabled && minimumOrderAmount > 0"
+              class="p-3 rounded-lg"
+              :class="[
+                isMinimumOrderMet
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-yellow-50 border border-yellow-200'
+              ]"
+            >
+              <div class="flex items-center space-x-2">
+                <svg
+                  v-if="isMinimumOrderMet"
+                  class="w-5 h-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <svg
+                  v-else
+                  class="w-5 h-5 text-yellow-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div class="flex-1">
+                  <p
+                    class="text-sm font-medium"
+                    :class="[
+                      isMinimumOrderMet ? 'text-green-800' : 'text-yellow-800'
+                    ]"
+                  >
+                    最低消費：${{ formatPrice(minimumOrderAmount) }}
+                  </p>
+                  <p
+                    v-if="!isMinimumOrderMet"
+                    class="text-sm text-yellow-600 mt-1"
+                  >
+                    還需加點 ${{ formatPrice(minimumOrderShortfall) }} 才能下單
+                  </p>
+                  <p
+                    v-else
+                    class="text-sm text-green-600 mt-1"
+                  >
+                    已達到最低消費標準 ✓
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <!-- 總計 -->
             <div
               class="flex justify-between text-lg font-semibold text-gray-900"
@@ -477,8 +541,13 @@
     >
       <div class="max-w-md mx-auto">
         <button
-          :disabled="isSubmitting"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center space-x-2"
+          :disabled="!canPlaceOrder"
+          :class="[
+            'w-full font-semibold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center space-x-2',
+            canPlaceOrder
+              ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              : 'bg-gray-400 text-white cursor-not-allowed'
+          ]"
           @click="handleSubmitOrder"
         >
           <div
@@ -486,10 +555,23 @@
             class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"
           />
           <span v-if="isSubmitting">{{ t("order.placeOrder") }}...</span>
+          <span v-else-if="!isMinimumOrderMet && minimumOrderEnabled"
+            >還需加點 ${{ formatPrice(minimumOrderShortfall) }}</span
+          >
           <span v-else
             >{{ t("order.placeOrder") }} · ${{ formatPrice(totalAmount) }}</span
           >
         </button>
+
+        <!-- 最低消費提醒（按鈕下方） -->
+        <div
+          v-if="!isMinimumOrderMet && minimumOrderEnabled && minimumOrderAmount > 0"
+          class="mt-2 text-center"
+        >
+          <p class="text-sm text-yellow-600">
+            最低消費：${{ formatPrice(minimumOrderAmount) }}
+          </p>
+        </div>
 
         <div class="mt-3 text-center">
           <p class="text-sm text-gray-500">
@@ -575,12 +657,37 @@ const isLoadingCoupons = ref(false);
 const availableCoupons = ref<any[]>([]);
 const selectedCoupon = ref<any>(null);
 
+// 最低消費相關狀態
+const minimumOrderAmount = ref(0);
+const minimumOrderEnabled = ref(false);
+const isLoadingMinOrder = ref(false);
+
 // API Queries
 const { data: restaurant } = useQuery({
   queryKey: ["restaurant", props.restaurantId],
   queryFn: () => menuApi.getRestaurant(props.restaurantId),
   staleTime: 5 * 60 * 1000,
 });
+
+// 獲取最低消費設定
+const { data: minOrderData } = useQuery({
+  queryKey: ["minimumOrder", props.restaurantId],
+  queryFn: async () => {
+    const response = await fetch(`/api/v1/orders/restaurant/${props.restaurantId}/minimum-order`);
+    if (!response.ok) throw new Error('Failed to fetch minimum order');
+    const result = await response.json();
+    return result.data;
+  },
+  staleTime: 10 * 60 * 1000, // 10分鐘快取
+});
+
+// 監聽最低消費數據更新
+watch(minOrderData, (data) => {
+  if (data) {
+    minimumOrderAmount.value = data.minOrderAmount || 0;
+    minimumOrderEnabled.value = data.enabled || false;
+  }
+}, { immediate: true });
 
 // 提交訂單 Mutation
 const { mutate: createOrder } = useMutation({
@@ -617,6 +724,27 @@ const discount = computed(() => {
 
 const totalAmount = computed(() => {
   return cartStore.subtotal + serviceCharge.value + tax.value - discount.value;
+});
+
+// 最低消費驗證
+const orderAmountAfterDiscount = computed(() => {
+  return cartStore.subtotal - discount.value;
+});
+
+const isMinimumOrderMet = computed(() => {
+  if (!minimumOrderEnabled.value || minimumOrderAmount.value <= 0) {
+    return true;
+  }
+  return orderAmountAfterDiscount.value >= minimumOrderAmount.value;
+});
+
+const minimumOrderShortfall = computed(() => {
+  if (isMinimumOrderMet.value) return 0;
+  return minimumOrderAmount.value - orderAmountAfterDiscount.value;
+});
+
+const canPlaceOrder = computed(() => {
+  return !cartStore.isEmpty && isMinimumOrderMet.value && !isSubmitting.value;
 });
 
 // 初始化購物車
@@ -665,24 +793,29 @@ const onCouponInput = () => {
 };
 
 // Client-side coupon code validation
-const validateCouponCode = (code: string): { isValid: boolean; error?: string } => {
-  if (!code || typeof code !== 'string') {
-    return { isValid: false, error: '請輸入優惠券代碼' };
+const validateCouponCode = (
+  code: string,
+): { isValid: boolean; error?: string } => {
+  if (!code || typeof code !== "string") {
+    return { isValid: false, error: "請輸入優惠券代碼" };
   }
 
   const trimmedCode = code.trim();
 
   if (trimmedCode.length === 0) {
-    return { isValid: false, error: '請輸入優惠券代碼' };
+    return { isValid: false, error: "請輸入優惠券代碼" };
   }
 
   if (trimmedCode.length > 50) {
-    return { isValid: false, error: '優惠券代碼不能超過50個字符' };
+    return { isValid: false, error: "優惠券代碼不能超過50個字符" };
   }
 
   // Allow alphanumeric characters, hyphens, and underscores only
   if (!/^[A-Za-z0-9\-_]+$/.test(trimmedCode)) {
-    return { isValid: false, error: '優惠券代碼只能包含字母、數字、連字符和下劃線' };
+    return {
+      isValid: false,
+      error: "優惠券代碼只能包含字母、數字、連字符和下劃線",
+    };
   }
 
   return { isValid: true };
@@ -694,7 +827,7 @@ const validateCoupon = async () => {
   // Client-side input validation
   const validation = validateCouponCode(couponCode.value);
   if (!validation.isValid) {
-    couponValidationMessage.value = validation.error || '';
+    couponValidationMessage.value = validation.error || "";
     couponValidationError.value = true;
     return;
   }

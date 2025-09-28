@@ -1,24 +1,32 @@
 import { apiClient } from "./api";
+import type { ApiResponse } from "@/types";
 
-// 型別定義
+// 新模組化類型定義 - 對應 @makanmakan/queue-core 類型
 export interface QueueItem {
   id: string;
   queueNumber: number;
-  restaurantId: string;
+  restaurantId: number; // 修改為 number 類型
   customerName: string | null;
-  phoneNumber: string;
+  customerPhone?: string; // 修改欄位名稱
+  customerEmail?: string;
   partySize: number;
-  tablePreference: string | null;
+  tablePreferences?: number[]; // 修改為 number 陣列
   specialRequests: string | null;
   priority: number;
-  status: "waiting" | "called" | "seated" | "no_show" | "cancelled";
+  queueType: 'walkin' | 'online' | 'phone'; // 新增類型
+  status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
   joinedAt: string;
   calledAt: string | null;
+  notifiedAt?: string;
   seatedAt: string | null;
-  estimatedWaitTime: number;
-  actualWaitTime: number | null;
-  tableId: string | null;
+  estimatedWaitMinutes: number; // 修改欄位名稱
+  actualWaitMinutes: number | null; // 修改欄位名稱
+  assignedTableId: number | null; // 修改為 number 類型
+  servedBy?: number;
   notes: string | null;
+  notificationMethods?: string[];
+  checkInCode?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface QueueNotification {
@@ -31,19 +39,26 @@ export interface QueueNotification {
 }
 
 export interface QueueSettings {
-  id: string;
-  restaurantId: string;
+  restaurantId: number;
+  isEnabled: boolean;
+  maxQueueSize: number;
+  avgServiceTime: number;
   maxWaitTime: number;
-  notificationIntervals: number[];
-  autoCallNext: boolean;
-  requirePhoneNumber: boolean;
-  allowOnlineJoin: boolean;
-  estimationAlgorithm: "simple" | "ml_based";
-  operatingHours: {
-    start: string;
-    end: string;
-    days: number[];
-  };
+  minAdvanceNotice: number;
+  notificationMethods: string[];
+  autoCallEnabled: boolean;
+  autoCallInterval: number;
+  noShowTimeout: number;
+  queueNumberReset: 'daily' | 'weekly' | 'monthly' | 'never';
+  priorityRules: Record<string, any>;
+  tableAssignmentRules: Record<string, any>;
+  notificationTemplates: Record<string, string>;
+  businessHours: Record<string, any>;
+  holidaySettings: Record<string, any>;
+  displaySettings: Record<string, any>;
+  integrationSettings: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface QueueStats {
@@ -59,346 +74,207 @@ export interface QueueStats {
   }>;
 }
 
-// 候位管理服務
+// 新模組化候位管理服務
 export const queueService = {
-  // 排隊管理
+  // 排隊管理 - 使用新 API
   async getQueue(
-    restaurantId: string,
+    restaurantId: number,
     params?: {
       status?: QueueItem["status"];
-      date?: string;
+      limit?: number;
     },
   ): Promise<QueueItem[]> {
-    const response = await apiClient.get(`/api/v1/queue/${restaurantId}`, {
+    const response = await apiClient.get(`/api/v1/queue-modular/${restaurantId}/current`, {
       params,
     });
-    return (response.data as any).data || response.data;
+    return (response.data as any)?.data?.queue || [];
+  },
+
+  async getQueueStatus(
+    restaurantId: number
+  ): Promise<{
+    queue: any;
+    activity: any;
+    settings: QueueSettings;
+  }> {
+    const response = await apiClient.get(`/api/v1/queue-modular/${restaurantId}/status`);
+    const data = (response.data as any)?.data;
+    return {
+      queue: data?.queue || {},
+      activity: data?.activity || {},
+      settings: data?.settings || {} as QueueSettings
+    };
   },
 
   async joinQueue(data: {
-    restaurantId: string;
-    customerName?: string;
-    phoneNumber: string;
+    restaurantId: number;
+    customerName: string;
+    customerPhone?: string;
+    customerEmail?: string;
     partySize: number;
-    tablePreference?: string;
     specialRequests?: string;
-  }): Promise<{
-    success: boolean;
-    queueItem: QueueItem;
-    estimatedWaitTime: number;
-  }> {
-    const response = await apiClient.post("/api/v1/queue/join", data);
-    return (response.data as any).data || response.data;
+    queueType?: 'walkin' | 'online' | 'phone';
+    tablePreferences?: number[];
+    notificationMethods?: string[];
+  }): Promise<ApiResponse<{
+    queueId: string;
+    queueNumber: number;
+    estimatedWaitMinutes: number;
+    currentPosition: number;
+    checkInCode: string;
+  }>> {
+    const response = await apiClient.post<{
+      queueId: string;
+      queueNumber: number;
+      estimatedWaitMinutes: number;
+      currentPosition: number;
+      checkInCode: string;
+    }>("/api/v1/queue-modular/join", data);
+    return response.data;
   },
 
-  async getQueuePosition(queueId: string): Promise<{
-    position: number;
-    estimatedWaitTime: number;
-    totalWaiting: number;
-  }> {
-    const response = await apiClient.get(`/api/v1/queue/${queueId}/position`);
-    return (response.data as any).data || response.data;
+  async getQueuePosition(queueId: string): Promise<ApiResponse<{
+    queueId: string;
+    queueNumber: number;
+    currentPosition: number;
+    estimatedWaitMinutes: number;
+    status: string;
+    canCancel: boolean;
+  }>> {
+    const response = await apiClient.get(`/api/v1/queue-modular/${queueId}/position`);
+    return response.data as any;
   },
 
-  async updateQueueItem(
-    queueId: string,
-    data: Partial<QueueItem>,
-  ): Promise<QueueItem> {
-    const response = await apiClient.put(`/api/v1/queue/${queueId}`, data);
-    return (response.data as any).data || response.data;
-  },
-
-  // 叫號管理
-  async callNext(
-    restaurantId: string,
-    data: {
-      operatorId: number;
-      skipToNumber?: number;
-    },
-  ): Promise<{
-    success: boolean;
-    calledCustomer: QueueItem | null;
-    message: string;
-  }> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${restaurantId}/call-next`,
-      data,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  async callCustomer(
-    queueId: string,
-    data: {
-      operatorId: number;
-      notificationMethod?: "sms" | "call" | "app_push";
-    },
-  ): Promise<QueueItem> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/call`,
-      data,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  async markNoShow(queueId: string, operatorId: number): Promise<QueueItem> {
-    const response = await apiClient.post(`/api/v1/queue/${queueId}/no-show`, {
-      operatorId,
-    });
-    return (response.data as any).data || response.data;
-  },
-
-  // 座位安排
-  async seatCustomer(
-    queueId: string,
-    data: {
-      tableId: string;
-      operatorId: number;
-      notes?: string;
-    },
-  ): Promise<{
-    success: boolean;
-    queueItem: QueueItem;
-    tableAssignment: any;
-  }> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/seat`,
-      data,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  async getRecommendedTables(queueId: string): Promise<
-    Array<{
-      tableId: string;
-      tableNumber: string;
-      capacity: number;
-      status: string;
-      matchScore: number;
-      reasons: string[];
-    }>
-  > {
-    const response = await apiClient.get(
-      `/api/v1/queue/${queueId}/recommended-tables`,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  // 取消和修改
+  // 取消候位 - 新模組化實現
   async cancelQueue(
     queueId: string,
     data: {
       reason?: string;
-      operatorId?: number;
+      checkInCode?: string;
     },
-  ): Promise<QueueItem> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/cancel`,
-      data,
-    );
-    return (response.data as any).data || response.data;
+  ): Promise<ApiResponse<{}>> {
+    const response = await apiClient.post(`/api/v1/queue-modular/${queueId}/cancel`, data);
+    return response.data as any;
   },
 
-  async rescheduleQueue(
-    queueId: string,
+  // 叫號管理 - 使用新 API
+  async callNext(
+    restaurantId: number,
     data: {
-      newDateTime: string;
-      reason?: string;
-    },
-  ): Promise<QueueItem> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/reschedule`,
-      data,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  // 通知管理
-  async sendNotification(
-    queueId: string,
-    data: {
-      type: "sms" | "call" | "app_push";
-      message: string;
-      operatorId: number;
-    },
-  ): Promise<QueueNotification> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/notify`,
-      data,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  async getNotifications(queueId: string): Promise<QueueNotification[]> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${queueId}/notifications`,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  async sendBulkNotification(
-    restaurantId: string,
-    data: {
-      queueIds: string[];
-      type: "sms" | "call" | "app_push";
-      message: string;
-      operatorId: number;
+      tableId?: number;
+      specificQueueId?: string;
     },
   ): Promise<{
-    success: number;
-    failed: number;
-    results: QueueNotification[];
+    success: boolean;
+    data?: QueueItem;
+    error?: string;
   }> {
     const response = await apiClient.post(
-      `/api/v1/queue/${restaurantId}/bulk-notify`,
-      data,
+      "/api/v1/queue-modular/call-next",
+      {
+        restaurantId,
+        ...data
+      }
     );
-    return (response.data as any).data || response.data;
+    return response.data as any;
   },
 
-  // 設定管理
-  async getSettings(restaurantId: string): Promise<QueueSettings> {
+  // 客戶入座 - 新模組化實現
+  async seatCustomer(
+    queueId: string,
+    data: {
+      tableId: number;
+    },
+  ): Promise<ApiResponse<{}>> {
+    const response = await apiClient.post(`/api/v1/queue-modular/${queueId}/seat`, data);
+    return response.data as any;
+  },
+
+
+
+
+  // 設定管理 - 使用新 API
+  async getSettings(restaurantId: number): Promise<ApiResponse<QueueSettings>> {
     const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/settings`,
+      `/api/v1/queue-modular/${restaurantId}/settings`,
     );
-    return (response.data as any).data || response.data;
+    return response.data as any;
   },
 
   async updateSettings(
-    restaurantId: string,
+    restaurantId: number,
     data: Partial<QueueSettings>,
-  ): Promise<QueueSettings> {
+  ): Promise<ApiResponse<{}>> {
     const response = await apiClient.put(
-      `/api/v1/queue/${restaurantId}/settings`,
+      `/api/v1/queue-modular/${restaurantId}/settings`,
       data,
     );
-    return (response.data as any).data || response.data;
+    return response.data as any;
   },
 
-  // 顯示管理
-  async getDisplayData(restaurantId: string): Promise<{
-    currentNumber: number;
-    calledNumbers: number[];
-    waitingCount: number;
-    averageWaitTime: number;
-    announcements: Array<{
-      message: string;
-      type: "info" | "warning";
-      priority: number;
-    }>;
-  }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/display`,
-    );
-    return (response.data as any).data || response.data;
-  },
 
-  async updateDisplay(
-    restaurantId: string,
-    data: {
-      currentNumber?: number;
-      announcements?: Array<{
-        message: string;
-        type: "info" | "warning";
-        priority: number;
-      }>;
-    },
-  ): Promise<void> {
-    await apiClient.put(`/api/v1/queue/${restaurantId}/display`, data);
-  },
-
-  // 統計和分析
+  // 統計和分析 - 暫時保留舊 API 直到新統計端點實現
   async getDailyStats(
-    restaurantId: string,
+    restaurantId: number,
     date?: string,
   ): Promise<QueueStats> {
     const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/stats/daily`,
+      `/api/v1/queue/${restaurantId}/stats`,
       {
-        params: { date },
+        params: { dateFrom: date, dateTo: date },
       },
     );
     return (response.data as any).data || response.data;
   },
 
-  async getWeeklyStats(
-    restaurantId: string,
-    startDate?: string,
-  ): Promise<QueueStats[]> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/stats/weekly`,
-      {
-        params: { startDate },
-      },
-    );
-    return (response.data as any).data || response.data;
-  },
 
-  async getWaitTimeAnalysis(
-    restaurantId: string,
-    params?: {
-      startDate?: string;
-      endDate?: string;
-    },
-  ): Promise<{
-    averageWaitTime: number;
-    medianWaitTime: number;
-    peakWaitTime: number;
-    waitTimeDistribution: Array<{
-      range: string;
-      count: number;
-      percentage: number;
-    }>;
+  // 即時狀態 - 使用新 API
+  async getRealtimeStatus(restaurantId: number): Promise<{
+    queue: {
+      total_waiting: number;
+      avg_estimated_wait: number;
+      min_wait: number;
+      max_wait: number;
+      online_count: number;
+      walkin_count: number;
+      priority_count: number;
+    };
+    activity: {
+      seated_today: number;
+      cancelled_today: number;
+      no_show_today: number;
+      avg_actual_wait: number;
+    };
+    settings: QueueSettings;
   }> {
     const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/stats/wait-time`,
-      { params },
+      `/api/v1/queue-modular/${restaurantId}/status`,
     );
-    return (response.data as any).data || response.data;
-  },
-
-  // 即時狀態
-  async getRealtimeStatus(restaurantId: string): Promise<{
-    currentWaiting: number;
-    totalServedToday: number;
-    averageWaitTime: number;
-    longestWait: number;
-    recentActivity: Array<{
-      type: "joined" | "called" | "seated" | "no_show";
-      queueNumber: number;
-      timestamp: string;
-      customerName?: string;
-    }>;
-  }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/status`,
-    );
-    return (response.data as any).data || response.data;
-  },
-
-  // 匯出功能
-  async exportQueue(
-    restaurantId: string,
-    params: {
-      startDate?: string;
-      endDate?: string;
-      status?: QueueItem["status"];
-      format: "csv" | "excel";
-    },
-  ): Promise<Blob> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/export`,
-      {
-        params,
-        responseType: "blob",
+    const data = (response.data as any)?.data;
+    return {
+      queue: data?.queue || {
+        total_waiting: 0,
+        avg_estimated_wait: 0,
+        min_wait: 0,
+        max_wait: 0,
+        online_count: 0,
+        walkin_count: 0,
+        priority_count: 0
       },
-    );
-    return (response.data as any).data || response.data;
+      activity: data?.activity || {
+        seated_today: 0,
+        cancelled_today: 0,
+        no_show_today: 0,
+        avg_actual_wait: 0
+      },
+      settings: data?.settings || {} as QueueSettings
+    };
   },
 
-  // 預測和智能功能
+
+  // 預測和智能功能 - 暫時保留舊端點，等待新實現
   async getWaitTimeEstimate(
-    restaurantId: string,
+    restaurantId: number,
     partySize: number,
   ): Promise<{
     estimatedWaitTime: number;
@@ -409,18 +285,34 @@ export const queueService = {
       description: string;
     }>;
   }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/estimate`,
-      {
-        params: { partySize },
-      },
-    );
-    return (response.data as any).data || response.data;
+    // 使用新的狀態端點獲取預估時間
+    const status = await this.getRealtimeStatus(restaurantId);
+    const avgWait = status.queue?.avg_estimated_wait || 30;
+
+    // 簡化的預估邏輯，待後續增強
+    const estimate = Math.max(avgWait * (partySize > 4 ? 1.2 : 1), 5);
+
+    return {
+      estimatedWaitTime: Math.round(estimate),
+      confidence: 0.75,
+      factors: [
+        {
+          factor: "當前候位人數",
+          impact: status.queue?.total_waiting || 0,
+          description: "目前排隊等候的客戶數量"
+        },
+        {
+          factor: "聚餐人數",
+          impact: partySize,
+          description: "較大聚餐需要更長準備時間"
+        }
+      ]
+    };
   },
 
   async getCapacityForecast(
-    restaurantId: string,
-    date: string,
+    _restaurantId: number,
+    _date: string,
   ): Promise<{
     hourlyForecast: Array<{
       hour: number;
@@ -431,13 +323,38 @@ export const queueService = {
     peakHours: number[];
     recommendations: string[];
   }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/forecast`,
-      {
-        params: { date },
-      },
-    );
-    return (response.data as any).data || response.data;
+    // 暫時返回模擬數據，等待新 API 實現
+    return {
+      hourlyForecast: [],
+      peakHours: [12, 13, 18, 19, 20],
+      recommendations: [
+        "建議在用餐尖峰時段增加服務人員",
+        "考慮實施預約制度以平衡客流"
+      ]
+    };
+  },
+
+  // Performance optimization methods
+  async getPerformanceMetrics(): Promise<ApiResponse<{
+    cacheStats: {
+      totalEntries: number;
+      validEntries: number;
+      expiredEntries: number;
+      hitRate: number;
+      memoryUsage: number;
+    };
+    lastUpdated: string;
+  }>> {
+    const response = await apiClient.get('/api/v1/queue-modular/performance');
+    return response.data as any;
+  },
+
+  async optimizeQueue(restaurantId: number): Promise<ApiResponse<{
+    message: string;
+    timestamp: string;
+  }>> {
+    const response = await apiClient.post(`/api/v1/queue-modular/${restaurantId}/optimize`);
+    return response.data as any;
   },
 };
 

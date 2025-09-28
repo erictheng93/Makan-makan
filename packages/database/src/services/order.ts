@@ -34,7 +34,58 @@ export interface OrderFilters {
 }
 
 export class OrderService extends BaseService {
-  
+
+  // 獲取餐廳最低消費設定
+  async getMinimumOrderAmount(restaurantId: number): Promise<{ minOrderAmount: number; enabled: boolean }> {
+    try {
+      const restaurant = await this.db.query.restaurants.findFirst({
+        where: eq(restaurants.id, restaurantId),
+        columns: {
+          settings: true,
+          isAvailable: true
+        }
+      })
+
+      if (!restaurant) {
+        throw new Error('Restaurant not found')
+      }
+
+      const settings = restaurant.settings || {}
+      const minOrderAmount = settings.minOrderAmount || 0
+
+      return {
+        minOrderAmount,
+        enabled: minOrderAmount > 0 && restaurant.isAvailable
+      }
+    } catch (error) {
+      this.handleError(error, 'getMinimumOrderAmount')
+    }
+  }
+
+  // 驗證訂單是否符合最低消費要求
+  async validateMinimumOrder(restaurantId: number, orderAmount: number): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
+    try {
+      const { minOrderAmount, enabled } = await this.getMinimumOrderAmount(restaurantId)
+
+      if (!enabled) {
+        return { valid: true }
+      }
+
+      if (orderAmount >= minOrderAmount) {
+        return { valid: true }
+      }
+
+      const shortfall = minOrderAmount - orderAmount
+      return {
+        valid: false,
+        message: `訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`,
+        shortfall
+      }
+    } catch (error) {
+      this.handleError(error, 'validateMinimumOrder')
+    }
+  }
+
   // 創建訂單
   async createOrder(data: CreateOrderData): Promise<Order> {
     try {
@@ -137,8 +188,17 @@ export class OrderService extends BaseService {
         }
       }
 
-      // 計算稅金和服務費（考慮折扣）
+      // 驗證最低消費（在折扣後但在計算稅金前）
       const settings = restaurant.settings || {}
+      const minOrderAmount = settings.minOrderAmount || 0
+      const orderAmountAfterDiscount = subtotal - discountAmount
+
+      if (minOrderAmount > 0 && orderAmountAfterDiscount < minOrderAmount) {
+        const shortfall = minOrderAmount - orderAmountAfterDiscount
+        throw new Error(`訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmountAfterDiscount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`)
+      }
+
+      // 計算稅金和服務費（考慮折扣）
       const taxRate = settings.taxRate || 0
       const serviceChargeRate = settings.serviceChargeRate || 0
       const { taxAmount, serviceCharge, totalAmount } = this.calculateOrderTotal(

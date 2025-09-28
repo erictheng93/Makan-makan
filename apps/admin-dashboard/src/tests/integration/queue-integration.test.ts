@@ -10,7 +10,7 @@ vi.mock("@/services/queueService");
 vi.mock("@/composables/useRealtimeQueue");
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
-    user: { restaurantId: "rest_test_001" },
+    user: { restaurantId: 1 }, // Changed to number to match new API
     hasPermission: () => true,
   }),
 }));

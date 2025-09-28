@@ -189,6 +189,12 @@ importers:
       '@makanmakan/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@makanmakan/queue-core':
+        specifier: workspace:*
+        version: link:../../packages/queue-core
+      '@makanmakan/queue-service':
+        specifier: workspace:*
+        version: link:../../packages/queue-service
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -206,7 +212,7 @@ importers:
         version: 3.22.3
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^4.0.0
+        specifier: ^4.20250826.0
         version: 4.20250826.0
       '@types/bcryptjs':
         specifier: ^2.4.6
@@ -215,14 +221,14 @@ importers:
         specifier: ^9.0.5
         version: 9.0.10
       '@vitest/coverage-v8':
-        specifier: ^1.0.0
-        version: 1.6.1(vitest@1.6.1)
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4(@types/node@24.3.0)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
       typescript:
-        specifier: ^5.0.0
+        specifier: ^5.9.2
         version: 5.9.2
       vitest:
-        specifier: ^1.0.0
-        version: 1.6.1(@types/node@24.3.0)(@vitest/ui@1.6.1)(jsdom@26.1.0)(terser@5.44.0)
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.3.0)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)
       wrangler:
         specifier: ^3.0.0
         version: 3.114.14(@cloudflare/workers-types@4.20250826.0)
@@ -350,6 +356,15 @@ importers:
 
   apps/image-processor:
     dependencies:
+      '@makanmakan/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@makanmakan/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
+      drizzle-orm:
+        specifier: ^0.29.0
+        version: 0.29.5(@cloudflare/workers-types@4.20250826.0)
       hono:
         specifier: ^4.9.6
         version: 4.9.6
@@ -503,9 +518,9 @@ importers:
 
   packages/database:
     dependencies:
-      '@cloudflare/d1':
-        specifier: ^1.0.0
-        version: 1.4.1
+      '@makanmakan/queue-core':
+        specifier: workspace:*
+        version: link:../queue-core
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../shared-types
@@ -525,6 +540,9 @@ importers:
         specifier: ^3.22.0
         version: 3.22.3
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250826.0
+        version: 4.20250826.0
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
@@ -532,8 +550,8 @@ importers:
         specifier: ^9.0.5
         version: 9.0.10
       '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.11
+        specifier: ^24.3.0
+        version: 24.3.0
       drizzle-kit:
         specifier: ^0.21.4
         version: 0.21.4
@@ -543,6 +561,38 @@ importers:
       tsx:
         specifier: ^4.0.0
         version: 4.20.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+
+  packages/queue-core:
+    dependencies:
+      '@makanmakan/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      zod:
+        specifier: ^3.22.0
+        version: 3.22.3
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4(@types/node@24.3.0)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.3.0)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)
+
+  packages/queue-service:
+    dependencies:
+      '@makanmakan/queue-core':
+        specifier: workspace:*
+        version: link:../queue-core
+      zod:
+        specifier: ^3.22.0
+        version: 3.22.3
+    devDependencies:
       typescript:
         specifier: ^5.0.0
         version: 5.9.2
@@ -1098,10 +1148,6 @@ packages:
     peerDependencies:
       qrcode: ^1.5.0
       vue: ^3.0.0
-
-  '@cloudflare/d1@1.4.1':
-    resolution: {integrity: sha512-czIBkVoZG7csWK0GVpWXqvnfM2Uv91AqdhwXeTPd1zpdQ+x/or492tD1ybVe679868bGMsHRqtHxp+5rwHXRaA==}
-    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@cloudflare/kv-asset-handler@0.3.4':
     resolution: {integrity: sha512-YLPHc8yASwjNkmcDMQMY35yiWjoKAKnhUbPRszBRS0YgH+IXtsMp61j+yTcnCE3oO2DgP0U3iejLC8FTtKDC8Q==}
@@ -2902,6 +2948,77 @@ packages:
   drizzle-kit@0.21.4:
     resolution: {integrity: sha512-Nxcc1ONJLRgbhmR+azxjNF9Ly9privNLEIgW53c92whb4xp8jZLH1kMCh/54ci1mTMuYxPdOukqLwJ8wRudNwA==}
     hasBin: true
+
+  drizzle-orm@0.29.5:
+    resolution: {integrity: sha512-jS3+uyzTz4P0Y2CICx8FmRQ1eplURPaIMWDn/yq6k4ShRFj9V7vlJk67lSf2kyYPzQ60GkkNGXcJcwrxZ6QCRw==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=3'
+      '@libsql/client': '*'
+      '@neondatabase/serverless': '>=0.1'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/react': '>=18'
+      '@types/sql.js': '*'
+      '@vercel/postgres': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=13.2.0'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      react: '>=18'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/react':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      react:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
 
   drizzle-orm@0.33.0:
     resolution: {integrity: sha512-SHy72R2Rdkz0LEq0PSG/IdvnT3nGiWuRk+2tXZQ90GVq/XQhpCzu/EFT3V2rox+w8MlkBQxifF8pCStNYnERfA==}
@@ -6036,8 +6153,6 @@ snapshots:
       qrcode: 1.5.4
       vue: 3.5.19(typescript@5.9.2)
 
-  '@cloudflare/d1@1.4.1': {}
-
   '@cloudflare/kv-asset-handler@0.3.4':
     dependencies:
       mime: 3.0.0
@@ -7650,6 +7765,10 @@ snapshots:
       zod: 3.22.3
     transitivePeerDependencies:
       - supports-color
+
+  drizzle-orm@0.29.5(@cloudflare/workers-types@4.20250826.0):
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20250826.0
 
   drizzle-orm@0.33.0(@cloudflare/workers-types@4.20250826.0):
     optionalDependencies:
@@ -10111,42 +10230,6 @@ snapshots:
       '@types/node': 24.3.0
       '@vitest/ui': 1.6.1(vitest@1.6.1)
       jsdom: 23.2.0
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-
-  vitest@1.6.1(@types/node@24.3.0)(@vitest/ui@1.6.1)(jsdom@26.1.0)(terser@5.44.0):
-    dependencies:
-      '@vitest/expect': 1.6.1
-      '@vitest/runner': 1.6.1
-      '@vitest/snapshot': 1.6.1
-      '@vitest/spy': 1.6.1
-      '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.4
-      chai: 4.5.0
-      debug: 4.4.1
-      execa: 8.0.1
-      local-pkg: 0.5.1
-      magic-string: 0.30.18
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      std-env: 3.9.0
-      strip-literal: 2.1.1
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.19(@types/node@24.3.0)(terser@5.44.0)
-      vite-node: 1.6.1(@types/node@24.3.0)(terser@5.44.0)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/node': 24.3.0
-      '@vitest/ui': 1.6.1(vitest@1.6.1)
-      jsdom: 26.1.0
     transitivePeerDependencies:
       - less
       - lightningcss

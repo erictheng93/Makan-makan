@@ -8,15 +8,17 @@
     "esModuleInterop": true,
     "allowJs": true,
     "strict": true,
-    "noEmit": true,
+    "noEmit": false,
     "declaration": true,
     "declarationMap": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "dist",
+    "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@makanmakan/shared-types": ["../shared-types/src"]
+      "@makanmakan/shared-types": ["../shared-types/src"],
+      "@makanmakan/queue-core/*": ["../queue-core/src/*"]
     }
   },
   "include": [

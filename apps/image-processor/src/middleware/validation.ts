@@ -92,7 +92,7 @@ export const imageSchemas = {
     altText: z.string().max(200).optional(),
     caption: z.string().max(500).optional(),
     tags: z.string().optional(), // comma-separated tags
-    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional()
+    restaurantId: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional())
   }),
 
   // 圖片處理參數
@@ -116,14 +116,14 @@ export const imageSchemas = {
 
   // 圖片列表查詢
   listQuery: z.object({
-    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+    restaurantId: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
     category: z.string().optional(),
-    uploadedBy: z.string().regex(/^\d+$/).transform(Number).optional(),
+    uploadedBy: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
     tags: z.string().optional(), // comma-separated
-    page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20'),
-    sortBy: z.enum(['uploaded_at', 'filename', 'size']).optional().default('uploaded_at'),
-    sortOrder: z.enum(['ASC', 'DESC']).optional().default('DESC')
+    page: z.preprocess((val) => val ? Number(val) : 1, z.number().default(1)),
+    limit: z.preprocess((val) => val ? Number(val) : 20, z.number().default(20)),
+    sortBy: z.enum(['uploaded_at', 'filename', 'size']).default('uploaded_at'),
+    sortOrder: z.enum(['ASC', 'DESC']).default('DESC')
   }),
 
   // 圖片 ID 參數
@@ -137,12 +137,12 @@ export const imageSchemas = {
 
   // 圖片變體參數
   variantParams: z.object({
-    variant: z.string().optional().default('original'),
-    width: z.string().regex(/^\d+$/).transform(Number).optional(),
-    height: z.string().regex(/^\d+$/).transform(Number).optional(),
+    variant: z.string().default('original'),
+    width: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+    height: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
     fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad']).optional(),
     format: z.enum(['webp', 'jpeg', 'png', 'avif']).optional(),
-    quality: z.string().regex(/^\d+$/).transform(Number).optional()
+    quality: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional())
   }),
 
   // 圖片更新參數
@@ -156,9 +156,9 @@ export const imageSchemas = {
 
   // 分析查詢參數
   analyticsQuery: z.object({
-    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
-    dateFrom: z.string().datetime().optional(),
-    dateTo: z.string().datetime().optional()
+    restaurantId: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional()
   }),
 
   // 批量操作參數

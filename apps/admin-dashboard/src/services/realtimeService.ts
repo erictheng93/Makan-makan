@@ -163,6 +163,7 @@ class RealtimeService {
       // 候位系統相關
       "queue_joined",
       "queue_called",
+      "queue_notified",
       "queue_seated",
       "queue_no_show",
       "queue_cancelled",
@@ -595,6 +596,7 @@ export const REALTIME_EVENTS = {
   // 候位系統相關
   QUEUE_JOINED: "queue_joined",
   QUEUE_CALLED: "queue_called",
+  QUEUE_NOTIFIED: "queue_notified",
   QUEUE_SEATED: "queue_seated",
   QUEUE_NO_SHOW: "queue_no_show",
   QUEUE_CANCELLED: "queue_cancelled",

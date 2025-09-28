@@ -47,7 +47,7 @@ export interface PaperSize {
 // 打印作業相關類型
 // =============================================
 
-export type PrintJobStatus = 'pending' | 'printing' | 'completed' | 'failed' | 'cancelled'
+export type PrintJobStatus = 'pending' | 'printing' | 'completed' | 'failed' | 'cancelled' | 'paused'
 export type PrintJobType = 'receipt' | 'order' | 'report' | 'test'
 export type PrintJobPriority = 'low' | 'normal' | 'high' | 'urgent'
 
@@ -63,8 +63,16 @@ export interface PrintJob {
   maxAttempts: number
   createdAt: Date
   updatedAt: Date
+  startedAt?: Date
   completedAt?: Date
+  cancelledAt?: Date
   error?: PrintError
+  metadata?: {
+    restaurantId?: number
+    orderId?: string
+    userId?: string
+    country?: CountryCode
+  }
 }
 
 export interface PrintOptions {
@@ -78,6 +86,7 @@ export interface PrintOptions {
 export interface PrintError {
   code: string
   message: string
+  timestamp?: Date
   details?: any
 }
 
@@ -298,24 +307,37 @@ export interface ReceiptConfig {
 // =============================================
 
 export interface PrintServiceConfig {
-  serviceId: string
-  serviceName: string
-  version: string
-  devices: PrinterDevice[]
-  defaultDevice?: string
-  regions: Record<CountryCode, RegionConfig>
-  templates: Record<string, ReceiptTemplate>
+  defaultDevice?: string | null
   queue: {
-    maxSize: number
+    maxConcurrentJobs: number
     maxRetries: number
     retryDelay: number
-    batchSize: number
+    jobTimeout: number
+    maxQueueSize: number
   }
-  network: {
-    serverPort: number
-    apiKey: string
-    cloudEndpoint: string
+  drivers: {
+    connectionTimeout: number
+    commandTimeout: number
     heartbeatInterval: number
+    retryAttempts: number
+  }
+  regions?: {
+    default: CountryCode
+    supported: CountryCode[]
+  }
+  monitoring?: {
+    healthCheckInterval: number
+    statisticsInterval: number
+    maxErrorHistory: number
+    alertThresholds: {
+      errorRate: number
+      queueDepth: number
+      responseTime: number
+    }
+  }
+  cleanup?: {
+    completedJobRetention: number
+    cleanupInterval: number
   }
 }
 
@@ -375,13 +397,13 @@ export interface FontStyle {
 // =============================================
 
 export interface PrintRequest {
-  orderId: string
-  restaurantId: number
   country: CountryCode
   type: PrintJobType
   priority?: PrintJobPriority
   deviceId?: string
   templateId?: string
+  restaurantId?: number
+  userId?: string
   data: {
     order: OrderData
     customer?: CustomerData

@@ -86,7 +86,7 @@ export abstract class RegionReceiptFormatter {
 export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
 
     return {
       header: this.formatHeader(restaurant, {
@@ -155,8 +155,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
     const summary: PrintContent['summary'] = {
       subtotal,
       tax: [{
-        name: 'Tax',
-        // nameLocal: '營業稅',
+        name: '營業稅',
         rate: 0.05,
         amount: taxAmount,
         taxableAmount: subtotal
@@ -245,7 +244,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
 export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
 
     return {
       header: this.formatHeader(restaurant, {
@@ -377,7 +376,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
 export class VietnamReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
 
     return {
       header: this.formatHeader(restaurant, {
@@ -509,11 +508,13 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
 // =============================================
 
 export class ReceiptFormatterFactory {
-  private static formatters: Map<CountryCode, typeof RegionReceiptFormatter> = new Map([
-    ['TW', TaiwanReceiptFormatter],
-    ['MY', MalaysiaReceiptFormatter],
-    ['VN', VietnamReceiptFormatter]
-  ])
+  private static formatters: Map<CountryCode, any> = new Map()
+
+  static {
+    this.formatters.set('TW', TaiwanReceiptFormatter)
+    this.formatters.set('MY', MalaysiaReceiptFormatter)
+    this.formatters.set('VN', VietnamReceiptFormatter)
+  }
 
   static createFormatter(
     country: CountryCode, 
@@ -530,7 +531,7 @@ export class ReceiptFormatterFactory {
     return new FormatterClass(region, template)
   }
 
-  static registerFormatter(country: CountryCode, formatter: typeof RegionReceiptFormatter): void {
+  static registerFormatter(country: CountryCode, formatter: any): void {
     this.formatters.set(country, formatter)
   }
 
@@ -595,7 +596,7 @@ export class ReceiptFormattingService {
       },
       tax: {
         name: 'Tax',
-        // nameLocal: '營業稅',
+        nameLocal: '營業稅',
         rate: 0.05,
         inclusive: false,
         displayFormat: '營業稅 (5%)'

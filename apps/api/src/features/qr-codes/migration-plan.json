@@ -1,0 +1,20 @@
+{
+  "sourceFile": "routes/qrcode.ts",
+  "targetDirectory": "features/qr-codes/",
+  "routes": {
+    "GET": 4,
+    "POST": 3,
+    "PUT": 1,
+    "DELETE": 1,
+    "PATCH": 0
+  },
+  "imports": 6,
+  "schemas": 5,
+  "helpers": 0,
+  "estimatedFiles": {
+    "routes/index.ts": "Main route definitions",
+    "services/Service.ts": "Business logic extraction",
+    "schemas/validation.ts": "Validation schemas",
+    "types/index.ts": "Type definitions"
+  }
+}

@@ -21,26 +21,46 @@ import {
   healthCheckMiddleware,
   monitoringStatsMiddleware 
 } from './middleware/monitoring'
-import restaurantsRouter from './routes/restaurants'
-import menuRouter from './routes/menu'
-import authRouter from './routes/auth'
-import kitchenRouter from './routes/kitchen'
-import ordersRouter from './routes/orders'
-import groupOrdersRouter from './routes/groupOrders'
-import posRouter from './routes/pos'
-import queueRouter from './routes/queue'
+// import restaurantsRouter from './routes/restaurants' // Replaced with modular Restaurants feature
+import restaurantsFeature from './features/restaurants'
+// import menuRouter from './routes/menu' // Replaced with modular Menu feature
+// import authRouter from './routes/auth' // Replaced with modular Authentication feature
+import authFeature from './features/authentication'
+import menuFeature from './features/menu'
+// import kitchenRouter from './routes/kitchen' // Replaced with modular Kitchen feature
+import { default as kitchenFeature } from './features/kitchen'
+import ordersFeature from './features/orders' // New modular architecture
+// import groupOrdersRouter from './routes/groupOrders' // Replaced with modular Group Orders feature
+import groupOrdersFeature from './features/group-orders'
+// import posRouter from './routes/pos' // Replaced with modular POS feature
+import posFeature from './features/pos'
+// import queueRouter from './routes/queue' // Replaced with unified Queue feature
+// import queueModularRouter from './routes/queue-modular' // Replaced with unified Queue feature
+import queueFeature from './features/queue'
 // import { payments as paymentsRouter } from './routes/payments' // Disabled
 // import printRouter from './routes/print' // Disabled
-import tablesRouter from './routes/tables'
-import usersRouter from './routes/users'
-import analyticsRouter from './routes/analytics'
-import qrcodeRouter from './routes/qrcode'
-import healthRouter from './routes/health'
-import sseRouter from './routes/sse'
-import systemRouter from './routes/system'
-import cacheRouter from './routes/cache'
+// import tablesRouter from './routes/tables' // Replaced with modular Tables feature
+import tablesFeature from './features/tables'
+// import usersRouter from './routes/users' // Replaced with modular Users feature
+import usersFeature from './features/users'
+// import analyticsRouter from './routes/analytics' // Replaced with modular Analytics feature
+import analyticsFeature from './features/analytics'
+// import qrcodeRouter from './routes/qrcode' // Replaced with modular QR codes feature
+import qrCodesFeature from './features/qr-codes'
+// import systemRouter from './routes/system' // Replaced with modular System feature
+import systemFeature from './features/system'
+// Modular backup feature
+import { BackupRoutes } from './features/backup'
+// import healthRouter from './routes/health' // Replaced with modular System feature (/system/health)
+// import sseRouter from './routes/sse' // Replaced with modular SSE feature
+import sseFeature from './features/sse'
+// import cacheRouter from './routes/cache' // Replaced with modular Cache feature
+import cacheFeature from './features/cache'
 import monitoringRouter from './routes/monitoring'
-import couponsRouter from './routes/coupons'
+// import couponsRouter from './routes/coupons' // Replaced with modular Coupons feature
+import couponsFeature from './features/coupons'
+// import printRouter from './routes/print' // Disabled - incomplete feature
+// import { printApp } from './features/print' // Disabled - incomplete feature
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -73,7 +93,7 @@ app.use('*', advancedAnalyticsMiddleware())
 
 // 🚀 CRITICAL PERFORMANCE: Multi-layer edge caching (+2.5 points)
 app.use('*', smartCacheMiddleware({
-  defaultTtl: parseInt(process.env.CACHE_TTL_DEFAULT || '300'),
+  defaultTtl: 300, // 使用預設值，避免全域範圍的 process.env 存取
   varyHeaders: ['Authorization', 'X-Restaurant-ID', 'CF-IPCountry', 'User-Agent'],
   cacheTags: (c) => {
     const restaurantId = c.req.param('restaurantId') || c.get('user')?.restaurantId
@@ -124,8 +144,8 @@ app.onError((err, c) => {
       code: sanitized.code,
       type: sanitized.type,
       timestamp: new Date().toISOString(),
-      // Only in development: add request ID for debugging
-      requestId: Math.random().toString(36).substring(7)
+      // Only in development: add request ID for debugging (use timestamp-based ID)
+      requestId: `req_${Date.now()}_${(Date.now() % 100000).toString(36)}`
     }, 500)
   }
   
@@ -171,8 +191,9 @@ app.get('/info', (c) => {
       groupOrders: '/api/v1/orders/group',
       pos: '/api/v1/pos',
       queue: '/api/v1/queue',
+      queueModular: '/api/v1/queue-modular',
       payments: '/api/v1/payments',
-      print: '/api/v1/print',
+      // print: '/api/v1/print', // Disabled - incomplete feature
       tables: '/api/v1/tables',
       users: '/api/v1/users',
       analytics: '/api/v1/analytics',
@@ -182,6 +203,7 @@ app.get('/info', (c) => {
       qr: '/api/v1/qr',
       cache: '/api/v1/cache',
       monitoring: '/api/v1/monitoring',
+      backup: '/api/v1/backup',
       coupons: '/api/v1/coupons',
       health: '/health',
       docs: '/docs'
@@ -193,12 +215,12 @@ app.get('/info', (c) => {
 const apiV1 = new Hono<{ Bindings: Env }>()
 
 // 公開路由（無需認證）
-apiV1.route('/auth', authRouter)
-apiV1.route('/health', healthRouter)
-apiV1.route('/qr', qrcodeRouter)
-apiV1.route('/queue', queueRouter) // 候位系統部分端點為公開
+apiV1.route('/auth', authFeature.routes)
+// apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
+apiV1.route('/qr', qrCodesFeature.routes)
+apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)
 // apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證 - Disabled
-apiV1.route('/coupons', couponsRouter) // 優惠券驗證端點為公開，管理端點需要認證
+apiV1.route('/coupons', couponsFeature.routes) // 優惠券驗證端點為公開，管理端點需要認證
 
 // 受保護的路由（需要認證）
 apiV1.use('/restaurants/*', authMiddleware)
@@ -207,7 +229,7 @@ apiV1.use('/kitchen/*', authMiddleware)
 apiV1.use('/orders/*', authMiddleware)
 apiV1.use('/pos/*', authMiddleware)
 apiV1.use('/payments/*', authMiddleware)
-apiV1.use('/print/*', authMiddleware)
+// apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
 apiV1.use('/tables/*', authMiddleware)
 apiV1.use('/users/*', authMiddleware)
 apiV1.use('/analytics/*', authMiddleware)
@@ -215,22 +237,24 @@ apiV1.use('/sse/*', authMiddleware)
 apiV1.use('/system/*', authMiddleware)
 apiV1.use('/cache/*', authMiddleware)
 apiV1.use('/monitoring/*', authMiddleware)
+apiV1.use('/backup/*', authMiddleware)
 
-apiV1.route('/restaurants', restaurantsRouter)
-apiV1.route('/menu', menuRouter)
-apiV1.route('/kitchen', kitchenRouter)
-apiV1.route('/orders', ordersRouter)
-apiV1.route('/orders/group', groupOrdersRouter)
-apiV1.route('/pos', posRouter)
+apiV1.route('/restaurants', restaurantsFeature.routes)
+apiV1.route('/menu', menuFeature.routes)
+apiV1.route('/kitchen', kitchenFeature.routes)
+apiV1.route('/orders', ordersFeature.routes)
+apiV1.route('/orders/group', groupOrdersFeature.routes)
+apiV1.route('/pos', posFeature.routes)
 // apiV1.route('/payments', paymentsRouter) // Disabled
-// apiV1.route('/print', printRouter) // Disabled
-apiV1.route('/tables', tablesRouter)
-apiV1.route('/users', usersRouter)
-apiV1.route('/analytics', analyticsRouter)
-apiV1.route('/sse', sseRouter)
-apiV1.route('/system', systemRouter)
-apiV1.route('/cache', cacheRouter)
+// apiV1.route('/print', printApp) // Disabled - incomplete feature
+apiV1.route('/tables', tablesFeature.routes)
+apiV1.route('/users', usersFeature.routes)
+apiV1.route('/analytics', analyticsFeature.routes)
+apiV1.route('/sse', sseFeature.routes)
+apiV1.route('/system', systemFeature.routes)
+apiV1.route('/cache', cacheFeature)
 apiV1.route('/monitoring', monitoringRouter)
+apiV1.route('/backup', BackupRoutes)
 
 // 掛載 API 路由
 app.route('/api/v1', apiV1)

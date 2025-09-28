@@ -4,7 +4,8 @@
  */
 
 import { Context, Next } from 'hono'
-import { createCacheService, CacheConfig, CACHE_STRATEGIES, CacheKeys } from '../services/CacheService'
+import { createCacheService, CACHE_STRATEGIES, CacheKeys } from '../features/cache/services/CacheService'
+import type { CacheConfig } from '../features/cache/types'
 import type { Env } from '../types/env'
 
 // 快取中間件選項

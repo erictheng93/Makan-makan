@@ -1,0 +1,3 @@
+# Features directory
+# This directory contains feature-based modules following Domain-Driven Design principles
+# Each feature module is self-contained with its own routes, services, types, and tests

@@ -218,9 +218,8 @@ export class ErrorSanitizer {
       type: sanitized.type,
       timestamp: new Date().toISOString(),
       // Only include requestId in development for debugging
-      ...(process.env.NODE_ENV === 'development' && {
-        requestId: Math.random().toString(36).substring(7)
-      })
+      // Note: In Workers, use env.NODE_ENV from bindings instead of process.env
+      requestId: Math.random().toString(36).substring(7)
     }
   }
 

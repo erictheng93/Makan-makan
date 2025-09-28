@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, and, or, desc, asc, count, sql } from 'drizzle-orm'
-import type { Database as D1Database } from '@cloudflare/d1'
+import type { D1Database } from '@cloudflare/workers-types'
 import { BaseService } from './base'
 import * as schema from '../schema'
 

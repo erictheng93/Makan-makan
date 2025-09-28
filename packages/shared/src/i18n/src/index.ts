@@ -87,7 +87,7 @@ export class LocaleManager {
    */
   static getLocaleInfo(locale: SupportedLocale): LocaleInfo {
     const { SUPPORTED_LOCALES } = require('./types')
-    return SUPPORTED_LOCALES.find(l => l.code === locale) || SUPPORTED_LOCALES[0]
+    return SUPPORTED_LOCALES.find((l: any) => l.code === locale) || SUPPORTED_LOCALES[0]
   }
 
   /**
@@ -166,21 +166,21 @@ export class MessageLoader {
 /**
  * Create type-safe i18n instance for specific app
  */
-export function createAppI18n<T = any>(
+export function createAppI18n<T extends Record<string, unknown> = Record<string, unknown>>(
   app: 'admin' | 'customer' | 'kitchen',
   options: Partial<I18nOptions> = {}
-): I18n<T> {
+): I18n<T, {}, {}, string, boolean> {
   const locale = LocaleManager.getStoredLocale()
 
-  return createI18n<T>({
+  return createI18n({
     legacy: false,
     locale,
     fallbackLocale: 'en-US',
-    messages: {}, // Will be loaded dynamically
+    messages: {} as any, // Will be loaded dynamically
     silentTranslationWarn: false,
     silentFallbackWarn: false,
     ...options
-  })
+  }) as I18n<T, {}, {}, string, boolean>
 }
 
 /**
@@ -198,7 +198,13 @@ export function createI18nComposable(i18nInstance: I18n) {
 
         // Update i18n instance
         i18nInstance.global.setLocaleMessage(locale, messages)
-        i18nInstance.global.locale.value = locale
+        if (typeof i18nInstance.global.locale === 'string') {
+          // For legacy mode
+          (i18nInstance.global.locale as any) = locale
+        } else {
+          // For composition mode
+          i18nInstance.global.locale.value = locale
+        }
 
         // Persist the change
         LocaleManager.setLocale(locale)
@@ -214,7 +220,9 @@ export function createI18nComposable(i18nInstance: I18n) {
      * Get current locale info
      */
     getCurrentLocaleInfo(): LocaleInfo {
-      const currentLocale = i18nInstance.global.locale.value as SupportedLocale
+      const currentLocale = (typeof i18nInstance.global.locale === 'string'
+        ? i18nInstance.global.locale
+        : i18nInstance.global.locale.value) as SupportedLocale
       return LocaleManager.getLocaleInfo(currentLocale)
     },
 

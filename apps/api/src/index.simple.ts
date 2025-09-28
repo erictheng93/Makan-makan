@@ -6,7 +6,6 @@ import type { Env } from './types/env'
 
 // Import only essential routes for login
 import authRouter from './routes/auth'
-import healthRouter from './routes/health'
 
 // Create simple app
 const app = new Hono<{ Bindings: Env }>()
@@ -20,7 +19,9 @@ app.use('*', cors({
 }))
 
 // Health check
-app.route('/health', healthRouter)
+app.get('/health', (c) => {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
 
 // Essential routes for login
 app.route('/api/v1/auth', authRouter)
@@ -35,7 +36,7 @@ app.onError((err, c) => {
   console.error('API Error:', err)
   return c.json({ 
     error: 'Internal Server Error', 
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: 'Something went wrong' // Use env.NODE_ENV from bindings if needed
   }, 500)
 })
 

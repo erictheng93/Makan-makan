@@ -13,7 +13,7 @@ import type {
 
 export interface CitizenDriverConfig {
   connection: {
-    type: 'usb' | 'network' | 'serial'
+    type: 'usb' | 'network' | 'serial' | 'bluetooth'
     path?: string
     host?: string
     port?: number

@@ -1,5 +1,8 @@
 import { BaseEntity, Status, UserRole } from './common';
 
+// Re-export UserRole for convenience
+export { UserRole };
+
 export interface User extends BaseEntity {
   email: string;
   name: string;

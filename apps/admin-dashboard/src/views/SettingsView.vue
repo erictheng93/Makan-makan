@@ -230,6 +230,63 @@
             />
           </div>
 
+          <!-- 最低消費設定 -->
+          <div class="border-t border-gray-200 pt-4">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <label class="text-sm font-medium text-gray-900">啟用最低消費</label>
+                <p class="text-sm text-gray-500">設定餐廳最低消費金額限制</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  v-model="settings.orders.minimumOrderEnabled"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div
+                  class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+                />
+              </label>
+            </div>
+
+            <div v-if="settings.orders.minimumOrderEnabled" class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  最低消費金額 ({{ settings.system.currency }})
+                </label>
+                <div class="flex items-center space-x-2">
+                  <span class="text-gray-500">RM</span>
+                  <input
+                    v-model.number="settings.orders.minimumOrderAmount"
+                    type="number"
+                    min="0"
+                    step="0.50"
+                    max="500"
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                  設定為 0 表示停用最低消費限制
+                </p>
+              </div>
+
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="flex items-start space-x-2">
+                  <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <div>
+                    <p class="text-sm font-medium text-blue-800">提醒</p>
+                    <p class="text-sm text-blue-700">
+                      客戶訂單未達最低消費時將無法下單，系統會自動提示客戶需要加點的金額。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"
               >訂單保留天數</label
@@ -598,6 +655,8 @@ const settings = reactive({
     preparationTimeAlert: true,
     defaultPreparationTime: 15,
     retentionDays: 90,
+    minimumOrderEnabled: false,
+    minimumOrderAmount: 0,
   },
   tables: {
     prefix: "T",

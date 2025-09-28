@@ -568,7 +568,7 @@ export class QRCodeService {
   }
 
   private getBaseUrl(): string {
-    return process.env.API_BASE_URL || 'https://api.makanmakan.com'
+    return 'https://api.makanmakan.com' // TODO: Pass from env bindings
   }
 }
 

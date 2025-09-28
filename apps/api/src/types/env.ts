@@ -35,6 +35,7 @@ export interface Env {
   CACHE_KV: KVNamespace
   TOKEN_BLACKLIST: KVNamespace // For JWT token blacklisting security
   IMAGES_BUCKET: R2Bucket
+  BACKUP_STORAGE: R2Bucket
   JOB_QUEUE: Queue
   REALTIME_ORDERS: DurableObjectNamespace
   

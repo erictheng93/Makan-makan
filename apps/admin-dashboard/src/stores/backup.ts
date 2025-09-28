@@ -5,221 +5,22 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-// TODO: Import from @makanmakan/shared-types when workspace is properly configured
-// import type {
-//   BackupConfiguration,
-//   BackupRecord,
-//   BackupSystemHealth,
-//   BackupAlert,
-//   CreateBackupRequest,
-//   CreateBackupResponse,
-//   ListBackupsQuery,
-//   RestoreBackupRequest
-// } from '@makanmakan/shared-types'
+// Import from @makanmakan/shared-types
+import type {
+  BackupConfiguration,
+  BackupRecord,
+  BackupSystemHealth,
+  BackupAlert,
+  CreateBackupRequest,
+  CreateBackupResponse,
+  ListBackupsQuery,
+  RestoreBackupRequest
+} from '@makanmakan/shared-types'
 
-// Temporary type definitions
-type BackupStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
-type BackupType = 'full' | 'incremental' | 'differential'
-type StorageProvider = 'r2' | 'kv' | 'external'
-
-interface BackupConfiguration {
-  id: string
-  restaurant_id: string
-  name: string
-  description?: string
-  backup_type: BackupType
-  schedule_enabled: boolean
-  schedule_cron?: string
-  retention_days: number
-  include_tables?: string[]
-  exclude_tables?: string[]
-  compression_enabled: boolean
-  encryption_enabled: boolean
-  storage_provider: StorageProvider
-  max_parallel_backups: number
-  notifications_enabled: boolean
-  notification_channels: string[]
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
-interface BackupRecord {
-  id: string
-  restaurant_id: string
-  configuration_id: string
-  name: string
-  backup_type: BackupType
-  status: BackupStatus
-  file_size: number
-  compressed_size: number
-  records_count: number
-  tables_included: string[]
-  storage_provider: StorageProvider
-  storage_path: string
-  encryption_enabled: boolean
-  checksum: string
-  started_at: string
-  completed_at?: string
-  error_message?: string
-  created_by: string
-  expires_at?: string
-  metadata: {
-    tables_info: Array<{
-      table_name: string
-      record_count: number
-      estimated_size: number
-    }>
-    performance_metrics: {
-      backup_duration_ms: number
-      compression_ratio: number
-      upload_speed_mbps: number
-    }
-    database_snapshot: {
-      version: string
-      schema_hash: string
-      total_tables: number
-      total_records: number
-    }
-  }
-}
-
-interface BackupSystemHealth {
-  overall_status: 'healthy' | 'warning' | 'critical'
-  total_restaurants: number
-  active_configurations: number
-  running_backups: number
-  failed_backups_24h: number
-  storage_usage: {
-    total_bytes: number
-    available_bytes: number
-    usage_percentage: number
-  }
-  performance_metrics: {
-    average_backup_duration_minutes: number
-    average_success_rate_percentage: number
-    average_compression_ratio: number
-  }
-  alerts_summary: {
-    critical: number
-    high: number
-    medium: number
-    low: number
-  }
-}
-
-interface BackupAlert {
-  id: string
-  restaurant_id: string
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-  triggered_at: string
-  acknowledged: boolean
-  acknowledged_by?: string
-  acknowledged_at?: string
-  resolved: boolean
-  resolved_at?: string
-}
-
-interface CreateBackupRequest {
-  restaurant_id: string
-  configuration_id?: string
-  name: string
-  description?: string
-  backup_type?: BackupType
-  include_tables?: string[]
-  exclude_tables?: string[]
-  force_immediate?: boolean
-}
-
-interface CreateBackupResponse {
-  backup_id: string
-  status: BackupStatus
-  estimated_duration_minutes: number
-  message: string
-}
-
-interface ListBackupsQuery {
-  restaurant_id: string
-  status?: BackupStatus
-  backup_type?: BackupType
-  date_from?: string
-  date_to?: string
-  page?: number
-  limit?: number
-  sort_by?: 'created_at' | 'file_size' | 'duration'
-  sort_order?: 'asc' | 'desc'
-}
-
-interface RestoreBackupRequest {
-  restaurant_id: string
-  backup_id: string
-  restore_type: 'full' | 'selective'
-  target_tables?: string[]
-  overwrite_existing: boolean
-  safety_confirmation: {
-    backup_integrity_verified: boolean
-    data_loss_risk_acknowledged: boolean
-    confirmation_phrase: string
-  }
-}
-// TODO: Create proper API client
-// import { apiClient } from '@/utils/api'
-const apiClient = {
-  post: async (_url: string, _data: any) => ({
-    data: {
-      backup_id: 'test-id',
-      status: 'pending' as BackupStatus,
-      estimated_duration_minutes: 5,
-      message: 'Backup created',
-      restore_id: 'test-restore-id'
-    }
-  }),
-  get: async (_url: string, _params?: any) => {
-    if (_url.includes('/backup/list')) {
-      return { data: [] as BackupRecord[] }
-    }
-    if (_url.includes('/configurations')) {
-      return { data: [] as BackupConfiguration[] }
-    }
-    if (_url.includes('/health')) {
-      return {
-        data: {
-          overall_status: 'healthy' as const,
-          total_restaurants: 0,
-          active_configurations: 0,
-          running_backups: 0,
-          failed_backups_24h: 0,
-          storage_usage: {
-            total_bytes: 0,
-            available_bytes: 0,
-            usage_percentage: 0
-          },
-          performance_metrics: {
-            average_backup_duration_minutes: 0,
-            average_success_rate_percentage: 0,
-            average_compression_ratio: 0
-          },
-          alerts_summary: {
-            critical: 0,
-            high: 0,
-            medium: 0,
-            low: 0
-          }
-        } as BackupSystemHealth
-      }
-    }
-    if (_url.includes('/alerts')) {
-      return { data: [] as BackupAlert[] }
-    }
-    return { data: {}, headers: { 'content-disposition': 'attachment; filename="backup.zip"' } }
-  },
-  patch: async (_url: string, _data?: any) => ({ data: {} }),
-  delete: async (_url: string) => ({ data: {} })
-}
+// Re-export types from shared-types for convenience
+export type { BackupStatus, BackupType, StorageProvider } from '@makanmakan/shared-types'
+// Import the actual API client
+import { apiClient } from '@/services/api'
 
 export const useBackupStore = defineStore('backup', () => {
   // State
@@ -232,8 +33,8 @@ export const useBackupStore = defineStore('backup', () => {
   // Actions
   const createBackup = async (request: CreateBackupRequest): Promise<CreateBackupResponse> => {
     try {
-      const response = await apiClient.post('/backup/create', request)
-      return response.data as { data: BackupRecord[] }
+      const response = await apiClient.post('/api/v1/backup/create', request)
+      return (response.data as any).data as CreateBackupResponse
     } catch (error) {
       console.error('Error creating backup:', error)
       throw error
@@ -242,10 +43,10 @@ export const useBackupStore = defineStore('backup', () => {
 
   const listBackups = async (query: ListBackupsQuery) => {
     try {
-      const response = await apiClient.get('/backup/list', {
+      const response = await apiClient.get('/api/v1/backup/list', {
         params: query
       })
-      return (response.data as { data: BackupRecord[] } as { data: BackupRecord[] }).data || []
+      return (response.data as any).data || []
     } catch (error) {
       console.error('Error listing backups:', error)
       throw error
@@ -254,8 +55,8 @@ export const useBackupStore = defineStore('backup', () => {
 
   const getBackup = async (backupId: string): Promise<BackupRecord> => {
     try {
-      const response = await apiClient.get(`/backup/${backupId}`)
-      return (response.data as { data: BackupRecord[] } as { data: BackupRecord }).data
+      const response = await apiClient.get(`/api/v1/backup/${backupId}`)
+      return (response.data as any).data as BackupRecord
     } catch (error) {
       console.error('Error getting backup:', error)
       throw error
@@ -264,12 +65,12 @@ export const useBackupStore = defineStore('backup', () => {
 
   const downloadBackup = async (backupId: string): Promise<void> => {
     try {
-      const response = await apiClient.get(`/backup/${backupId}/download`, {
+      const response = await apiClient.get(`/api/v1/backup/${backupId}/download`, {
         responseType: 'blob'
       })
 
       // Create download link
-      const url = window.URL.createObjectURL(response.data as { data: BackupRecord[] } as Blob)
+      const url = window.URL.createObjectURL(new Blob([response.data as any]))
       const link = document.createElement('a')
       link.href = url
 
@@ -292,8 +93,8 @@ export const useBackupStore = defineStore('backup', () => {
 
   const restoreBackup = async (request: RestoreBackupRequest): Promise<string> => {
     try {
-      const response = await apiClient.post(`/backup/${request.backup_id}/restore`, request)
-      return response.data as { data: BackupRecord[] }
+      const response = await apiClient.post(`/api/v1/backup/${request.backup_id}/restore`, request)
+      return (response.data as any).operation_id
     } catch (error) {
       console.error('Error restoring backup:', error)
       throw error
@@ -302,7 +103,7 @@ export const useBackupStore = defineStore('backup', () => {
 
   const deleteBackup = async (backupId: string): Promise<void> => {
     try {
-      await apiClient.delete(`/backup/${backupId}`)
+      await apiClient.delete(`/api/v1/backup/${backupId}`)
     } catch (error) {
       console.error('Error deleting backup:', error)
       throw error
@@ -312,9 +113,9 @@ export const useBackupStore = defineStore('backup', () => {
   // Backup Configurations
   const getBackupConfigurations = async (restaurantId: string): Promise<BackupConfiguration[]> => {
     try {
-      const response = await apiClient.get(`/backup/configurations/${restaurantId}`)
-      configurations.value = (response.data as { data: BackupRecord[] } as { data: BackupConfiguration[] }).data
-      return (response.data as { data: BackupRecord[] } as { data: BackupConfiguration[] }).data
+      const response = await apiClient.get(`/api/v1/backup/configurations/${restaurantId}`)
+      configurations.value = (response.data as any).data
+      return (response.data as any).data
     } catch (error) {
       console.error('Error getting backup configurations:', error)
       throw error
@@ -325,11 +126,11 @@ export const useBackupStore = defineStore('backup', () => {
     config: Partial<BackupConfiguration>
   ): Promise<BackupConfiguration> => {
     try {
-      const response = await apiClient.post('/backup/configurations', config)
+      const response = await apiClient.post('/api/v1/backup/configurations', config)
 
       // Update local configurations array
       const index = configurations.value.findIndex((c: BackupConfiguration) => c.id === config.id)
-      const configData = (response.data as { data: BackupRecord[] } as any as { data: BackupConfiguration }).data
+      const configData = (response.data as any).data
       if (index >= 0) {
         configurations.value[index] = configData
       } else {
@@ -346,9 +147,9 @@ export const useBackupStore = defineStore('backup', () => {
   // System Monitoring
   const getSystemHealth = async (): Promise<BackupSystemHealth> => {
     try {
-      const response = await apiClient.get('/backup/system/health')
-      systemHealth.value = (response.data as { data: BackupRecord[] } as { data: BackupSystemHealth }).data
-      return (response.data as { data: BackupRecord[] } as { data: BackupSystemHealth }).data
+      const response = await apiClient.get('/api/v1/backup/system/health')
+      systemHealth.value = (response.data as any).data
+      return (response.data as any).data
     } catch (error) {
       console.error('Error getting system health:', error)
       throw error
@@ -360,10 +161,10 @@ export const useBackupStore = defineStore('backup', () => {
     period: 'hour' | 'day' | 'week' | 'month' = 'week'
   ) => {
     try {
-      const response = await apiClient.get(`/backup/restaurants/${restaurantId}/metrics`, {
+      const response = await apiClient.get(`/api/v1/backup/restaurants/${restaurantId}/metrics`, {
         params: { period }
       })
-      return response.data as { data: BackupRecord[] }
+      return (response.data as any).data
     } catch (error) {
       console.error('Error getting restaurant metrics:', error)
       throw error
@@ -375,11 +176,11 @@ export const useBackupStore = defineStore('backup', () => {
     unresolved_only: boolean = false
   ): Promise<BackupAlert[]> => {
     try {
-      const response = await apiClient.get(`/backup/alerts/${restaurantId}`, {
+      const response = await apiClient.get(`/api/v1/backup/alerts/${restaurantId}`, {
         params: { unresolved_only }
       })
-      alerts.value = (response.data as { data: BackupRecord[] } as { data: BackupAlert[] }).data
-      return (response.data as { data: BackupRecord[] } as { data: BackupAlert[] }).data
+      alerts.value = (response.data as any).data
+      return (response.data as any).data
     } catch (error) {
       console.error('Error getting restaurant alerts:', error)
       throw error
@@ -389,7 +190,7 @@ export const useBackupStore = defineStore('backup', () => {
   // Alert Management
   const acknowledgeAlert = async (alertId: string): Promise<void> => {
     try {
-      await apiClient.patch(`/backup/alerts/${alertId}/acknowledge`)
+      await apiClient.patch(`/api/v1/backup/alerts/${alertId}/acknowledge`)
 
       // Update local alerts array
       const alert = alerts.value.find((a: BackupAlert) => a.id === alertId)
@@ -405,7 +206,7 @@ export const useBackupStore = defineStore('backup', () => {
 
   const resolveAlert = async (alertId: string): Promise<void> => {
     try {
-      await apiClient.patch(`/backup/alerts/${alertId}/resolve`)
+      await apiClient.patch(`/api/v1/backup/alerts/${alertId}/resolve`)
 
       // Update local alerts array
       const alert = alerts.value.find((a: BackupAlert) => a.id === alertId)

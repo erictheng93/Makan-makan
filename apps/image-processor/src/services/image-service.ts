@@ -1,11 +1,11 @@
-import type { 
-  Env, 
-  ImageMetadata, 
-  ImageProcessingJob, 
+import type {
+  Env,
+  ImageMetadata,
+  ImageProcessingJob,
   ImageAnalytics,
-  ImageTransformation 
+  ImageTransformation
 } from '../types/env'
-import { ImageService as DatabaseImageService, type CreateImageData } from '@makanmakan/database'
+import { ImageService as DatabaseImageService, type CreateImageData, type D1Database } from '@makanmakan/database'
 
 /**
  * Image service for database operations and metadata management
@@ -18,7 +18,7 @@ export class ImageService {
   constructor(env: Env) {
     this.db = env.DB
     this.cache = env.IMAGE_CACHE
-    this.dbImageService = new DatabaseImageService(env.DB)
+    this.dbImageService = new DatabaseImageService(env.DB as any)
   }
 
   /**
@@ -39,7 +39,7 @@ export class ImageService {
         category: metadata.category || 'general',
         restaurantId: metadata.restaurantId || 1,
         uploadedBy: metadata.uploadedBy,
-        variants: metadata.variants || [],
+        variants: Array.isArray(metadata.variants) ? metadata.variants : [],
         metadata: {
           tags: metadata.tags,
           altText: metadata.altText,
@@ -104,12 +104,12 @@ export class ImageService {
         originalFilename: result.originalFilename,
         mimeType: result.mimeType,
         size: result.size,
-        width: result.width,
-        height: result.height,
+        width: result.width ?? undefined,
+        height: result.height ?? undefined,
         variants: result.variants ? JSON.parse(result.variants) : [],
         uploadedAt: result.uploadedAt,
-        uploadedBy: result.uploadedBy,
-        restaurantId: result.restaurantId,
+        uploadedBy: result.uploadedBy !== null ? result.uploadedBy : undefined,
+        restaurantId: result.restaurantId !== null ? result.restaurantId : undefined,
         category: result.category,
         tags: dbMetadata.tags,
         altText: dbMetadata.altText,
@@ -184,8 +184,8 @@ export class ImageService {
       updateFields.push('updated_at = datetime(\'now\')')
       params.push(imageId)
 
-      // Use database service for update
-      await this.dbImageService.updateImage(imageId, updateData)
+      // Use database service for update - cast updates to compatible type
+      await this.dbImageService.updateImage(imageId, updates as Partial<CreateImageData>)
 
       // Invalidate cache
       await this.cache.delete(`image:${imageId}`)
@@ -279,20 +279,19 @@ export class ImageService {
 
       // Get total count
       // Use database service for count
-      const total = await this.dbImageService.getImagesCount({
-        restaurantId: filters.restaurantId,
-        category: filters.category
+      const totalCount = await this.dbImageService.getImagesCount({
+        restaurantId,
+        category
       })
-      const countResult = { total }
 
-      const total = countResult?.total as number || 0
+      const total = totalCount || 0
 
       // Get paginated results
       const offset = (page - 1) * limit
       // Use database service for listing images
       const imageResults = await this.dbImageService.getImages({
-        restaurantId: filters.restaurantId,
-        category: filters.category,
+        restaurantId,
+        category,
         offset,
         limit
       })
@@ -390,29 +389,10 @@ export class ImageService {
     error?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const updateFields = ['status = ?', 'updated_at = datetime(\'now\')']
-      const params = [status]
-
-      if (progress !== undefined) {
-        updateFields.push('progress = ?')
-        params.push(progress)
-      }
-
-      if (error !== undefined) {
-        updateFields.push('error = ?')
-        params.push(error)
-      }
-
-      if (status === 'completed') {
-        updateFields.push('completed_at = datetime(\'now\')')
-      }
-
-      params.push(jobId)
-
       // FINAL NATIVE SQL ELIMINATED! 🎉 Using Drizzle ORM via DatabaseImageService
       await this.dbImageService.updateProcessingJobStatus(
-        parseInt(jobId),
-        status, 
+        jobId as any,
+        status,
         progress !== undefined ? { progress } : undefined,
         error
       )
@@ -456,7 +436,7 @@ export class ImageService {
 
       // Fetch from database
       // Use database service to get processing job
-      const result = await this.dbImageService.getProcessingJob(parseInt(jobId))
+      const result = await this.dbImageService.getProcessingJob(jobId as any)
 
       if (!result) {
         return {
@@ -466,15 +446,15 @@ export class ImageService {
       }
 
       const job: ImageProcessingJob = {
-        id: result.id as string,
-        imageId: result.image_id as string,
+        id: String(result.id),
+        imageId: result.imageId as string,
         status: result.status as ImageProcessingJob['status'],
-        transformations: JSON.parse(result.transformations as string),
-        variants: JSON.parse(result.variants as string),
-        createdAt: result.created_at as string,
-        completedAt: result.completed_at as string | undefined,
+        transformations: result.inputParams ? JSON.parse(result.inputParams as string).transformations : [],
+        variants: result.inputParams ? JSON.parse(result.inputParams as string).variants : [],
+        createdAt: result.createdAt as string,
+        completedAt: result.completedAt as string | undefined,
         error: result.error as string | undefined,
-        progress: result.progress as number | undefined
+        progress: result.outputData ? JSON.parse(result.outputData as string).progress : undefined
       }
 
       return {
@@ -538,29 +518,29 @@ export class ImageService {
 
       const analytics: ImageAnalytics = {
         totalImages: basicStats?.total_images as number || 0,
-        totalSize: basicStats?.total_size as number || 0,
+        totalSize: basicStats?.total_storage as number || 0,
         avgProcessingTime: 0, // Will be calculated from job stats
         mostUsedVariants: [], // Would need variant usage tracking
-        uploadsByCategory: (categoryStats.results || []).map((row: any) => ({
+        uploadsByCategory: (categoryStats || []).map((row: any) => ({
           category: row.category || 'uncategorized',
           count: row.count
         })),
         errorRate: 0, // Calculate from job stats
         storageUsage: {
-          original: basicStats?.total_size as number || 0,
+          original: basicStats?.total_storage as number || 0,
           variants: 0, // Would need variant size tracking
-          total: basicStats?.total_size as number || 0
+          total: basicStats?.total_storage as number || 0
         }
       }
 
       // Calculate processing metrics from job stats
-      const jobResults = jobStats.results || []
+      const jobResults = jobStats || []
       const completedJobs = jobResults.find((row: any) => row.status === 'completed')
       const failedJobs = jobResults.find((row: any) => row.status === 'failed')
       const totalJobs = jobResults.reduce((sum: number, row: any) => sum + row.count, 0)
 
       if (completedJobs) {
-        analytics.avgProcessingTime = completedJobs.avg_processing_time_seconds || 0
+        analytics.avgProcessingTime = completedJobs.avg_duration || 0
       }
 
       if (failedJobs && totalJobs > 0) {

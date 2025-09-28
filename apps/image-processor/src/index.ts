@@ -6,42 +6,7 @@ import { corsMiddleware } from './middleware/auth'
 import imagesRouter from './routes/images'
 import analyticsRouter from './routes/analytics'
 import type { Env } from './types/env'
-// TODO: Fix database imports when workspace is properly configured
-// Temporary mock implementations
-const createDbConnection = (db: any) => ({
-  select: () => ({
-    from: () => ({ 
-      where: () => ({ 
-        execute: () => Promise.resolve({ results: [] }),
-        orderBy: () => ({ execute: () => Promise.resolve({ results: [] }) }),
-        limit: () => ({ first: () => Promise.resolve(null) })
-      }),
-      execute: () => Promise.resolve({ results: [] })
-    }),
-    execute: () => Promise.resolve({ results: [] })
-  }),
-  execute: async () => ({ results: [] })
-})
-
-const sql = { raw: (query: string) => query }
-const count = (field?: any) => 0
-const images = {
-  id: 'id',
-  restaurantId: 'restaurantId', 
-  uploadedBy: 'uploadedBy',
-  uploadedAt: 'uploadedAt'
-}
-const imageViews = {
-  viewedAt: 'viewedAt',
-  size: 'size'
-}
-const imageProcessingJobs = {
-  createdAt: 'createdAt',
-  status: 'status'
-}
-// import { createDbConnection } from '@makanmakan/database'
-// import { sql, count } from 'drizzle-orm'
-// import { images, imageViews, imageProcessingJobs } from '@makanmakan/database'
+import { createDatabase, sql, count, images, imageViews, imageProcessingJobs } from '@makanmakan/database'
 
 
 // 創建主應用
@@ -134,9 +99,10 @@ app.get('/health', async (c) => {
     try {
       const dbStart = Date.now()
       // Use Drizzle ORM for health check
-      const db = createDbConnection(c.env.DB)
-      const healthResult = await db.select({ test: sql<number>`1` }).limit(1)
-      const _isHealthy = healthResult[0]?.test === 1
+      const db = createDatabase(c.env.DB)
+      const healthResult = await db.select({ test: sql<number>`1` })
+      const firstResult = Array.isArray(healthResult) && healthResult.length > 0 ? healthResult[0] : null
+      const _isHealthy = firstResult?.test === 1
       dbResponseTime = Date.now() - dbStart
     } catch (error) {
       dbStatus = 'unhealthy'
@@ -175,7 +141,7 @@ app.get('/health', async (c) => {
       r2ResponseTime = Date.now() - r2Start
     } catch (error) {
       // 404 is expected for dummy file, other errors are concerning
-      if (!error.message?.includes('404')) {
+      if (!(error as Error).message?.includes('404')) {
         r2Status = 'degraded'
         console.warn('R2 health check warning:', error)
       }
@@ -304,13 +270,12 @@ export default {
 async function cleanupExpiredJobs(env: Env) {
   try {
     // Use Drizzle ORM for cleanup
-    const db = createDbConnection(env.DB)
-    const result = await db.execute()
-    // TODO: Implement proper delete when database is configured
-    // .delete(imageProcessingJobs)
-    // .where(sql`${imageProcessingJobs.createdAt} < datetime('now', '-7 days')`)
-    
-    console.log(`Cleaned up 0 expired processing jobs`) // TODO: Fix when DB is configured
+    const db = createDatabase(env.DB)
+    const _result = await db
+      .delete(imageProcessingJobs)
+      .where(sql`${imageProcessingJobs.createdAt} < datetime('now', '-7 days')`)
+
+    console.log(`Cleaned up expired processing jobs`)
   } catch (error) {
     console.error('Failed to cleanup expired jobs:', error)
   }
@@ -320,11 +285,12 @@ async function cleanupExpiredJobs(env: Env) {
 async function cleanupOldViews(_env: Env) {
   try {
     // Use Drizzle ORM for cleanup
+    const db = createDatabase(_env.DB)
     const _viewsResult = await db
       .delete(imageViews)
       .where(sql`${imageViews.viewedAt} < datetime('now', '-30 days')`)
-    
-    console.log(`Cleaned up 0 old view records`) // TODO: Fix when DB is configured
+
+    console.log(`Cleaned up old view records`)
   } catch (error) {
     console.error('Failed to cleanup old views:', error)
   }
@@ -357,9 +323,8 @@ async function sendDailyStats(env: Env) {
     const dateStr = yesterday.toISOString().split('T')[0]
     
     // Use Drizzle ORM for daily statistics
-    const db = createDbConnection(env.DB)
-    const stats = { images_uploaded: 0, total_size: 0, active_restaurants: 0 }
-    const _statsResult = await db
+    const db = createDatabase(env.DB)
+    const statsResult = await db
       .select({
         images_uploaded: count(),
         total_size: sql<number>`SUM(${images.size})`,
@@ -367,11 +332,11 @@ async function sendDailyStats(env: Env) {
       })
       .from(images)
       .where(sql`DATE(${images.uploadedAt}) = ${dateStr}`)
-      .then(results => results[0])
+
+    const stats = statsResult[0]
     
     // Use Drizzle ORM for processing statistics
-    const processingStats = { jobs_processed: 0, jobs_completed: 0 }
-    const _processingStatsResult = await db
+    const processingStatsResult = await db
       .select({
         jobs_processed: count(),
         jobs_completed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'completed' THEN 1 ELSE 0 END)`,
@@ -379,7 +344,8 @@ async function sendDailyStats(env: Env) {
       })
       .from(imageProcessingJobs)
       .where(sql`DATE(${imageProcessingJobs.createdAt}) = ${dateStr}`)
-      .then(results => results[0])
+
+    const processingStats = processingStatsResult[0]
     
     if (env.SLACK_WEBHOOK_URL) {
       await sendSlackMessage(env.SLACK_WEBHOOK_URL, {

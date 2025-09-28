@@ -1,3 +1,5 @@
+import type { D1Database } from '@makanmakan/database'
+
 export interface Env {
   // Cloudflare bindings
   IMAGES_BUCKET: R2Bucket

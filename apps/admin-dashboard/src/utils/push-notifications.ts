@@ -163,10 +163,9 @@ class AdminPushNotificationService {
         ...(options.image && { image: options.image }),
         tag: options.tag || 'admin-notification',
         data: options.data,
-        vibrate: this.getVibrationPattern(options.priority || 'normal'),
         silent: options.silent || false,
         requireInteraction: options.requireInteraction || (options.priority === 'critical'),
-        actions: options.actions || []
+        // actions not supported in basic NotificationOptions
       }
 
       await registration.showNotification(options.title, notificationOptions)
@@ -388,20 +387,7 @@ class AdminPushNotificationService {
   }
 
   // Utility methods
-  private getVibrationPattern(priority: 'low' | 'normal' | 'high' | 'critical'): number[] {
-    switch (priority) {
-      case 'critical':
-        return [500, 200, 500, 200, 500, 200, 500]
-      case 'high':
-        return [300, 100, 300, 100, 300]
-      case 'normal':
-        return [200, 100, 200]
-      case 'low':
-        return [100]
-      default:
-        return [200, 100, 200]
-    }
-  }
+  // getVibrationPattern method removed - not used due to TypeScript limitations
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4)

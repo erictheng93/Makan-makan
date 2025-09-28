@@ -1,0 +1,442 @@
+/**
+ * Orders Validation Schemas
+ * Zod validation schemas for all order endpoints and operations
+ */
+
+import { z } from 'zod'
+
+// Common validation patterns
+const idSchema = z.number().int().positive()
+const optionalIdSchema = z.number().int().positive().optional()
+const phoneSchema = z.string().max(20).optional()
+const emailSchema = z.string().email().optional()
+// const urlSchema = z.string().url().optional() // Available for future use
+const positiveNumberSchema = z.number().positive()
+// const nonNegativeNumberSchema = z.number().min(0) // Available for future use
+const dateStringSchema = z.string().datetime().optional()
+const paginationSchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
+})
+
+// Order status enums matching the shared types
+const orderStatusSchema = z.enum([
+  'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'paid', 'cancelled'
+])
+
+const orderPaymentStatusSchema = z.enum([
+  'pending', 'paid', 'failed'
+])
+
+const orderPaymentMethodSchema = z.enum([
+  'cash', 'card', 'online', 'ewallet'
+])
+
+const orderItemStatusSchema = z.enum([
+  'pending', 'preparing', 'ready', 'delivered'
+])
+
+const orderTypeSchema = z.enum([
+  'dine_in', 'takeaway', 'delivery'
+])
+
+// Customer information schema
+const customerInfoSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  phone: phoneSchema,
+  email: emailSchema,
+  address: z.string().max(200).optional()
+}).optional()
+
+// Customization schemas
+const customizationOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceAdjustment: z.number().optional()
+})
+
+const customizationGroupSchema = z.object({
+  id: z.string(),
+  optionName: z.string(),
+  choiceId: z.string(),
+  choiceName: z.string(),
+  priceAdjustment: z.number().optional()
+})
+
+const addOnSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  unitPrice: positiveNumberSchema,
+  quantity: z.number().int().positive(),
+  totalPrice: positiveNumberSchema
+})
+
+const selectedCustomizationsSchema = z.object({
+  size: customizationOptionSchema.optional(),
+  options: z.array(customizationGroupSchema).optional(),
+  addOns: z.array(addOnSchema).optional(),
+  specialInstructions: z.string().max(200).optional()
+}).optional()
+
+// Order item schemas
+const createOrderItemSchema = z.object({
+  menuItemId: idSchema,
+  quantity: z.number().int().positive().max(99),
+  price: positiveNumberSchema.optional(),
+  customizations: selectedCustomizationsSchema,
+  notes: z.string().max(200).optional()
+})
+
+// Main order creation schema
+export const createOrderSchema = z.object({
+  restaurantId: idSchema,
+  tableId: optionalIdSchema,
+  customerName: z.string().min(1).max(100).optional(),
+  customerPhone: phoneSchema,
+  customerEmail: emailSchema,
+  customerInfo: customerInfoSchema,
+  items: z.array(createOrderItemSchema).min(1).max(50),
+  notes: z.string().max(500).optional(),
+  orderType: orderTypeSchema.default('dine_in'),
+  scheduledTime: dateStringSchema,
+  couponCode: z.string().max(50).optional()
+})
+
+// Order update schemas
+export const updateOrderStatusSchema = z.object({
+  status: orderStatusSchema,
+  notes: z.string().max(500).optional(),
+  estimatedReadyTime: dateStringSchema,
+  actualPrepTime: z.number().int().min(0).max(999).optional() // in minutes
+})
+
+export const updateOrderSchema = z.object({
+  status: orderStatusSchema.optional(),
+  paymentStatus: orderPaymentStatusSchema.optional(),
+  paymentMethod: orderPaymentMethodSchema.optional(),
+  notes: z.string().max(500).optional(),
+  internalNotes: z.string().max(500).optional(),
+  estimatedPrepTime: z.number().int().min(0).max(999).optional(), // in minutes
+  actualPrepTime: z.number().int().min(0).max(999).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  reviewComment: z.string().max(500).optional()
+})
+
+// Payment update schema
+export const updatePaymentStatusSchema = z.object({
+  paymentStatus: orderPaymentStatusSchema,
+  paymentMethod: orderPaymentMethodSchema.optional(),
+  transactionId: z.string().max(100).optional(),
+  paymentIntentId: z.string().max(100).optional(),
+  chargeId: z.string().max(100).optional(),
+  metadata: z.record(z.any()).optional()
+})
+
+// Order filtering and query schemas
+export const orderFilterSchema = z.object({
+  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  status: z.union([
+    orderStatusSchema,
+    z.string().transform(s => s.split(',')).pipe(z.array(orderStatusSchema))
+  ]).optional(),
+  paymentStatus: z.union([
+    orderPaymentStatusSchema,
+    z.string().transform(s => s.split(',')).pipe(z.array(orderPaymentStatusSchema))
+  ]).optional(),
+  orderType: orderTypeSchema.optional(),
+  tableId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  customerId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  customerName: z.string().max(100).optional(),
+  customerPhone: z.string().max(20).optional(),
+  dateFrom: dateStringSchema,
+  dateTo: dateStringSchema,
+  scheduledTimeFrom: dateStringSchema,
+  scheduledTimeTo: dateStringSchema,
+  minAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional(),
+  maxAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional(),
+  paymentMethod: z.union([
+    orderPaymentMethodSchema,
+    z.string().transform(s => s.split(',')).pipe(z.array(orderPaymentMethodSchema))
+  ]).optional(),
+  hasNotes: z.string().transform(s => s === 'true').optional(),
+  rating: z.string().regex(/^[1-5](,[1-5])*$/).transform(s =>
+    s.split(',').map(Number)
+  ).optional(),
+  createdBy: z.string().regex(/^\d+$/).transform(Number).optional(),
+  sortBy: z.enum(['createdAt', 'totalAmount', 'status', 'updatedAt']).optional().default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+  ...paginationSchema.shape
+})
+
+// Order search schema
+export const orderSearchSchema = z.object({
+  query: z.string().min(1).max(100).optional(),
+  searchFields: z.array(z.enum(['orderNumber', 'customerName', 'customerPhone', 'notes'])).optional(),
+  fuzzy: z.string().transform(s => s === 'true').optional().default('false'),
+  ...orderFilterSchema.shape
+})
+
+// Coupon validation schema
+export const previewCouponSchema = z.object({
+  restaurantId: idSchema,
+  couponCode: z.string().min(1).max(50),
+  orderAmount: positiveNumberSchema,
+  userId: optionalIdSchema,
+  menuItems: z.array(z.object({
+    menuItemId: idSchema,
+    quantity: z.number().int().positive()
+  })).optional()
+})
+
+// Bulk operations schema
+export const bulkOrderOperationSchema = z.object({
+  action: z.enum(['update_status', 'cancel', 'export', 'archive']),
+  orderIds: z.array(idSchema).min(1).max(100),
+  data: z.object({
+    status: orderStatusSchema.optional(),
+    reason: z.string().max(200).optional(),
+    format: z.enum(['csv', 'excel', 'pdf']).optional(),
+    notes: z.string().max(500).optional()
+  }).optional(),
+  batchId: z.string().uuid().optional()
+})
+
+// Analytics and statistics schemas
+export const orderStatsQuerySchema = z.object({
+  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  dateFrom: dateStringSchema,
+  dateTo: dateStringSchema,
+  timeRange: z.enum(['today', 'yesterday', 'week', 'month', 'quarter', 'year', 'custom']).optional().default('today'),
+  groupBy: z.enum(['hour', 'day', 'week', 'month']).optional().default('day'),
+  includeItems: z.string().transform(s => s === 'true').optional().default('false'),
+  includeCustomers: z.string().transform(s => s === 'true').optional().default('false')
+})
+
+export const popularItemsQuerySchema = z.object({
+  restaurantId: idSchema,
+  timeRange: z.enum(['today', 'yesterday', 'week', 'month', 'quarter', 'year']).optional().default('month'),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10'),
+  minQuantity: z.string().regex(/^\d+$/).transform(Number).optional().default('1')
+})
+
+// Export schema
+export const exportOrdersSchema = z.object({
+  format: z.enum(['csv', 'excel', 'pdf']),
+  includeItems: z.string().transform(s => s === 'true').optional().default('false'),
+  includeCustomerInfo: z.string().transform(s => s === 'true').optional().default('true'),
+  columns: z.array(z.string()).optional(),
+  ...orderFilterSchema.omit({ page: true, limit: true }).shape
+})
+
+// Order receipt generation schema
+export const generateReceiptSchema = z.object({
+  format: z.enum(['pdf', 'html', 'json']).optional().default('pdf'),
+  includeQR: z.string().transform(s => s === 'true').optional().default('true'),
+  language: z.enum(['en', 'zh', 'ms']).optional().default('en'),
+  template: z.enum(['default', 'thermal', 'a4']).optional().default('default')
+})
+
+// Order item update schema
+export const updateOrderItemSchema = z.object({
+  status: orderItemStatusSchema.optional(),
+  quantity: z.number().int().positive().max(99).optional(),
+  customizations: selectedCustomizationsSchema,
+  notes: z.string().max(200).optional(),
+  price: positiveNumberSchema.optional()
+})
+
+// Real-time subscription schema
+export const orderSubscriptionSchema = z.object({
+  restaurantId: idSchema,
+  roles: z.array(z.number().int().min(0).max(4)).min(1).max(5),
+  events: z.array(z.enum([
+    'ORDER_CREATED',
+    'ORDER_UPDATED',
+    'ORDER_STATUS_CHANGED',
+    'ORDER_CANCELLED',
+    'PAYMENT_STATUS_CHANGED',
+    'ORDER_ITEM_UPDATED'
+  ])).optional(),
+  tableIds: z.array(idSchema).optional()
+})
+
+// Parameter validation schemas
+export const orderIdParamSchema = z.object({
+  id: z.string().regex(/^\d+$/).transform(Number)
+})
+
+export const orderBatchIdParamSchema = z.object({
+  batchId: z.string().uuid()
+})
+
+export const orderItemIdParamSchema = z.object({
+  orderId: z.string().regex(/^\d+$/).transform(Number),
+  itemId: z.string().regex(/^\d+$/).transform(Number)
+})
+
+// Review and rating schema
+export const addOrderReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(500).optional(),
+  itemRatings: z.array(z.object({
+    itemId: idSchema,
+    rating: z.number().int().min(1).max(5),
+    comment: z.string().max(200).optional()
+  })).optional()
+})
+
+// Order modification schema (for special cases)
+export const modifyOrderSchema = z.object({
+  addItems: z.array(createOrderItemSchema).optional(),
+  removeItems: z.array(idSchema).optional(),
+  updateItems: z.array(z.object({
+    itemId: idSchema,
+    quantity: z.number().int().positive().max(99).optional(),
+    customizations: selectedCustomizationsSchema,
+    notes: z.string().max(200).optional()
+  })).optional(),
+  notes: z.string().max(500).optional(),
+  reason: z.string().max(200)
+})
+
+// Notification preferences schema
+export const notificationPreferencesSchema = z.object({
+  enablePush: z.boolean().optional().default(true),
+  enableEmail: z.boolean().optional().default(false),
+  enableSMS: z.boolean().optional().default(false),
+  statusUpdates: z.array(orderStatusSchema).optional(),
+  roles: z.array(z.number().int().min(0).max(4)).optional()
+})
+
+// Kitchen display specific schemas
+export const kitchenOrderFilterSchema = z.object({
+  restaurantId: idSchema,
+  status: z.array(z.enum(['confirmed', 'preparing', 'ready'])).optional().default(['confirmed', 'preparing']),
+  priority: z.enum(['normal', 'high', 'urgent']).optional(),
+  preparationTime: z.enum(['overdue', 'soon', 'normal']).optional(),
+  assignedTo: optionalIdSchema,
+  orderType: orderTypeSchema.optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('50')
+})
+
+// Advanced query validation
+export const advancedOrderQuerySchema = orderFilterSchema.extend({
+  includeItems: z.string().transform(s => s === 'true').optional().default('false'),
+  includeCustomer: z.string().transform(s => s === 'true').optional().default('false'),
+  includeRestaurant: z.string().transform(s => s === 'true').optional().default('false'),
+  includeTable: z.string().transform(s => s === 'true').optional().default('false'),
+  includeAnalytics: z.string().transform(s => s === 'true').optional().default('false'),
+  fields: z.string().transform(s => s.split(',')).optional(), // Select specific fields
+  excludeFields: z.string().transform(s => s.split(',')).optional() // Exclude specific fields
+})
+
+// Validation helpers and transformers
+export const validateOrderStatusTransition = (currentStatus: string, newStatus: string) => {
+  const transitions: Record<string, string[]> = {
+    'pending': ['confirmed', 'cancelled'],
+    'confirmed': ['preparing', 'cancelled'],
+    'preparing': ['ready', 'cancelled'],
+    'ready': ['delivered', 'cancelled'],
+    'delivered': ['paid'],
+    'paid': [],
+    'cancelled': []
+  }
+
+  return transitions[currentStatus]?.includes(newStatus) ?? false
+}
+
+export const validateUserPermission = (userRole: number, requiredRoles: number[]): boolean => {
+  return userRole === 0 || requiredRoles.includes(userRole) // Admin can do everything
+}
+
+// Error handling schemas
+export const orderErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  field: z.string().optional(),
+  value: z.any().optional(),
+  details: z.record(z.any()).optional()
+})
+
+// Batch validation for bulk operations
+export const validateBulkOrderIds = z.array(idSchema).min(1).max(100).refine(
+  (ids) => new Set(ids).size === ids.length,
+  { message: "Order IDs must be unique" }
+)
+
+// Custom validation functions
+export const validateOrderTiming = (scheduledTime?: string, currentTime: Date = new Date()) => {
+  if (!scheduledTime) return true
+  const scheduled = new Date(scheduledTime)
+  const minTime = new Date(currentTime.getTime() + 15 * 60 * 1000) // 15 minutes from now
+  return scheduled >= minTime
+}
+
+export const validateOrderAmount = (items: any[], minAmount: number = 0) => {
+  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  return total >= minAmount
+}
+
+// Schema combinations for different endpoints
+export const createOrderValidation = {
+  body: createOrderSchema,
+  params: z.object({}),
+  query: z.object({})
+}
+
+export const updateOrderValidation = {
+  body: updateOrderSchema,
+  params: orderIdParamSchema,
+  query: z.object({})
+}
+
+export const getOrdersValidation = {
+  body: z.object({}),
+  params: z.object({}),
+  query: orderFilterSchema
+}
+
+export const searchOrdersValidation = {
+  body: z.object({}),
+  params: z.object({}),
+  query: orderSearchSchema
+}
+
+export const getOrderValidation = {
+  body: z.object({}),
+  params: orderIdParamSchema,
+  query: z.object({
+    includeItems: z.string().transform(s => s === 'true').optional().default('true'),
+    includeCustomer: z.string().transform(s => s === 'true').optional().default('false'),
+    includeRestaurant: z.string().transform(s => s === 'true').optional().default('false')
+  })
+}
+
+// Export the schemas object and input types
+export const orderSchemas = {
+  createOrder: createOrderSchema,
+  updateOrder: updateOrderSchema,
+  updateOrderStatus: updateOrderStatusSchema,
+  orderFilter: orderFilterSchema,
+  orderFilters: orderFilterSchema, // Alias for compatibility
+  couponPreview: previewCouponSchema,
+  previewCoupon: previewCouponSchema, // Alias for compatibility
+  bulkOrderOperation: bulkOrderOperationSchema,
+  bulkOperation: bulkOrderOperationSchema, // Alias for compatibility
+  orderStatsQuery: orderStatsQuerySchema,
+  stats: orderStatsQuerySchema, // Alias for compatibility
+  analytics: orderStatsQuerySchema, // Alias for compatibility
+  popularItemsQuery: popularItemsQuerySchema,
+  params: orderIdParamSchema, // For parameter validation
+  export: exportOrdersSchema // For export validation
+}
+
+// Export input types for TypeScript
+export type CreateOrderInput = z.infer<typeof createOrderSchema>
+export type UpdateOrderInput = z.infer<typeof updateOrderSchema>
+export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>
+export type OrderFiltersInput = z.infer<typeof orderFilterSchema>
+export type CouponPreviewInput = z.infer<typeof previewCouponSchema>
+export type BulkOrderOperationInput = z.infer<typeof bulkOrderOperationSchema>
+export type AnalyticsQueryInput = z.infer<typeof orderStatsQuerySchema>
+export type StatsQueryInput = z.infer<typeof orderStatsQuerySchema>
