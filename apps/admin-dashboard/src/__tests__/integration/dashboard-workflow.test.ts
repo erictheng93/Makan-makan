@@ -4,7 +4,7 @@
  * End-to-end workflow tests for the admin dashboard
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createTestRouter } from '../helpers/test-router'
 import { createTestStore } from '../helpers/test-store'
@@ -268,7 +268,7 @@ describe('Admin Dashboard Integration Tests', () => {
 
       // 1. Should have proper ARIA labels
       const buttons = wrapper.findAll('button')
-      buttons.forEach(button => {
+      buttons.forEach((button: any) => {
         expect(
           button.attributes('aria-label') ||
           button.attributes('aria-labelledby') ||

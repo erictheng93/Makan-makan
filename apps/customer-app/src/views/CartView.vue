@@ -135,7 +135,7 @@
               :class="[
                 isMinimumOrderMet
                   ? 'bg-green-50 border border-green-200'
-                  : 'bg-yellow-50 border border-yellow-200'
+                  : 'bg-yellow-50 border border-yellow-200',
               ]"
             >
               <div class="flex items-center space-x-2">
@@ -171,7 +171,7 @@
                   <p
                     class="text-sm font-medium"
                     :class="[
-                      isMinimumOrderMet ? 'text-green-800' : 'text-yellow-800'
+                      isMinimumOrderMet ? 'text-green-800' : 'text-yellow-800',
                     ]"
                   >
                     最低消費：${{ formatPrice(minimumOrderAmount) }}
@@ -182,10 +182,7 @@
                   >
                     還需加點 ${{ formatPrice(minimumOrderShortfall) }} 才能下單
                   </p>
-                  <p
-                    v-else
-                    class="text-sm text-green-600 mt-1"
-                  >
+                  <p v-else class="text-sm text-green-600 mt-1">
                     已達到最低消費標準 ✓
                   </p>
                 </div>
@@ -546,7 +543,7 @@
             'w-full font-semibold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center space-x-2',
             canPlaceOrder
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              : 'bg-gray-400 text-white cursor-not-allowed'
+              : 'bg-gray-400 text-white cursor-not-allowed',
           ]"
           @click="handleSubmitOrder"
         >
@@ -565,7 +562,9 @@
 
         <!-- 最低消費提醒（按鈕下方） -->
         <div
-          v-if="!isMinimumOrderMet && minimumOrderEnabled && minimumOrderAmount > 0"
+          v-if="
+            !isMinimumOrderMet && minimumOrderEnabled && minimumOrderAmount > 0
+          "
           class="mt-2 text-center"
         >
           <p class="text-sm text-yellow-600">
@@ -660,7 +659,6 @@ const selectedCoupon = ref<any>(null);
 // 最低消費相關狀態
 const minimumOrderAmount = ref(0);
 const minimumOrderEnabled = ref(false);
-const isLoadingMinOrder = ref(false);
 
 // API Queries
 const { data: restaurant } = useQuery({
@@ -673,8 +671,10 @@ const { data: restaurant } = useQuery({
 const { data: minOrderData } = useQuery({
   queryKey: ["minimumOrder", props.restaurantId],
   queryFn: async () => {
-    const response = await fetch(`/api/v1/orders/restaurant/${props.restaurantId}/minimum-order`);
-    if (!response.ok) throw new Error('Failed to fetch minimum order');
+    const response = await fetch(
+      `/api/v1/orders/restaurant/${props.restaurantId}/minimum-order`,
+    );
+    if (!response.ok) throw new Error("Failed to fetch minimum order");
     const result = await response.json();
     return result.data;
   },
@@ -682,12 +682,16 @@ const { data: minOrderData } = useQuery({
 });
 
 // 監聽最低消費數據更新
-watch(minOrderData, (data) => {
-  if (data) {
-    minimumOrderAmount.value = data.minOrderAmount || 0;
-    minimumOrderEnabled.value = data.enabled || false;
-  }
-}, { immediate: true });
+watch(
+  minOrderData,
+  (data) => {
+    if (data) {
+      minimumOrderAmount.value = data.minOrderAmount || 0;
+      minimumOrderEnabled.value = data.enabled || false;
+    }
+  },
+  { immediate: true },
+);
 
 // 提交訂單 Mutation
 const { mutate: createOrder } = useMutation({

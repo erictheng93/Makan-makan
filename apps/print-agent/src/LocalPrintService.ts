@@ -9,10 +9,6 @@ import cors from 'cors'
 import { PrintAgentService } from './services/PrintAgentService'
 import type {
   PrintRequest,
-  PrintResponse,
-  PrinterDevice,
-  PrintJob,
-  PrintServiceConfig,
   PrinterEvent
 } from '@makanmakan/shared-types/printer'
 
@@ -274,7 +270,7 @@ export class LocalPrintService {
     // 手動添加設備
     router.post('/devices', async (req, res) => {
       try {
-        const { connectionType, address, brand } = req.body
+        const { connectionType, address, brand: _brand } = req.body
         
         // 檢測設備
         const device = await this.driverFactory.detectPrinter({
@@ -474,7 +470,7 @@ export class LocalPrintService {
       }
     })
 
-    this.wsServer.on('connection', (ws, request) => {
+    this.wsServer.on('connection', (ws, _request) => {
       console.log('📡 WebSocket client connected')
       
       this.connectedClients.add(ws)
@@ -513,7 +509,7 @@ export class LocalPrintService {
     })
   }
 
-  private verifyWebSocketClient(info: any): boolean {
+  private verifyWebSocketClient(_info: any): boolean {
     // 實作 WebSocket 客戶端驗證邏輯
     // 可以檢查 API key、來源等
     return true
@@ -663,7 +659,7 @@ export class LocalPrintService {
       console.log('☁️  Registering with cloud service...')
       
       // 實際實作中會調用雲端 API 註冊本地服務
-      const registrationData = {
+      const _registrationData = {
         serviceId: `local-print-${this.config.restaurantId}`,
         restaurantId: this.config.restaurantId,
         endpoint: `http://localhost:${this.config.port}`,
@@ -696,7 +692,7 @@ export class LocalPrintService {
     next()
   }
 
-  private errorHandler(error: any, req: express.Request, res: express.Response, next: express.NextFunction): void {
+  private errorHandler(error: any, req: express.Request, res: express.Response, _next: express.NextFunction): void {
     console.error('API Error:', error)
     
     res.status(500).json({

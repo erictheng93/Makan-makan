@@ -10,11 +10,7 @@ import {
 } from '@makanmakan/queue-core'
 import type {
   PrintRequest,
-  PrintResponse,
-  PrinterDevice,
-  PrintJob,
-  PrintServiceConfig,
-  PrinterEvent
+  PrintServiceConfig
 } from '@makanmakan/shared-types'
 import { LocalPrintServiceConfig } from '../LocalPrintService'
 
@@ -334,9 +330,9 @@ export class PrintAgentService {
   }
 
   // Event emitter methods (simple implementation)
-  private listeners: Map<string, Function[]> = new Map()
+  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map()
 
-  on(event: string, listener: Function): void {
+  on(event: string, listener: (...args: any[]) => void): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, [])
     }
