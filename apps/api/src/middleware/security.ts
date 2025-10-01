@@ -136,28 +136,47 @@ function sanitizeObject(obj: any): any {
 
 /**
  * Sanitize string input to prevent XSS attacks
+ * Enhanced implementation with comprehensive HTML entity encoding
  */
 function sanitizeString(str: string): string {
-  return str
-    // Remove script tags
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove javascript: protocols
-    .replace(/javascript:/gi, '')
-    // Remove on* event handlers
-    .replace(/\son\w+\s*=\s*['"]/gi, '')
-    // Remove data: URLs that could contain scripts
-    .replace(/data:\s*text\/html/gi, '')
-    // Encode common XSS characters
-    .replace(/[<>'"&]/g, (match) => {
-      const entityMap: { [key: string]: string } = {
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#x27;',
-        '&': '&amp;'
-      }
-      return entityMap[match] || match
-    })
+  // First, strip out any dangerous protocol handlers and script tags
+  const sanitized = str
+    // Remove script tags and content (case-insensitive, handles broken tags)
+    .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, '')
+    // Remove dangerous protocol handlers (javascript:, vbscript:, data:text/html, etc.)
+    .replace(/(javascript|vbscript|data:text\/html|data:text\/javascript|data:application\/javascript):/gi, '')
+    // Remove on* event handlers (onclick, onerror, onload, etc.)
+    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
+    // Remove style attributes that could contain expressions
+    .replace(/\s*style\s*=\s*["'][^"']*expression\([^"']*\)["']/gi, '')
+    // Remove import statements
+    .replace(/@import\s+/gi, '')
+    // Remove iframe, object, embed tags
+    .replace(/<(iframe|object|embed|applet)[^>]*>[\s\S]*?<\/(iframe|object|embed|applet)>/gi, '')
+
+  // Then, HTML entity encode ALL special characters for defense in depth
+  // This ensures even if something slips through regex, it's encoded
+  // eslint-disable-next-line no-control-regex
+  return sanitized.replace(/[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g, (char) => {
+    // Comprehensive entity map including extended ASCII
+    const code = char.charCodeAt(0)
+
+    // Standard HTML entities (most common XSS vectors)
+    const standardEntities: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;',
+      '/': '&#x2F;',
+      '`': '&#x60;',
+      '=': '&#x3D;'
+    }
+
+    // Return standard entity if available, otherwise use numeric entity
+    return standardEntities[char] || `&#${code};`
+  })
 }
 
 /**

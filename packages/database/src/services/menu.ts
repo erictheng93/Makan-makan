@@ -47,7 +47,13 @@ export class MenuService extends BaseService {
   // 獲取完整菜單結構
   async getMenu(restaurantId: number): Promise<MenuStructure> {
     try {
-      const restaurant = await this.db.query.restaurants.findFirst({
+      // Use query cache with 1 hour TTL for menu data
+      const cacheKey = this.buildCacheKey('menu', restaurantId, 'full')
+
+      return await this.cachedQuery(
+        cacheKey,
+        async () => {
+          const restaurant = await this.db.query.restaurants.findFirst({
         where: eq(restaurants.id, restaurantId),
         with: {
           categories: {
@@ -72,26 +78,32 @@ export class MenuService extends BaseService {
         throw new Error('Restaurant not found')
       }
 
-      // 更新分類的商品數量
-      await this.updateCategoryItemCounts(restaurantId)
+          // 更新分類的商品數量
+          await this.updateCategoryItemCounts(restaurantId)
 
-      return {
-        categories: restaurant.categories.map((cat: any) => ({
-          id: cat.id,
-          restaurantId: cat.restaurantId,
-          name: cat.name,
-          description: cat.description,
-          sortOrder: cat.sortOrder,
-          status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
-          imageUrl: cat.imageUrl,
-          itemCount: cat.menuItems.length,
-          createdAt: cat.createdAt,
-          updatedAt: cat.updatedAt
-        })),
-        menuItems: restaurant.categories.flatMap((cat: any) => 
-          cat.menuItems.map((item: any) => this.mapToMenuItem(item))
-        )
-      }
+          return {
+            categories: restaurant.categories.map((cat: any) => ({
+              id: cat.id,
+              restaurantId: cat.restaurantId,
+              name: cat.name,
+              description: cat.description,
+              sortOrder: cat.sortOrder,
+              status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
+              imageUrl: cat.imageUrl,
+              itemCount: cat.menuItems.length,
+              createdAt: cat.createdAt,
+              updatedAt: cat.updatedAt
+            })),
+            menuItems: restaurant.categories.flatMap((cat: any) =>
+              cat.menuItems.map((item: any) => this.mapToMenuItem(item))
+            )
+          }
+        },
+        {
+          ttl: 3600, // 1 hour cache
+          tags: [`menu:${restaurantId}`, `restaurant:${restaurantId}`]
+        }
+      )
     } catch (error) {
       this.handleError(error, 'getMenu')
     }
@@ -186,10 +198,10 @@ export class MenuService extends BaseService {
 
       // 飲食偏好篩選
       if (filters.dietaryPreferences?.length) {
-        const dietaryConditions = filters.dietaryPreferences.map(pref => 
-          sql`json_extract(${menuItems.dietaryInfo}, '$.${pref}') = true`
+        const dietaryConditions = filters.dietaryPreferences.map(pref =>
+          sql`json_extract(${menuItems.dietaryInfo}, ${sql.raw(`'$.${pref}'`)}) = true`
         )
-        conditions.push(sql`(${dietaryConditions.join(' OR ')})`)
+        conditions.push(sql`(${sql.join(dietaryConditions, sql` OR `)})`)
       }
 
       // 查詢結果
@@ -232,6 +244,9 @@ export class MenuService extends BaseService {
       // 更新分類商品數量
       await this.updateCategoryItemCount(data.categoryId)
 
+      // Invalidate menu cache for this restaurant
+      await this.invalidateCache([`menu:${data.restaurantId}`, `restaurant:${data.restaurantId}`], 'tag')
+
       return this.mapToMenuItem(item)
     } catch (error) {
       this.handleError(error, 'createMenuItem')
@@ -254,6 +269,9 @@ export class MenuService extends BaseService {
         throw new Error('Menu item not found')
       }
 
+      // Invalidate menu cache for this restaurant
+      await this.invalidateCache([`menu:${item.restaurantId}`, `restaurant:${item.restaurantId}`], 'tag')
+
       return this.mapToMenuItem(item)
     } catch (error) {
       this.handleError(error, 'updateMenuItem')
@@ -269,7 +287,7 @@ export class MenuService extends BaseService {
       for (const update of updates) {
         await this.db
           .update(menuItems)
-          .set({ 
+          .set({
             isAvailable: update.isAvailable,
             updatedAt: new Date()
           })
@@ -280,6 +298,10 @@ export class MenuService extends BaseService {
             )
           )
       }
+
+      // Invalidate menu cache after batch update
+      await this.invalidateCache([`menu:${restaurantId}`, `restaurant:${restaurantId}`], 'tag')
+
     } catch (error) {
       this.handleError(error, 'batchUpdateAvailability')
     }
@@ -417,6 +439,6 @@ export class MenuService extends BaseService {
       orderCount: item.orderCount,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
-    }
+    } as MenuItem
   }
 }

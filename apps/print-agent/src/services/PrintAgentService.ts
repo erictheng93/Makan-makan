@@ -5,18 +5,19 @@
 
 import {
   PrinterService,
-  PrintJobManager,
   PrinterDriverFactory
-} from '@makanmakan/queue-core'
+} from '@makanmakan/queue-core/print'
 import type {
   PrintRequest,
+  PrintResponse,
+  PrintJob,
+  PrinterDevice,
   PrintServiceConfig
 } from '@makanmakan/shared-types'
 import { LocalPrintServiceConfig } from '../LocalPrintService'
 
 export class PrintAgentService {
   private printerService: PrinterService
-  private jobManager: PrintJobManager
   private driverFactory: PrinterDriverFactory
   private config: LocalPrintServiceConfig
   private isInitialized = false
@@ -29,13 +30,12 @@ export class PrintAgentService {
 
     // Initialize core services from queue-core
     this.printerService = new PrinterService(printServiceConfig)
-    this.jobManager = new PrintJobManager({
-      maxConcurrentJobs: 5,
-      maxRetries: config.maxRetries,
-      retryDelay: config.retryDelay,
-      jobTimeout: 30000
+    this.driverFactory = new PrinterDriverFactory({
+      connectionTimeout: 10000,
+      commandTimeout: 5000,
+      retryAttempts: config.maxRetries,
+      enableAutoDetection: config.autoDiscovery
     })
-    this.driverFactory = new PrinterDriverFactory()
 
     this.setupEventHandlers()
   }
@@ -54,12 +54,6 @@ export class PrintAgentService {
 
       // Initialize printer service
       await this.printerService.initialize()
-
-      // Initialize job manager
-      await this.jobManager.initialize()
-
-      // Initialize driver factory
-      await this.driverFactory.initialize()
 
       // Auto-discover printers if enabled
       if (this.config.autoDiscovery) {
@@ -83,14 +77,8 @@ export class PrintAgentService {
     try {
       console.log('🛑 Shutting down Print Agent Service...')
 
-      // Stop job manager (wait for jobs to complete)
-      await this.jobManager.shutdown(true)
-
       // Disconnect all printers
       await this.printerService.shutdown()
-
-      // Cleanup driver factory
-      await this.driverFactory.cleanup()
 
       this.isInitialized = false
       console.log('✅ Print Agent Service shut down successfully')
@@ -107,25 +95,17 @@ export class PrintAgentService {
 
   async createPrintJob(request: PrintRequest): Promise<PrintResponse> {
     if (!this.isInitialized) {
-      throw new Error('Print Agent Service not initialized')
+      await this.initialize()
     }
 
     try {
       // Validate print request
       this.validatePrintRequest(request)
 
-      // Create print job
-      const job = await this.printerService.createPrintJob(request)
+      // Send to printer service (which handles job creation and queueing)
+      const response = await this.printerService.print(request)
 
-      // Queue job for processing
-      await this.jobManager.queueJob(job)
-
-      return {
-        success: true,
-        jobId: job.id,
-        message: 'Print job created and queued successfully',
-        timestamp: new Date()
-      }
+      return response
 
     } catch (error) {
       console.error('Print job creation failed:', error)
@@ -134,31 +114,22 @@ export class PrintAgentService {
         error: {
           code: 'JOB_CREATION_FAILED',
           message: error instanceof Error ? error.message : 'Unknown error'
-        },
-        timestamp: new Date()
+        }
       }
     }
   }
 
-  getJobStatus(jobId: string): PrintJob | null {
-    return this.jobManager.getJob(jobId)
+  async getJobStatus(jobId: string): Promise<PrintJob | null> {
+    return await this.printerService.getJobStatus(jobId)
   }
 
   async cancelJob(jobId: string): Promise<boolean> {
     try {
-      return await this.jobManager.cancelJob(jobId)
+      return await this.printerService.cancelJob(jobId)
     } catch (error) {
       console.error('Job cancellation failed:', error)
       return false
     }
-  }
-
-  getQueuedJobs(): PrintJob[] {
-    return this.jobManager.getQueuedJobs()
-  }
-
-  getActiveJobs(): PrintJob[] {
-    return this.jobManager.getActiveJobs()
   }
 
   // =============================================
@@ -197,11 +168,16 @@ export class PrintAgentService {
         return true
       }
 
-      // Create driver for the device
-      const driver = await this.driverFactory.createDriver(device)
-
-      // Register with printer service
-      await this.printerService.registerDriver(driver)
+      // Register with printer service using the correct API
+      await this.printerService.registerPrinter({
+        id: device.id,
+        brand: device.brand,
+        model: device.model,
+        connectionType: device.connection,
+        connectionParams: { address: device.address },
+        capabilities: device.capabilities,
+        isDefault: false
+      })
 
       console.log(`✅ Registered printer: ${device.name} (${device.brand})`)
       return true
@@ -214,7 +190,7 @@ export class PrintAgentService {
 
   async unregisterPrinter(deviceId: string): Promise<boolean> {
     try {
-      await this.printerService.unregisterDriver(deviceId)
+      await this.printerService.unregisterPrinter(deviceId)
       console.log(`🗑️  Unregistered printer: ${deviceId}`)
       return true
 
@@ -239,47 +215,29 @@ export class PrintAgentService {
   async healthCheck(): Promise<{
     status: 'healthy' | 'degraded' | 'unhealthy'
     services: Record<string, boolean>
-    devices: { total: number; connected: number; errors: number }
-    jobs: { queued: number; active: number; failed: number }
+    devices: { total: number; online: number; errors: number }
+    queue: { pending: number; processing: number; failed: number }
   }> {
+    const health = await this.printerService.healthCheck()
     const devices = this.getDevices()
-    const queuedJobs = this.getQueuedJobs()
-    const activeJobs = this.getActiveJobs()
 
-    const connectedDevices = devices.filter(d => d.status === 'connected').length
+    const onlineDevices = devices.filter(d => d.status === 'online').length
     const deviceErrors = devices.filter(d => d.status === 'error').length
 
     const services = {
-      printerService: this.printerService.isHealthy(),
-      jobManager: this.jobManager.isHealthy(),
-      driverFactory: this.driverFactory.isHealthy()
-    }
-
-    const allServicesHealthy = Object.values(services).every(Boolean)
-    const hasDeviceErrors = deviceErrors > 0
-    const hasConnectedDevices = connectedDevices > 0
-
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
-
-    if (!allServicesHealthy || (!hasConnectedDevices && devices.length > 0)) {
-      status = 'unhealthy'
-    } else if (hasDeviceErrors || queuedJobs.length > 50) {
-      status = 'degraded'
+      printerService: this.isInitialized,
+      initialized: this.isInitialized
     }
 
     return {
-      status,
+      status: health.service,
       services,
       devices: {
         total: devices.length,
-        connected: connectedDevices,
+        online: onlineDevices,
         errors: deviceErrors
       },
-      jobs: {
-        queued: queuedJobs.length,
-        active: activeJobs.length,
-        failed: this.jobManager.getFailedJobsCount()
-      }
+      queue: health.queue
     }
   }
 
@@ -287,9 +245,7 @@ export class PrintAgentService {
     return {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      jobs: this.jobManager.getStatistics(),
-      devices: this.printerService.getDeviceStatistics(),
-      performance: this.printerService.getPerformanceMetrics()
+      printing: this.printerService.getStatistics()
     }
   }
 
@@ -299,33 +255,20 @@ export class PrintAgentService {
 
   private setupEventHandlers(): void {
     // Printer service events
-    this.printerService.on('device_connected', (device) => {
-      this.emit('device_connected', device)
+    this.printerService.on('device_registered', (data: any) => {
+      this.emit('device_connected', data)
     })
 
-    this.printerService.on('device_disconnected', (device) => {
-      this.emit('device_disconnected', device)
+    this.printerService.on('device_unregistered', (data: any) => {
+      this.emit('device_disconnected', data)
     })
 
-    this.printerService.on('device_error', (device, error) => {
-      this.emit('device_error', { device, error })
+    this.printerService.on('job_completed', (data: any) => {
+      this.emit('job_completed', data)
     })
 
-    // Job manager events
-    this.jobManager.on('job_started', (job) => {
-      this.emit('job_started', job)
-    })
-
-    this.jobManager.on('job_completed', (job) => {
-      this.emit('job_completed', job)
-    })
-
-    this.jobManager.on('job_failed', (job, error) => {
-      this.emit('job_failed', { job, error })
-    })
-
-    this.jobManager.on('job_cancelled', (job) => {
-      this.emit('job_cancelled', job)
+    this.printerService.on('job_failed', (data: any) => {
+      this.emit('job_failed', data)
     })
   }
 
@@ -358,35 +301,32 @@ export class PrintAgentService {
 
   private createPrintServiceConfig(config: LocalPrintServiceConfig): PrintServiceConfig {
     return {
-      serviceId: `print-agent-${config.restaurantId}`,
-      serviceName: config.serviceName,
-      version: '2.0.0',
-      devices: [],
       queue: {
-        maxSize: config.maxQueueSize,
+        maxConcurrentJobs: 5,
+        maxQueueSize: config.maxQueueSize,
         maxRetries: config.maxRetries,
         retryDelay: config.retryDelay,
-        batchSize: 5
+        jobTimeout: 30000
       },
-      network: {
-        serverPort: config.port,
-        apiKey: config.apiKey,
-        cloudEndpoint: config.cloudEndpoint,
-        heartbeatInterval: config.heartbeatInterval
+      drivers: {
+        connectionTimeout: 10000,
+        commandTimeout: 5000,
+        heartbeatInterval: config.heartbeatInterval,
+        retryAttempts: config.maxRetries
+      },
+      regions: {
+        default: 'TW',
+        supported: ['TW', 'MY', 'VN']
       }
     }
   }
 
   private validatePrintRequest(request: PrintRequest): void {
-    if (!request.orderId) {
-      throw new Error('Missing required field: orderId')
+    if (!request.country) {
+      throw new Error('Missing required field: country')
     }
 
-    if (!request.restaurantId) {
-      throw new Error('Missing required field: restaurantId')
-    }
-
-    if (request.restaurantId !== this.config.restaurantId) {
+    if (request.restaurantId && request.restaurantId !== this.config.restaurantId) {
       throw new Error(`Invalid restaurant ID: expected ${this.config.restaurantId}, got ${request.restaurantId}`)
     }
 
@@ -396,6 +336,10 @@ export class PrintAgentService {
 
     if (!request.data) {
       throw new Error('Missing required field: data')
+    }
+
+    if (!request.data.order) {
+      throw new Error('Missing required field: data.order')
     }
   }
 

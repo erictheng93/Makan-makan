@@ -1,10 +1,61 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { z } from "zod";
 import type {
   MenuItem,
   SelectedCustomizations,
   CartItem,
 } from "@makanmakan/shared-types";
+
+// Zod schemas for localStorage validation (XSS prevention)
+// Using passthrough() to allow additional fields while validating critical ones
+const MenuItemSchema = z
+  .object({
+    id: z.number().int().positive(),
+    name: z.string().min(1).max(200),
+    price: z.number().min(0),
+  })
+  .passthrough(); // Allow additional MenuItem fields
+
+const CustomizationOptionSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().min(1).max(100),
+  priceAdjustment: z.number().optional(),
+});
+
+const AddOnSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().min(1).max(100),
+  unitPrice: z.number().min(0),
+  quantity: z.number().int().min(1).optional(),
+});
+
+const SelectedCustomizationsSchema = z
+  .object({
+    size: CustomizationOptionSchema.optional(),
+    options: z.array(CustomizationOptionSchema).optional(),
+    addOns: z.array(AddOnSchema).optional(),
+  })
+  .optional();
+
+const CartItemSchema = z
+  .object({
+    id: z.string().min(1).max(500),
+    menuItem: MenuItemSchema,
+    quantity: z.number().int().min(1).max(100),
+    customizations: SelectedCustomizationsSchema,
+    notes: z.string().max(500).optional(),
+    price: z.number().min(0),
+    totalPrice: z.number().min(0),
+  })
+  .passthrough(); // Allow additional CartItem fields
+
+const CartDataSchema = z.object({
+  items: z.array(CartItemSchema).max(100),
+  restaurantId: z.number().int().positive(),
+  tableId: z.number().int().positive(),
+  timestamp: z.number().int().positive(),
+});
 
 export const useCartStore = defineStore("cart", () => {
   // State
@@ -206,7 +257,22 @@ export const useCartStore = defineStore("cart", () => {
       const saved = localStorage.getItem(getCartStorageKey());
       if (!saved) return;
 
-      const { items: savedItems, timestamp } = JSON.parse(saved);
+      // Parse JSON (unsafe until validated)
+      const parsed = JSON.parse(saved);
+
+      // Validate with Zod schema to prevent XSS attacks
+      const validationResult = CartDataSchema.safeParse(parsed);
+
+      if (!validationResult.success) {
+        console.warn(
+          "購物車資料驗證失敗 (可能被篡改):",
+          validationResult.error,
+        );
+        localStorage.removeItem(getCartStorageKey());
+        return;
+      }
+
+      const { items: savedItems, timestamp } = validationResult.data;
 
       // 檢查是否過期（2小時）
       if (Date.now() - timestamp > 2 * 60 * 60 * 1000) {
@@ -214,7 +280,8 @@ export const useCartStore = defineStore("cart", () => {
         return;
       }
 
-      items.value = savedItems;
+      // Type assertion: Zod validates structure, types are compatible
+      items.value = savedItems as unknown as CartItem[];
     } catch (error) {
       console.warn("恢復購物車失敗:", error);
       localStorage.removeItem(getCartStorageKey());

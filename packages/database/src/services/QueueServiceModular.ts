@@ -50,8 +50,8 @@ import {
 export class QueueServiceModular extends BaseService {
   private cache: QueueCache
 
-  constructor(db: any) {
-    super(db)
+  constructor(db: any, env: import('./base').CloudflareEnv) {
+    super(db, env)
     this.cache = globalQueueCache
   }
 

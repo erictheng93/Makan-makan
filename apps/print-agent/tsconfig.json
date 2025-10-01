@@ -2,10 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,7 +13,9 @@
     "noFallthroughCasesInSwitch": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "composite": true,
+    "types": ["node", "ws"]
   },
   "include": [
     "src/**/*"
@@ -23,5 +24,10 @@
     "node_modules",
     "dist",
     "**/*.test.ts"
+  ],
+  "references": [
+    { "path": "../../packages/shared-types" },
+    { "path": "../../packages/queue-core" },
+    { "path": "../../packages/database" }
   ]
 }

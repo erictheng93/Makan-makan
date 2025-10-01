@@ -18,10 +18,10 @@ const mockDb = {
 
 describe('CouponService', () => {
   let couponService: CouponService
-  
+
   beforeEach(() => {
     vi.clearAllMocks()
-    couponService = new CouponService(mockDb)
+    couponService = new CouponService(mockDb, { JWT_SECRET: 'test-secret' })
   })
 
   describe('validateCoupon', () => {

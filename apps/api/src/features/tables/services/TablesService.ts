@@ -25,7 +25,7 @@ export class TablesService {
 
   constructor(env: Env) {
     this.env = env
-    this.tableService = new TableService(env.DB as any)
+    this.tableService = new TableService(env.DB as any, env)
   }
 
   /**

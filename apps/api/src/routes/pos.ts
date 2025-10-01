@@ -78,7 +78,7 @@ app.post('/registers',
         }, 403)
       }
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.createRegister(data, user.id)
 
       if (!result.success) {
@@ -137,7 +137,7 @@ app.get('/registers',
         }, 400)
       }
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.getRegisters(restaurantId)
 
       if (!result.success) {
@@ -184,7 +184,7 @@ app.post('/shifts/start',
         }, 403)
       }
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.startShift(data)
 
       if (!result.success) {
@@ -225,7 +225,7 @@ app.post('/shifts/:shiftId/end',
       const data = c.get('validatedBody')
       const user = c.get('user')
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.endShift(shiftId, data, user.id)
 
       if (!result.success) {
@@ -266,7 +266,7 @@ app.post('/shifts/:shiftId/cash',
       const data = c.get('validatedBody')
       const user = c.get('user')
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.processCashMovement(shiftId, data, user.id)
 
       if (!result.success) {
@@ -313,7 +313,7 @@ app.post('/receipts/print',
         }, 400)
       }
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.printReceipt(data, registerId, shiftId)
 
       if (!result.success) {
@@ -424,7 +424,7 @@ app.post('/refunds/create',
         }, 400)
       }
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.processRefund(data, registerId, user.id, shiftId)
 
       if (!result.success) {
@@ -462,7 +462,7 @@ app.get('/shifts/:shiftId/report',
     try {
       const { shiftId } = c.get('validatedParams')
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.generateShiftReport(shiftId)
 
       if (!result.success) {
@@ -529,7 +529,7 @@ app.get('/stats/shifts',
         to: new Date(query.dateTo)
       } : undefined
 
-      const posService = new POSService(c.env.DB as any)
+      const posService = new POSService(c.env.DB as any, c.env)
       const result = await posService.getShiftStats(restaurantId, dateRange)
 
       if (!result.success) {

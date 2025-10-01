@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BaseService } from './base'
+import { BaseService, CloudflareEnv } from './base'
 
 // 類型定義
 export interface GroupOrder {
@@ -137,8 +137,8 @@ const splitBillSchema = z.object({
 })
 
 export class GroupOrderService extends BaseService {
-  constructor(db: any) {
-    super(db)
+  constructor(db: any, env: CloudflareEnv) {
+    super(db, env)
   }
 
   // 生成唯一分享代碼

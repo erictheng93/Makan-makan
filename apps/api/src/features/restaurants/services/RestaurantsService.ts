@@ -21,14 +21,17 @@ export class RestaurantsService {
   private dbService: DatabaseRestaurantService
   private cache: CacheService
   private logger: ConsoleLogger
+  private env: Env
 
   constructor(
     db: Env['DB'],
+    env: Env,
     kv?: Env['CACHE_KV']
   ) {
-    this.dbService = new DatabaseRestaurantService(db)
+    this.dbService = new DatabaseRestaurantService(db, env)
     this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any)
     this.logger = new ConsoleLogger('RestaurantsService')
+    this.env = env
   }
 
   /**

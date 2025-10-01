@@ -27,7 +27,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
   constructor(env: Env, useModular: boolean = true) {
     this.env = env
     this.logger = new ConsoleLogger('UnifiedQueueService')
-    this.modularService = new QueueServiceModular(env.DB as any)
+    this.modularService = new QueueServiceModular(env.DB as any, env)
     this.useModular = useModular
   }
 

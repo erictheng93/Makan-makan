@@ -38,7 +38,7 @@ app.get('/',
       logger.debug('Getting restaurants list', { query: c.get('validatedQuery') })
 
       const query = c.get('validatedQuery')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const result = await restaurantsService.getRestaurants(query)
 
@@ -68,7 +68,7 @@ app.get('/popular',
       logger.debug('Getting popular restaurants', { query: c.get('validatedQuery') })
 
       const { limit } = c.get('validatedQuery')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const restaurants = await restaurantsService.getPopularRestaurants(limit)
 
@@ -103,7 +103,7 @@ app.get('/nearby/:district',
 
       const { district } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const restaurants = await restaurantsService.searchNearbyRestaurants(district, limit)
 
@@ -134,7 +134,7 @@ app.post('/',
       logger.debug('Creating restaurant', { body: c.get('validatedBody') })
 
       const data = c.get('validatedBody')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const restaurant = await restaurantsService.createRestaurant(data)
 
@@ -163,7 +163,7 @@ app.get('/:id',
       logger.debug('Getting restaurant details', { params: c.get('validatedParams') })
 
       const { id } = c.get('validatedParams')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const restaurant = await restaurantsService.getRestaurant(id)
 
@@ -208,7 +208,7 @@ app.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       // Shop owners can only update their own restaurant
       if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
@@ -254,7 +254,7 @@ app.delete('/:id',
       logger.debug('Deactivating restaurant', { params: c.get('validatedParams') })
 
       const { id } = c.get('validatedParams')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       const success = await restaurantsService.deactivateRestaurant(id)
 
@@ -293,7 +293,7 @@ app.get('/:id/stats',
 
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const restaurantsService = new RestaurantsService(c.env.DB, c.env.CACHE_KV)
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
 
       // Shop owners can only view their own restaurant stats
       if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {

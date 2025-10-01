@@ -276,6 +276,6 @@ export class RestaurantService extends BaseService {
       planType: restaurant.planType || 0,
       createdAt: restaurant.createdAt,
       updatedAt: restaurant.updatedAt
-    }
+    } as Restaurant
   }
 }

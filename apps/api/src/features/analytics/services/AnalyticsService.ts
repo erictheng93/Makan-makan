@@ -33,7 +33,7 @@ export class AnalyticsService implements IAnalyticsService {
     env: Env,
     kv?: Env['CACHE_KV']
   ) {
-    this.databaseService = new DatabaseAnalyticsService(db)
+    this.databaseService = new DatabaseAnalyticsService(db, env)
     this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any)
     this.logger = new ConsoleLogger('AnalyticsService')
     this.env = env

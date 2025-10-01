@@ -76,7 +76,7 @@ describe('RestaurantsService', () => {
   let service: RestaurantsService
 
   beforeEach(() => {
-    service = new RestaurantsService(mockEnv.DB, mockEnv.CACHE_KV)
+    service = new RestaurantsService(mockEnv.DB, mockEnv, mockEnv.CACHE_KV)
     vi.clearAllMocks()
 
     // Mock the cache service methods

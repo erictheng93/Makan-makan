@@ -63,7 +63,7 @@ app.post('/create',
       const data = c.get('validatedBody')
       const user = c.get('user')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.createGroupOrder(data, user.id)
       
       if (!result.success) {
@@ -119,7 +119,7 @@ app.post('/join/:shareCode',
       const { shareCode } = c.get('validatedParams')
       const joinData = c.get('validatedBody')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.joinGroup(shareCode, joinData)
       
       if (!result.success) {
@@ -173,7 +173,7 @@ app.get('/:groupOrderId',
     try {
       const { groupOrderId } = c.get('validatedParams')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.getGroupOrder(groupOrderId)
       
       if (!result.success) {
@@ -210,7 +210,7 @@ app.post('/:groupOrderId/cart',
       const { groupOrderId } = c.get('validatedParams')
       const itemData = c.get('validatedBody')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.addCartItem(groupOrderId, itemData)
       
       if (!result.success) {
@@ -424,7 +424,7 @@ app.post('/:groupOrderId/split',
         }, 401)
       }
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.initiateSplit(groupOrderId, splitData, memberId)
       
       if (!result.success) {
@@ -482,7 +482,7 @@ app.post('/:groupOrderId/payment/:memberId',
       const { groupOrderId, memberId } = c.get('validatedParams')
       const paymentData = c.get('validatedBody')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.processPayment(groupOrderId, memberId, paymentData)
       
       if (!result.success) {
@@ -539,7 +539,7 @@ app.post('/:groupOrderId/leave/:memberId',
     try {
       const { groupOrderId, memberId } = c.get('validatedParams')
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.leaveGroup(groupOrderId, memberId)
       
       if (!result.success) {
@@ -651,7 +651,7 @@ app.post('/cleanup/expired',
         }, 403)
       }
       
-      const groupOrderService = new GroupOrderService(c.env.DB as any)
+      const groupOrderService = new GroupOrderService(c.env.DB as any, c.env)
       const result = await groupOrderService.cleanupExpiredGroups()
       
       return c.json({

@@ -41,8 +41,8 @@ export class OrdersService implements IOrdersService {
 
   constructor(env: Env) {
     this.env = env
-    this.baseOrderService = new BaseOrderService(env.DB as any)
-    this.couponService = new CouponService(env.DB as any)
+    this.baseOrderService = new BaseOrderService(env.DB as any, env)
+    this.couponService = new CouponService(env.DB as any, env)
     this.cacheKV = env.CACHE_KV
     this.logger = new ConsoleLogger('OrdersService')
   }

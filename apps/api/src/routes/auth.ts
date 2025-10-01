@@ -33,7 +33,7 @@ authRouter.post('/login', async (c) => {
     }
 
     // Use AuthService for secure login with bcrypt password verification
-    const authService = new AuthService(c.env.DB as any)
+    const authService = new AuthService(c.env.DB as any, c.env)
 
     // Extract device and location info for session tracking
     const userAgent = c.req.header('User-Agent')
@@ -109,8 +109,8 @@ authRouter.post('/register', authMiddleware, async (c) => {
       }, 403)
     }
 
-    const authService = new AuthService(c.env.DB as any)
-    
+    const authService = new AuthService(c.env.DB as any, c.env)
+
     const result = await authService.register({
       username,
       fullName,
@@ -151,8 +151,8 @@ authRouter.post('/refresh', async (c) => {
       }, 400)
     }
 
-    const authService = new AuthService(c.env.DB as any)
-    
+    const authService = new AuthService(c.env.DB as any, c.env)
+
     const result = await authService.refreshToken(refreshToken)
 
     if (!result.success) {
@@ -198,8 +198,8 @@ authRouter.post('/logout', authMiddleware, async (c) => {
       }
     }
 
-    const authService = new AuthService(c.env.DB as any)
-    
+    const authService = new AuthService(c.env.DB as any, c.env)
+
     // 使用戶的 sessions 失效
     await authService.logout(user.id, token)
 
@@ -219,7 +219,7 @@ authRouter.post('/logout', authMiddleware, async (c) => {
 authRouter.get('/me', authMiddleware, async (c) => {
   try {
     const _user = c.get('user')
-    const authService = new AuthService(c.env.DB as any)
+    const authService = new AuthService(c.env.DB as any, c.env)
     
     const authHeader = c.req.header('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

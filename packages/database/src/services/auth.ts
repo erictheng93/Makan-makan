@@ -102,7 +102,7 @@ export class AuthService extends BaseService {
       }
 
       // 生成 JWT tokens
-      const jwtSecret = process.env.JWT_SECRET
+      const jwtSecret = this.env.JWT_SECRET
       if (!jwtSecret || jwtSecret.length < 32) {
         throw new Error('JWT_SECRET must be set and at least 32 characters for security')
       }
@@ -126,7 +126,10 @@ export class AuthService extends BaseService {
         { expiresIn: '7d' }
       )
 
-      // 創建 session 記錄
+      // Invalidate any existing sessions to prevent session fixation
+      await this.logout(user.id)
+
+      // 創建 session 記錄 with new session ID
       const sessionData: SessionData = {
         userId: user.id,
         token: accessToken,
@@ -188,6 +191,15 @@ export class AuthService extends BaseService {
         }
       }
 
+      // 驗證密碼強度
+      const passwordValidation = this.validatePasswordStrength(data.password)
+      if (!passwordValidation.valid) {
+        return {
+          success: false,
+          error: passwordValidation.error
+        }
+      }
+
       // 加密密碼
       const saltRounds = 10
       const passwordHash = await bcrypt.hash(data.password, saltRounds)
@@ -234,7 +246,7 @@ export class AuthService extends BaseService {
   // 刷新 token
   async refreshToken(refreshToken: string): Promise<AuthResult> {
     try {
-      const jwtSecret = process.env.JWT_SECRET
+      const jwtSecret = this.env.JWT_SECRET
       if (!jwtSecret || jwtSecret.length < 32) {
         throw new Error('JWT_SECRET must be set and at least 32 characters for security')
       }
@@ -393,7 +405,7 @@ export class AuthService extends BaseService {
   // 驗證 token 並取得用戶資訊
   async validateToken(token: string): Promise<{ valid: boolean; user?: any; error?: string }> {
     try {
-      const jwtSecret = process.env.JWT_SECRET
+      const jwtSecret = this.env.JWT_SECRET
       if (!jwtSecret || jwtSecret.length < 32) {
         throw new Error('JWT_SECRET must be set and at least 32 characters for security')
       }
@@ -524,6 +536,12 @@ export class AuthService extends BaseService {
         return { success: false, error: 'Current password is incorrect' }
       }
 
+      // 驗證新密碼強度
+      const passwordValidation = this.validatePasswordStrength(newPassword)
+      if (!passwordValidation.valid) {
+        return { success: false, error: passwordValidation.error }
+      }
+
       // 加密新密碼
       const saltRounds = 10
       const newPasswordHash = await bcrypt.hash(newPassword, saltRounds)
@@ -552,5 +570,70 @@ export class AuthService extends BaseService {
     } catch (error) {
       return { success: false, error: 'Failed to change password' }
     }
+  }
+
+  // 驗證密碼強度
+  private validatePasswordStrength(password: string): { valid: boolean; error?: string } {
+    // Minimum 8 characters
+    if (password.length < 8) {
+      return {
+        valid: false,
+        error: 'Password must be at least 8 characters long'
+      }
+    }
+
+    // Maximum 128 characters (prevent DoS via bcrypt)
+    if (password.length > 128) {
+      return {
+        valid: false,
+        error: 'Password must not exceed 128 characters'
+      }
+    }
+
+    // Must contain at least one uppercase letter
+    if (!/[A-Z]/.test(password)) {
+      return {
+        valid: false,
+        error: 'Password must contain at least one uppercase letter'
+      }
+    }
+
+    // Must contain at least one lowercase letter
+    if (!/[a-z]/.test(password)) {
+      return {
+        valid: false,
+        error: 'Password must contain at least one lowercase letter'
+      }
+    }
+
+    // Must contain at least one number
+    if (!/[0-9]/.test(password)) {
+      return {
+        valid: false,
+        error: 'Password must contain at least one number'
+      }
+    }
+
+    // Must contain at least one special character
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+      return {
+        valid: false,
+        error: 'Password must contain at least one special character'
+      }
+    }
+
+    // Check for common weak passwords
+    const commonPasswords = [
+      'password', 'password123', '12345678', 'qwerty123',
+      'admin123', 'letmein', 'welcome123', 'abc12345'
+    ]
+    if (commonPasswords.includes(password.toLowerCase())) {
+      return {
+        valid: false,
+        error: 'Password is too common. Please choose a stronger password'
+      }
+    }
+
+    return { valid: true }
   }
 }

@@ -61,7 +61,7 @@ app.post('/validate',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       const result = await couponService.validateCoupon(
         data.code,
@@ -95,7 +95,7 @@ app.get('/available/:restaurantId',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       const availableCoupons = await couponService.getAvailableCoupons(restaurantId)
 
@@ -126,7 +126,7 @@ app.post('/',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 權限檢查：店主只能為自己的餐廳創建優惠券
       if (user.role === 1) {
@@ -165,7 +165,7 @@ app.get('/',
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       const filters: any = { ...query }
       
@@ -209,7 +209,7 @@ app.get('/:id',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       const coupon = await couponService.getCoupon(parseInt(id))
 
@@ -257,7 +257,7 @@ app.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 獲取現有優惠券
       const existingCoupon = await couponService.getCoupon(parseInt(id))
@@ -306,7 +306,7 @@ app.post('/:id/deactivate',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 獲取現有優惠券
       const existingCoupon = await couponService.getCoupon(parseInt(id))
@@ -355,7 +355,7 @@ app.delete('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 檢查優惠券是否存在
       const existingCoupon = await couponService.getCoupon(parseInt(id))
@@ -396,7 +396,7 @@ app.get('/:id/stats',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 獲取優惠券資訊
       const coupon = await couponService.getCoupon(parseInt(id))

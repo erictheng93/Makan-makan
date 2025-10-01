@@ -7,10 +7,11 @@ import express from 'express'
 import { WebSocketServer, WebSocket } from 'ws'
 import cors from 'cors'
 import { PrintAgentService } from './services/PrintAgentService'
+import { PrinterDriverFactory } from '@makanmakan/queue-core/print'
 import type {
   PrintRequest,
   PrinterEvent
-} from '@makanmakan/shared-types/printer'
+} from '@makanmakan/shared-types'
 
 export interface LocalPrintServiceConfig {
   // 網路設定
@@ -40,8 +41,9 @@ export interface LocalPrintServiceConfig {
 export class LocalPrintService {
   private config: LocalPrintServiceConfig
   private printAgentService: PrintAgentService
-  private expressApp: express.Application
-  private wsServer: WebSocketServer
+  private driverFactory: PrinterDriverFactory
+  private expressApp!: express.Application
+  private wsServer!: WebSocketServer
   private connectedClients: Set<WebSocket> = new Set()
   private isRunning = false
   private discoveryTimer?: NodeJS.Timeout
@@ -50,6 +52,12 @@ export class LocalPrintService {
   constructor(config: LocalPrintServiceConfig) {
     this.config = config
     this.printAgentService = new PrintAgentService(config)
+    this.driverFactory = new PrinterDriverFactory({
+      connectionTimeout: 10000,
+      commandTimeout: 5000,
+      retryAttempts: 3,
+      enableAutoDetection: config.autoDiscovery
+    })
 
     this.setupExpressApp()
     this.setupWebSocket()
@@ -148,7 +156,7 @@ export class LocalPrintService {
     router.post('/print', async (req, res) => {
       try {
         const printRequest: PrintRequest = req.body
-        const result = await this.printerService.createPrintJob(printRequest)
+        const result = await this.printAgentService.createPrintJob(printRequest)
         res.json(result)
       } catch (error) {
         res.status(500).json({
@@ -165,7 +173,7 @@ export class LocalPrintService {
     router.get('/print/:jobId', async (req, res) => {
       try {
         const { jobId } = req.params
-        const job = this.printerService.getJobStatus(jobId)
+        const job = this.printAgentService.getJobStatus(jobId)
         
         if (job) {
           res.json({
@@ -196,7 +204,7 @@ export class LocalPrintService {
     router.delete('/print/:jobId', async (req, res) => {
       try {
         const { jobId } = req.params
-        const cancelled = this.printerService.cancelJob(jobId)
+        const cancelled = await this.printAgentService.cancelJob(jobId)
         
         res.json({
           success: cancelled,
@@ -220,7 +228,7 @@ export class LocalPrintService {
     // 獲取所有設備
     router.get('/devices', async (req, res) => {
       try {
-        const devices = this.printerService.getDevices()
+        const devices = this.printAgentService.getDevices()
         res.json({
           success: true,
           data: devices
@@ -240,7 +248,7 @@ export class LocalPrintService {
     router.get('/devices/:deviceId', async (req, res) => {
       try {
         const { deviceId } = req.params
-        const device = this.printerService.getDevice(deviceId)
+        const device = this.printAgentService.getDevice(deviceId)
         
         if (device) {
           res.json({
@@ -279,9 +287,8 @@ export class LocalPrintService {
         })
         
         if (device) {
-          // 創建驅動並註冊
-          const driver = await this.driverFactory.createDriver(device)
-          await this.printerService.registerDriver(driver)
+          // 註冊打印機
+          await this.printAgentService.registerPrinter(device)
           
           res.json({
             success: true,
@@ -312,7 +319,7 @@ export class LocalPrintService {
     router.delete('/devices/:deviceId', async (req, res) => {
       try {
         const { deviceId } = req.params
-        await this.printerService.unregisterDriver(deviceId)
+        await this.printAgentService.unregisterPrinter(deviceId)
         
         res.json({
           success: true,
@@ -333,8 +340,8 @@ export class LocalPrintService {
     router.post('/devices/:deviceId/test', async (req, res) => {
       try {
         const { deviceId } = req.params
-        const device = this.printerService.getDevice(deviceId)
-        
+        const device = this.printAgentService.getDevice(deviceId)
+
         if (!device) {
           res.status(404).json({
             success: false,
@@ -348,10 +355,9 @@ export class LocalPrintService {
 
         // 創建測試打印作業
         const testRequest: PrintRequest = {
-          orderId: 'TEST_' + Date.now(),
           restaurantId: this.config.restaurantId,
-          country: 'TW', // 預設
-          type: 'test',
+          country: 'TW',
+          type: 'order',
           deviceId,
           data: {
             order: {
@@ -371,7 +377,7 @@ export class LocalPrintService {
           }
         }
 
-        const result = await this.printerService.createPrintJob(testRequest)
+        const result = await this.printAgentService.createPrintJob(testRequest)
         res.json(result)
       } catch (error) {
         res.status(500).json({
@@ -391,7 +397,7 @@ export class LocalPrintService {
     // 健康檢查
     router.get('/health', async (req, res) => {
       try {
-        const health = await this.printerService.healthCheck()
+        const health = await this.printAgentService.healthCheck()
         res.json({
           success: true,
           data: {
@@ -399,7 +405,7 @@ export class LocalPrintService {
             service: 'running',
             uptime: process.uptime(),
             memory: process.memoryUsage(),
-            version: '1.0.0'
+            version: '2.0.0'
           }
         })
       } catch (error) {
@@ -416,7 +422,7 @@ export class LocalPrintService {
     // 統計資訊
     router.get('/statistics', async (req, res) => {
       try {
-        const stats = this.printerService.getStatistics()
+        const stats = this.printAgentService.getStatistics()
         res.json({
           success: true,
           data: stats
@@ -462,9 +468,9 @@ export class LocalPrintService {
   // =============================================
 
   private setupWebSocket(): void {
-    this.wsServer = new WebSocketServer({ 
+    this.wsServer = new WebSocketServer({
       port: this.config.wsPort,
-      verifyClient: (info) => {
+      verifyClient: (info: { origin: string; secure: boolean; req: any }) => {
         // 驗證 WebSocket 連線
         return this.verifyWebSocketClient(info)
       }
@@ -509,7 +515,7 @@ export class LocalPrintService {
     })
   }
 
-  private verifyWebSocketClient(_info: any): boolean {
+  private verifyWebSocketClient(_info: { origin: string; secure: boolean; req: any }): boolean {
     // 實作 WebSocket 客戶端驗證邏輯
     // 可以檢查 API key、來源等
     return true
@@ -540,7 +546,7 @@ export class LocalPrintService {
 
   private setupEventHandlers(): void {
     // 監聽打印機事件
-    this.printerService.on('device_connected', (data) => {
+    this.printAgentService.on('device_connected', (data: any) => {
       this.broadcastEvent({
         type: 'device_connected',
         timestamp: new Date(),
@@ -548,7 +554,7 @@ export class LocalPrintService {
       })
     })
 
-    this.printerService.on('device_disconnected', (data) => {
+    this.printAgentService.on('device_disconnected', (data: any) => {
       this.broadcastEvent({
         type: 'device_disconnected',
         timestamp: new Date(),
@@ -556,7 +562,7 @@ export class LocalPrintService {
       })
     })
 
-    this.printerService.on('job_completed', (data) => {
+    this.printAgentService.on('job_completed', (data: any) => {
       this.broadcastEvent({
         type: 'job_completed',
         timestamp: new Date(),
@@ -564,7 +570,7 @@ export class LocalPrintService {
       })
     })
 
-    this.printerService.on('job_failed', (data) => {
+    this.printAgentService.on('job_failed', (data: any) => {
       this.broadcastEvent({
         type: 'job_failed',
         timestamp: new Date(),
@@ -621,11 +627,10 @@ export class LocalPrintService {
       
       for (const device of devices) {
         // 檢查是否已經註冊
-        const existing = this.printerService.getDevice(device.id)
+        const existing = this.printAgentService.getDevice(device.id)
         if (!existing) {
           try {
-            const driver = await this.driverFactory.createDriver(device)
-            await this.printerService.registerDriver(driver)
+            await this.printAgentService.registerPrinter(device)
             console.log(`✅ Registered new printer: ${device.name}`)
           } catch (error) {
             console.error(`❌ Failed to register printer ${device.name}:`, error)
@@ -664,9 +669,9 @@ export class LocalPrintService {
         restaurantId: this.config.restaurantId,
         endpoint: `http://localhost:${this.config.port}`,
         wsEndpoint: `ws://localhost:${this.config.wsPort}`,
-        devices: this.printerService.getDevices(),
-        capabilities: this.driverFactory.getSupportedBrands(),
-        version: '1.0.0'
+        devices: this.printAgentService.getDevices(),
+        capabilities: [], // this.driverFactory.getSupportedBrands(),
+        version: '2.0.0'
       }
 
       console.log('✅ Successfully registered with cloud service')
@@ -712,8 +717,8 @@ export class LocalPrintService {
     return this.config
   }
 
-  getPrinterService(): PrinterService {
-    return this.printerService
+  getPrintAgentService(): PrintAgentService {
+    return this.printAgentService
   }
 
   isServiceRunning(): boolean {

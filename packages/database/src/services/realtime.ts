@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types'
-import { BaseService } from './base'
+import { BaseService, CloudflareEnv } from './base'
 import { OrderService } from './order'
 
 interface RealtimeMessage {
@@ -14,16 +14,17 @@ export class RealtimeService extends BaseService {
   private orderService: OrderService
   private cache?: any // KV namespace type not available
   private realtimeUrl: string
-  
+
   constructor(
     db: D1Database,
+    env: CloudflareEnv,
     cache: any, // KVNamespace
     realtimeUrl: string
   ) {
-    super(db)
+    super(db, env)
     this.cache = cache
     this.realtimeUrl = realtimeUrl
-    this.orderService = new OrderService(db)
+    this.orderService = new OrderService(db, env)
   }
 
   // Broadcast message to specific room
@@ -288,8 +289,9 @@ export class RealtimeService extends BaseService {
 // Factory function to create service instance
 export function createRealtimeService(
   db: D1Database,
+  env: CloudflareEnv,
   cache: KVNamespace,
   realtimeUrl: string
 ): RealtimeService {
-  return new RealtimeService(db, cache, realtimeUrl)
+  return new RealtimeService(db, env, cache, realtimeUrl)
 }

@@ -32,7 +32,7 @@ routes.post('/validate',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       const result = await couponsService.validateCouponWithBusinessRules(
         data.code,
@@ -66,7 +66,7 @@ routes.get('/available/:restaurantId',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       const availableCoupons = await couponsService.getAvailableCoupons(restaurantId)
 
@@ -97,7 +97,7 @@ routes.post('/',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 權限檢查：店主只能為自己的餐廳創建優惠券
       if (user.role === 1) {
@@ -136,7 +136,7 @@ routes.get('/',
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       const filters: any = { ...query }
 
@@ -184,7 +184,7 @@ routes.get('/:id',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       const coupon = await couponsService.getCoupon(id)
 
@@ -232,7 +232,7 @@ routes.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 獲取現有優惠券
       const existingCoupon = await couponsService.getCoupon(id)
@@ -281,7 +281,7 @@ routes.post('/:id/deactivate',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 獲取現有優惠券
       const existingCoupon = await couponsService.getCoupon(id)
@@ -330,7 +330,7 @@ routes.delete('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 檢查優惠券是否存在
       const existingCoupon = await couponsService.getCoupon(id)
@@ -371,7 +371,7 @@ routes.get('/:id/stats',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 獲取優惠券資訊
       const coupon = await couponsService.getCoupon(id)
@@ -429,7 +429,7 @@ routes.post('/bulk',
     try {
       const { couponIds, action } = c.get('validatedBody')
       const user = c.get('user')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 權限檢查：店主只能操作自己餐廳的優惠券
       if (user.role === 1) {
@@ -496,7 +496,7 @@ routes.post('/use',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       const usageRecord = await couponsService.useCoupon(data)
 
@@ -526,7 +526,7 @@ routes.get('/analytics/trends',
     try {
       const user = c.get('user')
       const { restaurantId, startDate, endDate } = c.req.query()
-      const couponsService = new CouponsService(c.env.DB as any)
+      const couponsService = new CouponsService(c.env.DB as any, c.env)
 
       // 權限檢查：店主只能查看自己餐廳的數據
       const queryRestaurantId = user.role === 1 ? user.restaurantId?.toString() : restaurantId

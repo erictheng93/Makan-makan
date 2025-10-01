@@ -33,7 +33,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
   constructor(private env: Env) {
     this.db = getDatabaseConnection(env)
-    this.qrService = new QRCodeService(env.DB)
+    this.qrService = new QRCodeService(env.DB, env)
     this.cache = new KVCacheService(env.CACHE_KV)
     this.logger = new ConsoleLogger('qr-codes-service')
     this.performance = new SimplePerformanceTracker()

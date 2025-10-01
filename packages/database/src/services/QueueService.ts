@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BaseService } from './base'
+import { BaseService, CloudflareEnv } from './base'
 
 // 類型定義
 export interface WaitingQueue {
@@ -145,8 +145,8 @@ const updateQueueSettingsSchema = z.object({
 })
 
 export class QueueService extends BaseService {
-  constructor(db: any) {
-    super(db)
+  constructor(db: any, env: CloudflareEnv) {
+    super(db, env)
   }
 
   // 加入候位隊列
@@ -882,15 +882,29 @@ export class QueueService extends BaseService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const validatedData = updateQueueSettingsSchema.parse(updates)
-      
+
+      // Whitelist of allowed field mappings to prevent SQL injection
+      const fieldMapping: Record<string, string> = {
+        isEnabled: 'is_enabled',
+        maxQueueSize: 'max_queue_size',
+        avgServiceTime: 'avg_service_time',
+        maxWaitTime: 'max_wait_time',
+        minAdvanceNotice: 'min_advance_notice',
+        notificationMethods: 'notification_methods',
+        autoCallEnabled: 'auto_call_enabled',
+        autoCallInterval: 'auto_call_interval',
+        noShowTimeout: 'no_show_timeout',
+        queueNumberReset: 'queue_number_reset'
+      }
+
       const updateFields = []
       const params = []
 
       for (const [key, value] of Object.entries(validatedData)) {
-        if (value !== undefined) {
-          const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase()
+        if (value !== undefined && fieldMapping[key]) {
+          const dbKey = fieldMapping[key]
           updateFields.push(`${dbKey} = ?`)
-          
+
           if (Array.isArray(value) || typeof value === 'object') {
             params.push(JSON.stringify(value))
           } else {
@@ -907,7 +921,7 @@ export class QueueService extends BaseService {
       params.push(restaurantId)
 
       await this.d1.prepare(`
-        UPDATE queue_settings 
+        UPDATE queue_settings
         SET ${updateFields.join(', ')}
         WHERE restaurant_id = ?
       `).bind(...params).run()

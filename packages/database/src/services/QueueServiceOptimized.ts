@@ -48,8 +48,8 @@ export class QueueServiceOptimized extends BaseService {
   private batchSize = 10
   private metricsBuffer: Array<{ operation: string; timestamp: number; duration: number }> = []
 
-  constructor(db: any, cacheConfig?: any) {
-    super(db)
+  constructor(db: any, env: import('./base').CloudflareEnv, cacheConfig?: any) {
+    super(db, env)
     this.cache = new QueueCache(cacheConfig)
 
     // Start background tasks

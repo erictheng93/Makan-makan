@@ -92,7 +92,7 @@ app.post('/generate',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const qrService = new QRCodeService(c.env.DB)
+      const qrService = new QRCodeService(c.env.DB, c.env)
       
       // 添加創建者信息
       if (!data.metadata) {
@@ -103,7 +103,7 @@ app.post('/generate',
       const result = await qrService.generateQRCode(data)
       
       // 記錄審計日誌 - 使用QRCodeService
-      const qrCodeDbService = new QRCodeService(c.env.DB)
+      const qrCodeDbService = new QRCodeService(c.env.DB, c.env)
       await qrCodeDbService.createAuditLog({
         userId: user.id,
         action: 'generate_qr_code',
@@ -138,14 +138,14 @@ app.post('/bulk',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const _qrService = new QRCodeService(c.env.DB)
+      const _qrService = new QRCodeService(c.env.DB, c.env)
       
       // Note: generateBulkQRCodes expects different parameters than what's passed
       // For now, return a structured response while bulk generation is implemented
       const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
       // 記錄審計日誌 - 使用QRCodeService
-      const qrCodeDbService = new QRCodeService(c.env.DB)
+      const qrCodeDbService = new QRCodeService(c.env.DB, c.env)
       await qrCodeDbService.createAuditLog({
         userId: user.id,
         action: 'bulk_generate_qr_codes',
@@ -181,7 +181,7 @@ app.get('/templates',
   requireRole([0, 1, 2, 3, 4]),
   async (c) => {
     try {
-      const qrService = new QRCodeService(c.env.DB)
+      const qrService = new QRCodeService(c.env.DB, c.env)
       const templates = await qrService.getActiveTemplates()
       
       return c.json({
@@ -211,7 +211,7 @@ app.post('/templates',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const qrService = new QRCodeService(c.env.DB)
+      const qrService = new QRCodeService(c.env.DB, c.env)
       
       const result = await qrService.createTemplate({
         name: data.name,
@@ -250,7 +250,7 @@ app.put('/templates/:id',
       const data = c.get('validatedBody')
       const user = c.get('user')
       
-      const qrCodeService = new QRCodeService(c.env.DB)
+      const qrCodeService = new QRCodeService(c.env.DB, c.env)
       
       // 檢查模板是否存在並更新
       try {
@@ -300,7 +300,7 @@ app.delete('/templates/:id',
       const { id } = c.get('validatedParams')
       const user = c.get('user')
       
-      const qrCodeService = new QRCodeService(c.env.DB)
+      const qrCodeService = new QRCodeService(c.env.DB, c.env)
       
       // 先獲取模板信息用於日誌
       const template = await qrCodeService.getTemplate(parseInt(id))
@@ -334,6 +334,8 @@ app.delete('/templates/:id',
  * GET /api/v1/qr/:id/download
  */
 app.get('/:id/download',
+  authMiddleware,
+  requireRole([0, 1, 2, 3, 4]), // All authenticated users
   validateParams(z.object({ id: z.string().min(1) }) as any),
   validateQuery(z.object({
     format: z.enum(['png', 'svg', 'pdf', 'jpeg']).optional()
@@ -343,7 +345,7 @@ app.get('/:id/download',
       const { id } = c.get('validatedParams')
       const query = c.get('validatedQuery')
       
-      const qrCodeService = new QRCodeService(c.env.DB)
+      const qrCodeService = new QRCodeService(c.env.DB, c.env)
       
       // 獲取QR碼記錄
       const qrRecord = await qrCodeService.getQRCode(id)
@@ -356,14 +358,23 @@ app.get('/:id/download',
       }
       
       const downloadFormat = query.format || qrRecord.format
-      
-      // 記錄下載統計
+      const user = c.get('user')
+
+      // 記錄下載統計 (包含用戶信息)
       await qrCodeService.recordDownload(
         id,
         downloadFormat,
         c.req.header('CF-Connecting-IP') || 'unknown',
         c.req.header('User-Agent') || 'unknown'
       )
+
+      // 記錄審計日誌
+      await qrCodeService.createAuditLog({
+        userId: user.id,
+        action: 'download_qr_code',
+        resource: 'qr_codes',
+        description: `Downloaded QR code ID ${id} in ${downloadFormat} format`
+      })
       
       // 重定向到實際的QR碼圖片URL
       return c.redirect(qrRecord.url as string)
@@ -394,7 +405,7 @@ app.get('/batch/:batchId/download',
       const { batchId } = c.get('validatedParams')
       const query = c.get('validatedQuery')
       
-      const qrCodeService = new QRCodeService(c.env.DB)
+      const qrCodeService = new QRCodeService(c.env.DB, c.env)
       
       // 獲取批次記錄
       const batchRecord = await qrCodeService.getBatchStatus(batchId)
@@ -438,7 +449,7 @@ app.get('/stats',
   requireRole([0, 1]),
   async (c) => {
     try {
-      const qrCodeService = new QRCodeService(c.env.DB)
+      const qrCodeService = new QRCodeService(c.env.DB, c.env)
       
       // 獲取統計數據
       const stats = await qrCodeService.getQRCodeStats()

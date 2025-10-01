@@ -30,7 +30,8 @@ describe('Queue Modular API Integration Tests', () => {
     // Setup test environment
     db = await createTestDB()
     app = createTestApp()
-    queueService = new QueueServiceModular(db)
+    const mockEnv = { DB: db } as any
+    queueService = new QueueServiceModular(db, mockEnv)
 
     // Create test restaurant and user
     testRestaurantId = 1

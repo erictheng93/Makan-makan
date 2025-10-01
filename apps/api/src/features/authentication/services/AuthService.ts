@@ -38,7 +38,7 @@ export class AuthService implements IAuthService {
   constructor(env: Env) {
     this.env = env
     this.db = getDatabaseConnection(env)
-    this.dbAuthService = new DatabaseAuthService(env.DB)
+    this.dbAuthService = new DatabaseAuthService(env.DB, env)
     this.cache = new KVCacheService(env.CACHE_KV)
     this.logger = new ConsoleLogger('auth-service')
     this.performance = new SimplePerformanceTracker()

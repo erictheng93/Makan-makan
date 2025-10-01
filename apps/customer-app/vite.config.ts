@@ -102,17 +102,57 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV !== "production", // SECURITY FIX: Disable sourcemaps in production
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vue-vendor": ["vue", "vue-router", "pinia"],
-          "ui-vendor": ["@headlessui/vue", "@heroicons/vue"],
-          "utils-vendor": ["axios", "dayjs", "lodash-es"],
-          "qr-vendor": ["@zxing/library", "qrcode-reader"],
+        manualChunks: (id) => {
+          // Core vendor chunks
+          if (
+            id.includes("node_modules/vue/") ||
+            id.includes("node_modules/@vue/")
+          ) {
+            return "vue-core";
+          }
+          if (id.includes("node_modules/vue-router/")) {
+            return "vue-router";
+          }
+          if (id.includes("node_modules/pinia/")) {
+            return "pinia";
+          }
+
+          // UI libraries - split into separate chunks
+          if (id.includes("node_modules/@headlessui/vue")) {
+            return "headlessui";
+          }
+          if (id.includes("node_modules/@heroicons/vue")) {
+            return "heroicons";
+          }
+
+          // Utils - keep commonly used together
+          if (id.includes("node_modules/axios/")) {
+            return "axios";
+          }
+          if (id.includes("node_modules/dayjs/")) {
+            return "dayjs";
+          }
+
+          // QR code libraries - lazy load these large libraries
+          if (id.includes("node_modules/@zxing/library")) {
+            return "zxing-qr";
+          }
+          if (id.includes("node_modules/qrcode-reader")) {
+            return "qrcode-reader";
+          }
+
+          // Other node_modules
+          if (id.includes("node_modules/")) {
+            return "vendor";
+          }
         },
       },
     },
     // 優化構建性能
     minify: "esbuild",
     cssMinify: true,
+    chunkSizeWarningLimit: 500, // Warn about chunks larger than 500KB
+    reportCompressedSize: true,
   },
   server: {
     host: "localhost", // SECURITY FIX: Restrict to localhost only in development

@@ -84,7 +84,7 @@ app.get('/',
     try {
       const filters = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       // 權限過濾：非管理員只能查看自己餐廳的桌子
       let restaurantId = filters.restaurantId
@@ -132,7 +132,7 @@ app.get('/:id',
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableById(parseInt(id))
       
@@ -178,7 +178,7 @@ app.post('/',
     try {
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       // 權限檢查：非管理員只能為自己的餐廳創建桌子
       if (currentUser.role !== USER_ROLES.ADMIN && data.restaurantId !== currentUser.restaurantId) {
@@ -229,7 +229,7 @@ app.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const existingTable = await tableService.getTableById(parseInt(id))
       
@@ -277,7 +277,7 @@ app.delete('/:id',
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const existingTable = await tableService.getTableById(parseInt(id))
       
@@ -338,7 +338,7 @@ app.post('/:id/occupy',
       const { id } = c.get('validatedParams')
       const { orderId, occupiedBy, estimatedMinutes } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableById(parseInt(id))
       
@@ -400,7 +400,7 @@ app.post('/:id/release',
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableById(parseInt(id))
       
@@ -459,7 +459,7 @@ app.post('/:id/clean',
       const { id } = c.get('validatedParams')
       const { notes } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableById(parseInt(id))
       
@@ -518,7 +518,7 @@ app.post('/:id/regenerate-qr',
       const { id } = c.get('validatedParams')
       const { customData } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableById(parseInt(id))
       
@@ -576,7 +576,7 @@ app.post('/bulk-qr',
     try {
       const { restaurantId, tableIds, options = {} } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       // 權限檢查：非管理員只能操作自己餐廳的桌子
       if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
@@ -626,7 +626,7 @@ app.get('/available',
     try {
       const { restaurantId, capacity } = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       // 權限檢查：非管理員只能查看自己餐廳的桌子
       if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
@@ -667,7 +667,7 @@ app.get('/stats',
     try {
       const { restaurantId } = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       // 權限檢查：非管理員只能查看自己餐廳的統計
       if (currentUser.role !== USER_ROLES.ADMIN && restaurantId !== currentUser.restaurantId) {
@@ -705,7 +705,7 @@ app.get('/qr/:qrCode',
   async (c) => {
     try {
       const { qrCode } = c.get('validatedParams')
-      const tableService = new TableService(c.env.DB as any)
+      const tableService = new TableService(c.env.DB as any, c.env)
       
       const table = await tableService.getTableByQRCode(decodeURIComponent(qrCode))
       

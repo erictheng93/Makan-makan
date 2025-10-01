@@ -56,14 +56,15 @@ export class IntelligentD1Service extends BaseService {
 
   constructor(
     d1: D1Database,
+    env: import('./base').CloudflareEnv,
     cacheManager?: any,
     analyticsEngine?: any,
     context?: ExecutionContext
   ) {
-    super(d1)
+    super(d1, env)
     this.cacheManager = cacheManager
     this.analyticsEngine = analyticsEngine
-    
+
     // Initialize background tasks
     this.initializeIntelligentFeatures()
   }

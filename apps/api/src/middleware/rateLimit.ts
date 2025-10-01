@@ -29,8 +29,18 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
     const rateLimitKey = `rate_limit:${key}:${Math.floor(now / opts.windowMs)}`
     
     try {
+      // SECURITY: Fail closed if KV is not available
+      if (!c.env.CACHE_KV) {
+        console.error('Rate limiting error: KV store not available')
+        return c.json({
+          success: false,
+          error: 'Service temporarily unavailable',
+          message: 'Rate limiting service is currently unavailable. Please try again later.'
+        }, 503)
+      }
+
       // Get current count from KV store
-      const currentCount = await c.env.CACHE_KV?.get(rateLimitKey)
+      const currentCount = await c.env.CACHE_KV.get(rateLimitKey)
       const count = currentCount ? parseInt(currentCount) : 0
       
       if (count >= opts.maxRequests) {
@@ -56,12 +66,12 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
         (!opts.skipFailedRequests || c.res.status < 400)
       )
       
-      if (shouldCount && c.env.CACHE_KV) {
+      if (shouldCount) {
         // Increment counter
         const newCount = count + 1
         const ttl = Math.ceil(opts.windowMs / 1000)
         await c.env.CACHE_KV.put(rateLimitKey, newCount.toString(), { expirationTtl: ttl })
-        
+
         // Add rate limit headers
         c.res.headers.set('X-RateLimit-Limit', opts.maxRequests.toString())
         c.res.headers.set('X-RateLimit-Remaining', Math.max(0, opts.maxRequests - newCount).toString())
@@ -70,8 +80,12 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
       
     } catch (error) {
       console.error('Rate limiting error:', error)
-      // Continue request if rate limiting fails
-      await next()
+      // Fail closed for security - reject request if rate limiting fails
+      return c.json({
+        success: false,
+        error: 'Service temporarily unavailable',
+        message: 'Rate limiting service is currently unavailable. Please try again later.'
+      }, 503)
     }
   }
 }

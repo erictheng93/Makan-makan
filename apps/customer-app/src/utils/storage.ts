@@ -3,6 +3,43 @@
  * 提供類型安全的 localStorage 操作和過期管理
  */
 
+import { z } from "zod";
+
+// Zod schemas for validation
+const CartDataSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.number(),
+      name: z.string(),
+      price: z.number(),
+      quantity: z.number(),
+      customizations: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ),
+  totalAmount: z.number(),
+  notes: z.string().optional(),
+  customerInfo: z
+    .object({
+      name: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .optional(),
+});
+
+const MenuDataSchema = z.object({
+  items: z.array(z.unknown()),
+  categories: z.array(z.unknown()),
+  lastUpdated: z.number(),
+});
+
+const RestaurantDataSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  address: z.string().optional(),
+  businessHours: z.record(z.string(), z.unknown()).optional(),
+  lastUpdated: z.number(),
+});
+
 // Storage data types
 export interface CartData {
   items: Array<{
@@ -87,7 +124,11 @@ export class StorageManager {
   /**
    * 獲取存儲項目
    */
-  get<T>(key: string, defaultValue?: T): T | undefined {
+  get<T>(
+    key: string,
+    defaultValue?: T,
+    schema?: z.ZodSchema<T>,
+  ): T | undefined {
     try {
       const serialized = localStorage.getItem(this.getKey(key));
       if (!serialized) {
@@ -100,6 +141,20 @@ export class StorageManager {
       if (item.expires && Date.now() > item.expires) {
         this.remove(key);
         return defaultValue;
+      }
+
+      // SECURITY: Validate with Zod schema if provided
+      if (schema) {
+        const validation = schema.safeParse(item.value);
+        if (!validation.success) {
+          console.warn(
+            `Storage validation failed for "${key}":`,
+            validation.error,
+          );
+          this.remove(key); // Remove invalid data
+          return defaultValue;
+        }
+        return validation.data;
       }
 
       return item.value;
@@ -302,9 +357,9 @@ export const cartStorageHelper = {
     return cartStorage.set(key, cartData, { expires });
   },
 
-  getCart(restaurantId: number, tableId: number) {
+  getCart(restaurantId: number, tableId: number): CartData | undefined {
     const key = `${restaurantId}_${tableId}`;
-    return cartStorage.get(key);
+    return cartStorage.get<CartData>(key, undefined, CartDataSchema);
   },
 
   clearCart(restaurantId: number, tableId: number) {
@@ -372,8 +427,12 @@ export const cacheHelper = {
     return this.setCache(`menu_${restaurantId}`, menuData, 10 * 60 * 1000); // 10分鐘
   },
 
-  getCachedMenu(restaurantId: number) {
-    return this.getCache(`menu_${restaurantId}`);
+  getCachedMenu(restaurantId: number): MenuData | undefined {
+    return cacheStorage.get<MenuData>(
+      `menu_${restaurantId}`,
+      undefined,
+      MenuDataSchema,
+    );
   },
 
   // 餐廳資訊快取
@@ -385,8 +444,12 @@ export const cacheHelper = {
     ); // 30分鐘
   },
 
-  getCachedRestaurant(restaurantId: number) {
-    return this.getCache(`restaurant_${restaurantId}`);
+  getCachedRestaurant(restaurantId: number): RestaurantData | undefined {
+    return cacheStorage.get<RestaurantData>(
+      `restaurant_${restaurantId}`,
+      undefined,
+      RestaurantDataSchema,
+    );
   },
 };
 

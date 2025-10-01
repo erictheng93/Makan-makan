@@ -43,7 +43,7 @@ app.post('/error-report',
         error.severity === 'high' || error.severity === 'critical'
       )
       
-      const errorReportingService = new ErrorReportingService(c.env.DB as any)
+      const errorReportingService = new ErrorReportingService(c.env.DB as any, c.env)
       
       // 準備錯誤報告資料
       const errorReportsData: CreateErrorReportData[] = errors.map((error: any) => ({
@@ -161,7 +161,7 @@ app.get('/error-stats',
     try {
       const user = c.get('user')
       
-      const errorReportingService = new ErrorReportingService(c.env.DB as any)
+      const errorReportingService = new ErrorReportingService(c.env.DB as any, c.env)
       
       // 確定範圍
       const now = new Date()
@@ -222,7 +222,7 @@ app.delete('/error-reports/cleanup',
   requireRole([0]), // 僅管理員
   async (c) => {
     try {
-      const errorReportingService = new ErrorReportingService(c.env.DB as any)
+      const errorReportingService = new ErrorReportingService(c.env.DB as any, c.env)
       
       // 清理舉30天的錯誤報告
       const deletedCount = await errorReportingService.cleanupOldErrorReports(30)

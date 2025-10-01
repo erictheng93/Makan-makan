@@ -38,7 +38,7 @@ app.post('/join',
     try {
       const data = c.get('validatedBody')
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await queueService.joinQueue(data)
 
       if (!result.success) {
@@ -86,7 +86,7 @@ app.get('/:restaurantId/status',
     try {
       const { restaurantId } = c.get('validatedParams')
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
 
       // Get queue statistics and current status
       const [settingsResult] = await Promise.all([
@@ -151,7 +151,7 @@ app.get('/:queueId/position',
     try {
       const { queueId } = c.get('validatedParams')
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await queueService.getQueuePosition(queueId)
 
       if (!result.success) {
@@ -190,7 +190,7 @@ app.post('/call-next',
         }, 403)
       }
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await queueService.callNext(data, user.id)
 
       if (!result.success) {
@@ -342,7 +342,7 @@ app.get('/:restaurantId/settings',
         }, 403)
       }
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await queueService.getQueueSettings(restaurantId)
 
       if (!result.success) {
@@ -369,7 +369,7 @@ app.get('/performance',
   requireRole([0]), // Admin only
   async (c) => {
     try {
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const metrics = (queueService as any).getPerformanceMetrics()
 
       return c.json({
@@ -407,7 +407,7 @@ app.post('/:restaurantId/optimize',
         }, 403)
       }
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       await (queueService as any).batchUpdateQueuePositions(restaurantId)
 
       return c.json({
@@ -442,7 +442,7 @@ app.post('/:queueId/seat',
       const { tableId } = c.get('validatedBody')
       const user = c.get('user')
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await (queueService as any).seatCustomer(queueId, tableId, user.id)
 
       if (!result.success) {
@@ -515,7 +515,7 @@ app.post('/:queueId/cancel',
         }
       }
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await (queueService as any).cancelQueue(queueId, user?.id, reason)
 
       if (!result.success) {
@@ -574,7 +574,7 @@ app.put('/:restaurantId/settings',
         }, 403)
       }
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await (queueService as any).updateQueueSettings(restaurantId, updates)
 
       if (!result.success) {
@@ -620,7 +620,7 @@ app.get('/:restaurantId/stats',
         to: new Date(dateTo)
       } : undefined
 
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await (queueService as any).getQueueStatistics(restaurantId, dateRange)
 
       if (!result.success) {
@@ -747,7 +747,7 @@ app.post('/cleanup/expired',
   requireRole([0]), // Admin only
   async (c) => {
     try {
-      const queueService = new QueueServiceModular(c.env.DB as any)
+      const queueService = new QueueServiceModular(c.env.DB as any, c.env)
       const result = await (queueService as any).cleanupExpiredQueues()
 
       return c.json({

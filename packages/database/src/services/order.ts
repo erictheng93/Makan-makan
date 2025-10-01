@@ -110,10 +110,19 @@ export class OrderService extends BaseService {
       let subtotal = 0
       const orderItemsData = []
 
+      // Fetch all menu items in one query to avoid N+1 problem
+      const menuItemIds = data.items.map(item => item.menuItemId)
+      const fetchedMenuItems = await this.db.query.menuItems.findMany({
+        where: inArray(menuItems.id, menuItemIds)
+      })
+
+      // Create a map for quick lookup
+      const menuItemMap = new Map(
+        fetchedMenuItems.map(item => [item.id, item])
+      )
+
       for (const item of data.items) {
-        const menuItem = await this.db.query.menuItems.findFirst({
-          where: eq(menuItems.id, item.menuItemId)
-        })
+        const menuItem = menuItemMap.get(item.menuItemId)
 
         if (!menuItem || !menuItem.isAvailable) {
           throw new Error(`Menu item ${item.menuItemId} is not available`)
@@ -169,8 +178,8 @@ export class OrderService extends BaseService {
       if (data.couponCode) {
         // 導入優惠券服務
         const { CouponService } = await import('./coupon')
-        const couponService = new CouponService(this.d1)
-        
+        const couponService = new CouponService(this.d1, this.env)
+
         // 驗證優惠券
         const validationResult = await couponService.validateCoupon(
           data.couponCode,
@@ -245,8 +254,8 @@ export class OrderService extends BaseService {
       // 記錄優惠券使用情況
       if (validatedCoupon && discountAmount > 0) {
         const { CouponService } = await import('./coupon')
-        const couponService = new CouponService(this.d1)
-        
+        const couponService = new CouponService(this.d1, this.env)
+
         await couponService.useCoupon({
           couponId: validatedCoupon.id,
           orderId: order.id,
@@ -257,29 +266,29 @@ export class OrderService extends BaseService {
         })
       }
 
-      // 更新菜品訂購次數和庫存
-      for (let i = 0; i < data.items.length; i++) {
-        const { menuItemId, quantity } = data.items[i]
-        
-        // 增加訂購次數
-        await this.db
+      // 更新菜品訂購次數和庫存 (batch updates in parallel for better performance)
+      const inventoryUpdates = data.items.map(({ menuItemId, quantity }) =>
+        this.db
           .update(menuItems)
           .set({
             orderCount: sql`${menuItems.orderCount} + ${quantity}`,
-            inventoryCount: menuItems.inventoryCount 
+            inventoryCount: menuItems.inventoryCount
               ? sql`${menuItems.inventoryCount} - ${quantity}`
               : null
           })
           .where(eq(menuItems.id, menuItemId))
-      }
+      )
 
-      // 更新餐廳總訂單數
-      await this.db
-        .update(restaurants)
-        .set({
-          totalOrders: sql`${restaurants.totalOrders} + 1`
-        })
-        .where(eq(restaurants.id, data.restaurantId))
+      // Execute all inventory updates and restaurant update in parallel
+      await Promise.all([
+        ...inventoryUpdates,
+        this.db
+          .update(restaurants)
+          .set({
+            totalOrders: sql`${restaurants.totalOrders} + 1`
+          })
+          .where(eq(restaurants.id, data.restaurantId))
+      ])
 
       return this.mapToOrder({ ...order, items })
     } catch (error) {
@@ -503,17 +512,19 @@ export class OrderService extends BaseService {
         throw new Error('Order cannot be cancelled')
       }
 
-      // 恢復庫存
-      for (const item of order.items || []) {
-        await this.db
+      // 恢復庫存 (batch updates in parallel)
+      const inventoryRestores = (order.items || []).map(item =>
+        this.db
           .update(menuItems)
           .set({
-            inventoryCount: menuItems.inventoryCount 
+            inventoryCount: menuItems.inventoryCount
               ? sql`${menuItems.inventoryCount} + ${item.quantity}`
               : null
           })
           .where(eq(menuItems.id, item.menuItemId))
-      }
+      )
+
+      await Promise.all(inventoryRestores)
 
       return await this.updateOrderStatus(id, {
         status: ORDER_STATUS.CANCELLED,
@@ -638,6 +649,6 @@ export class OrderService extends BaseService {
       customer: order.customer,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt
-    }
+    } as Order
   }
 }

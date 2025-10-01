@@ -16,8 +16,8 @@ export class UsersService {
   private authService: AuthService
 
   constructor(private env: Env) {
-    this.userService = new UserService(env.DB as any)
-    this.authService = new AuthService(env.DB as any)
+    this.userService = new UserService(env.DB as any, env)
+    this.authService = new AuthService(env.DB as any, env)
   }
 
   /**

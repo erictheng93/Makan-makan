@@ -154,7 +154,7 @@ app.get('/dashboard',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取儀表板數據
       const dashboardData = await analyticsService.getDashboardData(targetRestaurantId!)
@@ -214,7 +214,7 @@ app.get('/revenue',
       const _whereClause = whereConditions.join(' AND ')
       const _dateGroupBy = getDateGroupBySQL(query.groupBy)
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取營收分析數據
       const revenueData = await analyticsService.getRevenueAnalytics({
@@ -279,7 +279,7 @@ app.get('/products',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取產品分析數據
       const productData = await analyticsService.getMenuAnalytics({
@@ -343,7 +343,7 @@ app.get('/customers',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取客戶分析數據
       const customerData = await analyticsService.getCustomerAnalytics({
@@ -407,7 +407,7 @@ app.get('/performance',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取性能分析數據
       // TODO: Implement getPerformanceAnalytics method in AnalyticsService
@@ -510,7 +510,7 @@ app.get('/realtime-dashboard',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取實時統計面板數據
       // TODO: Implement getRealtimeDashboard method in AnalyticsService
@@ -573,7 +573,7 @@ app.get('/detailed-performance',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取詳細績效分析數據
       // TODO: Implement getDetailedPerformanceAnalytics method in AnalyticsService
@@ -659,7 +659,7 @@ app.get('/sse',
               const _whereClause = whereConditions.join(' AND ')
               
               // 使用 AnalyticsService 獲取實時數據
-              const analyticsService = new AnalyticsService(c.env.DB as any)
+              const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
               // TODO: Implement getRealtimeDashboard method in AnalyticsService
               const realtimeData = await analyticsService.getDashboardData(targetRestaurantId!)
               
@@ -753,7 +753,7 @@ app.get('/owner-dashboard',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取店主管理面板數據
       // TODO: Implement getOwnerDashboard method in AnalyticsService
@@ -817,7 +817,7 @@ app.get('/financial-report',
       
       const _whereClause = whereConditions.join(' AND ')
       
-      const analyticsService = new AnalyticsService(c.env.DB as any)
+      const analyticsService = new AnalyticsService(c.env.DB as any, c.env)
       
       // 獲取財務報表數據
       // TODO: Implement getFinancialReport method in AnalyticsService

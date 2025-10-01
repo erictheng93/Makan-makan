@@ -31,7 +31,7 @@ export class SystemService implements ISystemService {
     env: Env,
     kv?: Env['CACHE_KV']
   ) {
-    this.errorReportingService = new ErrorReportingService(db)
+    this.errorReportingService = new ErrorReportingService(db, env)
     this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any)
     this.logger = new ConsoleLogger('SystemService')
     this.env = env

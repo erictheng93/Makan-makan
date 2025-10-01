@@ -89,7 +89,7 @@ export class QRCodeService {
   
   constructor(env: Env) {
     this.env = env
-    this.dbService = new DatabaseQRCodeService(env.DB as any)
+    this.dbService = new DatabaseQRCodeService(env.DB as any, env)
   }
 
   // 預設樣式模板

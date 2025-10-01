@@ -33,7 +33,7 @@ export class MenuService implements IMenuService {
 
   constructor(private readonly env: Env) {
     this.logger = new ConsoleLogger('MenuService')
-    this.dbService = new DatabaseMenuService(env.DB as any)
+    this.dbService = new DatabaseMenuService(env.DB as any, env)
     this.cacheService = env.CACHE_KV
   }
 

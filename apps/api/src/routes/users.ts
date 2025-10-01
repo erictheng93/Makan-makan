@@ -23,7 +23,7 @@ const createUserSchema = z.object({
   fullName: z.string().min(1).max(100),
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
-  password: z.string().min(6).max(100),
+  password: z.string().min(8).max(100).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
   role: z.number().int().min(0).max(5),
   restaurantId: z.number().int().positive().optional(),
   address: z.string().max(200).optional(),
@@ -45,9 +45,9 @@ const updateUserSchema = z.object({
 })
 
 const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(6).max(100),
-  newPassword: z.string().min(6).max(100),
-  confirmPassword: z.string().min(6).max(100)
+  currentPassword: z.string().min(1, 'Current password is required').max(100),
+  newPassword: z.string().min(8).max(100).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+  confirmPassword: z.string().min(1, 'Password confirmation is required')
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"]
@@ -89,7 +89,7 @@ app.get('/',
     try {
       const query = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       const filters = {
         ...query,
@@ -141,7 +141,7 @@ app.get('/:id',
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       const targetUser = await userService.getUserById(parseInt(id))
       
@@ -215,7 +215,7 @@ app.post('/',
     try {
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       // 權限檢查
       if (!canManageUser(currentUser, data.role, data.restaurantId)) {
@@ -273,7 +273,7 @@ app.put('/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       // 獲取目標用戶
       const targetUser = await userService.getUserById(parseInt(id))
@@ -334,7 +334,7 @@ app.post('/:id/password',
       const { id } = c.get('validatedParams')
       const { currentPassword, newPassword } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const authService = new AuthService(c.env.DB as any)
+      const authService = new AuthService(c.env.DB as any, c.env)
       
       // 只有用戶自己或管理員可以修改密碼
       if (currentUser.id !== parseInt(id) && currentUser.role !== USER_ROLES.ADMIN) {
@@ -385,7 +385,7 @@ app.patch('/:id/status',
       const { id } = c.get('validatedParams')
       const { isActive } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       const targetUser = await userService.getUserById(parseInt(id))
       
@@ -441,7 +441,7 @@ app.patch('/:id/verify',
     try {
       const { id } = c.get('validatedParams')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       const targetUser = await userService.getUserById(parseInt(id))
       
@@ -500,7 +500,7 @@ app.post('/:id/reset-password',
       const { id } = c.get('validatedParams')
       const { newPassword } = c.get('validatedBody')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       const targetUser = await userService.getUserById(parseInt(id))
       
@@ -557,7 +557,7 @@ app.get('/stats',
     try {
       const { restaurantId } = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       // 權限過濾
       let targetRestaurantId: number | undefined
@@ -618,7 +618,7 @@ app.get('/search',
     try {
       const { query, restaurantId, limit } = c.get('validatedQuery')
       const currentUser = c.get('user')
-      const userService = new UserService(c.env.DB as any)
+      const userService = new UserService(c.env.DB as any, c.env)
       
       // 權限過濾
       let targetRestaurantId: number | undefined

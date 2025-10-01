@@ -4,8 +4,9 @@ import { prettyJSON } from 'hono/pretty-json'
 import { timing } from 'hono/timing'
 import { authMiddleware } from './middleware/auth'
 import { corsMiddleware } from './middleware/cors'
+import { csrfProtection, attachCSRFToken } from './middleware/csrf'
 // import { rateLimitMiddleware } from './middleware/rateLimit'
-import { 
+import {
   securityHeadersMiddleware,
   requestIdMiddleware,
   inputSanitizationMiddleware,
@@ -215,6 +216,8 @@ app.get('/info', (c) => {
 const apiV1 = new Hono<{ Bindings: Env }>()
 
 // 公開路由（無需認證）
+// Attach CSRF tokens to auth responses
+apiV1.use('/auth/*', attachCSRFToken())
 apiV1.route('/auth', authFeature.routes)
 // apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
 apiV1.route('/qr', qrCodesFeature.routes)
@@ -238,6 +241,20 @@ apiV1.use('/system/*', authMiddleware)
 apiV1.use('/cache/*', authMiddleware)
 apiV1.use('/monitoring/*', authMiddleware)
 apiV1.use('/backup/*', authMiddleware)
+
+// Apply CSRF protection to state-changing operations after authentication
+apiV1.use('*', csrfProtection({
+  excludePaths: [
+    '/api/v1/auth/login',
+    '/api/v1/auth/register',
+    '/api/v1/health',
+    '/api/v1/monitoring/health',
+    '/api/v1/sse', // SSE connections should not be CSRF protected
+    '/api/v1/queue/public', // Public queue endpoints
+    '/api/v1/qr/scan', // Public QR scanning
+    '/api/v1/coupons/validate' // Public coupon validation
+  ]
+}))
 
 apiV1.route('/restaurants', restaurantsFeature.routes)
 apiV1.route('/menu', menuFeature.routes)

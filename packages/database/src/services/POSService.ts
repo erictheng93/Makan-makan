@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BaseService } from './base'
+import { BaseService, CloudflareEnv } from './base'
 
 // 類型定義
 export interface CashRegister {
@@ -199,8 +199,8 @@ const processRefundSchema = z.object({
 })
 
 export class POSService extends BaseService {
-  constructor(db: any) {
-    super(db)
+  constructor(db: any, env: CloudflareEnv) {
+    super(db, env)
   }
 
   // 收銀機管理

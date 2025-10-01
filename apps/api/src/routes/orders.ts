@@ -101,7 +101,7 @@ app.post('/preview-coupon',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const couponService = new CouponService(c.env.DB as any)
+      const couponService = new CouponService(c.env.DB as any, c.env)
 
       // 驗證優惠券並計算折扣
       const validationResult = await couponService.validateCoupon(
@@ -165,7 +165,7 @@ app.post('/',
       const data = c.get('validatedBody')
       const user = c.get('user') // Get authenticated user from middleware
       const _db = createDatabase(c.env.DB)
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // Security: Verify restaurant access if user has restaurant constraints
       if (user.restaurantId && user.restaurantId !== data.restaurantId) {
@@ -241,7 +241,7 @@ app.get('/restaurant/:restaurantId/minimum-order',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
 
       const minOrderInfo = await orderService.getMinimumOrderAmount(restaurantId)
 
@@ -275,7 +275,7 @@ app.post('/restaurant/:restaurantId/validate-minimum',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { orderAmount } = c.get('validatedBody')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
 
       const validation = await orderService.validateMinimumOrder(restaurantId, orderAmount)
 
@@ -306,7 +306,7 @@ app.get('/',
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // 轉換過濾條件
       const filters: any = {}
@@ -363,7 +363,7 @@ app.get('/:id',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // 獲取訂單詳情
       const order = await orderService.getOrder(parseInt(id))
@@ -412,7 +412,7 @@ app.put('/:id/status',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // 獲取現有訂單
       const existingOrder = await orderService.getOrder(parseInt(id))
@@ -508,7 +508,7 @@ app.delete('/:id',
     try {
       const { id } = c.get('validatedParams')
       const user = c.get('user')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // 獲取訂單資訊
       const order = await orderService.getOrder(parseInt(id))
@@ -573,7 +573,7 @@ app.get('/stats',
     try {
       const query = c.get('validatedQuery')
       const user = c.get('user')
-      const orderService = new OrderService(c.env.DB as any)
+      const orderService = new OrderService(c.env.DB as any, c.env)
       
       // 確定餐廳 ID
       let restaurantId: number | undefined

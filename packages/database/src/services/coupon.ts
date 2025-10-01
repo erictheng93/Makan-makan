@@ -1,6 +1,6 @@
-import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm'
+import { eq, and, gte, lte, sql, desc, asc, inArray } from 'drizzle-orm'
 import { BaseService } from './base'
-import { coupons, couponUsage, couponDistributions, couponTemplates, orders, menuItems, categories } from '../schema'
+import { coupons, couponUsage, couponDistributions, couponTemplates, orders, menuItems as menuItemsTable, categories } from '../schema'
 import type { DiscountType, DistributionType, TargetType, UsageStatus } from '../schema'
 
 // 優惠券驗證結果接口
@@ -139,11 +139,11 @@ export class CouponService extends BaseService {
       // 檢查適用分類限制
       if (coupon.applicableCategories && menuItems) {
         const applicableCategories = coupon.applicableCategories as number[]
-        
+
         // 查詢商品的分類資訊
         const menuItemIds = menuItems.map(item => item.menuItemId)
         const itemCategories = await this.db.query.menuItems.findMany({
-          where: sql`id IN (${menuItemIds.join(',')})`,
+          where: inArray(menuItemsTable.id, menuItemIds),
           with: {
             category: true
           }

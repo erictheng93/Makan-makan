@@ -65,7 +65,7 @@ app.get('/:restaurantId',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const menu = await menuService.getMenu(restaurantId)
       
@@ -93,7 +93,7 @@ app.get('/:restaurantId/featured',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const items = await menuService.getFeaturedItems(restaurantId, limit)
       
@@ -121,7 +121,7 @@ app.get('/:restaurantId/popular',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { limit } = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const items = await menuService.getPopularItems(restaurantId, limit)
       
@@ -147,7 +147,7 @@ app.get('/:restaurantId/search',
     try {
       const { restaurantId } = c.get('validatedParams')
       const query = c.get('validatedQuery')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       // 處理價格範圍
       const priceRange = (query.minPrice || query.maxPrice) 
@@ -198,7 +198,7 @@ app.get('/items/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const item = await menuService.getMenuItem(id)
       
@@ -238,7 +238,7 @@ app.post('/:restaurantId/items',
     try {
       const { restaurantId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const item = await menuService.createMenuItem({
         ...data,
@@ -271,7 +271,7 @@ app.put('/items/:id',
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       // 獲取菜品以檢查餐廳權限
       const existingItem = await menuService.getMenuItem(id)
@@ -323,7 +323,7 @@ app.patch('/:restaurantId/items/availability',
     try {
       const { restaurantId } = c.get('validatedParams')
       const { updates } = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       await menuService.batchUpdateAvailability(restaurantId, updates)
       
@@ -353,7 +353,7 @@ app.post('/:restaurantId/categories',
     try {
       const { restaurantId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const menuService = new MenuService(c.env.DB as any)
+      const menuService = new MenuService(c.env.DB as any, c.env)
       
       const category = await menuService.createCategory({
         ...data,

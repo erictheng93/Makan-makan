@@ -1,5 +1,19 @@
 import { z } from 'zod'
 
+// SECURITY: Strong password validation regex
+const PASSWORD_STRENGTH_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+
+// Strong password schema - requires 8+ characters with uppercase, lowercase, number, and special character
+const strongPasswordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(100, 'Password must be less than 100 characters')
+  .refine(
+    (password) => PASSWORD_STRENGTH_REGEX.test(password),
+    {
+      message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
+    }
+  )
+
 /**
  * User creation validation schema
  */
@@ -8,7 +22,7 @@ export const createUserSchema = z.object({
   fullName: z.string().min(1).max(100),
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
-  password: z.string().min(6).max(100),
+  password: strongPasswordSchema,
   role: z.number().int().min(0).max(5),
   restaurantId: z.number().int().positive().optional(),
   address: z.string().max(200).optional(),
@@ -36,12 +50,15 @@ export const updateUserSchema = z.object({
  * Password update validation schema
  */
 export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(6).max(100),
-  newPassword: z.string().min(6).max(100),
-  confirmPassword: z.string().min(6).max(100)
+  currentPassword: z.string().min(1, 'Current password is required').max(100),
+  newPassword: strongPasswordSchema,
+  confirmPassword: z.string().min(1, 'Password confirmation is required')
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"]
+}).refine((data) => data.currentPassword !== data.newPassword, {
+  message: 'New password must be different from current password',
+  path: ['newPassword']
 })
 
 /**
@@ -69,7 +86,11 @@ export const userStatusSchema = z.object({
  * Reset password validation schema
  */
 export const resetPasswordSchema = z.object({
-  newPassword: z.string().min(6).max(100)
+  newPassword: strongPasswordSchema,
+  confirmPassword: z.string().min(1, 'Password confirmation is required')
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
 })
 
 /**

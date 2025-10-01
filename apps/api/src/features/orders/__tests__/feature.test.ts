@@ -116,11 +116,11 @@ describe('Orders Feature', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ordersService = new OrdersService(mockEnv)
-    
+
     // Get mocked services
     const { OrderService, CouponService } = vi.mocked(dbModule)
-    mockOrderService = new OrderService({} as any)
-    mockCouponService = new CouponService({} as any)
+    mockOrderService = new OrderService({} as any, {} as any)
+    mockCouponService = new CouponService({} as any, {} as any)
     
     // Setup Hono app
     app = new Hono<{ Bindings: Env }>()

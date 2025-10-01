@@ -1,18 +1,56 @@
 import { drizzle } from 'drizzle-orm/d1'
 import type { D1Database } from '@cloudflare/workers-types'
 import * as schema from '../schema'
+import { QueryCache, buildCacheKey, type QueryCacheOptions } from '../utils/query-cache'
+
+export interface CloudflareEnv {
+  JWT_SECRET: string
+  NODE_ENV?: string
+  CACHE_KV?: KVNamespace
+  [key: string]: any
+}
 
 // 基礎服務類別
 export class BaseService {
   protected db: ReturnType<typeof drizzle<typeof schema>>
   protected d1: D1Database
+  protected env: CloudflareEnv
+  protected queryCache: QueryCache
 
-  constructor(d1: D1Database) {
+  constructor(d1: D1Database, env: CloudflareEnv) {
     this.d1 = d1
+    this.env = env
     this.db = drizzle(d1, {
       schema,
-      logger: process.env.NODE_ENV === 'development'
+      logger: env.NODE_ENV === 'development'
     })
+    this.queryCache = new QueryCache(env.CACHE_KV)
+  }
+
+  /**
+   * Execute query with caching support
+   * For frequently accessed, read-only queries
+   */
+  protected async cachedQuery<T>(
+    cacheKey: string,
+    queryFn: () => Promise<T>,
+    options: QueryCacheOptions
+  ): Promise<T> {
+    return this.queryCache.getOrExecute(cacheKey, queryFn, options)
+  }
+
+  /**
+   * Invalidate cache by key or tags
+   */
+  protected async invalidateCache(keyOrTags: string | string[], type: 'key' | 'tag' = 'key'): Promise<void> {
+    await this.queryCache.invalidate(keyOrTags, type)
+  }
+
+  /**
+   * Build consistent cache keys
+   */
+  protected buildCacheKey(resource: string, identifier: string | number, suffix?: string): string {
+    return buildCacheKey(resource, identifier, suffix)
   }
 
   // 通用錯誤處理
