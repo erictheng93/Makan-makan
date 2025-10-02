@@ -4,6 +4,7 @@ import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody } from '../middleware/validation'
 import { createDatabase, ErrorReportingService, sql, type CreateErrorReportData } from '@makanmakan/database'
 import type { Env } from '../types/env'
+import type { TrackedError, PerformanceReport } from '@makanmakan/utils'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -247,6 +248,211 @@ app.delete('/error-reports/cleanup',
     }
   }
 )
+
+/**
+ * Enhanced error tracking endpoint (new format)
+ * POST /api/v1/system/errors
+ */
+app.post('/errors', async (c) => {
+  try {
+    const error: TrackedError = await c.req.json()
+
+    console.log(`[ErrorTracker] Received error: ${error.id} (${error.severity})`)
+
+    // Store in KV for quick access
+    const kv = c.env.CACHE_KV
+    if (kv) {
+      const key = `error:${error.id}`
+      await kv.put(key, JSON.stringify(error), {
+        expirationTtl: 60 * 60 * 24 * 7 // 7 days
+      })
+    }
+
+    // Store in D1 for long-term storage
+    const db = c.env.DB
+    if (db) {
+      try {
+        await db.prepare(`
+          INSERT INTO error_reports (
+            error_id, severity, category, message, stack,
+            context, breadcrumbs, occurrence_count, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          error.id,
+          error.severity,
+          error.category,
+          error.message,
+          error.stack || '',
+          JSON.stringify(error.context),
+          JSON.stringify(error.breadcrumbs),
+          error.occurrenceCount,
+          new Date(error.timestamp).toISOString()
+        ).run()
+      } catch (dbError) {
+        console.error('[ErrorTracker] Failed to store in D1:', dbError)
+      }
+    }
+
+    // Send critical error notifications
+    if (error.severity === 'critical') {
+      await sendErrorNotification(error, c.env)
+    }
+
+    return c.json({ success: true, errorId: error.id })
+  } catch (error) {
+    console.error('[ErrorTracker] Failed to process error:', error)
+    return c.json({ success: false, error: 'Failed to process error' }, 500)
+  }
+})
+
+/**
+ * Performance monitoring endpoint
+ * POST /api/v1/system/performance
+ */
+app.post('/performance', async (c) => {
+  try {
+    const report: PerformanceReport = await c.req.json()
+
+    console.log(`[PerformanceMonitor] Received report from ${report.url}`)
+
+    // Store in KV for quick access
+    const kv = c.env.CACHE_KV
+    if (kv) {
+      const key = `perf:${report.timestamp}`
+      await kv.put(key, JSON.stringify(report), {
+        expirationTtl: 60 * 60 * 24 // 24 hours
+      })
+    }
+
+    // Store aggregated metrics in D1
+    const db = c.env.DB
+    if (db) {
+      try {
+        // Store web vitals
+        if (report.webVitals) {
+          await db.prepare(`
+            INSERT INTO performance_metrics (
+              url, user_agent, lcp, fid, cls, fcp, ttfb, tti, timestamp
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            report.url,
+            report.userAgent,
+            report.webVitals.LCP || null,
+            report.webVitals.FID || null,
+            report.webVitals.CLS || null,
+            report.webVitals.FCP || null,
+            report.webVitals.TTFB || null,
+            report.webVitals.TTI || null,
+            new Date(report.timestamp).toISOString()
+          ).run()
+        }
+      } catch (dbError) {
+        console.error('[PerformanceMonitor] Failed to store in D1:', dbError)
+      }
+    }
+
+    return c.json({ success: true, timestamp: report.timestamp })
+  } catch (error) {
+    console.error('[PerformanceMonitor] Failed to process report:', error)
+    return c.json({ success: false, error: 'Failed to process report' }, 500)
+  }
+})
+
+/**
+ * Get recent errors
+ * GET /api/v1/system/errors
+ */
+app.get('/errors',
+  authMiddleware,
+  requireRole([0, 1]), // Admin and Owner
+  async (c) => {
+    try {
+      const limit = Number(c.req.query('limit')) || 50
+
+      const db = c.env.DB
+      const result = await db.prepare(`
+        SELECT * FROM error_reports
+        ORDER BY created_at DESC
+        LIMIT ?
+      `).bind(limit).all()
+
+      return c.json({
+        success: true,
+        data: result.results || [],
+        count: result.results?.length || 0
+      })
+    } catch (error) {
+      console.error('[ErrorTracker] Failed to get errors:', error)
+      return c.json({ success: false, error: 'Failed to get errors' }, 500)
+    }
+  }
+)
+
+/**
+ * Get performance metrics
+ * GET /api/v1/system/performance
+ */
+app.get('/performance',
+  authMiddleware,
+  requireRole([0, 1]), // Admin and Owner
+  async (c) => {
+    try {
+      const hours = Number(c.req.query('hours')) || 24
+      const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+
+      const db = c.env.DB
+      const result = await db.prepare(`
+        SELECT
+          AVG(lcp) as avg_lcp,
+          AVG(fid) as avg_fid,
+          AVG(cls) as avg_cls,
+          AVG(fcp) as avg_fcp,
+          AVG(ttfb) as avg_ttfb,
+          AVG(tti) as avg_tti,
+          COUNT(*) as sample_count
+        FROM performance_metrics
+        WHERE timestamp > ?
+      `).bind(since).first()
+
+      return c.json({
+        success: true,
+        data: result || {},
+        period: `${hours} hours`
+      })
+    } catch (error) {
+      console.error('[PerformanceMonitor] Failed to get metrics:', error)
+      return c.json({ success: false, error: 'Failed to get metrics' }, 500)
+    }
+  }
+)
+
+// Send error notification helper
+async function sendErrorNotification(error: TrackedError, env: Env): Promise<void> {
+  try {
+    if (env.SLACK_WEBHOOK_URL) {
+      await fetch(env.SLACK_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `🚨 Critical Error Detected`,
+          attachments: [{
+            color: 'danger',
+            fields: [
+              { title: 'Error ID', value: error.id, short: true },
+              { title: 'Severity', value: error.severity, short: true },
+              { title: 'Category', value: error.category, short: true },
+              { title: 'Occurrences', value: error.occurrenceCount.toString(), short: true },
+              { title: 'Message', value: error.message, short: false },
+              { title: 'Stack', value: error.stack?.substring(0, 500) || 'N/A', short: false }
+            ]
+          }]
+        })
+      })
+    }
+  } catch (notifyError) {
+    console.error('[ErrorTracker] Failed to send notification:', notifyError)
+  }
+}
 
 // 輔助函數：發送關鍵錯誤通知
 async function sendCriticalErrorNotification(errors: any[], user: any, env: Env) {

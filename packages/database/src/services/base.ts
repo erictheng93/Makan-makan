@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import type { D1Database } from '@cloudflare/workers-types'
 import * as schema from '../schema'
 import { QueryCache, buildCacheKey, type QueryCacheOptions } from '../utils/query-cache'
+import { getConnectionManager, type ConnectionManager } from '../utils/connection-manager'
 
 export interface CloudflareEnv {
   JWT_SECRET: string
@@ -16,6 +17,7 @@ export class BaseService {
   protected d1: D1Database
   protected env: CloudflareEnv
   protected queryCache: QueryCache
+  protected connectionManager: ConnectionManager
 
   constructor(d1: D1Database, env: CloudflareEnv) {
     this.d1 = d1
@@ -25,6 +27,7 @@ export class BaseService {
       logger: env.NODE_ENV === 'development'
     })
     this.queryCache = new QueryCache(env.CACHE_KV)
+    this.connectionManager = getConnectionManager()
   }
 
   /**
@@ -51,6 +54,29 @@ export class BaseService {
    */
   protected buildCacheKey(resource: string, identifier: string | number, suffix?: string): string {
     return buildCacheKey(resource, identifier, suffix)
+  }
+
+  /**
+   * Execute query with connection management
+   * Provides retry logic, timeout handling, and batching
+   */
+  protected async managedQuery<T>(
+    queryFn: () => Promise<T>,
+    options?: {
+      priority?: number
+      timeout?: number
+      maxRetries?: number
+      batchable?: boolean
+    }
+  ): Promise<T> {
+    return this.connectionManager.executeQuery(queryFn, options)
+  }
+
+  /**
+   * Get connection metrics for monitoring
+   */
+  protected getConnectionMetrics() {
+    return this.connectionManager.getMetrics()
   }
 
   // 通用錯誤處理

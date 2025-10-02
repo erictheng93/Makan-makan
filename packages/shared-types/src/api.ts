@@ -1,4 +1,5 @@
-import { ApiResponse, PaginationParams } from './common';
+import { ApiResponse } from './common';
+import { PaginationParams, PaginatedResponse as PaginationPaginatedResponse } from './pagination';
 
 // HTTP 方法
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -63,17 +64,8 @@ export interface ApiError {
   requestId?: string;
 }
 
-// 分頁響應
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+// 分頁響應 - Re-export from pagination module
+export { type PaginationPaginatedResponse as PaginatedResponse };
 
 // 查詢過濾器基礎介面
 export interface BaseFilter extends PaginationParams {

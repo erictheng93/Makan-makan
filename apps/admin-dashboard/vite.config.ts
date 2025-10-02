@@ -1,9 +1,19 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // Bundle analyzer for production builds
+    process.env.ANALYZE === 'true' && visualizer({
+      filename: './dist/stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true
+    })
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -25,13 +35,86 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     sourcemap: process.env.NODE_ENV !== 'production', // SECURITY FIX: Disable sourcemaps in production
+    minify: 'esbuild',
+    cssMinify: true,
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'],
-          charts: ['chart.js', 'vue-chartjs']
+        manualChunks: (id) => {
+          // Vue core ecosystem
+          if (id.includes('node_modules/vue/') || id.includes('node_modules/@vue/')) {
+            return 'vue-core'
+          }
+          if (id.includes('node_modules/vue-router/')) {
+            return 'vue-router'
+          }
+          if (id.includes('node_modules/pinia/')) {
+            return 'pinia'
+          }
+
+          // UI libraries - split into separate chunks
+          if (id.includes('node_modules/@headlessui/vue')) {
+            return 'headlessui'
+          }
+          if (id.includes('node_modules/@heroicons/vue')) {
+            return 'heroicons'
+          }
+          if (id.includes('node_modules/lucide-vue-next')) {
+            return 'lucide'
+          }
+          if (id.includes('node_modules/vue-toastification')) {
+            return 'toastification'
+          }
+
+          // Heavy charting libraries - lazy load
+          if (id.includes('node_modules/chart.js')) {
+            return 'chartjs'
+          }
+          if (id.includes('node_modules/vue-chartjs')) {
+            return 'vue-chartjs'
+          }
+
+          // i18n
+          if (id.includes('node_modules/vue-i18n')) {
+            return 'i18n'
+          }
+
+          // Utils
+          if (id.includes('node_modules/axios')) {
+            return 'axios'
+          }
+          if (id.includes('node_modules/lodash-es')) {
+            return 'lodash'
+          }
+          if (id.includes('node_modules/date-fns')) {
+            return 'date-fns'
+          }
+          if (id.includes('node_modules/@vueuse/core')) {
+            return 'vueuse'
+          }
+
+          // Other node_modules
+          if (id.includes('node_modules/')) {
+            return 'vendor'
+          }
         }
       }
     }
+  },
+  optimizeDeps: {
+    include: [
+      'vue',
+      'vue-router',
+      'pinia',
+      '@vueuse/core',
+      'axios',
+      'date-fns',
+      'lodash-es'
+    ],
+    exclude: ['chart.js', 'vue-chartjs']
+  },
+  css: {
+    devSourcemap: process.env.NODE_ENV !== 'production'
   }
 })

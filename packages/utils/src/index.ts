@@ -1,0 +1,50 @@
+/**
+ * @makanmakan/utils
+ *
+ * Shared utilities for MakanMakan platform
+ */
+
+// Request deduplication
+export {
+  RequestDeduplicator,
+  getDeduplicator,
+  resetDeduplicator,
+  deduplicate,
+  withDeduplication,
+  batchDedupe,
+  type RequestCacheEntry,
+  type RequestDeduplicationOptions,
+} from './request-deduplication'
+
+// Axios deduplication interceptor
+export {
+  installAxiosDeduplication,
+  skipDedup,
+  withDedupTTL,
+  combineConfigs
+} from './axios-deduplication-interceptor'
+
+// Error tracking
+export {
+  ErrorTracker,
+  getErrorTracker,
+  resetErrorTracker,
+  type ErrorSeverity,
+  type ErrorCategory,
+  type ErrorContext,
+  type ErrorBreadcrumb,
+  type TrackedError,
+  type ErrorTrackingOptions
+} from './error-tracking'
+
+// Performance monitoring
+export {
+  PerformanceMonitor,
+  getPerformanceMonitor,
+  resetPerformanceMonitor,
+  type PerformanceMetric,
+  type WebVitals,
+  type ResourceTiming,
+  type PerformanceReport,
+  type PerformanceMonitorOptions
+} from './performance-monitor'

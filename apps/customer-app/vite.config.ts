@@ -2,11 +2,23 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
+    // Bundle analyzer for production builds
+    ...(process.env.ANALYZE === "true"
+      ? [
+          visualizer({
+            filename: "./dist/stats.html",
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
@@ -139,6 +151,24 @@ export default defineConfig({
           }
           if (id.includes("node_modules/qrcode-reader")) {
             return "qrcode-reader";
+          }
+
+          // PWA-specific chunks
+          if (id.includes("node_modules/workbox-")) {
+            return "workbox";
+          }
+          if (id.includes("node_modules/idb")) {
+            return "idb";
+          }
+
+          // VueUse composables
+          if (id.includes("node_modules/@vueuse/core")) {
+            return "vueuse";
+          }
+
+          // TanStack Query
+          if (id.includes("node_modules/@tanstack/vue-query")) {
+            return "tanstack-query";
           }
 
           // Other node_modules

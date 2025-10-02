@@ -21,13 +21,6 @@ export interface ApiResponse<T = any> {
   };
 }
 
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: 'asc' | 'desc';
-}
-
 export interface BaseEntity {
   id: number;
   createdAt: string;
