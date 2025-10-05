@@ -99,7 +99,7 @@ export function useDeduplicated<T extends (...args: any[]) => Promise<any>>(
 ): T {
   const deduplicator = new RequestDeduplicator(options)
 
-  return ((...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     const key = keyGenerator(...args)
     return deduplicator.dedupe(key, () => fn(...args))
   }) as T

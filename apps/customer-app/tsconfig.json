@@ -7,13 +7,16 @@
     "paths": {
       "@/*": ["./src/*"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"]
+      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmakan/utils": ["../../packages/utils/src"],
+      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
     }
   },
   "include": [
     "src/**/*",
     "*.config.*",
-    "../../packages/shared-types/src/**/*"
+    "../../packages/shared-types/src/**/*",
+    "../../packages/utils/src/**/*"
   ],
   "exclude": [
     "node_modules",

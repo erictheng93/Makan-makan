@@ -9,7 +9,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 ## Architecture Transition Status
 
 **✅ MIGRATION COMPLETED**
-- **Legacy System**: PHP + MySQL (archived in `/legacy/` folder)
+- **Legacy System**: PHP + MySQL (archived externally, removed from repository)
 - **New System**: Cloudflare Workers + D1 + TypeScript (**Production Ready**)
 - **Migration Status**: Complete serverless architecture implementation with 0 TypeScript errors
 - **Current Phase**: Performance optimization and feature enhancement
@@ -35,15 +35,20 @@ makanmakan/
 │   ├── kitchen-display/       # Kitchen display system for chefs
 │   ├── api/                   # API services (Cloudflare Workers)
 │   ├── realtime/              # Real-time services (Durable Objects)
-│   └── image-processor/       # Image processing worker
+│   ├── image-processor/       # Image processing worker
+│   ├── print-agent/           # Local print agent for POS receipt printing
+│   └── backup-scheduler/      # Automated backup scheduler (Cloudflare Cron)
 ├── packages/
 │   ├── shared-types/          # Shared TypeScript definitions
 │   ├── database/              # D1 database schema & migrations
-│   └── utils/                 # Shared utilities
-├── legacy/                    # Original PHP system (deprecated)
+│   ├── utils/                 # Shared utilities (deduplication, error tracking, performance)
+│   ├── queue-core/            # Queue system core types and validators
+│   ├── queue-service/         # Queue service layer implementation
+│   └── shared/                # Shared Vue components, composables, and utilities
 └── docs/                      # Documentation
-    ├── requirements_optimized.md  # Product Requirements Document
-    └── technical-documentation.md # Technical specifications
+    ├── requirements.md            # Product Requirements Document
+    └── architecture/
+        └── technical-documentation.md  # Technical specifications
 ```
 
 ## Database Configuration (Cloudflare D1)
@@ -319,18 +324,21 @@ npx wrangler kv:key list --binding CACHE_KV
 
 ## Migration from Legacy System
 
-### Data Migration Process
-1. **Export Legacy Data**: Custom PHP scripts in `/legacy/migration/`
-2. **Transform Schema**: Map old structure to new D1 tables
+### Migration Status: ✅ COMPLETED
+The migration from the legacy PHP/MySQL system to the new Cloudflare serverless architecture has been successfully completed. Legacy code has been archived externally and removed from the repository.
+
+### Data Migration Process (Completed)
+1. **Export Legacy Data**: Custom PHP scripts (archived externally)
+2. **Transform Schema**: Mapped old structure to new D1 tables
 3. **Import to D1**: Batch import with validation
 4. **Verify Data Integrity**: Automated checks and reports
-5. **Cutover Planning**: Blue-green deployment strategy
+5. **Cutover Planning**: Blue-green deployment strategy executed
 
-### Backward Compatibility
-- **API Endpoints**: Legacy endpoints redirected during transition
-- **File References**: Image URLs mapped to new R2/Images structure  
-- **User Sessions**: Gradual migration of active sessions
-- **QR Codes**: Legacy QR codes continue to work during transition
+### Backward Compatibility (Maintained)
+- **API Endpoints**: Legacy endpoints redirected to new API
+- **File References**: Image URLs mapped to R2/Images structure
+- **User Sessions**: All sessions migrated to new system
+- **QR Codes**: Legacy QR codes continue to work seamlessly
 
 ## Future Roadmap
 
@@ -517,10 +525,10 @@ cd apps/kitchen-display && npx vue-tsc --noEmit  # ⚠️ 5 minor errors remaini
 ### 🔒 Security Enhancements (Completed: 2025-08-31)
 
 **Added Comprehensive Security Documentation**:
-- `SECURITY.md`: Complete security guidelines and protocols
-- `DEPLOYMENT_SECURITY_CHECKLIST.md`: Pre-deployment security verification
+- `SECURITY_AUDIT_REPORT.md`: Security audit findings and recommendations
 - `SQL/migrate_passwords_security.sql`: Database security migration
 - Enhanced error handling and audit logging across all services
+- Security documentation available in `docs/security/` directory
 
 ### 🧪 Testing Infrastructure (Completed: 2025-08-31)
 
@@ -550,5 +558,5 @@ tests/e2e/                              # End-to-end tests
 **Security Status**: 🔒 Enhanced Security Documentation Added
 **Code Quality**: ✅ Perfect ESLint Compliance Achieved
 
-For detailed technical specifications, see `docs/technical-documentation.md`
-For product requirements, see `docs/requirements_optimized.md`
+For detailed technical specifications, see `docs/architecture/technical-documentation.md`
+For product requirements, see `docs/requirements.md`

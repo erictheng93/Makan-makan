@@ -12,7 +12,7 @@ export function usePerformanceMonitor() {
     trackResources: true,
     sampleRate: import.meta.env.PROD ? 0.1 : 1.0, // 10% sampling in production
     debug: import.meta.env.DEV,
-    onReport: async (report) => {
+    onReport: async (report: PerformanceReport) => {
       // Send to backend
       if (import.meta.env.PROD) {
         try {

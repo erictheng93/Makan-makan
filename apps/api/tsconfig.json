@@ -15,17 +15,26 @@
     "skipLibCheck": true,
     "paths": {
       "@makanmakan/database": ["../../packages/database/src"],
+      "@makanmakan/database/*": ["../../packages/database/src/*"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
+      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmakan/utils": ["../../packages/utils/src"],
+      "@makanmakan/utils/*": ["../../packages/utils/src/*"],
       "@makanmakan/queue-core": ["../../packages/queue-core/src"],
       "@makanmakan/queue-service": ["../../packages/queue-service/src"]
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "../../packages/database/src/**/*",
+    "../../packages/shared-types/src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "src/shared/templates"
+    "src/shared/templates",
+    "../../packages/utils/src/performance-monitor.ts",
+    "../../packages/utils/src/error-tracking.ts",
+    "../../packages/utils/**/*"
   ]
 }

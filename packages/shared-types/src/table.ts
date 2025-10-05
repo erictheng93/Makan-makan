@@ -1,4 +1,4 @@
-import { BaseEntity, Status } from './common';
+import { BaseEntity } from './common';
 
 export interface Table extends BaseEntity {
   restaurantId: number;

@@ -105,7 +105,7 @@ export function installAxiosDeduplication(
   const originalDelete = axiosInstance.delete
 
   // GET requests - always deduplicate
-  axiosInstance.get = function <T = any, R = any, D = any>(
+  axiosInstance.get = function <_T = any, R = any, D = any>(
     url: string,
     config?: AxiosRequestConfig<D>
   ): Promise<R> {
@@ -125,7 +125,7 @@ export function installAxiosDeduplication(
   }
 
   // POST requests - deduplicate only if cache key is same
-  axiosInstance.post = function <T = any, R = any, D = any>(
+  axiosInstance.post = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>
@@ -146,7 +146,7 @@ export function installAxiosDeduplication(
   }
 
   // PUT requests - deduplicate with short TTL
-  axiosInstance.put = function <T = any, R = any, D = any>(
+  axiosInstance.put = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>
@@ -167,7 +167,7 @@ export function installAxiosDeduplication(
   }
 
   // PATCH requests - deduplicate with short TTL
-  axiosInstance.patch = function <T = any, R = any, D = any>(
+  axiosInstance.patch = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>
@@ -188,7 +188,7 @@ export function installAxiosDeduplication(
   }
 
   // DELETE requests - don't deduplicate by default (use skipDedup to force)
-  axiosInstance.delete = function <T = any, R = any, D = any>(
+  axiosInstance.delete = function <_T = any, R = any, D = any>(
     url: string,
     config?: AxiosRequestConfig<D>
   ): Promise<R> {

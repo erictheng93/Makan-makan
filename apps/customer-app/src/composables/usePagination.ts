@@ -118,7 +118,7 @@ export function useInfiniteScroll<T>(
 
       const response = await fetchFn(params.value);
 
-      state.value.items.push(...response.data);
+      (state.value.items as T[]).push(...response.data);
       state.value.currentPage = nextPage;
       state.value.hasMore = response.pagination.hasNextPage;
     } catch (e) {

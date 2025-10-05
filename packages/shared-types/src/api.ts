@@ -1,4 +1,3 @@
-import { ApiResponse } from './common';
 import { PaginationParams, PaginatedResponse as PaginationPaginatedResponse } from './pagination';
 
 // HTTP 方法

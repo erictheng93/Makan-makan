@@ -3,7 +3,7 @@
  */
 
 import { ref, onMounted, onErrorCaptured } from 'vue'
-import { getErrorTracker, type ErrorContext, type TrackedError } from '@makanmakan/utils'
+import { getErrorTracker, type TrackedError } from '@makanmakan/utils'
 
 export function useErrorTracking() {
   const tracker = getErrorTracker({
@@ -11,7 +11,7 @@ export function useErrorTracking() {
     captureConsoleErrors: true,
     captureUnhandledRejections: true,
     debug: import.meta.env.DEV,
-    onError: async (error) => {
+    onError: async (error: TrackedError) => {
       // Send to backend
       if (import.meta.env.PROD) {
         try {

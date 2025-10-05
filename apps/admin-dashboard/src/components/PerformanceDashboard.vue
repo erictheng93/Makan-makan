@@ -147,6 +147,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
+import type { PerformanceMetric, ResourceTiming } from '@makanmakan/utils'
 
 const {
   webVitals,
@@ -165,14 +166,14 @@ const performanceGrade = computed(() => getPerformanceGrade())
 const recentMetrics = computed(() => {
   return metrics.value
     .slice()
-    .sort((a, b) => b.timestamp - a.timestamp)
+    .sort((a: PerformanceMetric, b: PerformanceMetric) => b.timestamp - a.timestamp)
     .slice(0, 20)
 })
 
 const slowResources = computed(() => {
   return resources.value
-    .filter(r => r.duration > 1000)
-    .sort((a, b) => b.duration - a.duration)
+    .filter((r: ResourceTiming) => r.duration > 1000)
+    .sort((a: ResourceTiming, b: ResourceTiming) => b.duration - a.duration)
     .slice(0, 10)
 })
 

@@ -17,9 +17,20 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../../packages/shared-types/src/*"]
+      "@shared/*": ["../../packages/shared-types/src/*"],
+      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
+      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmakan/utils": ["../../packages/utils/src"],
+      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "../../packages/shared-types/src/**/*",
+    "../../packages/utils/src/**/*"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

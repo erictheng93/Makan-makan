@@ -4,7 +4,31 @@ import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody } from '../middleware/validation'
 import { createDatabase, ErrorReportingService, sql, type CreateErrorReportData } from '@makanmakan/database'
 import type { Env } from '../types/env'
-import type { TrackedError, PerformanceReport } from '@makanmakan/utils'
+
+// Type definitions (from @makanmakan/utils but defined inline to avoid browser dependency issues)
+interface TrackedError {
+  id: string
+  message: string
+  stack?: string
+  type: string
+  category?: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  timestamp: number
+  occurrenceCount?: number
+  context?: Record<string, any>
+  breadcrumbs?: any[]
+  userAgent?: string
+  url?: string
+}
+
+interface PerformanceReport {
+  timestamp: number
+  url?: string
+  userAgent?: string
+  metrics: any[]
+  webVitals: Record<string, number>
+  resources: any[]
+}
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -441,7 +465,7 @@ async function sendErrorNotification(error: TrackedError, env: Env): Promise<voi
               { title: 'Error ID', value: error.id, short: true },
               { title: 'Severity', value: error.severity, short: true },
               { title: 'Category', value: error.category, short: true },
-              { title: 'Occurrences', value: error.occurrenceCount.toString(), short: true },
+              { title: 'Occurrences', value: (error.occurrenceCount || 1).toString(), short: true },
               { title: 'Message', value: error.message, short: false },
               { title: 'Stack', value: error.stack?.substring(0, 500) || 'N/A', short: false }
             ]

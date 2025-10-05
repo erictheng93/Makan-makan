@@ -5,11 +5,10 @@
  */
 
 import { Hono } from 'hono'
-import { eq, and, sql } from 'drizzle-orm'
-import { orders, menuItems, users } from '@makanmakan/database'
+import { orders, menuItems, users, eq, and, sql } from '@makanmakan/database'
 import {
   paginateQuery,
-  paginateWithCursor,
+  paginateWithCursor as _paginateWithCursor,
   searchWithPagination,
   applyPagination,
   applySorting,
@@ -18,11 +17,20 @@ import {
 } from '@makanmakan/database/utils/pagination-helpers'
 import {
   validatePaginationParams,
-  _normalizePaginationParams,
+  normalizePaginationParams as _normalizePaginationParams,
   type PaginationParams
-} from '@makanmakan/shared-types/pagination'
+} from '@makanmakan/shared-types'
 
-const app = new Hono()
+// Example type definitions for Hono context
+type Env = {
+  DB: any // D1Database from Cloudflare
+}
+
+type Variables = {
+  restaurantId: number
+}
+
+const app = new Hono<{ Bindings: Env; Variables: Variables }>()
 
 /**
  * Example 1: Basic offset-based pagination
@@ -83,7 +91,7 @@ app.get('/orders/manual', async (c) => {
       totalAmount: orders.totalAmount,
       status: orders.status,
       createdAt: orders.createdAt,
-      customerName: users.name
+      customerName: users.username
     })
     .from(orders)
     .leftJoin(users, eq(orders.customerId, users.id))
@@ -151,7 +159,11 @@ app.get('/menu/search', async (c) => {
  * Example 4: Cursor-based pagination (for real-time feeds)
  *
  * GET /messages?cursor=eyJpZCI6MTIzfQ==&limit=20
+ *
+ * Note: This example is commented out as the 'messages' table doesn't exist in the schema.
+ * Uncomment and adapt if you add a messages table.
  */
+/*
 app.get('/messages', async (c) => {
   const db = c.env.DB
   const conversationId = c.req.query('conversationId')
@@ -162,7 +174,7 @@ app.get('/messages', async (c) => {
     return c.json({ error: 'conversationId required' }, 400)
   }
 
-  // Use cursor pagination
+  // Use cursor pagination (requires a 'messages' table)
   const response = await paginateWithCursor(
     db,
     messages, // Assuming messages table exists
@@ -177,6 +189,7 @@ app.get('/messages', async (c) => {
 
   return c.json(response)
 })
+*/
 
 /**
  * Example 5: Filtered pagination with complex conditions

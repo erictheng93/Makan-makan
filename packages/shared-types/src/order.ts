@@ -1,5 +1,5 @@
 import { BaseEntity } from './common';
-import { MenuItem, MenuItemOptions } from './menu';
+import { MenuItem } from './menu';
 
 // Customer information interface
 export interface CustomerInfo {

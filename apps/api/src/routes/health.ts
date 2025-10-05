@@ -43,7 +43,6 @@ app.get('/', async (c: Context) => {
  * GET /health/detailed
  */
 app.get('/detailed', async (c: Context) => {
-  const startTime = Date.now()
   const checks: HealthCheck[] = []
 
   // Check Database
@@ -178,8 +177,6 @@ app.get('/detailed', async (c: Context) => {
   const hasFailures = checks.some(check => check.status === 'fail')
   const hasWarnings = checks.some(check => check.status === 'warn')
   const overallStatus = hasFailures ? 'unhealthy' : hasWarnings ? 'degraded' : 'healthy'
-
-  const totalDuration = Date.now() - startTime
 
   const response: HealthStatus = {
     status: overallStatus,
