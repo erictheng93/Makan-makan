@@ -71,6 +71,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.19(typescript@5.9.2))
+      '@makanmakan/ai-analytics':
+        specifier: workspace:*
+        version: link:../../packages/ai-analytics
       '@makanmakan/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
@@ -189,6 +192,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.2.0
         version: 0.2.2(hono@4.9.6)(zod@3.22.3)
+      '@makanmakan/ai-analytics':
+        specifier: workspace:*
+        version: link:../../packages/ai-analytics
       '@makanmakan/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -585,6 +591,19 @@ importers:
       wrangler:
         specifier: ^3.0.0
         version: 3.114.14(@cloudflare/workers-types@4.20250826.0)
+
+  packages/ai-analytics:
+    dependencies:
+      '@makanmakan/database':
+        specifier: workspace:*
+        version: link:../database
+      '@makanmakan/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.2
 
   packages/database:
     dependencies:
