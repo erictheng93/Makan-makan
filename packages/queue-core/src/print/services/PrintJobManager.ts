@@ -6,6 +6,7 @@
 import type {
   PrintJob,
   PrintJobStatus,
+  PrintJobPriority,
   PrintRequest,
   PrintContent,
   PrintServiceConfig
@@ -376,7 +377,7 @@ export class PrintJobManager {
   }
 
   private priorityComparator = (a: PrintJob, b: PrintJob): number => {
-    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 }
+    const priorityOrder: Record<PrintJobPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
 
     if (priorityDiff !== 0) return priorityDiff

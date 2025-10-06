@@ -164,7 +164,7 @@ import {
   CakeIcon,
   TableCellsIcon,
   CalculatorIcon,
-  CookingPotIcon,
+  FireIcon,
 } from "@heroicons/vue/24/solid";
 
 const router = useRouter();
@@ -205,7 +205,7 @@ const navigationLinks = computed(() => {
     {
       name: "廚房顯示",
       path: "/kitchen",
-      icon: CookingPotIcon,
+      icon: FireIcon,
       roles: [0, 1, 2],
     },
     {

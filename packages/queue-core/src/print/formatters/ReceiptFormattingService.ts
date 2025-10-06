@@ -314,7 +314,7 @@ export class ReceiptFormattingService {
     const requiredSections: (keyof TemplateLayout)[] = ['header', 'items', 'summary', 'footer']
     for (const section of requiredSections) {
       if (!template.layout[section]) {
-        throw new PrintFormattingError(`Template layout missing section: ${section}`)
+        throw new PrintFormattingError(`Template layout missing section: ${String(section)}`)
       }
     }
   }
