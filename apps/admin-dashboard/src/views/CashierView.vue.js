@@ -103,6 +103,7 @@ const orders = ref([
         taxAmount: 1.88,
         discountAmount: 5.0,
         totalAmount: 28.23,
+        couponCode: "WELCOME10", // 示例優惠券代碼
         items: [
             {
                 id: 4,
@@ -728,9 +729,22 @@ if (__VLS_ctx.selectedOrder) {
         // @ts-ignore
         [selectedOrder,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "flex justify-between text-sm text-green-600" },
+            ...{ class: "text-sm text-green-600" },
         });
-        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex justify-between" },
+        });
+        if (__VLS_ctx.selectedOrder.couponCode) {
+            // @ts-ignore
+            [selectedOrder,];
+            __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+            (__VLS_ctx.selectedOrder.couponCode);
+            // @ts-ignore
+            [selectedOrder,];
+        }
+        else {
+            __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        }
         __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
         (__VLS_ctx.formatMoney(__VLS_ctx.selectedOrder.discountAmount));
         // @ts-ignore
@@ -1511,10 +1525,10 @@ if (__VLS_ctx.showPaymentSuccess) {
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['flex']} */ ;
-/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-green-600']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-lg']} */ ;

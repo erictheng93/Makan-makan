@@ -18,7 +18,7 @@ import {
   DEFAULT_PAGINATION_CONFIG,
   encodeCursor,
   decodeCursor
-} from '@makanmakan/shared-types/pagination'
+} from '@makanmakan/shared-types'
 
 /**
  * Apply pagination to Drizzle query

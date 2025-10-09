@@ -2,12 +2,13 @@
 export { BaseService } from './base'
 export { USER_ROLES } from '../schema'
 export { RestaurantService } from './restaurant'
-export { MenuService } from './menu' 
+export { MenuService } from './menu'
 export { OrderService } from './order'
 export { AuthService } from './auth'
 export { UserService } from './user'
 export { SessionService } from './session'
 export { TableService } from './table'
+export { SeatService } from './seat'
 export { AnalyticsService } from './analytics'
 export { ErrorReportingService } from './error-reporting'
 export { QRCodeService } from './qrcode'
@@ -98,3 +99,11 @@ export type {
   UseCouponData,
   CouponFilters
 } from './coupon'
+
+export type {
+  CreateSeatData,
+  UpdateSeatData,
+  SeatFilters,
+  SeatNumberingOptions,
+  SeatStats
+} from './seat'

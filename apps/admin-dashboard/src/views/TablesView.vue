@@ -71,7 +71,7 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
           <div class="p-2 bg-gray-100 rounded-lg">
-            <WrenchScrewdriverIcon class="h-6 w-6 text-gray-600" />
+            <WrenchIcon class="h-6 w-6 text-gray-600" />
           </div>
           <div class="ml-4">
             <h3 class="text-lg font-semibold text-gray-900">維護中</h3>
@@ -230,7 +230,7 @@
           class="fixed inset-0 bg-black opacity-30"
           @click="closeTableModal"
         />
-        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
               {{ editingTable ? "編輯桌台" : "新增桌台" }}
@@ -304,6 +304,14 @@
                     <option value="maintenance">維護中</option>
                   </select>
                 </div>
+              </div>
+
+              <!-- QR 模式選擇器 -->
+              <div class="mt-6">
+                <QRModeSelector
+                  v-model="tableForm.qrMode"
+                  v-model:seat-config="tableForm.seatConfig"
+                />
               </div>
 
               <div class="flex justify-end space-x-3 mt-6">
@@ -395,7 +403,9 @@ import {
   MapPinIcon,
   DocumentTextIcon,
   TableCellsIcon,
+  WrenchIcon
 } from "@heroicons/vue/24/outline";
+import QRModeSelector from "../components/tables/QRModeSelector.vue";
 
 // 響應式數據
 const searchQuery = ref("");
@@ -467,6 +477,11 @@ const tableForm = ref({
   capacity: 4,
   location: "",
   status: "available",
+  qrMode: "table" as "table" | "seat",
+  seatConfig: {
+    count: 10,
+    numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom"
+  }
 });
 
 // 計算屬性
@@ -606,6 +621,11 @@ const closeTableModal = () => {
     capacity: 4,
     location: "",
     status: "available",
+    qrMode: "table",
+    seatConfig: {
+      count: 10,
+      numberingStyle: "numeric"
+    }
   };
 };
 

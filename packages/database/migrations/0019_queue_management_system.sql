@@ -35,8 +35,9 @@ CREATE TABLE waiting_queue (
     
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_table_id) REFERENCES tables(id) ON DELETE SET NULL,
-    FOREIGN KEY (served_by) REFERENCES users(id) ON DELETE SET NULL,
-    UNIQUE(restaurant_id, queue_number, DATE(joined_at))
+    FOREIGN KEY (served_by) REFERENCES users(id) ON DELETE SET NULL
+    -- Note: UNIQUE constraint removed as DATE() expressions not allowed
+    -- Application should enforce daily queue number uniqueness
 );
 
 -- 2. 隊列通知記錄表
@@ -174,7 +175,8 @@ CREATE INDEX idx_waiting_queue_restaurant_id ON waiting_queue(restaurant_id);
 CREATE INDEX idx_waiting_queue_status ON waiting_queue(status);
 CREATE INDEX idx_waiting_queue_joined_at ON waiting_queue(joined_at);
 CREATE INDEX idx_waiting_queue_priority ON waiting_queue(priority DESC);
-CREATE INDEX idx_waiting_queue_queue_number ON waiting_queue(restaurant_id, queue_number, DATE(joined_at));
+-- Note: Cannot use DATE() in index - use joined_at instead
+CREATE INDEX idx_waiting_queue_queue_number ON waiting_queue(restaurant_id, queue_number, joined_at);
 CREATE INDEX idx_waiting_queue_customer_phone ON waiting_queue(customer_phone);
 
 CREATE INDEX idx_queue_notifications_queue_id ON queue_notifications(queue_id);

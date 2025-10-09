@@ -1,0 +1,598 @@
+import { eq, and, desc, asc, like, or, count, inArray } from 'drizzle-orm'
+import { BaseService } from './base'
+import { seats, tables, restaurants } from '../schema'
+
+export interface CreateSeatData {
+  tableId: number
+  seatNumber: string
+  seatName?: string
+  position?: string
+}
+
+export interface UpdateSeatData {
+  seatNumber?: string
+  seatName?: string
+  position?: string
+  isActive?: boolean
+}
+
+export interface SeatFilters {
+  tableId?: number
+  isOccupied?: boolean
+  isActive?: boolean
+  seatNumbers?: string[]
+  page?: number
+  limit?: number
+}
+
+export interface SeatNumberingOptions {
+  numberingStyle?: 'numeric' | 'alphabetic' | 'custom'
+  customNumbers?: string[]
+  prefix?: string
+}
+
+export interface SeatStats {
+  totalSeats: number
+  occupiedSeats: number
+  availableSeats: number
+  inactiveSeats: number
+  averageOccupancyRate: number
+}
+
+/**
+ * 座位服務
+ * 負責座位的創建、管理和操作
+ */
+export class SeatService extends BaseService {
+
+  /**
+   * 為桌子批量創建座位
+   */
+  async createSeatsForTable(
+    tableId: number,
+    seatCount: number,
+    options: SeatNumberingOptions = {}
+  ): Promise<any[]> {
+    try {
+      // 驗證桌子是否存在
+      const table = await this.db
+        .select({ id: tables.id, restaurantId: tables.restaurantId, number: tables.number })
+        .from(tables)
+        .where(eq(tables.id, tableId))
+        .get()
+
+      if (!table) {
+        throw new Error('Table not found')
+      }
+
+      // 生成座位編號
+      const seatNumbers = this.generateSeatNumbers(seatCount, options)
+
+      // 批量創建座位
+      const createdSeats = []
+      for (const seatNumber of seatNumbers) {
+        const qrCode = this.generateSeatQRCode(table.restaurantId, tableId, seatNumber)
+
+        const [newSeat] = await this.db
+          .insert(seats)
+          .values({
+            tableId,
+            seatNumber,
+            qrCode,
+            qrCodeVersion: 1,
+            isOccupied: false,
+            isActive: true,
+            totalUsage: 0
+          })
+          .returning()
+
+        createdSeats.push(newSeat)
+      }
+
+      return createdSeats
+    } catch (error) {
+      this.handleError(error, 'createSeatsForTable')
+    }
+  }
+
+  /**
+   * 獲取單個座位
+   */
+  async getSeatById(seatId: number): Promise<any> {
+    try {
+      const seat = await this.db
+        .select({
+          id: seats.id,
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          seatName: seats.seatName,
+          position: seats.position,
+          qrCode: seats.qrCode,
+          qrCodeImageUrl: seats.qrCodeImageUrl,
+          qrCodeVersion: seats.qrCodeVersion,
+          isOccupied: seats.isOccupied,
+          isActive: seats.isActive,
+          currentOrderId: seats.currentOrderId,
+          occupiedAt: seats.occupiedAt,
+          occupiedBy: seats.occupiedBy,
+          totalUsage: seats.totalUsage,
+          createdAt: seats.createdAt,
+          updatedAt: seats.updatedAt,
+          // 桌子資訊
+          tableNumber: tables.number,
+          restaurantId: tables.restaurantId,
+          // 餐廳資訊
+          restaurantName: restaurants.name
+        })
+        .from(seats)
+        .leftJoin(tables, eq(seats.tableId, tables.id))
+        .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
+        .where(eq(seats.id, seatId))
+        .get()
+
+      return seat
+    } catch (error) {
+      this.handleError(error, 'getSeatById')
+    }
+  }
+
+  /**
+   * 根據 QR Code 獲取座位
+   */
+  async getSeatByQRCode(qrCode: string): Promise<any> {
+    try {
+      const seat = await this.db
+        .select({
+          id: seats.id,
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          seatName: seats.seatName,
+          position: seats.position,
+          qrCode: seats.qrCode,
+          isOccupied: seats.isOccupied,
+          isActive: seats.isActive,
+          currentOrderId: seats.currentOrderId,
+          // 桌子資訊
+          tableNumber: tables.number,
+          capacity: tables.capacity,
+          restaurantId: tables.restaurantId,
+          // 餐廳資訊
+          restaurantName: restaurants.name
+        })
+        .from(seats)
+        .leftJoin(tables, eq(seats.tableId, tables.id))
+        .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
+        .where(eq(seats.qrCode, qrCode))
+        .get()
+
+      return seat
+    } catch (error) {
+      this.handleError(error, 'getSeatByQRCode')
+    }
+  }
+
+  /**
+   * 獲取桌子的所有座位
+   */
+  async getSeatsByTableId(tableId: number, filters: Omit<SeatFilters, 'tableId'> = {}): Promise<{
+    seats: any[]
+    total: number
+    pagination?: { page: number; limit: number; totalPages: number }
+  }> {
+    try {
+      const { page = 1, limit = 50, isOccupied, isActive, seatNumbers } = filters
+      const { offset } = this.createPagination(page, limit)
+
+      // 建構查詢條件
+      const conditions = [eq(seats.tableId, tableId)]
+
+      if (isOccupied !== undefined) {
+        conditions.push(eq(seats.isOccupied, isOccupied))
+      }
+
+      if (isActive !== undefined) {
+        conditions.push(eq(seats.isActive, isActive))
+      }
+
+      if (seatNumbers && seatNumbers.length > 0) {
+        conditions.push(inArray(seats.seatNumber, seatNumbers))
+      }
+
+      // 查詢座位列表
+      const seatsList = await this.db
+        .select({
+          id: seats.id,
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          seatName: seats.seatName,
+          position: seats.position,
+          qrCode: seats.qrCode,
+          qrCodeImageUrl: seats.qrCodeImageUrl,
+          qrCodeVersion: seats.qrCodeVersion,
+          isOccupied: seats.isOccupied,
+          isActive: seats.isActive,
+          currentOrderId: seats.currentOrderId,
+          occupiedAt: seats.occupiedAt,
+          occupiedBy: seats.occupiedBy,
+          totalUsage: seats.totalUsage,
+          createdAt: seats.createdAt
+        })
+        .from(seats)
+        .where(and(...conditions))
+        .orderBy(asc(seats.seatNumber))
+        .limit(limit)
+        .offset(offset)
+
+      // 計算總數
+      const [{ total }] = await this.db
+        .select({ total: count() })
+        .from(seats)
+        .where(and(...conditions))
+
+      const totalPages = Math.ceil(total / limit)
+
+      return {
+        seats: seatsList,
+        total,
+        pagination: { page, limit, totalPages }
+      }
+    } catch (error) {
+      this.handleError(error, 'getSeatsByTableId')
+    }
+  }
+
+  /**
+   * 更新座位
+   */
+  async updateSeat(seatId: number, data: UpdateSeatData): Promise<any> {
+    try {
+      const [updatedSeat] = await this.db
+        .update(seats)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+        .returning()
+
+      return updatedSeat
+    } catch (error) {
+      this.handleError(error, 'updateSeat')
+    }
+  }
+
+  /**
+   * 刪除座位（軟刪除）
+   */
+  async deleteSeat(seatId: number): Promise<boolean> {
+    try {
+      await this.db
+        .update(seats)
+        .set({
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+
+      return true
+    } catch (error) {
+      console.error('Delete seat error:', error)
+      return false
+    }
+  }
+
+  /**
+   * 批量刪除桌子的所有座位（硬刪除，用於模式切換）
+   */
+  async deleteSeatsForTable(tableId: number): Promise<boolean> {
+    try {
+      await this.db
+        .delete(seats)
+        .where(eq(seats.tableId, tableId))
+
+      return true
+    } catch (error) {
+      console.error('Delete seats for table error:', error)
+      return false
+    }
+  }
+
+  /**
+   * 佔用座位
+   */
+  async occupySeat(seatId: number, orderId: number, occupiedBy?: string): Promise<boolean> {
+    try {
+      await this.db
+        .update(seats)
+        .set({
+          isOccupied: true,
+          currentOrderId: orderId,
+          occupiedAt: new Date(),
+          occupiedBy,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+
+      // 更新使用統計
+      await this.updateSeatUsageStats(seatId)
+
+      return true
+    } catch (error) {
+      console.error('Occupy seat error:', error)
+      return false
+    }
+  }
+
+  /**
+   * 釋放座位
+   */
+  async releaseSeat(seatId: number): Promise<boolean> {
+    try {
+      const seat = await this.db
+        .select({
+          occupiedAt: seats.occupiedAt,
+          totalUsage: seats.totalUsage
+        })
+        .from(seats)
+        .where(eq(seats.id, seatId))
+        .get()
+
+      await this.db
+        .update(seats)
+        .set({
+          isOccupied: false,
+          currentOrderId: null,
+          occupiedAt: null,
+          occupiedBy: null,
+          totalUsage: (seat?.totalUsage || 0) + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+
+      return true
+    } catch (error) {
+      console.error('Release seat error:', error)
+      return false
+    }
+  }
+
+  /**
+   * 重新生成座位 QR Code
+   */
+  async regenerateSeatQRCode(seatId: number): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+    try {
+      const seat = await this.db
+        .select({
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          qrCodeVersion: seats.qrCodeVersion
+        })
+        .from(seats)
+        .where(eq(seats.id, seatId))
+        .get()
+
+      if (!seat) {
+        return { success: false, error: 'Seat not found' }
+      }
+
+      const table = await this.db
+        .select({ restaurantId: tables.restaurantId })
+        .from(tables)
+        .where(eq(tables.id, seat.tableId))
+        .get()
+
+      if (!table) {
+        return { success: false, error: 'Table not found' }
+      }
+
+      const newQRCode = this.generateSeatQRCode(table.restaurantId, seat.tableId, seat.seatNumber)
+      const newVersion = (seat.qrCodeVersion || 0) + 1
+
+      await this.db
+        .update(seats)
+        .set({
+          qrCode: newQRCode,
+          qrCodeVersion: newVersion,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+
+      return { success: true, qrCode: newQRCode }
+    } catch (error) {
+      return { success: false, error: 'Failed to regenerate QR code' }
+    }
+  }
+
+  /**
+   * 批量生成座位 QR Codes
+   */
+  async batchGenerateSeatQRCodes(tableId: number): Promise<{
+    success: boolean
+    qrCodes?: Array<{ seatId: number; qrCode: string; seatNumber: string }>
+    error?: string
+  }> {
+    try {
+      const table = await this.db
+        .select({ restaurantId: tables.restaurantId })
+        .from(tables)
+        .where(eq(tables.id, tableId))
+        .get()
+
+      if (!table) {
+        return { success: false, error: 'Table not found' }
+      }
+
+      const seatsList = await this.db
+        .select({
+          id: seats.id,
+          seatNumber: seats.seatNumber,
+          qrCodeVersion: seats.qrCodeVersion
+        })
+        .from(seats)
+        .where(eq(seats.tableId, tableId))
+
+      const qrCodes = []
+
+      for (const seat of seatsList) {
+        const newQRCode = this.generateSeatQRCode(table.restaurantId, tableId, seat.seatNumber)
+        const newVersion = (seat.qrCodeVersion || 0) + 1
+
+        await this.db
+          .update(seats)
+          .set({
+            qrCode: newQRCode,
+            qrCodeVersion: newVersion,
+            updatedAt: new Date()
+          })
+          .where(eq(seats.id, seat.id))
+
+        qrCodes.push({
+          seatId: seat.id,
+          seatNumber: seat.seatNumber,
+          qrCode: newQRCode
+        })
+      }
+
+      return { success: true, qrCodes }
+    } catch (error) {
+      return { success: false, error: 'Failed to generate QR codes' }
+    }
+  }
+
+  /**
+   * 獲取座位統計
+   */
+  async getSeatStats(tableId: number): Promise<SeatStats> {
+    try {
+      // 總座位數
+      const [{ totalSeats }] = await this.db
+        .select({ totalSeats: count() })
+        .from(seats)
+        .where(eq(seats.tableId, tableId))
+
+      // 被佔用的座位數
+      const [{ occupiedSeats }] = await this.db
+        .select({ occupiedSeats: count() })
+        .from(seats)
+        .where(
+          and(
+            eq(seats.tableId, tableId),
+            eq(seats.isOccupied, true),
+            eq(seats.isActive, true)
+          )
+        )
+
+      // 可用座位數
+      const [{ availableSeats }] = await this.db
+        .select({ availableSeats: count() })
+        .from(seats)
+        .where(
+          and(
+            eq(seats.tableId, tableId),
+            eq(seats.isOccupied, false),
+            eq(seats.isActive, true)
+          )
+        )
+
+      // 不活躍座位數
+      const [{ inactiveSeats }] = await this.db
+        .select({ inactiveSeats: count() })
+        .from(seats)
+        .where(
+          and(
+            eq(seats.tableId, tableId),
+            eq(seats.isActive, false)
+          )
+        )
+
+      // 計算平均佔用率
+      const averageOccupancyRate = totalSeats > 0 ? (occupiedSeats / totalSeats) * 100 : 0
+
+      return {
+        totalSeats,
+        occupiedSeats,
+        availableSeats,
+        inactiveSeats,
+        averageOccupancyRate: Math.round(averageOccupancyRate * 100) / 100
+      }
+    } catch (error) {
+      this.handleError(error, 'getSeatStats')
+    }
+  }
+
+  // ============================================
+  // 私有輔助方法
+  // ============================================
+
+  /**
+   * 生成座位 QR Code 內容
+   */
+  private generateSeatQRCode(restaurantId: number, tableId: number, seatNumber: string): string {
+    const baseUrl = process.env.CLIENT_BASE_URL || 'https://makanmakan.com'
+    const qrData = {
+      type: 'seat',
+      restaurantId,
+      tableId,
+      seatNumber,
+      timestamp: Date.now(),
+      version: '2.0'
+    }
+
+    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
+  }
+
+  /**
+   * 生成座位編號
+   */
+  private generateSeatNumbers(
+    count: number,
+    options: SeatNumberingOptions = {}
+  ): string[] {
+    const { numberingStyle = 'numeric', customNumbers, prefix = '' } = options
+
+    if (customNumbers && customNumbers.length === count) {
+      return customNumbers
+    }
+
+    const numbers: string[] = []
+
+    if (numberingStyle === 'numeric') {
+      // 數字編號：01, 02, 03...
+      for (let i = 1; i <= count; i++) {
+        numbers.push(`${prefix}${String(i).padStart(2, '0')}`)
+      }
+    } else if (numberingStyle === 'alphabetic') {
+      // 字母編號：A, B, C...
+      for (let i = 0; i < count; i++) {
+        const letter = String.fromCharCode(65 + (i % 26)) // A-Z
+        const repeat = Math.floor(i / 26) + 1
+        numbers.push(`${prefix}${letter.repeat(repeat)}`)
+      }
+    }
+
+    return numbers
+  }
+
+  /**
+   * 更新座位使用統計
+   */
+  private async updateSeatUsageStats(seatId: number): Promise<void> {
+    try {
+      const seat = await this.db
+        .select({ totalUsage: seats.totalUsage })
+        .from(seats)
+        .where(eq(seats.id, seatId))
+        .get()
+
+      await this.db
+        .update(seats)
+        .set({
+          totalUsage: (seat?.totalUsage || 0) + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(seats.id, seatId))
+    } catch (error) {
+      console.error('Update seat usage stats error:', error)
+    }
+  }
+}

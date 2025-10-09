@@ -6,6 +6,9 @@ import vueParser from 'vue-eslint-parser'
 
 export default defineConfig([
   {
+    ignores: ['dist/**', 'node_modules/**', '*.config.js']
+  },
+  {
     files: ['**/*.{js,ts,vue}'],
     languageOptions: {
       parser: vueParser,

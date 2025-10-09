@@ -135,6 +135,33 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
         },
       },
+      {
+        path: "ai-analytics/config",
+        name: "AIProviderConfig",
+        component: () => import("@/views/ai-analytics/AIProviderConfig.vue"),
+        meta: {
+          title: "AI 配置",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
+        path: "ai-analytics/insights",
+        name: "AIInsightsDashboard",
+        component: () => import("@/views/ai-analytics/AIInsightsDashboard.vue"),
+        meta: {
+          title: "AI 洞察",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
+        path: "ai-analytics/products",
+        name: "ProductAnalytics",
+        component: () => import("@/views/ai-analytics/ProductAnalyticsView.vue"),
+        meta: {
+          title: "產品分析",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
     ],
   },
   {

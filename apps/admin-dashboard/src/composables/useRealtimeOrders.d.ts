@@ -52,7 +52,7 @@ export declare function useRealtimeOrders(): {
         timestamp: string;
         type: "created" | "updated" | "member_joined" | "member_left" | "payment_completed";
     }[]>;
-    connectionStatus: import("vue").Ref<"error" | "connecting" | "connected" | "disconnected", "error" | "connecting" | "connected" | "disconnected">;
+    connectionStatus: import("vue").Ref<"error" | "connected" | "disconnected" | "connecting", "error" | "connected" | "disconnected" | "connecting">;
     startListening: () => void;
     stopListening: () => void;
     clearUpdates: () => void;

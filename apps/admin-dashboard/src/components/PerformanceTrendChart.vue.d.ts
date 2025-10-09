@@ -7,9 +7,9 @@ interface Props {
     isLoading?: boolean;
 }
 declare const _default: import("vue").DefineComponent<Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<Props> & Readonly<{}>, {
-    isLoading: boolean;
     title: string;
-    height: number;
+    isLoading: boolean;
     width: number;
+    height: number;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

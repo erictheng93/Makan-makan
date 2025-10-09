@@ -78,6 +78,7 @@ import {
   CreditCard,
   Clock,
   Ticket as TicketIcon,
+  Sparkles,
 } from "lucide-vue-next";
 
 interface Props {
@@ -142,6 +143,13 @@ const navigationItems = computed(() => [
     path: "/dashboard/analytics",
     label: "數據分析",
     icon: BarChart3,
+    visible: authStore.canAccessAdminFeatures,
+  },
+  {
+    name: "ai-analytics",
+    path: "/dashboard/ai-analytics/insights",
+    label: "AI 洞察",
+    icon: Sparkles,
     visible: authStore.canAccessAdminFeatures,
   },
   {

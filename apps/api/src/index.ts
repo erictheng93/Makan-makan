@@ -62,6 +62,8 @@ import monitoringRouter from './routes/monitoring'
 import couponsFeature from './features/coupons'
 // import printRouter from './routes/print' // Disabled - incomplete feature
 // import { printApp } from './features/print' // Disabled - incomplete feature
+import aiAnalyticsRouter from './routes/ai-analytics'
+import seatsRouter from './routes/seats'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -182,7 +184,8 @@ app.get('/info', (c) => {
       'Role-based access control',
       'Coupon and discount management',
       'Comprehensive caching system',
-      'Cache monitoring and management'
+      'Cache monitoring and management',
+      'AI-powered business analytics'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -196,8 +199,10 @@ app.get('/info', (c) => {
       payments: '/api/v1/payments',
       // print: '/api/v1/print', // Disabled - incomplete feature
       tables: '/api/v1/tables',
+      seats: '/api/v1/seats',
       users: '/api/v1/users',
       analytics: '/api/v1/analytics',
+      aiAnalytics: '/api/v1/ai-analytics',
       kitchen: '/api/v1/kitchen',
       sse: '/api/v1/sse',
       system: '/api/v1/system',
@@ -234,8 +239,10 @@ apiV1.use('/pos/*', authMiddleware)
 apiV1.use('/payments/*', authMiddleware)
 // apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
 apiV1.use('/tables/*', authMiddleware)
+apiV1.use('/seats/*', authMiddleware)
 apiV1.use('/users/*', authMiddleware)
 apiV1.use('/analytics/*', authMiddleware)
+apiV1.use('/ai-analytics/*', authMiddleware)
 apiV1.use('/sse/*', authMiddleware)
 apiV1.use('/system/*', authMiddleware)
 apiV1.use('/cache/*', authMiddleware)
@@ -265,8 +272,10 @@ apiV1.route('/pos', posFeature.routes)
 // apiV1.route('/payments', paymentsRouter) // Disabled
 // apiV1.route('/print', printApp) // Disabled - incomplete feature
 apiV1.route('/tables', tablesFeature.routes)
+apiV1.route('/seats', seatsRouter)
 apiV1.route('/users', usersFeature.routes)
 apiV1.route('/analytics', analyticsFeature.routes)
+apiV1.route('/ai-analytics', aiAnalyticsRouter)
 apiV1.route('/sse', sseFeature.routes)
 apiV1.route('/system', systemFeature.routes)
 apiV1.route('/cache', cacheFeature)

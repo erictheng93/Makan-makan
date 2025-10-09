@@ -1,0 +1,27 @@
+{
+  "name": "@makanmakan/ai-analytics",
+  "version": "1.0.0",
+  "description": "AI-powered business analytics and insights for MakanMakan",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "analytics",
+    "llm",
+    "business-intelligence"
+  ],
+  "author": "MakanMakan Team",
+  "license": "MIT",
+  "dependencies": {
+    "@makanmakan/shared-types": "workspace:*",
+    "@makanmakan/database": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

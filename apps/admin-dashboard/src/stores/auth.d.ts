@@ -33,7 +33,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/dashboard" | "/kitchen" | "/cashier" | "/service" | "/owner";
+    getDefaultRoute: () => "/dashboard" | "/login" | "/service" | "/kitchen" | "/cashier" | "/owner";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;
@@ -45,7 +45,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     logout: () => Promise<void>;
     checkAuth: () => Promise<boolean>;
     refreshToken: () => Promise<boolean | undefined>;
-}, "user" | "token" | "isLoading">, Pick<{
+}, "user" | "isLoading" | "token">, Pick<{
     user: Readonly<import("vue").Ref<{
         readonly id: number;
         readonly username: string;
@@ -79,7 +79,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/dashboard" | "/kitchen" | "/cashier" | "/service" | "/owner";
+    getDefaultRoute: () => "/dashboard" | "/login" | "/service" | "/kitchen" | "/cashier" | "/owner";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;
@@ -91,7 +91,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     logout: () => Promise<void>;
     checkAuth: () => Promise<boolean>;
     refreshToken: () => Promise<boolean | undefined>;
-}, "restaurantId" | "isAuthenticated" | "userRole" | "canAccessAdminFeatures" | "canManageOrders" | "canManageMenu" | "canViewKitchen" | "canAccessService" | "canAccessCashier" | "canAccessOwnerDashboard" | "canManageStaff" | "canViewAnalytics" | "canManageSettings">, Pick<{
+}, "canManageOrders" | "canManageMenu" | "canAccessAdminFeatures" | "canViewKitchen" | "restaurantId" | "isAuthenticated" | "userRole" | "canAccessService" | "canAccessCashier" | "canAccessOwnerDashboard" | "canManageStaff" | "canViewAnalytics" | "canManageSettings">, Pick<{
     user: Readonly<import("vue").Ref<{
         readonly id: number;
         readonly username: string;
@@ -125,7 +125,7 @@ export declare const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<
     canManageStaff: import("vue").ComputedRef<boolean>;
     canViewAnalytics: import("vue").ComputedRef<boolean>;
     canManageSettings: import("vue").ComputedRef<boolean>;
-    getDefaultRoute: () => "/login" | "/dashboard" | "/kitchen" | "/cashier" | "/service" | "/owner";
+    getDefaultRoute: () => "/dashboard" | "/login" | "/service" | "/kitchen" | "/cashier" | "/owner";
     canAccessRoute: (routeName: string) => boolean;
     login: (username: string, password: string) => Promise<{
         success: boolean;

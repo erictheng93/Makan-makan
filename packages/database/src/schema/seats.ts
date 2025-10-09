@@ -1,0 +1,68 @@
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
+import { relations } from 'drizzle-orm'
+import { tables } from './tables'
+import { orders } from './orders'
+
+/**
+ * 座位表 - 支持座位級別的 QR 碼管理
+ * 當桌子的 qr_mode 為 'seat' 時使用
+ */
+export const seats = sqliteTable('seats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  tableId: integer('table_id').notNull().references(() => tables.id, {
+    onDelete: 'cascade'
+  }),
+
+  // 座位基本資訊
+  seatNumber: text('seat_number').notNull(), // 座位編號 (01, 02, A, B...)
+  seatName: text('seat_name'), // 座位名稱（可選）
+  position: text('position'), // 座位位置描述（如：靠窗、角落）
+
+  // QR Code 資訊
+  qrCode: text('qr_code').notNull().unique(), // QR 碼內容
+  qrCodeImageUrl: text('qr_code_image_url'), // QR 碼圖片 URL
+  qrCodeVersion: integer('qr_code_version').notNull().default(1), // QR 碼版本（用於更新）
+
+  // 狀態管理
+  isOccupied: integer('is_occupied', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  currentOrderId: integer('current_order_id'),
+
+  // 使用追蹤
+  occupiedAt: integer('occupied_at', { mode: 'timestamp' }),
+  occupiedBy: text('occupied_by'), // 使用者標識
+  totalUsage: integer('total_usage').notNull().default(0), // 使用次數
+
+  // 時間戳記
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+}, (table) => ({
+  // 索引優化
+  tableIdIdx: index('seats_table_id_idx').on(table.tableId),
+  qrCodeIdx: index('seats_qr_code_idx').on(table.qrCode),
+  tableSeatNumberIdx: index('seats_table_seat_number_idx').on(table.tableId, table.seatNumber),
+  isOccupiedIdx: index('seats_is_occupied_idx').on(table.isOccupied),
+  isActiveIdx: index('seats_is_active_idx').on(table.isActive),
+}))
+
+/**
+ * 座位關聯定義
+ */
+export const seatRelations = relations(seats, ({ one, many }) => ({
+  // 座位所屬的桌子
+  table: one(tables, {
+    fields: [seats.tableId],
+    references: [tables.id],
+  }),
+  // 座位當前的訂單（如果有）
+  currentOrder: one(orders, {
+    fields: [seats.currentOrderId],
+    references: [orders.id],
+  }),
+}))
+
+/**
+ * 座位類型（用於 TypeScript）
+ */
+export type Seat = typeof seats.$inferSelect
+export type NewSeat = typeof seats.$inferInsert

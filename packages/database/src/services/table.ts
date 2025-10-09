@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, like, or, count, isNull, isNotNull } from 'drizzle-orm'
 import { BaseService } from './base'
-import { tables, restaurants, orders } from '../schema'
+import { tables, restaurants, orders, seats } from '../schema'
+import { SeatService } from './seat'
 
 export interface CreateTableData {
   restaurantId: number
@@ -19,6 +20,10 @@ export interface CreateTableData {
     smokingAllowed?: boolean
   }
   isReservable?: boolean
+  // 座位模式支持（新增）
+  qrMode?: 'table' | 'seat'
+  seatCount?: number
+  seatNumberingStyle?: 'numeric' | 'alphabetic' | 'custom'
 }
 
 export interface UpdateTableData {
@@ -87,8 +92,12 @@ export class TableService extends BaseService {
         throw new Error('Table number already exists in this restaurant')
       }
 
-      // 生成 QR Code 內容
+      // 生成 QR Code 內容（桌子模式）
       const qrCode = this.generateQRCodeData(data.restaurantId, data.number)
+
+      const qrMode = data.qrMode || 'table'
+      const seatCount = data.seatCount || 0
+      const seatNumberingStyle = data.seatNumberingStyle || 'numeric'
 
       const [newTable] = await this.db
         .insert(tables)
@@ -102,12 +111,23 @@ export class TableService extends BaseService {
           section: data.section,
           qrCode,
           qrCodeVersion: 1,
+          qrMode,
+          seatCount,
+          seatNumberingStyle,
           features: data.features,
           isReservable: data.isReservable ?? true,
           isActive: true,
           isOccupied: false
         })
         .returning()
+
+      // 如果是座位模式，自動創建座位
+      if (qrMode === 'seat' && seatCount > 0) {
+        const seatService = new SeatService(this.db as any, this.env)
+        await seatService.createSeatsForTable(newTable.id, seatCount, {
+          numberingStyle: seatNumberingStyle
+        })
+      }
 
       return newTable
 
@@ -132,6 +152,10 @@ export class TableService extends BaseService {
           qrCode: tables.qrCode,
           qrCodeImageUrl: tables.qrCodeImageUrl,
           qrCodeVersion: tables.qrCodeVersion,
+          qrMode: tables.qrMode,
+          seatCount: tables.seatCount,
+          seatNumberingStyle: tables.seatNumberingStyle,
+          seatLayout: tables.seatLayout,
           isOccupied: tables.isOccupied,
           isActive: tables.isActive,
           isReservable: tables.isReservable,
@@ -153,6 +177,16 @@ export class TableService extends BaseService {
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
         .where(eq(tables.id, id))
         .get()
+
+      // 如果是座位模式，附加座位資訊
+      if (table && table.qrMode === 'seat') {
+        const seatService = new SeatService(this.db as any, this.env)
+        const seatsResult = await seatService.getSeatsByTableId(id)
+        return {
+          ...table,
+          seats: seatsResult.seats
+        }
+      }
 
       return table
 
@@ -710,6 +744,167 @@ export class TableService extends BaseService {
 
     } catch (error) {
       console.error('Update table usage stats error:', error)
+    }
+  }
+
+  /**
+   * 切換 QR 碼模式（桌子模式 <-> 座位模式）
+   * 這是核心功能：讓店長可以自由轉換桌子模式與座位模式
+   */
+  async switchQRMode(
+    tableId: number,
+    newMode: 'table' | 'seat',
+    seatConfig?: {
+      count: number
+      numberingStyle: 'numeric' | 'alphabetic' | 'custom'
+      prefix?: string
+    }
+  ): Promise<{
+    success: boolean
+    message?: string
+    data?: {
+      tableId: number
+      oldMode: 'table' | 'seat'
+      newMode: 'table' | 'seat'
+      seatsCreated?: number
+      seatsDeleted?: number
+    }
+  }> {
+    try {
+      const table = await this.getTableById(tableId)
+
+      if (!table) {
+        return {
+          success: false,
+          message: '桌子不存在'
+        }
+      }
+
+      const oldMode = table.qrMode || 'table'
+
+      // 如果已經是目標模式，直接返回
+      if (oldMode === newMode) {
+        return {
+          success: true,
+          message: `桌子已經是 ${newMode === 'table' ? '桌子' : '座位'} 模式`,
+          data: {
+            tableId,
+            oldMode,
+            newMode
+          }
+        }
+      }
+
+      const seatService = new SeatService(this.db as any, this.env)
+
+      // 從桌子模式切換到座位模式
+      if (oldMode === 'table' && newMode === 'seat') {
+        // 檢查桌子是否正在使用中
+        if (table.isOccupied) {
+          return {
+            success: false,
+            message: '桌子正在使用中，無法切換為座位模式。請先釋放桌子。'
+          }
+        }
+
+        if (!seatConfig || !seatConfig.count || seatConfig.count <= 0) {
+          return {
+            success: false,
+            message: '請提供座位數量配置'
+          }
+        }
+
+        // 創建座位
+        const createdSeats = await seatService.createSeatsForTable(
+          tableId,
+          seatConfig.count,
+          {
+            numberingStyle: seatConfig.numberingStyle || 'numeric',
+            prefix: seatConfig.prefix
+          }
+        )
+
+        // 更新桌子為座位模式
+        await this.db
+          .update(tables)
+          .set({
+            qrMode: 'seat',
+            seatCount: seatConfig.count,
+            seatNumberingStyle: seatConfig.numberingStyle || 'numeric',
+            updatedAt: new Date()
+          })
+          .where(eq(tables.id, tableId))
+
+        return {
+          success: true,
+          message: `成功切換為座位模式，已創建 ${createdSeats.length} 個座位`,
+          data: {
+            tableId,
+            oldMode,
+            newMode,
+            seatsCreated: createdSeats.length
+          }
+        }
+      }
+
+      // 從座位模式切換到桌子模式
+      if (oldMode === 'seat' && newMode === 'table') {
+        // 檢查所有座位是否都沒在使用
+        const seatsResult = await seatService.getSeatsByTableId(tableId)
+        const hasOccupiedSeats = seatsResult.seats.some((seat: any) => seat.isOccupied)
+
+        if (hasOccupiedSeats) {
+          return {
+            success: false,
+            message: '有座位正在使用中，無法切換為桌子模式。請先釋放所有座位。'
+          }
+        }
+
+        const seatCount = seatsResult.total
+
+        // 刪除所有座位（硬刪除）
+        const deleted = await seatService.deleteSeatsForTable(tableId)
+
+        if (!deleted) {
+          return {
+            success: false,
+            message: '刪除座位失敗'
+          }
+        }
+
+        // 更新桌子為桌子模式
+        await this.db
+          .update(tables)
+          .set({
+            qrMode: 'table',
+            seatCount: 0,
+            updatedAt: new Date()
+          })
+          .where(eq(tables.id, tableId))
+
+        return {
+          success: true,
+          message: `成功切換為桌子模式，已刪除 ${seatCount} 個座位`,
+          data: {
+            tableId,
+            oldMode,
+            newMode,
+            seatsDeleted: seatCount
+          }
+        }
+      }
+
+      return {
+        success: false,
+        message: '未知的模式切換操作'
+      }
+
+    } catch (error) {
+      console.error('Switch QR mode error:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '切換模式失敗'
+      }
     }
   }
 

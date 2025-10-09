@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 import { restaurants } from './restaurants'
+import { seats } from './seats'
 
 export const tables = sqliteTable('tables', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -20,7 +21,23 @@ export const tables = sqliteTable('tables', {
   qrCode: text('qr_code').notNull().unique(), // QR Code 內容
   qrCodeImageUrl: text('qr_code_image_url'), // QR Code 圖片 URL
   qrCodeVersion: integer('qr_code_version').notNull().default(1), // QR Code 版本（用於更新）
-  
+
+  // 座位管理模式（新增）
+  qrMode: text('qr_mode').$type<'table' | 'seat'>().default('table'), // QR 碼管理模式
+  seatCount: integer('seat_count').default(0), // 座位數量（座位模式時使用）
+  seatLayout: text('seat_layout', { mode: 'json' }).$type<{
+    rows?: number
+    columns?: number
+    positions?: Array<{
+      seatNumber: string
+      x: number
+      y: number
+    }>
+  }>(), // 座位布局配置
+  seatNumberingStyle: text('seat_numbering_style')
+    .$type<'numeric' | 'alphabetic' | 'custom'>()
+    .default('numeric'), // 座位編號風格
+
   // 狀態
   isOccupied: integer('is_occupied', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -60,9 +77,11 @@ export const tables = sqliteTable('tables', {
   qrCodeIdx: index('tables_qr_code_idx').on(table.qrCode),
 }))
 
-export const tableRelations = relations(tables, ({ one }) => ({
+export const tableRelations = relations(tables, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [tables.restaurantId],
     references: [restaurants.id],
   }),
+  // 座位關聯（座位模式時）
+  seats: many(seats),
 }))

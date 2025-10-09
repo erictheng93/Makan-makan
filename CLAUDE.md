@@ -62,7 +62,8 @@ makanmakan/
 **Core Business Tables:**
 - `users`: Multi-role user accounts (Admin, Owner, Chef, Service, Cashier)
 - `restaurants`: Restaurant information and settings
-- `tables`: Table management with QR code generation
+- `tables`: Table management with QR code generation (supports both table-level and seat-level modes)
+- `seats`: Seat management for individual seat QR codes (one seat one QR mode)
 - `orders`: Order records with status tracking
 - `order_items`: Individual order items with customizations
 - `menu_items`: Menu items with image variants
@@ -80,6 +81,15 @@ makanmakan/
 **Media & Analytics Tables:**
 - `images`: Image metadata and processing
 - `image_variants`: Multiple image size variants
+
+**AI Analytics Tables** (Added 2025-10-06):
+- `ai_configurations`: AI Provider configurations per restaurant (Anthropic, OpenAI, Google, DeepSeek)
+- `ai_insights_cache`: Cached AI-generated analysis (6-hour TTL)
+- `product_analytics`: Daily product performance metrics (pre-calculated)
+- `order_item_analytics`: Order item tracking with position and recommendations
+- `daily_business_metrics`: Daily business metric aggregations
+- `menu_item_costs`: Menu item cost tracking for profit analysis
+- `ai_usage_logs`: AI API usage records for monitoring and cost control
 
 ### Database Operations
 ```bash
@@ -162,8 +172,10 @@ The system maintains the same role-based permissions:
 ├── menu/          # Menu and categories
 ├── orders/        # Order management
 ├── tables/        # Table management and QR codes
+├── seats/         # Seat management API (batch create, occupy, release, QR regeneration)
 ├── users/         # User/employee management
 ├── analytics/     # Business analytics
+├── ai-analytics/  # AI-powered business insights and product analysis (NEW: 2025-10-06)
 ├── qr/            # QR code generation and templates
 ├── system/        # Error reporting and health checks
 ├── sse/           # Server-sent events for real-time updates
@@ -372,14 +384,300 @@ The migration from the legacy PHP/MySQL system to the new Cloudflare serverless 
 ### 🔨 In Development
 - 🔄 **Real-time Features**: WebSocket/SSE implementation for live updates
 - 🔄 **Image Processing**: Cloudflare Images integration for menu photos
-- 🔄 **Analytics Dashboard**: Business intelligence and reporting features
+- ⏸️ **AI Analytics Frontend**: UI for AI insights dashboard (backend complete)
 
 ### 📋 Next Phase (Planned)
-- ⏳ **Payment Integration**: Multi-gateway payment processing
-- ⏳ **Advanced Analytics**: AI-powered insights and recommendations
+- ⏸️ **Payment Integration**: Temporarily deprioritized to simplify system architecture
+- ✅ **Advanced Analytics**: AI-powered insights backend complete (2025-10-06)
 - ⏳ **Multi-language Support**: Internationalization framework
 
 ## Recent Development Achievements
+
+### 🧠 AI Analytics System (Completed: 2025-10-06)
+
+**Status**: ✅ Backend Complete | ⏸️ Frontend UI Pending
+
+Successfully implemented a comprehensive AI-powered business analytics system with multi-LLM provider support.
+
+#### Features Implemented:
+
+**1. Multi-LLM Provider Support**:
+- **Anthropic Claude** (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
+- **OpenAI** (gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo)
+- **Google Gemini** (gemini-1.5-pro, gemini-1.5-flash)
+- **DeepSeek** (deepseek-chat, deepseek-coder)
+- **Custom OpenAI-compatible APIs**
+
+**2. Product Analysis Services**:
+- **Traffic Drivers**: Identifies products that bring customers (首選率 > 30%)
+- **Bestsellers**: Top-selling products by revenue and volume
+- **Profit Leaders**: Most profitable products with margin analysis
+
+**3. AI Insights Generation**:
+- Automatic business trend analysis
+- 7-day revenue and order forecasting
+- Anomaly detection and alerts
+- Executive summaries in Traditional Chinese
+
+**4. Performance Optimizations**:
+- 6-hour AI insights cache (TTL)
+- Daily product analytics pre-calculation
+- Parallel data fetching with `Promise.all`
+- Token usage tracking and cost control
+
+#### Files Created:
+```
+packages/ai-analytics/src/
+├── providers/          # LLM provider implementations
+├── services/           # Product analysis and insights services
+└── types/              # TypeScript type definitions
+
+apps/api/src/routes/ai-analytics.ts  # API endpoints
+packages/database/migrations/0010_ai_analytics_system.sql  # Database schema
+docs/AI_ANALYTICS_IMPLEMENTATION.md  # Comprehensive documentation (750+ lines)
+```
+
+#### API Endpoints:
+```
+POST /api/v1/ai-analytics/generate                    # Generate AI insights report
+GET  /api/v1/ai-analytics/products/traffic-drivers    # Get traffic driver products
+GET  /api/v1/ai-analytics/products/bestsellers        # Get bestselling products
+GET  /api/v1/ai-analytics/products/profit-leaders     # Get profit leaders
+POST /api/v1/ai-analytics/config                      # Configure AI provider
+POST /api/v1/ai-analytics/test-provider               # Test provider connection
+GET  /api/v1/ai-analytics/usage/:restaurantId         # Get API usage stats
+```
+
+#### Security Features:
+- AES-256 encrypted API key storage
+- Role-based access (Admin/Owner only for configuration)
+- Restaurant-level data isolation
+- Usage logging and monitoring
+
+#### Documentation:
+- 📄 `docs/AI_ANALYTICS_IMPLEMENTATION.md` - Complete implementation guide
+- 📄 `docs/AI_ANALYTICS_QUICK_START.md` - Quick start guide
+- 📄 `docs/AI_ANALYTICS_UI_GUIDE.md` - Frontend implementation guide
+
+**Next Steps**: Frontend UI implementation (Vue components for AI dashboard)
+
+---
+
+### 🪑 Seat Management System (Completed: 2025-01-09)
+
+**Status**: ✅ Backend Complete | ✅ Admin UI Complete
+
+Implemented comprehensive seat-level management system supporting both **one table one QR** and **one seat one QR** modes.
+
+#### Features Implemented:
+
+**1. Dual QR Mode Support**:
+- **Table Mode** (`qr_mode='table'`): Traditional one QR per table
+- **Seat Mode** (`qr_mode='seat'`): Individual QR code per seat
+
+**2. Seat Management**:
+- Batch seat creation with customizable numbering (numeric, alphabetic, custom)
+- Individual seat tracking (occupied status, usage statistics)
+- Seat-level order association
+- QR code regeneration for individual seats or entire tables
+
+**3. Admin Dashboard Components**:
+- `SeatGrid.vue` - Visual seat layout management
+- `QRModeSelector.vue` - Switch between table/seat modes
+- `SeatManagement.vue` - Comprehensive seat CRUD operations
+- `TablesView.vue` - Enhanced table management with seat support
+- `TableDetailView.vue` - Detailed table and seat information
+
+**4. Database Schema**:
+```sql
+tables:
+  - qr_mode (table/seat)
+  - seat_count
+  - seat_layout (JSON)
+  - seat_numbering_style
+
+seats:
+  - table_id (FK)
+  - seat_number, seat_name, position
+  - qr_code, qr_code_image_url
+  - is_occupied, is_active
+  - current_order_id
+  - occupiedAt, occupiedBy, totalUsage
+
+Views:
+  - seat_usage_stats
+  - table_seat_summary
+```
+
+#### API Endpoints:
+```
+GET    /api/v1/seats                     # List seats by table
+GET    /api/v1/seats/:id                 # Get seat details
+POST   /api/v1/seats/batch-create        # Batch create seats
+PUT    /api/v1/seats/:id                 # Update seat
+DELETE /api/v1/seats/:id                 # Delete seat (soft)
+POST   /api/v1/seats/:id/occupy          # Occupy seat
+POST   /api/v1/seats/:id/release         # Release seat
+POST   /api/v1/seats/:id/regenerate-qr   # Regenerate QR
+POST   /api/v1/seats/batch-regenerate-qr # Batch regenerate
+GET    /api/v1/seats/stats               # Get seat statistics
+GET    /api/v1/seats/qr/:qrCode          # Lookup by QR code
+DELETE /api/v1/seats/table/:tableId      # Delete all seats (mode switch)
+```
+
+#### Use Cases:
+- **Fine Dining**: Individual seat tracking for VIP service
+- **Food Courts**: Shared table with individual seat orders
+- **Flexible Seating**: Dynamic switching between modes
+- **Usage Analytics**: Seat-level usage tracking and heatmaps
+
+**Files**:
+- Migration: `packages/database/migrations/0027_seat_management_system.sql`
+- Schema: `packages/database/src/schema/seats.ts`
+- Service: `packages/database/src/services/seat.ts`
+- Types: `packages/shared-types/src/seat.ts`
+- API: `apps/api/src/routes/seats.ts`
+- UI: `apps/admin-dashboard/src/components/tables/`, `src/views/Table*.vue`
+
+---
+
+### 🔐 Password Security Enhancement (Completed: 2025-10-09)
+
+**Status**: ✅ Complete
+
+Migrated password storage from plaintext to secure bcrypt hashing.
+
+#### Changes Implemented:
+
+**1. Password Hashing Migration** (0029_fix_password_hash.sql):
+- Added `password_hash` column to users table
+- Migrated all existing passwords to bcrypt format ($2a$ rounds=10)
+- Added `password_migrated` flag and `migration_date` timestamp
+
+**2. User Status Column** (0030_add_is_active.sql):
+- Added `is_active` boolean column
+- Synchronized with existing `status` column
+- Enables efficient user activation/deactivation
+
+**3. Password Updates** (0031_update_passwords.sql):
+- Updated all test accounts with proper bcrypt hashes
+- Unified password format across all users
+- Demo accounts now use consistent hashing
+
+#### Security Improvements:
+- ✅ **Bcrypt Hashing**: Industry-standard password hashing (cost factor 10)
+- ✅ **Salted Hashes**: Each password has unique salt
+- ✅ **Migration Tracking**: Audit trail of password migrations
+- ✅ **Active Status**: Efficient user account management
+
+**Migration Files**:
+- `packages/database/migrations/0029_fix_password_hash.sql`
+- `packages/database/migrations/0030_add_is_active.sql`
+- `packages/database/migrations/0031_update_passwords.sql`
+
+---
+
+### ❌ Payment System Removal (Completed: 2025-10-09)
+
+**Status**: ✅ Complete
+
+**Decision**: Temporarily removed payment system to simplify architecture and reduce complexity.
+
+#### Rationale:
+- **Simplified Architecture**: Focus on core restaurant management features
+- **Reduced Complexity**: Eliminate 14 payment-related tables and infrastructure
+- **Deferred Integration**: Payment gateway integration postponed to Phase 2
+- **Data Preservation**: Payment-related fields in `orders` table retained for backward compatibility
+
+#### Changes Made:
+
+**Tables Removed** (0028_remove_payment_system.sql):
+```
+❌ payment_providers
+❌ payment_provider_configs
+❌ payment_transactions
+❌ refund_transactions
+❌ payment_logs
+❌ payment_statistics
+❌ payment_status_transitions
+❌ payment_method_mappings
+❌ payment_system_settings
+❌ payment_config_audit
+❌ webhook_events
+❌ country_payment_configs
+❌ refunds
+```
+
+**Indexes Removed**:
+```
+❌ idx_orders_payment_transaction
+❌ idx_orders_payment_status
+❌ idx_group_members_payment_status
+❌ idx_group_members_transaction_id
+```
+
+**Fields Preserved** (for data integrity):
+- `orders.payment_transaction_id` (unused but retained)
+- `orders.payment_status` (unused but retained)
+- `group_members.payment_status` (unused but retained)
+
+#### Skipped Migrations:
+```
+0020_restaurant_id_to_text.sql.skip
+0021_payment_system_infrastructure.sql.skip
+0022_payment_system_seed_data.sql.skip
+```
+
+**Future Considerations**:
+- Payment integration can be re-enabled from backup migrations
+- Current system focuses on order management without payment processing
+- When needed, payment features can be implemented via:
+  - External payment gateway integration
+  - Third-party payment providers (Stripe, PayPal, etc.)
+  - Manual cash/card payment tracking only
+
+**Migration File**: `packages/database/migrations/0028_remove_payment_system.sql`
+
+---
+
+### 🔧 Database Migration Fixes (Completed: 2025-10-09)
+
+**Status**: ✅ Ready for Deployment
+
+Fixed all SQLite syntax errors in migration files to ensure database schema integrity.
+
+#### Errors Fixed:
+
+**1. Queue Table Unique Constraint** (0020_restaurant_id_to_text.sql):
+- **Issue**: `UNIQUE(restaurant_id, queue_number, DATE(joined_at))` - SQLite doesn't support expressions in constraints
+- **Fix**: Removed expression-based constraint, moved validation to application logic
+- **Impact**: Application must enforce daily queue number uniqueness per restaurant
+
+**2. Peak Hours Index** (0026_week3_additional_indexes.sql):
+- **Issue**: `strftime('%H', created_at)` expressions in index definition
+- **Fix**: Replaced with simpler `created_at` column index
+- **Impact**: Time extraction performed at query time, minimal performance impact
+
+#### Validation Results:
+```
+✅ 0020_restaurant_id_to_text.sql              - 1 error fixed
+✅ 0021_payment_system_infrastructure.sql      - 0 errors (clean)
+✅ 0021_seat_management_system.sql             - 0 errors (clean)
+✅ 0022_payment_system_seed_data.sql           - 0 errors (clean)
+✅ 0023_printer_system.sql                     - 0 errors (clean)
+✅ 0024_group_orders_payment_integration.sql   - 0 errors (clean)
+✅ 0025_coupon_system.sql                      - 0 errors (clean)
+✅ 0026_week3_additional_indexes.sql           - 1 error fixed
+✅ 20251001_performance_indexes.sql            - 0 errors (clean)
+```
+
+#### Documentation Created:
+- 📄 `MIGRATION_FIXES_SUMMARY.md` - Detailed fix report
+- 📄 `SQLITE_CONSTRAINT_RULES.md` - SQLite constraint guidelines
+
+**Status**: All migrations validated and ready for deployment to staging/production.
+
+---
 
 ### 🚀 PWA Performance Optimization Achievement (Completed: 2025-09-23)
 
@@ -548,7 +846,7 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2025-09-23
+**Last Updated**: 2025-10-09
 **Architecture Version**: 2.0 (Cloudflare Serverless)
 **Legacy Version**: 1.0 (PHP/MySQL - Deprecated)
 **TypeScript Status**: ✅ 100% Error-Free Compilation - Perfect Compliance Achieved

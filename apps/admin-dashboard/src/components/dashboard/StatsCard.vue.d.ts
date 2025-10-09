@@ -12,10 +12,10 @@ interface StatsCardProps {
 }
 declare const _default: import("vue").DefineComponent<StatsCardProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<StatsCardProps> & Readonly<{}>, {
     loading: boolean;
+    subtitle: string;
     trend: {
         value: number;
         period: string;
     };
-    subtitle: string;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

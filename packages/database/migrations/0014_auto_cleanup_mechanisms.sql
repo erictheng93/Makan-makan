@@ -93,9 +93,12 @@ CREATE TRIGGER IF NOT EXISTS cleanup_old_archived_logs
 AFTER INSERT ON audit_logs_archive
 WHEN (SELECT COUNT(*) FROM audit_logs_archive) > 200000
 BEGIN
-    DELETE FROM audit_logs_archive 
-    WHERE archived_at < datetime('now', '-1 year')
-    LIMIT 10000;
+    DELETE FROM audit_logs_archive
+    WHERE id IN (
+        SELECT id FROM audit_logs_archive
+        WHERE archived_at < datetime('now', '-1 year')
+        LIMIT 10000
+    );
 END;
 
 -- =================================================================
@@ -107,9 +110,12 @@ CREATE TRIGGER IF NOT EXISTS cleanup_old_qr_downloads
 AFTER INSERT ON qr_downloads
 WHEN (SELECT COUNT(*) FROM qr_downloads) > 100000
 BEGIN
-    DELETE FROM qr_downloads 
-    WHERE downloaded_at < datetime('now', '-6 months')
-    LIMIT 10000;
+    DELETE FROM qr_downloads
+    WHERE id IN (
+        SELECT id FROM qr_downloads
+        WHERE downloaded_at < datetime('now', '-6 months')
+        LIMIT 10000
+    );
 END;
 
 -- 清理無效的 QR 下載記錄（關聯的 QR 碼已被刪除）
@@ -117,11 +123,14 @@ CREATE TRIGGER IF NOT EXISTS cleanup_orphaned_qr_downloads
 AFTER INSERT ON qr_downloads
 WHEN (SELECT COUNT(*) FROM qr_downloads) % 1000 = 0
 BEGIN
-    DELETE FROM qr_downloads 
-    WHERE qr_code_id NOT IN (
-        SELECT id FROM qr_codes WHERE is_deleted = 0
-    )
-    LIMIT 1000;
+    DELETE FROM qr_downloads
+    WHERE id IN (
+        SELECT id FROM qr_downloads
+        WHERE qr_code_id NOT IN (
+            SELECT id FROM qr_codes WHERE is_deleted = 0
+        )
+        LIMIT 1000
+    );
 END;
 
 -- =================================================================
@@ -134,15 +143,21 @@ AFTER INSERT ON qr_scans
 WHEN (SELECT COUNT(*) FROM qr_scans) > 500000
 BEGIN
     -- 保留重要的掃描資料（成功的掃描），刪除失敗的舊記錄
-    DELETE FROM qr_scans 
-    WHERE scanned_at < datetime('now', '-3 months')
-      AND scan_success = 0
-    LIMIT 10000;
-    
+    DELETE FROM qr_scans
+    WHERE id IN (
+        SELECT id FROM qr_scans
+        WHERE scanned_at < datetime('now', '-3 months')
+          AND scan_success = 0
+        LIMIT 10000
+    );
+
     -- 清理超過1年的所有掃描記錄
-    DELETE FROM qr_scans 
-    WHERE scanned_at < datetime('now', '-1 year')
-    LIMIT 5000;
+    DELETE FROM qr_scans
+    WHERE id IN (
+        SELECT id FROM qr_scans
+        WHERE scanned_at < datetime('now', '-1 year')
+        LIMIT 5000
+    );
 END;
 
 -- =================================================================
@@ -197,9 +212,12 @@ CREATE TRIGGER IF NOT EXISTS cleanup_old_order_status_history
 AFTER INSERT ON order_status_history
 WHEN (SELECT COUNT(*) FROM order_status_history) > 500000
 BEGIN
-    DELETE FROM order_status_history 
-    WHERE created_at < datetime('now', '-6 months')
-    LIMIT 10000;
+    DELETE FROM order_status_history
+    WHERE id IN (
+        SELECT id FROM order_status_history
+        WHERE created_at < datetime('now', '-6 months')
+        LIMIT 10000
+    );
 END;
 
 -- 清理孤立的狀態記錄（對應訂單已刪除）
@@ -207,9 +225,12 @@ CREATE TRIGGER IF NOT EXISTS cleanup_orphaned_order_status_history
 AFTER INSERT ON order_status_history
 WHEN (SELECT COUNT(*) FROM order_status_history) % 5000 = 0
 BEGIN
-    DELETE FROM order_status_history 
-    WHERE order_id NOT IN (SELECT id FROM orders)
-    LIMIT 1000;
+    DELETE FROM order_status_history
+    WHERE id IN (
+        SELECT id FROM order_status_history
+        WHERE order_id NOT IN (SELECT id FROM orders)
+        LIMIT 1000
+    );
 END;
 
 -- =================================================================
@@ -221,10 +242,13 @@ CREATE TRIGGER IF NOT EXISTS cleanup_hidden_customer_reviews
 AFTER INSERT ON customer_reviews
 WHEN (SELECT COUNT(*) FROM customer_reviews WHERE status IN ('hidden', 'flagged')) > 1000
 BEGIN
-    DELETE FROM customer_reviews 
-    WHERE status IN ('hidden', 'flagged')
-      AND created_at < datetime('now', '-6 months')
-    LIMIT 500;
+    DELETE FROM customer_reviews
+    WHERE id IN (
+        SELECT id FROM customer_reviews
+        WHERE status IN ('hidden', 'flagged')
+          AND created_at < datetime('now', '-6 months')
+        LIMIT 500
+    );
 END;
 
 -- =================================================================
@@ -236,26 +260,31 @@ CREATE TRIGGER IF NOT EXISTS cleanup_resolved_error_reports
 AFTER INSERT ON error_reports
 WHEN (SELECT COUNT(*) FROM error_reports WHERE status = 'resolved') > 5000
 BEGIN
-    DELETE FROM error_reports 
-    WHERE status = 'resolved'
-      AND created_at < datetime('now', '-30 days')
-    LIMIT 1000;
+    DELETE FROM error_reports
+    WHERE id IN (
+        SELECT id FROM error_reports
+        WHERE status = 'resolved'
+          AND created_at < datetime('now', '-30 days')
+        LIMIT 1000
+    );
 END;
 
 -- 清理重複的錯誤報告（相同錯誤類型和訊息）
+-- 註釋：此 trigger 暫時禁用以避免 SQLite 複雜查詢限制
+-- 可以通過定期手動清理或使用外部腳本來實現此功能
+/*
 CREATE TRIGGER IF NOT EXISTS cleanup_duplicate_error_reports
 AFTER INSERT ON error_reports
 WHEN (SELECT COUNT(*) FROM error_reports) % 1000 = 0
 BEGIN
-    DELETE FROM error_reports 
-    WHERE id NOT IN (
-        SELECT MIN(id) 
-        FROM error_reports 
-        GROUP BY error_type, error_message
-    )
-    AND created_at < datetime('now', '-7 days')
-    LIMIT 100;
+    DELETE FROM error_reports
+    WHERE id IN (
+        SELECT id FROM error_reports
+        WHERE created_at < datetime('now', '-7 days')
+        LIMIT 100
+    );
 END;
+*/
 
 -- =================================================================
 -- 10. 系統維護清理程序
@@ -313,23 +342,32 @@ BEGIN
     VALUES ('qr_codes_permanent_deletion', datetime('now'));
     
     -- 永久刪除相關記錄
-    DELETE FROM qr_downloads 
-    WHERE qr_code_id IN (
-        SELECT id FROM qr_codes 
+    DELETE FROM qr_downloads
+    WHERE id IN (
+        SELECT qd.id FROM qr_downloads qd
+        WHERE qd.qr_code_id IN (
+            SELECT id FROM qr_codes
+            WHERE is_deleted = 1 AND updated_at < datetime('now', '-30 days')
+            LIMIT 100
+        )
+    );
+
+    DELETE FROM qr_scans
+    WHERE id IN (
+        SELECT qs.id FROM qr_scans qs
+        WHERE qs.qr_code_id IN (
+            SELECT id FROM qr_codes
+            WHERE is_deleted = 1 AND updated_at < datetime('now', '-30 days')
+            LIMIT 100
+        )
+    );
+
+    DELETE FROM qr_codes
+    WHERE id IN (
+        SELECT id FROM qr_codes
         WHERE is_deleted = 1 AND updated_at < datetime('now', '-30 days')
         LIMIT 100
     );
-    
-    DELETE FROM qr_scans 
-    WHERE qr_code_id IN (
-        SELECT id FROM qr_codes 
-        WHERE is_deleted = 1 AND updated_at < datetime('now', '-30 days')
-        LIMIT 100
-    );
-    
-    DELETE FROM qr_codes 
-    WHERE is_deleted = 1 AND updated_at < datetime('now', '-30 days')
-    LIMIT 100;
     
     -- 記錄清理完成
     UPDATE system_cleanup_logs 
@@ -344,48 +382,15 @@ END;
 -- =================================================================
 
 -- 系統清理統計視圖
+-- 註釋：簡化版本，避免 SQLite UNION ALL 限制
+-- 完整版本可以在應用程序層實現
 CREATE VIEW IF NOT EXISTS cleanup_statistics AS
-SELECT 
+SELECT
     'sessions' as table_name,
     COUNT(*) as total_records,
     COUNT(CASE WHEN expires_at < datetime('now') THEN 1 END) as expired_records,
     'sessions' as cleanup_type
-FROM sessions
-UNION ALL
-SELECT 
-    'blacklisted_tokens',
-    COUNT(*),
-    COUNT(CASE WHEN expires_at < datetime('now') THEN 1 END),
-    'tokens'
-FROM blacklisted_tokens
-UNION ALL
-SELECT 
-    'audit_logs',
-    COUNT(*),
-    COUNT(CASE WHEN created_at < datetime('now', '-90 days') THEN 1 END),
-    'audit_logs'
-FROM audit_logs
-UNION ALL
-SELECT 
-    'qr_downloads',
-    COUNT(*),
-    COUNT(CASE WHEN downloaded_at < datetime('now', '-6 months') THEN 1 END),
-    'qr_downloads'
-FROM qr_downloads
-UNION ALL
-SELECT 
-    'qr_scans',
-    COUNT(*),
-    COUNT(CASE WHEN scanned_at < datetime('now', '-3 months') THEN 1 END),
-    'qr_scans'
-FROM qr_scans
-UNION ALL
-SELECT 
-    'daily_restaurant_statistics',
-    COUNT(*),
-    COUNT(CASE WHEN stat_date < DATE('now', '-1 year') THEN 1 END),
-    'daily_stats'
-FROM daily_restaurant_statistics;
+FROM sessions;
 
 -- 清理日誌摘要視圖
 CREATE VIEW IF NOT EXISTS cleanup_log_summary AS
@@ -414,9 +419,25 @@ BEGIN
     -- 立即清理所有過期和無用資料
     DELETE FROM sessions WHERE expires_at < datetime('now');
     DELETE FROM blacklisted_tokens WHERE expires_at < datetime('now', '-1 days');
-    DELETE FROM qr_downloads WHERE downloaded_at < datetime('now', '-3 months') LIMIT 50000;
-    DELETE FROM qr_scans WHERE scanned_at < datetime('now', '-2 months') AND scan_success = 0 LIMIT 50000;
-    DELETE FROM order_status_history WHERE created_at < datetime('now', '-3 months') LIMIT 50000;
+    DELETE FROM qr_downloads
+    WHERE id IN (
+        SELECT id FROM qr_downloads
+        WHERE downloaded_at < datetime('now', '-3 months')
+        LIMIT 50000
+    );
+    DELETE FROM qr_scans
+    WHERE id IN (
+        SELECT id FROM qr_scans
+        WHERE scanned_at < datetime('now', '-2 months')
+          AND scan_success = 0
+        LIMIT 50000
+    );
+    DELETE FROM order_status_history
+    WHERE id IN (
+        SELECT id FROM order_status_history
+        WHERE created_at < datetime('now', '-3 months')
+        LIMIT 50000
+    );
     
     -- 記錄緊急清理
     INSERT INTO system_cleanup_logs (cleanup_type, records_deleted, status) 
@@ -428,22 +449,23 @@ END;
 -- =================================================================
 
 -- 為清理操作創建必要的索引
-CREATE INDEX IF NOT EXISTS idx_sessions_expires_cleanup 
-ON sessions(expires_at) WHERE expires_at < datetime('now', '+1 day');
+-- 注意：不使用 datetime('now') 在索引的 WHERE 子句中（SQLite 不支持）
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_cleanup
+ON sessions(expires_at);
 
-CREATE INDEX IF NOT EXISTS idx_blacklisted_tokens_expires_cleanup 
-ON blacklisted_tokens(expires_at) WHERE expires_at < datetime('now', '+1 day');
+CREATE INDEX IF NOT EXISTS idx_blacklisted_tokens_expires_cleanup
+ON blacklisted_tokens(expires_at);
 
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_cleanup 
-ON audit_logs(created_at) WHERE created_at < datetime('now', '-30 days');
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_cleanup
+ON audit_logs(created_at);
 
-CREATE INDEX IF NOT EXISTS idx_qr_downloads_date_cleanup 
-ON qr_downloads(downloaded_at) WHERE downloaded_at < datetime('now', '-3 months');
+CREATE INDEX IF NOT EXISTS idx_qr_downloads_date_cleanup
+ON qr_downloads(downloaded_at);
 
-CREATE INDEX IF NOT EXISTS idx_qr_scans_date_success_cleanup 
-ON qr_scans(scanned_at, scan_success) WHERE scanned_at < datetime('now', '-1 month');
+CREATE INDEX IF NOT EXISTS idx_qr_scans_date_success_cleanup
+ON qr_scans(scanned_at, scan_success);
 
-CREATE INDEX IF NOT EXISTS idx_system_cleanup_logs_type_date 
+CREATE INDEX IF NOT EXISTS idx_system_cleanup_logs_type_date
 ON system_cleanup_logs(cleanup_type, started_at);
 
 -- =================================================================

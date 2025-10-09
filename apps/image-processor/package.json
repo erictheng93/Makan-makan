@@ -22,21 +22,21 @@
   "author": "MakanMakan Team",
   "license": "MIT",
   "dependencies": {
-    "hono": "^4.9.6",
-    "zod": "^3.22.0",
     "@makanmakan/database": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
-    "drizzle-orm": "^0.29.0"
+    "drizzle-orm": "^0.29.0",
+    "hono": "^4.9.6",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230518.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
     "eslint": "^8.57.0",
     "typescript": "^5.3.0",
-    "wrangler": "^3.57.0",
     "vitest": "^1.0.0",
-    "@vitest/coverage-v8": "^1.0.0"
+    "wrangler": "^4.42.1"
   }
 }

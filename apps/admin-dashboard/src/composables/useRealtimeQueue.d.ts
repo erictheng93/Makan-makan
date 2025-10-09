@@ -3,11 +3,13 @@ export interface RealtimeQueueUpdate {
     queueNumber: number;
     customerName?: string;
     partySize: number;
-    status: string;
+    status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
     waitTime?: number;
     tableNumber?: string;
     timestamp: string;
-    type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+    type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+    estimatedWaitMinutes?: number;
+    actualWaitMinutes?: number;
 }
 export interface RealtimeTableUpdate {
     tableId: string;
@@ -25,21 +27,25 @@ export declare function useRealtimeQueue(): {
         queueNumber: number;
         customerName?: string | undefined;
         partySize: number;
-        status: string;
+        status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
         waitTime?: number | undefined;
         tableNumber?: string | undefined;
         timestamp: string;
-        type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+        type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+        estimatedWaitMinutes?: number | undefined;
+        actualWaitMinutes?: number | undefined;
     }[], RealtimeQueueUpdate[] | {
         queueId: string;
         queueNumber: number;
         customerName?: string | undefined;
         partySize: number;
-        status: string;
+        status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
         waitTime?: number | undefined;
         tableNumber?: string | undefined;
         timestamp: string;
-        type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+        type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+        estimatedWaitMinutes?: number | undefined;
+        actualWaitMinutes?: number | undefined;
     }[]>;
     tableUpdates: import("vue").Ref<{
         tableId: string;
@@ -74,7 +80,7 @@ export declare function useRealtimeQueue(): {
         averageWaitTime: number;
         peakWaitTime: number;
     }>;
-    connectionStatus: import("vue").Ref<"error" | "connecting" | "connected" | "disconnected", "error" | "connecting" | "connected" | "disconnected">;
+    connectionStatus: import("vue").Ref<"error" | "connected" | "disconnected" | "connecting", "error" | "connected" | "disconnected" | "connecting">;
     startListening: () => void;
     stopListening: () => void;
     clearUpdates: () => void;
@@ -84,11 +90,13 @@ export declare function useRealtimeQueue(): {
         queueNumber: number;
         customerName?: string | undefined;
         partySize: number;
-        status: string;
+        status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
         waitTime?: number | undefined;
         tableNumber?: string | undefined;
         timestamp: string;
-        type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+        type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+        estimatedWaitMinutes?: number | undefined;
+        actualWaitMinutes?: number | undefined;
     }[];
     getRecentTableUpdates: (limit?: number) => {
         tableId: string;
@@ -104,11 +112,13 @@ export declare function useRealtimeQueue(): {
         queueNumber: number;
         customerName?: string | undefined;
         partySize: number;
-        status: string;
+        status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
         waitTime?: number | undefined;
         tableNumber?: string | undefined;
         timestamp: string;
-        type: "joined" | "called" | "seated" | "no_show" | "cancelled";
+        type: "joined" | "called" | "notified" | "seated" | "no_show" | "cancelled";
+        estimatedWaitMinutes?: number | undefined;
+        actualWaitMinutes?: number | undefined;
     }[];
     getTableUpdatesByNumber: (tableNumber: string) => {
         tableId: string;
@@ -121,6 +131,8 @@ export declare function useRealtimeQueue(): {
     }[];
     hasPendingCalls: () => boolean;
     getAvailableTablesCount: () => number;
+    getUpdateCountByStatus: (status: string) => number;
+    getAverageWaitTime: () => number;
     requestNotificationPermission: () => Promise<boolean>;
 };
 export default useRealtimeQueue;

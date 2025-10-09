@@ -80,7 +80,7 @@ export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboa
     };
     startAutoRefresh: (intervalMs?: number) => void;
     stopAutoRefresh: () => void;
-}, "isLoading" | "stats" | "error" | "lastUpdated">, Pick<{
+}, "isLoading" | "error" | "stats" | "lastUpdated">, Pick<{
     stats: Readonly<import("vue").Ref<{
         readonly todayOrders: number;
         readonly todayRevenue: number;
@@ -161,7 +161,7 @@ export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboa
     };
     startAutoRefresh: (intervalMs?: number) => void;
     stopAutoRefresh: () => void;
-}, "todayOrders" | "todayRevenue" | "averageOrderValue" | "completionRate" | "topMenuItems" | "revenueChart" | "ordersChart">, Pick<{
+}, "todayRevenue" | "todayOrders" | "averageOrderValue" | "completionRate" | "topMenuItems" | "revenueChart" | "ordersChart">, Pick<{
     stats: Readonly<import("vue").Ref<{
         readonly todayOrders: number;
         readonly todayRevenue: number;
@@ -242,4 +242,4 @@ export declare const useDashboardStore: import("pinia").StoreDefinition<"dashboa
     };
     startAutoRefresh: (intervalMs?: number) => void;
     stopAutoRefresh: () => void;
-}, "fetchDashboardStats" | "fetchRevenueAnalytics" | "fetchOrderAnalytics" | "fetchTopMenuItems" | "refreshStats" | "clearStats" | "formatCurrency" | "formatPercentage" | "getGrowthIndicator" | "startAutoRefresh" | "stopAutoRefresh">>;
+}, "startAutoRefresh" | "formatCurrency" | "fetchDashboardStats" | "fetchRevenueAnalytics" | "fetchOrderAnalytics" | "fetchTopMenuItems" | "refreshStats" | "clearStats" | "formatPercentage" | "getGrowthIndicator" | "stopAutoRefresh">>;

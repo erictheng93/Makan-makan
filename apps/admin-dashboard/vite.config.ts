@@ -21,6 +21,10 @@ export default defineConfig({
       '@makanmakan/utils': resolve(__dirname, '../../packages/utils/src')
     }
   },
+  define: {
+    __APP_VERSION__: JSON.stringify('1.0.0'),
+    __VUE_PROD_DEVTOOLS__: false,
+  },
   server: {
     host: 'localhost', // SECURITY FIX: Restrict to localhost only in development
     port: 3001,

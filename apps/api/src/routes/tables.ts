@@ -24,7 +24,11 @@ const createTableSchema = z.object({
     isQuietZone: z.boolean().optional(),
     smokingAllowed: z.boolean().optional()
   }).optional(),
-  isReservable: z.boolean().optional().default(true)
+  isReservable: z.boolean().optional().default(true),
+  // 座位模式相關欄位
+  qrMode: z.enum(['table', 'seat']).optional().default('table'),
+  seatCount: z.number().int().positive().max(100).optional(),
+  seatNumberingStyle: z.enum(['numeric', 'alphabetic', 'custom']).optional().default('numeric')
 })
 
 const updateTableSchema = z.object({
@@ -70,6 +74,14 @@ const tableFilterSchema = z.object({
   search: z.string().optional(),
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
+})
+
+const switchQRModeSchema = z.object({
+  newMode: z.enum(['table', 'seat']),
+  seatConfig: z.object({
+    count: z.number().int().positive().min(1).max(100),
+    numberingStyle: z.enum(['numeric', 'alphabetic', 'custom']).default('numeric')
+  }).optional()
 })
 
 /**
@@ -197,7 +209,10 @@ app.post('/',
         floor: data.floor,
         section: data.section,
         features: data.features,
-        isReservable: data.isReservable
+        isReservable: data.isReservable,
+        qrMode: data.qrMode,
+        seatCount: data.seatCount,
+        seatNumberingStyle: data.seatNumberingStyle
       })
       
       return c.json({
@@ -559,6 +574,64 @@ app.post('/:id/regenerate-qr',
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to regenerate QR code'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * 切換桌子的 QR 模式（桌子模式 <-> 座位模式）
+ * POST /api/v1/tables/:id/switch-mode
+ */
+app.post('/:id/switch-mode',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam as any),
+  validateBody(switchQRModeSchema as any),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { newMode, seatConfig } = c.get('validatedBody')
+      const currentUser = c.get('user')
+      const tableService = new TableService(c.env.DB as any, c.env)
+
+      const existingTable = await tableService.getTableById(parseInt(id))
+
+      if (!existingTable) {
+        return c.json({
+          success: false,
+          error: 'Table not found'
+        }, 404)
+      }
+
+      // 權限檢查：非管理員只能操作自己餐廳的桌子
+      if (currentUser.role !== USER_ROLES.ADMIN && existingTable.restaurantId !== currentUser.restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
+
+      const result = await tableService.switchQRMode(parseInt(id), newMode, seatConfig)
+
+      if (!result.success) {
+        return c.json({
+          success: false,
+          error: result.message
+        }, 400)
+      }
+
+      return c.json({
+        success: true,
+        data: result.data,
+        message: result.message || 'QR mode switched successfully'
+      })
+
+    } catch (error) {
+      console.error('Switch QR mode error:', error)
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to switch QR mode'
       }, 500)
     }
   }

@@ -145,4 +145,4 @@ export declare const useNotificationStore: import("pinia").StoreDefinition<"noti
     error: (title: string, message: string, options?: Partial<Notification>) => string;
     warning: (title: string, message: string, options?: Partial<Notification>) => string;
     info: (title: string, message: string, options?: Partial<Notification>) => string;
-}, "error" | "info" | "warning" | "success" | "addNotification" | "removeNotification" | "markAsRead" | "markAllAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;
+}, "error" | "info" | "success" | "warning" | "addNotification" | "removeNotification" | "markAsRead" | "markAllAsRead" | "clearAll" | "clearRead" | "toggleSound" | "initializeSoundSetting">>;

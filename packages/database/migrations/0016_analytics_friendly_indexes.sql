@@ -35,21 +35,16 @@ CREATE INDEX IF NOT EXISTS idx_menu_items_sales_ranking
 ON order_items(menu_item_id, DATE(created_at), quantity DESC, total_price DESC);
 
 -- 菜單項目按餐廳和時間的銷售分析
-CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_time_sales 
-ON order_items(
-    (SELECT restaurant_id FROM menu_items WHERE id = menu_item_id), 
-    DATE(created_at), 
-    menu_item_id, 
-    quantity
-);
+-- Note: Cannot use subqueries in index expressions in SQLite
+-- This index is removed; queries should join with menu_items table instead
+-- CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_time_sales
+-- ON order_items(menu_item_id, DATE(created_at), quantity);
 
 -- 菜單項目按分類的銷售分析
-CREATE INDEX IF NOT EXISTS idx_menu_items_category_sales 
-ON order_items(
-    (SELECT category_id FROM menu_items WHERE id = menu_item_id),
-    DATE(created_at),
-    total_price DESC
-);
+-- Note: Cannot use subqueries in index expressions in SQLite
+-- This index is removed; queries should join with menu_items table instead
+-- CREATE INDEX IF NOT EXISTS idx_menu_items_category_sales
+-- ON order_items(DATE(created_at), total_price DESC);
 
 -- 菜單項目季節性分析索引
 CREATE INDEX IF NOT EXISTS idx_menu_items_seasonal_analysis 
@@ -99,21 +94,16 @@ ON orders(table_id, DATE(created_at), created_at, served_at, status)
 WHERE table_id IS NOT NULL;
 
 -- 員工績效分析索引
-CREATE INDEX IF NOT EXISTS idx_staff_performance_analysis 
-ON orders(restaurant_id, 
-    COALESCE(
-        (SELECT id FROM users WHERE id = orders.created_by),
-        (SELECT id FROM users WHERE role = 4 AND restaurant_id = orders.restaurant_id LIMIT 1)
-    ),
-    DATE(created_at), 
-    total_amount,
-    status
-);
+-- Note: Cannot use subqueries or COALESCE with subqueries in index expressions
+-- This index is removed; queries should use simpler indexes
+-- CREATE INDEX IF NOT EXISTS idx_staff_performance_analysis
+-- ON orders(restaurant_id, created_by, DATE(created_at), total_amount, status);
 
 -- 服務時間分析索引
-CREATE INDEX IF NOT EXISTS idx_service_time_analysis 
-ON orders(restaurant_id, order_type, DATE(created_at), 
-    (JULIANDAY(served_at) - JULIANDAY(created_at)) * 24 * 60)
+-- Note: Cannot use JULIANDAY calculations in index expressions
+-- This index simplified to basic columns
+CREATE INDEX IF NOT EXISTS idx_service_time_analysis
+ON orders(restaurant_id, order_type, DATE(created_at), created_at, served_at)
 WHERE served_at IS NOT NULL;
 
 -- =================================================================
@@ -125,13 +115,10 @@ CREATE INDEX IF NOT EXISTS idx_inventory_turnover_analysis
 ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity);
 
 -- 庫存成本分析索引
-CREATE INDEX IF NOT EXISTS idx_inventory_cost_analysis 
-ON stock_movements(
-    (SELECT restaurant_id FROM inventory_items WHERE id = inventory_item_id),
-    DATE(created_at), 
-    movement_type, 
-    quantity * COALESCE(unit_cost, 0)
-);
+-- Note: Cannot use subqueries in index expressions
+-- Simplified to allow joins with inventory_items table
+CREATE INDEX IF NOT EXISTS idx_inventory_cost_analysis
+ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity);
 
 -- 庫存浪費分析索引
 CREATE INDEX IF NOT EXISTS idx_inventory_waste_analysis 
@@ -143,45 +130,33 @@ ON stock_movements(
 ) WHERE movement_type = 'waste';
 
 -- 供應商績效分析索引
-CREATE INDEX IF NOT EXISTS idx_supplier_performance_analysis 
-ON stock_movements(
-    (SELECT json_extract(supplier_info, '$.supplier_name') 
-     FROM inventory_items WHERE id = inventory_item_id),
-    DATE(created_at),
-    movement_type,
-    quantity
-) WHERE movement_type = 'in';
+-- Note: Cannot use subqueries in index expressions
+-- Simplified index for basic movement tracking
+CREATE INDEX IF NOT EXISTS idx_supplier_performance_analysis
+ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity)
+WHERE movement_type = 'in';
 
 -- =================================================================
 -- 6. 收入成本分析索引
 -- =================================================================
 
 -- 毛利分析索引
-CREATE INDEX IF NOT EXISTS idx_gross_margin_analysis 
-ON order_items(
-    (SELECT restaurant_id FROM menu_items WHERE id = menu_item_id),
-    DATE(created_at),
-    total_price,
-    (SELECT price - COALESCE(cost_price, 0) FROM menu_items WHERE id = menu_item_id)
-);
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_gross_margin_analysis
+ON order_items(menu_item_id, DATE(created_at), total_price, quantity);
 
 -- 成本中心分析索引（按分類）
-CREATE INDEX IF NOT EXISTS idx_cost_center_analysis 
-ON order_items(
-    (SELECT category_id FROM menu_items WHERE id = menu_item_id),
-    DATE(created_at),
-    total_price,
-    quantity
-);
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_cost_center_analysis
+ON order_items(menu_item_id, DATE(created_at), total_price, quantity);
 
 -- 價格敏感度分析索引
-CREATE INDEX IF NOT EXISTS idx_price_sensitivity_analysis 
-ON order_items(
-    menu_item_id,
-    (SELECT price FROM menu_items WHERE id = menu_item_id),
-    DATE(created_at),
-    quantity
-);
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_price_sensitivity_analysis
+ON order_items(menu_item_id, DATE(created_at), unit_price, quantity);
 
 -- =================================================================
 -- 7. 市場趨勢分析索引
@@ -198,24 +173,20 @@ ON orders(
 );
 
 -- 節假日影響分析索引
-CREATE INDEX IF NOT EXISTS idx_holiday_impact_analysis 
+CREATE INDEX IF NOT EXISTS idx_holiday_impact_analysis
 ON orders(
     restaurant_id,
     DATE(created_at),
     strftime('%w', created_at),
     total_amount,
-    order_count
+    status
 );
 
 -- 天氣影響分析索引（為未來天氣API整合預備）
-CREATE INDEX IF NOT EXISTS idx_weather_impact_analysis 
-ON orders(
-    restaurant_id,
-    DATE(created_at),
-    order_type,
-    COUNT(*) as order_count,
-    AVG(total_amount)
-);
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for basic time-series queries
+CREATE INDEX IF NOT EXISTS idx_weather_impact_analysis
+ON orders(restaurant_id, DATE(created_at), order_type, total_amount, status);
 
 -- =================================================================
 -- 8. 競爭分析索引
@@ -231,83 +202,56 @@ ON orders(
 ) WHERE status IN ('completed', 'paid');
 
 -- 定價策略分析索引
-CREATE INDEX IF NOT EXISTS idx_pricing_strategy_analysis 
-ON order_items(
-    (SELECT restaurant_id FROM menu_items WHERE id = menu_item_id),
-    (SELECT name FROM menu_items WHERE id = menu_item_id),
-    unit_price,
-    DATE(created_at),
-    quantity
-);
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_pricing_strategy_analysis
+ON order_items(menu_item_id, unit_price, DATE(created_at), quantity);
 
 -- =================================================================
 -- 9. 預測分析索引
 -- =================================================================
 
 -- 需求預測分析索引
-CREATE INDEX IF NOT EXISTS idx_demand_forecasting_analysis 
-ON orders(
-    restaurant_id,
-    DATE(created_at),
-    strftime('%w', created_at),
-    strftime('%H', created_at),
-    COUNT(*),
-    AVG(total_amount)
-);
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for time-series queries
+CREATE INDEX IF NOT EXISTS idx_demand_forecasting_analysis
+ON orders(restaurant_id, DATE(created_at), strftime('%w', created_at), strftime('%H', created_at), total_amount, status);
 
 -- 庫存需求預測索引
-CREATE INDEX IF NOT EXISTS idx_inventory_demand_forecasting 
-ON stock_movements(
-    inventory_item_id,
-    DATE(created_at),
-    strftime('%w', created_at),
-    movement_type,
-    SUM(CASE WHEN movement_type = 'out' THEN quantity ELSE 0 END)
-);
+-- Note: Cannot use aggregate functions or CASE in index expressions
+-- Simplified for time-series analysis
+CREATE INDEX IF NOT EXISTS idx_inventory_demand_forecasting
+ON stock_movements(inventory_item_id, DATE(created_at), strftime('%w', created_at), movement_type, quantity);
 
 -- 員工排班需求預測索引
-CREATE INDEX IF NOT EXISTS idx_staffing_demand_forecasting 
-ON orders(
-    restaurant_id,
-    DATE(created_at),
-    strftime('%w', created_at),
-    strftime('%H', created_at),
-    COUNT(*) as order_volume
-);
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for time-series queries
+CREATE INDEX IF NOT EXISTS idx_staffing_demand_forecasting
+ON orders(restaurant_id, DATE(created_at), strftime('%w', created_at), strftime('%H', created_at), status);
 
 -- =================================================================
 -- 10. 實時分析索引
 -- =================================================================
 
 -- 實時銷售儀表板索引
-CREATE INDEX IF NOT EXISTS idx_realtime_sales_dashboard 
-ON orders(
-    restaurant_id,
-    status,
-    DATE(created_at),
-    strftime('%H', created_at),
-    total_amount
-) WHERE created_at >= datetime('now', '-1 day');
+-- Note: Cannot use datetime('now') in WHERE clause as it's non-deterministic
+-- Removed WHERE clause; application should filter by date
+CREATE INDEX IF NOT EXISTS idx_realtime_sales_dashboard
+ON orders(restaurant_id, status, DATE(created_at), strftime('%H', created_at), total_amount, created_at);
 
 -- 實時庫存監控索引
-CREATE INDEX IF NOT EXISTS idx_realtime_inventory_monitoring 
-ON inventory_items(
-    restaurant_id,
-    status,
-    current_stock,
-    min_stock_level,
-    (current_stock - min_stock_level) as stock_buffer
-) WHERE status = 'active';
+-- Note: Cannot use calculated expressions in index
+-- Simplified index
+CREATE INDEX IF NOT EXISTS idx_realtime_inventory_monitoring
+ON inventory_items(restaurant_id, status, current_stock, min_stock_level)
+WHERE status = 'active';
 
 -- 實時服務監控索引
-CREATE INDEX IF NOT EXISTS idx_realtime_service_monitoring 
-ON orders(
-    restaurant_id,
-    status,
-    created_at,
-    estimated_ready_time
-) WHERE status IN ('pending', 'confirmed', 'preparing', 'ready')
-  AND created_at >= datetime('now', '-4 hours');
+-- Note: Cannot use datetime('now') in WHERE clause
+-- Removed time-based WHERE; application should filter
+CREATE INDEX IF NOT EXISTS idx_realtime_service_monitoring
+ON orders(restaurant_id, status, created_at, estimated_ready_time)
+WHERE status IN ('pending', 'confirmed', 'preparing', 'ready');
 
 -- =================================================================
 -- 11. 地理分析索引（為未來地理功能預備）

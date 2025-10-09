@@ -12,10 +12,10 @@ type __VLS_Slots = {} & {
     extra?: (props: typeof __VLS_21) => any;
 };
 declare const __VLS_component: import("vue").DefineComponent<Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<Props> & Readonly<{}>, {
-    color: "green" | "blue" | "yellow" | "red" | "purple" | "gray";
-    trend: "up" | "down" | "stable";
-    subtitle: string;
     progress: number;
+    color: "green" | "blue" | "yellow" | "red" | "purple" | "gray";
+    subtitle: string;
+    trend: "up" | "down" | "stable";
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 declare const _default: __VLS_WithSlots<typeof __VLS_component, __VLS_Slots>;
 export default _default;

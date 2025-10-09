@@ -2,7 +2,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
-import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, Settings, User, CreditCard, Clock, } from "lucide-vue-next";
+import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, Settings, User, CreditCard, Clock, Ticket as TicketIcon, } from "lucide-vue-next";
 const __VLS_props = defineProps();
 const __VLS_emit = defineEmits();
 const route = useRoute();
@@ -42,6 +42,13 @@ const navigationItems = computed(() => [
         path: "/dashboard/users",
         label: "員工管理",
         icon: Users,
+        visible: authStore.canAccessAdminFeatures,
+    },
+    {
+        name: "coupons",
+        path: "/dashboard/coupons",
+        label: "優惠券管理",
+        icon: TicketIcon,
         visible: authStore.canAccessAdminFeatures,
     },
     {

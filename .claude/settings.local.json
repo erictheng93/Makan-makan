@@ -48,10 +48,35 @@
       "Bash(done)",
       "Bash(pnpm add:*)",
       "Bash(grep:*)",
-      "Bash(pnpm -r run typecheck)"
+      "Bash(pnpm -r run typecheck)",
+      "Bash(start chrome --remote-debugging-port=9222)",
+      "Read(//c/Users/minim/**)",
+      "Bash(del \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\.mcp.json\")",
+      "Bash(if [ -d \"apps\" ])",
+      "Bash(then ls -la apps/)",
+      "Bash(if [ -d \"packages\" ])",
+      "Bash(then ls -la packages/)",
+      "Bash(if [ -d \"docs\" ])",
+      "Bash(then ls -la docs/)",
+      "Bash(if [ -d \"legacy\" ])",
+      "Bash(then ls -la legacy/)",
+      "Bash(git log:*)",
+      "Bash(git checkout:*)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(pnpm:*)",
+      "Bash(ls:*)",
+      "Bash(for file in 0020_restaurant_id_to_text.sql 0021_payment_system_infrastructure.sql 0021_seat_management_system.sql 0022_payment_system_seed_data.sql 0023_printer_system.sql 0024_group_orders_payment_integration.sql 0025_coupon_system.sql 0026_week3_additional_indexes.sql 20251001_performance_indexes.sql)",
+      "Bash(do echo \"=== Checking $file ===\")",
+      "Bash(for dir in apps/*/)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": [],
     "defaultMode": "acceptEdits"
-  }
+  },
+  "enabledMcpjsonServers": [
+    "chrome-devtools",
+    "playwright"
+  ]
 }

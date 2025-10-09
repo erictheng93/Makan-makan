@@ -58,6 +58,11 @@
   ],
   "author": "MakanMakan Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@10.18.1",
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.0",
@@ -70,12 +75,12 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^10.4.0",
-    "vue-eslint-parser": "^9.4.3",
     "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
-    "wrangler": "^4.33.1"
+    "vue-eslint-parser": "^9.4.3",
+    "wrangler": "^4.42.1"
   },
   "pnpm": {
     "overrides": {

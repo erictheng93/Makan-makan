@@ -1,21 +1,29 @@
+import type { ApiResponse } from "@/types";
 export interface QueueItem {
     id: string;
     queueNumber: number;
-    restaurantId: string;
+    restaurantId: number;
     customerName: string | null;
-    phoneNumber: string;
+    customerPhone?: string;
+    customerEmail?: string;
     partySize: number;
-    tablePreference: string | null;
+    tablePreferences?: number[];
     specialRequests: string | null;
     priority: number;
-    status: "waiting" | "called" | "seated" | "no_show" | "cancelled";
+    queueType: 'walkin' | 'online' | 'phone';
+    status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
     joinedAt: string;
     calledAt: string | null;
+    notifiedAt?: string;
     seatedAt: string | null;
-    estimatedWaitTime: number;
-    actualWaitTime: number | null;
-    tableId: string | null;
+    estimatedWaitMinutes: number;
+    actualWaitMinutes: number | null;
+    assignedTableId: number | null;
+    servedBy?: number;
     notes: string | null;
+    notificationMethods?: string[];
+    checkInCode?: string;
+    metadata?: Record<string, any>;
 }
 export interface QueueNotification {
     id: string;
@@ -26,19 +34,26 @@ export interface QueueNotification {
     status: "sent" | "delivered" | "failed";
 }
 export interface QueueSettings {
-    id: string;
-    restaurantId: string;
+    restaurantId: number;
+    isEnabled: boolean;
+    maxQueueSize: number;
+    avgServiceTime: number;
     maxWaitTime: number;
-    notificationIntervals: number[];
-    autoCallNext: boolean;
-    requirePhoneNumber: boolean;
-    allowOnlineJoin: boolean;
-    estimationAlgorithm: "simple" | "ml_based";
-    operatingHours: {
-        start: string;
-        end: string;
-        days: number[];
-    };
+    minAdvanceNotice: number;
+    notificationMethods: string[];
+    autoCallEnabled: boolean;
+    autoCallInterval: number;
+    noShowTimeout: number;
+    queueNumberReset: 'daily' | 'weekly' | 'monthly' | 'never';
+    priorityRules: Record<string, any>;
+    tableAssignmentRules: Record<string, any>;
+    notificationTemplates: Record<string, string>;
+    businessHours: Record<string, any>;
+    holidaySettings: Record<string, any>;
+    displaySettings: Record<string, any>;
+    integrationSettings: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
 }
 export interface QueueStats {
     date: string;
@@ -53,137 +68,77 @@ export interface QueueStats {
     }>;
 }
 export declare const queueService: {
-    getQueue(restaurantId: string, params?: {
+    getQueue(restaurantId: number, params?: {
         status?: QueueItem["status"];
-        date?: string;
+        limit?: number;
     }): Promise<QueueItem[]>;
+    getQueueStatus(restaurantId: number): Promise<{
+        queue: any;
+        activity: any;
+        settings: QueueSettings;
+    }>;
     joinQueue(data: {
-        restaurantId: string;
-        customerName?: string;
-        phoneNumber: string;
+        restaurantId: number;
+        customerName: string;
+        customerPhone?: string;
+        customerEmail?: string;
         partySize: number;
-        tablePreference?: string;
         specialRequests?: string;
-    }): Promise<{
-        success: boolean;
-        queueItem: QueueItem;
-        estimatedWaitTime: number;
-    }>;
-    getQueuePosition(queueId: string): Promise<{
-        position: number;
-        estimatedWaitTime: number;
-        totalWaiting: number;
-    }>;
-    updateQueueItem(queueId: string, data: Partial<QueueItem>): Promise<QueueItem>;
-    callNext(restaurantId: string, data: {
-        operatorId: number;
-        skipToNumber?: number;
-    }): Promise<{
-        success: boolean;
-        calledCustomer: QueueItem | null;
-        message: string;
-    }>;
-    callCustomer(queueId: string, data: {
-        operatorId: number;
-        notificationMethod?: "sms" | "call" | "app_push";
-    }): Promise<QueueItem>;
-    markNoShow(queueId: string, operatorId: number): Promise<QueueItem>;
-    seatCustomer(queueId: string, data: {
-        tableId: string;
-        operatorId: number;
-        notes?: string;
-    }): Promise<{
-        success: boolean;
-        queueItem: QueueItem;
-        tableAssignment: any;
-    }>;
-    getRecommendedTables(queueId: string): Promise<Array<{
-        tableId: string;
-        tableNumber: string;
-        capacity: number;
+        queueType?: "walkin" | "online" | "phone";
+        tablePreferences?: number[];
+        notificationMethods?: string[];
+    }): Promise<ApiResponse<{
+        queueId: string;
+        queueNumber: number;
+        estimatedWaitMinutes: number;
+        currentPosition: number;
+        checkInCode: string;
+    }>>;
+    getQueuePosition(queueId: string): Promise<ApiResponse<{
+        queueId: string;
+        queueNumber: number;
+        currentPosition: number;
+        estimatedWaitMinutes: number;
         status: string;
-        matchScore: number;
-        reasons: string[];
+        canCancel: boolean;
     }>>;
     cancelQueue(queueId: string, data: {
         reason?: string;
-        operatorId?: number;
-    }): Promise<QueueItem>;
-    rescheduleQueue(queueId: string, data: {
-        newDateTime: string;
-        reason?: string;
-    }): Promise<QueueItem>;
-    sendNotification(queueId: string, data: {
-        type: "sms" | "call" | "app_push";
-        message: string;
-        operatorId: number;
-    }): Promise<QueueNotification>;
-    getNotifications(queueId: string): Promise<QueueNotification[]>;
-    sendBulkNotification(restaurantId: string, data: {
-        queueIds: string[];
-        type: "sms" | "call" | "app_push";
-        message: string;
-        operatorId: number;
+        checkInCode?: string;
+    }): Promise<ApiResponse<{}>>;
+    callNext(restaurantId: number, data: {
+        tableId?: number;
+        specificQueueId?: string;
     }): Promise<{
-        success: number;
-        failed: number;
-        results: QueueNotification[];
+        success: boolean;
+        data?: QueueItem;
+        error?: string;
     }>;
-    getSettings(restaurantId: string): Promise<QueueSettings>;
-    updateSettings(restaurantId: string, data: Partial<QueueSettings>): Promise<QueueSettings>;
-    getDisplayData(restaurantId: string): Promise<{
-        currentNumber: number;
-        calledNumbers: number[];
-        waitingCount: number;
-        averageWaitTime: number;
-        announcements: Array<{
-            message: string;
-            type: "info" | "warning";
-            priority: number;
-        }>;
+    seatCustomer(queueId: string, data: {
+        tableId: number;
+    }): Promise<ApiResponse<{}>>;
+    getSettings(restaurantId: number): Promise<ApiResponse<QueueSettings>>;
+    updateSettings(restaurantId: number, data: Partial<QueueSettings>): Promise<ApiResponse<{}>>;
+    getDailyStats(restaurantId: number, date?: string): Promise<QueueStats>;
+    getRealtimeStatus(restaurantId: number): Promise<{
+        queue: {
+            total_waiting: number;
+            avg_estimated_wait: number;
+            min_wait: number;
+            max_wait: number;
+            online_count: number;
+            walkin_count: number;
+            priority_count: number;
+        };
+        activity: {
+            seated_today: number;
+            cancelled_today: number;
+            no_show_today: number;
+            avg_actual_wait: number;
+        };
+        settings: QueueSettings;
     }>;
-    updateDisplay(restaurantId: string, data: {
-        currentNumber?: number;
-        announcements?: Array<{
-            message: string;
-            type: "info" | "warning";
-            priority: number;
-        }>;
-    }): Promise<void>;
-    getDailyStats(restaurantId: string, date?: string): Promise<QueueStats>;
-    getWeeklyStats(restaurantId: string, startDate?: string): Promise<QueueStats[]>;
-    getWaitTimeAnalysis(restaurantId: string, params?: {
-        startDate?: string;
-        endDate?: string;
-    }): Promise<{
-        averageWaitTime: number;
-        medianWaitTime: number;
-        peakWaitTime: number;
-        waitTimeDistribution: Array<{
-            range: string;
-            count: number;
-            percentage: number;
-        }>;
-    }>;
-    getRealtimeStatus(restaurantId: string): Promise<{
-        currentWaiting: number;
-        totalServedToday: number;
-        averageWaitTime: number;
-        longestWait: number;
-        recentActivity: Array<{
-            type: "joined" | "called" | "seated" | "no_show";
-            queueNumber: number;
-            timestamp: string;
-            customerName?: string;
-        }>;
-    }>;
-    exportQueue(restaurantId: string, params: {
-        startDate?: string;
-        endDate?: string;
-        status?: QueueItem["status"];
-        format: "csv" | "excel";
-    }): Promise<Blob>;
-    getWaitTimeEstimate(restaurantId: string, partySize: number): Promise<{
+    getWaitTimeEstimate(restaurantId: number, partySize: number): Promise<{
         estimatedWaitTime: number;
         confidence: number;
         factors: Array<{
@@ -192,7 +147,7 @@ export declare const queueService: {
             description: string;
         }>;
     }>;
-    getCapacityForecast(restaurantId: string, date: string): Promise<{
+    getCapacityForecast(_restaurantId: number, _date: string): Promise<{
         hourlyForecast: Array<{
             hour: number;
             expectedCustomers: number;
@@ -202,5 +157,19 @@ export declare const queueService: {
         peakHours: number[];
         recommendations: string[];
     }>;
+    getPerformanceMetrics(): Promise<ApiResponse<{
+        cacheStats: {
+            totalEntries: number;
+            validEntries: number;
+            expiredEntries: number;
+            hitRate: number;
+            memoryUsage: number;
+        };
+        lastUpdated: string;
+    }>>;
+    optimizeQueue(restaurantId: number): Promise<ApiResponse<{
+        message: string;
+        timestamp: string;
+    }>>;
 };
 export default queueService;

@@ -108,8 +108,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user_expires
 ON sessions(user_id, expires_at DESC);
 
 -- 會話清理查詢 (過期時間)
-CREATE INDEX IF NOT EXISTS idx_sessions_cleanup 
-ON sessions(expires_at) WHERE expires_at < datetime('now');
+CREATE INDEX IF NOT EXISTS idx_sessions_cleanup
+ON sessions(expires_at);
 
 -- =================================================================
 -- 7. 新增表格索引 (基於之前的 additional_tables)
@@ -193,10 +193,9 @@ ON orders(restaurant_id, status, estimated_ready_time)
 WHERE status IN ('pending', 'confirmed', 'preparing');
 
 -- 逾期訂單查詢
-CREATE INDEX IF NOT EXISTS idx_orders_overdue 
-ON orders(restaurant_id, estimated_ready_time, status) 
-WHERE estimated_ready_time < datetime('now') 
-  AND status IN ('preparing', 'ready');
+CREATE INDEX IF NOT EXISTS idx_orders_overdue
+ON orders(restaurant_id, estimated_ready_time, status)
+WHERE status IN ('preparing', 'ready');
 
 -- 今日新客戶統計
 CREATE INDEX IF NOT EXISTS idx_orders_new_customers_today 

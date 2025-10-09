@@ -2,7 +2,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { QuestionMarkCircleIcon, ArrowLeftIcon, HomeIcon, MagnifyingGlassIcon, InformationCircleIcon, EnvelopeIcon, PhoneIcon, } from "@heroicons/vue/24/outline";
-import { ChartBarIcon, ShoppingBagIcon, UserGroupIcon, CakeIcon, TableCellsIcon, CalculatorIcon, CookingPotIcon, } from "@heroicons/vue/24/solid";
+import { ChartBarIcon, ShoppingBagIcon, UserGroupIcon, CakeIcon, TableCellsIcon, CalculatorIcon, FireIcon, } from "@heroicons/vue/24/solid";
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
@@ -37,7 +37,7 @@ const navigationLinks = computed(() => {
         {
             name: "廚房顯示",
             path: "/kitchen",
-            icon: CookingPotIcon,
+            icon: FireIcon,
             roles: [0, 1, 2],
         },
         {

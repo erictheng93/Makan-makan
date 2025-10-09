@@ -1,135 +1,140 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { resolve } from "path";
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
-      '@makanmakan/shared-types': resolve(__dirname, '../../packages/shared-types/src'),
-      '@makanmakan/utils': resolve(__dirname, '../../packages/utils/src')
-    }
+      "@": resolve(__dirname, "src"),
+      "@makanmakan/shared-types": resolve(
+        __dirname,
+        "../../packages/shared-types/src",
+      ),
+      "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
+    },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify('1.0.0'),
+    __VUE_PROD_DEVTOOLS__: false,
   },
   server: {
-    host: 'localhost', // SECURITY FIX: Restrict to localhost only in development
+    host: "localhost", // SECURITY FIX: Restrict to localhost only in development
     port: 3002, // 不同於 admin-dashboard 的 3001
     proxy: {
-      '/api': {
-        target: process.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8787',
-        changeOrigin: true
-      }
-    }
+      "/api": {
+        target:
+          process.env.VITE_API_BASE_URL?.replace("/api/v1", "") ||
+          "http://localhost:8787",
+        changeOrigin: true,
+      },
+    },
   },
   build: {
-    target: 'esnext',
-    outDir: 'dist',
-    sourcemap: process.env.NODE_ENV !== 'production', // SECURITY FIX: Disable sourcemaps in production
+    target: "esnext",
+    outDir: "dist",
+    sourcemap: process.env.NODE_ENV !== "production", // SECURITY FIX: Disable sourcemaps in production
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: (id: string) => {
           // Core dependencies
-          if (id.includes('vue') && !id.includes('toastification')) {
-            return 'vue-core'
+          if (id.includes("vue") && !id.includes("toastification")) {
+            return "vue-core";
           }
-          if (id.includes('pinia') || id.includes('vue-router')) {
-            return 'vue-ecosystem'
+          if (id.includes("pinia") || id.includes("vue-router")) {
+            return "vue-ecosystem";
           }
-          
+
           // UI components and icons
-          if (id.includes('@headlessui') || id.includes('@heroicons')) {
-            return 'ui-components'
+          if (id.includes("@headlessui") || id.includes("@heroicons")) {
+            return "ui-components";
           }
-          
+
           // Audio processing
-          if (id.includes('howler') || id.includes('audio')) {
-            return 'audio-system'
+          if (id.includes("howler") || id.includes("audio")) {
+            return "audio-system";
           }
-          
+
           // Statistics and analytics
-          if (id.includes('chart') || id.includes('statistics') || id.includes('analytics')) {
-            return 'statistics'
+          if (
+            id.includes("chart") ||
+            id.includes("statistics") ||
+            id.includes("analytics")
+          ) {
+            return "statistics";
           }
-          
+
           // Utilities and helpers
-          if (id.includes('@vueuse') || id.includes('date-fns')) {
-            return 'utilities'
+          if (id.includes("@vueuse") || id.includes("date-fns")) {
+            return "utilities";
           }
-          
+
           // HTTP and data fetching
-          if (id.includes('axios') || id.includes('@tanstack/vue-query')) {
-            return 'data-fetching'
+          if (id.includes("axios") || id.includes("@tanstack/vue-query")) {
+            return "data-fetching";
           }
-          
+
           // Toast and notifications
-          if (id.includes('toastification')) {
-            return 'notifications'
+          if (id.includes("toastification")) {
+            return "notifications";
           }
-          
+
           // Large third-party libraries
-          if (id.includes('sortablejs')) {
-            return 'sortable'
+          if (id.includes("sortablejs")) {
+            return "sortable";
           }
-          
+
           // Node modules (vendor chunk for other dependencies)
-          if (id.includes('node_modules')) {
-            return 'vendor'
+          if (id.includes("node_modules")) {
+            return "vendor";
           }
         },
         chunkFileNames: () => {
-          return `assets/[name]-[hash].js`
+          return `assets/[name]-[hash].js`;
         },
         assetFileNames: (assetInfo) => {
           if (/\.(mp3|wav|ogg|m4a)$/i.test(assetInfo.name!)) {
-            return `assets/audio/[name]-[hash][extname]`
+            return `assets/audio/[name]-[hash][extname]`;
           }
           if (/\.(png|jpe?g|gif|svg)$/i.test(assetInfo.name!)) {
-            return `assets/images/[name]-[hash][extname]`
+            return `assets/images/[name]-[hash][extname]`;
           }
           if (/\.css$/i.test(assetInfo.name!)) {
-            return `assets/css/[name]-[hash][extname]`
+            return `assets/css/[name]-[hash][extname]`;
           }
-          return `assets/[name]-[hash][extname]`
-        }
+          return `assets/[name]-[hash][extname]`;
+        },
       },
       treeshake: {
-        preset: 'recommended'
-      }
+        preset: "recommended",
+      },
     },
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
-        passes: 2
+        pure_funcs: ["console.log", "console.info", "console.debug"],
+        passes: 2,
       },
       mangle: {
-        safari10: true
+        safari10: true,
       },
       format: {
-        comments: false
-      }
-    }
+        comments: false,
+      },
+    },
   },
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
-    include: [
-      'src/**/*.{test,spec}.{js,ts}',
-      'tests/**/*.{test,spec}.{js,ts}'
-    ],
+    environment: "jsdom",
+    setupFiles: ["./tests/setup.ts"],
+    include: ["src/**/*.{test,spec}.{js,ts}", "tests/**/*.{test,spec}.{js,ts}"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/setup.ts',
-        'dist/',
-        '**/*.d.ts'
-      ]
-    }
-  }
-})
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: ["node_modules/", "tests/setup.ts", "dist/", "**/*.d.ts"],
+    },
+  },
+});
