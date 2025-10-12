@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -8,6 +9,62 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/HomeView.vue"),
     meta: {
       title: "MakanMakan - 智慧點餐",
+    },
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/LoginView.vue"),
+    meta: {
+      title: "會員登入",
+      requiresGuest: true,
+    },
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/views/RegisterView.vue"),
+    meta: {
+      title: "會員註冊",
+      requiresGuest: true,
+    },
+  },
+  {
+    path: "/orders",
+    name: "Orders",
+    component: () => import("@/views/OrderHistoryView.vue"),
+    meta: {
+      title: "我的訂單",
+      requiresAuth: true,
+    },
+  },
+  {
+    path: "/orders/:id",
+    name: "OrderDetail",
+    component: () => import("@/views/OrderTrackingView.vue"),
+    props: (route) => ({
+      orderId: Number(route.params.id),
+    }),
+    meta: {
+      title: "訂單詳情",
+      requiresAuth: true,
+    },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("@/views/ProfileView.vue"),
+    meta: {
+      title: "個人中心",
+      requiresAuth: true,
+    },
+  },
+  {
+    path: "/menu",
+    name: "Menu",
+    component: () => import("@/views/HomeView.vue"),
+    meta: {
+      title: "瀏覽菜單",
     },
   },
   {
@@ -28,6 +85,30 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: "瀏覽菜單",
+    },
+  },
+  {
+    path: "/restaurant/:restaurantId/shop/verify",
+    name: "ShopPhoneVerification",
+    component: () => import("@/views/ShopPhoneVerificationView.vue"),
+    props: (route) => ({
+      restaurantId: Number(route.params.restaurantId),
+      shopQrCode: route.query.qr as string,
+    }),
+    meta: {
+      title: "驗證手機",
+    },
+  },
+  {
+    path: "/restaurant/:restaurantId/shop/menu",
+    name: "ShopMenu",
+    component: () => import("@/views/ShopMenuView.vue"),
+    props: (route) => ({
+      restaurantId: Number(route.params.restaurantId),
+      phoneLastDigits: route.query.phone as string,
+    }),
+    meta: {
+      title: "店家菜單",
     },
   },
   {
@@ -119,11 +200,45 @@ const router = createRouter({
 });
 
 // 路由守衛
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 設置頁面標題
   const title = to.meta?.title as string;
   if (title) {
     document.title = title;
+  }
+
+  // 獲取認證狀態
+  const authStore = useAuthStore();
+  const requiresAuth = to.meta.requiresAuth as boolean;
+  const requiresGuest = to.meta.requiresGuest as boolean;
+
+  // 檢查需要認證的路由
+  if (requiresAuth) {
+    if (!authStore.isAuthenticated) {
+      // 未登入，重定向到登入頁
+      next({
+        name: "Login",
+        query: { redirect: to.fullPath },
+      });
+      return;
+    }
+
+    // 驗證 token 是否有效
+    const isValid = await authStore.checkAuth();
+    if (!isValid) {
+      next({
+        name: "Login",
+        query: { redirect: to.fullPath },
+      });
+      return;
+    }
+  }
+
+  // 檢查需要訪客身份的路由（如登入、註冊頁）
+  if (requiresGuest && authStore.isAuthenticated) {
+    // 已登入用戶訪問登入/註冊頁，重定向到訂單頁
+    next({ name: "Orders" });
+    return;
   }
 
   // 檢查餐廳和桌台參數

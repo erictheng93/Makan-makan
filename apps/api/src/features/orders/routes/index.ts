@@ -231,7 +231,7 @@ app.post('/',
  */
 app.get('/',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]), // All staff roles
+  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateQuery(orderSchemas.orderFilters),
   async (c) => {
     try {
@@ -252,9 +252,16 @@ app.get('/',
         scheduledTimeFrom: query.scheduledTimeFrom ? new Date(query.scheduledTimeFrom) : undefined,
         scheduledTimeTo: query.scheduledTimeTo ? new Date(query.scheduledTimeTo) : undefined
       }
-      if (user.role !== 0) { // Non-admin only sees their restaurant's orders
+
+      // Role-based filtering
+      if (user.role === 5) {
+        // Customers only see their own orders
+        filters.customerId = user.id
+      } else if (user.role !== 0) {
+        // Non-admin staff only sees their restaurant's orders
         filters.restaurantId = user.restaurantId
       } else if (query.restaurantId) {
+        // Admin can filter by restaurant
         filters.restaurantId = query.restaurantId
       }
 
@@ -281,7 +288,7 @@ app.get('/',
  */
 app.get('/:id',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]),
+  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateParams(orderSchemas.params),
   async (c) => {
     try {
@@ -301,7 +308,16 @@ app.get('/:id',
       }
 
       // Permission check
-      if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
+      if (user.role === 5) {
+        // Customers can only view their own orders
+        if (order.customerId !== user.id) {
+          return c.json({
+            success: false,
+            error: 'Access denied'
+          }, 403)
+        }
+      } else if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
+        // Staff can only view orders from their restaurant
         return c.json({
           success: false,
           error: 'Access denied'
@@ -690,7 +706,7 @@ app.post('/export',
  */
 app.get('/:id/receipt',
   authMiddleware,
-  requireRole([0, 1, 2, 3, 4]),
+  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateParams(orderSchemas.params),
   async (c) => {
     try {
@@ -699,6 +715,32 @@ app.get('/:id/receipt',
       const ordersService = new OrdersService(c.env)
 
       logger.debug('Generating order receipt', { orderId: id, userId: user.id })
+
+      // Get order first to check permissions
+      const order = await ordersService.getOrder(parseInt(id))
+      if (!order) {
+        return c.json({
+          success: false,
+          error: 'Order not found'
+        }, 404)
+      }
+
+      // Permission check
+      if (user.role === 5) {
+        // Customers can only view receipt for their own orders
+        if (order.customerId !== user.id) {
+          return c.json({
+            success: false,
+            error: 'Access denied'
+          }, 403)
+        }
+      } else if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
+        // Staff can only view receipts from their restaurant
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, 403)
+      }
 
       const receipt = await ordersService.generateReceipt(parseInt(id))
 

@@ -162,6 +162,16 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
+      // Employee scheduling route
+      {
+        path: "scheduling",
+        name: "Scheduling",
+        component: () => import("@/views/scheduling/SchedulingView.vue"),
+        meta: {
+          title: "員工排班",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
     ],
   },
   {

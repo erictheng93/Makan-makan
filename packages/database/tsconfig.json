@@ -14,8 +14,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "composite": true,
     "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@makanmakan/shared-types": ["../shared-types/src"],
@@ -28,9 +29,5 @@
   "exclude": [
     "node_modules",
     "dist"
-  ],
-  "references": [
-    { "path": "../shared-types" },
-    { "path": "../queue-core" }
   ]
 }

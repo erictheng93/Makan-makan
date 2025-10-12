@@ -58,8 +58,16 @@ export function csrfProtection(options: CSRFOptions = {}) {
     const method = c.req.method.toUpperCase()
     const path = c.req.path
 
-    // Skip CSRF check for excluded paths
-    if (opts.excludePaths.some(excludePath => path.startsWith(excludePath))) {
+    // Skip CSRF check for excluded paths (supports * wildcard for path segments)
+    if (opts.excludePaths.some(excludePath => {
+      // Support simple wildcard pattern matching
+      if (excludePath.includes('*')) {
+        const pattern = excludePath.replace(/\*/g, '[^/]+')
+        const regex = new RegExp(`^${pattern}(/.*)?$`)
+        return regex.test(path)
+      }
+      return path.startsWith(excludePath)
+    })) {
       return next()
     }
 

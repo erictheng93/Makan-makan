@@ -3,6 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Development server configuration
+[dev]
+port = 8788
+local_protocol = "http"
+
 [durable_objects]
 bindings = [
   { name = "REALTIME_SESSION", class_name = "RealtimeSession" }

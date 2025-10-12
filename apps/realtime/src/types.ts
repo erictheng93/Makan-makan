@@ -1,9 +1,6 @@
 export interface Env {
-  NODE_ENV: string
-  JWT_SECRET: string
-  DB: any
-  CACHE_KV: any
-  REALTIME_ORDERS: any
+  ENVIRONMENT?: string
+  REALTIME_SESSION: DurableObjectNamespace
   [key: string]: any
 }
 

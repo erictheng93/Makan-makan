@@ -6,6 +6,10 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Development server configuration
+[dev]
+port = 8787
+local_protocol = "http"
 
 # Default variables for development
 [vars]
@@ -14,7 +18,8 @@ API_VERSION = "v1"
 API_BASE_URL = "http://localhost:8787"
 CORS_ORIGIN = "*"
 LOG_LEVEL = "debug"
-JWT_SECRET = "development-secret-key-min-32-chars-long-for-security-2025"
+# JWT_SECRET - SECURITY: Use `wrangler secret put JWT_SECRET` instead of hardcoding
+# For local development, set via environment variable or use a local .dev.vars file
 
 # D1 Database binding
 [[d1_databases]]

@@ -1,22 +1,33 @@
 /**
  * QR Code 解析工具
- * 支援多種 QR Code 格式
+ * 支援多種 QR Code 格式：shop, table, seat
  */
 
+export type QRType = "shop" | "table" | "seat";
+
 export interface QRData {
+  type: QRType;
   restaurantId: number;
-  tableId: number;
-  source: "json" | "url" | "simple";
+  tableId?: number;
+  seatId?: number;
+  shopQrCode?: string; // 店家 QR Code (格式: SHOP-{id}-{timestamp})
+  source: "json" | "url" | "simple" | "shop";
   raw?: string;
 }
 
 /**
  * 解析 QR Code 內容
  * @param content QR Code 掃描結果
- * @returns 解析後的餐廳和桌號資訊
+ * @returns 解析後的餐廳和桌號/座位資訊
  */
 export function parseQRContent(content: string): QRData | null {
   try {
+    // 優先檢查店家 QR Code (格式: SHOP-{id}-{timestamp})
+    const shopResult = parseShopQRFormat(content);
+    if (shopResult) {
+      return shopResult;
+    }
+
     // 嘗試解析 JSON 格式
     const jsonResult = parseJSONFormat(content);
     if (jsonResult) {
@@ -43,24 +54,69 @@ export function parseQRContent(content: string): QRData | null {
 }
 
 /**
+ * 解析店家級別 QR Code
+ * 格式: SHOP-{restaurantId}-{timestamp}
+ * 例如: SHOP-1-1760068334
+ */
+function parseShopQRFormat(content: string): QRData | null {
+  const shopQrMatch = content.match(/^SHOP-(\d+)-(\d+)$/);
+
+  if (shopQrMatch) {
+    return {
+      type: "shop",
+      restaurantId: parseInt(shopQrMatch[1]),
+      shopQrCode: content,
+      source: "shop",
+      raw: content,
+    };
+  }
+
+  return null;
+}
+
+/**
  * 解析 JSON 格式 QR Code
- * 格式: {"restaurantId": 123, "tableId": 5}
+ * 格式: {"type": "table", "restaurantId": 123, "tableId": 5}
+ * 格式: {"restaurantId": 123, "tableId": 5} (向後兼容)
  */
 function parseJSONFormat(content: string): QRData | null {
   try {
     const data = JSON.parse(content);
 
-    if (
-      data &&
-      typeof data.restaurantId === "number" &&
-      typeof data.tableId === "number"
-    ) {
-      return {
-        restaurantId: data.restaurantId,
-        tableId: data.tableId,
-        source: "json",
-        raw: content,
-      };
+    if (data && typeof data.restaurantId === "number") {
+      // 新格式：包含 type 字段
+      if (data.type === "shop") {
+        return {
+          type: "shop",
+          restaurantId: data.restaurantId,
+          shopQrCode:
+            data.shopQrCode || `SHOP-${data.restaurantId}-${Date.now()}`,
+          source: "json",
+          raw: content,
+        };
+      }
+
+      if (data.type === "seat" && typeof data.seatId === "number") {
+        return {
+          type: "seat",
+          restaurantId: data.restaurantId,
+          tableId: data.tableId,
+          seatId: data.seatId,
+          source: "json",
+          raw: content,
+        };
+      }
+
+      // 向後兼容：沒有 type 字段，預設為 table
+      if (typeof data.tableId === "number") {
+        return {
+          type: "table",
+          restaurantId: data.restaurantId,
+          tableId: data.tableId,
+          source: "json",
+          raw: content,
+        };
+      }
     }
   } catch (error) {
     // 不是 JSON 格式，繼續嘗試其他格式
@@ -83,6 +139,7 @@ function parseURLFormat(content: string): QRData | null {
     const pathMatch1 = url.pathname.match(/\/restaurant\/(\d+)\/table\/(\d+)/);
     if (pathMatch1) {
       return {
+        type: "table",
         restaurantId: parseInt(pathMatch1[1]),
         tableId: parseInt(pathMatch1[2]),
         source: "url",
@@ -94,8 +151,20 @@ function parseURLFormat(content: string): QRData | null {
     const pathMatch2 = url.pathname.match(/\/r\/(\d+)\/t\/(\d+)/);
     if (pathMatch2) {
       return {
+        type: "table",
         restaurantId: parseInt(pathMatch2[1]),
         tableId: parseInt(pathMatch2[2]),
+        source: "url",
+        raw: content,
+      };
+    }
+
+    // 店家模式路徑: /restaurant/123/shop
+    const shopPathMatch = url.pathname.match(/\/restaurant\/(\d+)\/shop/);
+    if (shopPathMatch) {
+      return {
+        type: "shop",
+        restaurantId: parseInt(shopPathMatch[1]),
         source: "url",
         raw: content,
       };
@@ -113,6 +182,7 @@ function parseURLFormat(content: string): QRData | null {
 
       if (!isNaN(restaurantId) && !isNaN(tableId)) {
         return {
+          type: "table",
           restaurantId,
           tableId,
           source: "url",
@@ -138,6 +208,7 @@ function parseSimpleFormat(content: string): QRData | null {
   const colonMatch = content.match(/^(\d+):(\d+)$/);
   if (colonMatch) {
     return {
+      type: "table",
       restaurantId: parseInt(colonMatch[1]),
       tableId: parseInt(colonMatch[2]),
       source: "simple",
@@ -149,6 +220,7 @@ function parseSimpleFormat(content: string): QRData | null {
   const rtMatch = content.match(/^R(\d+)T(\d+)$/i);
   if (rtMatch) {
     return {
+      type: "table",
       restaurantId: parseInt(rtMatch[1]),
       tableId: parseInt(rtMatch[2]),
       source: "simple",
@@ -160,6 +232,7 @@ function parseSimpleFormat(content: string): QRData | null {
   const dashMatch = content.match(/^(\d+)-(\d+)$/);
   if (dashMatch) {
     return {
+      type: "table",
       restaurantId: parseInt(dashMatch[1]),
       tableId: parseInt(dashMatch[2]),
       source: "simple",
@@ -174,34 +247,119 @@ function parseSimpleFormat(content: string): QRData | null {
  * 驗證 QR 資料的有效性
  */
 export function validateQRData(data: QRData): boolean {
-  return (
-    data.restaurantId > 0 &&
-    data.tableId > 0 &&
-    Number.isInteger(data.restaurantId) &&
-    Number.isInteger(data.tableId)
-  );
+  // 檢查餐廳 ID
+  if (
+    !data.restaurantId ||
+    !Number.isInteger(data.restaurantId) ||
+    data.restaurantId <= 0
+  ) {
+    return false;
+  }
+
+  // 根據類型驗證
+  switch (data.type) {
+    case "shop":
+      // 店家模式只需要 restaurantId
+      return true;
+
+    case "table":
+      // 桌子模式需要 tableId
+      return (
+        typeof data.tableId === "number" &&
+        Number.isInteger(data.tableId) &&
+        data.tableId > 0
+      );
+
+    case "seat":
+      // 座位模式需要 tableId 和 seatId
+      return (
+        typeof data.tableId === "number" &&
+        typeof data.seatId === "number" &&
+        Number.isInteger(data.tableId) &&
+        Number.isInteger(data.seatId) &&
+        data.tableId > 0 &&
+        data.seatId > 0
+      );
+
+    default:
+      return false;
+  }
 }
 
 /**
  * 生成 QR Code 內容（用於測試或管理）
  */
 export function generateQRContent(
+  type: QRType,
   restaurantId: number,
-  tableId: number,
-  format: "json" | "url" | "simple" = "json",
+  options?: {
+    tableId?: number;
+    seatId?: number;
+    shopQrCode?: string;
+    format?: "json" | "url" | "simple" | "shop";
+  },
 ): string {
-  switch (format) {
-    case "json":
-      return JSON.stringify({ restaurantId, tableId });
+  const format = options?.format || "json";
 
-    case "url":
-      return `https://makanmakan.app/restaurant/${restaurantId}/table/${tableId}`;
+  switch (type) {
+    case "shop":
+      if (format === "shop" || format === "simple") {
+        return (
+          options?.shopQrCode ||
+          `SHOP-${restaurantId}-${Math.floor(Date.now() / 1000)}`
+        );
+      }
+      return JSON.stringify({
+        type: "shop",
+        restaurantId,
+        shopQrCode:
+          options?.shopQrCode ||
+          `SHOP-${restaurantId}-${Math.floor(Date.now() / 1000)}`,
+      });
 
-    case "simple":
-      return `${restaurantId}:${tableId}`;
+    case "table": {
+      const tableId = options?.tableId || 0;
+      switch (format) {
+        case "json":
+          return JSON.stringify({ type: "table", restaurantId, tableId });
+        case "url":
+          return `https://makanmakan.app/restaurant/${restaurantId}/table/${tableId}`;
+        case "simple":
+          return `${restaurantId}:${tableId}`;
+        default:
+          return JSON.stringify({ type: "table", restaurantId, tableId });
+      }
+    }
+
+    case "seat": {
+      const seatTableId = options?.tableId || 0;
+      const seatId = options?.seatId || 0;
+      return JSON.stringify({
+        type: "seat",
+        restaurantId,
+        tableId: seatTableId,
+        seatId,
+      });
+    }
 
     default:
-      return JSON.stringify({ restaurantId, tableId });
+      return JSON.stringify({ type, restaurantId });
+  }
+}
+
+/**
+ * 獲取 QR Code 類型描述
+ */
+export function getQRTypeDescription(type: QRType): string {
+  switch (type) {
+    case "shop":
+      return "店家級別 QR Code（無桌號點餐）";
+    case "table":
+      return "桌台 QR Code";
+    case "seat":
+      return "座位 QR Code";
+    default:
+      return "未知類型";
   }
 }
 
@@ -210,6 +368,8 @@ export function generateQRContent(
  */
 export function getQRFormatDescription(source: QRData["source"]): string {
   switch (source) {
+    case "shop":
+      return "店家 QR 格式 (SHOP-ID-TIMESTAMP)";
     case "json":
       return "JSON 格式";
     case "url":

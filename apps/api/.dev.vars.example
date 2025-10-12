@@ -1,0 +1,12 @@
+# Local Development Environment Variables
+# Copy this file to .dev.vars and fill in the values
+# IMPORTANT: Never commit .dev.vars to version control
+
+# JWT Secret for authentication (minimum 32 characters)
+# Generate a secure secret: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
+
+# Optional: Add other secrets needed for local development
+# ANTHROPIC_API_KEY=your-anthropic-key
+# OPENAI_API_KEY=your-openai-key
+# SLACK_WEBHOOK_URL=your-slack-webhook

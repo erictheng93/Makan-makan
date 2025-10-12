@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from "vue";
-import { PlusIcon, MagnifyingGlassIcon, PhotoIcon, CheckCircleIcon, UserGroupIcon, ClockIcon, MapPinIcon, DocumentTextIcon, TableCellsIcon, } from "@heroicons/vue/24/outline";
+import { PlusIcon, MagnifyingGlassIcon, PhotoIcon, CheckCircleIcon, UserGroupIcon, ClockIcon, MapPinIcon, DocumentTextIcon, TableCellsIcon, WrenchIcon } from "@heroicons/vue/24/outline";
+import QRModeSelector from "../components/tables/QRModeSelector.vue";
 // 響應式數據
 const searchQuery = ref("");
 const statusFilter = ref("");
@@ -68,6 +69,11 @@ const tableForm = ref({
     capacity: 4,
     location: "",
     status: "available",
+    qrMode: "table",
+    seatConfig: {
+        count: 10,
+        numberingStyle: "numeric"
+    }
 });
 // 計算屬性
 const stats = computed(() => ({
@@ -188,6 +194,11 @@ const closeTableModal = () => {
         capacity: 4,
         location: "",
         status: "available",
+        qrMode: "table",
+        seatConfig: {
+            count: 10,
+            numberingStyle: "numeric"
+        }
     };
 };
 const saveTable = async () => {
@@ -387,10 +398,10 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "p-2 bg-gray-100 rounded-lg" },
 });
-const __VLS_25 = {}.WrenchScrewdriverIcon;
-/** @type {[typeof __VLS_components.WrenchScrewdriverIcon, ]} */ ;
+const __VLS_25 = {}.WrenchIcon;
+/** @type {[typeof __VLS_components.WrenchIcon, ]} */ ;
 // @ts-ignore
-WrenchScrewdriverIcon;
+WrenchIcon;
 // @ts-ignore
 const __VLS_26 = __VLS_asFunctionalComponent(__VLS_25, new __VLS_25({
     ...{ class: "h-6 w-6 text-gray-600" },
@@ -689,7 +700,7 @@ if (__VLS_ctx.showTableModal) {
     // @ts-ignore
     [closeTableModal,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "relative bg-white rounded-lg shadow-xl max-w-md w-full" },
+        ...{ class: "relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "p-6" },
@@ -798,6 +809,21 @@ if (__VLS_ctx.showTableModal) {
         value: "maintenance",
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "mt-6" },
+    });
+    /** @type {[typeof QRModeSelector, ]} */ ;
+    // @ts-ignore
+    const __VLS_65 = __VLS_asFunctionalComponent(QRModeSelector, new QRModeSelector({
+        modelValue: (__VLS_ctx.tableForm.qrMode),
+        seatConfig: (__VLS_ctx.tableForm.seatConfig),
+    }));
+    const __VLS_66 = __VLS_65({
+        modelValue: (__VLS_ctx.tableForm.qrMode),
+        seatConfig: (__VLS_ctx.tableForm.seatConfig),
+    }, ...__VLS_functionalComponentArgsRest(__VLS_65));
+    // @ts-ignore
+    [tableForm, tableForm,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "flex justify-end space-x-3 mt-6" },
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -858,17 +884,17 @@ if (__VLS_ctx.showQRModal) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "text-center" },
     });
-    const __VLS_65 = {}.PhotoIcon;
+    const __VLS_69 = {}.PhotoIcon;
     /** @type {[typeof __VLS_components.PhotoIcon, ]} */ ;
     // @ts-ignore
     PhotoIcon;
     // @ts-ignore
-    const __VLS_66 = __VLS_asFunctionalComponent(__VLS_65, new __VLS_65({
+    const __VLS_70 = __VLS_asFunctionalComponent(__VLS_69, new __VLS_69({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-2" },
     }));
-    const __VLS_67 = __VLS_66({
+    const __VLS_71 = __VLS_70({
         ...{ class: "mx-auto h-16 w-16 text-gray-400 mb-2" },
-    }, ...__VLS_functionalComponentArgsRest(__VLS_66));
+    }, ...__VLS_functionalComponentArgsRest(__VLS_70));
     __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
         ...{ class: "text-sm text-gray-500" },
     });
@@ -1205,8 +1231,10 @@ if (__VLS_ctx.showQRModal) {
 /** @type {__VLS_StyleScopedClasses['bg-white']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['max-w-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-4xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-h-[90vh]']} */ ;
+/** @type {__VLS_StyleScopedClasses['overflow-y-auto']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
@@ -1284,6 +1312,7 @@ if (__VLS_ctx.showQRModal) {
 /** @type {__VLS_StyleScopedClasses['focus:ring-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['focus:ring-blue-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['focus:border-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-end']} */ ;
 /** @type {__VLS_StyleScopedClasses['space-x-3']} */ ;
@@ -1389,6 +1418,8 @@ const __VLS_self = (await import('vue')).defineComponent({
         MapPinIcon: MapPinIcon,
         DocumentTextIcon: DocumentTextIcon,
         TableCellsIcon: TableCellsIcon,
+        WrenchIcon: WrenchIcon,
+        QRModeSelector: QRModeSelector,
         searchQuery: searchQuery,
         statusFilter: statusFilter,
         capacityFilter: capacityFilter,

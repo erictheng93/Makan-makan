@@ -319,4 +319,221 @@ app.get('/:id/stats',
   }
 )
 
+// ==================== Shop QR Code Endpoints ====================
+
+/**
+ * POST /:id/qr/shop/generate - Generate shop-level QR code
+ * Parameters: id
+ * For restaurants without table seating (e.g., chicken stall vendors)
+ */
+app.post('/:id/qr/shop/generate',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    try {
+      logger.debug('Generating shop QR code', { params: c.get('validatedParams') })
+
+      const { id } = c.get('validatedParams')
+      const user = c.get('user')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      // Shop owners can only manage their own restaurant
+      if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, HTTP_STATUS.FORBIDDEN)
+      }
+
+      const result = await restaurantsService.generateShopQrCode(id)
+
+      return c.json({
+        success: true,
+        data: result
+      }, HTTP_STATUS.CREATED)
+    } catch (error) {
+      logger.error('Failed to generate shop QR code', error as Error, {})
+      return c.json({
+        success: false,
+        error: formatError(error) || 'Failed to generate shop QR code'
+      }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
+/**
+ * POST /:id/qr/shop/regenerate - Regenerate shop-level QR code
+ * Parameters: id
+ * Used when QR code is compromised or needs to be replaced
+ */
+app.post('/:id/qr/shop/regenerate',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    try {
+      logger.debug('Regenerating shop QR code', { params: c.get('validatedParams') })
+
+      const { id } = c.get('validatedParams')
+      const user = c.get('user')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      // Shop owners can only manage their own restaurant
+      if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, HTTP_STATUS.FORBIDDEN)
+      }
+
+      const result = await restaurantsService.regenerateShopQrCode(id)
+
+      return c.json({
+        success: true,
+        data: result,
+        message: 'Shop QR code regenerated successfully'
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      logger.error('Failed to regenerate shop QR code', error as Error, {})
+      return c.json({
+        success: false,
+        error: formatError(error) || 'Failed to regenerate shop QR code'
+      }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
+/**
+ * GET /:id/qr/shop - Get shop-level QR code information
+ * Parameters: id
+ */
+app.get('/:id/qr/shop',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    try {
+      logger.debug('Getting shop QR code info', { params: c.get('validatedParams') })
+
+      const { id } = c.get('validatedParams')
+      const user = c.get('user')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      // Shop owners can only view their own restaurant QR
+      if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, HTTP_STATUS.FORBIDDEN)
+      }
+
+      const info = await restaurantsService.getShopQrCodeInfo(id)
+
+      return c.json({
+        success: true,
+        data: info
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      logger.error('Failed to get shop QR code info', error as Error, {})
+      return c.json({
+        success: false,
+        error: formatError(error) || 'Failed to fetch shop QR code info'
+      }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
+/**
+ * POST /:id/qr/shop/upload-image - Upload QR code image
+ * Parameters: id
+ * Body: { imageUrl: string }
+ */
+app.post('/:id/qr/shop/upload-image',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(commonSchemas.idParam),
+  validateBody(restaurantSchemas.uploadQrImage),
+  async (c) => {
+    try {
+      logger.debug('Uploading shop QR code image', {
+        params: c.get('validatedParams'),
+        body: c.get('validatedBody')
+      })
+
+      const { id } = c.get('validatedParams')
+      const { imageUrl } = c.get('validatedBody')
+      const user = c.get('user')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      // Shop owners can only manage their own restaurant
+      if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, HTTP_STATUS.FORBIDDEN)
+      }
+
+      await restaurantsService.updateShopQrCodeImage(id, imageUrl)
+
+      return c.json({
+        success: true,
+        message: 'QR code image uploaded successfully'
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      logger.error('Failed to upload shop QR code image', error as Error, {})
+      return c.json({
+        success: false,
+        error: formatError(error) || 'Failed to upload QR code image'
+      }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
+/**
+ * PUT /:id/shop-mode - Enable or disable shop mode
+ * Parameters: id
+ * Body: { enabled: boolean, settings?: ShopQrSettings }
+ */
+app.put('/:id/shop-mode',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(commonSchemas.idParam),
+  validateBody(restaurantSchemas.updateShopMode),
+  async (c) => {
+    try {
+      logger.debug('Updating shop mode', {
+        params: c.get('validatedParams'),
+        body: c.get('validatedBody')
+      })
+
+      const { id } = c.get('validatedParams')
+      const { enabled, settings } = c.get('validatedBody')
+      const user = c.get('user')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      // Shop owners can only manage their own restaurant
+      if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+        return c.json({
+          success: false,
+          error: 'Access denied'
+        }, HTTP_STATUS.FORBIDDEN)
+      }
+
+      await restaurantsService.updateShopMode(id, enabled, settings)
+
+      return c.json({
+        success: true,
+        message: `Shop mode ${enabled ? 'enabled' : 'disabled'} successfully`
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      logger.error('Failed to update shop mode', error as Error, {})
+      return c.json({
+        success: false,
+        error: formatError(error) || 'Failed to update shop mode'
+      }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
 export default app

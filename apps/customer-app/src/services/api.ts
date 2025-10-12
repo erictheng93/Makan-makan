@@ -50,8 +50,8 @@ class ApiClient {
     // 請求攔截器
     this.requestInterceptorId = this.instance.interceptors.request.use(
       (config) => {
-        // 添加認證 token
-        const token = localStorage.getItem("auth_token");
+        // 添加認證 token (customer_auth_token for customer app)
+        const token = localStorage.getItem("customer_auth_token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -146,9 +146,9 @@ class ApiClient {
   }
 
   private async handleAuthError() {
-    // 清除認證資訊
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("refresh_token");
+    // 清除認證資訊 (customer tokens)
+    localStorage.removeItem("customer_auth_token");
+    localStorage.removeItem("customer_refresh_token");
 
     // 可以在這裡添加重定向到登入頁面的邏輯
     // window.location.href = '/login'
@@ -270,7 +270,7 @@ export const apiClient = new ApiClient();
 // 響應式 API 狀態 Hook
 export const useApiState = () => {
   const isOnline = navigator.onLine;
-  const hasToken = !!localStorage.getItem("auth_token");
+  const hasToken = !!localStorage.getItem("customer_auth_token");
 
   return {
     isOnline,

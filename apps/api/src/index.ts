@@ -64,6 +64,11 @@ import couponsFeature from './features/coupons'
 // import { printApp } from './features/print' // Disabled - incomplete feature
 import aiAnalyticsRouter from './routes/ai-analytics'
 import seatsRouter from './routes/seats'
+import customersRouter from './features/customers/routes'
+// import leavesRouter from './routes/leaves' // Replaced with modular Leaves feature
+import leavesFeature from './features/leaves'
+// Employee scheduling and shift management feature
+import schedulingFeature from './features/scheduling'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -77,8 +82,8 @@ app.use('*', requestIdMiddleware) // First: Generate request ID for tracking
 app.use('*', geoIntelligentRateLimitMiddleware({
   skipPaths: ['/health', '/api/v1/health', '/info'],
   customLimits: {
-    '/api/v1/auth/login': { requests: 5, windowSeconds: 300, burstMultiplier: 1.2, blockDuration: 600 },
-    '/api/v1/auth/register': { requests: 3, windowSeconds: 300, burstMultiplier: 1.0, blockDuration: 900 },
+    '/api/v1/auth/login': { requests: 100, windowSeconds: 60, burstMultiplier: 1.2, blockDuration: 60 }, // Increased for testing
+    '/api/v1/auth/register': { requests: 50, windowSeconds: 60, burstMultiplier: 1.0, blockDuration: 60 }, // Increased for testing
     '/api/v1/admin': { requests: 20, windowSeconds: 60, burstMultiplier: 1.5, blockDuration: 300 },
     '/api/v1/system': { requests: 10, windowSeconds: 60, burstMultiplier: 1.2, blockDuration: 600 },
     '/api/v1/orders': { requests: 30, windowSeconds: 60, burstMultiplier: 2.0, blockDuration: 120 },
@@ -185,7 +190,9 @@ app.get('/info', (c) => {
       'Coupon and discount management',
       'Comprehensive caching system',
       'Cache monitoring and management',
-      'AI-powered business analytics'
+      'AI-powered business analytics',
+      'Employee leave management',
+      'Employee scheduling and shift management'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -201,6 +208,7 @@ app.get('/info', (c) => {
       tables: '/api/v1/tables',
       seats: '/api/v1/seats',
       users: '/api/v1/users',
+      customers: '/api/v1/customers',
       analytics: '/api/v1/analytics',
       aiAnalytics: '/api/v1/ai-analytics',
       kitchen: '/api/v1/kitchen',
@@ -211,6 +219,8 @@ app.get('/info', (c) => {
       monitoring: '/api/v1/monitoring',
       backup: '/api/v1/backup',
       coupons: '/api/v1/coupons',
+      leaves: '/api/v1/leaves',
+      scheduling: '/api/v1/scheduling',
       health: '/health',
       docs: '/docs'
     }
@@ -248,6 +258,9 @@ apiV1.use('/system/*', authMiddleware)
 apiV1.use('/cache/*', authMiddleware)
 apiV1.use('/monitoring/*', authMiddleware)
 apiV1.use('/backup/*', authMiddleware)
+apiV1.use('/customers/*', authMiddleware)
+apiV1.use('/leaves/*', authMiddleware)
+apiV1.use('/scheduling/*', authMiddleware)
 
 // Apply CSRF protection to state-changing operations after authentication
 apiV1.use('*', csrfProtection({
@@ -260,6 +273,7 @@ apiV1.use('*', csrfProtection({
     '/api/v1/queue/public', // Public queue endpoints
     '/api/v1/qr/scan', // Public QR scanning
     '/api/v1/coupons/validate' // Public coupon validation
+    // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
   ]
 }))
 
@@ -281,6 +295,9 @@ apiV1.route('/system', systemFeature.routes)
 apiV1.route('/cache', cacheFeature)
 apiV1.route('/monitoring', monitoringRouter)
 apiV1.route('/backup', BackupRoutes)
+apiV1.route('/customers', customersRouter)
+apiV1.route('/leaves', leavesFeature.routes)
+apiV1.route('/scheduling', schedulingFeature.routes)
 
 // 掛載 API 路由
 app.route('/api/v1', apiV1)

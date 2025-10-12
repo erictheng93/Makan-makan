@@ -23,6 +23,19 @@ export interface Restaurant extends BaseEntity {
   status: Status;
   planType: PlanType;
   settings?: RestaurantSettings;
+
+  // 店家级别 QR Code（用于无桌号的外带/自取订单）
+  shopQrCode?: string;
+  shopQrCodeImageUrl?: string;
+  enableShopMode?: boolean;
+  shopQrSettings?: ShopQrSettings;
+  shopQrVersion?: number;
+}
+
+export interface ShopQrSettings {
+  displayName?: string;
+  instructions?: string;
+  requirePhone?: boolean;
 }
 
 export enum PlanType {

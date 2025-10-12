@@ -22,6 +22,16 @@ export interface Restaurant extends BaseEntity {
     status: Status;
     planType: PlanType;
     settings?: RestaurantSettings;
+    shopQrCode?: string;
+    shopQrCodeImageUrl?: string;
+    enableShopMode?: boolean;
+    shopQrSettings?: ShopQrSettings;
+    shopQrVersion?: number;
+}
+export interface ShopQrSettings {
+    displayName?: string;
+    instructions?: string;
+    requirePhone?: boolean;
 }
 export declare enum PlanType {
     FREE = 0,

@@ -4,11 +4,10 @@
  */
 
 import { z } from 'zod'
-import { VALIDATION_LIMITS, USER_ROLES } from '../../../shared/constants'
+import { VALIDATION_LIMITS } from '../../../shared/constants'
 
 // Common validation patterns
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/
-const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/
 const PASSWORD_STRENGTH_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
 
 // Device and Location schemas
@@ -52,17 +51,18 @@ const emailSchema = z.string()
   .email('Invalid email format')
   .max(VALIDATION_LIMITS.EMAIL_MAX_LENGTH, `Email must be less than ${VALIDATION_LIMITS.EMAIL_MAX_LENGTH} characters`)
 
-// Phone validation schema
+// Phone validation schema (support both international and local formats)
 const phoneSchema = z.string()
-  .regex(PHONE_REGEX, 'Invalid phone number format')
+  .regex(/^[\d\s\-+()]+$/, 'Invalid phone number format')
+  .min(8, 'Phone number must be at least 8 digits')
   .max(VALIDATION_LIMITS.PHONE_MAX_LENGTH, `Phone must be less than ${VALIDATION_LIMITS.PHONE_MAX_LENGTH} characters`)
 
-// Role validation schema
+// Role validation schema (support customer role 5)
 const roleSchema = z.number()
   .int('Role must be an integer')
   .min(0, 'Role must be 0 or greater')
-  .max(4, 'Role must be 4 or less')
-  .refine((role) => Object.values(USER_ROLES).includes(role as any), {
+  .max(5, 'Role must be 5 or less')
+  .refine((role) => [0, 1, 2, 3, 4, 5].includes(role), {
     message: 'Invalid role value'
   })
 
@@ -93,6 +93,21 @@ const registerSchema = z.object({
 }).refine((data) => data.email || data.phone, {
   message: 'Either email or phone number is required',
   path: ['email']
+})
+
+// Customer registration schema (public, no confirmPassword needed)
+const customerRegisterSchema = z.object({
+  username: usernameSchema,
+  fullName: z.string()
+    .min(1, 'Full name is required')
+    .max(VALIDATION_LIMITS.NAME_MAX_LENGTH, `Full name must be less than ${VALIDATION_LIMITS.NAME_MAX_LENGTH} characters`)
+    .trim(),
+  email: emailSchema.optional(),
+  phone: phoneSchema.optional(),
+  password: z.string()
+    .min(VALIDATION_LIMITS.MIN_PASSWORD_LENGTH, `Password must be at least ${VALIDATION_LIMITS.MIN_PASSWORD_LENGTH} characters`)
+    .max(100, 'Password must be less than 100 characters'),
+  role: z.literal(5).optional() // Only allow customer role
 })
 
 const refreshTokenSchema = z.object({
@@ -290,6 +305,7 @@ export const authSchemas = {
   // Authentication
   login: loginSchema,
   register: registerSchema,
+  customerRegister: customerRegisterSchema,
   refreshToken: refreshTokenSchema,
   changePassword: changePasswordSchema,
   forgotPassword: forgotPasswordSchema,

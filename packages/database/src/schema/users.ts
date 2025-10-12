@@ -17,14 +17,15 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES]
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  
+
   // 基本資訊
   username: text('username').notNull().unique(),
   email: text('email'),
   phone: text('phone'),
   fullName: text('full_name').notNull(),
-  
-  // 認證資訊
+
+  // 認證資訊（支持舊欄位 password 和新欄位 password_hash）
+  password: text('password'), // 舊欄位，保留向後兼容
   passwordHash: text('password_hash').notNull(),
   
   // 角色和權限

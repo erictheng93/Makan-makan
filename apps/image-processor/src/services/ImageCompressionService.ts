@@ -137,7 +137,7 @@ export class ImageCompressionService {
       throw new Error(`Failed to upload image: ${response.statusText}`)
     }
 
-    const result = await response.json()
+    const result = await response.json() as any
     return result.result
   }
 
@@ -326,7 +326,7 @@ export class ImageCompressionService {
       throw new Error(`Failed to fetch image metadata: ${response.statusText}`)
     }
 
-    const result = await response.json()
+    const result = await response.json() as any
     return result.result
   }
 

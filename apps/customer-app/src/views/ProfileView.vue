@@ -1,0 +1,309 @@
+<template>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-6">
+          <div class="flex items-center">
+            <router-link
+              to="/orders"
+              class="mr-4 text-gray-600 hover:text-orange-600"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </router-link>
+            <h1 class="text-2xl font-bold text-gray-900">個人中心</h1>
+          </div>
+          <button
+            class="text-sm text-gray-600 hover:text-red-600"
+            @click="handleLogout"
+          >
+            登出
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="flex justify-center items-center py-12">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"
+        />
+      </div>
+
+      <div v-else class="space-y-6">
+        <!-- Profile Card -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <!-- Header with Gradient -->
+          <div class="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-8">
+            <div class="flex items-center space-x-4">
+              <div
+                class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg"
+              >
+                <span class="text-3xl font-bold text-orange-600">
+                  {{ getInitial(profile.fullName) }}
+                </span>
+              </div>
+              <div class="text-white">
+                <h2 class="text-2xl font-bold">{{ profile.fullName }}</h2>
+                <p class="text-orange-100">@{{ profile.username }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Details -->
+          <div class="px-6 py-6 space-y-4">
+            <!-- Username -->
+            <div class="flex items-center py-3 border-b border-gray-200">
+              <div class="flex items-center w-1/3">
+                <svg
+                  class="w-5 h-5 text-gray-400 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">帳號</span>
+              </div>
+              <div class="flex-1 text-gray-900">{{ profile.username }}</div>
+            </div>
+
+            <!-- Full Name -->
+            <div class="flex items-center py-3 border-b border-gray-200">
+              <div class="flex items-center w-1/3">
+                <svg
+                  class="w-5 h-5 text-gray-400 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">姓名</span>
+              </div>
+              <div class="flex-1 text-gray-900">{{ profile.fullName }}</div>
+            </div>
+
+            <!-- Email -->
+            <div class="flex items-center py-3 border-b border-gray-200">
+              <div class="flex items-center w-1/3">
+                <svg
+                  class="w-5 h-5 text-gray-400 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">Email</span>
+              </div>
+              <div class="flex-1 text-gray-900">
+                {{ profile.email || "未設置" }}
+              </div>
+            </div>
+
+            <!-- Phone -->
+            <div class="flex items-center py-3">
+              <div class="flex items-center w-1/3">
+                <svg
+                  class="w-5 h-5 text-gray-400 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">手機號碼</span>
+              </div>
+              <div class="flex-1 text-gray-900">
+                {{ profile.phone || "未設置" }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <router-link
+              to="/orders"
+              class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition"
+            >
+              <svg
+                class="w-6 h-6 text-orange-600 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              <div>
+                <p class="font-medium text-gray-900">我的訂單</p>
+                <p class="text-sm text-gray-500">查看訂單歷史記錄</p>
+              </div>
+            </router-link>
+
+            <router-link
+              to="/menu"
+              class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition"
+            >
+              <svg
+                class="w-6 h-6 text-orange-600 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              <div>
+                <p class="font-medium text-gray-900">瀏覽菜單</p>
+                <p class="text-sm text-gray-500">查看餐廳菜單</p>
+              </div>
+            </router-link>
+          </div>
+        </div>
+
+        <!-- Account Actions -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">帳號設定</h3>
+          <div class="space-y-2">
+            <button
+              class="w-full flex items-center justify-center px-4 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition"
+              @click="handleLogout"
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              登出帳號
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { customerOrderApi } from "@/services/customerOrderApi";
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+const isLoading = ref(false);
+const profile = ref({
+  id: 0,
+  username: "",
+  fullName: "",
+  email: "",
+  phone: "",
+  role: 5,
+});
+
+// 獲取姓名首字母
+const getInitial = (name: string) => {
+  return name ? name.charAt(0).toUpperCase() : "U";
+};
+
+// 載入用戶資料
+const loadProfile = async () => {
+  isLoading.value = true;
+
+  try {
+    const data = await customerOrderApi.getMyProfile();
+    profile.value = {
+      id: data.id,
+      username: data.username,
+      fullName: data.fullName,
+      email: data.email || "",
+      phone: data.phone || "",
+      role: data.role,
+    };
+  } catch (error) {
+    console.error("Failed to load profile:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 登出
+const handleLogout = async () => {
+  if (!confirm("確定要登出嗎？")) return;
+
+  await authStore.logout();
+  router.push("/login");
+};
+
+// 初始化
+onMounted(async () => {
+  // 檢查登入狀態
+  if (!authStore.isAuthenticated) {
+    router.push("/login");
+    return;
+  }
+
+  const isValid = await authStore.checkAuth();
+  if (!isValid) {
+    router.push("/login");
+    return;
+  }
+
+  await loadProfile();
+});
+</script>

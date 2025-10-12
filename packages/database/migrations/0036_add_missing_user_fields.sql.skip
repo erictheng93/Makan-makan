@@ -1,0 +1,29 @@
+-- Migration: 添加缺失的用戶欄位
+-- Version: 0036
+-- Date: 2025-10-10
+-- Description: 添加 phone, address, date_of_birth, profile_image_url, is_verified, preferences, total_orders, total_spent, password_changed_at 欄位
+
+-- 添加手機號碼欄位
+ALTER TABLE users ADD COLUMN phone TEXT;
+
+-- 添加地址欄位
+ALTER TABLE users ADD COLUMN address TEXT;
+
+-- 添加生日欄位
+ALTER TABLE users ADD COLUMN date_of_birth TEXT;
+
+-- 添加個人頭像 URL
+ALTER TABLE users ADD COLUMN profile_image_url TEXT;
+
+-- 添加驗證狀態
+ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0;
+
+-- 添加偏好設定 (JSON)
+ALTER TABLE users ADD COLUMN preferences TEXT;
+
+-- 添加訂單統計
+ALTER TABLE users ADD COLUMN total_orders INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN total_spent INTEGER DEFAULT 0;
+
+-- 添加密碼修改時間
+ALTER TABLE users ADD COLUMN password_changed_at INTEGER;

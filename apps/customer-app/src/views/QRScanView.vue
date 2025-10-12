@@ -201,6 +201,11 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { BrowserQRCodeReader } from "@zxing/library";
 import ManualInputModal from "@/components/ManualInputModal.vue";
+import {
+  parseQRContent,
+  validateQRData,
+  getQRTypeDescription,
+} from "@/utils/qr-parser";
 
 const router = useRouter();
 const toast = useToast();
@@ -290,19 +295,72 @@ const handleQRCodeDetected = async (qrContent: string) => {
     isLoading.value = true;
     scanStatus.value = "處理QR碼中...";
 
-    // 解析QR碼內容
-    const qrData = parseQRCode(qrContent);
+    // 使用增強版 QR parser 解析
+    const qrData = parseQRContent(qrContent);
 
     if (!qrData) {
       throw new Error("無效的QR碼格式");
     }
 
-    // 添加到最近使用記錄
-    await addToRecentRestaurants(qrData);
+    // 驗證 QR 資料
+    if (!validateQRData(qrData)) {
+      throw new Error("QR碼資料驗證失敗");
+    }
 
-    // 導航到菜單頁面
-    toast.success("掃描成功！");
-    router.push(`/restaurant/${qrData.restaurantId}/table/${qrData.tableId}`);
+    // 根據 QR 類型進行不同的處理
+    switch (qrData.type) {
+      case "shop":
+        // 店家 QR - 導航到手機驗證頁面
+        toast.success(`掃描到${getQRTypeDescription(qrData.type)}！`);
+        router.push({
+          name: "ShopPhoneVerification",
+          params: {
+            restaurantId: qrData.restaurantId,
+          },
+          query: {
+            qr: qrData.shopQrCode,
+          },
+        });
+        break;
+
+      case "table":
+        // 桌台 QR - 導航到菜單頁面
+        await addToRecentRestaurants({
+          restaurantId: qrData.restaurantId,
+          tableId: qrData.tableId!,
+        });
+        toast.success("掃描成功！");
+        router.push({
+          name: "RestaurantMenu",
+          params: {
+            restaurantId: qrData.restaurantId,
+            tableId: qrData.tableId!,
+          },
+        });
+        break;
+
+      case "seat":
+        // 座位 QR - 導航到菜單頁面（未來可能需要座位專用頁面）
+        await addToRecentRestaurants({
+          restaurantId: qrData.restaurantId,
+          tableId: qrData.tableId!,
+        });
+        toast.success(`掃描到${getQRTypeDescription(qrData.type)}！`);
+        router.push({
+          name: "RestaurantMenu",
+          params: {
+            restaurantId: qrData.restaurantId,
+            tableId: qrData.tableId!,
+          },
+          query: {
+            seatId: qrData.seatId,
+          },
+        });
+        break;
+
+      default:
+        throw new Error("不支援的QR碼類型");
+    }
   } catch (err) {
     console.error("QR碼處理失敗:", err);
     setError(err instanceof Error ? err.message : "處理QR碼時發生錯誤");
@@ -312,49 +370,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
   }
 };
 
-const parseQRCode = (content: string) => {
-  try {
-    // 支援多種QR碼格式
-
-    // 格式1: JSON
-    if (content.startsWith("{")) {
-      const data = JSON.parse(content);
-      return {
-        restaurantId: parseInt(data.restaurantId || data.restaurant_id),
-        tableId: parseInt(data.tableId || data.table_id),
-      };
-    }
-
-    // 格式2: URL格式
-    if (content.startsWith("http")) {
-      const url = new URL(content);
-      const pathParts = url.pathname.split("/");
-      const restaurantId = pathParts[2];
-      const tableId = pathParts[4];
-
-      if (restaurantId && tableId) {
-        return {
-          restaurantId: parseInt(restaurantId),
-          tableId: parseInt(tableId),
-        };
-      }
-    }
-
-    // 格式3: 簡單格式 "restaurantId:tableId"
-    if (content.includes(":")) {
-      const [restaurantId, tableId] = content.split(":");
-      return {
-        restaurantId: parseInt(restaurantId),
-        tableId: parseInt(tableId),
-      };
-    }
-
-    return null;
-  } catch (error) {
-    console.error("QR碼解析失敗:", error);
-    return null;
-  }
-};
+// parseQRCode 已被 parseQRContent (from qr-parser.ts) 取代
 
 const addToRecentRestaurants = async (qrData: {
   restaurantId: number;

@@ -314,4 +314,48 @@ app.delete('/templates/:id',
   }
 )
 
+// ==================== Shop QR Code Verification ====================
+
+/**
+ * GET /verify/shop/:qrCode - Verify shop-level QR code (PUBLIC)
+ * This endpoint is public and does not require authentication
+ * Used by customers scanning shop QR codes
+ */
+app.get('/verify/shop/:qrCode',
+  validateParams(qrCodeSchemas.shopQrCode),
+  async (c) => {
+    try {
+      const { qrCode } = c.req.valid('param' as never) as any
+
+      // Import RestaurantsService dynamically to avoid circular dependencies
+      const { RestaurantsService } = await import('../../restaurants/services/RestaurantsService')
+      const restaurantsService = new RestaurantsService(c.env.DB, c.env, c.env.CACHE_KV)
+
+      const result = await restaurantsService.verifyShopQrCode(qrCode)
+
+      if (!result.valid) {
+        return c.json(
+          createErrorResponse('Invalid or expired QR code'),
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+
+      return c.json(
+        createSuccessResponse({
+          valid: true,
+          restaurantId: result.restaurantId,
+          restaurant: result.restaurant
+        }, 'QR code verified successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Shop QR code verification error:', error)
+      return c.json(
+        createErrorResponse('Failed to verify QR code'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
 export default app

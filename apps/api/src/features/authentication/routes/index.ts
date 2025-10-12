@@ -91,15 +91,62 @@ authRoutes.post('/login',
   }
 )
 
-// User Registration - POST /register
+// Public Customer Registration - POST /register (for customers only)
 authRoutes.post('/register',
+  zValidator('json', authSchemas.customerRegister),
+  async (c) => {
+    try {
+      const requestData = c.req.valid('json')
+      // Device info and location tracking can be added in future if needed
+
+      // Transform request data to RegisterData format
+      const registerData: RegisterData = {
+        username: requestData.username,
+        fullName: requestData.fullName,
+        email: requestData.email,
+        phone: requestData.phone,
+        password: requestData.password,
+        role: 5 as UserRole, // Always customer role for public registration
+        restaurantId: undefined // Customers are not associated with specific restaurants
+      }
+
+      // Initialize auth service
+      const authService = new AuthService(c.env)
+      const result = await authService.register(registerData, undefined)
+
+      if (!result.success) {
+        const statusCode = result.error?.includes('already exists') ? HTTP_STATUS.CONFLICT : HTTP_STATUS.BAD_REQUEST
+        return c.json({
+          success: false,
+          error: result.error
+        }, statusCode)
+      }
+
+      // Auto-login after registration
+      return c.json({
+        success: true,
+        data: {
+          user: result.user,
+          tokens: result.tokens
+        }
+      }, HTTP_STATUS.CREATED)
+
+    } catch (error) {
+      ErrorSanitizer.logAndSanitize(error, 'AUTH_PUBLIC_REGISTER')
+      return c.json(createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR), HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    }
+  }
+)
+
+// Staff Registration - POST /register-staff (admin/owner only)
+authRoutes.post('/register-staff',
   authMiddleware,
   zValidator('json', authSchemas.register),
   async (c) => {
     try {
       const currentUser = c.get('user')
 
-      // Only admin or shop owner can register new users
+      // Only admin or shop owner can register new staff users
       if (currentUser.role !== 0 && currentUser.role !== 1) {
         return c.json({
           success: false,

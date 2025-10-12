@@ -1,0 +1,214 @@
+-- =====================================================
+-- Migration: 店家级别 QR Code 系统
+-- Version: 0033
+-- Date: 2025-10-10
+-- Description: 新增店家级别 QR Code 功能，支持无桌号的外带/自取订单
+--              适用于小贩、摊位等无固定座位的商家
+-- =====================================================
+
+-- ==========================================
+-- 1. 扩展 restaurants 表：添加店家 QR Code 字段
+-- ==========================================
+
+-- 店家级别 QR Code（唯一标识）
+ALTER TABLE restaurants ADD COLUMN shop_qr_code TEXT;
+
+-- 店家 QR Code 图片 URL
+ALTER TABLE restaurants ADD COLUMN shop_qr_code_image_url TEXT;
+
+-- 启用店家模式（1=启用, 0=禁用）
+ALTER TABLE restaurants ADD COLUMN enable_shop_mode INTEGER NOT NULL DEFAULT 0;
+
+-- 店家 QR Code 设置（JSON格式）
+-- 格式: { "displayName": "店家名称", "instructions": "扫码点餐说明", "requirePhone": true/false }
+ALTER TABLE restaurants ADD COLUMN shop_qr_settings TEXT;
+
+-- QR Code 版本号（用于重新生成时增加）
+ALTER TABLE restaurants ADD COLUMN shop_qr_version INTEGER NOT NULL DEFAULT 1;
+
+-- 为店家 QR Code 创建唯一索引
+CREATE UNIQUE INDEX IF NOT EXISTS restaurants_shop_qr_code_idx ON restaurants(shop_qr_code) WHERE shop_qr_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS restaurants_enable_shop_mode_idx ON restaurants(enable_shop_mode);
+
+
+-- ==========================================
+-- 2. 扩展 orders 表：支持店家级别订单
+-- ==========================================
+
+-- 修改 order_source 字段约束，添加 'shop' 选项
+-- 注意：SQLite 不支持 ALTER COLUMN，所以我们使用注释记录新的约束规则
+-- 新的 order_source 值：'shop' | 'table' | 'seat'
+-- 应用层必须确保 order_source 只能是这三个值之一
+
+-- 添加订单类型字段（用于区分店家订单和桌位订单）
+ALTER TABLE orders ADD COLUMN order_type TEXT DEFAULT 'table'
+    CHECK (order_type IN ('shop', 'table', 'seat'));
+
+-- 为店家订单添加索引
+CREATE INDEX IF NOT EXISTS orders_order_type_idx ON orders(order_type);
+CREATE INDEX IF NOT EXISTS orders_restaurant_type_idx ON orders(restaurant_id, order_type, created_at);
+
+
+-- ==========================================
+-- 3. 扩展 customerInfo 字段规范
+-- ==========================================
+
+-- 注意：SQLite 不支持修改 JSON 列的结构，以下为文档说明
+-- customerInfo 字段新增字段：
+-- {
+--   name?: string
+--   phone?: string              # 完整手机号
+--   phoneLastDigits?: string    # 手机后3位（用于店家订单验证）
+--   email?: string
+--   peopleCount?: number
+--   specialRequests?: string[]
+--   orderType?: 'shop' | 'table' | 'seat'  # 订单来源类型
+-- }
+
+
+-- ==========================================
+-- 4. 创建店家订单专用索引（性能优化）
+-- ==========================================
+
+-- 店家模式下的订单查询索引
+CREATE INDEX IF NOT EXISTS orders_shop_phone_idx ON orders(restaurant_id, json_extract(customer_info, '$.phone'), created_at)
+    WHERE order_type = 'shop';
+
+-- 店家订单状态查询索引
+CREATE INDEX IF NOT EXISTS orders_shop_status_idx ON orders(restaurant_id, order_type, status, created_at)
+    WHERE order_type = 'shop';
+
+
+-- ==========================================
+-- 5. 创建视图：店家订单统计
+-- ==========================================
+
+CREATE VIEW IF NOT EXISTS shop_order_stats AS
+SELECT
+    r.id AS restaurant_id,
+    r.name AS restaurant_name,
+    r.enable_shop_mode,
+    COUNT(DISTINCT o.id) AS total_shop_orders,
+    SUM(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
+    SUM(CASE WHEN o.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_orders,
+    SUM(CASE WHEN o.status = 'preparing' THEN 1 ELSE 0 END) AS preparing_orders,
+    SUM(CASE WHEN o.status = 'ready' THEN 1 ELSE 0 END) AS ready_orders,
+    SUM(CASE WHEN o.status = 'paid' THEN 1 ELSE 0 END) AS paid_orders,
+    SUM(o.total_amount) AS total_revenue,
+    AVG(o.total_amount) AS avg_order_value,
+    COUNT(DISTINCT json_extract(o.customer_info, '$.phone')) AS unique_customers
+FROM restaurants r
+LEFT JOIN orders o ON r.id = o.restaurant_id AND o.order_type = 'shop'
+WHERE r.enable_shop_mode = 1
+GROUP BY r.id;
+
+
+-- ==========================================
+-- 6. 创建视图：店家 vs 桌位订单对比
+-- ==========================================
+
+CREATE VIEW IF NOT EXISTS order_source_comparison AS
+SELECT
+    r.id AS restaurant_id,
+    r.name AS restaurant_name,
+    o.order_type,
+    COUNT(o.id) AS order_count,
+    SUM(o.total_amount) AS total_revenue,
+    AVG(o.total_amount) AS avg_order_value,
+    DATE(o.created_at) AS order_date
+FROM restaurants r
+LEFT JOIN orders o ON r.id = o.restaurant_id
+GROUP BY r.id, o.order_type, DATE(o.created_at);
+
+
+-- ==========================================
+-- 7. 数据完整性触发器
+-- ==========================================
+
+-- 触发器：确保店家订单的 order_type 和 order_source 一致
+CREATE TRIGGER IF NOT EXISTS validate_shop_order_consistency
+BEFORE INSERT ON orders
+FOR EACH ROW
+WHEN NEW.order_type = 'shop'
+BEGIN
+    -- 店家订单必须有 order_source = 'shop'（如果该字段存在）
+    SELECT CASE
+        WHEN NEW.order_source IS NOT NULL AND NEW.order_source != 'shop' THEN
+            RAISE(ABORT, 'Shop orders must have order_source = shop')
+    END;
+END;
+
+
+-- ==========================================
+-- 8. 初始化现有餐厅的店家 QR Code
+-- ==========================================
+
+-- 为所有现有餐厅生成唯一的店家 QR Code
+-- 格式: SHOP-{restaurant_id}-{timestamp}
+UPDATE restaurants
+SET
+    shop_qr_code = 'SHOP-' || id || '-' || strftime('%s', 'now'),
+    shop_qr_settings = json_object(
+        'displayName', name,
+        'instructions', '扫描 QR Code 开始点餐',
+        'requirePhone', 1
+    ),
+    shop_qr_version = 1
+WHERE shop_qr_code IS NULL;
+
+
+-- ==========================================
+-- 9. 创建特殊虚拟桌子（用于店家订单的向后兼容）
+-- ==========================================
+
+-- 注意：由于 orders.table_id 是 NOT NULL，我们为每个启用店家模式的餐厅
+-- 创建一个虚拟桌子（number = 'SHOP-VIRTUAL'）
+-- 这样店家订单仍然可以关联到一个 table_id，保持数据完整性
+
+-- 为每个现有餐厅创建虚拟店家桌子
+INSERT OR IGNORE INTO tables (restaurant_id, number, capacity, qr_code, qr_mode, status, is_active, created_at, updated_at)
+SELECT
+    id,
+    'SHOP-VIRTUAL',
+    9999,  -- 虚拟容量
+    'SHOP-VIRTUAL-' || id || '-' || strftime('%s', 'now'),
+    'table',
+    'available',
+    1,
+    strftime('%s', 'now'),
+    strftime('%s', 'now')
+FROM restaurants
+WHERE NOT EXISTS (
+    SELECT 1 FROM tables WHERE restaurant_id = restaurants.id AND number = 'SHOP-VIRTUAL'
+);
+
+
+-- ==========================================
+-- 10. 创建函数式索引（性能优化）
+-- ==========================================
+
+-- 手机号后3位快速查询（用于店家订单验证）
+CREATE INDEX IF NOT EXISTS orders_phone_last_digits_idx
+    ON orders(restaurant_id, substr(json_extract(customer_info, '$.phone'), -3))
+    WHERE order_type = 'shop' AND json_extract(customer_info, '$.phone') IS NOT NULL;
+
+
+-- ==========================================
+-- Migration 完成说明
+-- ==========================================
+
+-- 向后兼容性：
+-- 1. 现有订单保持 order_type = 'table'（默认值）
+-- 2. 所有餐厅自动获得 shop_qr_code（但 enable_shop_mode = 0，默认禁用）
+-- 3. 创建虚拟桌子确保 orders.table_id 的 NOT NULL 约束不会破坏现有逻辑
+-- 4. 新的 order_type 字段允许 NULL，向后兼容
+
+-- 启用店家模式：
+-- 管理员可以通过 API 设置 enable_shop_mode = 1 来启用店家级别订单功能
+
+-- 店家订单流程：
+-- 1. 顾客扫描店家 QR Code
+-- 2. 进入店家菜单页面（无需选择桌号）
+-- 3. 选择菜品，提交订单时输入手机号
+-- 4. 订单创建时 order_type = 'shop'，table_id = 虚拟桌子 ID
+-- 5. 店家可以通过手机后3位验证并找到顾客订单

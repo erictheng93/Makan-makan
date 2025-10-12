@@ -115,6 +115,7 @@ export const useAuthStore = defineStore("auth", () => {
       Menu: [UserRole.ADMIN, UserRole.OWNER],
       Tables: [UserRole.ADMIN, UserRole.OWNER],
       Users: [UserRole.ADMIN, UserRole.OWNER],
+      Scheduling: [UserRole.ADMIN, UserRole.OWNER],
       Analytics: [UserRole.ADMIN, UserRole.OWNER],
       Settings: [UserRole.ADMIN, UserRole.OWNER],
       Kitchen: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],

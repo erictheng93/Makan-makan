@@ -64,7 +64,7 @@ app.get('/storage',
     try {
       const user = c.get('user')
       const query = c.get('validatedQuery')
-      const dbImageService = new DatabaseImageService(c.env.DB)
+      const dbImageService = new DatabaseImageService(c.env.DB, c.env)
 
       // Apply access control
       const options = { ...query }
@@ -101,7 +101,7 @@ app.get('/usage',
     try {
       const user = c.get('user')
       const query = c.get('validatedQuery')
-      const dbImageService = new DatabaseImageService(c.env.DB)
+      const dbImageService = new DatabaseImageService(c.env.DB, c.env)
 
       // Apply access control
       const options = { ...query }
@@ -138,7 +138,7 @@ app.get('/performance',
     try {
       const user = c.get('user')
       const query = c.get('validatedQuery')
-      const dbImageService = new DatabaseImageService(c.env.DB)
+      const dbImageService = new DatabaseImageService(c.env.DB, c.env)
 
       // Apply access control
       const options = { ...query }

@@ -18,6 +18,8 @@ export { QueueService } from './QueueService'
 export { QueueServiceModular } from './QueueServiceModular'
 export { ImageService } from './image'
 export { CouponService } from './coupon'
+export { LeaveService } from './LeaveService'
+export { SchedulingService } from './SchedulingService'
 
 // 匯出類型定義
 export type { 
@@ -107,3 +109,16 @@ export type {
   SeatNumberingOptions,
   SeatStats
 } from './seat'
+
+export type {
+  LeaveType,
+  LeaveBalance,
+  LeaveRequest,
+  LeaveRequestWithRelations,
+  LeaveBalanceWithType,
+  CreateLeaveTypeData,
+  UpdateLeaveTypeData,
+  CreateLeaveRequestData,
+  LeaveRequestFilters,
+  LeaveBalanceAdjustment
+} from './LeaveService'

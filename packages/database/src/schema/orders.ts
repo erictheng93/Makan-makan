@@ -41,6 +41,7 @@ export const orders = sqliteTable('orders', {
   // 訂單基本資訊
   orderNumber: text('order_number').notNull().unique(), // 訂單編號
   status: text('status').notNull().default(ORDER_STATUS.PENDING),
+  orderType: text('order_type').$type<'shop' | 'table' | 'seat'>().default('table'), // 訂單來源類型
   
   // 金額資訊
   subtotal: real('subtotal').notNull(), // 小計
@@ -53,9 +54,11 @@ export const orders = sqliteTable('orders', {
   customerInfo: text('customer_info', { mode: 'json' }).$type<{
     name?: string
     phone?: string
+    phoneLastDigits?: string // 手機後3位（用於店家訂單驗證）
     email?: string
     peopleCount?: number // 用餐人數
     specialRequests?: string[] // 特殊需求
+    orderType?: 'shop' | 'table' | 'seat' // 訂單來源類型
   }>(),
   
   // 時間資訊

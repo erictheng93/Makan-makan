@@ -51,6 +51,12 @@ const batchIdParam = z.object({
   batchId: z.string().min(1, 'Batch ID is required')
 })
 
+const shopQrCodeParam = z.object({
+  qrCode: z.string()
+    .min(1, 'QR code is required')
+    .regex(/^SHOP-\d+-\d+$/, 'Invalid shop QR code format')
+})
+
 // QR Generation schemas
 const generateQRSchema = z.object({
   content: z.string().min(1, 'Content is required').max(2000, 'Content must be less than 2000 characters'),
@@ -130,6 +136,7 @@ export const qrCodeSchemas = {
   // Parameters
   params: idParam,
   batchParams: batchIdParam,
+  shopQrCode: shopQrCodeParam,
 
   // QR Generation
   generate: generateQRSchema,

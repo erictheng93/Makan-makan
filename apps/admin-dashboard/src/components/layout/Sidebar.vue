@@ -79,6 +79,7 @@ import {
   Clock,
   Ticket as TicketIcon,
   Sparkles,
+  Calendar,
 } from "lucide-vue-next";
 
 interface Props {
@@ -129,6 +130,13 @@ const navigationItems = computed(() => [
     path: "/dashboard/users",
     label: "員工管理",
     icon: Users,
+    visible: authStore.canAccessAdminFeatures,
+  },
+  {
+    name: "scheduling",
+    path: "/dashboard/scheduling",
+    label: "員工排班",
+    icon: Calendar,
     visible: authStore.canAccessAdminFeatures,
   },
   {

@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "build": "tsup",
+    "dev": "tsup && tsup --watch --no-clean",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0003_qrcode_system.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0008_create_error_reports.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0009_additional_tables.sql",
     "db:migrate:staging": "wrangler d1 migrations apply makanmakan-staging --env staging",

@@ -39,8 +39,11 @@
             class="w-2 h-2 rounded-full"
             :class="isConnected ? 'bg-green-500' : 'bg-red-500'"
           />
-          <span>{{ isConnected ? "即時連線" : "連線中斷" }}</span>
+          <span>{{ isConnected ? t('header.realtime.connected') : t('header.realtime.disconnected') }}</span>
         </div>
+
+        <!-- Language Switcher -->
+        <LanguageSwitcher />
 
         <!-- User Menu -->
         <div class="relative">
@@ -76,7 +79,7 @@
               >
                 <div class="flex items-center space-x-2">
                   <LogOut class="w-4 h-4" />
-                  <span>登出</span>
+                  <span>{{ t('header.userMenu.logout') }}</span>
                 </div>
               </button>
             </div>
@@ -112,7 +115,9 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
 import { useSSE } from "@/composables/useSSE";
+import { useI18n } from "@/i18n";
 import { UserRole } from "@/types";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
 import {
   Menu,
   Bell,
@@ -131,6 +136,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const { isConnected } = useSSE();
+const { t } = useI18n();
 
 const showUserMenu = ref(false);
 const showNotificationPanel = ref(false);
@@ -139,22 +145,22 @@ const user = computed(() => authStore.user);
 const unreadNotifications = computed(() => notificationStore.unreadCount);
 
 const pageTitle = computed(() => {
-  return (route.meta.title as string) || "MakanMakan 管理後台";
+  return (route.meta.title as string) || t('header.title');
 });
 
 const breadcrumbs = computed(() => {
   const crumbs = [];
   const pathSegments = route.path.split("/").filter(Boolean);
 
-  crumbs.push({ label: "首頁", path: "/dashboard" });
+  crumbs.push({ label: t('header.breadcrumb.home'), path: "/dashboard" });
 
   if (pathSegments.length > 1) {
     const routeMapping: Record<string, string> = {
-      orders: "訂單管理",
-      menu: "菜單管理",
-      tables: "桌台管理",
-      users: "員工管理",
-      analytics: "數據分析",
+      orders: t('header.breadcrumb.orders'),
+      menu: t('header.breadcrumb.menu'),
+      tables: t('header.breadcrumb.tables'),
+      users: t('header.breadcrumb.users'),
+      analytics: t('header.breadcrumb.analytics'),
     };
 
     pathSegments.slice(1).forEach((segment, index) => {
@@ -182,11 +188,11 @@ const handleLogout = async () => {
 
 const getRoleLabel = (role?: UserRole) => {
   const roleLabels = {
-    [UserRole.ADMIN]: "系統管理員",
-    [UserRole.OWNER]: "店主",
-    [UserRole.CHEF]: "廚師",
-    [UserRole.SERVICE]: "服務員",
-    [UserRole.CASHIER]: "收銀員",
+    [UserRole.ADMIN]: t('header.roles.admin'),
+    [UserRole.OWNER]: t('header.roles.owner'),
+    [UserRole.CHEF]: t('header.roles.chef'),
+    [UserRole.SERVICE]: t('header.roles.service'),
+    [UserRole.CASHIER]: t('header.roles.cashier'),
   };
   return role !== undefined ? roleLabels[role] : "";
 };

@@ -1,0 +1,861 @@
+<template>
+  <div class="swap-requests">
+    <!-- Header with Filters -->
+    <div class="requests-header">
+      <div class="header-left">
+        <h2 class="header-title">
+          <span class="title-icon">🔄</span>
+          換班申請管理
+        </h2>
+        <p class="header-subtitle" v-if="!loading">
+          共 {{ requests.length }} 筆申請
+          <span v-if="pendingCount > 0" class="pending-count">
+            ({{ pendingCount }} 筆待處理)
+          </span>
+        </p>
+      </div>
+      <div class="header-right">
+        <!-- Status Filter -->
+        <div class="status-filters">
+          <button
+            v-for="status in statusFilters"
+            :key="status.value"
+            class="filter-btn"
+            :class="{ active: selectedStatus === status.value }"
+            @click="selectedStatus = status.value"
+          >
+            <span class="filter-icon">{{ status.icon }}</span>
+            <span class="filter-label">{{ status.label }}</span>
+            <span
+              class="filter-badge"
+              v-if="getStatusCount(status.value) > 0"
+            >
+              {{ getStatusCount(status.value) }}
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>載入換班申請中...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="filteredRequests.length === 0" class="empty-state">
+      <div class="empty-icon">🔄</div>
+      <h3 class="empty-title">
+        {{ selectedStatus === 'all' ? '暫無換班申請' : `暫無${getStatusLabel(selectedStatus)}的申請` }}
+      </h3>
+      <p class="empty-text">
+        {{ selectedStatus === 'all' ? '當員工提交換班申請時,將會顯示在這裡' : '切換篩選器查看其他狀態的申請' }}
+      </p>
+    </div>
+
+    <!-- Requests List -->
+    <div v-else class="requests-list">
+      <div
+        v-for="request in filteredRequests"
+        :key="request.id"
+        class="request-card"
+        :class="`status-${request.status}`"
+      >
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="status-badge" :class="`badge-${request.status}`">
+            <span class="badge-icon">{{ getStatusIcon(request.status) }}</span>
+            <span class="badge-text">{{ getStatusLabel(request.status) }}</span>
+          </div>
+          <div class="request-date">
+            <span class="date-icon">📅</span>
+            <span class="date-text">{{ formatDate(request.createdAt) }}</span>
+          </div>
+        </div>
+
+        <!-- Card Content -->
+        <div class="card-content">
+          <!-- Requester Info -->
+          <div class="requester-section">
+            <div class="section-header">
+              <span class="section-icon">👤</span>
+              <h4 class="section-title">申請人</h4>
+            </div>
+            <div class="employee-info">
+              <span class="employee-name">{{ request.requesterName }}</span>
+              <span class="employee-role">{{ request.requesterRole || '員工' }}</span>
+            </div>
+          </div>
+
+          <!-- Swap Details -->
+          <div class="swap-flow">
+            <!-- Original Shift -->
+            <div class="shift-box original">
+              <div class="shift-header">
+                <span class="shift-label">原班次</span>
+                <span class="shift-date">{{ formatShiftDate(request.originalShiftDate) }}</span>
+              </div>
+              <div class="shift-time">
+                {{ request.originalStartTime }} - {{ request.originalEndTime }}
+              </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="swap-arrow">
+              <span class="arrow-icon">⇄</span>
+              <span class="arrow-label">換班</span>
+            </div>
+
+            <!-- Target Shift -->
+            <div class="shift-box target">
+              <div class="shift-header">
+                <span class="shift-label">目標班次</span>
+                <span class="shift-date">{{ formatShiftDate(request.targetShiftDate) }}</span>
+              </div>
+              <div class="shift-time">
+                {{ request.targetStartTime }} - {{ request.targetEndTime }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Target Employee (if specified) -->
+          <div class="target-employee-section" v-if="request.targetEmployeeName">
+            <div class="section-header">
+              <span class="section-icon">🤝</span>
+              <h4 class="section-title">換班對象</h4>
+            </div>
+            <div class="employee-info">
+              <span class="employee-name">{{ request.targetEmployeeName }}</span>
+              <span class="employee-role">{{ request.targetEmployeeRole || '員工' }}</span>
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div class="reason-section" v-if="request.reason">
+            <div class="section-header">
+              <span class="section-icon">📝</span>
+              <h4 class="section-title">申請原因</h4>
+            </div>
+            <p class="reason-text">{{ request.reason }}</p>
+          </div>
+
+          <!-- Response (if approved/rejected) -->
+          <div
+            class="response-section"
+            v-if="request.status !== 'pending' && request.responseNote"
+          >
+            <div class="section-header">
+              <span class="section-icon">💬</span>
+              <h4 class="section-title">處理回覆</h4>
+            </div>
+            <div class="response-box">
+              <p class="response-text">{{ request.responseNote }}</p>
+              <div class="response-meta">
+                <span>由 {{ request.respondedBy || '管理員' }} 處理</span>
+                <span>{{ formatDate(request.respondedAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Actions -->
+        <div class="card-actions" v-if="request.status === 'pending'">
+          <button class="action-btn reject-btn" @click="handleReject(request)">
+            <span>✕</span>
+            <span>拒絕</span>
+          </button>
+          <button class="action-btn approve-btn" @click="handleApprove(request)">
+            <span>✓</span>
+            <span>核准</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { SwapRequest } from '@/types/scheduling'
+
+interface Props {
+  requests: SwapRequest[]
+  loading?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: false
+})
+
+const emit = defineEmits<{
+  approve: [request: SwapRequest]
+  reject: [request: SwapRequest]
+}>()
+
+// State
+const selectedStatus = ref<string>('all')
+
+// Filters
+const statusFilters = [
+  { value: 'all', label: '全部', icon: '📊' },
+  { value: 'pending', label: '待處理', icon: '⏳' },
+  { value: 'approved', label: '已核准', icon: '✅' },
+  { value: 'rejected', label: '已拒絕', icon: '❌' }
+]
+
+// Computed
+const filteredRequests = computed(() => {
+  if (selectedStatus.value === 'all') {
+    return props.requests
+  }
+  return props.requests.filter(r => r.status === selectedStatus.value)
+})
+
+const pendingCount = computed(() => {
+  return props.requests.filter(r => r.status === 'pending').length
+})
+
+const getStatusCount = (status: string): number => {
+  if (status === 'all') return props.requests.length
+  return props.requests.filter(r => r.status === status).length
+}
+
+// Methods
+const getStatusIcon = (status: string): string => {
+  const icons: Record<string, string> = {
+    pending: '⏳',
+    approved: '✅',
+    rejected: '❌',
+    cancelled: '🚫'
+  }
+  return icons[status] || '❓'
+}
+
+const getStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    pending: '待處理',
+    approved: '已核准',
+    rejected: '已拒絕',
+    cancelled: '已取消'
+  }
+  return labels[status] || status
+}
+
+const formatDate = (dateString: string | Date): string => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatShiftDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+  const weekday = weekdays[date.getDay()]
+  return `${month}/${day} (${weekday})`
+}
+
+const handleApprove = (request: SwapRequest) => {
+  if (confirm(`確定要核准 ${request.requesterName} 的換班申請嗎？`)) {
+    emit('approve', request)
+  }
+}
+
+const handleReject = (request: SwapRequest) => {
+  if (confirm(`確定要拒絕 ${request.requesterName} 的換班申請嗎？`)) {
+    emit('reject', request)
+  }
+}
+</script>
+
+<style scoped>
+.swap-requests {
+  width: 100%;
+}
+
+/* ==================== Header ==================== */
+.requests-header {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.title-icon {
+  font-size: 28px;
+  animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.header-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.pending-count {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.status-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.filter-btn.active {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #3b82f6;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+.filter-icon {
+  font-size: 16px;
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #3b82f6;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 11px;
+}
+
+.filter-btn.active .filter-badge {
+  background: white;
+  color: #3b82f6;
+}
+
+/* ==================== Loading State ==================== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==================== Empty State ==================== */
+.empty-state {
+  text-align: center;
+  padding: 100px 20px;
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  opacity: 0.5;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+}
+
+.empty-text {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ==================== Requests List ==================== */
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ==================== Request Card ==================== */
+.request-card {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.request-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.request-card.status-pending {
+  border-left: 5px solid #f59e0b;
+}
+
+.request-card.status-approved {
+  border-left: 5px solid #10b981;
+}
+
+.request-card.status-rejected {
+  border-left: 5px solid #ef4444;
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid;
+}
+
+.badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fbbf24;
+}
+
+.badge-approved {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #10b981;
+}
+
+.badge-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+
+.badge-icon {
+  font-size: 16px;
+}
+
+.request-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.date-icon {
+  font-size: 14px;
+}
+
+/* Card Content */
+.card-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-icon {
+  font-size: 18px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* Requester Section */
+.requester-section,
+.target-employee-section {
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.employee-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.employee-role {
+  padding: 4px 10px;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Swap Flow */
+.swap-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border-radius: 12px;
+  border: 2px solid #bfdbfe;
+}
+
+.shift-box {
+  flex: 1;
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  border: 2px solid;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.shift-box.original {
+  border-color: #f59e0b;
+}
+
+.shift-box.target {
+  border-color: #3b82f6;
+}
+
+.shift-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.shift-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shift-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.shift-time {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-family: 'Courier New', monospace;
+}
+
+.swap-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #3b82f6;
+}
+
+.arrow-icon {
+  font-size: 32px;
+  font-weight: 700;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.arrow-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Reason Section */
+.reason-section {
+  padding: 16px;
+  background: #fef3c7;
+  border-radius: 10px;
+  border: 1px solid #fbbf24;
+}
+
+.reason-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  margin: 0;
+}
+
+/* Response Section */
+.response-section {
+  padding: 16px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+.response-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.response-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  margin: 0;
+}
+
+.response-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Card Actions */
+.card-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 2px solid;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reject-btn {
+  background: white;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.reject-btn:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
+}
+
+.approve-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-color: #10b981;
+}
+
+.approve-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 1024px) {
+  .swap-flow {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .swap-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .requests-header {
+    padding: 20px;
+  }
+
+  .header-title {
+    font-size: 20px;
+  }
+
+  .status-filters {
+    width: 100%;
+  }
+
+  .filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .card-content {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .employee-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .response-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .card-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .requests-header {
+    padding: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-content {
+    padding: 16px;
+  }
+
+  .shift-time {
+    font-size: 16px;
+  }
+}
+</style>

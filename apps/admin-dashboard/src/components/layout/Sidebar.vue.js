@@ -2,7 +2,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
-import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, Settings, User, CreditCard, Clock, Ticket as TicketIcon, } from "lucide-vue-next";
+import { Home, ShoppingCart, Menu, Users, Table, BarChart3, ChefHat, Calculator, Settings, User, CreditCard, Clock, Ticket as TicketIcon, Sparkles, Calendar, } from "lucide-vue-next";
 const __VLS_props = defineProps();
 const __VLS_emit = defineEmits();
 const route = useRoute();
@@ -45,6 +45,13 @@ const navigationItems = computed(() => [
         visible: authStore.canAccessAdminFeatures,
     },
     {
+        name: "scheduling",
+        path: "/dashboard/scheduling",
+        label: "員工排班",
+        icon: Calendar,
+        visible: authStore.canAccessAdminFeatures,
+    },
+    {
         name: "coupons",
         path: "/dashboard/coupons",
         label: "優惠券管理",
@@ -56,6 +63,13 @@ const navigationItems = computed(() => [
         path: "/dashboard/analytics",
         label: "數據分析",
         icon: BarChart3,
+        visible: authStore.canAccessAdminFeatures,
+    },
+    {
+        name: "ai-analytics",
+        path: "/dashboard/ai-analytics/insights",
+        label: "AI 洞察",
+        icon: Sparkles,
         visible: authStore.canAccessAdminFeatures,
     },
     {

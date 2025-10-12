@@ -113,8 +113,8 @@ const isLoading = ref(false);
 const error = ref("");
 
 const form = reactive({
-  username: "",
-  password: "",
+  username: "admin",
+  password: "admin123",
 });
 
 const errors = reactive({

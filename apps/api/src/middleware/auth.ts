@@ -7,6 +7,9 @@ export interface AuthUser {
   username: string
   role: number
   restaurantId?: number
+  fullName?: string
+  email?: string
+  phone?: string
 }
 
 declare module 'hono' {

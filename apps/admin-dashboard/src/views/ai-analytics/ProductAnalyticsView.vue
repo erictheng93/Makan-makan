@@ -7,8 +7,8 @@ import type { ProductAnalysis } from '@makanmakan/ai-analytics'
 import {
   ChartBarIcon,
   ArrowPathIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   SparklesIcon,
   CurrencyDollarIcon,
   ShoppingCartIcon,
@@ -313,8 +313,8 @@ const getTrendColor = (trend: number) => {
             <div class="flex items-center justify-between py-2">
               <span class="text-sm text-gray-600">趨勢</span>
               <div class="flex items-center space-x-1" :class="getTrendColor(product.trendScore)">
-                <TrendingUpIcon v-if="product.trendScore > 0" class="w-4 h-4" />
-                <TrendingDownIcon v-else-if="product.trendScore < 0" class="w-4 h-4" />
+                <ArrowTrendingUpIcon v-if="product.trendScore > 0" class="w-4 h-4" />
+                <ArrowTrendingDownIcon v-else-if="product.trendScore < 0" class="w-4 h-4" />
                 <span class="font-semibold">
                   {{ product.trendScore > 0 ? '+' : '' }}{{ (product.trendScore * 100).toFixed(0) }}%
                 </span>
@@ -401,7 +401,7 @@ const getTrendColor = (trend: number) => {
         <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
           <div class="flex items-center space-x-3 mb-3">
             <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-              <TrendingUpIcon class="w-6 h-6 text-white" />
+              <ArrowTrendingUpIcon class="w-6 h-6 text-white" />
             </div>
             <div class="font-semibold text-green-900">行動方案</div>
           </div>

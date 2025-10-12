@@ -349,4 +349,162 @@ export class RestaurantsService {
       // Don't throw here as event emission shouldn't break the main flow
     }
   }
+
+  // ==================== Shop QR Code Methods ====================
+
+  /**
+   * Generate shop-level QR code for a restaurant
+   */
+  async generateShopQrCode(id: number): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+    try {
+      this.logger.debug('Generating shop QR code', { id })
+
+      const result = await this.dbService.generateShopQrCode(id)
+
+      // Invalidate caches
+      await this.cache.delete(`restaurant:${id}`)
+      await this.cache.delete(`restaurant:${id}:shop-qr`)
+
+      this.logger.info('Shop QR code generated successfully', { id, qrCode: result.qrCode })
+
+      return result
+    } catch (error) {
+      this.logger.error('Failed to generate shop QR code', error as Error, { id })
+      throw new Error('Failed to generate shop QR code')
+    }
+  }
+
+  /**
+   * Regenerate shop-level QR code (increments version)
+   */
+  async regenerateShopQrCode(id: number): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+    try {
+      this.logger.debug('Regenerating shop QR code', { id })
+
+      const result = await this.dbService.regenerateShopQrCode(id)
+
+      // Invalidate caches
+      await this.cache.delete(`restaurant:${id}`)
+      await this.cache.delete(`restaurant:${id}:shop-qr`)
+
+      this.logger.info('Shop QR code regenerated successfully', {
+        id,
+        qrCode: result.qrCode,
+        version: result.version
+      })
+
+      return result
+    } catch (error) {
+      this.logger.error('Failed to regenerate shop QR code', error as Error, { id })
+      throw new Error('Failed to regenerate shop QR code')
+    }
+  }
+
+  /**
+   * Get shop QR code information
+   */
+  async getShopQrCodeInfo(id: number): Promise<{
+    qrCode: string | null
+    qrCodeImageUrl: string | null
+    enabled: boolean
+    version: number
+    settings: any
+  }> {
+    try {
+      this.logger.debug('Getting shop QR code info', { id })
+
+      // Try cache first
+      const cacheKey = `restaurant:${id}:shop-qr`
+      const cached = await this.cache.get<{
+        qrCode: string | null
+        qrCodeImageUrl: string | null
+        enabled: boolean
+        version: number
+        settings: any
+      }>(cacheKey)
+      if (cached) {
+        this.logger.debug('Returning cached shop QR info')
+        return cached
+      }
+
+      const info = await this.dbService.getShopQrCodeInfo(id)
+
+      // Cache the result
+      await this.cache.set(cacheKey, info, CACHE_TTL.MEDIUM)
+
+      this.logger.info('Retrieved shop QR code info', { id })
+
+      return info
+    } catch (error) {
+      this.logger.error('Failed to get shop QR code info', error as Error, { id })
+      throw new Error('Failed to retrieve shop QR code information')
+    }
+  }
+
+  /**
+   * Update shop QR code image URL
+   */
+  async updateShopQrCodeImage(id: number, imageUrl: string): Promise<void> {
+    try {
+      this.logger.debug('Updating shop QR code image', { id, imageUrl })
+
+      await this.dbService.updateShopQrCodeImage(id, imageUrl)
+
+      // Invalidate caches
+      await this.cache.delete(`restaurant:${id}`)
+      await this.cache.delete(`restaurant:${id}:shop-qr`)
+
+      this.logger.info('Shop QR code image updated successfully', { id })
+    } catch (error) {
+      this.logger.error('Failed to update shop QR code image', error as Error, { id, imageUrl })
+      throw new Error('Failed to update shop QR code image')
+    }
+  }
+
+  /**
+   * Enable or disable shop mode with settings
+   */
+  async updateShopMode(id: number, enabled: boolean, settings?: any): Promise<void> {
+    try {
+      this.logger.debug('Updating shop mode', { id, enabled, settings })
+
+      await this.dbService.updateShopMode(id, enabled, settings)
+
+      // Invalidate caches
+      await this.cache.delete(`restaurant:${id}`)
+      await this.cache.delete(`restaurant:${id}:shop-qr`)
+      await this.invalidateListCaches()
+
+      this.logger.info('Shop mode updated successfully', { id, enabled })
+    } catch (error) {
+      this.logger.error('Failed to update shop mode', error as Error, { id, enabled })
+      throw new Error('Failed to update shop mode')
+    }
+  }
+
+  /**
+   * Verify shop QR code and get restaurant information
+   */
+  async verifyShopQrCode(qrCode: string): Promise<{
+    valid: boolean
+    restaurantId?: number
+    restaurant?: any
+  }> {
+    try {
+      this.logger.debug('Verifying shop QR code', { qrCode })
+
+      const result = await this.dbService.verifyShopQrCode(qrCode)
+
+      this.logger.info('Shop QR code verification complete', {
+        qrCode,
+        valid: result.valid,
+        restaurantId: result.restaurantId
+      })
+
+      return result
+    } catch (error) {
+      this.logger.error('Failed to verify shop QR code', error as Error, { qrCode })
+      throw new Error('Failed to verify shop QR code')
+    }
+  }
 }

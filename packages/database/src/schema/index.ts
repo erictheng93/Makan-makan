@@ -13,6 +13,8 @@ export * from './error-reports'
 export * from './qr-codes'
 export * from './images'
 export * from './coupons'
+export * from './leaves'
+export * from './scheduling'
 
 // 匯出所有關聯定義
 export { restaurantRelations } from './restaurants'
@@ -27,6 +29,21 @@ export { sessionRelations } from './sessions'
 export { auditLogRelations } from './audit-logs'
 export { errorReportsRelations, systemAlertsRelations } from './error-reports'
 export { couponsRelations, couponUsageRelations, couponDistributionsRelations, couponTemplatesRelations } from './coupons'
+export {
+  leaveTypesRelations,
+  employeeLeaveBalancesRelations,
+  leaveRequestsRelations,
+  leaveApprovalRulesRelations,
+  leaveCalendarEventsRelations
+} from './leaves'
+export {
+  shiftTemplatesRelations,
+  employeeSchedulesRelations,
+  schedulingRulesRelations,
+  schedulingConflictsRelations,
+  scheduleSwapRequestsRelations,
+  employeeAvailabilityRelations
+} from './scheduling'
 
 // 重新匯出類型
 export type { UserRole } from './users'

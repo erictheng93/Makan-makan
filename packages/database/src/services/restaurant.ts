@@ -248,6 +248,244 @@ export class RestaurantService extends BaseService {
     }
   }
 
+  // ==================== 店家级别 QR Code 功能 ====================
+
+  /**
+   * 生成店家级别 QR Code
+   * 适用于无桌号的外带/自取订单场景
+   */
+  async generateShopQrCode(restaurantId: number): Promise<{
+    qrCode: string
+    qrCodeImageUrl: string | null
+    version: number
+  }> {
+    try {
+      const restaurant = await this.getRestaurant(restaurantId)
+      if (!restaurant) {
+        throw new Error('Restaurant not found')
+      }
+
+      // 如果已有 QR Code，直接返回
+      if (restaurant.shopQrCode) {
+        return {
+          qrCode: restaurant.shopQrCode,
+          qrCodeImageUrl: restaurant.shopQrCodeImageUrl || null,
+          version: restaurant.shopQrVersion || 1
+        }
+      }
+
+      // 生成新的 QR Code：格式 SHOP-{restaurantId}-{timestamp}
+      const timestamp = Math.floor(Date.now() / 1000)
+      const qrCode = `SHOP-${restaurantId}-${timestamp}`
+
+      // 默认设置
+      const defaultSettings = {
+        displayName: restaurant.name,
+        instructions: '扫描 QR Code 开始点餐',
+        requirePhone: true
+      }
+
+      // 更新数据库
+      const [updated] = await this.db
+        .update(restaurants)
+        .set({
+          shopQrCode: qrCode,
+          shopQrVersion: 1,
+          shopQrSettings: defaultSettings,
+          updatedAt: new Date()
+        })
+        .where(eq(restaurants.id, restaurantId))
+        .returning()
+
+      return {
+        qrCode: updated.shopQrCode!,
+        qrCodeImageUrl: updated.shopQrCodeImageUrl || null,
+        version: updated.shopQrVersion || 1
+      }
+    } catch (error) {
+      this.handleError(error, 'generateShopQrCode')
+    }
+  }
+
+  /**
+   * 重新生成店家 QR Code
+   * 用于 QR Code 泄露或需要更换的情况
+   */
+  async regenerateShopQrCode(restaurantId: number): Promise<{
+    qrCode: string
+    qrCodeImageUrl: string | null
+    version: number
+  }> {
+    try {
+      const restaurant = await this.getRestaurant(restaurantId)
+      if (!restaurant) {
+        throw new Error('Restaurant not found')
+      }
+
+      // 生成新的 QR Code
+      const timestamp = Math.floor(Date.now() / 1000)
+      const qrCode = `SHOP-${restaurantId}-${timestamp}`
+      const newVersion = (restaurant.shopQrVersion || 0) + 1
+
+      // 更新数据库
+      const [updated] = await this.db
+        .update(restaurants)
+        .set({
+          shopQrCode: qrCode,
+          shopQrCodeImageUrl: null, // 清除旧的图片 URL
+          shopQrVersion: newVersion,
+          updatedAt: new Date()
+        })
+        .where(eq(restaurants.id, restaurantId))
+        .returning()
+
+      return {
+        qrCode: updated.shopQrCode!,
+        qrCodeImageUrl: null,
+        version: updated.shopQrVersion || newVersion
+      }
+    } catch (error) {
+      this.handleError(error, 'regenerateShopQrCode')
+    }
+  }
+
+  /**
+   * 验证店家 QR Code 是否有效
+   */
+  async verifyShopQrCode(qrCode: string): Promise<{
+    valid: boolean
+    restaurantId?: number
+    restaurant?: Restaurant
+  }> {
+    try {
+      // QR Code 格式验证：SHOP-{restaurantId}-{timestamp}
+      if (!qrCode || !qrCode.startsWith('SHOP-')) {
+        return { valid: false }
+      }
+
+      const restaurant = await this.db.query.restaurants.findFirst({
+        where: and(
+          eq(restaurants.shopQrCode, qrCode),
+          eq(restaurants.isActive, true)
+        )
+      })
+
+      if (!restaurant) {
+        return { valid: false }
+      }
+
+      return {
+        valid: true,
+        restaurantId: restaurant.id,
+        restaurant: this.mapToRestaurant(restaurant)
+      }
+    } catch (error) {
+      this.handleError(error, 'verifyShopQrCode')
+    }
+  }
+
+  /**
+   * 通过店家 QR Code 获取餐厅信息
+   */
+  async getRestaurantByShopQrCode(qrCode: string): Promise<Restaurant | null> {
+    try {
+      const result = await this.verifyShopQrCode(qrCode)
+      return result.valid && result.restaurant ? result.restaurant : null
+    } catch (error) {
+      this.handleError(error, 'getRestaurantByShopQrCode')
+    }
+  }
+
+  /**
+   * 更新店家模式设置
+   */
+  async updateShopMode(
+    restaurantId: number,
+    enabled: boolean,
+    settings?: {
+      displayName?: string
+      instructions?: string
+      requirePhone?: boolean
+    }
+  ): Promise<void> {
+    try {
+      const restaurant = await this.getRestaurant(restaurantId)
+      if (!restaurant) {
+        throw new Error('Restaurant not found')
+      }
+
+      // 如果启用店家模式但没有 QR Code，先生成一个
+      if (enabled && !restaurant.shopQrCode) {
+        await this.generateShopQrCode(restaurantId)
+      }
+
+      // 合并设置
+      const currentSettings = restaurant.shopQrSettings || {}
+      const newSettings = settings ? { ...currentSettings, ...settings } : currentSettings
+
+      // 更新数据库
+      await this.db
+        .update(restaurants)
+        .set({
+          enableShopMode: enabled,
+          shopQrSettings: newSettings,
+          updatedAt: new Date()
+        })
+        .where(eq(restaurants.id, restaurantId))
+    } catch (error) {
+      this.handleError(error, 'updateShopMode')
+    }
+  }
+
+  /**
+   * 获取店家 QR Code 信息
+   */
+  async getShopQrCodeInfo(restaurantId: number): Promise<{
+    enabled: boolean
+    qrCode: string | null
+    qrCodeImageUrl: string | null
+    version: number
+    settings: any
+  }> {
+    try {
+      const restaurant = await this.getRestaurant(restaurantId)
+      if (!restaurant) {
+        throw new Error('Restaurant not found')
+      }
+
+      return {
+        enabled: restaurant.enableShopMode || false,
+        qrCode: restaurant.shopQrCode || null,
+        qrCodeImageUrl: restaurant.shopQrCodeImageUrl || null,
+        version: restaurant.shopQrVersion || 1,
+        settings: restaurant.shopQrSettings || {
+          displayName: restaurant.name,
+          instructions: '扫描 QR Code 开始点餐',
+          requirePhone: true
+        }
+      }
+    } catch (error) {
+      this.handleError(error, 'getShopQrCodeInfo')
+    }
+  }
+
+  /**
+   * 上传/更新店家 QR Code 图片 URL
+   */
+  async updateShopQrCodeImage(restaurantId: number, imageUrl: string): Promise<void> {
+    try {
+      await this.db
+        .update(restaurants)
+        .set({
+          shopQrCodeImageUrl: imageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(restaurants.id, restaurantId))
+    } catch (error) {
+      this.handleError(error, 'updateShopQrCodeImage')
+    }
+  }
+
   // 資料轉換
   private mapToRestaurant(restaurant: any): Restaurant {
     return {
@@ -274,6 +512,12 @@ export class RestaurantService extends BaseService {
       totalOrders: restaurant.totalOrders,
       status: restaurant.isActive ? 1 : 0, // Status.ACTIVE : Status.INACTIVE
       planType: restaurant.planType || 0,
+      // 店家 QR Code 相关字段
+      shopQrCode: restaurant.shopQrCode,
+      shopQrCodeImageUrl: restaurant.shopQrCodeImageUrl,
+      enableShopMode: restaurant.enableShopMode,
+      shopQrSettings: restaurant.shopQrSettings,
+      shopQrVersion: restaurant.shopQrVersion,
       createdAt: restaurant.createdAt,
       updatedAt: restaurant.updatedAt
     } as Restaurant

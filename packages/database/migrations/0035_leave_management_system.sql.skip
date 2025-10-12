@@ -1,0 +1,821 @@
+-- =====================================================
+-- Migration: 排休管理系統
+-- Version: 0035
+-- Date: 2025-10-10
+-- Description: 實現完整的員工排休（請假）管理系統，支持多種假別、假期餘額追蹤、多級審批流程、與排班系統整合
+-- =====================================================
+
+-- =====================================================
+-- 1. 假別類型表 (Leave Types)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS leave_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    -- 假別基本資訊
+    code TEXT NOT NULL UNIQUE,                   -- 假別代碼：ANNUAL, SICK, PERSONAL等
+    name TEXT NOT NULL,                          -- 假別名稱
+    description TEXT,                            -- 假別說明
+
+    -- 給假規則
+    default_days_per_year INTEGER NOT NULL DEFAULT 0,  -- 每年預設給假天數
+    accrual_type TEXT NOT NULL DEFAULT 'yearly', -- 給假方式：yearly, monthly, none
+    max_carryover_days INTEGER DEFAULT 0,        -- 最大可遞延天數
+
+    -- 使用規則
+    requires_approval INTEGER NOT NULL DEFAULT 1,  -- 是否需要審批
+    approval_levels INTEGER DEFAULT 1,           -- 需要幾級審批
+    min_notice_days INTEGER DEFAULT 0,           -- 最少提前申請天數
+    max_days_per_request INTEGER,                -- 單次申請最大天數
+    allow_half_day INTEGER NOT NULL DEFAULT 1,   -- 是否允許半天
+
+    -- 計薪與扣除
+    is_paid INTEGER NOT NULL DEFAULT 1,          -- 是否有薪
+    affects_attendance INTEGER NOT NULL DEFAULT 0,  -- 是否影響出勤紀錄
+    allow_carryover INTEGER NOT NULL DEFAULT 0,  -- 是否可遞延至次年
+    requires_documentation INTEGER NOT NULL DEFAULT 0,  -- 是否需要證明文件
+
+    -- 適用範圍
+    applies_to_roles TEXT DEFAULT '[]',          -- JSON陣列：適用角色
+    gender_restriction TEXT,                     -- 性別限制：male, female, null
+
+    -- 顯示設定
+    color_code TEXT DEFAULT '#3B82F6',           -- 顏色代碼
+    icon TEXT,                                   -- 圖示代碼
+    sort_order INTEGER DEFAULT 0,                -- 排序順序
+
+    -- 狀態
+    is_active INTEGER NOT NULL DEFAULT 1,        -- 是否啟用
+    is_system_type INTEGER NOT NULL DEFAULT 0,   -- 是否為系統內建假別
+
+    -- 審計欄位
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+
+    -- 檢查約束
+    CHECK (accrual_type IN ('yearly', 'monthly', 'none')),
+    CHECK (approval_levels > 0),
+    CHECK (min_notice_days >= 0),
+    CHECK (gender_restriction IS NULL OR gender_restriction IN ('male', 'female'))
+);
+
+-- 假別類型索引
+CREATE INDEX IF NOT EXISTS leave_types_code_idx ON leave_types(code);
+CREATE INDEX IF NOT EXISTS leave_types_is_active_idx ON leave_types(is_active);
+CREATE INDEX IF NOT EXISTS leave_types_is_system_type_idx ON leave_types(is_system_type);
+
+-- =====================================================
+-- 2. 員工假期餘額表 (Employee Leave Balances)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS employee_leave_balances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    leave_type_id INTEGER NOT NULL,
+    restaurant_id INTEGER NOT NULL,
+
+    -- 年度資訊
+    year INTEGER NOT NULL,                       -- 年度
+
+    -- 假期餘額（天數）
+    total_days REAL NOT NULL DEFAULT 0,          -- 總給假天數
+    used_days REAL NOT NULL DEFAULT 0,           -- 已使用天數
+    pending_days REAL NOT NULL DEFAULT 0,        -- 待審批天數
+    remaining_days REAL GENERATED ALWAYS AS (total_days - used_days - pending_days) VIRTUAL,  -- 剩餘天數（自動計算）
+
+    -- 遞延資訊
+    carryover_from_previous REAL DEFAULT 0,      -- 從前一年遞延的天數
+    carryover_to_next REAL DEFAULT 0,            -- 可遞延至次年的天數
+    carryover_expires_at INTEGER,                -- 遞延假期到期日
+
+    -- 手動調整
+    manual_adjustment REAL DEFAULT 0,            -- 手動調整天數（正數=增加，負數=減少）
+    adjustment_reason TEXT,                      -- 調整原因
+    adjusted_by INTEGER,                         -- 調整者ID
+    adjusted_at INTEGER,                         -- 調整時間
+
+    -- 審計欄位
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    last_updated_by INTEGER,                     -- 最後更新者ID
+
+    -- 外鍵約束
+    FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (adjusted_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (last_updated_by) REFERENCES users(id) ON DELETE SET NULL,
+
+    -- 唯一約束：每個員工每種假別每年只有一筆記錄
+    UNIQUE(employee_id, leave_type_id, year),
+
+    -- 檢查約束
+    CHECK (total_days >= 0),
+    CHECK (used_days >= 0),
+    CHECK (pending_days >= 0)
+);
+
+-- 員工假期餘額索引
+CREATE INDEX IF NOT EXISTS employee_leave_balances_employee_id_idx ON employee_leave_balances(employee_id);
+CREATE INDEX IF NOT EXISTS employee_leave_balances_leave_type_id_idx ON employee_leave_balances(leave_type_id);
+CREATE INDEX IF NOT EXISTS employee_leave_balances_restaurant_id_idx ON employee_leave_balances(restaurant_id);
+CREATE INDEX IF NOT EXISTS employee_leave_balances_year_idx ON employee_leave_balances(year);
+CREATE INDEX IF NOT EXISTS employee_leave_balances_employee_year_idx ON employee_leave_balances(employee_id, year);
+
+-- =====================================================
+-- 3. 請假申請表 (Leave Requests)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS leave_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    leave_type_id INTEGER NOT NULL,
+    restaurant_id INTEGER NOT NULL,
+
+    -- 請假時間
+    start_date TEXT NOT NULL,                    -- 開始日期（YYYY-MM-DD）
+    end_date TEXT NOT NULL,                      -- 結束日期（YYYY-MM-DD）
+    start_period TEXT NOT NULL DEFAULT 'full',   -- 開始時段：full, am, pm
+    end_period TEXT NOT NULL DEFAULT 'full',     -- 結束時段：full, am, pm
+    days_count REAL NOT NULL,                    -- 請假天數（可含小數，如0.5天）
+
+    -- 申請內容
+    reason TEXT NOT NULL,                        -- 請假原因
+    attachments TEXT DEFAULT '[]',               -- 附件清單（JSON陣列）
+
+    -- 狀態管理
+    status TEXT NOT NULL DEFAULT 'pending',      -- pending, approved, rejected, cancelled, withdrawn
+
+    -- 審批流程（JSON格式）
+    approval_chain TEXT DEFAULT '[]',            -- 審批鏈：[{level, approver_id, status, timestamp}]
+    current_approval_level INTEGER DEFAULT 0,    -- 當前審批層級
+    required_approval_levels INTEGER NOT NULL DEFAULT 1,  -- 需要的審批層級數
+
+    -- 審批結果
+    final_approver_id INTEGER,                   -- 最終審批者ID
+    final_approved_at INTEGER,                   -- 最終審批時間
+    rejection_reason TEXT,                       -- 拒絕原因
+
+    -- 取消與撤回
+    cancelled_by INTEGER,                        -- 取消者ID
+    cancelled_at INTEGER,                        -- 取消時間
+    cancellation_reason TEXT,                    -- 取消原因
+
+    -- 與排班整合
+    affects_schedules TEXT DEFAULT '[]',         -- 影響的排班ID（JSON陣列）
+    schedule_conflicts_resolved INTEGER DEFAULT 0,  -- 排班衝突是否已解決
+
+    -- 備註
+    notes TEXT,                                  -- 備註
+    admin_notes TEXT,                            -- 管理員備註（員工不可見）
+
+    -- 審計欄位
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    submitted_at INTEGER,                        -- 提交時間
+
+    -- 外鍵約束
+    FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (final_approver_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (cancelled_by) REFERENCES users(id) ON DELETE SET NULL,
+
+    -- 檢查約束
+    CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled', 'withdrawn')),
+    CHECK (start_period IN ('full', 'am', 'pm')),
+    CHECK (end_period IN ('full', 'am', 'pm')),
+    CHECK (days_count > 0),
+    CHECK (current_approval_level >= 0),
+    CHECK (date(start_date) <= date(end_date))
+);
+
+-- 請假申請索引
+CREATE INDEX IF NOT EXISTS leave_requests_employee_id_idx ON leave_requests(employee_id);
+CREATE INDEX IF NOT EXISTS leave_requests_leave_type_id_idx ON leave_requests(leave_type_id);
+CREATE INDEX IF NOT EXISTS leave_requests_restaurant_id_idx ON leave_requests(restaurant_id);
+CREATE INDEX IF NOT EXISTS leave_requests_status_idx ON leave_requests(status);
+CREATE INDEX IF NOT EXISTS leave_requests_start_date_idx ON leave_requests(start_date);
+CREATE INDEX IF NOT EXISTS leave_requests_end_date_idx ON leave_requests(end_date);
+CREATE INDEX IF NOT EXISTS leave_requests_employee_status_idx ON leave_requests(employee_id, status);
+CREATE INDEX IF NOT EXISTS leave_requests_restaurant_status_idx ON leave_requests(restaurant_id, status);
+
+-- =====================================================
+-- 4. 審批規則表 (Leave Approval Rules)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS leave_approval_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id INTEGER NOT NULL,
+    leave_type_id INTEGER,                       -- NULL表示適用所有假別
+
+    -- 規則基本資訊
+    rule_name TEXT NOT NULL,                     -- 規則名稱
+    description TEXT,                            -- 規則說明
+
+    -- 審批層級設定
+    approval_level INTEGER NOT NULL,             -- 審批層級（1, 2, 3...）
+    approver_role TEXT,                          -- 審批者角色（owner, admin等）
+    approver_user_id INTEGER,                    -- 指定審批者ID（優先於角色）
+
+    -- 適用條件（JSON格式）
+    conditions TEXT DEFAULT '{}',                -- 條件配置：{"min_days": 3, "applies_to_roles": []}
+
+    -- 自動審批設定
+    auto_approve_enabled INTEGER DEFAULT 0,      -- 是否啟用自動審批
+    auto_approve_conditions TEXT DEFAULT '{}',   -- 自動審批條件
+    auto_escalate_hours INTEGER,                 -- 自動升級時數（超過未審批則自動升級）
+
+    -- 通知設定
+    notify_on_submit INTEGER DEFAULT 1,          -- 提交時通知
+    notify_on_approve INTEGER DEFAULT 1,         -- 審批時通知
+    notify_on_reject INTEGER DEFAULT 1,          -- 拒絕時通知
+
+    -- 優先級
+    priority INTEGER DEFAULT 0,                  -- 優先級（數字越大越優先）
+
+    -- 狀態
+    is_active INTEGER NOT NULL DEFAULT 1,        -- 是否啟用
+
+    -- 審計欄位
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+
+    -- 外鍵約束
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (approver_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
+
+    -- 檢查約束
+    CHECK (approval_level > 0),
+    CHECK (priority >= 0)
+);
+
+-- 審批規則索引
+CREATE INDEX IF NOT EXISTS leave_approval_rules_restaurant_id_idx ON leave_approval_rules(restaurant_id);
+CREATE INDEX IF NOT EXISTS leave_approval_rules_leave_type_id_idx ON leave_approval_rules(leave_type_id);
+CREATE INDEX IF NOT EXISTS leave_approval_rules_approval_level_idx ON leave_approval_rules(approval_level);
+CREATE INDEX IF NOT EXISTS leave_approval_rules_is_active_idx ON leave_approval_rules(is_active);
+
+-- =====================================================
+-- 5. 假期日曆事件表 (Leave Calendar Events)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS leave_calendar_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    -- 事件基本資訊
+    event_type TEXT NOT NULL,                    -- public_holiday, company_holiday, special
+    name TEXT NOT NULL,                          -- 事件名稱
+    description TEXT,                            -- 事件說明
+
+    -- 日期資訊
+    event_date TEXT NOT NULL,                    -- 事件日期（YYYY-MM-DD）
+    year INTEGER NOT NULL,                       -- 年度
+    is_recurring INTEGER NOT NULL DEFAULT 0,     -- 是否每年重複
+
+    -- 適用範圍
+    restaurant_id INTEGER,                       -- NULL表示全系統適用
+    applies_to_all INTEGER NOT NULL DEFAULT 1,   -- 是否適用所有員工
+
+    -- 補假資訊
+    is_compensatory INTEGER NOT NULL DEFAULT 0,  -- 是否為補假日
+    compensates_for_date TEXT,                   -- 補哪一天的假
+
+    -- 狀態
+    is_active INTEGER NOT NULL DEFAULT 1,        -- 是否啟用
+
+    -- 審計欄位
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+
+    -- 外鍵約束
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+
+    -- 檢查約束
+    CHECK (event_type IN ('public_holiday', 'company_holiday', 'special'))
+);
+
+-- 假期日曆事件索引
+CREATE INDEX IF NOT EXISTS leave_calendar_events_event_date_idx ON leave_calendar_events(event_date);
+CREATE INDEX IF NOT EXISTS leave_calendar_events_year_idx ON leave_calendar_events(year);
+CREATE INDEX IF NOT EXISTS leave_calendar_events_restaurant_id_idx ON leave_calendar_events(restaurant_id);
+CREATE INDEX IF NOT EXISTS leave_calendar_events_event_type_idx ON leave_calendar_events(event_type);
+CREATE INDEX IF NOT EXISTS leave_calendar_events_is_active_idx ON leave_calendar_events(is_active);
+
+-- =====================================================
+-- TRIGGERS: 自動更新 updated_at 與業務邏輯
+-- =====================================================
+
+-- Leave Types
+CREATE TRIGGER IF NOT EXISTS leave_types_updated_at
+AFTER UPDATE ON leave_types
+FOR EACH ROW
+BEGIN
+    UPDATE leave_types SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+
+-- Employee Leave Balances
+CREATE TRIGGER IF NOT EXISTS employee_leave_balances_updated_at
+AFTER UPDATE ON employee_leave_balances
+FOR EACH ROW
+BEGIN
+    UPDATE employee_leave_balances SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+
+-- Leave Requests
+CREATE TRIGGER IF NOT EXISTS leave_requests_updated_at
+AFTER UPDATE ON leave_requests
+FOR EACH ROW
+BEGIN
+    UPDATE leave_requests SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+
+-- Leave Approval Rules
+CREATE TRIGGER IF NOT EXISTS leave_approval_rules_updated_at
+AFTER UPDATE ON leave_approval_rules
+FOR EACH ROW
+BEGIN
+    UPDATE leave_approval_rules SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+
+-- Leave Calendar Events
+CREATE TRIGGER IF NOT EXISTS leave_calendar_events_updated_at
+AFTER UPDATE ON leave_calendar_events
+FOR EACH ROW
+BEGIN
+    UPDATE leave_calendar_events SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+
+-- =====================================================
+-- VIEWS: 常用查詢視圖
+-- =====================================================
+
+-- 視圖1：員工假期餘額彙總（當年）
+CREATE VIEW IF NOT EXISTS current_year_leave_balances AS
+SELECT
+    elb.employee_id,
+    u.name AS employee_name,
+    elb.restaurant_id,
+    lt.code AS leave_type_code,
+    lt.name AS leave_type_name,
+    lt.color_code,
+    elb.year,
+    elb.total_days,
+    elb.used_days,
+    elb.pending_days,
+    elb.remaining_days,
+    elb.carryover_from_previous,
+    lt.is_paid,
+    lt.allow_carryover
+FROM employee_leave_balances elb
+JOIN leave_types lt ON elb.leave_type_id = lt.id
+JOIN users u ON elb.employee_id = u.id
+WHERE elb.year = strftime('%Y', 'now')
+    AND lt.is_active = 1;
+
+-- 視圖2：待審批請假申請
+CREATE VIEW IF NOT EXISTS pending_leave_requests AS
+SELECT
+    lr.id,
+    lr.employee_id,
+    u.name AS employee_name,
+    lr.restaurant_id,
+    lt.code AS leave_type_code,
+    lt.name AS leave_type_name,
+    lt.color_code,
+    lr.start_date,
+    lr.end_date,
+    lr.days_count,
+    lr.reason,
+    lr.status,
+    lr.current_approval_level,
+    lr.required_approval_levels,
+    lr.created_at,
+    lr.submitted_at,
+    CASE
+        WHEN lr.current_approval_level = 0 THEN 'pending_submission'
+        WHEN lr.current_approval_level < lr.required_approval_levels THEN 'pending_approval'
+        WHEN lr.current_approval_level = lr.required_approval_levels THEN 'pending_final'
+        ELSE 'unknown'
+    END AS approval_stage
+FROM leave_requests lr
+JOIN leave_types lt ON lr.leave_type_id = lt.id
+JOIN users u ON lr.employee_id = u.id
+WHERE lr.status = 'pending';
+
+-- 視圖3：本月請假統計
+CREATE VIEW IF NOT EXISTS monthly_leave_statistics AS
+SELECT
+    lr.restaurant_id,
+    lr.leave_type_id,
+    lt.name AS leave_type_name,
+    strftime('%Y-%m', lr.start_date) AS month,
+    COUNT(lr.id) AS total_requests,
+    COUNT(CASE WHEN lr.status = 'approved' THEN 1 END) AS approved_requests,
+    COUNT(CASE WHEN lr.status = 'rejected' THEN 1 END) AS rejected_requests,
+    COUNT(CASE WHEN lr.status = 'pending' THEN 1 END) AS pending_requests,
+    SUM(CASE WHEN lr.status = 'approved' THEN lr.days_count ELSE 0 END) AS total_approved_days,
+    COUNT(DISTINCT lr.employee_id) AS unique_employees
+FROM leave_requests lr
+JOIN leave_types lt ON lr.leave_type_id = lt.id
+WHERE lr.start_date >= date('now', 'start of month')
+    AND lr.start_date < date('now', 'start of month', '+1 month')
+GROUP BY lr.restaurant_id, lr.leave_type_id, strftime('%Y-%m', lr.start_date);
+
+-- 視圖4：即將到期的假期
+CREATE VIEW IF NOT EXISTS expiring_leave_balances AS
+SELECT
+    elb.employee_id,
+    u.name AS employee_name,
+    elb.restaurant_id,
+    lt.code AS leave_type_code,
+    lt.name AS leave_type_name,
+    elb.year,
+    elb.carryover_to_next,
+    elb.carryover_expires_at,
+    elb.remaining_days,
+    CASE
+        WHEN elb.carryover_expires_at IS NOT NULL AND elb.carryover_expires_at < strftime('%s', 'now', '+30 days')
+        THEN 1 ELSE 0
+    END AS expiring_soon
+FROM employee_leave_balances elb
+JOIN leave_types lt ON elb.leave_type_id = lt.id
+JOIN users u ON elb.employee_id = u.id
+WHERE lt.allow_carryover = 1
+    AND elb.remaining_days > 0
+    AND elb.carryover_expires_at IS NOT NULL;
+
+-- 視圖5：員工請假日曆（未來30天）
+CREATE VIEW IF NOT EXISTS upcoming_leave_calendar AS
+SELECT
+    lr.id AS leave_request_id,
+    lr.employee_id,
+    u.name AS employee_name,
+    lr.restaurant_id,
+    lr.start_date,
+    lr.end_date,
+    lr.days_count,
+    lt.name AS leave_type_name,
+    lt.color_code,
+    lr.status
+FROM leave_requests lr
+JOIN leave_types lt ON lr.leave_type_id = lt.id
+JOIN users u ON lr.employee_id = u.id
+WHERE lr.status IN ('approved', 'pending')
+    AND lr.start_date >= date('now')
+    AND lr.start_date <= date('now', '+30 days')
+ORDER BY lr.start_date ASC;
+
+-- =====================================================
+-- 預設假別類型（符合台灣勞基法）
+-- =====================================================
+
+-- 1. 年假（特休）
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, allow_carryover, max_carryover_days,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'ANNUAL',
+    '年假 (Annual Leave)',
+    '依勞基法第38條，勞工於同一雇主或事業單位繼續工作滿一定期間後，應享有特別休假。年資6個月以上未滿1年：3日；1年以上未滿2年：7日；2年以上未滿3年：10日；3年以上未滿5年：14日；5年以上未滿10年：15日；10年以上：每滿1年加1日，最高30日。',
+    7,  -- 預設7天（年資1-2年）
+    'yearly',
+    1, 1, 3,  -- 需要審批，1級，提前3天
+    1, 1, 7,  -- 有薪，可遞延，最多7天
+    '#10B981',  -- 綠色
+    1, 1, 1
+);
+
+-- 2. 病假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'SICK',
+    '病假 (Sick Leave)',
+    '依勞基法第43條，勞工因普通傷害、疾病或生理原因必須治療或休養者，得請病假。未住院者，一年內合計不得超過30日；住院者，二年內合計不得超過一年。普通傷病未超過30日部分，工資折半發給。',
+    30,
+    'yearly',
+    1, 1, 0,  -- 需要審批，1級，不需提前（緊急可當天）
+    1, 1,     -- 有薪（折半），需要證明文件（超過2天）
+    '#EF4444',  -- 紅色
+    2, 1, 1
+);
+
+-- 3. 事假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, max_days_per_request,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'PERSONAL',
+    '事假 (Personal Leave)',
+    '依勞基法第43條，勞工因有事故必須親自處理者，得請事假，一年內合計不得超過14日。事假期間不給工資。',
+    14,
+    'yearly',
+    1, 1, 1,  -- 需要審批，1級，提前1天
+    0, 14,    -- 無薪，最多14天
+    '#F59E0B',  -- 橘色
+    3, 1, 1
+);
+
+-- 4. 婚假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'MARRIAGE',
+    '婚假 (Marriage Leave)',
+    '依勞工請假規則第2條，勞工結婚者給予婚假8日，工資照給。',
+    8,
+    'none',  -- 不按年度給假
+    1, 1, 7,
+    1, 1,
+    '#EC4899',  -- 粉紅色
+    4, 1, 1
+);
+
+-- 5. 喪假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'BEREAVEMENT',
+    '喪假 (Bereavement Leave)',
+    '依勞工請假規則第3條，父母、養父母、繼父母、配偶喪亡者，給予喪假8日；祖父母、子女、配偶之父母、配偶之養父母或繼父母喪亡者，給予喪假6日；兄弟姊妹喪亡者，給予喪假3日。工資照給。',
+    0,
+    'none',
+    1, 1, 0,  -- 緊急情況，可不提前
+    1, 1,
+    '#6B7280',  -- 灰色
+    5, 1, 1
+);
+
+-- 6. 產假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    gender_restriction,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'MATERNITY',
+    '產假 (Maternity Leave)',
+    '依性別工作平等法第15條，女性受僱者分娩前後，應使其停止工作，給予產假8星期；妊娠三個月以上流產者，應使其停止工作，給予產假4星期；妊娠二個月以上未滿三個月流產者，應使其停止工作，給予產假1星期；妊娠未滿二個月流產者，應使其停止工作，給予產假5日。產假期間薪資照給。',
+    56,  -- 8週 = 56天
+    'none',
+    1, 1, 14,
+    1, 1,
+    'female',
+    '#EC4899',
+    6, 1, 1
+);
+
+-- 7. 陪產假（陪產檢及陪產假）
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    gender_restriction,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'PATERNITY',
+    '陪產假 (Paternity Leave)',
+    '依性別工作平等法第15條，受僱者於其配偶分娩時，雇主應給予陪產檢及陪產假7日，得分次申請。但應於配偶分娩日前後合計15日期間內請畢，且每次請假應至少半日。陪產假期間工資照給。',
+    7,
+    'none',
+    1, 1, 3,
+    1, 1,
+    'male',
+    '#8B5CF6',
+    7, 1, 1
+);
+
+-- 8. 家庭照顧假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'FAMILY_CARE',
+    '家庭照顧假 (Family Care Leave)',
+    '依性別工作平等法第20條，受僱者於其家庭成員預防接種、發生嚴重之疾病或其他重大事故須親自照顧時，得請家庭照顧假；其請假日數併入事假計算，全年以7日為限。家庭照顧假薪資之計算，依各該事假規定辦理（即無薪）。',
+    7,
+    'yearly',
+    1, 1, 1,
+    0,  -- 無薪
+    '#14B8A6',
+    8, 1, 1
+);
+
+-- 9. 公假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, requires_documentation,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'OFFICIAL',
+    '公假 (Official Leave)',
+    '依勞工請假規則第8條，勞工依法令規定應給予公假者，工資照給。包括：依法律規定應執行之公民權利義務；參加政府召集之訓練；依法律規定應給予之公假等。',
+    0,
+    'none',
+    1, 1, 3,
+    1, 1,
+    '#0EA5E9',
+    9, 1, 1
+);
+
+-- 10. 生理假
+INSERT OR IGNORE INTO leave_types (
+    code, name, description,
+    default_days_per_year, accrual_type,
+    requires_approval, approval_levels, min_notice_days,
+    is_paid, allow_half_day,
+    gender_restriction,
+    color_code, sort_order, is_active, is_system_type
+) VALUES (
+    'MENSTRUAL',
+    '生理假 (Menstrual Leave)',
+    '依性別工作平等法第14條，女性受僱者因生理日致工作有困難者，每月得請生理假1日，全年請假日數未逾3日，不併入病假計算，其餘日數併入病假計算。生理假薪資之計算，依各該病假規定辦理（即折半）。',
+    12,  -- 全年最多12天（不併入病假的3天+併入病假的9天）
+    'yearly',
+    1, 1, 0,
+    1, 1,
+    'female',
+    '#F472B6',
+    10, 1, 1
+);
+
+-- =====================================================
+-- 2025年台灣國定假日資料
+-- =====================================================
+
+-- 開國紀念日（1/1）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES (
+    'public_holiday', '開國紀念日', '中華民國開國紀念日', '2025-01-01', 2025, 1, 1
+);
+
+-- 春節（1/28-2/3，共7天，含調整放假）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES
+    ('public_holiday', '除夕', '農曆除夕', '2025-01-28', 2025, 0, 1),
+    ('public_holiday', '春節（初一）', '農曆正月初一', '2025-01-29', 2025, 0, 1),
+    ('public_holiday', '春節（初二）', '農曆正月初二', '2025-01-30', 2025, 0, 1),
+    ('public_holiday', '春節（初三）', '農曆正月初三', '2025-01-31', 2025, 0, 1),
+    ('public_holiday', '春節（調整放假）', '春節連假調整放假', '2025-02-01', 2025, 0, 1),
+    ('public_holiday', '春節（調整放假）', '春節連假調整放假', '2025-02-02', 2025, 0, 1),
+    ('public_holiday', '春節（調整放假）', '春節連假調整放假', '2025-02-03', 2025, 0, 1);
+
+-- 和平紀念日（2/28）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES (
+    'public_holiday', '和平紀念日', '二二八和平紀念日', '2025-02-28', 2025, 1, 1
+);
+
+-- 清明節（4/4-4/7，含調整放假）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES
+    ('public_holiday', '兒童節', '兒童節', '2025-04-04', 2025, 1, 1),
+    ('public_holiday', '清明節', '清明節', '2025-04-05', 2025, 0, 1),
+    ('public_holiday', '清明節（調整放假）', '清明連假調整放假', '2025-04-06', 2025, 0, 1),
+    ('public_holiday', '清明節（調整放假）', '清明連假調整放假', '2025-04-07', 2025, 0, 1);
+
+-- 勞動節（5/1）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES (
+    'public_holiday', '勞動節', '勞動節（適用勞工）', '2025-05-01', 2025, 1, 1
+);
+
+-- 端午節（5/31-6/2）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES
+    ('public_holiday', '端午節', '端午節', '2025-05-31', 2025, 0, 1),
+    ('public_holiday', '端午節（調整放假）', '端午連假調整放假', '2025-06-01', 2025, 0, 1),
+    ('public_holiday', '端午節（調整放假）', '端午連假調整放假', '2025-06-02', 2025, 0, 1);
+
+-- 中秋節（10/6-10/8）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES
+    ('public_holiday', '中秋節', '中秋節', '2025-10-06', 2025, 0, 1),
+    ('public_holiday', '中秋節（調整放假）', '中秋連假調整放假', '2025-10-07', 2025, 0, 1),
+    ('public_holiday', '中秋節（調整放假）', '中秋連假調整放假', '2025-10-08', 2025, 0, 1);
+
+-- 國慶日（10/10-10/12）
+INSERT OR IGNORE INTO leave_calendar_events (
+    event_type, name, description, event_date, year, is_recurring, is_active
+) VALUES
+    ('public_holiday', '國慶日', '中華民國國慶日', '2025-10-10', 2025, 1, 1),
+    ('public_holiday', '國慶日（調整放假）', '國慶連假調整放假', '2025-10-11', 2025, 0, 1),
+    ('public_holiday', '國慶日（調整放假）', '國慶連假調整放假', '2025-10-12', 2025, 0, 1);
+
+-- =====================================================
+-- 預設審批規則（範例）
+-- =====================================================
+
+-- 規則1：年假審批（1級審批 - 店主/管理員）
+INSERT OR IGNORE INTO leave_approval_rules (
+    restaurant_id, leave_type_id, rule_name, description,
+    approval_level, approver_role,
+    conditions, auto_escalate_hours,
+    notify_on_submit, notify_on_approve, notify_on_reject,
+    priority, is_active
+) VALUES (
+    0,  -- 預設值，各餐廳可覆蓋
+    (SELECT id FROM leave_types WHERE code = 'ANNUAL'),
+    '年假一級審批',
+    '年假由店主或管理員審批',
+    1, 'owner',
+    '{}',
+    24,  -- 24小時未審批自動升級
+    1, 1, 1,
+    100, 1
+);
+
+-- 規則2：病假審批（1級審批 - 店主/管理員）
+INSERT OR IGNORE INTO leave_approval_rules (
+    restaurant_id, leave_type_id, rule_name, description,
+    approval_level, approver_role,
+    conditions, auto_escalate_hours,
+    notify_on_submit, notify_on_approve, notify_on_reject,
+    priority, is_active
+) VALUES (
+    0,
+    (SELECT id FROM leave_types WHERE code = 'SICK'),
+    '病假一級審批',
+    '病假由店主或管理員審批（緊急可事後補批）',
+    1, 'owner',
+    '{}',
+    12,  -- 12小時未審批自動升級
+    1, 1, 1,
+    95, 1
+);
+
+-- 規則3：事假審批（1級審批 - 店主/管理員）
+INSERT OR IGNORE INTO leave_approval_rules (
+    restaurant_id, leave_type_id, rule_name, description,
+    approval_level, approver_role,
+    conditions, auto_escalate_hours,
+    notify_on_submit, notify_on_approve, notify_on_reject,
+    priority, is_active
+) VALUES (
+    0,
+    (SELECT id FROM leave_types WHERE code = 'PERSONAL'),
+    '事假一級審批',
+    '事假由店主或管理員審批',
+    1, 'owner',
+    '{"min_notice_days": 1}',
+    24,
+    1, 1, 1,
+    90, 1
+);
+
+-- =====================================================
+-- Migration 完成
+-- =====================================================
+-- 排休管理系統已建立完成
+-- 包含：
+--   1. 假別類型管理（leave_types）- 10種台灣勞基法假別
+--   2. 員工假期餘額追蹤（employee_leave_balances）
+--   3. 請假申請流程（leave_requests）
+--   4. 多級審批規則引擎（leave_approval_rules）
+--   5. 假期日曆（leave_calendar_events）- 含2025年台灣國定假日
+--   6. 常用查詢視圖（5個）
+--   7. 自動更新觸發器（5個）
+--   8. 預設假別（10種，符合台灣勞基法）
+--   9. 2025年台灣國定假日資料（19筆）
+--  10. 預設審批規則（3個範例）
+--
+-- 下一步：
+--   - 實作排休API服務
+--   - 建立排休管理UI介面
+--   - 與排班系統（Migration 0034）整合
+--   - 實作自動餘額計算與年度滾轉
+-- =====================================================

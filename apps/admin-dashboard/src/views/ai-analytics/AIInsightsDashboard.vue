@@ -10,8 +10,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ChartBarIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   CalendarIcon
 } from '@heroicons/vue/24/outline'
 import LightBulbIcon from '@heroicons/vue/24/outline/LightBulbIcon'
@@ -214,7 +214,7 @@ const formatPercent = (value: number) => {
             <div class="flex items-center justify-between mb-4">
               <div class="text-sm font-medium text-gray-600">總營收</div>
               <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <TrendingUpIcon class="w-6 h-6 text-green-600" />
+                <ArrowTrendingUpIcon class="w-6 h-6 text-green-600" />
               </div>
             </div>
             <div class="text-2xl font-bold text-gray-900 mb-1">
@@ -222,8 +222,8 @@ const formatPercent = (value: number) => {
             </div>
             <div class="flex items-center space-x-1 text-sm"
                  :class="report.metrics.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'">
-              <TrendingUpIcon v-if="report.metrics.revenueGrowth >= 0" class="w-4 h-4" />
-              <TrendingDownIcon v-else class="w-4 h-4" />
+              <ArrowTrendingUpIcon v-if="report.metrics.revenueGrowth >= 0" class="w-4 h-4" />
+              <ArrowTrendingDownIcon v-else class="w-4 h-4" />
               <span class="font-semibold">{{ formatPercent(report.metrics.revenueGrowth) }}</span>
               <span class="text-gray-500">vs 上期</span>
             </div>
@@ -242,8 +242,8 @@ const formatPercent = (value: number) => {
             </div>
             <div class="flex items-center space-x-1 text-sm"
                  :class="report.metrics.orderGrowth >= 0 ? 'text-green-600' : 'text-red-600'">
-              <TrendingUpIcon v-if="report.metrics.orderGrowth >= 0" class="w-4 h-4" />
-              <TrendingDownIcon v-else class="w-4 h-4" />
+              <ArrowTrendingUpIcon v-if="report.metrics.orderGrowth >= 0" class="w-4 h-4" />
+              <ArrowTrendingDownIcon v-else class="w-4 h-4" />
               <span class="font-semibold">{{ formatPercent(report.metrics.orderGrowth) }}</span>
               <span class="text-gray-500">vs 上期</span>
             </div>

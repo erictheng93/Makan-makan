@@ -137,10 +137,40 @@ const popularQuerySchema = z.object({
     .default('10')
 })
 
+// Shop QR Code validation schemas
+const shopQrSettingsSchema = z.object({
+  displayName: z.string()
+    .min(1, 'Display name is required')
+    .max(100, 'Display name must be less than 100 characters')
+    .optional(),
+  instructions: z.string()
+    .max(500, 'Instructions must be less than 500 characters')
+    .optional(),
+  requirePhone: z.boolean().optional()
+})
+
+const updateShopModeSchema = z.object({
+  enabled: z.boolean(),
+  settings: shopQrSettingsSchema.optional()
+})
+
+const uploadQrImageSchema = z.object({
+  imageUrl: z.string()
+    .url('Invalid image URL')
+    .min(1, 'Image URL is required')
+})
+
+const qrCodeParam = z.object({
+  qrCode: z.string()
+    .min(1, 'QR code is required')
+    .regex(/^SHOP-\d+-\d+$/, 'Invalid shop QR code format')
+})
+
 export const restaurantSchemas = {
   // Parameters
   params: idParam,
   districtParams: districtParam,
+  qrCodeParams: qrCodeParam,
 
   // Restaurant operations
   create: createRestaurantSchema,
@@ -150,6 +180,11 @@ export const restaurantSchemas = {
   list: restaurantFilterSchema,
   nearby: nearbyQuerySchema,
   popular: popularQuerySchema,
+
+  // Shop QR Code operations
+  updateShopMode: updateShopModeSchema,
+  uploadQrImage: uploadQrImageSchema,
+  shopQrSettings: shopQrSettingsSchema,
 
   // Component schemas (for reuse)
   businessHours: businessHoursSchema,

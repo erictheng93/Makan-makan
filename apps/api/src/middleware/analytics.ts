@@ -10,6 +10,14 @@ interface AnalyticsEngine {
   }): void;
 }
 
+// Mock Analytics Engine for local development
+class MockAnalyticsEngine implements AnalyticsEngine {
+  writeDataPoint(_data: { blobs?: Array<string | ArrayBuffer>; doubles?: Array<number>; indexes?: Array<string> }): void {
+    // No-op for local development - silently ignore
+    // Optionally log for debugging: console.debug('[Mock Analytics]', _data.blobs?.[0])
+  }
+}
+
 /**
  * Advanced Workers Analytics Integration
  * Provides comprehensive business intelligence and performance monitoring
@@ -471,10 +479,11 @@ export function advancedAnalyticsMiddleware() {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const startTime = Date.now()
     const requestId = c.get('requestId') || crypto.randomUUID()
-    
-    // Initialize analytics service
+
+    // Initialize analytics service with mock for local development
+    const analyticsEngine = c.env.ANALYTICS_ENGINE || new MockAnalyticsEngine()
     const analytics = new AdvancedAnalyticsService(
-      c.env.ANALYTICS_ENGINE,
+      analyticsEngine,
       c.executionCtx,
       c.env
     )

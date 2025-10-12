@@ -38,7 +38,18 @@ export const restaurants = sqliteTable('restaurants', {
   logoUrl: text('logo_url'),
   bannerUrl: text('banner_url'),
   imageUrls: text('image_urls', { mode: 'json' }).$type<string[]>(),
-  
+
+  // 店家级别 QR Code（用于无桌号的外带/自取订单）
+  shopQrCode: text('shop_qr_code').unique(),
+  shopQrCodeImageUrl: text('shop_qr_code_image_url'),
+  enableShopMode: integer('enable_shop_mode', { mode: 'boolean' }).notNull().default(false),
+  shopQrSettings: text('shop_qr_settings', { mode: 'json' }).$type<{
+    displayName?: string
+    instructions?: string
+    requirePhone?: boolean
+  }>(),
+  shopQrVersion: integer('shop_qr_version').notNull().default(1),
+
   // 設定
   settings: text('settings', { mode: 'json' }).$type<{
     allowOnlineOrdering?: boolean

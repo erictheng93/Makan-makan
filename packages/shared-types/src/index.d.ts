@@ -5,6 +5,7 @@ export * from './restaurant';
 export * from './menu';
 export * from './order';
 export * from './table';
+export * from './seat';
 export * from './websocket';
 export * from './common';
 export * from './payment';

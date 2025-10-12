@@ -571,11 +571,34 @@ export class AnalyticsService extends BaseService {
   // 取得儀表板資料
   async getDashboardData(restaurantId: number): Promise<DashboardData> {
     try {
+      // If no restaurantId provided (e.g., system admin), return empty data
+      if (!restaurantId || restaurantId === undefined || restaurantId === null) {
+        return {
+          summary: {
+            todayRevenue: 0,
+            todayOrders: 0,
+            monthRevenue: 0,
+            monthOrders: 0,
+            growthRates: {
+              revenueGrowth: 0,
+              orderGrowth: 0
+            }
+          },
+          recentOrders: [],
+          topSellingItems: [],
+          tableStatus: {
+            occupied: 0,
+            available: 0,
+            total: 0
+          }
+        }
+      }
+
       const today = new Date()
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      
+
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-      
+
       const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
 

@@ -1,0 +1,962 @@
+<template>
+  <div class="scheduling-view">
+    <!-- Header -->
+    <div class="view-header">
+      <div class="header-content">
+        <h1 class="view-title">
+          <span class="title-icon">📅</span>
+          <span>員工排班管理</span>
+        </h1>
+        <p class="view-subtitle">管理員工工作班表、查看排班衝突、審核換班申請</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" @click="refreshData" :disabled="loading">
+          <span class="btn-icon">🔄</span>
+          <span>刷新</span>
+        </button>
+        <button class="btn btn-primary" @click="showCreateScheduleModal">
+          <span class="btn-icon">➕</span>
+          <span>新增排班</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-content">
+          <div class="stat-value">{{ schedules.length }}</div>
+          <div class="stat-label">本月排班</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏷️</div>
+        <div class="stat-content">
+          <div class="stat-value">{{ shiftTemplates.length }}</div>
+          <div class="stat-label">班別模板</div>
+        </div>
+      </div>
+      <div class="stat-card warning" v-if="conflicts.length > 0">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content">
+          <div class="stat-value">{{ conflicts.length }}</div>
+          <div class="stat-label">待處理衝突</div>
+        </div>
+      </div>
+      <div class="stat-card info" v-if="swapRequests.length > 0">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-content">
+          <div class="stat-value">{{ swapRequests.filter(r => r.status === 'pending').length }}</div>
+          <div class="stat-label">待審核換班</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    <transition name="fade">
+      <div v-if="error" class="error-banner">
+        <div class="error-content">
+          <span class="error-icon">⚠️</span>
+          <span class="error-message">{{ error }}</span>
+        </div>
+        <button class="error-close" @click="error = null">✕</button>
+      </div>
+    </transition>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="tab-btn"
+        :class="{ active: activeTab === tab.id }"
+        @click="switchTab(tab.id)"
+      >
+        <i class="icon">{{ tab.icon }}</i>
+        {{ tab.label }}
+        <span v-if="tab.badge" class="badge">{{ tab.badge }}</span>
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Calendar View -->
+      <div v-if="activeTab === 'calendar'" class="tab-pane">
+        <SchedulingCalendar
+          :schedules="schedules"
+          :loading="loading"
+          @date-select="handleDateSelect"
+          @schedule-click="handleScheduleClick"
+        />
+      </div>
+
+      <!-- List View -->
+      <div v-if="activeTab === 'list'" class="tab-pane">
+        <SchedulingList
+          :schedules="schedules"
+          :loading="loading"
+          @edit="handleEditSchedule"
+          @delete="handleDeleteSchedule"
+        />
+      </div>
+
+      <!-- Shift Templates -->
+      <div v-if="activeTab === 'templates'" class="tab-pane">
+        <ShiftTemplatesList
+          :templates="shiftTemplates"
+          :loading="loading"
+          @edit="handleEditTemplate"
+          @delete="handleDeleteTemplate"
+        />
+      </div>
+
+      <!-- Conflicts -->
+      <div v-if="activeTab === 'conflicts'" class="tab-pane">
+        <SchedulingConflicts
+          :conflicts="conflicts"
+          :loading="loading"
+          @resolve="handleResolveConflict"
+        />
+      </div>
+
+      <!-- Swap Requests -->
+      <div v-if="activeTab === 'swaps'" class="tab-pane">
+        <SwapRequests
+          :requests="swapRequests"
+          :loading="loading"
+          @approve="handleApproveSwap"
+          @reject="handleRejectSwap"
+        />
+      </div>
+    </div>
+
+    <!-- Create/Edit Schedule Modal -->
+    <ScheduleFormModal
+      v-if="showScheduleModal"
+      :schedule="selectedSchedule"
+      :shift-templates="shiftTemplates"
+      @save="handleSaveSchedule"
+      @close="closeScheduleModal"
+    />
+
+    <!-- Loading Overlay -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>載入中...</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { schedulingService } from '@/services/schedulingService'
+import type {
+  EmployeeSchedule,
+  ShiftTemplate,
+  SchedulingConflict,
+  SwapRequest,
+} from '@/types/scheduling'
+import SchedulingCalendar from '@/components/scheduling/SchedulingCalendar.vue'
+import SchedulingList from '@/components/scheduling/SchedulingList.vue'
+import ShiftTemplatesList from '@/components/scheduling/ShiftTemplatesList.vue'
+import SchedulingConflicts from '@/components/scheduling/SchedulingConflicts.vue'
+import SwapRequests from '@/components/scheduling/SwapRequests.vue'
+import ScheduleFormModal from '@/components/scheduling/ScheduleFormModal.vue'
+
+// Auth
+const authStore = useAuthStore()
+
+// State
+const loading = ref(false)
+const error = ref<string | null>(null)
+const activeTab = ref('calendar')
+const schedules = ref<EmployeeSchedule[]>([])
+const shiftTemplates = ref<ShiftTemplate[]>([])
+const conflicts = ref<SchedulingConflict[]>([])
+const swapRequests = ref<SwapRequest[]>([])
+const showScheduleModal = ref(false)
+const selectedSchedule = ref<EmployeeSchedule | null>(null)
+
+// Get restaurant ID from auth store
+const restaurantId = computed(() => authStore.user?.restaurantId || 1)
+
+// Tabs
+const tabs = computed(() => [
+  { id: 'calendar', label: '日曆視圖', icon: '📅', badge: null },
+  { id: 'list', label: '清單視圖', icon: '📋', badge: schedules.value.length },
+  { id: 'templates', label: '班別模板', icon: '🏷️', badge: shiftTemplates.value.length },
+  { id: 'conflicts', label: '衝突警告', icon: '⚠️', badge: conflicts.value.filter(c => c.severity === 'error').length || null },
+  { id: 'swaps', label: '換班申請', icon: '🔄', badge: swapRequests.value.filter(r => r.status === 'pending').length || null },
+])
+
+// Methods
+const switchTab = (tabId: string) => {
+  activeTab.value = tabId
+}
+
+const refreshData = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    await Promise.all([
+      fetchSchedules(),
+      fetchShiftTemplates(),
+      fetchConflicts(),
+      fetchSwapRequests(),
+    ])
+  } catch (err) {
+    console.error('Failed to refresh data:', err)
+    error.value = err instanceof Error ? err.message : 'Failed to load data'
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchSchedules = async () => {
+  try {
+    // Get schedules for the next 30 days
+    const today = new Date()
+    const endDate = new Date()
+    endDate.setDate(endDate.getDate() + 30)
+
+    const response = await schedulingService.getSchedules({
+      restaurantId: restaurantId.value,
+      startDate: formatDate(today),
+      endDate: formatDate(endDate),
+      limit: 100,
+    })
+
+    schedules.value = response.data
+  } catch (err) {
+    console.error('Failed to fetch schedules:', err)
+    throw err
+  }
+}
+
+const fetchShiftTemplates = async () => {
+  try {
+    shiftTemplates.value = await schedulingService.getShiftTemplates(
+      restaurantId.value
+    )
+  } catch (err) {
+    console.error('Failed to fetch shift templates:', err)
+    throw err
+  }
+}
+
+const fetchConflicts = async () => {
+  try {
+    const response = await schedulingService.getConflicts({
+      restaurantId: restaurantId.value,
+      status: 'unresolved',
+      limit: 50,
+    })
+    conflicts.value = response.data
+  } catch (err) {
+    console.error('Failed to fetch conflicts:', err)
+    // Don't throw - conflicts are optional
+    conflicts.value = []
+  }
+}
+
+const fetchSwapRequests = async () => {
+  try {
+    const response = await schedulingService.getSwapRequests({
+      restaurantId: restaurantId.value,
+      status: 'pending',
+      limit: 50,
+    })
+    swapRequests.value = response.data
+  } catch (err) {
+    console.error('Failed to fetch swap requests:', err)
+    // Don't throw - swap requests are optional
+    swapRequests.value = []
+  }
+}
+
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const showCreateScheduleModal = () => {
+  selectedSchedule.value = null
+  showScheduleModal.value = true
+}
+
+const closeScheduleModal = () => {
+  showScheduleModal.value = false
+  selectedSchedule.value = null
+}
+
+const handleDateSelect = (date: string) => {
+  console.log('Date selected:', date)
+  // TODO: Filter schedules by date or open create modal
+}
+
+const handleScheduleClick = (schedule: EmployeeSchedule) => {
+  selectedSchedule.value = schedule
+  showScheduleModal.value = true
+}
+
+const handleEditSchedule = (schedule: EmployeeSchedule) => {
+  selectedSchedule.value = schedule
+  showScheduleModal.value = true
+}
+
+const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
+  if (confirm(`確定要刪除此排班嗎？`)) {
+    try {
+      loading.value = true
+      await schedulingService.deleteSchedule(schedule.id)
+      await refreshData()
+      console.log('Schedule deleted successfully:', schedule.id)
+    } catch (err) {
+      console.error('Failed to delete schedule:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to delete schedule'
+      alert('刪除排班失敗，請稍後再試')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const handleSaveSchedule = async (scheduleData: any) => {
+  try {
+    loading.value = true
+
+    if (selectedSchedule.value?.id) {
+      // Update existing schedule
+      await schedulingService.updateSchedule(selectedSchedule.value.id, scheduleData)
+    } else {
+      // Create new schedule
+      await schedulingService.createSchedule(restaurantId.value, scheduleData)
+    }
+
+    closeScheduleModal()
+    await refreshData()
+  } catch (err) {
+    console.error('Failed to save schedule:', err)
+    error.value = err instanceof Error ? err.message : 'Failed to save schedule'
+    alert('儲存排班失敗，請稍後再試')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleEditTemplate = (template: ShiftTemplate) => {
+  // TODO: Open template edit modal (Part 4 implementation)
+  console.log('Edit template:', template.id)
+}
+
+const handleDeleteTemplate = async (template: ShiftTemplate) => {
+  if (confirm(`確定要刪除班別模板「${template.name}」嗎？`)) {
+    try {
+      loading.value = true
+      await schedulingService.deleteShiftTemplate(template.id)
+      await refreshData()
+      console.log('Template deleted successfully:', template.id)
+    } catch (err) {
+      console.error('Failed to delete template:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to delete template'
+      alert('刪除班別模板失敗，請稍後再試')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const handleResolveConflict = async (conflict: SchedulingConflict) => {
+  // Get current user ID from auth store
+  const userId = authStore.user?.id
+  if (!userId) {
+    alert('無法取得使用者資訊')
+    return
+  }
+
+  const resolutionNotes = prompt('請輸入解決方案說明：')
+  if (resolutionNotes) {
+    try {
+      loading.value = true
+      await schedulingService.resolveConflict(conflict.id, userId, resolutionNotes)
+      await refreshData()
+      console.log('Conflict resolved:', conflict.id)
+    } catch (err) {
+      console.error('Failed to resolve conflict:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to resolve conflict'
+      alert('解決衝突失敗，請稍後再試')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const handleApproveSwap = async (request: SwapRequest) => {
+  if (confirm(`確定要核准此換班申請嗎？`)) {
+    // Get current manager ID from auth store
+    const managerId = authStore.user?.id
+    if (!managerId) {
+      alert('無法取得管理員資訊')
+      return
+    }
+
+    try {
+      loading.value = true
+      await schedulingService.approveSwapRequest(request.id, managerId)
+      await refreshData()
+      console.log('Swap request approved:', request.id)
+    } catch (err) {
+      console.error('Failed to approve swap request:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to approve swap'
+      alert('核准換班申請失敗，請稍後再試')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const handleRejectSwap = async (request: SwapRequest) => {
+  const reason = prompt('請輸入拒絕原因：')
+  if (reason) {
+    // Get current manager ID from auth store
+    const managerId = authStore.user?.id
+    if (!managerId) {
+      alert('無法取得管理員資訊')
+      return
+    }
+
+    try {
+      loading.value = true
+      await schedulingService.rejectSwapRequest(request.id, managerId, reason)
+      await refreshData()
+      console.log('Swap request rejected:', request.id)
+    } catch (err) {
+      console.error('Failed to reject swap request:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to reject swap'
+      alert('拒絕換班申請失敗，請稍後再試')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  refreshData()
+})
+</script>
+
+<style scoped>
+.scheduling-view {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-attachment: fixed;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 24px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.header-content {
+  flex: 1;
+}
+
+.view-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.title-icon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.view-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Quick Stats */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid #3b82f6;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card.warning {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+}
+
+.stat-card.info {
+  border-left-color: #06b6d4;
+  background: linear-gradient(135deg, #fff 0%, #cffafe 100%);
+}
+
+.stat-icon {
+  font-size: 32px;
+  opacity: 0.9;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Error Banner */
+.error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.error-icon {
+  font-size: 20px;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-close {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.error-close:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Buttons */
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.tab-navigation {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  flex: 1;
+  justify-content: center;
+}
+
+.tab-btn:hover {
+  color: #374151;
+  background: #f9fafb;
+}
+
+.tab-btn.active {
+  color: white;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 11px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.tab-content {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-pane {
+  min-height: 400px;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-overlay p {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .scheduling-view {
+    padding: 16px;
+  }
+
+  .view-header {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .header-actions .btn {
+    flex: 1;
+  }
+
+  .quick-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .tab-navigation {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    flex: none;
+    min-width: 120px;
+  }
+
+  .tab-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .scheduling-view {
+    padding: 12px;
+    background: #f9fafb;
+  }
+
+  .view-title {
+    font-size: 22px;
+  }
+
+  .view-header {
+    padding: 16px;
+  }
+
+  .quick-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-icon {
+    font-size: 28px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .tab-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .tab-content {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .error-banner {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .error-close {
+    align-self: flex-end;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+/* Touch Improvements */
+@media (hover: none) {
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .tab-btn:active {
+    transform: scale(0.98);
+  }
+
+  .stat-card:active {
+    transform: scale(0.99);
+  }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+  .scheduling-view {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  }
+
+  .view-header,
+  .tab-navigation,
+  .tab-content,
+  .stat-card {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+
+  .view-title,
+  .stat-value {
+    color: #f3f4f6;
+  }
+
+  .view-subtitle,
+  .stat-label {
+    color: #9ca3af;
+  }
+
+  .btn-secondary {
+    background: #374151;
+    color: #f3f4f6;
+    border-color: #4b5563;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #4b5563;
+  }
+
+  .tab-btn {
+    color: #9ca3af;
+  }
+
+  .tab-btn:hover {
+    color: #f3f4f6;
+    background: #374151;
+  }
+}
+</style>

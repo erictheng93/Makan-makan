@@ -66,6 +66,24 @@ export class AuthService extends BaseService {
   // 用戶登入
   async login(data: LoginData): Promise<AuthResult> {
     try {
+      // SECURITY: Check for account lockout before proceeding
+      const lockoutKey = `login_fail:${data.username}`
+      let failedAttempts = 0
+
+      // Check failed attempts if CACHE_KV is available
+      if (this.env.CACHE_KV) {
+        const failedAttemptsStr = await this.env.CACHE_KV.get(lockoutKey)
+        failedAttempts = failedAttemptsStr ? parseInt(failedAttemptsStr) : 0
+
+        // Lock account after 5 failed attempts for 15 minutes
+        if (failedAttempts >= 5) {
+          return {
+            success: false,
+            error: 'Account temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.'
+          }
+        }
+      }
+
       // 查詢活躍用戶 - Using sql`` to match actual database schema
       const user = await this.db.select({
         id: users.id,
@@ -86,6 +104,14 @@ export class AuthService extends BaseService {
       .get()
 
       if (!user) {
+        // SECURITY: Increment failed attempts even if user not found (prevent username enumeration)
+        if (this.env.CACHE_KV) {
+          await this.env.CACHE_KV.put(
+            lockoutKey,
+            (failedAttempts + 1).toString(),
+            { expirationTtl: 900 } // 15 minutes
+          )
+        }
         return {
           success: false,
           error: 'Invalid username or password'
@@ -95,10 +121,23 @@ export class AuthService extends BaseService {
       // 驗證密碼
       const isPasswordValid = await bcrypt.compare(data.password, user.passwordHash)
       if (!isPasswordValid) {
+        // SECURITY: Increment failed attempts on incorrect password
+        if (this.env.CACHE_KV) {
+          await this.env.CACHE_KV.put(
+            lockoutKey,
+            (failedAttempts + 1).toString(),
+            { expirationTtl: 900 } // 15 minutes
+          )
+        }
         return {
           success: false,
           error: 'Invalid username or password'
         }
+      }
+
+      // SECURITY: Clear failed attempts on successful login
+      if (this.env.CACHE_KV) {
+        await this.env.CACHE_KV.delete(lockoutKey)
       }
 
       // 生成 JWT tokens
@@ -191,8 +230,9 @@ export class AuthService extends BaseService {
         }
       }
 
-      // 驗證密碼強度
-      const passwordValidation = this.validatePasswordStrength(data.password)
+      // 驗證密碼強度（根據角色使用不同的驗證規則）
+      const isCustomer = data.role === 5
+      const passwordValidation = this.validatePasswordStrength(data.password, isCustomer)
       if (!passwordValidation.valid) {
         return {
           success: false,
@@ -212,6 +252,7 @@ export class AuthService extends BaseService {
           email: data.email,
           phone: data.phone,
           fullName: data.fullName,
+          password: passwordHash, // 設置舊欄位以滿足 NOT NULL 約束
           passwordHash,
           role: data.role,
           restaurantId: data.restaurantId,
@@ -573,20 +614,32 @@ export class AuthService extends BaseService {
   }
 
   // 驗證密碼強度
-  private validatePasswordStrength(password: string): { valid: boolean; error?: string } {
-    // Minimum 8 characters
-    if (password.length < 8) {
-      return {
-        valid: false,
-        error: 'Password must be at least 8 characters long'
-      }
-    }
-
+  private validatePasswordStrength(password: string, isCustomer: boolean = false): { valid: boolean; error?: string } {
     // Maximum 128 characters (prevent DoS via bcrypt)
     if (password.length > 128) {
       return {
         valid: false,
         error: 'Password must not exceed 128 characters'
+      }
+    }
+
+    // For customers: relaxed password requirements (6+ characters, no complexity)
+    if (isCustomer) {
+      if (password.length < 6) {
+        return {
+          valid: false,
+          error: 'Password must be at least 6 characters long'
+        }
+      }
+      return { valid: true }
+    }
+
+    // For staff: strict password requirements (8+ characters with complexity)
+    // Minimum 8 characters
+    if (password.length < 8) {
+      return {
+        valid: false,
+        error: 'Password must be at least 8 characters long'
       }
     }
 

@@ -18,7 +18,7 @@ export class ImageService {
   constructor(env: Env) {
     this.db = env.DB
     this.cache = env.IMAGE_CACHE
-    this.dbImageService = new DatabaseImageService(env.DB as any)
+    this.dbImageService = new DatabaseImageService(env.DB, env as any)
   }
 
   /**
