@@ -131,4 +131,5 @@ playwright-report/
 
 # Legacy PHP files (if any npm-related configs exist)
 legacy/node_modules/
-legacy/package-lock.json
+legacy/package-lock.jsonnul
+apps/api/nul
