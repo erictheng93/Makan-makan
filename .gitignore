@@ -131,5 +131,8 @@ playwright-report/
 
 # Legacy PHP files (if any npm-related configs exist)
 legacy/node_modules/
-legacy/package-lock.jsonnul
-apps/api/nul
+legacy/package-lock.json
+
+# Windows reserved device names (causes issues on Windows)
+nul
+**/nul
