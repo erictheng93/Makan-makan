@@ -16,6 +16,7 @@ import {
   users,
   leaveRequests,
 } from '../schema'
+import { NotificationService } from './NotificationService'
 
 // ========================================
 // Types
@@ -163,8 +164,11 @@ export interface ClockOutData {
 // ========================================
 
 export class SchedulingService extends BaseService {
+  private notificationService: NotificationService
+
   constructor(d1: D1Database, env: CloudflareEnv) {
     super(d1, env)
+    this.notificationService = new NotificationService(d1, env)
   }
 
   // ========================================
@@ -336,6 +340,42 @@ export class SchedulingService extends BaseService {
       })
       .returning()
 
+    // Send notification to employee
+    try {
+      const employee = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, data.employeeId))
+        .limit(1)
+
+      let shiftTemplate = null
+      if (data.shiftTemplateId) {
+        shiftTemplate = await this.getShiftTemplate(data.shiftTemplateId)
+      }
+
+      if (employee[0]?.email) {
+        await this.notificationService.sendNotification({
+          recipientId: data.employeeId,
+          recipientEmail: employee[0].email,
+          category: 'schedule_created',
+          type: 'email',
+          data: {
+            employeeName: employee[0].fullName || employee[0].username,
+            shiftName: shiftTemplate?.name || 'Custom Shift',
+            scheduleDate: data.workDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            scheduledHours: data.scheduledHours.toString(),
+            notes: data.notes || '',
+          },
+          priority: 'normal',
+        })
+      }
+    } catch (notifError) {
+      console.error('Failed to send schedule creation notification:', notifError)
+      // Don't fail the operation if notification fails
+    }
+
     return newSchedule as EmployeeSchedule
   }
 
@@ -350,6 +390,42 @@ export class SchedulingService extends BaseService {
       throw new Error('Schedule not found')
     }
 
+    // Send notification to employee about schedule update
+    try {
+      const employee = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, updated.employeeId))
+        .limit(1)
+
+      let shiftTemplate = null
+      if (updated.shiftTemplateId) {
+        shiftTemplate = await this.getShiftTemplate(updated.shiftTemplateId)
+      }
+
+      if (employee[0]?.email) {
+        await this.notificationService.sendNotification({
+          recipientId: updated.employeeId,
+          recipientEmail: employee[0].email,
+          category: 'schedule_updated',
+          type: 'email',
+          data: {
+            employeeName: employee[0].fullName || employee[0].username,
+            shiftName: shiftTemplate?.name || 'Custom Shift',
+            scheduleDate: updated.workDate,
+            startTime: updated.startTime,
+            endTime: updated.endTime,
+            scheduledHours: updated.scheduledHours.toString(),
+            notes: updated.notes || '',
+          },
+          priority: 'high',
+        })
+      }
+    } catch (notifError) {
+      console.error('Failed to send schedule update notification:', notifError)
+      // Don't fail the operation if notification fails
+    }
+
     return updated as EmployeeSchedule
   }
 
@@ -359,6 +435,43 @@ export class SchedulingService extends BaseService {
       .set({ status: 'cancelled', updatedAt: new Date() })
       .where(eq(employeeSchedules.id, id))
       .returning()
+
+    // Send notification to employee about schedule cancellation
+    if (deleted) {
+      try {
+        const employee = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, deleted.employeeId))
+          .limit(1)
+
+        let shiftTemplate = null
+        if (deleted.shiftTemplateId) {
+          shiftTemplate = await this.getShiftTemplate(deleted.shiftTemplateId)
+        }
+
+        if (employee[0]?.email) {
+          await this.notificationService.sendNotification({
+            recipientId: deleted.employeeId,
+            recipientEmail: employee[0].email,
+            category: 'schedule_cancelled',
+            type: 'email',
+            data: {
+              employeeName: employee[0].fullName || employee[0].username,
+              shiftName: shiftTemplate?.name || 'Custom Shift',
+              scheduleDate: deleted.workDate,
+              startTime: deleted.startTime,
+              endTime: deleted.endTime,
+              cancellationReason: deleted.managerNotes || 'Schedule cancelled',
+            },
+            priority: 'high',
+          })
+        }
+      } catch (notifError) {
+        console.error('Failed to send schedule cancellation notification:', notifError)
+        // Don't fail the operation if notification fails
+      }
+    }
 
     return !!deleted
   }
@@ -801,6 +914,29 @@ export class SchedulingService extends BaseService {
     return (startMin - endMin) / 60
   }
 
+  /**
+   * Calculate scheduled hours from start time, end time, and break duration
+   * Handles overnight shifts correctly
+   */
+  private calculateScheduledHours(startTime: string, endTime: string, breakMinutes: number): number {
+    const [sh, sm] = startTime.split(':').map(Number)
+    const [eh, em] = endTime.split(':').map(Number)
+
+    let startMin = sh * 60 + sm
+    let endMin = eh * 60 + em
+
+    // Handle overnight shifts (e.g., 22:00 to 06:00)
+    if (endMin <= startMin) {
+      endMin += 24 * 60
+    }
+
+    // Calculate total minutes and subtract break
+    const totalMinutes = endMin - startMin - breakMinutes
+
+    // Convert to hours
+    return totalMinutes / 60
+  }
+
   // ========================================
   // Swap Requests (simplified)
   // ========================================
@@ -815,6 +951,49 @@ export class SchedulingService extends BaseService {
         updatedAt: new Date(),
       })
       .returning()
+
+    // Send notification to target employee (if specified) or managers
+    try {
+      const requester = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, data.requesterEmployeeId))
+        .limit(1)
+
+      const requesterSchedule = await this.getSchedule(data.requesterScheduleId)
+
+      // If there's a specific target employee, notify them
+      if (data.targetEmployeeId) {
+        const target = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, data.targetEmployeeId))
+          .limit(1)
+
+        if (target[0]?.email) {
+          await this.notificationService.sendNotification({
+            recipientId: data.targetEmployeeId,
+            recipientEmail: target[0].email,
+            category: 'swap_request_created',
+            type: 'email',
+            data: {
+              requesterName: requester[0]?.fullName || requester[0]?.username || 'Employee',
+              targetName: target[0].fullName || target[0].username,
+              scheduleDate: requesterSchedule?.workDate || '',
+              startTime: requesterSchedule?.startTime || '',
+              endTime: requesterSchedule?.endTime || '',
+              requestType: data.requestType,
+              reason: data.reason,
+              urgency: data.urgency,
+            },
+            priority: data.urgency === 'urgent' || data.urgency === 'high' ? 'high' : 'normal',
+          })
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send swap request notification:', notifError)
+      // Don't fail the operation if notification fails
+    }
 
     return request as ScheduleSwapRequest
   }
@@ -835,7 +1014,270 @@ export class SchedulingService extends BaseService {
       throw new Error('Swap request not found')
     }
 
+    // Send notification to requester about approval
+    try {
+      const requester = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, updated.requesterEmployeeId))
+        .limit(1)
+
+      const manager = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, managerId))
+        .limit(1)
+
+      const requesterSchedule = await this.getSchedule(updated.requesterScheduleId)
+
+      if (requester[0]?.email) {
+        await this.notificationService.sendNotification({
+          recipientId: updated.requesterEmployeeId,
+          recipientEmail: requester[0].email,
+          category: 'swap_request_approved',
+          type: 'email',
+          data: {
+            requesterName: requester[0].fullName || requester[0].username,
+            managerName: manager[0]?.fullName || manager[0]?.username || 'Manager',
+            scheduleDate: requesterSchedule?.workDate || '',
+            startTime: requesterSchedule?.startTime || '',
+            endTime: requesterSchedule?.endTime || '',
+            requestType: updated.requestType,
+          },
+          priority: 'high',
+        })
+      }
+
+      // Also notify target employee if specified
+      if (updated.targetEmployeeId) {
+        const target = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, updated.targetEmployeeId))
+          .limit(1)
+
+        if (target[0]?.email) {
+          await this.notificationService.sendNotification({
+            recipientId: updated.targetEmployeeId,
+            recipientEmail: target[0].email,
+            category: 'swap_request_approved',
+            type: 'email',
+            data: {
+              requesterName: requester[0]?.fullName || requester[0]?.username || 'Employee',
+              targetName: target[0].fullName || target[0].username,
+              managerName: manager[0]?.fullName || manager[0]?.username || 'Manager',
+              scheduleDate: requesterSchedule?.workDate || '',
+              startTime: requesterSchedule?.startTime || '',
+              endTime: requesterSchedule?.endTime || '',
+              requestType: updated.requestType,
+            },
+            priority: 'high',
+          })
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send swap request approval notification:', notifError)
+      // Don't fail the operation if notification fails
+    }
+
     return updated as ScheduleSwapRequest
+  }
+
+  async acceptSwapRequest(requestId: number, employeeId: number): Promise<ScheduleSwapRequest> {
+    // First check if the request exists and is pending
+    const [request] = await this.db
+      .select()
+      .from(scheduleSwapRequests)
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .limit(1)
+
+    if (!request) {
+      throw new Error('Swap request not found')
+    }
+
+    if (request.status !== 'pending') {
+      throw new Error('Swap request is not in pending status')
+    }
+
+    // Update the request to accepted status
+    const [updated] = await this.db
+      .update(scheduleSwapRequests)
+      .set({
+        status: 'accepted',
+        acceptedBy: employeeId,
+        acceptedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .returning()
+
+    if (!updated) {
+      throw new Error('Failed to accept swap request')
+    }
+
+    return updated as ScheduleSwapRequest
+  }
+
+  async rejectSwapRequest(
+    requestId: number,
+    managerId: number,
+    reason: string
+  ): Promise<ScheduleSwapRequest> {
+    // First check if the request exists
+    const [request] = await this.db
+      .select()
+      .from(scheduleSwapRequests)
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .limit(1)
+
+    if (!request) {
+      throw new Error('Swap request not found')
+    }
+
+    if (request.status === 'rejected' || request.status === 'cancelled') {
+      throw new Error('Swap request is already rejected or cancelled')
+    }
+
+    // Update the request to rejected status
+    const [updated] = await this.db
+      .update(scheduleSwapRequests)
+      .set({
+        status: 'rejected',
+        rejectedBy: managerId,
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .returning()
+
+    if (!updated) {
+      throw new Error('Failed to reject swap request')
+    }
+
+    // Send notification to requester about rejection
+    try {
+      const requester = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, updated.requesterEmployeeId))
+        .limit(1)
+
+      const manager = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, managerId))
+        .limit(1)
+
+      const requesterSchedule = await this.getSchedule(updated.requesterScheduleId)
+
+      if (requester[0]?.email) {
+        await this.notificationService.sendNotification({
+          recipientId: updated.requesterEmployeeId,
+          recipientEmail: requester[0].email,
+          category: 'swap_request_rejected',
+          type: 'email',
+          data: {
+            requesterName: requester[0].fullName || requester[0].username,
+            managerName: manager[0]?.fullName || manager[0]?.username || 'Manager',
+            scheduleDate: requesterSchedule?.workDate || '',
+            startTime: requesterSchedule?.startTime || '',
+            endTime: requesterSchedule?.endTime || '',
+            requestType: updated.requestType,
+            rejectionReason: reason,
+          },
+          priority: 'high',
+        })
+      }
+    } catch (notifError) {
+      console.error('Failed to send swap request rejection notification:', notifError)
+      // Don't fail the operation if notification fails
+    }
+
+    return updated as ScheduleSwapRequest
+  }
+
+  async cancelSwapRequest(requestId: number, employeeId: number): Promise<ScheduleSwapRequest> {
+    // First check if the request exists and belongs to the employee
+    const [request] = await this.db
+      .select()
+      .from(scheduleSwapRequests)
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .limit(1)
+
+    if (!request) {
+      throw new Error('Swap request not found')
+    }
+
+    if (request.requesterEmployeeId !== employeeId) {
+      throw new Error('Only the requester can cancel this swap request')
+    }
+
+    if (request.status !== 'pending' && request.status !== 'accepted') {
+      throw new Error('Cannot cancel swap request in current status')
+    }
+
+    // Update the request to cancelled status
+    const [updated] = await this.db
+      .update(scheduleSwapRequests)
+      .set({
+        status: 'cancelled',
+        updatedAt: new Date(),
+      })
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .returning()
+
+    if (!updated) {
+      throw new Error('Failed to cancel swap request')
+    }
+
+    return updated as ScheduleSwapRequest
+  }
+
+  async getSwapRequests(filters: any): Promise<{ items: ScheduleSwapRequest[]; total: number }> {
+    try {
+      const { page = 1, limit = 20, ...restFilters } = filters
+      const { limit: pgLimit, offset } = this.createPagination(page, limit)
+
+      const conditions = []
+      if (restFilters.restaurantId) {
+        conditions.push(eq(scheduleSwapRequests.restaurantId, restFilters.restaurantId))
+      }
+      if (restFilters.requesterEmployeeId) {
+        conditions.push(eq(scheduleSwapRequests.requesterEmployeeId, restFilters.requesterEmployeeId))
+      }
+      if (restFilters.targetEmployeeId) {
+        conditions.push(eq(scheduleSwapRequests.targetEmployeeId, restFilters.targetEmployeeId))
+      }
+      if (restFilters.status) {
+        conditions.push(eq(scheduleSwapRequests.status, restFilters.status))
+      }
+      if (restFilters.requestType) {
+        conditions.push(eq(scheduleSwapRequests.requestType, restFilters.requestType))
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+      const [countResult] = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(scheduleSwapRequests)
+        .where(whereClause)
+
+      const total = Number(countResult.count)
+
+      const requests = await this.db
+        .select()
+        .from(scheduleSwapRequests)
+        .where(whereClause)
+        .orderBy(desc(scheduleSwapRequests.createdAt))
+        .limit(pgLimit)
+        .offset(offset)
+
+      return { items: requests as ScheduleSwapRequest[], total }
+    } catch (error) {
+      console.error('Error getting swap requests:', error)
+      throw error
+    }
   }
 
   // ========================================
@@ -963,6 +1405,240 @@ export class SchedulingService extends BaseService {
       return availableEmployees
     } catch (error) {
       console.error('Error getting available employees:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get scheduling conflicts with filters
+   */
+  async getConflicts(filters: any): Promise<{ items: SchedulingConflict[]; total: number }> {
+    try {
+      const { page = 1, limit = 20, ...restFilters } = filters
+      const { limit: pgLimit, offset } = this.createPagination(page, limit)
+
+      const conditions = []
+      if (restFilters.restaurantId) {
+        conditions.push(eq(schedulingConflicts.restaurantId, restFilters.restaurantId))
+      }
+      if (restFilters.conflictType) {
+        conditions.push(eq(schedulingConflicts.conflictType, restFilters.conflictType))
+      }
+      if (restFilters.severity) {
+        conditions.push(eq(schedulingConflicts.severity, restFilters.severity))
+      }
+      if (restFilters.status) {
+        conditions.push(eq(schedulingConflicts.status, restFilters.status))
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+      const [countResult] = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(schedulingConflicts)
+        .where(whereClause)
+
+      const total = Number(countResult.count)
+
+      const conflicts = await this.db
+        .select()
+        .from(schedulingConflicts)
+        .where(whereClause)
+        .orderBy(desc(schedulingConflicts.detectedAt))
+        .limit(pgLimit)
+        .offset(offset)
+
+      return { items: conflicts as SchedulingConflict[], total }
+    } catch (error) {
+      console.error('Error getting conflicts:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get a specific conflict by ID
+   */
+  async getConflict(id: number): Promise<SchedulingConflict | null> {
+    try {
+      const [conflict] = await this.db
+        .select()
+        .from(schedulingConflicts)
+        .where(eq(schedulingConflicts.id, id))
+        .limit(1)
+
+      return (conflict as SchedulingConflict) || null
+    } catch (error) {
+      console.error('Error getting conflict:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Resolve a scheduling conflict
+   */
+  async resolveConflict(
+    id: number,
+    userId: number,
+    resolutionNotes: string
+  ): Promise<SchedulingConflict> {
+    try {
+      const [resolved] = await this.db
+        .update(schedulingConflicts)
+        .set({
+          status: 'resolved',
+          resolvedBy: userId,
+          resolvedAt: new Date(),
+          resolutionNotes,
+          updatedAt: new Date(),
+        })
+        .where(eq(schedulingConflicts.id, id))
+        .returning()
+
+      if (!resolved) {
+        throw new Error('Conflict not found')
+      }
+
+      return resolved as SchedulingConflict
+    } catch (error) {
+      console.error('Error resolving conflict:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get daily scheduling statistics
+   */
+  async getDailyStats(restaurantId: number, date: string): Promise<any> {
+    try {
+      // Get total schedules for the day
+      const [scheduleStats] = await this.db
+        .select({
+          totalSchedules: sql<number>`COUNT(*)`,
+          totalEmployees: sql<number>`COUNT(DISTINCT ${employeeSchedules.employeeId})`,
+          totalHours: sql<number>`SUM(${employeeSchedules.scheduledHours})`,
+          scheduled: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'scheduled' THEN 1 ELSE 0 END)`,
+          confirmed: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'confirmed' THEN 1 ELSE 0 END)`,
+          completed: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'completed' THEN 1 ELSE 0 END)`,
+          cancelled: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'cancelled' THEN 1 ELSE 0 END)`,
+          noShow: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'no_show' THEN 1 ELSE 0 END)`,
+        })
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, restaurantId),
+            eq(employeeSchedules.workDate, date)
+          )
+        )
+
+      // Get shift type breakdown
+      const shiftBreakdown = await this.db
+        .select({
+          shiftType: shiftTemplates.shiftType,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(employeeSchedules)
+        .leftJoin(shiftTemplates, eq(employeeSchedules.shiftTemplateId, shiftTemplates.id))
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, restaurantId),
+            eq(employeeSchedules.workDate, date)
+          )
+        )
+        .groupBy(shiftTemplates.shiftType)
+
+      return {
+        date,
+        totalSchedules: Number(scheduleStats.totalSchedules),
+        totalEmployees: Number(scheduleStats.totalEmployees),
+        totalHours: Number(scheduleStats.totalHours),
+        statusBreakdown: {
+          scheduled: Number(scheduleStats.scheduled),
+          confirmed: Number(scheduleStats.confirmed),
+          completed: Number(scheduleStats.completed),
+          cancelled: Number(scheduleStats.cancelled),
+          noShow: Number(scheduleStats.noShow),
+        },
+        shiftTypeBreakdown: shiftBreakdown.reduce((acc, item) => {
+          if (item.shiftType) {
+            acc[item.shiftType] = Number(item.count)
+          }
+          return acc
+        }, {} as Record<string, number>),
+      }
+    } catch (error) {
+      console.error('Error getting daily stats:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get weekly schedule summary
+   */
+  async getWeeklySummary(restaurantId: number, weekStartDate: string): Promise<any> {
+    try {
+      // Calculate week end date
+      const startDate = new Date(weekStartDate)
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + 6)
+      const weekEndDate = endDate.toISOString().split('T')[0]
+
+      // Get weekly aggregated data
+      const [weeklyStats] = await this.db
+        .select({
+          totalSchedules: sql<number>`COUNT(*)`,
+          totalEmployees: sql<number>`COUNT(DISTINCT ${employeeSchedules.employeeId})`,
+          totalHours: sql<number>`SUM(${employeeSchedules.scheduledHours})`,
+          totalOvertimeHours: sql<number>`SUM(${employeeSchedules.overtimeHours})`,
+          confirmed: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'confirmed' THEN 1 ELSE 0 END)`,
+          completed: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'completed' THEN 1 ELSE 0 END)`,
+          cancelled: sql<number>`SUM(CASE WHEN ${employeeSchedules.status} = 'cancelled' THEN 1 ELSE 0 END)`,
+        })
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, restaurantId),
+            between(employeeSchedules.workDate, weekStartDate, weekEndDate)
+          )
+        )
+
+      // Get daily breakdown
+      const dailyBreakdown = await this.db
+        .select({
+          workDate: employeeSchedules.workDate,
+          scheduleCount: sql<number>`COUNT(*)`,
+          employeeCount: sql<number>`COUNT(DISTINCT ${employeeSchedules.employeeId})`,
+          totalHours: sql<number>`SUM(${employeeSchedules.scheduledHours})`,
+        })
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, restaurantId),
+            between(employeeSchedules.workDate, weekStartDate, weekEndDate),
+            sql`${employeeSchedules.status} != 'cancelled'`
+          )
+        )
+        .groupBy(employeeSchedules.workDate)
+        .orderBy(asc(employeeSchedules.workDate))
+
+      return {
+        weekStartDate,
+        weekEndDate,
+        totalSchedules: Number(weeklyStats.totalSchedules),
+        totalEmployees: Number(weeklyStats.totalEmployees),
+        totalHours: Number(weeklyStats.totalHours),
+        totalOvertimeHours: Number(weeklyStats.totalOvertimeHours),
+        confirmedSchedules: Number(weeklyStats.confirmed),
+        completedSchedules: Number(weeklyStats.completed),
+        cancelledSchedules: Number(weeklyStats.cancelled),
+        dailyBreakdown: dailyBreakdown.map(day => ({
+          date: day.workDate,
+          scheduleCount: Number(day.scheduleCount),
+          employeeCount: Number(day.employeeCount),
+          totalHours: Number(day.totalHours),
+        })),
+      }
+    } catch (error) {
+      console.error('Error getting weekly summary:', error)
       throw error
     }
   }
