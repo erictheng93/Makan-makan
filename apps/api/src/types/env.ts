@@ -75,7 +75,10 @@ export interface Env {
   STRIPE_PUBLISHABLE_KEY?: string
   TWILIO_ACCOUNT_SID?: string
   TWILIO_AUTH_TOKEN?: string
+  TWILIO_PHONE_NUMBER?: string
   SENDGRID_API_KEY?: string
+  RESEND_API_KEY?: string
+  NOTIFICATION_FROM_EMAIL?: string
   
   // AI and machine learning
   OPENAI_API_KEY?: string
