@@ -1,0 +1,20 @@
+src/features/notifications/routes/index.ts(80,9): error TS2554: Expected 2 arguments, but got 3.
+src/features/notifications/routes/index.ts(205,28): error TS2339: Property 'RESEND_API_KEY' does not exist on type 'Env'.
+src/features/notifications/routes/index.ts(241,36): error TS2339: Property 'notificationId' does not exist on type '{ success: boolean; errors: string[]; }'.
+src/features/notifications/routes/index.ts(249,38): error TS2551: Property 'error' does not exist on type '{ success: boolean; errors: string[]; }'. Did you mean 'errors'?
+src/features/orders/__tests__/realtime-integration.test.ts(10,15): error TS2305: Module '"@makanmakan/shared-types"' has no exported member 'CreateOrderData'.
+src/features/orders/__tests__/realtime-integration.test.ts(299,48): error TS2345: Argument of type '{ orderId: number; newStatus: 1; previousStatus: 0; notes: string; }' is not assignable to parameter of type 'OrderUpdateEvent'.
+  Type '{ orderId: number; newStatus: 1; previousStatus: 0; notes: string; }' is missing the following properties from type 'OrderUpdateEvent': updatedBy, updatedAt
+src/features/orders/__tests__/realtime-integration.test.ts(312,48): error TS2345: Argument of type '{ orderId: number; newStatus: 1; previousStatus: 0; }' is not assignable to parameter of type 'OrderUpdateEvent'.
+  Type '{ orderId: number; newStatus: 1; previousStatus: 0; }' is missing the following properties from type 'OrderUpdateEvent': updatedBy, updatedAt
+src/features/reservations/routes/index.ts(189,7): error TS2322: Type 'string | number | undefined' is not assignable to type 'string | undefined'.
+  Type 'number' is not assignable to type 'string'.
+src/features/reservations/routes/index.ts(243,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/reservations/routes/index.ts(283,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/reservations/routes/index.ts(443,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/waiting-list/routes/index.ts(225,7): error TS2322: Type 'string | number | undefined' is not assignable to type 'string | undefined'.
+  Type 'number' is not assignable to type 'string'.
+src/features/waiting-list/routes/index.ts(281,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/waiting-list/routes/index.ts(323,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/waiting-list/routes/index.ts(365,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.
+src/features/waiting-list/routes/index.ts(400,28): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number | undefined' have no overlap.

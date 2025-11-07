@@ -166,7 +166,13 @@ export class AuthService extends BaseService {
       )
 
       // Invalidate any existing sessions to prevent session fixation
-      await this.logout(user.id)
+      const logoutSuccess = await this.logout(user.id)
+      if (!logoutSuccess) {
+        return {
+          success: false,
+          error: 'Failed to invalidate previous sessions. Please try again.'
+        }
+      }
 
       // 創建 session 記錄 with new session ID
       const sessionData: SessionData = {
@@ -252,7 +258,6 @@ export class AuthService extends BaseService {
           email: data.email,
           phone: data.phone,
           fullName: data.fullName,
-          password: passwordHash, // 設置舊欄位以滿足 NOT NULL 約束
           passwordHash,
           role: data.role,
           restaurantId: data.restaurantId,
@@ -302,9 +307,16 @@ export class AuthService extends BaseService {
         }
       }
 
-      // 查詢 session
+      // 查詢 session (only select needed fields for security and performance)
       const session = await this.db
-        .select()
+        .select({
+          id: sessions.id,
+          userId: sessions.userId,
+          token: sessions.token,
+          refreshToken: sessions.refreshToken,
+          expiresAt: sessions.expiresAt,
+          isActive: sessions.isActive
+        })
         .from(sessions)
         .where(
           and(
@@ -438,7 +450,7 @@ export class AuthService extends BaseService {
       return true
 
     } catch (error) {
-      console.error('Logout error:', error)
+      this.handleError(error, 'logout')
       return false
     }
   }
@@ -454,9 +466,16 @@ export class AuthService extends BaseService {
       // 驗證 JWT
       const decoded = verify(token, jwtSecret) as any
 
-      // 查詢 session 是否有效
+      // 查詢 session 是否有效 (only select needed fields for security and performance)
       const session = await this.db
-        .select()
+        .select({
+          id: sessions.id,
+          userId: sessions.userId,
+          token: sessions.token,
+          expiresAt: sessions.expiresAt,
+          isActive: sessions.isActive,
+          lastAccessedAt: sessions.lastAccessedAt
+        })
         .from(sessions)
         .where(
           and(
@@ -484,7 +503,7 @@ export class AuthService extends BaseService {
         .from(users)
         .where(
           and(
-            eq(users.id, decoded.userId),
+            eq(users.id, decoded.id),
             eq(users.isActive, true)
           )
         )

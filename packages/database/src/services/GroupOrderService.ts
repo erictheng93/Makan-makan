@@ -228,7 +228,7 @@ export class GroupOrderService extends BaseService {
         JSON.stringify({ groupOrderId, tableId: validatedData.tableId })
       ).run()
 
-      const baseUrl = process.env.CUSTOMER_APP_URL || 'https://order.makanmakan.com'
+      const baseUrl = this.env.CUSTOMER_APP_URL || 'https://order.makanmakan.com'
       const shareUrl = `${baseUrl}/group/${shareCode}`
       const qrCodeUrl = `${baseUrl}/qr/group/${shareCode}`
 

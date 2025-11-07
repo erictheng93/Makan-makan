@@ -1,172 +1,204 @@
 <template>
-  <div class="swap-requests">
+  <div class="w-full">
     <!-- Header with Filters -->
-    <div class="requests-header">
-      <div class="header-left">
-        <h2 class="header-title">
-          <span class="title-icon">🔄</span>
-          換班申請管理
-        </h2>
-        <p class="header-subtitle" v-if="!loading">
+    <div class="mb-8 p-6 bg-white rounded-lg shadow border border-gray-200">
+      <div class="mb-5">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="p-2 bg-indigo-100 rounded-lg">
+            <ArrowPathIcon class="h-6 w-6 text-indigo-600" />
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900">換班申請管理</h2>
+        </div>
+        <p v-if="!loading" class="text-sm text-gray-600">
           共 {{ requests.length }} 筆申請
-          <span v-if="pendingCount > 0" class="pending-count">
+          <span v-if="pendingCount > 0" class="text-yellow-600 font-bold">
             ({{ pendingCount }} 筆待處理)
           </span>
         </p>
       </div>
-      <div class="header-right">
-        <!-- Status Filter -->
-        <div class="status-filters">
-          <button
-            v-for="status in statusFilters"
-            :key="status.value"
-            class="filter-btn"
-            :class="{ active: selectedStatus === status.value }"
-            @click="selectedStatus = status.value"
+
+      <!-- Status Filters -->
+      <div class="flex gap-2 flex-wrap">
+        <button
+          v-for="status in statusFilters"
+          :key="status.value"
+          class="flex items-center gap-2 px-4 py-2.5 border-2 rounded-lg font-bold text-sm transition-all"
+          :class="
+            selectedStatus === status.value
+              ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md'
+              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+          "
+          @click="selectedStatus = status.value"
+        >
+          <component :is="status.icon" class="h-4 w-4" :class="status.iconClass" />
+          <span>{{ status.label }}</span>
+          <span
+            v-if="getStatusCount(status.value) > 0"
+            class="flex items-center justify-center min-w-[22px] h-5 px-2 rounded-full text-xs font-bold"
+            :class="
+              selectedStatus === status.value
+                ? 'bg-blue-600 text-white'
+                : 'bg-blue-600 text-white'
+            "
           >
-            <span class="filter-icon">{{ status.icon }}</span>
-            <span class="filter-label">{{ status.label }}</span>
-            <span
-              class="filter-badge"
-              v-if="getStatusCount(status.value) > 0"
-            >
-              {{ getStatusCount(status.value) }}
-            </span>
-          </button>
-        </div>
+            {{ getStatusCount(status.value) }}
+          </span>
+        </button>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>載入換班申請中...</p>
+    <div v-if="loading" class="text-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">載入換班申請中...</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="filteredRequests.length === 0" class="empty-state">
-      <div class="empty-icon">🔄</div>
-      <h3 class="empty-title">
+    <div v-else-if="filteredRequests.length === 0" class="text-center py-20 bg-white rounded-lg shadow">
+      <div class="flex items-center justify-center mb-6">
+        <div class="p-6 bg-gray-100 rounded-full">
+          <ArrowPathIcon class="h-16 w-16 text-gray-400" />
+        </div>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-3">
         {{ selectedStatus === 'all' ? '暫無換班申請' : `暫無${getStatusLabel(selectedStatus)}的申請` }}
       </h3>
-      <p class="empty-text">
+      <p class="text-sm text-gray-600">
         {{ selectedStatus === 'all' ? '當員工提交換班申請時,將會顯示在這裡' : '切換篩選器查看其他狀態的申請' }}
       </p>
     </div>
 
     <!-- Requests List -->
-    <div v-else class="requests-list">
+    <div v-else class="space-y-5">
       <div
         v-for="request in filteredRequests"
         :key="request.id"
-        class="request-card"
-        :class="`status-${request.status}`"
+        class="bg-white rounded-lg border-2 shadow hover:shadow-lg transition-all duration-200 hover:-translate-y-1 overflow-hidden"
+        :class="getStatusBorderClass(request.status)"
       >
         <!-- Card Header -->
-        <div class="card-header">
-          <div class="status-badge" :class="`badge-${request.status}`">
-            <span class="badge-icon">{{ getStatusIcon(request.status) }}</span>
-            <span class="badge-text">{{ getStatusLabel(request.status) }}</span>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border-2"
+            :class="getStatusBadgeClass(request.status)"
+          >
+            <component :is="getStatusIconComponent(request.status)" class="h-4 w-4" />
+            <span>{{ getStatusLabel(request.status) }}</span>
           </div>
-          <div class="request-date">
-            <span class="date-icon">📅</span>
-            <span class="date-text">{{ formatDate(request.createdAt) }}</span>
+          <div class="flex items-center gap-2 text-xs text-gray-600">
+            <CalendarIcon class="h-4 w-4 text-gray-500" />
+            <span>{{ formatDate(request.createdAt) }}</span>
           </div>
         </div>
 
         <!-- Card Content -->
-        <div class="card-content">
+        <div class="p-6 space-y-5">
           <!-- Requester Info -->
-          <div class="requester-section">
-            <div class="section-header">
-              <span class="section-icon">👤</span>
-              <h4 class="section-title">申請人</h4>
+          <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex items-center gap-2 mb-3">
+              <UserIcon class="h-4 w-4 text-gray-500" />
+              <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">申請人</h4>
             </div>
-            <div class="employee-info">
-              <span class="employee-name">{{ request.requesterName }}</span>
-              <span class="employee-role">{{ request.requesterRole || '員工' }}</span>
-            </div>
-          </div>
-
-          <!-- Swap Details -->
-          <div class="swap-flow">
-            <!-- Original Shift -->
-            <div class="shift-box original">
-              <div class="shift-header">
-                <span class="shift-label">原班次</span>
-                <span class="shift-date">{{ formatShiftDate(request.originalShiftDate) }}</span>
-              </div>
-              <div class="shift-time">
-                {{ request.originalStartTime }} - {{ request.originalEndTime }}
-              </div>
-            </div>
-
-            <!-- Arrow -->
-            <div class="swap-arrow">
-              <span class="arrow-icon">⇄</span>
-              <span class="arrow-label">換班</span>
-            </div>
-
-            <!-- Target Shift -->
-            <div class="shift-box target">
-              <div class="shift-header">
-                <span class="shift-label">目標班次</span>
-                <span class="shift-date">{{ formatShiftDate(request.targetShiftDate) }}</span>
-              </div>
-              <div class="shift-time">
-                {{ request.targetStartTime }} - {{ request.targetEndTime }}
-              </div>
+            <div class="flex items-center gap-3">
+              <span class="text-base font-bold text-gray-900">{{ request.requesterName }}</span>
+              <span class="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-md text-xs font-semibold">
+                {{ request.requesterRole || '員工' }}
+              </span>
             </div>
           </div>
 
-          <!-- Target Employee (if specified) -->
-          <div class="target-employee-section" v-if="request.targetEmployeeName">
-            <div class="section-header">
-              <span class="section-icon">🤝</span>
-              <h4 class="section-title">換班對象</h4>
+          <!-- Swap Flow -->
+          <div class="p-5 bg-blue-50 rounded-xl border-2 border-blue-200">
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr,auto,1fr] gap-4 items-center">
+              <!-- Original Shift -->
+              <div class="p-4 bg-white rounded-lg border-2 border-yellow-500 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">原班次</span>
+                  <span class="text-xs font-semibold text-gray-700">
+                    {{ request.originalShiftDate ? formatShiftDate(request.originalShiftDate) : '-' }}
+                  </span>
+                </div>
+                <div class="text-lg font-bold text-gray-900 font-mono">
+                  {{ request.originalStartTime }} - {{ request.originalEndTime }}
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex lg:flex-col items-center justify-center gap-1 text-blue-600">
+                <ArrowPathIcon class="h-8 w-8 lg:rotate-0 rotate-90" />
+                <span class="text-xs font-bold uppercase">換班</span>
+              </div>
+
+              <!-- Target Shift -->
+              <div class="p-4 bg-white rounded-lg border-2 border-blue-500 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">目標班次</span>
+                  <span class="text-xs font-semibold text-gray-700">
+                    {{ request.targetShiftDate ? formatShiftDate(request.targetShiftDate) : '-' }}
+                  </span>
+                </div>
+                <div class="text-lg font-bold text-gray-900 font-mono">
+                  {{ request.targetStartTime }} - {{ request.targetEndTime }}
+                </div>
+              </div>
             </div>
-            <div class="employee-info">
-              <span class="employee-name">{{ request.targetEmployeeName }}</span>
-              <span class="employee-role">{{ request.targetEmployeeRole || '員工' }}</span>
+          </div>
+
+          <!-- Target Employee -->
+          <div v-if="request.targetEmployeeName" class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex items-center gap-2 mb-3">
+              <UserGroupIcon class="h-4 w-4 text-gray-500" />
+              <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">換班對象</h4>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-base font-bold text-gray-900">{{ request.targetEmployeeName }}</span>
+              <span class="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-md text-xs font-semibold">
+                {{ request.targetEmployeeRole || '員工' }}
+              </span>
             </div>
           </div>
 
           <!-- Reason -->
-          <div class="reason-section" v-if="request.reason">
-            <div class="section-header">
-              <span class="section-icon">📝</span>
-              <h4 class="section-title">申請原因</h4>
+          <div v-if="request.reason" class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div class="flex items-center gap-2 mb-3">
+              <DocumentTextIcon class="h-4 w-4 text-yellow-600" />
+              <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">申請原因</h4>
             </div>
-            <p class="reason-text">{{ request.reason }}</p>
+            <p class="text-sm text-gray-700 leading-relaxed">{{ request.reason }}</p>
           </div>
 
-          <!-- Response (if approved/rejected) -->
+          <!-- Response -->
           <div
-            class="response-section"
             v-if="request.status !== 'pending' && request.responseNote"
+            class="p-4 bg-gray-50 rounded-lg border border-gray-200"
           >
-            <div class="section-header">
-              <span class="section-icon">💬</span>
-              <h4 class="section-title">處理回覆</h4>
+            <div class="flex items-center gap-2 mb-3">
+              <ChatBubbleLeftEllipsisIcon class="h-4 w-4 text-gray-500" />
+              <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">處理回覆</h4>
             </div>
-            <div class="response-box">
-              <p class="response-text">{{ request.responseNote }}</p>
-              <div class="response-meta">
+            <div class="space-y-2">
+              <p class="text-sm text-gray-700 leading-relaxed">{{ request.responseNote }}</p>
+              <div class="flex flex-col sm:flex-row sm:justify-between gap-2 pt-2 border-t border-gray-200 text-xs text-gray-600">
                 <span>由 {{ request.respondedBy || '管理員' }} 處理</span>
-                <span>{{ formatDate(request.respondedAt) }}</span>
+                <span>{{ request.respondedAt ? formatDate(request.respondedAt) : '-' }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Card Actions -->
-        <div class="card-actions" v-if="request.status === 'pending'">
-          <button class="action-btn reject-btn" @click="handleReject(request)">
-            <span>✕</span>
+        <div v-if="request.status === 'pending'" class="flex gap-3 p-4 bg-gray-50 border-t border-gray-200">
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-red-600 border-2 border-red-600 rounded-lg hover:bg-red-50 transition-all hover:-translate-y-0.5 hover:shadow text-sm font-bold"
+            @click="handleReject(request)"
+          >
+            <XMarkIcon class="h-5 w-5" />
             <span>拒絕</span>
           </button>
-          <button class="action-btn approve-btn" @click="handleApprove(request)">
-            <span>✓</span>
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-green-700 transition-all hover:-translate-y-0.5 hover:shadow text-sm font-bold"
+            @click="handleApprove(request)"
+          >
+            <CheckIcon class="h-5 w-5" />
             <span>核准</span>
           </button>
         </div>
@@ -178,6 +210,22 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { SwapRequest } from '@/types/scheduling'
+import {
+  ArrowPathIcon,
+  CalendarIcon,
+  UserIcon,
+  UserGroupIcon,
+  DocumentTextIcon,
+  ChatBubbleLeftEllipsisIcon,
+  XMarkIcon,
+  CheckIcon,
+  ChartBarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  EyeSlashIcon,
+  QuestionMarkCircleIcon,
+} from '@heroicons/vue/24/outline'
 
 interface Props {
   requests: SwapRequest[]
@@ -198,10 +246,10 @@ const selectedStatus = ref<string>('all')
 
 // Filters
 const statusFilters = [
-  { value: 'all', label: '全部', icon: '📊' },
-  { value: 'pending', label: '待處理', icon: '⏳' },
-  { value: 'approved', label: '已核准', icon: '✅' },
-  { value: 'rejected', label: '已拒絕', icon: '❌' }
+  { value: 'all', label: '全部', icon: ChartBarIcon, iconClass: 'text-gray-500' },
+  { value: 'pending', label: '待處理', icon: ClockIcon, iconClass: 'text-yellow-500' },
+  { value: 'approved', label: '已核准', icon: CheckCircleIcon, iconClass: 'text-green-500' },
+  { value: 'rejected', label: '已拒絕', icon: XCircleIcon, iconClass: 'text-red-500' }
 ]
 
 // Computed
@@ -221,17 +269,38 @@ const getStatusCount = (status: string): number => {
   return props.requests.filter(r => r.status === status).length
 }
 
-// Methods
-const getStatusIcon = (status: string): string => {
-  const icons: Record<string, string> = {
-    pending: '⏳',
-    approved: '✅',
-    rejected: '❌',
-    cancelled: '🚫'
+// Styling Methods
+const getStatusBorderClass = (status: string) => {
+  const classes: Record<string, string> = {
+    pending: 'border-l-yellow-500',
+    approved: 'border-l-green-500',
+    rejected: 'border-l-red-500',
+    cancelled: 'border-l-gray-500'
   }
-  return icons[status] || '❓'
+  return classes[status] || 'border-l-gray-300'
 }
 
+const getStatusBadgeClass = (status: string) => {
+  const classes: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    approved: 'bg-green-100 text-green-800 border-green-300',
+    rejected: 'bg-red-100 text-red-800 border-red-300',
+    cancelled: 'bg-gray-100 text-gray-800 border-gray-300'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-700 border-gray-300'
+}
+
+const getStatusIconComponent = (status: string) => {
+  const icons: Record<string, any> = {
+    pending: ClockIcon,
+    approved: CheckCircleIcon,
+    rejected: XCircleIcon,
+    cancelled: EyeSlashIcon
+  }
+  return icons[status] || QuestionMarkCircleIcon
+}
+
+// Label Methods
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
     pending: '待處理',
@@ -262,6 +331,7 @@ const formatShiftDate = (dateString: string): string => {
   return `${month}/${day} (${weekday})`
 }
 
+// Event Handlers
 const handleApprove = (request: SwapRequest) => {
   if (confirm(`確定要核准 ${request.requesterName} 的換班申請嗎？`)) {
     emit('approve', request)
@@ -274,588 +344,3 @@ const handleReject = (request: SwapRequest) => {
   }
 }
 </script>
-
-<style scoped>
-.swap-requests {
-  width: 100%;
-}
-
-/* ==================== Header ==================== */
-.requests-header {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.header-left {
-  flex: 1;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px 0;
-}
-
-.title-icon {
-  font-size: 28px;
-  animation: rotate 3s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.header-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-}
-
-.pending-count {
-  color: #f59e0b;
-  font-weight: 700;
-}
-
-.status-filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 2px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
-}
-
-.filter-btn.active {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  color: #3b82f6;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
-}
-
-.filter-icon {
-  font-size: 16px;
-}
-
-.filter-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  background: #3b82f6;
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 11px;
-}
-
-.filter-btn.active .filter-badge {
-  background: white;
-  color: #3b82f6;
-}
-
-/* ==================== Loading State ==================== */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 20px;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f4f6;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ==================== Empty State ==================== */
-.empty-state {
-  text-align: center;
-  padding: 100px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 24px;
-  opacity: 0.5;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
-}
-
-.empty-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 12px 0;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #6b7280;
-  margin: 0;
-}
-
-/* ==================== Requests List ==================== */
-.requests-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* ==================== Request Card ==================== */
-.request-card {
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.request-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.request-card.status-pending {
-  border-left: 5px solid #f59e0b;
-}
-
-.request-card.status-approved {
-  border-left: 5px solid #10b981;
-}
-
-.request-card.status-rejected {
-  border-left: 5px solid #ef4444;
-}
-
-/* Card Header */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  border: 2px solid;
-}
-
-.badge-pending {
-  background: #fef3c7;
-  color: #92400e;
-  border-color: #fbbf24;
-}
-
-.badge-approved {
-  background: #d1fae5;
-  color: #065f46;
-  border-color: #10b981;
-}
-
-.badge-rejected {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #ef4444;
-}
-
-.badge-icon {
-  font-size: 16px;
-}
-
-.request-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.date-icon {
-  font-size: 14px;
-}
-
-/* Card Content */
-.card-content {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.section-icon {
-  font-size: 18px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0;
-}
-
-/* Requester Section */
-.requester-section,
-.target-employee-section {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-}
-
-.employee-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.employee-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.employee-role {
-  padding: 4px 10px;
-  background: #e5e7eb;
-  color: #6b7280;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* Swap Flow */
-.swap-flow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-  border-radius: 12px;
-  border: 2px solid #bfdbfe;
-}
-
-.shift-box {
-  flex: 1;
-  padding: 16px;
-  background: white;
-  border-radius: 10px;
-  border: 2px solid;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.shift-box.original {
-  border-color: #f59e0b;
-}
-
-.shift-box.target {
-  border-color: #3b82f6;
-}
-
-.shift-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.shift-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.shift-date {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.shift-time {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
-  font-family: 'Courier New', monospace;
-}
-
-.swap-arrow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: #3b82f6;
-}
-
-.arrow-icon {
-  font-size: 32px;
-  font-weight: 700;
-  animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(5px);
-  }
-}
-
-.arrow-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* Reason Section */
-.reason-section {
-  padding: 16px;
-  background: #fef3c7;
-  border-radius: 10px;
-  border: 1px solid #fbbf24;
-}
-
-.reason-text {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #374151;
-  margin: 0;
-}
-
-/* Response Section */
-.response-section {
-  padding: 16px;
-  background: #f3f4f6;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-}
-
-.response-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.response-text {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #374151;
-  margin: 0;
-}
-
-.response-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #6b7280;
-  padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Card Actions */
-.card-actions {
-  display: flex;
-  gap: 12px;
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px;
-  border: 2px solid;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.reject-btn {
-  background: white;
-  color: #ef4444;
-  border-color: #ef4444;
-}
-
-.reject-btn:hover {
-  background: #fee2e2;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
-}
-
-.approve-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border-color: #10b981;
-}
-
-.approve-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
-}
-
-/* ==================== Responsive Design ==================== */
-@media (max-width: 1024px) {
-  .swap-flow {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .swap-arrow {
-    transform: rotate(90deg);
-  }
-}
-
-@media (max-width: 768px) {
-  .requests-header {
-    padding: 20px;
-  }
-
-  .header-title {
-    font-size: 20px;
-  }
-
-  .status-filters {
-    width: 100%;
-  }
-
-  .filter-btn {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .card-content {
-    padding: 20px;
-    gap: 16px;
-  }
-
-  .employee-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .response-meta {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .card-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 640px) {
-  .requests-header {
-    padding: 16px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .card-content {
-    padding: 16px;
-  }
-
-  .shift-time {
-    font-size: 16px;
-  }
-}
-</style>

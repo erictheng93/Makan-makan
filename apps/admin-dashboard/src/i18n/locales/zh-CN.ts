@@ -337,6 +337,108 @@ const zhCN: Messages = {
     }
   },
 
+  // 订位系统
+  reservation: {
+    title: '订位管理',
+    create: '新增订位',
+    createSuccess: '订位创建成功',
+    createError: '订位创建失败',
+    loadError: '加载订位列表失败',
+    confirmPrompt: '确定要确认此订位吗？',
+    confirmError: '确认订位失败',
+    arrivedError: '标记到店失败',
+    seatedError: '标记入座失败',
+    cancelPrompt: '确定要取消此订位吗？',
+    cancelError: '取消订位失败',
+    confirmationCode: '确认码',
+    customerName: '顾客姓名',
+    customerPhone: '联系电话',
+    customerEmail: '电子邮件',
+    datetime: '订位时间',
+    selectDatetime: '选择订位时间',
+    partySize: '用餐人数',
+    people: '人',
+    duration: '用餐时长',
+    minutes: '分钟',
+    specialRequests: '特殊需求',
+    specialRequestsPlaceholder: '例如：儿童座椅、轮椅通道、靠窗座位等',
+    notes: '备注',
+    status: '状态',
+    detail: '订位详情',
+    stats: {
+      total: '总订位数',
+      pending: '待确认',
+      confirmed: '已确认',
+      seated: '已入座'
+    },
+    filter: {
+      date: '日期',
+      selectDate: '选择日期',
+      status: '状态',
+      allStatus: '全部状态',
+      phone: '手机号码',
+      enterPhone: '请输入手机号码'
+    }
+  },
+
+  // 候位系统
+  waitingList: {
+    title: '候位管理',
+    addCustomer: '新增候位',
+    addSuccess: '加入候位成功',
+    addError: '加入候位失败',
+    loadError: '加载候位列表失败',
+    callCustomer: '叫号',
+    callError: '叫号失败',
+    confirmCall: '确认叫号',
+    call: '叫号',
+    callNext: '叫下一位',
+    seat: '入座',
+    expire: '过号',
+    cancel: '取消',
+    seatedError: '标记入座失败',
+    expirePrompt: '确定要标记为过号吗？',
+    expireError: '标记过号失败',
+    cancelPrompt: '确定要取消此候位吗？',
+    cancelError: '取消候位失败',
+    batchCallError: '批次叫号失败',
+    customerName: '顾客姓名',
+    customerPhone: '联系电话',
+    partySize: '用餐人数',
+    people: '人',
+    notes: '备注',
+    notesPlaceholder: '例如：婴儿车、特殊需求等',
+    queueNumber: '号码牌',
+    waitTime: '等待时间',
+    joinedAt: '加入时间',
+    estimatedWait: '预估等待时间',
+    partiesAhead: '前方等候组数',
+    availableTables: '可用桌位数',
+    assignTable: '分配桌位',
+    selectTable: '请选择桌位',
+    selectTableRequired: '请选择要分配的桌位',
+    notificationMethod: '通知方式',
+    sms: '短信',
+    display: '屏幕显示',
+    both: '两者皆是',
+    queue: '候位队列',
+    noQueue: '目前没有候位',
+    cardView: '卡片视图',
+    tableView: '表格视图',
+    stats: {
+      waiting: '等待中',
+      called: '已叫号',
+      avgWait: '平均等待',
+      todayTotal: '今日总数'
+    },
+    filter: {
+      status: '状态',
+      allStatus: '全部状态',
+      phone: '手机号码',
+      enterPhone: '请输入手机号码'
+    }
+  },
+
   // 页面标题与导航
   header: {
     title: 'MakanMakan 管理后台',

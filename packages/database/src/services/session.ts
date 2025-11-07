@@ -83,7 +83,16 @@ export class SessionService extends BaseService {
   async getSessionByToken(token: string): Promise<any> {
     try {
       const session = await this.db
-        .select()
+        .select({
+          id: sessions.id,
+          userId: sessions.userId,
+          token: sessions.token,
+          refreshToken: sessions.refreshToken,
+          expiresAt: sessions.expiresAt,
+          isActive: sessions.isActive,
+          lastAccessedAt: sessions.lastAccessedAt,
+          createdAt: sessions.createdAt
+        })
         .from(sessions)
         .where(
           and(
@@ -100,11 +109,20 @@ export class SessionService extends BaseService {
     }
   }
 
-  // 根據 refresh token 取得 session  
+  // 根據 refresh token 取得 session
   async getSessionByRefreshToken(refreshToken: string): Promise<any> {
     try {
       const session = await this.db
-        .select()
+        .select({
+          id: sessions.id,
+          userId: sessions.userId,
+          token: sessions.token,
+          refreshToken: sessions.refreshToken,
+          expiresAt: sessions.expiresAt,
+          isActive: sessions.isActive,
+          lastAccessedAt: sessions.lastAccessedAt,
+          createdAt: sessions.createdAt
+        })
         .from(sessions)
         .where(
           and(
@@ -189,8 +207,7 @@ export class SessionService extends BaseService {
       return true // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Update last accessed error:', error)
-      return false
+      this.handleError(error, 'updateLastAccessed')
     }
   }
 
@@ -208,8 +225,7 @@ export class SessionService extends BaseService {
       return true // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Invalidate session error:', error)
-      return false
+      this.handleError(error, 'invalidateSession')
     }
   }
 
@@ -227,8 +243,7 @@ export class SessionService extends BaseService {
       return true // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Invalidate session by token error:', error)
-      return false
+      this.handleError(error, 'invalidateSessionByToken')
     }
   }
 
@@ -236,7 +251,7 @@ export class SessionService extends BaseService {
   async invalidateUserSessions(userId: number, excludeSessionId?: string): Promise<number> {
     try {
       const conditions = [eq(sessions.userId, userId)]
-      
+
       if (excludeSessionId) {
         conditions.push(sql`${sessions.id} != ${excludeSessionId}`)
       }
@@ -252,8 +267,7 @@ export class SessionService extends BaseService {
       return 0 // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Invalidate user sessions error:', error)
-      return 0
+      this.handleError(error, 'invalidateUserSessions')
     }
   }
 
@@ -267,8 +281,7 @@ export class SessionService extends BaseService {
       return 0 // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Cleanup expired sessions error:', error)
-      return 0
+      this.handleError(error, 'cleanupExpiredSessions')
     }
   }
 
@@ -285,8 +298,7 @@ export class SessionService extends BaseService {
       return 0 // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Cleanup inactive sessions error:', error)
-      return 0
+      this.handleError(error, 'cleanupInactiveSessions')
     }
   }
 
@@ -522,8 +534,7 @@ export class SessionService extends BaseService {
       return true // TODO: Drizzle ORM doesn't return changes count directly
 
     } catch (error) {
-      console.error('Extend session error:', error)
-      return false
+      this.handleError(error, 'extendSession')
     }
   }
 
@@ -545,8 +556,7 @@ export class SessionService extends BaseService {
       return !!session
 
     } catch (error) {
-      console.error('Check session validity error:', error)
-      return false
+      this.handleError(error, 'isSessionValid')
     }
   }
 

@@ -1,133 +1,153 @@
 <template>
-  <div class="shift-templates-list">
+  <div class="w-full">
     <!-- Header -->
-    <div class="templates-header">
-      <div class="header-left">
-        <h2 class="header-title">
-          <span class="title-icon">🏷️</span>
-          班別模板管理
-        </h2>
-        <p class="header-subtitle" v-if="!loading">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-6 bg-white rounded-lg shadow">
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <QueueListIcon class="h-6 w-6 text-purple-600" />
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900">班別模板管理</h2>
+        </div>
+        <p v-if="!loading" class="text-sm text-gray-600">
           共 {{ templates.length }} 個班別模板
         </p>
       </div>
-      <div class="header-right">
-        <button class="add-btn" @click="$emit('add')">
-          <span>➕</span>
-          <span>新增模板</span>
-        </button>
-      </div>
+      <button
+        class="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        @click="$emit('add')"
+      >
+        <PlusIcon class="h-5 w-5" />
+        <span>新增模板</span>
+      </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>載入班別模板中...</p>
+    <div v-if="loading" class="text-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">載入班別模板中...</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="templates.length === 0" class="empty-state">
-      <div class="empty-icon">🏷️</div>
-      <h3 class="empty-title">尚無班別模板</h3>
-      <p class="empty-text">點擊「新增模板」按鈕開始建立班別模板</p>
-      <button class="empty-action-btn" @click="$emit('add')">
-        <span>➕</span>
+    <div v-else-if="templates.length === 0" class="text-center py-20 bg-white rounded-lg shadow">
+      <div class="flex items-center justify-center mb-6">
+        <div class="p-6 bg-gray-100 rounded-full">
+          <QueueListIcon class="h-16 w-16 text-gray-400" />
+        </div>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-3">尚無班別模板</h3>
+      <p class="text-gray-600 mb-8">點擊「新增模板」按鈕開始建立班別模板</p>
+      <button
+        class="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        @click="$emit('add')"
+      >
+        <PlusIcon class="h-5 w-5" />
         <span>新增第一個模板</span>
       </button>
     </div>
 
     <!-- Templates Grid -->
-    <div v-else class="templates-grid">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div
         v-for="template in templates"
         :key="template.id"
-        class="template-card"
+        class="bg-white rounded-lg border-2 border-l-4 border-gray-200 shadow hover:shadow-lg transition-all duration-200 hover:-translate-y-1 flex flex-col"
         :style="{ borderLeftColor: template.colorCode }"
       >
         <!-- Card Header -->
-        <div class="card-header">
-          <div class="template-badge" :style="{
-            backgroundColor: template.colorCode + '15',
-            color: template.colorCode,
-            borderColor: template.colorCode
-          }">
-            <span class="badge-dot" :style="{ backgroundColor: template.colorCode }"></span>
-            <span class="badge-text">{{ template.name }}</span>
+        <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-gray-50">
+          <div
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold"
+            :style="{
+              backgroundColor: template.colorCode + '15',
+              color: template.colorCode,
+              borderColor: template.colorCode
+            }"
+          >
+            <div
+              class="w-2.5 h-2.5 rounded-full"
+              :style="{ backgroundColor: template.colorCode }"
+            ></div>
+            <span>{{ template.name }}</span>
           </div>
-          <div class="card-actions">
+          <div class="flex items-center gap-2">
             <button
-              class="action-btn edit-btn"
+              class="p-2 rounded-lg hover:bg-blue-50 transition-colors group"
               @click="$emit('edit', template)"
               title="編輯模板"
             >
-              ✏️
+              <PencilIcon class="h-4 w-4 text-gray-400 group-hover:text-blue-600" />
             </button>
             <button
-              class="action-btn delete-btn"
+              class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
               @click="handleDelete(template)"
               title="刪除模板"
             >
-              🗑️
+              <TrashIcon class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
             </button>
           </div>
         </div>
 
         <!-- Card Content -->
-        <div class="card-content">
+        <div class="p-5 flex-1 space-y-4">
           <!-- Time Info -->
-          <div class="info-section">
-            <div class="info-item">
-              <span class="info-icon">🕐</span>
-              <div class="info-details">
-                <span class="info-label">開始時間</span>
-                <span class="info-value time-value">{{ template.startTime }}</span>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <ClockIcon class="h-5 w-5 text-gray-500 flex-shrink-0" />
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">開始時間</span>
+                <span class="text-base font-bold text-blue-600 font-mono">{{ template.startTime }}</span>
               </div>
             </div>
-            <div class="info-item">
-              <span class="info-icon">🕐</span>
-              <div class="info-details">
-                <span class="info-label">結束時間</span>
-                <span class="info-value time-value">{{ template.endTime }}</span>
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <ClockIcon class="h-5 w-5 text-gray-500 flex-shrink-0" />
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">結束時間</span>
+                <span class="text-base font-bold text-blue-600 font-mono">{{ template.endTime }}</span>
               </div>
             </div>
           </div>
 
           <!-- Duration -->
-          <div class="duration-section">
-            <div class="duration-bar">
-              <div class="duration-fill" :style="{
-                width: `${(calculateDuration(template.startTime, template.endTime) / 24) * 100}%`,
-                backgroundColor: template.colorCode
-              }"></div>
+          <div class="space-y-2">
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-300"
+                :style="{
+                  width: `${(calculateDuration(template.startTime, template.endTime) / 24) * 100}%`,
+                  backgroundColor: template.colorCode
+                }"
+              ></div>
             </div>
-            <div class="duration-text">
-              <span class="duration-icon">⏱️</span>
-              <span class="duration-value">{{ calculateDuration(template.startTime, template.endTime) }} 小時</span>
+            <div class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+              <PlayIcon class="h-4 w-4 text-gray-500" />
+              <span class="text-gray-900">{{ calculateDuration(template.startTime, template.endTime) }} 小時</span>
             </div>
           </div>
 
           <!-- Description -->
-          <div class="description-section" v-if="template.description">
-            <span class="description-icon">📝</span>
-            <p class="description-text">{{ template.description }}</p>
+          <div v-if="template.description" class="flex gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <DocumentTextIcon class="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
+            <p class="flex-1 text-sm text-gray-700 leading-relaxed">{{ template.description }}</p>
           </div>
 
           <!-- Metadata -->
-          <div class="metadata-section">
-            <div class="metadata-item">
-              <span class="metadata-icon">📊</span>
-              <span class="metadata-text">使用中: {{ template.usageCount || 0 }} 次</span>
+          <div class="flex items-center gap-3 pt-4 border-t border-gray-200">
+            <div class="flex items-center gap-2 text-xs text-gray-600">
+              <ChartBarIcon class="h-4 w-4 text-gray-500" />
+              <span>使用中: {{ template.usageCount || 0 }} 次</span>
             </div>
-            <div class="metadata-item" v-if="template.isDefault">
-              <span class="default-badge">⭐ 預設模板</span>
+            <div v-if="template.isDefault" class="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-bold border border-yellow-200">
+              <StarIcon class="h-3 w-3 fill-current" />
+              <span>預設模板</span>
             </div>
           </div>
         </div>
 
         <!-- Card Footer -->
-        <div class="card-footer">
+        <div class="p-4 bg-gray-50 border-t border-gray-200">
           <button
-            class="use-btn"
+            class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 rounded-lg font-bold transition-all hover:-translate-y-0.5 hover:shadow"
             @click="$emit('use', template)"
             :style="{
               backgroundColor: template.colorCode + '15',
@@ -135,7 +155,7 @@
               borderColor: template.colorCode
             }"
           >
-            <span>✓</span>
+            <CheckIcon class="h-5 w-5" />
             <span>使用此模板</span>
           </button>
         </div>
@@ -146,6 +166,18 @@
 
 <script setup lang="ts">
 import type { ShiftTemplate } from '@/types/scheduling'
+import {
+  QueueListIcon,
+  PlusIcon,
+  ClockIcon,
+  PlayIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  StarIcon,
+  CheckIcon,
+  PencilIcon,
+  TrashIcon,
+} from '@heroicons/vue/24/outline'
 
 interface Props {
   templates: ShiftTemplate[]
@@ -186,494 +218,3 @@ const handleDelete = (template: ShiftTemplate) => {
   }
 }
 </script>
-
-<style scoped>
-.shift-templates-list {
-  width: 100%;
-}
-
-/* ==================== Header ==================== */
-.templates-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.header-left {
-  flex: 1;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px 0;
-}
-
-.title-icon {
-  font-size: 28px;
-}
-
-.header-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-}
-
-.add-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: 2px solid #3b82f6;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-}
-
-.add-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
-}
-
-/* ==================== Loading State ==================== */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 20px;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f4f6;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ==================== Empty State ==================== */
-.empty-state {
-  text-align: center;
-  padding: 100px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 24px;
-  opacity: 0.5;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-15px);
-  }
-}
-
-.empty-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 12px 0;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #6b7280;
-  margin: 0 0 32px 0;
-}
-
-.empty-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 32px;
-  border: 2px solid #3b82f6;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
-}
-
-.empty-action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-}
-
-/* ==================== Templates Grid ==================== */
-.templates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 24px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ==================== Template Card ==================== */
-.template-card {
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  border-left-width: 5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.template-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  border-color: currentColor;
-}
-
-/* Card Header */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.template-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  border: 2px solid;
-}
-
-.badge-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.2);
-  }
-}
-
-.card-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  transform: scale(1.15);
-}
-
-.edit-btn:hover {
-  background: #eff6ff;
-}
-
-.delete-btn:hover {
-  background: #fee2e2;
-}
-
-/* Card Content */
-.card-content {
-  padding: 20px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.info-section {
-  display: flex;
-  gap: 16px;
-}
-
-.info-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-.info-icon {
-  font-size: 20px;
-}
-
-.info-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.info-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.time-value {
-  font-family: 'Courier New', monospace;
-  color: #3b82f6;
-}
-
-/* Duration Section */
-.duration-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.duration-bar {
-  width: 100%;
-  height: 8px;
-  background: #f3f4f6;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.duration-fill {
-  height: 100%;
-  background: #3b82f6;
-  border-radius: 10px;
-  transition: width 0.3s ease;
-}
-
-.duration-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-}
-
-.duration-icon {
-  font-size: 16px;
-}
-
-.duration-value {
-  color: #1a1a1a;
-}
-
-/* Description Section */
-.description-section {
-  display: flex;
-  gap: 10px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-.description-icon {
-  font-size: 16px;
-  color: #6b7280;
-}
-
-.description-text {
-  flex: 1;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #4b5563;
-  margin: 0;
-}
-
-/* Metadata Section */
-.metadata-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.metadata-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.metadata-icon {
-  font-size: 14px;
-}
-
-.default-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #92400e;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  border: 1px solid #fbbf24;
-}
-
-/* Card Footer */
-.card-footer {
-  padding: 16px 20px;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-}
-
-.use-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  border: 2px solid;
-  background: transparent;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.use-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* ==================== Responsive Design ==================== */
-@media (max-width: 1024px) {
-  .templates-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-  }
-}
-
-@media (max-width: 768px) {
-  .templates-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .header-right {
-    width: 100%;
-  }
-
-  .add-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .templates-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .info-section {
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-@media (max-width: 640px) {
-  .templates-header {
-    padding: 16px;
-  }
-
-  .header-title {
-    font-size: 20px;
-  }
-
-  .card-header {
-    padding: 16px;
-  }
-
-  .card-content {
-    padding: 16px;
-    gap: 14px;
-  }
-
-  .card-footer {
-    padding: 12px 16px;
-  }
-}
-</style>

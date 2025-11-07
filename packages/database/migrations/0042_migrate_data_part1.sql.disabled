@@ -1,0 +1,428 @@
+-- =====================================================
+-- Migration: Restaurant ID 遷移 - 數據遷移 Part 1
+-- Version: 0042 (自動生成)
+-- Date: 2025-10-27
+-- Description: 遷移前 14 張表的數據
+-- =====================================================
+
+-- 禁用外鍵約束
+PRAGMA foreign_keys=OFF;
+
+-- =====================================================
+-- 數據遷移
+-- =====================================================
+
+-- 遷移 users 表數據
+INSERT INTO users_new (
+    id, username, email, phone, full_name, password, password_hash, role, restaurant_id, address, date_of_birth, profile_image_url, is_active, is_verified, preferences, total_orders, total_spent, last_login_at, password_changed_at, created_at, updated_at, password_migrated, migration_date
+) SELECT
+    u.id,
+    u.username,
+    u.email,
+    u.phone,
+    u.full_name,
+    u.password,
+    u.password_hash,
+    u.role,
+    CASE
+        WHEN u.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    u.address,
+    u.date_of_birth,
+    u.profile_image_url,
+    u.is_active,
+    u.is_verified,
+    u.preferences,
+    u.total_orders,
+    u.total_spent,
+    u.last_login_at,
+    u.password_changed_at,
+    u.created_at,
+    u.updated_at,
+    u.password_migrated,
+    u.migration_date
+FROM users u
+LEFT JOIN restaurants r ON u.restaurant_id = r.id;
+
+-- 遷移 categories 表數據
+INSERT INTO categories_new (
+    id, restaurant_id, name, description, sort_order, is_active, is_visible, image_url, icon_url, available_hours, item_count, created_at, updated_at
+) SELECT
+    c.id,
+    r.public_id as restaurant_id,
+    c.name,
+    c.description,
+    c.sort_order,
+    c.is_active,
+    c.is_visible,
+    c.image_url,
+    c.icon_url,
+    c.available_hours,
+    c.item_count,
+    c.created_at,
+    c.updated_at
+FROM categories c
+INNER JOIN restaurants r ON c.restaurant_id = r.id;
+
+-- 遷移 menu_items 表數據
+INSERT INTO menu_items_new (
+    id, restaurant_id, category_id, name, description, ingredients, price, original_price, cost_price, image_url, image_variants, is_available, is_featured, is_popular, sort_order, inventory_count, min_inventory_alert, spice_level, preparation_time, calories, dietary_info, allergens, options, available_hours, order_count, rating, review_count, view_count, tags, keywords, created_at, updated_at
+) SELECT
+    m.id,
+    r.public_id as restaurant_id,
+    m.category_id,
+    m.name,
+    m.description,
+    m.ingredients,
+    m.price,
+    m.original_price,
+    m.cost_price,
+    m.image_url,
+    m.image_variants,
+    m.is_available,
+    m.is_featured,
+    m.is_popular,
+    m.sort_order,
+    m.inventory_count,
+    m.min_inventory_alert,
+    m.spice_level,
+    m.preparation_time,
+    m.calories,
+    m.dietary_info,
+    m.allergens,
+    m.options,
+    m.available_hours,
+    m.order_count,
+    m.rating,
+    m.review_count,
+    m.view_count,
+    m.tags,
+    m.keywords,
+    m.created_at,
+    m.updated_at
+FROM menu_items m
+INNER JOIN restaurants r ON m.restaurant_id = r.id;
+
+-- 遷移 tables 表數據
+INSERT INTO tables_new (
+    id, restaurant_id, number, name, capacity, location, floor, section, qr_code, qr_code_image_url, qr_code_version, qr_mode, seat_count, seat_layout, seat_numbering_style, is_occupied, is_active, is_reservable, features, current_order_id, occupied_at, occupied_by, estimated_free_at, last_cleaned_at, maintenance_notes, total_usage, average_occupancy_minutes, created_at, updated_at
+) SELECT
+    t.id,
+    r.public_id as restaurant_id,
+    t.number,
+    t.name,
+    t.capacity,
+    t.location,
+    t.floor,
+    t.section,
+    t.qr_code,
+    t.qr_code_image_url,
+    t.qr_code_version,
+    t.qr_mode,
+    t.seat_count,
+    t.seat_layout,
+    t.seat_numbering_style,
+    t.is_occupied,
+    t.is_active,
+    t.is_reservable,
+    t.features,
+    t.current_order_id,
+    t.occupied_at,
+    t.occupied_by,
+    t.estimated_free_at,
+    t.last_cleaned_at,
+    t.maintenance_notes,
+    t.total_usage,
+    t.average_occupancy_minutes,
+    t.created_at,
+    t.updated_at
+FROM tables t
+INNER JOIN restaurants r ON t.restaurant_id = r.id;
+
+-- 遷移 orders 表數據
+INSERT INTO orders_new (
+    id, restaurant_id, table_id, customer_id, order_number, status, order_type, subtotal, tax_amount, service_charge, discount_amount, total_amount, customer_info, estimated_prep_time, actual_prep_time, confirmed_at, preparing_at, ready_at, delivered_at, paid_at, cancelled_at, payment_method, payment_status, payment_transaction_id, coupon_code, promotion_ids, rating, review_comment, reviewed_at, notes, internal_notes, cancellation_reason, refund_amount, delivery_info, created_at, updated_at
+) SELECT
+    o.id,
+    r.public_id as restaurant_id,
+    o.table_id,
+    o.customer_id,
+    o.order_number,
+    o.status,
+    o.order_type,
+    o.subtotal,
+    o.tax_amount,
+    o.service_charge,
+    o.discount_amount,
+    o.total_amount,
+    o.customer_info,
+    o.estimated_prep_time,
+    o.actual_prep_time,
+    o.confirmed_at,
+    o.preparing_at,
+    o.ready_at,
+    o.delivered_at,
+    o.paid_at,
+    o.cancelled_at,
+    o.payment_method,
+    o.payment_status,
+    o.payment_transaction_id,
+    o.coupon_code,
+    o.promotion_ids,
+    o.rating,
+    o.review_comment,
+    o.reviewed_at,
+    o.notes,
+    o.internal_notes,
+    o.cancellation_reason,
+    o.refund_amount,
+    o.delivery_info,
+    o.created_at,
+    o.updated_at
+FROM orders o
+INNER JOIN restaurants r ON o.restaurant_id = r.id;
+
+-- 遷移 shift_templates 表數據
+INSERT INTO shift_templates_new (
+    id, restaurant_id, name, description, shift_type, start_time, end_time, duration_minutes, is_split_shift, break_start_time, break_end_time, break_duration_minutes, applicable_days, min_employees, max_employees, hourly_rate, overtime_multiplier, color_code, icon, sort_order, is_active, created_by, updated_by, created_at, updated_at
+) SELECT
+    s.id,
+    r.public_id as restaurant_id,
+    s.name,
+    s.description,
+    s.shift_type,
+    s.start_time,
+    s.end_time,
+    s.duration_minutes,
+    s.is_split_shift,
+    s.break_start_time,
+    s.break_end_time,
+    s.break_duration_minutes,
+    s.applicable_days,
+    s.min_employees,
+    s.max_employees,
+    s.hourly_rate,
+    s.overtime_multiplier,
+    s.color_code,
+    s.icon,
+    s.sort_order,
+    s.is_active,
+    s.created_by,
+    s.updated_by,
+    s.created_at,
+    s.updated_at
+FROM shift_templates s
+INNER JOIN restaurants r ON s.restaurant_id = r.id;
+
+-- 遷移 employee_schedules 表數據
+INSERT INTO employee_schedules_new (
+    id, restaurant_id, employee_id, shift_template_id, work_date, actual_start_time, actual_end_time, status, clock_in_time, clock_out_time, actual_work_minutes, break_minutes, overtime_minutes, notes, position, location, confirmed_by, confirmed_at, created_by, updated_by, created_at, updated_at
+) SELECT
+    e.id,
+    r.public_id as restaurant_id,
+    e.employee_id,
+    e.shift_template_id,
+    e.work_date,
+    e.actual_start_time,
+    e.actual_end_time,
+    e.status,
+    e.clock_in_time,
+    e.clock_out_time,
+    e.actual_work_minutes,
+    e.break_minutes,
+    e.overtime_minutes,
+    e.notes,
+    e.position,
+    e.location,
+    e.confirmed_by,
+    e.confirmed_at,
+    e.created_by,
+    e.updated_by,
+    e.created_at,
+    e.updated_at
+FROM employee_schedules e
+INNER JOIN restaurants r ON e.restaurant_id = r.id;
+
+-- 遷移 scheduling_rules 表數據
+INSERT INTO scheduling_rules_new (
+    id, restaurant_id, rule_name, rule_type, description, rule_config, priority, severity, applies_to_roles, applies_to_employees, is_active, is_system_rule, created_by, updated_by, created_at, updated_at
+) SELECT
+    s.id,
+    r.public_id as restaurant_id,
+    s.rule_name,
+    s.rule_type,
+    s.description,
+    s.rule_config,
+    s.priority,
+    s.severity,
+    s.applies_to_roles,
+    s.applies_to_employees,
+    s.is_active,
+    s.is_system_rule,
+    s.created_by,
+    s.updated_by,
+    s.created_at,
+    s.updated_at
+FROM scheduling_rules s
+INNER JOIN restaurants r ON s.restaurant_id = r.id;
+
+-- 遷移 scheduling_conflicts 表數據
+INSERT INTO scheduling_conflicts_new (
+    id, restaurant_id, conflict_type, severity, conflict_message, schedule_ids, employee_ids, rule_id, conflict_details, status, resolved_by, resolved_at, resolution_notes, detected_at, created_at, updated_at
+) SELECT
+    s.id,
+    r.public_id as restaurant_id,
+    s.conflict_type,
+    s.severity,
+    s.conflict_message,
+    s.schedule_ids,
+    s.employee_ids,
+    s.rule_id,
+    s.conflict_details,
+    s.status,
+    s.resolved_by,
+    s.resolved_at,
+    s.resolution_notes,
+    s.detected_at,
+    s.created_at,
+    s.updated_at
+FROM scheduling_conflicts s
+INNER JOIN restaurants r ON s.restaurant_id = r.id;
+
+-- 遷移 schedule_swap_requests 表數據
+INSERT INTO schedule_swap_requests_new (
+    id, restaurant_id, requester_id, requester_schedule_id, target_employee_id, target_schedule_id, reason, request_type, status, target_response, target_responded_at, approved_by, approved_at, approval_notes, completed_at, created_at, updated_at, expires_at
+) SELECT
+    s.id,
+    r.public_id as restaurant_id,
+    s.requester_id,
+    s.requester_schedule_id,
+    s.target_employee_id,
+    s.target_schedule_id,
+    s.reason,
+    s.request_type,
+    s.status,
+    s.target_response,
+    s.target_responded_at,
+    s.approved_by,
+    s.approved_at,
+    s.approval_notes,
+    s.completed_at,
+    s.created_at,
+    s.updated_at,
+    s.expires_at
+FROM schedule_swap_requests s
+INNER JOIN restaurants r ON s.restaurant_id = r.id;
+
+-- 遷移 employee_availability 表數據
+INSERT INTO employee_availability_new (
+    id, restaurant_id, employee_id, availability_type, day_of_week, start_date, end_date, start_time, end_time, is_recurring, notes, is_active, created_at, updated_at
+) SELECT
+    e.id,
+    r.public_id as restaurant_id,
+    e.employee_id,
+    e.availability_type,
+    e.day_of_week,
+    e.start_date,
+    e.end_date,
+    e.start_time,
+    e.end_time,
+    e.is_recurring,
+    e.notes,
+    e.is_active,
+    e.created_at,
+    e.updated_at
+FROM employee_availability e
+INNER JOIN restaurants r ON e.restaurant_id = r.id;
+
+-- 遷移 leave_requests 表數據
+INSERT INTO leave_requests_new (
+    id, employee_id, leave_type_id, restaurant_id, start_date, end_date, start_period, end_period, days_count, reason, attachments, status, approval_chain, current_approval_level, required_approval_levels, final_approver_id, final_approved_at, rejection_reason, cancelled_by, cancelled_at, cancellation_reason, affects_schedules, schedule_conflicts_resolved, notes, admin_notes, created_at, updated_at, submitted_at
+) SELECT
+    l.id,
+    l.employee_id,
+    l.leave_type_id,
+    r.public_id as restaurant_id,
+    l.start_date,
+    l.end_date,
+    l.start_period,
+    l.end_period,
+    l.days_count,
+    l.reason,
+    l.attachments,
+    l.status,
+    l.approval_chain,
+    l.current_approval_level,
+    l.required_approval_levels,
+    l.final_approver_id,
+    l.final_approved_at,
+    l.rejection_reason,
+    l.cancelled_by,
+    l.cancelled_at,
+    l.cancellation_reason,
+    l.affects_schedules,
+    l.schedule_conflicts_resolved,
+    l.notes,
+    l.admin_notes,
+    l.created_at,
+    l.updated_at,
+    l.submitted_at
+FROM leave_requests l
+INNER JOIN restaurants r ON l.restaurant_id = r.id;
+
+-- 遷移 leave_approval_rules 表數據
+INSERT INTO leave_approval_rules_new (
+    id, restaurant_id, leave_type_id, rule_name, description, approval_level, approver_role, approver_user_id, conditions, auto_approve_enabled, auto_approve_conditions, auto_escalate_hours, notify_on_submit, notify_on_approve, notify_on_reject, priority, is_active, created_by, updated_by, created_at, updated_at
+) SELECT
+    l.id,
+    r.public_id as restaurant_id,
+    l.leave_type_id,
+    l.rule_name,
+    l.description,
+    l.approval_level,
+    l.approver_role,
+    l.approver_user_id,
+    l.conditions,
+    l.auto_approve_enabled,
+    l.auto_approve_conditions,
+    l.auto_escalate_hours,
+    l.notify_on_submit,
+    l.notify_on_approve,
+    l.notify_on_reject,
+    l.priority,
+    l.is_active,
+    l.created_by,
+    l.updated_by,
+    l.created_at,
+    l.updated_at
+FROM leave_approval_rules l
+INNER JOIN restaurants r ON l.restaurant_id = r.id;
+
+-- 遷移 employee_leave_balances 表數據
+INSERT INTO employee_leave_balances_new (
+    id, employee_id, leave_type_id, restaurant_id, year, total_days, used_days, pending_days, carryover_from_previous, carryover_to_next, carryover_expires_at, manual_adjustment, adjustment_reason, adjusted_by, adjusted_at, created_at, updated_at, last_updated_by
+) SELECT
+    e.id,
+    e.employee_id,
+    e.leave_type_id,
+    r.public_id as restaurant_id,
+    e.year,
+    e.total_days,
+    e.used_days,
+    e.pending_days,
+    e.carryover_from_previous,
+    e.carryover_to_next,
+    e.carryover_expires_at,
+    e.manual_adjustment,
+    e.adjustment_reason,
+    e.adjusted_by,
+    e.adjusted_at,
+    e.created_at,
+    e.updated_at,
+    e.last_updated_by
+FROM employee_leave_balances e
+INNER JOIN restaurants r ON e.restaurant_id = r.id;
+
+-- 重新啟用外鍵約束
+PRAGMA foreign_keys=ON;

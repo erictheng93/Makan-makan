@@ -1,0 +1,953 @@
+{
+  "aggregate": {
+    "counters": {
+      "vusers.created_by_name.Customer WebSocket Connection": 9664,
+      "vusers.created": 19500,
+      "errors.Unexpected server response: 404": 37488,
+      "vusers.failed": 19500,
+      "vusers.created_by_name.Message Flood Test": 2386,
+      "vusers.created_by_name.Admin WebSocket Connection": 7215,
+      "vusers.created_by_name.Kitchen WebSocket Connection": 235,
+      "errors.ECONNREFUSED": 1512
+    },
+    "rates": {},
+    "firstCounterAt": 1762176436318,
+    "lastCounterAt": 1762176916864,
+    "firstMetricAt": 1762176436318,
+    "lastMetricAt": 1762176916864,
+    "period": 1762176910000,
+    "summaries": {},
+    "histograms": {}
+  },
+  "intermediate": [
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 7,
+        "vusers.created": 20,
+        "errors.Unexpected server response: 404": 40,
+        "vusers.failed": 20,
+        "vusers.created_by_name.Message Flood Test": 1,
+        "vusers.created_by_name.Admin WebSocket Connection": 12
+      },
+      "rates": {},
+      "firstCounterAt": 1762176436318,
+      "lastCounterAt": 1762176439557,
+      "firstMetricAt": 1762176436318,
+      "lastMetricAt": 1762176439557,
+      "period": "1762176430000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 29,
+        "vusers.created": 50,
+        "errors.Unexpected server response: 404": 100,
+        "vusers.failed": 50,
+        "vusers.created_by_name.Message Flood Test": 4,
+        "vusers.created_by_name.Admin WebSocket Connection": 17
+      },
+      "rates": {},
+      "firstCounterAt": 1762176440300,
+      "lastCounterAt": 1762176449551,
+      "firstMetricAt": 1762176440300,
+      "lastMetricAt": 1762176449551,
+      "period": "1762176440000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 19,
+        "vusers.created": 50,
+        "errors.Unexpected server response: 404": 100,
+        "vusers.failed": 50,
+        "vusers.created_by_name.Admin WebSocket Connection": 21,
+        "vusers.created_by_name.Message Flood Test": 8,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176450300,
+      "lastCounterAt": 1762176459564,
+      "firstMetricAt": 1762176450300,
+      "lastMetricAt": 1762176459564,
+      "period": "1762176450000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 24,
+        "vusers.created": 50,
+        "errors.Unexpected server response: 404": 100,
+        "vusers.failed": 50,
+        "vusers.created_by_name.Customer WebSocket Connection": 20,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 1,
+        "vusers.created_by_name.Message Flood Test": 5
+      },
+      "rates": {},
+      "firstCounterAt": 1762176460300,
+      "lastCounterAt": 1762176469553,
+      "firstMetricAt": 1762176460300,
+      "lastMetricAt": 1762176469553,
+      "period": "1762176460000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 25,
+        "vusers.created": 50,
+        "errors.Unexpected server response: 404": 100,
+        "vusers.failed": 50,
+        "vusers.created_by_name.Admin WebSocket Connection": 17,
+        "vusers.created_by_name.Message Flood Test": 8
+      },
+      "rates": {},
+      "firstCounterAt": 1762176470300,
+      "lastCounterAt": 1762176479560,
+      "firstMetricAt": 1762176470300,
+      "lastMetricAt": 1762176479560,
+      "period": "1762176470000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 19,
+        "vusers.created": 50,
+        "errors.Unexpected server response: 404": 100,
+        "vusers.failed": 50,
+        "vusers.created_by_name.Message Flood Test": 6,
+        "vusers.created_by_name.Customer WebSocket Connection": 24,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 1
+      },
+      "rates": {},
+      "firstCounterAt": 1762176480300,
+      "lastCounterAt": 1762176489552,
+      "firstMetricAt": 1762176480300,
+      "lastMetricAt": 1762176489552,
+      "period": "1762176480000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 24,
+        "vusers.created": 75,
+        "errors.Unexpected server response: 404": 150,
+        "vusers.failed": 75,
+        "vusers.created_by_name.Message Flood Test": 10,
+        "vusers.created_by_name.Customer WebSocket Connection": 41
+      },
+      "rates": {},
+      "firstCounterAt": 1762176490300,
+      "lastCounterAt": 1762176499999,
+      "firstMetricAt": 1762176490300,
+      "lastMetricAt": 1762176499999,
+      "period": "1762176490000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 55,
+        "vusers.created": 126,
+        "errors.Unexpected server response: 404": 252,
+        "vusers.failed": 126,
+        "vusers.created_by_name.Customer WebSocket Connection": 55,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 3,
+        "vusers.created_by_name.Message Flood Test": 13
+      },
+      "rates": {},
+      "firstCounterAt": 1762176500047,
+      "lastCounterAt": 1762176509862,
+      "firstMetricAt": 1762176500047,
+      "lastMetricAt": 1762176509862,
+      "period": "1762176500000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 60,
+        "vusers.created": 163,
+        "errors.Unexpected server response: 404": 326,
+        "vusers.failed": 163,
+        "vusers.created_by_name.Customer WebSocket Connection": 83,
+        "vusers.created_by_name.Message Flood Test": 19,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 1
+      },
+      "rates": {},
+      "firstCounterAt": 1762176510029,
+      "lastCounterAt": 1762176519972,
+      "firstMetricAt": 1762176510029,
+      "lastMetricAt": 1762176519972,
+      "period": "1762176510000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 63,
+        "vusers.created": 192,
+        "errors.Unexpected server response: 404": 384,
+        "vusers.failed": 192,
+        "vusers.created_by_name.Customer WebSocket Connection": 102,
+        "vusers.created_by_name.Message Flood Test": 25,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176520025,
+      "lastCounterAt": 1762176529978,
+      "firstMetricAt": 1762176520025,
+      "lastMetricAt": 1762176529978,
+      "period": "1762176520000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 113,
+        "vusers.created": 226,
+        "errors.Unexpected server response: 404": 452,
+        "vusers.failed": 226,
+        "vusers.created_by_name.Admin WebSocket Connection": 80,
+        "vusers.created_by_name.Message Flood Test": 29,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176530013,
+      "lastCounterAt": 1762176539954,
+      "firstMetricAt": 1762176530013,
+      "lastMetricAt": 1762176539954,
+      "period": "1762176530000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 133,
+        "vusers.created": 261,
+        "errors.Unexpected server response: 404": 522,
+        "vusers.failed": 261,
+        "vusers.created_by_name.Message Flood Test": 31,
+        "vusers.created_by_name.Admin WebSocket Connection": 92,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 5
+      },
+      "rates": {},
+      "firstCounterAt": 1762176540006,
+      "lastCounterAt": 1762176549979,
+      "firstMetricAt": 1762176540006,
+      "lastMetricAt": 1762176549979,
+      "period": "1762176540000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 141,
+        "vusers.created": 293,
+        "errors.Unexpected server response: 404": 530,
+        "vusers.failed": 265,
+        "vusers.created_by_name.Admin WebSocket Connection": 115,
+        "vusers.created_by_name.Message Flood Test": 33,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176550017,
+      "lastCounterAt": 1762176559998,
+      "firstMetricAt": 1762176550017,
+      "lastMetricAt": 1762176559998,
+      "period": "1762176550000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 175,
+        "vusers.created": 327,
+        "vusers.created_by_name.Admin WebSocket Connection": 118,
+        "errors.Unexpected server response: 404": 516,
+        "vusers.failed": 301,
+        "vusers.created_by_name.Message Flood Test": 34,
+        "errors.ECONNREFUSED": 86
+      },
+      "rates": {},
+      "firstCounterAt": 1762176560014,
+      "lastCounterAt": 1762176569970,
+      "firstMetricAt": 1762176560014,
+      "lastMetricAt": 1762176569970,
+      "period": "1762176560000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 184,
+        "vusers.created": 360,
+        "errors.Unexpected server response: 404": 584,
+        "vusers.failed": 353,
+        "vusers.created_by_name.Admin WebSocket Connection": 126,
+        "errors.ECONNREFUSED": 122,
+        "vusers.created_by_name.Message Flood Test": 45,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 5
+      },
+      "rates": {},
+      "firstCounterAt": 1762176570001,
+      "lastCounterAt": 1762176579932,
+      "firstMetricAt": 1762176570001,
+      "lastMetricAt": 1762176579932,
+      "period": "1762176570000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 203,
+        "vusers.created": 394,
+        "errors.ECONNREFUSED": 206,
+        "vusers.failed": 374,
+        "errors.Unexpected server response: 404": 542,
+        "vusers.created_by_name.Admin WebSocket Connection": 143,
+        "vusers.created_by_name.Message Flood Test": 41,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7
+      },
+      "rates": {},
+      "firstCounterAt": 1762176580002,
+      "lastCounterAt": 1762176589986,
+      "firstMetricAt": 1762176580002,
+      "lastMetricAt": 1762176589986,
+      "period": "1762176580000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 209,
+        "vusers.created": 427,
+        "errors.ECONNREFUSED": 328,
+        "vusers.failed": 439,
+        "errors.Unexpected server response: 404": 550,
+        "vusers.created_by_name.Admin WebSocket Connection": 162,
+        "vusers.created_by_name.Message Flood Test": 53,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 3
+      },
+      "rates": {},
+      "firstCounterAt": 1762176590016,
+      "lastCounterAt": 1762176599973,
+      "firstMetricAt": 1762176590016,
+      "lastMetricAt": 1762176599973,
+      "period": "1762176590000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 176,
+        "vusers.created": 457,
+        "errors.Unexpected server response: 404": 506,
+        "vusers.failed": 448,
+        "vusers.created_by_name.Customer WebSocket Connection": 215,
+        "errors.ECONNREFUSED": 390,
+        "vusers.created_by_name.Message Flood Test": 60,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 6
+      },
+      "rates": {},
+      "firstCounterAt": 1762176600003,
+      "lastCounterAt": 1762176609980,
+      "firstMetricAt": 1762176600003,
+      "lastMetricAt": 1762176609980,
+      "period": "1762176600000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 173,
+        "vusers.created": 494,
+        "errors.ECONNREFUSED": 380,
+        "vusers.failed": 400,
+        "errors.Unexpected server response: 404": 420,
+        "vusers.created_by_name.Customer WebSocket Connection": 255,
+        "vusers.created_by_name.Message Flood Test": 62,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176610009,
+      "lastCounterAt": 1762176619998,
+      "firstMetricAt": 1762176610009,
+      "lastMetricAt": 1762176619998,
+      "period": "1762176610000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 252,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1284,
+        "vusers.failed": 642,
+        "vusers.created_by_name.Admin WebSocket Connection": 186,
+        "vusers.created_by_name.Message Flood Test": 55,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7
+      },
+      "rates": {},
+      "firstCounterAt": 1762176620047,
+      "lastCounterAt": 1762176629999,
+      "firstMetricAt": 1762176620047,
+      "lastMetricAt": 1762176629999,
+      "period": "1762176620000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 210,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1058,
+        "vusers.failed": 529,
+        "vusers.created_by_name.Customer WebSocket Connection": 232,
+        "vusers.created_by_name.Message Flood Test": 51,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7
+      },
+      "rates": {},
+      "firstCounterAt": 1762176630047,
+      "lastCounterAt": 1762176639998,
+      "firstMetricAt": 1762176630047,
+      "lastMetricAt": 1762176639998,
+      "period": "1762176630000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 241,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 190,
+        "vusers.created_by_name.Message Flood Test": 62,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7
+      },
+      "rates": {},
+      "firstCounterAt": 1762176640028,
+      "lastCounterAt": 1762176649998,
+      "firstMetricAt": 1762176640028,
+      "lastMetricAt": 1762176649998,
+      "period": "1762176640000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 245,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 187,
+        "vusers.created_by_name.Message Flood Test": 64,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176650008,
+      "lastCounterAt": 1762176659998,
+      "firstMetricAt": 1762176650008,
+      "lastMetricAt": 1762176659998,
+      "period": "1762176650000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Message Flood Test": 67,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Customer WebSocket Connection": 246,
+        "vusers.created_by_name.Admin WebSocket Connection": 177,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 10
+      },
+      "rates": {},
+      "firstCounterAt": 1762176660005,
+      "lastCounterAt": 1762176669999,
+      "firstMetricAt": 1762176660005,
+      "lastMetricAt": 1762176669999,
+      "period": "1762176660000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Message Flood Test": 53,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 994,
+        "vusers.failed": 497,
+        "vusers.created_by_name.Customer WebSocket Connection": 267,
+        "vusers.created_by_name.Admin WebSocket Connection": 177,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 3
+      },
+      "rates": {},
+      "firstCounterAt": 1762176670007,
+      "lastCounterAt": 1762176679999,
+      "firstMetricAt": 1762176670007,
+      "lastMetricAt": 1762176679999,
+      "period": "1762176670000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Message Flood Test": 64,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1006,
+        "vusers.failed": 503,
+        "vusers.created_by_name.Customer WebSocket Connection": 242,
+        "vusers.created_by_name.Admin WebSocket Connection": 189,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 5
+      },
+      "rates": {},
+      "firstCounterAt": 1762176680003,
+      "lastCounterAt": 1762176689998,
+      "firstMetricAt": 1762176680003,
+      "lastMetricAt": 1762176689998,
+      "period": "1762176680000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 231,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 204,
+        "vusers.created_by_name.Message Flood Test": 59,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 6
+      },
+      "rates": {},
+      "firstCounterAt": 1762176690004,
+      "lastCounterAt": 1762176699998,
+      "firstMetricAt": 1762176690004,
+      "lastMetricAt": 1762176699998,
+      "period": "1762176690000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 185,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 998,
+        "vusers.failed": 499,
+        "vusers.created_by_name.Message Flood Test": 63,
+        "vusers.created_by_name.Customer WebSocket Connection": 243,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 9
+      },
+      "rates": {},
+      "firstCounterAt": 1762176700006,
+      "lastCounterAt": 1762176709998,
+      "firstMetricAt": 1762176700006,
+      "lastMetricAt": 1762176709998,
+      "period": "1762176700000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 193,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1002,
+        "vusers.failed": 501,
+        "vusers.created_by_name.Customer WebSocket Connection": 235,
+        "vusers.created_by_name.Message Flood Test": 68,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176710008,
+      "lastCounterAt": 1762176719998,
+      "firstMetricAt": 1762176710008,
+      "lastMetricAt": 1762176719998,
+      "period": "1762176710000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 243,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 177,
+        "vusers.created_by_name.Message Flood Test": 71,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 9
+      },
+      "rates": {},
+      "firstCounterAt": 1762176720006,
+      "lastCounterAt": 1762176729998,
+      "firstMetricAt": 1762176720006,
+      "lastMetricAt": 1762176729998,
+      "period": "1762176720000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 194,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Message Flood Test": 58,
+        "vusers.created_by_name.Customer WebSocket Connection": 244,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 4
+      },
+      "rates": {},
+      "firstCounterAt": 1762176730005,
+      "lastCounterAt": 1762176739998,
+      "firstMetricAt": 1762176730005,
+      "lastMetricAt": 1762176739998,
+      "period": "1762176730000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 241,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 190,
+        "vusers.created_by_name.Message Flood Test": 63,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 6
+      },
+      "rates": {},
+      "firstCounterAt": 1762176740003,
+      "lastCounterAt": 1762176749998,
+      "firstMetricAt": 1762176740003,
+      "lastMetricAt": 1762176749998,
+      "period": "1762176740000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 259,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 183,
+        "vusers.created_by_name.Message Flood Test": 56,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176750002,
+      "lastCounterAt": 1762176759998,
+      "firstMetricAt": 1762176750002,
+      "lastMetricAt": 1762176759998,
+      "period": "1762176750000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 253,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Admin WebSocket Connection": 178,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 5,
+        "vusers.created_by_name.Message Flood Test": 64
+      },
+      "rates": {},
+      "firstCounterAt": 1762176760004,
+      "lastCounterAt": 1762176769998,
+      "firstMetricAt": 1762176760004,
+      "lastMetricAt": 1762176769998,
+      "period": "1762176760000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 244,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Message Flood Test": 76,
+        "vusers.created_by_name.Admin WebSocket Connection": 173,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7
+      },
+      "rates": {},
+      "firstCounterAt": 1762176770004,
+      "lastCounterAt": 1762176779998,
+      "firstMetricAt": 1762176770004,
+      "lastMetricAt": 1762176779998,
+      "period": "1762176770000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 176,
+        "vusers.created": 500,
+        "errors.Unexpected server response: 404": 1000,
+        "vusers.failed": 500,
+        "vusers.created_by_name.Customer WebSocket Connection": 260,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 6,
+        "vusers.created_by_name.Message Flood Test": 58
+      },
+      "rates": {},
+      "firstCounterAt": 1762176780003,
+      "lastCounterAt": 1762176789998,
+      "firstMetricAt": 1762176780003,
+      "lastMetricAt": 1762176789998,
+      "period": "1762176780000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 348,
+        "vusers.created": 668,
+        "errors.Unexpected server response: 404": 1332,
+        "vusers.failed": 666,
+        "vusers.created_by_name.Admin WebSocket Connection": 239,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 7,
+        "vusers.created_by_name.Message Flood Test": 74
+      },
+      "rates": {},
+      "firstCounterAt": 1762176790005,
+      "lastCounterAt": 1762176799999,
+      "firstMetricAt": 1762176790005,
+      "lastMetricAt": 1762176799999,
+      "period": "1762176790000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 1984,
+        "vusers.failed": 992,
+        "vusers.created_by_name.Message Flood Test": 140,
+        "vusers.created": 1000,
+        "vusers.created_by_name.Customer WebSocket Connection": 477,
+        "vusers.created_by_name.Admin WebSocket Connection": 377,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 6
+      },
+      "rates": {},
+      "firstCounterAt": 1762176800002,
+      "lastCounterAt": 1762176809999,
+      "firstMetricAt": 1762176800002,
+      "lastMetricAt": 1762176809999,
+      "period": "1762176800000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 2012,
+        "vusers.failed": 1006,
+        "vusers.created_by_name.Customer WebSocket Connection": 517,
+        "vusers.created": 1000,
+        "vusers.created_by_name.Admin WebSocket Connection": 350,
+        "vusers.created_by_name.Message Flood Test": 124,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 9
+      },
+      "rates": {},
+      "firstCounterAt": 1762176810002,
+      "lastCounterAt": 1762176819999,
+      "firstMetricAt": 1762176810002,
+      "lastMetricAt": 1762176819999,
+      "period": "1762176810000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 2004,
+        "vusers.failed": 1002,
+        "vusers.created_by_name.Admin WebSocket Connection": 375,
+        "vusers.created": 1000,
+        "vusers.created_by_name.Customer WebSocket Connection": 505,
+        "vusers.created_by_name.Message Flood Test": 107,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 13
+      },
+      "rates": {},
+      "firstCounterAt": 1762176820009,
+      "lastCounterAt": 1762176829999,
+      "firstMetricAt": 1762176820009,
+      "lastMetricAt": 1762176829999,
+      "period": "1762176820000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 2000,
+        "vusers.failed": 1000,
+        "vusers.created_by_name.Admin WebSocket Connection": 380,
+        "vusers.created": 1000,
+        "vusers.created_by_name.Customer WebSocket Connection": 476,
+        "vusers.created_by_name.Message Flood Test": 129,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 15
+      },
+      "rates": {},
+      "firstCounterAt": 1762176830007,
+      "lastCounterAt": 1762176839999,
+      "firstMetricAt": 1762176830007,
+      "lastMetricAt": 1762176839999,
+      "period": "1762176830000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 1986,
+        "vusers.failed": 993,
+        "vusers.created_by_name.Customer WebSocket Connection": 503,
+        "vusers.created": 1000,
+        "vusers.created_by_name.Admin WebSocket Connection": 355,
+        "vusers.created_by_name.Message Flood Test": 128,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 14
+      },
+      "rates": {},
+      "firstCounterAt": 1762176840005,
+      "lastCounterAt": 1762176849999,
+      "firstMetricAt": 1762176840005,
+      "lastMetricAt": 1762176849999,
+      "period": "1762176840000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "errors.Unexpected server response: 404": 1414,
+        "vusers.failed": 707,
+        "vusers.created_by_name.Customer WebSocket Connection": 350,
+        "vusers.created": 698,
+        "vusers.created_by_name.Admin WebSocket Connection": 256,
+        "vusers.created_by_name.Message Flood Test": 76,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 16
+      },
+      "rates": {},
+      "firstCounterAt": 1762176850005,
+      "lastCounterAt": 1762176859986,
+      "firstMetricAt": 1762176850005,
+      "lastMetricAt": 1762176859986,
+      "period": "1762176850000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Message Flood Test": 9,
+        "vusers.created": 100,
+        "errors.Unexpected server response: 404": 202,
+        "vusers.failed": 101,
+        "vusers.created_by_name.Customer WebSocket Connection": 48,
+        "vusers.created_by_name.Admin WebSocket Connection": 41,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176860002,
+      "lastCounterAt": 1762176869991,
+      "firstMetricAt": 1762176860002,
+      "lastMetricAt": 1762176869991,
+      "period": "1762176860000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 27,
+        "vusers.created": 100,
+        "errors.Unexpected server response: 404": 198,
+        "vusers.failed": 99,
+        "vusers.created_by_name.Message Flood Test": 17,
+        "vusers.created_by_name.Customer WebSocket Connection": 54,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176870030,
+      "lastCounterAt": 1762176879986,
+      "firstMetricAt": 1762176870030,
+      "lastMetricAt": 1762176879986,
+      "period": "1762176870000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 42,
+        "vusers.created": 100,
+        "errors.Unexpected server response: 404": 200,
+        "vusers.failed": 100,
+        "vusers.created_by_name.Customer WebSocket Connection": 45,
+        "vusers.created_by_name.Message Flood Test": 13
+      },
+      "rates": {},
+      "firstCounterAt": 1762176880006,
+      "lastCounterAt": 1762176889986,
+      "firstMetricAt": 1762176880006,
+      "lastMetricAt": 1762176889986,
+      "period": "1762176880000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 48,
+        "vusers.created": 100,
+        "errors.Unexpected server response: 404": 202,
+        "vusers.failed": 101,
+        "vusers.created_by_name.Admin WebSocket Connection": 42,
+        "vusers.created_by_name.Message Flood Test": 10
+      },
+      "rates": {},
+      "firstCounterAt": 1762176890001,
+      "lastCounterAt": 1762176899990,
+      "firstMetricAt": 1762176890001,
+      "lastMetricAt": 1762176899990,
+      "period": "1762176890000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Admin WebSocket Connection": 38,
+        "vusers.created": 100,
+        "errors.Unexpected server response: 404": 200,
+        "vusers.failed": 100,
+        "vusers.created_by_name.Customer WebSocket Connection": 51,
+        "vusers.created_by_name.Message Flood Test": 9,
+        "vusers.created_by_name.Kitchen WebSocket Connection": 2
+      },
+      "rates": {},
+      "firstCounterAt": 1762176900030,
+      "lastCounterAt": 1762176909989,
+      "firstMetricAt": 1762176900030,
+      "lastMetricAt": 1762176909989,
+      "period": "1762176900000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.Customer WebSocket Connection": 31,
+        "vusers.created": 69,
+        "errors.Unexpected server response: 404": 138,
+        "vusers.failed": 69,
+        "vusers.created_by_name.Message Flood Test": 11,
+        "vusers.created_by_name.Admin WebSocket Connection": 27
+      },
+      "rates": {},
+      "firstCounterAt": 1762176910029,
+      "lastCounterAt": 1762176916864,
+      "firstMetricAt": 1762176910029,
+      "lastMetricAt": 1762176916864,
+      "period": "1762176910000",
+      "summaries": {},
+      "histograms": {}
+    }
+  ]
+}

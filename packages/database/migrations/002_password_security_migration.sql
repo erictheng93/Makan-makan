@@ -42,7 +42,7 @@ CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
 
 -- Log the migration
-INSERT INTO audit_logs (user_id, action, resource, details, created_at)
+INSERT INTO audit_logs (user_id, action, resource, description, created_at)
 VALUES (
     NULL,
     'schema_migration',

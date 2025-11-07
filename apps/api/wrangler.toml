@@ -21,6 +21,16 @@ LOG_LEVEL = "debug"
 # JWT_SECRET - SECURITY: Use `wrangler secret put JWT_SECRET` instead of hardcoding
 # For local development, set via environment variable or use a local .dev.vars file
 
+# Notification Provider Configuration
+# SECURITY: API keys should be set via `wrangler secret put` command
+# Email provider (Resend)
+NOTIFICATION_FROM_EMAIL = "notifications@makanmakan.com"
+# RESEND_API_KEY - Set via: wrangler secret put RESEND_API_KEY
+# SMS provider (Twilio)
+# TWILIO_ACCOUNT_SID - Set via: wrangler secret put TWILIO_ACCOUNT_SID
+# TWILIO_AUTH_TOKEN - Set via: wrangler secret put TWILIO_AUTH_TOKEN
+TWILIO_PHONE_NUMBER = "+1234567890"  # Update with actual number
+
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
@@ -62,6 +72,9 @@ LOG_LEVEL = "debug"
 MAX_REQUEST_SIZE = "50MB"
 CACHE_TTL = "60"
 RATE_LIMIT_REQUESTS = "1000"
+# Notification configuration
+NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmakan.com"
+TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.development.d1_databases]]
 binding = "DB"
@@ -96,6 +109,9 @@ LOG_LEVEL = "info"
 MAX_REQUEST_SIZE = "10MB"
 CACHE_TTL = "300"
 RATE_LIMIT_REQUESTS = "500"
+# Notification configuration
+NOTIFICATION_FROM_EMAIL = "staging-notifications@makanmakan.com"
+TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -130,6 +146,9 @@ LOG_LEVEL = "warn"
 MAX_REQUEST_SIZE = "5MB"
 CACHE_TTL = "600"
 RATE_LIMIT_REQUESTS = "100"
+# Notification configuration
+NOTIFICATION_FROM_EMAIL = "notifications@makanmakan.com"
+TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.production.d1_databases]]
 binding = "DB"

@@ -276,8 +276,7 @@ export class SeatService extends BaseService {
 
       return true
     } catch (error) {
-      console.error('Delete seat error:', error)
-      return false
+      this.handleError(error, 'deleteSeat')
     }
   }
 
@@ -292,8 +291,7 @@ export class SeatService extends BaseService {
 
       return true
     } catch (error) {
-      console.error('Delete seats for table error:', error)
-      return false
+      this.handleError(error, 'deleteSeatsForTable')
     }
   }
 
@@ -318,8 +316,7 @@ export class SeatService extends BaseService {
 
       return true
     } catch (error) {
-      console.error('Occupy seat error:', error)
-      return false
+      this.handleError(error, 'occupySeat')
     }
   }
 
@@ -351,8 +348,7 @@ export class SeatService extends BaseService {
 
       return true
     } catch (error) {
-      console.error('Release seat error:', error)
-      return false
+      this.handleError(error, 'releaseSeat')
     }
   }
 
@@ -528,7 +524,7 @@ export class SeatService extends BaseService {
    * 生成座位 QR Code 內容
    */
   private generateSeatQRCode(restaurantId: number, tableId: number, seatNumber: string): string {
-    const baseUrl = process.env.CLIENT_BASE_URL || 'https://makanmakan.com'
+    const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
     const qrData = {
       type: 'seat',
       restaurantId,
@@ -592,7 +588,8 @@ export class SeatService extends BaseService {
         })
         .where(eq(seats.id, seatId))
     } catch (error) {
-      console.error('Update seat usage stats error:', error)
+      // Silent failure for usage stats update - non-critical operation
+      // Error will be logged by the parent method's handleError
     }
   }
 }

@@ -4,18 +4,48 @@ import authRouter from '../routes/auth'
 import { createMockContext, mockEnv } from './setup'
 import * as bcrypt from 'bcryptjs'
 
+// Mock @makanmakan/database to provide AuthService
+vi.mock('@makanmakan/database', () => {
+  return {
+    AuthService: vi.fn().mockImplementation(() => ({
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      validateToken: vi.fn(),
+      refreshToken: vi.fn()
+    }))
+  }
+})
+
 // Mock bcryptjs
 vi.mock('bcryptjs', () => ({
   compare: vi.fn(),
   hash: vi.fn()
 }))
 
+// Import after mocking
+import { AuthService } from '@makanmakan/database'
+
 describe('Auth Routes', () => {
   let app: Hono<{ Bindings: typeof mockEnv }>
+  let mockAuthServiceInstance: any
 
   beforeEach(() => {
     app = new Hono<{ Bindings: typeof mockEnv }>()
     app.route('/auth', authRouter)
+
+    // Get the mock AuthService instance
+    mockAuthServiceInstance = {
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      validateToken: vi.fn(),
+      refreshToken: vi.fn()
+    }
+
+    // Configure AuthService mock to return our instance
+    vi.mocked(AuthService).mockImplementation(() => mockAuthServiceInstance)
+
     vi.clearAllMocks()
   })
 
@@ -24,25 +54,20 @@ describe('Auth Routes', () => {
       const mockUser = {
         id: 1,
         username: 'testuser',
-        password: '$2b$12$hashedpassword',
         role: 1,
-        restaurant_id: 1,
-        status: 'active',
-        created_at: new Date().toISOString()
+        restaurantId: 1
       }
 
-      // Mock database response
-      const mockPrepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(mockUser)
-        })
+      // Mock AuthService.login to return success
+      mockAuthServiceInstance.login.mockResolvedValue({
+        success: true,
+        tokens: {
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+          expiresAt: Date.now() + 3600000
+        },
+        user: mockUser
       })
-      
-      const mockRun = vi.fn().mockResolvedValue({ success: true })
-      mockEnv.DB.prepare = mockPrepare
-
-      // Mock bcrypt comparison
-      vi.mocked(bcrypt.compare).mockResolvedValue(true as any)
 
       const req = new Request('http://localhost/auth/login', {
         method: 'POST',
@@ -58,20 +83,17 @@ describe('Auth Routes', () => {
 
       expect(response.status).toBe(200)
       expect(result.success).toBe(true)
-      expect(result.data.token).toBeDefined()
+      expect(result.data.token).toBe('mock-access-token')
       expect(result.data.user.username).toBe('testuser')
       expect(result.data.user.role).toBe(1)
     })
 
     it('should reject login with invalid credentials', async () => {
-      // Mock database response - user not found
-      const mockPrepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null)
-        })
+      // Mock AuthService.login to return failure
+      mockAuthServiceInstance.login.mockResolvedValue({
+        success: false,
+        error: 'Invalid username or password'
       })
-      
-      mockEnv.DB.prepare = mockPrepare
 
       const req = new Request('http://localhost/auth/login', {
         method: 'POST',
@@ -91,27 +113,11 @@ describe('Auth Routes', () => {
     })
 
     it('should reject login with wrong password', async () => {
-      const mockUser = {
-        id: 1,
-        username: 'testuser',
-        password: '$2b$12$hashedpassword',
-        role: 1,
-        restaurant_id: 1,
-        status: 'active',
-        created_at: new Date().toISOString()
-      }
-
-      // Mock database response
-      const mockPrepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(mockUser)
-        })
+      // Mock AuthService.login to return failure for wrong password
+      mockAuthServiceInstance.login.mockResolvedValue({
+        success: false,
+        error: 'Invalid username or password'
       })
-      
-      mockEnv.DB.prepare = mockPrepare
-
-      // Mock bcrypt comparison to return false
-      vi.mocked(bcrypt.compare).mockResolvedValue(false as any)
 
       const req = new Request('http://localhost/auth/login', {
         method: 'POST',

@@ -219,7 +219,7 @@ export class RequestDeduplicator {
    */
   private evictOldest(): void {
     let oldestKey: string | null = null
-    let oldestTime = Date.now()
+    let oldestTime = Infinity // Fix: Use Infinity to find oldest entry
 
     for (const [key, entry] of this.cache.entries()) {
       if (entry.timestamp < oldestTime) {

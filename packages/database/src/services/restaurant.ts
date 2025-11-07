@@ -102,9 +102,32 @@ export class RestaurantService extends BaseService {
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-      // 查詢餐廳列表
+      // 查詢餐廳列表 (only select needed fields for list view - excludes large JSON fields)
       const restaurantList = await this.db
-        .select()
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          type: restaurants.type,
+          category: restaurants.category,
+          description: restaurants.description,
+          address: restaurants.address,
+          district: restaurants.district,
+          city: restaurants.city,
+          phone: restaurants.phone,
+          email: restaurants.email,
+          website: restaurants.website,
+          isAvailable: restaurants.isAvailable,
+          isActive: restaurants.isActive,
+          logoUrl: restaurants.logoUrl,
+          bannerUrl: restaurants.bannerUrl,
+          rating: restaurants.rating,
+          reviewCount: restaurants.reviewCount,
+          totalOrders: restaurants.totalOrders,
+          enableShopMode: restaurants.enableShopMode,
+          shopQrCode: restaurants.shopQrCode,
+          createdAt: restaurants.createdAt,
+          updatedAt: restaurants.updatedAt
+        })
         .from(restaurants)
         .where(whereClause)
         .orderBy(desc(restaurants.rating), asc(restaurants.name))

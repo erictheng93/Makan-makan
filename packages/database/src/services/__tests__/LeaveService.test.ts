@@ -6,24 +6,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { LeaveService } from '../LeaveService'
 import type { LeaveType, LeaveBalance, LeaveRequest } from '../LeaveService'
-
-// Mock database
-const mockDb = {
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-}
-
-const mockEnv = {
-  DB: mockDb,
-}
+import { createMockDatabase, createMockEnv, createQueryChain } from './helpers/mockD1'
 
 describe('LeaveService', () => {
   let service: LeaveService
+  let mockDb: any
+  let mockEnv: any
 
   beforeEach(() => {
-    service = new LeaveService(mockDb as any, mockEnv as any)
+    mockDb = createMockDatabase()
+    mockEnv = createMockEnv()
+    service = new LeaveService(mockDb as any, mockEnv)
     vi.clearAllMocks()
   })
 
@@ -66,13 +59,8 @@ describe('LeaveService', () => {
         },
       ]
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockResolvedValue(mockLeaveTypes),
-          }),
-        }),
-      })
+      // Mock the select query to return mockLeaveTypes
+      mockDb.select.mockReturnValue(createQueryChain(mockLeaveTypes))
 
       const result = await service.getLeaveTypes(1)
 
@@ -161,13 +149,7 @@ describe('LeaveService', () => {
         accrualAmount: 12,
       }
 
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([mockUpdatedLeaveType]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([mockUpdatedLeaveType])) })
 
       const result = await service.updateLeaveType(1, updates)
 
@@ -176,59 +158,63 @@ describe('LeaveService', () => {
     })
 
     it('should soft delete a leave type', async () => {
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      })
+      // Mock select to return a non-system-defined leave type
+      const existingType = {
+        id: 1,
+        isSystemDefined: false,
+        isActive: true
+      }
+      mockDb.select.mockReturnValue(createQueryChain([existingType]))
+
+      // Mock update operation
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([])) })
 
       const result = await service.deleteLeaveType(1)
 
       expect(result).toBe(true)
+      expect(mockDb.select).toHaveBeenCalled()
       expect(mockDb.update).toHaveBeenCalled()
     })
   })
 
   describe('Leave Balance Management', () => {
     it('should get employee leave balances for a year', async () => {
-      const mockBalances = [
+      // Mock data structure matching select query result with innerJoin
+      const mockQueryResult = [
         {
-          id: 1,
-          employeeId: 1,
-          leaveTypeId: 1,
-          restaurantId: 1,
-          year: 2025,
-          totalDays: 14,
-          usedDays: 3,
-          pendingDays: 2,
-          remainingDays: 9,
-          carryoverFromPrevious: 0,
-          carryoverToNext: 0,
-          carryoverExpiresAt: null,
-          manualAdjustment: 0,
-          adjustmentReason: null,
-          adjustedBy: null,
-          adjustedAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastUpdatedBy: null,
+          balance: {
+            id: 1,
+            employeeId: 1,
+            leaveTypeId: 1,
+            restaurantId: 1,
+            year: 2025,
+            totalDays: 14,
+            usedDays: 3,
+            pendingDays: 2,
+            carryoverFromPrevious: 0,
+            carryoverToNext: 0,
+            carryoverExpiresAt: null,
+            manualAdjustment: 0,
+            adjustmentReason: null,
+            adjustedBy: null,
+            adjustedAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastUpdatedBy: null,
+          },
           leaveType: {
             id: 1,
             code: 'ANNUAL',
             name: '年假',
+            accrualType: 'yearly',
+            isPaid: true,
             color: '#3B82F6',
             icon: '🏖️',
           },
         },
       ]
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(mockBalances),
-          }),
-        }),
-      })
+      mockDb.select.mockReturnValue(createQueryChain(mockQueryResult))
 
       const result = await service.getEmployeeLeaveBalances(1, 2025)
 
@@ -262,11 +248,8 @@ describe('LeaveService', () => {
         manualAdjustment: 0,
       }
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([existingBalance]),
-        }),
-      })
+      // Mock select to return existing balance
+      mockDb.select.mockReturnValue(createQueryChain([existingBalance]))
 
       const updatedBalance = {
         ...existingBalance,
@@ -276,12 +259,9 @@ describe('LeaveService', () => {
         adjustmentReason: 'Extra annual leave',
       }
 
+      // Mock update to return updated balance
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([updatedBalance]),
-          }),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([updatedBalance]))
       })
 
       const result = await service.adjustLeaveBalance(adjustment)
@@ -339,18 +319,14 @@ describe('LeaveService', () => {
       }
 
       // Mock balance check
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
+      mockDb.select.mockReturnValue(createQueryChain([
             {
               totalDays: 14,
               usedDays: 3,
               pendingDays: 0,
               remainingDays: 11,
             },
-          ]),
-        }),
-      })
+          ]))
 
       // Mock insert
       mockDb.insert.mockReturnValue({
@@ -360,11 +336,7 @@ describe('LeaveService', () => {
       })
 
       // Mock update balance
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([])) })
 
       const result = await service.createLeaveRequest(newRequest)
 
@@ -387,38 +359,39 @@ describe('LeaveService', () => {
         requiredApprovalLevels: 1,
       }
 
-      // Mock get request
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([
-                {
-                  ...existingRequest,
-                  leaveType: {
-                    requiredApprovalLevels: 1,
-                  },
-                },
-              ]),
-            }),
-          }),
-        }),
-      })
+      // Mock get request (first select call) - matching getLeaveRequest structure
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          request: {
+            ...existingRequest,
+          },
+          employee: {
+            id: 1,
+            fullName: 'Test Employee',
+            email: 'test@example.com',
+            role: 2
+          },
+          leaveType: {
+            id: 1,
+            code: 'ANNUAL',
+            name: '年假',
+            isPaid: true,
+            color: '#3B82F6',
+            requiredApprovalLevels: 1
+          },
+        },
+      ]))
 
-      // Mock get balance
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              totalDays: 14,
-              usedDays: 3,
-              pendingDays: 5,
-              remainingDays: 6,
-            },
-          ]),
-        }),
-      })
+      // Mock get balance (second select call)
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          id: 1,
+          totalDays: 14,
+          usedDays: 3,
+          pendingDays: 5,
+          remainingDays: 6,
+        },
+      ]))
 
       const approvedRequest = {
         ...existingRequest,
@@ -427,20 +400,14 @@ describe('LeaveService', () => {
         finalApprovedAt: Date.now(),
       }
 
-      // Mock update request
+      // Mock update request (first update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([approvedRequest]),
-          }),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([approvedRequest]))
       })
 
-      // Mock update balance
+      // Mock update balance (second update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([]))
       })
 
       const result = await service.approveLeaveRequest(1, 1, 'Approved')
@@ -459,26 +426,36 @@ describe('LeaveService', () => {
         totalDays: 5,
       }
 
-      // Mock get request
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([existingRequest]),
-          }),
-        }),
-      })
+      // Mock get request (first select call) - matching getLeaveRequest structure
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          request: {
+            ...existingRequest,
+          },
+          employee: {
+            id: 1,
+            fullName: 'Test Employee',
+            email: 'test@example.com',
+            role: 2
+          },
+          leaveType: {
+            id: 1,
+            code: 'ANNUAL',
+            name: '年假',
+            isPaid: true,
+            color: '#3B82F6',
+            requiredApprovalLevels: 1
+          },
+        },
+      ]))
 
-      // Mock get balance
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              pendingDays: 5,
-            },
-          ]),
-        }),
-      })
+      // Mock get balance (second select call)
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          id: 1,
+          pendingDays: 5,
+        },
+      ]))
 
       const rejectedRequest = {
         ...existingRequest,
@@ -488,20 +465,14 @@ describe('LeaveService', () => {
         rejectedAt: Date.now(),
       }
 
-      // Mock update request
+      // Mock update request (first update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([rejectedRequest]),
-          }),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([rejectedRequest]))
       })
 
-      // Mock update balance
+      // Mock update balance (second update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([]))
       })
 
       const result = await service.rejectLeaveRequest(1, 1, 'Insufficient coverage')
@@ -520,26 +491,36 @@ describe('LeaveService', () => {
         totalDays: 5,
       }
 
-      // Mock get request
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([existingRequest]),
-          }),
-        }),
-      })
+      // Mock get request (first select call) - matching getLeaveRequest structure
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          request: {
+            ...existingRequest,
+          },
+          employee: {
+            id: 1,
+            fullName: 'Test Employee',
+            email: 'test@example.com',
+            role: 2
+          },
+          leaveType: {
+            id: 1,
+            code: 'ANNUAL',
+            name: '年假',
+            isPaid: true,
+            color: '#3B82F6',
+            requiredApprovalLevels: 1
+          },
+        },
+      ]))
 
-      // Mock get balance (for approved status)
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              usedDays: 5,
-            },
-          ]),
-        }),
-      })
+      // Mock get balance (second select call)
+      mockDb.select.mockReturnValueOnce(createQueryChain([
+        {
+          id: 1,
+          usedDays: 5,
+        },
+      ]))
 
       const cancelledRequest = {
         ...existingRequest,
@@ -549,20 +530,14 @@ describe('LeaveService', () => {
         cancelledAt: Date.now(),
       }
 
-      // Mock update request
+      // Mock update request (first update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([cancelledRequest]),
-          }),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([cancelledRequest]))
       })
 
-      // Mock update balance
+      // Mock update balance (second update call)
       mockDb.update.mockReturnValueOnce({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
+        set: vi.fn().mockReturnValue(createQueryChain([]))
       })
 
       const result = await service.cancelLeaveRequest(1, 1, 'Plans changed')
@@ -575,13 +550,8 @@ describe('LeaveService', () => {
   describe('Working Day Calculation', () => {
     it('should identify weekday as working day', async () => {
       // Monday 2025-12-01
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      })
+      // Mock select to return no holidays
+      mockDb.select.mockReturnValue(createQueryChain([]))
 
       const result = await service.isWorkingDay(1, '2025-12-01')
 
@@ -589,21 +559,31 @@ describe('LeaveService', () => {
     })
 
     it('should identify weekend as non-working day', async () => {
-      // Saturday 2025-12-06
+      // Saturday 2025-12-06 - Mock as weekend event in calendar
+      mockDb.select.mockReturnValue(createQueryChain([
+        {
+          id: 1,
+          eventDate: '2025-12-06',
+          isWorkingDay: false,
+          eventType: 'weekend'
+        }
+      ]))
+
       const result = await service.isWorkingDay(1, '2025-12-06')
 
       expect(result).toBe(false)
     })
 
     it('should identify holiday as non-working day', async () => {
-      // Mock holiday exists
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: 1, date: '2025-12-25' }]),
-          }),
-        }),
-      })
+      // Mock holiday exists with isWorkingDay = false
+      mockDb.select.mockReturnValue(createQueryChain([
+        {
+          id: 1,
+          eventDate: '2025-12-25',
+          isWorkingDay: false,
+          eventType: 'public_holiday'
+        }
+      ]))
 
       const result = await service.isWorkingDay(1, '2025-12-25')
 
@@ -642,11 +622,7 @@ describe('LeaveService', () => {
       })
 
       // Mock existing balance check (none exist)
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      })
+      mockDb.select.mockReturnValue(createQueryChain([]))
 
       // Mock insert balance
       mockDb.insert.mockReturnValue({

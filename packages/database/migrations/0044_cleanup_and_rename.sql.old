@@ -1,0 +1,319 @@
+-- =====================================================
+-- Migration: 清理和重命名
+-- Version: 0044
+-- Date: 2025-10-27
+-- Description: 刪除舊表，重命名 _new 表為原始名稱，重建索引
+-- Strategy: DROP old tables → RENAME _new tables → CREATE indexes
+-- =====================================================
+
+-- 禁用外鍵約束（在操作期間）
+PRAGMA foreign_keys=OFF;
+
+-- =====================================================
+-- 階段 3: 清理舊表
+-- =====================================================
+
+-- 核心業務表 (5張) - users 表保留到最後處理
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS menu_items;
+DROP TABLE IF EXISTS tables;
+DROP TABLE IF EXISTS orders;
+
+-- 排班系統表 (9張)
+DROP TABLE IF EXISTS shift_templates;
+DROP TABLE IF EXISTS employee_schedules;
+DROP TABLE IF EXISTS scheduling_rules;
+DROP TABLE IF EXISTS scheduling_conflicts;
+DROP TABLE IF EXISTS schedule_swap_requests;
+DROP TABLE IF EXISTS employee_availability;
+DROP TABLE IF EXISTS leave_requests;
+DROP TABLE IF EXISTS leave_approval_rules;
+DROP TABLE IF EXISTS employee_leave_balances;
+
+-- 系統表 (3張)
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS error_reports;
+DROP TABLE IF EXISTS system_alerts;
+
+-- 訂單與促銷表 (3張)
+DROP TABLE IF EXISTS group_orders;
+DROP TABLE IF EXISTS promotions;
+DROP TABLE IF EXISTS customer_reviews;
+
+-- 庫存與設備表 (2張)
+DROP TABLE IF EXISTS inventory_items;
+DROP TABLE IF EXISTS cash_registers;
+
+-- 打印系統表 (3張)
+DROP TABLE IF EXISTS printer_devices;
+DROP TABLE IF EXISTS printer_configurations;
+DROP TABLE IF EXISTS print_templates;
+
+-- 候位系統表 (6張)
+DROP TABLE IF EXISTS waiting_queue;
+DROP TABLE IF EXISTS queue_settings;
+DROP TABLE IF EXISTS queue_displays;
+DROP TABLE IF EXISTS queue_events;
+DROP TABLE IF EXISTS queue_statistics;
+
+-- 餐廳設定表 (4張)
+DROP TABLE IF EXISTS restaurant_settings;
+DROP TABLE IF EXISTS restaurant_business_hours;
+DROP TABLE IF EXISTS restaurant_special_hours;
+DROP TABLE IF EXISTS table_reservations;
+
+-- 其他業務表 (1張)
+DROP TABLE IF EXISTS leave_calendar_events;
+
+-- QR 系統表 (3張)
+DROP TABLE IF EXISTS qr_batches;
+DROP TABLE IF EXISTS qr_codes;
+DROP TABLE IF EXISTS qr_templates;
+
+-- 最後刪除 users 表（因為其他表可能有外鍵引用）
+DROP TABLE IF EXISTS users;
+
+-- =====================================================
+-- 階段 4: 重命名 _new 表為原始名稱
+-- =====================================================
+
+-- 核心業務表 (6張)
+ALTER TABLE users_new RENAME TO users;
+ALTER TABLE categories_new RENAME TO categories;
+ALTER TABLE menu_items_new RENAME TO menu_items;
+ALTER TABLE tables_new RENAME TO tables;
+ALTER TABLE orders_new RENAME TO orders;
+
+-- 排班系統表 (9張)
+ALTER TABLE shift_templates_new RENAME TO shift_templates;
+ALTER TABLE employee_schedules_new RENAME TO employee_schedules;
+ALTER TABLE scheduling_rules_new RENAME TO scheduling_rules;
+ALTER TABLE scheduling_conflicts_new RENAME TO scheduling_conflicts;
+ALTER TABLE schedule_swap_requests_new RENAME TO schedule_swap_requests;
+ALTER TABLE employee_availability_new RENAME TO employee_availability;
+ALTER TABLE leave_requests_new RENAME TO leave_requests;
+ALTER TABLE leave_approval_rules_new RENAME TO leave_approval_rules;
+ALTER TABLE employee_leave_balances_new RENAME TO employee_leave_balances;
+
+-- 系統表 (3張)
+ALTER TABLE audit_logs_new RENAME TO audit_logs;
+ALTER TABLE error_reports_new RENAME TO error_reports;
+ALTER TABLE system_alerts_new RENAME TO system_alerts;
+
+-- 訂單與促銷表 (3張)
+ALTER TABLE group_orders_new RENAME TO group_orders;
+ALTER TABLE promotions_new RENAME TO promotions;
+ALTER TABLE customer_reviews_new RENAME TO customer_reviews;
+
+-- 庫存與設備表 (2張)
+ALTER TABLE inventory_items_new RENAME TO inventory_items;
+ALTER TABLE cash_registers_new RENAME TO cash_registers;
+
+-- 打印系統表 (3張)
+ALTER TABLE printer_devices_new RENAME TO printer_devices;
+ALTER TABLE printer_configurations_new RENAME TO printer_configurations;
+ALTER TABLE print_templates_new RENAME TO print_templates;
+
+-- 候位系統表 (6張)
+ALTER TABLE waiting_queue_new RENAME TO waiting_queue;
+ALTER TABLE queue_settings_new RENAME TO queue_settings;
+ALTER TABLE queue_displays_new RENAME TO queue_displays;
+ALTER TABLE queue_events_new RENAME TO queue_events;
+ALTER TABLE queue_statistics_new RENAME TO queue_statistics;
+
+-- 餐廳設定表 (4張)
+ALTER TABLE restaurant_settings_new RENAME TO restaurant_settings;
+ALTER TABLE restaurant_business_hours_new RENAME TO restaurant_business_hours;
+ALTER TABLE restaurant_special_hours_new RENAME TO restaurant_special_hours;
+ALTER TABLE table_reservations_new RENAME TO table_reservations;
+
+-- 其他業務表 (1張)
+ALTER TABLE leave_calendar_events_new RENAME TO leave_calendar_events;
+
+-- QR 系統表 (3張)
+ALTER TABLE qr_batches_new RENAME TO qr_batches;
+ALTER TABLE qr_codes_new RENAME TO qr_codes;
+ALTER TABLE qr_templates_new RENAME TO qr_templates;
+
+-- =====================================================
+-- 階段 5: 重建重要索引
+-- =====================================================
+
+-- users 表索引
+CREATE INDEX IF NOT EXISTS idx_users_restaurant_id ON users(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+-- categories 表索引
+CREATE INDEX IF NOT EXISTS idx_categories_restaurant_id ON categories(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_categories_sort_order ON categories(sort_order);
+
+-- menu_items 表索引
+CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_id ON menu_items(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_category_id ON menu_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_is_available ON menu_items(is_available);
+CREATE INDEX IF NOT EXISTS idx_menu_items_sort_order ON menu_items(sort_order);
+
+-- tables 表索引
+CREATE INDEX IF NOT EXISTS idx_tables_restaurant_id ON tables(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_tables_status ON tables(status);
+CREATE INDEX IF NOT EXISTS idx_tables_qr_code_id ON tables(qr_code_id);
+
+-- orders 表索引
+CREATE INDEX IF NOT EXISTS idx_orders_restaurant_id ON orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_table_id ON orders(table_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+
+-- shift_templates 表索引
+CREATE INDEX IF NOT EXISTS idx_shift_templates_restaurant_id ON shift_templates(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_shift_templates_is_active ON shift_templates(is_active);
+
+-- employee_schedules 表索引
+CREATE INDEX IF NOT EXISTS idx_employee_schedules_restaurant_id ON employee_schedules(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_employee_schedules_employee_id ON employee_schedules(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employee_schedules_work_date ON employee_schedules(work_date);
+CREATE INDEX IF NOT EXISTS idx_employee_schedules_status ON employee_schedules(status);
+
+-- scheduling_rules 表索引
+CREATE INDEX IF NOT EXISTS idx_scheduling_rules_restaurant_id ON scheduling_rules(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_scheduling_rules_is_active ON scheduling_rules(is_active);
+
+-- scheduling_conflicts 表索引
+CREATE INDEX IF NOT EXISTS idx_scheduling_conflicts_restaurant_id ON scheduling_conflicts(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_scheduling_conflicts_status ON scheduling_conflicts(status);
+
+-- schedule_swap_requests 表索引
+CREATE INDEX IF NOT EXISTS idx_schedule_swap_requests_restaurant_id ON schedule_swap_requests(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_swap_requests_status ON schedule_swap_requests(status);
+
+-- employee_availability 表索引
+CREATE INDEX IF NOT EXISTS idx_employee_availability_restaurant_id ON employee_availability(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_employee_availability_employee_id ON employee_availability(employee_id);
+
+-- leave_requests 表索引
+CREATE INDEX IF NOT EXISTS idx_leave_requests_restaurant_id ON leave_requests(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_employee_id ON leave_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
+
+-- leave_approval_rules 表索引
+CREATE INDEX IF NOT EXISTS idx_leave_approval_rules_restaurant_id ON leave_approval_rules(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_leave_approval_rules_is_active ON leave_approval_rules(is_active);
+
+-- employee_leave_balances 表索引
+CREATE INDEX IF NOT EXISTS idx_employee_leave_balances_restaurant_id ON employee_leave_balances(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_employee_leave_balances_employee_id ON employee_leave_balances(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employee_leave_balances_year ON employee_leave_balances(year);
+
+-- audit_logs 表索引
+CREATE INDEX IF NOT EXISTS idx_audit_logs_restaurant_id ON audit_logs(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+
+-- error_reports 表索引
+CREATE INDEX IF NOT EXISTS idx_error_reports_restaurant_id ON error_reports(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_error_reports_status ON error_reports(status);
+
+-- system_alerts 表索引
+CREATE INDEX IF NOT EXISTS idx_system_alerts_restaurant_id ON system_alerts(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_system_alerts_status ON system_alerts(status);
+
+-- group_orders 表索引
+CREATE INDEX IF NOT EXISTS idx_group_orders_restaurant_id ON group_orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_group_orders_status ON group_orders(status);
+
+-- promotions 表索引
+CREATE INDEX IF NOT EXISTS idx_promotions_restaurant_id ON promotions(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_promotions_is_active ON promotions(is_active);
+
+-- customer_reviews 表索引
+CREATE INDEX IF NOT EXISTS idx_customer_reviews_restaurant_id ON customer_reviews(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_customer_reviews_menu_item_id ON customer_reviews(menu_item_id);
+
+-- inventory_items 表索引
+CREATE INDEX IF NOT EXISTS idx_inventory_items_restaurant_id ON inventory_items(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_is_active ON inventory_items(is_active);
+
+-- cash_registers 表索引
+CREATE INDEX IF NOT EXISTS idx_cash_registers_restaurant_id ON cash_registers(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_cash_registers_status ON cash_registers(status);
+
+-- printer_devices 表索引
+CREATE INDEX IF NOT EXISTS idx_printer_devices_restaurant_id ON printer_devices(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_printer_devices_is_active ON printer_devices(is_active);
+
+-- printer_configurations 表索引
+CREATE INDEX IF NOT EXISTS idx_printer_configurations_restaurant_id ON printer_configurations(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_printer_configurations_device_id ON printer_configurations(device_id);
+
+-- print_templates 表索引
+CREATE INDEX IF NOT EXISTS idx_print_templates_restaurant_id ON print_templates(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_print_templates_is_active ON print_templates(is_active);
+
+-- waiting_queue 表索引
+CREATE INDEX IF NOT EXISTS idx_waiting_queue_restaurant_id ON waiting_queue(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_waiting_queue_status ON waiting_queue(status);
+
+-- queue_settings 表索引
+CREATE INDEX IF NOT EXISTS idx_queue_settings_restaurant_id ON queue_settings(restaurant_id);
+
+-- queue_displays 表索引
+CREATE INDEX IF NOT EXISTS idx_queue_displays_restaurant_id ON queue_displays(restaurant_id);
+
+-- queue_events 表索引
+CREATE INDEX IF NOT EXISTS idx_queue_events_restaurant_id ON queue_events(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_queue_events_queue_id ON queue_events(queue_id);
+
+-- queue_statistics 表索引
+CREATE INDEX IF NOT EXISTS idx_queue_statistics_restaurant_id ON queue_statistics(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_queue_statistics_stat_date ON queue_statistics(stat_date);
+
+-- restaurant_settings 表索引
+CREATE INDEX IF NOT EXISTS idx_restaurant_settings_restaurant_id ON restaurant_settings(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_restaurant_settings_setting_key ON restaurant_settings(setting_key);
+
+-- restaurant_business_hours 表索引
+CREATE INDEX IF NOT EXISTS idx_restaurant_business_hours_restaurant_id ON restaurant_business_hours(restaurant_id);
+
+-- restaurant_special_hours 表索引
+CREATE INDEX IF NOT EXISTS idx_restaurant_special_hours_restaurant_id ON restaurant_special_hours(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_restaurant_special_hours_special_date ON restaurant_special_hours(special_date);
+
+-- table_reservations 表索引
+CREATE INDEX IF NOT EXISTS idx_table_reservations_restaurant_id ON table_reservations(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_table_reservations_status ON table_reservations(status);
+
+-- leave_calendar_events 表索引
+CREATE INDEX IF NOT EXISTS idx_leave_calendar_events_restaurant_id ON leave_calendar_events(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_leave_calendar_events_employee_id ON leave_calendar_events(employee_id);
+
+-- qr_batches 表索引
+CREATE INDEX IF NOT EXISTS idx_qr_batches_restaurant_id ON qr_batches(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_qr_batches_status ON qr_batches(status);
+
+-- qr_codes 表索引
+CREATE INDEX IF NOT EXISTS idx_qr_codes_restaurant_id ON qr_codes(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_qr_codes_qr_type ON qr_codes(qr_type);
+CREATE INDEX IF NOT EXISTS idx_qr_codes_reference_id ON qr_codes(reference_id);
+
+-- qr_templates 表索引
+CREATE INDEX IF NOT EXISTS idx_qr_templates_restaurant_id ON qr_templates(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_qr_templates_is_active ON qr_templates(is_active);
+
+-- =====================================================
+-- 驗證
+-- =====================================================
+
+-- 檢查是否還有 _new 表存在（應該為 0）
+-- SELECT COUNT(*) as remaining_new_tables FROM sqlite_master WHERE type='table' AND name LIKE '%_new';
+
+-- 檢查所有表是否都已正確重命名
+-- SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
+
+-- 重新啟用外鍵約束
+PRAGMA foreign_keys=ON;
+
+-- 驗證外鍵約束是否正常工作
+-- PRAGMA foreign_key_check;

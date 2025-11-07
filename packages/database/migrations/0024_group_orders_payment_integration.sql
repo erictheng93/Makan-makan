@@ -15,11 +15,10 @@ ALTER TABLE group_members ADD COLUMN paid_at DATETIME;
 ALTER TABLE group_members ADD COLUMN payment_amount DECIMAL(10,2);
 
 -- 為 orders 表添加支付狀態（如果尚未存在）
--- Note: payment_status already exists in orders table from 0001_initial_schema.sql
+-- Note: payment_status AND paid_at already exist in orders table from 0001_initial_schema.sql
 -- ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'pending'
 --     CHECK (payment_status IN ('pending', 'processing', 'paid', 'failed', 'refunded'));
-
-ALTER TABLE orders ADD COLUMN paid_at DATETIME;
+-- ALTER TABLE orders ADD COLUMN paid_at DATETIME;
 
 -- 創建索引優化支付查詢
 CREATE INDEX idx_group_members_payment_status ON group_members(payment_status);

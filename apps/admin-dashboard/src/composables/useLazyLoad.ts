@@ -278,7 +278,7 @@ export function useBatchLazyLoad<T>(
 
     setTimeout(() => {
       const batch = items.value.slice(startIndex, endIndex)
-      loadedItems.value.push(...batch)
+      loadedItems.value = loadedItems.value.concat(batch as any)
       currentBatch.value++
       isLoading.value = false
     }, delay)

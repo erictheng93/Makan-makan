@@ -1,0 +1,405 @@
+-- Analytics Friendly Indexes Migration
+-- Created: 2025-09-03
+-- Description: Creates specialized indexes for business analytics and reporting queries
+
+-- =================================================================
+-- 1. ?·å”®?†æ?ç´¢å?
+-- =================================================================
+
+-- ?‰æ—¥?Ÿçµ±è¨ˆç??·å”®?†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_orders_daily_sales_analysis 
+ON orders(restaurant_id, DATE(created_at), status, total_amount DESC);
+
+-- ?‰æ?ä»½çµ±è¨ˆç??·å”®?†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_orders_monthly_sales_analysis 
+ON orders(restaurant_id, strftime('%Y-%m', created_at), status, total_amount);
+
+-- ?‰å??‚çµ±è¨ˆç??·å”®?†æ?ç´¢å?ï¼ˆç†±?€?‚æ®µ?†æ?ï¼?
+CREATE INDEX IF NOT EXISTS idx_orders_hourly_sales_analysis 
+ON orders(restaurant_id, strftime('%H', created_at), DATE(created_at), total_amount);
+
+-- ?‰é€±çµ±è¨ˆç??·å”®?†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_orders_weekly_sales_analysis 
+ON orders(restaurant_id, strftime('%Y-%W', created_at), status, total_amount);
+
+-- ?‰æ??Ÿå¹¾çµ±è??„éŠ·?®å??ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_orders_weekday_analysis 
+ON orders(restaurant_id, strftime('%w', created_at), DATE(created_at), total_amount);
+
+-- =================================================================
+-- 2. ?œå–®?…ç›®?·å”®?†æ?ç´¢å?
+-- =================================================================
+
+-- ?œå–®?…ç›®?·å”®?’è?æ¦œç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_menu_items_sales_ranking 
+ON order_items(menu_item_id, DATE(created_at), quantity DESC, total_price DESC);
+
+-- ?œå–®?…ç›®?‰é?å»³å??‚é??„éŠ·?®å???
+-- Note: Cannot use subqueries in index expressions in SQLite
+-- This index is removed; queries should join with menu_items table instead
+-- CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_time_sales
+-- ON order_items(menu_item_id, DATE(created_at), quantity);
+
+-- ?œå–®?…ç›®?‰å?é¡ç??·å”®?†æ?
+-- Note: Cannot use subqueries in index expressions in SQLite
+-- This index is removed; queries should join with menu_items table instead
+-- CREATE INDEX IF NOT EXISTS idx_menu_items_category_sales
+-- ON order_items(DATE(created_at), total_price DESC);
+
+-- ?œå–®?…ç›®å­???§å??ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_menu_items_seasonal_analysis 
+ON order_items(
+    menu_item_id, 
+    strftime('%m', created_at), 
+    strftime('%Y', created_at), 
+    quantity
+);
+
+-- =================================================================
+-- 3. å®¢æˆ¶è¡Œç‚º?†æ?ç´¢å?
+-- =================================================================
+
+-- æ³¨æ?ï¼šcustomer_phone å­˜åœ¨??JSON æ¬„ä?ä¸­ï??¡æ??´æ¥ç´¢å?
+-- å®¢æˆ¶?†æ??‰ä½¿??customer_id ?–æ??¨å±¤?æ¿¾
+-- å¦‚é??ªå?ï¼Œè€ƒæ…®å°?customer_info æ­????
+-- CREATE INDEX IF NOT EXISTS idx_customer_repeat_purchase_analysis
+-- ON orders(customer_phone, restaurant_id, created_at, total_amount)
+-- WHERE customer_phone IS NOT NULL;
+
+-- ?¿ä»£?¹æ?ï¼šä½¿??customer_id
+CREATE INDEX IF NOT EXISTS idx_customer_repeat_purchase_analysis
+ON orders(customer_id, restaurant_id, created_at, total_amount)
+WHERE customer_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_customer_acquisition_analysis
+ON orders(restaurant_id, customer_id, DATE(created_at))
+WHERE customer_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_customer_rfm_analysis
+ON orders(customer_id, created_at DESC, total_amount DESC, status)
+WHERE customer_id IS NOT NULL AND status IN ('completed', 'paid');
+
+CREATE INDEX IF NOT EXISTS idx_customer_preference_analysis
+ON orders(customer_id, order_type, restaurant_id, created_at)
+WHERE customer_id IS NOT NULL;
+
+-- =================================================================
+-- 4. ?Ÿé??ˆç??†æ?ç´¢å?
+-- =================================================================
+
+-- æº–å??‚é??†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_kitchen_efficiency_analysis 
+ON orders(restaurant_id, DATE(created_at), status, created_at, delivered_at)
+WHERE delivered_at IS NOT NULL;
+
+-- æ¡Œå°?±è??‡å??ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_table_turnover_analysis 
+ON orders(table_id, DATE(created_at), created_at, delivered_at, status)
+WHERE table_id IS NOT NULL;
+
+-- ?¡å·¥ç¸¾æ??†æ?ç´¢å?
+-- Note: Cannot use subqueries or COALESCE with subqueries in index expressions
+-- This index is removed; queries should use simpler indexes
+-- CREATE INDEX IF NOT EXISTS idx_staff_performance_analysis
+-- ON orders(restaurant_id, created_by, DATE(created_at), total_amount, status);
+
+-- ?å??‚é??†æ?ç´¢å?
+-- Note: Cannot use JULIANDAY calculations in index expressions
+-- This index simplified to basic columns
+CREATE INDEX IF NOT EXISTS idx_service_time_analysis
+ON orders(restaurant_id, order_type, DATE(created_at), created_at, delivered_at)
+WHERE delivered_at IS NOT NULL;
+
+-- =================================================================
+-- 5. åº«å?æµè??†æ?ç´¢å?
+-- =================================================================
+
+-- åº«å??¨è??‡å??ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_inventory_turnover_analysis 
+ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity);
+
+-- åº«å??æœ¬?†æ?ç´¢å?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified to allow joins with inventory_items table
+CREATE INDEX IF NOT EXISTS idx_inventory_cost_analysis
+ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity);
+
+-- åº«å?æµªè²»?†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_inventory_waste_analysis 
+ON stock_movements(
+    inventory_item_id, 
+    DATE(created_at), 
+    movement_type, 
+    quantity
+) WHERE movement_type = 'waste';
+
+-- ä¾›æ??†ç¸¾?ˆå??ç´¢å¼?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified index for basic movement tracking
+CREATE INDEX IF NOT EXISTS idx_supplier_performance_analysis
+ON stock_movements(inventory_item_id, DATE(created_at), movement_type, quantity)
+WHERE movement_type = 'in';
+
+-- =================================================================
+-- 6. ?¶å…¥?æœ¬?†æ?ç´¢å?
+-- =================================================================
+
+-- æ¯›åˆ©?†æ?ç´¢å?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_gross_margin_analysis
+ON order_items(menu_item_id, DATE(created_at), total_price, quantity);
+
+-- ?æœ¬ä¸­å??†æ?ç´¢å?ï¼ˆæ??†é?ï¼?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_cost_center_analysis
+ON order_items(menu_item_id, DATE(created_at), total_price, quantity);
+
+-- ?¹æ ¼?æ?åº¦å??ç´¢å¼?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_price_sensitivity_analysis
+ON order_items(menu_item_id, DATE(created_at), unit_price, quantity);
+
+-- =================================================================
+-- 7. å¸‚å ´è¶¨å‹¢?†æ?ç´¢å?
+-- =================================================================
+
+-- å­???§è¶¨?¢å??ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_seasonal_trends_analysis 
+ON orders(
+    restaurant_id,
+    strftime('%m', created_at),
+    strftime('%Y', created_at),
+    total_amount,
+    status
+);
+
+-- ç¯€?‡æ—¥å½±éŸ¿?†æ?ç´¢å?
+CREATE INDEX IF NOT EXISTS idx_holiday_impact_analysis
+ON orders(
+    restaurant_id,
+    DATE(created_at),
+    strftime('%w', created_at),
+    total_amount,
+    status
+);
+
+-- å¤©æ°£å½±éŸ¿?†æ?ç´¢å?ï¼ˆç‚º?ªä?å¤©æ°£API?´å??å?ï¼?
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for basic time-series queries
+CREATE INDEX IF NOT EXISTS idx_weather_impact_analysis
+ON orders(restaurant_id, DATE(created_at), order_type, total_amount, status);
+
+-- =================================================================
+-- 8. ç«¶çˆ­?†æ?ç´¢å?
+-- =================================================================
+
+-- å¸‚å ´ä»½é??†æ?ç´¢å?ï¼ˆåœ¨å¤šé?å»³ç’°å¢ƒä¸­ï¼?
+CREATE INDEX IF NOT EXISTS idx_market_share_analysis 
+ON orders(
+    DATE(created_at),
+    restaurant_id,
+    total_amount,
+    status
+) WHERE status IN ('completed', 'paid');
+
+-- å®šåƒ¹ç­–ç•¥?†æ?ç´¢å?
+-- Note: Cannot use subqueries in index expressions
+-- Simplified for join-based queries
+CREATE INDEX IF NOT EXISTS idx_pricing_strategy_analysis
+ON order_items(menu_item_id, unit_price, DATE(created_at), quantity);
+
+-- =================================================================
+-- 9. ?æ¸¬?†æ?ç´¢å?
+-- =================================================================
+
+-- ?€æ±‚é?æ¸¬å??ç´¢å¼?
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for time-series queries
+CREATE INDEX IF NOT EXISTS idx_demand_forecasting_analysis
+ON orders(restaurant_id, DATE(created_at), strftime('%w', created_at), strftime('%H', created_at), total_amount, status);
+
+-- åº«å??€æ±‚é?æ¸¬ç´¢å¼?
+-- Note: Cannot use aggregate functions or CASE in index expressions
+-- Simplified for time-series analysis
+CREATE INDEX IF NOT EXISTS idx_inventory_demand_forecasting
+ON stock_movements(inventory_item_id, DATE(created_at), strftime('%w', created_at), movement_type, quantity);
+
+-- ?¡å·¥?’ç­?€æ±‚é?æ¸¬ç´¢å¼?
+-- Note: Cannot use aggregate functions in index expressions
+-- Simplified for time-series queries
+CREATE INDEX IF NOT EXISTS idx_staffing_demand_forecasting
+ON orders(restaurant_id, DATE(created_at), strftime('%w', created_at), strftime('%H', created_at), status);
+
+-- =================================================================
+-- 10. å¯¦æ??†æ?ç´¢å?
+-- =================================================================
+
+-- å¯¦æ??·å”®?€è¡¨æ¿ç´¢å?
+-- Note: Cannot use datetime('now') in WHERE clause as it's non-deterministic
+-- Removed WHERE clause; application should filter by date
+CREATE INDEX IF NOT EXISTS idx_realtime_sales_dashboard
+ON orders(restaurant_id, status, DATE(created_at), strftime('%H', created_at), total_amount, created_at);
+
+-- å¯¦æ?åº«å???§ç´¢å?
+-- Note: Cannot use calculated expressions in index
+-- Simplified index
+CREATE INDEX IF NOT EXISTS idx_realtime_inventory_monitoring
+ON inventory_items(restaurant_id, status, current_stock, min_stock_level)
+WHERE status = 'active';
+
+-- å¯¦æ??å???§ç´¢å?
+-- Note: Cannot use datetime('now') in WHERE clause
+-- Removed time-based WHERE; application should filter
+CREATE INDEX IF NOT EXISTS idx_realtime_service_monitoring
+ON orders(restaurant_id, status, created_at, estimated_ready_time)
+WHERE status IN ('pending', 'confirmed', 'preparing', 'ready');
+
+-- =================================================================
+-- 11. ?°ç??†æ?ç´¢å?ï¼ˆç‚º?ªä??°ç??Ÿèƒ½?å?ï¼?
+-- =================================================================
+
+-- ?°ç??†ä??†æ?ç´¢å?ï¼ˆåŸº?¼IP?–æœªä¾†åœ°?€?¸æ?ï¼?
+CREATE INDEX IF NOT EXISTS idx_geographic_analysis
+ON orders(
+    restaurant_id,
+    DATE(created_at),
+    order_type,
+    customer_id, -- ä½¿ç”¨ customer_id ?¿ä»£ customer_phone
+    total_amount
+);
+
+-- =================================================================
+-- 12. å»ºç??†æ?è¦–å??„æ”¯?ç´¢å¼?
+-- =================================================================
+
+-- ?¯æ?è¤‡é??†æ??¥è©¢?„è??‹ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_comprehensive_order_analysis
+ON orders(
+    restaurant_id,
+    DATE(created_at),
+    status,
+    order_type,
+    customer_id,
+    total_amount,
+    created_at,
+    delivered_at
+) WHERE status IN ('completed', 'paid');
+
+-- ?¯æ??œå–®?…ç›®å®Œæ•´?†æ??„è??‹ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_comprehensive_menu_item_analysis 
+ON order_items(
+    menu_item_id,
+    DATE(created_at),
+    quantity,
+    unit_price,
+    total_price,
+    status,
+    created_at
+);
+
+-- ?¯æ?å®¢æˆ¶?†æ??„è??‹ç´¢å¼?
+CREATE INDEX IF NOT EXISTS idx_comprehensive_customer_analysis
+ON orders(
+    customer_id,
+    restaurant_id,
+    DATE(created_at),
+    order_type,
+    total_amount,
+    status,
+    created_at
+) WHERE customer_id IS NOT NULL;
+
+-- =================================================================
+-- 13. ?†æ??¥è©¢?·è?è¨ˆå??ªå?
+-- =================================================================
+
+-- ?µå»º?†æ??¥è©¢çµ±è?è¡?
+CREATE TABLE IF NOT EXISTS analytics_query_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query_type TEXT NOT NULL,
+    execution_count INTEGER DEFAULT 1,
+    avg_execution_time_ms DECIMAL(10,2) DEFAULT 0.00,
+    last_executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    query_pattern TEXT,
+    index_usage TEXT, -- JSON?¼å?è¨˜é?ä½¿ç”¨?„ç´¢å¼?
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ?†æ?ç´¢å?ä½¿ç”¨?…æ?è¦–å?
+CREATE VIEW IF NOT EXISTS analytics_index_usage AS
+SELECT 
+    name as index_name,
+    tbl as table_name,
+    CASE 
+        WHEN name LIKE '%sales_analysis%' THEN 'sales_analytics'
+        WHEN name LIKE '%customer%' THEN 'customer_analytics'
+        WHEN name LIKE '%inventory%' THEN 'inventory_analytics'
+        WHEN name LIKE '%menu_items%' THEN 'menu_analytics'
+        WHEN name LIKE '%efficiency%' THEN 'operational_analytics'
+        ELSE 'general_analytics'
+    END as analytics_category,
+    sql as index_definition
+FROM sqlite_master 
+WHERE type = 'index' 
+  AND name LIKE 'idx_%analysis%'
+ORDER BY analytics_category, table_name;
+
+-- =================================================================
+-- 14. ç´¢å?ç¶­è­·?Œç›£??
+-- =================================================================
+
+-- ?µå»ºç´¢å?ç¶­è­·?¥è?è¡?
+CREATE TABLE IF NOT EXISTS index_maintenance_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    maintenance_type TEXT NOT NULL, -- 'analyze', 'rebuild', 'cleanup'
+    affected_indexes INTEGER DEFAULT 0,
+    execution_time_ms INTEGER DEFAULT 0,
+    before_size_mb DECIMAL(10,2) DEFAULT 0.00,
+    after_size_mb DECIMAL(10,2) DEFAULT 0.00,
+    performance_improvement DECIMAL(5,2) DEFAULT 0.00, -- ?§èƒ½?å??¾å?æ¯?
+    status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'failed', 'partial')),
+    error_message TEXT,
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME
+);
+
+-- ç´¢å??ˆèƒ½??§è¦–å?
+CREATE VIEW IF NOT EXISTS index_performance_monitor AS
+SELECT 
+    ai.analytics_category,
+    COUNT(*) as index_count,
+    ROUND(AVG(aqs.avg_execution_time_ms), 2) as avg_query_time_ms,
+    MAX(aqs.last_executed_at) as last_used,
+    SUM(aqs.execution_count) as total_executions
+FROM analytics_index_usage ai
+LEFT JOIN analytics_query_stats aqs ON ai.analytics_category = aqs.query_type
+GROUP BY ai.analytics_category
+ORDER BY avg_query_time_ms DESC;
+
+-- =================================================================
+-- å®Œæ?
+-- =================================================================
+
+-- ?†æ??‹å¥½?„ç´¢å¼•å‰µå»ºå???
+-- 
+-- ä¸»è?ç´¢å?é¡åˆ¥ï¼?
+-- 1. ?·å”®?†æ?ç´¢å? - ?‰æ—¥/????å°æ?çµ±è?
+-- 2. ?œå–®?…ç›®?·å”®?†æ?ç´¢å? - ?’è?æ¦œå?è¶¨å‹¢?†æ?
+-- 3. å®¢æˆ¶è¡Œç‚º?†æ?ç´¢å? - RFM?†æ??Œå®¢?¶ç´°??
+-- 4. ?Ÿé??ˆç??†æ?ç´¢å? - å»šæˆ¿?ˆç??Œæ??°é€±è?
+-- 5. åº«å?æµè??†æ?ç´¢å? - ?¨è??‡å??æœ¬?†æ?
+-- 6. ?¶å…¥?æœ¬?†æ?ç´¢å? - æ¯›åˆ©?Œæ??¬ä¸­å¿ƒå???
+-- 7. å¸‚å ´è¶¨å‹¢?†æ?ç´¢å? - å­???§å?ç¯€?‡æ—¥?†æ?
+-- 8. ç«¶çˆ­?†æ?ç´¢å? - å¸‚å ´ä»½é??Œå??¹ç???
+-- 9. ?æ¸¬?†æ?ç´¢å? - ?€æ±‚é?æ¸¬å??’ç­è¦å?
+-- 10. å¯¦æ??†æ?ç´¢å? - ?³æ???§?Œå?è¡¨æ¿
+-- 11. ?°ç??†æ?ç´¢å? - ?°ç??†ä??†æ?
+-- 12. ç¶œå??†æ?è¦†è?ç´¢å? - ?¯æ?è¤‡é??¥è©¢
+-- 13. ?¥è©¢?·è??ªå? - ?·è?è¨ˆå??Œçµ±è¨?
+-- 14. ç´¢å?ç¶­è­·?Œç›£??- ?§èƒ½??§?Œç¶­è­?
+--
+-- ?™ä?ç´¢å?å°‡å¤§å¹…æ??‡å?æ¥­æ™º?§å??ç??§èƒ½

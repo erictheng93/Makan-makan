@@ -5,10 +5,12 @@
 
 // Import database utilities when needed
 import { OrderService as BaseOrderService, CouponService } from '@makanmakan/database'
-import { Order, OrderStatus, OrderPaymentStatus, OrderPaymentMethod } from '@makanmakan/shared-types'
+import { Order, OrderStatus, OrderPaymentStatus, OrderPaymentMethod, RealtimeEventType } from '@makanmakan/shared-types'
 import type { Env } from '../../../shared/types'
 import type { UserRole } from '../../../shared/constants'
 import { ConsoleLogger } from '../../../core/monitoring'
+import { RealtimeBroadcastService } from '../../../services/RealtimeBroadcastService'
+import type { OrderStatusUpdateEvent } from '@makanmakan/shared-types'
 // Use KV for caching
 
 // Import feature-specific types
@@ -35,6 +37,7 @@ import type {
 export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService
   private couponService: CouponService
+  private realtimeBroadcastService: RealtimeBroadcastService
   private cacheKV: any
   private logger: ConsoleLogger
   private env: Env
@@ -43,6 +46,7 @@ export class OrdersService implements IOrdersService {
     this.env = env
     this.baseOrderService = new BaseOrderService(env.DB as any, env)
     this.couponService = new CouponService(env.DB as any, env)
+    this.realtimeBroadcastService = new RealtimeBroadcastService(env)
     this.cacheKV = env.CACHE_KV
     this.logger = new ConsoleLogger('OrdersService')
   }
@@ -51,6 +55,63 @@ export class OrdersService implements IOrdersService {
   async createOrder(data: CreateOrderData, userId?: number): Promise<Order> {
     try {
       this.logger.info('Creating new order', { restaurantId: data.restaurantId, userId })
+
+      // ========== INPUT VALIDATION ==========
+      // 1. Validate restaurant ID
+      if (!data.restaurantId || data.restaurantId <= 0) {
+        throw new Error('Invalid restaurant ID')
+      }
+
+      // 2. Validate items array
+      if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        throw new Error('Order must contain at least one item')
+      }
+
+      // 3. Validate maximum items (prevent abuse)
+      if (data.items.length > 100) {
+        throw new Error('Order cannot exceed 100 items')
+      }
+
+      // 4. Validate each item
+      for (const item of data.items) {
+        if (!item.menuItemId || item.menuItemId <= 0) {
+          throw new Error('Invalid menu item ID')
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          throw new Error('Invalid item quantity: must be greater than 0')
+        }
+        if (item.quantity > 999) {
+          throw new Error('Invalid item quantity: cannot exceed 999 per item')
+        }
+        // Validate customizations if present
+        if (item.customizations && typeof item.customizations !== 'object') {
+          throw new Error('Invalid item customizations format')
+        }
+        // Validate notes length if present
+        if (item.notes && item.notes.length > 500) {
+          throw new Error('Item notes cannot exceed 500 characters')
+        }
+      }
+
+      // 5. Validate customer info if provided
+      if (data.customerInfo) {
+        if (data.customerInfo.phone && !/^[\d\s\-+()]{7,20}$/.test(data.customerInfo.phone)) {
+          throw new Error('Invalid phone number format')
+        }
+        if (data.customerInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerInfo.email)) {
+          throw new Error('Invalid email format')
+        }
+      }
+
+      // 6. Validate notes length if provided
+      if (data.notes && data.notes.length > 1000) {
+        throw new Error('Order notes cannot exceed 1000 characters')
+      }
+
+      // 7. Validate coupon code format if provided
+      if (data.couponCode && (data.couponCode.length < 3 || data.couponCode.length > 50)) {
+        throw new Error('Invalid coupon code format')
+      }
 
       // Validate business hours
       await this.validateBusinessHours(data.restaurantId, data.scheduledTime)
@@ -92,6 +153,9 @@ export class OrdersService implements IOrdersService {
         itemCount: data.items.length,
         total: order.totalAmount
       })
+
+      // Broadcast new order event
+      await this.broadcastNewOrder(order)
 
       this.logger.info('Order created successfully', { orderId: order.id, orderNumber: order.orderNumber })
       return order
@@ -703,10 +767,103 @@ export class OrdersService implements IOrdersService {
   }
 
   // Real-time Updates
+  /**
+   * 廣播新訂單事件
+   */
+  private async broadcastNewOrder(order: Order): Promise<void> {
+    try {
+      const realtimeEvent = {
+        type: RealtimeEventType.NEW_ORDER,
+        eventId: this.realtimeBroadcastService.generateEventId(),
+        timestamp: Date.now(),
+        restaurantId: String(order.restaurantId),
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber || `#${order.id}`,
+          tableId: order.tableId ? String(order.tableId) : undefined,
+          tableName: undefined,  // 可以從資料庫查詢
+          seatId: undefined,
+          items: (order.items || []).map(item => ({
+            orderItemId: item.id,
+            menuItemId: item.menuItemId,
+            menuItemName: item.menuItem?.name || '',
+            quantity: item.quantity,
+            price: item.unitPrice,
+            notes: item.notes
+          })),
+          totalAmount: order.totalAmount,
+          notes: order.notes,
+          customer: order.customerInfo ? {
+            name: order.customerInfo.name,
+            phone: order.customerInfo.phone
+          } : undefined
+        }
+      }
+
+      const result = await this.realtimeBroadcastService.broadcastNewOrder(realtimeEvent as any)
+
+      if (result.success) {
+        this.logger.info('New order broadcasted successfully', {
+          orderId: order.id,
+          eventId: result.eventId,
+          recipientCount: result.recipientCount
+        })
+      }
+    } catch (error) {
+      this.logger.error('Failed to broadcast new order', error instanceof Error ? error : undefined, {
+        orderId: order.id
+      })
+    }
+  }
+
+  /**
+   * 廣播訂單狀態更新事件
+   */
   async broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void> {
     try {
-      // This would integrate with SSE or WebSocket service
-      this.logger.info('Broadcasting order update', { orderId: event.orderId, status: event.newStatus })
+      // 獲取訂單詳情以構建完整的即時事件
+      const order = await this.getOrder(event.orderId)
+      if (!order) {
+        this.logger.warn('Order not found for broadcast', { orderId: event.orderId })
+        return
+      }
+
+      // 構建即時事件
+      const realtimeEvent: OrderStatusUpdateEvent = {
+        type: RealtimeEventType.ORDER_STATUS_UPDATE,
+        eventId: this.realtimeBroadcastService.generateEventId(),
+        timestamp: Date.now(),
+        restaurantId: String(order.restaurantId),
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber || `#${order.id}`,
+          status: event.newStatus as any,
+          previousStatus: event.previousStatus as any,
+          estimatedTime: event.estimatedReadyTime ? Math.floor((new Date(event.estimatedReadyTime).getTime() - Date.now()) / 60000) : undefined,
+          message: event.notes,
+          updatedBy: event.updatedBy ? {
+            userId: event.updatedBy,
+            userName: 'System',  // 可以從資料庫查詢真實姓名
+            role: 'admin'
+          } : undefined
+        }
+      }
+
+      // 廣播事件
+      const result = await this.realtimeBroadcastService.broadcastOrderStatusUpdate(realtimeEvent)
+
+      if (result.success) {
+        this.logger.info('Order update broadcasted successfully', {
+          orderId: event.orderId,
+          eventId: result.eventId,
+          recipientCount: result.recipientCount
+        })
+      } else {
+        this.logger.error('Failed to broadcast order update', new Error(result.error), {
+          orderId: event.orderId
+        })
+      }
+
     } catch (error) {
       this.logger.error('Failed to broadcast order update', error instanceof Error ? error : undefined, { event })
     }

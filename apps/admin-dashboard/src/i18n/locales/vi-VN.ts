@@ -36,7 +36,8 @@ const viVN: Messages = {
     createdAt: 'Ngày tạo',
     updatedAt: 'Ngày cập nhật',
     yes: 'Có',
-    no: 'Không'
+    no: 'Không',
+    fillRequired: 'Vui lòng điền vào các trường bắt buộc'
   },
 
   // Hệ thống lịch làm việc
@@ -334,6 +335,108 @@ const viVN: Messages = {
       stable: 'Ổn định',
       items: 'mục',
       loadFailed: 'Tải dữ liệu thất bại'
+    }
+  },
+
+  // Hệ thống đặt bàn
+  reservation: {
+    title: 'Quản Lý Đặt Bàn',
+    create: 'Đặt bàn mới',
+    createSuccess: 'Đặt bàn thành công',
+    createError: 'Đặt bàn thất bại',
+    loadError: 'Tải danh sách đặt bàn thất bại',
+    confirmPrompt: 'Bạn có chắc muốn xác nhận đặt bàn này?',
+    confirmError: 'Xác nhận đặt bàn thất bại',
+    arrivedError: 'Đánh dấu đã đến thất bại',
+    seatedError: 'Đánh dấu đã ngồi thất bại',
+    cancelPrompt: 'Bạn có chắc muốn hủy đặt bàn này?',
+    cancelError: 'Hủy đặt bàn thất bại',
+    confirmationCode: 'Mã xác nhận',
+    customerName: 'Tên khách hàng',
+    customerPhone: 'Số điện thoại',
+    customerEmail: 'Email',
+    datetime: 'Thời gian đặt',
+    selectDatetime: 'Chọn thời gian đặt',
+    partySize: 'Số người',
+    people: 'người',
+    duration: 'Thời lượng',
+    minutes: 'phút',
+    specialRequests: 'Yêu cầu đặc biệt',
+    specialRequestsPlaceholder: 'VD: ghế trẻ em, lối đi xe lăn, chỗ ngồi cửa sổ, v.v.',
+    notes: 'Ghi chú',
+    status: 'Trạng thái',
+    detail: 'Chi tiết đặt bàn',
+    stats: {
+      total: 'Tổng số đặt bàn',
+      pending: 'Chờ xác nhận',
+      confirmed: 'Đã xác nhận',
+      seated: 'Đã ngồi'
+    },
+    filter: {
+      date: 'Ngày',
+      selectDate: 'Chọn ngày',
+      status: 'Trạng thái',
+      allStatus: 'Tất cả trạng thái',
+      phone: 'Số điện thoại',
+      enterPhone: 'Nhập số điện thoại'
+    }
+  },
+
+  // Hệ thống xếp hàng chờ
+  waitingList: {
+    title: 'Quản Lý Xếp Hàng',
+    addCustomer: 'Thêm vào hàng chờ',
+    addSuccess: 'Thêm vào hàng chờ thành công',
+    addError: 'Thêm vào hàng chờ thất bại',
+    loadError: 'Tải danh sách chờ thất bại',
+    callCustomer: 'Gọi khách',
+    callError: 'Gọi khách thất bại',
+    confirmCall: 'Xác nhận gọi',
+    call: 'Gọi',
+    callNext: 'Gọi người tiếp theo',
+    seat: 'Vào chỗ',
+    expire: 'Hết hạn',
+    cancel: 'Hủy',
+    seatedError: 'Đánh dấu đã ngồi thất bại',
+    expirePrompt: 'Bạn có chắc muốn đánh dấu là hết hạn?',
+    expireError: 'Đánh dấu hết hạn thất bại',
+    cancelPrompt: 'Bạn có chắc muốn hủy mục này?',
+    cancelError: 'Hủy thất bại',
+    batchCallError: 'Gọi hàng loạt thất bại',
+    customerName: 'Tên khách hàng',
+    customerPhone: 'Số điện thoại',
+    partySize: 'Số người',
+    people: 'người',
+    notes: 'Ghi chú',
+    notesPlaceholder: 'VD: xe đẩy em bé, nhu cầu đặc biệt, v.v.',
+    queueNumber: 'Số thứ tự',
+    waitTime: 'Thời gian chờ',
+    joinedAt: 'Thời gian tham gia',
+    estimatedWait: 'Thời gian chờ ước tính',
+    partiesAhead: 'Số nhóm phía trước',
+    availableTables: 'Số bàn trống',
+    assignTable: 'Gán bàn',
+    selectTable: 'Chọn bàn',
+    selectTableRequired: 'Vui lòng chọn bàn để gán',
+    notificationMethod: 'Phương thức thông báo',
+    sms: 'SMS',
+    display: 'Màn hình',
+    both: 'Cả hai',
+    queue: 'Hàng chờ',
+    noQueue: 'Không có người chờ',
+    cardView: 'Xem thẻ',
+    tableView: 'Xem bảng',
+    stats: {
+      waiting: 'Đang chờ',
+      called: 'Đã gọi',
+      avgWait: 'Chờ TB',
+      todayTotal: 'Tổng hôm nay'
+    },
+    filter: {
+      status: 'Trạng thái',
+      allStatus: 'Tất cả trạng thái',
+      phone: 'Số điện thoại',
+      enterPhone: 'Nhập số điện thoại'
     }
   },
 

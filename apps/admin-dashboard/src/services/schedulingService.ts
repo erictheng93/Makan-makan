@@ -326,7 +326,18 @@ class SchedulingService {
   }
 
   /**
-   * Reject a swap request
+   * Accept a swap request (employee)
+   */
+  async acceptSwapRequest(id: number, employeeId: number): Promise<SwapRequest> {
+    const response = await this.api.post<ApiResponse<SwapRequest>>(
+      `/scheduling/swap-requests/${id}/accept`,
+      { employeeId }
+    )
+    return response.data.data
+  }
+
+  /**
+   * Reject a swap request (manager)
    */
   async rejectSwapRequest(
     id: number,
@@ -336,6 +347,16 @@ class SchedulingService {
     const response = await this.api.post<ApiResponse<SwapRequest>>(
       `/scheduling/swap-requests/${id}/reject`,
       { managerId, reason }
+    )
+    return response.data.data
+  }
+
+  /**
+   * Cancel a swap request (requester)
+   */
+  async cancelSwapRequest(id: number): Promise<SwapRequest> {
+    const response = await this.api.post<ApiResponse<SwapRequest>>(
+      `/scheduling/swap-requests/${id}/cancel`
     )
     return response.data.data
   }

@@ -90,14 +90,14 @@ CREATE INDEX IF NOT EXISTS idx_orders_time_analytics
 -- Category visibility queries (Full table scan → Index scan)
 -- Used by: Menu category listing
 CREATE INDEX IF NOT EXISTS idx_categories_visible
-  ON categories(restaurant_id, status, sort_order)
-  WHERE status = 'active';
+  ON categories(restaurant_id, is_active, sort_order)
+  WHERE is_active = 1;
 
 -- Category with item count
 -- Used by: Category listing with counts
 CREATE INDEX IF NOT EXISTS idx_categories_restaurant
   ON categories(restaurant_id, sort_order)
-  WHERE status = 'active';
+  WHERE is_active = 1;
 
 -- ============================================================================
 -- TABLE MANAGEMENT INDEXES
@@ -106,13 +106,13 @@ CREATE INDEX IF NOT EXISTS idx_categories_restaurant
 -- Active tables by restaurant
 -- Used by: Table management dashboard
 CREATE INDEX IF NOT EXISTS idx_tables_restaurant_active
-  ON tables(restaurant_id, status, table_number);
+  ON tables(restaurant_id, is_active, number);
 
 -- Occupied tables tracking
 -- Used by: Real-time table availability
 CREATE INDEX IF NOT EXISTS idx_tables_occupied
-  ON tables(restaurant_id, status)
-  WHERE status != 'maintenance';
+  ON tables(restaurant_id, is_occupied)
+  WHERE is_active = 1;
 
 -- ============================================================================
 -- USER & AUTHENTICATION INDEXES
@@ -121,8 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_tables_occupied
 -- User lookup by restaurant and role
 -- Used by: Staff management
 CREATE INDEX IF NOT EXISTS idx_users_restaurant_role
-  ON users(restaurant_id, role, status)
-  WHERE status = 'active';
+  ON users(restaurant_id, role);
 
 -- Email lookup (security queries)
 -- Used by: Authentication, user lookup

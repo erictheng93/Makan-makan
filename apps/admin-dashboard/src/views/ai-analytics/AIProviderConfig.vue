@@ -32,6 +32,7 @@ const testResult = ref<{ success: boolean; latency?: number; error?: string } | 
 const isTesting = ref(false)
 const isSaving = ref(false)
 const saveSuccess = ref(false)
+const saveError = ref<string | null>(null)
 
 // Mock restaurant ID (should come from store/context)
 const restaurantId = ref('rest_123')
@@ -124,28 +125,36 @@ const handleTestConnection = async () => {
 // Save configuration
 const handleSaveConfig = async () => {
   if (!form.value.apiKey) {
-    alert('請輸入 API Key')
+    saveError.value = '請輸入 API Key'
     return
   }
 
   isSaving.value = true
   saveSuccess.value = false
+  saveError.value = null
 
-  const result = await saveConfig({
-    restaurantId: restaurantId.value,
-    provider: form.value.provider,
-    apiKey: form.value.apiKey,
-    model: form.value.model || undefined,
-    customBaseUrl: form.value.customBaseUrl || undefined,
-  })
+  try {
+    const result = await saveConfig({
+      restaurantId: restaurantId.value,
+      provider: form.value.provider,
+      apiKey: form.value.apiKey,
+      model: form.value.model || undefined,
+      customBaseUrl: form.value.customBaseUrl || undefined,
+    })
 
-  isSaving.value = false
-
-  if (result.success) {
-    saveSuccess.value = true
-    setTimeout(() => {
-      saveSuccess.value = false
-    }, 3000)
+    if (result.success) {
+      saveSuccess.value = true
+      setTimeout(() => {
+        saveSuccess.value = false
+      }, 3000)
+    } else {
+      saveError.value = result.message || '保存配置失敗'
+    }
+  } catch (err) {
+    console.error('Save config error:', err)
+    saveError.value = err instanceof Error ? err.message : '保存配置時發生錯誤'
+  } finally {
+    isSaving.value = false
   }
 }
 </script>
@@ -296,6 +305,15 @@ const handleSaveConfig = async () => {
           <div v-if="saveSuccess" class="rounded-xl p-4 bg-green-50 border border-green-200 flex items-center space-x-3 animate-fade-in">
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
             <div class="text-green-900 font-semibold">配置已成功保存</div>
+          </div>
+
+          <!-- Save Error Message -->
+          <div v-if="saveError" class="rounded-xl p-4 bg-red-50 border border-red-200 flex items-center space-x-3 animate-fade-in">
+            <XCircleIcon class="w-6 h-6 text-red-600" />
+            <div class="flex-1">
+              <div class="text-red-900 font-semibold mb-1">保存失敗</div>
+              <div class="text-red-700 text-sm">{{ saveError }}</div>
+            </div>
           </div>
 
           <!-- Action Buttons -->

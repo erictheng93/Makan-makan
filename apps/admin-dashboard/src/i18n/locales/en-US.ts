@@ -36,7 +36,8 @@ const enUS: Messages = {
     createdAt: 'Created At',
     updatedAt: 'Updated At',
     yes: 'Yes',
-    no: 'No'
+    no: 'No',
+    fillRequired: 'Please fill in required fields'
   },
 
   // Scheduling system
@@ -334,6 +335,108 @@ const enUS: Messages = {
       stable: 'Stable',
       items: 'items',
       loadFailed: 'Failed to load data'
+    }
+  },
+
+  // Reservation system
+  reservation: {
+    title: 'Reservation Management',
+    create: 'New Reservation',
+    createSuccess: 'Reservation created successfully',
+    createError: 'Failed to create reservation',
+    loadError: 'Failed to load reservations',
+    confirmPrompt: 'Are you sure you want to confirm this reservation?',
+    confirmError: 'Failed to confirm reservation',
+    arrivedError: 'Failed to mark as arrived',
+    seatedError: 'Failed to mark as seated',
+    cancelPrompt: 'Are you sure you want to cancel this reservation?',
+    cancelError: 'Failed to cancel reservation',
+    confirmationCode: 'Confirmation Code',
+    customerName: 'Customer Name',
+    customerPhone: 'Contact Phone',
+    customerEmail: 'Email',
+    datetime: 'Reservation Time',
+    selectDatetime: 'Select reservation time',
+    partySize: 'Party Size',
+    people: 'people',
+    duration: 'Duration',
+    minutes: 'minutes',
+    specialRequests: 'Special Requests',
+    specialRequestsPlaceholder: 'E.g., child seat, wheelchair access, window seat, etc.',
+    notes: 'Notes',
+    status: 'Status',
+    detail: 'Reservation Details',
+    stats: {
+      total: 'Total Reservations',
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      seated: 'Seated'
+    },
+    filter: {
+      date: 'Date',
+      selectDate: 'Select date',
+      status: 'Status',
+      allStatus: 'All Status',
+      phone: 'Phone Number',
+      enterPhone: 'Enter phone number'
+    }
+  },
+
+  // Waiting list system
+  waitingList: {
+    title: 'Waiting List Management',
+    addCustomer: 'Add to Waiting List',
+    addSuccess: 'Added to waiting list successfully',
+    addError: 'Failed to add to waiting list',
+    loadError: 'Failed to load waiting list',
+    callCustomer: 'Call Customer',
+    callError: 'Failed to call customer',
+    confirmCall: 'Confirm Call',
+    call: 'Call',
+    callNext: 'Call Next',
+    seat: 'Seat',
+    expire: 'Expire',
+    cancel: 'Cancel',
+    seatedError: 'Failed to mark as seated',
+    expirePrompt: 'Are you sure you want to mark as expired?',
+    expireError: 'Failed to mark as expired',
+    cancelPrompt: 'Are you sure you want to cancel this entry?',
+    cancelError: 'Failed to cancel',
+    batchCallError: 'Failed to batch call',
+    customerName: 'Customer Name',
+    customerPhone: 'Contact Phone',
+    partySize: 'Party Size',
+    people: 'people',
+    notes: 'Notes',
+    notesPlaceholder: 'E.g., stroller, special needs, etc.',
+    queueNumber: 'Queue Number',
+    waitTime: 'Wait Time',
+    joinedAt: 'Joined At',
+    estimatedWait: 'Estimated Wait Time',
+    partiesAhead: 'Parties Ahead',
+    availableTables: 'Available Tables',
+    assignTable: 'Assign Table',
+    selectTable: 'Select table',
+    selectTableRequired: 'Please select a table to assign',
+    notificationMethod: 'Notification Method',
+    sms: 'SMS',
+    display: 'Display',
+    both: 'Both',
+    queue: 'Queue',
+    noQueue: 'No one waiting',
+    cardView: 'Card View',
+    tableView: 'Table View',
+    stats: {
+      waiting: 'Waiting',
+      called: 'Called',
+      avgWait: 'Avg Wait',
+      todayTotal: 'Today Total'
+    },
+    filter: {
+      status: 'Status',
+      allStatus: 'All Status',
+      phone: 'Phone Number',
+      enterPhone: 'Enter phone number'
     }
   },
 

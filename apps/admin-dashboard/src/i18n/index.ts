@@ -12,6 +12,7 @@ export type Locale = 'zh-TW' | 'zh-CN' | 'en-US' | 'ja-JP' | 'vi-VN' | 'id-ID'
 export interface LocaleConfig {
   code: Locale
   name: string
+  nativeName: string
   flag: string
   dateFormat: string
   timeFormat: string
@@ -28,6 +29,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'zh-TW',
     name: '繁體中文',
+    nativeName: '繁體中文',
     flag: '🇹🇼',
     dateFormat: 'YYYY年MM月DD日',
     timeFormat: 'HH:mm',
@@ -36,6 +38,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'zh-CN',
     name: '简体中文',
+    nativeName: '简体中文',
     flag: '🇨🇳',
     dateFormat: 'YYYY年MM月DD日',
     timeFormat: 'HH:mm',
@@ -44,6 +47,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'en-US',
     name: 'English',
+    nativeName: 'English',
     flag: '🇺🇸',
     dateFormat: 'MM/DD/YYYY',
     timeFormat: 'hh:mm A',
@@ -52,6 +56,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'ja-JP',
     name: '日本語',
+    nativeName: '日本語',
     flag: '🇯🇵',
     dateFormat: 'YYYY年MM月DD日',
     timeFormat: 'HH:mm',
@@ -60,6 +65,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'vi-VN',
     name: 'Tiếng Việt',
+    nativeName: 'Tiếng Việt',
     flag: '🇻🇳',
     dateFormat: 'DD/MM/YYYY',
     timeFormat: 'HH:mm',
@@ -68,6 +74,7 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   {
     code: 'id-ID',
     name: 'Bahasa Indonesia',
+    nativeName: 'Bahasa Indonesia',
     flag: '🇮🇩',
     dateFormat: 'DD/MM/YYYY',
     timeFormat: 'HH:mm',
@@ -291,5 +298,23 @@ export function useI18n() {
     setLocale,
     switchLocale,
     supportedLocales: SUPPORTED_LOCALES
+  }
+}
+
+/**
+ * Admin i18n Composable（為 Admin Dashboard 提供兼容性介面）
+ */
+export function useAdminI18n() {
+  const i18n = useI18n()
+
+  return {
+    ...i18n,
+    getCurrentLocaleInfo: () => i18n.localeConfig.value,
+    getAvailableLocales: () => i18n.supportedLocales,
+    switchLocale: async () => {
+      // For now, just return true. The actual locale switching
+      // is handled by the LanguageSwitcher component
+      return true
+    }
   }
 }

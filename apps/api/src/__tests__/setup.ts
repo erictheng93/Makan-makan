@@ -19,16 +19,27 @@ const mockKV = {
   list: vi.fn()
 }
 
-// Mock environment
+// Mock environment with all required Env properties
 export const mockEnv = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-jwt-secret-key-for-testing-only',
   API_VERSION: 'v1',
   DB: mockDB,
   CACHE_KV: mockKV,
+  TOKEN_BLACKLIST: mockKV,
+  IMAGES_BUCKET: {} as any,
+  BACKUP_STORAGE: {} as any,
+  JOB_QUEUE: {} as any,
+  REALTIME_ORDERS: {} as any,
+  ANALYTICS_ENGINE: {
+    writeDataPoint: vi.fn()
+  } as any,
+  RATE_LIMIT_KV: mockKV,
+  REALTIME_SESSION: {} as any,
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test/webhook',
   API_BASE_URL: 'http://localhost:8787',
-  INTERNAL_API_TOKEN: 'test-internal-token'
+  INTERNAL_API_TOKEN: 'test-internal-token',
+  CLOUDFLARE_IMAGES_KEY: 'test-images-key'
 }
 
 // Mock Hono context

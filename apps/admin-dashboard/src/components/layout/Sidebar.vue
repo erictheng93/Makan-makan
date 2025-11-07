@@ -80,6 +80,9 @@ import {
   Ticket as TicketIcon,
   Sparkles,
   Calendar,
+  CalendarCheck,
+  BookOpen,
+  ClipboardList,
 } from "lucide-vue-next";
 
 interface Props {
@@ -126,6 +129,30 @@ const navigationItems = computed(() => [
     visible: authStore.canAccessAdminFeatures,
   },
   {
+    name: "reservations",
+    path: "/dashboard/reservations",
+    label: "訂位管理",
+    icon: BookOpen,
+    visible: authStore.hasPermission([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.SERVICE,
+      UserRole.CASHIER,
+    ]),
+  },
+  {
+    name: "waiting-list",
+    path: "/dashboard/waiting-list",
+    label: "候位列表",
+    icon: ClipboardList,
+    visible: authStore.hasPermission([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.SERVICE,
+      UserRole.CASHIER,
+    ]),
+  },
+  {
     name: "users",
     path: "/dashboard/users",
     label: "員工管理",
@@ -137,6 +164,13 @@ const navigationItems = computed(() => [
     path: "/dashboard/scheduling",
     label: "員工排班",
     icon: Calendar,
+    visible: authStore.canAccessAdminFeatures,
+  },
+  {
+    name: "leaves",
+    path: "/dashboard/leaves",
+    label: "請假管理",
+    icon: CalendarCheck,
     visible: authStore.canAccessAdminFeatures,
   },
   {

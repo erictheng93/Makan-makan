@@ -36,7 +36,8 @@ const idID: Messages = {
     createdAt: 'Tanggal Dibuat',
     updatedAt: 'Tanggal Diperbarui',
     yes: 'Ya',
-    no: 'Tidak'
+    no: 'Tidak',
+    fillRequired: 'Harap isi kolom yang wajib diisi'
   },
 
   // Sistem jadwal kerja
@@ -334,6 +335,108 @@ const idID: Messages = {
       stable: 'Stabil',
       items: 'item',
       loadFailed: 'Gagal memuat data'
+    }
+  },
+
+  // Sistem reservasi
+  reservation: {
+    title: 'Manajemen Reservasi',
+    create: 'Reservasi Baru',
+    createSuccess: 'Reservasi berhasil dibuat',
+    createError: 'Gagal membuat reservasi',
+    loadError: 'Gagal memuat daftar reservasi',
+    confirmPrompt: 'Apakah Anda yakin ingin mengkonfirmasi reservasi ini?',
+    confirmError: 'Gagal mengkonfirmasi reservasi',
+    arrivedError: 'Gagal menandai sudah tiba',
+    seatedError: 'Gagal menandai sudah duduk',
+    cancelPrompt: 'Apakah Anda yakin ingin membatalkan reservasi ini?',
+    cancelError: 'Gagal membatalkan reservasi',
+    confirmationCode: 'Kode Konfirmasi',
+    customerName: 'Nama Pelanggan',
+    customerPhone: 'Nomor Telepon',
+    customerEmail: 'Email',
+    datetime: 'Waktu Reservasi',
+    selectDatetime: 'Pilih waktu reservasi',
+    partySize: 'Jumlah Orang',
+    people: 'orang',
+    duration: 'Durasi',
+    minutes: 'menit',
+    specialRequests: 'Permintaan Khusus',
+    specialRequestsPlaceholder: 'Mis: kursi bayi, akses kursi roda, tempat duduk di jendela, dll.',
+    notes: 'Catatan',
+    status: 'Status',
+    detail: 'Detail Reservasi',
+    stats: {
+      total: 'Total Reservasi',
+      pending: 'Menunggu',
+      confirmed: 'Dikonfirmasi',
+      seated: 'Sudah Duduk'
+    },
+    filter: {
+      date: 'Tanggal',
+      selectDate: 'Pilih tanggal',
+      status: 'Status',
+      allStatus: 'Semua Status',
+      phone: 'Nomor Telepon',
+      enterPhone: 'Masukkan nomor telepon'
+    }
+  },
+
+  // Sistem daftar tunggu
+  waitingList: {
+    title: 'Manajemen Daftar Tunggu',
+    addCustomer: 'Tambah ke Daftar Tunggu',
+    addSuccess: 'Berhasil ditambahkan ke daftar tunggu',
+    addError: 'Gagal menambahkan ke daftar tunggu',
+    loadError: 'Gagal memuat daftar tunggu',
+    callCustomer: 'Panggil Pelanggan',
+    callError: 'Gagal memanggil pelanggan',
+    confirmCall: 'Konfirmasi Panggilan',
+    call: 'Panggil',
+    callNext: 'Panggil Berikutnya',
+    seat: 'Duduk',
+    expire: 'Kadaluarsa',
+    cancel: 'Batal',
+    seatedError: 'Gagal menandai sudah duduk',
+    expirePrompt: 'Apakah Anda yakin ingin menandai sebagai kadaluarsa?',
+    expireError: 'Gagal menandai sebagai kadaluarsa',
+    cancelPrompt: 'Apakah Anda yakin ingin membatalkan entri ini?',
+    cancelError: 'Gagal membatalkan',
+    batchCallError: 'Gagal memanggil secara massal',
+    customerName: 'Nama Pelanggan',
+    customerPhone: 'Nomor Telepon',
+    partySize: 'Jumlah Orang',
+    people: 'orang',
+    notes: 'Catatan',
+    notesPlaceholder: 'Mis: kereta bayi, kebutuhan khusus, dll.',
+    queueNumber: 'Nomor Antrian',
+    waitTime: 'Waktu Tunggu',
+    joinedAt: 'Waktu Bergabung',
+    estimatedWait: 'Estimasi Waktu Tunggu',
+    partiesAhead: 'Antrian di Depan',
+    availableTables: 'Meja Tersedia',
+    assignTable: 'Tetapkan Meja',
+    selectTable: 'Pilih meja',
+    selectTableRequired: 'Harap pilih meja untuk ditetapkan',
+    notificationMethod: 'Metode Notifikasi',
+    sms: 'SMS',
+    display: 'Tampilan',
+    both: 'Keduanya',
+    queue: 'Antrian',
+    noQueue: 'Tidak ada yang menunggu',
+    cardView: 'Tampilan Kartu',
+    tableView: 'Tampilan Tabel',
+    stats: {
+      waiting: 'Menunggu',
+      called: 'Dipanggil',
+      avgWait: 'Rata-rata Tunggu',
+      todayTotal: 'Total Hari Ini'
+    },
+    filter: {
+      status: 'Status',
+      allStatus: 'Semua Status',
+      phone: 'Nomor Telepon',
+      enterPhone: 'Masukkan nomor telepon'
     }
   },
 

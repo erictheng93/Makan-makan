@@ -1,0 +1,16 @@
+# Simplified WebSocket Test
+config:
+  target: "ws://localhost:8788"
+  phases:
+    - duration: 10
+      arrivalRate: 1
+      name: "Simple test"
+
+scenarios:
+  - name: "Simple WebSocket Test"
+    engine: ws
+    flow:
+      # Try to connect with a hardcoded token (we'll generate one manually)
+      - connect:
+          url: "/health"
+      - think: 2

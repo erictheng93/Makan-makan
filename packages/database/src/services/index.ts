@@ -20,6 +20,11 @@ export { ImageService } from './image'
 export { CouponService } from './coupon'
 export { LeaveService } from './LeaveService'
 export { SchedulingService } from './SchedulingService'
+export { ReservationService } from './ReservationService'
+export { WaitingListService } from './WaitingListService'
+export { NotificationService } from './NotificationService'
+export { ExportService } from './ExportService'
+export { LeaveAnalyticsService } from './LeaveAnalyticsService'
 
 // 匯出類型定義
 export type { 

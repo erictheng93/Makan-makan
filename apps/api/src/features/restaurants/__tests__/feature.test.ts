@@ -120,6 +120,7 @@ describe('RestaurantsService', () => {
       }
 
       vi.spyOn(service['cache'], 'get').mockResolvedValue(mockResult)
+      vi.spyOn(service['dbService'], 'getRestaurants')
 
       const result = await service.getRestaurants({ page: 1, limit: 10 })
 
@@ -154,6 +155,7 @@ describe('RestaurantsService', () => {
 
     it('should use cache when available', async () => {
       vi.spyOn(service['cache'], 'get').mockResolvedValue(mockRestaurant)
+      vi.spyOn(service['dbService'], 'getRestaurant')
 
       const result = await service.getRestaurant(1)
 
@@ -291,6 +293,7 @@ describe('RestaurantsService', () => {
       }
 
       vi.spyOn(service['cache'], 'get').mockResolvedValue(mockStats)
+      vi.spyOn(service['dbService'], 'getRestaurantStats')
 
       const result = await service.getRestaurantStats(1)
 
@@ -313,6 +316,7 @@ describe('RestaurantsService', () => {
     it('should use cached results when available', async () => {
       const nearbyRestaurants = [mockRestaurant]
       vi.spyOn(service['cache'], 'get').mockResolvedValue(nearbyRestaurants)
+      vi.spyOn(service['dbService'], 'searchNearbyRestaurants')
 
       const result = await service.searchNearbyRestaurants('Test District', 5)
 
@@ -335,6 +339,7 @@ describe('RestaurantsService', () => {
     it('should use cached results when available', async () => {
       const popularRestaurants = [mockRestaurant]
       vi.spyOn(service['cache'], 'get').mockResolvedValue(popularRestaurants)
+      vi.spyOn(service['dbService'], 'getPopularRestaurants')
 
       const result = await service.getPopularRestaurants(5)
 

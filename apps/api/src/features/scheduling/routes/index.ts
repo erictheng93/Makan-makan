@@ -524,7 +524,89 @@ app.post('/:restaurantId/swap-requests',
   }
 )
 
-// POST /swap-requests/:id/approve - Approve a swap request
+// GET /:restaurantId/swap-requests - Get swap requests with filters
+app.get('/:restaurantId/swap-requests',
+  authMiddleware,
+  requireRestaurantAccess('restaurantId'),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.swapRequestFilters),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const filters = c.get('validatedQuery')
+      const user = c.get('user')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      // Employees can only view their own swap requests
+      const swapFilters = {
+        ...filters,
+        restaurantId,
+        requesterEmployeeId: user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
+          ? user.id
+          : filters.requesterEmployeeId,
+      }
+
+      const result = await service.getSwapRequests(swapFilters)
+
+      return c.json({
+        success: true,
+        data: result.items,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / filters.limit),
+        },
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      console.error('Get swap requests error:', error)
+      return c.json(
+        createErrorResponse('Failed to fetch swap requests'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// POST /swap-requests/:id/accept - Accept a swap request (employee)
+app.post('/swap-requests/:id/accept',
+  authMiddleware,
+  validateParams(schedulingSchemas.swapRequestIdParam),
+  validateBody(schedulingSchemas.acceptSwapRequest),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { employeeId } = c.get('validatedBody')
+      const user = c.get('user')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      // Verify user is accepting for themselves (unless admin)
+      if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+        if (employeeId !== user.id) {
+          return c.json(
+            createErrorResponse('Access denied'),
+            HTTP_STATUS.FORBIDDEN
+          )
+        }
+      }
+
+      const request = await service.acceptSwapRequest(id, employeeId)
+
+      return c.json(
+        createSuccessResponse(request, 'Swap request accepted successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Accept swap request error:', error)
+      return c.json(
+        createErrorResponse(error instanceof Error ? error.message : 'Failed to accept swap request'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// POST /swap-requests/:id/approve - Approve a swap request (manager)
 app.post('/swap-requests/:id/approve',
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
@@ -546,6 +628,60 @@ app.post('/swap-requests/:id/approve',
       console.error('Approve swap request error:', error)
       return c.json(
         createErrorResponse(error instanceof Error ? error.message : 'Failed to approve swap request'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// POST /swap-requests/:id/reject - Reject a swap request (manager)
+app.post('/swap-requests/:id/reject',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(schedulingSchemas.swapRequestIdParam),
+  validateBody(schedulingSchemas.rejectSwapRequest),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { managerId, reason } = c.get('validatedBody')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const request = await service.rejectSwapRequest(id, managerId, reason)
+
+      return c.json(
+        createSuccessResponse(request, 'Swap request rejected successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Reject swap request error:', error)
+      return c.json(
+        createErrorResponse(error instanceof Error ? error.message : 'Failed to reject swap request'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// POST /swap-requests/:id/cancel - Cancel a swap request (requester)
+app.post('/swap-requests/:id/cancel',
+  authMiddleware,
+  validateParams(schedulingSchemas.swapRequestIdParam),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const user = c.get('user')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const request = await service.cancelSwapRequest(id, user.id)
+
+      return c.json(
+        createSuccessResponse(request, 'Swap request cancelled successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Cancel swap request error:', error)
+      return c.json(
+        createErrorResponse(error instanceof Error ? error.message : 'Failed to cancel swap request'),
         HTTP_STATUS.INTERNAL_SERVER_ERROR
       )
     }
@@ -587,6 +723,168 @@ app.get('/:restaurantId/available-employees',
       console.error('Get available employees error:', error)
       return c.json(
         createErrorResponse(error instanceof Error ? error.message : 'Failed to fetch available employees'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// ========================================
+// Conflict Management
+// ========================================
+
+// GET /:restaurantId/conflicts - Get scheduling conflicts
+app.get('/:restaurantId/conflicts',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess('restaurantId'),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.conflictFilters),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const filters = c.get('validatedQuery')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const result = await service.getConflicts({
+        ...filters,
+        restaurantId,
+      })
+
+      return c.json({
+        success: true,
+        data: result.items,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / filters.limit),
+        },
+      }, HTTP_STATUS.OK)
+    } catch (error) {
+      console.error('Get conflicts error:', error)
+      return c.json(
+        createErrorResponse('Failed to fetch conflicts'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// GET /conflicts/:id - Get a specific conflict
+app.get('/conflicts/:id',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(schedulingSchemas.conflictIdParam),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const conflict = await service.getConflict(id)
+
+      if (!conflict) {
+        return c.json(
+          createErrorResponse('Conflict not found'),
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+
+      return c.json(createSuccessResponse(conflict), HTTP_STATUS.OK)
+    } catch (error) {
+      console.error('Get conflict error:', error)
+      return c.json(
+        createErrorResponse('Failed to fetch conflict'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// POST /conflicts/:id/resolve - Resolve a conflict
+app.post('/conflicts/:id/resolve',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(schedulingSchemas.conflictIdParam),
+  validateBody(schedulingSchemas.resolveConflict),
+  async (c) => {
+    try {
+      const { id } = c.get('validatedParams')
+      const { userId, resolutionNotes } = c.get('validatedBody')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const conflict = await service.resolveConflict(id, userId, resolutionNotes)
+
+      return c.json(
+        createSuccessResponse(conflict, 'Conflict resolved successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Resolve conflict error:', error)
+      return c.json(
+        createErrorResponse(error instanceof Error ? error.message : 'Failed to resolve conflict'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// ========================================
+// Statistics & Analytics
+// ========================================
+
+// GET /:restaurantId/stats/daily - Get daily scheduling statistics
+app.get('/:restaurantId/stats/daily',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess('restaurantId'),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.statsQuery),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const { date } = c.get('validatedQuery')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const stats = await service.getDailyStats(restaurantId, date)
+
+      return c.json(
+        createSuccessResponse(stats, 'Daily statistics retrieved successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Get daily stats error:', error)
+      return c.json(
+        createErrorResponse('Failed to fetch daily statistics'),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+)
+
+// GET /:restaurantId/stats/weekly - Get weekly schedule summary
+app.get('/:restaurantId/stats/weekly',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess('restaurantId'),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.weeklySummaryQuery),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get('validatedParams')
+      const { weekStartDate } = c.get('validatedQuery')
+      const service = new SchedulingService(c.env.DB, c.env)
+
+      const summary = await service.getWeeklySummary(restaurantId, weekStartDate)
+
+      return c.json(
+        createSuccessResponse(summary, 'Weekly summary retrieved successfully'),
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('Get weekly summary error:', error)
+      return c.json(
+        createErrorResponse('Failed to fetch weekly summary'),
         HTTP_STATUS.INTERNAL_SERVER_ERROR
       )
     }

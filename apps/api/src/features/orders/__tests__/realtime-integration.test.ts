@@ -1,61 +1,75 @@
 /**
  * Orders + Realtime Integration Tests
  * 測試訂單服務與即時廣播的整合
+ *
+ * 測試策略：直接替換內部服務實例，避免依賴 vi.mock() 的複雜行為
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { OrdersService } from '../services/OrdersService'
-import { RealtimeBroadcastService } from '../../../services/RealtimeBroadcastService'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Env } from '../../../shared/types'
 
-// Import RealtimeEventType properly for runtime use
+// Mock @makanmakan/shared-types to ensure enums are available
+vi.mock('@makanmakan/shared-types', async () => {
+  const actual = await vi.importActual('@makanmakan/shared-types')
+  return {
+    ...actual,
+    OrderStatus: {
+      PENDING: 0,
+      CONFIRMED: 1,
+      PREPARING: 2,
+      READY: 3,
+      DELIVERED: 4,
+      PAID: 5,
+      CANCELLED: 6
+    },
+    RealtimeEventType: {
+      NEW_ORDER: 'new_order',
+      ORDER_STATUS_UPDATE: 'order_status_update',
+      ORDER_ITEM_STATUS_UPDATE: 'order_item_status_update',
+      KITCHEN_ITEM_STATUS: 'kitchen_item_status',
+      MENU_AVAILABILITY_UPDATE: 'menu_availability_update'
+    }
+  }
+})
+
+// Import after mocking
+import { OrdersService } from '../services/OrdersService'
+import { OrderStatus } from '@makanmakan/shared-types'
+
+// RealtimeEventType for assertions
 const RealtimeEventType = {
   NEW_ORDER: 'new_order',
   ORDER_STATUS_UPDATE: 'order_status_update'
 } as const
 
-// Mock dependencies
-vi.mock('../../../services/RealtimeBroadcastService')
-vi.mock('../../../core/monitoring', () => ({
-  ConsoleLogger: vi.fn().mockImplementation(() => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn()
-  })),
-  SimplePerformanceTracker: vi.fn().mockImplementation(() => ({
-    startTimer: vi.fn(() => 'timer-123'),
-    endTimer: vi.fn(() => 100),
-    recordMetric: vi.fn()
-  }))
-}))
-
-vi.mock('@makanmakan/database', () => ({
-  BaseOrderService: vi.fn().mockImplementation(() => ({
-    createOrder: vi.fn(),
-    getOrder: vi.fn(),
-    updateOrderStatus: vi.fn(),
-    updateOrderItemStatus: vi.fn()
-  })),
-  OrderStatus: {
-    PENDING: 0,
-    CONFIRMED: 1,
-    PREPARING: 2,
-    READY: 3,
-    DELIVERED: 4,
-    PAID: 5,
-    CANCELLED: 6
-  }
-}))
-
 describe('Orders + Realtime Integration', () => {
   let ordersService: OrdersService
   let mockEnv: Env
-  let mockRealtimeBroadcastService: any
-  let mockBaseOrderService: any
+  let mockBroadcastService: any
+  let mockOrderService: any
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Create mock services
+    mockBroadcastService = {
+      broadcastNewOrder: vi.fn().mockResolvedValue({
+        success: true,
+        eventId: 'evt_test_123',
+        recipientCount: 1
+      }),
+      broadcastOrderStatusUpdate: vi.fn().mockResolvedValue({
+        success: true,
+        eventId: 'evt_update_123',
+        recipientCount: 1
+      }),
+      generateEventId: vi.fn(() => 'evt_test_123')
+    }
+
+    mockOrderService = {
+      createOrder: vi.fn(),
+      getOrder: vi.fn(),
+      updateOrderStatus: vi.fn(),
+      updateOrderItemStatus: vi.fn()
+    }
 
     // Mock environment
     mockEnv = {
@@ -64,16 +78,19 @@ describe('Orders + Realtime Integration', () => {
       API_VERSION: '1.0.0',
       DB: {} as any,
       CACHE_KV: {
-        get: vi.fn(),
-        put: vi.fn(),
-        delete: vi.fn()
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn().mockResolvedValue(undefined),
+        put: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(true)
       } as any,
       TOKEN_BLACKLIST: {} as any,
       IMAGES_BUCKET: {} as any,
       BACKUP_STORAGE: {} as any,
       JOB_QUEUE: {} as any,
       REALTIME_ORDERS: {} as any,
-      ANALYTICS_ENGINE: {} as any,
+      ANALYTICS_ENGINE: {
+        writeDataPoint: vi.fn()
+      } as any,
       RATE_LIMIT_KV: {} as any,
       REALTIME_SESSION: {} as any
     }
@@ -81,13 +98,16 @@ describe('Orders + Realtime Integration', () => {
     // Create service instance
     ordersService = new OrdersService(mockEnv)
 
-    // Get mocked services
-    mockRealtimeBroadcastService = (ordersService as any).realtimeBroadcastService
-    mockBaseOrderService = (ordersService as any).baseOrderService
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
+    // CRITICAL: Replace internal services with our mocks
+    // This is the key to making these tests work reliably
+    ordersService['realtimeBroadcastService'] = mockBroadcastService
+    ordersService['baseOrderService'] = mockOrderService
+    ordersService['logger'] = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn()
+    }
   })
 
   describe('createOrder - Realtime Integration', () => {
@@ -116,7 +136,7 @@ describe('Orders + Realtime Integration', () => {
         customerPhone: '+1234567890',
         totalAmount: 2000,
         subtotal: 2000,
-        status: 0,
+        status: OrderStatus.PENDING,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -141,13 +161,7 @@ describe('Orders + Realtime Integration', () => {
         ]
       }
 
-      mockBaseOrderService.createOrder.mockResolvedValue(createdOrder)
-      mockRealtimeBroadcastService.generateEventId = vi.fn(() => 'evt_test_123')
-      mockRealtimeBroadcastService.broadcastNewOrder = vi.fn().mockResolvedValue({
-        success: true,
-        eventId: 'evt_test_123',
-        recipientCount: 3
-      })
+      mockOrderService.createOrder.mockResolvedValue(createdOrder)
 
       const result = await ordersService.createOrder(orderData)
 
@@ -155,9 +169,9 @@ describe('Orders + Realtime Integration', () => {
       expect(result).toEqual(createdOrder)
 
       // Verify broadcast was called
-      expect(mockRealtimeBroadcastService.broadcastNewOrder).toHaveBeenCalledTimes(1)
+      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalledTimes(1)
 
-      const broadcastCall = mockRealtimeBroadcastService.broadcastNewOrder.mock.calls[0][0]
+      const broadcastCall = mockBroadcastService.broadcastNewOrder.mock.calls[0][0]
       expect(broadcastCall.type).toBe(RealtimeEventType.NEW_ORDER)
       expect(broadcastCall.restaurantId).toBe('1')
       expect(broadcastCall.data.orderId).toBe(1)
@@ -187,7 +201,7 @@ describe('Orders + Realtime Integration', () => {
         orderNumber: '#002',
         totalAmount: 500,
         subtotal: 500,
-        status: 0,
+        status: OrderStatus.PENDING,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -211,9 +225,9 @@ describe('Orders + Realtime Integration', () => {
         ]
       }
 
-      mockBaseOrderService.createOrder.mockResolvedValue(createdOrder)
-      mockRealtimeBroadcastService.generateEventId = vi.fn(() => 'evt_test_456')
-      mockRealtimeBroadcastService.broadcastNewOrder = vi.fn().mockResolvedValue({
+      mockOrderService.createOrder.mockResolvedValue(createdOrder)
+      // Make broadcast fail for this test
+      mockBroadcastService.broadcastNewOrder.mockResolvedValueOnce({
         success: false,
         error: 'Broadcast failed'
       })
@@ -222,22 +236,23 @@ describe('Orders + Realtime Integration', () => {
       const result = await ordersService.createOrder(orderData)
 
       expect(result).toEqual(createdOrder)
-      expect(mockRealtimeBroadcastService.broadcastNewOrder).toHaveBeenCalled()
+      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalled()
     })
   })
 
   describe('updateOrderStatus - Realtime Integration', () => {
     it('應該在更新訂單狀態後廣播 ORDER_STATUS_UPDATE 事件', async () => {
       const orderId = 3
-      const newStatus = 2 // PREPARING
+      const currentStatus = 'confirmed'
+      const newStatus = 'preparing'
       const notes = 'Starting to prepare'
 
-      const updatedOrder = {
+      const currentOrder = {
         id: orderId,
         restaurantId: 3,
         tableId: 30,
         orderNumber: '#003',
-        status: newStatus,
+        status: currentStatus as any,
         totalAmount: 1500,
         subtotal: 1500,
         paymentStatus: 0,
@@ -246,24 +261,24 @@ describe('Orders + Realtime Integration', () => {
         items: []
       }
 
-      mockBaseOrderService.updateOrderStatus.mockResolvedValue(updatedOrder)
-      mockBaseOrderService.getOrder.mockResolvedValue(updatedOrder)
-      mockRealtimeBroadcastService.generateEventId = vi.fn(() => 'evt_update_789')
-      mockRealtimeBroadcastService.broadcastOrderStatusUpdate = vi.fn().mockResolvedValue({
-        success: true,
-        eventId: 'evt_update_789',
-        recipientCount: 5
-      })
+      const updatedOrder = {
+        ...currentOrder,
+        status: newStatus as any,
+        updatedAt: new Date().toISOString()
+      }
 
-      const result = await ordersService.updateOrderStatus(orderId, { status: newStatus, notes })
+      mockOrderService.getOrder.mockResolvedValue(currentOrder)
+      mockOrderService.updateOrderStatus.mockResolvedValue(updatedOrder)
+
+      const result = await ordersService.updateOrderStatus(orderId, { status: newStatus as any, notes })
 
       // Verify update
       expect(result).toEqual(updatedOrder)
 
       // Verify broadcast
-      expect(mockRealtimeBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalledTimes(1)
+      expect(mockBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalledTimes(1)
 
-      const broadcastCall = mockRealtimeBroadcastService.broadcastOrderStatusUpdate.mock.calls[0][0]
+      const broadcastCall = mockBroadcastService.broadcastOrderStatusUpdate.mock.calls[0][0]
       expect(broadcastCall.type).toBe(RealtimeEventType.ORDER_STATUS_UPDATE)
       expect(broadcastCall.restaurantId).toBe('3')
       expect(broadcastCall.data.orderId).toBe(orderId)
@@ -279,7 +294,7 @@ describe('Orders + Realtime Integration', () => {
         restaurantId: 4,
         tableId: 40,
         orderNumber: '#004',
-        status: 1,
+        status: 'confirmed' as any,
         totalAmount: 3000,
         subtotal: 3000,
         paymentStatus: 0,
@@ -287,38 +302,32 @@ describe('Orders + Realtime Integration', () => {
         updatedAt: new Date().toISOString()
       }
 
-      mockBaseOrderService.getOrder.mockResolvedValue(order)
-      mockRealtimeBroadcastService.generateEventId = vi.fn(() => 'evt_broadcast_101')
-      mockRealtimeBroadcastService.broadcastOrderStatusUpdate = vi.fn().mockResolvedValue({
-        success: true,
-        eventId: 'evt_broadcast_101',
-        recipientCount: 2
-      })
+      mockOrderService.getOrder.mockResolvedValue(order)
 
       await ordersService.broadcastOrderUpdate({
         orderId: 4,
-        newStatus: 1,
-        previousStatus: 0,
+        newStatus: 'confirmed' as any,
+        previousStatus: OrderStatus.PENDING,
         notes: 'Order confirmed',
         updatedBy: 1,
         updatedAt: new Date()
       })
 
-      expect(mockRealtimeBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalled()
+      expect(mockBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalled()
     })
 
     it('應該在訂單不存在時不廣播', async () => {
-      mockBaseOrderService.getOrder.mockResolvedValue(null)
+      mockOrderService.getOrder.mockResolvedValue(null)
 
       await ordersService.broadcastOrderUpdate({
         orderId: 999,
-        newStatus: 1,
-        previousStatus: 0,
+        newStatus: 'confirmed' as any,
+        previousStatus: OrderStatus.PENDING,
         updatedBy: 1,
         updatedAt: new Date()
       })
 
-      expect(mockRealtimeBroadcastService.broadcastOrderStatusUpdate).not.toHaveBeenCalled()
+      expect(mockBroadcastService.broadcastOrderStatusUpdate).not.toHaveBeenCalled()
     })
   })
 
@@ -346,7 +355,7 @@ describe('Orders + Realtime Integration', () => {
         orderNumber: '#005',
         totalAmount: 4500,
         subtotal: 4500,
-        status: 0,
+        status: OrderStatus.PENDING,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -374,17 +383,11 @@ describe('Orders + Realtime Integration', () => {
         ]
       }
 
-      mockBaseOrderService.createOrder.mockResolvedValue(createdOrder)
-      mockRealtimeBroadcastService.generateEventId = vi.fn(() => 'evt_mapping_202')
-      mockRealtimeBroadcastService.broadcastNewOrder = vi.fn().mockResolvedValue({
-        success: true,
-        eventId: 'evt_mapping_202',
-        recipientCount: 1
-      })
+      mockOrderService.createOrder.mockResolvedValue(createdOrder)
 
       await ordersService.createOrder(orderData)
 
-      const broadcastCall = mockRealtimeBroadcastService.broadcastNewOrder.mock.calls[0][0]
+      const broadcastCall = mockBroadcastService.broadcastNewOrder.mock.calls[0][0]
 
       expect(broadcastCall.data.items[0]).toMatchObject({
         orderItemId: 5,

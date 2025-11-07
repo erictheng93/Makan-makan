@@ -4,6 +4,32 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// Mock @makanmakan/shared-types to ensure enums are available
+vi.mock('@makanmakan/shared-types', async () => {
+  const actual = await vi.importActual('@makanmakan/shared-types')
+  return {
+    ...actual,
+    RealtimeEventType: {
+      NEW_ORDER: 'new_order',
+      ORDER_STATUS_UPDATE: 'order_status_update',
+      ORDER_ITEM_STATUS_UPDATE: 'order_item_status_update',
+      KITCHEN_ITEM_STATUS: 'kitchen_item_status',
+      MENU_AVAILABILITY_UPDATE: 'menu_availability_update'
+    },
+    OrderStatus: {
+      PENDING: 0,
+      CONFIRMED: 1,
+      PREPARING: 2,
+      READY: 3,
+      DELIVERED: 4,
+      PAID: 5,
+      CANCELLED: 6
+    }
+  }
+})
+
+// Import after mocking
 import { RealtimeBroadcastService } from '../RealtimeBroadcastService'
 import type { Env } from '../../shared/types'
 import {

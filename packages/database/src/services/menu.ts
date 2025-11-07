@@ -113,7 +113,30 @@ export class MenuService extends BaseService {
   async getFeaturedItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
     try {
       const items = await this.db
-        .select()
+        .select({
+          id: menuItems.id,
+          restaurantId: menuItems.restaurantId,
+          categoryId: menuItems.categoryId,
+          name: menuItems.name,
+          description: menuItems.description,
+          ingredients: menuItems.ingredients,
+          price: menuItems.price,
+          originalPrice: menuItems.originalPrice,
+          imageUrl: menuItems.imageUrl,
+          isAvailable: menuItems.isAvailable,
+          isFeatured: menuItems.isFeatured,
+          isPopular: menuItems.isPopular,
+          sortOrder: menuItems.sortOrder,
+          inventoryCount: menuItems.inventoryCount,
+          spiceLevel: menuItems.spiceLevel,
+          preparationTime: menuItems.preparationTime,
+          calories: menuItems.calories,
+          allergens: menuItems.allergens,
+          orderCount: menuItems.orderCount,
+          rating: menuItems.rating,
+          createdAt: menuItems.createdAt,
+          updatedAt: menuItems.updatedAt
+        })
         .from(menuItems)
         .where(
           and(
@@ -135,7 +158,30 @@ export class MenuService extends BaseService {
   async getPopularItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
     try {
       const items = await this.db
-        .select()
+        .select({
+          id: menuItems.id,
+          restaurantId: menuItems.restaurantId,
+          categoryId: menuItems.categoryId,
+          name: menuItems.name,
+          description: menuItems.description,
+          ingredients: menuItems.ingredients,
+          price: menuItems.price,
+          originalPrice: menuItems.originalPrice,
+          imageUrl: menuItems.imageUrl,
+          isAvailable: menuItems.isAvailable,
+          isFeatured: menuItems.isFeatured,
+          isPopular: menuItems.isPopular,
+          sortOrder: menuItems.sortOrder,
+          inventoryCount: menuItems.inventoryCount,
+          spiceLevel: menuItems.spiceLevel,
+          preparationTime: menuItems.preparationTime,
+          calories: menuItems.calories,
+          allergens: menuItems.allergens,
+          orderCount: menuItems.orderCount,
+          rating: menuItems.rating,
+          createdAt: menuItems.createdAt,
+          updatedAt: menuItems.updatedAt
+        })
         .from(menuItems)
         .where(
           and(
@@ -206,7 +252,30 @@ export class MenuService extends BaseService {
 
       // 查詢結果
       const items = await this.db
-        .select()
+        .select({
+          id: menuItems.id,
+          restaurantId: menuItems.restaurantId,
+          categoryId: menuItems.categoryId,
+          name: menuItems.name,
+          description: menuItems.description,
+          ingredients: menuItems.ingredients,
+          price: menuItems.price,
+          originalPrice: menuItems.originalPrice,
+          imageUrl: menuItems.imageUrl,
+          isAvailable: menuItems.isAvailable,
+          isFeatured: menuItems.isFeatured,
+          isPopular: menuItems.isPopular,
+          sortOrder: menuItems.sortOrder,
+          inventoryCount: menuItems.inventoryCount,
+          spiceLevel: menuItems.spiceLevel,
+          preparationTime: menuItems.preparationTime,
+          calories: menuItems.calories,
+          allergens: menuItems.allergens,
+          orderCount: menuItems.orderCount,
+          rating: menuItems.rating,
+          createdAt: menuItems.createdAt,
+          updatedAt: menuItems.updatedAt
+        })
         .from(menuItems)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(menuItems.isFeatured), desc(menuItems.orderCount), asc(menuItems.sortOrder))

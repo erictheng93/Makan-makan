@@ -1,0 +1,572 @@
+-- =====================================================
+-- Migration: Restaurant ID 遷移 - 數據遷移 Part 2
+-- Version: 0043 (自動生成)
+-- Date: 2025-10-27
+-- Description: 遷移剩餘 24 張表的數據
+-- =====================================================
+
+-- 禁用外鍵約束
+PRAGMA foreign_keys=OFF;
+
+-- =====================================================
+-- 數據遷移
+-- =====================================================
+
+-- 遷移 audit_logs 表數據
+INSERT INTO audit_logs_new (
+    id, user_id, restaurant_id, action, resource, resource_id, description, changes, ip_address, user_agent, success, error_message, execution_time_ms, created_at
+) SELECT
+    a.id,
+    a.user_id,
+    CASE
+        WHEN a.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    a.action,
+    a.resource,
+    a.resource_id,
+    a.description,
+    a.changes,
+    a.ip_address,
+    a.user_agent,
+    a.success,
+    a.error_message,
+    a.execution_time_ms,
+    a.created_at
+FROM audit_logs a
+LEFT JOIN restaurants r ON a.restaurant_id = r.id;
+
+-- 遷移 error_reports 表數據
+INSERT INTO error_reports_new (
+    id, user_id, restaurant_id, error_type, severity, error_code, error_message, error_context, original_error, user_agent, url, timestamp, created_at, resolved_at, resolved_by, resolution_notes
+) SELECT
+    e.id,
+    e.user_id,
+    CASE
+        WHEN e.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    e.error_type,
+    e.severity,
+    e.error_code,
+    e.error_message,
+    e.error_context,
+    e.original_error,
+    e.user_agent,
+    e.url,
+    e.timestamp,
+    e.created_at,
+    e.resolved_at,
+    e.resolved_by,
+    e.resolution_notes
+FROM error_reports e
+LEFT JOIN restaurants r ON e.restaurant_id = r.id;
+
+-- 遷移 system_alerts 表數據
+INSERT INTO system_alerts_new (
+    id, title, description, severity, alert_type, restaurant_id, affected_component, created_at, resolved_at, resolved_by, resolution_notes, auto_resolved
+) SELECT
+    s.id,
+    s.title,
+    s.description,
+    s.severity,
+    s.alert_type,
+    CASE
+        WHEN s.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    s.affected_component,
+    s.created_at,
+    s.resolved_at,
+    s.resolved_by,
+    s.resolution_notes,
+    s.auto_resolved
+FROM system_alerts s
+LEFT JOIN restaurants r ON s.restaurant_id = r.id;
+
+-- 遷移 group_orders 表數據
+INSERT INTO group_orders_new (
+    id, share_code, master_order_id, created_by, restaurant_id, table_id, status, split_type, total_amount, tax_amount, service_charge, final_amount, expires_at, locked_at, completed_at, settings, notes, created_at, updated_at
+) SELECT
+    g.id,
+    g.share_code,
+    g.master_order_id,
+    g.created_by,
+    r.public_id as restaurant_id,
+    g.table_id,
+    g.status,
+    g.split_type,
+    g.total_amount,
+    g.tax_amount,
+    g.service_charge,
+    g.final_amount,
+    g.expires_at,
+    g.locked_at,
+    g.completed_at,
+    g.settings,
+    g.notes,
+    g.created_at,
+    g.updated_at
+FROM group_orders g
+INNER JOIN restaurants r ON g.restaurant_id = r.id;
+
+-- 遷移 promotions 表數據
+INSERT INTO promotions_new (
+    id, restaurant_id, name, description, promotion_type, discount_value, min_order_amount, max_discount_amount, applicable_items, conditions, usage_limit, usage_count, valid_from, valid_until, time_restrictions, is_active, created_by, created_at, updated_at
+) SELECT
+    p.id,
+    r.public_id as restaurant_id,
+    p.name,
+    p.description,
+    p.promotion_type,
+    p.discount_value,
+    p.min_order_amount,
+    p.max_discount_amount,
+    p.applicable_items,
+    p.conditions,
+    p.usage_limit,
+    p.usage_count,
+    p.valid_from,
+    p.valid_until,
+    p.time_restrictions,
+    p.is_active,
+    p.created_by,
+    p.created_at,
+    p.updated_at
+FROM promotions p
+INNER JOIN restaurants r ON p.restaurant_id = r.id;
+
+-- 遷移 customer_reviews 表數據
+INSERT INTO customer_reviews_new (
+    id, order_id, restaurant_id, customer_name, customer_email, rating, comment, response, response_by, response_at, status, created_at, updated_at
+) SELECT
+    c.id,
+    c.order_id,
+    r.public_id as restaurant_id,
+    c.customer_name,
+    c.customer_email,
+    c.rating,
+    c.comment,
+    c.response,
+    c.response_by,
+    c.response_at,
+    c.status,
+    c.created_at,
+    c.updated_at
+FROM customer_reviews c
+INNER JOIN restaurants r ON c.restaurant_id = r.id;
+
+-- 遷移 inventory_items 表數據
+INSERT INTO inventory_items_new (
+    id, restaurant_id, name, category, unit, current_stock, min_stock_level, max_stock_level, cost_per_unit, supplier_info, last_restocked_at, status, created_at, updated_at
+) SELECT
+    i.id,
+    r.public_id as restaurant_id,
+    i.name,
+    i.category,
+    i.unit,
+    i.current_stock,
+    i.min_stock_level,
+    i.max_stock_level,
+    i.cost_per_unit,
+    i.supplier_info,
+    i.last_restocked_at,
+    i.status,
+    i.created_at,
+    i.updated_at
+FROM inventory_items i
+INNER JOIN restaurants r ON i.restaurant_id = r.id;
+
+-- 遷移 cash_registers 表數據
+INSERT INTO cash_registers_new (
+    id, name, location, restaurant_id, is_active, current_shift_id, hardware_config, peripherals, settings, last_maintenance_at, created_at, updated_at
+) SELECT
+    c.id,
+    c.name,
+    c.location,
+    r.public_id as restaurant_id,
+    c.is_active,
+    c.current_shift_id,
+    c.hardware_config,
+    c.peripherals,
+    c.settings,
+    c.last_maintenance_at,
+    c.created_at,
+    c.updated_at
+FROM cash_registers c
+INNER JOIN restaurants r ON c.restaurant_id = r.id;
+
+-- 遷移 printer_devices 表數據
+INSERT INTO printer_devices_new (
+    id, restaurant_id, name, type, brand, model, connection_type, connection_string, capabilities, status, last_seen, is_default, settings, notes, installed_at, updated_at
+) SELECT
+    p.id,
+    r.public_id as restaurant_id,
+    p.name,
+    p.type,
+    p.brand,
+    p.model,
+    p.connection_type,
+    p.connection_string,
+    p.capabilities,
+    p.status,
+    p.last_seen,
+    p.is_default,
+    p.settings,
+    p.notes,
+    p.installed_at,
+    p.updated_at
+FROM printer_devices p
+INNER JOIN restaurants r ON p.restaurant_id = r.id;
+
+-- 遷移 printer_configurations 表數據
+INSERT INTO printer_configurations_new (
+    id, restaurant_id, country_code, currency, timezone, date_format, time_format, number_format, tax_settings, receipt_header, receipt_footer, logo_url, contact_info, legal_info, custom_fields, created_at, updated_at
+) SELECT
+    p.id,
+    r.public_id as restaurant_id,
+    p.country_code,
+    p.currency,
+    p.timezone,
+    p.date_format,
+    p.time_format,
+    p.number_format,
+    p.tax_settings,
+    p.receipt_header,
+    p.receipt_footer,
+    p.logo_url,
+    p.contact_info,
+    p.legal_info,
+    p.custom_fields,
+    p.created_at,
+    p.updated_at
+FROM printer_configurations p
+INNER JOIN restaurants r ON p.restaurant_id = r.id;
+
+-- 遷移 print_templates 表數據
+INSERT INTO print_templates_new (
+    id, restaurant_id, name, type, language, content_template, style_settings, paper_width, is_active, is_default, version, created_by, created_at, updated_at
+) SELECT
+    p.id,
+    r.public_id as restaurant_id,
+    p.name,
+    p.type,
+    p.language,
+    p.content_template,
+    p.style_settings,
+    p.paper_width,
+    p.is_active,
+    p.is_default,
+    p.version,
+    p.created_by,
+    p.created_at,
+    p.updated_at
+FROM print_templates p
+INNER JOIN restaurants r ON p.restaurant_id = r.id;
+
+-- 遷移 waiting_queue 表數據
+INSERT INTO waiting_queue_new (
+    id, restaurant_id, queue_number, customer_name, customer_phone, customer_email, party_size, special_requests, priority, queue_type, estimated_wait_minutes, actual_wait_minutes, table_preferences, status, notification_methods, notification_sent, last_notification_at, notification_count, check_in_code, joined_at, called_at, notified_at, seated_at, cancelled_at, assigned_table_id, served_by, notes, metadata
+) SELECT
+    w.id,
+    r.public_id as restaurant_id,
+    w.queue_number,
+    w.customer_name,
+    w.customer_phone,
+    w.customer_email,
+    w.party_size,
+    w.special_requests,
+    w.priority,
+    w.queue_type,
+    w.estimated_wait_minutes,
+    w.actual_wait_minutes,
+    w.table_preferences,
+    w.status,
+    w.notification_methods,
+    w.notification_sent,
+    w.last_notification_at,
+    w.notification_count,
+    w.check_in_code,
+    w.joined_at,
+    w.called_at,
+    w.notified_at,
+    w.seated_at,
+    w.cancelled_at,
+    w.assigned_table_id,
+    w.served_by,
+    w.notes,
+    w.metadata
+FROM waiting_queue w
+INNER JOIN restaurants r ON w.restaurant_id = r.id;
+
+-- 遷移 queue_settings 表數據
+INSERT INTO queue_settings_new (
+    restaurant_id, is_enabled, max_queue_size, avg_service_time, max_wait_time, min_advance_notice, notification_methods, auto_call_enabled, auto_call_interval, no_show_timeout, queue_number_reset, priority_rules, table_assignment_rules, notification_templates, business_hours, holiday_settings, display_settings, integration_settings, created_at, updated_at
+) SELECT
+    CASE
+        WHEN q.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    q.is_enabled,
+    q.max_queue_size,
+    q.avg_service_time,
+    q.max_wait_time,
+    q.min_advance_notice,
+    q.notification_methods,
+    q.auto_call_enabled,
+    q.auto_call_interval,
+    q.no_show_timeout,
+    q.queue_number_reset,
+    q.priority_rules,
+    q.table_assignment_rules,
+    q.notification_templates,
+    q.business_hours,
+    q.holiday_settings,
+    q.display_settings,
+    q.integration_settings,
+    q.created_at,
+    q.updated_at
+FROM queue_settings q
+LEFT JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 queue_displays 表數據
+INSERT INTO queue_displays_new (
+    id, restaurant_id, display_name, location, display_type, layout_template, display_settings, content_filter, refresh_interval, is_active, last_active_at, device_info, created_at, updated_at
+) SELECT
+    q.id,
+    r.public_id as restaurant_id,
+    q.display_name,
+    q.location,
+    q.display_type,
+    q.layout_template,
+    q.display_settings,
+    q.content_filter,
+    q.refresh_interval,
+    q.is_active,
+    q.last_active_at,
+    q.device_info,
+    q.created_at,
+    q.updated_at
+FROM queue_displays q
+INNER JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 queue_events 表數據
+INSERT INTO queue_events_new (
+    id, restaurant_id, queue_id, event_type, event_data, triggered_by, triggered_by_system, ip_address, user_agent, created_at
+) SELECT
+    q.id,
+    r.public_id as restaurant_id,
+    q.queue_id,
+    q.event_type,
+    q.event_data,
+    q.triggered_by,
+    q.triggered_by_system,
+    q.ip_address,
+    q.user_agent,
+    q.created_at
+FROM queue_events q
+INNER JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 queue_statistics 表數據
+INSERT INTO queue_statistics_new (
+    id, restaurant_id, stat_date, total_customers, peak_queue_size, avg_wait_time, max_wait_time, customers_seated, customers_cancelled, customers_no_show, notification_sent_count, notification_success_rate, peak_hours, table_turnover_rate, customer_satisfaction, hourly_breakdown, created_at
+) SELECT
+    q.id,
+    r.public_id as restaurant_id,
+    q.stat_date,
+    q.total_customers,
+    q.peak_queue_size,
+    q.avg_wait_time,
+    q.max_wait_time,
+    q.customers_seated,
+    q.customers_cancelled,
+    q.customers_no_show,
+    q.notification_sent_count,
+    q.notification_success_rate,
+    q.peak_hours,
+    q.table_turnover_rate,
+    q.customer_satisfaction,
+    q.hourly_breakdown,
+    q.created_at
+FROM queue_statistics q
+INNER JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 restaurant_settings 表數據
+INSERT INTO restaurant_settings_new (
+    id, restaurant_id, setting_key, setting_value, setting_type, category, description, is_public, created_at, updated_at
+) SELECT
+    r.id,
+    r.public_id as restaurant_id,
+    r.setting_key,
+    r.setting_value,
+    r.setting_type,
+    r.category,
+    r.description,
+    r.is_public,
+    r.created_at,
+    r.updated_at
+FROM restaurant_settings r
+INNER JOIN restaurants r ON r.restaurant_id = r.id;
+
+-- 遷移 restaurant_business_hours 表數據
+INSERT INTO restaurant_business_hours_new (
+    id, restaurant_id, day_of_week, open_time, close_time, is_closed, is_24_hours, break_start_time, break_end_time, notes, created_at, updated_at
+) SELECT
+    r.id,
+    r.public_id as restaurant_id,
+    r.day_of_week,
+    r.open_time,
+    r.close_time,
+    r.is_closed,
+    r.is_24_hours,
+    r.break_start_time,
+    r.break_end_time,
+    r.notes,
+    r.created_at,
+    r.updated_at
+FROM restaurant_business_hours r
+INNER JOIN restaurants r ON r.restaurant_id = r.id;
+
+-- 遷移 restaurant_special_hours 表數據
+INSERT INTO restaurant_special_hours_new (
+    id, restaurant_id, special_date, special_type, description, open_time, close_time, is_closed, is_24_hours, break_start_time, break_end_time, created_at, updated_at
+) SELECT
+    r.id,
+    r.public_id as restaurant_id,
+    r.special_date,
+    r.special_type,
+    r.description,
+    r.open_time,
+    r.close_time,
+    r.is_closed,
+    r.is_24_hours,
+    r.break_start_time,
+    r.break_end_time,
+    r.created_at,
+    r.updated_at
+FROM restaurant_special_hours r
+INNER JOIN restaurants r ON r.restaurant_id = r.id;
+
+-- 遷移 table_reservations 表數據
+INSERT INTO table_reservations_new (
+    id, restaurant_id, table_id, customer_name, customer_phone, customer_email, party_size, reservation_date, reservation_time, duration_minutes, status, special_requests, notes, confirmed_by, confirmed_at, created_at, updated_at
+) SELECT
+    t.id,
+    r.public_id as restaurant_id,
+    t.table_id,
+    t.customer_name,
+    t.customer_phone,
+    t.customer_email,
+    t.party_size,
+    t.reservation_date,
+    t.reservation_time,
+    t.duration_minutes,
+    t.status,
+    t.special_requests,
+    t.notes,
+    t.confirmed_by,
+    t.confirmed_at,
+    t.created_at,
+    t.updated_at
+FROM table_reservations t
+INNER JOIN restaurants r ON t.restaurant_id = r.id;
+
+-- 遷移 leave_calendar_events 表數據
+INSERT INTO leave_calendar_events_new (
+    id, event_type, name, description, event_date, year, is_recurring, restaurant_id, applies_to_all, is_compensatory, compensates_for_date, is_active, created_at, updated_at
+) SELECT
+    l.id,
+    l.event_type,
+    l.name,
+    l.description,
+    l.event_date,
+    l.year,
+    l.is_recurring,
+    CASE
+        WHEN l.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    l.applies_to_all,
+    l.is_compensatory,
+    l.compensates_for_date,
+    l.is_active,
+    l.created_at,
+    l.updated_at
+FROM leave_calendar_events l
+LEFT JOIN restaurants r ON l.restaurant_id = r.id;
+
+-- 遷移 qr_batches 表數據
+INSERT INTO qr_batches_new (
+    batch_id, qr_code_ids, options_json, generated_count, restaurant_id, created_by, download_url, download_count, status, error_message, created_at, completed_at, expires_at
+) SELECT
+    q.batch_id,
+    q.qr_code_ids,
+    q.options_json,
+    q.generated_count,
+    CASE
+        WHEN q.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    q.created_by,
+    q.download_url,
+    q.download_count,
+    q.status,
+    q.error_message,
+    q.created_at,
+    q.completed_at,
+    q.expires_at
+FROM qr_batches q
+LEFT JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 qr_codes 表數據
+INSERT INTO qr_codes_new (
+    id, content, style_json, format, url, metadata_json, table_id, restaurant_id, created_by, download_count, scan_count, created_at, updated_at, expires_at, is_active, is_deleted
+) SELECT
+    q.id,
+    q.content,
+    q.style_json,
+    q.format,
+    q.url,
+    q.metadata_json,
+    q.table_id,
+    CASE
+        WHEN q.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    q.created_by,
+    q.download_count,
+    q.scan_count,
+    q.created_at,
+    q.updated_at,
+    q.expires_at,
+    q.is_active,
+    q.is_deleted
+FROM qr_codes q
+LEFT JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 遷移 qr_templates 表數據
+INSERT INTO qr_templates_new (
+    id, name, description, category, style_json, preview_url, is_public, created_by, restaurant_id, usage_count, created_at, updated_at, is_active, is_featured
+) SELECT
+    q.id,
+    q.name,
+    q.description,
+    q.category,
+    q.style_json,
+    q.preview_url,
+    q.is_public,
+    q.created_by,
+    CASE
+        WHEN q.restaurant_id IS NOT NULL THEN r.public_id
+        ELSE NULL
+    END as restaurant_id,
+    q.usage_count,
+    q.created_at,
+    q.updated_at,
+    q.is_active,
+    q.is_featured
+FROM qr_templates q
+LEFT JOIN restaurants r ON q.restaurant_id = r.id;
+
+-- 重新啟用外鍵約束
+PRAGMA foreign_keys=ON;

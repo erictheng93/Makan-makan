@@ -1,0 +1,31 @@
+-- =====================================================
+-- Migration: 清理所有 _new 表
+-- Version: 0039_9
+-- Date: 2025-10-28
+-- Description: 使用 RENAME 方式清理所有 _new 表（繞過 DROP TABLE 問題）
+-- =====================================================
+
+-- 禁用外鍵約束
+PRAGMA foreign_keys=OFF;
+
+-- 使用 ALTER TABLE RENAME 代替 DROP TABLE
+-- 將 _new 表重命名為臨時名稱，然後在下一個 migration 中刪除
+
+-- Batch 1 tables
+ALTER TABLE users_new RENAME TO _temp_del_users_new;
+ALTER TABLE categories_new RENAME TO _temp_del_categories_new;
+ALTER TABLE menu_items_new RENAME TO _temp_del_menu_items_new;
+ALTER TABLE tables_new RENAME TO _temp_del_tables_new;
+ALTER TABLE orders_new RENAME TO _temp_del_orders_new;
+ALTER TABLE shift_templates_new RENAME TO _temp_del_shift_templates_new;
+ALTER TABLE employee_schedules_new RENAME TO _temp_del_employee_schedules_new;
+ALTER TABLE scheduling_rules_new RENAME TO _temp_del_scheduling_rules_new;
+ALTER TABLE scheduling_conflicts_new RENAME TO _temp_del_scheduling_conflicts_new;
+ALTER TABLE schedule_swap_requests_new RENAME TO _temp_del_schedule_swap_requests_new;
+ALTER TABLE employee_availability_new RENAME TO _temp_del_employee_availability_new;
+ALTER TABLE leave_requests_new RENAME TO _temp_del_leave_requests_new;
+ALTER TABLE leave_approval_rules_new RENAME TO _temp_del_leave_approval_rules_new;
+ALTER TABLE employee_leave_balances_new RENAME TO _temp_del_employee_leave_balances_new;
+
+-- 重新啟用外鍵約束
+PRAGMA foreign_keys=ON;

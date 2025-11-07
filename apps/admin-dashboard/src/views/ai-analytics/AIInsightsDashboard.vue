@@ -21,6 +21,7 @@ const { generateReport } = useAIAnalytics()
 const report = ref<AIAnalyticsReport | null>(null)
 const selectedTimeRange = ref('30d')
 const isGenerating = ref(false)
+const errorMessage = ref<string | null>(null)
 
 // Mock restaurant ID
 const restaurantId = ref('rest_123')
@@ -84,21 +85,29 @@ const insightTypeConfig = {
 // Generate report
 const handleGenerateReport = async (refresh = false) => {
   isGenerating.value = true
+  errorMessage.value = null
 
-  const result = await generateReport(
-    restaurantId.value,
-    { range: selectedTimeRange.value as any },
-    {
-      includeForecasting: true,
-      refreshCache: refresh,
+  try {
+    const result = await generateReport(
+      restaurantId.value,
+      { range: selectedTimeRange.value as '7d' | '14d' | '30d' | '90d' },
+      {
+        includeForecasting: true,
+        refreshCache: refresh,
+      }
+    )
+
+    if (result) {
+      report.value = result
+    } else {
+      errorMessage.value = 'AI 分析生成失敗，請稍後再試'
     }
-  )
-
-  if (result) {
-    report.value = result
+  } catch (err) {
+    console.error('Failed to generate report:', err)
+    errorMessage.value = err instanceof Error ? err.message : 'AI 分析生成失敗，請稍後再試'
+  } finally {
+    isGenerating.value = false
   }
-
-  isGenerating.value = false
 }
 
 // Load report on mount
@@ -122,34 +131,33 @@ const formatPercent = (value: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gray-50 py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <div class="flex items-center space-x-3 mb-2">
-              <SparklesIcon class="w-8 h-8 text-indigo-600" />
-              <h1 class="text-3xl font-bold text-gray-900">AI 業務洞察</h1>
-            </div>
-            <p class="text-gray-600">智能分析您的業務表現，發現增長機會</p>
+      <div class="mb-6 sm:mb-8">
+        <div class="mb-4">
+          <div class="flex items-center space-x-3 mb-2">
+            <SparklesIcon class="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" aria-hidden="true" />
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">AI 業務洞察</h1>
           </div>
+          <p class="text-sm sm:text-base text-gray-600">智能分析您的業務表現，發現增長機會</p>
         </div>
 
         <!-- Quick Navigation -->
-        <div class="flex items-center space-x-2 bg-white rounded-xl p-2 border border-gray-100 w-fit">
+        <nav aria-label="AI Analytics 導航" class="flex flex-wrap items-center gap-2 bg-white rounded-xl p-2 border border-gray-100 w-fit">
           <router-link
             to="/dashboard/ai-analytics/insights"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap"
             :class="$route.path.includes('insights')
               ? 'bg-indigo-600 text-white'
               : 'text-gray-600 hover:bg-gray-100'"
+            aria-current="page"
           >
             AI 洞察
           </router-link>
           <router-link
             to="/dashboard/ai-analytics/products"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap"
             :class="$route.path.includes('products')
               ? 'bg-indigo-600 text-white'
               : 'text-gray-600 hover:bg-gray-100'"
@@ -158,25 +166,27 @@ const formatPercent = (value: number) => {
           </router-link>
           <router-link
             to="/dashboard/ai-analytics/config"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap"
             :class="$route.path.includes('config')
               ? 'bg-indigo-600 text-white'
               : 'text-gray-600 hover:bg-gray-100'"
           >
             AI 配置
           </router-link>
-        </div>
+        </nav>
       </div>
 
       <!-- Controls -->
-      <div class="flex items-center justify-end space-x-3 mb-8">
-
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 sm:justify-end mb-6 sm:mb-8">
         <!-- Time Range & Refresh -->
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <label for="time-range-select" class="sr-only">選擇時間範圍</label>
           <select
+            id="time-range-select"
             v-model="selectedTimeRange"
             @change="handleGenerateReport()"
-            class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            aria-label="選擇分析時間範圍"
+            class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
           >
             <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">
               {{ option.label }}
@@ -186,13 +196,33 @@ const formatPercent = (value: number) => {
           <button
             @click="handleGenerateReport(true)"
             :disabled="isGenerating"
-            class="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+            :aria-label="isGenerating ? '正在重新生成報告' : '重新生成報告'"
+            class="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:ring-2 focus:ring-indigo-500"
           >
             <ArrowPathIcon
               class="w-5 h-5 text-gray-700"
               :class="{ 'animate-spin': isGenerating }"
+              aria-hidden="true"
             />
+            <span class="sr-only">{{ isGenerating ? '正在重新生成' : '重新生成' }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-if="errorMessage && !isGenerating" class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
+        <div class="flex items-start space-x-3">
+          <ExclamationTriangleIcon class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <div class="flex-1">
+            <h3 class="text-red-900 font-semibold mb-1">生成報告時發生錯誤</h3>
+            <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
+            <button
+              @click="handleGenerateReport(true)"
+              class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              重試
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,0 +1,415 @@
+-- =====================================================
+-- Migration: Restaurant ID 遷移 - 表結構 Part 1
+-- Version: 0040 (自動生成)
+-- Date: 2025-10-27
+-- Description: 創建前 14 張表的  版本（使用 TEXT restaurant_id）
+-- =====================================================
+
+-- 禁用外鍵約束
+PRAGMA foreign_keys=OFF;
+
+-- =====================================================
+-- 刪除舊的  表（如果存在）
+-- =====================================================
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS menu_items;
+DROP TABLE IF EXISTS tables;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS shift_templates;
+DROP TABLE IF EXISTS employee_schedules;
+DROP TABLE IF EXISTS scheduling_rules;
+DROP TABLE IF EXISTS scheduling_conflicts;
+DROP TABLE IF EXISTS schedule_swap_requests;
+DROP TABLE IF EXISTS employee_availability;
+DROP TABLE IF EXISTS leave_requests;
+DROP TABLE IF EXISTS leave_approval_rules;
+DROP TABLE IF EXISTS employee_leave_balances;
+
+-- =====================================================
+-- 創建新表結構
+-- =====================================================
+
+-- users 表
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    full_name TEXT NOT NULL,
+    password TEXT,
+    password_hash TEXT NOT NULL,
+    role INTEGER NOT NULL DEFAULT 5,
+    restaurant_id TEXT,
+    address TEXT,
+    date_of_birth TEXT,
+    profile_image_url TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    is_verified INTEGER NOT NULL DEFAULT 0,
+    preferences TEXT,
+    total_orders INTEGER NOT NULL DEFAULT 0,
+    total_spent INTEGER NOT NULL DEFAULT 0,
+    last_login_at INTEGER,
+    password_changed_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    password_migrated INTEGER DEFAULT 0,
+    migration_date TEXT,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- categories 表
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    is_visible INTEGER NOT NULL DEFAULT 1,
+    image_url TEXT,
+    icon_url TEXT,
+    available_hours TEXT,
+    item_count INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- menu_items 表
+CREATE TABLE IF NOT EXISTS menu_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    ingredients TEXT,
+    price REAL NOT NULL,
+    original_price REAL,
+    cost_price REAL,
+    image_url TEXT,
+    image_variants TEXT,
+    is_available INTEGER NOT NULL DEFAULT 1,
+    is_featured INTEGER NOT NULL DEFAULT 0,
+    is_popular INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    inventory_count INTEGER,
+    min_inventory_alert INTEGER DEFAULT 5,
+    spice_level INTEGER NOT NULL DEFAULT 0,
+    preparation_time INTEGER DEFAULT 15,
+    calories INTEGER,
+    dietary_info TEXT,
+    allergens TEXT,
+    options TEXT,
+    available_hours TEXT,
+    order_count INTEGER NOT NULL DEFAULT 0,
+    rating REAL DEFAULT 0,
+    review_count INTEGER NOT NULL DEFAULT 0,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    tags TEXT,
+    keywords TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- tables 表
+CREATE TABLE IF NOT EXISTS tables (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    number TEXT NOT NULL,
+    name TEXT,
+    capacity INTEGER NOT NULL DEFAULT 4,
+    location TEXT,
+    floor INTEGER DEFAULT 1,
+    section TEXT,
+    qr_code TEXT NOT NULL,
+    qr_code_image_url TEXT,
+    qr_code_version INTEGER NOT NULL DEFAULT 1,
+    qr_mode TEXT DEFAULT 'table',
+    seat_count INTEGER DEFAULT 0,
+    seat_layout TEXT,
+    seat_numbering_style TEXT DEFAULT 'numeric',
+    is_occupied INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    is_reservable INTEGER NOT NULL DEFAULT 1,
+    features TEXT,
+    current_order_id INTEGER,
+    occupied_at INTEGER,
+    occupied_by TEXT,
+    estimated_free_at INTEGER,
+    last_cleaned_at INTEGER,
+    maintenance_notes TEXT,
+    total_usage INTEGER NOT NULL DEFAULT 0,
+    average_occupancy_minutes INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- orders 表
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    table_id INTEGER NOT NULL,
+    customer_id INTEGER,
+    order_number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    order_type TEXT DEFAULT 'table',
+    subtotal REAL NOT NULL,
+    tax_amount REAL NOT NULL DEFAULT 0,
+    service_charge REAL NOT NULL DEFAULT 0,
+    discount_amount REAL NOT NULL DEFAULT 0,
+    total_amount REAL NOT NULL,
+    customer_info TEXT,
+    estimated_prep_time INTEGER,
+    actual_prep_time INTEGER,
+    confirmed_at INTEGER,
+    preparing_at INTEGER,
+    ready_at INTEGER,
+    delivered_at INTEGER,
+    paid_at INTEGER,
+    cancelled_at INTEGER,
+    payment_method TEXT,
+    payment_status TEXT DEFAULT 'pending',
+    payment_transaction_id TEXT,
+    coupon_code TEXT,
+    promotion_ids TEXT,
+    rating INTEGER,
+    review_comment TEXT,
+    reviewed_at INTEGER,
+    notes TEXT,
+    internal_notes TEXT,
+    cancellation_reason TEXT,
+    refund_amount REAL,
+    delivery_info TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- shift_templates 表
+CREATE TABLE IF NOT EXISTS shift_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    shift_type TEXT NOT NULL DEFAULT 'regular',
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    is_split_shift INTEGER NOT NULL DEFAULT 0,
+    break_start_time TEXT,
+    break_end_time TEXT,
+    break_duration_minutes INTEGER DEFAULT 0,
+    applicable_days TEXT DEFAULT '[]',
+    min_employees INTEGER DEFAULT 1,
+    max_employees INTEGER DEFAULT 10,
+    hourly_rate REAL,
+    overtime_multiplier REAL DEFAULT 1.5,
+    color_code TEXT DEFAULT '#3B82F6',
+    icon TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- employee_schedules 表
+CREATE TABLE IF NOT EXISTS employee_schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    employee_id INTEGER NOT NULL,
+    shift_template_id INTEGER,
+    work_date TEXT NOT NULL,
+    actual_start_time TEXT,
+    actual_end_time TEXT,
+    status TEXT NOT NULL DEFAULT 'scheduled',
+    clock_in_time INTEGER,
+    clock_out_time INTEGER,
+    actual_work_minutes INTEGER,
+    break_minutes INTEGER DEFAULT 0,
+    overtime_minutes INTEGER DEFAULT 0,
+    notes TEXT,
+    position TEXT,
+    location TEXT,
+    confirmed_by INTEGER,
+    confirmed_at INTEGER,
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- scheduling_rules 表
+CREATE TABLE IF NOT EXISTS scheduling_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    rule_name TEXT NOT NULL,
+    rule_type TEXT NOT NULL,
+    description TEXT,
+    rule_config TEXT NOT NULL DEFAULT '{}',
+    priority INTEGER NOT NULL DEFAULT 0,
+    severity TEXT NOT NULL DEFAULT 'warning',
+    applies_to_roles TEXT DEFAULT '[]',
+    applies_to_employees TEXT DEFAULT '[]',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    is_system_rule INTEGER NOT NULL DEFAULT 0,
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- scheduling_conflicts 表
+CREATE TABLE IF NOT EXISTS scheduling_conflicts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    conflict_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    conflict_message TEXT NOT NULL,
+    schedule_ids TEXT NOT NULL,
+    employee_ids TEXT NOT NULL,
+    rule_id INTEGER,
+    conflict_details TEXT DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'unresolved',
+    resolved_by INTEGER,
+    resolved_at INTEGER,
+    resolution_notes TEXT,
+    detected_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- schedule_swap_requests 表
+CREATE TABLE IF NOT EXISTS schedule_swap_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    requester_id INTEGER NOT NULL,
+    requester_schedule_id INTEGER NOT NULL,
+    target_employee_id INTEGER,
+    target_schedule_id INTEGER,
+    reason TEXT NOT NULL,
+    request_type TEXT NOT NULL DEFAULT 'swap',
+    status TEXT NOT NULL DEFAULT 'pending',
+    target_response TEXT,
+    target_responded_at INTEGER,
+    approved_by INTEGER,
+    approved_at INTEGER,
+    approval_notes TEXT,
+    completed_at INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    expires_at INTEGER,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- employee_availability 表
+CREATE TABLE IF NOT EXISTS employee_availability (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    employee_id INTEGER NOT NULL,
+    availability_type TEXT NOT NULL DEFAULT 'preferred',
+    day_of_week INTEGER,
+    start_date TEXT,
+    end_date TEXT,
+    start_time TEXT,
+    end_time TEXT,
+    is_recurring INTEGER NOT NULL DEFAULT 1,
+    notes TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- leave_requests 表
+CREATE TABLE IF NOT EXISTS leave_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    leave_type_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    start_period TEXT NOT NULL DEFAULT 'full',
+    end_period TEXT NOT NULL DEFAULT 'full',
+    days_count REAL NOT NULL,
+    reason TEXT NOT NULL,
+    attachments TEXT DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'pending',
+    approval_chain TEXT DEFAULT '[]',
+    current_approval_level INTEGER DEFAULT 0,
+    required_approval_levels INTEGER NOT NULL DEFAULT 1,
+    final_approver_id INTEGER,
+    final_approved_at INTEGER,
+    rejection_reason TEXT,
+    cancelled_by INTEGER,
+    cancelled_at INTEGER,
+    cancellation_reason TEXT,
+    affects_schedules TEXT DEFAULT '[]',
+    schedule_conflicts_resolved INTEGER DEFAULT 0,
+    notes TEXT,
+    admin_notes TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    submitted_at INTEGER,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- leave_approval_rules 表
+CREATE TABLE IF NOT EXISTS leave_approval_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id TEXT NOT NULL,
+    leave_type_id INTEGER,
+    rule_name TEXT NOT NULL,
+    description TEXT,
+    approval_level INTEGER NOT NULL,
+    approver_role TEXT,
+    approver_user_id INTEGER,
+    conditions TEXT DEFAULT '{}',
+    auto_approve_enabled INTEGER DEFAULT 0,
+    auto_approve_conditions TEXT DEFAULT '{}',
+    auto_escalate_hours INTEGER,
+    notify_on_submit INTEGER DEFAULT 1,
+    notify_on_approve INTEGER DEFAULT 1,
+    notify_on_reject INTEGER DEFAULT 1,
+    priority INTEGER DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- employee_leave_balances 表
+CREATE TABLE IF NOT EXISTS employee_leave_balances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    leave_type_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    total_days REAL NOT NULL DEFAULT 0,
+    used_days REAL NOT NULL DEFAULT 0,
+    pending_days REAL NOT NULL DEFAULT 0,
+    carryover_from_previous REAL DEFAULT 0,
+    carryover_to_next REAL DEFAULT 0,
+    carryover_expires_at INTEGER,
+    manual_adjustment REAL DEFAULT 0,
+    adjustment_reason TEXT,
+    adjusted_by INTEGER,
+    adjusted_at INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    last_updated_by INTEGER,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
+);
+
+-- 重新啟用外鍵約束
+PRAGMA foreign_keys=ON;

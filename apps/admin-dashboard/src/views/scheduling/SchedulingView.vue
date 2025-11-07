@@ -1,88 +1,144 @@
 <template>
-  <div class="scheduling-view">
-    <!-- Header -->
-    <div class="view-header">
-      <div class="header-content">
-        <h1 class="view-title">
-          <span class="title-icon">📅</span>
-          <span>員工排班管理</span>
-        </h1>
-        <p class="view-subtitle">管理員工工作班表、查看排班衝突、審核換班申請</p>
+  <div class="users-view">
+    <!-- 頁面標題和操作 -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">員工排班管理</h1>
+        <p class="text-gray-600">管理員工工作班表、查看排班衝突、審核換班申請</p>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" @click="refreshData" :disabled="loading">
-          <span class="btn-icon">🔄</span>
-          <span>刷新</span>
+      <div class="flex space-x-4">
+        <button
+          class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          @click="refreshData"
+          :disabled="loading"
+        >
+          <ArrowPathIcon class="h-4 w-4 mr-2" />
+          刷新
         </button>
-        <button class="btn btn-primary" @click="showCreateScheduleModal">
-          <span class="btn-icon">➕</span>
-          <span>新增排班</span>
+        <button
+          class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          @click="showCreateTemplateModal"
+        >
+          <PlusIcon class="h-4 w-4 mr-2" />
+          新增班別模板
+        </button>
+        <button
+          class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          @click="showCreateScheduleModal"
+        >
+          <PlusIcon class="h-4 w-4 mr-2" />
+          新增排班
         </button>
       </div>
     </div>
 
     <!-- Quick Stats -->
-    <div class="quick-stats">
-      <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-content">
-          <div class="stat-value">{{ schedules.length }}</div>
-          <div class="stat-label">本月排班</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <CalendarIcon class="h-6 w-6 text-blue-600" />
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-semibold text-gray-900">本月排班</h3>
+            <p class="text-xl font-bold text-blue-600">{{ schedules.length }}</p>
+          </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">🏷️</div>
-        <div class="stat-content">
-          <div class="stat-value">{{ shiftTemplates.length }}</div>
-          <div class="stat-label">班別模板</div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <CalendarIcon class="h-6 w-6 text-green-600" />
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-semibold text-gray-900">班別模板</h3>
+            <p class="text-xl font-bold text-green-600">{{ shiftTemplates.length }}</p>
+          </div>
         </div>
       </div>
-      <div class="stat-card warning" v-if="conflicts.length > 0">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-content">
-          <div class="stat-value">{{ conflicts.length }}</div>
-          <div class="stat-label">待處理衝突</div>
+
+      <div v-if="conflicts.length > 0" class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-yellow-100 rounded-lg">
+            <ExclamationTriangleIcon class="h-6 w-6 text-yellow-600" />
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-semibold text-gray-900">待處理衝突</h3>
+            <p class="text-xl font-bold text-yellow-600">{{ conflicts.length }}</p>
+          </div>
         </div>
       </div>
-      <div class="stat-card info" v-if="swapRequests.length > 0">
-        <div class="stat-icon">🔄</div>
-        <div class="stat-content">
-          <div class="stat-value">{{ swapRequests.filter(r => r.status === 'pending').length }}</div>
-          <div class="stat-label">待審核換班</div>
+
+      <div v-if="swapRequests.length > 0" class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <ArrowPathIcon class="h-6 w-6 text-purple-600" />
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-semibold text-gray-900">待審核換班</h3>
+            <p class="text-xl font-bold text-purple-600">
+              {{ swapRequests.filter(r => r.status === 'pending').length }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Error Banner -->
-    <transition name="fade">
-      <div v-if="error" class="error-banner">
-        <div class="error-content">
-          <span class="error-icon">⚠️</span>
-          <span class="error-message">{{ error }}</span>
-        </div>
-        <button class="error-close" @click="error = null">✕</button>
+    <div
+      v-if="error"
+      class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center justify-between"
+    >
+      <div class="flex items-center">
+        <ExclamationCircleIcon class="h-5 w-5 text-red-600 mr-3" />
+        <span class="text-sm text-red-800 font-medium">{{ error }}</span>
       </div>
-    </transition>
-
-    <!-- Tab Navigation -->
-    <div class="tab-navigation">
       <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="tab-btn"
-        :class="{ active: activeTab === tab.id }"
-        @click="switchTab(tab.id)"
+        class="text-red-600 hover:text-red-800"
+        @click="error = null"
       >
-        <i class="icon">{{ tab.icon }}</i>
-        {{ tab.label }}
-        <span v-if="tab.badge" class="badge">{{ tab.badge }}</span>
+        <XMarkIcon class="h-5 w-5" />
       </button>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="bg-white rounded-lg shadow mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            :class="[
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition-colors',
+              activeTab === tab.id
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            ]"
+            @click="switchTab(tab.id)"
+          >
+            <component :is="getIconComponent(tab.icon)" class="h-5 w-5 mr-2" />
+            {{ tab.label }}
+            <span
+              v-if="tab.badge"
+              :class="[
+                'ml-2 py-0.5 px-2 rounded-full text-xs font-medium',
+                activeTab === tab.id
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-gray-100 text-gray-600',
+              ]"
+            >
+              {{ tab.badge }}
+            </span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
     <!-- Tab Content -->
-    <div class="tab-content">
+    <div class="bg-white rounded-lg shadow p-6">
       <!-- Calendar View -->
-      <div v-if="activeTab === 'calendar'" class="tab-pane">
+      <div v-if="activeTab === 'calendar'">
         <SchedulingCalendar
           :schedules="schedules"
           :loading="loading"
@@ -92,7 +148,7 @@
       </div>
 
       <!-- List View -->
-      <div v-if="activeTab === 'list'" class="tab-pane">
+      <div v-if="activeTab === 'list'">
         <SchedulingList
           :schedules="schedules"
           :loading="loading"
@@ -102,7 +158,7 @@
       </div>
 
       <!-- Shift Templates -->
-      <div v-if="activeTab === 'templates'" class="tab-pane">
+      <div v-if="activeTab === 'templates'">
         <ShiftTemplatesList
           :templates="shiftTemplates"
           :loading="loading"
@@ -112,7 +168,7 @@
       </div>
 
       <!-- Conflicts -->
-      <div v-if="activeTab === 'conflicts'" class="tab-pane">
+      <div v-if="activeTab === 'conflicts'">
         <SchedulingConflicts
           :conflicts="conflicts"
           :loading="loading"
@@ -121,7 +177,7 @@
       </div>
 
       <!-- Swap Requests -->
-      <div v-if="activeTab === 'swaps'" class="tab-pane">
+      <div v-if="activeTab === 'swaps'">
         <SwapRequests
           :requests="swapRequests"
           :loading="loading"
@@ -140,10 +196,25 @@
       @close="closeScheduleModal"
     />
 
+    <!-- Create/Edit Shift Template Modal -->
+    <ShiftTemplateFormModal
+      v-model="showTemplateFormModal"
+      :template="selectedTemplate"
+      :restaurant-id="restaurantId"
+      @save="handleSaveTemplate"
+    />
+
     <!-- Loading Overlay -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <p>載入中...</p>
+    <div
+      v-if="loading"
+      class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-8 flex flex-col items-center">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+        ></div>
+        <p class="mt-4 text-gray-700 font-medium">載入中...</p>
+      </div>
     </div>
   </div>
 </template>
@@ -158,12 +229,22 @@ import type {
   SchedulingConflict,
   SwapRequest,
 } from '@/types/scheduling'
+import {
+  CalendarIcon,
+  PlusIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  XMarkIcon,
+  ListBulletIcon,
+} from '@heroicons/vue/24/outline'
 import SchedulingCalendar from '@/components/scheduling/SchedulingCalendar.vue'
 import SchedulingList from '@/components/scheduling/SchedulingList.vue'
 import ShiftTemplatesList from '@/components/scheduling/ShiftTemplatesList.vue'
 import SchedulingConflicts from '@/components/scheduling/SchedulingConflicts.vue'
 import SwapRequests from '@/components/scheduling/SwapRequests.vue'
 import ScheduleFormModal from '@/components/scheduling/ScheduleFormModal.vue'
+import ShiftTemplateFormModal from '@/components/scheduling/ShiftTemplateFormModal.vue'
 
 // Auth
 const authStore = useAuthStore()
@@ -178,17 +259,41 @@ const conflicts = ref<SchedulingConflict[]>([])
 const swapRequests = ref<SwapRequest[]>([])
 const showScheduleModal = ref(false)
 const selectedSchedule = ref<EmployeeSchedule | null>(null)
+const showTemplateFormModal = ref(false)
+const selectedTemplate = ref<ShiftTemplate | null>(null)
 
 // Get restaurant ID from auth store
 const restaurantId = computed(() => authStore.user?.restaurantId || 1)
 
+// Icon mapping for tabs
+const getIconComponent = (icon: string) => {
+  const iconMap: Record<string, any> = {
+    calendar: CalendarIcon,
+    list: ListBulletIcon,
+    templates: CalendarIcon,
+    conflicts: ExclamationTriangleIcon,
+    swaps: ArrowPathIcon,
+  }
+  return iconMap[icon] || CalendarIcon
+}
+
 // Tabs
 const tabs = computed(() => [
-  { id: 'calendar', label: '日曆視圖', icon: '📅', badge: null },
-  { id: 'list', label: '清單視圖', icon: '📋', badge: schedules.value.length },
-  { id: 'templates', label: '班別模板', icon: '🏷️', badge: shiftTemplates.value.length },
-  { id: 'conflicts', label: '衝突警告', icon: '⚠️', badge: conflicts.value.filter(c => c.severity === 'error').length || null },
-  { id: 'swaps', label: '換班申請', icon: '🔄', badge: swapRequests.value.filter(r => r.status === 'pending').length || null },
+  { id: 'calendar', label: '日曆視圖', icon: 'calendar', badge: null },
+  { id: 'list', label: '清單視圖', icon: 'list', badge: schedules.value.length || null },
+  { id: 'templates', label: '班別模板', icon: 'templates', badge: shiftTemplates.value.length || null },
+  {
+    id: 'conflicts',
+    label: '衝突警告',
+    icon: 'conflicts',
+    badge: conflicts.value.filter((c) => c.severity === 'error').length || null,
+  },
+  {
+    id: 'swaps',
+    label: '換班申請',
+    icon: 'swaps',
+    badge: swapRequests.value.filter((r) => r.status === 'pending').length || null,
+  },
 ])
 
 // Methods
@@ -350,8 +455,37 @@ const handleSaveSchedule = async (scheduleData: any) => {
 }
 
 const handleEditTemplate = (template: ShiftTemplate) => {
-  // TODO: Open template edit modal (Part 4 implementation)
-  console.log('Edit template:', template.id)
+  selectedTemplate.value = template
+  showTemplateFormModal.value = true
+}
+
+const showCreateTemplateModal = () => {
+  selectedTemplate.value = null
+  showTemplateFormModal.value = true
+}
+
+const handleSaveTemplate = async (templateData: any) => {
+  try {
+    loading.value = true
+
+    if (selectedTemplate.value?.id) {
+      // Update existing template
+      await schedulingService.updateShiftTemplate(selectedTemplate.value.id, templateData)
+    } else {
+      // Create new template
+      await schedulingService.createShiftTemplate(restaurantId.value, templateData)
+    }
+
+    showTemplateFormModal.value = false
+    selectedTemplate.value = null
+    await refreshData()
+  } catch (err) {
+    console.error('Failed to save template:', err)
+    error.value = err instanceof Error ? err.message : 'Failed to save template'
+    alert('儲存班別模板失敗，請稍後再試')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleDeleteTemplate = async (template: ShiftTemplate) => {
@@ -450,513 +584,3 @@ onMounted(() => {
   refreshData()
 })
 </script>
-
-<style scoped>
-.scheduling-view {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  background-attachment: fixed;
-}
-
-.view-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  gap: 24px;
-  padding: 24px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.header-content {
-  flex: 1;
-}
-
-.view-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px 0;
-}
-
-.title-icon {
-  font-size: 32px;
-  display: flex;
-  align-items: center;
-}
-
-.view-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* Quick Stats */
-.quick-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border-left: 4px solid #3b82f6;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.stat-card.warning {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
-}
-
-.stat-card.info {
-  border-left-color: #06b6d4;
-  background: linear-gradient(135deg, #fff 0%, #cffafe 100%);
-}
-
-.stat-icon {
-  font-size: 32px;
-  opacity: 0.9;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
-/* Error Banner */
-.error-banner {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
-}
-
-.error-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.error-icon {
-  font-size: 20px;
-}
-
-.error-message {
-  color: #dc2626;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.error-close {
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  color: #dc2626;
-  font-size: 18px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.error-close:hover {
-  background: rgba(220, 38, 38, 0.1);
-}
-
-/* Buttons */
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-}
-
-.btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-icon {
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-}
-
-.btn-secondary {
-  background: white;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.tab-navigation {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  padding: 8px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  flex: 1;
-  justify-content: center;
-}
-
-.tab-btn:hover {
-  color: #374151;
-  background: #f9fafb;
-}
-
-.tab-btn.active {
-  color: white;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  background: #ef4444;
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 11px;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-.tab-content {
-  background: white;
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.tab-pane {
-  min-height: 400px;
-}
-
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease-in;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-overlay p {
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Fade Transition */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .scheduling-view {
-    padding: 16px;
-  }
-
-  .view-header {
-    flex-direction: column;
-    padding: 20px;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  .header-actions .btn {
-    flex: 1;
-  }
-
-  .quick-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stat-value {
-    font-size: 24px;
-  }
-
-  .tab-navigation {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .tab-btn {
-    flex: none;
-    min-width: 120px;
-  }
-
-  .tab-content {
-    padding: 20px;
-  }
-}
-
-@media (max-width: 640px) {
-  .scheduling-view {
-    padding: 12px;
-    background: #f9fafb;
-  }
-
-  .view-title {
-    font-size: 22px;
-  }
-
-  .view-header {
-    padding: 16px;
-  }
-
-  .quick-stats {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .stat-card {
-    padding: 16px;
-  }
-
-  .stat-icon {
-    font-size: 28px;
-  }
-
-  .stat-value {
-    font-size: 22px;
-  }
-
-  .tab-btn {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-
-  .tab-content {
-    padding: 16px;
-    border-radius: 12px;
-  }
-
-  .error-banner {
-    padding: 12px 16px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .error-close {
-    align-self: flex-end;
-  }
-
-  .btn {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-}
-
-/* Touch Improvements */
-@media (hover: none) {
-  .btn:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-
-  .tab-btn:active {
-    transform: scale(0.98);
-  }
-
-  .stat-card:active {
-    transform: scale(0.99);
-  }
-}
-
-/* Dark Mode Support (Optional) */
-@media (prefers-color-scheme: dark) {
-  .scheduling-view {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  }
-
-  .view-header,
-  .tab-navigation,
-  .tab-content,
-  .stat-card {
-    background: #1f2937;
-    color: #f3f4f6;
-  }
-
-  .view-title,
-  .stat-value {
-    color: #f3f4f6;
-  }
-
-  .view-subtitle,
-  .stat-label {
-    color: #9ca3af;
-  }
-
-  .btn-secondary {
-    background: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: #4b5563;
-  }
-
-  .tab-btn {
-    color: #9ca3af;
-  }
-
-  .tab-btn:hover {
-    color: #f3f4f6;
-    background: #374151;
-  }
-}
-</style>

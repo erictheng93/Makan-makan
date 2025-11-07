@@ -5,24 +5,17 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SchedulingService } from '../SchedulingService'
-
-// Mock database
-const mockDb = {
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-}
-
-const mockEnv = {
-  DB: mockDb,
-}
+import { createMockDatabase, createMockEnv, createQueryChain } from './helpers/mockD1'
 
 describe('SchedulingService', () => {
   let service: SchedulingService
+  let mockDb: any
+  let mockEnv: any
 
   beforeEach(() => {
-    service = new SchedulingService(mockDb as any, mockEnv as any)
+    mockDb = createMockDatabase()
+    mockEnv = createMockEnv()
+    service = new SchedulingService(mockDb as any, mockEnv)
     vi.clearAllMocks()
   })
 
@@ -106,13 +99,7 @@ describe('SchedulingService', () => {
       })
 
       // Mock update
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([updatedRequest]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([updatedRequest])) })
 
       const result = await service.acceptSwapRequest(1, 2)
 
@@ -143,13 +130,7 @@ describe('SchedulingService', () => {
         }),
       })
 
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([rejectedRequest]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([rejectedRequest])) })
 
       const result = await service.rejectSwapRequest(1, 3, 'Not enough coverage')
 
@@ -199,13 +180,7 @@ describe('SchedulingService', () => {
         }),
       })
 
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([cancelledRequest]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([cancelledRequest])) })
 
       const result = await service.cancelSwapRequest(1, 5)
 
@@ -360,13 +335,7 @@ describe('SchedulingService', () => {
         acceptedBy: 2,
       }
 
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([acceptedMock]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([acceptedMock])) })
 
       const accepted = await service.acceptSwapRequest(1, 2)
       expect(accepted.status).toBe('accepted')
@@ -386,13 +355,7 @@ describe('SchedulingService', () => {
         approvedBy: 3,
       }
 
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([approvedMock]),
-          }),
-        }),
-      })
+      mockDb.update.mockReturnValue({ set: vi.fn().mockReturnValue(createQueryChain([approvedMock])) })
 
       const approved = await service.approveSwapRequest(1, 3)
       expect(approved.status).toBe('approved')

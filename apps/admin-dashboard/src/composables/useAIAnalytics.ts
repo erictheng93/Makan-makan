@@ -61,15 +61,20 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
       return data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('AI Analytics API Error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      error.value = errorMessage
+      console.error('AI Analytics API Error:', {
+        endpoint,
+        error: err,
+        message: errorMessage
+      })
       return null
     } finally {
       loading.value = false

@@ -55,6 +55,11 @@
       />
     </div>
 
+    <!-- Realtime Notifications -->
+    <div class="card p-0">
+      <RealtimeNotificationPanel />
+    </div>
+
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Revenue Chart -->
@@ -214,6 +219,7 @@ import RevenueChart from "@/components/dashboard/RevenueChart.vue";
 import OrdersChart from "@/components/dashboard/OrdersChart.vue";
 import TopMenuItems from "@/components/dashboard/TopMenuItems.vue";
 import RecentOrders from "@/components/dashboard/RecentOrders.vue";
+import RealtimeNotificationPanel from "@/components/RealtimeNotificationPanel.vue";
 
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();

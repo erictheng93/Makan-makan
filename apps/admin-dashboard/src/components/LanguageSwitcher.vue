@@ -5,7 +5,7 @@
       class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors"
     >
       <span class="text-lg">{{ currentLocale.flag }}</span>
-      <span class="hidden sm:block">{{ currentLocale.nativeName }}</span>
+      <span class="hidden sm:block">{{ currentLocale.name }}</span>
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
@@ -36,8 +36,8 @@
             <div class="flex items-center space-x-3">
               <span class="text-lg">{{ locale.flag }}</span>
               <div class="flex flex-col items-start">
-                <span class="font-medium">{{ locale.nativeName }}</span>
-                <span class="text-xs text-gray-500">{{ locale.name }}</span>
+                <span class="font-medium">{{ locale.name }}</span>
+                <span class="text-xs text-gray-500">{{ locale.code }}</span>
               </div>
             </div>
             <CheckIcon v-if="locale.code === currentLocale.code" class="h-4 w-4 text-green-600" />

@@ -13,7 +13,8 @@ import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   UserGroupIcon,
-  FireIcon
+  FireIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 
 const {
@@ -25,6 +26,7 @@ const {
 const activeTab = ref<'traffic' | 'bestsellers' | 'profit'>('traffic')
 const selectedTimeRange = ref('30d')
 const isRefreshing = ref(false)
+const errorMessage = ref<string | null>(null)
 
 // Mock restaurant ID
 const restaurantId = ref('rest_123')
@@ -83,18 +85,24 @@ const currentProducts = computed(() => {
 // Load data
 const loadData = async () => {
   isRefreshing.value = true
+  errorMessage.value = null
 
-  const [traffic, best, profit] = await Promise.all([
-    getTrafficDrivers(restaurantId.value, selectedTimeRange.value, 10),
-    getBestsellers(restaurantId.value, selectedTimeRange.value, 10),
-    getProfitLeaders(restaurantId.value, selectedTimeRange.value, 10),
-  ])
+  try {
+    const [traffic, best, profit] = await Promise.all([
+      getTrafficDrivers(restaurantId.value, selectedTimeRange.value, 10),
+      getBestsellers(restaurantId.value, selectedTimeRange.value, 10),
+      getProfitLeaders(restaurantId.value, selectedTimeRange.value, 10),
+    ])
 
-  trafficDrivers.value = traffic
-  bestsellers.value = best
-  profitLeaders.value = profit
-
-  isRefreshing.value = false
+    trafficDrivers.value = traffic
+    bestsellers.value = best
+    profitLeaders.value = profit
+  } catch (err) {
+    console.error('Failed to load product analytics:', err)
+    errorMessage.value = err instanceof Error ? err.message : '載入產品分析失敗，請稍後再試'
+  } finally {
+    isRefreshing.value = false
+  }
 }
 
 // Watch time range changes
@@ -220,6 +228,23 @@ const getTrendColor = (trend: number) => {
               <div class="text-xs text-gray-500">{{ tab.description }}</div>
             </div>
           </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-if="errorMessage && !isRefreshing" class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
+        <div class="flex items-start space-x-3">
+          <ExclamationTriangleIcon class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <div class="flex-1">
+            <h3 class="text-red-900 font-semibold mb-1">載入數據時發生錯誤</h3>
+            <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
+            <button
+              @click="loadData()"
+              class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              重試
+            </button>
+          </div>
         </div>
       </div>
 

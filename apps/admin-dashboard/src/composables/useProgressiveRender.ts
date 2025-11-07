@@ -57,7 +57,7 @@ export function useProgressiveRender<T>(
     const batch = items.slice(currentIndex.value, endIndex)
 
     // 添加到已渲染列表
-    renderedItems.value.push(...batch)
+    renderedItems.value = renderedItems.value.concat(batch as any)
 
     // 更新進度
     currentIndex.value = endIndex

@@ -1,0 +1,591 @@
+<template>
+  <div class="reservation-view">
+    <!-- 頁面標題 -->
+    <div class="page-header">
+      <h1 class="page-title">{{ t('reservation.title') }}</h1>
+      <el-button type="primary" @click="showCreateDialog = true">
+        <el-icon><Plus /></el-icon>
+        {{ t('reservation.create') }}
+      </el-button>
+    </div>
+
+    <!-- 統計卡片 -->
+    <div class="stats-grid" v-if="stats">
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.totalReservations }}</div>
+          <div class="stat-label">{{ t('reservation.stats.total') }}</div>
+        </div>
+      </el-card>
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.pendingCount }}</div>
+          <div class="stat-label">{{ t('reservation.stats.pending') }}</div>
+        </div>
+      </el-card>
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.confirmedCount }}</div>
+          <div class="stat-label">{{ t('reservation.stats.confirmed') }}</div>
+        </div>
+      </el-card>
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.seatedCount }}</div>
+          <div class="stat-label">{{ t('reservation.stats.seated') }}</div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 篩選器 -->
+    <el-card class="filter-card">
+      <el-form :model="filters" inline>
+        <el-form-item :label="t('reservation.filter.date')">
+          <el-date-picker
+            v-model="filters.date"
+            type="date"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            :placeholder="t('reservation.filter.selectDate')"
+            @change="loadReservations"
+          />
+        </el-form-item>
+        <el-form-item :label="t('reservation.filter.status')">
+          <el-select v-model="filters.status" :placeholder="t('reservation.filter.allStatus')" clearable @change="loadReservations">
+            <el-option label="待確認" value="pending" />
+            <el-option label="已確認" value="confirmed" />
+            <el-option label="已到店" value="arrived" />
+            <el-option label="已入座" value="seated" />
+            <el-option label="已完成" value="completed" />
+            <el-option label="已取消" value="cancelled" />
+            <el-option label="未到店" value="no_show" />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('reservation.filter.phone')">
+          <el-input
+            v-model="filters.phone"
+            :placeholder="t('reservation.filter.enterPhone')"
+            clearable
+            @keyup.enter="loadReservations"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadReservations">
+            <el-icon><Search /></el-icon>
+            {{ t('common.search') }}
+          </el-button>
+          <el-button @click="resetFilters">
+            <el-icon><Refresh /></el-icon>
+            {{ t('common.reset') }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 訂位列表 -->
+    <el-card class="list-card">
+      <el-table :data="reservations" v-loading="loading" stripe>
+        <el-table-column prop="confirmationCode" :label="t('reservation.confirmationCode')" width="120" />
+        <el-table-column prop="customerName" :label="t('reservation.customerName')" width="100" />
+        <el-table-column prop="customerPhone" :label="t('reservation.customerPhone')" width="120" />
+        <el-table-column :label="t('reservation.datetime')" width="180">
+          <template #default="{ row }">
+            {{ row.reservationDate }} {{ row.reservationTime }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="partySize" :label="t('reservation.partySize')" width="80" align="center">
+          <template #default="{ row }">
+            {{ row.partySize }} {{ t('reservation.people') }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('reservation.status')" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="specialRequests" :label="t('reservation.specialRequests')" show-overflow-tooltip />
+        <el-table-column :label="t('common.actions')" width="240" fixed="right">
+          <template #default="{ row }">
+            <el-button-group>
+              <el-button size="small" @click="viewDetail(row)" title="查看詳情">
+                <el-icon><View /></el-icon>
+              </el-button>
+              <el-button
+                v-if="row.status === 'pending'"
+                size="small"
+                type="success"
+                @click="confirmReservation(row.id)"
+                title="確認訂位"
+              >
+                <el-icon><Check /></el-icon>
+              </el-button>
+              <el-button
+                v-if="row.status === 'confirmed'"
+                size="small"
+                type="primary"
+                @click="markArrived(row.id)"
+                title="標記到店"
+              >
+                <el-icon><User /></el-icon>
+              </el-button>
+              <el-button
+                v-if="row.status === 'arrived'"
+                size="small"
+                type="success"
+                @click="markSeated(row.id)"
+                title="標記入座"
+              >
+                <el-icon><CircleCheck /></el-icon>
+              </el-button>
+              <el-button
+                v-if="['pending', 'confirmed'].includes(row.status)"
+                size="small"
+                type="danger"
+                @click="cancelReservation(row.id)"
+                title="取消訂位"
+              >
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分頁 -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.limit"
+          :total="pagination.total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="loadReservations"
+          @size-change="loadReservations"
+        />
+      </div>
+    </el-card>
+
+    <!-- 建立訂位對話框 -->
+    <el-dialog v-model="showCreateDialog" :title="t('reservation.create')" width="600px">
+      <el-form :model="form" label-width="120px">
+        <el-form-item :label="t('reservation.customerName')" required>
+          <el-input v-model="form.customerName" />
+        </el-form-item>
+        <el-form-item :label="t('reservation.customerPhone')" required>
+          <el-input v-model="form.customerPhone" />
+        </el-form-item>
+        <el-form-item :label="t('reservation.customerEmail')">
+          <el-input v-model="form.customerEmail" />
+        </el-form-item>
+        <el-form-item :label="t('reservation.datetime')" required>
+          <el-date-picker
+            v-model="form.datetime"
+            type="datetime"
+            format="YYYY-MM-DD HH:mm"
+            value-format="YYYY-MM-DD HH:mm"
+            :placeholder="t('reservation.selectDatetime')"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item :label="t('reservation.partySize')" required>
+          <el-input-number v-model="form.partySize" :min="1" :max="20" />
+        </el-form-item>
+        <el-form-item :label="t('reservation.duration')">
+          <el-input-number v-model="form.durationMinutes" :min="30" :max="240" :step="30" />
+          <span style="margin-left: 8px">{{ t('reservation.minutes') }}</span>
+        </el-form-item>
+        <el-form-item :label="t('reservation.specialRequests')">
+          <el-input
+            v-model="form.specialRequests"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('reservation.specialRequestsPlaceholder')"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCreateDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="createReservation" :loading="submitting">
+          {{ t('common.confirm') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 詳情對話框 -->
+    <el-dialog v-model="showDetailDialog" :title="t('reservation.detail')" width="800px">
+      <div v-if="selectedReservation" class="reservation-detail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item :label="t('reservation.confirmationCode')">
+            <el-tag>{{ selectedReservation.confirmationCode }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.status')">
+            <el-tag :type="getStatusType(selectedReservation.status)">
+              {{ getStatusText(selectedReservation.status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.customerName')">
+            {{ selectedReservation.customerName }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.customerPhone')">
+            {{ selectedReservation.customerPhone }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.datetime')" :span="2">
+            {{ selectedReservation.reservationDate }} {{ selectedReservation.reservationTime }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.partySize')">
+            {{ selectedReservation.partySize }} {{ t('reservation.people') }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.duration')">
+            {{ selectedReservation.durationMinutes }} {{ t('reservation.minutes') }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.specialRequests')" :span="2">
+            {{ selectedReservation.specialRequests || '--' }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('reservation.notes')" :span="2">
+            {{ selectedReservation.notes || '--' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button @click="showDetailDialog = false">{{ t('common.close') }}</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted, computed } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  Plus,
+  Search,
+  Refresh,
+  View,
+  Check,
+  User,
+  CircleCheck,
+  Close
+} from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { useUserStore } from '@/stores/user';
+import { ReservationService } from '@/services/reservationService';
+import type {
+  Reservation,
+  ReservationStatus,
+  CreateReservationRequest,
+  ReservationStats
+} from '@makanmakan/shared-types';
+
+const { t } = useI18n();
+const userStore = useUserStore();
+
+// 狀態
+const loading = ref(false);
+const submitting = ref(false);
+const showCreateDialog = ref(false);
+const showDetailDialog = ref(false);
+const reservations = ref<Reservation[]>([]);
+const selectedReservation = ref<Reservation | null>(null);
+const stats = ref<ReservationStats | null>(null);
+
+// 篩選器
+const filters = reactive({
+  date: '',
+  status: '',
+  phone: ''
+});
+
+// 分頁
+const pagination = reactive({
+  page: 1,
+  limit: 20,
+  total: 0
+});
+
+// 表單
+const form = reactive<Partial<CreateReservationRequest>>({
+  customerName: '',
+  customerPhone: '',
+  customerEmail: '',
+  datetime: '',
+  partySize: 2,
+  durationMinutes: 90,
+  specialRequests: ''
+});
+
+// 餐廳 ID
+const restaurantId = computed(() => userStore.user?.restaurantId || '');
+
+/**
+ * 載入訂位列表
+ */
+async function loadReservations() {
+  loading.value = true;
+  try {
+    const response = await ReservationService.listReservations({
+      restaurantId: restaurantId.value,
+      reservationDate: filters.date || undefined,
+      status: filters.status as ReservationStatus || undefined,
+      customerPhone: filters.phone || undefined,
+      page: pagination.page,
+      limit: pagination.limit
+    });
+
+    if (response.success && response.data) {
+      reservations.value = response.data;
+      if (response.pagination) {
+        pagination.total = response.pagination.total;
+      }
+    }
+  } catch (error) {
+    console.error('Load reservations error:', error);
+    ElMessage.error(t('reservation.loadError'));
+  } finally {
+    loading.value = false;
+  }
+}
+
+/**
+ * 載入統計
+ */
+async function loadStats() {
+  try {
+    stats.value = await ReservationService.getStats(restaurantId.value, filters.date || undefined);
+  } catch (error) {
+    console.error('Load stats error:', error);
+  }
+}
+
+/**
+ * 建立訂位
+ */
+async function createReservation() {
+  if (!form.customerName || !form.customerPhone || !form.datetime || !form.partySize) {
+    ElMessage.warning(t('common.fillRequired'));
+    return;
+  }
+
+  submitting.value = true;
+  try {
+    const [date, time] = form.datetime.split(' ');
+    const request: CreateReservationRequest = {
+      restaurantId: restaurantId.value,
+      customerName: form.customerName,
+      customerPhone: form.customerPhone,
+      customerEmail: form.customerEmail,
+      partySize: form.partySize,
+      reservationDate: date,
+      reservationTime: time,
+      durationMinutes: form.durationMinutes || 90,
+      specialRequests: form.specialRequests
+    };
+
+    const response = await ReservationService.createReservation(request);
+    if (response.success) {
+      ElMessage.success(response.message || t('reservation.createSuccess'));
+      showCreateDialog.value = false;
+      resetForm();
+      await loadReservations();
+      await loadStats();
+    }
+  } catch (error: any) {
+    console.error('Create reservation error:', error);
+    ElMessage.error(error.response?.data?.error || t('reservation.createError'));
+  } finally {
+    submitting.value = false;
+  }
+}
+
+/**
+ * 確認訂位
+ */
+async function confirmReservation(id: string) {
+  try {
+    await ElMessageBox.confirm(t('reservation.confirmPrompt'), t('common.confirm'), {
+      type: 'warning'
+    });
+
+    const response = await ReservationService.confirmReservation(id);
+    if (response.success) {
+      ElMessage.success(response.message);
+      await loadReservations();
+      await loadStats();
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Confirm reservation error:', error);
+      ElMessage.error(error.response?.data?.error || t('reservation.confirmError'));
+    }
+  }
+}
+
+/**
+ * 標記到店
+ */
+async function markArrived(id: string) {
+  try {
+    const response = await ReservationService.markArrived(id);
+    if (response.success) {
+      ElMessage.success(response.message);
+      await loadReservations();
+      await loadStats();
+    }
+  } catch (error: any) {
+    console.error('Mark arrived error:', error);
+    ElMessage.error(error.response?.data?.error || t('reservation.arrivedError'));
+  }
+}
+
+/**
+ * 標記入座
+ */
+async function markSeated(id: string) {
+  try {
+    const response = await ReservationService.markSeated(id);
+    if (response.success) {
+      ElMessage.success(response.message);
+      await loadReservations();
+      await loadStats();
+    }
+  } catch (error: any) {
+    console.error('Mark seated error:', error);
+    ElMessage.error(error.response?.data?.error || t('reservation.seatedError'));
+  }
+}
+
+/**
+ * 取消訂位
+ */
+async function cancelReservation(id: string) {
+  try {
+    await ElMessageBox.confirm(t('reservation.cancelPrompt'), t('common.confirm'), {
+      type: 'warning'
+    });
+
+    const response = await ReservationService.cancelReservation(id);
+    if (response.success) {
+      ElMessage.success(response.message);
+      await loadReservations();
+      await loadStats();
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Cancel reservation error:', error);
+      ElMessage.error(error.response?.data?.error || t('reservation.cancelError'));
+    }
+  }
+}
+
+/**
+ * 查看詳情
+ */
+function viewDetail(reservation: Reservation) {
+  selectedReservation.value = reservation;
+  showDetailDialog.value = true;
+}
+
+/**
+ * 重置篩選器
+ */
+function resetFilters() {
+  filters.date = '';
+  filters.status = '';
+  filters.phone = '';
+  pagination.page = 1;
+  loadReservations();
+}
+
+/**
+ * 重置表單
+ */
+function resetForm() {
+  form.customerName = '';
+  form.customerPhone = '';
+  form.customerEmail = '';
+  form.datetime = '';
+  form.partySize = 2;
+  form.durationMinutes = 90;
+  form.specialRequests = '';
+}
+
+/**
+ * 取得狀態文字
+ */
+function getStatusText(status: ReservationStatus): string {
+  return ReservationService.getStatusText(status);
+}
+
+/**
+ * 取得狀態類型（ElementPlus tag type）
+ */
+function getStatusType(status: ReservationStatus): string {
+  return ReservationService.getStatusColor(status) as any;
+}
+
+// 初始化
+onMounted(async () => {
+  await loadReservations();
+  await loadStats();
+});
+</script>
+
+<style scoped lang="scss">
+.reservation-view {
+  padding: 20px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .stat-card {
+    .stat-content {
+      text-align: center;
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--el-color-primary);
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+}
+
+.filter-card,
+.list-card {
+  margin-bottom: 20px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reservation-detail {
+  padding: 20px 0;
+}
+</style>

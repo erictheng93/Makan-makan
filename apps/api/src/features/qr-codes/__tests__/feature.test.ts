@@ -249,11 +249,11 @@ describe('QrCodesService', () => {
 
 // Integration tests would go here
 describe('QR Codes API Integration', () => {
-  // TODO: Add integration tests for the HTTP endpoints
+  it.todo('should add integration tests for the HTTP endpoints')
   // These would test the actual routes with real HTTP requests
 })
 
 // Performance tests
 describe('QR Codes Performance', () => {
-  // TODO: Add performance tests to ensure operations complete within acceptable time limits
+  it.todo('should add performance tests to ensure operations complete within acceptable time limits')
 })

@@ -74,7 +74,7 @@ CREATE TABLE users (
 
     -- 角色和權限
     role INTEGER NOT NULL DEFAULT 5,      -- 0:Admin, 1:Owner, 2:Chef, 3:Service, 4:Cashier, 5:Customer
-    restaurant_id INTEGER,
+    restaurant_id TEXT,
 
     -- 個人資訊
     address TEXT,
@@ -100,7 +100,7 @@ CREATE TABLE users (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
 );
 
 -- Users 索引
@@ -153,7 +153,7 @@ CREATE INDEX sessions_expires_idx ON sessions(expires_at);
 -- ==========================================
 CREATE TABLE categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    restaurant_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
 
     -- 基本資訊
     name TEXT NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE categories (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
 );
 
 -- Categories 索引
@@ -190,7 +190,7 @@ CREATE INDEX categories_restaurant_active_idx ON categories(restaurant_id, is_ac
 -- ==========================================
 CREATE TABLE menu_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    restaurant_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
     category_id INTEGER NOT NULL,
 
     -- 基本資訊
@@ -248,7 +248,7 @@ CREATE TABLE menu_items (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
@@ -264,7 +264,7 @@ CREATE INDEX menu_items_availability_idx ON menu_items(is_available, inventory_c
 -- ==========================================
 CREATE TABLE tables (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    restaurant_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
 
     -- 桌子資訊
     number TEXT NOT NULL,                 -- 桌號（A1, B2, 101）
@@ -313,7 +313,7 @@ CREATE TABLE tables (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE
 );
 
 -- Tables 索引
@@ -369,7 +369,7 @@ CREATE TABLE orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- 關聯資訊
-    restaurant_id INTEGER NOT NULL,
+    restaurant_id TEXT NOT NULL,
     table_id INTEGER NOT NULL,
     customer_id INTEGER,                  -- 可選：註冊用戶
 
@@ -429,7 +429,7 @@ CREATE TABLE orders (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE RESTRICT,
     FOREIGN KEY (customer_id) REFERENCES users(id)
 );
@@ -498,7 +498,7 @@ CREATE TABLE audit_logs (
 
     -- 關聯資訊
     user_id INTEGER,                      -- 可為空（系統操作）
-    restaurant_id INTEGER,                -- 可為空（全局操作）
+    restaurant_id TEXT,                -- 可為空（全局操作）
 
     -- 操作資訊
     action TEXT NOT NULL,
@@ -524,7 +524,7 @@ CREATE TABLE audit_logs (
     created_at INTEGER NOT NULL,
 
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(public_id)
 );
 
 -- Audit Logs 索引

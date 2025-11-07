@@ -172,6 +172,36 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
+      // Leave management route
+      {
+        path: "leaves",
+        name: "Leaves",
+        component: () => import("@/views/LeaveView.vue"),
+        meta: {
+          title: "請假管理",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      // Reservation management
+      {
+        path: "reservations",
+        name: "Reservations",
+        component: () => import("@/views/ReservationView.vue"),
+        meta: {
+          title: "訂位管理",
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
+        },
+      },
+      // Waiting list management
+      {
+        path: "waiting-list",
+        name: "WaitingList",
+        component: () => import("@/views/WaitingListView.vue"),
+        meta: {
+          title: "候位管理",
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
+        },
+      },
     ],
   },
   {

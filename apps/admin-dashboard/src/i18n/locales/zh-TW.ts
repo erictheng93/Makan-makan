@@ -36,7 +36,8 @@ const zhTW: Messages = {
     createdAt: '建立時間',
     updatedAt: '更新時間',
     yes: '是',
-    no: '否'
+    no: '否',
+    fillRequired: '請填寫必填欄位'
   },
 
   // 排班系統
@@ -346,6 +347,108 @@ const zhTW: Messages = {
       stable: '持平',
       items: '個',
       loadFailed: '載入數據失敗'
+    }
+  },
+
+  // 訂位系統
+  reservation: {
+    title: '訂位管理',
+    create: '新增訂位',
+    createSuccess: '訂位建立成功',
+    createError: '訂位建立失敗',
+    loadError: '載入訂位列表失敗',
+    confirmPrompt: '確定要確認此訂位嗎？',
+    confirmError: '確認訂位失敗',
+    arrivedError: '標記到店失敗',
+    seatedError: '標記入座失敗',
+    cancelPrompt: '確定要取消此訂位�as？',
+    cancelError: '取消訂位失敗',
+    confirmationCode: '確認碼',
+    customerName: '顧客姓名',
+    customerPhone: '聯絡電話',
+    customerEmail: '電子郵件',
+    datetime: '訂位時間',
+    selectDatetime: '選擇訂位時間',
+    partySize: '用餐人數',
+    people: '人',
+    duration: '用餐時長',
+    minutes: '分鐘',
+    specialRequests: '特殊需求',
+    specialRequestsPlaceholder: '例如：兒童座椅、輪椅通道、靠窗座位等',
+    notes: '備註',
+    status: '狀態',
+    detail: '訂位詳情',
+    stats: {
+      total: '總訂位數',
+      pending: '待確認',
+      confirmed: '已確認',
+      seated: '已入座'
+    },
+    filter: {
+      date: '日期',
+      selectDate: '選擇日期',
+      status: '狀態',
+      allStatus: '全部狀態',
+      phone: '手機號碼',
+      enterPhone: '請輸入手機號碼'
+    }
+  },
+
+  // 候位系統
+  waitingList: {
+    title: '候位管理',
+    addCustomer: '新增候位',
+    addSuccess: '加入候位成功',
+    addError: '加入候位失敗',
+    loadError: '載入候位列表失敗',
+    callCustomer: '叫號',
+    callError: '叫號失敗',
+    confirmCall: '確認叫號',
+    call: '叫號',
+    callNext: '叫下一位',
+    seat: '入座',
+    expire: '過號',
+    cancel: '取消',
+    seatedError: '標記入座失敗',
+    expirePrompt: '確定要標記為過號嗎？',
+    expireError: '標記過號失敗',
+    cancelPrompt: '確定要取消此候位嗎？',
+    cancelError: '取消候位失敗',
+    batchCallError: '批次叫號失敗',
+    customerName: '顧客姓名',
+    customerPhone: '聯絡電話',
+    partySize: '用餐人數',
+    people: '人',
+    notes: '備註',
+    notesPlaceholder: '例如：嬰兒車、特殊需求等',
+    queueNumber: '號碼牌',
+    waitTime: '等待時間',
+    joinedAt: '加入時間',
+    estimatedWait: '預估等待時間',
+    partiesAhead: '前方等候組數',
+    availableTables: '可用桌位數',
+    assignTable: '分配桌位',
+    selectTable: '請選擇桌位',
+    selectTableRequired: '請選擇要分配的桌位',
+    notificationMethod: '通知方式',
+    sms: '簡訊',
+    display: '螢幕顯示',
+    both: '兩者皆是',
+    queue: '候位隊列',
+    noQueue: '目前沒有候位',
+    cardView: '卡片檢視',
+    tableView: '表格檢視',
+    stats: {
+      waiting: '等待中',
+      called: '已叫號',
+      avgWait: '平均等待',
+      todayTotal: '今日總數'
+    },
+    filter: {
+      status: '狀態',
+      allStatus: '全部狀態',
+      phone: '手機號碼',
+      enterPhone: '請輸入手機號碼'
     }
   },
 

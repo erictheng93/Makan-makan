@@ -1,86 +1,118 @@
 <template>
-  <div class="scheduling-calendar">
+  <div class="w-full">
     <!-- Calendar Header -->
-    <div class="calendar-header">
-      <button class="nav-btn" @click="previousMonth" :disabled="loading">
-        <span class="nav-icon">◀</span>
+    <div class="flex items-center justify-between mb-6">
+      <button
+        class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        @click="previousMonth"
+        :disabled="loading"
+      >
+        <ChevronLeftIcon class="h-5 w-5" />
       </button>
-      <div class="header-center">
-        <h2 class="current-month">{{ currentMonthYear }}</h2>
-        <button class="today-btn" @click="goToToday" v-if="!isCurrentMonth">
-          <span>📅</span>
+
+      <div class="flex items-center gap-4">
+        <h2 class="text-xl font-bold text-gray-900">{{ currentMonthYear }}</h2>
+        <button
+          v-if="!isCurrentMonth"
+          class="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+          @click="goToToday"
+        >
+          <CalendarIcon class="h-4 w-4" />
           <span>回到今天</span>
         </button>
       </div>
-      <button class="nav-btn" @click="nextMonth" :disabled="loading">
-        <span class="nav-icon">▶</span>
+
+      <button
+        class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        @click="nextMonth"
+        :disabled="loading"
+      >
+        <ChevronRightIcon class="h-5 w-5" />
       </button>
     </div>
 
     <!-- Loading State -->
-    <transition name="fade">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner-small"></div>
-        <p>載入日曆中...</p>
-      </div>
-    </transition>
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">載入日曆中...</p>
+    </div>
 
     <!-- Calendar Grid -->
-    <transition name="fade" mode="out-in">
-      <div v-if="!loading" class="calendar-grid" :key="currentDate.toISOString()">
-        <!-- Weekday Headers -->
-        <div v-for="day in weekdays" :key="day" class="day-header">
-          <span class="day-name">{{ day }}</span>
+    <div v-else class="bg-white rounded-lg border border-gray-200">
+      <!-- Weekday Headers -->
+      <div class="grid grid-cols-7 border-b border-gray-200">
+        <div
+          v-for="day in weekdays"
+          :key="day"
+          class="py-3 text-center text-sm font-semibold text-gray-700"
+        >
+          {{ day }}
         </div>
+      </div>
 
-        <!-- Calendar Days -->
+      <!-- Calendar Days -->
+      <div class="grid grid-cols-7">
         <div
           v-for="day in calendarDays"
           :key="day.date"
-          class="calendar-day"
-          :class="{
-            'other-month': day.isOtherMonth,
-            'today': day.isToday,
-            'weekend': day.isWeekend,
-            'has-schedules': day.scheduleCount > 0,
-            'many-schedules': day.scheduleCount > 3
-          }"
+          :class="[
+            'min-h-[100px] border-b border-r border-gray-200 p-2 cursor-pointer transition-colors',
+            day.isOtherMonth ? 'bg-gray-50' : 'bg-white hover:bg-gray-50',
+            day.isToday ? 'bg-blue-50 ring-2 ring-blue-500 ring-inset' : '',
+            day.isWeekend && !day.isOtherMonth ? 'bg-gray-50' : '',
+          ]"
           @click="selectDate(day.date)"
           @mouseenter="hoveredDate = day.date"
           @mouseleave="hoveredDate = null"
         >
-          <div class="day-content">
-            <div class="day-number">{{ day.dayNumber }}</div>
-            <transition name="scale">
-              <div v-if="day.scheduleCount > 0" class="schedule-indicators">
-                <div class="schedule-badge" :class="getScheduleBadgeClass(day.scheduleCount)">
-                  <span class="badge-icon">📋</span>
-                  <span class="badge-count">{{ day.scheduleCount }}</span>
-                </div>
-                <div v-if="hoveredDate === day.date" class="schedule-preview">
-                  {{ day.scheduleCount }} 個排班
-                </div>
+          <div class="flex flex-col h-full">
+            <div class="flex items-center justify-between mb-1">
+              <span
+                :class="[
+                  'text-sm font-medium',
+                  day.isOtherMonth ? 'text-gray-400' : 'text-gray-900',
+                  day.isToday ? 'text-blue-600 font-bold' : '',
+                ]"
+              >
+                {{ day.dayNumber }}
+              </span>
+              <span
+                v-if="day.isToday"
+                class="text-xs px-1.5 py-0.5 bg-blue-600 text-white rounded"
+              >
+                今天
+              </span>
+            </div>
+
+            <div v-if="day.scheduleCount > 0" class="flex-1">
+              <div
+                :class="[
+                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium',
+                  getScheduleBadgeClass(day.scheduleCount),
+                ]"
+              >
+                <ClipboardDocumentListIcon class="h-3 w-3" />
+                <span>{{ day.scheduleCount }} 個排班</span>
               </div>
-            </transition>
+            </div>
           </div>
-          <div v-if="day.isToday" class="today-marker">今天</div>
         </div>
       </div>
-    </transition>
+    </div>
 
     <!-- Calendar Legend -->
-    <div class="calendar-legend">
-      <div class="legend-item">
-        <span class="legend-color today-color"></span>
-        <span class="legend-label">今天</span>
+    <div class="flex items-center justify-center gap-6 mt-6 text-sm">
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 bg-blue-50 ring-2 ring-blue-500 ring-inset rounded"></div>
+        <span class="text-gray-700">今天</span>
       </div>
-      <div class="legend-item">
-        <span class="legend-color schedule-color"></span>
-        <span class="legend-label">有排班</span>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 bg-green-100 rounded"></div>
+        <span class="text-gray-700">有排班</span>
       </div>
-      <div class="legend-item">
-        <span class="legend-color weekend-color"></span>
-        <span class="legend-label">週末</span>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 bg-gray-50 rounded border border-gray-200"></div>
+        <span class="text-gray-700">週末</span>
       </div>
     </div>
   </div>
@@ -89,6 +121,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { EmployeeSchedule } from '@/types/scheduling'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarIcon,
+  ClipboardDocumentListIcon,
+} from '@heroicons/vue/24/outline'
 
 interface Props {
   schedules: EmployeeSchedule[]
@@ -96,7 +134,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  loading: false
+  loading: false,
 })
 
 const emit = defineEmits<{
@@ -150,7 +188,7 @@ const calendarDays = computed(() => {
       isOtherMonth: true,
       isToday: false,
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
-      scheduleCount: getScheduleCount(formattedDate)
+      scheduleCount: getScheduleCount(formattedDate),
     })
   }
 
@@ -164,7 +202,7 @@ const calendarDays = computed(() => {
       isOtherMonth: false,
       isToday: isSameDay(date, today),
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
-      scheduleCount: getScheduleCount(formattedDate)
+      scheduleCount: getScheduleCount(formattedDate),
     })
   }
 
@@ -179,7 +217,7 @@ const calendarDays = computed(() => {
       isOtherMonth: true,
       isToday: false,
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
-      scheduleCount: getScheduleCount(formattedDate)
+      scheduleCount: getScheduleCount(formattedDate),
     })
   }
 
@@ -203,7 +241,7 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 }
 
 const getScheduleCount = (date: string): number => {
-  return props.schedules.filter(s => s.workDate === date).length
+  return props.schedules.filter((s) => s.workDate === date).length
 }
 
 const previousMonth = () => {
@@ -231,398 +269,8 @@ const goToToday = () => {
 }
 
 const getScheduleBadgeClass = (count: number) => {
-  if (count >= 5) return 'badge-high'
-  if (count >= 3) return 'badge-medium'
-  return 'badge-low'
+  if (count >= 5) return 'bg-red-100 text-red-700'
+  if (count >= 3) return 'bg-yellow-100 text-yellow-700'
+  return 'bg-green-100 text-green-700'
 }
 </script>
-
-<style scoped>
-.scheduling-calendar {
-  width: 100%;
-}
-
-/* Header */
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  gap: 16px;
-}
-
-.header-center {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.nav-btn {
-  padding: 10px 16px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn:hover:not(:disabled) {
-  background: #f9fafb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.nav-icon {
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-}
-
-.current-month {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.today-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #3b82f6;
-  background: white;
-  color: #3b82f6;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.today-btn:hover {
-  background: #3b82f6;
-  color: white;
-  transform: translateY(-1px);
-}
-
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  color: #6b7280;
-}
-
-.spinner-small {
-  width: 35px;
-  height: 35px;
-  border: 3px solid #f3f4f6;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
-}
-
-/* Calendar Grid */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  padding: 8px;
-  background: #f9fafb;
-  border-radius: 12px;
-}
-
-.day-header {
-  background: white;
-  padding: 12px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #6b7280;
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.day-name {
-  display: inline-block;
-}
-
-/* Calendar Day Cells */
-.calendar-day {
-  background: white;
-  padding: 12px;
-  min-height: 110px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.calendar-day:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-color: #e5e7eb;
-}
-
-.calendar-day.other-month {
-  opacity: 0.3;
-  background: #fafafa;
-}
-
-.calendar-day.weekend {
-  background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
-}
-
-.calendar-day.today {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.calendar-day.today .day-number {
-  background: #3b82f6;
-  color: white;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.calendar-day.has-schedules {
-  border-left: 4px solid #3b82f6;
-}
-
-.calendar-day.many-schedules {
-  background: linear-gradient(135deg, #fff 0%, #e0f2fe 100%);
-  border-left-width: 6px;
-}
-
-.day-content {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.day-number {
-  font-size: 15px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.today-marker {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #3b82f6;
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Schedule Indicators */
-.schedule-indicators {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.schedule-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: #dbeafe;
-  color: #1e40af;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s;
-}
-
-.schedule-badge.badge-low {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.schedule-badge.badge-medium {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.schedule-badge.badge-high {
-  background: #fecaca;
-  color: #991b1b;
-}
-
-.badge-icon {
-  font-size: 12px;
-}
-
-.badge-count {
-  font-weight: 700;
-}
-
-.schedule-preview {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1f2937;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-}
-
-.schedule-preview::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 4px solid #1f2937;
-}
-
-/* Calendar Legend */
-.calendar-legend {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 20px;
-  padding: 16px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
-}
-
-.legend-color.today-color {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #3b82f6;
-}
-
-.legend-color.schedule-color {
-  background: #dbeafe;
-}
-
-.legend-color.weekend-color {
-  background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
-}
-
-.legend-label {
-  font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-/* Animations */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.scale-enter-active,
-.scale-leave-active {
-  transition: all 0.2s ease;
-}
-
-.scale-enter-from,
-.scale-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .calendar-header {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .header-center {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .calendar-grid {
-    gap: 4px;
-    padding: 4px;
-  }
-
-  .calendar-day {
-    padding: 8px;
-    min-height: 80px;
-  }
-
-  .day-number {
-    font-size: 13px;
-  }
-
-  .schedule-badge {
-    font-size: 10px;
-    padding: 3px 6px;
-  }
-
-  .calendar-legend {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-}
-</style>

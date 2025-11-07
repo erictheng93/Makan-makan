@@ -49,6 +49,47 @@ function generateCSRFToken(): string {
 }
 
 /**
+ * Validate request origin matches expected host
+ */
+function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
+  const origin = c.req.header('Origin')
+  const referer = c.req.header('Referer')
+  const host = c.req.header('Host')
+
+  // If Origin header exists, validate it
+  if (origin) {
+    try {
+      const originUrl = new URL(origin)
+      // Allow same-origin requests
+      if (originUrl.host === host) {
+        return true
+      }
+      // Add allowed origins from environment if needed
+      // For now, only allow same-origin
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  // If no Origin but has Referer, validate it
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer)
+      if (refererUrl.host === host) {
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  // No Origin or Referer - reject for extra safety
+  return false
+}
+
+/**
  * CSRF Protection Middleware
  */
 export function csrfProtection(options: CSRFOptions = {}) {
@@ -76,6 +117,16 @@ export function csrfProtection(options: CSRFOptions = {}) {
       return next()
     }
 
+    // === DEFENSE LAYER 1: Origin/Referer Validation ===
+    if (!validateOrigin(c)) {
+      return c.json({
+        success: false,
+        error: 'Invalid request origin',
+        message: 'Request origin does not match expected host'
+      }, 403)
+    }
+
+    // === DEFENSE LAYER 2: CSRF Token Validation ===
     // Get CSRF token from header
     const tokenFromHeader = c.req.header(CSRF_HEADER_NAME)
 
@@ -84,6 +135,15 @@ export function csrfProtection(options: CSRFOptions = {}) {
         success: false,
         error: 'CSRF token missing',
         message: 'CSRF token is required for this request'
+      }, 403)
+    }
+
+    // Validate token format (must be 64 hex characters)
+    if (!/^[a-f0-9]{64}$/.test(tokenFromHeader)) {
+      return c.json({
+        success: false,
+        error: 'CSRF token invalid format',
+        message: 'CSRF token must be a valid hexadecimal string'
       }, 403)
     }
 
@@ -134,9 +194,13 @@ export async function generateCSRFTokenHandler(c: Context<{ Bindings: Env }>) {
   }
 
   // Set cookie for double-submit pattern
+  // NOTE: Cookie is NOT HttpOnly to allow JavaScript to read it for the double-submit pattern
+  // This is intentional and safe because:
+  // 1. The token is random and unpredictable
+  // 2. SameSite=Strict prevents cross-site cookie sending
+  // 3. Origin validation provides additional protection
   const cookieOptions = [
     `${CSRF_COOKIE_NAME}=${token}`,
-    'HttpOnly',
     'Secure',
     'SameSite=Strict',
     `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
@@ -180,10 +244,9 @@ export function attachCSRFToken() {
       // Add to response headers
       c.res.headers.set('X-CSRF-Token', token)
 
-      // Set cookie
+      // Set cookie (NOT HttpOnly for double-submit pattern)
       const cookieOptions = [
         `${CSRF_COOKIE_NAME}=${token}`,
-        'HttpOnly',
         'Secure',
         'SameSite=Strict',
         `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,

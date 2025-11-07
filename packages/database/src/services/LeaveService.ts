@@ -15,6 +15,7 @@ import {
   users,
 } from '../schema'
 import { SchedulingService } from './SchedulingService'
+import { NotificationService } from './NotificationService'
 
 // ========================================
 // Types
@@ -171,8 +172,11 @@ export interface LeaveBalanceAdjustment {
 // ========================================
 
 export class LeaveService extends BaseService {
+  private notificationService: NotificationService
+
   constructor(d1: D1Database, env: CloudflareEnv) {
     super(d1, env)
+    this.notificationService = new NotificationService(d1, env)
   }
 
   // ========================================
@@ -657,6 +661,35 @@ export class LeaveService extends BaseService {
       // Update leave balance pending days
       await this.updateBalancePendingDays(data.employeeId, data.leaveTypeId, data.totalDays, 'add')
 
+      // Send notification to employee
+      try {
+        const employee = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, data.employeeId))
+          .limit(1)
+
+        if (employee[0]?.email) {
+          await this.notificationService.sendNotification({
+            recipientId: data.employeeId,
+            recipientEmail: employee[0].email,
+            category: 'leave_request_submitted',
+            type: 'email',
+            data: {
+              employeeName: employee[0].fullName || employee[0].username,
+              leaveType: type.name,
+              startDate: data.startDate,
+              endDate: data.endDate,
+              totalDays: data.totalDays.toString(),
+            },
+            priority: 'normal',
+          })
+        }
+      } catch (notifError) {
+        console.error('Failed to send leave request notification:', notifError)
+        // Don't fail the request if notification fails
+      }
+
       return newRequest as LeaveRequest
     } catch (error) {
       return this.handleError(error, 'createLeaveRequest')
@@ -743,6 +776,43 @@ export class LeaveService extends BaseService {
           })
         }
 
+        // Send approval notification to employee
+        try {
+          const employee = await this.db
+            .select()
+            .from(users)
+            .where(eq(users.id, request.employeeId))
+            .limit(1)
+
+          const approver = await this.db
+            .select()
+            .from(users)
+            .where(eq(users.id, approverId))
+            .limit(1)
+
+          if (employee[0]?.email) {
+            await this.notificationService.sendNotification({
+              recipientId: request.employeeId,
+              recipientEmail: employee[0].email,
+              category: 'leave_request_approved',
+              type: 'email',
+              data: {
+                employeeName: employee[0].fullName || employee[0].username,
+                leaveType: type.name,
+                startDate: request.startDate,
+                endDate: request.endDate,
+                totalDays: request.totalDays.toString(),
+                approverName: approver[0]?.fullName || approver[0]?.username || 'Manager',
+                approverNotes: comments || '',
+              },
+              priority: 'high',
+            })
+          }
+        } catch (notifError) {
+          console.error('Failed to send leave approval notification:', notifError)
+          // Don't fail the approval if notification fails
+        }
+
         return updated as LeaveRequest
       } else {
         // Move to next approval level
@@ -796,6 +866,37 @@ export class LeaveService extends BaseService {
       // Update leave balance: remove from pending
       await this.updateBalancePendingDays(request.employeeId, request.leaveTypeId, request.totalDays, 'remove')
 
+      // Send rejection notification to employee
+      try {
+        const employee = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, request.employeeId))
+          .limit(1)
+
+        const type = await this.getLeaveType(request.leaveTypeId)
+
+        if (employee[0]?.email && type) {
+          await this.notificationService.sendNotification({
+            recipientId: request.employeeId,
+            recipientEmail: employee[0].email,
+            category: 'leave_request_rejected',
+            type: 'email',
+            data: {
+              employeeName: employee[0].fullName || employee[0].username,
+              leaveType: type.name,
+              startDate: request.startDate,
+              endDate: request.endDate,
+              rejectionReason: reason,
+            },
+            priority: 'high',
+          })
+        }
+      } catch (notifError) {
+        console.error('Failed to send leave rejection notification:', notifError)
+        // Don't fail the rejection if notification fails
+      }
+
       return updated as LeaveRequest
     } catch (error) {
       return this.handleError(error, 'rejectLeaveRequest')
@@ -838,6 +939,36 @@ export class LeaveService extends BaseService {
         await this.updateBalancePendingDays(request.employeeId, request.leaveTypeId, request.totalDays, 'remove')
       } else if (request.status === 'approved') {
         await this.updateBalanceUsedDays(request.employeeId, request.leaveTypeId, request.totalDays, 'remove')
+      }
+
+      // Send cancellation notification to employee
+      try {
+        const employee = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, request.employeeId))
+          .limit(1)
+
+        const type = await this.getLeaveType(request.leaveTypeId)
+
+        if (employee[0]?.email && type) {
+          await this.notificationService.sendNotification({
+            recipientId: request.employeeId,
+            recipientEmail: employee[0].email,
+            category: 'leave_request_cancelled',
+            type: 'email',
+            data: {
+              employeeName: employee[0].fullName || employee[0].username,
+              leaveType: type.name,
+              startDate: request.startDate,
+              endDate: request.endDate,
+            },
+            priority: 'normal',
+          })
+        }
+      } catch (notifError) {
+        console.error('Failed to send leave cancellation notification:', notifError)
+        // Don't fail the cancellation if notification fails
       }
 
       return updated as LeaveRequest

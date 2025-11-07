@@ -1,0 +1,646 @@
+/**
+ * LeaveService Unit Tests
+ * Test coverage for employee leave management functionality
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { LeaveService } from '../LeaveService'
+import type { LeaveType, LeaveBalance, LeaveRequest } from '../LeaveService'
+import { createMockDatabase, createMockEnv, createQueryChain } from './helpers/mockD1'
+
+describe('LeaveService', () => {
+  let service: LeaveService
+  let mockDb: any
+  let mockEnv: any
+
+  beforeEach(() => {
+    mockDb = createMockDatabase()
+    mockEnv = createMockEnv()
+    service = new LeaveService(mockDb as any, mockEnv)
+    vi.clearAllMocks()
+  })
+
+  describe('Leave Type Management', () => {
+    it('should get leave types for a restaurant', async () => {
+      const mockLeaveTypes: LeaveType[] = [
+        {
+          id: 1,
+          restaurantId: 1,
+          code: 'ANNUAL',
+          name: '年假',
+          description: '年度休假',
+          accrualType: 'yearly',
+          accrualAmount: 14,
+          accrualBasedOnSeniority: false,
+          requiresApproval: true,
+          requiredApprovalLevels: 1,
+          minNoticeDays: 3,
+          maxConsecutiveDays: 14,
+          canCarryover: true,
+          carryoverMaxDays: 7,
+          carryoverExpiryMonths: 3,
+          requiresDocumentation: false,
+          documentationRequiredAfterDays: null,
+          isPaid: true,
+          paymentRate: 100,
+          allowHalfDay: true,
+          gender: 'any',
+          applicableToRoles: null,
+          maxUsagePerYear: null,
+          isSystemDefined: true,
+          isActive: true,
+          sortOrder: 1,
+          color: '#3B82F6',
+          icon: '🏖️',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: null,
+          updatedBy: null,
+        },
+      ]
+
+      // Mock the select query to return mockLeaveTypes
+      mockDb.select.mockReturnValue(createQueryChain(mockLeaveTypes))
+
+      const result = await service.getLeaveTypes(1)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].code).toBe('ANNUAL')
+      expect(mockDb.select).toHaveBeenCalled()
+    })
+
+    it('should create a new leave type', async () => {
+      const newLeaveType = {
+        restaurantId: 1,
+        code: 'SICK',
+        name: '病假',
+        description: '因病休假',
+        accrualType: 'yearly' as const,
+        accrualAmount: 10,
+        accrualBasedOnSeniority: false,
+        requiresApproval: true,
+        requiredApprovalLevels: 1,
+        minNoticeDays: 1,
+        maxConsecutiveDays: null,
+        canCarryover: false,
+        carryoverMaxDays: null,
+        carryoverExpiryMonths: null,
+        requiresDocumentation: false,
+        documentationRequiredAfterDays: null,
+        isPaid: true,
+        paymentRate: 100,
+        allowHalfDay: true,
+        gender: 'any' as const,
+        applicableToRoles: null,
+        maxUsagePerYear: null,
+        isSystemDefined: false,
+        isActive: true,
+        sortOrder: 0,
+        color: null,
+        icon: null,
+      }
+
+      const mockCreatedLeaveType = {
+        id: 2,
+        ...newLeaveType,
+        accrualBasedOnSeniority: false,
+        maxConsecutiveDays: null,
+        canCarryover: false,
+        carryoverMaxDays: null,
+        carryoverExpiryMonths: null,
+        requiresDocumentation: false,
+        documentationRequiredAfterDays: null,
+        gender: 'any',
+        applicableToRoles: null,
+        maxUsagePerYear: null,
+        isSystemDefined: false,
+        isActive: true,
+        sortOrder: 0,
+        color: null,
+        icon: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: null,
+        updatedBy: null,
+      }
+
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([mockCreatedLeaveType]),
+        }),
+      })
+
+      const result = await service.createLeaveType(newLeaveType)
+
+      expect(result.id).toBe(2)
+      expect(result.code).toBe('SICK')
+      expect(mockDb.insert).toHaveBeenCalled()
+    })
+
+    it('should update a leave type', async () => {
+      const updates = {
+        name: '病假（更新）',
+        accrualAmount: 12,
+      }
+
+      const mockUpdatedLeaveType = {
+        id: 1,
+        name: '病假（更新）',
+        accrualAmount: 12,
+      }
+
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([mockUpdatedLeaveType]),
+          }),
+        }),
+      })
+
+      const result = await service.updateLeaveType(1, updates)
+
+      expect(result.name).toBe('病假（更新）')
+      expect(result.accrualAmount).toBe(12)
+    })
+
+    it('should soft delete a leave type', async () => {
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      const result = await service.deleteLeaveType(1)
+
+      expect(result).toBe(true)
+      expect(mockDb.update).toHaveBeenCalled()
+    })
+  })
+
+  describe('Leave Balance Management', () => {
+    it('should get employee leave balances for a year', async () => {
+      const mockBalances = [
+        {
+          id: 1,
+          employeeId: 1,
+          leaveTypeId: 1,
+          restaurantId: 1,
+          year: 2025,
+          totalDays: 14,
+          usedDays: 3,
+          pendingDays: 2,
+          remainingDays: 9,
+          carryoverFromPrevious: 0,
+          carryoverToNext: 0,
+          carryoverExpiresAt: null,
+          manualAdjustment: 0,
+          adjustmentReason: null,
+          adjustedBy: null,
+          adjustedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastUpdatedBy: null,
+          leaveType: {
+            id: 1,
+            code: 'ANNUAL',
+            name: '年假',
+            color: '#3B82F6',
+            icon: '🏖️',
+          },
+        },
+      ]
+
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue(mockBalances),
+          }),
+        }),
+      })
+
+      const result = await service.getEmployeeLeaveBalances(1, 2025)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].totalDays).toBe(14)
+      expect(result[0].usedDays).toBe(3)
+      expect(result[0].remainingDays).toBe(9)
+    })
+
+    it('should adjust leave balance manually', async () => {
+      const adjustment = {
+        employeeId: 1,
+        leaveTypeId: 1,
+        year: 2025,
+        adjustment: 5,
+        reason: 'Extra annual leave',
+        adjustedBy: 1,
+      }
+
+      // Mock existing balance
+      const existingBalance = {
+        id: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        restaurantId: 1,
+        year: 2025,
+        totalDays: 14,
+        usedDays: 3,
+        pendingDays: 2,
+        remainingDays: 9,
+        manualAdjustment: 0,
+      }
+
+      // Mock select to return existing balance
+      mockDb.select.mockReturnValue(createQueryChain([existingBalance]))
+
+      const updatedBalance = {
+        ...existingBalance,
+        totalDays: 19,
+        remainingDays: 14,
+        manualAdjustment: 5,
+        adjustmentReason: 'Extra annual leave',
+      }
+
+      // Mock update to return updated balance
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue(createQueryChain([updatedBalance]))
+      })
+
+      const result = await service.adjustLeaveBalance(adjustment)
+
+      expect(result.totalDays).toBe(19)
+      expect(result.manualAdjustment).toBe(5)
+    })
+  })
+
+  describe('Leave Request Management', () => {
+    it('should create a leave request with pending status', async () => {
+      const newRequest = {
+        restaurantId: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        startDate: '2025-12-20',
+        endDate: '2025-12-24',
+        startPeriod: 'full' as const,
+        endPeriod: 'full' as const,
+        totalDays: 5,
+        reason: 'Family vacation',
+        attachmentUrl: null,
+        emergencyContact: null,
+      }
+
+      const mockCreatedRequest: LeaveRequest = {
+        id: 1,
+        restaurantId: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        startDate: '2025-12-20',
+        endDate: '2025-12-24',
+        startPeriod: 'full',
+        endPeriod: 'full',
+        totalDays: 5,
+        reason: 'Family vacation',
+        attachmentUrl: null,
+        emergencyContact: null,
+        status: 'pending',
+        approvalChain: '[]',
+        currentApprovalLevel: 0,
+        finalApproverId: null,
+        finalApprovedAt: null,
+        rejectedBy: null,
+        rejectedAt: null,
+        rejectionReason: null,
+        cancelledBy: null,
+        cancelledAt: null,
+        cancellationReason: null,
+        affectedScheduleIds: null,
+        replacementNotified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        submittedAt: Date.now(),
+      }
+
+      // Mock balance check
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              totalDays: 14,
+              usedDays: 3,
+              pendingDays: 0,
+              remainingDays: 11,
+            },
+          ]),
+        }),
+      })
+
+      // Mock insert
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([mockCreatedRequest]),
+        }),
+      })
+
+      // Mock update balance
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      const result = await service.createLeaveRequest(newRequest)
+
+      expect(result.status).toBe('pending')
+      expect(result.totalDays).toBe(5)
+      expect(mockDb.insert).toHaveBeenCalled()
+    })
+
+    it('should approve leave request and update balance', async () => {
+      const existingRequest = {
+        id: 1,
+        restaurantId: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        status: 'pending',
+        totalDays: 5,
+        startDate: '2025-12-20',
+        endDate: '2025-12-24',
+        currentApprovalLevel: 0,
+        requiredApprovalLevels: 1,
+      }
+
+      // Mock get request
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([
+                {
+                  ...existingRequest,
+                  leaveType: {
+                    requiredApprovalLevels: 1,
+                  },
+                },
+              ]),
+            }),
+          }),
+        }),
+      })
+
+      // Mock get balance
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: 1,
+              totalDays: 14,
+              usedDays: 3,
+              pendingDays: 5,
+              remainingDays: 6,
+            },
+          ]),
+        }),
+      })
+
+      const approvedRequest = {
+        ...existingRequest,
+        status: 'approved',
+        finalApproverId: 1,
+        finalApprovedAt: Date.now(),
+      }
+
+      // Mock update request
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([approvedRequest]),
+          }),
+        }),
+      })
+
+      // Mock update balance
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      const result = await service.approveLeaveRequest(1, 1, 'Approved')
+
+      expect(result.status).toBe('approved')
+      expect(result.finalApproverId).toBe(1)
+    })
+
+    it('should reject leave request with reason', async () => {
+      const existingRequest = {
+        id: 1,
+        restaurantId: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        status: 'pending',
+        totalDays: 5,
+      }
+
+      // Mock get request
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([existingRequest]),
+          }),
+        }),
+      })
+
+      // Mock get balance
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: 1,
+              pendingDays: 5,
+            },
+          ]),
+        }),
+      })
+
+      const rejectedRequest = {
+        ...existingRequest,
+        status: 'rejected',
+        rejectedBy: 1,
+        rejectionReason: 'Insufficient coverage',
+        rejectedAt: Date.now(),
+      }
+
+      // Mock update request
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([rejectedRequest]),
+          }),
+        }),
+      })
+
+      // Mock update balance
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      const result = await service.rejectLeaveRequest(1, 1, 'Insufficient coverage')
+
+      expect(result.status).toBe('rejected')
+      expect(result.rejectionReason).toBe('Insufficient coverage')
+    })
+
+    it('should cancel leave request', async () => {
+      const existingRequest = {
+        id: 1,
+        restaurantId: 1,
+        employeeId: 1,
+        leaveTypeId: 1,
+        status: 'approved',
+        totalDays: 5,
+      }
+
+      // Mock get request
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([existingRequest]),
+          }),
+        }),
+      })
+
+      // Mock get balance (for approved status)
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: 1,
+              usedDays: 5,
+            },
+          ]),
+        }),
+      })
+
+      const cancelledRequest = {
+        ...existingRequest,
+        status: 'cancelled',
+        cancelledBy: 1,
+        cancellationReason: 'Plans changed',
+        cancelledAt: Date.now(),
+      }
+
+      // Mock update request
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([cancelledRequest]),
+          }),
+        }),
+      })
+
+      // Mock update balance
+      mockDb.update.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      const result = await service.cancelLeaveRequest(1, 1, 'Plans changed')
+
+      expect(result.status).toBe('cancelled')
+      expect(result.cancellationReason).toBe('Plans changed')
+    })
+  })
+
+  describe('Working Day Calculation', () => {
+    it('should identify weekday as working day', async () => {
+      // Monday 2025-12-01
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      const result = await service.isWorkingDay(1, '2025-12-01')
+
+      expect(result).toBe(true)
+    })
+
+    it('should identify weekend as non-working day', async () => {
+      // Saturday 2025-12-06
+      const result = await service.isWorkingDay(1, '2025-12-06')
+
+      expect(result).toBe(false)
+    })
+
+    it('should identify holiday as non-working day', async () => {
+      // Mock holiday exists
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: 1, date: '2025-12-25' }]),
+          }),
+        }),
+      })
+
+      const result = await service.isWorkingDay(1, '2025-12-25')
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('Leave Accrual', () => {
+    it('should accrue yearly leave balances for all employees', async () => {
+      const mockEmployees = [
+        { id: 1, restaurantId: 1, role: 1 },
+        { id: 2, restaurantId: 1, role: 2 },
+      ]
+
+      const mockLeaveTypes = [
+        {
+          id: 1,
+          code: 'ANNUAL',
+          accrualType: 'yearly',
+          accrualAmount: 14,
+        },
+      ]
+
+      // Mock get employees
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(mockEmployees),
+        }),
+      })
+
+      // Mock get leave types
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(mockLeaveTypes),
+        }),
+      })
+
+      // Mock existing balance check (none exist)
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      })
+
+      // Mock insert balance
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{}]),
+        }),
+      })
+
+      const result = await service.accrueLeaveBalances(1, 2025)
+
+      expect(result).toBeGreaterThan(0)
+      expect(mockDb.insert).toHaveBeenCalled()
+    })
+  })
+})

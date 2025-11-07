@@ -484,7 +484,7 @@ export class TableService extends BaseService {
 
   // 生成 QR Code 資料
   private generateQRCodeData(restaurantId: number, tableNumber: string, customData?: any): string {
-    const baseUrl = process.env.CLIENT_BASE_URL || 'https://makanmakan.com'
+    const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
     const qrData = {
       type: 'table',
       restaurantId,
@@ -492,7 +492,7 @@ export class TableService extends BaseService {
       timestamp: Date.now(),
       ...customData
     }
-    
+
     return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
   }
 

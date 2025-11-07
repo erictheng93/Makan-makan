@@ -36,7 +36,8 @@ const jaJP: Messages = {
     createdAt: '作成日時',
     updatedAt: '更新日時',
     yes: 'はい',
-    no: 'いいえ'
+    no: 'いいえ',
+    fillRequired: '必須項目を入力してください'
   },
 
   // スケジュールシステム
@@ -334,6 +335,108 @@ const jaJP: Messages = {
       stable: '安定',
       items: '件',
       loadFailed: 'データの読み込みに失敗しました'
+    }
+  },
+
+  // 予約システム
+  reservation: {
+    title: '予約管理',
+    create: '新規予約',
+    createSuccess: '予約が作成されました',
+    createError: '予約の作成に失敗しました',
+    loadError: '予約リストの読み込みに失敗しました',
+    confirmPrompt: 'この予約を確認してもよろしいですか？',
+    confirmError: '予約の確認に失敗しました',
+    arrivedError: '到着マークに失敗しました',
+    seatedError: '着席マークに失敗しました',
+    cancelPrompt: 'この予約をキャンセルしてもよろしいですか？',
+    cancelError: '予約のキャンセルに失敗しました',
+    confirmationCode: '確認コード',
+    customerName: '顧客名',
+    customerPhone: '電話番号',
+    customerEmail: 'メールアドレス',
+    datetime: '予約時刻',
+    selectDatetime: '予約時刻を選択',
+    partySize: '人数',
+    people: '名',
+    duration: '所要時間',
+    minutes: '分',
+    specialRequests: '特別なリクエスト',
+    specialRequestsPlaceholder: '例：ベビーチェア、車椅子対応、窓際の席など',
+    notes: '備考',
+    status: 'ステータス',
+    detail: '予約詳細',
+    stats: {
+      total: '総予約数',
+      pending: '確認待ち',
+      confirmed: '確認済み',
+      seated: '着席済み'
+    },
+    filter: {
+      date: '日付',
+      selectDate: '日付を選択',
+      status: 'ステータス',
+      allStatus: 'すべてのステータス',
+      phone: '電話番号',
+      enterPhone: '電話番号を入力'
+    }
+  },
+
+  // 待機リストシステム
+  waitingList: {
+    title: '待機リスト管理',
+    addCustomer: '待機リストに追加',
+    addSuccess: '待機リストに追加されました',
+    addError: '待機リストへの追加に失敗しました',
+    loadError: '待機リストの読み込みに失敗しました',
+    callCustomer: '顧客を呼び出す',
+    callError: '呼び出しに失敗しました',
+    confirmCall: '呼び出し確認',
+    call: '呼び出す',
+    callNext: '次を呼び出す',
+    seat: '着席',
+    expire: '期限切れ',
+    cancel: 'キャンセル',
+    seatedError: '着席マークに失敗しました',
+    expirePrompt: '期限切れとしてマークしてもよろしいですか？',
+    expireError: '期限切れマークに失敗しました',
+    cancelPrompt: 'このエントリをキャンセルしてもよろしいですか？',
+    cancelError: 'キャンセルに失敗しました',
+    batchCallError: '一括呼び出しに失敗しました',
+    customerName: '顧客名',
+    customerPhone: '電話番号',
+    partySize: '人数',
+    people: '名',
+    notes: '備考',
+    notesPlaceholder: '例：ベビーカー、特別な要望など',
+    queueNumber: '整理券番号',
+    waitTime: '待ち時間',
+    joinedAt: '参加時刻',
+    estimatedWait: '推定待ち時間',
+    partiesAhead: '前方待機組数',
+    availableTables: '空き席数',
+    assignTable: 'テーブル割り当て',
+    selectTable: 'テーブルを選択',
+    selectTableRequired: '割り当てるテーブルを選択してください',
+    notificationMethod: '通知方法',
+    sms: 'SMS',
+    display: 'ディスプレイ',
+    both: '両方',
+    queue: '待機列',
+    noQueue: '待機者なし',
+    cardView: 'カード表示',
+    tableView: 'テーブル表示',
+    stats: {
+      waiting: '待機中',
+      called: '呼び出し済み',
+      avgWait: '平均待ち時間',
+      todayTotal: '本日の合計'
+    },
+    filter: {
+      status: 'ステータス',
+      allStatus: 'すべてのステータス',
+      phone: '電話番号',
+      enterPhone: '電話番号を入力'
     }
   },
 

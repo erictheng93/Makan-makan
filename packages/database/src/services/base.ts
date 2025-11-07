@@ -8,6 +8,12 @@ export interface CloudflareEnv {
   JWT_SECRET: string
   NODE_ENV?: string
   CACHE_KV?: KVNamespace
+  // Notification providers
+  RESEND_API_KEY?: string
+  NOTIFICATION_FROM_EMAIL?: string
+  TWILIO_ACCOUNT_SID?: string
+  TWILIO_AUTH_TOKEN?: string
+  TWILIO_PHONE_NUMBER?: string
   [key: string]: any
 }
 

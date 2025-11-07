@@ -69,6 +69,13 @@ import customersRouter from './features/customers/routes'
 import leavesFeature from './features/leaves'
 // Employee scheduling and shift management feature
 import schedulingFeature from './features/scheduling'
+// Reservation and waiting list features
+import reservationsFeature from './features/reservations'
+import waitingListFeature from './features/waiting-list'
+// Realtime authentication feature
+import realtimeRoutes from './features/realtime/routes'
+// Notification system feature
+import notificationsRoutes from './features/notifications/routes'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -192,7 +199,9 @@ app.get('/info', (c) => {
       'Cache monitoring and management',
       'AI-powered business analytics',
       'Employee leave management',
-      'Employee scheduling and shift management'
+      'Employee scheduling and shift management',
+      'Table reservation management',
+      'Waiting list and queue management'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -221,6 +230,10 @@ app.get('/info', (c) => {
       coupons: '/api/v1/coupons',
       leaves: '/api/v1/leaves',
       scheduling: '/api/v1/scheduling',
+      reservations: '/api/v1/reservations',
+      waitingList: '/api/v1/waiting-list',
+      realtime: '/api/v1/realtime',
+      notifications: '/api/v1/notifications',
       health: '/health',
       docs: '/docs'
     }
@@ -239,6 +252,9 @@ apiV1.route('/qr', qrCodesFeature.routes)
 apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)
 // apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證 - Disabled
 apiV1.route('/coupons', couponsFeature.routes) // 優惠券驗證端點為公開，管理端點需要認證
+apiV1.route('/reservations', reservationsFeature) // 訂位系統 (public + protected endpoints)
+apiV1.route('/waiting-list', waitingListFeature) // 候位系統 (public + protected endpoints)
+apiV1.route('/realtime', realtimeRoutes) // WebSocket 認證端點為公開
 
 // 受保護的路由（需要認證）
 apiV1.use('/restaurants/*', authMiddleware)
@@ -261,6 +277,7 @@ apiV1.use('/backup/*', authMiddleware)
 apiV1.use('/customers/*', authMiddleware)
 apiV1.use('/leaves/*', authMiddleware)
 apiV1.use('/scheduling/*', authMiddleware)
+apiV1.use('/notifications/*', authMiddleware)
 
 // Apply CSRF protection to state-changing operations after authentication
 apiV1.use('*', csrfProtection({
@@ -298,6 +315,7 @@ apiV1.route('/backup', BackupRoutes)
 apiV1.route('/customers', customersRouter)
 apiV1.route('/leaves', leavesFeature.routes)
 apiV1.route('/scheduling', schedulingFeature.routes)
+apiV1.route('/notifications', notificationsRoutes)
 
 // 掛載 API 路由
 app.route('/api/v1', apiV1)

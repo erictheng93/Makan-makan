@@ -72,8 +72,8 @@ const error = ref('')
 const shifts = ref<ShiftData[]>(props.data)
 
 const chartTypes = computed(() => [
-  { value: 'doughnut', label: t('charts.shiftDistribution.doughnutChart') },
-  { value: 'pie', label: t('charts.shiftDistribution.pieChart') }
+  { value: 'doughnut' as const, label: t('charts.shiftDistribution.doughnutChart') },
+  { value: 'pie' as const, label: t('charts.shiftDistribution.pieChart') }
 ])
 
 const colors = [
