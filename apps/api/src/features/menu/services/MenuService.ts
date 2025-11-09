@@ -520,22 +520,12 @@ export class MenuService implements IMenuService {
 
   private async getCategory(id: number): Promise<Category | null> {
     try {
-      // Note: This is a simplified implementation - would use proper database service methods
-      // For now, return a mock category for demonstration
-      return {
-        id,
-        restaurantId: 1,
-        name: 'Mock Category',
-        description: undefined,
-        parentId: undefined,
-        sortOrder: 0,
-        status: 1,
-        isActive: true,
-        isVisible: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        itemCount: 0
+      const category = await this.dbService.getCategory(id)
+      if (!category) {
+        return null
       }
+
+      return this.transformCategory(category)
     } catch (error) {
       this.logger.error('Failed to fetch category', error instanceof Error ? error : undefined, { id })
       return null

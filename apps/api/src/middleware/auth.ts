@@ -22,7 +22,7 @@ declare module 'hono' {
 export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
   try {
     const authHeader = c.req.header('Authorization')
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return c.json({ error: 'Missing or invalid authorization header' }, 401)
     }

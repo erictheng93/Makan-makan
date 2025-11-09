@@ -11,7 +11,8 @@ import {
   type ErrorContext,
   type ErrorBreadcrumb,
   type TrackedError,
-  type ErrorTrackingOptions
+  type ErrorTrackingOptions,
+  type ErrorSeverity
 } from '../error-tracking'
 
 describe('ErrorTracker', () => {
@@ -557,9 +558,9 @@ describe('ErrorTracker', () => {
   describe('Hooks and Options', () => {
     it('should call beforeSend hook', () => {
       // Arrange
-      const beforeSend = vi.fn((error: TrackedError) => ({
+      const beforeSend = vi.fn((error: TrackedError): TrackedError => ({
         ...error,
-        severity: 'critical' // Modify severity
+        severity: 'critical' as ErrorSeverity // Modify severity
       }))
 
       const hookedTracker = new ErrorTracker({

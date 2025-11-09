@@ -913,9 +913,9 @@ const recommendedTables = computed(() => {
 });
 
 const canAddToQueue = computed(() => {
-  return newQueueItem.value.customerName &&
+  return !!(newQueueItem.value.customerName &&
          (newQueueItem.value.customerPhone || newQueueItem.value.customerEmail) &&
-         newQueueItem.value.partySize > 0;
+         newQueueItem.value.partySize > 0);
 });
 
 // 工具方法
@@ -1051,7 +1051,9 @@ const callNextCustomer = async () => {
   if (!authStore.user?.restaurantId) return;
 
   try {
-    const result = await queueService.callNext(authStore.user.restaurantId, {});
+    const result = await queueService.callNext(authStore.user.restaurantId, {
+      operatorId: authStore.user.id,
+    });
 
     if (result.success && result.data) {
       // 更新本地數據
@@ -1266,6 +1268,47 @@ onMounted(async () => {
       await refreshQueue();
     }
   }, 30000); // 每30秒更新一次
+});
+
+// 暴露給測試使用的內部狀態和方法
+defineExpose({
+  // 響應式數據
+  queueItems,
+  tables,
+  newQueueItem,
+  selectedQueueItem,
+  selectedTable,
+  showAddDialog,
+  showSeatDialog,
+  seatAssignment,
+  queueFilter,
+  tableViewFilter,
+
+  // Computed 屬性
+  canAddToQueue,
+  filteredQueue,
+  filteredTables,
+  recommendedTables,
+  currentWaiting,
+  avgWaitTime,
+  availableTables,
+
+  // 方法
+  refreshQueue,
+  callNextCustomer,
+  callCustomer,
+  seatCustomer,
+  confirmSeatAssignment,
+  submitAddToQueue,
+  addToQueue,
+  selectTable,
+  cleanTable,
+  calculateEstimatedWait,
+  getWaitTime,
+  getStatusClass,
+  getStatusText,
+  getTableStatusColor,
+  getTableStatusText,
 });
 </script>
 

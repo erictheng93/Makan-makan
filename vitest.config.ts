@@ -30,13 +30,45 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*'
       // Removed: 'apps/', 'packages/' - now included in testing
+    ],
+    // Workspace projects configuration (migrated from vitest.workspace.ts)
+    // Each project can have its own configuration from their vitest.config.ts
+    projects: [
+      // Root-level tests (generic tests)
+      {
+        test: {
+          name: 'root',
+          root: '.',
+          include: ['tests/**/*.test.{js,ts}'],
+          environment: 'node'
+        }
+      },
+      // Apps - each uses its own vitest.config.ts
+      'apps/admin-dashboard',
+      'apps/customer-app',
+      'apps/kitchen-display',
+      'apps/api',
+      'apps/realtime',
+      // Packages - each uses its own vitest.config.ts
+      'packages/database',
+      'packages/queue-core',
+      'packages/utils'
     ]
   },
   resolve: {
     alias: {
       '@tests': path.resolve(__dirname, './tests'),
       // Path aliases for each app (support @/ imports in tests)
-      '@': path.resolve(__dirname, './src') // Fallback for root-level tests
+      '@': path.resolve(__dirname, './src'), // Fallback for root-level tests
+
+      // Monorepo internal packages - critical for test environment
+      '@makanmakan/ai-analytics': path.resolve(__dirname, './packages/ai-analytics/src/index.ts'),
+      '@makanmakan/database': path.resolve(__dirname, './packages/database/src/index.ts'),
+      '@makanmakan/queue-core': path.resolve(__dirname, './packages/queue-core/src/index.ts'),
+      '@makanmakan/queue-service': path.resolve(__dirname, './packages/queue-service/src/index.ts'),
+      '@makanmakan/shared': path.resolve(__dirname, './packages/shared/src/index.ts'),
+      '@makanmakan/shared-types': path.resolve(__dirname, './packages/shared-types/src/index.ts'),
+      '@makanmakan/utils': path.resolve(__dirname, './packages/utils/src/index.ts')
     }
   }
 })

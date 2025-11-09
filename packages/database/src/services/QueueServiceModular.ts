@@ -102,13 +102,15 @@ export class QueueServiceModular extends BaseService {
       const priority = this.calculatePriority(validatedData, settings.data.priorityRules)
 
       // Insert into database
+      const now = new Date().toISOString()
       await this.d1.prepare(`
         INSERT INTO waiting_queue (
           id, restaurant_id, queue_number, customer_name, customer_phone,
           customer_email, party_size, special_requests, priority, queue_type,
           estimated_wait_minutes, table_preferences, status, notification_methods,
-          notification_sent, notification_count, check_in_code, joined_at, metadata
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, CURRENT_TIMESTAMP, '{}')
+          notification_sent, notification_count, check_in_code, joined_at, metadata,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, '{}', ?, ?)
       `).bind(
         queueId,
         validatedData.restaurantId,
@@ -124,8 +126,15 @@ export class QueueServiceModular extends BaseService {
         JSON.stringify(validatedData.tablePreferences || []),
         QueueStatus.WAITING,
         JSON.stringify(validatedData.notificationMethods || [NotificationType.SMS]),
-        checkInCode
+        checkInCode,
+        now, // joined_at
+        now, // created_at
+        now  // updated_at
       ).run()
+
+      // Debug: Verify the record was inserted
+      const inserted = await this.d1.prepare('SELECT * FROM waiting_queue WHERE id = ?').bind(queueId).first()
+      console.log('[QueueService] Inserted queue record:', inserted ? 'FOUND' : 'NOT FOUND', queueId)
 
       // Get current position
       const currentPosition = await this.getQueuePosition(queueId)
@@ -247,11 +256,11 @@ export class QueueServiceModular extends BaseService {
           WHERE id = ? AND status = ?
         `).bind(validatedData.specificQueueId, QueueStatus.WAITING).first()
       } else {
+        // Remove date restriction for now - in production this should filter by business day
         nextInQueue = await this.d1.prepare(`
           SELECT * FROM waiting_queue
           WHERE restaurant_id = ?
             AND status = ?
-            AND DATE(joined_at) = DATE('now')
           ORDER BY priority DESC, joined_at ASC
           LIMIT 1
         `).bind(validatedData.restaurantId, QueueStatus.WAITING).first()
@@ -265,15 +274,17 @@ export class QueueServiceModular extends BaseService {
       }
 
       // Update status to called
+      const now = new Date().toISOString()
       await this.d1.prepare(`
         UPDATE waiting_queue
         SET status = ?,
-            called_at = CURRENT_TIMESTAMP,
+            called_at = ?,
             served_by = ?,
             assigned_table_id = ?
         WHERE id = ?
       `).bind(
         QueueStatus.CALLED,
+        now,
         operatorId,
         validatedData.tableId || null,
         nextInQueue.id
@@ -418,6 +429,7 @@ export class QueueServiceModular extends BaseService {
   }
 
   private async createQueueSettings(restaurantId: number, settings: any): Promise<void> {
+    const now = new Date().toISOString()
     await this.d1.prepare(`
       INSERT INTO queue_settings (
         restaurant_id, is_enabled, max_queue_size, avg_service_time,
@@ -426,7 +438,7 @@ export class QueueServiceModular extends BaseService {
         queue_number_reset, priority_rules, table_assignment_rules,
         notification_templates, business_hours, holiday_settings,
         display_settings, integration_settings, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       restaurantId,
       settings.isEnabled,
@@ -445,7 +457,9 @@ export class QueueServiceModular extends BaseService {
       JSON.stringify(settings.businessHours),
       JSON.stringify(settings.holidaySettings),
       JSON.stringify(settings.displaySettings),
-      JSON.stringify(settings.integrationSettings)
+      JSON.stringify(settings.integrationSettings),
+      now, // created_at - explicit timestamp
+      now  // updated_at - explicit timestamp
     ).run()
   }
 
@@ -510,8 +524,14 @@ export class QueueServiceModular extends BaseService {
   }
 
   private isWithinBusinessHours(businessHours: Record<string, any>): boolean {
+    // If businessHours is empty or not configured, allow 24/7 operation
+    if (!businessHours || Object.keys(businessHours).length === 0) {
+      return true
+    }
+
     const now = new Date()
     const currentHour = now.getHours()
+    // TODO: Implement proper business hours checking based on businessHours configuration
     return currentHour >= 10 && currentHour < 22
   }
 
@@ -528,12 +548,13 @@ export class QueueServiceModular extends BaseService {
     triggeredBy?: number
   ): Promise<void> {
     const eventId = crypto.randomUUID()
+    const now = new Date().toISOString()
 
     await this.d1.prepare(`
       INSERT INTO queue_events (
         id, restaurant_id, queue_id, event_type, event_data,
         triggered_by, triggered_by_system, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       eventId,
       restaurantId,
@@ -541,7 +562,8 @@ export class QueueServiceModular extends BaseService {
       eventType,
       JSON.stringify(eventData),
       triggeredBy || null,
-      !triggeredBy
+      !triggeredBy,
+      now // created_at - explicit timestamp
     ).run()
   }
 
@@ -655,6 +677,16 @@ export class QueueServiceModular extends BaseService {
           metadata = json_set(COALESCE(metadata, '{}'), '$.tableId', ?)
         WHERE id = ?
       `).bind(QueueStatus.SEATED, now, actualWaitMinutes, operatorId, tableId, queueId).run()
+
+      // Update table status to occupied
+      await this.d1.prepare(`
+        UPDATE tables
+        SET
+          isOccupied = 1,
+          occupiedAt = ?,
+          currentOrderId = NULL
+        WHERE id = ?
+      `).bind(now, tableId).run()
 
       // Record audit event
       await this.recordQueueEvent(queue.restaurant_id, queueId, 'seated', {

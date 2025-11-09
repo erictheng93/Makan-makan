@@ -136,3 +136,4 @@ legacy/package-lock.json
 # Windows reserved device names (causes issues on Windows)
 nul
 **/nul
+vitest.workspace.ts.bak

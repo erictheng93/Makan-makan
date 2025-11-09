@@ -307,7 +307,12 @@ export class MenuService extends BaseService {
     try {
       const [item] = await this.db
         .insert(menuItems)
-        .values(data)
+        .values({
+          ...data,
+          isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,  // Default: available
+          isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
+          isPopular: data.isPopular !== undefined ? data.isPopular : false
+        })
         .returning()
 
       // 更新分類商品數量
@@ -445,6 +450,19 @@ export class MenuService extends BaseService {
       return category
     } catch (error) {
       this.handleError(error, 'createCategory')
+    }
+  }
+
+  // 獲取分類詳情
+  async getCategory(id: number) {
+    try {
+      const category = await this.db.query.categories.findFirst({
+        where: eq(categories.id, id)
+      })
+
+      return category || null
+    } catch (error) {
+      this.handleError(error, 'getCategory')
     }
   }
 

@@ -29,7 +29,7 @@ describe('Queue Modular API Integration Tests', () => {
   beforeAll(async () => {
     // Setup test environment
     db = await createTestDB()
-    app = createTestApp()
+    app = await createTestApp()
     const mockEnv = { DB: db } as any
     queueService = new QueueServiceModular(db, mockEnv)
 
@@ -416,7 +416,7 @@ describe('Queue Modular API Integration Tests', () => {
 
   describe('API Endpoints', () => {
     it('should handle join queue POST request', async () => {
-      const response = await app.request('/api/v1/queue-modular/join', {
+      const response = await app.request('/api/v1/queue/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -445,7 +445,7 @@ describe('Queue Modular API Integration Tests', () => {
         partySize: 2
       })
 
-      const response = await app.request(`/api/v1/queue-modular/${testRestaurantId}/status`)
+      const response = await app.request(`/api/v1/queue/${testRestaurantId}/status`)
 
       expect(response.status).toBe(200)
 
@@ -465,7 +465,7 @@ describe('Queue Modular API Integration Tests', () => {
         partySize: 2
       })
 
-      const response = await app.request(`/api/v1/queue-modular/${testRestaurantId}/current`, {
+      const response = await app.request(`/api/v1/queue/restaurant/${testRestaurantId}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
@@ -488,7 +488,7 @@ describe('Queue Modular API Integration Tests', () => {
         partySize: 2
       })
 
-      const response = await app.request('/api/v1/queue-modular/call-next', {
+      const response = await app.request(`/api/v1/queue/${testRestaurantId}/call-next`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -507,7 +507,7 @@ describe('Queue Modular API Integration Tests', () => {
     })
 
     it('should handle validation errors', async () => {
-      const response = await app.request('/api/v1/queue-modular/join', {
+      const response = await app.request('/api/v1/queue/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -529,13 +529,13 @@ describe('Queue Modular API Integration Tests', () => {
 
   describe('Health Check', () => {
     it('should return healthy status', async () => {
-      const response = await app.request('/api/v1/queue-modular/health')
+      const response = await app.request('/api/v1/queue/health')
 
       expect(response.status).toBe(200)
 
       const data = await response.json()
       expect(data.success).toBe(true)
-      expect(data.data.service).toBe('queue-modular')
+      expect(data.data.systems.modular).toBe('available')
       expect(data.data.status).toBe('healthy')
     })
   })

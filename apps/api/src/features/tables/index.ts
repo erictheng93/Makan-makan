@@ -29,16 +29,28 @@ class TablesModule implements FeatureModule {
   }
 
   private setupRoutes() {
-    // Mount feature routes
-    this.routes.route('/', routes)
-
-    // Feature-specific middleware can be added here
+    // Feature-specific middleware should be added BEFORE routes
     this.routes.use('*', async (c, next) => {
+      console.log(`[TablesModule] Middleware triggered:`, {
+        method: c.req.method,
+        path: c.req.path,
+        url: c.req.url,
+        routePath: c.req.routePath
+      })
       const start = Date.now()
       await next()
       const duration = Date.now() - start
       this.logger.debug(`${c.req.method} ${c.req.path} - ${duration}ms`)
+      console.log(`[TablesModule] Middleware complete:`, {
+        status: c.res.status,
+        hasMatchedRoute: !!c.req.routePath
+      })
     })
+
+    // Mount feature routes AFTER middleware
+    console.log(`[TablesModule] Mounting routes, routes type:`, typeof routes, routes?.constructor?.name)
+    this.routes.route('/', routes)
+    console.log(`[TablesModule] Routes mounted`)
   }
 
   // Health check endpoint
@@ -110,9 +122,7 @@ export function createTablesModule(): TablesModule {
 
 // Export default for backward compatibility
 export default {
-  get routes() {
-    return createTablesModule().routes
-  },
+  routes, // Direct export instead of through module wrapper
   getHealthStatus: () => createTablesModule().getHealthStatus(),
   getFeatureInfo: () => createTablesModule().getFeatureInfo()
 }

@@ -30,14 +30,27 @@ export class RestaurantService extends BaseService {
   // 創建餐廳
   async createRestaurant(data: CreateRestaurantData): Promise<Restaurant> {
     try {
-      const [restaurant] = await this.db
+      console.log('[RestaurantService] Creating restaurant with data:', data)
+      const result = await this.db
         .insert(restaurants)
         .values({
           ...data,
-          city: data.city || '台中市'
+          city: data.city || '台中市',
+          isAvailable: true,  // Default: restaurant is available
+          isActive: true,      // Default: restaurant is active
+          status: 1            // Default: active status
         })
         .returning()
 
+      console.log('[RestaurantService] Insert result:', result)
+      const [restaurant] = result
+
+      if (!restaurant) {
+        console.error('[RestaurantService] No restaurant returned from insert!')
+        throw new Error('Failed to create restaurant: no data returned')
+      }
+
+      console.log('[RestaurantService] Restaurant created with ID:', restaurant.id)
       return this.mapToRestaurant(restaurant)
     } catch (error) {
       this.handleError(error, 'createRestaurant')

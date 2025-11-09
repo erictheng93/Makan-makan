@@ -14,6 +14,38 @@ import { TablesService } from '../services/TablesService'
 import { tableSchemas } from '../schemas/validation'
 
 const app = new Hono<{ Bindings: Env }>()
+console.log('[TablesRoutes] Routes module loaded, defining routes...')
+
+// Test route without auth to verify routing works
+app.post('/test-no-auth', async (c) => {
+  console.log('[TablesRoutes] TEST route hit!')
+  return c.json({ success: true, message: 'Test route works!' }, 200)
+})
+
+// Test POST / without auth
+app.post('/test-root-no-auth', async (c) => {
+  console.log('[TablesRoutes] POST /test-root-no-auth hit!')
+  return c.json({ success: true, message: 'Root test works!' }, 200)
+})
+
+// Test POST / with just auth (no validation)
+app.post('/test-with-auth',
+  authMiddleware,
+  async (c) => {
+    console.log('[TablesRoutes] POST /test-with-auth hit!')
+    return c.json({ success: true, message: 'Auth test works!' }, 200)
+  }
+)
+
+// Test POST / with auth + requireRole
+app.post('/test-with-role',
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  async (c) => {
+    console.log('[TablesRoutes] POST /test-with-role hit!')
+    return c.json({ success: true, message: 'Role test works!' }, 200)
+  }
+)
 
 /**
  * Get restaurant tables
@@ -109,19 +141,13 @@ app.get('/:id',
   }
 )
 
-/**
- * Create new table
- * POST /tables
- */
-app.post('/',
-  authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(tableSchemas.create as any),
-  async (c) => {
-    try {
-      const data = c.get('validatedBody') as any
-      const currentUser = c.get('user')
-      const tablesService = new TablesService(c.env)
+// Handler function for creating tables
+const createTableHandler = async (c: any) => {
+  console.log('[TablesRoutes] Create table handler called!')
+  try {
+    const data = c.get('validatedBody') as any
+    const currentUser = c.get('user')
+    const tablesService = new TablesService(c.env)
 
       // Permission check: non-admins can only create tables for their own restaurant
       if (!tablesService.validateRestaurantAccess(data.restaurantId, currentUser.restaurantId || 0, currentUser.role === USER_ROLES.ADMIN)) {
@@ -138,15 +164,30 @@ app.post('/',
         data: newTable
       }, 201)
 
-    } catch (error) {
-      console.error('Create table error:', error)
-      return c.json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create table'
-      }, 500)
-    }
+  } catch (error) {
+    console.log('[TablesRoutes] Create table error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create table'
+    }, 500)
   }
-)
+}
+
+/**
+ * Create new table
+ * POST /tables  OR  POST /tables/
+ * Register both paths to handle trailing slash variations
+ */
+const createTableMiddleware = [
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateBody(tableSchemas.create as any)
+]
+
+// Register both `/` and empty string to handle Hono path stripping
+app.post('/', ...createTableMiddleware, createTableHandler)
+app.post('', ...createTableMiddleware, createTableHandler) // Empty string for routes ending with /
+console.log('[TablesRoutes] Registered POST / and POST routes for creating tables')
 
 /**
  * Update table information

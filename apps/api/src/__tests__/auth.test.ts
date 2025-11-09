@@ -32,6 +32,18 @@ describe('Auth Routes', () => {
 
   beforeEach(() => {
     app = new Hono<{ Bindings: typeof mockEnv }>()
+
+    // Add middleware to inject mockEnv into context (critical for c.env.DB access)
+    app.use('*', async (c, next) => {
+      // Initialize c.env if it doesn't exist
+      if (!c.env) {
+        (c as any).env = {}
+      }
+      // Inject mock env
+      Object.assign(c.env, mockEnv)
+      await next()
+    })
+
     app.route('/auth', authRouter)
 
     // Get the mock AuthService instance

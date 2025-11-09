@@ -1,15 +1,58 @@
 import { vi, beforeEach } from 'vitest'
 
-// Mock Cloudflare D1 database
-const mockDB = {
-  prepare: vi.fn().mockReturnValue({
-    bind: vi.fn().mockReturnThis(),
-    first: vi.fn(),
-    all: vi.fn(),
-    run: vi.fn()
-  }),
-  exec: vi.fn()
+/**
+ * Create a complete D1 Database mock that matches Cloudflare D1 API
+ * This ensures all database operations work correctly in tests
+ */
+export const createMockD1Database = () => {
+  const createPreparedStatement = () => ({
+    bind: vi.fn(function(this: any, ...params: any[]) {
+      // Return a new bound statement
+      return {
+        run: vi.fn().mockResolvedValue({
+          success: true,
+          meta: { changes: 1, last_row_id: 1, duration: 0.1 }
+        }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({
+          results: [],
+          success: true,
+          meta: { duration: 0.1 }
+        }),
+        raw: vi.fn().mockResolvedValue([])
+      }
+    }),
+    run: vi.fn().mockResolvedValue({
+      success: true,
+      meta: { changes: 1, last_row_id: 1, duration: 0.1 }
+    }),
+    first: vi.fn().mockResolvedValue(null),
+    all: vi.fn().mockResolvedValue({
+      results: [],
+      success: true,
+      meta: { duration: 0.1 }
+    }),
+    raw: vi.fn().mockResolvedValue([])
+  })
+
+  return {
+    prepare: vi.fn((sql: string) => createPreparedStatement()),
+    exec: vi.fn().mockResolvedValue({
+      count: 0,
+      duration: 0.1,
+      results: []
+    }),
+    batch: vi.fn().mockResolvedValue([{
+      success: true,
+      results: [],
+      meta: { duration: 0.1 }
+    }]),
+    dump: vi.fn().mockResolvedValue(new ArrayBuffer(0))
+  }
 }
+
+// Mock Cloudflare D1 database instance
+const mockDB = createMockD1Database()
 
 // Mock Cloudflare KV
 const mockKV = {

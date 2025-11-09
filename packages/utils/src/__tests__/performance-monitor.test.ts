@@ -18,8 +18,8 @@ const createMockPerformance = () => ({
   now: vi.fn(() => mockTime),
   mark: vi.fn(),
   measure: vi.fn(),
-  getEntriesByName: vi.fn(() => []),
-  getEntriesByType: vi.fn(() => []),
+  getEntriesByName: vi.fn(() => [] as any[]),
+  getEntriesByType: vi.fn(() => [] as any[]),
   clearMarks: vi.fn(),
   clearMeasures: vi.fn()
   // Don't include timing to avoid automatic TTFB tracking in tests

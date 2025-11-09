@@ -179,6 +179,13 @@ export class TableService extends BaseService {
         .get()
 
       // 如果是座位模式，附加座位資訊
+      // Convert SQLite integer booleans (0/1) to JavaScript booleans
+      if (table) {
+        table.isOccupied = Boolean(table.isOccupied)
+        table.isActive = Boolean(table.isActive)
+        table.isReservable = Boolean(table.isReservable)
+      }
+
       if (table && table.qrMode === 'seat') {
         const seatService = new SeatService(this.db as any, this.env)
         const seatsResult = await seatService.getSeatsByTableId(id)

@@ -1,0 +1,435 @@
+﻿node.exe : ??[WARNING] The condition "types" here will never be used as it comes after both "import" and "require" [pac
+kage.json]
+位於 C:\Users\minim\AppData\Roaming\npm\pnpm.ps1:24 字元:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (??[WARNING] The... [package.json]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+    packages/queue-core/package.json:32:6:
+      32 ??      "types": "./dist/index.d.ts"
+         ??      ~~~~~~~
+
+  The "import" condition comes earlier and will be used for all "import" statements:
+
+    packages/queue-core/package.json:30:6:
+      30 ??      "import": "./dist/index.js",
+         ??      ~~~~~~~~
+
+  The "require" condition comes earlier and will be used for all "require" calls:
+
+    packages/queue-core/package.json:31:6:
+      31 ??      "require": "./dist/index.js",
+         ??      ~~~~~~~~~
+
+??[WARNING] The condition "types" here will never be used as it comes after both "import" and "require" [package.json]
+
+    packages/queue-core/package.json:37:6:
+      37 ??      "types": "./dist/types/index.d.ts"
+         ??      ~~~~~~~
+
+  The "import" condition comes earlier and will be used for all "import" statements:
+
+    packages/queue-core/package.json:35:6:
+      35 ??      "import": "./dist/types/index.js",
+         ??      ~~~~~~~~
+
+  The "require" condition comes earlier and will be used for all "require" calls:
+
+    packages/queue-core/package.json:36:6:
+      36 ??      "require": "./dist/types/index.js",
+         ??      ~~~~~~~~~
+
+??[WARNING] The condition "types" here will never be used as it comes after both "import" and "require" [package.json]
+
+    packages/queue-core/package.json:42:6:
+      42 ??      "types": "./dist/validators/index.d.ts"
+         ??      ~~~~~~~
+
+  The "import" condition comes earlier and will be used for all "import" statements:
+
+    packages/queue-core/package.json:40:6:
+      40 ??      "import": "./dist/validators/index.js",
+         ??      ~~~~~~~~
+
+  The "require" condition comes earlier and will be used for all "require" calls:
+
+    packages/queue-core/package.json:41:6:
+      41 ??      "require": "./dist/validators/index.js",
+         ??      ~~~~~~~~~
+
+??[WARNING] The condition "types" here will never be used as it comes after both "import" and "require" [package.json]
+
+    packages/queue-core/package.json:47:6:
+      47 ??      "types": "./dist/performance/queue-cache.d.ts"
+         ??      ~~~~~~~
+
+  The "import" condition comes earlier and will be used for all "import" statements:
+
+    packages/queue-core/package.json:45:6:
+      45 ??      "import": "./dist/performance/queue-cache.js",
+         ??      ~~~~~~~~
+
+  The "require" condition comes earlier and will be used for all "require" calls:
+
+    packages/queue-core/package.json:46:6:
+      46 ??      "require": "./dist/performance/queue-cache.js",
+         ??      ~~~~~~~~~
+
+??[WARNING] The condition "types" here will never be used as it comes after both "import" and "require" [package.json]
+
+    packages/queue-core/package.json:52:6:
+      52 ??      "types": "./dist/print/index.d.ts"
+         ??      ~~~~~~~
+
+  The "import" condition comes earlier and will be used for all "import" statements:
+
+    packages/queue-core/package.json:50:6:
+      50 ??      "import": "./dist/print/index.js",
+         ??      ~~~~~~~~
+
+  The "require" condition comes earlier and will be used for all "require" calls:
+
+    packages/queue-core/package.json:51:6:
+      51 ??      "require": "./dist/print/index.js",
+         ??      ~~~~~~~~~
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/minim/OneDrive/?﹝/Code/platform/makanmakan[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts
+[22m[39m[queue] INFO: queue module initialized { version: [32m'2.0.0'[39m, description: [32m'Unified queue management system'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS restaurants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      resta
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS menuItems (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      restau
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      restauran
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS orderItems (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username T
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS tables (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      restauran
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS waiting_queue (
+      id TEXT PRIMARY KEY,
+      restaurant_id INTEG
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS queue_settings (
+      restaurant_id INTEGER PRIMARY KEY,
+      is_e
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS queue_events (
+      id TEXT PRIMARY KEY,
+      restaurant_id INTEGE
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE TABLE IF NOT EXISTS queue_notifications (
+      id TEXT PRIMARY KEY,
+      queue_id TEXT
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE INDEX IF NOT EXISTS idx_waiting_queue_restaurant_status
+    ON waiting_queue(restaurant_
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE INDEX IF NOT EXISTS idx_waiting_queue_joined_at
+    ON waiting_queue(joined_at)
+  
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[MockDB] exec() called: 
+    CREATE INDEX IF NOT EXISTS idx_queue_events_restaurant_queue
+    ON queue_events(restaurant_id,
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[createTestApp] Using DB instance: [33mtrue[39m
+[createTestApp] DB has prepare: function
+[authentication] INFO: authentication module initialized { version: [32m'1.0.0'[39m }
+[restaurants] INFO: restaurants module initialized { version: [32m'1.0.0'[39m }
+[menu] INFO: menu module initialized { version: [32m'1.0.0'[39m }
+[orders] DEBUG: Orders routes mounted {
+  endpoints: [
+    [32m'POST /'[39m,
+    [32m'GET /'[39m,
+    [32m'GET /:id'[39m,
+    [32m'PUT /:id/status'[39m,
+    [32m'DELETE /:id'[39m,
+    [32m'GET /stats'[39m,
+    [32m'GET /analytics'[39m,
+    [32m'POST /bulk'[39m,
+    [32m'POST /export'[39m,
+    [32m'GET /:id/receipt'[39m,
+    [32m'GET /active'[39m,
+    [32m'POST /preview-coupon'[39m
+  ]
+}
+[orders] INFO: orders module initialized { version: [32m'1.0.0'[39m, timestamp: [32m'2025-11-08T16:56:40.872Z'[39m }
+[tables] INFO: tables module initialized { version: [32m'1.0.0'[39m }
+[analytics] INFO: analytics module initialized { version: [32m'1.0.0'[39m }
+[qr-codes] INFO: qr-codes module initialized { version: [32m'1.0.0'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM waiting_queue
+[MockDB] Flags: { tableName: [32m'waiting_queue'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM queue_settings
+[MockDB] Flags: { tableName: [32m'queue_settings'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM queue_events
+[MockDB] Flags: { tableName: [32m'queue_events'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM queue_notifications
+[MockDB] Flags: {
+  tableName: [32m'queue_notifications'[39m,
+  isInsert: [33mfalse[39m,
+  isReturning: [33mfalse[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM orders
+[MockDB] Flags: { tableName: [32m'orders'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM order_items
+[MockDB] Flags: { tableName: [32m'order_items'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM menu_items
+[MockDB] Flags: { tableName: [32m'menu_items'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM categories
+[MockDB] Flags: { tableName: [32m'categories'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM tables
+[MockDB] Flags: { tableName: [32m'tables'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM users
+[MockDB] Flags: { tableName: [32m'users'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM restaurants
+[MockDB] Flags: { tableName: [32m'restaurants'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM sessions
+[MockDB] Flags: { tableName: [32m'sessions'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: DELETE FROM audit_logs
+[MockDB] Flags: { tableName: [32m'audit_logs'[39m, isInsert: [33mfalse[39m, isReturning: [33mfalse[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsRoutes] DEBUG: Creating restaurant {
+  body: {
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m
+  }
+}
+[RestaurantsService] DEBUG: Creating restaurant { name: [32m'Test Restaurant'[39m }
+[RestaurantService] Creating restaurant with data: {
+  name: [32m'Test Restaurant'[39m,
+  type: [32m'Casual Dining'[39m,
+  category: [32m'Restaurant'[39m,
+  address: [32m'Test Address'[39m,
+  district: [32m'Test District'[39m,
+  phone: [32m'012-3456789'[39m,
+  email: [32m'test@restaurant.com'[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[MockDB] Prepare SQL: insert into "restaurants" ("id", "name", "type", "category", "description", "address", "district", "city", "phone", "email", "website", "business_hours", "is_available", "is_active", "logo_url", "bann
+[MockDB] Flags: { tableName: [32m'restaurants'[39m, isInsert: [33mtrue[39m, isReturning: [33mtrue[39m }
+[MockDB] bind() called with [33m17[39m params
+[MockDB] bind() call stack:     at D1PreparedQuery.values (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/drizzle-orm/d1/session.js:168:22)
+    at D1PreparedQuery.all (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/drizzle-orm/d1/session.js:122:29)
+    at QueryPromise.all (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/drizzle-orm/sqlite-core/query-builders/insert.js:145:28)
+[MockDB] Accessing property on bound statement: raw
+[MockDB] bind().raw() called for { isInsert: [33mtrue[39m, isReturning: [33mtrue[39m, isSelect: [33mfalse[39m }
+[MockDB] raw() returning inserted row: {
+  id: [32m'Test Restaurant'[39m,
+  name: [32m'Casual Dining'[39m,
+  type: [32m'Restaurant'[39m,
+  category: [32m'Test Address'[39m,
+  description: [32m'Test District'[39m,
+  address: [32m'?唬葉撣?[39m,
+  district: [32m'012-3456789'[39m,
+  city: [32m'test@restaurant.com'[39m,
+  phone: [33m1[39m,
+  email: [33m1[39m,
+  website: [33m0[39m,
+  business_hours: [33m1[39m,
+  is_available: [33m0[39m,
+  is_active: [33m0[39m,
+  logo_url: [33m0[39m,
+  banner_url: [33m1762621000[39m,
+  image_urls: [33m1762621000[39m,
+  createdAt: [32m'2025-11-08T16:56:40.989Z'[39m,
+  updatedAt: [32m'2025-11-08T16:56:40.989Z'[39m
+}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [
+22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39mDatabase error in createRestaurant: SyntaxError: "undefined" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at SQLiteTextJson.mapFromDriverValue [90m(file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanma
+kan/[39mnode_modules/[4m.pnpm[24m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdriz
+zle-orm[24m/sqlite-core/columns/text.js:45:17[90m)[39m
+    at [90mfile:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/[39mnode_modules/[4m.pnpm[24
+m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdrizzle-orm[24m/utils.js:28:78
+    at Array.reduce (<anonymous>)
+    at mapResultRow [90m(file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/[39mnode_modules
+/[4m.pnpm[24m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdrizzle-orm[24m/utils.js
+:9:26[90m)[39m
+    at [90mfile:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/[39mnode_modules/[4m.pnpm[24
+m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdrizzle-orm[24m/d1/session.js:135:30
+    at Array.map (<anonymous>)
+    at D1PreparedQuery.mapAllResult [90m(file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/
+[39mnode_modules/[4m.pnpm[24m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdrizzle-o
+rm[24m/d1/session.js:135:17[90m)[39m
+    at D1PreparedQuery.all [90m(file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/[39mnode_
+modules/[4m.pnpm[24m/drizzle-orm@0.33.0_@cloudfl_b453c9b318955b7039dfb4f995bb1940/node_modules/[4mdrizzle-orm[24m/d
+1/session.js:123:17[90m)[39m
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [
+22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsService] ERROR: Failed to create restaurant Error: Database operation failed: createRestaurant
+    at RestaurantService.handleError (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\packages\database\src\servic
+es\base.ts:118:11)
+    at RestaurantService.createRestaurant (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\packages\database\src\s
+ervices\restaurant.ts:53:12)
+    at RestaurantsService.createRestaurant (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\features\
+restaurants\services\RestaurantsService.ts:118:26)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\features\restaurants\routes\index.ts:139:26
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\validation.ts:28:7
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\auth.ts:129:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at authMiddleware (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\auth.ts:102:5) {
+  data: {
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m
+  }
+}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [
+22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsRoutes] ERROR: Failed to create restaurant Error: Failed to create restaurant
+    at RestaurantsService.createRestaurant (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\features\
+restaurants\services\RestaurantsService.ts:137:13)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\features\restaurants\routes\index.ts:139:26
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\validation.ts:28:7
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\auth.ts:129:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at authMiddleware (C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\middleware\auth.ts:102:5)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.
+9.6/node_modules/hono/dist/compose.js:22:17)
+    at C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\api\src\__tests__\helpers\test-utils.ts:102:5 {}
+
+ [31m??[39m [30m[42m @makanmakan/api [49m[39m src/__tests__/integration/core-modules.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m | [22m[33m7 skipped[39m[2m)[22m[32m 191[2mms[22m[39m
+[31m   [31m?[31m Core Modules Integration Tests[2m > [22mRestaurant Management Integration[2m > [22mshould create restaurant with default settings and admin user[39m[32m 149[2mms[22m[39m
+[31m     ??expected 500 to be 201 // Object.is equality[39m
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mMenu and Order Integration[2m > [22mshould create menu items and process orders end-to-end
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mQueue and Table Integration[2m > [22mshould integrate queue system with table management
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mAnalytics and Reporting Integration[2m > [22mshould generate analytics from order and queue data
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mUser Management and Authentication Integration[2m > [22mshould manage multi-role users across modules
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mReal-time Integration[2m > [22mshould handle real-time events across modules
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mError Handling Integration[2m > [22mshould handle cross-module errors gracefully
+   [2m[90m??[39m[22m Core Modules Integration Tests[2m > [22mData Consistency Integration[2m > [22mshould maintain data consistency across module operations
+
+[31m?胼?胼?胼??[39m[1m[41m Failed Tests 1 [49m[22m[31m?胼?胼?胼??[39m
+
+[41m[1m FAIL [22m[49m [30m[42m @makanmakan/api [49m[39m src/__tests__/integration/core-modules.test.ts[2m > [
+22mCore Modules Integration Tests[2m > [22mRestaurant Management Integration[2m > [22mshould create restaurant with
+ default settings and admin user
+[31m[1mAssertionError[22m: expected 500 to be 201 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 201[39m
+[31m+ 500[39m
+
+[36m [2m??[22m src/__tests__/integration/core-modules.test.ts:[2m76:41[22m[39m
+    [90m 74| [39m      })
+    [90m 75| [39m
+    [90m 76| [39m      [34mexpect[39m(restaurantResponse[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m201[39m)
+    [90m   | [39m                                        [31m^[39m
+    [90m 77| [39m      [35mconst[39m restaurantData [33m=[39m [35mawait[39m restaurantResponse[33m.[39m[34mj
+son[39m()
+    [90m 78| [39m      [34mexpect[39m(restaurantData[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+
+[31m[2m?胼?胼?胼?胼?胼?胼?胼?胼?胼?胼?胼?胼[1/1]??[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[33m7 skipped[39m[90m (8)[39m
+[2m   Start at [22m 00:56:35
+[2m   Duration [22m 5.74s[2m (transform 2.12s, setup 123ms, collect 3.58s, tests 191ms, environment 1ms, prepare 280ms)[22m
+

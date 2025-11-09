@@ -223,7 +223,7 @@ export class RealtimeSession implements DurableObject {
       // Message received and validated
 
       switch (message.type) {
-        case 'ping':
+        case 'ping': {
           // 心跳響應
           const heartbeatEvent: HeartbeatEvent = {
             type: RealtimeEventType.HEARTBEAT,
@@ -236,6 +236,7 @@ export class RealtimeSession implements DurableObject {
           }
           this.sendEvent(socket, heartbeatEvent)
           break
+        }
 
         case 'subscribe':
           // 訂閱特定事件類型（未來擴展）

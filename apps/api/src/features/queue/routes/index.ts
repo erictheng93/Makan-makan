@@ -46,7 +46,7 @@ app.post('/join', optionalAuth, async (c) => {
 
     // Trigger real-time update
     try {
-      if (result.data) {
+      if (result.data && c.env.API_BASE_URL) {
         await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-update`, {
           method: 'POST',
           headers: {
@@ -130,17 +130,19 @@ app.post('/:restaurantId/call-next', authMiddleware, async (c) => {
 
     // Trigger real-time update
     try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          type: 'customer_called',
-          queueEntry: result.data,
-          restaurantId
+      if (c.env.API_BASE_URL) {
+        await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'customer_called',
+            queueEntry: result.data,
+            restaurantId
+          })
         })
-      })
+      }
     } catch (broadcastError) {
       console.warn('Failed to broadcast queue update:', broadcastError)
     }
@@ -151,6 +153,57 @@ app.post('/:restaurantId/call-next', authMiddleware, async (c) => {
     console.error('Call next error:', error)
     return c.json(
       createErrorResponse('Failed to call next customer'),
+      500
+    )
+  }
+})
+
+/**
+ * Seat customer (protected)
+ * POST /api/v1/queue/:queueId/seat
+ */
+app.post('/:queueId/seat', authMiddleware, async (c) => {
+  try {
+    const queueId = c.req.param('queueId')
+    const user = c.get('user')
+    const { tableId } = await c.req.json()
+
+    if (!queueId || !tableId) {
+      return c.json(createErrorResponse('Invalid queue ID or table ID'), 400)
+    }
+
+    const queueService = new UnifiedQueueService(c.env, true)
+    const result = await queueService.seatCustomer(queueId, tableId, user.id)
+
+    if (!result.success) {
+      return c.json(createErrorResponse(result.error || 'Failed to seat customer'), 400)
+    }
+
+    // Trigger real-time update
+    try {
+      if (c.env.API_BASE_URL) {
+        await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'customer_seated',
+            queueId,
+            tableId
+          })
+        })
+      }
+    } catch (broadcastError) {
+      console.warn('Failed to broadcast queue update:', broadcastError)
+    }
+
+    return c.json(createSuccessResponse({ message: 'Customer seated successfully' }))
+
+  } catch (error) {
+    console.error('Seat customer error:', error)
+    return c.json(
+      createErrorResponse('Failed to seat customer'),
       500
     )
   }

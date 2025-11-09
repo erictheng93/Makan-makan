@@ -268,7 +268,7 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>((resolve) => {
         ws.onopen = () => {
           // Simulate disconnect
           ws.simulateDisconnect()
@@ -310,7 +310,7 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>((resolve) => {
         let missedEventCount = 0
 
         ws.onopen = async () => {
@@ -363,7 +363,7 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>((resolve) => {
         const receivedEvents: string[] = []
 
         ws.onopen = async () => {
@@ -408,7 +408,7 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>((resolve) => {
         let receivedCount = 0
 
         ws.onopen = async () => {
@@ -512,7 +512,7 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>((resolve) => {
         ws.onopen = async () => {
           ws.simulateDisconnect()
         }
