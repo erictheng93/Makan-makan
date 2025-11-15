@@ -1,0 +1,147 @@
+{
+  "generatedAt": "2025-11-15T09:19:53.236Z",
+  "summary": {
+    "totalFiles": 73,
+    "filesUsingFactory": 1,
+    "filesWithReset": 1,
+    "totalFactoryCalls": 37,
+    "adoptionRate": "1.37"
+  },
+  "factoryUsage": {
+    "userFactory": 7,
+    "restaurantFactory": 6,
+    "categoryFactory": 2,
+    "menuItemFactory": 7,
+    "orderFactory": 6,
+    "orderItemFactory": 4,
+    "buildCompleteRestaurantData": 3,
+    "resetAllFactories": 2
+  },
+  "files": {
+    "usingFactory": [
+      {
+        "file": "packages\\testing-utils\\src\\__tests__\\factories.test.ts",
+        "calls": 37,
+        "usage": {
+          "userFactory": 7,
+          "restaurantFactory": 6,
+          "categoryFactory": 2,
+          "menuItemFactory": 7,
+          "orderFactory": 6,
+          "orderItemFactory": 4,
+          "buildCompleteRestaurantData": 3,
+          "resetAllFactories": 2
+        }
+      }
+    ],
+    "notUsingFactory": [
+      "apps\\api\\src\\__tests__\\sse.test.ts",
+      "apps\\api\\src\\__tests__\\auth.test.ts",
+      "apps\\api\\src\\__tests__\\integration\\core-modules.test.ts",
+      "apps\\api\\src\\services\\__tests__\\RealtimeBroadcastService.test.ts",
+      "apps\\api\\src\\services\\__tests__\\broadcast-integration.test.ts",
+      "apps\\api\\src\\features\\users\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\tables\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\restaurants\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\realtime\\__tests__\\RealtimeAuthService.test.ts",
+      "apps\\api\\src\\features\\qr-codes\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\orders\\__tests__\\realtime-integration.test.ts",
+      "apps\\api\\src\\features\\orders\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\monitoring\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\menu\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\kitchen\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\group-orders\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\group-orders\\__tests__\\e2e.test.ts",
+      "apps\\api\\src\\features\\coupons\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\cache\\__tests__\\feature.test.ts",
+      "apps\\api\\src\\features\\authentication\\__tests__\\feature.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\virtual-scroll-integration.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\verify-browser-apis.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\throttled-realtime.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\optimized-image.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\integration\\dashboard-workflow.test.ts",
+      "apps\\admin-dashboard\\src\\__tests__\\components\\Sidebar.test.ts",
+      "apps\\admin-dashboard\\src\\types\\__tests__\\monitoring-layout.test.ts",
+      "apps\\admin-dashboard\\src\\types\\__tests__\\monitoring-filters.test.ts",
+      "apps\\admin-dashboard\\src\\types\\__tests__\\monitoring-export.test.ts",
+      "apps\\admin-dashboard\\src\\tests\\integration\\realtime-group-orders.integration.test.ts",
+      "apps\\admin-dashboard\\src\\tests\\integration\\queue-integration.test.ts",
+      "apps\\admin-dashboard\\src\\tests\\integration\\pos-integration.test.ts",
+      "apps\\admin-dashboard\\src\\tests\\integration\\group-orders-integration.test.ts",
+      "apps\\admin-dashboard\\src\\services\\__tests__\\monitoringStorage.test.ts",
+      "apps\\admin-dashboard\\src\\services\\__tests__\\exportService.test.ts",
+      "apps\\customer-app\\src\\tests\\i18n.comprehensive.test.ts",
+      "apps\\customer-app\\src\\tests\\i18n.basic.test.ts",
+      "apps\\customer-app\\src\\tests\\coupon.test.ts",
+      "apps\\customer-app\\src\\tests\\composables\\useI18n.multilang.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\TimelineItem.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\OrderItemCard.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\MenuItemCard.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\ErrorBoundary.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\ConfirmationModal.test.ts",
+      "apps\\customer-app\\src\\tests\\components\\CartItemCard.test.ts",
+      "apps\\kitchen-display\\src\\__tests__\\unit\\components\\OrderStatusBadge.test.ts",
+      "packages\\utils\\src\\__tests__\\request-deduplication.test.ts",
+      "packages\\utils\\src\\__tests__\\performance-monitor.test.ts",
+      "packages\\utils\\src\\__tests__\\error-tracking.test.ts",
+      "packages\\queue-service\\src\\__tests__\\QueueService.test.ts",
+      "packages\\queue-core\\src\\__tests__\\queue-validators.test.ts",
+      "packages\\queue-core\\src\\__tests__\\queue-types.test.ts",
+      "packages\\queue-core\\src\\print\\__tests__\\PrintJobManager.test.ts",
+      "packages\\queue-core\\src\\print\\__tests__\\PrinterService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\table.test.ts",
+      "packages\\database\\src\\services\\__tests__\\SchedulingService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\POSService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\order.test.ts",
+      "packages\\database\\src\\services\\__tests__\\NotificationService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\menu.test.ts",
+      "packages\\database\\src\\services\\__tests__\\LeaveService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.split.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.payment.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.member.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.join.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.info.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.create.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.cleanup.test.ts",
+      "packages\\database\\src\\services\\__tests__\\GroupOrderService.cart.test.ts",
+      "packages\\database\\src\\services\\__tests__\\coupon.test.ts",
+      "packages\\database\\src\\services\\__tests__\\auth.test.ts"
+    ],
+    "missingReset": []
+  },
+  "topFactories": [
+    {
+      "name": "userFactory",
+      "count": 7
+    },
+    {
+      "name": "menuItemFactory",
+      "count": 7
+    },
+    {
+      "name": "restaurantFactory",
+      "count": 6
+    },
+    {
+      "name": "orderFactory",
+      "count": 6
+    },
+    {
+      "name": "orderItemFactory",
+      "count": 4
+    },
+    {
+      "name": "buildCompleteRestaurantData",
+      "count": 3
+    },
+    {
+      "name": "categoryFactory",
+      "count": 2
+    },
+    {
+      "name": "resetAllFactories",
+      "count": 2
+    }
+  ]
+}
