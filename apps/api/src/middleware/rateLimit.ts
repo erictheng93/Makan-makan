@@ -22,6 +22,12 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
   
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const key = opts.keyGenerator!(c)
+
+    // Skip rate limiting for localhost (performance testing)
+    if (key === '127.0.0.1' || key === '::1' || key === 'unknown' || key === 'localhost') {
+      return await next()
+    }
+
     const now = Date.now()
     const _windowStart = now - opts.windowMs
     

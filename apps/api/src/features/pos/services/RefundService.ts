@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 import type {
   Refund,
   ProcessRefundRequest
@@ -62,13 +63,14 @@ export class RefundService extends BaseService {
       const refundId = crypto.randomUUID()
       const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`
 
+      const processedAt = getCurrentTimestamp()
       await this.d1.prepare(`
         INSERT INTO refunds (
           id, original_order_id, register_id, shift_id, refund_number,
           refund_type, original_amount, refund_amount, refund_method,
           reason_code, reason_description, items_refunded, processed_by,
           customer_signature, status, metadata, processed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', '{}', CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', '{}', ?)
       `).bind(
         refundId,
         validatedData.originalOrderId,
@@ -83,7 +85,8 @@ export class RefundService extends BaseService {
         validatedData.reasonDescription || null,
         JSON.stringify(validatedData.itemsRefunded || []),
         processedBy,
-        validatedData.customerSignature || null
+        validatedData.customerSignature || null,
+        processedAt
       ).run()
 
       // 記錄現金流動（如果是現金退款）
@@ -294,13 +297,14 @@ export class RefundService extends BaseService {
     approvedBy: number
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      const completedAt = getCurrentTimestamp()
       await this.d1.prepare(`
         UPDATE refunds
         SET status = 'completed',
             approved_by = ?,
-            completed_at = CURRENT_TIMESTAMP
+            completed_at = ?
         WHERE id = ? AND status = 'processing'
-      `).bind(approvedBy, refundId).run()
+      `).bind(approvedBy, completedAt, refundId).run()
 
       return { success: true }
 
@@ -359,13 +363,14 @@ export class RefundService extends BaseService {
     }
   ): Promise<void> {
     const movementId = crypto.randomUUID()
+    const now = getCurrentTimestamp()
 
     await this.d1.prepare(`
       INSERT INTO cash_movements (
         id, shift_id, register_id, type, amount, description,
         reference_id, reference_type, denomination_breakdown,
         recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, 'approved', '{}', CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, 'approved', '{}', ?)
     `).bind(
       movementId,
       shiftId,
@@ -375,7 +380,8 @@ export class RefundService extends BaseService {
       movement.description,
       movement.referenceId || null,
       movement.referenceType || null,
-      movement.recordedBy
+      movement.recordedBy,
+      now
     ).run()
   }
 
@@ -385,11 +391,12 @@ export class RefundService extends BaseService {
   private processRefundCompletion(refundId: string): void {
     setTimeout(async () => {
       try {
+        const completedAt = getCurrentTimestamp()
         await this.d1.prepare(`
           UPDATE refunds
-          SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+          SET status = 'completed', completed_at = ?
           WHERE id = ? AND status = 'processing'
-        `).bind(refundId).run()
+        `).bind(completedAt, refundId).run()
       } catch (error) {
         console.error('更新退款狀態失敗:', error)
         try {

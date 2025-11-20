@@ -1,0 +1,858 @@
+import { z } from 'zod'
+import { BaseService, CloudflareEnv } from './base'
+import { getCurrentTimestamp } from '../utils/timestamp'
+
+// 類型定義
+export interface GroupOrder {
+  id: string
+  shareCode: string
+  masterOrderId?: number
+  createdBy: number
+  restaurantId: number
+  tableId?: number
+  status: 'active' | 'ordering' | 'checkout' | 'completed' | 'cancelled'
+  splitType: 'equal' | 'proportional' | 'individual' | 'custom'
+  totalAmount: number
+  taxAmount: number
+  serviceCharge: number
+  finalAmount: number
+  expiresAt: Date
+  lockedAt?: Date
+  completedAt?: Date
+  settings: Record<string, any>
+  notes?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface GroupMember {
+  id: string
+  groupOrderId: string
+  userId?: number
+  sessionId: string
+  name: string
+  phone?: string
+  email?: string
+  avatarUrl?: string
+  role: 'creator' | 'admin' | 'member'
+  permissions: Record<string, any>
+  joinedAt: Date
+  lastActiveAt: Date
+  isActive: boolean
+  leftAt?: Date
+}
+
+export interface GroupCartItem {
+  id: string
+  groupOrderId: string
+  memberId: string
+  menuItemId: number
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  customizations: Record<string, any>
+  specialInstructions?: string
+  status: 'active' | 'removed' | 'ordered'
+  addedAt: Date
+  updatedAt: Date
+}
+
+export interface SplitBill {
+  id: string
+  groupOrderId: string
+  memberId: string
+  subtotal: number
+  taxAmount: number
+  serviceCharge: number
+  discountAmount: number
+  tipAmount: number
+  totalAmount: number
+  items: any[]
+  paymentStatus: 'pending' | 'processing' | 'paid' | 'failed' | 'refunded'
+  paymentMethod?: string
+  paymentReference?: string
+  paidAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 請求/回應類型
+export interface CreateGroupOrderRequest {
+  restaurantId: number
+  tableId?: number
+  expirationHours?: number
+  maxMembers?: number
+  permissions?: Record<string, any>
+}
+
+export interface CreateGroupOrderResponse {
+  groupOrderId: string
+  shareCode: string
+  shareUrl: string
+  qrCodeUrl: string
+}
+
+export interface JoinGroupRequest {
+  memberName: string
+  phone?: string
+  email?: string
+}
+
+export interface JoinGroupResponse {
+  groupOrder: GroupOrder
+  memberId: string
+  sessionId: string
+  memberRole: string
+}
+
+// 驗證 schemas
+const createGroupOrderSchema = z.object({
+  restaurantId: z.number().int().positive(),
+  tableId: z.number().int().positive().optional(),
+  expirationHours: z.number().min(1).max(168).optional().default(24), // 最多7天
+  maxMembers: z.number().min(2).max(20).optional().default(10),
+  permissions: z.record(z.any()).optional().default({})
+})
+
+const joinGroupSchema = z.object({
+  memberName: z.string().min(1).max(50),
+  phone: z.string().max(20).optional(),
+  email: z.string().email().optional()
+})
+
+const addCartItemSchema = z.object({
+  memberId: z.string(),
+  menuItemId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  customizations: z.record(z.any()).optional().default({}),
+  specialInstructions: z.string().max(200).optional()
+})
+
+const splitBillSchema = z.object({
+  splitType: z.enum(['equal', 'proportional', 'individual', 'custom']),
+  customSplits: z.array(z.object({
+    memberId: z.string(),
+    amount: z.number().positive(),
+    items: z.array(z.any())
+  })).optional()
+})
+
+export class GroupOrderService extends BaseService {
+  constructor(db: any, env: CloudflareEnv) {
+    super(db, env)
+  }
+
+  // 生成唯一分享代碼
+  private generateShareCode(): string {
+    const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789' // 排除容易混淆的字符
+    let result = ''
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
+  }
+
+  // 創建群組訂單
+  async createGroupOrder(
+    data: CreateGroupOrderRequest, 
+    createdBy: number
+  ): Promise<{ success: boolean; data?: CreateGroupOrderResponse; error?: string }> {
+    try {
+      // 驗證輸入
+      const validatedData = createGroupOrderSchema.parse(data)
+      
+      const groupOrderId = crypto.randomUUID()
+      const shareCode = this.generateShareCode()
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + validatedData.expirationHours)
+      
+      const settings = {
+        ...validatedData
+      }
+
+      // 檢查分享代碼是否已存在
+      const existingCode = await this.d1.prepare(
+        'SELECT id FROM group_orders WHERE share_code = ?'
+      ).bind(shareCode).first()
+
+      if (existingCode) {
+        // 如果代碼已存在，遞歸重新生成
+        return this.createGroupOrder(data, createdBy)
+      }
+
+      // 創建群組訂單
+      const now = getCurrentTimestamp()
+
+      await this.d1.prepare(`
+        INSERT INTO group_orders (
+          id, share_code, created_by, restaurant_id, table_id,
+          expires_at, settings, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+      `).bind(
+        groupOrderId,
+        shareCode,
+        createdBy,
+        validatedData.restaurantId,
+        validatedData.tableId || null,
+        expiresAt.toISOString(),
+        JSON.stringify(settings),
+        now,
+        now
+      ).run()
+
+      // 創建創建者成員記錄
+      const creatorMemberId = crypto.randomUUID()
+      const sessionId = crypto.randomUUID()
+
+      await this.d1.prepare(`
+        INSERT INTO group_members (
+          id, group_order_id, user_id, session_id, name, role,
+          permissions, joined_at, last_active_at, is_active
+        ) VALUES (?, ?, ?, ?, ?, 'creator', ?, ?, ?, 1)
+      `).bind(
+        creatorMemberId,
+        groupOrderId,
+        createdBy,
+        sessionId,
+        'Creator', // 可以後續更新為實際用戶名
+        JSON.stringify({ canManageMembers: true, canLockOrder: true }),
+        now,
+        now
+      ).run()
+
+      // 記錄分享代碼
+      await this.d1.prepare(`
+        INSERT INTO share_codes (
+          id, code, type, resource_id, created_by, expires_at,
+          is_active, metadata, created_at
+        ) VALUES (?, ?, 'group_order', ?, ?, ?, 1, ?, ?)
+      `).bind(
+        crypto.randomUUID(),
+        shareCode,
+        groupOrderId,
+        createdBy,
+        expiresAt.toISOString(),
+        JSON.stringify({ groupOrderId, tableId: validatedData.tableId }),
+        now
+      ).run()
+
+      const baseUrl = this.env.CUSTOMER_APP_URL || 'https://order.makanmakan.com'
+      const shareUrl = `${baseUrl}/group/${shareCode}`
+      const qrCodeUrl = `${baseUrl}/qr/group/${shareCode}`
+
+      return {
+        success: true,
+        data: {
+          groupOrderId,
+          shareCode,
+          shareUrl,
+          qrCodeUrl
+        }
+      }
+
+    } catch (error) {
+      console.error('創建群組訂單失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '創建群組訂單失敗'
+      }
+    }
+  }
+
+  // 加入群組
+  async joinGroup(
+    shareCode: string, 
+    joinData: JoinGroupRequest
+  ): Promise<{ success: boolean; data?: JoinGroupResponse; error?: string }> {
+    try {
+      const validatedData = joinGroupSchema.parse(joinData)
+
+      // 查找群組訂單
+      const groupOrder = await this.d1.prepare(`
+        SELECT go.*, sc.usage_count, sc.usage_limit
+        FROM group_orders go
+        LEFT JOIN share_codes sc ON sc.code = ? AND sc.type = 'group_order'
+        WHERE go.share_code = ? AND go.status IN ('active', 'ordering')
+      `).bind(shareCode, shareCode).first() as any
+
+      if (!groupOrder) {
+        return {
+          success: false,
+          error: '無效的分享代碼或群組已結束'
+        }
+      }
+
+      // 檢查是否已過期
+      if (new Date(groupOrder.expires_at) < new Date()) {
+        return {
+          success: false,
+          error: '分享連結已過期'
+        }
+      }
+
+      // 檢查成員數量限制
+      const currentMemberCount = await this.d1.prepare(
+        'SELECT COUNT(*) as count FROM group_members WHERE group_order_id = ? AND is_active = 1'
+      ).bind(groupOrder.id).first() as any
+
+      const settings = JSON.parse(groupOrder.settings || '{}')
+      if (currentMemberCount.count >= settings.maxMembers) {
+        return {
+          success: false,
+          error: '群組成員已滿'
+        }
+      }
+
+      // 檢查是否已加入（通過姓名和電話）
+      let existingMember = null
+      if (validatedData.phone) {
+        existingMember = await this.d1.prepare(
+          'SELECT * FROM group_members WHERE group_order_id = ? AND phone = ? AND is_active = 1'
+        ).bind(groupOrder.id, validatedData.phone).first()
+      }
+
+      if (existingMember) {
+        return {
+          success: false,
+          error: '該電話號碼已加入此群組'
+        }
+      }
+
+      // 創建新成員
+      const memberId = crypto.randomUUID()
+      const sessionId = crypto.randomUUID()
+      const joinedTime = getCurrentTimestamp()
+
+      await this.d1.prepare(`
+        INSERT INTO group_members (
+          id, group_order_id, session_id, name, phone, email, role,
+          permissions, joined_at, last_active_at, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, 'member', ?, ?, ?, 1)
+      `).bind(
+        memberId,
+        groupOrder.id,
+        sessionId,
+        validatedData.memberName,
+        validatedData.phone || null,
+        validatedData.email || null,
+        JSON.stringify({ canAddItems: true, canRemoveOwnItems: true }),
+        joinedTime,
+        joinedTime
+      ).run()
+
+      // 更新分享代碼使用次數
+      await this.d1.prepare(
+        'UPDATE share_codes SET usage_count = usage_count + 1 WHERE code = ? AND type = "group_order"'
+      ).bind(shareCode).run()
+
+      // 記錄活動日誌
+      await this.d1.prepare(`
+        INSERT INTO group_activity_logs (
+          id, group_order_id, member_id, action, description, metadata, created_at
+        ) VALUES (?, ?, ?, 'joined', ?, ?, ?)
+      `).bind(
+        crypto.randomUUID(),
+        groupOrder.id,
+        memberId,
+        `${validatedData.memberName} 加入了群組`,
+        JSON.stringify({ memberName: validatedData.memberName, joinMethod: 'share_code' }),
+        joinedTime
+      ).run()
+
+      return {
+        success: true,
+        data: {
+          groupOrder: {
+            ...groupOrder,
+            settings: JSON.parse(groupOrder.settings || '{}')
+          },
+          memberId,
+          sessionId,
+          memberRole: 'member'
+        }
+      }
+
+    } catch (error) {
+      console.error('加入群組失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '加入群組失敗'
+      }
+    }
+  }
+
+  // 獲取群組資訊
+  async getGroupOrder(groupOrderId: string): Promise<{ 
+    success: boolean; 
+    data?: { 
+      groupOrder: GroupOrder; 
+      members: GroupMember[]; 
+      cartItems: GroupCartItem[];
+      totalAmount: number;
+    }; 
+    error?: string 
+  }> {
+    try {
+      // 獲取群組訂單
+      const groupOrder = await this.d1.prepare(
+        'SELECT * FROM group_orders WHERE id = ?'
+      ).bind(groupOrderId).first() as any
+
+      if (!groupOrder) {
+        return {
+          success: false,
+          error: '找不到群組訂單'
+        }
+      }
+
+      // 獲取成員列表
+      const membersResult = await this.d1.prepare(`
+        SELECT gm.*, u.full_name as user_full_name
+        FROM group_members gm
+        LEFT JOIN users u ON gm.user_id = u.id
+        WHERE gm.group_order_id = ? AND gm.is_active = 1
+        ORDER BY 
+          CASE gm.role 
+            WHEN 'creator' THEN 1 
+            WHEN 'admin' THEN 2 
+            ELSE 3 
+          END, gm.joined_at
+      `).bind(groupOrderId).all()
+
+      const members = (membersResult.results || []).map((member: any) => ({
+        ...member,
+        permissions: JSON.parse(member.permissions || '{}')
+      })) as GroupMember[]
+
+      // 獲取購物車項目
+      const cartItemsResult = await this.d1.prepare(`
+        SELECT gci.*, mi.name as menu_item_name, mi.price as original_price
+        FROM group_cart_items gci
+        JOIN menu_items mi ON gci.menu_item_id = mi.id
+        WHERE gci.group_order_id = ? AND gci.status = 'active'
+        ORDER BY gci.added_at DESC
+      `).bind(groupOrderId).all()
+
+      const cartItems = (cartItemsResult.results || []).map((item: any) => ({
+        ...item,
+        customizations: JSON.parse(item.customizations || '{}')
+      })) as GroupCartItem[]
+
+      // 計算總金額
+      const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0)
+
+      return {
+        success: true,
+        data: {
+          groupOrder: {
+            ...groupOrder,
+            settings: JSON.parse(groupOrder.settings || '{}')
+          },
+          members,
+          cartItems,
+          totalAmount
+        }
+      }
+
+    } catch (error) {
+      console.error('獲取群組資訊失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '獲取群組資訊失敗'
+      }
+    }
+  }
+
+  // 添加購物車項目
+  async addCartItem(
+    groupOrderId: string,
+    itemData: any
+  ): Promise<{ success: boolean; data?: GroupCartItem; error?: string }> {
+    try {
+      const validatedData = addCartItemSchema.parse(itemData)
+
+      // 檢查群組狀態
+      const groupOrder = await this.d1.prepare(
+        'SELECT status FROM group_orders WHERE id = ?'
+      ).bind(groupOrderId).first() as any
+
+      if (!groupOrder || groupOrder.status !== 'active') {
+        return {
+          success: false,
+          error: '群組訂單狀態不允許添加項目'
+        }
+      }
+
+      // 檢查成員權限
+      const member = await this.d1.prepare(
+        'SELECT * FROM group_members WHERE id = ? AND group_order_id = ? AND is_active = 1'
+      ).bind(validatedData.memberId, groupOrderId).first() as any
+
+      if (!member) {
+        return {
+          success: false,
+          error: '無效的成員ID'
+        }
+      }
+
+      // 獲取菜品資訊
+      const menuItem = await this.d1.prepare(
+        'SELECT * FROM menu_items WHERE id = ? AND is_available = 1'
+      ).bind(validatedData.menuItemId).first() as any
+
+      if (!menuItem) {
+        return {
+          success: false,
+          error: '菜品不存在或不可用'
+        }
+      }
+
+      // 計算價格（基礎邏輯，實際應包含客製化價格計算）
+      const unitPrice = parseFloat(menuItem.price)
+      const totalPrice = unitPrice * validatedData.quantity
+
+      // 添加購物車項目
+      const cartItemId = crypto.randomUUID()
+      const addedTime = getCurrentTimestamp()
+
+      await this.d1.prepare(`
+        INSERT INTO group_cart_items (
+          id, group_order_id, member_id, menu_item_id, quantity,
+          unit_price, total_price, customizations, special_instructions,
+          status, added_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+      `).bind(
+        cartItemId,
+        groupOrderId,
+        validatedData.memberId,
+        validatedData.menuItemId,
+        validatedData.quantity,
+        unitPrice,
+        totalPrice,
+        JSON.stringify(validatedData.customizations),
+        validatedData.specialInstructions || null,
+        addedTime,
+        addedTime
+      ).run()
+
+      // 記錄活動日誌
+      await this.d1.prepare(`
+        INSERT INTO group_activity_logs (
+          id, group_order_id, member_id, action, description, metadata, created_at
+        ) VALUES (?, ?, ?, 'added_item', ?, ?, ?)
+      `).bind(
+        crypto.randomUUID(),
+        groupOrderId,
+        validatedData.memberId,
+        `添加了 ${validatedData.quantity}x ${menuItem.name}`,
+        JSON.stringify({
+          menuItemId: validatedData.menuItemId,
+          quantity: validatedData.quantity,
+          totalPrice
+        }),
+        addedTime
+      ).run()
+
+      const cartItem: GroupCartItem = {
+        id: cartItemId,
+        groupOrderId,
+        memberId: validatedData.memberId,
+        menuItemId: validatedData.menuItemId,
+        quantity: validatedData.quantity,
+        unitPrice,
+        totalPrice,
+        customizations: validatedData.customizations,
+        specialInstructions: validatedData.specialInstructions,
+        status: 'active',
+        addedAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      return {
+        success: true,
+        data: cartItem
+      }
+
+    } catch (error) {
+      console.error('添加購物車項目失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '添加購物車項目失敗'
+      }
+    }
+  }
+
+  // 初始化分帳
+  async initiateSplit(
+    groupOrderId: string,
+    splitData: any,
+    initiatedBy: string
+  ): Promise<{ success: boolean; data?: SplitBill[]; error?: string }> {
+    try {
+      const validatedData = splitBillSchema.parse(splitData)
+
+      // 檢查權限
+      const member = await this.d1.prepare(`
+        SELECT role, permissions FROM group_members 
+        WHERE id = ? AND group_order_id = ? AND is_active = 1
+      `).bind(initiatedBy, groupOrderId).first() as any
+
+      if (!member || (member.role !== 'creator' && member.role !== 'admin')) {
+        return {
+          success: false,
+          error: '沒有權限執行分帳操作'
+        }
+      }
+
+      // 鎖定群組訂單
+      const lockedTime = getCurrentTimestamp()
+
+      await this.d1.prepare(
+        'UPDATE group_orders SET status = "checkout", locked_at = ? WHERE id = ?'
+      ).bind(lockedTime, groupOrderId).run()
+
+      // 獲取所有購物車項目和成員
+      const cartItems = await this.d1.prepare(`
+        SELECT * FROM group_cart_items WHERE group_order_id = ? AND status = 'active'
+      `).bind(groupOrderId).all()
+
+      const members = await this.d1.prepare(`
+        SELECT * FROM group_members WHERE group_order_id = ? AND is_active = 1
+      `).bind(groupOrderId).all()
+
+      // 根據分帳類型計算每個人的帳單
+      const splitBills: SplitBill[] = []
+
+      if (validatedData.splitType === 'equal') {
+        // 平均分帳
+        const totalAmount = (cartItems.results || []).reduce((sum: number, item: any) => sum + parseFloat(item.total_price), 0)
+        const perPersonAmount = totalAmount / (members.results || []).length
+
+        for (const member of (members.results || []) as any[]) {
+          const splitBill: SplitBill = {
+            id: crypto.randomUUID(),
+            groupOrderId,
+            memberId: member.id,
+            subtotal: perPersonAmount,
+            taxAmount: 0,
+            serviceCharge: 0,
+            discountAmount: 0,
+            tipAmount: 0,
+            totalAmount: perPersonAmount,
+            items: cartItems.results || [],
+            paymentStatus: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          splitBills.push(splitBill)
+        }
+      } else if (validatedData.splitType === 'individual') {
+        // 個人點餐項目分帳
+        for (const member of (members.results || []) as any[]) {
+          const memberItems = (cartItems.results || []).filter((item: any) => item.member_id === member.id)
+          const subtotal = memberItems.reduce((sum: number, item: any) => sum + parseFloat(item.total_price), 0)
+
+          if (subtotal > 0) {
+            const splitBill: SplitBill = {
+              id: crypto.randomUUID(),
+              groupOrderId,
+              memberId: member.id,
+              subtotal,
+              taxAmount: 0,
+              serviceCharge: 0,
+              discountAmount: 0,
+              tipAmount: 0,
+              totalAmount: subtotal,
+              items: memberItems,
+              paymentStatus: 'pending',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+            splitBills.push(splitBill)
+          }
+        }
+      }
+      // 其他分帳類型的邏輯...
+
+      // 保存分帳記錄
+      const billCreatedTime = getCurrentTimestamp()
+
+      for (const bill of splitBills) {
+        await this.d1.prepare(`
+          INSERT INTO split_bills (
+            id, group_order_id, member_id, subtotal, tax_amount,
+            service_charge, discount_amount, tip_amount, total_amount,
+            items, payment_status, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+        `).bind(
+          bill.id,
+          bill.groupOrderId,
+          bill.memberId,
+          bill.subtotal,
+          bill.taxAmount,
+          bill.serviceCharge,
+          bill.discountAmount,
+          bill.tipAmount,
+          bill.totalAmount,
+          JSON.stringify(bill.items),
+          billCreatedTime,
+          billCreatedTime
+        ).run()
+      }
+
+      return {
+        success: true,
+        data: splitBills
+      }
+
+    } catch (error) {
+      console.error('初始化分帳失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '初始化分帳失敗'
+      }
+    }
+  }
+
+  // 處理個別支付
+  async processPayment(
+    groupOrderId: string,
+    memberId: string,
+    paymentData: any
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 獲取分帳記錄
+      const splitBill = await this.d1.prepare(`
+        SELECT * FROM split_bills 
+        WHERE group_order_id = ? AND member_id = ? AND payment_status = 'pending'
+      `).bind(groupOrderId, memberId).first() as any
+
+      if (!splitBill) {
+        return {
+          success: false,
+          error: '找不到待支付的分帳記錄'
+        }
+      }
+
+      // 更新支付狀態（實際應整合支付閘道）
+      const paidTime = getCurrentTimestamp()
+
+      await this.d1.prepare(`
+        UPDATE split_bills
+        SET payment_status = 'paid',
+            payment_method = ?,
+            payment_reference = ?,
+            paid_at = ?,
+            updated_at = ?
+        WHERE id = ?
+      `).bind(
+        paymentData.paymentMethod,
+        paymentData.transactionId || crypto.randomUUID(),
+        paidTime,
+        paidTime,
+        splitBill.id
+      ).run()
+
+      // 檢查是否所有人都已付款
+      const unpaidCount = await this.d1.prepare(`
+        SELECT COUNT(*) as count FROM split_bills
+        WHERE group_order_id = ? AND payment_status != 'paid'
+      `).bind(groupOrderId).first() as any
+
+      if (unpaidCount.count === 0) {
+        // 所有人都已付款，完成群組訂單
+        const completedTime = getCurrentTimestamp()
+
+        await this.d1.prepare(`
+          UPDATE group_orders
+          SET status = 'completed', completed_at = ?
+          WHERE id = ?
+        `).bind(completedTime, groupOrderId).run()
+      }
+
+      return { success: true }
+
+    } catch (error) {
+      console.error('處理支付失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '處理支付失敗'
+      }
+    }
+  }
+
+  // 離開群組
+  async leaveGroup(
+    groupOrderId: string,
+    memberId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 檢查是否為創建者
+      const member = await this.d1.prepare(
+        'SELECT role FROM group_members WHERE id = ? AND group_order_id = ?'
+      ).bind(memberId, groupOrderId).first() as any
+
+      if (!member) {
+        return {
+          success: false,
+          error: '找不到成員記錄'
+        }
+      }
+
+      if (member.role === 'creator') {
+        return {
+          success: false,
+          error: '群組創建者無法離開群組'
+        }
+      }
+
+      // 將成員標記為非活躍
+      const leftTime = getCurrentTimestamp()
+
+      await this.d1.prepare(`
+        UPDATE group_members
+        SET is_active = 0, left_at = ?
+        WHERE id = ?
+      `).bind(leftTime, memberId).run()
+
+      // 移除該成員的購物車項目
+      await this.d1.prepare(
+        'UPDATE group_cart_items SET status = "removed" WHERE group_order_id = ? AND member_id = ?'
+      ).bind(groupOrderId, memberId).run()
+
+      return { success: true }
+
+    } catch (error) {
+      console.error('離開群組失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '離開群組失敗'
+      }
+    }
+  }
+
+  // 清理過期群組訂單
+  async cleanupExpiredGroups(): Promise<{ success: boolean; cleaned?: number; error?: string }> {
+    try {
+      const now = getCurrentTimestamp()
+      const result = await this.d1.prepare(`
+        UPDATE group_orders
+        SET status = 'cancelled'
+        WHERE expires_at < ?
+          AND status IN ('active', 'ordering')
+      `).bind(now).run()
+
+      return {
+        success: true,
+        cleaned: result.meta.changes || 0
+      }
+
+    } catch (error) {
+      console.error('清理過期群組失敗:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '清理過期群組失敗'
+      }
+    }
+  }
+}

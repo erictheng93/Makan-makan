@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 import type {
   CashMovement as _CashMovement,
   CashMovementRequest
@@ -183,13 +184,14 @@ export class CashMovementService extends BaseService {
     }
   ): Promise<string> {
     const movementId = crypto.randomUUID()
+    const now = getCurrentTimestamp()
 
     await this.d1.prepare(`
       INSERT INTO cash_movements (
         id, shift_id, register_id, type, amount, description,
         reference_id, reference_type, denomination_breakdown,
         recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', ?)
     `).bind(
       movementId,
       shiftId,
@@ -200,7 +202,8 @@ export class CashMovementService extends BaseService {
       movement.referenceId || null,
       movement.referenceType || null,
       JSON.stringify(movement.denominationBreakdown || {}),
-      movement.recordedBy
+      movement.recordedBy,
+      now
     ).run()
 
     return movementId

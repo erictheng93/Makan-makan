@@ -353,7 +353,7 @@ class OfflineService {
       });
 
       return await response.json();
-    } catch (error) {
+    } catch {
       // Simulate network error handling
       console.log(`Simulating API call for action ${action.type}`);
 

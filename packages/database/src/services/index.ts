@@ -14,8 +14,6 @@ export { ErrorReportingService } from './error-reporting'
 export { QRCodeService } from './qrcode'
 export { GroupOrderService } from './GroupOrderService'
 export { POSService } from './POSService'
-export { QueueService } from './QueueService'
-export { QueueServiceModular } from './QueueServiceModular'
 export { ImageService } from './image'
 export { CouponService } from './coupon'
 export { LeaveService } from './LeaveService'
@@ -25,6 +23,7 @@ export { WaitingListService } from './WaitingListService'
 export { NotificationService } from './NotificationService'
 export { ExportService } from './ExportService'
 export { LeaveAnalyticsService } from './LeaveAnalyticsService'
+// export { QueueService } from '@makanmakan/queue-service' // Temporarily disabled - using UnifiedQueueService
 
 // 匯出類型定義
 export type { 
@@ -81,16 +80,6 @@ export type {
   PrintReceiptRequest,
   ProcessRefundRequest
 } from './POSService'
-
-export type {
-  WaitingQueue,
-  QueueNotification,
-  QueueSettings,
-  JoinQueueRequest,
-  JoinQueueResponse,
-  QueuePositionResponse,
-  CallNextRequest
-} from './QueueService'
 
 export type {
   ImageAnalyticsOptions,

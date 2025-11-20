@@ -1,0 +1,27 @@
+﻿
+> makanmakan-admin-dashboard@1.0.0 lint C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard
+> eslint src --fix
+
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\ExampleUsage.vue
+  186:12  error  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+  252:14  error  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\monitoring\AdvancedFilterPanel.vue.js
+  114:10  error  '_loadSavedFilter' is defined but never used. Allowed unused vars must match /^__VLS_|^\$/u  @typescript-eslint/no-unused-vars
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\monitoring\ExportReportModal.vue
+  3:10  error  'useI18n' is defined but never used. Allowed unused vars must match /^__VLS_|^\$/u  @typescript-eslint/no-unused-vars
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\monitoring\ExportReportModal.vue.js
+  13:12  error  '_t' is assigned a value but never used. Allowed unused vars must match /^__VLS_|^\$/u  @typescript-eslint/no-unused-vars
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\scheduling\ShiftTemplateFormModal.vue
+  411:14  error  '_e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan\apps\admin-dashboard\src\components\scheduling\ShiftTemplateFormModal.vue.js
+  93:16  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+??7 problems (7 errors, 0 warnings)
+
+?LIFECYCLE??Command failed with exit code 1.

@@ -202,6 +202,16 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
         },
       },
+      // System monitoring
+      {
+        path: "monitoring",
+        name: "Monitoring",
+        component: () => import("@/views/MonitoringView.vue"),
+        meta: {
+          title: "系統監控",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
     ],
   },
   {

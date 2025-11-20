@@ -65,3 +65,4 @@ export interface ImageVariants {
     large?: string;
     original?: string;
 }
+//# sourceMappingURL=common.d.ts.map

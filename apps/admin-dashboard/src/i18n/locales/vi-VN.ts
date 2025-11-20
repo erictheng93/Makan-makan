@@ -440,6 +440,195 @@ const viVN: Messages = {
     }
   },
 
+  // Giám sát hệ thống
+  monitoring: {
+    title: 'Giám sát hệ thống',
+    subtitle: 'Theo dõi tình trạng, chỉ số hiệu suất và cảnh báo hệ thống theo thời gian thực',
+
+    // Nút và thao tác
+    actions: {
+      refresh: 'Làm mới ngay',
+      refreshing: 'Đang làm mới...',
+      autoRefresh: 'Tự động làm mới',
+      manualRefresh: 'Làm mới thủ công',
+      createAlertRule: 'Tạo quy tắc cảnh báo',
+      testAlert: 'Kiểm tra cảnh báo',
+      resetMetrics: 'Đặt lại chỉ số',
+      exportReport: 'Xuất báo cáo'
+    },
+
+    // Tình trạng sức khỏe
+    health: {
+      overall: 'Tình trạng sức khỏe tổng thể',
+      score: 'Điểm sức khỏe',
+      uptime: 'Thời gian hoạt động',
+      lastUpdate: 'Cập nhật lần cuối',
+      status: {
+        healthy: 'Tốt',
+        warning: 'Cảnh báo',
+        critical: 'Nghiêm trọng',
+        down: 'Ngừng hoạt động'
+      }
+    },
+
+    // Chỉ số chính
+    keyMetrics: {
+      title: 'Chỉ số chính',
+      requestsPerMinute: 'Số yêu cầu mỗi phút',
+      averageResponseTime: 'Thời gian phản hồi trung bình',
+      cacheHitRate: 'Tỷ lệ trúng bộ nhớ đệm',
+      activeErrors: 'Lỗi đang hoạt động'
+    },
+
+    // Trạng thái thành phần
+    components: {
+      title: 'Trạng thái thành phần hệ thống',
+      api: 'Dịch vụ API',
+      database: 'Cơ sở dữ liệu',
+      cache: 'Dịch vụ bộ nhớ đệm',
+      external: 'Dịch vụ bên ngoài',
+      status: 'Trạng thái',
+      latency: 'Độ trễ',
+      healthy: 'Bình thường',
+      issues: 'Vấn đề'
+    },
+
+    // Tab
+    tabs: {
+      alerts: 'Quy tắc cảnh báo',
+      performance: 'Báo cáo hiệu suất',
+      errors: 'Phân tích lỗi'
+    },
+
+    // Quy tắc cảnh báo
+    alerts: {
+      title: 'Quy tắc cảnh báo',
+      noAlerts: 'Không có quy tắc cảnh báo',
+      createFirst: 'Tạo quy tắc cảnh báo đầu tiên để giám sát trạng thái hệ thống',
+      rule: {
+        name: 'Tên quy tắc',
+        type: 'Loại cảnh báo',
+        severity: 'Mức độ nghiêm trọng',
+        threshold: 'Ngưỡng',
+        enabled: 'Đã bật',
+        disabled: 'Đã tắt',
+        lastTriggered: 'Kích hoạt lần cuối',
+        actions: 'Thao tác'
+      },
+      severity: {
+        info: 'Thông tin',
+        warning: 'Cảnh báo',
+        critical: 'Nghiêm trọng',
+        fatal: 'Nghiêm trọng nhất'
+      },
+      actions: {
+        enable: 'Bật',
+        disable: 'Tắt',
+        edit: 'Chỉnh sửa',
+        delete: 'Xóa',
+        test: 'Kiểm tra'
+      },
+      messages: {
+        enabled: 'Đã bật quy tắc cảnh báo',
+        disabled: 'Đã tắt quy tắc cảnh báo',
+        deleted: 'Đã xóa quy tắc cảnh báo',
+        deleteConfirm: 'Bạn có chắc muốn xóa quy tắc cảnh báo này?'
+      }
+    },
+
+    // Báo cáo hiệu suất
+    performance: {
+      title: 'Báo cáo hiệu suất',
+      selectPeriod: 'Chọn khoảng thời gian',
+      last1Day: '1 ngày qua',
+      last7Days: '7 ngày qua',
+      last30Days: '30 ngày qua',
+
+      api: {
+        title: 'Hiệu suất API',
+        totalRequests: 'Tổng số yêu cầu',
+        averageResponseTime: 'Thời gian phản hồi trung bình',
+        p95ResponseTime: 'Thời gian phản hồi P95',
+        errorRate: 'Tỷ lệ lỗi'
+      },
+
+      database: {
+        title: 'Hiệu suất cơ sở dữ liệu',
+        totalQueries: 'Tổng số truy vấn',
+        averageQueryTime: 'Thời gian truy vấn trung bình',
+        slowQueries: 'Truy vấn chậm',
+        queryErrorRate: 'Tỷ lệ lỗi truy vấn'
+      },
+
+      cache: {
+        title: 'Hiệu suất bộ nhớ đệm',
+        hitRate: 'Tỷ lệ trúng',
+        totalKeys: 'Tổng số khóa',
+        totalSize: 'Tổng dung lượng',
+        expiringKeys: 'Sắp hết hạn'
+      },
+
+      charts: {
+        trendComparison: 'So sánh xu hướng hiệu suất (24 giờ qua)',
+        cacheHitRate: 'Xu hướng tỷ lệ trúng bộ nhớ đệm (24 giờ qua)',
+        apiResponseTime: 'Thời gian phản hồi API',
+        dbQueryTime: 'Thời gian truy vấn cơ sở dữ liệu'
+      },
+
+      recommendations: {
+        title: 'Đề xuất tối ưu hóa',
+        loading: 'Đang tải báo cáo hiệu suất...'
+      }
+    },
+
+    // Phân tích lỗi
+    errors: {
+      title: 'Phân tích lỗi',
+      statistics: 'Thống kê loại lỗi',
+      details: 'Chi tiết lỗi',
+      noErrors: 'Không có bản ghi lỗi',
+      systemRunningNormally: 'Hệ thống đang chạy bình thường',
+      occurredTimes: 'Số lần xảy ra',
+      errorCount: 'Số lỗi'
+    },
+
+    // Cảnh báo thời gian thực
+    realtime: {
+      title: 'Cảnh báo thời gian thực',
+      connectionStatus: {
+        connected: 'Đã kết nối với hệ thống cảnh báo',
+        reconnecting: 'Đang kết nối lại',
+        disconnected: 'Chưa kết nối',
+        reconnect: 'Kết nối lại'
+      },
+      noAlerts: 'Không có cảnh báo',
+      systemNormal: 'Hệ thống đang chạy bình thường',
+      soundEnabled: 'Tắt âm thanh',
+      soundDisabled: 'Bật âm thanh',
+      clearAll: 'Xóa tất cả',
+      acknowledged: 'Đã xác nhận',
+      currentValue: 'Giá trị hiện tại',
+      threshold: 'Ngưỡng',
+      justNow: 'Vừa xong',
+      minutesAgo: '{count} phút trước',
+      hoursAgo: '{count} giờ trước'
+    },
+
+    // Thông báo
+    notifications: {
+      dataUpdated: 'Đã cập nhật dữ liệu giám sát',
+      updateFailed: 'Cập nhật dữ liệu giám sát thất bại',
+      alertAcknowledged: 'Đã xác nhận cảnh báo',
+      alertsCleared: 'Đã xóa tất cả cảnh báo',
+      reconnecting: 'Đang kết nối lại...',
+      connectionFailed: 'Không thể kết nối với hệ thống cảnh báo',
+      loadingFailed: 'Tải dữ liệu giám sát thất bại',
+      performanceReportFailed: 'Tải báo cáo hiệu suất thất bại',
+      autoRefreshEnabled: 'Đã bật tự động làm mới',
+      autoRefreshDisabled: 'Đã tắt tự động làm mới'
+    }
+  },
+
   // Tiêu đề trang và điều hướng
   header: {
     title: 'Trang Quản Trị MakanMakan',

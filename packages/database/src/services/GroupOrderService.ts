@@ -1,5 +1,17 @@
 import { z } from 'zod'
+import { eq, and, lt, inArray, desc, asc, sql, count } from 'drizzle-orm'
 import { BaseService, CloudflareEnv } from './base'
+import { getCurrentTimestamp } from '../utils/timestamp'
+import {
+  groupOrders,
+  groupMembers,
+  groupCartItems,
+  splitBills,
+  shareCodes,
+  groupActivityLogs,
+  menuItems,
+  users
+} from '../schema'
 
 // 類型定義
 export interface GroupOrder {
@@ -153,26 +165,28 @@ export class GroupOrderService extends BaseService {
 
   // 創建群組訂單
   async createGroupOrder(
-    data: CreateGroupOrderRequest, 
+    data: CreateGroupOrderRequest,
     createdBy: number
   ): Promise<{ success: boolean; data?: CreateGroupOrderResponse; error?: string }> {
     try {
       // 驗證輸入
       const validatedData = createGroupOrderSchema.parse(data)
-      
+
       const groupOrderId = crypto.randomUUID()
       const shareCode = this.generateShareCode()
       const expiresAt = new Date()
       expiresAt.setHours(expiresAt.getHours() + validatedData.expirationHours)
-      
+
       const settings = {
         ...validatedData
       }
 
       // 檢查分享代碼是否已存在
-      const existingCode = await this.d1.prepare(
-        'SELECT id FROM group_orders WHERE share_code = ?'
-      ).bind(shareCode).first()
+      const existingCode = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.shareCode, shareCode))
+        .get()
 
       if (existingCode) {
         // 如果代碼已存在，遞歸重新生成
@@ -180,53 +194,61 @@ export class GroupOrderService extends BaseService {
       }
 
       // 創建群組訂單
-      await this.d1.prepare(`
-        INSERT INTO group_orders (
-          id, share_code, created_by, restaurant_id, table_id, 
-          expires_at, settings, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `).bind(
-        groupOrderId,
-        shareCode,
-        createdBy,
-        validatedData.restaurantId,
-        validatedData.tableId || null,
-        expiresAt.toISOString(),
-        JSON.stringify(settings)
-      ).run()
+      const now = new Date()
+      const groupOrderData = {
+        id: groupOrderId,
+        shareCode: shareCode,
+        createdBy: createdBy,
+        restaurantId: validatedData.restaurantId,
+        tableId: validatedData.tableId || null,
+        expiresAt: new Date(expiresAt),
+        settings: JSON.stringify(settings),
+        status: 'active' as const,
+        splitType: 'individual' as const,
+        totalAmount: 0,
+        taxAmount: 0,
+        serviceCharge: 0,
+        finalAmount: 0,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      await this.db.insert(groupOrders).values(groupOrderData)
 
       // 創建創建者成員記錄
       const creatorMemberId = crypto.randomUUID()
       const sessionId = crypto.randomUUID()
 
-      await this.d1.prepare(`
-        INSERT INTO group_members (
-          id, group_order_id, user_id, session_id, name, role, 
-          permissions, joined_at, last_active_at, is_active
-        ) VALUES (?, ?, ?, ?, ?, 'creator', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
-      `).bind(
-        creatorMemberId,
-        groupOrderId,
-        createdBy,
-        sessionId,
-        'Creator', // 可以後續更新為實際用戶名
-        JSON.stringify({ canManageMembers: true, canLockOrder: true })
-      ).run()
+      const creatorMemberData = {
+        id: creatorMemberId,
+        groupOrderId: groupOrderId,
+        userId: createdBy,
+        sessionId: sessionId,
+        name: 'Creator', // 可以後續更新為實際用戶名
+        role: 'creator' as const,
+        permissions: JSON.stringify({ canManageMembers: true, canLockOrder: true }),
+        joinedAt: now,
+        lastActiveAt: now,
+        isActive: true
+      }
+
+      await this.db.insert(groupMembers).values(creatorMemberData)
 
       // 記錄分享代碼
-      await this.d1.prepare(`
-        INSERT INTO share_codes (
-          id, code, type, resource_id, created_by, expires_at, 
-          is_active, metadata, created_at
-        ) VALUES (?, ?, 'group_order', ?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
-      `).bind(
-        crypto.randomUUID(),
-        shareCode,
-        groupOrderId,
-        createdBy,
-        expiresAt.toISOString(),
-        JSON.stringify({ groupOrderId, tableId: validatedData.tableId })
-      ).run()
+      const shareCodeData = {
+        id: crypto.randomUUID(),
+        code: shareCode,
+        type: 'group_order' as const,
+        resourceId: groupOrderId,
+        createdBy: createdBy,
+        expiresAt: new Date(expiresAt),
+        isActive: true,
+        usageCount: 0,
+        metadata: JSON.stringify({ groupOrderId, tableId: validatedData.tableId }),
+        createdAt: now
+      }
+
+      await this.db.insert(shareCodes).values(shareCodeData)
 
       const baseUrl = this.env.CUSTOMER_APP_URL || 'https://order.makanmakan.com'
       const shareUrl = `${baseUrl}/group/${shareCode}`
@@ -253,29 +275,41 @@ export class GroupOrderService extends BaseService {
 
   // 加入群組
   async joinGroup(
-    shareCode: string, 
+    shareCode: string,
     joinData: JoinGroupRequest
   ): Promise<{ success: boolean; data?: JoinGroupResponse; error?: string }> {
     try {
       const validatedData = joinGroupSchema.parse(joinData)
 
       // 查找群組訂單
-      const groupOrder = await this.d1.prepare(`
-        SELECT go.*, sc.usage_count, sc.usage_limit
-        FROM group_orders go
-        LEFT JOIN share_codes sc ON sc.code = ? AND sc.type = 'group_order'
-        WHERE go.share_code = ? AND go.status IN ('active', 'ordering')
-      `).bind(shareCode, shareCode).first() as any
+      const groupOrderResult = await this.db
+        .select({
+          groupOrder: groupOrders,
+          shareCodeUsageCount: shareCodes.usageCount,
+          shareCodeUsageLimit: shareCodes.usageLimit
+        })
+        .from(groupOrders)
+        .leftJoin(shareCodes, and(
+          eq(shareCodes.code, shareCode),
+          eq(shareCodes.type, 'group_order')
+        ))
+        .where(and(
+          eq(groupOrders.shareCode, shareCode),
+          inArray(groupOrders.status, ['active', 'ordering'])
+        ))
+        .get()
 
-      if (!groupOrder) {
+      if (!groupOrderResult) {
         return {
           success: false,
           error: '無效的分享代碼或群組已結束'
         }
       }
 
+      const groupOrder = groupOrderResult.groupOrder
+
       // 檢查是否已過期
-      if (new Date(groupOrder.expires_at) < new Date()) {
+      if (new Date(groupOrder.expiresAt) < new Date()) {
         return {
           success: false,
           error: '分享連結已過期'
@@ -283,12 +317,17 @@ export class GroupOrderService extends BaseService {
       }
 
       // 檢查成員數量限制
-      const currentMemberCount = await this.d1.prepare(
-        'SELECT COUNT(*) as count FROM group_members WHERE group_order_id = ? AND is_active = 1'
-      ).bind(groupOrder.id).first() as any
+      const currentMemberCount = await this.db
+        .select({ count: count() })
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.groupOrderId, groupOrder.id),
+          eq(groupMembers.isActive, true)
+        ))
+        .get()
 
       const settings = JSON.parse(groupOrder.settings || '{}')
-      if (currentMemberCount.count >= settings.maxMembers) {
+      if (currentMemberCount && currentMemberCount.count >= settings.maxMembers) {
         return {
           success: false,
           error: '群組成員已滿'
@@ -298,9 +337,15 @@ export class GroupOrderService extends BaseService {
       // 檢查是否已加入（通過姓名和電話）
       let existingMember = null
       if (validatedData.phone) {
-        existingMember = await this.d1.prepare(
-          'SELECT * FROM group_members WHERE group_order_id = ? AND phone = ? AND is_active = 1'
-        ).bind(groupOrder.id, validatedData.phone).first()
+        existingMember = await this.db
+          .select()
+          .from(groupMembers)
+          .where(and(
+            eq(groupMembers.groupOrderId, groupOrder.id),
+            eq(groupMembers.phone, validatedData.phone),
+            eq(groupMembers.isActive, true)
+          ))
+          .get()
       }
 
       if (existingMember) {
@@ -313,39 +358,46 @@ export class GroupOrderService extends BaseService {
       // 創建新成員
       const memberId = crypto.randomUUID()
       const sessionId = crypto.randomUUID()
+      const joinedTime = new Date()
 
-      await this.d1.prepare(`
-        INSERT INTO group_members (
-          id, group_order_id, session_id, name, phone, email, role,
-          permissions, joined_at, last_active_at, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, 'member', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
-      `).bind(
-        memberId,
-        groupOrder.id,
-        sessionId,
-        validatedData.memberName,
-        validatedData.phone || null,
-        validatedData.email || null,
-        JSON.stringify({ canAddItems: true, canRemoveOwnItems: true })
-      ).run()
+      const newMemberData = {
+        id: memberId,
+        groupOrderId: groupOrder.id,
+        sessionId: sessionId,
+        name: validatedData.memberName,
+        phone: validatedData.phone || null,
+        email: validatedData.email || null,
+        role: 'member' as const,
+        permissions: JSON.stringify({ canAddItems: true, canRemoveOwnItems: true }),
+        joinedAt: joinedTime,
+        lastActiveAt: joinedTime,
+        isActive: true
+      }
+
+      await this.db.insert(groupMembers).values(newMemberData)
 
       // 更新分享代碼使用次數
-      await this.d1.prepare(
-        'UPDATE share_codes SET usage_count = usage_count + 1 WHERE code = ? AND type = "group_order"'
-      ).bind(shareCode).run()
+      await this.db
+        .update(shareCodes)
+        .set({ usageCount: sql`${shareCodes.usageCount} + 1` })
+        .where(and(
+          eq(shareCodes.code, shareCode),
+          eq(shareCodes.type, 'group_order')
+        ))
+        .run()
 
       // 記錄活動日誌
-      await this.d1.prepare(`
-        INSERT INTO group_activity_logs (
-          id, group_order_id, member_id, action, description, metadata, created_at
-        ) VALUES (?, ?, ?, 'joined', ?, ?, CURRENT_TIMESTAMP)
-      `).bind(
-        crypto.randomUUID(),
-        groupOrder.id,
-        memberId,
-        `${validatedData.memberName} 加入了群組`,
-        JSON.stringify({ memberName: validatedData.memberName, joinMethod: 'share_code' })
-      ).run()
+      const joinActivityLogData = {
+        id: crypto.randomUUID(),
+        groupOrderId: groupOrder.id,
+        memberId: memberId,
+        action: 'joined' as const,
+        description: `${validatedData.memberName} 加入了群組`,
+        metadata: JSON.stringify({ memberName: validatedData.memberName, joinMethod: 'share_code' }),
+        createdAt: new Date(joinedTime)
+      }
+
+      await this.db.insert(groupActivityLogs).values(joinActivityLogData)
 
       return {
         success: true,
@@ -353,7 +405,7 @@ export class GroupOrderService extends BaseService {
           groupOrder: {
             ...groupOrder,
             settings: JSON.parse(groupOrder.settings || '{}')
-          },
+          } as GroupOrder,
           memberId,
           sessionId,
           memberRole: 'member'
@@ -370,21 +422,23 @@ export class GroupOrderService extends BaseService {
   }
 
   // 獲取群組資訊
-  async getGroupOrder(groupOrderId: string): Promise<{ 
-    success: boolean; 
-    data?: { 
-      groupOrder: GroupOrder; 
-      members: GroupMember[]; 
+  async getGroupOrder(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: {
+      groupOrder: GroupOrder;
+      members: GroupMember[];
       cartItems: GroupCartItem[];
       totalAmount: number;
-    }; 
-    error?: string 
+    };
+    error?: string
   }> {
     try {
       // 獲取群組訂單
-      const groupOrder = await this.d1.prepare(
-        'SELECT * FROM group_orders WHERE id = ?'
-      ).bind(groupOrderId).first() as any
+      const groupOrder = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId))
+        .get()
 
       if (!groupOrder) {
         return {
@@ -394,36 +448,53 @@ export class GroupOrderService extends BaseService {
       }
 
       // 獲取成員列表
-      const membersResult = await this.d1.prepare(`
-        SELECT gm.*, u.full_name as user_full_name
-        FROM group_members gm
-        LEFT JOIN users u ON gm.user_id = u.id
-        WHERE gm.group_order_id = ? AND gm.is_active = 1
-        ORDER BY 
-          CASE gm.role 
-            WHEN 'creator' THEN 1 
-            WHEN 'admin' THEN 2 
-            ELSE 3 
-          END, gm.joined_at
-      `).bind(groupOrderId).all()
+      const membersResult = await this.db
+        .select({
+          member: groupMembers,
+          userFullName: users.fullName
+        })
+        .from(groupMembers)
+        .leftJoin(users, eq(groupMembers.userId, users.id))
+        .where(and(
+          eq(groupMembers.groupOrderId, groupOrderId),
+          eq(groupMembers.isActive, true)
+        ))
+        .orderBy(
+          sql`CASE ${groupMembers.role}
+            WHEN 'creator' THEN 1
+            WHEN 'admin' THEN 2
+            ELSE 3
+          END`,
+          groupMembers.joinedAt
+        )
+        .all()
 
-      const members = (membersResult.results || []).map((member: any) => ({
-        ...member,
-        permissions: JSON.parse(member.permissions || '{}')
+      const members = membersResult.map((item: any) => ({
+        ...item.member,
+        permissions: JSON.parse(item.member.permissions || '{}')
       })) as GroupMember[]
 
       // 獲取購物車項目
-      const cartItemsResult = await this.d1.prepare(`
-        SELECT gci.*, mi.name as menu_item_name, mi.price as original_price
-        FROM group_cart_items gci
-        JOIN menu_items mi ON gci.menu_item_id = mi.id
-        WHERE gci.group_order_id = ? AND gci.status = 'active'
-        ORDER BY gci.added_at DESC
-      `).bind(groupOrderId).all()
+      const cartItemsResult = await this.db
+        .select({
+          cartItem: groupCartItems,
+          menuItemName: menuItems.name,
+          originalPrice: menuItems.price
+        })
+        .from(groupCartItems)
+        .innerJoin(menuItems, eq(groupCartItems.menuItemId, menuItems.id))
+        .where(and(
+          eq(groupCartItems.groupOrderId, groupOrderId),
+          eq(groupCartItems.status, 'active')
+        ))
+        .orderBy(desc(groupCartItems.addedAt))
+        .all()
 
-      const cartItems = (cartItemsResult.results || []).map((item: any) => ({
-        ...item,
-        customizations: JSON.parse(item.customizations || '{}')
+      const cartItems = cartItemsResult.map((item: any) => ({
+        ...item.cartItem,
+        customizations: JSON.parse(item.cartItem.customizations || '{}'),
+        menuItemName: item.menuItemName,
+        originalPrice: item.originalPrice
       })) as GroupCartItem[]
 
       // 計算總金額
@@ -435,7 +506,7 @@ export class GroupOrderService extends BaseService {
           groupOrder: {
             ...groupOrder,
             settings: JSON.parse(groupOrder.settings || '{}')
-          },
+          } as GroupOrder,
           members,
           cartItems,
           totalAmount
@@ -460,9 +531,11 @@ export class GroupOrderService extends BaseService {
       const validatedData = addCartItemSchema.parse(itemData)
 
       // 檢查群組狀態
-      const groupOrder = await this.d1.prepare(
-        'SELECT status FROM group_orders WHERE id = ?'
-      ).bind(groupOrderId).first() as any
+      const groupOrder = await this.db
+        .select({ status: groupOrders.status })
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId))
+        .get()
 
       if (!groupOrder || groupOrder.status !== 'active') {
         return {
@@ -472,9 +545,15 @@ export class GroupOrderService extends BaseService {
       }
 
       // 檢查成員權限
-      const member = await this.d1.prepare(
-        'SELECT * FROM group_members WHERE id = ? AND group_order_id = ? AND is_active = 1'
-      ).bind(validatedData.memberId, groupOrderId).first() as any
+      const member = await this.db
+        .select()
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.id, validatedData.memberId),
+          eq(groupMembers.groupOrderId, groupOrderId),
+          eq(groupMembers.isActive, true)
+        ))
+        .get()
 
       if (!member) {
         return {
@@ -484,9 +563,14 @@ export class GroupOrderService extends BaseService {
       }
 
       // 獲取菜品資訊
-      const menuItem = await this.d1.prepare(
-        'SELECT * FROM menu_items WHERE id = ? AND is_available = 1'
-      ).bind(validatedData.menuItemId).first() as any
+      const menuItem = await this.db
+        .select()
+        .from(menuItems)
+        .where(and(
+          eq(menuItems.id, validatedData.menuItemId),
+          eq(menuItems.isAvailable, true)
+        ))
+        .get()
 
       if (!menuItem) {
         return {
@@ -496,46 +580,46 @@ export class GroupOrderService extends BaseService {
       }
 
       // 計算價格（基礎邏輯，實際應包含客製化價格計算）
-      const unitPrice = parseFloat(menuItem.price)
+      const unitPrice = parseFloat(String(menuItem.price))
       const totalPrice = unitPrice * validatedData.quantity
 
       // 添加購物車項目
       const cartItemId = crypto.randomUUID()
-      
-      await this.d1.prepare(`
-        INSERT INTO group_cart_items (
-          id, group_order_id, member_id, menu_item_id, quantity, 
-          unit_price, total_price, customizations, special_instructions,
-          status, added_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `).bind(
-        cartItemId,
-        groupOrderId,
-        validatedData.memberId,
-        validatedData.menuItemId,
-        validatedData.quantity,
-        unitPrice,
-        totalPrice,
-        JSON.stringify(validatedData.customizations),
-        validatedData.specialInstructions || null
-      ).run()
+      const addedTime = new Date()
+
+      const cartItemData = {
+        id: cartItemId,
+        groupOrderId: groupOrderId,
+        memberId: validatedData.memberId,
+        menuItemId: validatedData.menuItemId,
+        quantity: validatedData.quantity,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
+        customizations: JSON.stringify(validatedData.customizations),
+        specialInstructions: validatedData.specialInstructions || null,
+        status: 'active' as const,
+        addedAt: addedTime,
+        updatedAt: addedTime
+      }
+
+      await this.db.insert(groupCartItems).values(cartItemData)
 
       // 記錄活動日誌
-      await this.d1.prepare(`
-        INSERT INTO group_activity_logs (
-          id, group_order_id, member_id, action, description, metadata, created_at
-        ) VALUES (?, ?, ?, 'added_item', ?, ?, CURRENT_TIMESTAMP)
-      `).bind(
-        crypto.randomUUID(),
-        groupOrderId,
-        validatedData.memberId,
-        `添加了 ${validatedData.quantity}x ${menuItem.name}`,
-        JSON.stringify({ 
-          menuItemId: validatedData.menuItemId, 
+      const addItemActivityLogData = {
+        id: crypto.randomUUID(),
+        groupOrderId: groupOrderId,
+        memberId: validatedData.memberId,
+        action: 'added_item' as const,
+        description: `添加了 ${validatedData.quantity}x ${menuItem.name}`,
+        metadata: JSON.stringify({
+          menuItemId: validatedData.menuItemId,
           quantity: validatedData.quantity,
-          totalPrice 
-        })
-      ).run()
+          totalPrice
+        }),
+        createdAt: new Date(addedTime)
+      }
+
+      await this.db.insert(groupActivityLogs).values(addItemActivityLogData)
 
       const cartItem: GroupCartItem = {
         id: cartItemId,
@@ -576,10 +660,18 @@ export class GroupOrderService extends BaseService {
       const validatedData = splitBillSchema.parse(splitData)
 
       // 檢查權限
-      const member = await this.d1.prepare(`
-        SELECT role, permissions FROM group_members 
-        WHERE id = ? AND group_order_id = ? AND is_active = 1
-      `).bind(initiatedBy, groupOrderId).first() as any
+      const member = await this.db
+        .select({
+          role: groupMembers.role,
+          permissions: groupMembers.permissions
+        })
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.id, initiatedBy),
+          eq(groupMembers.groupOrderId, groupOrderId),
+          eq(groupMembers.isActive, true)
+        ))
+        .get()
 
       if (!member || (member.role !== 'creator' && member.role !== 'admin')) {
         return {
@@ -589,28 +681,45 @@ export class GroupOrderService extends BaseService {
       }
 
       // 鎖定群組訂單
-      await this.d1.prepare(
-        'UPDATE group_orders SET status = "checkout", locked_at = CURRENT_TIMESTAMP WHERE id = ?'
-      ).bind(groupOrderId).run()
+      const lockedTime = new Date()
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          status: 'checkout' as const,
+          lockedAt: lockedTime
+        })
+        .where(eq(groupOrders.id, groupOrderId))
+        .run()
 
       // 獲取所有購物車項目和成員
-      const cartItems = await this.d1.prepare(`
-        SELECT * FROM group_cart_items WHERE group_order_id = ? AND status = 'active'
-      `).bind(groupOrderId).all()
+      const cartItemsResult = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(and(
+          eq(groupCartItems.groupOrderId, groupOrderId),
+          eq(groupCartItems.status, 'active')
+        ))
+        .all()
 
-      const members = await this.d1.prepare(`
-        SELECT * FROM group_members WHERE group_order_id = ? AND is_active = 1
-      `).bind(groupOrderId).all()
+      const membersResult = await this.db
+        .select()
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.groupOrderId, groupOrderId),
+          eq(groupMembers.isActive, true)
+        ))
+        .all()
 
       // 根據分帳類型計算每個人的帳單
-      const splitBills: SplitBill[] = []
+      const splitBillsData: SplitBill[] = []
 
       if (validatedData.splitType === 'equal') {
         // 平均分帳
-        const totalAmount = (cartItems.results || []).reduce((sum: number, item: any) => sum + parseFloat(item.total_price), 0)
-        const perPersonAmount = totalAmount / (members.results || []).length
+        const totalAmount = cartItemsResult.reduce((sum, item) => sum + item.totalPrice, 0)
+        const perPersonAmount = totalAmount / membersResult.length
 
-        for (const member of (members.results || []) as any[]) {
+        for (const member of membersResult) {
           const splitBill: SplitBill = {
             id: crypto.randomUUID(),
             groupOrderId,
@@ -621,18 +730,18 @@ export class GroupOrderService extends BaseService {
             discountAmount: 0,
             tipAmount: 0,
             totalAmount: perPersonAmount,
-            items: cartItems.results || [],
+            items: cartItemsResult,
             paymentStatus: 'pending',
             createdAt: new Date(),
             updatedAt: new Date()
           }
-          splitBills.push(splitBill)
+          splitBillsData.push(splitBill)
         }
       } else if (validatedData.splitType === 'individual') {
         // 個人點餐項目分帳
-        for (const member of (members.results || []) as any[]) {
-          const memberItems = (cartItems.results || []).filter((item: any) => item.member_id === member.id)
-          const subtotal = memberItems.reduce((sum: number, item: any) => sum + parseFloat(item.total_price), 0)
+        for (const member of membersResult) {
+          const memberItems = cartItemsResult.filter(item => item.memberId === member.id)
+          const subtotal = memberItems.reduce((sum, item) => sum + item.totalPrice, 0)
 
           if (subtotal > 0) {
             const splitBill: SplitBill = {
@@ -650,37 +759,38 @@ export class GroupOrderService extends BaseService {
               createdAt: new Date(),
               updatedAt: new Date()
             }
-            splitBills.push(splitBill)
+            splitBillsData.push(splitBill)
           }
         }
       }
       // 其他分帳類型的邏輯...
 
       // 保存分帳記錄
-      for (const bill of splitBills) {
-        await this.d1.prepare(`
-          INSERT INTO split_bills (
-            id, group_order_id, member_id, subtotal, tax_amount,
-            service_charge, discount_amount, tip_amount, total_amount,
-            items, payment_status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(
-          bill.id,
-          bill.groupOrderId,
-          bill.memberId,
-          bill.subtotal,
-          bill.taxAmount,
-          bill.serviceCharge,
-          bill.discountAmount,
-          bill.tipAmount,
-          bill.totalAmount,
-          JSON.stringify(bill.items)
-        ).run()
+      const billCreatedTime = new Date()
+
+      for (const bill of splitBillsData) {
+        const splitBillData = {
+          id: bill.id,
+          groupOrderId: bill.groupOrderId,
+          memberId: bill.memberId,
+          subtotal: bill.subtotal,
+          taxAmount: bill.taxAmount,
+          serviceCharge: bill.serviceCharge,
+          discountAmount: bill.discountAmount,
+          tipAmount: bill.tipAmount,
+          totalAmount: bill.totalAmount,
+          items: JSON.stringify(bill.items),
+          paymentStatus: 'pending' as const,
+          createdAt: billCreatedTime,
+          updatedAt: billCreatedTime
+        }
+
+        await this.db.insert(splitBills).values(splitBillData)
       }
 
       return {
         success: true,
-        data: splitBills
+        data: splitBillsData
       }
 
     } catch (error) {
@@ -700,10 +810,15 @@ export class GroupOrderService extends BaseService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // 獲取分帳記錄
-      const splitBill = await this.d1.prepare(`
-        SELECT * FROM split_bills 
-        WHERE group_order_id = ? AND member_id = ? AND payment_status = 'pending'
-      `).bind(groupOrderId, memberId).first() as any
+      const splitBill = await this.db
+        .select()
+        .from(splitBills)
+        .where(and(
+          eq(splitBills.groupOrderId, groupOrderId),
+          eq(splitBills.memberId, memberId),
+          eq(splitBills.paymentStatus, 'pending')
+        ))
+        .get()
 
       if (!splitBill) {
         return {
@@ -713,33 +828,42 @@ export class GroupOrderService extends BaseService {
       }
 
       // 更新支付狀態（實際應整合支付閘道）
-      await this.d1.prepare(`
-        UPDATE split_bills 
-        SET payment_status = 'paid', 
-            payment_method = ?, 
-            payment_reference = ?,
-            paid_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).bind(
-        paymentData.paymentMethod,
-        paymentData.transactionId || crypto.randomUUID(),
-        splitBill.id
-      ).run()
+      const paidTime = new Date()
+
+      await this.db
+        .update(splitBills)
+        .set({
+          paymentStatus: 'paid' as const,
+          paymentMethod: paymentData.paymentMethod,
+          paymentReference: paymentData.transactionId || crypto.randomUUID(),
+          paidAt: paidTime,
+          updatedAt: paidTime
+        })
+        .where(eq(splitBills.id, splitBill.id))
+        .run()
 
       // 檢查是否所有人都已付款
-      const unpaidCount = await this.d1.prepare(`
-        SELECT COUNT(*) as count FROM split_bills 
-        WHERE group_order_id = ? AND payment_status != 'paid'
-      `).bind(groupOrderId).first() as any
+      const unpaidCount = await this.db
+        .select({ count: count() })
+        .from(splitBills)
+        .where(and(
+          eq(splitBills.groupOrderId, groupOrderId),
+          sql`${splitBills.paymentStatus} != 'paid'`
+        ))
+        .get()
 
-      if (unpaidCount.count === 0) {
+      if (unpaidCount && unpaidCount.count === 0) {
         // 所有人都已付款，完成群組訂單
-        await this.d1.prepare(`
-          UPDATE group_orders 
-          SET status = 'completed', completed_at = CURRENT_TIMESTAMP 
-          WHERE id = ?
-        `).bind(groupOrderId).run()
+        const completedTime = new Date()
+
+        await this.db
+          .update(groupOrders)
+          .set({
+            status: 'completed' as const,
+            completedAt: completedTime
+          })
+          .where(eq(groupOrders.id, groupOrderId))
+          .run()
       }
 
       return { success: true }
@@ -760,9 +884,14 @@ export class GroupOrderService extends BaseService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // 檢查是否為創建者
-      const member = await this.d1.prepare(
-        'SELECT role FROM group_members WHERE id = ? AND group_order_id = ?'
-      ).bind(memberId, groupOrderId).first() as any
+      const member = await this.db
+        .select({ role: groupMembers.role })
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.id, memberId),
+          eq(groupMembers.groupOrderId, groupOrderId)
+        ))
+        .get()
 
       if (!member) {
         return {
@@ -779,16 +908,26 @@ export class GroupOrderService extends BaseService {
       }
 
       // 將成員標記為非活躍
-      await this.d1.prepare(`
-        UPDATE group_members 
-        SET is_active = 0, left_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-      `).bind(memberId).run()
+      const leftTime = new Date()
+
+      await this.db
+        .update(groupMembers)
+        .set({
+          isActive: false,
+          leftAt: leftTime
+        })
+        .where(eq(groupMembers.id, memberId))
+        .run()
 
       // 移除該成員的購物車項目
-      await this.d1.prepare(
-        'UPDATE group_cart_items SET status = "removed" WHERE group_order_id = ? AND member_id = ?'
-      ).bind(groupOrderId, memberId).run()
+      await this.db
+        .update(groupCartItems)
+        .set({ status: 'removed' as const })
+        .where(and(
+          eq(groupCartItems.groupOrderId, groupOrderId),
+          eq(groupCartItems.memberId, memberId)
+        ))
+        .run()
 
       return { success: true }
 
@@ -804,16 +943,20 @@ export class GroupOrderService extends BaseService {
   // 清理過期群組訂單
   async cleanupExpiredGroups(): Promise<{ success: boolean; cleaned?: number; error?: string }> {
     try {
-      const result = await this.d1.prepare(`
-        UPDATE group_orders 
-        SET status = 'cancelled' 
-        WHERE expires_at < CURRENT_TIMESTAMP 
-          AND status IN ('active', 'ordering')
-      `).run()
+      const now = new Date()
+
+      const result = await this.db
+        .update(groupOrders)
+        .set({ status: 'cancelled' as const })
+        .where(and(
+          lt(groupOrders.expiresAt, now),
+          inArray(groupOrders.status, ['active', 'ordering'])
+        ))
+        .run()
 
       return {
         success: true,
-        cleaned: result.meta.changes || 0
+        cleaned: (result as any).changes || 0
       }
 
     } catch (error) {

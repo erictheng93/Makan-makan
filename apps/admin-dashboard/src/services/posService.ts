@@ -118,7 +118,7 @@ export const posService = {
         `/api/v1/pos/registers/${registerId}/current-shift`,
       );
       return (response.data as any).data || response.data;
-    } catch (error) {
+    } catch {
       return null;
     }
   },

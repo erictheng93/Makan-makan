@@ -1,12 +1,15 @@
-type __VLS_Props = {
-    requests: any[];
+import type { SwapRequest } from '@/types/scheduling';
+interface Props {
+    requests: SwapRequest[];
+    loading?: boolean;
+}
+declare const _default: import("vue").DefineComponent<Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
+    approve: (request: SwapRequest) => any;
+    reject: (request: SwapRequest) => any;
+}, string, import("vue").PublicProps, Readonly<Props> & Readonly<{
+    onApprove?: ((request: SwapRequest) => any) | undefined;
+    onReject?: ((request: SwapRequest) => any) | undefined;
+}>, {
     loading: boolean;
-};
-declare const _default: import("vue").DefineComponent<__VLS_Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
-    approve: (request: any) => any;
-    reject: (request: any) => any;
-}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
-    onApprove?: ((request: any) => any) | undefined;
-    onReject?: ((request: any) => any) | undefined;
-}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

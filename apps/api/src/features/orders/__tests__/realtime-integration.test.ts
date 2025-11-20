@@ -103,11 +103,12 @@ describe('Orders + Realtime Integration', () => {
     ordersService['realtimeBroadcastService'] = mockBroadcastService
     ordersService['baseOrderService'] = mockOrderService
     ordersService['logger'] = {
+      feature: 'test-orders',
       info: vi.fn(),
       error: vi.fn(),
       warn: vi.fn(),
       debug: vi.fn()
-    }
+    } as any
   })
 
   describe('createOrder - Realtime Integration', () => {

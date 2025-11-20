@@ -13,6 +13,7 @@ import {
   getDefaultModel,
   getAvailableModels,
 } from '@makanmakan/ai-analytics';
+import { getCurrentTimestamp } from '@makanmakan/database';
 import type {
   LLMConfig,
 } from '@makanmakan/ai-analytics';
@@ -180,10 +181,11 @@ app.post('/config', zValidator('json', configureAISchema), async (c) => {
     }
 
     // Save configuration
+    const now = getCurrentTimestamp();
     const query = `
       INSERT INTO ai_configurations (
-        restaurant_id, provider, api_key_encrypted, model, custom_base_url, enabled
-      ) VALUES (?, ?, ?, ?, ?, 1)
+        restaurant_id, provider, api_key_encrypted, model, custom_base_url, enabled, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 1, ?)
       ON CONFLICT (restaurant_id)
       DO UPDATE SET
         provider = excluded.provider,
@@ -191,7 +193,7 @@ app.post('/config', zValidator('json', configureAISchema), async (c) => {
         model = excluded.model,
         custom_base_url = excluded.custom_base_url,
         enabled = 1,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = excluded.updated_at
     `;
 
     await c.env.DB.prepare(query)
@@ -200,7 +202,8 @@ app.post('/config', zValidator('json', configureAISchema), async (c) => {
         data.provider,
         encryptedKey,
         data.model || null,
-        data.customBaseUrl || null
+        data.customBaseUrl || null,
+        now
       )
       .run();
 

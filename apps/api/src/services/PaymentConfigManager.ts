@@ -1,9 +1,10 @@
-import { 
+import {
   PaymentProviderConfig,
   CountryPaymentConfig,
   CountryCode,
   PaymentMethod
 } from '@makanmakan/shared-types'
+import { getCurrentTimestamp } from '@makanmakan/database'
 
 interface DatabaseConnection {
   prepare(sql: string): any
@@ -108,7 +109,8 @@ export class PaymentConfigManager {
 
     if (updates.length === 0) return
 
-    updates.push('updated_at = CURRENT_TIMESTAMP')
+    updates.push('updated_at = ?')
+    values.push(getCurrentTimestamp())
     values.push(name)
 
     const stmt = this.db.prepare(`

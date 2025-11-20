@@ -83,6 +83,7 @@ import {
   CalendarCheck,
   BookOpen,
   ClipboardList,
+  Activity,
 } from "lucide-vue-next";
 
 interface Props {
@@ -227,6 +228,13 @@ const navigationItems = computed(() => [
       UserRole.OWNER,
       UserRole.SERVICE,
     ]),
+  },
+  {
+    name: "monitoring",
+    path: "/dashboard/monitoring",
+    label: "系統監控",
+    icon: Activity,
+    visible: authStore.canAccessAdminFeatures,
   },
   {
     name: "settings",

@@ -72,23 +72,38 @@ export const updateCartItemSchema = z.object({
 )
 
 export const splitBillSchema = z.object({
-  splitType: z.enum(['equal', 'proportional', 'individual', 'custom'], {
-    errorMap: () => ({ message: 'Split type must be one of: equal, proportional, individual, custom' })
+  splitType: z.enum(['equal', 'proportional', 'individual', 'by_item', 'custom'], {
+    errorMap: () => ({ message: 'Split type must be one of: equal, proportional, individual, by_item, custom' })
   }),
+  serviceChargeRate: z.number()
+    .min(0, 'Service charge rate cannot be negative')
+    .max(100, 'Service charge rate cannot exceed 100%')
+    .optional()
+    .default(0),
+  taxRate: z.number()
+    .min(0, 'Tax rate cannot be negative')
+    .max(100, 'Tax rate cannot exceed 100%')
+    .optional()
+    .default(0),
   customSplits: z.array(z.object({
     memberId: z.string().uuid('Invalid member ID format'),
     amount: z.number().positive('Amount must be positive'),
     items: z.array(z.any())
+  })).optional(),
+  customAmounts: z.array(z.object({
+    memberId: z.string().uuid('Invalid member ID format'),
+    amount: z.number().positive('Amount must be positive')
   })).optional()
 }).refine(
   (data) => {
     if (data.splitType === 'custom') {
-      return data.customSplits && data.customSplits.length > 0
+      return (data.customSplits && data.customSplits.length > 0) ||
+             (data.customAmounts && data.customAmounts.length > 0)
     }
     return true
   },
   {
-    message: 'Custom splits are required when split type is custom',
+    message: 'Custom splits or custom amounts are required when split type is custom',
     path: ['customSplits']
   }
 )
@@ -99,10 +114,12 @@ export const processPaymentSchema = z.object({
     .max(50, 'Payment method cannot exceed 50 characters'),
   amount: z.number()
     .positive('Payment amount must be positive')
-    .max(99999.99, 'Payment amount cannot exceed 99,999.99'),
+    .max(99999.99, 'Payment amount cannot exceed 99,999.99')
+    .optional(), // Optional - will use amount from split_bills if not provided
   transactionId: z.string()
     .max(100, 'Transaction ID cannot exceed 100 characters')
-    .optional()
+    .optional(),
+  paymentDetails: z.record(z.any()).optional() // Additional payment details (card info, etc.)
 })
 
 // Parameter validation schemas
@@ -149,19 +166,15 @@ export const activitiesQuerySchema = z.object({
 })
 
 export const statisticsQuerySchema = z.object({
-  timeRange: z.enum(['day', 'week', 'month', 'quarter', 'year'])
-    .optional()
-    .default('month'),
-  restaurantId: z.coerce.number()
-    .int('Restaurant ID must be an integer')
-    .positive('Restaurant ID must be positive')
-    .optional(),
-  startDate: z.string()
-    .datetime('Invalid start date format')
-    .optional(),
-  endDate: z.string()
-    .datetime('Invalid end date format')
-    .optional()
+  timeRange: z.enum(['day', 'week', 'month', 'quarter', 'year']).default('month'),
+  restaurantId: z.string().optional().transform(val => {
+    if (!val || val.trim() === '') return undefined
+    const num = Number(val)
+    if (isNaN(num) || !Number.isInteger(num) || num <= 0) return undefined
+    return num
+  }),
+  startDate: z.string().datetime().optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
+  endDate: z.string().datetime().optional().or(z.literal('')).transform(val => val === '' ? undefined : val)
 }).refine(
   (data) => {
     if (data.startDate && data.endDate) {

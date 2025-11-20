@@ -415,7 +415,7 @@ const testShortcut = async (shortcut: KeyboardShortcut) => {
     toast[success ? "success" : "error"](
       `快捷鍵測試${success ? "成功" : "失敗"}: ${shortcut.name}`,
     );
-  } catch (error) {
+  } catch {
     toast.error("測試快捷鍵時發生錯誤");
   }
 };

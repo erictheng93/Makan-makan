@@ -15,6 +15,8 @@ export * from './images'
 export * from './coupons'
 export * from './leaves'
 export * from './scheduling'
+export * from './pos'
+export * from './group-orders'
 
 // 匯出所有關聯定義
 export { restaurantRelations } from './restaurants'
@@ -44,6 +46,22 @@ export {
   scheduleSwapRequestsRelations,
   employeeAvailabilityRelations
 } from './scheduling'
+export {
+  cashRegistersRelations,
+  cashShiftsRelations,
+  cashMovementsRelations,
+  receiptsRelations,
+  refundsRelations,
+  shiftReportsRelations
+} from './pos'
+export {
+  groupOrdersRelations,
+  groupMembersRelations,
+  groupCartItemsRelations,
+  splitBillsRelations,
+  shareCodesRelations,
+  groupActivityLogsRelations
+} from './group-orders'
 
 // 重新匯出類型
 export type { UserRole } from './users'

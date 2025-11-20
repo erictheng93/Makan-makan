@@ -16,16 +16,16 @@ config.global.directives = {
     mounted(el: HTMLElement, binding: any) {
       // 如果綁定了圖片 src，直接設置到元素上
       if (binding.value?.src) {
-        el.setAttribute('src', binding.value.src);
-      } else if (typeof binding.value === 'string') {
-        el.setAttribute('src', binding.value);
+        el.setAttribute("src", binding.value.src);
+      } else if (typeof binding.value === "string") {
+        el.setAttribute("src", binding.value);
       }
     },
     updated(el: HTMLElement, binding: any) {
       if (binding.value?.src) {
-        el.setAttribute('src', binding.value.src);
-      } else if (typeof binding.value === 'string') {
-        el.setAttribute('src', binding.value);
+        el.setAttribute("src", binding.value.src);
+      } else if (typeof binding.value === "string") {
+        el.setAttribute("src", binding.value);
       }
     },
   },

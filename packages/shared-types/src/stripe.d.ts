@@ -123,3 +123,4 @@ export interface StripeCountryConfig {
     invoiceRequired: boolean;
     localRegulations: string[];
 }
+//# sourceMappingURL=stripe.d.ts.map

@@ -126,12 +126,12 @@
       </div>
     </div>
 
-    <!-- 員工列表 -->
+    <!-- 員工列表（虛擬滾動表格） -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-6">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -170,12 +170,34 @@
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr
-                v-for="user in filteredUsers"
-                :key="user.id"
-                class="hover:bg-gray-50"
+          </table>
+
+          <!-- 虛擬滾動容器 -->
+          <div
+            v-if="filteredUsers.length > 0"
+            ref="containerRef"
+            class="overflow-y-auto"
+            :style="{ height: TABLE_CONTAINER_HEIGHT + 'px' }"
+            @scroll="handleScroll"
+          >
+            <div
+              class="relative"
+              :style="{ height: totalHeight + 'px' }"
+            >
+              <div
+                :style="{
+                  transform: `translateY(${offsetY}px)`,
+                  willChange: 'transform',
+                }"
               >
+                <table class="min-w-full divide-y divide-gray-200">
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr
+                      v-for="{ item: user } in visibleItems"
+                      :key="user.id"
+                      class="hover:bg-gray-50"
+                      :style="{ height: TABLE_ROW_HEIGHT + 'px' }"
+                    >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
@@ -258,23 +280,26 @@
                     </button>
                   </div>
                 </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-        <!-- 空狀態 -->
-        <div v-if="filteredUsers.length === 0" class="text-center py-12">
-          <UserGroupIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <h3 class="mt-2 text-sm font-medium text-gray-900">暫無員工</h3>
-          <p class="mt-1 text-sm text-gray-500">開始添加您的第一位員工</p>
-          <button
-            class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            @click="showUserModal = true"
-          >
-            <PlusIcon class="h-4 w-4 mr-2" />
-            新增員工
-          </button>
+          <!-- 空狀態 -->
+          <div v-if="filteredUsers.length === 0" class="text-center py-12">
+            <UserGroupIcon class="mx-auto h-12 w-12 text-gray-400" />
+            <h3 class="mt-2 text-sm font-medium text-gray-900">暫無員工</h3>
+            <p class="mt-1 text-sm text-gray-500">開始添加您的第一位員工</p>
+            <button
+              class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              @click="showUserModal = true"
+            >
+              <PlusIcon class="h-4 w-4 mr-2" />
+              新增員工
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -398,6 +423,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -406,8 +432,13 @@ import {
   StarIcon,
   ListBulletIcon,
   CurrencyDollarIcon,
+  TruckIcon,
 } from "@heroicons/vue/24/outline";
-// ChefHatIcon placeholder - using UserIcon instead
+
+// 使用替代圖標
+const CrownIcon = StarIcon; // Crown icon placeholder
+const ChefHatIcon = UserIcon; // Chef hat icon placeholder
+const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
 
 // Type definitions
 interface User {
@@ -421,6 +452,10 @@ interface User {
   createdAt: string;
   password?: string;
 }
+
+// 虛擬滾動配置
+const TABLE_ROW_HEIGHT = 80; // 每個用戶行的高度 (px)
+const TABLE_CONTAINER_HEIGHT = 600; // 表格容器高度 (px)
 
 // 響應式數據
 const searchQuery = ref("");
@@ -531,6 +566,19 @@ const filteredUsers = computed(() => {
     }
     return a.username.localeCompare(b.username);
   });
+});
+
+// 虛擬滾動設置
+const {
+  containerRef,
+  visibleItems,
+  totalHeight,
+  offsetY,
+  handleScroll,
+} = useVirtualScroll<User>(filteredUsers, {
+  itemHeight: TABLE_ROW_HEIGHT,
+  buffer: 5,
+  containerHeight: TABLE_CONTAINER_HEIGHT,
 });
 
 // 方法

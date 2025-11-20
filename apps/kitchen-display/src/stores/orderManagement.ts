@@ -527,7 +527,9 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
     // Processing methods
     filterOrders,
     sortOrders,
+    calculateOrderPriority,
     updateOrderPriorities,
+    calculateElapsedTime,
     updateElapsedTimes,
 
     // Item management

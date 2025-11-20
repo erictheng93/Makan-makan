@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1'
-import type { D1Database } from '@cloudflare/workers-types'
+import type { D1Database, KVNamespace } from '@cloudflare/workers-types'
 import * as schema from '../schema'
 import { QueryCache, buildCacheKey, type QueryCacheOptions } from '../utils/query-cache'
 import { getConnectionManager, type ConnectionManager } from '../utils/connection-manager'
@@ -101,21 +101,33 @@ export class BaseService {
 
   // 通用錯誤處理
   protected handleError(error: any, operation: string): never {
-    console.error(`Database error in ${operation}:`, error)
-    
-    if (error.message?.includes('UNIQUE constraint failed')) {
+    // 安全地記錄錯誤，避免循環引用問題
+    if (error instanceof Error) {
+      console.error(`Database error in ${operation}:`, error.message)
+      if (error.stack) {
+        console.error('Stack trace:', error.stack)
+      }
+    } else {
+      console.error(`Database error in ${operation}:`, String(error))
+    }
+
+    // 創建一個可序列化的錯誤對象，避免循環引用問題
+    const errorMessage = error instanceof Error ? error.message : String(error)
+
+    if (errorMessage?.includes('UNIQUE constraint failed')) {
       throw new Error('Record already exists')
     }
-    
-    if (error.message?.includes('FOREIGN KEY constraint failed')) {
+
+    if (errorMessage?.includes('FOREIGN KEY constraint failed')) {
       throw new Error('Related record not found')
     }
-    
-    if (error.message?.includes('NOT NULL constraint failed')) {
+
+    if (errorMessage?.includes('NOT NULL constraint failed')) {
       throw new Error('Required field missing')
     }
-    
-    throw new Error(`Database operation failed: ${operation}`)
+
+    // 拋出可序列化的錯誤對象
+    throw new Error(errorMessage)
   }
 
   // 分頁輔助函數

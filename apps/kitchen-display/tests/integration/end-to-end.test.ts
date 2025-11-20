@@ -4,7 +4,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
 import EnhancedKitchenDashboard from "@/views/EnhancedKitchenDashboard.vue";
-import { useOrderManagement } from "@/stores/orderManagement";
+import { useOrderManagementStore } from "@/stores/orderManagement";
 import { audioService } from "@/services/audioService";
 import { offlineService } from "@/services/offlineService";
 import { performanceService } from "@/services/performanceService";
@@ -24,14 +24,14 @@ const mockOrders: KitchenOrder[] = [
     items: [
       {
         id: 1,
-        name: "ç‚’é£¯",
+        name: "?’é£¯",
         status: "pending",
         cookingTime: 10,
         priority: "normal",
       },
       {
         id: 2,
-        name: "æ¹¯",
+        name: "æ¹?,
         status: "pending",
         cookingTime: 5,
         priority: "normal",
@@ -43,7 +43,7 @@ const mockOrders: KitchenOrder[] = [
     elapsedTime: 5,
     estimatedTime: 15,
     priority: "normal",
-    customer: { name: "çŽ‹å°æ˜Ž", phone: "0912345678" },
+    customer: { name: "?‹å???, phone: "0912345678" },
     specialInstructions: "",
     assignedChef: null,
   },
@@ -54,7 +54,7 @@ const mockOrders: KitchenOrder[] = [
     items: [
       {
         id: 3,
-        name: "ç‰›æŽ’",
+        name: "?›æ?",
         status: "preparing",
         cookingTime: 20,
         priority: "high",
@@ -66,8 +66,8 @@ const mockOrders: KitchenOrder[] = [
     elapsedTime: 10,
     estimatedTime: 20,
     priority: "high",
-    customer: { name: "æŽå°è¯", phone: "0987654321" },
-    specialInstructions: "ä¸ƒåˆ†ç†Ÿ",
+    customer: { name: "?Žå???, phone: "0987654321" },
+    specialInstructions: "ä¸ƒå???,
     assignedChef: "chef1",
   },
   {
@@ -77,7 +77,7 @@ const mockOrders: KitchenOrder[] = [
     items: [
       {
         id: 4,
-        name: "æ²™æ‹‰",
+        name: "æ²™æ?",
         status: "ready",
         cookingTime: 3,
         priority: "normal",
@@ -89,21 +89,21 @@ const mockOrders: KitchenOrder[] = [
     elapsedTime: 15,
     estimatedTime: 5,
     priority: "normal",
-    customer: { name: "å¼µå°ç¾Ž", phone: "0965432187" },
+    customer: { name: "å¼µå?ç¾?, phone: "0965432187" },
     specialInstructions: "",
     assignedChef: "chef2",
   },
 ];
 
 describe("End-to-End Integration Tests", () => {
-  let orderStore: ReturnType<typeof useOrderManagement>;
+  let orderStore: ReturnType<typeof useOrderManagementStore>;
   let wrapper: any;
 
   beforeEach(() => {
     const pinia = createPinia();
     setActivePinia(pinia);
 
-    orderStore = useOrderManagement();
+    orderStore = useOrderManagementStore();
     orderStore.orders = [...mockOrders];
 
     // Initialize all services
@@ -209,15 +209,15 @@ describe("End-to-End Integration Tests", () => {
       const orders = [
         {
           ...mockOrders[0],
-          items: [{ name: "ç‚’é£¯", category: "rice", cookingTime: 8 }],
+          items: [{ name: "?’é£¯", category: "rice", cookingTime: 8 }],
         },
         {
           ...mockOrders[1],
-          items: [{ name: "ç‚’éºµ", category: "noodles", cookingTime: 10 }],
+          items: [{ name: "?’éºµ", category: "noodles", cookingTime: 10 }],
         },
         {
           ...mockOrders[2],
-          items: [{ name: "è›‹ç‚’é£¯", category: "rice", cookingTime: 7 }],
+          items: [{ name: "?‹ç?é£?, category: "rice", cookingTime: 7 }],
         },
       ];
 

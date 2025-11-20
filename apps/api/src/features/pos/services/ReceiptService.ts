@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 import type {
   Receipt,
   PrintReceiptRequest
@@ -43,12 +44,13 @@ export class ReceiptService extends BaseService {
       // 生成收據內容
       const receiptContent = await this.generateReceiptContent(order as any, validatedData.templateName)
 
+      const now = getCurrentTimestamp()
       await this.d1.prepare(`
         INSERT INTO receipts (
           id, order_id, register_id, shift_id, receipt_number, receipt_type,
           template_name, content, print_status, print_attempts, reprinted_count,
           created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, 0, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, 0, ?)
       `).bind(
         receiptId,
         validatedData.orderId,
@@ -57,7 +59,8 @@ export class ReceiptService extends BaseService {
         receiptNumber,
         validatedData.receiptType,
         validatedData.templateName,
-        JSON.stringify(receiptContent)
+        JSON.stringify(receiptContent),
+        now
       ).run()
 
       // 模擬打印過程
@@ -104,13 +107,14 @@ export class ReceiptService extends BaseService {
       }
 
       // 更新重打次數
+      const reprintTime = getCurrentTimestamp()
       await this.d1.prepare(`
         UPDATE receipts
         SET reprinted_count = reprinted_count + 1,
-            last_reprint_at = CURRENT_TIMESTAMP,
+            last_reprint_at = ?,
             print_status = 'pending'
         WHERE id = ?
-      `).bind(receiptId).run()
+      `).bind(reprintTime, receiptId).run()
 
       // 模擬重打過程
       this.simulatePrinting(receiptId, 1)
@@ -290,13 +294,14 @@ export class ReceiptService extends BaseService {
   private simulatePrinting(receiptId: string, copies: number = 1): void {
     setTimeout(async () => {
       try {
+        const printedTime = getCurrentTimestamp()
         await this.d1.prepare(`
           UPDATE receipts
           SET print_status = 'printed',
-              printed_at = CURRENT_TIMESTAMP,
+              printed_at = ?,
               print_attempts = print_attempts + 1
           WHERE id = ?
-        `).bind(receiptId).run()
+        `).bind(printedTime, receiptId).run()
       } catch (error) {
         console.error('更新打印狀態失敗:', error)
         // 標記為打印失敗

@@ -99,8 +99,29 @@ export class UserService extends BaseService {
         })
         .returning()
 
-      // 移除敏感資訊
-      const { passwordHash: _, ...userWithoutPassword } = newUser
+      // Convert Drizzle objects to primitive values to avoid circular references
+      // Also remove sensitive information (passwordHash)
+      const userWithoutPassword = {
+        id: Number(newUser.id),
+        username: String(newUser.username),
+        email: newUser.email ? String(newUser.email) : null,
+        phone: newUser.phone ? String(newUser.phone) : null,
+        fullName: newUser.fullName ? String(newUser.fullName) : null,
+        role: Number(newUser.role),
+        restaurantId: newUser.restaurantId ? Number(newUser.restaurantId) : null,
+        address: newUser.address ? String(newUser.address) : null,
+        dateOfBirth: newUser.dateOfBirth ? String(newUser.dateOfBirth) : null,
+        profileImageUrl: newUser.profileImageUrl ? String(newUser.profileImageUrl) : null,
+        preferences: newUser.preferences ? String(newUser.preferences) : null,
+        isActive: Boolean(Number(newUser.isActive)),
+        isVerified: Boolean(Number(newUser.isVerified)),
+        totalOrders: newUser.totalOrders ? Number(newUser.totalOrders) : 0,
+        totalSpent: newUser.totalSpent ? Number(newUser.totalSpent) : 0,
+        lastLoginAt: newUser.lastLoginAt ? String(newUser.lastLoginAt) : null,
+        createdAt: newUser.createdAt ? String(newUser.createdAt) : null,
+        updatedAt: newUser.updatedAt ? String(newUser.updatedAt) : null
+      }
+
       return userWithoutPassword
 
     } catch (error) {
@@ -136,7 +157,29 @@ export class UserService extends BaseService {
         .where(eq(users.id, id))
         .get()
 
-      return user
+      if (!user) return null
+
+      // Convert Drizzle objects to primitive values to avoid circular references
+      return {
+        id: Number(user.id),
+        username: String(user.username),
+        email: user.email ? String(user.email) : null,
+        phone: user.phone ? String(user.phone) : null,
+        fullName: user.fullName ? String(user.fullName) : null,
+        role: Number(user.role),
+        restaurantId: user.restaurantId ? Number(user.restaurantId) : null,
+        address: user.address ? String(user.address) : null,
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth) : null,
+        profileImageUrl: user.profileImageUrl ? String(user.profileImageUrl) : null,
+        isActive: Boolean(Number(user.isActive)),
+        isVerified: Boolean(Number(user.isVerified)),
+        preferences: user.preferences ? String(user.preferences) : null,
+        totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
+        totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
+        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+        updatedAt: user.updatedAt ? String(user.updatedAt) : null
+      }
 
     } catch (error) {
       this.handleError(error, 'getUserById')
@@ -164,7 +207,22 @@ export class UserService extends BaseService {
         .where(eq(users.username, username))
         .get()
 
-      return user
+      if (!user) return null
+
+      // Convert Drizzle objects to primitive values to avoid circular references
+      return {
+        id: Number(user.id),
+        username: String(user.username),
+        email: user.email ? String(user.email) : null,
+        phone: user.phone ? String(user.phone) : null,
+        fullName: user.fullName ? String(user.fullName) : null,
+        role: Number(user.role),
+        restaurantId: user.restaurantId ? Number(user.restaurantId) : null,
+        isActive: Boolean(Number(user.isActive)),
+        isVerified: Boolean(Number(user.isVerified)),
+        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
+        createdAt: user.createdAt ? String(user.createdAt) : null
+      }
 
     } catch (error) {
       this.handleError(error, 'getUserByUsername')
@@ -296,16 +354,33 @@ export class UserService extends BaseService {
         .limit(limit)
         .offset(offset)
 
-      // 計算總數
-      const [{ total }] = await this.db
+      // 計算總數 (使用安全解構避免 undefined 錯誤)
+      const countResult = await this.db
         .select({ total: count() })
         .from(users)
         .where(and(...conditions))
 
+      const total = countResult?.[0]?.total ?? 0
       const totalPages = Math.ceil(total / limit)
 
+      // Convert Drizzle objects to primitive values
+      const serializedUsers = usersList.map(user => ({
+        id: Number(user.id),
+        username: String(user.username),
+        email: user.email ? String(user.email) : null,
+        phone: user.phone ? String(user.phone) : null,
+        fullName: user.fullName ? String(user.fullName) : null,
+        role: Number(user.role),
+        isActive: Boolean(Number(user.isActive)),
+        isVerified: Boolean(Number(user.isVerified)),
+        totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
+        totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
+        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
+        createdAt: user.createdAt ? String(user.createdAt) : null
+      }))
+
       return {
-        users: usersList,
+        users: serializedUsers,
         total,
         pagination: { page, limit, totalPages }
       }
@@ -376,16 +451,33 @@ export class UserService extends BaseService {
         .limit(limit)
         .offset(offset)
 
-      // 計算總數
-      const [{ total }] = await this.db
+      // 計算總數 (使用安全解構避免 undefined 錯誤)
+      const countResult = await this.db
         .select({ total: count() })
         .from(users)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
 
+      const total = countResult?.[0]?.total ?? 0
       const totalPages = Math.ceil(total / limit)
 
+      // Convert Drizzle objects to primitive values
+      const serializedUsers = usersList.map(user => ({
+        id: Number(user.id),
+        username: String(user.username),
+        email: user.email ? String(user.email) : null,
+        fullName: user.fullName ? String(user.fullName) : null,
+        role: Number(user.role),
+        restaurantId: user.restaurantId ? Number(user.restaurantId) : null,
+        isActive: Boolean(Number(user.isActive)),
+        isVerified: Boolean(Number(user.isVerified)),
+        totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
+        totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
+        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
+        createdAt: user.createdAt ? String(user.createdAt) : null
+      }))
+
       return {
-        users: usersList,
+        users: serializedUsers,
         total,
         pagination: { page, limit, totalPages }
       }
@@ -490,18 +582,20 @@ export class UserService extends BaseService {
     try {
       const conditions = restaurantId ? [eq(users.restaurantId, restaurantId)] : []
 
-      // 總用戶數
-      const [{ totalUsers }] = await this.db
+      // 總用戶數 (使用安全解構避免 undefined 錯誤)
+      const totalUsersResult = await this.db
         .select({ totalUsers: count() })
         .from(users)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
+      const totalUsers = totalUsersResult?.[0]?.totalUsers ?? 0
 
-      // 活躍用戶數
+      // 活躍用戶數 (使用安全解構避免 undefined 錯誤)
       const activeConditions = [...conditions, eq(users.isActive, true)]
-      const [{ activeUsers }] = await this.db
+      const activeUsersResult = await this.db
         .select({ activeUsers: count() })
         .from(users)
         .where(and(...activeConditions))
+      const activeUsers = activeUsersResult?.[0]?.activeUsers ?? 0
 
       // 按角色分組統計
       const roleStats = await this.db
@@ -515,18 +609,19 @@ export class UserService extends BaseService {
 
       const byRole: Record<number, number> = {}
       roleStats.forEach(stat => {
-        byRole[stat.role] = stat.count
+        byRole[Number(stat.role)] = Number(stat.count)
       })
 
-      // 最近30天註冊用戶數
+      // 最近30天註冊用戶數 (使用安全解構避免 undefined 錯誤)
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
       const recentConditions = [...conditions, eq(users.createdAt, thirtyDaysAgo)]
-      const [{ recentRegistrations }] = await this.db
+      const recentRegistrationsResult = await this.db
         .select({ recentRegistrations: count() })
         .from(users)
         .where(and(...recentConditions))
+      const recentRegistrations = recentRegistrationsResult?.[0]?.recentRegistrations ?? 0
 
       return {
         totalUsers,
@@ -569,7 +664,15 @@ export class UserService extends BaseService {
         .orderBy(asc(users.fullName))
         .limit(limit)
 
-      return results
+      // Convert Drizzle objects to primitive values
+      return results.map(user => ({
+        id: Number(user.id),
+        username: String(user.username),
+        fullName: user.fullName ? String(user.fullName) : null,
+        email: user.email ? String(user.email) : null,
+        role: Number(user.role),
+        profileImageUrl: user.profileImageUrl ? String(user.profileImageUrl) : null
+      }))
 
     } catch (error) {
       this.handleError(error, 'searchUsers')
@@ -600,7 +703,17 @@ export class UserService extends BaseService {
         .where(and(...conditions))
         .orderBy(asc(users.fullName))
 
-      return results
+      // Convert Drizzle objects to primitive values
+      return results.map(user => ({
+        id: Number(user.id),
+        username: String(user.username),
+        fullName: user.fullName ? String(user.fullName) : null,
+        email: user.email ? String(user.email) : null,
+        phone: user.phone ? String(user.phone) : null,
+        role: Number(user.role),
+        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
+        createdAt: user.createdAt ? String(user.createdAt) : null
+      }))
 
     } catch (error) {
       this.handleError(error, 'getUsersByRole')

@@ -5,6 +5,7 @@
 
 import { createProvider } from '../providers';
 import { ProductAnalysisService } from './ProductAnalysisService';
+import { getCurrentTimestamp } from '@makanmakan/database';
 import type {
   LLMConfig,
   BusinessMetrics,
@@ -479,20 +480,21 @@ ${metrics.profitLeaders
     restaurantId: string,
     timeRange: TimeRangeParams
   ): Promise<AIAnalyticsReport | null> {
+    const now = getCurrentTimestamp();
     const query = `
       SELECT data
       FROM ai_insights_cache
       WHERE restaurant_id = ?
         AND insight_type = 'full_report'
         AND time_range = ?
-        AND expires_at > CURRENT_TIMESTAMP
+        AND expires_at > ?
       ORDER BY generated_at DESC
       LIMIT 1
     `;
 
     const result = await this.db
       .prepare(query)
-      .bind(restaurantId, timeRange.range)
+      .bind(restaurantId, timeRange.range, now)
       .first<{ data: string }>();
 
     if (result) {
@@ -508,6 +510,7 @@ ${metrics.profitLeaders
 
   private async cacheReport(report: AIAnalyticsReport): Promise<void> {
     const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
+    const now = getCurrentTimestamp();
 
     const query = `
       INSERT INTO ai_insights_cache (
@@ -516,12 +519,13 @@ ${metrics.profitLeaders
         time_range,
         data,
         confidence_score,
+        generated_at,
         expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (restaurant_id, insight_type, time_range)
       DO UPDATE SET
         data = excluded.data,
-        generated_at = CURRENT_TIMESTAMP,
+        generated_at = excluded.generated_at,
         expires_at = excluded.expires_at
     `;
 
@@ -533,6 +537,7 @@ ${metrics.profitLeaders
         report.timeRange.range,
         JSON.stringify(report),
         0.85,
+        now,
         expiresAt.toISOString()
       )
       .run();

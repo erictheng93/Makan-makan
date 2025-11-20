@@ -133,81 +133,100 @@
           <div>操作</div>
         </div>
 
-        <!-- 簡化的訂單列表 (不使用虛擬滾動以避免TypeScript類型問題) -->
+        <!-- 虛擬滾動訂單列表 (已修復 TypeScript 類型問題) -->
         <div
           v-if="filteredOrders.length > 0"
-          class="max-h-[500px] overflow-y-auto"
+          ref="containerRef"
+          class="overflow-y-auto"
+          :style="{ height: CONTAINER_HEIGHT + 'px' }"
+          @scroll="handleScroll"
         >
+          <!-- 虛擬滾動容器 -->
           <div
-            v-for="order in filteredOrders"
-            :key="order.id"
-            class="grid grid-cols-8 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center"
+            class="relative"
+            :style="{ height: totalHeight + 'px', minHeight: '100%' }"
           >
-            <div class="text-sm font-medium text-gray-900">
-              {{ getOrderNumber(order) }}
-            </div>
-            <div class="text-sm text-gray-500">
-              {{ getTableNumber(order) }}
-            </div>
-            <div class="text-sm text-gray-500">
-              {{ getCustomerName(order) }}
-            </div>
-            <div>
-              <span
-                :class="getTypeClass(getOrderType(order))"
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+            <!-- 偏移定位的可見項目 -->
+            <div
+              :style="{
+                transform: `translateY(${offsetY}px)`,
+                willChange: 'transform',
+              }"
+            >
+              <div
+                v-for="{ item: order } in visibleItems"
+                :key="order.id"
+                class="grid grid-cols-8 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center"
+                :style="{ height: ITEM_HEIGHT + 'px' }"
               >
-                {{ getTypeText(getOrderType(order)) }}
-              </span>
-            </div>
-            <div>
-              <span
-                :class="getStatusClass(order.status)"
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-              >
-                {{ getStatusText(order.status) }}
-              </span>
-            </div>
-            <div class="text-sm text-gray-500">RM{{ order.totalAmount }}</div>
-            <div class="text-sm text-gray-500">
-              {{ formatDateTime(order.createdAt) }}
-            </div>
-            <div class="text-sm font-medium">
-              <div class="flex items-center space-x-2">
-                <button
-                  class="text-blue-600 hover:text-blue-900"
-                  @click="viewOrderDetails(order)"
-                >
-                  查看
-                </button>
-                <button
-                  v-if="canUpdateStatus(order.status)"
-                  class="text-green-600 hover:text-green-900"
-                  @click="updateOrderStatus(order)"
-                >
-                  更新
-                </button>
-                <button
-                  v-if="canCancel(order.status)"
-                  class="text-red-600 hover:text-red-900"
-                  @click="cancelOrder(order)"
-                >
-                  取消
-                </button>
+                <div class="text-sm font-medium text-gray-900">
+                  {{ getOrderNumber(order) }}
+                </div>
+                <div class="text-sm text-gray-500">
+                  {{ getTableNumber(order) }}
+                </div>
+                <div class="text-sm text-gray-500">
+                  {{ getCustomerName(order) }}
+                </div>
+                <div>
+                  <span
+                    :class="getTypeClass(getOrderType(order))"
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  >
+                    {{ getTypeText(getOrderType(order)) }}
+                  </span>
+                </div>
+                <div>
+                  <span
+                    :class="getStatusClass(order.status)"
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  >
+                    {{ getStatusText(order.status) }}
+                  </span>
+                </div>
+                <div class="text-sm text-gray-500">RM{{ order.totalAmount }}</div>
+                <div class="text-sm text-gray-500">
+                  {{ formatDateTime(order.createdAt) }}
+                </div>
+                <div class="text-sm font-medium">
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-blue-600 hover:text-blue-900"
+                      @click="viewOrderDetails(order)"
+                    >
+                      查看
+                    </button>
+                    <button
+                      v-if="canUpdateStatus(order.status)"
+                      class="text-green-600 hover:text-green-900"
+                      @click="updateOrderStatus(order)"
+                    >
+                      更新
+                    </button>
+                    <button
+                      v-if="canCancel(order.status)"
+                      class="text-red-600 hover:text-red-900"
+                      @click="cancelOrder(order)"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 載入更多按鈕 -->
-          <div v-if="hasMore" class="p-4 text-center">
-            <button
-              :disabled="isLoading"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="loadMoreOrders"
-            >
-              <span v-if="isLoading">載入中...</span>
-              <span v-else>載入更多</span>
-            </button>
+          <!-- 載入指示器 -->
+          <div
+            v-if="isLoading"
+            class="absolute bottom-0 left-0 right-0 p-4 bg-white text-center"
+          >
+            <div class="flex items-center justify-center">
+              <div
+                class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"
+              />
+              <span class="ml-2 text-sm text-gray-600">載入中...</span>
+            </div>
           </div>
         </div>
 
@@ -319,6 +338,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useOrderStore } from "@/stores/order";
+import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import type { Order } from "@/types";
 import { OrderStatus } from "@/types";
 import {
@@ -330,7 +350,6 @@ import {
   ShoppingBagIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
-// import CookingPotIcon from "@heroicons/vue/24/solid/CookingPotIcon";
 
 const orderStore = useOrderStore();
 
@@ -340,9 +359,6 @@ const statusFilter = ref("");
 const typeFilter = ref("");
 const selectedOrder = ref<Order | null>(null);
 const isLoading = ref(false);
-const hasMore = ref(false);
-const currentPage = ref(1);
-const pageSize = ref(50);
 
 // Helper functions for missing properties
 const getOrderNumber = (order: Order) =>
@@ -395,39 +411,31 @@ const filteredOrders = computed(() => {
   );
 });
 
+// 虛擬滾動配置
+const ITEM_HEIGHT = 60; // 每個訂單行的固定高度 (px)
+const CONTAINER_HEIGHT = 500; // 容器高度 (px)
+
+const {
+  containerRef,
+  visibleItems,
+  totalHeight,
+  offsetY,
+  handleScroll,
+} = useVirtualScroll<Order>(filteredOrders, {
+  itemHeight: ITEM_HEIGHT,
+  buffer: 5,
+  containerHeight: CONTAINER_HEIGHT,
+});
+
 // 方法
 const refreshOrders = async () => {
   isLoading.value = true;
   try {
     await orderStore.fetchOrders();
-    // Reset pagination
-    currentPage.value = 1;
-    hasMore.value = orderStore.orders.length >= pageSize.value;
   } finally {
     isLoading.value = false;
   }
 };
-
-const loadMoreOrders = async () => {
-  if (isLoading.value || !hasMore.value) return;
-
-  isLoading.value = true;
-  try {
-    currentPage.value++;
-    // In a real implementation, this would fetch the next page
-    await orderStore.fetchOrders({
-      page: currentPage.value,
-      limit: pageSize.value,
-    });
-
-    // Check if there are more items to load
-    hasMore.value = orderStore.orders.length % pageSize.value === 0;
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Removed onLoadMore function since we're using a simple button approach instead of virtual scroll events
 
 const viewOrderDetails = (order: Order) => {
   selectedOrder.value = order;

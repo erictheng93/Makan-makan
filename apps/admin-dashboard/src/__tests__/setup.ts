@@ -6,6 +6,7 @@
 import { vi, beforeEach } from "vitest";
 import { config } from "@vue/test-utils";
 import { ref, h } from "vue";
+import { setupAllBrowserAPIs } from './browser-api-mocks';
 
 // ============================================================
 // Vue Router Mock (完整版)
@@ -17,8 +18,8 @@ import { ref, h } from "vue";
  */
 const mockRouter = {
   // 導航方法
-  push: vi.fn((to) => Promise.resolve()),
-  replace: vi.fn((to) => Promise.resolve()),
+  push: vi.fn((_to) => Promise.resolve()),
+  replace: vi.fn((_to) => Promise.resolve()),
   go: vi.fn(),
   back: vi.fn(),
   forward: vi.fn(),
@@ -274,8 +275,8 @@ vi.mock("vue-router", async () => {
 
   return {
     useRouter: () => ({
-      push: vi.fn((to) => Promise.resolve()),
-      replace: vi.fn((to) => Promise.resolve()),
+      push: vi.fn((_to) => Promise.resolve()),
+      replace: vi.fn((_to) => Promise.resolve()),
       go: vi.fn(),
       back: vi.fn(),
       forward: vi.fn(),
@@ -499,34 +500,14 @@ if (typeof global.MessageEvent === 'undefined') {
 }
 
 // ============================================================
-// Storage Mocks
+// Browser APIs Mocks (完整版)
 // ============================================================
 
 /**
- * Mock localStorage
+ * 設置所有瀏覽器 API mocks
+ * 包含真正的 localStorage、URL.createObjectURL 等
  */
-Object.defineProperty(window, "localStorage", {
-  value: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  },
-  writable: true,
-});
-
-/**
- * Mock sessionStorage
- */
-Object.defineProperty(window, "sessionStorage", {
-  value: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  },
-  writable: true,
-});
+setupAllBrowserAPIs()
 
 /**
  * Mock window.location
@@ -566,7 +547,7 @@ Object.defineProperty(window, 'confirm', {
 });
 
 Object.defineProperty(window, 'prompt', {
-  value: vi.fn((message: string, defaultValue?: string) => defaultValue || ''),
+  value: vi.fn((_message: string, defaultValue?: string) => defaultValue || ''),
   writable: true,
   configurable: true,
 });
@@ -624,9 +605,8 @@ beforeEach(() => {
   mockSettingsStore.language.value = 'en-US';
   mockSettingsStore.theme.value = 'light';
 
-  // 重置 localStorage
-  (window.localStorage.getItem as any).mockReturnValue(null);
-  (window.localStorage.setItem as any).mockClear();
+  // 重置 localStorage (使用真正的 clear 方法)
+  window.localStorage.clear();
 
   // 重置 window dialog mocks
   if (vi.isMockFunction(window.alert)) {

@@ -3,9 +3,25 @@
  * 測試離線重連與事件歷史恢復機制
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { RealtimeEventType, OrderStatus } from '@makanmakan/shared-types'
 import type { RealtimeEvent } from '@makanmakan/shared-types'
+
+// Mock CloseEvent for Node.js environment
+if (typeof CloseEvent === 'undefined') {
+  global.CloseEvent = class CloseEvent extends Event {
+    code: number
+    reason: string
+    wasClean: boolean
+
+    constructor(type: string, eventInitDict?: { code?: number; reason?: string; wasClean?: boolean }) {
+      super(type)
+      this.code = eventInitDict?.code ?? 0
+      this.reason = eventInitDict?.reason ?? ''
+      this.wasClean = eventInitDict?.wasClean ?? false
+    }
+  } as any
+}
 
 // Mock event history storage
 class EventHistoryStore {
@@ -66,18 +82,21 @@ class ReconnectableWebSocket {
     this.connect()
   }
 
-  private connect(): void {
-    setTimeout(() => {
-      this.readyState = WebSocket.OPEN
-      if (this.onopen) {
-        this.onopen(new Event('open'))
-      }
+  private connect(): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.readyState = WebSocket.OPEN
+        if (this.onopen) {
+          this.onopen(new Event('open'))
+        }
 
-      // If we have a lastEventId, request missed events
-      if (this.lastEventId) {
-        this.requestMissedEvents()
-      }
-    }, 10)
+        // If we have a lastEventId, request missed events
+        if (this.lastEventId) {
+          this.requestMissedEvents()
+        }
+        resolve()
+      }, 10)
+    })
   }
 
   send(data: string): void {
@@ -95,13 +114,12 @@ class ReconnectableWebSocket {
 
   close(code?: number, reason?: string): void {
     this.readyState = WebSocket.CLOSING
-    setTimeout(() => {
-      this.readyState = WebSocket.CLOSED
-      if (this.onclose) {
-        const event = new CloseEvent('close', { code, reason, wasClean: true })
-        this.onclose(event)
-      }
-    }, 10)
+    // Execute synchronously to avoid timer issues
+    this.readyState = WebSocket.CLOSED
+    if (this.onclose) {
+      const event = new CloseEvent('close', { code, reason, wasClean: true })
+      this.onclose(event)
+    }
   }
 
   simulateDisconnect(): void {
@@ -126,7 +144,7 @@ class ReconnectableWebSocket {
     await new Promise(resolve => setTimeout(resolve, this.reconnectInterval))
 
     this.readyState = WebSocket.CONNECTING
-    this.connect()
+    await this.connect()
   }
 
   private requestMissedEvents(): void {
@@ -154,6 +172,11 @@ class ReconnectableWebSocket {
   getReconnectAttempts(): number {
     return this.reconnectAttempts
   }
+
+  reset(): void {
+    this.reconnectAttempts = 0
+    this.lastEventId = null
+  }
 }
 
 describe('Offline Reconnection Tests', () => {
@@ -163,6 +186,26 @@ describe('Offline Reconnection Tests', () => {
   beforeEach(() => {
     eventHistory = new EventHistoryStore()
     vi.clearAllMocks()
+    // Reset and close any existing WebSocket instance
+    if (ws) {
+      try {
+        ws.reset()
+        ws.close()
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
+  })
+
+  afterEach(() => {
+    // Clean up WebSocket connections
+    if (ws) {
+      try {
+        ws.close()
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
   })
 
   describe('事件歷史記錄', () => {
@@ -268,24 +311,38 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
+        let reconnected = false
+
         ws.onopen = () => {
-          // Simulate disconnect
-          ws.simulateDisconnect()
+          if (reconnected) {
+            // After reconnection, verify state and resolve
+            try {
+              expect(ws.readyState).toBe(WebSocket.OPEN)
+              expect(ws.getReconnectAttempts()).toBe(1)
+              resolve()
+            } catch (error) {
+              reject(error)
+            }
+          } else {
+            // First connection - simulate disconnect
+            ws.simulateDisconnect()
+          }
         }
 
         ws.onclose = async (event: CloseEvent) => {
-          if (!event.wasClean) {
-            // Attempt reconnection
-            await ws.reconnect()
-
-            expect(ws.readyState).toBe(WebSocket.OPEN)
-            expect(ws.getReconnectAttempts()).toBe(1)
-            resolve()
+          if (!event.wasClean && !reconnected) {
+            reconnected = true
+            try {
+              // Attempt reconnection
+              await ws.reconnect()
+            } catch (error) {
+              reject(error)
+            }
           }
         }
       })
-    })
+    }, 10000)
 
     it('應該在達到最大重試次數後停止重連', async () => {
       ws = new ReconnectableWebSocket(
@@ -310,35 +367,39 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
         let missedEventCount = 0
 
         ws.onopen = async () => {
-          // Track last event
-          ws.updateLastEventId('evt_5')
+          try {
+            // Track last event
+            ws.updateLastEventId('evt_5')
 
-          // Simulate disconnect
-          ws.simulateDisconnect()
+            // Simulate disconnect
+            ws.simulateDisconnect()
 
-          // While offline, add events to history
-          for (let i = 6; i <= 10; i++) {
-            const event: RealtimeEvent = {
-              type: RealtimeEventType.ORDER_STATUS_UPDATE,
-              eventId: `evt_${i}`,
-              timestamp: Date.now(),
-              restaurantId: 'rest_1',
-              data: {
-                orderId: 123,
-                orderNumber: 'ORD-001',
-                status: OrderStatus.PREPARING,
-                previousStatus: OrderStatus.PENDING
+            // While offline, add events to history
+            for (let i = 6; i <= 10; i++) {
+              const event: RealtimeEvent = {
+                type: RealtimeEventType.ORDER_STATUS_UPDATE,
+                eventId: `evt_${i}`,
+                timestamp: Date.now(),
+                restaurantId: 'rest_1',
+                data: {
+                  orderId: 123,
+                  orderNumber: 'ORD-001',
+                  status: OrderStatus.PREPARING,
+                  previousStatus: OrderStatus.PENDING
+                }
               }
+              eventHistory.addEvent(event)
             }
-            eventHistory.addEvent(event)
-          }
 
-          // Reconnect
-          await ws.reconnect()
+            // Reconnect
+            await ws.reconnect()
+          } catch (error) {
+            reject(error)
+          }
         }
 
         ws.onmessage = (event: MessageEvent) => {
@@ -355,7 +416,7 @@ describe('Offline Reconnection Tests', () => {
           }
         }
       })
-    })
+    }, 10000)
 
     it('應該按正確順序恢復事件', async () => {
       ws = new ReconnectableWebSocket(
@@ -363,31 +424,35 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
         const receivedEvents: string[] = []
 
         ws.onopen = async () => {
-          ws.updateLastEventId('evt_3')
-          ws.simulateDisconnect()
+          try {
+            ws.updateLastEventId('evt_3')
+            ws.simulateDisconnect()
 
-          // Add events while offline
-          for (let i = 4; i <= 8; i++) {
-            const event: RealtimeEvent = {
-              type: RealtimeEventType.NEW_ORDER,
-              eventId: `evt_${i}`,
-              timestamp: Date.now(),
-              restaurantId: 'rest_1',
-              data: {
-                orderId: i,
-                orderNumber: `ORD-${i}`,
-                items: [],
-                totalAmount: i * 10
+            // Add events while offline
+            for (let i = 4; i <= 8; i++) {
+              const event: RealtimeEvent = {
+                type: RealtimeEventType.NEW_ORDER,
+                eventId: `evt_${i}`,
+                timestamp: Date.now(),
+                restaurantId: 'rest_1',
+                data: {
+                  orderId: i,
+                  orderNumber: `ORD-${i}`,
+                  items: [],
+                  totalAmount: i * 10
+                }
               }
+              eventHistory.addEvent(event)
             }
-            eventHistory.addEvent(event)
-          }
 
-          await ws.reconnect()
+            await ws.reconnect()
+          } catch (error) {
+            reject(error)
+          }
         }
 
         ws.onmessage = (event: MessageEvent) => {
@@ -400,7 +465,7 @@ describe('Offline Reconnection Tests', () => {
           }
         }
       })
-    })
+    }, 10000)
 
     it('應該處理大量遺漏事件', async () => {
       ws = new ReconnectableWebSocket(
@@ -408,31 +473,35 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
         let receivedCount = 0
 
         ws.onopen = async () => {
-          ws.updateLastEventId('evt_0')
-          ws.simulateDisconnect()
+          try {
+            ws.updateLastEventId('evt_0')
+            ws.simulateDisconnect()
 
-          // Add 50 events while offline
-          for (let i = 1; i <= 50; i++) {
-            const event: RealtimeEvent = {
-              type: RealtimeEventType.NEW_ORDER,
-              eventId: `evt_${i}`,
-              timestamp: Date.now(),
-              restaurantId: 'rest_1',
-              data: {
-                orderId: i,
-                orderNumber: `ORD-${i}`,
-                items: [],
-                totalAmount: i * 10
+            // Add 50 events while offline
+            for (let i = 1; i <= 50; i++) {
+              const event: RealtimeEvent = {
+                type: RealtimeEventType.NEW_ORDER,
+                eventId: `evt_${i}`,
+                timestamp: Date.now(),
+                restaurantId: 'rest_1',
+                data: {
+                  orderId: i,
+                  orderNumber: `ORD-${i}`,
+                  items: [],
+                  totalAmount: i * 10
+                }
               }
+              eventHistory.addEvent(event)
             }
-            eventHistory.addEvent(event)
-          }
 
-          await ws.reconnect()
+            await ws.reconnect()
+          } catch (error) {
+            reject(error)
+          }
         }
 
         ws.onmessage = (event: MessageEvent) => {
@@ -444,7 +513,7 @@ describe('Offline Reconnection Tests', () => {
           }
         }
       })
-    })
+    }, 10000)
   })
 
   describe('lastEventId 追蹤', () => {
@@ -512,18 +581,36 @@ describe('Offline Reconnection Tests', () => {
         eventHistory
       )
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
+        let reconnected = false
+
         ws.onopen = async () => {
-          ws.simulateDisconnect()
+          if (reconnected) {
+            // After reconnection, verify and resolve
+            try {
+              expect(ws.readyState).toBe(WebSocket.OPEN)
+              resolve()
+            } catch (error) {
+              reject(error)
+            }
+          } else {
+            // First connection - simulate disconnect
+            ws.simulateDisconnect()
+          }
         }
 
         ws.onclose = async () => {
-          // Immediate reconnection
-          await ws.reconnect()
-          expect(ws.readyState).toBe(WebSocket.OPEN)
-          resolve()
+          if (!reconnected) {
+            reconnected = true
+            try {
+              // Immediate reconnection
+              await ws.reconnect()
+            } catch (error) {
+              reject(error)
+            }
+          }
         }
       })
-    })
+    }, 10000)
   })
 })

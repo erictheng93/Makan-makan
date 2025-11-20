@@ -9,9 +9,7 @@ import {
   getErrorTracker,
   resetErrorTracker,
   type ErrorContext,
-  type ErrorBreadcrumb,
   type TrackedError,
-  type ErrorTrackingOptions,
   type ErrorSeverity
 } from '../error-tracking'
 
@@ -531,7 +529,7 @@ describe('ErrorTracker', () => {
     it('should count unresolved errors', () => {
       // Arrange
       const id1 = tracker.captureError(new Error('Error 1'))
-      const id2 = tracker.captureError(new Error('Error 2'))
+      tracker.captureError(new Error('Error 2'))
       tracker.resolveError(id1)
 
       // Act
@@ -761,7 +759,7 @@ describe('Global Error Tracker', () => {
     })
 
     tracker.addBreadcrumb({ category: 'test', message: 'Test', level: 'info' })
-    const errorId = tracker.captureError(new Error('Test'))
+    tracker.captureError(new Error('Test'))
     const stats = tracker.getStats()
 
     // Assert

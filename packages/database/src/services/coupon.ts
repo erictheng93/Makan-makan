@@ -2,6 +2,7 @@ import { eq, and, gte, lte, sql, desc, asc, inArray } from 'drizzle-orm'
 import { BaseService } from './base'
 import { coupons, couponUsage, couponDistributions, couponTemplates, orders, menuItems as menuItemsTable, categories } from '../schema'
 import type { DiscountType, DistributionType, TargetType, UsageStatus } from '../schema'
+import { getCurrentTimestamp } from '../utils/timestamp'
 
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
@@ -206,11 +207,12 @@ export class CouponService extends BaseService {
       .returning()
 
     // 更新優惠券使用次數
+    const now = getCurrentTimestamp()
     await this.db
       .update(coupons)
-      .set({ 
+      .set({
         usedCount: sql`${coupons.usedCount} + 1`,
-        updatedAt: sql`CURRENT_TIMESTAMP`
+        updatedAt: now
       })
       .where(eq(coupons.id, data.couponId))
 
@@ -388,11 +390,12 @@ export class CouponService extends BaseService {
    * 更新優惠券
    */
   async updateCoupon(id: number, updates: Partial<CreateCouponData>): Promise<any> {
+    const now = getCurrentTimestamp()
     const coupon = await this.db
       .update(coupons)
       .set({
         ...updates,
-        updatedAt: sql`CURRENT_TIMESTAMP`
+        updatedAt: now
       })
       .where(eq(coupons.id, id))
       .returning()

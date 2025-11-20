@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams } from '../middleware/validation'
-import { POSService } from '@makanmakan/database'
+import { POSService, getCurrentTimestamp } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -365,22 +365,24 @@ app.post('/receipts/:receiptId/reprint',
       }
 
       // 更新重打次數
+      const reprintTime = getCurrentTimestamp()
       await db.prepare(`
-        UPDATE receipts 
+        UPDATE receipts
         SET reprinted_count = reprinted_count + 1,
-            last_reprint_at = CURRENT_TIMESTAMP,
+            last_reprint_at = ?,
             print_status = 'pending'
         WHERE id = ?
-      `).bind(receiptId).run()
+      `).bind(reprintTime, receiptId).run()
 
       // 模擬重打過程
       setTimeout(async () => {
         try {
+          const printedTime = getCurrentTimestamp()
           await db.prepare(`
-            UPDATE receipts 
-            SET print_status = 'printed', printed_at = CURRENT_TIMESTAMP 
+            UPDATE receipts
+            SET print_status = 'printed', printed_at = ?
             WHERE id = ?
-          `).bind(receiptId).run()
+          `).bind(printedTime, receiptId).run()
         } catch (error) {
           console.error('更新重打狀態失敗:', error)
         }

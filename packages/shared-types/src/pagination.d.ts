@@ -231,3 +231,4 @@ export declare function encodeCursor(data: Record<string, any>): string;
  * Decode cursor for cursor-based pagination
  */
 export declare function decodeCursor(cursor: string): Record<string, any>;
+//# sourceMappingURL=pagination.d.ts.map

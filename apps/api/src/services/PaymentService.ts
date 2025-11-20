@@ -1,5 +1,6 @@
 import { PaymentOrchestrator } from './PaymentOrchestrator'
 import { PaymentConfigManager } from './PaymentConfigManager'
+import { getCurrentTimestamp } from '@makanmakan/database'
 // import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
 // import { ECPayProvider } from './providers/ECPayProvider' // Disabled
 // import { NewebPayProvider } from './providers/NewebPayProvider' // Disabled
@@ -552,12 +553,13 @@ export class PaymentService {
     customerInfo?: any
     status: string
   }): Promise<void> {
+    const now = getCurrentTimestamp()
     const stmt = this.db.prepare(`
       INSERT INTO payment_transactions (
-        transaction_id, order_id, restaurant_id, provider_name, 
+        transaction_id, order_id, restaurant_id, provider_name,
         payment_method, amount, currency, country_code, status,
         customer_name, customer_email, customer_phone, created_at
-      ) VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     stmt.run(
@@ -571,7 +573,8 @@ export class PaymentService {
       data.status,
       data.customerInfo?.name,
       data.customerInfo?.email,
-      data.customerInfo?.phone
+      data.customerInfo?.phone,
+      now
     )
   }
 
@@ -584,15 +587,18 @@ export class PaymentService {
   }): Promise<void> {
     const setParts: string[] = []
     const values: any[] = []
+    const now = getCurrentTimestamp()
 
     if (updates.status) {
       setParts.push('status = ?')
       values.push(updates.status)
 
       if (updates.status === 'completed') {
-        setParts.push('completed_at = CURRENT_TIMESTAMP')
+        setParts.push('completed_at = ?')
+        values.push(now)
       } else if (updates.status === 'failed') {
-        setParts.push('failed_at = CURRENT_TIMESTAMP')
+        setParts.push('failed_at = ?')
+        values.push(now)
       }
     }
 
@@ -618,7 +624,8 @@ export class PaymentService {
 
     if (setParts.length === 0) return
 
-    setParts.push('updated_at = CURRENT_TIMESTAMP')
+    setParts.push('updated_at = ?')
+    values.push(now)
     values.push(transactionId)
 
     const stmt = this.db.prepare(`
@@ -635,13 +642,14 @@ export class PaymentService {
     providerId: string,
     updates: { status?: string }
   ): Promise<void> {
+    const now = getCurrentTimestamp()
     const stmt = this.db.prepare(`
-      UPDATE payment_transactions 
-      SET status = ?, updated_at = CURRENT_TIMESTAMP
+      UPDATE payment_transactions
+      SET status = ?, updated_at = ?
       WHERE provider_transaction_id = ? AND provider_name = ?
     `)
 
-    stmt.run(updates.status, providerTransactionId, providerId)
+    stmt.run(updates.status, now, providerTransactionId, providerId)
   }
 
   private async getPaymentTransaction(transactionId: string): Promise<any> {
@@ -652,10 +660,11 @@ export class PaymentService {
   }
 
   private async createRefundTransaction(data: any): Promise<void> {
+    const now = getCurrentTimestamp()
     const stmt = this.db.prepare(`
       INSERT INTO refund_transactions (
         refund_id, payment_transaction_id, amount, reason, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `)
 
     stmt.run(
@@ -663,14 +672,16 @@ export class PaymentService {
       data.paymentTransactionId,
       data.amount,
       data.reason,
-      data.status
+      data.status,
+      now
     )
   }
 
   private async updateRefundTransaction(refundId: string, updates: any): Promise<void> {
+    const now = getCurrentTimestamp()
     const stmt = this.db.prepare(`
-      UPDATE refund_transactions 
-      SET status = ?, provider_refund_id = ?, error_code = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP
+      UPDATE refund_transactions
+      SET status = ?, provider_refund_id = ?, error_code = ?, error_message = ?, updated_at = ?
       WHERE refund_id = ?
     `)
 
@@ -679,22 +690,25 @@ export class PaymentService {
       updates.providerRefundId,
       updates.error?.code,
       updates.error?.message,
+      now,
       refundId
     )
   }
 
   private async logWebhookEvent(providerId: string, payload: any, signature?: string): Promise<void> {
+    const now = getCurrentTimestamp()
     const stmt = this.db.prepare(`
       INSERT INTO webhook_events (
         provider_name, event_type, payload, signature, created_at
-      ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?)
     `)
 
     stmt.run(
       providerId,
       payload.type || 'unknown',
       JSON.stringify(payload),
-      signature
+      signature,
+      now
     )
   }
 

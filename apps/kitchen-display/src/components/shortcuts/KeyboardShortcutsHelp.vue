@@ -353,7 +353,7 @@ const handleImportShortcuts = async (event: Event) => {
 
   try {
     await importShortcutsConfig(file);
-  } catch (error) {
+  } catch {
     // Error already handled in composable
   } finally {
     // Reset input

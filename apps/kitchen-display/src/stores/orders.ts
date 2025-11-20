@@ -100,24 +100,36 @@ export const useOrdersStore = defineStore("orders", () => {
 
   /**
    * 處理新訂單事件
+   * 支援兩種格式：
+   * 1. { type: 'NEW_ORDER', payload: { order: {...} } }
+   * 2. { type: 'NEW_ORDER', payload: {...} } (直接是訂單物件)
    */
   const handleNewOrder = (event: KitchenSSEEvent) => {
-    if (event.payload && event.payload.order) {
-      const newOrder: KitchenOrder = event.payload.order;
+    if (!event.payload) return;
 
-      // 檢查訂單是否已存在
-      const existingOrderIndex = orders.value.findIndex(
-        (o) => o.id === newOrder.id,
-      );
+    // 支援兩種 payload 格式
+    const newOrder: KitchenOrder =
+      event.payload.order || // 格式 1: payload.order
+      event.payload as any;  // 格式 2: payload 本身就是 order
 
-      if (existingOrderIndex === -1) {
-        orders.value.unshift(newOrder); // 新訂單插入到最前面
-        console.log(`New order added: ${newOrder.orderNumber}`);
-      } else {
-        // 更新現有訂單
-        orders.value[existingOrderIndex] = newOrder;
-        console.log(`Existing order updated: ${newOrder.orderNumber}`);
-      }
+    // 驗證是否為有效訂單物件
+    if (!newOrder || !newOrder.id) {
+      console.warn('Invalid order data in NEW_ORDER event', event);
+      return;
+    }
+
+    // 檢查訂單是否已存在
+    const existingOrderIndex = orders.value.findIndex(
+      (o) => o.id === newOrder.id,
+    );
+
+    if (existingOrderIndex === -1) {
+      orders.value.unshift(newOrder); // 新訂單插入到最前面
+      console.log(`New order added: ${newOrder.orderNumber}`);
+    } else {
+      // 更新現有訂單
+      orders.value[existingOrderIndex] = newOrder;
+      console.log(`Existing order updated: ${newOrder.orderNumber}`);
     }
   };
 
@@ -159,7 +171,7 @@ export const useOrdersStore = defineStore("orders", () => {
         }
 
         // 檢查是否需要更新訂單整體狀態
-        updateOrderStatus(order);
+        updateOrderStatusFromOrder(order);
 
         // 觸發響應式更新
         orders.value[orderIndex] = { ...order };
@@ -198,9 +210,9 @@ export const useOrdersStore = defineStore("orders", () => {
   };
 
   /**
-   * 更新訂單整體狀態
+   * 內部方法：根據 items 狀態更新訂單整體狀態
    */
-  const updateOrderStatus = (order: KitchenOrder) => {
+  const updateOrderStatusFromOrder = (order: KitchenOrder) => {
     const itemStatuses = order.items.map((item) => item.status);
 
     if (
@@ -301,7 +313,7 @@ export const useOrdersStore = defineStore("orders", () => {
             orders.value[orderIndex].items[itemIndex].status = "preparing";
             orders.value[orderIndex].items[itemIndex].startedAt =
               new Date().toISOString();
-            updateOrderStatus(orders.value[orderIndex]);
+            updateOrderStatusFromOrder(orders.value[orderIndex]);
             updateStats();
           }
         }
@@ -340,7 +352,7 @@ export const useOrdersStore = defineStore("orders", () => {
             orders.value[orderIndex].items[itemIndex].status = "ready";
             orders.value[orderIndex].items[itemIndex].completedAt =
               new Date().toISOString();
-            updateOrderStatus(orders.value[orderIndex]);
+            updateOrderStatusFromOrder(orders.value[orderIndex]);
             updateStats();
           }
         }
@@ -426,6 +438,61 @@ export const useOrdersStore = defineStore("orders", () => {
   };
 
   /**
+   * 清空訂單列表（保留其他 store 狀態）
+   */
+  const clearOrders = () => {
+    orders.value = [];
+    updateStats();
+  };
+
+  /**
+   * 公開方法：直接更新訂單狀態（支援 number 或 string ID）
+   */
+  const updateOrderStatus = (orderId: number | string, newStatus: number) => {
+    const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
+    const orderIndex = orders.value.findIndex((o) => o.id === id);
+    if (orderIndex !== -1) {
+      orders.value[orderIndex].status = newStatus;
+      updateStats();
+    }
+  };
+
+  /**
+   * 別名：updateOrderStatusById (向後兼容)
+   */
+  const updateOrderStatusById = updateOrderStatus;
+
+  /**
+   * 公開方法：直接更新單個 item 狀態
+   */
+  const updateItemStatus = (orderId: number, itemId: number, newStatus: string) => {
+    const orderIndex = orders.value.findIndex((o) => o.id === orderId);
+    if (orderIndex !== -1) {
+      const order = orders.value[orderIndex];
+      const itemIndex = order.items.findIndex((i) => i.id === itemId);
+
+      if (itemIndex !== -1) {
+        order.items[itemIndex].status = newStatus;
+
+        // 更新時間戳
+        const now = new Date().toISOString();
+        if (newStatus === "preparing" && !order.items[itemIndex].startedAt) {
+          order.items[itemIndex].startedAt = now;
+        } else if (newStatus === "ready" && !order.items[itemIndex].completedAt) {
+          order.items[itemIndex].completedAt = now;
+        }
+
+        // 更新訂單整體狀態
+        updateOrderStatusFromOrder(order);
+
+        // 觸發響應式更新
+        orders.value[orderIndex] = { ...order };
+        updateStats();
+      }
+    }
+  };
+
+  /**
    * 重置 store 狀態
    */
   const reset = () => {
@@ -469,6 +536,10 @@ export const useOrdersStore = defineStore("orders", () => {
     markAllReady,
     getOrderById,
     clearError,
+    clearOrders,
+    updateOrderStatus,
+    updateOrderStatusById,
+    updateItemStatus,
     reset,
   };
 });

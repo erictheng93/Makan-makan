@@ -698,7 +698,7 @@ describe('Authentication Feature', () => {
         const result = authSchemas.register.safeParse(invalidData)
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Role must be 4 or less')
+          expect(result.error.issues[0].message).toContain('Role must be 5 or less')
         }
       })
 

@@ -21,7 +21,7 @@ declare const _default: import("vue").DefineComponent<Props, {}, {}, {}, {}, imp
 }, string, import("vue").PublicProps, Readonly<Props> & Readonly<{
     onSeatClick?: ((seat: Seat) => any) | undefined;
 }>, {
-    showDetails: boolean;
     columns: number;
+    showDetails: boolean;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

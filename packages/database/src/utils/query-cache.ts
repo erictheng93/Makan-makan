@@ -4,6 +4,8 @@
  * Target: 85%+ cache hit rate for read-heavy operations
  */
 
+import type { KVNamespace } from '@cloudflare/workers-types'
+
 export interface QueryCacheOptions {
   ttl: number // Time to live in seconds
   tags?: string[] // Cache tags for smart invalidation
@@ -118,7 +120,7 @@ export class QueryCache {
         for (const tag of tags) {
           const taggedKeys = await this.kv.get<string[]>(`cache:tag:${tag}`, { type: 'json' })
           if (taggedKeys) {
-            taggedKeys.forEach(key => keysToInvalidate.add(key))
+            taggedKeys.forEach((key: string) => keysToInvalidate.add(key))
           }
         }
 

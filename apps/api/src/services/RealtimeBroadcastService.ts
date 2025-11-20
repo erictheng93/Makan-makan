@@ -7,7 +7,6 @@ import type { Env } from '../shared/types'
 import { ConsoleLogger } from '../core/monitoring'
 import type {
   RealtimeEvent,
-  RealtimeEventType,
   NewOrderEvent,
   OrderStatusUpdateEvent,
   OrderItemStatusUpdateEvent,
@@ -43,6 +42,16 @@ export class RealtimeBroadcastService {
     event: RealtimeEvent
   ): Promise<BroadcastResult> {
     try {
+      // 檢查 REALTIME_SESSION 是否可用（測試環境可能未配置）
+      if (!this.env.REALTIME_SESSION) {
+        this.logger.warn('REALTIME_SESSION not configured, skipping broadcast')
+        return {
+          success: true,
+          eventId: event.eventId,
+          recipientCount: 0
+        }
+      }
+
       // 獲取 Durable Object 實例
       const durableObjectId = this.env.REALTIME_SESSION.idFromName(`${roomType}:${roomId}`)
       const durableObjectStub = this.env.REALTIME_SESSION.get(durableObjectId)

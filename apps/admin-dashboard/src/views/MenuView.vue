@@ -91,21 +91,30 @@
       </div>
     </div>
 
-    <!-- 菜品網格 -->
-    <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    <!-- 虛擬滾動菜品網格 -->
+    <VirtualMenuGrid
+      v-if="filteredMenuItems.length > 0"
+      :menu-items="filteredMenuItems"
+      :item-height="MENU_ITEM_HEIGHT"
+      :container-height="MENU_CONTAINER_HEIGHT"
+      :columns-count="4"
+      :buffer-size="3"
     >
-      <div
-        v-for="item in filteredMenuItems"
-        :key="item.id"
-        class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-      >
-        <!-- 菜品圖片 -->
+      <template #default="{ menuItem: item }">
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
+        >
+        <!-- 菜品圖片 - 🚀 使用優化圖片組件 -->
         <div class="relative">
-          <img
+          <OptimizedImage
             :src="item.imageUrl || '/placeholder-food.jpg'"
             :alt="item.name"
-            class="w-full h-48 object-cover rounded-t-lg"
+            :width="600"
+            :height="400"
+            format="auto"
+            fit="cover"
+            :lazy="true"
+            :fade-in="true"
+            image-class="w-full h-48 object-cover rounded-t-lg"
           />
           <div class="absolute top-2 right-2">
             <span
@@ -180,24 +189,25 @@
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </template>
+    </VirtualMenuGrid>
 
-      <!-- 空狀態 -->
-      <div
-        v-if="filteredMenuItems.length === 0"
-        class="col-span-full text-center py-12"
+    <!-- 空狀態 -->
+    <div
+      v-if="filteredMenuItems.length === 0"
+      class="text-center py-12"
+    >
+      <CakeIcon class="mx-auto h-12 w-12 text-gray-400" />
+      <h3 class="mt-2 text-sm font-medium text-gray-900">暫無菜品</h3>
+      <p class="mt-1 text-sm text-gray-500">開始添加您的第一道菜品</p>
+      <button
+        class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        @click="showMenuItemModal = true"
       >
-        <CakeIcon class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900">暫無菜品</h3>
-        <p class="mt-1 text-sm text-gray-500">開始添加您的第一道菜品</p>
-        <button
-          class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          @click="showMenuItemModal = true"
-        >
-          <PlusIcon class="h-4 w-4 mr-2" />
-          新增菜品
-        </button>
-      </div>
+        <PlusIcon class="h-4 w-4 mr-2" />
+        新增菜品
+      </button>
     </div>
 
     <!-- 分類管理模態框 -->
@@ -436,7 +446,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-// import LazyImage from "../../../packages/shared/components/LazyImage.vue";
+import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
+import OptimizedImage from "@/components/OptimizedImage.vue";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -446,6 +457,10 @@ import {
   EyeSlashIcon,
   CakeIcon,
 } from "@heroicons/vue/24/outline";
+
+// 虛擬滾動配置
+const MENU_ITEM_HEIGHT = 330; // 每個菜品卡片的高度 (圖片 192px + 內容 138px)
+const MENU_CONTAINER_HEIGHT = 800; // 容器高度 (px)
 
 // 響應式數據
 const searchQuery = ref("");

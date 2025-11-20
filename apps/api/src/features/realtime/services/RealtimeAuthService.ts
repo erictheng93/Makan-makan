@@ -188,10 +188,10 @@ export class RealtimeAuthService {
    */
   private async verifyTableExists(tableId: string, restaurantId: string): Promise<boolean> {
     try {
-      // 使用原生 SQL 查詢來驗證
+      // 使用原生 SQL 查詢來驗證 - 支持 ID 或 QR code
       const stmt = this.db.prepare(
-        `SELECT id, restaurant_id FROM tables WHERE qr_code = ? AND restaurant_id = ? AND is_active = 1 LIMIT 1`
-      ).bind(tableId, parseInt(restaurantId))
+        `SELECT id, restaurant_id FROM tables WHERE (id = ? OR qr_code = ?) AND restaurant_id = ? AND is_active = 1 LIMIT 1`
+      ).bind(tableId, tableId, restaurantId)
 
       const result: any = await stmt.all()
 
@@ -230,7 +230,7 @@ export class RealtimeAuthService {
    */
   private determineRole(
     roomType: RoomType,
-    sessionId?: string
+    _sessionId?: string
   ): 'customer' | 'staff' | 'admin' {
     // 如果有 sessionId，可以查詢使用者角色
     // 目前簡化處理

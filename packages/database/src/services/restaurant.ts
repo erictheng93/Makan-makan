@@ -37,8 +37,7 @@ export class RestaurantService extends BaseService {
           ...data,
           city: data.city || '台中市',
           isAvailable: true,  // Default: restaurant is available
-          isActive: true,      // Default: restaurant is active
-          status: 1            // Default: active status
+          isActive: true      // Default: restaurant is active
         })
         .returning()
 

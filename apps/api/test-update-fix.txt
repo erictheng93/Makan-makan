@@ -1,0 +1,2017 @@
+
+> @makanmakan/api@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api
+> vitest "src/__tests__/integration/core-modules.test.ts"
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/api[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts
+[22m[39m[queue] INFO: queue module initialized { version: [32m'2.0.0'[39m, description: [32m'Unified queue management system'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts
+[22m[39m[TablesRoutes] Routes module loaded, defining routes...
+[TablesRoutes] Registered POST / and POST routes for creating tables
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedDataStore] Tables created successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedDataStore] Initialized with sql.js
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] EXEC executed successfully
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[createTestApp] Reusing existing dataStore from customDB
+[createTestApp] Using DB instance: [33mtrue[39m
+[createTestApp] DB has prepare: function
+[createTestApp] Created inline mock Drizzle with shared dataStore
+[createTestApp] Registering routes...
+[createTestApp] - tablesFeature type: object
+[createTestApp] - tablesFeature keys: [ [32m'routes'[39m, [32m'getHealthStatus'[39m, [32m'getFeatureInfo'[39m ]
+[createTestApp] - tablesFeature.routes type: object
+[createTestApp] - tablesFeature.routes is Hono?: Hono
+[createTestApp] - usersFeature.routes type: object
+[createTestApp] - usersFeature.routes is Hono?: Hono
+[authentication] INFO: authentication module initialized { version: [32m'1.0.0'[39m }
+[restaurants] INFO: restaurants module initialized { version: [32m'1.0.0'[39m }
+[menu] INFO: menu module initialized { version: [32m'1.0.0'[39m }
+[orders] DEBUG: Orders routes mounted {
+  endpoints: [
+    [32m'POST /'[39m,
+    [32m'GET /'[39m,
+    [32m'GET /:id'[39m,
+    [32m'PUT /:id/status'[39m,
+    [32m'DELETE /:id'[39m,
+    [32m'GET /stats'[39m,
+    [32m'GET /analytics'[39m,
+    [32m'POST /bulk'[39m,
+    [32m'POST /export'[39m,
+    [32m'GET /:id/receipt'[39m,
+    [32m'GET /active'[39m,
+    [32m'POST /preview-coupon'[39m
+  ]
+}
+[orders] INFO: orders module initialized { version: [32m'1.0.0'[39m, timestamp: [32m'2025-11-11T03:22:03.392Z'[39m }
+[createTestApp] Registering /tables route
+[createTestApp] Registering /users route
+[analytics] INFO: analytics module initialized { version: [32m'1.0.0'[39m }
+[qr-codes] INFO: qr-codes module initialized { version: [32m'1.0.0'[39m }
+[createTestApp] All routes registered
+[createTestApp] Mounting /api/v1
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[API_V1] POST /api/v1/restaurants
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsRoutes] DEBUG: Creating restaurant {
+  body: {
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m
+  }
+}
+[BaseService] Using mock Drizzle instance (from env)
+[RestaurantsService] DEBUG: Creating restaurant { name: [32m'Test Restaurant'[39m }
+[RestaurantService] Creating restaurant with data: {
+  name: [32m'Test Restaurant'[39m,
+  type: [32m'Casual Dining'[39m,
+  category: [32m'Restaurant'[39m,
+  address: [32m'Test Address'[39m,
+  district: [32m'Test District'[39m,
+  phone: [32m'012-3456789'[39m,
+  email: [32m'test@restaurant.com'[39m
+}
+[MockDrizzle] insert() for table: restaurants
+[MockDrizzle] values(): {
+  name: [32m'Test Restaurant'[39m,
+  type: [32m'Casual Dining'[39m,
+  category: [32m'Restaurant'[39m,
+  address: [32m'Test Address'[39m,
+  district: [32m'Test District'[39m,
+  phone: [32m'012-3456789'[39m,
+  email: [32m'test@restaurant.com'[39m,
+  city: [32m'台中市'[39m,
+  isAvailable: [33mtrue[39m,
+  isActive: [33mtrue[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO restaurants (name, type, category, address, district, phone, email, city, isAvailable, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["Test Restaurant","Casual Dining","Restaurant","Test Address","Test District","012-3456789","test@restaurant.com","台中市",1,1,"2025-11-11T03:22:03.486Z","2025-11-11T03:22:03.486Z"]
+[SharedDataStore] Inserted into restaurants: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m,
+    city: [32m'台中市'[39m,
+    isAvailable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    createdAt: [32m'2025-11-11T03:22:03.486Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.486Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantService] Insert result: [
+  {
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m,
+    city: [32m'台中市'[39m,
+    isAvailable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    createdAt: [32m'2025-11-11T03:22:03.486Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.486Z'[39m,
+    id: [33m2[39m
+  }
+]
+[RestaurantService] Restaurant created with ID: [33m2[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsService] DEBUG: Emitting restaurant event {
+  type: [32m'RESTAURANT_CREATED'[39m,
+  payload: {
+    id: [33m2[39m,
+    name: [32m'Test Restaurant'[39m,
+    type: [32m'Casual Dining'[39m,
+    category: [32m'Restaurant'[39m,
+    description: [90mundefined[39m,
+    address: [32m'Test Address'[39m,
+    district: [32m'Test District'[39m,
+    city: [32m'台中市'[39m,
+    phone: [32m'012-3456789'[39m,
+    email: [32m'test@restaurant.com'[39m,
+    website: [90mundefined[39m,
+    businessHours: [90mundefined[39m,
+    isAvailable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    logoUrl: [90mundefined[39m,
+    bannerUrl: [90mundefined[39m,
+    imageUrls: [90mundefined[39m,
+    settings: [90mundefined[39m,
+    rating: [90mundefined[39m,
+    reviewCount: [90mundefined[39m,
+    totalOrders: [90mundefined[39m,
+    status: [33m1[39m,
+    planType: [33m0[39m,
+    shopQrCode: [90mundefined[39m,
+    shopQrCodeImageUrl: [90mundefined[39m,
+    enableShopMode: [90mundefined[39m,
+    shopQrSettings: [90mundefined[39m,
+    shopQrVersion: [90mundefined[39m,
+    createdAt: [32m'2025-11-11T03:22:03.486Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.486Z'[39m
+  }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[RestaurantsService] INFO: Restaurant created successfully { id: [33m2[39m, name: [32m'Test Restaurant'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mRestaurant Management Integration[2m > [22m[2mshould create restaurant with default settings and admin user
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] POST /api/v1/menu/1/categories
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MenuService] INFO: Creating category {
+  data: { name: [32m'主菜'[39m, description: [32m'主要餐點'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m }
+}
+[MockDrizzle] insert() for table: categories
+[MockDrizzle] values(): { name: [32m'主菜'[39m, description: [32m'主要餐點'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m }
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO categories (name, description, sortOrder, restaurantId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["主菜","主要餐點",0,1,"2025-11-11T03:22:03.517Z","2025-11-11T03:22:03.517Z"]
+[SharedDataStore] Inserted into categories: [33m1[39m
+[MockDrizzle] Stored record ID: [33m1[39m
+[MockDrizzle] Returning: [
+  {
+    name: [32m'主菜'[39m,
+    description: [32m'主要餐點'[39m,
+    sortOrder: [33m0[39m,
+    restaurantId: [33m1[39m,
+    createdAt: [32m'2025-11-11T03:22:03.517Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.517Z'[39m,
+    id: [33m1[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MenuService] DEBUG: Menu cache invalidated { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MenuService] INFO: Category created successfully { categoryId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] POST /api/v1/menu/1/items
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MenuService] INFO: Creating menu item { data: { name: [32m'炒飯'[39m, restaurantId: [33m1[39m } }
+[MockDrizzle] Normalized table name: categories -> categories
+[MockDrizzle] query.findFirst() called for table: categories
+[MockDrizzle] Table categories has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","name":"主菜","description":"主要餐點","sortOrder":0,"isActive":1,"isVisible":1,"imageUrl":null,"iconUrl":null,"availableHours":null,"itemCount":0,"createdAt":"2025-11-11T03:22:03.517Z","updatedAt":"2025-11-11T03:22:03.517Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] insert() for table: menu_items
+[MockDrizzle] values(): {
+  categoryId: [33m1[39m,
+  name: [32m'炒飯'[39m,
+  description: [32m'香噴噴的炒飯'[39m,
+  price: [33m120[39m,
+  spiceLevel: [33m0[39m,
+  preparationTime: [33m15[39m,
+  restaurantId: [33m1[39m,
+  isAvailable: [33mtrue[39m,
+  isFeatured: [33mfalse[39m,
+  isPopular: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO menu_items (categoryId, name, description, price, spiceLevel, preparationTime, restaurantId, isAvailable, isFeatured, isPopular, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,"炒飯","香噴噴的炒飯",120,0,15,1,1,0,0,"2025-11-11T03:22:03.534Z","2025-11-11T03:22:03.534Z"]
+[SharedDataStore] Inserted into menu_items: [33m1[39m
+[MockDrizzle] Stored record ID: [33m1[39m
+[MockDrizzle] Returning: [
+  {
+    categoryId: [33m1[39m,
+    name: [32m'炒飯'[39m,
+    description: [32m'香噴噴的炒飯'[39m,
+    price: [33m120[39m,
+    spiceLevel: [33m0[39m,
+    preparationTime: [33m15[39m,
+    restaurantId: [33m1[39m,
+    isAvailable: [33mtrue[39m,
+    isFeatured: [33mfalse[39m,
+    isPopular: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:03.534Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.534Z'[39m,
+    id: [33m1[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] UPDATE categories WHERE id = 1, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MenuService] DEBUG: Menu cache invalidated { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MenuService] INFO: Menu item created successfully { itemId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] POST /api/v1/tables
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[TablesRoutes] Create table handler called!
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: tables records: [33m0[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] insert() for table: tables
+[MockDrizzle] values(): {
+  restaurantId: [33m1[39m,
+  number: [32m'A1'[39m,
+  name: [90mundefined[39m,
+  capacity: [33m4[39m,
+  location: [90mundefined[39m,
+  floor: [33m1[39m,
+  section: [90mundefined[39m,
+  qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQTEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM1NTV9'[39m,
+  qrCodeVersion: [33m1[39m,
+  qrMode: [32m'table'[39m,
+  seatCount: [33m0[39m,
+  seatNumberingStyle: [32m'numeric'[39m,
+  features: [90mundefined[39m,
+  isReservable: [33mtrue[39m,
+  isActive: [33mtrue[39m,
+  isOccupied: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO tables (restaurantId, number, capacity, floor, qrCode, qrCodeVersion, qrMode, seatCount, seatNumberingStyle, isReservable, isActive, isOccupied, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,"A1",4,1,"https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQTEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM1NTV9",1,"table",0,"numeric",1,1,0,"2025-11-11T03:22:03.555Z","2025-11-11T03:22:03.555Z"]
+[SharedDataStore] Inserted into tables: [33m1[39m
+[MockDrizzle] Stored record ID: [33m1[39m
+[MockDrizzle] Returning: [
+  {
+    restaurantId: [33m1[39m,
+    number: [32m'A1'[39m,
+    name: [90mundefined[39m,
+    capacity: [33m4[39m,
+    location: [90mundefined[39m,
+    floor: [33m1[39m,
+    section: [90mundefined[39m,
+    qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQTEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM1NTV9'[39m,
+    qrCodeVersion: [33m1[39m,
+    qrMode: [32m'table'[39m,
+    seatCount: [33m0[39m,
+    seatNumberingStyle: [32m'numeric'[39m,
+    features: [90mundefined[39m,
+    isReservable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    isOccupied: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:03.555Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.555Z'[39m,
+    id: [33m1[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] POST /api/v1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+[OrdersService] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"name":"Test Restaurant","type":"Casual Dining","category":"Restaurant","description":null,"address":"Test Address","district":"Test District","city":"台中市","phone":"012-3456789","email":"test@restaurant.com","website":null,"businessHours":null,"isAvailable":1,"isActive":1,"status":1,"logoUrl":null,"bannerUrl":null,"imageUrls":null,"shopQrCode":null,"shopQrCodeImageUrl":null,"enableShopMode":0,"shopQrSettings":null,"shopQrVersion":1,"settings":null,"rating":0,"reviewCount":0,"totalOrders":0,"createdAt":"2025-11-11T03:22:03.506Z","updatedAt":"2025-11-11T03:22:03.506Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: tables -> tables
+[MockDrizzle] query.findFirst() called for table: tables
+[MockDrizzle] Table tables has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","number":"A1","name":null,"capacity":4,"location":null,"floor":1,"section":null,"qrCode":"https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQTEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM1NTV9","qrCodeImageUrl":null,"qrCodeVersion":1,"qrMode":"table","seatCount":0,"seatLayout":null,"seatNumberingStyle":"numeric","isOccupied":0,"isActive":1,"isReservable":1,"features":null,"currentOrderId":null,"occupiedAt":null,"occupiedBy":null,"estimatedFreeAt":null,"lastCleanedAt":null,"maintenanceNotes":null,"totalUsage":0,"averageOccupancyMinutes":0,"createdAt":"2025-11-11T03:22:03.555Z","updatedAt":"2025-11-11T03:22:03.555Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: menuItems -> menu_items
+[MockDrizzle] query.findMany() called for table: menuItems
+[MockDrizzle] findMany() returning [33m1[39m records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","categoryId":1,"name":"炒飯","description":"香噴噴的炒飯","ingredients":null,"price":120,"originalPrice":null,"costPrice":null,"imageUrl":null,"imageVariants":null,"isAvailable":1,"isFeatured":0,"isPopular":0,"sortOrder":0,"inventoryCount":null,"minInventoryAlert":5,"spiceLevel":0,"preparationTime":15,"calories":null,"dietaryInfo":null,"allergens":null,"options":null,"availableHours":null,"orderCount":0,"rating":0,"reviewCount":0,"viewCount":0,"tags":null,"keywords":null,"createdAt":"2025-11-11T03:22:03.534Z","updatedAt":"2025-11-11T03:22:03.534Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] insert() for table: orders
+[MockDrizzle] values(): {
+  restaurantId: [33m1[39m,
+  tableId: [33m1[39m,
+  customerId: [33m1[39m,
+  orderNumber: [32m'1-MHU096LS-P6HM'[39m,
+  subtotal: [33m240[39m,
+  taxAmount: [33m0[39m,
+  serviceCharge: [33m0[39m,
+  discountAmount: [33m0[39m,
+  totalAmount: [33m240[39m,
+  customerInfo: [90mundefined[39m,
+  notes: [90mundefined[39m,
+  couponCode: [90mundefined[39m,
+  estimatedPrepTime: [33m30[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO orders (restaurantId, tableId, customerId, orderNumber, subtotal, taxAmount, serviceCharge, discountAmount, totalAmount, estimatedPrepTime, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,1,1,"1-MHU096LS-P6HM",240,0,0,0,240,30,"2025-11-11T03:22:03.568Z","2025-11-11T03:22:03.568Z"]
+[SharedDataStore] Inserted into orders: [33m1[39m
+[MockDrizzle] Stored record ID: [33m1[39m
+[MockDrizzle] Returning: [
+  {
+    restaurantId: [33m1[39m,
+    tableId: [33m1[39m,
+    customerId: [33m1[39m,
+    orderNumber: [32m'1-MHU096LS-P6HM'[39m,
+    subtotal: [33m240[39m,
+    taxAmount: [33m0[39m,
+    serviceCharge: [33m0[39m,
+    discountAmount: [33m0[39m,
+    totalAmount: [33m240[39m,
+    customerInfo: [90mundefined[39m,
+    notes: [90mundefined[39m,
+    couponCode: [90mundefined[39m,
+    estimatedPrepTime: [33m30[39m,
+    createdAt: [32m'2025-11-11T03:22:03.568Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.568Z'[39m,
+    id: [33m1[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] insert() for table: order_items
+[MockDrizzle] values(): [
+  {
+    menuItemId: [33m1[39m,
+    quantity: [33m2[39m,
+    unitPrice: [33m120[39m,
+    totalPrice: [33m240[39m,
+    customizations: [90mundefined[39m,
+    notes: [32m'不要香菜'[39m,
+    itemSnapshot: {
+      name: [32m'炒飯'[39m,
+      description: [32m'香噴噴的炒飯'[39m,
+      imageUrl: [90mundefined[39m,
+      category: [32m'category'[39m
+    },
+    orderId: [33m1[39m
+  }
+]
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO order_items (menuItemId, quantity, unitPrice, totalPrice, notes, itemSnapshot, orderId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,2,120,240,"不要香菜","{\"name\":\"炒飯\",\"description\":\"香噴噴的炒飯\",\"category\":\"category\"}",1,"2025-11-11T03:22:03.570Z","2025-11-11T03:22:03.570Z"]
+[SharedDataStore] Inserted into order_items: [33m1[39m
+[MockDrizzle] Stored record ID: [33m1[39m
+[MockDrizzle] Returning: [
+  {
+    menuItemId: [33m1[39m,
+    quantity: [33m2[39m,
+    unitPrice: [33m120[39m,
+    totalPrice: [33m240[39m,
+    customizations: [90mundefined[39m,
+    notes: [32m'不要香菜'[39m,
+    itemSnapshot: {
+      name: [32m'炒飯'[39m,
+      description: [32m'香噴噴的炒飯'[39m,
+      imageUrl: [90mundefined[39m,
+      category: [32m'category'[39m
+    },
+    orderId: [33m1[39m,
+    createdAt: [32m'2025-11-11T03:22:03.570Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.570Z'[39m,
+    id: [33m1[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] UPDATE menu_items WHERE id = 1, found 1 records
+[MockDrizzle] UPDATE restaurants WHERE id = 1, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[OrdersService] INFO: Order activity logged {
+  orderId: [33m1[39m,
+  action: [32m'ORDER_CREATED'[39m,
+  userId: [33m1[39m,
+  metadata: { restaurantId: [33m1[39m, itemCount: [33m1[39m, total: [33m240[39m }
+}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[realtime-broadcast] WARN: REALTIME_SESSION not configured, skipping broadcast 
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[OrdersService] INFO: New order broadcasted successfully {
+  orderId: [33m1[39m,
+  eventId: [32m'evt_1762831323575_t2l8if76t'[39m,
+  recipientCount: [33m0[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[OrdersService] INFO: Order created successfully { orderId: [33m1[39m, orderNumber: [32m'1-MHU096LS-P6HM'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] PUT /api/v1/orders/1/status
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Updating order status { orderId: [33m1[39m, newStatus: [32m'confirmed'[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","tableId":1,"customerId":1,"orderNumber":"1-MHU096LS-P6HM","status":"pending","orderType":"table","subtotal":240,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":240,"customerInfo":null,"estimatedPrepTime":30,"actualPrepTime":null,"confirmedAt":null,"preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:03.568Z","updatedAt":"2025-11-11T03:22:03.568Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","tableId":1,"customerId":1,"orderNumber":"1-MHU096LS-P6HM","status":"pending","orderType":"table","subtotal":240,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":240,"customerInfo":null,"estimatedPrepTime":30,"actualPrepTime":null,"confirmedAt":null,"preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:03.568Z","updatedAt":"2025-11-11T03:22:03.568Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] UPDATE orders WHERE id = 1, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","tableId":1,"customerId":1,"orderNumber":"1-MHU096LS-P6HM","status":"confirmed","orderType":"table","subtotal":240,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":240,"customerInfo":null,"estimatedPrepTime":30,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:03.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:03.568Z","updatedAt":"2025-11-11T03:22:03.639Z"}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[realtime-broadcast] WARN: REALTIME_SESSION not configured, skipping broadcast 
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[OrdersService] INFO: Order update broadcasted successfully {
+  orderId: [33m1[39m,
+  eventId: [32m'evt_1762831323644_o9pah90pm'[39m,
+  recipientCount: [33m0[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[KitchenService] INFO: Fetching kitchen orders { restaurantId: [33m1[39m, userId: [33m1[39m }
+[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findMany() called for table: orders
+[MockDrizzle] findMany() returning [33m1[39m records
+[MockDrizzle] First record: {"id":1,"restaurantId":"1","tableId":1,"customerId":1,"orderNumber":"1-MHU096LS-P6HM","status":"confirmed","orderType":"table","subtotal":240,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":240,"customerInfo":null,"estimatedPrepTime":30,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:03.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:03.568Z","updatedAt":"2025-11-11T03:22:03.639Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mMenu and Order Integration[2m > [22m[2mshould create menu items and process orders end-to-end
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] POST /api/v1/tables/test-no-auth
+[TablesRoutes] TEST route hit!
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Test route response: [33m200[39m
+[API_V1] POST /api/v1/tables/test-root-no-auth
+[TablesRoutes] POST /test-root-no-auth hit!
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Test root route response: [33m200[39m
+[API_V1] POST /api/v1/tables/test-with-auth
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TablesRoutes] POST /test-with-auth hit!
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] 404 Not Found: GET /api/v1/tables/
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Test auth route response: [33m200[39m
+[API_V1] GET /api/v1/tables/
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 404
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] GET / route response: [33m404[39m
+[API_V1] POST /api/v1/tables
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[OrdersRoutes] ERROR: Failed to broadcast order update via SSE TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at broadcastOrderUpdate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:95:22) {}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[OrdersRoutes] ERROR: Failed to broadcast order update via SSE TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at broadcastOrderUpdate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:95:22) {}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TablesRoutes] Create table handler called!
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: tables records: [33m0[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[MockDrizzle] insert() for table: tables
+[MockDrizzle] values(): {
+  restaurantId: [33m1[39m,
+  number: [32m'B2'[39m,
+  name: [90mundefined[39m,
+  capacity: [33m2[39m,
+  location: [90mundefined[39m,
+  floor: [33m1[39m,
+  section: [90mundefined[39m,
+  qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQjIiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM3MDJ9'[39m,
+  qrCodeVersion: [33m1[39m,
+  qrMode: [32m'table'[39m,
+  seatCount: [33m0[39m,
+  seatNumberingStyle: [32m'numeric'[39m,
+  features: [90mundefined[39m,
+  isReservable: [33mtrue[39m,
+  isActive: [33mtrue[39m,
+  isOccupied: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO tables (restaurantId, number, capacity, floor, qrCode, qrCodeVersion, qrMode, seatCount, seatNumberingStyle, isReservable, isActive, isOccupied, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,"B2",2,1,"https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQjIiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM3MDJ9",1,"table",0,"numeric",1,1,0,"2025-11-11T03:22:03.703Z","2025-11-11T03:22:03.703Z"]
+[SharedDataStore] Inserted into tables: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    restaurantId: [33m1[39m,
+    number: [32m'B2'[39m,
+    name: [90mundefined[39m,
+    capacity: [33m2[39m,
+    location: [90mundefined[39m,
+    floor: [33m1[39m,
+    section: [90mundefined[39m,
+    qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiQjIiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjM3MDJ9'[39m,
+    qrCodeVersion: [33m1[39m,
+    qrMode: [32m'table'[39m,
+    seatCount: [33m0[39m,
+    seatNumberingStyle: [32m'numeric'[39m,
+    features: [90mundefined[39m,
+    isReservable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    isOccupied: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:03.703Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.703Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Table created, tableId: [33m2[39m
+[TEST] Added table to MockTableStore for lookup
+[API_V1] POST /api/v1/queue/join
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"name":"Test Restaurant","type":"Casual Dining","category":"Restaurant","description":null,"address":"Test Address","district":"Test District","city":"台中市","phone":"012-3456789","email":"test@restaurant.com","website":null,"businessHours":null,"isAvailable":1,"isActive":1,"status":1,"logoUrl":null,"bannerUrl":null,"imageUrls":null,"shopQrCode":null,"shopQrCodeImageUrl":null,"enableShopMode":0,"shopQrSettings":null,"shopQrVersion":1,"settings":null,"rating":0,"reviewCount":0,"totalOrders":0,"createdAt":"2025-11-11T03:22:03.670Z","updatedAt":"2025-11-11T03:22:03.670Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[UnifiedQueueService] INFO: Legacy queue entry created { id: [33m1762831323707[39m, restaurantId: [33m1[39m }
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39mFailed to broadcast queue update: TypeError: fetch failed
+[90m    at node:internal/deps/undici/undici:13510:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\routes\index.ts:50:9
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at optionalAuth [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\auth.ts:206:5[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:748:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:736:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17) {
+  [cause]: AggregateError: 
+  [90m    at internalConnectMultiple (node:net:1134:18)[39m
+  [90m    at afterConnectMultiple (node:net:1715:7)[39m {
+    code: [32m'ECONNREFUSED'[39m,
+    [errors]: [ [36m[Error][39m, [36m[Error][39m ]
+  }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Queue join success, queueId: 1762831323707
+[API_V1] POST /api/v1/queue/1/call-next
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[UnifiedQueueService] INFO: Getting legacy queue { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[UnifiedQueueService] INFO: Called next customer { restaurantId: [33m1[39m, queueId: [32m'1'[39m, customerName: [32m'Mock Customer'[39m }
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39mFailed to broadcast queue update: TypeError: fetch failed
+[90m    at node:internal/deps/undici/undici:13510:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\routes\index.ts:149:9
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at authMiddleware [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\auth.ts:102:5[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:748:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:736:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17) {
+  [cause]: AggregateError: 
+  [90m    at internalConnectMultiple (node:net:1134:18)[39m
+  [90m    at afterConnectMultiple (node:net:1715:7)[39m {
+    code: [32m'ECONNREFUSED'[39m,
+    [errors]: [ [36m[Error][39m, [36m[Error][39m ]
+  }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] GET /api/v1/tables/2
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: tables records: [33m1[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = 2
+[MockDrizzle] Found matching record: [33m2[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[TEST] Table check BEFORE seat, status: [33m200[39m
+[TEST] Table ID being checked: [33m2[39m
+[API_V1] POST /api/v1/queue/1762831323707/seat
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[UnifiedQueueService] INFO: Seating customer { queueId: [33m1762831323707[39m, tableId: [33m2[39m, operatorId: [33m1[39m }
+[MockDrizzle] UPDATE tables WHERE id = 2, found 1 records
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39mFailed to broadcast queue update: TypeError: fetch failed
+[90m    at node:internal/deps/undici/undici:13510:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\routes\index.ts:204:9
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at authMiddleware [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\auth.ts:102:5[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:748:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:736:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17) {
+  [cause]: AggregateError: 
+  [90m    at internalConnectMultiple (node:net:1134:18)[39m
+  [90m    at afterConnectMultiple (node:net:1715:7)[39m {
+    code: [32m'ECONNREFUSED'[39m,
+    [errors]: [ [36m[Error][39m, [36m[Error][39m ]
+  }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] GET /api/v1/tables/2
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: tables records: [33m1[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = 2
+[MockDrizzle] Found matching record: [33m2[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mQueue and Table Integration[2m > [22m[2mshould integrate queue system with table management
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] POST /api/v1/menu/1/categories
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MenuService] INFO: Creating category { data: { name: [32m'Test Category'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m } }
+[MockDrizzle] insert() for table: categories
+[MockDrizzle] values(): { name: [32m'Test Category'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m }
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO categories (name, sortOrder, restaurantId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["Test Category",0,1,"2025-11-11T03:22:03.759Z","2025-11-11T03:22:03.759Z"]
+[SharedDataStore] Inserted into categories: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    name: [32m'Test Category'[39m,
+    sortOrder: [33m0[39m,
+    restaurantId: [33m1[39m,
+    createdAt: [32m'2025-11-11T03:22:03.759Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.759Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[MenuService] DEBUG: Menu cache invalidated { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[MenuService] INFO: Category created successfully { categoryId: [33m2[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] POST /api/v1/queue/join
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"name":"Test Restaurant","type":"Casual Dining","category":"Restaurant","description":null,"address":"Test Address","district":"Test District","city":"台中市","phone":"012-3456789","email":"test@restaurant.com","website":null,"businessHours":null,"isAvailable":1,"isActive":1,"status":1,"logoUrl":null,"bannerUrl":null,"imageUrls":null,"shopQrCode":null,"shopQrCodeImageUrl":null,"enableShopMode":0,"shopQrSettings":null,"shopQrVersion":1,"settings":null,"rating":0,"reviewCount":0,"totalOrders":0,"createdAt":"2025-11-11T03:22:03.755Z","updatedAt":"2025-11-11T03:22:03.755Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[UnifiedQueueService] INFO: Legacy queue entry created { id: [33m1762831323762[39m, restaurantId: [33m1[39m }
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39mFailed to broadcast queue update: TypeError: fetch failed
+[90m    at node:internal/deps/undici/undici:13510:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\routes\index.ts:50:9
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at optionalAuth [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\auth.ts:206:5[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:748:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:736:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17) {
+  [cause]: AggregateError: 
+  [90m    at internalConnectMultiple (node:net:1134:18)[39m
+  [90m    at afterConnectMultiple (node:net:1715:7)[39m {
+    code: [32m'ECONNREFUSED'[39m,
+    [errors]: [ [36m[Error][39m, [36m[Error][39m ]
+  }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[AnalyticsService] DEBUG: Getting dashboard data { restaurantId: [33m1[39m, period: [32m'today'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[AnalyticsService] INFO: Dashboard data retrieved successfully { restaurantId: [33m1[39m, period: [32m'today'[39m, todayRevenue: [33m0[39m, todayOrders: [33m0[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] GET /api/v1/analytics/revenue
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[AnalyticsService] DEBUG: Getting revenue analytics {
+  restaurantId: [33m1[39m,
+  groupBy: [32m'day'[39m,
+  limit: [33m30[39m,
+  includeComparison: [33mfalse[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[AnalyticsService] INFO: Revenue analytics retrieved successfully { restaurantId: [33m1[39m, recordCount: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mAnalytics and Reporting Integration[2m > [22m[2mshould generate analytics from order and queue data
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] POST /api/v1/users
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: users records: [33m1[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user_1
+[MockDrizzle] No matching record found for id: user_1
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] where().get() - tableName: users records: [33m1[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user1@test.com
+[MockDrizzle] No matching record found for id: user1@test.com
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] insert() for table: users
+[MockDrizzle] values(): {
+  username: [32m'user_1'[39m,
+  email: [32m'user1@test.com'[39m,
+  phone: [90mundefined[39m,
+  fullName: [32m'Restaurant Owner'[39m,
+  passwordHash: [32m'$2a$10$I7JA8l7eWX/QTLbwMDULY.MFKicn9h7Cpmtt7e2F3fkOxt1933Fs2'[39m,
+  role: [33m1[39m,
+  restaurantId: [33m1[39m,
+  address: [90mundefined[39m,
+  dateOfBirth: [90mundefined[39m,
+  profileImageUrl: [90mundefined[39m,
+  preferences: [90mundefined[39m,
+  isActive: [33mtrue[39m,
+  isVerified: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO users (username, email, fullName, passwordHash, role, restaurantId, isActive, isVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["user_1","user1@test.com","Restaurant Owner","$2a$10$I7JA8l7eWX/QTLbwMDULY.MFKicn9h7Cpmtt7e2F3fkOxt1933Fs2",1,1,1,0,"2025-11-11T03:22:03.988Z","2025-11-11T03:22:03.988Z"]
+[SharedDataStore] Inserted into users: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    username: [32m'user_1'[39m,
+    email: [32m'user1@test.com'[39m,
+    phone: [90mundefined[39m,
+    fullName: [32m'Restaurant Owner'[39m,
+    passwordHash: [32m'$2a$10$I7JA8l7eWX/QTLbwMDULY.MFKicn9h7Cpmtt7e2F3fkOxt1933Fs2'[39m,
+    role: [33m1[39m,
+    restaurantId: [33m1[39m,
+    address: [90mundefined[39m,
+    dateOfBirth: [90mundefined[39m,
+    profileImageUrl: [90mundefined[39m,
+    preferences: [90mundefined[39m,
+    isActive: [33mtrue[39m,
+    isVerified: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:03.988Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:03.988Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] POST /api/v1/users
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: users records: [33m2[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user_2
+[MockDrizzle] No matching record found for id: user_2
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] where().get() - tableName: users records: [33m2[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user2@test.com
+[MockDrizzle] No matching record found for id: user2@test.com
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] insert() for table: users
+[MockDrizzle] values(): {
+  username: [32m'user_2'[39m,
+  email: [32m'user2@test.com'[39m,
+  phone: [90mundefined[39m,
+  fullName: [32m'Kitchen Chef'[39m,
+  passwordHash: [32m'$2a$10$Mp4o63hLDB1WxQRSifyCBeepWZbKNV82I2jXZqEBrhNcdAE4Jb2ja'[39m,
+  role: [33m2[39m,
+  restaurantId: [33m1[39m,
+  address: [90mundefined[39m,
+  dateOfBirth: [90mundefined[39m,
+  profileImageUrl: [90mundefined[39m,
+  preferences: [90mundefined[39m,
+  isActive: [33mtrue[39m,
+  isVerified: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO users (username, email, fullName, passwordHash, role, restaurantId, isActive, isVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["user_2","user2@test.com","Kitchen Chef","$2a$10$Mp4o63hLDB1WxQRSifyCBeepWZbKNV82I2jXZqEBrhNcdAE4Jb2ja",2,1,1,0,"2025-11-11T03:22:04.182Z","2025-11-11T03:22:04.182Z"]
+[SharedDataStore] Inserted into users: [33m3[39m
+[MockDrizzle] Stored record ID: [33m3[39m
+[MockDrizzle] Returning: [
+  {
+    username: [32m'user_2'[39m,
+    email: [32m'user2@test.com'[39m,
+    phone: [90mundefined[39m,
+    fullName: [32m'Kitchen Chef'[39m,
+    passwordHash: [32m'$2a$10$Mp4o63hLDB1WxQRSifyCBeepWZbKNV82I2jXZqEBrhNcdAE4Jb2ja'[39m,
+    role: [33m2[39m,
+    restaurantId: [33m1[39m,
+    address: [90mundefined[39m,
+    dateOfBirth: [90mundefined[39m,
+    profileImageUrl: [90mundefined[39m,
+    preferences: [90mundefined[39m,
+    isActive: [33mtrue[39m,
+    isVerified: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:04.182Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.182Z'[39m,
+    id: [33m3[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] POST /api/v1/users
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: users records: [33m3[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user_3
+[MockDrizzle] No matching record found for id: user_3
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] where().get() - tableName: users records: [33m3[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user3@test.com
+[MockDrizzle] No matching record found for id: user3@test.com
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] insert() for table: users
+[MockDrizzle] values(): {
+  username: [32m'user_3'[39m,
+  email: [32m'user3@test.com'[39m,
+  phone: [90mundefined[39m,
+  fullName: [32m'Service Staff'[39m,
+  passwordHash: [32m'$2a$10$gxbCsTOyehvLsqFWGpBNoeHdp8l/VJ06aJ9nbdqCc8dRLIWfhXDRm'[39m,
+  role: [33m3[39m,
+  restaurantId: [33m1[39m,
+  address: [90mundefined[39m,
+  dateOfBirth: [90mundefined[39m,
+  profileImageUrl: [90mundefined[39m,
+  preferences: [90mundefined[39m,
+  isActive: [33mtrue[39m,
+  isVerified: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO users (username, email, fullName, passwordHash, role, restaurantId, isActive, isVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["user_3","user3@test.com","Service Staff","$2a$10$gxbCsTOyehvLsqFWGpBNoeHdp8l/VJ06aJ9nbdqCc8dRLIWfhXDRm",3,1,1,0,"2025-11-11T03:22:04.343Z","2025-11-11T03:22:04.343Z"]
+[SharedDataStore] Inserted into users: [33m4[39m
+[MockDrizzle] Stored record ID: [33m4[39m
+[MockDrizzle] Returning: [
+  {
+    username: [32m'user_3'[39m,
+    email: [32m'user3@test.com'[39m,
+    phone: [90mundefined[39m,
+    fullName: [32m'Service Staff'[39m,
+    passwordHash: [32m'$2a$10$gxbCsTOyehvLsqFWGpBNoeHdp8l/VJ06aJ9nbdqCc8dRLIWfhXDRm'[39m,
+    role: [33m3[39m,
+    restaurantId: [33m1[39m,
+    address: [90mundefined[39m,
+    dateOfBirth: [90mundefined[39m,
+    profileImageUrl: [90mundefined[39m,
+    preferences: [90mundefined[39m,
+    isActive: [33mtrue[39m,
+    isVerified: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:04.343Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.343Z'[39m,
+    id: [33m4[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] POST /api/v1/users
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: users records: [33m4[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user_4
+[MockDrizzle] No matching record found for id: user_4
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] where().get() - tableName: users records: [33m4[39m
+[MockDrizzle] Condition type: SQL
+[MockDrizzle] Condition keys: [ [32m'decoder'[39m, [32m'shouldInlineParams'[39m, [32m'usedTables'[39m, [32m'queryChunks'[39m ]
+[MockDrizzle] Found queryChunks, length: [33m5[39m
+[MockDrizzle] Processing [33m5[39m chunks
+[MockDrizzle] Searching for record with id = user4@test.com
+[MockDrizzle] No matching record found for id: user4@test.com
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] insert() for table: users
+[MockDrizzle] values(): {
+  username: [32m'user_4'[39m,
+  email: [32m'user4@test.com'[39m,
+  phone: [90mundefined[39m,
+  fullName: [32m'Cashier'[39m,
+  passwordHash: [32m'$2a$10$TiqrnOOWisIzZWn0D45tOOyRt/T7afKlT9s0sRw6nBedsyN/0AnhS'[39m,
+  role: [33m4[39m,
+  restaurantId: [33m1[39m,
+  address: [90mundefined[39m,
+  dateOfBirth: [90mundefined[39m,
+  profileImageUrl: [90mundefined[39m,
+  preferences: [90mundefined[39m,
+  isActive: [33mtrue[39m,
+  isVerified: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO users (username, email, fullName, passwordHash, role, restaurantId, isActive, isVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["user_4","user4@test.com","Cashier","$2a$10$TiqrnOOWisIzZWn0D45tOOyRt/T7afKlT9s0sRw6nBedsyN/0AnhS",4,1,1,0,"2025-11-11T03:22:04.531Z","2025-11-11T03:22:04.531Z"]
+[SharedDataStore] Inserted into users: [33m5[39m
+[MockDrizzle] Stored record ID: [33m5[39m
+[MockDrizzle] Returning: [
+  {
+    username: [32m'user_4'[39m,
+    email: [32m'user4@test.com'[39m,
+    phone: [90mundefined[39m,
+    fullName: [32m'Cashier'[39m,
+    passwordHash: [32m'$2a$10$TiqrnOOWisIzZWn0D45tOOyRt/T7afKlT9s0sRw6nBedsyN/0AnhS'[39m,
+    role: [33m4[39m,
+    restaurantId: [33m1[39m,
+    address: [90mundefined[39m,
+    dateOfBirth: [90mundefined[39m,
+    profileImageUrl: [90mundefined[39m,
+    preferences: [90mundefined[39m,
+    isActive: [33mtrue[39m,
+    isVerified: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:04.531Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.531Z'[39m,
+    id: [33m5[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[KitchenService] INFO: Fetching kitchen orders { restaurantId: [33m1[39m, userId: [33m2[39m }
+[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findMany() called for table: orders
+[MockDrizzle] findMany() returning [33m0[39m records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[AnalyticsService] DEBUG: Getting dashboard data { restaurantId: [33m1[39m, period: [32m'today'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[AnalyticsService] INFO: Dashboard data retrieved successfully { restaurantId: [33m1[39m, period: [32m'today'[39m, todayRevenue: [33m0[39m, todayOrders: [33m0[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[KitchenService] INFO: Fetching kitchen orders { restaurantId: [33m1[39m, userId: [33m3[39m }
+[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findMany() called for table: orders
+[MockDrizzle] findMany() returning [33m0[39m records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 403
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[KitchenService] INFO: Fetching kitchen orders { restaurantId: [33m1[39m, userId: [33m4[39m }
+[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findMany() called for table: orders
+[MockDrizzle] findMany() returning [33m0[39m records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 403
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[KitchenService] WARN: Access denied - insufficient kitchen permissions {
+  userId: [33m5[39m,
+  userRole: [33m4[39m,
+  restaurantId: [33m1[39m,
+  allowedRoles: [ [33m0[39m, [33m1[39m, [33m2[39m, [33m3[39m ]
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 403
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mUser Management and Authentication Integration[2m > [22m[2mshould manage multi-role users across modules
+[22m[39m[API_V1] Response status: 403
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mReal-time Integration[2m > [22m[2mshould handle real-time events across modules
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mReal-time Integration[2m > [22m[2mshould handle real-time events across modules
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[API_V1] POST /api/v1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+[OrdersService] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"name":"Test Restaurant","type":"Casual Dining","category":"Restaurant","description":null,"address":"Test Address","district":"Test District","city":"台中市","phone":"012-3456789","email":"test@restaurant.com","website":null,"businessHours":null,"isAvailable":1,"isActive":1,"status":1,"logoUrl":null,"bannerUrl":null,"imageUrls":null,"shopQrCode":null,"shopQrCodeImageUrl":null,"enableShopMode":0,"shopQrSettings":null,"shopQrVersion":1,"settings":null,"rating":0,"reviewCount":0,"totalOrders":0,"createdAt":"2025-11-11T03:22:04.564Z","updatedAt":"2025-11-11T03:22:04.564Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[MockDrizzle] Normalized table name: tables -> tables
+[MockDrizzle] query.findFirst() called for table: tables
+[MockDrizzle] Table tables has [33m0[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":999999,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m999999[39m
+[MockDrizzle] Found [33m0[39m matching records
+[MockDrizzle] No records found
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39mDatabase error in createOrder: Error: Table is not available
+    at OrderService.createOrder (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\src\services\order.js:64:23)
+    at OrdersService.createOrder [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\orders\services\OrdersService.ts:139:21[90m)[39m
+    at Object.handler [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\orders\routes\index.ts:201:21[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at Object.handler [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\validation.ts:28:7[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[OrdersService] ERROR: Failed to create order Error: Table is not available
+    at OrderService.createOrder (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\src\services\order.js:64:23)
+    at OrdersService.createOrder (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\services\OrdersService.ts:139:21)
+    at Object.handler (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:201:21)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at Object.handler (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\middleware\validation.ts:28:7)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17) {
+  data: {
+    restaurantId: [33m1[39m,
+    tableId: [33m999999[39m,
+    customerId: [33m1[39m,
+    customerName: [90mundefined[39m,
+    customerPhone: [90mundefined[39m,
+    customerEmail: [90mundefined[39m,
+    items: [ [36m[Object][39m ],
+    notes: [90mundefined[39m,
+    orderType: [32m'dine_in'[39m,
+    scheduledTime: [90mundefined[39m,
+    couponCode: [90mundefined[39m
+  }
+}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[OrdersRoutes] ERROR: Create order error Error: Table is not available
+    at OrderService.createOrder (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\src\services\order.js:64:23)
+    at OrdersService.createOrder (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\services\OrdersService.ts:139:21)
+    at Object.handler (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:201:21)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at Object.handler (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\middleware\validation.ts:28:7)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17)
+    at handler (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/hono-base.js:94:39)
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/hono@4.9.6/node_modules/hono/dist/compose.js:22:17) {}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[API_V1] Response status: 400
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[API_V1] POST /api/v1/queue/join
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":999999,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m999999[39m
+[MockDrizzle] Found [33m0[39m matching records
+[MockDrizzle] No records found
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39mQueue join error: Error: Restaurant not found
+    at UnifiedQueueService.joinQueueLegacy [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\services\UnifiedQueueService.ts:195:13[90m)[39m
+    at UnifiedQueueService.joinQueue [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\services\UnifiedQueueService.ts:55:26[90m)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\features\queue\routes\index.ts:41:20
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at optionalAuth [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\middleware\auth.ts:206:5[90m)[39m
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:748:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\[39msrc\__tests__\helpers\test-utils.ts:736:5
+    at dispatch (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/hono@4.9.6/node_modules/[4mhono[24m/dist/compose.js:22:17)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mError Handling Integration[2m > [22m[2mshould handle cross-module errors gracefully
+[22m[39m[API_V1] Response status: 400
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO restaurants (id, name, type, category, address, district, phone, email, isAvailab'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[SharedMockDB] RUN executed: {
+  sql: [32m'\n'[39m +
+    [32m'      INSERT INTO users (id, username, email, fullName, passwordHash, role, restaurantId, isActive,'[39m,
+  changes: [33m1[39m,
+  lastInsertRowid: [33m1[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] POST /api/v1/menu/1/categories
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MenuService] INFO: Creating category { data: { name: [32m'測試分類'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m } }
+[MockDrizzle] insert() for table: categories
+[MockDrizzle] values(): { name: [32m'測試分類'[39m, sortOrder: [33m0[39m, restaurantId: [33m1[39m }
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO categories (name, sortOrder, restaurantId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: ["測試分類",0,1,"2025-11-11T03:22:04.604Z","2025-11-11T03:22:04.604Z"]
+[SharedDataStore] Inserted into categories: [33m3[39m
+[MockDrizzle] Stored record ID: [33m3[39m
+[MockDrizzle] Returning: [
+  {
+    name: [32m'測試分類'[39m,
+    sortOrder: [33m0[39m,
+    restaurantId: [33m1[39m,
+    createdAt: [32m'2025-11-11T03:22:04.604Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.604Z'[39m,
+    id: [33m3[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MenuService] DEBUG: Menu cache invalidated { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MenuService] INFO: Category created successfully { categoryId: [33m3[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] POST /api/v1/menu/1/items
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[MenuService] INFO: Creating menu item { data: { name: [32m'測試餐點'[39m, restaurantId: [33m1[39m } }
+[MockDrizzle] Normalized table name: categories -> categories
+[MockDrizzle] query.findFirst() called for table: categories
+[MockDrizzle] Table categories has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":3,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m3[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":3,"restaurantId":"1","name":"測試分類","description":null,"sortOrder":0,"isActive":1,"isVisible":1,"imageUrl":null,"iconUrl":null,"availableHours":null,"itemCount":0,"createdAt":"2025-11-11T03:22:04.604Z","updatedAt":"2025-11-11T03:22:04.604Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] insert() for table: menu_items
+[MockDrizzle] values(): {
+  categoryId: [33m3[39m,
+  name: [32m'測試餐點'[39m,
+  price: [33m100[39m,
+  spiceLevel: [33m0[39m,
+  preparationTime: [33m15[39m,
+  restaurantId: [33m1[39m,
+  isAvailable: [33mtrue[39m,
+  isFeatured: [33mfalse[39m,
+  isPopular: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO menu_items (categoryId, name, price, spiceLevel, preparationTime, restaurantId, isAvailable, isFeatured, isPopular, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [3,"測試餐點",100,0,15,1,1,0,0,"2025-11-11T03:22:04.611Z","2025-11-11T03:22:04.611Z"]
+[SharedDataStore] Inserted into menu_items: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    categoryId: [33m3[39m,
+    name: [32m'測試餐點'[39m,
+    price: [33m100[39m,
+    spiceLevel: [33m0[39m,
+    preparationTime: [33m15[39m,
+    restaurantId: [33m1[39m,
+    isAvailable: [33mtrue[39m,
+    isFeatured: [33mfalse[39m,
+    isPopular: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:04.611Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.611Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] UPDATE categories WHERE id = 3, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MenuService] DEBUG: Menu cache invalidated { restaurantId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MenuService] INFO: Menu item created successfully { itemId: [33m2[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] POST /api/v1/tables
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[TablesRoutes] Create table handler called!
+[BaseService] Using mock Drizzle instance (from env)
+[MockDrizzle] where().get() - tableName: tables records: [33m0[39m
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] insert() for table: tables
+[MockDrizzle] values(): {
+  restaurantId: [33m1[39m,
+  number: [32m'T1'[39m,
+  name: [90mundefined[39m,
+  capacity: [33m4[39m,
+  location: [90mundefined[39m,
+  floor: [33m1[39m,
+  section: [90mundefined[39m,
+  qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiVDEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjQ2MjF9'[39m,
+  qrCodeVersion: [33m1[39m,
+  qrMode: [32m'table'[39m,
+  seatCount: [33m0[39m,
+  seatNumberingStyle: [32m'numeric'[39m,
+  features: [90mundefined[39m,
+  isReservable: [33mtrue[39m,
+  isActive: [33mtrue[39m,
+  isOccupied: [33mfalse[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO tables (restaurantId, number, capacity, floor, qrCode, qrCodeVersion, qrMode, seatCount, seatNumberingStyle, isReservable, isActive, isOccupied, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,"T1",4,1,"https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiVDEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjQ2MjF9",1,"table",0,"numeric",1,1,0,"2025-11-11T03:22:04.622Z","2025-11-11T03:22:04.622Z"]
+[SharedDataStore] Inserted into tables: [33m3[39m
+[MockDrizzle] Stored record ID: [33m3[39m
+[MockDrizzle] Returning: [
+  {
+    restaurantId: [33m1[39m,
+    number: [32m'T1'[39m,
+    name: [90mundefined[39m,
+    capacity: [33m4[39m,
+    location: [90mundefined[39m,
+    floor: [33m1[39m,
+    section: [90mundefined[39m,
+    qrCode: [32m'https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiVDEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjQ2MjF9'[39m,
+    qrCodeVersion: [33m1[39m,
+    qrMode: [32m'table'[39m,
+    seatCount: [33m0[39m,
+    seatNumberingStyle: [32m'numeric'[39m,
+    features: [90mundefined[39m,
+    isReservable: [33mtrue[39m,
+    isActive: [33mtrue[39m,
+    isOccupied: [33mfalse[39m,
+    createdAt: [32m'2025-11-11T03:22:04.622Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.622Z'[39m,
+    id: [33m3[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] POST /api/v1/orders
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+[OrdersService] INFO: Creating new order { restaurantId: [33m1[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: restaurants -> restaurants
+[MockDrizzle] query.findFirst() called for table: restaurants
+[MockDrizzle] Table restaurants has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":1,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m1[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":1,"name":"Test Restaurant","type":"Casual Dining","category":"Restaurant","description":null,"address":"Test Address","district":"Test District","city":"台中市","phone":"012-3456789","email":"test@restaurant.com","website":null,"businessHours":null,"isAvailable":1,"isActive":1,"status":1,"logoUrl":null,"bannerUrl":null,"imageUrls":null,"shopQrCode":null,"shopQrCodeImageUrl":null,"enableShopMode":0,"shopQrSettings":null,"shopQrVersion":1,"settings":null,"rating":0,"reviewCount":0,"totalOrders":0,"createdAt":"2025-11-11T03:22:04.597Z","updatedAt":"2025-11-11T03:22:04.597Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: tables -> tables
+[MockDrizzle] query.findFirst() called for table: tables
+[MockDrizzle] Table tables has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":3,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m3[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":3,"restaurantId":"1","number":"T1","name":null,"capacity":4,"location":null,"floor":1,"section":null,"qrCode":"https://makanmakan.com/order?data=eyJ0eXBlIjoidGFibGUiLCJyZXN0YXVyYW50SWQiOjEsInRhYmxlTnVtYmVyIjoiVDEiLCJ0aW1lc3RhbXAiOjE3NjI4MzEzMjQ2MjF9","qrCodeImageUrl":null,"qrCodeVersion":1,"qrMode":"table","seatCount":0,"seatLayout":null,"seatNumberingStyle":"numeric","isOccupied":0,"isActive":1,"isReservable":1,"features":null,"currentOrderId":null,"occupiedAt":null,"occupiedBy":null,"estimatedFreeAt":null,"lastCleanedAt":null,"maintenanceNotes":null,"totalUsage":0,"averageOccupancyMinutes":0,"createdAt":"2025-11-11T03:22:04.622Z","updatedAt":"2025-11-11T03:22:04.622Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: menuItems -> menu_items
+[MockDrizzle] query.findMany() called for table: menuItems
+[MockDrizzle] findMany() returning [33m1[39m records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","categoryId":3,"name":"測試餐點","description":null,"ingredients":null,"price":100,"originalPrice":null,"costPrice":null,"imageUrl":null,"imageVariants":null,"isAvailable":1,"isFeatured":0,"isPopular":0,"sortOrder":0,"inventoryCount":null,"minInventoryAlert":5,"spiceLevel":0,"preparationTime":15,"calories":null,"dietaryInfo":null,"allergens":null,"options":null,"availableHours":null,"orderCount":0,"rating":0,"reviewCount":0,"viewCount":0,"tags":null,"keywords":null,"createdAt":"2025-11-11T03:22:04.611Z","updatedAt":"2025-11-11T03:22:04.611Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] insert() for table: orders
+[MockDrizzle] values(): {
+  restaurantId: [33m1[39m,
+  tableId: [33m3[39m,
+  customerId: [33m1[39m,
+  orderNumber: [32m'1-MHU097F6-FGGT'[39m,
+  subtotal: [33m100[39m,
+  taxAmount: [33m0[39m,
+  serviceCharge: [33m0[39m,
+  discountAmount: [33m0[39m,
+  totalAmount: [33m100[39m,
+  customerInfo: [90mundefined[39m,
+  notes: [90mundefined[39m,
+  couponCode: [90mundefined[39m,
+  estimatedPrepTime: [33m15[39m
+}
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO orders (restaurantId, tableId, customerId, orderNumber, subtotal, taxAmount, serviceCharge, discountAmount, totalAmount, estimatedPrepTime, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [1,3,1,"1-MHU097F6-FGGT",100,0,0,0,100,15,"2025-11-11T03:22:04.626Z","2025-11-11T03:22:04.626Z"]
+[SharedDataStore] Inserted into orders: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    restaurantId: [33m1[39m,
+    tableId: [33m3[39m,
+    customerId: [33m1[39m,
+    orderNumber: [32m'1-MHU097F6-FGGT'[39m,
+    subtotal: [33m100[39m,
+    taxAmount: [33m0[39m,
+    serviceCharge: [33m0[39m,
+    discountAmount: [33m0[39m,
+    totalAmount: [33m100[39m,
+    customerInfo: [90mundefined[39m,
+    notes: [90mundefined[39m,
+    couponCode: [90mundefined[39m,
+    estimatedPrepTime: [33m15[39m,
+    createdAt: [32m'2025-11-11T03:22:04.626Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.626Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] insert() for table: order_items
+[MockDrizzle] values(): [
+  {
+    menuItemId: [33m2[39m,
+    quantity: [33m1[39m,
+    unitPrice: [33m100[39m,
+    totalPrice: [33m100[39m,
+    customizations: [90mundefined[39m,
+    notes: [90mundefined[39m,
+    itemSnapshot: {
+      name: [32m'測試餐點'[39m,
+      description: [90mundefined[39m,
+      imageUrl: [90mundefined[39m,
+      category: [32m'category'[39m
+    },
+    orderId: [33m2[39m
+  }
+]
+[MockDrizzle] returning() called
+[SharedDataStore] INSERT SQL: INSERT INTO order_items (menuItemId, quantity, unitPrice, totalPrice, itemSnapshot, orderId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+[SharedDataStore] INSERT values: [2,1,100,100,"{\"name\":\"測試餐點\",\"category\":\"category\"}",2,"2025-11-11T03:22:04.627Z","2025-11-11T03:22:04.627Z"]
+[SharedDataStore] Inserted into order_items: [33m2[39m
+[MockDrizzle] Stored record ID: [33m2[39m
+[MockDrizzle] Returning: [
+  {
+    menuItemId: [33m2[39m,
+    quantity: [33m1[39m,
+    unitPrice: [33m100[39m,
+    totalPrice: [33m100[39m,
+    customizations: [90mundefined[39m,
+    notes: [90mundefined[39m,
+    itemSnapshot: {
+      name: [32m'測試餐點'[39m,
+      description: [90mundefined[39m,
+      imageUrl: [90mundefined[39m,
+      category: [32m'category'[39m
+    },
+    orderId: [33m2[39m,
+    createdAt: [32m'2025-11-11T03:22:04.627Z'[39m,
+    updatedAt: [32m'2025-11-11T03:22:04.627Z'[39m,
+    id: [33m2[39m
+  }
+]
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] UPDATE menu_items WHERE id = 2, found 1 records
+[MockDrizzle] UPDATE restaurants WHERE id = 1, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersService] INFO: Order activity logged {
+  orderId: [33m2[39m,
+  action: [32m'ORDER_CREATED'[39m,
+  userId: [33m1[39m,
+  metadata: { restaurantId: [33m1[39m, itemCount: [33m1[39m, total: [33m100[39m }
+}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[realtime-broadcast] WARN: REALTIME_SESSION not configured, skipping broadcast 
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersService] INFO: New order broadcasted successfully {
+  orderId: [33m2[39m,
+  eventId: [32m'evt_1762831324630_eug1iuvjz'[39m,
+  recipientCount: [33m0[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersService] INFO: Order created successfully { orderId: [33m2[39m, orderNumber: [32m'1-MHU097F6-FGGT'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 201
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] PUT /api/v1/orders/2/status
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Updating order status { orderId: [33m2[39m, newStatus: [32m'confirmed'[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":2,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m2[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"pending","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":null,"preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.626Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":2,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m2[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"pending","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":null,"preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.626Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] UPDATE orders WHERE id = 2, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":2,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m2[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"confirmed","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:04.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.639Z"}
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[realtime-broadcast] WARN: REALTIME_SESSION not configured, skipping broadcast 
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersService] INFO: Order update broadcasted successfully {
+  orderId: [33m2[39m,
+  eventId: [32m'evt_1762831324642_hbstq5q5o'[39m,
+  recipientCount: [33m0[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] GET /api/v1/analytics/dashboard
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[AnalyticsService] DEBUG: Getting dashboard data { restaurantId: [33m1[39m, period: [32m'today'[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[AnalyticsService] INFO: Dashboard data retrieved successfully {
+  restaurantId: [33m1[39m,
+  period: [32m'today'[39m,
+  todayRevenue: [33m0[39m,
+  todayOrders: [90mundefined[39m
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] GET /api/v1/kitchen/1/orders
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersRoutes] ERROR: Failed to broadcast order update via SSE TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at broadcastOrderUpdate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:95:22) {}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[KitchenService] INFO: Fetching kitchen orders { restaurantId: [33m1[39m, userId: [33m1[39m }
+[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findMany() called for table: orders
+[MockDrizzle] findMany() returning [33m1[39m records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"confirmed","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:04.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.639Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[TEST] Initial kitchen orders count: [33m1[39m
+[TEST] Initial kitchen orders: [ { id: [33m2[39m, status: [33m1[39m } ]
+[API_V1] DELETE /api/v1/orders/2
+
+[90mstderr[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersRoutes] ERROR: Failed to broadcast order update via SSE TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at broadcastOrderUpdate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:95:22) {}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[BaseService] Using mock Drizzle instance (from env)
+[BaseService] Using mock Drizzle instance (from env)
+[OrdersRoutes] INFO: Cancelling order { orderId: [33m2[39m, userId: [33m1[39m }
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":2,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m2[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"confirmed","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:04.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.639Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] Normalized table name: orders -> orders
+[MockDrizzle] query.findFirst() called for table: orders
+[MockDrizzle] Table orders has [33m1[39m total records
+[MockDrizzle] queryChunks: [{"index":0,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"},{"index":1,"type":"SQLiteInteger","hasValue":false,"valueType":"undefined"},{"index":2,"type":"StringChunk","hasValue":true,"value":[" = "],"valueType":"object"},{"index":3,"type":"Param","hasValue":true,"value":2,"valueType":"number"},{"index":4,"type":"StringChunk","hasValue":true,"value":[""],"valueType":"object"}]
+[MockDrizzle] Filtering by: id = [33m2[39m
+[MockDrizzle] Found [33m1[39m matching records
+[MockDrizzle] First record: {"id":2,"restaurantId":"1","tableId":3,"customerId":1,"orderNumber":"1-MHU097F6-FGGT","status":"confirmed","orderType":"table","subtotal":100,"taxAmount":0,"serviceCharge":0,"discountAmount":0,"totalAmount":100,"customerInfo":null,"estimatedPrepTime":15,"actualPrepTime":null,"confirmedAt":"2025-11-11T03:22:04.639Z","preparingAt":null,"readyAt":null,"deliveredAt":null,"paidAt":null,"cancelledAt":null,"paymentMethod":null,"paymentStatus":"pending","paymentTransactionId":null,"couponCode":null,"promotionIds":null,"rating":null,"reviewComment":null,"reviewedAt":null,"notes":null,"internalNotes":null,"cancellationReason":null,"refundAmount":null,"deliveryInfo":null,"createdAt":"2025-11-11T03:22:04.626Z","updatedAt":"2025-11-11T03:22:04.639Z"}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[MockDrizzle] UPDATE orders WHERE id = 2, found 1 records
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[OrdersService] INFO: Order activity logged {
+  orderId: [33m2[39m,
+  action: [32m'ORDER_CANCELLED'[39m,
+  userId: [33m1[39m,
+  metadata: { reason: [32m'Cancelled by user'[39m }
+}
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests[2m > [22m[2mData Consistency Integration[2m > [22m[2mshould maintain data consistency across module operations
+[22m[39m[API_V1] Response status: 200
+
+[90mstdout[2m | src/__tests__/integration/core-modules.test.ts[2m > [22m[2mCore Modules Integration Tests
+[22m[39m[SharedMockDB] Database closed
+
+ [32m✓[39m src/__tests__/integration/core-modules.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1398[2mms[22m[39m
+   [33m[2m✓[22m[39m Core Modules Integration Tests[2m > [22mUser Management and Authentication Integration[2m > [22mshould manage multi-role users across modules [33m 773[2mms[22m[39m
+[90mstderr[2m | ConsoleLogger.error (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\core\monitoring\index.ts:25:13)
+[22m[39m[OrdersRoutes] ERROR: Failed to broadcast order update via SSE TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at broadcastOrderUpdate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api\src\features\orders\routes\index.ts:95:22) {}
+
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 11:21:57
+[2m   Duration [22m 7.41s[2m (transform 2.36s, setup 72ms, collect 4.89s, tests 1.40s, environment 0ms, prepare 320ms)[22m
+

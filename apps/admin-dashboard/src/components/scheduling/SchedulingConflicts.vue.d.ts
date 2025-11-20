@@ -1,10 +1,13 @@
-type __VLS_Props = {
-    conflicts: any[];
+import type { SchedulingConflict } from '@/types/scheduling';
+interface Props {
+    conflicts: SchedulingConflict[];
+    loading?: boolean;
+}
+declare const _default: import("vue").DefineComponent<Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
+    resolve: (conflict: SchedulingConflict) => any;
+}, string, import("vue").PublicProps, Readonly<Props> & Readonly<{
+    onResolve?: ((conflict: SchedulingConflict) => any) | undefined;
+}>, {
     loading: boolean;
-};
-declare const _default: import("vue").DefineComponent<__VLS_Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
-    resolve: (conflict: any) => any;
-}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
-    onResolve?: ((conflict: any) => any) | undefined;
-}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

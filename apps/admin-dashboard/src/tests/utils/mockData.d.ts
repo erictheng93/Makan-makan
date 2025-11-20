@@ -20,7 +20,7 @@ export declare function createMockOperation(type?: "add" | "update" | "remove", 
 };
 export declare function createMockCollaborativeAction(type?: "typing" | "selecting" | "editing" | "viewing" | "idle", entityType?: string, options?: any): {
     id: `${string}-${string}-${string}-${string}-${string}`;
-    type: "idle" | "typing" | "selecting" | "editing" | "viewing";
+    type: "typing" | "selecting" | "editing" | "viewing" | "idle";
     entityType: string;
     entityId: any;
     userId: any;
@@ -30,8 +30,8 @@ export declare function createMockCollaborativeAction(type?: "typing" | "selecti
 };
 export declare function createMockError(type?: "connection" | "sync" | "permission" | "data" | "network" | "server" | "client", severity?: "low" | "medium" | "high" | "critical", options?: any): {
     id: `${string}-${string}-${string}-${string}-${string}`;
-    type: "data" | "network" | "permission" | "connection" | "sync" | "server" | "client";
-    severity: "critical" | "high" | "medium" | "low";
+    type: "network" | "permission" | "data" | "connection" | "sync" | "server" | "client";
+    severity: "low" | "medium" | "high" | "critical";
     message: any;
     details: any;
     timestamp: number;

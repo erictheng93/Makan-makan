@@ -1,4 +1,5 @@
-// Type declarations for @stripe/stripe-js
+// Type declarations for @stripe/stripe-js (legacy payment component)
+// Payment system was removed from the project, but this component remains for reference
 declare module '@stripe/stripe-js' {
   export interface Stripe {
     elements: (options?: any) => StripeElements;
@@ -12,10 +13,11 @@ declare module '@stripe/stripe-js' {
 
   export interface StripeCardElement {
     mount: (element: string | HTMLElement) => void;
-    on: (event: string, callback: (event: any) => void) => void;
-    confirmPayment: (options: any) => Promise<any>;
+    unmount: () => void;
     destroy: () => void;
+    on: (event: string, handler: (event: any) => void) => void;
+    update: (options: any) => void;
   }
 
-  export function loadStripe(key: string): Promise<Stripe | null>;
+  export function loadStripe(publishableKey: string): Promise<Stripe | null>;
 }

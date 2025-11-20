@@ -112,7 +112,8 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   async (c) => {
     try {
-      const service = new NotificationService(c.env.DB, c.env)
+      // NotificationService instance available for future use
+      // const _service = new NotificationService(c.env.DB, c.env)
 
       // Get all available templates
       const templates = [

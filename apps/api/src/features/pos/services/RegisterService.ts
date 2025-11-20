@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 import type {
   CashRegister,
   CreateRegisterRequest
@@ -24,12 +25,13 @@ export class RegisterService extends BaseService {
     try {
       const validatedData = createRegisterSchema.parse(data)
       const registerId = crypto.randomUUID()
+      const now = getCurrentTimestamp()
 
       await this.d1.prepare(`
         INSERT INTO cash_registers (
           id, name, location, restaurant_id, is_active,
           hardware_config, peripherals, settings, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
       `).bind(
         registerId,
         validatedData.name,
@@ -37,7 +39,9 @@ export class RegisterService extends BaseService {
         validatedData.restaurantId,
         JSON.stringify(validatedData.hardwareConfig || {}),
         JSON.stringify(validatedData.peripherals || {}),
-        JSON.stringify(validatedData.settings || {})
+        JSON.stringify(validatedData.settings || {}),
+        now,
+        now
       ).run()
 
       const register = await this.d1.prepare(
@@ -192,7 +196,9 @@ export class RegisterService extends BaseService {
         }
       }
 
-      updateFields.push('updated_at = CURRENT_TIMESTAMP')
+      const now = getCurrentTimestamp()
+      updateFields.push('updated_at = ?')
+      updateValues.push(now)
       updateValues.push(registerId)
 
       await this.d1.prepare(`
@@ -232,11 +238,12 @@ export class RegisterService extends BaseService {
     isActive: boolean
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      const now = getCurrentTimestamp()
       await this.d1.prepare(`
         UPDATE cash_registers
-        SET is_active = ?, updated_at = CURRENT_TIMESTAMP
+        SET is_active = ?, updated_at = ?
         WHERE id = ?
-      `).bind(isActive ? 1 : 0, registerId).run()
+      `).bind(isActive ? 1 : 0, now, registerId).run()
 
       return { success: true }
 

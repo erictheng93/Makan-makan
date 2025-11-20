@@ -440,6 +440,185 @@ const idID: Messages = {
     }
   },
 
+  // Pemantauan sistem
+  monitoring: {
+    title: 'Pemantauan Sistem',
+    subtitle: 'Pantau kesehatan sistem, metrik kinerja, dan peringatan secara real-time',
+
+    actions: {
+      refresh: 'Perbarui Sekarang',
+      refreshing: 'Memperbarui...',
+      autoRefresh: 'Perbarui Otomatis',
+      manualRefresh: 'Perbarui Manual',
+      createAlertRule: 'Buat Aturan Peringatan',
+      testAlert: 'Uji Peringatan',
+      resetMetrics: 'Setel Ulang Metrik',
+      exportReport: 'Ekspor Laporan'
+    },
+
+    health: {
+      overall: 'Status Kesehatan Keseluruhan',
+      score: 'Skor Kesehatan',
+      uptime: 'Waktu Aktif Sistem',
+      lastUpdate: 'Pembaruan Terakhir',
+      status: {
+        healthy: 'Sehat',
+        warning: 'Peringatan',
+        critical: 'Kritis',
+        down: 'Mati'
+      }
+    },
+
+    keyMetrics: {
+      requestsPerMinute: 'Permintaan per Menit',
+      avgResponseTime: 'Waktu Respons Rata-rata',
+      errorRate: 'Tingkat Kesalahan',
+      activeConnections: 'Koneksi Aktif',
+      cpuUsage: 'Penggunaan CPU'
+    },
+
+    components: {
+      title: 'Status Komponen',
+      api: 'API',
+      database: 'Basis Data',
+      cache: 'Cache',
+      storage: 'Penyimpanan',
+      websocket: 'WebSocket',
+      queue: 'Antrian',
+      external: 'Layanan Eksternal'
+    },
+
+    tabs: {
+      overview: 'Ikhtisar',
+      performance: 'Kinerja',
+      errors: 'Kesalahan'
+    },
+
+    alerts: {
+      title: 'Peringatan Sistem',
+      active: 'Peringatan Aktif',
+      resolved: 'Peringatan Diselesaikan',
+      muted: 'Peringatan Dibisukan',
+      severity: {
+        info: 'Informasi',
+        warning: 'Peringatan',
+        critical: 'Kritis',
+        fatal: 'Fatal'
+      },
+      status: {
+        active: 'Aktif',
+        acknowledged: 'Diakui',
+        resolved: 'Diselesaikan',
+        muted: 'Dibisukan'
+      },
+      actions: {
+        acknowledge: 'Akui',
+        resolve: 'Selesaikan',
+        mute: 'Bisukan',
+        unmute: 'Buka Bisukan',
+        viewDetails: 'Lihat Detail'
+      },
+      fields: {
+        alertId: 'ID Peringatan',
+        component: 'Komponen',
+        severity: 'Tingkat Keparahan',
+        message: 'Pesan',
+        timestamp: 'Waktu',
+        duration: 'Durasi'
+      }
+    },
+
+    performance: {
+      title: 'Metrik Kinerja',
+      timeRange: 'Rentang Waktu',
+      last15Minutes: '15 Menit Terakhir',
+      lastHour: '1 Jam Terakhir',
+      last24Hours: '24 Jam Terakhir',
+      last7Days: '7 Hari Terakhir',
+      custom: 'Kustom',
+
+      api: {
+        title: 'Kinerja API',
+        totalRequests: 'Total Permintaan',
+        successRate: 'Tingkat Keberhasilan',
+        avgResponseTime: 'Waktu Respons Rata-rata',
+        p95ResponseTime: 'Waktu Respons P95',
+        p99ResponseTime: 'Waktu Respons P99',
+        throughput: 'Throughput',
+        requestsPerSecond: 'Permintaan per Detik'
+      },
+
+      database: {
+        title: 'Kinerja Basis Data',
+        totalQueries: 'Total Query',
+        avgQueryTime: 'Waktu Query Rata-rata',
+        slowQueries: 'Query Lambat',
+        connections: 'Koneksi',
+        poolUtilization: 'Pemanfaatan Pool',
+        deadlocks: 'Deadlock'
+      },
+
+      cache: {
+        title: 'Kinerja Cache',
+        hitRate: 'Tingkat Hit',
+        missRate: 'Tingkat Miss',
+        evictionRate: 'Tingkat Eviction',
+        memoryUsage: 'Penggunaan Memori',
+        keyCount: 'Jumlah Key',
+        avgGetTime: 'Waktu GET Rata-rata'
+      },
+
+      charts: {
+        responseTime: 'Waktu Respons',
+        requestRate: 'Tingkat Permintaan',
+        errorRate: 'Tingkat Kesalahan',
+        throughput: 'Throughput',
+        latency: 'Latensi'
+      }
+    },
+
+    errors: {
+      title: 'Kesalahan Terbaru',
+      errorId: 'ID Kesalahan',
+      message: 'Pesan',
+      stack: 'Stack Trace',
+      occurrences: 'Kejadian',
+      lastOccurrence: 'Kejadian Terakhir',
+      noErrors: 'Tidak ada kesalahan tercatat'
+    },
+
+    realtime: {
+      title: 'Pemantauan Real-time',
+      liveMetrics: 'Metrik Langsung',
+      activeRequests: 'Permintaan Aktif',
+      queueLength: 'Panjang Antrian',
+      connectionStatus: {
+        title: 'Status Koneksi',
+        connected: 'Terhubung',
+        disconnected: 'Terputus',
+        reconnecting: 'Menyambung Kembali',
+        connecting: 'Menyambung',
+        lastConnected: 'Terakhir Terhubung',
+        reconnectAttempts: 'Percobaan Sambung Kembali'
+      },
+      latency: 'Latensi',
+      dataTransfer: 'Transfer Data'
+    },
+
+    notifications: {
+      title: 'Notifikasi',
+      new: 'Peringatan Baru',
+      acknowledged: 'Peringatan Diakui',
+      resolved: 'Peringatan Diselesaikan',
+      reconnecting: 'Menyambung kembali ke server...',
+      reconnected: 'Tersambung kembali ke server',
+      connectionLost: 'Koneksi terputus. Mencoba menyambung kembali...',
+      clearAll: 'Hapus Semua',
+      markAllRead: 'Tandai Semua Sudah Dibaca',
+      noNotifications: 'Tidak ada notifikasi'
+    }
+  },
+
   // Judul halaman dan navigasi
   header: {
     title: 'Dashboard Admin MakanMakan',

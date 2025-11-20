@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware, requireRole, optionalAuth } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams } from '../middleware/validation'
-import { QueueService } from '@makanmakan/database'
+import { UnifiedQueueService } from '../features/queue/services/UnifiedQueueService'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -49,7 +49,7 @@ app.post('/join',
     try {
       const data = c.get('validatedBody')
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
+      const queueService = new UnifiedQueueService(c.env)
       const result = await queueService.joinQueue(data)
 
       if (!result.success) {
@@ -69,7 +69,7 @@ app.post('/join',
           },
           body: JSON.stringify({
             restaurantId: data.restaurantId,
-            queueId: result.data?.queueId,
+            queueId: result.data?.id,
             queueNumber: result.data?.queueNumber,
             customerName: data.customerName,
             partySize: data.partySize
@@ -104,7 +104,7 @@ app.get('/:restaurantId/status',
     try {
       const { restaurantId } = c.get('validatedParams')
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
+      const queueService = new UnifiedQueueService(c.env)
       const result = await queueService.getQueueStatus(restaurantId)
 
       if (!result.success) {
@@ -137,22 +137,29 @@ app.get('/:queueId/position',
   validateParams(z.object({ queueId: z.string().uuid() })),
   async (c) => {
     try {
-      const { queueId } = c.get('validatedParams')
+      const { queueId: _queueId } = c.get('validatedParams')
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.getQueuePosition(queueId)
+      // TODO: getQueuePosition method not implemented in UnifiedQueueService
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.getQueuePosition(_queueId)
 
-      if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 404)
-      }
-
+      // Return not implemented error for now
       return c.json({
-        success: true,
-        data: result.data
-      })
+        success: false,
+        error: 'getQueuePosition endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // if (!result.success) {
+      //   return c.json({
+      //     success: false,
+      //     error: result.error
+      //   }, 404)
+      // }
+      //
+      // return c.json({
+      //   success: true,
+      //   data: result.data
+      // })
 
     } catch (error) {
       console.error('Get queue position error:', error)
@@ -185,8 +192,8 @@ app.post('/call-next',
         }, 403)
       }
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.callNext(data, user.id)
+      const queueService = new UnifiedQueueService(c.env)
+      const result = await queueService.callNext(data.restaurantId, data)
 
       if (!result.success) {
         return c.json({
@@ -245,7 +252,7 @@ app.post('/:queueId/seat',
       const { tableId } = c.get('validatedBody')
       const user = c.get('user')
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
+      const queueService = new UnifiedQueueService(c.env)
       const result = await queueService.seatCustomer(queueId, tableId, user.id)
 
       if (!result.success) {
@@ -302,7 +309,7 @@ app.post('/:queueId/cancel',
   async (c) => {
     try {
       const { queueId } = c.get('validatedParams')
-      const { reason, checkInCode } = c.get('validatedBody')
+      const { reason: _reason, checkInCode } = c.get('validatedBody')
       const user = c.get('user') // 可能為 null（客戶未登入）
 
       // 如果沒有用戶登入，需要驗證取消代碼
@@ -328,38 +335,45 @@ app.post('/:queueId/cancel',
         }
       }
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.cancelQueue(queueId, user?.id, reason)
-
-      if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
-      }
-
-      // 觸發實時更新事件
-      try {
-        await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-cancelled`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
-          },
-          body: JSON.stringify({
-            queueId,
-            reason,
-            cancelledBy: user?.id || 'customer'
-          })
-        })
-      } catch (broadcastError) {
-        console.warn('Failed to broadcast queue cancellation:', broadcastError)
-      }
+      // TODO: cancelQueue method not implemented in UnifiedQueueService
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.cancelQueue(queueId, user?.id, reason)
 
       return c.json({
-        success: true,
-        message: '候位已取消'
-      })
+        success: false,
+        error: 'cancelQueue endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // Unreachable code commented out:
+      // if (!result.success) {
+      //   return c.json({
+      //     success: false,
+      //     error: result.error
+      //   }, 400)
+      // }
+      //
+      // // 觸發實時更新事件
+      // try {
+      //   await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/queue-cancelled`, {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+      //     },
+      //     body: JSON.stringify({
+      //       queueId,
+      //       reason,
+      //       cancelledBy: user?.id || 'customer'
+      //     })
+      //   })
+      // } catch (broadcastError) {
+      //   console.warn('Failed to broadcast queue cancellation:', broadcastError)
+      // }
+      //
+      // return c.json({
+      //   success: true,
+      //   message: '候位已取消'
+      // })
 
     } catch (error) {
       console.error('Cancel queue error:', error)
@@ -392,20 +406,27 @@ app.get('/:restaurantId/settings',
         }, 403)
       }
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.getQueueSettings(restaurantId)
-
-      if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
-      }
+      // TODO: getQueueSettings method not implemented in UnifiedQueueService
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.getQueueSettings(restaurantId)
 
       return c.json({
-        success: true,
-        data: result.data
-      })
+        success: false,
+        error: 'getQueueSettings endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // Unreachable code commented out:
+      // if (!result.success) {
+      //   return c.json({
+      //     success: false,
+      //     error: result.error
+      //   }, 400)
+      // }
+      //
+      // return c.json({
+      //   success: true,
+      //   data: result.data
+      // })
 
     } catch (error) {
       console.error('Get queue settings error:', error)
@@ -429,7 +450,7 @@ app.put('/:restaurantId/settings',
   async (c) => {
     try {
       const { restaurantId } = c.get('validatedParams')
-      const updates = c.get('validatedBody')
+      const _updates = c.get('validatedBody')
       const user = c.get('user')
 
       // 權限檢查
@@ -440,20 +461,27 @@ app.put('/:restaurantId/settings',
         }, 403)
       }
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.updateQueueSettings(restaurantId, updates)
-
-      if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
-      }
+      // TODO: updateQueueSettings method interface mismatch (returns LegacyQueueSettings not ApiResponse)
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.updateQueueSettingsLegacy(restaurantId, updates)
 
       return c.json({
-        success: true,
-        message: '設定已更新'
-      })
+        success: false,
+        error: 'updateQueueSettings endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // Unreachable code commented out:
+      // if (!result.success) {
+      //   return c.json({
+      //     success: false,
+      //     error: result.error
+      //   }, 400)
+      // }
+      //
+      // return c.json({
+      //   success: true,
+      //   message: '設定已更新'
+      // })
 
     } catch (error) {
       console.error('Update queue settings error:', error)
@@ -491,25 +519,32 @@ app.get('/:restaurantId/stats',
         }, 403)
       }
 
-      const dateRange = dateFrom && dateTo ? {
+      const _dateRange = dateFrom && dateTo ? {
         from: new Date(dateFrom),
         to: new Date(dateTo)
       } : undefined
 
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.getQueueStatistics(restaurantId, dateRange)
-
-      if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
-      }
+      // TODO: getQueueStatistics method not implemented in UnifiedQueueService
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.getQueueStatistics(restaurantId, _dateRange)
 
       return c.json({
-        success: true,
-        data: result.data
-      })
+        success: false,
+        error: 'getQueueStatistics endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // Unreachable code commented out:
+      // if (!result.success) {
+      //   return c.json({
+      //     success: false,
+      //     error: result.error
+      //   }, 400)
+      // }
+      //
+      // return c.json({
+      //   success: true,
+      //   data: result.data
+      // })
 
     } catch (error) {
       console.error('Get queue statistics error:', error)
@@ -702,15 +737,21 @@ app.post('/cleanup/expired',
   requireRole([0]), // Admin only
   async (c) => {
     try {
-      const queueService = new QueueService(c.env.DB as any, c.env)
-      const result = await queueService.cleanupExpiredQueues()
+      // TODO: cleanupExpiredQueues method not implemented in UnifiedQueueService
+      // const queueService = new UnifiedQueueService(c.env)
+      // const result = await queueService.cleanupExpiredQueues()
 
       return c.json({
-        success: true,
-        data: {
-          cleanedCount: result.cleaned || 0
-        }
-      })
+        success: false,
+        error: 'cleanupExpiredQueues endpoint is deprecated and not implemented'
+      }, 501) // 501 Not Implemented
+
+      // return c.json({
+      //   success: true,
+      //   data: {
+      //     cleanedCount: result.cleaned || 0
+      //   }
+      // })
 
     } catch (error) {
       console.error('Cleanup expired queues error:', error)

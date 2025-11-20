@@ -957,7 +957,7 @@ const formatCouponExpiry = (dateString: any) => {
       month: "2-digit",
       day: "2-digit",
     });
-  } catch (error) {
+  } catch {
     return dateString;
   }
 };

@@ -36,13 +36,13 @@ describe('Kitchen Feature Module', () => {
   test('should validate chef access correctly', () => {
     const service = new KitchenService(mockEnv)
 
-    // Chef role (role: 2) should have access
-    expect(service.validateChefAccess(1, 2, 1)).toBe(true)
+    // Kitchen-allowed roles should have access
+    expect(service.validateChefAccess(1, 0, 1)).toBe(true) // Admin
+    expect(service.validateChefAccess(1, 1, 1)).toBe(true) // Owner
+    expect(service.validateChefAccess(1, 2, 1)).toBe(true) // Chef
+    expect(service.validateChefAccess(1, 3, 1)).toBe(true) // Service
 
-    // Non-chef roles should not have access
-    expect(service.validateChefAccess(1, 0, 1)).toBe(false) // Admin
-    expect(service.validateChefAccess(1, 1, 1)).toBe(false) // Owner
-    expect(service.validateChefAccess(1, 3, 1)).toBe(false) // Service
+    // Cashier role should not have kitchen access
     expect(service.validateChefAccess(1, 4, 1)).toBe(false) // Cashier
   })
 

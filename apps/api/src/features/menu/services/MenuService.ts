@@ -513,7 +513,8 @@ export class MenuService implements IMenuService {
     if (!category) {
       throw new Error('Category not found')
     }
-    if (category.restaurantId !== restaurantId) {
+    // Use loose equality to handle type coercion (string vs number from different sources)
+    if (Number(category.restaurantId) !== Number(restaurantId)) {
       throw new Error('Category does not belong to the specified restaurant')
     }
   }
@@ -593,8 +594,8 @@ export class MenuService implements IMenuService {
       ingredients: item.ingredients,
       price: item.price,
       originalPrice: item.originalPrice,
-      categoryId: item.categoryId,
-      restaurantId: item.restaurantId,
+      categoryId: Number(item.categoryId),
+      restaurantId: Number(item.restaurantId),
       isAvailable: item.isAvailable || false,
       isFeatured: item.isFeatured || false,
       isPopular: item.isPopular || false,
@@ -630,7 +631,7 @@ export class MenuService implements IMenuService {
       status: category.status || 1,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
-      restaurantId: category.restaurantId,
+      restaurantId: Number(category.restaurantId),
       isActive: category.isActive,
       isVisible: category.isVisible,
       itemCount: category.itemCount

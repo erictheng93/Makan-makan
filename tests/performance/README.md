@@ -1,6 +1,6 @@
-# 即時通訊系統性能測試
+# MakanMakan 性能測試
 
-本目錄包含即時通訊系統的性能測試腳本和配置。
+本目錄包含 MakanMakan 平台的性能測試腳本和配置，包括 REST API 和 WebSocket 即時通訊系統的負載測試。
 
 ## 📋 測試工具
 
@@ -37,13 +37,29 @@ cd apps/realtime && pnpm dev
 
 ### 3. 執行性能測試
 
+#### REST API 負載測試
+
+```bash
+# 基本測試
+artillery run tests/performance/artillery-api.yml
+
+# 生成 HTML 報告
+artillery run tests/performance/artillery-api.yml --output api-report.json
+artillery report api-report.json --output api-report.html
+
+# 指定環境變數
+API_URL=http://localhost:8787 artillery run tests/performance/artillery-api.yml
+```
+
+#### WebSocket 負載測試
+
 ```bash
 # 基本測試
 artillery run tests/performance/artillery-websocket.yml
 
 # 生成 HTML 報告
-artillery run tests/performance/artillery-websocket.yml --output report.json
-artillery report report.json --output report.html
+artillery run tests/performance/artillery-websocket.yml --output ws-report.json
+artillery report ws-report.json --output ws-report.html
 
 # 指定環境變數
 API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocket.yml
@@ -51,7 +67,53 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 
 ## 📊 測試場景
 
-### 場景 1: Kitchen WebSocket 連線 (30% 流量)
+### REST API 測試場景
+
+#### 場景 1: 認證流程測試 (20% 流量)
+- 用戶登入
+- Token 驗證
+- 獲取用戶資訊
+
+#### 場景 2: 菜單管理流程 (25% 流量)
+- 查看分類列表
+- 查看菜單列表
+- 查看菜品詳情
+- 搜尋菜品
+
+#### 場景 3: 訂單管理流程 (30% 流量)
+- 查看訂單列表
+- 創建新訂單
+- 更新訂單狀態
+- 查看訂單統計
+
+#### 場景 4: 桌台管理流程 (15% 流量)
+- 查看桌台列表
+- 更新桌台狀態
+- 生成 QR 碼
+
+#### 場景 5: 用戶管理流程 (10% 流量)
+- 查看用戶列表
+- 創建新用戶
+- 更新用戶資訊
+
+#### 場景 6: 混合讀取操作 (50% 流量)
+- 並發執行多個讀取請求
+- 測試高並發讀取性能
+
+#### 場景 7: 分析和報表 (5% 流量)
+- 銷售分析
+- 菜品分析
+- 導出報表
+
+#### 場景 8: 錯誤情境測試 (5% 流量)
+- 未授權訪問
+- 無效 Token
+- 資源不存在
+- 驗證錯誤
+
+### WebSocket 測試場景
+
+#### 場景 1: Kitchen WebSocket 連線 (30% 流量)
 
 模擬廚房員工的連線行為：
 - 獲取 kitchen token

@@ -183,7 +183,7 @@ const testAPIError = async () => {
   try {
     // 發送一個會失敗的 API 請求
     await api.get("/non-existent-endpoint");
-  } catch (error) {
+  } catch {
     addErrorLog("api", "medium", "API 端點不存在");
   }
 };
@@ -249,7 +249,7 @@ const testOfflineRequest = async () => {
       await api.get("/analytics/dashboard", {
         offlineStrategy: "queue",
       } as any);
-    } catch (error) {
+    } catch {
       addErrorLog("network", "medium", "離線請求已排隊");
     }
   } else {

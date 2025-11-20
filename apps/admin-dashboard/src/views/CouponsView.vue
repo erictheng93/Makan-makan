@@ -349,20 +349,49 @@
     </div>
 
     <!-- 創建/編輯優惠券 Modal -->
-    <CouponFormModal
-      v-if="showCreateModal"
-      :coupon="editingCoupon || undefined"
-      @close="closeModal"
-      @save="handleSaveCoupon"
-    />
+    <!-- 表單 Modal with Suspense -->
+    <Suspense v-if="showCreateModal">
+      <template #default>
+        <CouponFormModal
+          :coupon="editingCoupon || undefined"
+          @close="closeModal"
+          @save="handleSaveCoupon"
+        />
+      </template>
+      <template #fallback>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg p-8 max-w-md w-full animate-pulse">
+            <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+            <div class="h-32 bg-gray-100 rounded mb-4"></div>
+            <div class="h-10 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
 
-    <!-- 統計 Modal -->
-    <CouponStatsModal
-      v-if="showStatsModal && selectedCoupon"
-      :coupon="selectedCoupon"
-      :stats="couponStats"
-      @close="showStatsModal = false"
-    />
+    <!-- 統計 Modal with Suspense -->
+    <Suspense v-if="showStatsModal && selectedCoupon">
+      <template #default>
+        <CouponStatsModal
+          :coupon="selectedCoupon"
+          :stats="couponStats"
+          @close="showStatsModal = false"
+        />
+      </template>
+      <template #fallback>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg p-8 max-w-2xl w-full animate-pulse">
+            <div class="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="h-20 bg-gray-100 rounded"></div>
+              <div class="h-20 bg-gray-100 rounded"></div>
+            </div>
+            <div class="h-48 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
   </div>
 </template>
 
@@ -380,8 +409,10 @@ import {
 } from "@heroicons/vue/24/outline";
 
 // Components
-import CouponFormModal from "@/components/coupons/CouponFormModal.vue";
-import CouponStatsModal from "@/components/coupons/CouponStatsModal.vue";
+import { useAsyncModals } from "@/composables/useAsyncModals";
+
+// 異步加載 Modal 組件
+const { CouponFormModal, CouponStatsModal } = useAsyncModals();
 
 // Types
 interface Coupon {
@@ -592,7 +623,7 @@ const viewCouponStats = async (coupon: Coupon) => {
     selectedCoupon.value = coupon;
     couponStats.value = result.data.stats;
     showStatsModal.value = true;
-  } catch (error) {
+  } catch {
     toast.error("無法獲取統計數據");
   }
 };
@@ -607,7 +638,7 @@ const deactivateCoupon = async (coupon: Coupon) => {
 
     toast.success("優惠券已停用");
     await fetchCoupons();
-  } catch (error) {
+  } catch {
     toast.error("停用失敗");
   }
 };
@@ -626,7 +657,7 @@ const activateCoupon = async (coupon: Coupon) => {
 
     toast.success("優惠券已啟用");
     await fetchCoupons();
-  } catch (error) {
+  } catch {
     toast.error("啟用失敗");
   }
 };
@@ -645,7 +676,7 @@ const deleteCoupon = async (coupon: Coupon) => {
 
     toast.success("優惠券已刪除");
     await fetchCoupons();
-  } catch (error) {
+  } catch {
     toast.error("刪除失敗");
   }
 };

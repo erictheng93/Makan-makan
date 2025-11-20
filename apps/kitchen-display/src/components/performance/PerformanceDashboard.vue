@@ -50,7 +50,7 @@
 
     <!-- Overview Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-blue-50 rounded-lg p-4">
+      <div class="bg-blue-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <GlobeAltIcon class="w-5 h-5 text-blue-600" />
           <span class="text-sm font-medium text-blue-900">頁面載入</span>
@@ -63,7 +63,7 @@
         </div>
       </div>
 
-      <div class="bg-green-50 rounded-lg p-4">
+      <div class="bg-green-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <BoltIcon class="w-5 h-5 text-green-600" />
           <span class="text-sm font-medium text-green-900">API 響應</span>
@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <div class="bg-orange-50 rounded-lg p-4">
+      <div class="bg-orange-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <CpuChipIcon class="w-5 h-5 text-orange-600" />
           <span class="text-sm font-medium text-orange-900">記憶體使用</span>
@@ -89,7 +89,7 @@
         </div>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-4">
+      <div class="bg-purple-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <FilmIcon class="w-5 h-5 text-purple-600" />
           <span class="text-sm font-medium text-purple-900">畫面更新率</span>
@@ -158,7 +158,7 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Response Time Trend -->
-        <div class="bg-gray-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4" data-testid="performance-chart">
           <div class="flex items-center justify-between mb-3">
             <span class="font-medium text-gray-900">響應時間趨勢</span>
             <select
@@ -333,6 +333,7 @@
 
       <button
         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        data-testid="export-report"
         @click="exportData"
       >
         導出數據
@@ -464,6 +465,7 @@
                     v-for="(metric, name) in performanceReport.metrics"
                     :key="name"
                     class="hover:bg-gray-50"
+                    data-testid="metric-item"
                   >
                     <td
                       class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"

@@ -163,8 +163,8 @@ global.console = {
 if (typeof global.performance === 'undefined') {
   global.performance = {
     now: () => Date.now(),
-    timing: {} as PerformanceTiming,
-    navigation: {} as PerformanceNavigation,
+    timing: {} as any, // Legacy API - using any for test compatibility
+    navigation: {} as any, // Legacy API - using any for test compatibility
     timeOrigin: Date.now(),
     mark: vi.fn(),
     measure: vi.fn(),

@@ -18,6 +18,14 @@ module.exports = {
     'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     'no-var': 'warn',
     'no-unreachable': 'warn',
+    // Prevent use of CURRENT_TIMESTAMP in SQL queries
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'Literal[value=/CURRENT_TIMESTAMP/]',
+        message: 'Use getCurrentTimestamp() from @makanmakan/database instead of CURRENT_TIMESTAMP in SQL queries. See docs/development/TIMESTAMP_BEST_PRACTICES.md for details.',
+      },
+    ],
   },
   ignorePatterns: [
     'dist/',

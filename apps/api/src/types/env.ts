@@ -57,6 +57,9 @@ export interface Env {
   API_BASE_URL?: string
   INTERNAL_API_TOKEN?: string
   SLACK_WEBHOOK_URL?: string
+
+  // Test-only variables
+  MOCK_DRIZZLE_DB?: any // Mock Drizzle database for testing
   MONITORING_WEBHOOK_URL?: string
   ALERT_EMAIL_FROM?: string
   ALERT_EMAIL_TO?: string

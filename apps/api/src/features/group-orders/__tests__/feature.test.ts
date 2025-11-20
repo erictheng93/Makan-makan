@@ -95,13 +95,37 @@ describe('Group Orders Feature', () => {
       // Mock existing group order
       mockDB.prepare = (sql: string) => ({
         bind: (...params: any[]) => ({
-          first: async () => ({
-            group_order_id: 'group-001',
-            restaurant_id: 1,
-            status: 'active',
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            max_members: 8
-          }),
+          first: async () => {
+            // Return different responses based on query type
+            if (sql.includes('COUNT(*)')) {
+              return { count: 1 } // Member count
+            } else if (sql.includes('group_members') && sql.includes('name')) {
+              return null // No existing member with same name
+            } else if (sql.includes('group_orders')) {
+              return {
+                id: 'group-001',
+                restaurant_id: 1,
+                status: 'active',
+                expires_at: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Unix timestamp
+                settings: JSON.stringify({ maxMembers: 8, permissions: {} })
+              }
+            } else if (sql.includes('group_members') && sql.includes('WHERE id')) {
+              return {
+                id: 'member-001',
+                group_order_id: 'group-001',
+                session_id: 'session-001',
+                name: 'John Doe',
+                phone: '123-456-7890',
+                email: 'john@example.com',
+                role: 'member',
+                joined_at: Math.floor(Date.now() / 1000),
+                last_active_at: Math.floor(Date.now() / 1000),
+                is_active: 1,
+                left_at: null
+              }
+            }
+            return {}
+          },
           all: async () => ({ results: [] }),
           run: async () => ({ success: true })
         })

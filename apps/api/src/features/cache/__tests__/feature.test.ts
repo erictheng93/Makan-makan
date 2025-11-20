@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { createCacheService, CACHE_STRATEGIES } from '../services/CacheService'
+import { CacheService, CACHE_STRATEGIES } from '../services/CacheService'
 import type { KVNamespace } from '@cloudflare/workers-types'
 
 // Mock KV namespace
@@ -57,12 +57,12 @@ const createMockKV = (): KVNamespace => {
 
 describe('Cache Feature', () => {
   let mockKV: KVNamespace
-  let cacheService: ReturnType<typeof createCacheService>
+  let cacheService: CacheService
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockKV = createMockKV()
-    cacheService = createCacheService(mockKV)
+    cacheService = new CacheService(mockKV)
   })
 
   describe('CacheService', () => {
@@ -215,7 +215,7 @@ describe('Cache Feature', () => {
           get: vi.fn().mockRejectedValue(new Error('KV Error'))
         }
 
-        const errorCacheService = createCacheService(errorKV as KVNamespace)
+        const errorCacheService = new CacheService(errorKV as KVNamespace)
 
         // Should not throw, should return null
         const result = await errorCacheService.get('error:test')
@@ -228,7 +228,7 @@ describe('Cache Feature', () => {
           put: vi.fn().mockRejectedValue(new Error('KV Put Error'))
         }
 
-        const errorCacheService = createCacheService(errorKV as KVNamespace)
+        const errorCacheService = new CacheService(errorKV as KVNamespace)
 
         // Should throw since it's a critical operation
         await expect(errorCacheService.set('error:test', { test: 'data' }, CACHE_STRATEGIES.MENU))

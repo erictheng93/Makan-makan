@@ -3,6 +3,8 @@
  * 提供通用的數據庫操作功能
  */
 
+import { getCurrentTimestamp } from '@makanmakan/database'
+
 export abstract class BaseService {
   protected d1: any
 
@@ -117,12 +119,13 @@ export abstract class BaseService {
   }): Promise<void> {
     try {
       const auditId = this.generateId()
+      const now = getCurrentTimestamp()
 
       await this.d1.prepare(`
         INSERT INTO audit_logs (
           id, action, entity_type, entity_id, user_id,
           description, old_data, new_data, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         auditId,
         data.action,
@@ -131,7 +134,8 @@ export abstract class BaseService {
         data.userId,
         data.description || null,
         data.oldData ? JSON.stringify(data.oldData) : null,
-        data.newData ? JSON.stringify(data.newData) : null
+        data.newData ? JSON.stringify(data.newData) : null,
+        now
       ).run()
     } catch (error) {
       console.error('創建審計日誌失敗:', error)

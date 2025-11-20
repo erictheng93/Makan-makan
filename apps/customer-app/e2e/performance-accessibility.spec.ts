@@ -86,7 +86,7 @@ test.describe("性能與可存取性測試", () => {
               url: url,
               size: buffer.length,
             });
-          } catch (error) {
+          } catch {
             // 忽略無法取得內容的請求
           }
         }
