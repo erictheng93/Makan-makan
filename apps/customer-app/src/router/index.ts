@@ -30,6 +30,31 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("@/views/ForgotPasswordView.vue"),
+    meta: {
+      title: "忘記密碼",
+      requiresGuest: true,
+    },
+  },
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: () => import("@/views/ResetPasswordView.vue"),
+    meta: {
+      title: "重設密碼",
+    },
+  },
+  {
+    path: "/verify-email",
+    name: "VerifyEmail",
+    component: () => import("@/views/VerifyEmailView.vue"),
+    meta: {
+      title: "Email 驗證",
+    },
+  },
+  {
     path: "/orders",
     name: "Orders",
     component: () => import("@/views/OrderHistoryView.vue"),

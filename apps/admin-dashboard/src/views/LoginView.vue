@@ -57,6 +57,14 @@
             <p v-if="errors.password" class="mt-1 text-sm text-red-600">
               {{ errors.password }}
             </p>
+            <div class="flex items-center justify-end mt-2">
+              <router-link
+                to="/forgot-password"
+                class="text-sm font-medium text-primary-600 hover:text-primary-500"
+              >
+                忘記密碼？
+              </router-link>
+            </div>
           </div>
         </div>
 

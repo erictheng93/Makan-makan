@@ -339,9 +339,9 @@ app.get('/', (c) => {
 // 匯出應用
 export default {
   fetch: app.fetch,
-  
-  // 計畫任務處理器
-  scheduled: async (event: ScheduledEvent, env: Env, _ctx: ExecutionContext) => {
+
+  // 計畫任務處理器 (Cron Jobs)
+  scheduled: async (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
     console.log('Scheduled event triggered:', event.cron)
 
     // Import scheduled tasks dynamically
@@ -355,14 +355,21 @@ export default {
         console.log('[Cron] Token cleanup result:', result)
       }
 
-      // Weekly cleanup at 3 AM UTC on Sundays: Clean old logs
+      // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
       if (event.cron === '0 3 * * 0') {
         console.log('[Cron] Running weekly log cleanup...')
-        const result = await cleanupOldLogs(env)
-        console.log('[Cron] Log cleanup result:', result)
+        await cleanupOldLogs(env)
       }
     } catch (error) {
-      console.error('[Cron] Scheduled task failed:', error)
+      console.error('[Cron] Scheduled task error:', error)
+
+      // Send alert for cron job failures
+      const { AlertService } = await import('./services/AlertService')
+      const alertService = new AlertService(env)
+      await alertService.systemError(
+        error instanceof Error ? error : new Error(String(error)),
+        'Cron Job Execution'
+      )
     }
   }
 }

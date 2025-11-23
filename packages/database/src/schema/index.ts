@@ -17,6 +17,7 @@ export * from './coupons'
 export * from './leaves'
 export * from './scheduling'
 export * from './partnerships'
+export * from './verification'
 
 // 匯出所有關聯定義
 export { restaurantRelations } from './restaurants'
@@ -53,6 +54,12 @@ export {
   verifiedMembersRelations,
   partnershipUsageLogsRelations
 } from './partnerships'
+export {
+  passwordResetTokenRelations,
+  emailVerificationTokenRelations,
+  phoneVerificationTokenRelations,
+  passwordChangeLogRelations
+} from './verification'
 
 // 重新匯出類型
 export type { UserRole } from './users'
