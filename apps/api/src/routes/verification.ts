@@ -1,12 +1,14 @@
 /**
  * Verification Routes
  * Handles password reset, email verification, and phone verification
+ * With rate limiting to prevent abuse
  */
 
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { Env } from '../types/env'
 import { VerificationService } from '@makanmakan/database'
+import { rateLimitMiddleware, RateLimitPresets } from '../middleware/rateLimiter'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -77,8 +79,9 @@ function getClientInfo(c: any) {
 /**
  * POST /forgot-password
  * Request password reset link/OTP
+ * Rate limit: 5 requests per hour per IP
  */
-app.post('/forgot-password', async (c) => {
+app.post('/forgot-password', rateLimitMiddleware(RateLimitPresets.passwordReset), async (c) => {
   try {
     const body = await c.req.json()
     const validation = forgotPasswordSchema.safeParse(body)
@@ -103,6 +106,12 @@ app.post('/forgot-password', async (c) => {
       ipAddress,
       userAgent,
     })
+
+    // Send alert for failed attempts (user not found)
+    if (!result.success && result.error?.includes('找不到用戶')) {
+      const alertService = new AlertService(c.env)
+      await alertService.passwordResetAttempt(identifier, ipAddress, false)
+    }
 
     return c.json(result, result.success ? 200 : 500)
   } catch (error) {
@@ -218,7 +227,7 @@ app.post('/reset-password', async (c) => {
  * POST /verify-email/send
  * Send email verification link
  */
-app.post('/verify-email/send', async (c) => {
+app.post('/verify-email/send', rateLimitMiddleware(RateLimitPresets.emailVerification), async (c) => {
   try {
     // Get user from auth middleware (assumed to be set)
     const user = c.get('user')
@@ -327,7 +336,7 @@ app.get('/verify-email', async (c) => {
  * POST /verify-phone/send
  * Send phone verification OTP
  */
-app.post('/verify-phone/send', async (c) => {
+app.post('/verify-phone/send', rateLimitMiddleware(RateLimitPresets.smsOTP), async (c) => {
   try {
     // Get user from auth middleware
     const user = c.get('user')

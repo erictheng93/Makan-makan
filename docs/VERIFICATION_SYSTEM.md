@@ -17,6 +17,9 @@
 5. [前端集成](#前端集成)
 6. [測試](#測試)
 7. [故障排除](#故障排除)
+8. [速率限制](#速率限制)
+9. [異常通知](#異常通知)
+10. [維護](#維護)
 
 ---
 
@@ -560,6 +563,56 @@ pnpm test verification.test.ts
 - ✅ POST /auth/verify-phone/send (1 test)
 - ✅ POST /auth/verify-phone (2 tests)
 
+### E2E 測試
+
+**forgot-password.spec.ts** (294 lines, 18 tests)
+
+```bash
+cd apps/customer-app
+pnpm test:e2e forgot-password.spec.ts
+```
+
+**測試流程**:
+
+1. **Forgot Password Flow** (8 tests)
+   - ✅ 顯示忘記密碼連結
+   - ✅ 導航到忘記密碼頁面
+   - ✅ 空 Email 驗證錯誤
+   - ✅ 無效 Email 格式驗證
+   - ✅ 成功提交請求
+   - ✅ 不存在的 Email 錯誤
+   - ✅ 返回登入連結
+   - ✅ 速率限制處理
+
+2. **Reset Password Flow** (7 tests)
+   - ✅ Token 驗證加載狀態
+   - ✅ 缺少 token 錯誤
+   - ✅ 無效 token 錯誤
+   - ✅ 密碼強度指標
+   - ✅ 密碼要求清單
+   - ✅ 密碼可見性切換
+   - ✅ 密碼確認匹配驗證
+
+3. **Email Verification Flow** (3 tests)
+   - ✅ 有效 token 驗證
+   - ✅ 缺少 token 錯誤
+   - ✅ 錯誤時顯示重新發送選項
+
+**執行測試**:
+```bash
+# 執行所有 E2E 測試
+pnpm test:e2e
+
+# 執行特定測試
+pnpm test:e2e forgot-password.spec.ts
+
+# 使用 UI 模式
+pnpm test:e2e --ui
+
+# 使用 headed 模式（查看瀏覽器）
+pnpm test:e2e --headed
+```
+
 ### 手動測試
 
 #### 1. 測試密碼重設（Email）
@@ -679,37 +732,65 @@ WHERE user_id = 1 AND phone = '+60123456789';
    - ✅ 密碼確認匹配驗證
 
 3. **速率限制**
-   - ⚠️ 建議實施: 每 IP 每小時最多 5 次密碼重設請求
-   - ⚠️ 建議實施: 每用戶每天最多 3 次 OTP 發送
+   - ✅ 密碼重設: 每 IP 每小時最多 5 次請求
+   - ✅ Email 驗證: 每 IP 每 10 分鐘最多 3 次請求
+   - ✅ SMS OTP: 每 IP 每小時最多 3 次請求
+   - ✅ 基於 Cloudflare KV 的分布式速率限制
+   - ✅ 自動清理（TTL expiration）
 
 4. **日誌和監控**
    - ✅ 密碼更改日誌
    - ✅ IP 地址追蹤
    - ✅ 失敗原因記錄
-   - ⚠️ 建議實施: Slack/Email 異常通知
+   - ✅ Slack webhook 異常通知
+   - ✅ Email 安全警報
+   - ✅ 多級別警報（info/warning/error）
 
 ---
 
 ## 維護
 
-### 定期清理
+### 自動化清理 (Cron Jobs)
 
-建議設置 cron job 定期清理過期 token：
+系統已配置 Cloudflare Workers Cron Triggers 自動清理過期數據：
 
+**配置文件**: `apps/api/wrangler.toml`
+```toml
+[triggers]
+crons = [
+  "0 2 * * *",   # 每天凌晨 2:00 UTC - 清理過期 token
+  "0 3 * * 0"    # 每週日凌晨 3:00 UTC - 清理舊日誌
+]
+```
+
+**實現代碼**: `apps/api/src/scheduled/cleanup-tokens.ts`
 ```typescript
-// apps/api/src/cron/cleanup-tokens.ts
-import { VerificationService } from '@makanmakan/database'
-
 export async function cleanupExpiredTokens(env: CloudflareEnv) {
   const verificationService = new VerificationService(env.DB, env)
   await verificationService.cleanupExpiredTokens()
-  console.log('Expired tokens cleaned up')
-}
 
-// 在 wrangler.toml 中配置
-// [triggers]
-// crons = ["0 2 * * *"]  // 每天凌晨 2 點執行
+  // 獲取清理統計
+  const stats = await getCleanupStats(env.DB)
+
+  // 發送通知
+  const alertService = new AlertService(env)
+  await alertService.sendAlert({
+    title: 'Token Cleanup Completed',
+    severity: 'info',
+    metadata: {
+      'Password Reset Tokens': stats.passwordReset,
+      'Email Verification Tokens': stats.emailVerification,
+      'Phone Verification Tokens': stats.phoneVerification,
+    },
+  })
+}
 ```
+
+**清理範圍**:
+- ✅ 過期的密碼重設 token（15 分鐘後）
+- ✅ 過期的 Email 驗證 token（24 小時後）
+- ✅ 過期的手機驗證 token（5 分鐘後）
+- ✅ 30 天前的密碼更改日誌
 
 ### 監控指標
 
@@ -732,7 +813,165 @@ export async function cleanupExpiredTokens(env: CloudflareEnv) {
 
 ---
 
+## 速率限制
+
+系統實施了基於 Cloudflare KV 的分布式速率限制，防止濫用和攻擊。
+
+### 配置
+
+**文件**: `apps/api/src/middleware/rateLimiter.ts`
+
+### 預設配置
+
+| 端點 | 窗口時間 | 最大請求數 | 鍵前綴 |
+|------|----------|-----------|--------|
+| 密碼重設 | 1 小時 | 5 | `pwd_reset` |
+| Email 驗證 | 10 分鐘 | 3 | `email_verify` |
+| SMS OTP | 1 小時 | 3 | `sms_otp` |
+
+### 使用方式
+
+```typescript
+import { rateLimitMiddleware, RateLimitPresets } from '../middleware/rateLimiter'
+
+// 應用到路由
+app.post('/auth/forgot-password',
+  rateLimitMiddleware(RateLimitPresets.passwordReset),
+  async (c) => { /* handler */ }
+)
+```
+
+### 響應格式
+
+**成功時** (Status 200):
+```json
+{
+  "success": true,
+  "data": { /* response data */ }
+}
+```
+
+**速率限制超出時** (Status 429):
+```json
+{
+  "success": false,
+  "error": "密碼重設請求過於頻繁，請 1 小時後再試",
+  "limit": 5,
+  "remaining": 0,
+  "resetTime": 1700000000000,
+  "retryAfter": 3600
+}
+```
+
+### Headers
+
+- `X-RateLimit-Limit`: 最大請求數
+- `X-RateLimit-Remaining`: 剩餘請求數
+- `X-RateLimit-Reset`: 重置時間（UNIX timestamp）
+- `Retry-After`: 重試等待秒數（僅在超出時）
+
+---
+
+## 異常通知
+
+系統實施了多通道警報系統，支持 Slack 和 Email 通知。
+
+### 配置
+
+**環境變量**:
+```env
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+ALERT_EMAIL=security@makanmakan.com
+```
+
+**文件**: `apps/api/src/services/AlertService.ts`
+
+### 警報級別
+
+- **info**: 一般信息（藍色）
+- **warning**: 警告事件（橙色）
+- **error**: 嚴重錯誤（紅色）
+
+### 使用方式
+
+```typescript
+import { AlertService } from '../services/AlertService'
+
+const alertService = new AlertService(env)
+
+// 速率限制超出
+await alertService.rateLimitExceeded(ipAddress, '/auth/forgot-password', 5)
+
+// 密碼重設失敗
+await alertService.passwordResetAttempt(email, ipAddress, false)
+
+// 系統錯誤
+await alertService.systemError(error, 'Token Cleanup')
+
+// 自定義警報
+await alertService.sendAlert({
+  title: 'Custom Alert',
+  message: 'Something happened',
+  severity: 'warning',
+  metadata: { key: 'value' }
+})
+```
+
+### Slack 通知格式
+
+```
+🟠 [WARNING] Failed Password Reset Attempt
+────────────────────────
+Failed password reset attempt for test@example.com
+
+Email: test@example.com
+IP: 192.168.1.1
+Status: Failed - User not found
+────────────────────────
+MakanMakan Security System
+```
+
+### Email 通知格式
+
+純文本 Email，包含警報標題、訊息和元數據。
+
+---
+
 ## 更新日誌
+
+### v1.1.0 (2025-11-23) - 生產增強版
+
+**安全增強**:
+- ✅ 分布式速率限制（基於 Cloudflare KV）
+  - 密碼重設: 5 requests/hour per IP
+  - Email 驗證: 3 requests/10min per IP
+  - SMS OTP: 3 requests/hour per IP
+- ✅ 多通道異常通知系統
+  - Slack webhook 集成
+  - Email 警報通知
+  - 三級警報（info/warning/error）
+- ✅ 自動化維護系統
+  - 每日 token 清理 (2 AM UTC)
+  - 每週日誌清理 (3 AM UTC Sunday)
+  - Cloudflare Workers Cron Triggers
+
+**測試覆蓋**:
+- ✅ E2E 測試（18 tests, 294 lines）
+  - Forgot Password Flow (8 tests)
+  - Reset Password Flow (7 tests)
+  - Email Verification Flow (3 tests)
+
+**文件更新**:
+- ✅ 速率限制文檔
+- ✅ 異常通知設置指南
+- ✅ Cron Jobs 配置說明
+- ✅ E2E 測試指南
+
+**新增文件**:
+- `apps/api/src/middleware/rateLimiter.ts` (262 lines)
+- `apps/api/src/services/AlertService.ts` (292 lines)
+- `apps/api/src/scheduled/cleanup-tokens.ts` (120 lines)
+- `apps/customer-app/tests/e2e/forgot-password.spec.ts` (294 lines)
 
 ### v1.0.0 (2025-11-23)
 - ✅ 初始發布

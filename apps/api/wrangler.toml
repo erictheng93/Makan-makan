@@ -181,3 +181,14 @@ hints = ["asia-southeast1"]
 [[env.production.analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "makanmakan-metrics-prod"
+
+# ========================================
+# Cron Triggers (Scheduled Tasks)
+# ========================================
+[triggers]
+# Daily at 2:00 AM UTC: Clean expired verification tokens
+# Weekly on Sunday at 3:00 AM UTC: Clean old password change logs
+crons = [
+  "0 2 * * *",   # Daily token cleanup
+  "0 3 * * 0"    # Weekly log cleanup
+]
