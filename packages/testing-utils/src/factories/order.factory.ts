@@ -160,16 +160,16 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
       },
       estimatedPrepTime: randomNumber(15, 45),
       actualPrepTime: status === OrderStatus.COMPLETED ? randomNumber(15, 60) : null,
-      confirmedAt: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status)
+      confirmedAt: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status as any)
         ? pastTimestamp(0.02) // 30 minutes ago
         : null,
-      preparingAt: [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status)
+      preparingAt: [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status as any)
         ? pastTimestamp(0.01) // 15 minutes ago
         : null,
-      readyAt: [OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status)
+      readyAt: [OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status as any)
         ? pastTimestamp(0.005) // 7 minutes ago
         : null,
-      deliveredAt: [OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status)
+      deliveredAt: [OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(status as any)
         ? pastTimestamp(0.002) // 3 minutes ago
         : null,
       paidAt: status === OrderStatus.COMPLETED ? now : null,

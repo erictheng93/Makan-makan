@@ -62,8 +62,8 @@ global.WebSocketPair = class MockWebSocketPair {
   1: MockWebSocket
 
   constructor() {
-    this.0 = new MockWebSocket('ws://test-client')
-    this.1 = new MockWebSocket('ws://test-server')
+    this[0] = new MockWebSocket('ws://test-client')
+    this[1] = new MockWebSocket('ws://test-server')
   }
 } as any
 
