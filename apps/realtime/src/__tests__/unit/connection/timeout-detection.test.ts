@@ -118,7 +118,7 @@ function createMockConnection(
       roomType: 'customer',
       roomId: 'table-001',
       restaurantId: 'restaurant-123',
-      role: 4,
+      role: 'customer',
       exp: Math.floor(now / 1000) + 3600,
       iat: Math.floor(now / 1000)
     },

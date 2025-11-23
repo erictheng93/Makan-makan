@@ -10,9 +10,10 @@ import type {
   RealtimeAuthPayload,
   NewOrderEvent,
   OrderStatusUpdateEvent,
-  MenuUpdateEvent,
-  TableStatusEvent
+  MenuItemUpdateEvent,
+  TableStatusUpdateEvent
 } from '@makanmakan/shared-types'
+import { createTestAuthPayload, getStringRole } from '../../helpers/test-utils'
 
 // Connection info structure
 interface ConnectionInfo {
@@ -22,6 +23,27 @@ interface ConnectionInfo {
   connectedAt: number
   lastActivity: number
   auth?: RealtimeAuthPayload
+  // Keep numeric role for test logic compatibility
+  numericRole?: number
+}
+
+// Factory function to create ConnectionInfo with proper types
+function createConnectionInfo(
+  id: string,
+  type: 'customer' | 'admin' | 'kitchen',
+  roomId: string,
+  restaurantId: string,
+  numericRole: number
+): ConnectionInfo {
+  return {
+    id,
+    type,
+    roomId,
+    connectedAt: Date.now(),
+    lastActivity: Date.now(),
+    numericRole,
+    auth: createTestAuthPayload(type, roomId, restaurantId, numericRole)
+  }
 }
 
 // Helper function to check if event should be sent to connection
@@ -35,7 +57,7 @@ function shouldSendEventToConnection(
   }
 
   const eventType = event.type
-  const role = connectionInfo.auth?.role
+  const role = connectionInfo.numericRole ?? 0
 
   switch (eventType) {
     case RealtimeEventType.NEW_ORDER:
@@ -49,17 +71,17 @@ function shouldSendEventToConnection(
       }
       return true // Admin and kitchen receive all updates
 
-    case RealtimeEventType.MENU_UPDATE:
+    case RealtimeEventType.MENU_ITEM_UPDATE:
       // Only admin and kitchen receive menu updates
-      return role !== undefined && role < 4
+      return role < 4
 
-    case RealtimeEventType.TABLE_STATUS:
-      // Only admin receives table status
+    case RealtimeEventType.TABLE_STATUS_UPDATE:
+      // Only admin and owner receive table status
       return role === 0 || role === 1
 
-    case RealtimeEventType.KITCHEN_ORDER_READY:
+    case RealtimeEventType.KITCHEN_ITEM_STATUS:
       // Kitchen and service crew receive kitchen events
-      return role !== undefined && (role === 2 || role === 3)
+      return role === 2 || role === 3
 
     default:
       return true
@@ -74,7 +96,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connection1: ConnectionInfo = {
@@ -83,11 +111,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-123',
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -99,11 +128,12 @@ describe('Event Filtering', () => {
         roomId: 'table-002',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-002',
           restaurantId: 'restaurant-456', // Different restaurant
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -119,7 +149,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connection: ConnectionInfo = {
@@ -128,11 +164,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-999',
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -150,11 +187,11 @@ describe('Event Filtering', () => {
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
-          orderId: 'order-001',
-          tableId: 'table-001',
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
           items: [],
-          total: 100,
-          createdAt: new Date().toISOString()
+          totalAmount: 100
         }
       }
 
@@ -167,11 +204,12 @@ describe('Event Filtering', () => {
           roomId: 'table-001',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: role,
           auth: {
             roomType: 'customer',
             roomId: 'table-001',
             restaurantId: 'restaurant-123',
-            role,
+            role: getStringRole(role),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -182,15 +220,14 @@ describe('Event Filtering', () => {
     })
 
     it('should only send MENU_UPDATE to admin and kitchen', () => {
-      const event: MenuUpdateEvent = {
-        type: RealtimeEventType.MENU_UPDATE,
+      const event: MenuItemUpdateEvent = {
+        type: RealtimeEventType.MENU_ITEM_UPDATE,
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
-          itemId: 'item-001',
-          action: 'update',
-          changes: {}
+          menuItemId: 1,
+          action: 'updated'
         }
       }
 
@@ -209,11 +246,12 @@ describe('Event Filtering', () => {
           roomId: 'table-001',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: role,
           auth: {
             roomType: 'customer',
             roomId: 'table-001',
             restaurantId: 'restaurant-123',
-            role,
+            role: getStringRole(role),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -224,15 +262,16 @@ describe('Event Filtering', () => {
     })
 
     it('should only send TABLE_STATUS to admin and owner', () => {
-      const event: TableStatusEvent = {
-        type: RealtimeEventType.TABLE_STATUS,
+      const event: TableStatusUpdateEvent = {
+        type: RealtimeEventType.TABLE_STATUS_UPDATE,
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
           tableId: 'table-001',
+          tableName: 'Table 1',
           status: 'occupied',
-          occupiedAt: new Date().toISOString()
+          customerCount: 4
         }
       }
 
@@ -251,11 +290,12 @@ describe('Event Filtering', () => {
           roomId: 'admin-restaurant-123',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: role,
           auth: {
             roomType: 'admin',
             roomId: 'admin-restaurant-123',
             restaurantId: 'restaurant-123',
-            role,
+            role: getStringRole(role),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -267,14 +307,15 @@ describe('Event Filtering', () => {
 
     it('should only send KITCHEN_ORDER_READY to kitchen and crew', () => {
       const event: RealtimeEvent = {
-        type: RealtimeEventType.KITCHEN_ORDER_READY,
+        type: RealtimeEventType.KITCHEN_ITEM_STATUS,
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
-          orderId: 'order-001',
-          tableId: 'table-001'
-        }
+          orderId: 1,
+          orderItemId: 1,
+          status: 'ready'
+        } as any
       }
 
       const testCases = [
@@ -292,11 +333,12 @@ describe('Event Filtering', () => {
           roomId: 'kitchen-restaurant-123',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: role,
           auth: {
             roomType: 'kitchen',
             roomId: 'kitchen-restaurant-123',
             restaurantId: 'restaurant-123',
-            role,
+            role: getStringRole(role),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -314,7 +356,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connectionTypes: Array<'customer' | 'admin' | 'kitchen'> = [
@@ -324,17 +372,19 @@ describe('Event Filtering', () => {
       ]
 
       connectionTypes.forEach(type => {
+        const numericRole = type === 'customer' ? 4 : 0
         const connection: ConnectionInfo = {
           id: `conn-${type}`,
           type,
           roomId: `${type}-room`,
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole,
           auth: {
             roomType: type,
             roomId: `${type}-room`,
             restaurantId: 'restaurant-123',
-            role: type === 'customer' ? 4 : 0,
+            role: getStringRole(numericRole),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -352,11 +402,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-123',
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -373,11 +424,12 @@ describe('Event Filtering', () => {
         roomId: 'admin-restaurant-123',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 0,
         auth: {
           roomType: 'admin',
           roomId: 'admin-restaurant-123',
           restaurantId: 'restaurant-123',
-          role: 0,
+          role: getStringRole(0),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -394,11 +446,12 @@ describe('Event Filtering', () => {
         roomId: 'kitchen-restaurant-123',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 2,
         auth: {
           roomType: 'kitchen',
           roomId: 'kitchen-restaurant-123',
           restaurantId: 'restaurant-123',
-          role: 2,
+          role: getStringRole(2),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -415,9 +468,9 @@ describe('Event Filtering', () => {
         RealtimeEventType.NEW_ORDER,
         RealtimeEventType.ORDER_STATUS_UPDATE,
         RealtimeEventType.ORDER_ITEM_STATUS_UPDATE,
-        RealtimeEventType.MENU_UPDATE,
-        RealtimeEventType.TABLE_STATUS,
-        RealtimeEventType.KITCHEN_ORDER_READY,
+        RealtimeEventType.MENU_ITEM_UPDATE,
+        RealtimeEventType.TABLE_STATUS_UPDATE,
+        RealtimeEventType.KITCHEN_ITEM_STATUS,
         RealtimeEventType.CONNECTION_ACK,
         RealtimeEventType.HEARTBEAT,
         RealtimeEventType.ERROR
@@ -429,7 +482,7 @@ describe('Event Filtering', () => {
           eventId: `event-${eventType}`,
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any // Generic test data
         }
 
         expect(event.type).toBe(eventType)
@@ -443,11 +496,12 @@ describe('Event Filtering', () => {
         roomId: 'admin-restaurant-123',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 0,
         auth: {
           roomType: 'admin',
           roomId: 'admin-restaurant-123',
           restaurantId: 'restaurant-123',
-          role: 0,
+          role: getStringRole(0),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -459,11 +513,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-123',
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -475,22 +530,29 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       expect(shouldSendEventToConnection(newOrderEvent, adminConnection)).toBe(true)
       expect(shouldSendEventToConnection(newOrderEvent, customerConnection)).toBe(true)
 
       // TABLE_STATUS: only admin should receive
-      const tableStatusEvent: TableStatusEvent = {
-        type: RealtimeEventType.TABLE_STATUS,
+      const tableStatusEvent: TableStatusUpdateEvent = {
+        type: RealtimeEventType.TABLE_STATUS_UPDATE,
         eventId: 'event-002',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
           tableId: 'table-001',
+          tableName: 'Table 1',
           status: 'occupied',
-          occupiedAt: new Date().toISOString()
+          customerCount: 4
         }
       }
 
@@ -506,7 +568,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connections: ConnectionInfo[] = [
@@ -516,11 +584,12 @@ describe('Event Filtering', () => {
           roomId: 'table-001',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: 4,
           auth: {
             roomType: 'customer',
             roomId: 'table-001',
             restaurantId: 'restaurant-123',
-            role: 4,
+            role: getStringRole(4),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -531,11 +600,12 @@ describe('Event Filtering', () => {
           roomId: 'table-002',
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: 4,
           auth: {
             roomType: 'customer',
             roomId: 'table-002',
             restaurantId: 'restaurant-456', // Different restaurant
-            role: 4,
+            role: getStringRole(4),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -556,7 +626,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connection: ConnectionInfo = {
@@ -572,15 +648,14 @@ describe('Event Filtering', () => {
     })
 
     it('should handle undefined role correctly', () => {
-      const event: MenuUpdateEvent = {
-        type: RealtimeEventType.MENU_UPDATE,
+      const event: MenuItemUpdateEvent = {
+        type: RealtimeEventType.MENU_ITEM_UPDATE,
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
-          itemId: 'item-001',
-          action: 'update',
-          changes: {}
+          menuItemId: 1,
+          action: 'updated'
         }
       }
 
@@ -590,11 +665,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        // No numericRole for this test
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-123',
-          // role is undefined
+          role: 'customer', // Customer role but no numericRole
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }
@@ -612,7 +688,13 @@ describe('Event Filtering', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
+          items: [],
+          totalAmount: 100
+        }
       }
 
       const connections: ConnectionInfo[] = []
@@ -625,11 +707,12 @@ describe('Event Filtering', () => {
           roomId: `table-${i % 10}`,
           connectedAt: Date.now(),
           lastActivity: Date.now(),
+          numericRole: 4,
           auth: {
             roomType: 'customer',
             roomId: `table-${i % 10}`,
             restaurantId: i % 2 === 0 ? 'restaurant-123' : 'restaurant-456',
-            role: 4,
+            role: getStringRole(4),
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -656,11 +739,11 @@ describe('Event Filtering', () => {
       // Create 50 events
       for (let i = 0; i < 50; i++) {
         events.push({
-          type: i % 2 === 0 ? RealtimeEventType.NEW_ORDER : RealtimeEventType.MENU_UPDATE,
+          type: i % 2 === 0 ? RealtimeEventType.NEW_ORDER : RealtimeEventType.MENU_ITEM_UPDATE,
           eventId: `event-${i}`,
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any // Generic test data
         })
       }
 
@@ -670,11 +753,12 @@ describe('Event Filtering', () => {
         roomId: 'table-001',
         connectedAt: Date.now(),
         lastActivity: Date.now(),
+        numericRole: 4,
         auth: {
           roomType: 'customer',
           roomId: 'table-001',
           restaurantId: 'restaurant-123',
-          role: 4,
+          role: getStringRole(4),
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000)
         }

@@ -9,7 +9,7 @@ import type { RealtimeEvent, NewOrderEvent, OrderStatusUpdateEvent } from '@maka
 
 // Mock WebSocket
 class MockWebSocket extends EventTarget {
-  public readyState = WebSocket.OPEN
+  public readyState: number = 1 // WebSocket.OPEN
   public sentMessages: string[] = []
 
   send(data: string): void {
@@ -17,7 +17,7 @@ class MockWebSocket extends EventTarget {
   }
 
   close(): void {
-    this.readyState = WebSocket.CLOSED
+    this.readyState = 3 // WebSocket.CLOSED
   }
 
   accept(): void {
@@ -57,7 +57,7 @@ describe('Broadcast Logic', () => {
             roomType: 'customer' as const,
             roomId: 'table-001',
             restaurantId: 'restaurant-123',
-            role: 4,
+            role: 'customer' as const,
             exp: Math.floor(Date.now() / 1000) + 3600,
             iat: Math.floor(Date.now() / 1000)
           }
@@ -73,11 +73,11 @@ describe('Broadcast Logic', () => {
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
         data: {
-          orderId: 'order-001',
-          tableId: 'table-001',
+          orderId: 1,
+          orderNumber: 'ORD-001',
+          tableId: '1',
           items: [],
-          total: 100,
-          createdAt: new Date().toISOString()
+          totalAmount: 100
         }
       }
 
@@ -118,7 +118,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       // Send only to matching restaurant
@@ -149,7 +149,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       for (const [socket, connectionInfo] of connections) {
@@ -184,7 +184,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       const senderId = 'sender-conn'
@@ -221,7 +221,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       // Send to all including sender
@@ -239,13 +239,13 @@ describe('Broadcast Logic', () => {
   describe('WebSocket State Handling', () => {
     it('should only send to connections with OPEN state', () => {
       const openWs = new MockWebSocket()
-      openWs.readyState = WebSocket.OPEN
+      openWs.readyState = 1 // WebSocket.OPEN
 
       const closedWs = new MockWebSocket()
-      closedWs.readyState = WebSocket.CLOSED
+      closedWs.readyState = 3 // WebSocket.CLOSED
 
       const connectingWs = new MockWebSocket()
-      connectingWs.readyState = WebSocket.CONNECTING
+      connectingWs.readyState = 0 // WebSocket.CONNECTING
 
       const sockets = [openWs, closedWs, connectingWs]
 
@@ -254,7 +254,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       sockets.forEach(socket => {
@@ -279,7 +279,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       // Should not throw
@@ -303,7 +303,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       // Add to history
@@ -324,7 +324,7 @@ describe('Broadcast Logic', () => {
           eventId: `event-${i}`,
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any
         })
 
         // Keep only last 100 events
@@ -349,7 +349,7 @@ describe('Broadcast Logic', () => {
         eventId: 'old-event',
         timestamp: now - (25 * 60 * 60 * 1000), // 25 hours ago
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       })
 
       eventHistory.push({
@@ -357,7 +357,7 @@ describe('Broadcast Logic', () => {
         eventId: 'new-event',
         timestamp: now,
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       })
 
       // Filter out old events
@@ -386,7 +386,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       // Simulate broadcast
@@ -481,7 +481,7 @@ describe('Broadcast Logic', () => {
           eventId: `event-${i}`,
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any
         })
       }
 
@@ -521,7 +521,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       const isValid = !!(
@@ -539,7 +539,7 @@ describe('Broadcast Logic', () => {
         eventId: 'event-001',
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       const isValid = !!(
@@ -557,7 +557,7 @@ describe('Broadcast Logic', () => {
         type: RealtimeEventType.NEW_ORDER,
         timestamp: Date.now(),
         restaurantId: 'restaurant-123',
-        data: {}
+        data: {} as any
       }
 
       const isValid = !!(

@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { RealtimeAuthPayload } from '@makanmakan/shared-types'
+import { createTestAuthPayload, MockWebSocketPair } from '../../helpers/test-utils'
 
 // Mock WebSocket
 class MockWebSocket extends EventTarget {
@@ -56,32 +57,23 @@ class MockWebSocket extends EventTarget {
   }
 }
 
-// Mock WebSocketPair
-global.WebSocketPair = class MockWebSocketPair {
-  0: MockWebSocket
-  1: MockWebSocket
-
-  constructor() {
-    this[0] = new MockWebSocket('ws://test-client')
-    this[1] = new MockWebSocket('ws://test-server')
-  }
-} as any
-
 describe('Room Management', () => {
+  beforeEach(() => {
+    (globalThis as any).WebSocketPair = MockWebSocketPair
+  })
+
   describe('Room Creation and Initialization', () => {
     it('should create a new room on first connection', async () => {
       // This tests that RealtimeSession initializes room info correctly
       // when the first WebSocket connection is established
 
-      const mockAuthPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        userId: 'user-456',
-        role: 4, // Customer role
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const mockAuthPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        4,
+        { userId: 456 }
+      )
 
       // Room should be initialized with type and id
       expect(mockAuthPayload.roomType).toBe('customer')
@@ -93,13 +85,12 @@ describe('Room Management', () => {
       const roomTypes = ['customer', 'admin', 'kitchen'] as const
 
       roomTypes.forEach(roomType => {
-        const authPayload: RealtimeAuthPayload = {
+        const authPayload: RealtimeAuthPayload = createTestAuthPayload(
           roomType,
-          roomId: `${roomType}-room-001`,
-          restaurantId: 'restaurant-123',
-          exp: Math.floor(Date.now() / 1000) + 3600,
-          iat: Math.floor(Date.now() / 1000)
-        }
+          `${roomType}-room-001`,
+          'restaurant-123',
+          4
+        )
 
         expect(authPayload.roomType).toBe(roomType)
         expect(authPayload.roomId).toContain(roomType)
@@ -223,13 +214,12 @@ describe('Room Management', () => {
 
   describe('Room Access Control', () => {
     it('should validate roomId matches token', () => {
-      const tokenPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const tokenPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        4
+      )
 
       const requestedRoomId = 'table-001'
 
@@ -238,13 +228,12 @@ describe('Room Management', () => {
     })
 
     it('should reject connection if roomId does not match token', () => {
-      const tokenPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const tokenPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        4
+      )
 
       const requestedRoomId = 'table-002'
 
@@ -253,13 +242,12 @@ describe('Room Management', () => {
     })
 
     it('should validate roomType matches token', () => {
-      const tokenPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const tokenPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        4
+      )
 
       const requestedRoomType = 'customer'
 
@@ -268,13 +256,12 @@ describe('Room Management', () => {
     })
 
     it('should reject connection if roomType does not match token', () => {
-      const tokenPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const tokenPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        4
+      )
 
       const requestedRoomType = 'admin'
 

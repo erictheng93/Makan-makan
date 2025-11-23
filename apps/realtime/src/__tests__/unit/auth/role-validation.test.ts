@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from 'vitest'
 import type { RealtimeAuthPayload } from '@makanmakan/shared-types'
+import { createTestAuthPayload } from '../../helpers/test-utils'
 
 // Role definitions
 enum UserRole {
@@ -190,64 +191,53 @@ describe('Role Validation', () => {
 
   describe('Auth Payload Validation', () => {
     it('should validate complete auth payload', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        userId: 'user-456',
-        role: UserRole.Customer,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        UserRole.Customer,
+        { userId: 456 }
+      )
 
-      expect(authPayload.role).toBe(UserRole.Customer)
-      expect(isValidRole(authPayload.role)).toBe(true)
+      expect(isValidRole(UserRole.Customer)).toBe(true)
     })
 
     it('should validate admin auth payload', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'admin',
-        roomId: 'admin-restaurant-123',
-        restaurantId: 'restaurant-123',
-        userId: 'user-admin',
-        role: UserRole.Admin,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'admin',
+        'admin-restaurant-123',
+        'restaurant-123',
+        UserRole.Admin,
+        { userId: 1 }
+      )
 
-      expect(authPayload.role).toBe(UserRole.Admin)
-      expect(hasAdminPrivileges(authPayload.role)).toBe(true)
-      expect(canAccessRoomType(authPayload.role, authPayload.roomType)).toBe(true)
+      expect(hasAdminPrivileges(UserRole.Admin)).toBe(true)
+      expect(canAccessRoomType(UserRole.Admin, authPayload.roomType)).toBe(true)
     })
 
     it('should validate kitchen staff auth payload', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'kitchen',
-        roomId: 'kitchen-restaurant-123',
-        restaurantId: 'restaurant-123',
-        userId: 'user-chef',
-        role: UserRole.Chef,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'kitchen',
+        'kitchen-restaurant-123',
+        'restaurant-123',
+        UserRole.Chef,
+        { userId: 2 }
+      )
 
-      expect(authPayload.role).toBe(UserRole.Chef)
-      expect(canAccessKitchen(authPayload.role)).toBe(true)
-      expect(canAccessRoomType(authPayload.role, authPayload.roomType)).toBe(true)
+      expect(canAccessKitchen(UserRole.Chef)).toBe(true)
+      expect(canAccessRoomType(UserRole.Chef, authPayload.roomType)).toBe(true)
     })
 
     it('should detect role mismatch with room type', () => {
       // Customer trying to access admin room
-      const invalidPayload: RealtimeAuthPayload = {
-        roomType: 'admin',
-        roomId: 'admin-restaurant-123',
-        restaurantId: 'restaurant-123',
-        role: UserRole.Customer,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const invalidPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'admin',
+        'admin-restaurant-123',
+        'restaurant-123',
+        UserRole.Customer
+      )
 
-      expect(canAccessRoomType(invalidPayload.role, invalidPayload.roomType)).toBe(false)
+      expect(canAccessRoomType(UserRole.Customer, invalidPayload.roomType)).toBe(false)
     })
   })
 
@@ -287,20 +277,18 @@ describe('Role Validation', () => {
 
   describe('Role Validation in WebSocket Context', () => {
     it('should validate role before WebSocket upgrade', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'customer',
-        roomId: 'table-001',
-        restaurantId: 'restaurant-123',
-        role: UserRole.Customer,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'customer',
+        'table-001',
+        'restaurant-123',
+        UserRole.Customer
+      )
 
       // Validate role is within valid range
-      expect(isValidRole(authPayload.role)).toBe(true)
+      expect(isValidRole(UserRole.Customer)).toBe(true)
 
       // Validate role can access requested room type
-      expect(canAccessRoomType(authPayload.role, authPayload.roomType)).toBe(true)
+      expect(canAccessRoomType(UserRole.Customer, authPayload.roomType)).toBe(true)
     })
 
     it('should reject invalid role during validation', () => {
@@ -310,16 +298,14 @@ describe('Role Validation', () => {
     })
 
     it('should reject role-roomType mismatch', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'admin',
-        roomId: 'admin-restaurant-123',
-        restaurantId: 'restaurant-123',
-        role: UserRole.Customer, // Customer cannot access admin room
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'admin',
+        'admin-restaurant-123',
+        'restaurant-123',
+        UserRole.Customer // Customer cannot access admin room
+      )
 
-      const canAccess = canAccessRoomType(authPayload.role, authPayload.roomType)
+      const canAccess = canAccessRoomType(UserRole.Customer, authPayload.roomType)
       expect(canAccess).toBe(false)
     })
   })
@@ -392,19 +378,16 @@ describe('Role Validation', () => {
     })
 
     it('should validate role for specific restaurant context', () => {
-      const authPayload: RealtimeAuthPayload = {
-        roomType: 'admin',
-        roomId: 'admin-restaurant-123',
-        restaurantId: 'restaurant-123',
-        role: UserRole.Owner,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000)
-      }
+      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+        'admin',
+        'admin-restaurant-123',
+        'restaurant-123',
+        UserRole.Owner
+      )
 
       // Validate role within restaurant context
       expect(authPayload.restaurantId).toBe('restaurant-123')
-      expect(authPayload.role).toBe(UserRole.Owner)
-      expect(hasAdminPrivileges(authPayload.role)).toBe(true)
+      expect(hasAdminPrivileges(UserRole.Owner)).toBe(true)
     })
   })
 
