@@ -25,6 +25,13 @@ export type NotificationCategory =
   | 'swap_request_approved'
   | 'swap_request_rejected'
   | 'shift_reminder'
+  // Verification and authentication
+  | 'password_reset_request'
+  | 'password_reset_success'
+  | 'email_verification'
+  | 'email_verification_success'
+  | 'phone_verification'
+  | 'phone_verification_success'
 
 export interface NotificationTemplate {
   category: NotificationCategory
@@ -87,7 +94,62 @@ export interface SMSProvider {
 }
 
 // ========================================
-// Resend Email Provider (Cloudflare recommended)
+// MailChannels Email Provider (Cloudflare Official Recommendation)
+// ========================================
+
+export class MailChannelsEmailProvider implements EmailProvider {
+  constructor(private fromEmail: string = 'notifications@makanmakan.com', private fromName: string = 'MakanMakan') {}
+
+  async sendEmail(params: { to: string; subject: string; html: string; text?: string }) {
+    try {
+      const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [
+            {
+              to: [{ email: params.to }],
+            },
+          ],
+          from: {
+            email: this.fromEmail,
+            name: this.fromName,
+          },
+          subject: params.subject,
+          content: [
+            {
+              type: 'text/html',
+              value: params.html,
+            },
+            ...(params.text
+              ? [
+                  {
+                    type: 'text/plain',
+                    value: params.text,
+                  },
+                ]
+              : []),
+          ],
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        return { success: false, error: `MailChannels error: ${errorText}` }
+      }
+
+      // MailChannels returns 202 Accepted with no body on success
+      return { success: true, messageId: 'mailchannels-sent' }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+}
+
+// ========================================
+// Resend Email Provider (Alternative)
 // ========================================
 
 export class ResendEmailProvider implements EmailProvider {
@@ -347,6 +409,212 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
     `,
     variables: ['employeeName', 'scheduleDate', 'shiftName', 'startTime', 'endTime'],
   },
+
+  // ============================================
+  // Verification and Authentication Templates
+  // ============================================
+
+  password_reset_request: {
+    subject: 'MakanMakan - 密碼重設請求',
+    body: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">MakanMakan - 密碼重設</h1>
+        </div>
+
+        <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+          <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
+
+          <p style="font-size: 14px; line-height: 1.6;">
+            我們收到了您的密碼重設請求。請點擊下方按鈕重設您的密碼：
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{resetLink}}"
+               style="display: inline-block; padding: 12px 30px; background: #4F46E5; color: white;
+                      text-decoration: none; border-radius: 5px; font-weight: bold;">
+              重設密碼
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #6B7280;">
+            或複製以下連結到瀏覽器：<br>
+            <code style="background: #E5E7EB; padding: 5px; border-radius: 3px; display: inline-block; margin-top: 5px;">{{resetLink}}</code>
+          </p>
+
+          <div style="background: #FEF2F2; border-left: 4px solid #DC2626; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #DC2626;">
+              ⚠️ 此連結將在 <strong>15 分鐘</strong>後失效。
+            </p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+
+          <p style="font-size: 13px; color: #6B7280;"><strong>安全提示：</strong></p>
+          <ul style="font-size: 13px; color: #6B7280; line-height: 1.6;">
+            <li>如果您沒有請求重設密碼，請忽略此郵件</li>
+            <li>請勿將此連結分享給任何人</li>
+            <li>請求來源 IP: {{ipAddress}}</li>
+            <li>請求時間: {{requestTime}}</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>此郵件由系統自動發送，請勿直接回覆</p>
+          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+    variables: ['userName', 'resetLink', 'ipAddress', 'requestTime'],
+  },
+
+  password_reset_success: {
+    subject: 'MakanMakan - 密碼已成功變更',
+    body: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">✅ 密碼已成功變更</h1>
+        </div>
+
+        <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+          <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
+
+          <p style="font-size: 14px; line-height: 1.6;">
+            您的帳號密碼已於 <strong>{{changeTime}}</strong> 成功變更。
+          </p>
+
+          <div style="background: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #047857;">
+              您現在可以使用新密碼登入系統。
+            </p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+
+          <p style="font-size: 13px; color: #6B7280;"><strong>變更資訊：</strong></p>
+          <ul style="font-size: 13px; color: #6B7280; line-height: 1.6;">
+            <li>變更時間: {{changeTime}}</li>
+            <li>變更方式: {{changeMethod}}</li>
+            <li>來源 IP: {{ipAddress}}</li>
+          </ul>
+
+          <div style="background: #FEF2F2; border-left: 4px solid #DC2626; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 13px; color: #DC2626;">
+              <strong>⚠️ 重要：</strong>如果這不是您本人的操作，請立即聯繫客服或再次重設密碼。
+            </p>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>此郵件由系統自動發送，請勿直接回覆</p>
+          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+    variables: ['userName', 'changeTime', 'changeMethod', 'ipAddress'],
+  },
+
+  email_verification: {
+    subject: '🎉 歡迎加入 MakanMakan - 請驗證您的 Email',
+    body: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">🎉 歡迎加入 MakanMakan！</h1>
+        </div>
+
+        <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+          <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
+
+          <p style="font-size: 14px; line-height: 1.6;">
+            感謝您註冊 MakanMakan！請點擊下方按鈕驗證您的 Email 地址：
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{verificationLink}}"
+               style="display: inline-block; padding: 12px 30px; background: #10B981; color: white;
+                      text-decoration: none; border-radius: 5px; font-weight: bold;">
+              驗證 Email
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #6B7280;">
+            或複製以下連結到瀏覽器：<br>
+            <code style="background: #E5E7EB; padding: 5px; border-radius: 3px; display: inline-block; margin-top: 5px;">{{verificationLink}}</code>
+          </p>
+
+          <p style="font-size: 13px; color: #6B7280; margin-top: 20px;">
+            <strong>此連結將在 24 小時後失效。</strong>
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+
+          <p style="font-size: 14px; color: #374151;"><strong>驗證後您將享有：</strong></p>
+          <ul style="font-size: 13px; color: #6B7280; line-height: 1.8;">
+            <li>✅ 完整的訂餐功能</li>
+            <li>✅ 訂單追蹤和歷史記錄</li>
+            <li>✅ 專屬優惠和積分獎勵</li>
+            <li>✅ 優先客服支援</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>如果您沒有註冊此帳號，請忽略此郵件</p>
+          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+    variables: ['userName', 'verificationLink'],
+  },
+
+  email_verification_success: {
+    subject: '✅ Email 驗證成功 - MakanMakan',
+    body: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">✅ Email 驗證成功！</h1>
+        </div>
+
+        <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+          <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
+
+          <p style="font-size: 14px; line-height: 1.6;">
+            您的 Email 地址已成功驗證！現在您可以享受 MakanMakan 的完整功能了。
+          </p>
+
+          <div style="background: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #047857;">
+              立即開始探索美食，享受優質的用餐體驗！
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{appLink}}"
+               style="display: inline-block; padding: 12px 30px; background: #10B981; color: white;
+                      text-decoration: none; border-radius: 5px; font-weight: bold;">
+              開始訂餐
+            </a>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+    variables: ['userName', 'appLink'],
+  },
+
+  phone_verification: {
+    subject: 'MakanMakan - 手機驗證碼',
+    body: `【MakanMakan】您的驗證碼：{{otpCode}}。有效期限 5 分鐘。請勿將驗證碼分享給任何人。`,
+    variables: ['otpCode'],
+  },
+
+  phone_verification_success: {
+    subject: 'MakanMakan - 手機驗證成功',
+    body: `【MakanMakan】您的手機號碼 {{phone}} 已成功驗證！感謝您使用 MakanMakan。`,
+    variables: ['phone'],
+  },
 }
 
 // ========================================
@@ -363,8 +631,16 @@ export class NotificationService extends BaseService {
   }
 
   private initializeProviders(env: CloudflareEnv) {
-    // Initialize email provider (Resend)
-    if (env.RESEND_API_KEY) {
+    // Initialize email provider
+    // Priority: MailChannels (Cloudflare official) > Resend (alternative)
+    if (env.USE_MAILCHANNELS !== 'false') {
+      // MailChannels is enabled by default (no API key needed!)
+      this.emailProvider = new MailChannelsEmailProvider(
+        env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com',
+        'MakanMakan'
+      )
+    } else if (env.RESEND_API_KEY) {
+      // Fallback to Resend if explicitly disabled MailChannels
       this.emailProvider = new ResendEmailProvider(
         env.RESEND_API_KEY,
         env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com'

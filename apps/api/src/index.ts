@@ -76,6 +76,8 @@ import waitingListFeature from './features/waiting-list'
 import realtimeRoutes from './features/realtime/routes'
 // Notification system feature
 import notificationsRoutes from './features/notifications/routes'
+// Verification system (password reset, email/phone verification)
+import verificationRoutes from './routes/verification'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -247,6 +249,7 @@ const apiV1 = new Hono<{ Bindings: Env }>()
 // Attach CSRF tokens to auth responses
 apiV1.use('/auth/*', attachCSRFToken())
 apiV1.route('/auth', authFeature.routes)
+apiV1.route('/auth', verificationRoutes) // Password reset, email/phone verification
 // apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
 apiV1.route('/qr', qrCodesFeature.routes)
 apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)
@@ -328,18 +331,37 @@ app.get('/', (c) => {
 // 匯出應用
 export default {
   fetch: app.fetch,
-  
-  // 計畫任務處理器
-  scheduled: async (event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) => {
+
+  // 計畫任務處理器 (Cron Jobs)
+  scheduled: async (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
     console.log('Scheduled event triggered:', event.cron)
-    
-    // 清理過期會話
-    // await cleanupExpiredSessions(env.DB)
-    
-    // 清理過期快取
-    // await cleanupExpiredCache(env.CACHE_KV)
-    
-    // 生成每日報表
-    // await generateDailyReports(env.DB, env.JOB_QUEUE)
+
+    // Import scheduled tasks dynamically
+    const { cleanupExpiredTokens, cleanupOldLogs } = await import('./scheduled/cleanup-tokens')
+
+    try {
+      // Daily cleanup at 2 AM UTC: Clean expired verification tokens
+      if (event.cron === '0 2 * * *') {
+        console.log('[Cron] Running daily token cleanup...')
+        const result = await cleanupExpiredTokens(env)
+        console.log('[Cron] Token cleanup result:', result)
+      }
+
+      // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
+      if (event.cron === '0 3 * * 0') {
+        console.log('[Cron] Running weekly log cleanup...')
+        await cleanupOldLogs(env)
+      }
+    } catch (error) {
+      console.error('[Cron] Scheduled task error:', error)
+
+      // Send alert for cron job failures
+      const { AlertService } = await import('./services/AlertService')
+      const alertService = new AlertService(env)
+      await alertService.systemError(
+        error instanceof Error ? error : new Error(String(error)),
+        'Cron Job Execution'
+      )
+    }
   }
 }
