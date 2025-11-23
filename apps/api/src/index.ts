@@ -76,6 +76,8 @@ import waitingListFeature from './features/waiting-list'
 import realtimeRoutes from './features/realtime/routes'
 // Notification system feature
 import notificationsRoutes from './features/notifications/routes'
+// Partnership system feature
+import partnershipsRoutes from './features/partnerships/routes'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -201,7 +203,8 @@ app.get('/info', (c) => {
       'Employee leave management',
       'Employee scheduling and shift management',
       'Table reservation management',
-      'Waiting list and queue management'
+      'Waiting list and queue management',
+      'Merchant partnership and institutional discount management'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -234,6 +237,7 @@ app.get('/info', (c) => {
       waitingList: '/api/v1/waiting-list',
       realtime: '/api/v1/realtime',
       notifications: '/api/v1/notifications',
+      partnerships: '/api/v1/partnerships',
       health: '/health',
       docs: '/docs'
     }
@@ -255,6 +259,7 @@ apiV1.route('/coupons', couponsFeature.routes) // 優惠券驗證端點為公開
 apiV1.route('/reservations', reservationsFeature) // 訂位系統 (public + protected endpoints)
 apiV1.route('/waiting-list', waitingListFeature) // 候位系統 (public + protected endpoints)
 apiV1.route('/realtime', realtimeRoutes) // WebSocket 認證端點為公開
+apiV1.route('/partnerships', partnershipsRoutes) // 特約商店體系 (部分公開端點 + 受保護端點)
 
 // 受保護的路由（需要認證）
 apiV1.use('/restaurants/*', authMiddleware)
@@ -278,6 +283,7 @@ apiV1.use('/customers/*', authMiddleware)
 apiV1.use('/leaves/*', authMiddleware)
 apiV1.use('/scheduling/*', authMiddleware)
 apiV1.use('/notifications/*', authMiddleware)
+apiV1.use('/partnerships/*', authMiddleware)
 
 // Apply CSRF protection to state-changing operations after authentication
 apiV1.use('*', csrfProtection({
@@ -289,7 +295,9 @@ apiV1.use('*', csrfProtection({
     '/api/v1/sse', // SSE connections should not be CSRF protected
     '/api/v1/queue/public', // Public queue endpoints
     '/api/v1/qr/scan', // Public QR scanning
-    '/api/v1/coupons/validate' // Public coupon validation
+    '/api/v1/coupons/validate', // Public coupon validation
+    '/api/v1/partnerships/members/verify', // Public member verification application
+    '/api/v1/partnerships/plans/validate' // Public plan validation for cashiers
     // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
   ]
 }))

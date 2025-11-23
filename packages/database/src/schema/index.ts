@@ -15,6 +15,7 @@ export * from './images'
 export * from './coupons'
 export * from './leaves'
 export * from './scheduling'
+export * from './partnerships'
 
 // 匯出所有關聯定義
 export { restaurantRelations } from './restaurants'
@@ -44,12 +45,28 @@ export {
   scheduleSwapRequestsRelations,
   employeeAvailabilityRelations
 } from './scheduling'
+export {
+  partnershipsRelations,
+  partnershipPlansRelations,
+  verifiedMembersRelations,
+  partnershipUsageLogsRelations
+} from './partnerships'
 
 // 重新匯出類型
 export type { UserRole } from './users'
 export type { OrderStatus, PaymentMethod } from './orders'
 export type { AuditAction } from './audit-logs'
 export type { DiscountType, DistributionType, TargetType, UsageStatus } from './coupons'
+export type {
+  PartnerType,
+  VerificationMethod,
+  PartnershipStatus,
+  MemberType,
+  MemberStatus,
+  PlanDiscountType,
+  UsageLogStatus,
+  UsageChannel
+} from './partnerships'
 
 // 匯出常數
 export { USER_ROLES } from './users'
@@ -57,3 +74,13 @@ export { ORDER_STATUS, PAYMENT_METHODS } from './orders'
 export { AUDIT_ACTIONS } from './audit-logs'
 export { ERROR_TYPES, SEVERITY_LEVELS, ALERT_TYPES } from './error-reports'
 export { DISCOUNT_TYPE, DISTRIBUTION_TYPE, TARGET_TYPE, USAGE_STATUS } from './coupons'
+export {
+  PARTNER_TYPES,
+  VERIFICATION_METHODS,
+  PARTNERSHIP_STATUS,
+  MEMBER_TYPES,
+  MEMBER_STATUS,
+  PLAN_DISCOUNT_TYPES,
+  USAGE_LOG_STATUS,
+  USAGE_CHANNELS
+} from './partnerships'
