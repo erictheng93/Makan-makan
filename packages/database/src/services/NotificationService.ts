@@ -94,7 +94,62 @@ export interface SMSProvider {
 }
 
 // ========================================
-// Resend Email Provider (Cloudflare recommended)
+// MailChannels Email Provider (Cloudflare Official Recommendation)
+// ========================================
+
+export class MailChannelsEmailProvider implements EmailProvider {
+  constructor(private fromEmail: string = 'notifications@makanmakan.com', private fromName: string = 'MakanMakan') {}
+
+  async sendEmail(params: { to: string; subject: string; html: string; text?: string }) {
+    try {
+      const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [
+            {
+              to: [{ email: params.to }],
+            },
+          ],
+          from: {
+            email: this.fromEmail,
+            name: this.fromName,
+          },
+          subject: params.subject,
+          content: [
+            {
+              type: 'text/html',
+              value: params.html,
+            },
+            ...(params.text
+              ? [
+                  {
+                    type: 'text/plain',
+                    value: params.text,
+                  },
+                ]
+              : []),
+          ],
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        return { success: false, error: `MailChannels error: ${errorText}` }
+      }
+
+      // MailChannels returns 202 Accepted with no body on success
+      return { success: true, messageId: 'mailchannels-sent' }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+}
+
+// ========================================
+// Resend Email Provider (Alternative)
 // ========================================
 
 export class ResendEmailProvider implements EmailProvider {
@@ -576,8 +631,16 @@ export class NotificationService extends BaseService {
   }
 
   private initializeProviders(env: CloudflareEnv) {
-    // Initialize email provider (Resend)
-    if (env.RESEND_API_KEY) {
+    // Initialize email provider
+    // Priority: MailChannels (Cloudflare official) > Resend (alternative)
+    if (env.USE_MAILCHANNELS !== 'false') {
+      // MailChannels is enabled by default (no API key needed!)
+      this.emailProvider = new MailChannelsEmailProvider(
+        env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com',
+        'MakanMakan'
+      )
+    } else if (env.RESEND_API_KEY) {
+      // Fallback to Resend if explicitly disabled MailChannels
       this.emailProvider = new ResendEmailProvider(
         env.RESEND_API_KEY,
         env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com'
