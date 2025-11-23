@@ -24,6 +24,8 @@ export { NotificationService } from './NotificationService'
 export { ExportService } from './ExportService'
 export { LeaveAnalyticsService } from './LeaveAnalyticsService'
 // export { QueueService } from '@makanmakan/queue-service' // Temporarily disabled - using UnifiedQueueService
+export { PartnershipService } from './PartnershipService'
+export { VerificationService } from './VerificationService'
 
 // 匯出類型定義
 export type { 
@@ -116,3 +118,12 @@ export type {
   LeaveRequestFilters,
   LeaveBalanceAdjustment
 } from './LeaveService'
+
+export type {
+  PartnershipFilters,
+  PlanFilters,
+  MemberFilters,
+  PlanValidationResult,
+  MemberVerificationRequest,
+  UsageStatistics
+} from './PartnershipService'

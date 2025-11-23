@@ -66,7 +66,11 @@ export const users = sqliteTable('users', {
   // 安全資訊
   lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
   passwordChangedAt: integer('password_changed_at', { mode: 'timestamp' }),
-  
+
+  // 驗證時間戳 (added in migration 0047)
+  emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
+  phoneVerifiedAt: integer('phone_verified_at', { mode: 'timestamp' }),
+
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),

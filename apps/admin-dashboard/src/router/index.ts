@@ -11,6 +11,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, title: "登入" },
   },
   {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("@/views/ForgotPasswordView.vue"),
+    meta: { requiresAuth: false, title: "忘記密碼" },
+  },
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: () => import("@/views/ResetPasswordView.vue"),
+    meta: { requiresAuth: false, title: "重設密碼" },
+  },
+  {
     path: "/",
     redirect: "/dashboard",
   },

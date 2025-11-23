@@ -105,6 +105,16 @@
             </p>
           </div>
 
+          <!-- 忘記密碼連結 -->
+          <div class="flex items-center justify-end">
+            <router-link
+              to="/forgot-password"
+              class="text-sm font-medium text-orange-600 hover:text-orange-500"
+            >
+              忘記密碼？
+            </router-link>
+          </div>
+
           <!-- 錯誤提示 -->
           <div
             v-if="error"

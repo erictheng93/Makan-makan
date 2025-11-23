@@ -76,6 +76,10 @@ import waitingListFeature from './features/waiting-list'
 import realtimeRoutes from './features/realtime/routes'
 // Notification system feature
 import notificationsRoutes from './features/notifications/routes'
+// Verification system (password reset, email/phone verification)
+import verificationRoutes from './routes/verification'
+// Partnership system feature
+import partnershipsRoutes from './features/partnerships/routes'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -201,7 +205,8 @@ app.get('/info', (c) => {
       'Employee leave management',
       'Employee scheduling and shift management',
       'Table reservation management',
-      'Waiting list and queue management'
+      'Waiting list and queue management',
+      'Merchant partnership and institutional discount management'
     ],
     endpoints: {
       auth: '/api/v1/auth',
@@ -233,6 +238,7 @@ app.get('/info', (c) => {
       waitingList: '/api/v1/waiting-list',
       realtime: '/api/v1/realtime',
       notifications: '/api/v1/notifications',
+      partnerships: '/api/v1/partnerships',
       health: '/health',
       docs: '/docs'
     }
@@ -246,6 +252,7 @@ const apiV1 = new Hono<{ Bindings: Env }>()
 // Attach CSRF tokens to auth responses
 apiV1.use('/auth/*', attachCSRFToken())
 apiV1.route('/auth', authFeature.routes)
+apiV1.route('/auth', verificationRoutes) // Password reset, email/phone verification
 // apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
 apiV1.route('/qr', qrCodesFeature.routes)
 apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)
@@ -254,6 +261,7 @@ apiV1.route('/coupons', couponsFeature.routes) // 優惠券驗證端點為公開
 apiV1.route('/reservations', reservationsFeature) // 訂位系統 (public + protected endpoints)
 apiV1.route('/waiting-list', waitingListFeature) // 候位系統 (public + protected endpoints)
 apiV1.route('/realtime', realtimeRoutes) // WebSocket 認證端點為公開
+apiV1.route('/partnerships', partnershipsRoutes) // 特約商店體系 (部分公開端點 + 受保護端點)
 
 // 受保護的路由（需要認證）
 apiV1.use('/restaurants/*', authMiddleware)
@@ -277,6 +285,7 @@ apiV1.use('/customers/*', authMiddleware)
 apiV1.use('/leaves/*', authMiddleware)
 apiV1.use('/scheduling/*', authMiddleware)
 apiV1.use('/notifications/*', authMiddleware)
+apiV1.use('/partnerships/*', authMiddleware)
 
 // Apply CSRF protection to state-changing operations after authentication
 apiV1.use('*', csrfProtection({
@@ -288,7 +297,9 @@ apiV1.use('*', csrfProtection({
     '/api/v1/sse', // SSE connections should not be CSRF protected
     '/api/v1/queue/public', // Public queue endpoints
     '/api/v1/qr/scan', // Public QR scanning
-    '/api/v1/coupons/validate' // Public coupon validation
+    '/api/v1/coupons/validate', // Public coupon validation
+    '/api/v1/partnerships/members/verify', // Public member verification application
+    '/api/v1/partnerships/plans/validate' // Public plan validation for cashiers
     // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
   ]
 }))
@@ -327,18 +338,37 @@ app.get('/', (c) => {
 // 匯出應用
 export default {
   fetch: app.fetch,
-  
-  // 計畫任務處理器
-  scheduled: async (event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) => {
+
+  // 計畫任務處理器 (Cron Jobs)
+  scheduled: async (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
     console.log('Scheduled event triggered:', event.cron)
-    
-    // 清理過期會話
-    // await cleanupExpiredSessions(env.DB)
-    
-    // 清理過期快取
-    // await cleanupExpiredCache(env.CACHE_KV)
-    
-    // 生成每日報表
-    // await generateDailyReports(env.DB, env.JOB_QUEUE)
+
+    // Import scheduled tasks dynamically
+    const { cleanupExpiredTokens, cleanupOldLogs } = await import('./scheduled/cleanup-tokens')
+
+    try {
+      // Daily cleanup at 2 AM UTC: Clean expired verification tokens
+      if (event.cron === '0 2 * * *') {
+        console.log('[Cron] Running daily token cleanup...')
+        const result = await cleanupExpiredTokens(env)
+        console.log('[Cron] Token cleanup result:', result)
+      }
+
+      // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
+      if (event.cron === '0 3 * * 0') {
+        console.log('[Cron] Running weekly log cleanup...')
+        await cleanupOldLogs(env)
+      }
+    } catch (error) {
+      console.error('[Cron] Scheduled task error:', error)
+
+      // Send alert for cron job failures
+      const { AlertService } = await import('./services/AlertService')
+      const alertService = new AlertService(env)
+      await alertService.systemError(
+        error instanceof Error ? error : new Error(String(error)),
+        'Cron Job Execution'
+      )
+    }
   }
 }
