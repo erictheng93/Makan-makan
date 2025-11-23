@@ -1,6 +1,7 @@
 // 匯出所有 schema 定義
 export * from './restaurants'
 export * from './users'
+export * from './customers'
 export * from './categories'
 export * from './menu-items'
 export * from './tables'
@@ -20,6 +21,7 @@ export * from './partnerships'
 // 匯出所有關聯定義
 export { restaurantRelations } from './restaurants'
 export { userRelations } from './users'
+export { customersRelations } from './customers'
 export { categoryRelations } from './categories'
 export { menuItemRelations } from './menu-items'
 export { tableRelations } from './tables'
