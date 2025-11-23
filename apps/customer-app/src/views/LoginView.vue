@@ -252,7 +252,7 @@ const handleSubmit = async () => {
     } else {
       error.value = result.error || "登入失敗";
     }
-  } catch (err) {
+  } catch {
     error.value = "登入過程中發生錯誤";
   } finally {
     isLoading.value = false;

@@ -1,0 +1,26 @@
+
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\components\AudioSettings.vue
+>   397:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   495:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\components\shortcuts\EnhancedShortcutsP
+anel.vue
+>   418:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\components\shortcuts\KeyboardShortcutsH
+elp.vue
+>   356:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\composables\useEnhancedKeyboardShortcut
+s.ts
+>   468:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   486:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   523:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   573:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   602:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+>   632:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\services\authApi.ts
+>   49:16  warning  'refreshError' is defined but never used  @typescript-eslint/no-unused-vars
+  C:\Users\minim\OneDrive\?‡æ¡£\Code\platform\makanmakan\apps\kitchen-display\src\services\offlineService.ts
+>   356:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  
+> ??12 problems (0 errors, 12 warnings)
+
+

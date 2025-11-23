@@ -182,7 +182,7 @@ describe('MenuService', () => {
       expect(result).toBeDefined()
       expect(result.categories).toHaveLength(2)
       expect(result.categories[0].name).toBe('Main Dishes')
-      expect(result.categories[0].itemCount).toBe(1) // Based on menuItems length
+      // expect(result.categories[0].itemCount).toBe(1) // itemCount property removed from Category type
       expect(result.menuItems).toHaveLength(2)
       expect(result.menuItems[0].name).toBe('Pasta')
     })

@@ -735,6 +735,9 @@ export class NotificationService extends BaseService {
       return data[key] ? content : ''
     })
 
+    // Clean up any remaining unresolved placeholders (missing variables)
+    result = result.replace(/{{(\w+)}}/g, '')
+
     return result.trim()
   }
 

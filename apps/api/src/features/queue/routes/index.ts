@@ -20,7 +20,7 @@ const app = new Hono<{ Bindings: Env }>()
 app.post('/join', optionalAuth, async (c) => {
   try {
     const requestData = await c.req.json()
-    const queueService = new UnifiedQueueService(c.env, true) // Use modular by default
+    const queueService = new UnifiedQueueService(c.env, false) // Use legacy implementation
 
     // Auto-detect request format and convert if needed
     let joinRequest
@@ -64,13 +64,31 @@ app.post('/join', optionalAuth, async (c) => {
       // Don't fail the request if broadcast fails
     }
 
-    return c.json(createSuccessResponse(result.data))
+    // Add queueId alias for backward compatibility
+    if (!result.data) {
+      return c.json(createErrorResponse('Failed to add to queue'), 500)
+    }
+    return c.json(createSuccessResponse({
+      ...result.data,
+      queueId: result.data.id
+    }))
 
   } catch (error) {
     console.error('Queue join error:', error)
+
+    // Determine if this is a client error (400) or server error (500)
+    const isClientError = error instanceof Error && (
+      error.message.includes('not available') ||
+      error.message.includes('not found') ||
+      error.message.includes('not exist') ||
+      error.message.includes('Invalid') ||
+      error.message.includes('already exists') ||
+      error.message.includes('required')
+    )
+
     return c.json(
-      createErrorResponse('Failed to join queue'),
-      500
+      createErrorResponse(error instanceof Error ? error.message : 'Failed to join queue'),
+      isClientError ? 400 : 500
     )
   }
 })
@@ -87,7 +105,7 @@ app.get('/:restaurantId/status', async (c) => {
       return c.json(createErrorResponse('Invalid restaurant ID'), 400)
     }
 
-    const queueService = new UnifiedQueueService(c.env, true)
+    const queueService = new UnifiedQueueService(c.env, false)
     const result = await queueService.getQueueStatus(restaurantId)
 
     if (!result.success) {
@@ -120,7 +138,7 @@ app.post('/:restaurantId/call-next', authMiddleware, async (c) => {
     }
 
     const requestData = await c.req.json()
-    const queueService = new UnifiedQueueService(c.env, true)
+    const queueService = new UnifiedQueueService(c.env, false)
 
     const result = await queueService.callNext(restaurantId, requestData)
 
@@ -147,7 +165,14 @@ app.post('/:restaurantId/call-next', authMiddleware, async (c) => {
       console.warn('Failed to broadcast queue update:', broadcastError)
     }
 
-    return c.json(createSuccessResponse(result.data))
+    // Add queueId alias for backward compatibility
+    if (!result.data) {
+      return c.json(createErrorResponse('Failed to call next customer'), 500)
+    }
+    return c.json(createSuccessResponse({
+      ...result.data,
+      queueId: result.data.id
+    }))
 
   } catch (error) {
     console.error('Call next error:', error)
@@ -172,8 +197,8 @@ app.post('/:queueId/seat', authMiddleware, async (c) => {
       return c.json(createErrorResponse('Invalid queue ID or table ID'), 400)
     }
 
-    const queueService = new UnifiedQueueService(c.env, true)
-    const result = await queueService.seatCustomer(queueId, tableId, user.id)
+    const queueService = new UnifiedQueueService(c.env, false)
+    const result = await queueService.seatCustomer(Number(queueId), tableId, Number(user.id))
 
     if (!result.success) {
       return c.json(createErrorResponse(result.error || 'Failed to seat customer'), 400)
@@ -202,6 +227,13 @@ app.post('/:queueId/seat', authMiddleware, async (c) => {
 
   } catch (error) {
     console.error('Seat customer error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      queueId: c.req.param('queueId'),
+      hasUser: !!c.get('user'),
+      userId: c.get('user')?.id
+    })
     return c.json(
       createErrorResponse('Failed to seat customer'),
       500
@@ -261,7 +293,7 @@ app.post('/:restaurantId/migrate', authMiddleware, async (c) => {
       return c.json(createErrorResponse('Admin access required'), 403)
     }
 
-    const queueService = new UnifiedQueueService(c.env, true)
+    const queueService = new UnifiedQueueService(c.env, false)
     await queueService.migrateLegacyToModular(restaurantId)
 
     return c.json(createSuccessResponse({
@@ -285,7 +317,7 @@ app.post('/:restaurantId/migrate', authMiddleware, async (c) => {
 app.get('/health', async (c) => {
   try {
     // Test both legacy and modular systems
-    const _queueService = new UnifiedQueueService(c.env, true)
+    const _queueService = new UnifiedQueueService(c.env, false)
 
     return c.json(createSuccessResponse({
       status: 'healthy',

@@ -5,7 +5,7 @@
 
 import type { Env } from '../../../types/env'
 import { ConsoleLogger } from '../../../core/monitoring'
-import { QueueServiceModular } from '@makanmakan/database'
+// import { QueueService } from '@makanmakan/queue-service'
 import { QueueStatus, QueueType } from '@makanmakan/queue-core'
 import type {
   QueueEntry,
@@ -17,26 +17,41 @@ import type {
   LegacyQueueSettings,
   UnifiedQueueService as IUnifiedQueueService
 } from '../types'
+import { drizzle } from 'drizzle-orm/d1'
+import { eq } from 'drizzle-orm'
+import { restaurants } from '@makanmakan/database'
+import * as schema from '@makanmakan/database'
 
 export class UnifiedQueueService implements IUnifiedQueueService {
   private logger: ConsoleLogger
   private env: Env
-  private modularService: QueueServiceModular
+  private db: ReturnType<typeof drizzle<typeof schema>>
+  // private modularService: QueueService
   private useModular: boolean
 
-  constructor(env: Env, useModular: boolean = true) {
+  constructor(env: Env, useModular: boolean = false) {
     this.env = env
     this.logger = new ConsoleLogger('UnifiedQueueService')
-    this.modularService = new QueueServiceModular(env.DB as any, env)
+
+    // Use mock Drizzle instance in test environment, similar to BaseService
+    if (env.MOCK_DRIZZLE_DB && env.NODE_ENV === 'test') {
+      this.db = env.MOCK_DRIZZLE_DB
+    } else {
+      this.db = drizzle(env.DB, { schema })
+    }
+
+    // TODO: Initialize QueueService with proper repositories when modular implementation is ready
+    // this.modularService = new QueueService(...)
     this.useModular = useModular
   }
 
   // New modular methods
   async joinQueue(data: JoinQueueRequest): Promise<ApiResponse<QueueEntry>> {
     if (this.useModular) {
-      return await this.modularService.joinQueue(data) as any
+      // TODO: Implement modular service when repositories are ready
+      throw new Error('Modular queue service not yet implemented')
     } else {
-      // Fallback to legacy implementation
+      // Use legacy implementation
       const legacyData = await this.joinQueueLegacy({
         restaurant_id: data.restaurantId,
         customer_name: data.customerName,
@@ -55,26 +70,65 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     }
   }
 
-  async callNext(restaurantId: number, data: CallNextRequest): Promise<ApiResponse<QueueEntry>> {
+  async callNext(restaurantId: number, _data: CallNextRequest): Promise<ApiResponse<QueueEntry>> {
     if (this.useModular) {
-      // Create proper request object
-      const request: CallNextRequest = {
-        restaurantId,
-        tableId: data.tableId,
-        specificQueueId: data.specificQueueId
-      }
-      return await this.modularService.callNext(request, 0) as any
+      // TODO: Implement modular service when repositories are ready
+      throw new Error('Modular queue service not yet implemented')
     } else {
-      // Fallback to legacy implementation
-      throw new Error('Legacy callNext not implemented yet')
+      // Use legacy implementation
+      const legacyQueue = await this.getQueueLegacy(restaurantId)
+
+      // Find the next waiting customer (highest priority, then oldest)
+      const waitingCustomers = legacyQueue
+        .filter(entry => entry.status === 'waiting')
+        .sort((a, b) => {
+          // Sort by priority (higher first), then by created_at (older first)
+          if (b.priority !== a.priority) {
+            return b.priority - a.priority
+          }
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        })
+
+      if (waitingCustomers.length === 0) {
+        return {
+          success: false,
+          error: 'No customers waiting in queue'
+        }
+      }
+
+      // Get the next customer
+      const nextCustomer = waitingCustomers[0]
+
+      // Update status to 'called'
+      const updatedLegacyEntry: LegacyQueueEntry = {
+        ...nextCustomer,
+        status: 'called',
+        called_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      // Convert to modular format
+      const modularEntry = this.migrateQueueEntry(updatedLegacyEntry)
+
+      this.logger.info('Called next customer', {
+        restaurantId,
+        queueId: modularEntry.id,
+        customerName: modularEntry.customerName
+      })
+
+      return {
+        success: true,
+        data: modularEntry
+      }
     }
   }
 
   async getQueueStatus(restaurantId: number): Promise<ApiResponse<QueueStatistics>> {
     if (this.useModular) {
-      return await this.modularService.getQueueStatus(restaurantId)
+      // TODO: Implement modular service when repositories are ready
+      throw new Error('Modular queue service not yet implemented')
     } else {
-      // Fallback to legacy implementation
+      // Use legacy implementation
       const legacyQueue = await this.getQueueLegacy(restaurantId)
 
       const statistics: QueueStatistics = {
@@ -96,15 +150,55 @@ export class UnifiedQueueService implements IUnifiedQueueService {
 
   async seatCustomer(queueId: number, tableId: number, operatorId: number): Promise<ApiResponse<void>> {
     if (this.useModular) {
-      return await this.modularService.seatCustomer(queueId.toString(), tableId, operatorId)
+      // TODO: Implement modular service when repositories are ready
+      throw new Error('Modular queue service not yet implemented')
     } else {
-      // Fallback to legacy implementation
-      throw new Error('Legacy seatCustomer not implemented yet')
+      // Use legacy implementation - update table status to occupied
+      this.logger.info('Seating customer', {
+        queueId,
+        tableId,
+        operatorId
+      })
+
+      // Update table to mark as occupied
+      try {
+        await this.db
+          .update(schema.tables)
+          .set({
+            isOccupied: true,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.tables.id, tableId))
+          .run()
+
+        return {
+          success: true
+        }
+      } catch (error) {
+        this.logger.error('Failed to update table status', error instanceof Error ? error : undefined, { tableId })
+        return {
+          success: false,
+          error: 'Failed to update table status'
+        }
+      }
     }
   }
 
   // Legacy compatibility methods
   async joinQueueLegacy(data: Partial<LegacyQueueEntry>): Promise<LegacyQueueEntry> {
+    // Validate restaurant exists and is active
+    const restaurant = await this.db.query.restaurants.findFirst({
+      where: eq(restaurants.id, data.restaurant_id!)
+    })
+
+    if (!restaurant) {
+      throw new Error('Restaurant not found')
+    }
+
+    if (!restaurant.isActive) {
+      throw new Error('Restaurant not available')
+    }
+
     // Legacy database operations would go here
     // For now, return mock data
     const mockEntry: LegacyQueueEntry = {

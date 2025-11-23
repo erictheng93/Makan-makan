@@ -465,7 +465,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       // TODO: Implement completeOrder method in store
       toast.success(`已完成 ${selectedOrders.length} 個訂單`);
       return true;
-    } catch (error) {
+    } catch {
       toast.error("完成訂單失敗");
       return false;
     }
@@ -483,7 +483,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       // TODO: Implement startCooking method in store
       toast.success(`開始製作 ${selectedOrders.length} 個訂單`);
       return true;
-    } catch (error) {
+    } catch {
       toast.error("開始製作失敗");
       return false;
     }
@@ -520,7 +520,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       orders.value = orderStore.updateOrderPriorities(updatedOrders);
       toast.success(`訂單優先級已更新為 ${nextPriority}`);
       return true;
-    } catch (error) {
+    } catch {
       toast.error("更新優先級失敗");
       return false;
     }
@@ -570,7 +570,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       await orderStore.applyFilter(filter, filterMap[filter] || {});
       toast.success(`已應用 ${filter} 篩選`);
       return true;
-    } catch (error) {
+    } catch {
       toast.error("應用篩選失敗");
       return false;
     }
@@ -599,7 +599,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       await orderStore.refreshOrders();
       toast.success("資料已更新");
       return true;
-    } catch (error) {
+    } catch {
       toast.error("更新資料失敗");
       return false;
     }
@@ -629,7 +629,7 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
       await orderStore.batchOperation("start_cooking", selectedOrderIds);
       toast.success(`已開始製作 ${selectedOrders.length} 個訂單`);
       return true;
-    } catch (error) {
+    } catch {
       toast.error("批量開始製作失敗");
       return false;
     }

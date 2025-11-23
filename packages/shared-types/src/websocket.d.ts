@@ -137,3 +137,4 @@ export interface UseWebSocketReturn {
     subscribe: (channel: string) => boolean;
     unsubscribe: (channel: string) => boolean;
 }
+//# sourceMappingURL=websocket.d.ts.map

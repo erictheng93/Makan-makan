@@ -45,3 +45,4 @@ export interface TableSession {
     endTime?: string;
     status: 'active' | 'completed';
 }
+//# sourceMappingURL=table.d.ts.map

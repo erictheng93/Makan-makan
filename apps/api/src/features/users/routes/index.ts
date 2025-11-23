@@ -18,6 +18,14 @@ import {
 const app = new Hono<{ Bindings: Env }>()
 
 /**
+ * 安全地記錄錯誤，避免循環引用問題
+ */
+function logError(operation: string, error: unknown): void {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  console.error(`${operation} error:`, errorMessage)
+}
+
+/**
  * 獲取用戶列表
  * GET /api/v1/users
  */
@@ -36,7 +44,7 @@ app.get('/',
       return c.json(result)
 
     } catch (error) {
-      console.error('Get users error:', error)
+      logError('Get users', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch users'
@@ -74,7 +82,7 @@ app.get('/:id',
       })
 
     } catch (error) {
-      console.error('Get user error:', error)
+      logError('Get user', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch user'
@@ -112,7 +120,7 @@ app.post('/',
       }, result.status as any || 200)
 
     } catch (error) {
-      console.error('Create user error:', error)
+      logError('Create user', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create user'
@@ -151,7 +159,7 @@ app.put('/:id',
       })
 
     } catch (error) {
-      console.error('Update user error:', error)
+      logError('Update user', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update user'
@@ -190,7 +198,7 @@ app.post('/:id/password',
       })
 
     } catch (error) {
-      console.error('Update password error:', error)
+      logError('Update password', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update password'
@@ -230,7 +238,7 @@ app.patch('/:id/status',
       })
 
     } catch (error) {
-      console.error('Update user status error:', error)
+      logError('Update user status', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update user status'
@@ -268,7 +276,7 @@ app.patch('/:id/verify',
       })
 
     } catch (error) {
-      console.error('Verify user error:', error)
+      logError('Verify user', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to verify user'
@@ -308,7 +316,7 @@ app.post('/:id/reset-password',
       })
 
     } catch (error) {
-      console.error('Reset password error:', error)
+      logError('Reset password', error)
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to reset password'

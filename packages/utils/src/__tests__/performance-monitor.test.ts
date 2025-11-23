@@ -7,9 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   PerformanceMonitor,
   getPerformanceMonitor,
-  resetPerformanceMonitor,
-  type PerformanceMetric,
-  type PerformanceMonitorOptions
+  resetPerformanceMonitor
 } from '../performance-monitor'
 
 // Mock browser APIs with stable time values

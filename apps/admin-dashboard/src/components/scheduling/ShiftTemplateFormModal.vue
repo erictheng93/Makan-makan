@@ -408,7 +408,7 @@ const resetForm = () => {
     try {
       const days = JSON.parse(props.template.applicableDays || '[]')
       applicableDaysArray.value = Array.isArray(days) ? days : []
-    } catch (e) {
+    } catch {
       applicableDaysArray.value = [1, 2, 3, 4, 5]
     }
   } else {

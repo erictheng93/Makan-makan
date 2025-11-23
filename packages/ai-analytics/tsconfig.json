@@ -12,10 +12,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "composite": true,
     "baseUrl": ".",
     "paths": {
       "@makanmakan/shared-types": ["../shared-types/src"],
@@ -23,5 +21,8 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [
+    { "path": "../shared-types" }
+  ]
 }

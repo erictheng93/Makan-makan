@@ -216,7 +216,6 @@ app.get('/info', (c) => {
       groupOrders: '/api/v1/orders/group',
       pos: '/api/v1/pos',
       queue: '/api/v1/queue',
-      queueModular: '/api/v1/queue-modular',
       payments: '/api/v1/payments',
       // print: '/api/v1/print', // Disabled - incomplete feature
       tables: '/api/v1/tables',

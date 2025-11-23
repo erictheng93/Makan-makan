@@ -7,7 +7,7 @@
 
 // In-memory data store for mock database
 const tables = new Map<string, Map<number, any>>()
-let autoIncrementCounters = new Map<string, number>()
+const autoIncrementCounters = new Map<string, number>()
 
 /**
  * Reset all test data

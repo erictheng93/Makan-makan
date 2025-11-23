@@ -106,7 +106,7 @@ describe('OrderService', () => {
     paymentStatus: 'unpaid',
     rating: null,
     reviewComment: null,
-    notes: null,
+    notes: undefined,
     internalNotes: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -118,8 +118,8 @@ describe('OrderService', () => {
         quantity: 2,
         unitPrice: 15.00,
         totalPrice: 30.00,
-        customizations: null,
-        notes: null,
+        customizations: undefined,
+        notes: undefined,
         status: 'pending'
       }
     ]
@@ -132,8 +132,8 @@ describe('OrderService', () => {
       {
         menuItemId: 1,
         quantity: 2,
-        customizations: null,
-        notes: null
+        customizations: undefined,
+        notes: undefined
       }
     ],
     notes: 'Test order'
@@ -397,11 +397,23 @@ describe('OrderService', () => {
           menuItemId: 1,
           quantity: 1,
           customizations: {
-            size: { name: 'Large', priceAdjustment: 3 },
-            options: [{ name: 'Extra Cheese', priceAdjustment: 2 }],
-            addOns: [{ name: 'Fries', unitPrice: 5, quantity: 1 }]
+            size: { id: 'size-large', name: 'Large', priceAdjustment: 3 },
+            options: [{
+              id: 'opt-1',
+              optionName: 'Cheese Options',
+              choiceId: 'choice-extra-cheese',
+              choiceName: 'Extra Cheese',
+              priceAdjustment: 2
+            }],
+            addOns: [{
+              id: 'addon-fries',
+              name: 'Fries',
+              unitPrice: 5,
+              quantity: 1,
+              totalPrice: 5
+            }]
           },
-          notes: null
+          notes: undefined
         }]
       }
 
@@ -445,8 +457,8 @@ describe('OrderService', () => {
         items: [{
           menuItemId: 1,
           quantity: 1, // Only 15, below minimum 20
-          customizations: null,
-          notes: null
+          customizations: undefined,
+          notes: undefined
         }]
       }
 

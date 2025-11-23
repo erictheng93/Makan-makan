@@ -440,6 +440,195 @@ const jaJP: Messages = {
     }
   },
 
+  // システム監視
+  monitoring: {
+    title: 'システム監視',
+    subtitle: 'リアルタイムでシステムの健全性、パフォーマンス指標、アラートを監視',
+
+    // ボタンと操作
+    actions: {
+      refresh: '今すぐ更新',
+      refreshing: '更新中...',
+      autoRefresh: '自動更新',
+      manualRefresh: '手動更新',
+      createAlertRule: 'アラートルールを作成',
+      testAlert: 'アラートをテスト',
+      resetMetrics: 'メトリクスをリセット',
+      exportReport: 'レポートをエクスポート'
+    },
+
+    // 健康状態
+    health: {
+      overall: '全体的な健全性ステータス',
+      score: '健全性スコア',
+      uptime: 'システム稼働時間',
+      lastUpdate: '最終更新',
+      status: {
+        healthy: '正常',
+        warning: '警告',
+        critical: '重大',
+        down: 'ダウン'
+      }
+    },
+
+    // 主要指標
+    keyMetrics: {
+      title: '主要指標',
+      requestsPerMinute: '毎分リクエスト数',
+      averageResponseTime: '平均応答時間',
+      cacheHitRate: 'キャッシュヒット率',
+      activeErrors: 'アクティブエラー'
+    },
+
+    // コンポーネント状態
+    components: {
+      title: 'システムコンポーネント状態',
+      api: 'APIサービス',
+      database: 'データベース',
+      cache: 'キャッシュサービス',
+      external: '外部サービス',
+      status: 'ステータス',
+      latency: 'レイテンシー',
+      healthy: '正常',
+      issues: '問題'
+    },
+
+    // タブ
+    tabs: {
+      alerts: 'アラートルール',
+      performance: 'パフォーマンスレポート',
+      errors: 'エラー分析'
+    },
+
+    // アラートルール
+    alerts: {
+      title: 'アラートルール',
+      noAlerts: 'アラートルールがありません',
+      createFirst: 'システムステータスを監視するための最初のアラートルールを作成',
+      rule: {
+        name: 'ルール名',
+        type: 'アラートタイプ',
+        severity: '重要度',
+        threshold: '閾値',
+        enabled: '有効',
+        disabled: '無効',
+        lastTriggered: '最終トリガー',
+        actions: 'アクション'
+      },
+      severity: {
+        info: '情報',
+        warning: '警告',
+        critical: '重大',
+        fatal: '致命的'
+      },
+      actions: {
+        enable: '有効化',
+        disable: '無効化',
+        edit: '編集',
+        delete: '削除',
+        test: 'テスト'
+      },
+      messages: {
+        enabled: 'アラートルールが有効化されました',
+        disabled: 'アラートルールが無効化されました',
+        deleted: 'アラートルールが削除されました',
+        deleteConfirm: 'このアラートルールを削除してもよろしいですか？'
+      }
+    },
+
+    // パフォーマンスレポート
+    performance: {
+      title: 'パフォーマンスレポート',
+      selectPeriod: '期間を選択',
+      last1Day: '過去1日',
+      last7Days: '過去7日',
+      last30Days: '過去30日',
+
+      api: {
+        title: 'APIパフォーマンス',
+        totalRequests: '総リクエスト数',
+        averageResponseTime: '平均応答時間',
+        p95ResponseTime: 'P95応答時間',
+        errorRate: 'エラー率'
+      },
+
+      database: {
+        title: 'データベースパフォーマンス',
+        totalQueries: '総クエリ数',
+        averageQueryTime: '平均クエリ時間',
+        slowQueries: 'スロークエリ数',
+        queryErrorRate: 'クエリエラー率'
+      },
+
+      cache: {
+        title: 'キャッシュパフォーマンス',
+        hitRate: 'ヒット率',
+        totalKeys: '総キー数',
+        totalSize: '総サイズ',
+        expiringKeys: '期限切れ間近'
+      },
+
+      charts: {
+        trendComparison: 'パフォーマンストレンド比較（過去24時間）',
+        cacheHitRate: 'キャッシュヒット率トレンド（過去24時間）',
+        apiResponseTime: 'API応答時間',
+        dbQueryTime: 'データベースクエリ時間'
+      },
+
+      recommendations: {
+        title: '最適化の推奨事項',
+        loading: 'パフォーマンスレポートを読み込み中...'
+      }
+    },
+
+    // エラー分析
+    errors: {
+      title: 'エラー分析',
+      statistics: 'エラータイプ統計',
+      details: 'エラー詳細',
+      noErrors: 'エラー記録がありません',
+      systemRunningNormally: 'システムは正常に動作しています',
+      occurredTimes: '発生回数',
+      errorCount: 'エラー数'
+    },
+
+    // リアルタイムアラート
+    realtime: {
+      title: 'リアルタイムアラート',
+      connectionStatus: {
+        connected: 'アラートシステムに接続済み',
+        reconnecting: '再接続中',
+        disconnected: '未接続',
+        reconnect: '再接続'
+      },
+      noAlerts: 'アラートなし',
+      systemNormal: 'システムは正常に動作しています',
+      soundEnabled: 'サウンドをミュート',
+      soundDisabled: 'サウンドを有効化',
+      clearAll: 'すべてクリア',
+      acknowledged: '確認済み',
+      currentValue: '現在値',
+      threshold: '閾値',
+      justNow: 'たった今',
+      minutesAgo: '{count}分前',
+      hoursAgo: '{count}時間前'
+    },
+
+    // 通知メッセージ
+    notifications: {
+      dataUpdated: '監視データが更新されました',
+      updateFailed: '監視データの更新に失敗しました',
+      alertAcknowledged: 'アラートが確認されました',
+      alertsCleared: 'すべてのアラートがクリアされました',
+      reconnecting: '再接続中...',
+      connectionFailed: 'アラートシステムに接続できません',
+      loadingFailed: '監視データの読み込みに失敗しました',
+      performanceReportFailed: 'パフォーマンスレポートの読み込みに失敗しました',
+      autoRefreshEnabled: '自動更新が有効化されました',
+      autoRefreshDisabled: '自動更新が無効化されました'
+    }
+  },
+
   // ページタイトルとナビゲーション
   header: {
     title: 'MakanMakan 管理ダッシュボード',

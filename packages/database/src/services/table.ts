@@ -178,24 +178,54 @@ export class TableService extends BaseService {
         .where(eq(tables.id, id))
         .get()
 
-      // 如果是座位模式，附加座位資訊
-      // Convert SQLite integer booleans (0/1) to JavaScript booleans
-      if (table) {
-        table.isOccupied = Boolean(table.isOccupied)
-        table.isActive = Boolean(table.isActive)
-        table.isReservable = Boolean(table.isReservable)
+      // Return null if no table found
+      if (!table) {
+        return null
       }
 
-      if (table && table.qrMode === 'seat') {
+      // Convert SQLite integer booleans (0/1) to JavaScript booleans
+      // Force convert all Drizzle schema objects to primitive values to avoid circular references
+      const tableData: any = {
+        id: Number(table.id),
+        restaurantId: Number(table.restaurantId),
+        number: String(table.number || ''),
+        name: table.name ? String(table.name) : null,
+        capacity: table.capacity ? Number(table.capacity) : null,
+        location: table.location ? String(table.location) : null,
+        floor: Number(table.floor || 1),
+        section: table.section ? String(table.section) : null,
+        qrCode: table.qrCode ? String(table.qrCode) : null,
+        qrCodeImageUrl: table.qrCodeImageUrl ? String(table.qrCodeImageUrl) : null,
+        qrCodeVersion: table.qrCodeVersion ? Number(table.qrCodeVersion) : null,
+        qrMode: table.qrMode ? String(table.qrMode) : 'table',
+        seatCount: table.seatCount ? Number(table.seatCount) : 0,
+        seatNumberingStyle: table.seatNumberingStyle ? String(table.seatNumberingStyle) : 'numeric',
+        seatLayout: table.seatLayout ? String(table.seatLayout) : null,
+        isOccupied: Boolean(Number(table.isOccupied)),
+        isActive: Boolean(Number(table.isActive)),
+        isReservable: Boolean(Number(table.isReservable)),
+        features: table.features ? String(table.features) : null,
+        currentOrderId: table.currentOrderId ? Number(table.currentOrderId) : null,
+        occupiedAt: table.occupiedAt ? String(table.occupiedAt) : null,
+        occupiedBy: table.occupiedBy ? Number(table.occupiedBy) : null,
+        estimatedFreeAt: table.estimatedFreeAt ? String(table.estimatedFreeAt) : null,
+        lastCleanedAt: table.lastCleanedAt ? String(table.lastCleanedAt) : null,
+        maintenanceNotes: table.maintenanceNotes ? String(table.maintenanceNotes) : null,
+        totalUsage: table.totalUsage ? Number(table.totalUsage) : 0,
+        averageOccupancyMinutes: table.averageOccupancyMinutes ? Number(table.averageOccupancyMinutes) : 0,
+        createdAt: table.createdAt ? String(table.createdAt) : null,
+        updatedAt: table.updatedAt ? String(table.updatedAt) : null,
+        restaurantName: table.restaurantName ? String(table.restaurantName) : null
+      }
+
+      // 如果是座位模式，附加座位資訊
+      if (tableData.qrMode === 'seat') {
         const seatService = new SeatService(this.db as any, this.env)
         const seatsResult = await seatService.getSeatsByTableId(id)
-        return {
-          ...table,
-          seats: seatsResult.seats
-        }
+        tableData.seats = seatsResult.seats
       }
 
-      return table
+      return tableData
 
     } catch (error) {
       this.handleError(error, 'getTableById')
@@ -371,12 +401,13 @@ export class TableService extends BaseService {
         .limit(limit)
         .offset(offset)
 
-      // 計算總數
-      const [{ total }] = await this.db
+      // 計算總數 (使用安全解構避免 undefined 錯誤)
+      const countResult = await this.db
         .select({ total: count() })
         .from(tables)
         .where(and(...conditions))
 
+      const total = countResult?.[0]?.total ?? 0
       const totalPages = Math.ceil(total / limit)
 
       return {

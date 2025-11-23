@@ -15,6 +15,8 @@ import type {
   ConnectionStatus,
   BroadcastTestEvent
 } from '../types'
+import { OrdersService } from '../../orders/services/OrdersService'
+import { OrderStatus } from '@makanmakan/shared-types'
 
 export class KitchenService implements IKitchenService {
   private connections = new Map<string, KitchenConnection>()
@@ -113,81 +115,75 @@ export class KitchenService implements IKitchenService {
     try {
       this.logger.info('Fetching kitchen orders', { restaurantId, userId })
 
-      // TODO: Replace with actual database queries
-      // For now, return mock data similar to the original implementation
-      const mockOrders: KitchenOrder[] = [
-        {
-          id: 1,
-          orderNumber: 'ORDER-001',
-          tableId: 3,
-          tableName: '桌號 3',
-          status: 1, // CONFIRMED
-          items: [
-            {
-              id: 1,
-              name: '蒜蓉炒麵',
-              quantity: 2,
-              status: 'pending',
-              notes: '少油無蔥',
-              priority: 'normal',
-              estimatedTime: 15
-            },
-            {
-              id: 2,
-              name: '椒鹽排骨',
-              quantity: 1,
-              status: 'pending',
-              notes: '辣一點',
-              priority: 'high',
-              estimatedTime: 20
-            }
-          ],
-          customerName: '陳先生',
-          notes: '打包帶走',
-          createdAt: new Date(Date.now() - 10 * 60000).toISOString(),
-          totalItems: 3,
-          priority: 'normal',
-          elapsedTime: 10
-        },
-        {
-          id: 2,
-          orderNumber: 'ORDER-002',
-          tableId: 7,
-          tableName: '桌號 7',
-          status: 2, // PREPARING
-          items: [
-            {
-              id: 3,
-              name: '牛肉河粉',
-              quantity: 1,
-              status: 'preparing',
-              notes: '',
-              priority: 'urgent',
-              estimatedTime: 18,
-              startedAt: new Date(Date.now() - 5 * 60000).toISOString()
-            }
-          ],
-          customerName: '李小姐',
-          createdAt: new Date(Date.now() - 25 * 60000).toISOString(),
-          totalItems: 1,
-          priority: 'urgent',
-          elapsedTime: 25
-        }
-      ]
+      // Query actual orders from database using OrdersService
+      const ordersService = new OrdersService(this.env)
 
-      const pending = mockOrders.filter(o => o.status === 1)
-      const preparing = mockOrders.filter(o => o.status === 2)
-      const ready = mockOrders.filter(o => o.status === 3)
+      // Get orders that are relevant to kitchen (confirmed, preparing, ready)
+      const relevantStatuses = [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]
+
+      const result = await ordersService.getOrders({
+        restaurantId,
+        status: relevantStatuses
+      })
+
+      // Transform orders to KitchenOrder format
+      const kitchenOrders: KitchenOrder[] = result.orders.map(order => {
+        const elapsedMinutes = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)
+
+        return {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          tableId: order.tableId || 0, // Default to 0 if no table
+          tableName: order.tableId ? `Table ${order.tableId}` : 'No Table',
+          status: typeof order.status === 'number' ? order.status :
+                  order.status === 'confirmed' ? 1 :
+                  order.status === 'preparing' ? 2 :
+                  order.status === 'ready' ? 3 : 0,
+          items: (order.items || []).map(item => {
+            // Map OrderItemStatus enum to string literals
+            const statusMap: Record<number, 'pending' | 'preparing' | 'ready' | 'completed'> = {
+              0: 'pending',    // PENDING
+              1: 'preparing',  // PREPARING
+              2: 'ready',      // READY
+              3: 'completed'   // DELIVERED
+            }
+            const itemStatus = typeof item.status === 'number' ?
+              (statusMap[item.status] || 'pending') :
+              (item.status as 'pending' | 'preparing' | 'ready' | 'completed')
+
+            return {
+              id: item.id,
+              name: item.menuItem?.name || 'Unknown Item',
+              quantity: item.quantity,
+              status: itemStatus,
+              notes: item.notes || '',
+              priority: 'normal' as const,
+              estimatedTime: 15
+            }
+          }),
+          customerName: order.customerInfo?.name || 'Guest',
+          notes: order.notes,
+          createdAt: order.createdAt,
+          totalItems: order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0,
+          priority: 'normal',
+          elapsedTime: elapsedMinutes
+        }
+      })
+
+      // Filter by status for backwards compatibility
+      const pending = kitchenOrders.filter(o => o.status === OrderStatus.CONFIRMED)
+      const preparing = kitchenOrders.filter(o => o.status === OrderStatus.PREPARING)
+      const ready = kitchenOrders.filter(o => o.status === OrderStatus.READY)
 
       const stats = {
         pendingCount: pending.length,
         preparingCount: preparing.length,
         readyCount: ready.length,
-        completedToday: 25,
-        averageCookingTime: 18,
-        averageWaitingTime: 5,
-        efficiency: 92,
-        urgentOrders: mockOrders.filter(o => o.priority === 'urgent').length
+        completedToday: 0, // TODO: Query completed orders for today
+        averageCookingTime: 0, // TODO: Calculate from historical data
+        averageWaitingTime: 0, // TODO: Calculate from order data
+        efficiency: 0, // TODO: Calculate efficiency metric
+        urgentOrders: 0 // TODO: Implement priority logic
       }
 
       return {
@@ -305,9 +301,10 @@ export class KitchenService implements IKitchenService {
   }
 
   validateChefAccess(userId: number, userRole: number, restaurantId: number): boolean {
-    // Chef role validation (role: 2)
-    if (userRole !== 2) {
-      this.logger.warn('Access denied - not chef role', { userId, userRole, restaurantId })
+    // Kitchen access: Admin (0), Owner (1), Chef (2), Service Crew (3)
+    const allowedRoles = [0, 1, 2, 3]
+    if (!allowedRoles.includes(userRole)) {
+      this.logger.warn('Access denied - insufficient kitchen permissions', { userId, userRole, restaurantId, allowedRoles })
       return false
     }
 

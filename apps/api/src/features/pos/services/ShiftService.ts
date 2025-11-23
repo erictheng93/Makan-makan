@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 import type {
   CashShift,
   StartShiftRequest,
@@ -38,19 +39,21 @@ export class ShiftService extends BaseService {
       }
 
       const shiftId = crypto.randomUUID()
+      const startedAt = getCurrentTimestamp()
 
       await this.d1.prepare(`
         INSERT INTO cash_shifts (
           id, register_id, operator_id, start_amount, expected_amount,
           total_sales, total_refunds, cash_sales, card_sales, digital_sales,
           total_transactions, started_at, status, notes
-        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, CURRENT_TIMESTAMP, 'active', ?)
+        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, ?, 'active', ?)
       `).bind(
         shiftId,
         validatedData.registerId,
         validatedData.operatorId,
         validatedData.startAmount,
         validatedData.startAmount,
+        startedAt,
         validatedData.notes || null
       ).run()
 
@@ -113,13 +116,14 @@ export class ShiftService extends BaseService {
       const differenceAmount = validatedData.actualAmount - expectedAmount
 
       // 更新班次狀態
+      const endedAt = getCurrentTimestamp()
       await this.d1.prepare(`
         UPDATE cash_shifts
         SET end_amount = ?,
             actual_amount = ?,
             expected_amount = ?,
             difference_amount = ?,
-            ended_at = CURRENT_TIMESTAMP,
+            ended_at = ?,
             status = 'closed',
             closing_notes = ?
         WHERE id = ?
@@ -128,6 +132,7 @@ export class ShiftService extends BaseService {
         validatedData.actualAmount,
         expectedAmount,
         differenceAmount,
+        endedAt,
         validatedData.closingNotes || null,
         shiftId
       ).run()
@@ -268,12 +273,13 @@ export class ShiftService extends BaseService {
       'SELECT register_id FROM cash_shifts WHERE id = ?'
     ).bind(shiftId).first() as any
 
+    const now = getCurrentTimestamp()
     await this.d1.prepare(`
       INSERT INTO cash_movements (
         id, shift_id, register_id, type, amount, description,
         reference_id, reference_type, payment_method, denomination_breakdown,
         recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', ?)
     `).bind(
       movementId,
       shiftId,
@@ -285,7 +291,8 @@ export class ShiftService extends BaseService {
       movement.referenceType || null,
       movement.paymentMethod || null,
       JSON.stringify(movement.denominationBreakdown || {}),
-      movement.recordedBy
+      movement.recordedBy,
+      now
     ).run()
   }
 }

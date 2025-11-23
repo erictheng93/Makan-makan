@@ -1,0 +1,455 @@
+# Artillery REST API Performance Test Configuration
+# MakanMakan API 負載測試配置
+
+config:
+  target: "http://localhost:8787"
+  phases:
+    # Phase 1: 暖身階段
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+
+    # Phase 2: 負載增長
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up load"
+
+    # Phase 3: 穩定負載
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load"
+
+    # Phase 4: 峰值負載
+    - duration: 120
+      arrivalRate: 100
+      name: "Peak load"
+
+    # Phase 5: 壓力測試
+    - duration: 60
+      arrivalRate: 150
+      name: "Stress test"
+
+    # Phase 6: 降載
+    - duration: 60
+      arrivalRate: 10
+      name: "Cool-down"
+
+  # 性能指標設定
+  ensure:
+    # HTTP 請求成功率 > 99%
+    - http.request_rate:
+        min: 5
+    # 回應時間 P95 < 300ms
+    - http.response_time.p95:
+        max: 300
+    # 回應時間 P99 < 500ms
+    - http.response_time.p99:
+        max: 500
+    # 錯誤率 < 1%
+    - http.codes.500:
+        max: 10  # 每秒最多 10 個 500 錯誤
+
+  # HTTP 預設設定
+  http:
+    timeout: 10
+    pool: 50  # 最大並發連接數
+
+  # 插件配置
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      stripQueryString: false
+      metricsNamespace: "api_metrics"
+
+  # 環境變數
+  variables:
+    # 測試用戶
+    testUsername: "testuser"
+    testPassword: "testpass123"
+    restaurantId: "1"
+
+  # 負載測試 Payload 配置
+  payload:
+    path: "./test-data.csv"
+    fields:
+      - "username"
+      - "email"
+      - "restaurantId"
+    skipHeader: true
+    order: "sequence"
+    cast: true
+
+# 測試處理器
+processor: "./artillery-api-processor.js"
+
+scenarios:
+  # 場景 1: 認證流程測試 (20% 流量)
+  - name: "Authentication Flow"
+    weight: 20
+    flow:
+      # 1. 登入
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            username: "{{ testUsername }}"
+            password: "{{ testPassword }}"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+            - json: "$.data.user.restaurantId"
+              as: "restaurantId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: "data.token"
+
+      # 2. 驗證 Token
+      - get:
+          url: "/api/v1/auth/verify"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 3. 獲取當前用戶資訊
+      - get:
+          url: "/api/v1/auth/me"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.id"
+
+  # 場景 2: 菜單管理流程 (25% 流量)
+  - name: "Menu Management Flow"
+    weight: 25
+    flow:
+      # 1. 登入獲取 Token
+      - function: "authenticateUser"
+
+      # 2. 獲取分類列表
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/categories"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+      # 3. 獲取菜單列表
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items"
+          qs:
+            page: 1
+            pageSize: 20
+            status: "available"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data.items[0].id"
+              as: "menuItemId"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.items"
+
+      # 4. 獲取單個菜品詳情
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items/{{ menuItemId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 5. 搜尋菜品
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items/search"
+          qs:
+            q: "牛肉"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 3: 訂單管理流程 (30% 流量)
+  - name: "Order Management Flow"
+    weight: 30
+    flow:
+      # 1. 認證
+      - function: "authenticateUser"
+
+      # 2. 獲取訂單列表
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            page: 1
+            pageSize: 20
+            status: "all"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data.orders[0].id"
+              as: "orderId"
+          expect:
+            - statusCode: 200
+
+      # 3. 獲取訂單詳情
+      - get:
+          url: "/api/v1/orders/{{ orderId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 4. 創建新訂單
+      - post:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            tableId: 1
+            items:
+              - menuItemId: 1
+                quantity: 2
+                notes: "少辣"
+              - menuItemId: 2
+                quantity: 1
+          capture:
+            - json: "$.data.id"
+              as: "newOrderId"
+          expect:
+            - statusCode: 201
+
+      # 5. 更新訂單狀態
+      - put:
+          url: "/api/v1/orders/{{ newOrderId }}/status"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            status: "preparing"
+          expect:
+            - statusCode: 200
+
+      # 6. 獲取訂單統計
+      - get:
+          url: "/api/v1/orders/statistics"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            period: "today"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 4: 桌台管理流程 (15% 流量)
+  - name: "Table Management Flow"
+    weight: 15
+    flow:
+      # 1. 認證
+      - function: "authenticateUser"
+
+      # 2. 獲取桌台列表
+      - get:
+          url: "/api/v1/tables"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data.tables[0].id"
+              as: "tableId"
+          expect:
+            - statusCode: 200
+
+      # 3. 獲取桌台詳情
+      - get:
+          url: "/api/v1/tables/{{ tableId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 4. 更新桌台狀態
+      - patch:
+          url: "/api/v1/tables/{{ tableId }}/status"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            status: "occupied"
+          expect:
+            - statusCode: 200
+
+      # 5. 生成 QR 碼
+      - get:
+          url: "/api/v1/tables/{{ tableId }}/qr"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 5: 用戶管理流程 (10% 流量)
+  - name: "User Management Flow"
+    weight: 10
+    flow:
+      # 1. 認證（管理員）
+      - function: "authenticateAdmin"
+
+      # 2. 獲取用戶列表
+      - get:
+          url: "/api/v1/users"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 3. 創建新用戶
+      - post:
+          url: "/api/v1/users"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            username: "testuser{{ $randomNumber() }}"
+            password: "testpass123"
+            name: "Test User"
+            email: "test{{ $randomNumber() }}@example.com"
+            role: 3
+            restaurantId: "{{ restaurantId }}"
+          capture:
+            - json: "$.data.id"
+              as: "newUserId"
+          expect:
+            - statusCode: 201
+
+      # 4. 更新用戶資訊
+      - put:
+          url: "/api/v1/users/{{ newUserId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Updated Test User"
+            isActive: true
+          expect:
+            - statusCode: 200
+
+  # 場景 6: 混合讀取操作（高並發測試）
+  - name: "Mixed Read Operations"
+    weight: 50
+    flow:
+      - function: "authenticateUser"
+
+      # 並發執行多個讀取操作
+      - parallel:
+          - get:
+              url: "/api/v1/menu/{{ restaurantId }}/items"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+
+          - get:
+              url: "/api/v1/orders"
+              qs:
+                restaurantId: "{{ restaurantId }}"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+
+          - get:
+              url: "/api/v1/tables"
+              qs:
+                restaurantId: "{{ restaurantId }}"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+
+          - get:
+              url: "/api/v1/analytics/summary"
+              qs:
+                restaurantId: "{{ restaurantId }}"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+
+  # 場景 7: 分析和報表（低頻率高負載）
+  - name: "Analytics and Reports"
+    weight: 5
+    flow:
+      - function: "authenticateUser"
+
+      # 1. 銷售分析
+      - get:
+          url: "/api/v1/analytics/sales"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            startDate: "2025-01-01"
+            endDate: "2025-01-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 2. 菜品分析
+      - get:
+          url: "/api/v1/analytics/menu-items"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            period: "month"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # 3. 導出報表
+      - post:
+          url: "/api/v1/analytics/export"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            type: "sales"
+            format: "csv"
+            startDate: "2025-01-01"
+            endDate: "2025-01-31"
+          expect:
+            - statusCode: 200
+
+  # 場景 8: 錯誤情境測試
+  - name: "Error Scenarios"
+    weight: 5
+    flow:
+      # 1. 未授權訪問
+      - get:
+          url: "/api/v1/orders"
+          expect:
+            - statusCode: 401
+
+      # 2. 無效的 Token
+      - get:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer invalid-token"
+          expect:
+            - statusCode: 401
+
+      # 3. 資源不存在
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/orders/99999999"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 404
+
+      # 4. 驗證錯誤
+      - post:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            # 缺少必要欄位
+          expect:
+            - statusCode: 400
+
+after:
+  flow:
+    - log: "Performance test completed. Check the report for detailed metrics."

@@ -34,23 +34,39 @@ global.AudioContext = vi.fn().mockImplementation(() => ({
 
 global.webkitAudioContext = global.AudioContext;
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-global.localStorage = localStorageMock;
+// Mock URL.createObjectURL and URL.revokeObjectURL for audio/file tests
+// Always override to ensure consistent mocking
+global.URL.createObjectURL = vi.fn(() => 'blob:mock-url-' + Math.random().toString(36).substring(7));
+global.URL.revokeObjectURL = vi.fn();
 
-// Mock sessionStorage
-const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+// Mock localStorage with unlimited storage (no quota errors)
+const createStorageMock = () => {
+  const store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = String(value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      for (const key in store) {
+        delete store[key];
+      }
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: vi.fn((index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    }),
+  };
 };
-global.sessionStorage = sessionStorageMock;
+
+global.localStorage = createStorageMock() as any;
+global.sessionStorage = createStorageMock() as any;
 
 // Mock EventSource
 global.EventSource = vi.fn().mockImplementation(() => ({

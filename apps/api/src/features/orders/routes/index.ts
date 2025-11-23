@@ -217,10 +217,21 @@ app.post('/',
       }, 201)
     } catch (error) {
       logger.error('Create order error', error instanceof Error ? error : undefined, {})
+
+      // Determine if this is a client error (400) or server error (500)
+      const isClientError = error instanceof Error && (
+        error.message.includes('not available') ||
+        error.message.includes('not found') ||
+        error.message.includes('not exist') ||
+        error.message.includes('Invalid') ||
+        error.message.includes('already exists') ||
+        error.message.includes('required')
+      )
+
       return c.json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create order'
-      }, 500)
+      }, isClientError ? 400 : 500)
     }
   }
 )
@@ -392,7 +403,7 @@ app.put('/:id/status',
       const updatedOrder = await ordersService.updateOrderStatus(
         parseInt(id),
         {
-          status: stringToOrderStatus(data.status),
+          status: data.status as any, // Pass string directly, service will normalize
           notes: data.notes,
           estimatedReadyTime: data.estimatedReadyTime ? new Date(data.estimatedReadyTime) : undefined,
           updatedBy: user.id

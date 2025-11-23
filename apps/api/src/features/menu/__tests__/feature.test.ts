@@ -217,9 +217,9 @@ describe('Menu Feature Module', () => {
 
     // CRITICAL: Replace internal services with our mocks
     // This ensures all tests use our controlled mock instances
-    menuService['dbService'] = mockDatabaseMenuServiceInstance as any
-    menuService['cacheService'] = mockCacheKV
-    menuService['logger'] = mockLogger as any
+    ;(menuService as any)['dbService'] = mockDatabaseMenuServiceInstance as any
+    ;(menuService as any)['cacheService'] = mockCacheKV
+    ;(menuService as any)['logger'] = mockLogger as any
   })
 
   afterEach(() => {
@@ -737,8 +737,8 @@ describe('Menu Feature Module', () => {
 
       const service = new MenuService(mockEnv)
       // Replace dbService to ensure we're testing cache, not database
-      service['dbService'] = mockDatabaseMenuServiceInstance as any
-      service['logger'] = mockLogger as any
+      ;(service as any)['dbService'] = mockDatabaseMenuServiceInstance as any
+      ;(service as any)['logger'] = mockLogger as any
 
       const result = await service.getMenu(mockRestaurantId)
 

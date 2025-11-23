@@ -112,18 +112,25 @@ export interface UpdateCartItemRequest {
 }
 
 export interface SplitBillRequest {
-  splitType: 'equal' | 'proportional' | 'individual' | 'custom'
+  splitType: 'equal' | 'proportional' | 'individual' | 'by_item' | 'custom'
+  serviceChargeRate?: number
+  taxRate?: number
   customSplits?: Array<{
     memberId: string
     amount: number
     items: any[]
   }>
+  customAmounts?: Array<{
+    memberId: string
+    amount: number
+  }>
 }
 
 export interface ProcessPaymentRequest {
   paymentMethod: string
-  amount: number
+  amount?: number // Optional - will use amount from split_bills if not provided
   transactionId?: string
+  paymentDetails?: Record<string, any> // Additional payment details (card info, etc.)
 }
 
 // Response Types

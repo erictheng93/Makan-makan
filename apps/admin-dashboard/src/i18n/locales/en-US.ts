@@ -440,6 +440,185 @@ const enUS: Messages = {
     }
   },
 
+  // System Monitoring
+  monitoring: {
+    title: 'System Monitoring',
+    subtitle: 'Real-time system health, performance metrics and alerts',
+
+    actions: {
+      refresh: 'Refresh Now',
+      refreshing: 'Refreshing...',
+      autoRefresh: 'Auto Refresh',
+      manualRefresh: 'Manual Refresh',
+      createAlertRule: 'Create Alert Rule',
+      testAlert: 'Test Alert',
+      resetMetrics: 'Reset Metrics',
+      exportReport: 'Export Report'
+    },
+
+    health: {
+      overall: 'Overall Health Status',
+      score: 'Health Score',
+      uptime: 'System Uptime',
+      lastUpdate: 'Last Update',
+      status: {
+        healthy: 'Healthy',
+        warning: 'Warning',
+        critical: 'Critical',
+        down: 'Down'
+      }
+    },
+
+    keyMetrics: {
+      title: 'Key Metrics',
+      requestsPerMinute: 'Requests Per Minute',
+      averageResponseTime: 'Average Response Time',
+      cacheHitRate: 'Cache Hit Rate',
+      activeErrors: 'Active Errors'
+    },
+
+    components: {
+      title: 'System Components Status',
+      api: 'API Service',
+      database: 'Database',
+      cache: 'Cache Service',
+      external: 'External Services',
+      status: 'Status',
+      latency: 'Latency',
+      healthy: 'Healthy',
+      issues: 'Issues'
+    },
+
+    tabs: {
+      alerts: 'Alert Rules',
+      performance: 'Performance Report',
+      errors: 'Error Analysis'
+    },
+
+    alerts: {
+      title: 'Alert Rules',
+      noAlerts: 'No alert rules',
+      createFirst: 'Create your first alert rule to monitor system status',
+      rule: {
+        name: 'Rule Name',
+        type: 'Alert Type',
+        severity: 'Severity',
+        threshold: 'Threshold',
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+        lastTriggered: 'Last Triggered',
+        actions: 'Actions'
+      },
+      severity: {
+        info: 'Info',
+        warning: 'Warning',
+        critical: 'Critical',
+        fatal: 'Fatal'
+      },
+      actions: {
+        enable: 'Enable',
+        disable: 'Disable',
+        edit: 'Edit',
+        delete: 'Delete',
+        test: 'Test'
+      },
+      messages: {
+        enabled: 'Alert rule enabled',
+        disabled: 'Alert rule disabled',
+        deleted: 'Alert rule deleted',
+        deleteConfirm: 'Are you sure you want to delete this alert rule?'
+      }
+    },
+
+    performance: {
+      title: 'Performance Report',
+      selectPeriod: 'Select Time Period',
+      last1Day: 'Last 1 Day',
+      last7Days: 'Last 7 Days',
+      last30Days: 'Last 30 Days',
+
+      api: {
+        title: 'API Performance',
+        totalRequests: 'Total Requests',
+        averageResponseTime: 'Average Response Time',
+        p95ResponseTime: 'P95 Response Time',
+        errorRate: 'Error Rate'
+      },
+
+      database: {
+        title: 'Database Performance',
+        totalQueries: 'Total Queries',
+        averageQueryTime: 'Average Query Time',
+        slowQueries: 'Slow Queries',
+        queryErrorRate: 'Query Error Rate'
+      },
+
+      cache: {
+        title: 'Cache Performance',
+        hitRate: 'Hit Rate',
+        totalKeys: 'Total Keys',
+        totalSize: 'Total Size',
+        expiringKeys: 'Expiring Keys'
+      },
+
+      charts: {
+        trendComparison: 'Performance Trend Comparison (Last 24 Hours)',
+        cacheHitRate: 'Cache Hit Rate Trend (Last 24 Hours)',
+        apiResponseTime: 'API Response Time',
+        dbQueryTime: 'Database Query Time'
+      },
+
+      recommendations: {
+        title: 'Optimization Recommendations',
+        loading: 'Loading performance report...'
+      }
+    },
+
+    errors: {
+      title: 'Error Analysis',
+      statistics: 'Error Type Statistics',
+      details: 'Error Details',
+      noErrors: 'No error records',
+      systemRunningNormally: 'System running normally',
+      occurredTimes: 'Occurred Times',
+      errorCount: 'Error Count'
+    },
+
+    realtime: {
+      title: 'Real-time Alerts',
+      connectionStatus: {
+        connected: 'Connected to alert system',
+        reconnecting: 'Reconnecting',
+        disconnected: 'Not connected',
+        reconnect: 'Reconnect'
+      },
+      noAlerts: 'No alerts',
+      systemNormal: 'System running normally',
+      soundEnabled: 'Mute Sound',
+      soundDisabled: 'Enable Sound',
+      clearAll: 'Clear All',
+      acknowledged: 'Acknowledged',
+      currentValue: 'Current Value',
+      threshold: 'Threshold',
+      justNow: 'Just now',
+      minutesAgo: '{count} minutes ago',
+      hoursAgo: '{count} hours ago'
+    },
+
+    notifications: {
+      dataUpdated: 'Monitoring data updated',
+      updateFailed: 'Failed to update monitoring data',
+      alertAcknowledged: 'Alert acknowledged',
+      alertsCleared: 'All alerts cleared',
+      reconnecting: 'Reconnecting...',
+      connectionFailed: 'Cannot connect to alert system',
+      loadingFailed: 'Failed to load monitoring data',
+      performanceReportFailed: 'Failed to load performance report',
+      autoRefreshEnabled: 'Auto refresh enabled',
+      autoRefreshDisabled: 'Auto refresh disabled'
+    }
+  },
+
   // Page title and navigation
   header: {
     title: 'MakanMakan Admin Dashboard',

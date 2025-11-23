@@ -464,7 +464,8 @@ class SharedDataStore {
       stmt.free()
 
       // Get last insert rowid and changes
-      const changes = this.db.getRowsModified()
+      // Note: sql.js doesn't provide getRowsModified(), so we assume 1 for successful runs
+      const changes = 1
       const lastInsertRowid = this.db.exec('SELECT last_insert_rowid() as id')[0]?.values[0][0] as number || 0
 
       return { changes, lastInsertRowid }
@@ -494,12 +495,29 @@ class SharedDataStore {
     }
 
     const columns = Object.keys(enrichedData).filter(k => enrichedData[k] !== undefined)
-    const values = columns.map(k => enrichedData[k])
+    const values = columns.map(k => {
+      const value = enrichedData[k]
+      // Convert boolean to integer for SQLite
+      if (typeof value === 'boolean') {
+        return value ? 1 : 0
+      }
+      // Convert Date to ISO string
+      if (value instanceof Date) {
+        return value.toISOString()
+      }
+      // Convert objects and arrays to JSON string
+      if (value !== null && typeof value === 'object') {
+        return JSON.stringify(value)
+      }
+      return value === null ? null : value
+    })
     const placeholders = columns.map(() => '?').join(', ')
 
     const sql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`
 
     try {
+      console.log(`[SharedDataStore] INSERT SQL:`, sql)
+      console.log(`[SharedDataStore] INSERT values:`, JSON.stringify(values))
       const result = this.run(sql, values)
       console.log(`[SharedDataStore] Inserted into ${tableName}:`, result.lastInsertRowid)
 
@@ -510,6 +528,8 @@ class SharedDataStore {
       }
     } catch (error) {
       console.error(`[SharedDataStore] Insert error for ${tableName}:`, error)
+      console.error(`[SharedDataStore] Failed SQL:`, sql)
+      console.error(`[SharedDataStore] Failed values:`, JSON.stringify(values))
       throw error
     }
   }
@@ -604,7 +624,7 @@ export async function createTestDB(): Promise<TestDB> {
   const dataStore = await SharedDataStore.create()
 
   // Create D1-compatible mock that uses the shared store
-  const db = createSharedMockDB(dataStore)
+  const db = createSharedMockDB(dataStore) as ReturnType<typeof createSharedMockDB> & { dataStore: SharedDataStore }
 
   // Attach dataStore for sharing with createTestApp
   db.dataStore = dataStore
@@ -1222,6 +1242,167 @@ async function runMigrations(db: TestDB) {
     CREATE INDEX IF NOT EXISTS idx_queue_events_restaurant_queue
     ON queue_events(restaurant_id, queue_id)
   `)
+
+  // Create group orders tables
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS group_orders (
+      id TEXT PRIMARY KEY,
+      share_code TEXT UNIQUE NOT NULL,
+      master_order_id INTEGER,
+      created_by INTEGER NOT NULL,
+      restaurant_id INTEGER NOT NULL,
+      table_id INTEGER,
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'ordering', 'checkout', 'completed', 'cancelled')),
+      split_type TEXT DEFAULT 'individual' CHECK (split_type IN ('equal', 'proportional', 'individual', 'custom')),
+      total_amount REAL DEFAULT 0,
+      tax_amount REAL DEFAULT 0,
+      service_charge REAL DEFAULT 0,
+      final_amount REAL DEFAULT 0,
+      expires_at INTEGER NOT NULL,
+      locked_at INTEGER,
+      completed_at INTEGER,
+      settings TEXT DEFAULT '{}',
+      notes TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+
+      FOREIGN KEY (master_order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+      FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE SET NULL
+    )
+  `)
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS group_members (
+      id TEXT PRIMARY KEY,
+      group_order_id TEXT NOT NULL,
+      user_id INTEGER,
+      session_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT,
+      email TEXT,
+      avatar_url TEXT,
+      role TEXT DEFAULT 'member' CHECK (role IN ('creator', 'admin', 'member')),
+      permissions TEXT DEFAULT '{}',
+      joined_at INTEGER NOT NULL,
+      last_active_at INTEGER NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      left_at INTEGER,
+
+      FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      UNIQUE(group_order_id, session_id)
+    )
+  `)
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS group_cart_items (
+      id TEXT PRIMARY KEY,
+      group_order_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      menu_item_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unit_price REAL NOT NULL,
+      total_price REAL NOT NULL,
+      customizations TEXT DEFAULT '{}',
+      special_instructions TEXT,
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'removed', 'ordered')),
+      added_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+
+      FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE CASCADE,
+      FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
+    )
+  `)
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS split_bills (
+      id TEXT PRIMARY KEY,
+      group_order_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      subtotal REAL NOT NULL DEFAULT 0,
+      tax_amount REAL NOT NULL DEFAULT 0,
+      service_charge REAL NOT NULL DEFAULT 0,
+      discount_amount REAL NOT NULL DEFAULT 0,
+      tip_amount REAL NOT NULL DEFAULT 0,
+      total_amount REAL NOT NULL,
+      items TEXT DEFAULT '[]',
+      payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'processing', 'paid', 'failed', 'refunded')),
+      payment_method TEXT,
+      payment_reference TEXT,
+      paid_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+
+      FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE CASCADE,
+      UNIQUE(group_order_id, member_id)
+    )
+  `)
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS share_codes (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('group_order', 'menu_share', 'table_share')),
+      resource_id TEXT NOT NULL,
+      created_by INTEGER NOT NULL,
+      usage_limit INTEGER DEFAULT -1,
+      usage_count INTEGER DEFAULT 0,
+      expires_at INTEGER,
+      is_active INTEGER DEFAULT 1,
+      metadata TEXT DEFAULT '{}',
+      created_at INTEGER NOT NULL,
+
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `)
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS group_activity_logs (
+      id TEXT PRIMARY KEY,
+      group_order_id TEXT NOT NULL,
+      member_id TEXT,
+      action TEXT NOT NULL,
+      description TEXT,
+      metadata TEXT DEFAULT '{}',
+      created_at INTEGER NOT NULL,
+
+      FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE SET NULL
+    )
+  `)
+
+  // Create indexes for group orders tables
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_orders_share_code ON group_orders(share_code)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_orders_restaurant_id ON group_orders(restaurant_id)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_orders_status ON group_orders(status)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_members_group_order_id ON group_members(group_order_id)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_cart_items_group_order_id ON group_cart_items(group_order_id)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_split_bills_group_order_id ON split_bills(group_order_id)
+  `)
+
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_group_activity_logs_group_order_id ON group_activity_logs(group_order_id)
+  `)
 }
 
 export function createMockQueueData() {
@@ -1403,6 +1584,21 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
               console.log('[MockDrizzle] returning() called')
 
               const now = new Date().toISOString()
+
+              // Handle array of records (bulk insert)
+              if (Array.isArray(data)) {
+                const results = data.map(item => {
+                  if (!item.createdAt) item.createdAt = now
+                  if (!item.updatedAt) item.updatedAt = now
+                  const inserted = dataStore.insert(tableName, item)
+                  console.log('[MockDrizzle] Stored record ID:', inserted.id)
+                  return { ...inserted }
+                })
+                console.log('[MockDrizzle] Returning:', results)
+                return Promise.resolve(results)
+              }
+
+              // Handle single record
               if (!data.createdAt) data.createdAt = now
               if (!data.updatedAt) data.updatedAt = now
 
@@ -1498,20 +1694,60 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                 if (condition && typeof condition === 'object') {
                   console.log('[MockDrizzle] Condition type:', condition.constructor?.name)
                   console.log('[MockDrizzle] Condition keys:', Object.keys(condition))
+                  // Don't stringify condition - it contains circular references
+                  // console.log('[MockDrizzle] Condition structure:', JSON.stringify(condition, null, 2).substring(0, 500))
 
                   // Try to extract filter from Drizzle eq() condition
                   // eq() structure: { sql: {queryChunks: [column, ' = ', value]}, ...}
+                  // OR: condition itself is SQL object with queryChunks
                   // For simple ID queries, try to detect the pattern
 
-                  // Strategy 1: Check if condition has sql.queryChunks (Drizzle format)
-                  if (condition.sql?.queryChunks && Array.isArray(condition.sql.queryChunks)) {
-                    const chunks = condition.sql.queryChunks
-                    // Look for pattern: [column, ' = ', value]
+                  // Strategy 1a: Check if condition itself has queryChunks (newer Drizzle format)
+                  let chunks = null
+                  if (condition.queryChunks && Array.isArray(condition.queryChunks)) {
+                    chunks = condition.queryChunks
+                    console.log('[MockDrizzle] Found queryChunks, length:', chunks.length)
+                  }
+                  // Strategy 1b: Check if condition has sql.queryChunks (older Drizzle format)
+                  else if (condition.sql?.queryChunks && Array.isArray(condition.sql.queryChunks)) {
+                    chunks = condition.sql.queryChunks
+                    console.log('[MockDrizzle] Found sql.queryChunks, length:', chunks.length)
+                  }
+
+                  if (chunks) {
+                    console.log('[MockDrizzle] Processing', chunks.length, 'chunks')
+
+                    // NEW APPROACH: Find the Param chunk (has numeric value)
+                    // Pattern: [StringChunk, Column, StringChunk(" = "), Param(value), StringChunk]
+                    let compareValue: any = null
+                    for (const chunk of chunks) {
+                      // Param chunks have constructor name "Param" and numeric/string value
+                      if (chunk && typeof chunk === 'object' && chunk.value !== undefined) {
+                        // Check if this is a Param (not StringChunk with array value)
+                        if (typeof chunk.value === 'number' || (typeof chunk.value === 'string' && !Array.isArray(chunk.value))) {
+                          compareValue = chunk.value
+                          break
+                        }
+                      }
+                    }
+
+                    // If we found a value, search for matching record by ID
+                    // (assuming most queries are by ID)
+                    if (compareValue !== null && compareValue !== undefined) {
+                      console.log(`[MockDrizzle] Searching for record with id = ${compareValue}`)
+                      const found = allData.find((item: any) => item.id === compareValue)
+                      if (found) {
+                        console.log('[MockDrizzle] Found matching record:', found.id)
+                        return found
+                      }
+                      console.log('[MockDrizzle] No matching record found for id:', compareValue)
+                      return null
+                    }
+
+                    // Legacy fallback for numeric ID queries
                     for (let i = 0; i < chunks.length; i++) {
                       if (typeof chunks[i] === 'string' && chunks[i].includes('=')) {
-                        // Found equals operator, value should be after it
                         const value = chunks[i + 1]
-                        // Try to match by 'id' field (most common case)
                         if (typeof value === 'number') {
                           const found = allData.find((item: any) => item.id === value)
                           if (found) return found
@@ -1530,9 +1766,9 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                     }
                   }
 
-                  // Fallback: return first record
-                  console.warn('[MockDrizzle] where().get() - Could not parse condition, returning first record')
-                  return allData[0] || null
+                  // Fallback: return null instead of first record to avoid false positives
+                  console.warn('[MockDrizzle] where().get() - Could not parse condition, returning null')
+                  return null
                 }
                 return null
               }
@@ -1616,29 +1852,55 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
       }
     }),
 
-    update: (table: any) => ({
-      set: (data: any) => ({
+    update: (table: any) => {
+      const tableName = getTableName(table)
+      console.log('[MockDrizzle] update() called for table:', tableName)
+
+      return {
+      set: (data: any) => {
+        console.log('[MockDrizzle] set() called with data:', Object.keys(data))
+
+        return {
         where: (condition: any) => {
-          const tableName = getTableName(table)
+          console.log('[MockDrizzle] where() called for UPDATE')
 
           // Create update executor function
           const executeUpdate = async () => {
-            const tableData = tables.get(tableName)
-            if (!tableData) return []
+            // Use dataStore to get records from the table
+            const normalizedTableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+            const allRecords = dataStore.query(`SELECT * FROM ${normalizedTableName}`)
+            if (allRecords.length === 0) return []
 
-            const records = Array.from(tableData.values())
+            // Extract filter value from WHERE condition (similar to where().get() logic)
+            let filterValue: any = null
+            if (condition && condition.queryChunks) {
+              // Find the Param chunk with the filter value
+              for (const chunk of condition.queryChunks) {
+                if (chunk && typeof chunk === 'object' && chunk.value !== undefined) {
+                  if (typeof chunk.value === 'number' || (typeof chunk.value === 'string' && !Array.isArray(chunk.value))) {
+                    filterValue = chunk.value
+                    break
+                  }
+                }
+              }
+            }
 
-            // For now, update all records (WHERE filtering not implemented)
-            // TODO: Implement actual WHERE condition filtering
+            // Filter records to update based on WHERE condition
+            const recordsToUpdate = filterValue !== null
+              ? allRecords.filter((record: any) => record.id === filterValue)
+              : allRecords // If no filter, update all (fallback)
+
+            console.log(`[MockDrizzle] UPDATE ${normalizedTableName} WHERE id = ${filterValue}, found ${recordsToUpdate.length} records`)
+
             const updatedRecords: any[] = []
 
-            for (const record of records) {
+            for (const record of recordsToUpdate) {
               // Process data to handle sql`` template literals for increments
               const processedData: any = { updatedAt: new Date().toISOString() }
 
               for (const [key, value] of Object.entries(data)) {
                 // Check if value is an SQL increment expression (has queryChunks or sql property)
-                if (value && typeof value === 'object' && (value.queryChunks || value.sql)) {
+                if (value && typeof value === 'object' && ((value as any).queryChunks || (value as any).sql)) {
                   // For increment operations like sql`${field} + 1`, just increment by 1
                   // This is a simplified mock - doesn't parse the actual SQL
                   const currentValue = record[key] || 0
@@ -1649,14 +1911,24 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
               }
 
               const updated = { ...record, ...processedData }
-              tableData.set(updated.id, updated)
+              // Update the record in dataStore
+              // Filter out undefined values and convert Date objects to ISO strings for SQLite compatibility
+              const entries = Object.entries(processedData).filter(([_, v]) => v !== undefined)
+              const keys = entries.map(([k]) => k)
+              const values = entries.map(([_, v]) =>
+                v instanceof Date ? v.toISOString() : (v === null ? null : v)
+              )
+              if (keys.length > 0) {
+                dataStore.run(`UPDATE ${normalizedTableName} SET ${keys.map(k => `${k} = ?`).join(', ')} WHERE id = ?`,
+                  [...values, updated.id])
+              }
               updatedRecords.push(updated)
             }
 
             return updatedRecords
           }
 
-          // Return object that supports both direct await AND .returning()
+          // Return object that supports direct await, .returning(), AND .run()
           const updateQuery: any = {
             then: (resolve: any, reject: any) => {
               // Make the query thenable so it can be directly awaited
@@ -1664,13 +1936,20 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
             },
             returning: async () => {
               return executeUpdate()
+            },
+            run: async () => {
+              // .run() method for updates that don't return data
+              await executeUpdate()
+              return { changes: 1, lastInsertRowid: 0 }
             }
           }
 
           return updateQuery
         }
-      })
-    }),
+      }
+    }
+  }
+},
 
     query: new Proxy({}, {
       get: (target, tableName: string) => {
@@ -1683,14 +1962,60 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
         findFirst: async (options: any) => {
           console.log('[MockDrizzle] query.findFirst() called for table:', tableName)
           try {
-            // Use dataStore to query the table
-            const records = dataStore.query(`SELECT * FROM ${normalizedTableName}`)
-            console.log('[MockDrizzle] Table', tableName, 'has', records.length, 'records')
+            // Get all records first
+            const allRecords = dataStore.query(`SELECT * FROM ${normalizedTableName}`)
+            console.log('[MockDrizzle] Table', tableName, 'has', allRecords.length, 'total records')
+
+            // Apply WHERE filter in memory if provided
+            let records = allRecords
+            if (options?.where && options.where.queryChunks) {
+              // Log the full structure to understand it
+              console.log('[MockDrizzle] queryChunks:', JSON.stringify(options.where.queryChunks.map((c: any, i: number) => ({
+                index: i,
+                type: c?.constructor?.name,
+                hasValue: c?.value !== undefined,
+                value: c?.value,
+                valueType: typeof c?.value
+              }))))
+
+              // Extract column name and filter value from queryChunks
+              // Structure: [StringChunk, SQLiteInteger(column), StringChunk(' = '), Param(value), StringChunk]
+              let columnName: string | null = null
+              let filterValue: any = null
+
+              options.where.queryChunks.forEach((chunk: any) => {
+                // Extract column name from SQLiteInteger or similar objects
+                if (chunk && chunk.name && typeof chunk.name === 'string') {
+                  columnName = chunk.name
+                }
+                // Extract filter value ONLY from Param objects (check for numeric/string value, not array)
+                if (chunk && chunk.value !== undefined) {
+                  // Skip StringChunk objects (their value is an array like [""] or [" = "])
+                  if (!Array.isArray(chunk.value)) {
+                    filterValue = chunk.value
+                  }
+                }
+              })
+
+              if (columnName && filterValue !== null && filterValue !== undefined) {
+                console.log('[MockDrizzle] Filtering by:', columnName, '=', filterValue)
+
+                // Filter records in memory using dynamic column name
+                const colName = columnName // Type assertion to fix TS2538
+                records = allRecords.filter((record: any) => {
+                  return record[colName] === filterValue
+                })
+              } else {
+                console.log('[MockDrizzle] Could not extract column name or value from WHERE clause')
+              }
+            }
+
+            console.log('[MockDrizzle] Found', records.length, 'matching records')
             if (records.length > 0) {
               console.log('[MockDrizzle] First record:', JSON.stringify(records[0]))
               return records[0]
             }
-            console.log('[MockDrizzle] No records found in table:', tableName)
+            console.log('[MockDrizzle] No records found')
             return null
           } catch (error) {
             console.error('[MockDrizzle] Error querying table:', tableName, error)

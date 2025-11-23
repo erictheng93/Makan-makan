@@ -4,13 +4,13 @@
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">POS 系統</h1>
-        <p class="text-gray-600">完整的銷售點管理系統</p>
+        <p class="text-gray-600">完整收銷售點管理系統</p>
       </div>
       <div class="flex items-center space-x-6">
-        <!-- 現金櫃狀態 -->
+        <!-- 收銀櫃狀態 -->
         <div class="bg-green-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-green-800 font-medium">
-            現金櫃: {{ currentRegister?.name || "未選擇" }}
+            收銀櫃: {{ currentRegister?.name || "未選擇" }}
           </p>
           <p class="text-xs text-green-600">
             餘額: RM{{ formatMoney(currentRegister?.currentBalance || 0) }}
@@ -52,7 +52,7 @@
             class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
             @click="openRegisterManagement"
           >
-            現金櫃管理
+            收銀櫃管理
           </button>
 
           <button
@@ -101,7 +101,7 @@
             <UserGroupIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">活躍收銀台</p>
+            <p class="text-sm font-medium text-gray-500">活躍收銀櫃</p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ registers.filter((r) => r.status === "active").length }}
             </p>
@@ -117,7 +117,7 @@
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">平均服務時間</p>
             <p class="text-2xl font-semibold text-gray-900">
-              {{ todayStats.avgServiceTime }}分
+              {{ todayStats.avgServiceTime }}分鐘
             </p>
           </div>
         </div>
@@ -128,16 +128,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- 左側：現金櫃管理 -->
       <div class="lg:col-span-2 space-y-6">
-        <!-- 現金櫃列表 -->
+        <!-- 收銀櫃列表 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">現金櫃狀態</h2>
+              <h2 class="text-xl font-semibold text-gray-900">收銀櫃列表</h2>
               <button
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 @click="createRegister"
               >
-                新增現金櫃
+                新增收銀櫃
               </button>
             </div>
           </div>
@@ -177,7 +177,7 @@
                     <span>{{ register.todayTransactions }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">最後操作:</span>
+                    <span class="text-gray-600">最後活動:</span>
                     <span>{{ formatTime(register.lastActivity) }}</span>
                   </div>
                 </div>
@@ -202,7 +202,7 @@
                     class="flex-1 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
                     @click.stop="openCashMovement(register)"
                   >
-                    現金異動
+                    現金管理
                   </button>
                 </div>
               </div>
@@ -258,7 +258,7 @@
                       {{ getTransactionTypeText(transaction.type) }}
                     </p>
                     <p class="text-xs text-gray-500">
-                      {{ transaction.description }} •
+                      {{ transaction.description }} -
                       {{ formatDateTime(transaction.createdAt) }}
                     </p>
                   </div>
@@ -290,9 +290,9 @@
             >
               <DocumentTextIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                暫無交易記錄
+                尚無交易記錄
               </h3>
-              <p class="text-gray-500">開始使用 POS 系統後將顯示交易記錄</p>
+              <p class="text-gray-500">開始使用 POS 系統後會顯示交易記錄</p>
             </div>
           </div>
         </div>
@@ -300,10 +300,10 @@
 
       <!-- 右側：快速操作 -->
       <div class="space-y-6">
-        <!-- 快速收銀 -->
+        <!-- 快速收款 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">快速收銀</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">快速收款</h3>
 
             <div class="space-y-4">
               <div>
@@ -314,7 +314,7 @@
                   v-model="quickPayment.orderNumber"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="輸入或掃描訂單編號"
+                  placeholder="輸入訂單編號"
                 />
               </div>
 
@@ -345,7 +345,7 @@
                 >
                   <option value="">請選擇</option>
                   <option value="cash">現金</option>
-                  <option value="card">刷卡</option>
+                  <option value="card">信用卡</option>
                   <option value="digital_wallet">電子錢包</option>
                   <option value="bank_transfer">銀行轉帳</option>
                 </select>
@@ -356,7 +356,7 @@
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 @click="processQuickPayment"
               >
-                確認收款
+                確認付款
               </button>
             </div>
           </div>
@@ -366,7 +366,7 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-gray-900">活動促銷</h3>
+              <h3 class="text-lg font-semibold text-gray-900">活躍促銷</h3>
               <button
                 class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 @click="openPromotionsDialog"
@@ -404,13 +404,13 @@
                 v-if="activePromotions.length === 0"
                 class="text-center py-4"
               >
-                <p class="text-sm text-gray-500">暫無活動促銷</p>
+                <p class="text-sm text-gray-500">暫無活躍促銷</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 今日班次報告 -->
+        <!-- 今日班次狀況 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
@@ -419,7 +419,7 @@
                 class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 @click="generateShiftReport"
               >
-                生成報告
+                產生報告
               </button>
             </div>
 
@@ -431,7 +431,7 @@
                 }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">營運時數:</span>
+                <span class="text-gray-600">工作時數:</span>
                 <span class="font-medium">{{ getShiftDuration() }}小時</span>
               </div>
               <div class="flex justify-between text-sm">
@@ -462,7 +462,7 @@
       </div>
     </div>
 
-    <!-- 現金異動模態框 -->
+    <!-- 現金管理模態框 -->
     <div
       v-if="showCashMovementDialog"
       class="fixed inset-0 z-50 overflow-y-auto"
@@ -474,7 +474,7 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">現金異動</h3>
+            <h3 class="text-xl font-semibold text-gray-900">現金管理</h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeCashMovementDialog"
@@ -486,7 +486,7 @@
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2"
-                >異動類型</label
+                >操作類型</label
               >
               <select
                 v-model="cashMovement.type"
@@ -494,8 +494,8 @@
               >
                 <option value="">請選擇</option>
                 <option value="cash_in">現金存入</option>
-                <option value="cash_out">現金取出</option>
-                <option value="drawer_count">盤點調整</option>
+                <option value="cash_out">現金支出</option>
+                <option value="drawer_count">金額調整</option>
                 <option value="refund">退款</option>
               </select>
             </div>
@@ -525,7 +525,7 @@
                 v-model="cashMovement.description"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入異動說明"
+                placeholder="輸入操作說明"
               />
             </div>
           </div>
@@ -542,7 +542,7 @@
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="processCashMovement"
             >
-              確認異動
+              確認操作
             </button>
           </div>
         </div>
@@ -594,7 +594,7 @@
                       : 'bg-gray-100 text-gray-800',
                   ]"
                 >
-                  {{ promotion.isActive ? "進行中" : "已暫停" }}
+                  {{ promotion.isActive ? "已啟用" : "已暫停" }}
                 </span>
               </div>
               <p class="text-sm text-gray-600 mb-3">
@@ -653,7 +653,7 @@ import PlusIcon from "@heroicons/vue/24/solid/PlusIcon";
 import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
 
-// 型別定義
+// 類型定義
 interface CashRegister {
   id: string;
   name: string;
@@ -712,25 +712,25 @@ const todayStats = ref({
   avgServiceTime: 3.2,
 });
 
-// 現金櫃列表
+// 收銀櫃列表
 const registers = ref<CashRegister[]>([
   {
     id: "reg_001",
-    name: "主收銀台",
+    name: "主收銀機",
     status: "active",
     currentBalance: 850.25,
     todayTransactions: 28,
     lastActivity: new Date().toISOString(),
-    location: "前台-01",
+    location: "櫃台-01",
   },
   {
     id: "reg_002",
-    name: "備用收銀台",
+    name: "備用收銀機",
     status: "inactive",
     currentBalance: 200.0,
     todayTransactions: 0,
     lastActivity: new Date(Date.now() - 3600000).toISOString(),
-    location: "前台-02",
+    location: "櫃台-02",
   },
 ]);
 
@@ -741,7 +741,7 @@ const recentTransactions = ref<Transaction[]>([
     registerId: "reg_001",
     type: "sale",
     amount: 45.8,
-    description: "訂單 ORD-001 收款",
+    description: "訂單 ORD-001 付款",
     createdAt: new Date().toISOString(),
     operatorId: 1,
   },
@@ -750,7 +750,7 @@ const recentTransactions = ref<Transaction[]>([
     registerId: "reg_001",
     type: "cash_in",
     amount: 500.0,
-    description: "班次開始 - 起始現金",
+    description: "當次班次 - 起始金額",
     createdAt: new Date(Date.now() - 3600000).toISOString(),
     operatorId: 1,
   },
@@ -761,7 +761,7 @@ const activePromotions = ref<Promotion[]>([
   {
     id: "promo_001",
     title: "午餐優惠",
-    description: "11:30-14:30 所有套餐9折",
+    description: "11:30-14:30 全部菜品",
     discountType: "percentage",
     discountValue: 10,
     isActive: true,
@@ -773,14 +773,14 @@ const activePromotions = ref<Promotion[]>([
 
 const allPromotions = ref<Promotion[]>([...activePromotions.value]);
 
-// 快速收銀
+// 快速收款
 const quickPayment = ref({
   orderNumber: "",
   amount: 0,
   paymentMethod: "",
 });
 
-// 現金異動
+// 現金管理
 const cashMovement = ref({
   type: "",
   amount: 0,
@@ -805,7 +805,7 @@ const canProcessCashMovement = computed(() => {
   );
 });
 
-// 方法
+// 輔助函數
 const formatMoney = (amount: number) => amount.toFixed(2);
 const formatTime = (dateTime: string) =>
   new Date(dateTime).toLocaleTimeString("zh-TW", {
@@ -826,8 +826,8 @@ const getRegisterStatusClass = (status: string) => {
 
 const getRegisterStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    active: "運行中",
-    inactive: "未啟用",
+    active: "啟用中",
+    inactive: "已停用",
     maintenance: "維護中",
   };
   return texts[status] || status;
@@ -857,11 +857,11 @@ const getTransactionIcon = (type: string) => {
 
 const getTransactionTypeText = (type: string) => {
   const texts: Record<string, string> = {
-    sale: "銷售收款",
+    sale: "銷售付款",
     refund: "退款",
     cash_in: "現金存入",
-    cash_out: "現金取出",
-    drawer_count: "盤點調整",
+    cash_out: "現金支出",
+    drawer_count: "金額調整",
   };
   return texts[type] || type;
 };
@@ -919,7 +919,7 @@ const startShift = () => {
 };
 
 const endShift = () => {
-  if (currentShift.value && confirm("確認結束當前班次？")) {
+  if (currentShift.value && confirm("確認結束當前班次?")) {
     currentShift.value.endTime = new Date().toISOString();
     currentShift.value.status = "ended";
     currentShift.value = null;
@@ -940,20 +940,20 @@ const processQuickPayment = async () => {
   if (!canProcessQuickPayment.value) return;
 
   try {
-    // 模擬支付處理
+    // 模擬處理付款
     const newTransaction: Transaction = {
       id: `txn_${Date.now()}`,
       registerId: currentRegister.value!.id,
       type: "sale",
       amount: quickPayment.value.amount,
-      description: `訂單 ${quickPayment.value.orderNumber} 收款`,
+      description: `訂單 ${quickPayment.value.orderNumber} 付款`,
       createdAt: new Date().toISOString(),
       operatorId: 1,
     };
 
     recentTransactions.value.unshift(newTransaction);
 
-    // 更新現金櫃餘額和統計
+    // 更新收銀櫃餘額和統計
     if (currentRegister.value) {
       currentRegister.value.currentBalance += quickPayment.value.amount;
       currentRegister.value.todayTransactions++;
@@ -973,9 +973,9 @@ const processQuickPayment = async () => {
       paymentMethod: "",
     };
 
-    alert("收款成功！");
-  } catch (error) {
-    alert("收款失敗，請重試");
+    alert("付款處理成功");
+  } catch {
+    alert("付款失敗，請重試");
   }
 };
 
@@ -1015,9 +1015,9 @@ const processCashMovement = async () => {
     currentRegister.value.lastActivity = new Date().toISOString();
 
     closeCashMovementDialog();
-    alert("現金異動成功！");
-  } catch (error) {
-    alert("異動失敗，請重試");
+    alert("現金操作處理成功");
+  } catch {
+    alert("操作失敗，請重試");
   }
 };
 
@@ -1035,7 +1035,7 @@ const createPromotion = () => {
     const newPromotion: Promotion = {
       id: `promo_${Date.now()}`,
       title,
-      description: "新促銷活動",
+      description: "新增活動",
       discountType: "percentage",
       discountValue: 10,
       isActive: false,
@@ -1080,12 +1080,12 @@ const exportTransactions = () => {
 };
 
 const generateShiftReport = () => {
-  alert("生成班次報告功能開發中...");
+  alert("產生班次報告功能開發中...");
 };
 
 // 生命週期
 onMounted(async () => {
-  // 初始化時選擇第一個現金櫃
+  // 自動選擇第一個現金櫃
   if (registers.value.length > 0) {
     currentRegister.value = registers.value[0];
   }

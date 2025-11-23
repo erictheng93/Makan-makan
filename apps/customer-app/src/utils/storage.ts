@@ -232,7 +232,7 @@ export class StorageManager {
           : undefined,
         size: new Blob([serialized]).size,
       };
-    } catch (error) {
+    } catch {
       return { exists: false };
     }
   }
@@ -257,7 +257,7 @@ export class StorageManager {
                 cleaned++;
               }
             }
-          } catch (error) {
+          } catch {
             // 如果項目損壞，也移除它
             localStorage.removeItem(key);
             cleaned++;
@@ -315,7 +315,7 @@ export class StorageManager {
                 }
               }
             }
-          } catch (error) {
+          } catch {
             // 忽略損壞的項目
           }
         }

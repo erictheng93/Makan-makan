@@ -29,6 +29,14 @@ export class TablesService {
   }
 
   /**
+   * 安全地記錄錯誤，避免循環引用問題
+   */
+  private logError(operation: string, error: unknown): void {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error(`TablesService.${operation} error:`, errorMessage)
+  }
+
+  /**
    * Get tables for a restaurant with filtering and pagination
    */
   async getRestaurantTables(
@@ -47,7 +55,7 @@ export class TablesService {
         }
       }
     } catch (error) {
-      console.error('TablesService.getRestaurantTables error:', error)
+      this.logError('getRestaurantTables', error)
       throw new Error('Failed to fetch restaurant tables')
     }
   }
@@ -60,7 +68,8 @@ export class TablesService {
       const table = await this.tableService.getTableById(id)
       return table
     } catch (error) {
-      console.error('TablesService.getTableById error:', error)
+      // 安全地記錄錯誤，避免循環引用
+      this.logError('getTableById', error)
       throw new Error('Failed to fetch table')
     }
   }
@@ -73,7 +82,7 @@ export class TablesService {
       const newTable = await this.tableService.createTable(data)
       return newTable
     } catch (error) {
-      console.error('TablesService.createTable error:', error)
+      this.logError('createTable', error)
       throw new Error('Failed to create table')
     }
   }
@@ -86,7 +95,7 @@ export class TablesService {
       const updatedTable = await this.tableService.updateTable(id, data)
       return updatedTable
     } catch (error) {
-      console.error('TablesService.updateTable error:', error)
+      this.logError('updateTable', error)
       throw new Error('Failed to update table')
     }
   }
@@ -99,7 +108,7 @@ export class TablesService {
       const success = await this.tableService.deleteTable(id)
       return success
     } catch (error) {
-      console.error('TablesService.deleteTable error:', error)
+      this.logError('deleteTable', error)
       throw new Error('Failed to delete table')
     }
   }
@@ -117,7 +126,7 @@ export class TablesService {
       const success = await this.tableService.occupyTable(id, orderId, occupiedBy, estimatedMinutes)
       return success
     } catch (error) {
-      console.error('TablesService.occupyTable error:', error)
+      this.logError('occupyTable', error)
       throw new Error('Failed to occupy table')
     }
   }
@@ -130,7 +139,7 @@ export class TablesService {
       const success = await this.tableService.releaseTable(id)
       return success
     } catch (error) {
-      console.error('TablesService.releaseTable error:', error)
+      this.logError('releaseTable', error)
       throw new Error('Failed to release table')
     }
   }
@@ -143,7 +152,7 @@ export class TablesService {
       const success = await this.tableService.markTableCleaned(id, notes)
       return success
     } catch (error) {
-      console.error('TablesService.markTableCleaned error:', error)
+      this.logError('markTableCleaned', error)
       throw new Error('Failed to mark table as cleaned')
     }
   }
@@ -156,7 +165,7 @@ export class TablesService {
       const result = await this.tableService.regenerateQRCode(id, customData)
       return result
     } catch (error) {
-      console.error('TablesService.regenerateQRCode error:', error)
+      this.logError('regenerateQRCode', error)
       return {
         success: false,
         error: 'Failed to regenerate QR code'
@@ -191,7 +200,7 @@ export class TablesService {
         error: result.error || 'Failed to generate QR codes'
       }
     } catch (error) {
-      console.error('TablesService.generateBulkQRCodes error:', error)
+      this.logError('generateBulkQRCodes', error)
       return {
         success: false,
         error: 'Failed to generate bulk QR codes'
@@ -207,7 +216,7 @@ export class TablesService {
       const availableTables = await this.tableService.getAvailableTables(restaurantId, capacity)
       return availableTables
     } catch (error) {
-      console.error('TablesService.getAvailableTables error:', error)
+      this.logError('getAvailableTables', error)
       throw new Error('Failed to fetch available tables')
     }
   }
@@ -234,7 +243,7 @@ export class TablesService {
         }))
       }
     } catch (error) {
-      console.error('TablesService.getTableStats error:', error)
+      this.logError('getTableStats', error)
       throw new Error('Failed to fetch table statistics')
     }
   }
@@ -247,7 +256,7 @@ export class TablesService {
       const table = await this.tableService.getTableByQRCode(qrCode)
       return table
     } catch (error) {
-      console.error('TablesService.getTableByQRCode error:', error)
+      this.logError('getTableByQRCode', error)
       throw new Error('Failed to fetch table by QR code')
     }
   }

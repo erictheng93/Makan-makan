@@ -145,7 +145,7 @@ const validateForm = () => {
   }
 
   if (form.password.length < 6) {
-    errors.password = "密碼至少需要6個字符";
+    errors.password = "密碼長度至少6個字元";
     return false;
   }
 
@@ -166,7 +166,7 @@ const handleSubmit = async () => {
     } else {
       error.value = result.error || "登入失敗";
     }
-  } catch (err) {
+  } catch {
     error.value = "登入過程中發生錯誤";
   } finally {
     isLoading.value = false;

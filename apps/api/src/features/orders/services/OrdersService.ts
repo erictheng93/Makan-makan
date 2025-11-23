@@ -317,8 +317,8 @@ export class OrdersService implements IOrdersService {
       const order = await this.getOrder(id)
       if (!order) return null
 
-      // Validate status transition
-      this.validateStatusTransition(String(order.status), String(statusData.status), userRole)
+      // Validate status transition (let validateStatusTransition normalize the values)
+      this.validateStatusTransition(order.status, statusData.status, userRole)
 
       // Update using base service
       const updatedOrder = await this.baseOrderService.updateOrderStatus(id, {
@@ -919,7 +919,7 @@ export class OrdersService implements IOrdersService {
     // Convert feature filters to base service format
     return {
       restaurantId: filters.restaurantId,
-      status: Array.isArray(filters.status) ? filters.status[0] : filters.status,
+      status: filters.status, // Pass status as-is (can be array or single value)
       tableId: filters.tableId,
       dateRange: filters.dateFrom && filters.dateTo ?
         [new Date(filters.dateFrom), new Date(filters.dateTo)] : undefined
@@ -959,7 +959,33 @@ export class OrdersService implements IOrdersService {
     // Implement permission validation
   }
 
-  private validateStatusTransition(currentStatus: string, newStatus: string, userRole?: UserRole): void {
+  /**
+   * 將狀態值標準化為小寫字符串
+   */
+  private normalizeStatus(status: any): string {
+    // 如果是數字，轉換為對應的字符串
+    const statusMap: Record<number, string> = {
+      0: 'pending',
+      1: 'confirmed',
+      2: 'preparing',
+      3: 'ready',
+      4: 'delivered',
+      5: 'paid',
+      6: 'cancelled'
+    }
+
+    if (typeof status === 'number') {
+      return statusMap[status] || String(status)
+    }
+
+    return String(status).toLowerCase()
+  }
+
+  private validateStatusTransition(currentStatus: any, newStatus: any, userRole?: UserRole): void {
+    // 標準化狀態值
+    const normalizedCurrent = this.normalizeStatus(currentStatus)
+    const normalizedNew = this.normalizeStatus(newStatus)
+
     const transitions: Record<string, string[]> = {
       'pending': ['confirmed', 'cancelled'],
       'confirmed': ['preparing', 'cancelled'],
@@ -970,8 +996,8 @@ export class OrdersService implements IOrdersService {
       'cancelled': []
     }
 
-    if (!transitions[currentStatus]?.includes(newStatus)) {
-      throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`)
+    if (!transitions[normalizedCurrent]?.includes(normalizedNew)) {
+      throw new Error(`Invalid status transition from ${normalizedCurrent} to ${normalizedNew}`)
     }
 
     // Check role permissions
@@ -983,8 +1009,8 @@ export class OrdersService implements IOrdersService {
       4: ['confirmed'] // Cashier
     }
 
-    if (userRole !== undefined && !rolePermissions[userRole]?.includes(newStatus)) {
-      throw new Error(`Insufficient permissions for status transition to ${newStatus}`)
+    if (userRole !== undefined && !rolePermissions[userRole]?.includes(normalizedNew)) {
+      throw new Error(`Insufficient permissions for status transition to ${normalizedNew}`)
     }
   }
 

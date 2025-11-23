@@ -124,6 +124,46 @@ app.post('/join/:shareCode',
 )
 
 /**
+ * Get group order statistics
+ * GET /api/v1/orders/group/statistics
+ * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId
+ */
+app.get('/statistics',
+  authMiddleware,
+  requireRole([0, 1]), // Admin or Owner
+  validateQuery(groupOrderSchemas.statisticsQuery),
+  async (c) => {
+    try {
+      const { restaurantId, timeRange } = c.get('validatedQuery')
+      const user = c.get('user')
+
+      // Permission check for owners
+      if (user.role === 1 && restaurantId && user.restaurantId !== restaurantId) {
+        return c.json({
+          success: false,
+          error: 'Access denied: can only view own restaurant statistics'
+        }, 403)
+      }
+
+      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
+      const statistics = await groupOrderService.getStatistics(restaurantId, timeRange)
+
+      return c.json({
+        success: true,
+        data: statistics
+      })
+
+    } catch (error) {
+      console.error('Get statistics error:', error)
+      return c.json({
+        success: false,
+        error: 'Failed to get statistics'
+      }, 500)
+    }
+  }
+)
+
+/**
  * Get group order details
  * GET /api/v1/orders/group/{groupOrderId}
  */
@@ -486,45 +526,6 @@ app.post('/cleanup/expired',
       return c.json({
         success: false,
         error: 'Failed to cleanup expired groups'
-      }, 500)
-    }
-  }
-)
-
-/**
- * Get group order statistics
- * GET /api/v1/orders/group/statistics
- */
-app.get('/statistics',
-  authMiddleware,
-  requireRole([0, 1]), // Admin or Owner
-  validateQuery(groupOrderSchemas.statisticsQuery),
-  async (c) => {
-    try {
-      const { restaurantId, timeRange } = c.get('validatedQuery')
-      const user = c.get('user')
-
-      // Permission check for owners
-      if (user.role === 1 && restaurantId && user.restaurantId !== restaurantId) {
-        return c.json({
-          success: false,
-          error: 'Access denied: can only view own restaurant statistics'
-        }, 403)
-      }
-
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const statistics = await groupOrderService.getStatistics(restaurantId, timeRange)
-
-      return c.json({
-        success: true,
-        data: statistics
-      })
-
-    } catch (error) {
-      console.error('Get statistics error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to get statistics'
       }, 500)
     }
   }

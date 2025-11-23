@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 運行 lint-staged 檢查
+pnpm lint-staged
+
+# Factory 使用快速檢查（僅針對測試文件）
+if git diff --cached --name-only | grep -E '\.test\.ts$|\.spec\.ts$' > /dev/null; then
+  echo "🧪 檢查測試文件 factory 使用..."
+
+  # 只檢查暫存的測試文件
+  STAGED_TEST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.test\.ts$|\.spec\.ts$')
+
+  if [ -n "$STAGED_TEST_FILES" ]; then
+    # 簡單檢查：是否有 factory 使用但沒有 resetAllFactories
+    for file in $STAGED_TEST_FILES; do
+      if [ -f "$file" ]; then
+        CONTENT=$(cat "$file")
+
+        # 檢查是否使用了 factory
+        if echo "$CONTENT" | grep -qE 'Factory\.(build|buildList)'; then
+          # 檢查是否有 resetAllFactories
+          if ! echo "$CONTENT" | grep -q 'resetAllFactories'; then
+            echo "⚠️  警告: $file 使用了 factory 但缺少 resetAllFactories()"
+            echo "   建議在 beforeEach 中添加："
+            echo "   beforeEach(() => {"
+            echo "     resetAllFactories()"
+            echo "   })"
+            echo ""
+          fi
+        fi
+      fi
+    done
+  fi
+fi

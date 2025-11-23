@@ -118,7 +118,7 @@ function parseJSONFormat(content: string): QRData | null {
         };
       }
     }
-  } catch (error) {
+  } catch {
     // 不是 JSON 格式，繼續嘗試其他格式
   }
 
@@ -190,7 +190,7 @@ function parseURLFormat(content: string): QRData | null {
         };
       }
     }
-  } catch (error) {
+  } catch {
     // 不是有效的 URL
   }
 

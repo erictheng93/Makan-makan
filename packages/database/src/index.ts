@@ -4,6 +4,9 @@ export * from './schema'
 // 匯出服務層
 export * from './services'
 
+// 匯出工具函數
+export * from './utils/timestamp'
+
 // 匯出 Drizzle 相關
 export { drizzle } from 'drizzle-orm/d1'
 export { sql, count, eq, gte, and, lte, desc, asc, sum, avg, between } from 'drizzle-orm'

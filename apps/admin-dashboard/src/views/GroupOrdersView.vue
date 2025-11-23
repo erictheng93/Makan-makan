@@ -4,15 +4,15 @@
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">團體訂單</h1>
-        <p class="text-gray-600">管理多人共享訂單和分帳功能</p>
+        <p class="text-gray-600">管理多人共享訂單與分帳功能</p>
       </div>
       <div class="flex items-center space-x-4">
-        <!-- 狀態統計 -->
+        <!-- 即時統計 -->
         <div class="bg-blue-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-blue-800 font-medium">
-            活躍團單: {{ activeGroupOrders }}
+            活躍訂單: {{ activeGroupOrders }}
           </p>
-          <p class="text-xs text-blue-600">今日總計: {{ todayGroupOrders }}</p>
+          <p class="text-xs text-blue-600">今日總數: {{ todayGroupOrders }}</p>
         </div>
 
         <!-- 功能按鈕 -->
@@ -40,7 +40,7 @@
             <UserGroupIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">活躍團單</p>
+            <p class="text-sm font-medium text-gray-500">活躍訂單</p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ activeGroupOrders }}
             </p>
@@ -93,14 +93,14 @@
 
     <!-- 主要內容區域 -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- 左側：團體訂單列表 -->
+      <!-- 左側：整體團體訂單列表 -->
       <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
               <h2 class="text-xl font-semibold text-gray-900">團體訂單列表</h2>
               <div class="flex items-center space-x-4">
-                <!-- 搜尋和篩選 -->
+                <!-- 搜尋篩選 -->
                 <div class="relative">
                   <MagnifyingGlassIcon
                     class="absolute left-3 top-3 h-4 w-4 text-gray-400"
@@ -108,7 +108,7 @@
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="搜索團單代碼或桌號..."
+                    placeholder="搜索訂單或分享碼..."
                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -143,7 +143,7 @@
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <!-- 團單基本信息 -->
+                  <!-- 訂單基本信息 -->
                   <div class="flex items-center mb-3">
                     <div class="flex-shrink-0">
                       <div
@@ -171,14 +171,14 @@
                             ? `桌號 ${groupOrder.tableNumber}`
                             : "外帶"
                         }}</span>
-                        <span class="mx-2">•</span>
+                        <span class="mx-2">·</span>
                         <ClockIcon class="w-4 h-4 mr-1" />
                         <span>{{ formatDateTime(groupOrder.createdAt) }}</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 成員和訂單信息 -->
+                  <!-- 成員與金額信息 -->
                   <div class="grid grid-cols-2 gap-4 mb-4">
                     <div class="bg-blue-50 p-3 rounded-lg">
                       <p class="text-sm text-blue-800 font-medium">參與成員</p>
@@ -189,7 +189,7 @@
                         <span class="text-sm text-blue-600 ml-2">人</span>
                       </div>
                       <div class="text-xs text-blue-600 mt-1">
-                        主持人: {{ groupOrder.hostName }}
+                        主揪: {{ groupOrder.hostName }}
                       </div>
                     </div>
 
@@ -201,7 +201,7 @@
                         >
                       </div>
                       <div class="text-xs text-green-600 mt-1">
-                        {{ groupOrder.itemCount }} 個商品
+                        {{ groupOrder.itemCount }} 項商品
                       </div>
                     </div>
                   </div>
@@ -237,7 +237,7 @@
                     <!-- 付款信息 -->
                     <div class="text-right">
                       <div class="flex items-center text-sm">
-                        <span class="text-gray-500">已付款:</span>
+                        <span class="text-gray-500">已付款</span>
                         <span class="ml-1 font-medium"
                           >{{ groupOrder.paidMembers }}/{{
                             groupOrder.memberCount
@@ -291,7 +291,7 @@
             >
               <UserGroupIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                暫無團體訂單
+                尚無團體訂單
               </h3>
               <p class="text-gray-500">建立第一個團體訂單開始使用</p>
             </div>
@@ -299,13 +299,13 @@
         </div>
       </div>
 
-      <!-- 右側：詳細信息和操作 -->
+      <!-- 右側：詳細信息面板 -->
       <div class="space-y-6">
-        <!-- 選中的團單詳情 -->
+        <!-- 選中訂單詳情 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              {{ selectedGroupOrder ? "團單詳情" : "選擇團單" }}
+              {{ selectedGroupOrder ? "訂單詳情" : "選擇訂單" }}
             </h3>
 
             <div v-if="selectedGroupOrder">
@@ -352,7 +352,7 @@
                     <span>{{ formatTime(selectedGroupOrder.createdAt) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">主持人:</span>
+                    <span class="text-gray-600">主揪:</span>
                     <span>{{ selectedGroupOrder.hostName }}</span>
                   </div>
                 </div>
@@ -383,7 +383,7 @@
                           {{ member.name }}
                         </p>
                         <p class="text-xs text-gray-500">
-                          {{ member.itemCount }} 項商品 • RM{{
+                          {{ member.itemCount }} 項商品・RM{{
                             formatMoney(member.totalAmount)
                           }}
                         </p>
@@ -408,11 +408,11 @@
                 </div>
               </div>
 
-              <!-- 訂單摘要 -->
+              <!-- 訂單金額 -->
               <div class="border-t border-gray-200 pt-4">
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">商品小計:</span>
+                    <span class="text-gray-600">小計小計:</span>
                     <span
                       >RM{{ formatMoney(selectedGroupOrder.subtotal) }}</span
                     >
@@ -447,7 +447,7 @@
               <CursorArrowRaysIcon
                 class="mx-auto h-12 w-12 text-gray-400 mb-2"
               />
-              <p class="text-gray-500">選擇一個團體訂單查看詳情</p>
+              <p class="text-gray-500">點選一個團體訂單查看詳情</p>
             </div>
           </div>
         </div>
@@ -462,14 +462,14 @@
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                 @click="createGroupOrder"
               >
-                建立新團單
+                建立團體訂單
               </button>
 
               <button
                 class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 @click="joinGroupOrder"
               >
-                加入團單
+                加入訂單
               </button>
 
               <button
@@ -495,10 +495,10 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">使用統計</h3>
 
             <div class="space-y-4">
-              <!-- 每日團單數量 -->
+              <!-- 每日訂單數量 -->
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">今日團單</span>
+                  <span class="text-gray-600">今日訂單</span>
                   <span class="font-medium">{{ todayGroupOrders }}</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -542,7 +542,7 @@
       </div>
     </div>
 
-    <!-- 建立團單模態框 -->
+    <!-- 建立訂單模態框 -->
     <div v-if="showCreateDialog" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen px-4">
         <div
@@ -575,13 +575,13 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2"
-                >主持人姓名</label
+                >主揪人姓名</label
               >
               <input
                 v-model="newGroupOrder.hostName"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入主持人姓名"
+                placeholder="輸入主揪人姓名"
               />
             </div>
 
@@ -607,7 +607,7 @@
                 v-model="newGroupOrder.notes"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="特殊要求或備註（可選）"
+                placeholder="如有需要可新增備註（可選）"
               />
             </div>
           </div>
@@ -624,7 +624,7 @@
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="submitCreateGroupOrder"
             >
-              建立團單
+              建立訂單
             </button>
           </div>
         </div>
@@ -640,7 +640,7 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">分享團單</h3>
+            <h3 class="text-xl font-semibold text-gray-900">分享訂單</h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeShareDialog"
@@ -732,8 +732,9 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
+import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 
-// 型別定義
+// 類別定義
 interface GroupOrderMember {
   id: string;
   name: string;
@@ -850,7 +851,7 @@ const groupOrders = ref<GroupOrder[]>([
     masterOrderId: "order_123",
     tableNumber: "T08",
     status: "ready_to_pay",
-    hostName: "林志明",
+    hostName: "林小強",
     memberCount: 3,
     paidMembers: 3,
     totalAmount: 95.4,
@@ -861,7 +862,7 @@ const groupOrders = ref<GroupOrder[]>([
     members: [
       {
         id: "member_005",
-        name: "林志明",
+        name: "林小強",
         itemCount: 3,
         totalAmount: 35.2,
         paymentStatus: "paid",
@@ -869,7 +870,7 @@ const groupOrders = ref<GroupOrder[]>([
       },
       {
         id: "member_006",
-        name: "劉小紅",
+        name: "劉小敏",
         itemCount: 3,
         totalAmount: 32.8,
         paymentStatus: "paid",
@@ -877,7 +878,7 @@ const groupOrders = ref<GroupOrder[]>([
       },
       {
         id: "member_007",
-        name: "黃大雄",
+        name: "黃大華",
         itemCount: 2,
         totalAmount: 27.4,
         paymentStatus: "paid",
@@ -921,7 +922,7 @@ const canCreateGroupOrder = computed(() => {
   );
 });
 
-// 工具方法
+// 工具函數
 const formatMoney = (amount: number) => amount.toFixed(2);
 const formatTime = (dateTime: string) =>
   new Date(dateTime).toLocaleTimeString("zh-TW", {
@@ -972,7 +973,7 @@ const getMemberColor = (index: number) => {
   return colors[index % colors.length];
 };
 
-// 操作方法
+// 操作函數
 const selectGroupOrder = (groupOrder: GroupOrder) => {
   selectedGroupOrder.value = groupOrder;
 };
@@ -1033,12 +1034,12 @@ const submitCreateGroupOrder = async () => {
     groupOrders.value.unshift(newGroup);
     closeCreateDialog();
 
-    // 自動分享新建的團單
+    // 自動分享已建立的訂單
     shareGroupOrder(newGroup);
 
     alert(`團體訂單已建立！\n分享碼: ${shareCode}`);
-  } catch (error) {
-    alert("建立團單失敗，請重試");
+  } catch (_error) {
+    alert("建立訂單失敗，請重試");
   }
 };
 
@@ -1057,8 +1058,8 @@ const closeShareDialog = () => {
 const copyShareCode = async (shareCode: string) => {
   try {
     await navigator.clipboard.writeText(shareCode);
-    alert("分享碼已複製！");
-  } catch (error) {
+    alert("分享碼已複製");
+  } catch (_error) {
     alert("複製失敗，請手動複製");
   }
 };
@@ -1066,19 +1067,19 @@ const copyShareCode = async (shareCode: string) => {
 const copyShareUrl = async () => {
   try {
     await navigator.clipboard.writeText(shareData.value.shareUrl);
-    alert("分享連結已複製！");
-  } catch (error) {
+    alert("分享連結已複製");
+  } catch (_error) {
     alert("複製失敗，請手動複製");
   }
 };
 
 const shareToWhatsApp = () => {
-  const text = `一起來點餐！\n團單代碼: ${shareData.value.shareCode}\n連結: ${shareData.value.shareUrl}`;
+  const text = `一起來點餐！\n訂單分享碼: ${shareData.value.shareCode}\n連結: ${shareData.value.shareUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 };
 
 const shareToWechat = () => {
-  alert("微信分享功能開發中...");
+  alert("微信分享功能開發中..");
 };
 
 const generateQRCode = (groupOrder: GroupOrder) => {
@@ -1087,21 +1088,21 @@ const generateQRCode = (groupOrder: GroupOrder) => {
 };
 
 const joinGroupOrder = () => {
-  const shareCode = prompt("請輸入團單分享碼:");
+  const shareCode = prompt("請輸入團體分享碼:");
   if (shareCode) {
     console.log("Join group order:", shareCode);
-    alert("加入團單功能開發中...");
+    alert("加入訂單功能開發中..");
   }
 };
 
 const generateShareCode = () => {
   const shareCode = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-  alert(`新的分享碼已生成: ${shareCode}`);
+  alert(`新分享碼已生成: ${shareCode}`);
 };
 
 const processSplitBill = (groupOrder: GroupOrder) => {
   console.log("Process split bill for:", groupOrder.id);
-  alert("分帳結算功能開發中...");
+  alert("分帳結算功能開發中..");
 };
 
 const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
@@ -1110,12 +1111,12 @@ const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
 };
 
 const exportGroupOrderReport = () => {
-  alert("匯出報表功能開發中...");
+  alert("匯出報表功能開發中..");
 };
 
 // 生命週期
 onMounted(async () => {
-  // 初始化時選擇第一個團單
+  // 預選第一個團體訂單
   if (groupOrders.value.length > 0) {
     selectedGroupOrder.value = groupOrders.value[0];
   }

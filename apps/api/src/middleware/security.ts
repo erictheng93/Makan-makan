@@ -98,12 +98,12 @@ export const inputSanitizationMiddleware = async (c: Context<{ Bindings: Env }>,
         // Replace the request with sanitized data
         c.req.json = async () => sanitizedBody
       }
-    } catch (error) {
+    } catch {
       // If JSON parsing fails, let the validation middleware handle it
       // Don't throw here to avoid breaking the middleware chain
     }
   }
-  
+
   await next()
 }
 

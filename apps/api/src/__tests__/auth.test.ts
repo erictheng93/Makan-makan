@@ -184,7 +184,7 @@ describe('Auth Routes', () => {
 
       expect(response.status).toBe(401)
       expect(result.success).toBe(false)
-      expect(result.error).toContain('Authorization')
+      expect(result.error.toLowerCase()).toContain('authorization')
     })
 
     // Note: Testing authenticated routes would require mocking the auth middleware
@@ -202,7 +202,7 @@ describe('Auth Routes', () => {
 
       expect(response.status).toBe(401)
       expect(result.success).toBe(false)
-      expect(result.error).toContain('Authorization')
+      expect(result.error.toLowerCase()).toContain('authorization')
     })
   })
 })

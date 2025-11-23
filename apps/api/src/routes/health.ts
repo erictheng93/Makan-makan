@@ -119,7 +119,7 @@ app.get('/detailed', async (c: Context) => {
         responseTime: r2Duration
       }
     })
-  } catch (error) {
+  } catch {
     // R2 head operation may fail if object doesn't exist, which is okay
     checks.push({
       name: 'r2_storage',
@@ -302,7 +302,7 @@ app.get('/database', async (c: Context) => {
           duration: Date.now() - tableStart,
           message: `Table '${table}' accessible`
         })
-      } catch (error) {
+      } catch {
         checks.push({
           name: `table_${table}`,
           status: 'fail',

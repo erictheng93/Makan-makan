@@ -1,0 +1,124 @@
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould select an order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould deselect an order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould toggle order selection
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould select all orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould deselect all orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould track selected orders count
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSelection Management[2m > [22mshould indicate if has selected orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter orders by status
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter orders by priority
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter orders by search text
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by customer name
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by item name
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by elapsed time range
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by table IDs
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by has notes
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould filter by has customizations
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould clear all filters
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFiltering[2m > [22mshould detect active filters
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSorting[2m > [22mshould sort by created time ascending
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSorting[2m > [22mshould sort by created time descending
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSorting[2m > [22mshould sort by elapsed time
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSorting[2m > [22mshould sort by priority
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mSorting[2m > [22mshould toggle sort direction
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mPriority Management[2m > [22mshould calculate urgent priority for old orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mPriority Management[2m > [22mshould calculate high priority for warning threshold
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mPriority Management[2m > [22mshould calculate normal priority for new orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mPriority Management[2m > [22mshould update order priorities
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mTime Management[2m > [22mshould calculate elapsed time
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mTime Management[2m > [22mshould update elapsed times for all orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mItem Status Management[2m > [22mshould get next item status
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mItem Status Management[2m > [22mshould check if can advance item status
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mItem Status Management[2m > [22mshould get items by status
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mItem Status Management[2m > [22mshould calculate order progress
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mBatch Operations[2m > [22mshould get selected orders data
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mBatch Operations[2m > [22mshould check if can batch start cooking
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mBatch Operations[2m > [22mshould check if can batch mark ready
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mBatch Operations[2m > [22mshould get batch operation summary
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mView Management[2m > [22mshould set view mode
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mView Management[2m > [22mshould toggle completed orders visibility
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mView Management[2m > [22mshould toggle auto refresh
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mQuick Filters[2m > [22mshould apply urgent only filter
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mQuick Filters[2m > [22mshould apply pending only filter
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mQuick Filters[2m > [22mshould apply preparing only filter
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mQuick Filters[2m > [22mshould apply with notes filter
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mQuick Filters[2m > [22mshould apply overdue filter
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould select next order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould select previous order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould wrap around when selecting next from last
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould select first order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould select last order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mFocus Management[2m > [22mshould select all visible orders
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mReset State[2m > [22mshould reset all management state
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mEdge Cases[2m > [22mshould handle empty orders array
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mEdge Cases[2m > [22mshould handle order with no items
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mEdge Cases[2m > [22mshould handle selecting non-existent order
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts[2m > [22mOrderManagement Store[2m > [22mEdge Cases[2m > [22mshould handle deselecting non-selected order
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m渲染[2m > [22m應該渲染所有訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m渲染[2m > [22m應該顯示訂單編號
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m渲染[2m > [22m應該顯示訂單狀態
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m渲染[2m > [22m應該顯示項目數量
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m渲染[2m > [22m緊急訂單應該有特殊樣式
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m空狀態[2m > [22m無訂單時應該顯示空狀態
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m空狀態[2m > [22m過濾後無結果應該顯示空狀態
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m過濾[2m > [22m應該過濾 pending 狀態的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m過濾[2m > [22m應該過濾 preparing 狀態的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m過濾[2m > [22m應該過濾 ready 狀態的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m過濾[2m > [22mfilter=all 應該顯示所有訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m排序[2m > [22m應該按創建時間排序
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m排序[2m > [22m應該按優先級排序
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m交互[2m > [22m點擊訂單應該觸發 order-click 事件
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m交互[2m > [22m拖放應該觸發 order-reorder 事件
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m交互[2m > [22mallowDragDrop=false 時不應該允許拖放
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m響應式更新[2m > [22m訂單列表更新時應該重新渲染
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m響應式更新[2m > [22m過濾器更新時應該重新過濾
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m邊界情況[2m > [22m應該處理無項目的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m邊界情況[2m > [22m應該處理大量訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m邊界情況[2m > [22m應該處理相同創建時間的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m邊界情況[2m > [22m應該處理缺少可選字段的訂單
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts[2m > [22mOrderQueue.vue[2m > [22m性能[2m > [22m更新單個訂單不應該重新渲染所有訂單
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mComponent Mounting[2m > [22mshould mount successfully
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Status Display[2m > [22mshould display connected status
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Status Display[2m > [22mshould display connecting status
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Status Display[2m > [22mshould display disconnected status
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Status Display[2m > [22mshould display error status
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Descriptions[2m > [22mshould show connected description
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Descriptions[2m > [22mshould show connecting description
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Descriptions[2m > [22mshould show disconnected description
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Indicator Colors[2m > [22mshould show green indicator when connected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Indicator Colors[2m > [22mshould show yellow indicator when connecting
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Indicator Colors[2m > [22mshould show red indicator when disconnected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mStatus Indicator Colors[2m > [22mshould show red indicator on error
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mDetails Panel[2m > [22mshould toggle details panel when button clicked
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mDetails Panel[2m > [22mshould show reconnect attempts in details
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mDetails Panel[2m > [22mshould show last heartbeat time
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Actions[2m > [22mshould emit reconnect event when reconnect clicked
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Actions[2m > [22mshould emit refresh event when refresh clicked
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection Actions[2m > [22mshould not show reconnect button when connected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection History[2m > [22mshould track connection status changes
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection History[2m > [22mshould limit history to 20 entries
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mConnection History[2m > [22mshould display last 5 entries in history
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mHeartbeat Display[2m > [22mshould show "無" when no heartbeat
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mHeartbeat Display[2m > [22mshould show seconds ago for recent heartbeat
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mHeartbeat Display[2m > [22mshould show minutes ago for older heartbeat
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mHeartbeat Display[2m > [22mshould show time for very old heartbeat
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mAuto-hide Behavior[2m > [22mshould auto-hide details after 10 seconds when connected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mAuto-hide Behavior[2m > [22mshould auto-show details when disconnected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mAuto-hide Behavior[2m > [22mshould auto-show details on error
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mMinimized State[2m > [22mshould show minimized indicator when connected and details hidden
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mMinimized State[2m > [22mshould expand when minimized indicator clicked
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mMinimized State[2m > [22mshould not show minimized indicator when disconnected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mPulse Animation[2m > [22mshould animate indicator when connecting
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mPulse Animation[2m > [22mshould not animate when connected
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mEdge Cases[2m > [22mshould handle zero reconnect attempts
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mEdge Cases[2m > [22mshould handle many reconnect attempts
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts[2m > [22mConnectionStatus Component[2m > [22mEdge Cases[2m > [22mshould handle rapid status changes
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m115 passed[39m[22m[90m (115)[39m
+[2m   Start at [22m 16:11:16
+[2m   Duration [22m 3.35s[2m (transform 1.14s, setup 899ms, collect 1.51s, tests 687ms, environment 3.12s, prepare 824ms)[22m
+

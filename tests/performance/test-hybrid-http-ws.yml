@@ -1,0 +1,37 @@
+# 混合 HTTP + WebSocket 測試
+config:
+  target: "http://localhost:8787"
+  phases:
+    - duration: 10
+      arrivalRate: 1
+      name: "Hybrid HTTP+WS Test"
+
+scenarios:
+  - name: "HTTP then WebSocket"
+    flow:
+      # 第一步:使用 HTTP 引擎獲取 WebSocket token
+      - post:
+          url: "/api/v1/realtime/auth/token"
+          json:
+            roomType: "kitchen"
+            roomId: "kitchen_test_1"
+            restaurantId: "1"
+            sessionId: "session_test_1"
+          capture:
+            - json: "$.data.token"
+              as: "wsToken"
+            - json: "$.data.wsUrl"
+              as: "wsFullUrl"
+
+      # 第二步:切換到 WebSocket 引擎並連接
+      - engine: ws
+        connect:
+          target: "ws://localhost:8788"
+          url: "/kitchen/1?token={{ wsToken }}"
+
+      # 第三步:發送 ping
+      - send:
+          payload: '{"type":"ping"}'
+
+      # 第四步:等待並接收
+      - think: 5

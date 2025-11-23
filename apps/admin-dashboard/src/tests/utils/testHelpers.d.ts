@@ -78,7 +78,7 @@ export declare class ConnectionSimulator {
     simulateDisconnection(duration?: number): Promise<void>;
     getStatus(): {
         online: boolean;
-        quality: "good" | "poor" | "excellent" | "fair";
+        quality: "excellent" | "good" | "fair" | "poor";
         latency: number;
     };
 }

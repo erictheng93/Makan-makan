@@ -387,8 +387,14 @@ export class OrderService extends BaseService {
         conditions.push(eq(orders.customerId, filters.customerId))
       }
 
-      if (filters.status) {
-        conditions.push(eq(orders.status, filters.status))
+      if (filters.status !== undefined && filters.status !== null) {
+        if (Array.isArray(filters.status)) {
+          // Handle status array with inArray
+          conditions.push(inArray(orders.status, filters.status))
+        } else {
+          // Handle single status with eq
+          conditions.push(eq(orders.status, filters.status))
+        }
       }
 
       if (filters.dateRange) {
@@ -433,10 +439,12 @@ export class OrderService extends BaseService {
         offset
       })
 
-      const [{ totalCount }] = await this.db
+      const countResult = await this.db
         .select({ totalCount: count() })
         .from(orders)
         .where(whereClause)
+
+      const totalCount = countResult?.[0]?.totalCount ?? 0
 
       return {
         orders: orderList.map(order => this.mapToOrder(order)),

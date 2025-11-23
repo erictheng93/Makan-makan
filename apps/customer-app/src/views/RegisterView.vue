@@ -429,7 +429,7 @@ const handleSubmit = async () => {
     } else {
       error.value = result.error || "註冊失敗";
     }
-  } catch (err) {
+  } catch {
     error.value = "註冊過程中發生錯誤";
   } finally {
     isLoading.value = false;

@@ -8,10 +8,8 @@ import {
   RequestDeduplicator,
   getDeduplicator,
   resetDeduplicator,
-  deduplicate,
   withDeduplication,
-  batchDedupe,
-  type RequestDeduplicationOptions
+  batchDedupe
 } from '../request-deduplication'
 
 describe('RequestDeduplicator', () => {

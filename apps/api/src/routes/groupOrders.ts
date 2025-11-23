@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware/auth'
 import { validateBody, validateQuery, validateParams } from '../middleware/validation'
-import { GroupOrderService } from '@makanmakan/database'
+import { GroupOrderService, getCurrentTimestamp } from '@makanmakan/database'
 import type { Env } from '../types/env'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -288,19 +288,21 @@ app.put('/:groupOrderId/cart/:itemId',
         parseFloat(item.unit_price) * updateData.quantity : 
         parseFloat(item.total_price)
 
+      const now = getCurrentTimestamp()
       await db.prepare(`
-        UPDATE group_cart_items 
+        UPDATE group_cart_items
         SET quantity = COALESCE(?, quantity),
             total_price = ?,
             customizations = COALESCE(?, customizations),
             special_instructions = COALESCE(?, special_instructions),
-            updated_at = CURRENT_TIMESTAMP
+            updated_at = ?
         WHERE id = ?
       `).bind(
         updateData.quantity || null,
         newTotalPrice,
         updateData.customizations ? JSON.stringify(updateData.customizations) : null,
         updateData.specialInstructions || null,
+        now,
         itemId
       ).run()
 
@@ -365,9 +367,10 @@ app.delete('/:groupOrderId/cart/:itemId',
       }
 
       // 標記為已移除
+      const removedAt = getCurrentTimestamp()
       await db.prepare(
-        'UPDATE group_cart_items SET status = "removed", updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-      ).bind(itemId).run()
+        'UPDATE group_cart_items SET status = "removed", updated_at = ? WHERE id = ?'
+      ).bind(removedAt, itemId).run()
 
       // 觸發實時更新
       try {

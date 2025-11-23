@@ -10,8 +10,8 @@ declare const _default: import("vue").DefineComponent<Props, {}, {}, {}, {}, imp
     size: "xs" | "sm" | "md" | "lg" | "xl";
     text: string;
     color: "primary" | "secondary" | "white" | "gray" | "success" | "error" | "warning";
+    overlay: boolean;
     center: boolean;
     showText: boolean;
-    overlay: boolean;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;

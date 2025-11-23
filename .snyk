@@ -1,0 +1,142 @@
+# Snyk Configuration File
+# Deep dependency analysis and vulnerability scanning
+
+# Language settings
+language-settings:
+  javascript:
+    # Package managers
+    package-manager: pnpm
+
+    # Lock file analysis
+    all-projects: true
+
+    # Development dependencies
+    dev: true
+
+    # Severity threshold
+    severity-threshold: low
+
+# Project configuration
+project:
+  # Project name
+  name: makanmakan
+
+  # Tags for organization
+  tags:
+    - restaurant
+    - cloudflare
+    - serverless
+    - production
+
+# Exclude patterns
+exclude:
+  global:
+    - "**/*.test.ts"
+    - "**/*.test.js"
+    - "**/*.spec.ts"
+    - "**/*.spec.js"
+    - "**/node_modules/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.turbo/**"
+    - "**/coverage/**"
+
+# Policy settings
+policy:
+  # Fail on
+  fail-on: upgradable
+
+  # Ignore specific vulnerabilities (with justification)
+  ignore:
+    # Example: Known false positive
+    # - SNYK-JS-AXIOS-1234567:
+    #     - '*':
+    #         reason: False positive - not exploitable in our use case
+    #         expires: 2025-12-31
+
+# License compliance
+license-policy:
+  severity-threshold: medium
+
+  # Allowed licenses
+  allow:
+    - MIT
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - ISC
+    - CC0-1.0
+    - Unlicense
+
+  # Disallowed licenses
+  disallow:
+    - GPL-2.0
+    - GPL-3.0
+    - AGPL-1.0
+    - AGPL-3.0
+
+  # Report only (don't fail)
+  report-only:
+    - LGPL-2.1
+    - LGPL-3.0
+
+# Code analysis settings
+code:
+  # Enable SAST (Static Application Security Testing)
+  enabled: true
+
+  # Report format
+  report-format: html
+
+  # Quality gates
+  quality-gates:
+    # Block on high severity issues
+    high-severity-threshold: 0
+
+    # Warn on medium severity issues
+    medium-severity-threshold: 5
+
+# Container scanning (if applicable)
+container:
+  # Base images
+  dockerfile-path: ./Dockerfile
+
+  # Exclude packages
+  exclude-base-image-vulns: false
+
+# Infrastructure as Code (IaC) scanning
+iac:
+  # Scan Terraform, CloudFormation, etc.
+  enabled: true
+
+  # Severity threshold
+  severity-threshold: medium
+
+# Reporting
+reporting:
+  # Report format
+  format:
+    - html
+    - json
+    - sarif
+
+  # Output directory
+  output-directory: ./security-reports/snyk
+
+# Notifications
+notifications:
+  # Email notifications
+  email: false
+
+  # Webhook for CI/CD
+  webhook:
+    enabled: true
+    url: ${SNYK_WEBHOOK_URL}
+
+# Update check
+update-check:
+  # Auto-update suggestions
+  enabled: true
+
+  # Check for updates
+  interval: weekly

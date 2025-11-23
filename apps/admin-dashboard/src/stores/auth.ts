@@ -208,7 +208,7 @@ export const useAuthStore = defineStore("auth", () => {
         api.setAuthToken(token.value!);
         return true;
       }
-    } catch (error) {
+    } catch {
       await logout();
       return false;
     }

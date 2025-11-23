@@ -29,6 +29,17 @@ export function useAudioNotifications() {
     enabled: true,
   });
 
+  // Load saved config from localStorage (must be defined before being called)
+  const loadConfig = () => {
+    const saved = localStorage.getItem("kitchen-audio-notifications");
+    if (saved) {
+      config.value = { ...config.value, ...JSON.parse(saved) };
+    }
+  };
+
+  // Initialize: load saved config immediately
+  loadConfig();
+
   // Methods
   const playNewOrderSound = async (isUrgent = false) => {
     if (!isEnabled.value || !config.value.enabled) return;
@@ -198,13 +209,6 @@ export function useAudioNotifications() {
       enabled: config.value.enabled,
       masterVolume: config.value.volume,
     });
-  };
-
-  const loadConfig = () => {
-    const saved = localStorage.getItem("kitchen-audio-notifications");
-    if (saved) {
-      config.value = { ...config.value, ...JSON.parse(saved) };
-    }
   };
 
   const resetConfig = () => {

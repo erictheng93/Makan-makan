@@ -16,8 +16,10 @@ function generateRoomId(type) {
 
 /**
  * 獲取 Kitchen Token
+ * Artillery 2.x - 使用 async/await，不需要 done callback
  */
-async function getKitchenToken(context, events, done) {
+async function getKitchenToken(context, events) {
+  console.log('🚀 [PROCESSOR] getKitchenToken CALLED!');
   const roomId = generateRoomId('kitchen');
   const restaurantId = '1';
   const sessionId = `session_kitchen_${Date.now()}`;
@@ -53,14 +55,14 @@ async function getKitchenToken(context, events, done) {
     events.emit('counter', 'tokens.kitchen.error', 1);
     console.error('Error getting kitchen token:', error.message);
   }
-
-  return done();
 }
 
 /**
  * 獲取 Admin Token
+ * Artillery 2.x - 使用 async/await，不需要 done callback
  */
-async function getAdminToken(context, events, done) {
+async function getAdminToken(context, events) {
+  console.log('🚀 [PROCESSOR] getAdminToken CALLED!');
   const roomId = generateRoomId('admin');
   const restaurantId = '1';
   const sessionId = `session_admin_${Date.now()}`;
@@ -96,20 +98,18 @@ async function getAdminToken(context, events, done) {
     events.emit('counter', 'tokens.admin.error', 1);
     console.error('Error getting admin token:', error.message);
   }
-
-  return done();
 }
 
 /**
  * 獲取 Customer Token
  * 注意：需要有效的 table ID，這裡使用測試用 ID
  */
-async function getCustomerToken(context, events, done) {
+async function getCustomerToken(context, events) {
+  console.log('🚀 [PROCESSOR] getCustomerToken CALLED!');
   const roomId = generateRoomId('customer');
   const restaurantId = '1';
-  // 這裡應該使用實際存在的 table ID
-  // 在實際測試中，需要先創建測試數據
-  const tableId = process.env.TEST_TABLE_ID || '1';
+  // 使用 QR code 而非 table ID,因為 verifyTableExists 使用 qr_code 字段
+  const tableId = process.env.TEST_TABLE_ID || 'PERF-TEST-QR-001';
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/realtime/auth/token`, {
@@ -137,39 +137,37 @@ async function getCustomerToken(context, events, done) {
       events.emit('counter', 'tokens.customer.success', 1);
     } else {
       events.emit('counter', 'tokens.customer.failed', 1);
-      // Customer token 可能因為 table ID 不存在而失敗，這是預期的
-      // 在實際測試前需要準備測試數據
+      // Customer token 可能因為 table ID 不存在而失敗
+      console.error('Failed to get customer token:', data.error);
     }
   } catch (error) {
     events.emit('counter', 'tokens.customer.error', 1);
     console.error('Error getting customer token:', error.message);
   }
-
-  return done();
 }
 
 /**
  * 記錄連線建立時間
+ * Artillery 2.x - 不需要 done callback
  */
-function logConnectionEstablished(context, events, done) {
+function logConnectionEstablished(context, events) {
   events.emit('counter', 'connections.established', 1);
-  return done();
 }
 
 /**
  * 記錄訊息接收
+ * Artillery 2.x - 不需要 done callback
  */
-function logMessageReceived(context, events, done) {
+function logMessageReceived(context, events) {
   events.emit('counter', 'messages.received', 1);
-  return done();
 }
 
 /**
  * 記錄訊息發送
+ * Artillery 2.x - 不需要 done callback
  */
-function logMessageSent(context, events, done) {
+function logMessageSent(context, events) {
   events.emit('counter', 'messages.sent', 1);
-  return done();
 }
 
 // 導出函式供 Artillery 使用

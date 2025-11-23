@@ -13,6 +13,9 @@ export interface CreateMenuItemData {
   originalPrice?: number
   imageUrl?: string
   imageVariants?: any
+  isAvailable?: boolean
+  isFeatured?: boolean
+  isPopular?: boolean
   spiceLevel?: number
   preparationTime?: number
   calories?: number
@@ -282,11 +285,13 @@ export class MenuService extends BaseService {
         .limit(limit)
         .offset(offset)
 
-      // 查詢總數
-      const [{ totalCount }] = await this.db
+      // 查詢總數 (使用安全解構避免 undefined 錯誤)
+      const countResult = await this.db
         .select({ totalCount: count() })
         .from(menuItems)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
+
+      const totalCount = countResult?.[0]?.totalCount ?? 0
 
       return {
         items: items.map(item => this.mapToMenuItem(item)),
@@ -468,7 +473,7 @@ export class MenuService extends BaseService {
 
   // 更新分類商品數量
   private async updateCategoryItemCount(categoryId: number): Promise<void> {
-    const [{ itemCount }] = await this.db
+    const countResult = await this.db
       .select({ itemCount: count() })
       .from(menuItems)
       .where(
@@ -478,9 +483,11 @@ export class MenuService extends BaseService {
         )
       )
 
+    const itemCount = countResult?.[0]?.itemCount ?? 0
+
     await this.db
       .update(categories)
-      .set({ 
+      .set({
         itemCount,
         updatedAt: new Date()
       })

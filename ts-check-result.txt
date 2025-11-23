@@ -1,0 +1,4 @@
+
+> makanmakan-admin-dashboard@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\admin-dashboard
+> vue-tsc --noEmit
+

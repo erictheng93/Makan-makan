@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import WorkflowAutomation from "@/components/workflow/WorkflowAutomation.vue";
-import { useOrderManagement } from "@/stores/orderManagement";
+import { useOrderManagementStore } from "@/stores/orderManagement";
 import type { KitchenOrder } from "@/types";
 
 const mockOrders: KitchenOrder[] = [
@@ -64,7 +64,7 @@ const mockOrders: KitchenOrder[] = [
 
 describe("Workflow Integration Tests", () => {
   let wrapper: VueWrapper;
-  let orderStore: ReturnType<typeof useOrderManagement>;
+  let orderStore: ReturnType<typeof useOrderManagementStore>;
 
   beforeEach(() => {
     const pinia = createPinia();
@@ -76,7 +76,7 @@ describe("Workflow Integration Tests", () => {
       },
     });
 
-    orderStore = useOrderManagement();
+    orderStore = useOrderManagementStore();
     orderStore.orders = [...mockOrders];
   });
 

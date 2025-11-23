@@ -78,7 +78,7 @@ export const optionalAuth = async (c: Context<{ Bindings: Env }>, next: Next) =>
     }
 
     await next()
-  } catch (error) {
+  } catch {
     // 忽略認證錯誤，繼續執行
     await next()
   }

@@ -1,13 +1,13 @@
 <template>
   <div class="queue-view">
-    <!-- 標題區域 -->
+    <!-- 標題區 -->
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">候位管理系統</h1>
-        <p class="text-gray-600">智能排隊管理和座位分配</p>
+        <p class="text-gray-600">智能候位管理與座位分配</p>
       </div>
       <div class="flex items-center space-x-4">
-        <!-- 即時狀態 -->
+        <!-- 快速狀態 -->
         <div class="bg-green-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-green-800 font-medium">
             候位中: {{ currentWaiting }}
@@ -20,7 +20,7 @@
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="openQueueSettings"
         >
-          排隊設定
+          候位設定
         </button>
 
         <button
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <!-- 狀態統計卡片 -->
+    <!-- 即時統計卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
@@ -103,7 +103,7 @@
             <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">逾期候位</p>
+            <p class="text-sm font-medium text-gray-500">超時候位</p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ overdueQueue }}
             </p>
@@ -114,12 +114,12 @@
 
     <!-- 主要內容區域 -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-      <!-- 左側：排隊佇列 -->
+      <!-- 左側：候位列表 -->
       <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">排隊佇列</h2>
+              <h2 class="text-xl font-semibold text-gray-900">候位佇列</h2>
               <div class="flex items-center space-x-4">
                 <!-- 篩選器 -->
                 <select
@@ -155,7 +155,7 @@
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                  <!-- 排號 -->
+                  <!-- 號碼 -->
                   <div class="flex-shrink-0">
                     <div
                       :class="[
@@ -187,12 +187,12 @@
                     <div class="flex items-center mt-1 text-sm text-gray-500">
                       <UsersIcon class="w-4 h-4 mr-1" />
                       <span>{{ queueItem.partySize }} 人</span>
-                      <span class="mx-2">•</span>
+                      <span class="mx-2">·</span>
                       <ClockIcon class="w-4 h-4 mr-1" />
                       <span>等待 {{ getWaitTime(queueItem.joinedAt) }}分</span>
 
                       <span v-if="queueItem.tablePreferences?.length" class="mx-2"
-                        >•</span
+                        >·</span
                       >
                       <BuildingStorefrontIcon
                         v-if="queueItem.tablePreferences?.length"
@@ -205,18 +205,18 @@
                   </div>
                 </div>
 
-                <!-- 操作區域 -->
+                <!-- 右側操作 -->
                 <div class="flex items-center space-x-2">
-                  <!-- 優先級指示 -->
+                  <!-- 優先級標示 -->
                   <div v-if="queueItem.priority > 0" class="flex items-center">
                     <StarIcon class="w-4 h-4 text-yellow-500" />
                     <span class="text-xs text-yellow-600 ml-1">VIP</span>
                   </div>
 
-                  <!-- 預計等待時間 -->
+                  <!-- 預估等待時間 -->
                   <div class="text-right">
                     <p class="text-sm font-medium text-gray-900">
-                      預計: {{ calculateEstimatedWait(index) }}分
+                      預估: {{ calculateEstimatedWait(index) }}分
                     </p>
                     <p class="text-xs text-gray-500">
                       {{ formatTime(queueItem.joinedAt) }} 加入
@@ -230,7 +230,7 @@
                       class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                       @click.stop="callCustomer(queueItem)"
                     >
-                      叫號
+                      呼叫
                     </button>
 
                     <button
@@ -251,7 +251,7 @@
                 </div>
               </div>
 
-              <!-- 特殊需求和備註 -->
+              <!-- 特殊需求與備註 -->
               <div
                 v-if="queueItem.specialRequests || queueItem.notes"
                 class="mt-3 p-2 bg-gray-50 rounded"
@@ -273,9 +273,9 @@
             <div v-if="filteredQueue.length === 0" class="p-12 text-center">
               <UsersIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                暫無候位顧客
+                尚無候位顧客
               </h3>
-              <p class="text-gray-500">當前沒有顧客在排隊等待</p>
+              <p class="text-gray-500">目前沒有顧客在候位佇列</p>
             </div>
           </div>
         </div>
@@ -304,7 +304,7 @@
                   }"
                   @click="toggleTableView('occupied')"
                 >
-                  使用中 ({{ occupiedTables }})
+                  使用中({{ occupiedTables }})
                 </button>
                 <button
                   class="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm"
@@ -334,10 +334,10 @@
                 <div class="text-center">
                   <div class="font-bold text-lg">{{ table.number }}</div>
                   <div class="text-sm text-gray-600">
-                    {{ table.capacity }}人桌
+                    {{ table.capacity }}人座
                   </div>
 
-                  <!-- 狀態指示 -->
+                  <!-- 狀態標籤 -->
                   <div class="mt-2">
                     <span
                       :class="getTableStatusTextColor(table.status)"
@@ -347,12 +347,12 @@
                     </span>
                   </div>
 
-                  <!-- 使用時間（如果有） -->
+                  <!-- 使用時間（佔用狀態） -->
                   <div
                     v-if="table.occupiedSince"
                     class="text-xs text-gray-500 mt-1"
                   >
-                    用餐 {{ getOccupiedTime(table.occupiedSince) }}分
+                    已用 {{ getOccupiedTime(table.occupiedSince) }}分
                   </div>
                 </div>
 
@@ -376,18 +376,18 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
 
             <div class="grid grid-cols-2 gap-4">
-              <!-- 手動加入排隊 -->
+              <!-- 手動加入候位 -->
               <button
                 class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"
                 @click="addToQueue"
               >
                 <PlusIcon class="w-6 h-6 text-gray-400 mx-auto mb-2" />
                 <span class="text-sm font-medium text-gray-700"
-                  >手動加入排隊</span
+                  >手動加入候位</span
                 >
               </button>
 
-              <!-- 清理桌位 -->
+              <!-- 清潔桌位 -->
               <button
                 v-if="selectedTable && selectedTable.status === 'occupied'"
                 class="p-4 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors text-center"
@@ -395,18 +395,18 @@
               >
                 <SparklesIcon class="w-6 h-6 text-orange-600 mx-auto mb-2" />
                 <span class="text-sm font-medium text-orange-800"
-                  >清理桌位</span
+                  >清潔桌位</span
                 >
               </button>
 
-              <!-- 叫號通知 -->
+              <!-- 發送通知 -->
               <button
                 class="p-4 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors text-center"
                 @click="sendNotification"
               >
                 <BellIcon class="w-6 h-6 text-purple-600 mx-auto mb-2" />
                 <span class="text-sm font-medium text-purple-800"
-                  >批量通知</span
+                  >發送通知</span
                 >
               </button>
 
@@ -442,7 +442,7 @@
               </div>
               <p class="text-sm text-gray-600">
                 {{
-                  autoAssignment ? "已開啟自動座位分配" : "已關閉自動座位分配"
+                  autoAssignment ? "已啟用自動座位分配" : "已關閉自動座位分配"
                 }}
               </p>
             </div>
@@ -451,7 +451,7 @@
       </div>
     </div>
 
-    <!-- 手動加入排隊模態框 -->
+    <!-- 手動加入候位模態框 -->
     <div v-if="showAddDialog" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen px-4">
         <div
@@ -460,7 +460,7 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">加入排隊</h3>
+            <h3 class="text-xl font-semibold text-gray-900">加入候位</h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeAddDialog"
@@ -542,7 +542,7 @@
                   class="rounded border-gray-300 text-yellow-600 shadow-sm focus:border-yellow-300 focus:ring focus:ring-yellow-200 focus:ring-opacity-50"
                 />
                 <span class="ml-2 text-sm text-gray-700"
-                  >VIP 顧客（優先處理）</span
+                  >VIP 顧客（優先安排）</span
                 >
               </label>
             </div>
@@ -560,7 +560,7 @@
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="submitAddToQueue"
             >
-              加入排隊
+              加入候位
             </button>
           </div>
         </div>
@@ -591,7 +591,7 @@
               <h4 class="font-medium text-gray-900 mb-2">顧客資訊</h4>
               <div class="text-sm space-y-1">
                 <p>
-                  <span class="text-gray-600">排號:</span>
+                  <span class="text-gray-600">號碼:</span>
                   {{ selectedQueueItem.queueNumber }}
                 </p>
                 <p>
@@ -631,10 +631,10 @@
                   <div class="text-center">
                     <div class="font-bold">桌號 {{ table.number }}</div>
                     <div class="text-sm text-gray-600">
-                      {{ table.capacity }}人桌
+                      {{ table.capacity }}人座
                     </div>
                     <div class="text-xs text-green-600 mt-1">
-                      適合度: {{ table.matchScore }}%
+                      適配度 {{ table.matchScore }}%
                     </div>
                   </div>
                 </div>
@@ -644,7 +644,7 @@
             <!-- 備註 -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2"
-                >服務備註</label
+                >額外備註</label
               >
               <textarea
                 v-model="seatAssignment.notes"
@@ -696,9 +696,8 @@ import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
 
-// 使用新的類型定義 - 已從 queueService 導入
-// QueueItem 現在來自模組化服務
-
+// 使用候位類型定義 - 已從 queueService 導入
+// QueueItem 現在來自模組導出
 interface Table {
   id: string;
   number: string;
@@ -725,13 +724,13 @@ const showAddDialog = ref(false);
 const showSeatDialog = ref(false);
 const autoAssignment = ref(true);
 
-// 數據狀態
+// 候位資料
 const queueItems = ref<QueueItem[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const queueStatus = ref<any>(null);
 
-// 統計數據 - 從新 API 和即時數據計算
+// 統計數據 - 從新 API 即時數據獲取
 const currentWaiting = computed(() => {
   return queueStatus.value?.queue?.total_waiting || 0;
 });
@@ -740,21 +739,21 @@ const avgWaitTime = computed(() => {
   return queueStatus.value?.queue?.avg_estimated_wait || 0;
 });
 
-const availableTables = ref(12); // 暫時保留，等待桌位 API 整合
+const availableTables = ref(12); // 暫時保留，待整合API 數據
 const occupiedTables = ref(8);
 const todayServed = computed(() => {
   return queueStatus.value?.activity?.seated_today || 0;
 });
 const overdueQueue = computed(() => {
-  // 計算超過預期等待時間的候位
+  // 計算超過預估等待時間的候位
   return queueItems.value.filter(item => {
     if (item.status !== 'waiting') return false;
     const waitTime = getWaitTime(item.joinedAt);
-    return waitTime > (item.estimatedWaitMinutes + 10); // 超過預估時間10分鐘
+    return waitTime > (item.estimatedWaitMinutes + 10); // 超過預估加10分鐘
   }).length;
 });
 
-// 表單數據 - 適配新 API 結構
+// 表單數據 - 配合新API 結構
 const newQueueItem = ref({
   customerName: "",
   customerPhone: "",
@@ -772,8 +771,8 @@ const seatAssignment = ref({
   notes: "",
 });
 
-// 排隊數據現在從 API 獲取
-// queueItems 在響應式狀態部分已定義
+// 候位佇列現在從API 獲取
+// queueItems 響應變量已在上面定義
 
 // 模擬桌位數據
 const tables = ref<Table[]>([
@@ -918,7 +917,7 @@ const canAddToQueue = computed(() => {
          newQueueItem.value.partySize > 0);
 });
 
-// 工具方法
+// 工具函數
 const formatTime = (dateTime: string) =>
   new Date(dateTime).toLocaleTimeString("zh-TW", {
     hour: "2-digit",
@@ -1005,13 +1004,13 @@ const getTableStatusText = (status: string) => {
   const texts: Record<string, string> = {
     available: "可用",
     occupied: "使用中",
-    reserved: "已預約",
+    reserved: "已預訂",
     cleaning: "清潔中",
   };
   return texts[status] || status;
 };
 
-// 操作方法
+// 操作函數
 const selectQueueItem = (item: QueueItem) => {
   selectedQueueItem.value = item;
 };
@@ -1024,7 +1023,7 @@ const toggleTableView = (filter: string) => {
   tableViewFilter.value = filter;
 };
 
-// API 方法 - 使用新模組化服務
+// API 操作 - 使用新模組化服務
 const refreshQueue = async () => {
   if (!authStore.user?.restaurantId) return;
 
@@ -1040,7 +1039,7 @@ const refreshQueue = async () => {
     queueItems.value = queueData;
     queueStatus.value = statusData;
   } catch (err) {
-    error.value = '獲取候位數據失敗';
+    error.value = '刷新候位失敗';
     console.error('Failed to refresh queue:', err);
   } finally {
     loading.value = false;
@@ -1052,21 +1051,21 @@ const callNextCustomer = async () => {
 
   try {
     const result = await queueService.callNext(authStore.user.restaurantId, {
-      operatorId: authStore.user.id,
+      // operatorId removed - not part of CallNextRequest interface
     });
 
     if (result.success && result.data) {
-      // 更新本地數據
+      // 更新本地候位
       const index = queueItems.value.findIndex(item => item.id === result.data!.id);
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(`已呼叫 ${result.data.customerName || `排號 ${result.data.queueNumber}`}`);
+      alert(`已呼叫 ${result.data.customerName || `號碼 ${result.data.queueNumber}`}`);
     } else {
       alert(result.error || '呼叫失敗');
     }
   } catch (err) {
-    alert('呼叫操作失敗，請重試');
+    alert('呼叫顧客失敗，請重試');
     console.error('Failed to call next customer:', err);
   }
 };
@@ -1080,16 +1079,16 @@ const callCustomer = async (queueItem: QueueItem) => {
     });
 
     if (result.success && result.data) {
-      // 更新本地數據
+      // 更新本地候位
       const index = queueItems.value.findIndex(item => item.id === queueItem.id);
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(`已呼叫 ${queueItem.customerName || `排號 ${queueItem.queueNumber}`}`);
+      alert(`已呼叫 ${queueItem.customerName || `號碼 ${queueItem.queueNumber}`}`);
     } else {
       alert(result.error || '呼叫失敗');
     }
-  } catch (error) {
+  } catch (_error) {
     alert("呼叫失敗，請重試");
     console.error('Failed to call customer:', error);
   }
@@ -1142,15 +1141,15 @@ const submitAddToQueue = async () => {
 
     if (result.success && result.data) {
       closeAddDialog();
-      alert(`已加入排隊！排號: ${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`);
+      alert(`已新增至候位：${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`);
 
-      // 刷新隊列數據
+      // 刷新候位列表
       await refreshQueue();
     } else {
-      alert(result.error || '加入排隊失敗');
+      alert(result.error || '加入候位失敗');
     }
-  } catch (error) {
-    alert("加入排隊失敗，請重試");
+  } catch (_error) {
+    alert("加入候位失敗，請重試");
     console.error('Failed to add to queue:', error);
   } finally {
     loading.value = false;
@@ -1171,7 +1170,7 @@ const confirmSeatAssignment = async () => {
     });
 
     if (result.success) {
-      // 更新本地數據
+      // 更新本地候位
       const index = queueItems.value.findIndex(item => item.id === selectedQueueItem.value!.id);
       if (index !== -1) {
         queueItems.value[index].status = "seated";
@@ -1179,7 +1178,7 @@ const confirmSeatAssignment = async () => {
         queueItems.value[index].assignedTableId = Number(seatAssignment.value.tableId);
       }
 
-      // 更新桌位狀態 (等待桌位 API 整合)
+      // 更新桌位狀態(等待桌位 API 整合)
       const table = tables.value.find(t => t.id === seatAssignment.value.tableId.toString());
       if (table) {
         table.status = "occupied";
@@ -1187,11 +1186,11 @@ const confirmSeatAssignment = async () => {
       }
 
       closeSeatDialog();
-      alert("座位安排完成！");
+      alert("座位安排完成");
     } else {
       alert(result.error || '座位安排失敗');
     }
-  } catch (error) {
+  } catch (_error) {
     alert("座位安排失敗，請重試");
     console.error('Failed to seat customer:', error);
   }
@@ -1199,7 +1198,7 @@ const confirmSeatAssignment = async () => {
 
 const editQueueItem = (queueItem: QueueItem) => {
   console.log("Edit queue item:", queueItem.id);
-  alert("編輯功能開發中...");
+  alert("編輯功能開發中..");
 };
 
 const cleanTable = async (table: Table) => {
@@ -1208,61 +1207,61 @@ const cleanTable = async (table: Table) => {
     table.cleaningStatus = "cleaning";
     table.occupiedSince = null;
 
-    // 模擬清潔時間
+    // 模擬清潔過程
     setTimeout(() => {
       table.status = "available";
       table.cleaningStatus = "clean";
-      alert(`桌號 ${table.number} 清潔完成，可接受新顧客`);
+      alert(`桌號 ${table.number} 清潔完成，可供候位顧客`);
     }, 3000);
 
     alert(`開始清潔桌號 ${table.number}`);
-  } catch (error) {
+  } catch (_error) {
     alert("清潔操作失敗");
   }
 };
 
 const sendNotification = () => {
-  alert("批量通知功能開發中...");
+  alert("發送通知功能開發中..");
 };
 
 const generateReport = () => {
-  alert("統計報表功能開發中...");
+  alert("統計報表功能開發中..");
 };
 
 const toggleAutoAssignment = () => {
   console.log("Auto assignment:", autoAssignment.value);
   if (autoAssignment.value) {
-    alert("已開啟智慧分配功能");
+    alert("已啟用智慧分配");
   } else {
-    alert("已關閉智慧分配功能");
+    alert("已關閉智慧分配");
   }
 };
 
 const openQueueSettings = () => {
-  alert("排隊設定功能開發中...");
+  alert("候位設定功能開發中..");
 };
 
 const openDisplaySettings = () => {
-  alert("顯示設定功能開發中...");
+  alert("顯示設定功能開發中..");
 };
 
 // 監聽即時更新
 // watch(queueUpdates, () => {
-//   // 當有新的即時更新時，刷新隊列數據
+//   // 當候位佇列更新時刷新候位列表
 //   refreshQueue();
 // }, { deep: true });
 
 // 生命週期
 onMounted(async () => {
-  // 初始化加載數據
+  // 初次載入數據
   await refreshQueue();
 
-  // 初始化時選擇第一個排隊項目
+  // 預選第一個候位項目
   if (queueItems.value.length > 0) {
     selectedQueueItem.value = queueItems.value[0];
   }
 
-  // 自動刷新數據
+  // 定期刷新數據
   setInterval(async () => {
     if (!loading.value) {
       await refreshQueue();
@@ -1270,7 +1269,7 @@ onMounted(async () => {
   }, 30000); // 每30秒更新一次
 });
 
-// 暴露給測試使用的內部狀態和方法
+// 暴露給測試使用的內部狀態和函數
 defineExpose({
   // 響應式數據
   queueItems,
@@ -1293,7 +1292,7 @@ defineExpose({
   avgWaitTime,
   availableTables,
 
-  // 方法
+  // 函數
   refreshQueue,
   callNextCustomer,
   callCustomer,

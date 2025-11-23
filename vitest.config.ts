@@ -7,6 +7,76 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom', // Changed from 'node' to support browser APIs
+
+    // 🔥 記憶體優化 - 多層次策略
+    pool: 'threads',  // 使用 threads 而非 forks (更高效的記憶體共享)
+    poolOptions: {
+      threads: {
+        maxThreads: 2,      // 降低並行度 (從 3 降到 2)
+        minThreads: 1,
+        singleThread: false,
+
+        // 🔥 關鍵: 直接傳遞記憶體參數給 worker threads
+        // 這確保每個 worker 都有 8GB heap limit
+        execArgv: ['--max-old-space-size=8192']
+      }
+    },
+
+    // 測試隔離 - 防止記憶體洩漏累積
+    isolate: true,
+
+    // 超時設定 (增加到 60 秒以配合較慢的執行速度)
+    testTimeout: 60000,     // 60秒測試超時
+    hookTimeout: 60000,     // 60秒 hook 超時
+
+    // 測試覆蓋率配置
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+
+      // 覆蓋率門檻
+      thresholds: {
+        global: {
+          branches: 85,
+          functions: 85,
+          lines: 85,
+          statements: 85,
+        },
+        // 關鍵模組要求更高覆蓋率
+        'apps/api/src/features/**/*.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'apps/realtime/src/**/*.ts': {
+          branches: 85,
+          functions: 85,
+          lines: 85,
+          statements: 85,
+        },
+      },
+
+      // 排除不需要覆蓋的文件
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '**/*.d.ts',
+        '**/*.config.ts',
+        '**/tests/**',
+        '**/__tests__/**',
+        '**/coverage/**',
+        '**/legacy/**',
+        '**/Backup/**',
+      ],
+
+      // 包含的文件
+      include: [
+        'apps/*/src/**/*.{ts,tsx,vue}',
+        'packages/*/src/**/*.{ts,tsx}',
+      ],
+    },
+
     include: [
       // Root-level tests
       'tests/unit/**/*.test.{js,ts}',

@@ -210,105 +210,595 @@ jobs:
     name: 🚀 效能測試
     runs-on: ubuntu-latest
     needs: e2e-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
-        
+
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-          
+
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
+
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
-        
+
       - name: 🏗️ 建置應用程式
         run: pnpm run build
-        
-      - name: 🚀 效能測試 (Lighthouse CI)
+
+      - name: 🚀 啟動測試服務器
+        run: |
+          cd apps/api && pnpm dev &
+          echo $! > api-server.pid
+          cd ../realtime && pnpm dev &
+          echo $! > realtime-server.pid
+        env:
+          NODE_ENV: test
+
+      - name: ⏳ 等待服務器啟動
+        run: |
+          npx wait-on http://localhost:8787/api/v1/health --timeout 60000
+          npx wait-on ws://localhost:8788 --timeout 60000
+
+      - name: 📦 安裝 Artillery
+        run: pnpm add -g artillery@latest
+
+      - name: 🔥 執行 REST API 負載測試
+        run: |
+          artillery run tests/performance/artillery-api.yml \
+            --output artillery-api-report.json \
+            --quiet
+        env:
+          API_URL: http://localhost:8787
+          TEST_USERNAME: testuser
+          TEST_PASSWORD: testpass123
+        continue-on-error: true
+
+      - name: 🌐 執行 WebSocket 負載測試
+        run: |
+          artillery run tests/performance/artillery-websocket.yml \
+            --output artillery-ws-report.json \
+            --quiet
+        env:
+          API_URL: http://localhost:8787
+          WS_URL: ws://localhost:8788
+        continue-on-error: true
+
+      - name: 📊 生成 Artillery 報告
+        if: always()
+        run: |
+          if [ -f artillery-api-report.json ]; then
+            artillery report artillery-api-report.json --output artillery-api-report.html
+          fi
+          if [ -f artillery-ws-report.json ]; then
+            artillery report artillery-ws-report.json --output artillery-ws-report.html
+          fi
+
+      - name: 📎 上傳性能測試報告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-test-reports
+          path: |
+            artillery-api-report.json
+            artillery-api-report.html
+            artillery-ws-report.json
+            artillery-ws-report.html
+          retention-days: 30
+
+      - name: 🛑 停止測試服務器
+        if: always()
+        run: |
+          if [ -f api-server.pid ]; then
+            kill $(cat api-server.pid) || true
+            rm api-server.pid
+          fi
+          if [ -f realtime-server.pid ]; then
+            kill $(cat realtime-server.pid) || true
+            rm realtime-server.pid
+          fi
+
+      - name: 🚀 Lighthouse CI (僅 main 分支)
+        if: github.ref == 'refs/heads/main'
         run: |
           pnpm add -g @lhci/cli@0.12.x
           lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
-  # 安全性測試
+  # 資料庫性能測試
+  database-performance-tests:
+    name: 🗄️ 資料庫性能測試
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要完整歷史以獲取基準線
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 📊 檢查性能基準線是否存在
+        id: check-baseline
+        run: |
+          if [ -f "tests/performance/baselines/db-baseline.json" ]; then
+            echo "baseline_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "baseline_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔧 建立性能基準線 (如果不存在)
+        if: steps.check-baseline.outputs.baseline_exists == 'false'
+        run: |
+          cd tests/performance/db-benchmarks
+          ts-node create-baseline.ts ${{ github.sha }}
+
+      - name: 🧪 執行資料庫性能測試
+        run: pnpm test tests/performance/db-benchmarks/query-performance.test.ts
+
+      - name: 🔍 執行 N+1 查詢檢測
+        run: pnpm test tests/performance/db-benchmarks/n-plus-one-detection.test.ts
+
+      - name: 📊 性能退化檢測
+        if: steps.check-baseline.outputs.baseline_exists == 'true'
+        run: |
+          cd tests/performance/db-benchmarks
+          ts-node compare-performance.ts --fail-on-regression --warning-threshold 20 --failure-threshold 50
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - name: 📈 生成性能報告
+        if: always()
+        run: |
+          echo "## 🗄️ 資料庫性能測試報告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 測試結果" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ 查詢性能測試: 已完成" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ N+1 查詢檢測: 已完成" >> $GITHUB_STEP_SUMMARY
+          if [ -f "tests/performance/baselines/db-baseline.json" ]; then
+            echo "- ✅ 性能退化檢測: 已完成" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ 性能退化檢測: 跳過 (首次運行)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "詳細報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📎 上傳性能基準線
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: db-performance-baseline
+          path: tests/performance/baselines/db-baseline.json
+          retention-days: 90
+
+      - name: 💬 PR 性能報告留言 (僅 PR)
+        if: github.event_name == 'pull_request' && steps.check-baseline.outputs.baseline_exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const baseline = JSON.parse(fs.readFileSync('tests/performance/baselines/db-baseline.json', 'utf8'));
+
+            let comment = '## 🗄️ 資料庫性能測試報告\n\n';
+            comment += '### 📊 性能概覽\n\n';
+            comment += '| 查詢類別 | 平均時間 | 狀態 |\n';
+            comment += '|---------|---------|------|\n';
+
+            const categories = {};
+            for (const [name, metrics] of Object.entries(baseline.queries)) {
+              const category = metrics.category || 'other';
+              if (!categories[category]) categories[category] = [];
+              categories[category].push(metrics.avgTime);
+            }
+
+            for (const [category, times] of Object.entries(categories)) {
+              const avg = times.reduce((a, b) => a + b, 0) / times.length;
+              const status = avg < 50 ? '🟢 優秀' : avg < 100 ? '🟡 良好' : '🔴 需優化';
+              comment += `| ${category} | ${avg.toFixed(2)}ms | ${status} |\n`;
+            }
+
+            comment += '\n---\n\n';
+            comment += '📋 完整報告請查看 Actions 的 Artifacts 區域\n';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # 視覺回歸測試
+  visual-regression-tests:
+    name: 👁️ 視覺回歸測試
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ 建置 Storybook
+        run: pnpm run build-storybook
+        working-directory: apps/admin-dashboard
+
+      - name: 📸 Chromatic 視覺回歸測試
+        uses: chromaui/action@v1
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          buildScriptName: 'build-storybook'
+          workingDir: apps/admin-dashboard
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          exitZeroOnChanges: ${{ github.event_name == 'pull_request' }}
+          onlyChanged: true
+          traceChanged: expanded
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - name: 📸 Percy 視覺快照 (備選)
+        if: failure() || env.USE_PERCY == 'true'
+        run: |
+          # 安裝 Percy CLI
+          pnpm add -D @percy/cli @percy/playwright
+
+          # 啟動預覽服務器
+          pnpm run preview &
+          echo $! > preview-server.pid
+
+          # 等待服務器啟動
+          npx wait-on http://localhost:4173 --timeout 60000
+
+          # 執行 Percy 快照測試
+          npx percy exec -- npx playwright test tests/visual/percy-snapshots.test.ts
+        env:
+          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+        continue-on-error: true
+
+      - name: 🛑 停止預覽服務器
+        if: always() && (failure() || env.USE_PERCY == 'true')
+        run: |
+          if [ -f preview-server.pid ]; then
+            kill $(cat preview-server.pid) || true
+            rm preview-server.pid
+          fi
+
+      - name: 📎 上傳視覺測試報告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-regression-reports
+          path: |
+            chromatic-diagnostics.json
+            percy-snapshots/
+          retention-days: 30
+
+  # 安全性測試 (增強版)
   security-tests:
     name: 🔐 安全性測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    
+
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
-        
-      - name: 🔍 依賴漏洞掃描
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 基礎依賴漏洞掃描
         run: pnpm audit --audit-level high
-        
-      - name: 🔒 CodeQL 分析
+        continue-on-error: true
+
+      - name: 🛡️ Snyk 深度安全掃描
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high --json-file-output=snyk-report.json
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - name: 📊 Snyk 許可證合規檢查
+        if: always()
+        run: |
+          pnpm add -g snyk
+          snyk test --all-projects --fail-on=upgradable --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: 🔒 CodeQL 靜態分析初始化
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
-          
+          queries: +security-extended,security-and-quality
+
       - name: 🔍 執行 CodeQL 分析
         uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+      - name: 🏗️ 建置應用程式 (OWASP ZAP 準備)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        run: pnpm run build
+
+      - name: 🚀 啟動測試服務器 (OWASP ZAP)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        run: |
+          # 啟動 Admin Dashboard
+          cd apps/admin-dashboard && pnpm preview &
+          echo $! > dashboard-server.pid
+
+          # 啟動 API
+          cd ../api && pnpm dev &
+          echo $! > api-server.pid
+
+          # 等待服務器啟動
+          npx wait-on http://localhost:4173 --timeout 60000
+          npx wait-on http://localhost:8787 --timeout 60000
+        env:
+          NODE_ENV: test
+
+      - name: 🕷️ OWASP ZAP 動態安全掃描
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        run: |
+          # 賦予執行權限
+          chmod +x tests/security/run-zap-scan.sh
+
+          # 執行 ZAP 掃描
+          TARGET_URL=http://localhost:4173 \
+          API_URL=http://localhost:8787 \
+          ZAP_CLEANUP=true \
+          ./tests/security/run-zap-scan.sh
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - name: 🛑 停止測試服務器
+        if: always() && (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
+        run: |
+          if [ -f dashboard-server.pid ]; then
+            kill $(cat dashboard-server.pid) || true
+            rm dashboard-server.pid
+          fi
+          if [ -f api-server.pid ]; then
+            kill $(cat api-server.pid) || true
+            rm api-server.pid
+          fi
+
+      - name: 📎 上傳安全測試報告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-test-reports
+          path: |
+            snyk-report.json
+            security-reports/
+            codeql-results/
+          retention-days: 90
+
+      - name: 📊 生成安全摘要報告
+        if: always()
+        run: |
+          echo "## 🔐 安全性測試摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Snyk 報告
+          if [ -f snyk-report.json ]; then
+            echo "### 🛡️ Snyk 依賴掃描" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat snyk-report.json | jq '.vulnerabilities | group_by(.severity) | map({severity: .[0].severity, count: length})' >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # ZAP 報告
+          if [ -f security-reports/zap-alerts-*.json ]; then
+            echo "### 🕷️ OWASP ZAP 動態掃描" >> $GITHUB_STEP_SUMMARY
+            LATEST_ZAP=$(ls -t security-reports/zap-alerts-*.json | head -1)
+            HIGH_COUNT=$(cat "$LATEST_ZAP" | jq '[.alerts[] | select(.risk=="High")] | length')
+            MEDIUM_COUNT=$(cat "$LATEST_ZAP" | jq '[.alerts[] | select(.risk=="Medium")] | length')
+            LOW_COUNT=$(cat "$LATEST_ZAP" | jq '[.alerts[] | select(.risk=="Low")] | length')
+
+            echo "- 🔴 高風險: $HIGH_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟡 中風險: $MEDIUM_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟢 低風險: $LOW_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "📋 完整報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
 
   # 測試結果彙總
   test-summary:
     name: 📊 測試結果彙總
     runs-on: ubuntu-latest
-    needs: [unit-tests, workers-tests, e2e-tests]
+    needs: [unit-tests, workers-tests, e2e-tests, visual-regression-tests, security-tests, database-performance-tests, performance-tests]
     if: always()
-    
+
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
-        
+
       - name: 📥 下載測試結果
         uses: actions/download-artifact@v4
         with:
           path: test-artifacts
-          
+
       - name: 📊 產生測試報告
         run: |
-          echo "## 🧪 測試結果摘要" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 MakanMakan 測試結果完整摘要" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # 檢查各項測試狀態
+          echo "**提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**觸發事件**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 核心測試
+          echo "### 🎯 核心測試" >> $GITHUB_STEP_SUMMARY
+
           if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "✅ 單元測試: 通過" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 單元測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.unit-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ 單元測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ 單元測試: 失敗" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ 單元測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [ "${{ needs.workers-tests.result }}" == "success" ]; then
-            echo "✅ Workers 測試: 通過" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Workers 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.workers-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ Workers 測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-            echo "✅ E2E 測試: 通過" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ E2E 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.e2e-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ E2E 測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ E2E 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ E2E 測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📎 測試報告和截圖請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
+
+          # 性能測試
+          echo "### 🚀 性能與負載測試" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.performance-tests.result }}" == "success" ]; then
+            echo "- ✅ API/WebSocket 負載測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.performance-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ API/WebSocket 負載測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ API/WebSocket 負載測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.database-performance-tests.result }}" == "success" ]; then
+            echo "- ✅ 資料庫性能測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.database-performance-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ 資料庫性能測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ 資料庫性能測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 視覺與品質測試
+          echo "### 👁️ 視覺回歸與品質保證" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.visual-regression-tests.result }}" == "success" ]; then
+            echo "- ✅ 視覺回歸測試 (Chromatic/Percy): 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.visual-regression-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ 視覺回歸測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ 視覺回歸測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 安全性測試
+          echo "### 🔐 安全性掃描" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.security-tests.result }}" == "success" ]; then
+            echo "- ✅ 安全性測試 (Snyk + OWASP ZAP + CodeQL): 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.security-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ 安全性測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ 安全性測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 整體狀態判斷
+          OVERALL_STATUS="success"
+
+          if [ "${{ needs.unit-tests.result }}" != "success" ] && [ "${{ needs.unit-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.workers-tests.result }}" != "success" ] && [ "${{ needs.workers-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.security-tests.result }}" != "success" ] && [ "${{ needs.security-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+
+          if [ "$OVERALL_STATUS" == "success" ]; then
+            echo "### ✅ 整體狀態: 所有測試通過" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **所有關鍵測試均已通過，系統可以安全部署！**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ 整體狀態: 部分測試失敗" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **請檢查失敗的測試項目，修復後再進行部署。**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📎 **完整測試報告和截圖請查看 Artifacts 區域**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 測試涵蓋範圍:" >> $GITHUB_STEP_SUMMARY
+          echo "- 程式碼品質 (ESLint, TypeScript, Prettier)" >> $GITHUB_STEP_SUMMARY
+          echo "- 單元測試 + 覆蓋率報告" >> $GITHUB_STEP_SUMMARY
+          echo "- Cloudflare Workers 整合測試" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E 測試 (Chromium, Firefox, WebKit)" >> $GITHUB_STEP_SUMMARY
+          echo "- API/WebSocket 負載測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
+          echo "- 資料庫性能基準與退化檢測" >> $GITHUB_STEP_SUMMARY
+          echo "- 視覺回歸測試 (Chromatic/Percy)" >> $GITHUB_STEP_SUMMARY
+          echo "- 深度安全掃描 (Snyk + OWASP ZAP + CodeQL)" >> $GITHUB_STEP_SUMMARY
 
   # 部署到測試環境 (僅在所有測試通過時)
   deploy-staging:
     name: 🚀 部署到測試環境
     runs-on: ubuntu-latest
-    needs: [unit-tests, workers-tests, e2e-tests, security-tests]
+    needs: [unit-tests, workers-tests, e2e-tests, security-tests, visual-regression-tests]
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: staging
     

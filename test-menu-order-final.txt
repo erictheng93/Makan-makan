@@ -1,0 +1,32 @@
+﻿
+> makanmakan@2.0.0 test C:\Users\minim\OneDrive\?﹝\Code\platform\makanmakan
+> vitest "apps/api/src/__tests__/integration/core-modules.test.ts" "--grep" "Menu and Order Integration"
+
+timeout : file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/vitest@3.2.4_@
+types+node@24_d3610d02a303bb3daa09cb4ad51a164c/node_modules/vitest/dist/chunks/cac.Cb-PYCCB.js:404
+位於 線路:1 字元:1
++ timeout 120 pnpm test apps/api/src/__tests__/integration/core-modules ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (file:///C:/User...Cb-PYCCB.js:404:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+          throw new CACError(`Unknown option \`${name.length > 1 ? `--${name}` : `-${name}`}\``);
+                ^
+
+CACError: Unknown option `--grep`
+    at Command.checkUnknownOptions (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_mo
+dules/.pnpm/vitest@3.2.4_@types+node@24_d3610d02a303bb3daa09cb4ad51a164c/node_modules/vitest/dist/chunks/cac.Cb-PYCCB.j
+s:404:17)
+    at CAC.runMatchedCommand (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/
+.pnpm/vitest@3.2.4_@types+node@24_d3610d02a303bb3daa09cb4ad51a164c/node_modules/vitest/dist/chunks/cac.Cb-PYCCB.js:604:
+13)
+    at CAC.parse (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/vitest
+@3.2.4_@types+node@24_d3610d02a303bb3daa09cb4ad51a164c/node_modules/vitest/dist/chunks/cac.Cb-PYCCB.js:545:12)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/.pnpm/vitest@3.2.4_@typ
+es+node@24_d3610d02a303bb3daa09cb4ad51a164c/node_modules/vitest/dist/cli.js:27:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0
+?LIFECYCLE??Test failed. See above for more details.

@@ -1,0 +1,396 @@
+
+> makanmakan-kitchen-display@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display
+> vitest
+
+
+[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+
+ [32m✓[39m src/stores/__tests__/orderManagement.test.ts [2m ([22m[2m56 tests[22m[2m)[22m[90m 167[2mms[22m[39m
+ [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts [2m ([22m[2m36 tests[22m[2m)[22m[33m 787[2mms[22m[39m
+ [32m✓[39m src/components/orders/__tests__/OrderDetailsModal.test.ts [2m ([22m[2m47 tests[22m[2m)[22m[33m 1123[2mms[22m[39m
+ [32m✓[39m src/components/orders/__tests__/OrderFilters.test.ts [2m ([22m[2m39 tests[22m[2m)[22m[33m 1323[2mms[22m[39m
+[90mstdout[2m | src/composables/__tests__/useAudioNotifications.test.ts[2m > [22m[2museAudioNotifications[2m > [22m[2mTesting Methods[2m > [22m[2mshould run notification tests[22m[39m
+Testing: 新訂單
+
+ [33m❯[39m tests/integration/end-to-end.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/__tests__/unit/composables/useNotifications.test.ts [2m ([22m[2m33 tests[22m[2m)[22m[33m 592[2mms[22m[39m
+ [32m✓[39m src/components/orders/__tests__/OrderCard.test.ts [2m ([22m[2m36 tests[22m[2m)[22m[33m 752[2mms[22m[39m
+[90mstdout[2m | src/composables/__tests__/useAudioNotifications.test.ts[2m > [22m[2museAudioNotifications[2m > [22m[2mTesting Methods[2m > [22m[2mshould wait between test sounds[22m[39m
+Testing: 新訂單
+
+ [32m✓[39m src/components/layout/__tests__/KitchenHeader.test.ts [2m ([22m[2m33 tests[22m[2m)[22m[33m 761[2mms[22m[39m
+ [32m✓[39m src/__tests__/unit/composables/useWebSocket.test.ts [2m ([22m[2m26 tests[22m[2m)[22m[90m 97[2mms[22m[39m
+ [32m✓[39m src/__tests__/unit/components/KitchenStats.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[33m 483[2mms[22m[39m
+ [32m✓[39m src/__tests__/unit/components/OrderQueue.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[33m 478[2mms[22m[39m
+ [33m❯[39m src/composables/__tests__/useAudioNotifications.test.ts [2m ([22m[2m53 tests[22m [2m|[22m [31m4 failed[39m[2m)[22m[33m 10205[2mms[22m[39m
+[31m   [33m❯[31m src/composables/__tests__/useAudioNotifications.test.ts[2m > [22museAudioNotifications[2m > [22mInitialization[2m > [22mshould load config from localStorage if available[39m
+[31m     → expected { newOrderSound: true, …(8) } to match object { newOrderSound: false, …(8) }[39m
+[31m   [33m❯[31m src/composables/__tests__/useAudioNotifications.test.ts[2m > [22museAudioNotifications[2m > [22mTesting Methods[2m > [22mshould run notification tests[39m
+[31m     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[31m   [33m❯[31m src/composables/__tests__/useAudioNotifications.test.ts[2m > [22museAudioNotifications[2m > [22mTesting Methods[2m > [22mshould wait between test sounds[39m
+[31m     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[31m   [33m❯[31m src/composables/__tests__/useAudioNotifications.test.ts[2m > [22museAudioNotifications[2m > [22mLifecycle[2m > [22mshould load config on mount[39m
+[31m     → expected 0.7 to be 0.9 // Object.is equality[39m
+ [32m✓[39m src/__tests__/integration/order-workflow.test.ts [2m ([22m[2m12 tests[22m[2m)[22m[90m 96[2mms[22m[39m
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mReal-time Updates[2m > [22m[2mshould add new order from SSE event[22m[39m
+New order added: ORD-NEW
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mReal-time Updates[2m > [22m[2mshould update order status from SSE event[22m[39m
+Order 1 item 1 status updated to preparing
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mReal-time Updates[2m > [22m[2mshould remove cancelled order from SSE event[22m[39m
+Order 1 cancelled and removed
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mPerformance Metrics[2m > [22m[2mshould track average cooking time[22m[39m
+Loaded 0 orders for restaurant 1
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mPerformance Metrics[2m > [22m[2mshould track orders completed today[22m[39m
+Loaded 0 orders for restaurant 1
+
+ [33m❯[39m tests/integration/keyboard-shortcuts-integration.test.ts [2m ([22m[2m21 tests[22m [2m|[22m [31m19 failed[39m[2m)[22m[33m 913[2mms[22m[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mKeyboard Shortcuts Composable Integration[2m > [22mshould register and execute shortcuts correctly[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mKeyboard Shortcuts Composable Integration[2m > [22mshould handle keyboard events with modifiers[39m
+[31m     → setupEventListeners is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mKeyboard Shortcuts Composable Integration[2m > [22mshould ignore shortcuts in input fields[39m
+[31m     → handleKeyDown is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mKeyboard Shortcuts Composable Integration[2m > [22mshould support sequential key combinations[39m
+[31m     → handleKeyDown is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mShortcuts Help Component Integration[2m > [22mshould display all shortcut categories[39m
+[31m     → expected 0 to be greater than 0[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mShortcuts Help Component Integration[2m > [22mshould filter shortcuts by search query[39m
+[31m     → Cannot call setValue on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mShortcuts Help Component Integration[2m > [22mshould test individual shortcuts[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mShortcuts Help Component Integration[2m > [22mshould toggle shortcut enable/disable[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould integrate with order filtering[39m
+[31m     → executeShortcut is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould support batch operations via shortcuts[39m
+[31m     → executeShortcut is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould handle priority changes via shortcuts[39m
+[31m     → executeShortcut is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mShortcut Persistence and Configuration[2m > [22mshould save and restore custom shortcuts[39m
+[31m     → expected undefined not to be undefined[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould handle invalid shortcut execution gracefully[39m
+[31m     → executeShortcut is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould prevent shortcut conflicts[39m
+[31m     → validateShortcuts is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould handle rapid key presses[39m
+[31m     → undefined is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mAccessibility and Usability[2m > [22mshould provide clear visual feedback for shortcuts[39m
+[31m     → expected [ 'px-1', 'py-0.5', 'bg-white', …(2) ] to include 'px-2'[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mAccessibility and Usability[2m > [22mshould show shortcut status indicators[39m
+[31m     → expected 0 to be greater than 0[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mPerformance Optimization[2m > [22mshould debounce rapid shortcut executions[39m
+[31m     → executeShortcut is not a function[39m
+[31m   [33m❯[31m tests/integration/keyboard-shortcuts-integration.test.ts[2m > [22mKeyboard Shortcuts Integration Tests[2m > [22mPerformance Optimization[2m > [22mshould cleanup event listeners properly[39m
+[31m     → setupEventListeners is not a function[39m
+ [33m❯[39m src/__tests__/integration/realtime-updates.test.ts [2m ([22m[2m11 tests[22m [2m|[22m [31m4 failed[39m[2m)[22m[90m 246[2mms[22m[39m
+[31m   [33m❯[31m src/__tests__/integration/realtime-updates.test.ts[2m > [22mRealtime Updates Integration[2m > [22mOrder Updates via SSE[2m > [22mshould update order status and play notification[39m
+[31m     → expected 2 to be 3 // Object.is equality[39m
+[31m   [33m❯[31m src/__tests__/integration/realtime-updates.test.ts[2m > [22mRealtime Updates Integration[2m > [22mOrder Updates via SSE[2m > [22mshould handle order cancellation with warning sound[39m
+[31m     → expected [ { id: 'ord-1', …(8) } ] to have a length of +0 but got 1[39m
+[31m   [33m❯[31m src/__tests__/integration/realtime-updates.test.ts[2m > [22mRealtime Updates Integration[2m > [22mMultiple Concurrent Updates[2m > [22mshould maintain order consistency during rapid updates[39m
+[31m     → expected 1 to be 4 // Object.is equality[39m
+[31m   [33m❯[31m src/__tests__/integration/realtime-updates.test.ts[2m > [22mRealtime Updates Integration[2m > [22mEvent Synchronization[2m > [22mshould sync store state with UI updates[39m
+[31m     → expected [ { id: 'ord-1', …(8) } ] to have a length of +0 but got 1[39m
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mOrder Updates via SSE[2m > [22m[2mshould add new order and play notification[22m[39m
+New order added: ORD-001
+
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mOrder Updates via SSE[2m > [22m[2mshould handle urgent order with special notification[22m[39m
+New order added: ORD-URGENT
+
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mMultiple Concurrent Updates[2m > [22m[2mshould handle multiple orders arriving simultaneously[22m[39m
+New order added: ORD-0
+New order added: ORD-1
+New order added: ORD-2
+New order added: ORD-3
+New order added: ORD-4
+
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mEvent Synchronization[2m > [22m[2mshould maintain stats consistency[22m[39m
+Loaded 0 orders for restaurant 1
+
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mError Recovery in Realtime Context[2m > [22m[2mshould continue processing after failed event[22m[39m
+New order added: ORD-001
+New order added: ORD-002
+
+[90mstdout[2m | src/__tests__/integration/realtime-updates.test.ts[2m > [22m[2mRealtime Updates Integration[2m > [22m[2mPerformance Under Load[2m > [22m[2mshould handle high-frequency updates efficiently[22m[39m
+New order added: ORD-0
+New order added: ORD-1
+New order added: ORD-2
+New order added: ORD-3
+New order added: ORD-4
+New order added: ORD-5
+New order added: ORD-6
+New order added: ORD-7
+New order added: ORD-8
+New order added: ORD-9
+New order added: ORD-10
+New order added: ORD-11
+New order added: ORD-12
+New order added: ORD-13
+New order added: ORD-14
+New order added: ORD-15
+New order added: ORD-16
+New order added: ORD-17
+New order added: ORD-18
+New order added: ORD-19
+New order added: ORD-20
+New order added: ORD-21
+New order added: ORD-22
+New order added: ORD-23
+New order added: ORD-24
+New order added: ORD-25
+New order added: ORD-26
+New order added: ORD-27
+New order added: ORD-28
+New order added: ORD-29
+New order added: ORD-30
+New order added: ORD-31
+New order added: ORD-32
+New order added: ORD-33
+New order added: ORD-34
+New order added: ORD-35
+New order added: ORD-36
+New order added: ORD-37
+New order added: ORD-38
+New order added: ORD-39
+New order added: ORD-40
+New order added: ORD-41
+New order added: ORD-42
+New order added: ORD-43
+New order added: ORD-44
+New order added: ORD-45
+New order added: ORD-46
+New order added: ORD-47
+New order added: ORD-48
+New order added: ORD-49
+New order added: ORD-50
+New order added: ORD-51
+New order added: ORD-52
+New order added: ORD-53
+New order added: ORD-54
+New order added: ORD-55
+New order added: ORD-56
+New order added: ORD-57
+New order added: ORD-58
+New order added: ORD-59
+New order added: ORD-60
+New order added: ORD-61
+New order added: ORD-62
+New order added: ORD-63
+New order added: ORD-64
+New order added: ORD-65
+New order added: ORD-66
+New order added: ORD-67
+New order added: ORD-68
+New order added: ORD-69
+New order added: ORD-70
+New order added: ORD-71
+New order added: ORD-72
+New order added: ORD-73
+New order added: ORD-74
+New order added: ORD-75
+New order added: ORD-76
+New order added: ORD-77
+New order added: ORD-78
+New order added: ORD-79
+New order added: ORD-80
+New order added: ORD-81
+New order added: ORD-82
+New order added: ORD-83
+New order added: ORD-84
+New order added: ORD-85
+New order added: ORD-86
+New order added: ORD-87
+New order added: ORD-88
+New order added: ORD-89
+New order added: ORD-90
+New order added: ORD-91
+New order added: ORD-92
+New order added: ORD-93
+New order added: ORD-94
+New order added: ORD-95
+New order added: ORD-96
+New order added: ORD-97
+New order added: ORD-98
+New order added: ORD-99
+
+ [33m❯[39m tests/integration/workflow-integration.test.ts [2m ([22m[2m14 tests[22m [2m|[22m [31m14 failed[39m[2m)[22m[33m 638[2mms[22m[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mAuto Assignment Workflow[2m > [22mshould auto-assign orders based on skill matching[39m
+[31m     → workflowComponent.assignOrderToChef is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mAuto Assignment Workflow[2m > [22mshould consider chef workload in assignment[39m
+[31m     → workflowComponent.assignOrderToChef is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mAuto Progression Workflow[2m > [22mshould automatically progress order status[39m
+[31m     → workflowComponent.scheduleAutoProgression is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mAuto Progression Workflow[2m > [22mshould handle completion auto-progression[39m
+[31m     → workflowComponent.scheduleAutoProgression is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mSmart Scheduling Workflow[2m > [22mshould batch similar items together[39m
+[31m     → workflowComponent.createBatches is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mSmart Scheduling Workflow[2m > [22mshould prioritize by cooking time[39m
+[31m     → workflowComponent.sortByPriority is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mQuality Control Workflow[2m > [22mshould perform automatic quality checks[39m
+[31m     → workflowComponent.performQualityCheck is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mQuality Control Workflow[2m > [22mshould detect quality issues[39m
+[31m     → workflowComponent.performQualityCheck is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould integrate with drag-and-drop operations[39m
+[31m     → workflowComponent.handleDragDropEvent is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould work with batch operations[39m
+[31m     → workflowComponent.handleBatchOperation is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mError Handling and Recovery[2m > [22mshould handle chef assignment errors gracefully[39m
+[31m     → workflowComponent.assignOrderToChef is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mError Handling and Recovery[2m > [22mshould recover from automation failures[39m
+[31m     → workflowComponent.scheduleAutoProgression is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mPerformance and Optimization[2m > [22mshould handle large numbers of orders efficiently[39m
+[31m     → workflowComponent.processOrderBatch is not a function[39m
+[31m   [33m❯[31m tests/integration/workflow-integration.test.ts[2m > [22mWorkflow Integration Tests[2m > [22mPerformance and Optimization[2m > [22mshould cleanup timers properly[39m
+[31m     → workflowComponent.scheduleAutoProgression is not a function[39m
+ [33m❯[39m tests/integration/audio-integration.test.ts [2m ([22m[2m20 tests[22m [2m|[22m [31m15 failed[39m[2m)[22m[33m 532[2mms[22m[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Service Integration[2m > [22mshould initialize with default sounds[39m
+[31m     → expected 0 to be greater than 0[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Service Integration[2m > [22mshould handle volume control across all sounds[39m
+[31m     → audioService.setVolume is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Service Integration[2m > [22mshould generate fallback tones when sounds fail to load[39m
+[31m     → Cannot read properties of undefined (reading 'enabled')[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Settings Component Integration[2m > [22mshould render all sound categories and controls[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Settings Component Integration[2m > [22mshould update master volume reactively[39m
+[31m     → expected undefined to be 0.8 // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Settings Component Integration[2m > [22mshould test individual sounds[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Settings Component Integration[2m > [22mshould export and import settings[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Notifications Composable Integration[2m > [22mshould integrate with SSE events[39m
+[31m     → setupEventHandlers is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Notifications Composable Integration[2m > [22mshould monitor overdue orders[39m
+[31m     → startOverdueMonitoring is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Notifications Composable Integration[2m > [22mshould handle priority-based notifications[39m
+[31m     → handlePriorityChange is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Persistence and Settings[2m > [22mshould save settings to localStorage[39m
+[31m     → audioService.setVolume is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mAudio Persistence and Settings[2m > [22mshould restore settings from localStorage[39m
+[31m     → expected undefined to be 0.3 // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould gracefully handle sound loading failures[39m
+[31m     → Cannot read properties of undefined (reading 'enabled')[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould respond to order status changes[39m
+[31m     → undefined is not a function[39m
+[31m   [33m❯[31m tests/integration/audio-integration.test.ts[2m > [22mAudio Integration Tests[2m > [22mIntegration with Order Management[2m > [22mshould integrate with offline mode[39m
+[31m     → handleOfflineQueue is not a function[39m
+ [32m✓[39m src/__tests__/unit/components/OrderCard.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[33m 624[2mms[22m[39m
+ [32m✓[39m src/__tests__/unit/composables/useOrders.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[33m 1841[2mms[22m[39m
+[90mstdout[2m | src/__tests__/integration/multi-order-handling.test.ts[2m > [22m[2mMulti-Order Handling Integration[2m > [22m[2mReal-time Updates with Multiple Orders[2m > [22m[2mshould handle concurrent SSE events[22m[39m
+New order added: ORD-new-0
+New order added: ORD-new-1
+New order added: ORD-new-2
+New order added: ORD-new-3
+New order added: ORD-new-4
+New order added: ORD-new-5
+New order added: ORD-new-6
+New order added: ORD-new-7
+New order added: ORD-new-8
+New order added: ORD-new-9
+New order added: ORD-new-10
+New order added: ORD-new-11
+New order added: ORD-new-12
+New order added: ORD-new-13
+New order added: ORD-new-14
+New order added: ORD-new-15
+New order added: ORD-new-16
+New order added: ORD-new-17
+New order added: ORD-new-18
+New order added: ORD-new-19
+New order added: ORD-new-20
+New order added: ORD-new-21
+New order added: ORD-new-22
+New order added: ORD-new-23
+New order added: ORD-new-24
+New order added: ORD-new-25
+New order added: ORD-new-26
+New order added: ORD-new-27
+New order added: ORD-new-28
+New order added: ORD-new-29
+
+ [33m❯[39m src/__tests__/integration/multi-order-handling.test.ts [2m ([22m[2m14 tests[22m [2m|[22m [31m5 failed[39m[2m)[22m[90m 140[2mms[22m[39m
+[31m   [33m❯[31m src/__tests__/integration/multi-order-handling.test.ts[2m > [22mMulti-Order Handling Integration[2m > [22mConcurrent Order Processing[2m > [22mshould process multiple status updates concurrently[39m
+[31m     → expected "spy" to be called 10 times, but got 0 times[39m
+[31m   [33m❯[31m src/__tests__/integration/multi-order-handling.test.ts[2m > [22mMulti-Order Handling Integration[2m > [22mConcurrent Order Processing[2m > [22mshould maintain consistency with rapid updates[39m
+[31m     → expected "spy" to be called 3 times, but got 0 times[39m
+[31m   [33m❯[31m src/__tests__/integration/multi-order-handling.test.ts[2m > [22mMulti-Order Handling Integration[2m > [22mOrder Queue Management[2m > [22mshould handle order completion flow[39m
+[31m     → expected [ { id: '0', …(8) }, …(9) ] to have a length of 5 but got 10[39m
+[31m   [33m❯[31m src/__tests__/integration/multi-order-handling.test.ts[2m > [22mMulti-Order Handling Integration[2m > [22mReal-time Updates with Multiple Orders[2m > [22mshould maintain order consistency with rapid events[39m
+[31m     → expected 1 to be 3 // Object.is equality[39m
+[31m   [33m❯[31m src/__tests__/integration/multi-order-handling.test.ts[2m > [22mMulti-Order Handling Integration[2m > [22mMemory Management[2m > [22mshould handle large order sets without memory issues[39m
+[31m     → expected 366 to be 500 // Object.is equality[39m
+[90mstdout[2m | src/stores/__tests__/orders.test.ts[2m > [22m[2mOrders Store[2m > [22m[2mFetch Orders[2m > [22m[2mshould fetch and load orders successfully[22m[39m
+Loaded 2 orders for restaurant 1
+
+[90mstdout[2m | src/stores/__tests__/orders.test.ts[2m > [22m[2mOrders Store[2m > [22m[2mSSE Event Handling[2m > [22m[2mshould handle NEW_ORDER event[22m[39m
+New order added: ORD-new-1
+
+ [33m❯[39m src/stores/__tests__/orders.test.ts [2m ([22m[2m19 tests[22m [2m|[22m [31m4 failed[39m[2m)[22m[90m 212[2mms[22m[39m
+[31m   [33m❯[31m src/stores/__tests__/orders.test.ts[2m > [22mOrders Store[2m > [22mOrder Updates[2m > [22mshould update order status[39m
+[31m     → expected "spy" to be called with arguments: [ '1', 2 ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33m❯[31m src/stores/__tests__/orders.test.ts[2m > [22mOrders Store[2m > [22mOrder Updates[2m > [22mshould update item status[39m
+[31m     → expected "spy" to be called with arguments: [ 'item-1', 'preparing' ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33m❯[31m src/stores/__tests__/orders.test.ts[2m > [22mOrders Store[2m > [22mSSE Event Handling[2m > [22mshould handle ORDER_STATUS_UPDATE event[39m
+[31m     → expected 1 to be 2 // Object.is equality[39m
+[31m   [33m❯[31m src/stores/__tests__/orders.test.ts[2m > [22mOrders Store[2m > [22mSSE Event Handling[2m > [22mshould handle ORDER_CANCELLED event[39m
+[31m     → expected [ Array(2) ] to have a length of 1 but got 2[39m
+ [33m❯[39m src/__tests__/integration/notification-system.test.ts [2m ([22m[2m16 tests[22m [2m|[22m [31m1 failed[39m[2m)[22m[90m 85[2mms[22m[39m
+[31m   [33m❯[31m src/__tests__/integration/notification-system.test.ts[2m > [22mNotification System Integration[2m > [22mNotification Persistence[2m > [22mshould load notification settings from localStorage[39m
+[31m     → expected 0.7 to be 0.6 // Object.is equality[39m
+[90mstdout[2m | tests/integration/offline-sync-integration.test.ts[2m > [22m[2mOffline Sync Integration Tests[2m > [22m[2mSynchronization Process[2m > [22m[2mshould handle sync failures with retry[22m[39m
+Simulating API call for action start_cooking
+
+ [33m❯[39m tests/integration/offline-sync-integration.test.ts [2m ([22m[2m22 tests[22m [2m|[22m [31m12 failed[39m[2m)[22m[33m 20390[2mms[22m[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Service Integration[2m > [22mshould handle going offline[39m
+[31m     → expected true to be false // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Service Integration[2m > [22mshould handle coming back online[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mSynchronization Process[2m > [22mshould sync pending actions when online[39m
+[31m     → expected 2 to be +0 // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mSynchronization Process[2m > [22mshould handle sync failures with retry[39m
+[31m     → expected +0 to be 1 // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mSynchronization Process[2m > [22mshould handle sync conflicts[39m
+[31m     → expected +0 to be 1 // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Status Component Integration[2m > [22mshould display offline status correctly[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Status Component Integration[2m > [22mshould show sync progress[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Status Component Integration[2m > [22mshould handle manual sync trigger[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Status Component Integration[2m > [22mshould display conflict resolution UI[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould handle network timeouts gracefully[39m
+[31m     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mPerformance and Scalability[2m > [22mshould handle large numbers of pending actions[39m
+[31m     → expected 19909 to be less than 1000[39m
+[31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mPerformance and Scalability[2m > [22mshould efficiently batch sync operations[39m
+[31m     → expected "spy" to be called 10 times, but got 1 times[39m
+[90mstdout[2m | tests/integration/offline-sync-integration.test.ts[22m[39m
+Simulating API call for action start_cooking
+
+ [32m✓[39m src/__tests__/integration/offline-mode.test.ts [2m ([22m[2m12 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/stores/__tests__/auth.test.ts [2m ([22m[2m10 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/components/stats/__tests__/OrderStats.test.ts [2m ([22m[2m16 tests[22m[2m)[22m[90m 259[2mms[22m[39m
+ [32m✓[39m src/composables/__tests__/useRealtimeKitchen.test.ts [2m ([22m[2m13 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/__tests__/unit/components/OrderStatusBadge.test.ts [2m ([22m[2m14 tests[22m[2m)[22m[90m 190[2mms[22m[39m
+ [32m✓[39m src/stores/__tests__/settings.test.ts [2m ([22m[2m10 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ ELIFECYCLE  Test failed. See above for more details.

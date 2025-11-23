@@ -394,7 +394,7 @@ const testSound = async (soundType: string) => {
     await enhancedAudioService.playSound(soundType as any, {
       priority: "medium",
     });
-  } catch (error) {
+  } catch {
     toast.error("音效測試失敗");
   }
 };
@@ -492,7 +492,7 @@ const importSettings = (event: Event) => {
 
       updateSettings();
       toast.success("設定已匯入");
-    } catch (error) {
+    } catch {
       toast.error("匯入失敗：無效的設定檔案");
     }
   };

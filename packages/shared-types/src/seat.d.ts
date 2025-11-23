@@ -227,3 +227,4 @@ export interface SeatError {
     message: string;
     details?: any;
 }
+//# sourceMappingURL=seat.d.ts.map

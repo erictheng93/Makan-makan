@@ -24,7 +24,7 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
     const authHeader = c.req.header('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return c.json({ error: 'Missing or invalid authorization header' }, 401)
+      return c.json({ success: false, error: 'Missing or invalid authorization header' }, 401)
     }
 
     const token = authHeader.substring(7) // 移除 "Bearer " 前綴
@@ -32,21 +32,21 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
     // 檢查 JWT_SECRET 是否設置且符合安全要求
     if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
       console.error('JWT_SECRET is not set or too short (minimum 32 characters required)')
-      return c.json({ error: 'Server configuration error' }, 500)
+      return c.json({ success: false, error: 'Server configuration error' }, 500)
     }
 
     // 檢查 token 是否在黑名單中 (如果 KV 可用)
     if (c.env.TOKEN_BLACKLIST) {
       const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`)
       if (blacklisted) {
-        return c.json({ error: 'Token has been invalidated' }, 401)
+        return c.json({ success: false, error: 'Token has been invalidated' }, 401)
       }
     }
 
     const decoded = await verify(token, c.env.JWT_SECRET) as any
 
     if (!decoded || typeof decoded !== 'object') {
-      return c.json({ error: 'Invalid token' }, 401)
+      return c.json({ success: false, error: 'Invalid token' }, 401)
     }
 
     // Enhanced JWT validation checks
@@ -54,34 +54,34 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
     
     // Check token expiration
     if (!decoded.exp || decoded.exp <= now) {
-      return c.json({ error: 'Token has expired' }, 401)
+      return c.json({ success: false, error: 'Token has expired' }, 401)
     }
     
     // Check token issued at time (prevent future tokens)
     if (decoded.iat && decoded.iat > now + 60) { // Allow 60 second clock skew
-      return c.json({ error: 'Token issued in future' }, 401)
+      return c.json({ success: false, error: 'Token issued in future' }, 401)
     }
     
     // Check not before claim
     if (decoded.nbf && decoded.nbf > now + 60) { // Allow 60 second clock skew
-      return c.json({ error: 'Token not yet valid' }, 401)
+      return c.json({ success: false, error: 'Token not yet valid' }, 401)
     }
     
     // Validate required claims
     if (!decoded.id || !decoded.username || typeof decoded.role !== 'number') {
-      return c.json({ error: 'Invalid token claims' }, 401)
+      return c.json({ success: false, error: 'Invalid token claims' }, 401)
     }
     
     // Validate role is within expected range (0-4)
     if (decoded.role < 0 || decoded.role > 4) {
-      return c.json({ error: 'Invalid role in token' }, 401)
+      return c.json({ success: false, error: 'Invalid role in token' }, 401)
     }
     
     // Check token age (reject tokens older than 24 hours without refresh)
     const tokenAge = now - (decoded.iat || 0)
     const maxTokenAge = 24 * 60 * 60 // 24 hours
     if (tokenAge > maxTokenAge) {
-      return c.json({ error: 'Token too old, please refresh' }, 401)
+      return c.json({ success: false, error: 'Token too old, please refresh' }, 401)
     }
     
     // Check if token is about to expire (recommend refresh within 1 hour)
@@ -104,12 +104,12 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
     console.error('Auth middleware error:', error)
     // 提供更詳細的錯誤資訊用於調試 (但不暴露給客戶端)
     if (error && typeof error === 'object' && 'name' in error && error.name === 'JwtTokenExpired') {
-      return c.json({ error: 'Token has expired' }, 401)
+      return c.json({ success: false, error: 'Token has expired' }, 401)
     }
     if (error && typeof error === 'object' && 'name' in error && error.name === 'JwtTokenInvalid') {
-      return c.json({ error: 'Invalid token format' }, 401)
+      return c.json({ success: false, error: 'Invalid token format' }, 401)
     }
-    return c.json({ error: 'Authentication failed' }, 401)
+    return c.json({ success: false, error: 'Authentication failed' }, 401)
   }
 }
 
@@ -119,11 +119,11 @@ export const requireRole = (allowedRoles: number[]) => {
     const user = c.get('user')
     
     if (!user) {
-      return c.json({ error: 'Authentication required' }, 401)
+      return c.json({ success: false, error: 'Authentication required' }, 401)
     }
 
     if (!allowedRoles.includes(user.role)) {
-      return c.json({ error: 'Insufficient permissions' }, 403)
+      return c.json({ success: false, error: 'Insufficient permissions' }, 403)
     }
 
     await next()
@@ -137,7 +137,7 @@ export const requireRestaurantAccess = (restaurantIdParam: string = 'restaurantI
     const restaurantId = parseInt(c.req.param(restaurantIdParam))
     
     if (!user) {
-      return c.json({ error: 'Authentication required' }, 401)
+      return c.json({ success: false, error: 'Authentication required' }, 401)
     }
 
     // 管理員可以存取所有餐廳
@@ -148,7 +148,7 @@ export const requireRestaurantAccess = (restaurantIdParam: string = 'restaurantI
 
     // 檢查是否有餐廳存取權限
     if (!user.restaurantId || user.restaurantId !== restaurantId) {
-      return c.json({ error: 'Access denied to this restaurant' }, 403)
+      return c.json({ success: false, error: 'Access denied to this restaurant' }, 403)
     }
 
     await next()
@@ -204,7 +204,7 @@ export const optionalAuth = async (c: Context<{ Bindings: Env }>, next: Next) =>
     }
 
     await next()
-  } catch (error) {
+  } catch {
     // 忽略認證錯誤，繼續執行
     await next()
   }

@@ -7,7 +7,7 @@
 
 // In-memory data store
 const tables = new Map<string, Map<number, any>>()
-let autoIncrementCounters = new Map<string, number>()
+const autoIncrementCounters = new Map<string, number>()
 
 /**
  * Reset all test data

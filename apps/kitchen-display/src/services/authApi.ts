@@ -46,7 +46,7 @@ api.interceptors.response.use(
           original.headers.Authorization = `Bearer ${newToken}`;
           return api(original);
         }
-      } catch (refreshError) {
+      } catch {
         // 刷新失敗，清除認證信息並跳轉到登入頁
         localStorage.removeItem("kitchen_auth_token");
         localStorage.removeItem("kitchen_user");

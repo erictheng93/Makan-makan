@@ -1,0 +1,100 @@
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+
+ [33m❯[39m tests/integration/performance-integration.test.ts [2m ([22m[2m25 tests[22m [2m|[22m [31m17 failed[39m[2m)[22m[33m 141713[2mms[22m[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Service Integration[2m > [22mshould calculate statistics correctly[39m
+[31m     → performanceService.calculateStatistics is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Service Integration[2m > [22mshould detect performance thresholds[39m
+[31m     → performanceService.setThreshold is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould display real-time metrics[39m
+[31m     → expected 0 to be greater than 0[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould show performance charts[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould filter metrics by category[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould export performance reports[39m
+[31m     → Cannot call trigger on an empty DOMWrapper.[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Monitoring Integration[2m > [22mshould monitor page load performance[39m
+[31m     → performanceService.collectWebVitals is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Monitoring Integration[2m > [22mshould track resource loading times[39m
+[31m     → Cannot read properties of undefined (reading 'name')[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Monitoring Integration[2m > [22mshould monitor user interactions[39m
+[31m     → performanceService.recordUserInteraction is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mAlert and Notification System[2m > [22mshould trigger alerts for critical thresholds[39m
+[31m     → performanceService.setThreshold is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mAlert and Notification System[2m > [22mshould provide performance recommendations[39m
+[31m     → performanceService.getRecommendations is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mData Persistence and Reporting[2m > [22mshould persist performance data[39m
+[31m     → Cannot read properties of null (reading 'length')[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mData Persistence and Reporting[2m > [22mshould generate time-based reports[39m
+[31m     → expected undefined to be '24h' // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mData Persistence and Reporting[2m > [22mshould cleanup old metrics data[39m
+[31m     → performanceService.cleanupOldMetrics is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mError Handling and Edge Cases[2m > [22mshould handle PerformanceObserver not supported[39m
+[31m     → expected true to be false // Object.is equality[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Optimization[2m > [22mshould efficiently process large datasets[39m
+[31m     → performanceService.calculateStatistics is not a function[39m
+[31m   [33m❯[31m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Optimization[2m > [22mshould batch metric collections efficiently[39m
+[31m     → performanceService.collectWebVitals is not a function[39m
+
+[31m⎯⎯⎯⎯⎯⎯[1m[7m Failed Tests 17 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Service Integration[2m > [22mshould calculate statistics correctly
+[31m[1mTypeError[22m: performanceService.calculateStatistics is not a function[39m
+[36m [2m❯[22m tests/integration/performance-integration.test.ts:[2m108:40[22m[39m
+    [90m106| [39m      })[33m;[39m
+    [90m107| [39m
+    [90m108| [39m      [35mconst[39m stats [33m=[39m performanceService[33m.[39m[34mcalculateStatistics[39m([32m"response_t[39m…
+    [90m   | [39m                                       [31m^[39m
+    [90m109| [39m
+    [90m110| [39m      [34mexpect[39m(stats[33m.[39mmean)[33m.[39m[34mtoBe[39m([34m271.43[39m)[33m;[39m [90m// Average[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Service Integration[2m > [22mshould detect performance thresholds
+[31m[1mTypeError[22m: performanceService.setThreshold is not a function[39m
+[36m [2m❯[22m tests/integration/performance-integration.test.ts:[2m120:26[22m[39m
+    [90m118| [39m
+    [90m119| [39m      [90m// Set threshold[39m
+    [90m120| [39m      performanceService[33m.[39m[34msetThreshold[39m([32m"api_response_time"[39m[33m,[39m [34m200[39m[33m,[39m [32m"warni[39m…
+    [90m   | [39m                         [31m^[39m
+    [90m121| [39m
+    [90m122| [39m      [90m// Record metrics that exceed threshold[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould display real-time metrics
+[31m[1mAssertionError[22m: expected 0 to be greater than 0[39m
+[36m [2m❯[22m tests/integration/performance-integration.test.ts:[2m185:34[22m[39m
+    [90m183| [39m      [90m// Should display metric cards[39m
+    [90m184| [39m      [35mconst[39m metricCards [33m=[39m wrapper[33m.[39m[34mfindAll[39m([32m'[data-testid="metric-card"][39m…
+    [90m185| [39m      [34mexpect[39m(metricCards[33m.[39mlength)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                                 [31m^[39m
+    [90m186| [39m    })[33m;[39m
+    [90m187| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould show performance charts
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/integration/performance-integration.test.ts:[2m206:74[22m[39m
+    [90m204| [39m      [35mawait[39m [34mnextTick[39m()[33m;[39m
+    [90m205| [39m
+    [90m206| [39m      [34mexpect[39m(wrapper[33m.[39m[34mfind[39m([32m'[data-testid="performance-chart"]'[39m)[33m.[39m[34mexists[39m(…
+    [90m   | [39m                                                                         [31m^[39m
+    [90m207| [39m        [35mtrue[39m[33m,[39m
+    [90m208| [39m      )[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/integration/performance-integration.test.ts[2m > [22mPerformance Integration Tests[2m > [22mPerformance Dashboard Integration[2m > [22mshould filter metrics by category
+[31m[1mError[22m: Cannot call trigger on an empty DOMWrapper.[39m
+[36m [2m❯[22m Object.get ../../node_modules/.pnpm/@vue+test-utils@2.4.6/node_modules/@vue/test-utils/dist/vue-test-utils.cjs.js:[2m1574:27[22m[39m
+    [90m1572| [39m                    return function () { return false; };

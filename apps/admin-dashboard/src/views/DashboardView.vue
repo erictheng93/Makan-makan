@@ -60,7 +60,7 @@
       <RealtimeNotificationPanel />
     </div>
 
-    <!-- Charts Section -->
+    <!-- Charts Section - 🚀 使用懶加載優化 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Revenue Chart -->
       <div class="card p-6">
@@ -76,11 +76,14 @@
             <option value="monthly">本月</option>
           </select>
         </div>
-        <RevenueChart
-          :data="revenueChart as any"
-          :loading="isLoading"
-          :period="revenueChartPeriod as 'daily' | 'weekly' | 'monthly'"
-        />
+        <!-- 懶加載：只在可見時渲染圖表 -->
+        <LazyChart min-height="300px" loading-text="載入營收圖表...">
+          <RevenueChart
+            :data="revenueChart as any"
+            :loading="isLoading"
+            :period="revenueChartPeriod as 'daily' | 'weekly' | 'monthly'"
+          />
+        </LazyChart>
       </div>
 
       <!-- Orders Chart -->
@@ -97,21 +100,27 @@
             <option value="monthly">本月</option>
           </select>
         </div>
-        <OrdersChart
-          :data="ordersChart as any"
-          :loading="isLoading"
-          :period="ordersChartPeriod as 'daily' | 'weekly' | 'monthly'"
-        />
+        <!-- 懶加載：只在可見時渲染圖表 -->
+        <LazyChart min-height="300px" loading-text="載入訂單圖表...">
+          <OrdersChart
+            :data="ordersChart as any"
+            :loading="isLoading"
+            :period="ordersChartPeriod as 'daily' | 'weekly' | 'monthly'"
+          />
+        </LazyChart>
       </div>
     </div>
 
-    <!-- Recent Activity Section -->
+    <!-- Recent Activity Section - 🚀 使用懶加載優化 -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Top Menu Items -->
       <div class="lg:col-span-2">
         <div class="card p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門菜品</h3>
-          <TopMenuItems :items="topMenuItems as any" :loading="isLoading" />
+          <!-- 懶加載：只在可見時渲染 -->
+          <LazyChart min-height="200px" loading-text="載入熱門菜品...">
+            <TopMenuItems :items="topMenuItems as any" :loading="isLoading" />
+          </LazyChart>
         </div>
       </div>
 
@@ -220,6 +229,9 @@ import OrdersChart from "@/components/dashboard/OrdersChart.vue";
 import TopMenuItems from "@/components/dashboard/TopMenuItems.vue";
 import RecentOrders from "@/components/dashboard/RecentOrders.vue";
 import RealtimeNotificationPanel from "@/components/RealtimeNotificationPanel.vue";
+
+// 🚀 懶加載優化：只加載可見的圖表
+import LazyChart from "@/components/LazyChart.vue";
 
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();

@@ -3,6 +3,7 @@
  */
 
 import { BaseService } from '../../../shared/services/BaseService'
+import { getCurrentTimestamp } from '@makanmakan/database'
 
 export class ReportService extends BaseService {
   constructor(db: any) {
@@ -103,18 +104,20 @@ export class ReportService extends BaseService {
 
       // 保存報表
       const reportId = crypto.randomUUID()
+      const generatedAt = getCurrentTimestamp()
       await this.d1.prepare(`
         INSERT INTO shift_reports (
           id, shift_id, register_id, operator_id, report_data,
           summary_data, generated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         reportId,
         shiftId,
         shift.register_id,
         shift.operator_id,
         JSON.stringify(reportData),
-        JSON.stringify(reportData.summary)
+        JSON.stringify(reportData.summary),
+        generatedAt
       ).run()
 
       return {

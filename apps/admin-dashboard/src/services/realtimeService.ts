@@ -359,7 +359,7 @@ class RealtimeService {
         },
       });
       return response.ok;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -370,7 +370,7 @@ class RealtimeService {
       const response = await fetch("/api/v1/sse/time");
       const data = await response.json();
       return new Date(data.timestamp);
-    } catch (error) {
+    } catch {
       return new Date(); // 退回到客戶端時間
     }
   }

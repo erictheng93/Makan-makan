@@ -1,0 +1,7 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OrderStatusBadge.vue > 快照測試 > pending 狀態快照應該匹配 1`] = `"<span class="status-badge status-pending" data-testid="status-badge">待處理</span>"`;
+
+exports[`OrderStatusBadge.vue > 快照測試 > preparing 狀態快照應該匹配 1`] = `"<span class="status-badge status-preparing" data-testid="status-badge">製作中</span>"`;
+
+exports[`OrderStatusBadge.vue > 快照測試 > ready 狀態快照應該匹配 1`] = `"<span class="status-badge status-ready" data-testid="status-badge">已完成</span>"`;

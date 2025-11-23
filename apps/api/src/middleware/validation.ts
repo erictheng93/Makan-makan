@@ -11,6 +11,7 @@ export const handleValidationError = (error: z.ZodError) => {
   }))
 
   return {
+    success: false,
     error: 'Validation failed',
     details: errors
   }
@@ -30,8 +31,8 @@ export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
       if (error instanceof z.ZodError) {
         return c.json(handleValidationError(error), 400)
       }
-      
-      return c.json({ error: 'Invalid JSON body' }, 400)
+
+      return c.json({ success: false, error: 'Invalid JSON body' }, 400)
     }
   }
 }
@@ -49,8 +50,8 @@ export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
       if (error instanceof z.ZodError) {
         return c.json(handleValidationError(error), 400)
       }
-      
-      return c.json({ error: 'Invalid query parameters' }, 400)
+
+      return c.json({ success: false, error: 'Invalid query parameters' }, 400)
     }
   }
 }
@@ -68,8 +69,8 @@ export const validateParams = <T = any>(schema: z.ZodType<T, any, any>) => {
       if (error instanceof z.ZodError) {
         return c.json(handleValidationError(error), 400)
       }
-      
-      return c.json({ error: 'Invalid path parameters' }, 400)
+
+      return c.json({ success: false, error: 'Invalid path parameters' }, 400)
     }
   }
 }

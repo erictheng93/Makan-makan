@@ -145,4 +145,4 @@ scenarios:
         count: 100
 
 # 自定義函式（需要在 processor.js 中實作）
-processor: "./artillery-processor.js"
+processor: "./tests/performance/artillery-processor.js"

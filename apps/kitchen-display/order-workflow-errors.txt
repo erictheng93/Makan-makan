@@ -1,0 +1,38 @@
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mReal-time Updates[2m > [22m[2mshould add new order from SSE event[22m[39m
+New order added: ORD-NEW
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mPerformance Metrics[2m > [22m[2mshould track average cooking time[22m[39m
+Loaded 0 orders for restaurant 1
+
+[90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mPerformance Metrics[2m > [22m[2mshould track orders completed today[22m[39m
+Loaded 0 orders for restaurant 1
+
+ [33m❯[39m src/__tests__/integration/order-workflow.test.ts [2m ([22m[2m12 tests[22m [2m|[22m [31m6 failed[39m[2m)[22m[90m 50[2mms[22m[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mComplete Order Lifecycle[2m > [22mshould handle order from pending to completed[39m
+[31m     → expected "spy" to be called 3 times, but got 0 times[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mComplete Order Lifecycle[2m > [22mshould handle item-level status updates[39m
+[31m     → expected "spy" to be called with arguments: [ 'item-1', 'preparing' ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mMulti-Order Processing[2m > [22mshould handle multiple concurrent orders[39m
+[31m     → expected [ { id: 'ord-0', …(8) }, …(9) ] to have a length of 5 but got 10[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mError Recovery[2m > [22mshould handle failed status updates gracefully[39m
+[31m     → You must provide a Promise to expect() when using .rejects, not 'undefined'.[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mReal-time Updates[2m > [22mshould update order status from SSE event[39m
+[31m     → expected 1 to be 2 // Object.is equality[39m
+[31m   [33m❯[31m src/__tests__/integration/order-workflow.test.ts[2m > [22mOrder Workflow Integration[2m > [22mReal-time Updates[2m > [22mshould remove cancelled order from SSE event[39m
+[31m     → expected [ { id: 'ord-1', …(8) } ] to have a length of +0 but got 1[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 18:53:11
+[2m   Duration [22m 2.27s[2m (transform 135ms, setup 268ms, collect 102ms, tests 50ms, environment 899ms, prepare 488ms)[22m
+

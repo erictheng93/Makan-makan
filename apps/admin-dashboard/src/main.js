@@ -4,7 +4,7 @@ import { router } from "./router";
 import App from "./App.vue";
 import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
-import i18n from "./i18n";
+import i18n from "./i18n/plugin";
 import "./assets/css/main.css";
 const app = createApp(App);
 const pinia = createPinia();

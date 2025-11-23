@@ -201,9 +201,10 @@ app.get('/:restaurantId/events', authMiddleware, async (c) => {
 app.get('/:restaurantId/orders', authMiddleware, async (c) => {
   const restaurantId = parseInt(c.req.param('restaurantId'))
   const user = c.get('user')
-  
-  // 驗證權限
-  if (user.role !== 2 || user.restaurantId !== restaurantId) {
+
+  // 驗證權限 - Allow Admin (0), Shop Owner (1), Chef (2), Service Crew (3)
+  const allowedRoles = [0, 1, 2, 3]
+  if (!allowedRoles.includes(user.role) || user.restaurantId !== restaurantId) {
     return c.json({
       success: false,
       error: 'Access denied'

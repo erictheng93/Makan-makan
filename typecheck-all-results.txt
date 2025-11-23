@@ -1,0 +1,116 @@
+
+> makanmakan@2.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan
+> turbo run typecheck
+
+turbo 2.5.8
+
+• Packages in scope: @makanmakan/ai-analytics, @makanmakan/api, @makanmakan/database, @makanmakan/i18n, @makanmakan/image-processor, @makanmakan/print-agent, @makanmakan/queue-core, @makanmakan/queue-service, @makanmakan/realtime, @makanmakan/shared-types, @makanmakan/utils, makanmakan-admin-dashboard, makanmakan-customer-app, makanmakan-kitchen-display
+• Running typecheck in 14 packages
+• Remote caching disabled
+@makanmakan/i18n:typecheck: cache hit, replaying logs bfe14f68fa00df0b
+@makanmakan/shared-types:typecheck: cache hit, replaying logs 0476e7016a90e851
+@makanmakan/shared-types:typecheck: 
+@makanmakan/shared-types:typecheck: > @makanmakan/shared-types@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\shared-types
+@makanmakan/shared-types:typecheck: > tsc --noEmit
+@makanmakan/shared-types:typecheck: 
+@makanmakan/i18n:build: cache hit, replaying logs 4c688b37cc64264b
+@makanmakan/utils:typecheck: cache hit, replaying logs f5c46f91a397d7b8
+@makanmakan/i18n:build: [?9001h[?1004h[?25l[2J[m[H]0;C:\WINDOWS\system32\cmd.exe [?25h[?25l
+@makanmakan/i18n:build: > @makanmakan/i18n@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\shared\src\i18n
+@makanmakan/i18n:build: > tsc[5;1H[?25h[?9001l[?1004l
+@makanmakan/utils:typecheck: 
+@makanmakan/utils:typecheck: > @makanmakan/utils@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\utils
+@makanmakan/utils:typecheck: > tsc --noEmit
+@makanmakan/utils:typecheck: 
+makanmakan-kitchen-display:typecheck: cache hit, replaying logs 8cc1cf20d36a85f3
+makanmakan-kitchen-display:typecheck: 
+makanmakan-kitchen-display:typecheck: > makanmakan-kitchen-display@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display
+makanmakan-kitchen-display:typecheck: > vue-tsc --noEmit
+makanmakan-kitchen-display:typecheck: 
+@makanmakan/i18n:typecheck: 
+@makanmakan/i18n:typecheck: > @makanmakan/i18n@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\shared\src\i18n
+@makanmakan/i18n:typecheck: > tsc --noEmit
+@makanmakan/i18n:typecheck: 
+@makanmakan/shared-types:build: cache hit, replaying logs c73342009f3ee4c7
+@makanmakan/shared-types:build: 
+@makanmakan/shared-types:build: > @makanmakan/shared-types@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\shared-types
+@makanmakan/shared-types:build: > tsc
+@makanmakan/shared-types:build: 
+@makanmakan/queue-core:typecheck: cache hit, replaying logs 491a30d9985cfe58
+@makanmakan/queue-core:typecheck: 
+@makanmakan/queue-core:typecheck: > @makanmakan/queue-core@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\queue-core
+@makanmakan/queue-core:typecheck: > tsc --noEmit
+@makanmakan/queue-core:typecheck: 
+@makanmakan/realtime:typecheck: cache hit, replaying logs 94b3b2d03e3fc2ea
+makanmakan-customer-app:typecheck: cache hit, replaying logs 9ffb788cb8eb5192
+@makanmakan/realtime:typecheck: 
+@makanmakan/realtime:typecheck: > @makanmakan/realtime@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\realtime
+@makanmakan/realtime:typecheck: > tsc --noEmit
+@makanmakan/realtime:typecheck: 
+makanmakan-customer-app:typecheck: 
+makanmakan-customer-app:typecheck: > makanmakan-customer-app@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\customer-app
+makanmakan-customer-app:typecheck: > vue-tsc --noEmit
+makanmakan-customer-app:typecheck: 
+@makanmakan/queue-core:build: cache hit, replaying logs 70a780a6f3fad031
+@makanmakan/queue-core:build: 
+@makanmakan/queue-core:build: > @makanmakan/queue-core@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\queue-core
+@makanmakan/queue-core:build: > tsc
+@makanmakan/queue-core:build: 
+@makanmakan/queue-service:typecheck: cache hit, replaying logs 5996c7e180904013
+@makanmakan/queue-service:build: cache hit, replaying logs a30b423e890c1882
+@makanmakan/queue-service:build: 
+@makanmakan/queue-service:build: > @makanmakan/queue-service@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\queue-service
+@makanmakan/queue-service:build: > tsc
+@makanmakan/queue-service:build: 
+@makanmakan/queue-service:typecheck: 
+@makanmakan/queue-service:typecheck: > @makanmakan/queue-service@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\queue-service
+@makanmakan/queue-service:typecheck: > tsc --noEmit
+@makanmakan/queue-service:typecheck: 
+@makanmakan/database:build: cache hit, replaying logs 9315a77499a5bf25
+@makanmakan/database:build: 
+@makanmakan/database:build: > @makanmakan/database@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database
+@makanmakan/database:build: > tsup
+@makanmakan/database:build: 
+@makanmakan/database:build: [34mCLI[39m Building entry: src/index.ts
+@makanmakan/database:build: [34mCLI[39m Using tsconfig: tsconfig.build.json
+@makanmakan/database:build: [34mCLI[39m tsup v8.5.0
+@makanmakan/database:build: [34mCLI[39m Using tsup config: C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\tsup.config.ts
+@makanmakan/database:build: [34mCLI[39m Target: es2022
+@makanmakan/database:build: [34mCLI[39m Cleaning output folder
+@makanmakan/database:build: [34mESM[39m Build start
+@makanmakan/database:build: [34mCJS[39m Build start
+@makanmakan/database:build: [34mDTS[39m Build start
+@makanmakan/database:build: [32mESM[39m [1mdist\index.mjs     [22m[32m491.34 KB[39m
+@makanmakan/database:build: [32mESM[39m [1mdist\index.mjs.map [22m[32m1.06 MB[39m
+@makanmakan/database:build: [32mESM[39m ⚡️ Build success in 9121ms
+@makanmakan/database:build: [32mCJS[39m [1mdist\index.js     [22m[32m536.73 KB[39m
+@makanmakan/database:build: [32mCJS[39m [1mdist\index.js.map [22m[32m1.07 MB[39m
+@makanmakan/database:build: [32mCJS[39m ⚡️ Build success in 9121ms
+@makanmakan/database:build: [32mDTS[39m ⚡️ Build success in 41008ms
+@makanmakan/database:build: [32mDTS[39m [1mdist\index.d.mts [22m[32m599.55 KB[39m
+@makanmakan/database:build: [32mDTS[39m [1mdist\index.d.ts  [22m[32m599.55 KB[39m
+@makanmakan/ai-analytics:typecheck: cache hit, replaying logs bd34ab343a3c1f70
+@makanmakan/ai-analytics:typecheck: 
+@makanmakan/ai-analytics:typecheck: > @makanmakan/ai-analytics@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\ai-analytics
+@makanmakan/ai-analytics:typecheck: > tsc --noEmit
+@makanmakan/ai-analytics:typecheck: 
+@makanmakan/ai-analytics:build: cache hit, replaying logs 08fa5aa0a7ff594a
+@makanmakan/ai-analytics:build: 
+@makanmakan/ai-analytics:build: > @makanmakan/ai-analytics@1.0.0 build C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\ai-analytics
+@makanmakan/ai-analytics:build: > tsc
+@makanmakan/ai-analytics:build: 
+makanmakan-admin-dashboard:typecheck: cache hit, replaying logs 853343ea640049e5
+@makanmakan/api:typecheck: cache hit, replaying logs f15a390e691b822c
+makanmakan-admin-dashboard:typecheck: 
+makanmakan-admin-dashboard:typecheck: > makanmakan-admin-dashboard@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\admin-dashboard
+makanmakan-admin-dashboard:typecheck: > vue-tsc --noEmit
+makanmakan-admin-dashboard:typecheck: 
+@makanmakan/api:typecheck: 
+@makanmakan/api:typecheck: > @makanmakan/api@1.0.0 typecheck C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api
+@makanmakan/api:typecheck: > tsc --noEmit
+@makanmakan/api:typecheck: 
+
+ Tasks:    17 successful, 17 total
+Cached:    17 cached, 17 total
+  Time:    1.264s >>> FULL TURBO
+

@@ -1,0 +1,16 @@
+# 測試 Processor 是否被執行的最小配置
+config:
+  target: "ws://localhost:8788"
+  phases:
+    - duration: 10
+      arrivalRate: 1
+      name: "Test processor"
+
+scenarios:
+  - name: "Processor Test"
+    engine: ws
+    flow:
+      - function: "getKitchenToken"
+      - think: 5
+
+processor: "./artillery-processor.js"

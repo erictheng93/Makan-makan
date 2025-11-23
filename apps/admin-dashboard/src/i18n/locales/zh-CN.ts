@@ -439,6 +439,195 @@ const zhCN: Messages = {
     }
   },
 
+  // 系统监控
+  monitoring: {
+    title: '系统监控',
+    subtitle: '实时监控系统健康状态、性能指标与警报',
+
+    // 按钮与操作
+    actions: {
+      refresh: '立即更新',
+      refreshing: '更新中...',
+      autoRefresh: '自动更新',
+      manualRefresh: '手动更新',
+      createAlertRule: '新增警报规则',
+      testAlert: '测试警报',
+      resetMetrics: '重置指标',
+      exportReport: '导出报告'
+    },
+
+    // 健康状态
+    health: {
+      overall: '整体健康状态',
+      score: '健康分数',
+      uptime: '系统运行时间',
+      lastUpdate: '最后更新',
+      status: {
+        healthy: '健康',
+        warning: '警告',
+        critical: '严重',
+        down: '离线'
+      }
+    },
+
+    // 关键指标
+    keyMetrics: {
+      title: '关键指标',
+      requestsPerMinute: '每分钟请求数',
+      averageResponseTime: '平均响应时间',
+      cacheHitRate: '缓存命中率',
+      activeErrors: '活动错误'
+    },
+
+    // 组件状态
+    components: {
+      title: '系统组件状态',
+      api: 'API 服务',
+      database: '数据库',
+      cache: '缓存服务',
+      external: '外部服务',
+      status: '状态',
+      latency: '延迟',
+      healthy: '正常',
+      issues: '问题'
+    },
+
+    // 标签页
+    tabs: {
+      alerts: '警报规则',
+      performance: '性能报告',
+      errors: '错误分析'
+    },
+
+    // 警报规则
+    alerts: {
+      title: '警报规则',
+      noAlerts: '暂无警报规则',
+      createFirst: '创建第一个警报规则来监控系统状态',
+      rule: {
+        name: '规则名称',
+        type: '警报类型',
+        severity: '严重程度',
+        threshold: '阈值',
+        enabled: '启用',
+        disabled: '停用',
+        lastTriggered: '最后触发',
+        actions: '操作'
+      },
+      severity: {
+        info: '信息',
+        warning: '警告',
+        critical: '严重',
+        fatal: '致命'
+      },
+      actions: {
+        enable: '启用',
+        disable: '停用',
+        edit: '编辑',
+        delete: '删除',
+        test: '测试'
+      },
+      messages: {
+        enabled: '警报规则已启用',
+        disabled: '警报规则已停用',
+        deleted: '警报规则已删除',
+        deleteConfirm: '确定要删除这个警报规则吗？'
+      }
+    },
+
+    // 性能报告
+    performance: {
+      title: '性能报告',
+      selectPeriod: '选择时间范围',
+      last1Day: '最近 1 天',
+      last7Days: '最近 7 天',
+      last30Days: '最近 30 天',
+
+      api: {
+        title: 'API 性能',
+        totalRequests: '总请求数',
+        averageResponseTime: '平均响应时间',
+        p95ResponseTime: 'P95 响应时间',
+        errorRate: '错误率'
+      },
+
+      database: {
+        title: '数据库性能',
+        totalQueries: '总查询数',
+        averageQueryTime: '平均查询时间',
+        slowQueries: '慢查询数',
+        queryErrorRate: '查询错误率'
+      },
+
+      cache: {
+        title: '缓存性能',
+        hitRate: '命中率',
+        totalKeys: '缓存键总数',
+        totalSize: '缓存大小',
+        expiringKeys: '即将过期'
+      },
+
+      charts: {
+        trendComparison: '性能趋势对比（最近24小时）',
+        cacheHitRate: '缓存命中率趋势（最近24小时）',
+        apiResponseTime: 'API 响应时间',
+        dbQueryTime: '数据库查询时间'
+      },
+
+      recommendations: {
+        title: '优化建议',
+        loading: '加载性能报告中...'
+      }
+    },
+
+    // 错误分析
+    errors: {
+      title: '错误分析',
+      statistics: '错误类型统计',
+      details: '错误详情',
+      noErrors: '暂无错误记录',
+      systemRunningNormally: '系统运行正常',
+      occurredTimes: '发生次数',
+      errorCount: '错误次数'
+    },
+
+    // 实时警报
+    realtime: {
+      title: '实时警报',
+      connectionStatus: {
+        connected: '已连接到警报系统',
+        reconnecting: '重新连接中',
+        disconnected: '未连接',
+        reconnect: '重新连接'
+      },
+      noAlerts: '没有警报',
+      systemNormal: '系统运行正常',
+      soundEnabled: '关闭声音',
+      soundDisabled: '开启声音',
+      clearAll: '清除全部',
+      acknowledged: '已确认',
+      currentValue: '当前值',
+      threshold: '阈值',
+      justNow: '刚才',
+      minutesAgo: '{count} 分钟前',
+      hoursAgo: '{count} 小时前'
+    },
+
+    // 通知消息
+    notifications: {
+      dataUpdated: '监控数据已更新',
+      updateFailed: '更新监控数据失败',
+      alertAcknowledged: '警报已确认',
+      alertsCleared: '已清除所有警报',
+      reconnecting: '重新连接中...',
+      connectionFailed: '无法连接到警报系统',
+      loadingFailed: '加载监控数据失败',
+      performanceReportFailed: '加载性能报告失败',
+      autoRefreshEnabled: '已启用自动更新',
+      autoRefreshDisabled: '已停用自动更新'
+    }
+  },
+
   // 页面标题与导航
   header: {
     title: 'MakanMakan 管理后台',

@@ -12,8 +12,7 @@ import {
   ReservationStatus,
   type CreateReservationRequest,
   type UpdateReservationRequest,
-  type ReservationFilters,
-  type AvailabilityRequest
+  type ReservationFilters
 } from '@makanmakan/shared-types';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
