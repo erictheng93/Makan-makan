@@ -25,6 +25,7 @@ export { WaitingListService } from './WaitingListService'
 export { NotificationService } from './NotificationService'
 export { ExportService } from './ExportService'
 export { LeaveAnalyticsService } from './LeaveAnalyticsService'
+export { PartnershipService } from './PartnershipService'
 export { VerificationService } from './VerificationService'
 
 // 匯出類型定義
@@ -128,3 +129,12 @@ export type {
   LeaveRequestFilters,
   LeaveBalanceAdjustment
 } from './LeaveService'
+
+export type {
+  PartnershipFilters,
+  PlanFilters,
+  MemberFilters,
+  PlanValidationResult,
+  MemberVerificationRequest,
+  UsageStatistics
+} from './PartnershipService'
