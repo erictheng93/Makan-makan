@@ -76,6 +76,8 @@ import waitingListFeature from './features/waiting-list'
 import realtimeRoutes from './features/realtime/routes'
 // Notification system feature
 import notificationsRoutes from './features/notifications/routes'
+// Verification system (password reset, email/phone verification)
+import verificationRoutes from './routes/verification'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
 import type { Env } from './types/env'
 
@@ -247,6 +249,7 @@ const apiV1 = new Hono<{ Bindings: Env }>()
 // Attach CSRF tokens to auth responses
 apiV1.use('/auth/*', attachCSRFToken())
 apiV1.route('/auth', authFeature.routes)
+apiV1.route('/auth', verificationRoutes) // Password reset, email/phone verification
 // apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
 apiV1.route('/qr', qrCodesFeature.routes)
 apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)

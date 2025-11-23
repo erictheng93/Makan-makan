@@ -25,6 +25,7 @@ export { WaitingListService } from './WaitingListService'
 export { NotificationService } from './NotificationService'
 export { ExportService } from './ExportService'
 export { LeaveAnalyticsService } from './LeaveAnalyticsService'
+export { VerificationService } from './VerificationService'
 
 // 匯出類型定義
 export type { 
