@@ -367,14 +367,14 @@ describe('Reconnection Strategy', () => {
           eventId: 'event-001',
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any
         },
         {
           type: RealtimeEventType.ORDER_STATUS_UPDATE,
           eventId: 'event-002',
           timestamp: Date.now(),
           restaurantId: 'restaurant-123',
-          data: {}
+          data: {} as any
         }
       ]
 
@@ -394,11 +394,11 @@ describe('Reconnection Strategy', () => {
 
       // Available events on server
       const serverEvents: RealtimeEvent[] = [
-        { eventId: 'event-003', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-004', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-005', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-006', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-007', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} }
+        { eventId: 'event-003', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-004', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-005', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-006', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-007', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any }
       ]
 
       const { synced, state: newState } = syncMissedEvents(state, serverEvents)
@@ -414,8 +414,8 @@ describe('Reconnection Strategy', () => {
       const state = createReconnectionState()
 
       const serverEvents: RealtimeEvent[] = [
-        { eventId: 'event-001', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-002', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} }
+        { eventId: 'event-001', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-002', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any }
       ]
 
       const { synced } = syncMissedEvents(state, serverEvents)
@@ -432,7 +432,7 @@ describe('Reconnection Strategy', () => {
         type: RealtimeEventType.NEW_ORDER,
         timestamp: Date.now(),
         restaurantId: 'r1',
-        data: {}
+        data: {} as any
       })
 
       expect(state.eventsSinceDisconnect).toHaveLength(1)
@@ -449,8 +449,8 @@ describe('Reconnection Strategy', () => {
 
       // Server only has newer events (event-010 not found)
       const serverEvents: RealtimeEvent[] = [
-        { eventId: 'event-015', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} },
-        { eventId: 'event-016', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} }
+        { eventId: 'event-015', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any },
+        { eventId: 'event-016', type: RealtimeEventType.NEW_ORDER, timestamp: Date.now(), restaurantId: 'r1', data: {} as any }
       ]
 
       const { synced } = syncMissedEvents(state, serverEvents)

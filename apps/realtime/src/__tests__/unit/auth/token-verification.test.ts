@@ -23,8 +23,8 @@ describe('JWT Token Verification', () => {
       roomType: 'customer',
       roomId: 'table-123',
       restaurantId: 'rest-456',
-      userId: 'user-789',
-      role: 1, // Shop Owner
+      userId: 789,
+      role: 'admin', // Shop Owner
       exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
       iat: Math.floor(Date.now() / 1000),
       ...overrides,
@@ -50,15 +50,15 @@ describe('JWT Token Verification', () => {
 
       it('應該正確解析所有必要欄位', async () => {
         const token = createValidToken({
-          userId: 'custom-user-id',
-          role: 2, // Chef
+          userId: 123,
+          role: 'staff', // Chef
         });
 
         const result = await verifyWebSocketToken(token, JWT_SECRET);
 
         expect(result.valid).toBe(true);
-        expect(result.payload?.userId).toBe('custom-user-id');
-        expect(result.payload?.role).toBe(2);
+        expect(result.payload?.userId).toBe(123);
+        expect(result.payload?.role).toBe('staff');
       });
 
       it('應該接受包含額外欄位的 token', async () => {

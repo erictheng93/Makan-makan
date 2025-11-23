@@ -39,7 +39,7 @@ function createMockToken(expiresInSeconds: number = 3600): JWTToken {
       roomType: 'customer',
       roomId: 'table-001',
       restaurantId: 'restaurant-123',
-      role: 4,
+      role: 'customer',
       exp: Math.floor((now + expiresInSeconds * 1000) / 1000),
       iat: Math.floor(now / 1000)
     },

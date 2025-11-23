@@ -162,7 +162,7 @@ describe('WebSocket Connection Lifecycle', () => {
           mockWebSocket.send(JSON.stringify(message));
           return { success: true };
         } catch (error) {
-          return { success: false, error: error.message };
+          return { success: false, error: (error as Error).message };
         }
       };
 
