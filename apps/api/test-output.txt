@@ -1,4 +1,0 @@
-
-> @makanmakan/api@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\api
-> vitest
-
