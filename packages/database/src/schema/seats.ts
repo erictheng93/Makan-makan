@@ -36,6 +36,9 @@ export const seats = sqliteTable('seats', {
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => ({
   // 索引優化
   tableIdIdx: index('seats_table_id_idx').on(table.tableId),

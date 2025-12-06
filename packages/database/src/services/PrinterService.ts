@@ -362,7 +362,7 @@ export class PrinterService {
   private drivers: Map<string, PrinterDriver> = new Map()
   private queue: PrintJobQueue
   private regionManager: RegionManager
-  private eventHandlers: Map<string, Function[]> = new Map()
+  private eventHandlers: Map<string, ((...args: unknown[]) => void)[]> = new Map()
   private config: PrintServiceConfig
 
   constructor(config: PrintServiceConfig) {
@@ -609,14 +609,14 @@ export class PrinterService {
   // 事件管理
   // =============================================
 
-  on(event: string, handler: Function): void {
+  on(event: string, handler: (...args: unknown[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, [])
     }
     this.eventHandlers.get(event)!.push(handler)
   }
 
-  off(event: string, handler: Function): void {
+  off(event: string, handler: (...args: unknown[]) => void): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
       const index = handlers.indexOf(handler)

@@ -8,6 +8,7 @@ import { users } from './users'
 
 export const restaurants = sqliteTable('restaurants', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(), // 業務可讀的唯一識別碼 (格式: S-YYYYMMDD-NNN)
   name: text('name').notNull(),
   type: text('type').notNull(), // 餐廳類型：中式、西式、日式等
   category: text('category').notNull(), // 餐廳分類：火鍋、燒烤、快餐等
@@ -72,6 +73,9 @@ export const restaurants = sqliteTable('restaurants', {
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 })
 
 export const restaurantRelations = relations(restaurants, ({ many }) => ({

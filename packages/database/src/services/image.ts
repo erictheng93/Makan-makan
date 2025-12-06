@@ -13,7 +13,7 @@ import {
 } from '../schema'
 
 export interface ImageAnalyticsOptions {
-  restaurantId?: number
+  restaurantId?: string
   dateFrom?: string
   dateTo?: string
 }
@@ -109,7 +109,7 @@ export interface CreateImageData {
   width?: number
   height?: number
   category: string
-  restaurantId: number
+  restaurantId: string
   uploadedBy?: number
   cloudflareImageId?: string
   variants?: string[]
@@ -463,7 +463,7 @@ export class ImageService extends BaseService {
    * Get images with pagination
    */
   async getImages(options: {
-    restaurantId?: number
+    restaurantId?: string
     category?: string
     offset?: number
     limit?: number
@@ -524,7 +524,7 @@ export class ImageService extends BaseService {
    * Get images count
    */
   async getImagesCount(options: {
-    restaurantId?: number
+    restaurantId?: string
     category?: string
   }): Promise<number> {
     const whereConditions = []

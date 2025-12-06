@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { kitchenApi } from "@/services/kitchenApi";
-import type { KitchenOrder, KitchenStats, KitchenSSEEvent } from "@/types";
+import type { KitchenOrder, KitchenStats, KitchenSSEEvent, OrderStatus, ItemStatus } from "@/types";
 
 export const useOrdersStore = defineStore("orders", () => {
   // State
@@ -448,11 +448,11 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 公開方法：直接更新訂單狀態（支援 number 或 string ID）
    */
-  const updateOrderStatus = (orderId: number | string, newStatus: number) => {
+  const updateOrderStatus = (orderId: number | string, newStatus: number | OrderStatus) => {
     const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
     const orderIndex = orders.value.findIndex((o) => o.id === id);
     if (orderIndex !== -1) {
-      orders.value[orderIndex].status = newStatus;
+      orders.value[orderIndex].status = newStatus as OrderStatus;
       updateStats();
     }
   };
@@ -465,14 +465,14 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 公開方法：直接更新單個 item 狀態
    */
-  const updateItemStatus = (orderId: number, itemId: number, newStatus: string) => {
+  const updateItemStatus = (orderId: number, itemId: number, newStatus: string | ItemStatus) => {
     const orderIndex = orders.value.findIndex((o) => o.id === orderId);
     if (orderIndex !== -1) {
       const order = orders.value[orderIndex];
       const itemIndex = order.items.findIndex((i) => i.id === itemId);
 
       if (itemIndex !== -1) {
-        order.items[itemIndex].status = newStatus;
+        order.items[itemIndex].status = newStatus as ItemStatus;
 
         // 更新時間戳
         const now = new Date().toISOString();

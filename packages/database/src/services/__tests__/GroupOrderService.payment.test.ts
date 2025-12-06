@@ -34,8 +34,7 @@ describe('GroupOrderService - 支付處理', () => {
 
     // 創建群組並設置分帳
     const createResult = await service.createGroupOrder({
-      restaurantId: 1
-    }, 1)
+      restaurantId: 'R-001' }, 1)
     testGroupOrderId = createResult.data!.groupOrderId
 
     const members = Array.from(mockDB._mockData.groupMembers.values())

@@ -203,6 +203,7 @@ export class CitizenDriver extends PrinterDriver {
 
   private async connectNetwork(host: string, port: number): Promise<any> {
     // Citizen 網路連線 (通常使用 9100 埠)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const net = require('net')
     
     return new Promise((resolve, reject) => {

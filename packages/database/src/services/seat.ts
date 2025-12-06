@@ -523,7 +523,7 @@ export class SeatService extends BaseService {
   /**
    * 生成座位 QR Code 內容
    */
-  private generateSeatQRCode(restaurantId: number, tableId: number, seatNumber: string): string {
+  private generateSeatQRCode(restaurantId: string, tableId: number, seatNumber: string): string {
     const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
     const qrData = {
       type: 'seat',

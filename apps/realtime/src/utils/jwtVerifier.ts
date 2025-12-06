@@ -1,23 +1,66 @@
 /**
  * JWT 驗證工具
  * 用於驗證 WebSocket 連線的 JWT token
+ *
+ * 功能:
+ * - JWT 簽名驗證
+ * - Token 過期檢查
+ * - Token 黑名單檢查（使用 KV 存儲）
  */
 
 import { verify } from 'jsonwebtoken'
 import type { RealtimeAuthPayload } from '@makanmakan/shared-types'
 
+// KV key 前綴（與 TokenBlacklistService 保持一致）
+const TOKEN_BLACKLIST_PREFIX = 'token:revoked:'
+
 export interface TokenVerificationResult {
   valid: boolean
   payload?: RealtimeAuthPayload
   error?: string
+  revoked?: boolean
 }
 
 /**
- * 驗證 JWT token
+ * 生成 token 的唯一標識（與 TokenBlacklistService 保持一致）
+ */
+function generateTokenId(token: string): string {
+  if (token.length <= 40) {
+    return token
+  }
+  return `${token.substring(0, 32)}...${token.substring(token.length - 8)}`
+}
+
+/**
+ * 檢查 token 是否在黑名單中
+ */
+export async function isTokenRevoked(
+  token: string,
+  kv: KVNamespace | undefined
+): Promise<boolean> {
+  if (!kv) {
+    return false  // 如果沒有 KV，假設 token 未被撤銷
+  }
+
+  try {
+    const tokenId = generateTokenId(token)
+    const key = `${TOKEN_BLACKLIST_PREFIX}${tokenId}`
+    const record = await kv.get(key)
+    return record !== null
+  } catch (error) {
+    console.error('Failed to check token blacklist:', error)
+    // 在錯誤情況下，為了安全起見，返回 true（視為已撤銷）
+    return true
+  }
+}
+
+/**
+ * 驗證 JWT token（包含黑名單檢查）
  */
 export async function verifyWebSocketToken(
   token: string,
-  jwtSecret: string
+  jwtSecret: string,
+  kv?: KVNamespace
 ): Promise<TokenVerificationResult> {
   try {
     if (!token) {
@@ -32,6 +75,19 @@ export async function verifyWebSocketToken(
       return {
         valid: false,
         error: 'Server configuration error'
+      }
+    }
+
+    // 🔒 首先檢查 token 是否在黑名單中
+    if (kv) {
+      const revoked = await isTokenRevoked(token, kv)
+      if (revoked) {
+        console.warn('WebSocket token has been revoked')
+        return {
+          valid: false,
+          error: 'Token has been revoked',
+          revoked: true
+        }
       }
     }
 

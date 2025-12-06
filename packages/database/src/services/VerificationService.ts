@@ -3,7 +3,7 @@
  * Handles password reset, email verification, and phone verification
  */
 
-import { eq, and, gt, isNull } from 'drizzle-orm'
+import { eq, and, gt, lt, isNull } from 'drizzle-orm'
 import { BaseService, type CloudflareEnv } from './base'
 import type { D1Database } from '@cloudflare/workers-types'
 import {
@@ -695,19 +695,19 @@ export class VerificationService extends BaseService {
       // Delete expired password reset tokens
       const passwordResetResult = await this.db
         .delete(passwordResetTokens)
-        .where(gt(now, passwordResetTokens.expiresAt))
+        .where(lt(passwordResetTokens.expiresAt, now))
         .run()
 
       // Delete expired email verification tokens
       const emailVerificationResult = await this.db
         .delete(emailVerificationTokens)
-        .where(gt(now, emailVerificationTokens.expiresAt))
+        .where(lt(emailVerificationTokens.expiresAt, now))
         .run()
 
       // Delete expired phone verification tokens
       const phoneVerificationResult = await this.db
         .delete(phoneVerificationTokens)
-        .where(gt(now, phoneVerificationTokens.expiresAt))
+        .where(lt(phoneVerificationTokens.expiresAt, now))
         .run()
 
       return {

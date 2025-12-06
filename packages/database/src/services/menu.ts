@@ -4,7 +4,7 @@ import { restaurants, categories, menuItems } from '../schema'
 import type { MenuStructure, MenuItem, Category } from '@makanmakan/shared-types'
 
 export interface CreateMenuItemData {
-  restaurantId: number
+  restaurantId: string
   categoryId: number
   name: string
   description?: string
@@ -48,7 +48,7 @@ export interface MenuFilters {
 export class MenuService extends BaseService {
   
   // 獲取完整菜單結構
-  async getMenu(restaurantId: number): Promise<MenuStructure> {
+  async getMenu(restaurantId: string): Promise<MenuStructure> {
     try {
       // Use query cache with 1 hour TTL for menu data
       const cacheKey = this.buildCacheKey('menu', restaurantId, 'full')
@@ -57,7 +57,7 @@ export class MenuService extends BaseService {
         cacheKey,
         async () => {
           const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.id, restaurantId),
+        where: eq(restaurants.publicId, restaurantId),
         with: {
           categories: {
             where: and(
@@ -113,7 +113,7 @@ export class MenuService extends BaseService {
   }
 
   // 獲取特色菜品
-  async getFeaturedItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
+  async getFeaturedItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
     try {
       const items = await this.db
         .select({
@@ -158,7 +158,7 @@ export class MenuService extends BaseService {
   }
 
   // 獲取熱門菜品
-  async getPopularItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
+  async getPopularItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
     try {
       const items = await this.db
         .select({
@@ -203,7 +203,7 @@ export class MenuService extends BaseService {
 
   // 搜尋菜品
   async searchMenuItems(
-    restaurantId: number, 
+    restaurantId: string,
     filters: MenuFilters,
     page: number = 1,
     limit: number = 20
@@ -359,7 +359,7 @@ export class MenuService extends BaseService {
 
   // 批量更新菜品可用性
   async batchUpdateAvailability(
-    restaurantId: number,
+    restaurantId: string,
     updates: { id: number; isAvailable: boolean }[]
   ): Promise<void> {
     try {
@@ -440,7 +440,7 @@ export class MenuService extends BaseService {
 
   // 創建或更新分類
   async createCategory(data: {
-    restaurantId: number
+    restaurantId: string
     name: string
     description?: string
     sortOrder?: number
@@ -495,7 +495,7 @@ export class MenuService extends BaseService {
   }
 
   // 更新所有分類商品數量
-  private async updateCategoryItemCounts(restaurantId: number): Promise<void> {
+  private async updateCategoryItemCounts(restaurantId: string): Promise<void> {
     const restaurantCategories = await this.db
       .select({ id: categories.id })
       .from(categories)

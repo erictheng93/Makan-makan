@@ -35,7 +35,7 @@ export const qrDownloads = sqliteTable('qr_downloads', {
 export const qrBatches = sqliteTable('qr_batches', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   batchId: text('batch_id').notNull().unique(),
-  restaurantId: integer('restaurant_id').notNull(),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   totalCodes: integer('total_codes').notNull(),
   generatedCodes: integer('generated_codes').notNull().default(0),
   status: text('status').notNull().default('pending'),

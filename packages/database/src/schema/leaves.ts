@@ -14,7 +14,7 @@ import { users } from './users'
 
 export const leaveTypes = sqliteTable('leave_types', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT), nullable for system-wide types
 
   // Basic Information
   code: text('code').notNull(),
@@ -69,7 +69,7 @@ export const employeeLeaveBalances = sqliteTable('employee_leave_balances', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   employeeId: integer('employee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   leaveTypeId: integer('leave_type_id').notNull().references(() => leaveTypes.id, { onDelete: 'cascade' }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   year: integer('year').notNull(),
 
   // Balance Tracking (餘額追蹤)
@@ -101,7 +101,7 @@ export const employeeLeaveBalances = sqliteTable('employee_leave_balances', {
 
 export const leaveRequests = sqliteTable('leave_requests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   employeeId: integer('employee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   leaveTypeId: integer('leave_type_id').notNull().references(() => leaveTypes.id, { onDelete: 'restrict' }),
 
@@ -150,7 +150,7 @@ export const leaveRequests = sqliteTable('leave_requests', {
 
 export const leaveApprovalRules = sqliteTable('leave_approval_rules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   leaveTypeId: integer('leave_type_id').references(() => leaveTypes.id, { onDelete: 'cascade' }), // null for global rules
 
   // Rule Configuration (規則配置)
@@ -189,7 +189,7 @@ export const leaveApprovalRules = sqliteTable('leave_approval_rules', {
 
 export const leaveCalendarEvents = sqliteTable('leave_calendar_events', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').references(() => restaurants.id, { onDelete: 'cascade' }), // null for system-wide
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT), nullable for system-wide
 
   // Event Details (事件內容)
   name: text('name').notNull(),
@@ -222,7 +222,7 @@ export const leaveCalendarEvents = sqliteTable('leave_calendar_events', {
 export const leaveTypesRelations = relations(leaveTypes, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [leaveTypes.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   creator: one(users, {
     fields: [leaveTypes.createdBy],
@@ -246,7 +246,7 @@ export const employeeLeaveBalancesRelations = relations(employeeLeaveBalances, (
   }),
   restaurant: one(restaurants, {
     fields: [employeeLeaveBalances.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   adjuster: one(users, {
     fields: [employeeLeaveBalances.adjustedBy],
@@ -258,7 +258,7 @@ export const employeeLeaveBalancesRelations = relations(employeeLeaveBalances, (
 export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [leaveRequests.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   employee: one(users, {
     fields: [leaveRequests.employeeId],
@@ -289,7 +289,7 @@ export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
 export const leaveApprovalRulesRelations = relations(leaveApprovalRules, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [leaveApprovalRules.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   leaveType: one(leaveTypes, {
     fields: [leaveApprovalRules.leaveTypeId],
@@ -310,7 +310,7 @@ export const leaveApprovalRulesRelations = relations(leaveApprovalRules, ({ one 
 export const leaveCalendarEventsRelations = relations(leaveCalendarEvents, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [leaveCalendarEvents.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   creator: one(users, {
     fields: [leaveCalendarEvents.createdBy],

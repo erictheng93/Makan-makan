@@ -24,13 +24,12 @@ export const users = sqliteTable('users', {
   phone: text('phone'),
   fullName: text('full_name').notNull(),
 
-  // 認證資訊（支持舊欄位 password 和新欄位 password_hash）
-  password: text('password'), // 舊欄位，保留向後兼容
+  // 認證資訊
   passwordHash: text('password_hash').notNull(),
-  
+
   // 角色和權限
-  role: integer('role').notNull().default(USER_ROLES.CUSTOMER),
-  restaurantId: integer('restaurant_id').references(() => restaurants.id),
+  role: integer('role').notNull().default(USER_ROLES.CASHIER), // 預設為收銀員，顧客應使用 customers 表
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)
   
   // 個人資訊
   address: text('address'),
@@ -74,12 +73,15 @@ export const users = sqliteTable('users', {
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 })
 
 export const userRelations = relations(users, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [users.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId], // 使用 public_id 關聯
   }),
   orders: many(orders),
 }))

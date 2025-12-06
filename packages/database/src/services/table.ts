@@ -4,7 +4,7 @@ import { tables, restaurants, orders, seats } from '../schema'
 import { SeatService } from './seat'
 
 export interface CreateTableData {
-  restaurantId: number
+  restaurantId: string
   number: string
   name?: string
   capacity: number
@@ -40,7 +40,7 @@ export interface UpdateTableData {
 }
 
 export interface TableFilters {
-  restaurantId?: number
+  restaurantId?: string
   floor?: number
   section?: string
   isOccupied?: boolean
@@ -314,7 +314,7 @@ export class TableService extends BaseService {
   }
 
   // 取得餐廳的所有桌子
-  async getRestaurantTables(restaurantId: number, filters: Omit<TableFilters, 'restaurantId'> = {}): Promise<{
+  async getRestaurantTables(restaurantId: string, filters: Omit<TableFilters, 'restaurantId'> = {}): Promise<{
     tables: any[]
     total: number
     pagination: { page: number; limit: number; totalPages: number }
@@ -521,7 +521,7 @@ export class TableService extends BaseService {
   }
 
   // 生成 QR Code 資料
-  private generateQRCodeData(restaurantId: number, tableNumber: string, customData?: any): string {
+  private generateQRCodeData(restaurantId: string, tableNumber: string, customData?: any): string {
     const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
     const qrData = {
       type: 'table',
@@ -567,7 +567,7 @@ export class TableService extends BaseService {
   }
 
   // 批量生成 QR Codes
-  async generateBulkQRCodes(restaurantId: number, tableIds: number[], options: QRCodeOptions = {}): Promise<{
+  async generateBulkQRCodes(restaurantId: string, tableIds: number[], options: QRCodeOptions = {}): Promise<{
     success: boolean
     qrCodes?: Array<{ tableId: number; qrCode: string; tableNumber: string }>
     error?: string
@@ -614,7 +614,7 @@ export class TableService extends BaseService {
   }
 
   // 取得可用桌子
-  async getAvailableTables(restaurantId: number, capacity?: number): Promise<any[]> {
+  async getAvailableTables(restaurantId: string, capacity?: number): Promise<any[]> {
     try {
       const conditions = [
         eq(tables.restaurantId, restaurantId),
@@ -650,7 +650,7 @@ export class TableService extends BaseService {
   }
 
   // 取得桌子統計資訊
-  async getTableStats(restaurantId: number): Promise<TableStats> {
+  async getTableStats(restaurantId: string): Promise<TableStats> {
     try {
       // 總桌子數
       const [{ totalTables }] = await this.db

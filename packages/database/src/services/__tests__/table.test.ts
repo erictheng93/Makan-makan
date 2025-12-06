@@ -58,7 +58,7 @@ describe('TableService', () => {
 
   const mockTable = {
     id: 1,
-    restaurantId: 1,
+    restaurantId: 'R-001',
     number: 'T1',
     name: 'Table 1',
     capacity: 4,
@@ -90,7 +90,7 @@ describe('TableService', () => {
   }
 
   const validTableData: CreateTableData = {
-    restaurantId: 1,
+    restaurantId: 'R-001',
     number: 'T1',
     name: 'Table 1',
     capacity: 4,
@@ -171,7 +171,7 @@ describe('TableService', () => {
     it('should create table with default values', async () => {
       // Arrange
       const minimalData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         number: 'T2',
         capacity: 2
       }
@@ -271,7 +271,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.updateTable(1, updateData)
+      const result = await tableService.updateTable('R-001', updateData)
 
       // Assert
       expect(result).toBeDefined()
@@ -305,7 +305,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.updateTable(1, { isActive: false })
+      const result = await tableService.updateTable('R-001', { isActive: false })
 
       // Assert
       expect(result.isActive).toBe(false)
@@ -320,7 +320,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.deleteTable(1)
+      const result = await tableService.deleteTable('R-001')
 
       // Assert
       expect(result).toBe(true)
@@ -546,7 +546,7 @@ describe('TableService', () => {
       mockDb.select.mockReturnValue(createQueryChain(availableTables))
 
       // Act
-      const result = await tableService.getAvailableTables(1)
+      const result = await tableService.getAvailableTables('R-001')
 
       // Assert
       expect(result).toHaveLength(2)
@@ -575,7 +575,7 @@ describe('TableService', () => {
       mockDb.select.mockReturnValue(createQueryChain([]))
 
       // Act
-      const result = await tableService.getAvailableTables(1)
+      const result = await tableService.getAvailableTables('R-001')
 
       // Assert
       expect(result).toHaveLength(0)
@@ -611,7 +611,7 @@ describe('TableService', () => {
       ]))
 
       // Act
-      const result = await tableService.getTableStats(1)
+      const result = await tableService.getTableStats('R-001')
 
       // Assert
       expect(result.totalTables).toBe(10)
@@ -633,7 +633,7 @@ describe('TableService', () => {
       mockDb.select.mockReturnValueOnce(createQueryChain([])) // byCapacity
 
       // Act
-      const result = await tableService.getTableStats(1)
+      const result = await tableService.getTableStats('R-001')
 
       // Assert
       expect(result.totalTables).toBe(0)
@@ -679,7 +679,7 @@ describe('TableService', () => {
 
       // Act & Assert
       await expect(
-        tableService.getTableStats(1)
+        tableService.getTableStats('R-001')
       ).rejects.toThrow('Database operation failed: getTableStats')
     })
   })

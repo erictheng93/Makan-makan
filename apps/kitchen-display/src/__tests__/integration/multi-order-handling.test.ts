@@ -18,17 +18,21 @@ vi.mock('@/services/kitchenApi', () => ({
   }
 }))
 
-function createMockOrder(id: string, status: number): KitchenOrder {
+import type { OrderStatus, KitchenSSEEvent } from '@/types'
+
+function createMockOrder(id: string, status: OrderStatus): KitchenOrder {
   return {
-    id,
+    id: parseInt(id) || 0,
     orderNumber: `ORD-${id}`,
+    tableId: parseInt(id) || 1,
     tableName: `T${id}`,
     status,
     priority: 'normal',
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
     estimatedTime: 15,
-    items: []
+    items: [],
+    totalItems: 0
   }
 }
 
@@ -230,9 +234,11 @@ describe('Multi-Order Handling Integration', () => {
     it('should handle concurrent SSE events', () => {
       const store = useOrdersStore()
 
-      const events = Array.from({ length: 30 }, (_, i) => ({
+      const events: KitchenSSEEvent[] = Array.from({ length: 30 }, (_, i) => ({
         type: 'NEW_ORDER' as const,
-        payload: createMockOrder(`new-${i}`, 1)
+        payload: createMockOrder(`new-${i}`, 1),
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }))
 
       events.forEach(event => {
@@ -247,16 +253,16 @@ describe('Multi-Order Handling Integration', () => {
 
       store.orders = [createMockOrder('1', 1)]
 
-      const events = [
-        { type: 'ORDER_STATUS_UPDATE' as const, payload: { orderId: '1', status: 2 } },
-        { type: 'ORDER_STATUS_UPDATE' as const, payload: { orderId: '1', status: 3 } }
+      const events: KitchenSSEEvent[] = [
+        { type: 'ORDER_STATUS_UPDATE' as const, payload: { orderId: 1, status: 2 as OrderStatus }, timestamp: new Date().toISOString(), restaurantId: 1 },
+        { type: 'ORDER_STATUS_UPDATE' as const, payload: { orderId: 1, status: 3 as OrderStatus }, timestamp: new Date().toISOString(), restaurantId: 1 }
       ]
 
       events.forEach(event => {
         store.handleSSEEvent(event)
       })
 
-      const order = store.orders.find(o => o.id === '1')
+      const order = store.orders.find(o => o.id === 1)
       expect(order?.status).toBe(3)
     })
   })

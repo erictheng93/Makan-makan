@@ -10,7 +10,7 @@ export interface CreateUserData {
   fullName: string
   password: string
   role: number
-  restaurantId?: number
+  restaurantId?: string
   address?: string
   dateOfBirth?: string
   profileImageUrl?: string
@@ -30,7 +30,7 @@ export interface UpdateUserData {
 }
 
 export interface UserFilters {
-  restaurantId?: number
+  restaurantId?: string
   role?: number
   isActive?: boolean
   isVerified?: boolean
@@ -299,7 +299,7 @@ export class UserService extends BaseService {
   }
 
   // 取得餐廳的所有用戶
-  async getRestaurantUsers(restaurantId: number, filters: Omit<UserFilters, 'restaurantId'> = {}): Promise<{
+  async getRestaurantUsers(restaurantId: string, filters: Omit<UserFilters, 'restaurantId'> = {}): Promise<{
     users: any[]
     total: number
     pagination: { page: number; limit: number; totalPages: number }
@@ -578,7 +578,7 @@ export class UserService extends BaseService {
   }
 
   // 取得用戶統計資訊
-  async getUserStats(restaurantId?: number): Promise<UserStats> {
+  async getUserStats(restaurantId?: string): Promise<UserStats> {
     try {
       const conditions = restaurantId ? [eq(users.restaurantId, restaurantId)] : []
 
@@ -636,7 +636,7 @@ export class UserService extends BaseService {
   }
 
   // 搜尋用戶
-  async searchUsers(query: string, restaurantId?: number, limit = 10): Promise<any[]> {
+  async searchUsers(query: string, restaurantId?: string, limit = 10): Promise<any[]> {
     try {
       const conditions = [
         or(
@@ -680,7 +680,7 @@ export class UserService extends BaseService {
   }
 
   // 取得特定角色的用戶
-  async getUsersByRole(role: number, restaurantId?: number): Promise<any[]> {
+  async getUsersByRole(role: number, restaurantId?: string): Promise<any[]> {
     try {
       const conditions = [eq(users.role, role), eq(users.isActive, true)]
 

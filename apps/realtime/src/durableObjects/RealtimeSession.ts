@@ -73,9 +73,9 @@ export class RealtimeSession implements DurableObject {
       return new Response('Unauthorized: Token required', { status: 401 })
     }
 
-    // 驗證 token
+    // 驗證 token（包含黑名單檢查）
     const jwtSecret = this.env.JWT_SECRET
-    const verification = await verifyWebSocketToken(token, jwtSecret)
+    const verification = await verifyWebSocketToken(token, jwtSecret, this.env.CACHE)
 
     if (!verification.valid) {
       console.warn('WebSocket connection rejected: Invalid token', verification.error)

@@ -130,6 +130,11 @@ id = "makanmakan-ratelimit-staging"
 binding = "BACKUP_KV"
 id = "makanmakan-backup-staging"
 
+# Token Blacklist KV for WebSocket authentication security
+[[env.staging.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmakan-token-blacklist-staging"
+
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
 bucket_name = "makanmakan-backups-staging"
@@ -166,6 +171,11 @@ id = "makanmakan-ratelimit-prod"
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
 id = "makanmakan-backup-prod"
+
+# Token Blacklist KV for WebSocket authentication security
+[[env.production.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmakan-token-blacklist-prod"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"

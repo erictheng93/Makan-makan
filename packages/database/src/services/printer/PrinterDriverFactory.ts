@@ -21,7 +21,7 @@ export interface PrinterDriverFactory {
 }
 
 export class DefaultPrinterDriverFactory implements PrinterDriverFactory {
-  private brandDetectors: Map<PrinterBrand, Function> = new Map()
+  private brandDetectors: Map<PrinterBrand, (deviceInfo: string) => boolean> = new Map()
 
   constructor() {
     this.initializeBrandDetectors()

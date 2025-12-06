@@ -3,6 +3,7 @@ import type { D1Database, KVNamespace } from '@cloudflare/workers-types'
 import * as schema from '../schema'
 import { QueryCache, buildCacheKey, type QueryCacheOptions } from '../utils/query-cache'
 import { getConnectionManager, type ConnectionManager } from '../utils/connection-manager'
+import { SoftDeleteService } from '../utils/soft-delete'
 
 export interface CloudflareEnv {
   JWT_SECRET: string
@@ -26,6 +27,7 @@ export class BaseService {
   protected env: CloudflareEnv
   protected queryCache: QueryCache
   protected connectionManager: ConnectionManager
+  protected softDelete: SoftDeleteService
 
   constructor(d1: D1Database, env: CloudflareEnv, mockDb?: any) {
     this.d1 = d1
@@ -48,7 +50,9 @@ export class BaseService {
 
     this.queryCache = new QueryCache(env.CACHE_KV)
     this.connectionManager = getConnectionManager()
+    this.softDelete = new SoftDeleteService(this.db as any, { retentionDays: 90 })
   }
+
 
   /**
    * Execute query with caching support
@@ -137,7 +141,7 @@ export class BaseService {
   }
 
   // 生成訂單號碼
-  protected generateOrderNumber(restaurantId: number): string {
+  protected generateOrderNumber(restaurantId: string): string {
     const timestamp = Date.now().toString(36)
     const random = Math.random().toString(36).substr(2, 4)
     return `${restaurantId}-${timestamp}-${random}`.toUpperCase()

@@ -33,8 +33,7 @@ describe('GroupOrderService - 帳單分攤', () => {
 
     // 創建群組
     const createResult = await service.createGroupOrder({
-      restaurantId: 1
-    }, 1)
+      restaurantId: 'R-001' }, 1)
     testGroupOrderId = createResult.data!.groupOrderId
 
     // 獲取創建者ID

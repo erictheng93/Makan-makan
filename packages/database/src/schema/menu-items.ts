@@ -6,7 +6,7 @@ import { orderItems } from './order-items'
 
 export const menuItems = sqliteTable('menu_items', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   categoryId: integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
   
   // 基本資訊
@@ -116,6 +116,9 @@ export const menuItems = sqliteTable('menu_items', {
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => ({
   // 關鍵索引優化
   restaurantCategoryIdx: index('menu_items_restaurant_category_idx').on(
@@ -146,7 +149,7 @@ export const menuItems = sqliteTable('menu_items', {
 export const menuItemRelations = relations(menuItems, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [menuItems.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId], // 使用 public_id 關聯
   }),
   category: one(categories, {
     fields: [menuItems.categoryId],

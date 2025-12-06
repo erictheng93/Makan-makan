@@ -4,7 +4,7 @@ import { orders, orderItems, menuItems, restaurants, tables, users, ORDER_STATUS
 import type { Order, OrderItem, SelectedCustomizations } from '@makanmakan/shared-types'
 
 export interface CreateOrderData {
-  restaurantId: number
+  restaurantId: string
   tableId: number
   customerId?: number
   customerInfo?: any
@@ -24,10 +24,10 @@ export interface UpdateOrderStatusData {
 }
 
 export interface OrderFilters {
-  restaurantId?: number
+  restaurantId?: string
   tableId?: number
   customerId?: number
-  status?: string
+  status?: string | string[]
   dateRange?: [Date, Date]
   minAmount?: number
   maxAmount?: number
@@ -36,10 +36,10 @@ export interface OrderFilters {
 export class OrderService extends BaseService {
 
   // 獲取餐廳最低消費設定
-  async getMinimumOrderAmount(restaurantId: number): Promise<{ minOrderAmount: number; enabled: boolean }> {
+  async getMinimumOrderAmount(restaurantId: string): Promise<{ minOrderAmount: number; enabled: boolean }> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.id, restaurantId),
+        where: eq(restaurants.publicId, restaurantId),
         columns: {
           settings: true,
           isAvailable: true
@@ -63,7 +63,7 @@ export class OrderService extends BaseService {
   }
 
   // 驗證訂單是否符合最低消費要求
-  async validateMinimumOrder(restaurantId: number, orderAmount: number): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
+  async validateMinimumOrder(restaurantId: string, orderAmount: number): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
     try {
       const { minOrderAmount, enabled } = await this.getMinimumOrderAmount(restaurantId)
 
@@ -91,7 +91,7 @@ export class OrderService extends BaseService {
     try {
       // 驗證餐廳和桌子
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.id, data.restaurantId)
+        where: eq(restaurants.publicId, data.restaurantId)
       })
       
       if (!restaurant || !restaurant.isAvailable) {
@@ -287,7 +287,7 @@ export class OrderService extends BaseService {
           .set({
             totalOrders: sql`${restaurants.totalOrders} + 1`
           })
-          .where(eq(restaurants.id, data.restaurantId))
+          .where(eq(restaurants.publicId, data.restaurantId))
       ])
 
       return this.mapToOrder({ ...order, items })
@@ -489,8 +489,8 @@ export class OrderService extends BaseService {
         throw new Error('Order not found')
       }
 
-      // 如果訂單完成，釋放桌子
-      if (data.status === ORDER_STATUS.PAID || data.status === ORDER_STATUS.DELIVERED) {
+      // 如果訂單完成，釋放桌子（僅限有桌號的訂單）
+      if ((data.status === ORDER_STATUS.PAID || data.status === ORDER_STATUS.DELIVERED) && order.tableId) {
         await this.db
           .update(tables)
           .set({
@@ -544,7 +544,7 @@ export class OrderService extends BaseService {
   }
 
   // 獲取餐廳當日訂單統計
-  async getDailyOrderStats(restaurantId: number, date: Date = new Date()) {
+  async getDailyOrderStats(restaurantId: string, date: Date = new Date()) {
     try {
       const startOfDay = new Date(date)
       startOfDay.setHours(0, 0, 0, 0)

@@ -29,7 +29,7 @@ export interface RegisterData {
   fullName: string
   password: string
   role: number
-  restaurantId?: number
+  restaurantId?: string | null
 }
 
 export interface SessionData {
@@ -50,7 +50,7 @@ export interface AuthResult {
     username: string
     fullName: string
     role: number
-    restaurantId?: number | null
+    restaurantId: string | null
     isActive: boolean
   }
   tokens?: {

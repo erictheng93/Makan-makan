@@ -32,8 +32,7 @@ describe('GroupOrderService - 獲取群組資訊', () => {
 
     // 創建群組並添加一些測試數據
     const createResult = await service.createGroupOrder({
-      restaurantId: 1
-    }, 1)
+      restaurantId: 'R-001' }, 1)
     testGroupOrderId = createResult.data!.groupOrderId
 
     // 添加測試菜品
@@ -42,8 +41,7 @@ describe('GroupOrderService - 獲取群組資訊', () => {
       name: 'Test Burger',
       price: 10.99,
       isAvailable: true,
-      restaurantId: 1
-    })
+      restaurantId: 'R-001' })
 
     // 添加第二個成員
     const memberData = {

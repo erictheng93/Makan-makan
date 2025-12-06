@@ -19,7 +19,7 @@ import type { Order, OrderItem, SelectedCustomizations } from '@makanmakan/share
  */
 
 export interface CreateOrderData {
-  restaurantId: number
+  restaurantId: string
   tableId: number
   customerId?: number
   customerInfo?: any
@@ -39,7 +39,7 @@ export interface UpdateOrderStatusData {
 }
 
 export interface OrderFilters {
-  restaurantId?: number
+  restaurantId?: string
   tableId?: number
   customerId?: number
   status?: string
@@ -166,8 +166,8 @@ export class OrderServiceOptimized extends BaseService {
       const [restaurant, table, menuItemsData] = await Promise.all([
         // Validate restaurant
         this.db.query.restaurants.findFirst({
-          where: eq(restaurants.id, data.restaurantId),
-          columns: { id: true, isAvailable: true, settings: true }
+          where: eq(restaurants.publicId, data.restaurantId),
+          columns: { id: true, publicId: true, isAvailable: true, settings: true }
         }),
         // Validate table
         this.db.query.tables.findFirst({
@@ -388,7 +388,7 @@ export class OrderServiceOptimized extends BaseService {
           .set({
             totalOrders: sql`${restaurants.totalOrders} + 1`
           })
-          .where(eq(restaurants.id, data.restaurantId))
+          .where(eq(restaurants.publicId, data.restaurantId))
 
         return { order, items }
       })
@@ -470,10 +470,10 @@ export class OrderServiceOptimized extends BaseService {
   /**
    * OPTIMIZED: Get minimum order amount (cached query)
    */
-  async getMinimumOrderAmount(restaurantId: number): Promise<{ minOrderAmount: number; enabled: boolean }> {
+  async getMinimumOrderAmount(restaurantId: string): Promise<{ minOrderAmount: number; enabled: boolean }> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.id, restaurantId),
+        where: eq(restaurants.publicId, restaurantId),
         columns: {
           settings: true,
           isAvailable: true
@@ -500,7 +500,7 @@ export class OrderServiceOptimized extends BaseService {
    * OPTIMIZED: Validate minimum order (lightweight query)
    */
   async validateMinimumOrder(
-    restaurantId: number,
+    restaurantId: string,
     orderAmount: number
   ): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
     try {
@@ -559,7 +559,7 @@ export class OrderServiceOptimized extends BaseService {
         }
 
         // Release table if order is completed
-        if (data.status === ORDER_STATUS.PAID || data.status === ORDER_STATUS.DELIVERED) {
+        if ((data.status === ORDER_STATUS.PAID || data.status === ORDER_STATUS.DELIVERED) && order.tableId) {
           await tx
             .update(tables)
             .set({
@@ -632,7 +632,7 @@ export class OrderServiceOptimized extends BaseService {
   /**
    * OPTIMIZED: Get daily order stats with indexed query
    */
-  async getDailyOrderStats(restaurantId: number, date: Date = new Date()) {
+  async getDailyOrderStats(restaurantId: string, date: Date = new Date()) {
     try {
       const startOfDay = new Date(date)
       startOfDay.setHours(0, 0, 0, 0)

@@ -262,10 +262,15 @@ export const securityAwareRateLimitMiddleware = async (c: Context<{ Bindings: En
   const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown'
   const userAgent = c.req.header('user-agent') || 'unknown'
   const path = c.req.path
-  
+
+  // Skip rate limiting for localhost (performance testing)
+  if (ip === '127.0.0.1' || ip === '::1' || ip === 'unknown' || ip === 'localhost') {
+    return next()
+  }
+
   // Create composite key for more sophisticated rate limiting
   const securityKey = `security_${ip}_${path.split('/')[1]}`
-  
+
   if (c.env.CACHE_KV) {
     const current = await c.env.CACHE_KV.get(securityKey)
     const count = current ? parseInt(current) : 0

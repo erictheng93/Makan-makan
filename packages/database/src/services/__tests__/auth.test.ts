@@ -69,7 +69,7 @@ describe('AuthService', () => {
       fullName: 'Test User',
       passwordHash: '$2a$10$hashedpassword',
       role: 1,
-      restaurantId: 1,
+      restaurantId: 'R-001',
       isActive: true
     }
 
@@ -231,8 +231,7 @@ describe('AuthService', () => {
       fullName: 'New User',
       password: 'Test@1234',
       role: 1,
-      restaurantId: 1
-    }
+      restaurantId: 'R-001' }
 
     it('should successfully register new user with strong password', async () => {
       // Arrange
@@ -425,7 +424,7 @@ describe('AuthService', () => {
       username: 'testuser',
       fullName: 'Test User',
       role: 1,
-      restaurantId: 1,
+      restaurantId: 'R-001',
       isActive: true
     }
 
@@ -548,7 +547,7 @@ describe('AuthService', () => {
       username: 'testuser',
       fullName: 'Test User',
       role: 1,
-      restaurantId: 1,
+      restaurantId: 'R-001',
       isActive: true
     }
 

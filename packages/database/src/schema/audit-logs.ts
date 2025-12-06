@@ -37,10 +37,10 @@ export type AuditAction = typeof AUDIT_ACTIONS[keyof typeof AUDIT_ACTIONS]
 
 export const auditLogs = sqliteTable('audit_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  
+
   // 關聯資訊
   userId: integer('user_id').references(() => users.id), // 可為空（系統操作）
-  restaurantId: integer('restaurant_id').references(() => restaurants.id), // 可為空（全局操作）
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)，可為空（全局操作）
   
   // 操作資訊
   action: text('action').notNull(),
@@ -83,6 +83,6 @@ export const auditLogRelations = relations(auditLogs, ({ one }) => ({
   }),
   restaurant: one(restaurants, {
     fields: [auditLogs.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId], // 使用 public_id 關聯
   }),
 }))

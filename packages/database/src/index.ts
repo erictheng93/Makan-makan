@@ -6,10 +6,11 @@ export * from './services'
 
 // 匯出工具函數
 export * from './utils/timestamp'
+export * from './utils/soft-delete'
 
 // 匯出 Drizzle 相關
 export { drizzle } from 'drizzle-orm/d1'
-export { sql, count, eq, gte, and, lte, desc, asc, sum, avg, between } from 'drizzle-orm'
+export { sql, count, eq, gte, and, lte, desc, asc, sum, avg, between, isNull } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/d1'
 import type { D1Database } from '@cloudflare/workers-types'
 import * as schema from './schema'

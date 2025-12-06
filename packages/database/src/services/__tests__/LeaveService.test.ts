@@ -25,7 +25,7 @@ describe('LeaveService', () => {
       const mockLeaveTypes: LeaveType[] = [
         {
           id: 1,
-          restaurantId: 1,
+          restaurantId: 'R-001',
           code: 'ANNUAL',
           name: '年假',
           description: '年度休假',
@@ -62,7 +62,7 @@ describe('LeaveService', () => {
       // Mock the select query to return mockLeaveTypes
       mockDb.select.mockReturnValue(createQueryChain(mockLeaveTypes))
 
-      const result = await service.getLeaveTypes(1)
+      const result = await service.getLeaveTypes('R-001')
 
       expect(result).toHaveLength(1)
       expect(result[0].code).toBe('ANNUAL')
@@ -71,7 +71,7 @@ describe('LeaveService', () => {
 
     it('should create a new leave type', async () => {
       const newLeaveType = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         code: 'SICK',
         name: '病假',
         description: '因病休假',
@@ -186,7 +186,7 @@ describe('LeaveService', () => {
             id: 1,
             employeeId: 1,
             leaveTypeId: 1,
-            restaurantId: 1,
+            restaurantId: 'R-001',
             year: 2025,
             totalDays: 14,
             usedDays: 3,
@@ -239,7 +239,7 @@ describe('LeaveService', () => {
         id: 1,
         employeeId: 1,
         leaveTypeId: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         year: 2025,
         totalDays: 14,
         usedDays: 3,
@@ -274,7 +274,7 @@ describe('LeaveService', () => {
   describe('Leave Request Management', () => {
     it('should create a leave request with pending status', async () => {
       const newRequest = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         employeeId: 1,
         leaveTypeId: 1,
         startDate: '2025-12-20',
@@ -289,7 +289,7 @@ describe('LeaveService', () => {
 
       const mockCreatedRequest: LeaveRequest = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         employeeId: 1,
         leaveTypeId: 1,
         startDate: '2025-12-20',
@@ -348,7 +348,7 @@ describe('LeaveService', () => {
     it('should approve leave request and update balance', async () => {
       const existingRequest = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         employeeId: 1,
         leaveTypeId: 1,
         status: 'pending',
@@ -410,7 +410,7 @@ describe('LeaveService', () => {
         set: vi.fn().mockReturnValue(createQueryChain([]))
       })
 
-      const result = await service.approveLeaveRequest(1, 1, 'Approved')
+      const result = await service.approveLeaveRequest('R-001', 1, 'Approved')
 
       expect(result.status).toBe('approved')
       expect(result.finalApproverId).toBe(1)
@@ -419,7 +419,7 @@ describe('LeaveService', () => {
     it('should reject leave request with reason', async () => {
       const existingRequest = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         employeeId: 1,
         leaveTypeId: 1,
         status: 'pending',
@@ -475,7 +475,7 @@ describe('LeaveService', () => {
         set: vi.fn().mockReturnValue(createQueryChain([]))
       })
 
-      const result = await service.rejectLeaveRequest(1, 1, 'Insufficient coverage')
+      const result = await service.rejectLeaveRequest('R-001', 1, 'Insufficient coverage')
 
       expect(result.status).toBe('rejected')
       expect(result.rejectionReason).toBe('Insufficient coverage')
@@ -484,7 +484,7 @@ describe('LeaveService', () => {
     it('should cancel leave request', async () => {
       const existingRequest = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         employeeId: 1,
         leaveTypeId: 1,
         status: 'approved',
@@ -594,8 +594,8 @@ describe('LeaveService', () => {
   describe('Leave Accrual', () => {
     it('should accrue yearly leave balances for all employees', async () => {
       const mockEmployees = [
-        { id: 1, restaurantId: 1, role: 1 },
-        { id: 2, restaurantId: 1, role: 2 },
+        { id: 1, restaurantId: 'R-001', role: 1 },
+        { id: 2, restaurantId: 'R-001', role: 2 },
       ]
 
       const mockLeaveTypes = [

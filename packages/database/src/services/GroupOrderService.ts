@@ -19,7 +19,7 @@ export interface GroupOrder {
   shareCode: string
   masterOrderId?: number
   createdBy: number
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   status: 'active' | 'ordering' | 'checkout' | 'completed' | 'cancelled'
   splitType: 'equal' | 'proportional' | 'individual' | 'custom'
@@ -89,7 +89,7 @@ export interface SplitBill {
 
 // 請求/回應類型
 export interface CreateGroupOrderRequest {
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   expirationHours?: number
   maxMembers?: number
@@ -118,7 +118,7 @@ export interface JoinGroupResponse {
 
 // 驗證 schemas
 const createGroupOrderSchema = z.object({
-  restaurantId: z.number().int().positive(),
+  restaurantId: z.string(),
   tableId: z.number().int().positive().optional(),
   expirationHours: z.number().min(1).max(168).optional().default(24), // 最多7天
   maxMembers: z.number().min(2).max(20).optional().default(10),

@@ -5,7 +5,7 @@ import { seats } from './seats'
 
 export const tables = sqliteTable('tables', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   
   // 桌子資訊
   number: text('number').notNull(), // 桌號（如：A1, B2, 101）
@@ -70,6 +70,9 @@ export const tables = sqliteTable('tables', {
   // 時間戳記
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => ({
   // 索引優化
   restaurantNumberIdx: index('tables_restaurant_number_idx').on(table.restaurantId, table.number),
@@ -80,7 +83,7 @@ export const tables = sqliteTable('tables', {
 export const tableRelations = relations(tables, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [tables.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId], // 使用 public_id 關聯
   }),
   // 座位關聯（座位模式時）
   seats: many(seats),

@@ -45,8 +45,8 @@ export type UsageStatus = typeof USAGE_STATUS[keyof typeof USAGE_STATUS]
 // 優惠券主表
 export const coupons = sqliteTable('coupons', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: text('restaurant_id').references(() => restaurants.id, { onDelete: 'cascade' }),
-  
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)
+
   // 優惠券基本資訊
   code: text('code').notNull().unique(), // 優惠券代碼
   name: text('name').notNull(), // 優惠券名稱
@@ -76,9 +76,12 @@ export const coupons = sqliteTable('coupons', {
   isVisible: integer('is_visible', { mode: 'boolean' }).default(true), // 是否對用戶可見
   
   // 元數據
-  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
-  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 創建者
+
+  // 軟刪除
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => ({
   codeIdx: index('idx_coupons_code').on(table.code),
   restaurantIdIdx: index('idx_coupons_restaurant_id').on(table.restaurantId),
@@ -100,12 +103,12 @@ export const couponUsage = sqliteTable('coupon_usage', {
   finalAmount: real('final_amount').notNull(), // 使用後訂單金額
   
   // 使用時間和狀態
-  usedAt: text('used_at').default('CURRENT_TIMESTAMP'),
+  usedAt: text('used_at').notNull().$defaultFn(() => new Date().toISOString()),
   status: text('status').$type<UsageStatus>().default('active'), // 使用狀態
-  
+
   // 元數據
-  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
-  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
 }, (table) => ({
   couponIdIdx: index('idx_coupon_usage_coupon_id').on(table.couponId),
   orderIdIdx: index('idx_coupon_usage_order_id').on(table.orderId),
@@ -130,11 +133,11 @@ export const couponDistributions = sqliteTable('coupon_distributions', {
   totalUsed: integer('total_used').default(0), // 總使用數量
   
   // 發放時間
-  distributedAt: text('distributed_at').default('CURRENT_TIMESTAMP'),
+  distributedAt: text('distributed_at').notNull().$defaultFn(() => new Date().toISOString()),
   expiresAt: text('expires_at'), // 發放過期時間
-  
+
   // 元數據
-  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 發放者
   notes: text('notes'), // 發放備註
 }, (table) => ({
@@ -146,8 +149,8 @@ export const couponDistributions = sqliteTable('coupon_distributions', {
 // 優惠券模板表
 export const couponTemplates = sqliteTable('coupon_templates', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: text('restaurant_id').references(() => restaurants.id, { onDelete: 'cascade' }),
-  
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)
+
   // 模板資訊
   name: text('name').notNull(), // 模板名稱
   description: text('description'), // 模板描述
@@ -161,8 +164,8 @@ export const couponTemplates = sqliteTable('coupon_templates', {
   isSystemTemplate: integer('is_system_template', { mode: 'boolean' }).default(false), // 是否為系統模板
   
   // 元數據
-  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
-  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 創建者
 }, (table) => ({
   restaurantIdIdx: index('idx_coupon_templates_restaurant_id').on(table.restaurantId),
@@ -174,7 +177,7 @@ export const couponTemplates = sqliteTable('coupon_templates', {
 export const couponsRelations = relations(coupons, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [coupons.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   creator: one(users, {
     fields: [coupons.createdBy],
@@ -213,7 +216,7 @@ export const couponDistributionsRelations = relations(couponDistributions, ({ on
 export const couponTemplatesRelations = relations(couponTemplates, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [couponTemplates.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   creator: one(users, {
     fields: [couponTemplates.createdBy],

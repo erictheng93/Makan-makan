@@ -1,0 +1,104 @@
+# Artillery Realtime WebSocket Performance Test - Simplified Version
+# 即時服務 WebSocket 簡化效能測試
+# 專注於測試連線穩定性和基本訊息傳遞
+
+config:
+  target: "ws://localhost:8788"
+  phases:
+    # Phase 1: 簡單連線測試
+    - duration: 30
+      arrivalRate: 2
+      name: "Basic Connection Test"
+
+    # Phase 2: 中等負載
+    - duration: 60
+      arrivalRate: 5
+      name: "Medium Load"
+
+    # Phase 3: 高負載測試
+    - duration: 30
+      arrivalRate: 10
+      name: "High Load"
+
+  # 效能指標設定
+  ensure:
+    # WebSocket 連線成功率 > 95%
+    - p95: 500
+    # 平均回應時間 < 200ms
+    - median: 200
+
+  # 插件配置
+  plugins:
+    expect: {}
+
+  # 環境變數
+  variables:
+    restaurantId: "1"
+
+scenarios:
+  # 場景 1: Kitchen WebSocket 直接連線（無需 Token）
+  - name: "Kitchen Direct Connection"
+    weight: 40
+    engine: ws
+    flow:
+      # 1. 建立 WebSocket 連線到 Kitchen 端點
+      - connect:
+          target: "ws://localhost:8788/kitchen/1"
+
+      # 2. 等待連線建立
+      - think: 1
+
+      # 3. 發送 ping 訊息
+      - send:
+          payload: '{"type":"ping","timestamp":{{ $timestamp }}}'
+
+      # 4. 等待 pong 回應
+      - think: 2
+
+      # 5. 訂閱事件
+      - send:
+          payload: '{"type":"subscribe","data":{"eventTypes":["new_order","order_status_update"]}}'
+
+      # 6. 保持連線
+      - think: 10
+
+      # 7. 多次心跳測試
+      - loop:
+          - send:
+              payload: '{"type":"ping"}'
+          - think: 2
+        count: 3
+
+  # 場景 2: Admin WebSocket 連線
+  - name: "Admin Direct Connection"
+    weight: 30
+    engine: ws
+    flow:
+      - connect:
+          target: "ws://localhost:8788/admin/1"
+      - think: 1
+      - send:
+          payload: '{"type":"ping"}'
+      - think: 15
+      - loop:
+          - send:
+              payload: '{"type":"ping"}'
+          - think: 3
+        count: 3
+
+  # 場景 3: Customer WebSocket 連線
+  - name: "Customer Direct Connection"
+    weight: 30
+    engine: ws
+    flow:
+      - connect:
+          target: "ws://localhost:8788/customer/table-1"
+      - think: 1
+      - send:
+          payload: '{"type":"ping"}'
+      - think: 20
+      - loop:
+          - send:
+              payload: '{"type":"ping"}'
+          - think: 5
+        count: 2

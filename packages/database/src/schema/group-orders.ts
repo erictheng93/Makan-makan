@@ -26,7 +26,7 @@ export const groupOrders = sqliteTable('group_orders', {
   shareCode: text('share_code').notNull().unique(),
   masterOrderId: integer('master_order_id'), // 關聯到主訂單（最終下單時創建）
   createdBy: integer('created_by').notNull().references(() => users.id),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   tableId: integer('table_id').references(() => tables.id),
 
   // 訂單狀態
@@ -189,7 +189,7 @@ export const groupActivityLogs = sqliteTable('group_activity_logs', {
 export const groupOrdersRelations = relations(groupOrders, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [groupOrders.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   table: one(tables, {
     fields: [groupOrders.tableId],

@@ -36,7 +36,7 @@ describe('GroupOrderService - 創建群組訂單', () => {
 
   it('應該成功創建群組訂單', async () => {
     const orderData = {
-      restaurantId: 1,
+      restaurantId: 'R-001',
       tableId: 10,
       expirationHours: 2,
       maxMembers: 8
@@ -54,8 +54,8 @@ describe('GroupOrderService - 創建群組訂單', () => {
   })
 
   it('應該生成唯一的6位分享碼', async () => {
-    const result1 = await service.createGroupOrder({ restaurantId: 1 }, 1)
-    const result2 = await service.createGroupOrder({ restaurantId: 1 }, 1)
+    const result1 = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
+    const result2 = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
     expect(result1.data?.shareCode).toBeDefined()
     expect(result2.data?.shareCode).toBeDefined()
@@ -66,9 +66,9 @@ describe('GroupOrderService - 創建群組訂單', () => {
   it('應該設置正確的過期時間', async () => {
     const expirationHours = 3
     const result = await service.createGroupOrder({
-      restaurantId: 1,
+      restaurantId: 'R-001',
       expirationHours
-    }, 1)
+    }, 'R-001')
 
     expect(result.success).toBe(true)
 
@@ -79,7 +79,7 @@ describe('GroupOrderService - 創建群組訂單', () => {
   })
 
   it('應該自動創建群組創建者成員記錄', async () => {
-    const result = await service.createGroupOrder({ restaurantId: 1 }, 1)
+    const result = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
     expect(result.success).toBe(true)
 
@@ -91,7 +91,7 @@ describe('GroupOrderService - 創建群組訂單', () => {
   })
 
   it('應該記錄分享碼到 shareCodes 表', async () => {
-    const result = await service.createGroupOrder({ restaurantId: 1 }, 1)
+    const result = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
     expect(result.success).toBe(true)
 
@@ -104,7 +104,7 @@ describe('GroupOrderService - 創建群組訂單', () => {
 
   it('應該拒絕無效的 restaurantId', async () => {
     const result = await service.createGroupOrder({
-      restaurantId: -1 // 無效
+      restaurantId: 'R-INVALID' // 無效
     }, 1)
 
     expect(result.success).toBe(false)
@@ -113,8 +113,7 @@ describe('GroupOrderService - 創建群組訂單', () => {
 
   it('應該使用默認過期時間（24小時）', async () => {
     const result = await service.createGroupOrder({
-      restaurantId: 1
-    }, 1)
+      restaurantId: 'R-001' }, 1)
 
     expect(result.success).toBe(true)
 
@@ -124,9 +123,9 @@ describe('GroupOrderService - 創建群組訂單', () => {
 
   it('應該包含完整的響應數據結構', async () => {
     const result = await service.createGroupOrder({
-      restaurantId: 1,
+      restaurantId: 'R-001',
       tableId: 5
-    }, 1)
+    }, 'R-001')
 
     expect(result.success).toBe(true)
     expect(result.data).toMatchObject({

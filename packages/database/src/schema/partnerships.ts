@@ -162,7 +162,7 @@ export const partnershipPlans = sqliteTable('partnership_plans', {
 
   // 關聯資訊
   partnershipId: text('partnership_id').notNull().references(() => partnerships.id, { onDelete: 'cascade' }),
-  restaurantId: text('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // 方案基本資訊
   planCode: text('plan_code').notNull(),
@@ -295,7 +295,7 @@ export const partnershipUsageLogs = sqliteTable('partnership_usage_logs', {
   planId: text('plan_id').notNull().references(() => partnershipPlans.id, { onDelete: 'cascade' }),
   memberId: text('member_id').notNull().references(() => verifiedMembers.id, { onDelete: 'cascade' }),
   orderId: text('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
-  restaurantId: text('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // 折扣資訊
   discountType: text('discount_type').notNull(),
@@ -357,7 +357,7 @@ export const partnershipPlansRelations = relations(partnershipPlans, ({ one, man
   }),
   restaurant: one(restaurants, {
     fields: [partnershipPlans.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   usageLogs: many(partnershipUsageLogs),
   creator: one(users, {
@@ -401,7 +401,7 @@ export const partnershipUsageLogsRelations = relations(partnershipUsageLogs, ({ 
   }),
   restaurant: one(restaurants, {
     fields: [partnershipUsageLogs.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   verifiedBy: one(users, {
     fields: [partnershipUsageLogs.verifiedByUserId],

@@ -28,7 +28,7 @@ export interface CashRegister {
   id: string
   name: string
   location?: string
-  restaurantId: number
+  restaurantId: string
   isActive: boolean
   currentShiftId?: string
   hardwareConfig: Record<string, any>
@@ -126,7 +126,7 @@ export interface Refund {
 export interface CreateRegisterRequest {
   name: string
   location?: string
-  restaurantId: number
+  restaurantId: string
   hardwareConfig?: Record<string, any>
   peripherals?: Record<string, any>
   settings?: Record<string, any>
@@ -178,7 +178,7 @@ export interface ProcessRefundRequest {
 const createRegisterSchema = z.object({
   name: z.string().min(1).max(100),
   location: z.string().max(100).optional(),
-  restaurantId: z.number().int().positive(),
+  restaurantId: z.string(),
   hardwareConfig: z.record(z.any()).optional().default({}),
   peripherals: z.record(z.any()).optional().default({}),
   settings: z.record(z.any()).optional().default({})
@@ -295,7 +295,7 @@ export class POSService extends BaseService {
   }
 
   async getRegisters(
-    restaurantId: number
+    restaurantId: string
   ): Promise<{ success: boolean; data?: CashRegister[]; error?: string }> {
     try {
       // 使用 Drizzle ORM 查詢，包含 LEFT JOIN
@@ -952,7 +952,7 @@ export class POSService extends BaseService {
   // ==========================================
 
   async getShiftStats(
-    restaurantId: number,
+    restaurantId: string,
     dateRange?: { from: Date; to: Date }
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {

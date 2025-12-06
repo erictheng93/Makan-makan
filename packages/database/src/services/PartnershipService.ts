@@ -150,7 +150,7 @@ export class PartnershipService extends BaseService {
    */
   async listPartnerships(filters: PartnershipFilters = {}, page = 1, limit = 20) {
     const conditions = []
-    const now = Date.now()
+    const now = new Date()
 
     if (filters.partnerType) {
       conditions.push(eq(partnerships.partnerType, filters.partnerType))
@@ -215,7 +215,7 @@ export class PartnershipService extends BaseService {
   async updatePartnership(id: string, data: Partial<NewPartnership>): Promise<Partnership> {
     const [result] = await this.db
       .update(partnerships)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(partnerships.id, id))
       .returning()
 
@@ -296,7 +296,7 @@ export class PartnershipService extends BaseService {
    */
   async listPlans(filters: PlanFilters = {}, page = 1, limit = 20) {
     const conditions = []
-    const now = Date.now()
+    const now = new Date()
 
     if (filters.partnershipId) {
       conditions.push(eq(partnershipPlans.partnershipId, filters.partnershipId))
@@ -356,7 +356,7 @@ export class PartnershipService extends BaseService {
   async updatePlan(id: string, data: Partial<NewPartnershipPlan>): Promise<PartnershipPlan> {
     const [result] = await this.db
       .update(partnershipPlans)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(partnershipPlans.id, id))
       .returning()
 
@@ -394,7 +394,7 @@ export class PartnershipService extends BaseService {
       }
 
       // 檢查有效期
-      const now = Date.now()
+      const now = new Date()
       if (now < plan.validFrom || now > plan.validTo) {
         return { valid: false, error: '方案已過期或尚未生效' }
       }
@@ -409,7 +409,7 @@ export class PartnershipService extends BaseService {
       }
 
       // 檢查每日使用限制
-      if (plan.usageLimitPerDay && plan.dailyUsageCount >= plan.usageLimitPerDay) {
+      if (plan.usageLimitPerDay && (plan.dailyUsageCount ?? 0) >= plan.usageLimitPerDay) {
         return { valid: false, error: '今日使用次數已達上限' }
       }
 
@@ -535,16 +535,16 @@ export class PartnershipService extends BaseService {
   async approveMember(
     memberId: string,
     verifiedBy: string,
-    verificationExpiry?: number
+    verificationExpiry?: Date
   ): Promise<VerifiedMember> {
     const [result] = await this.db
       .update(verifiedMembers)
       .set({
         status: 'verified',
-        verifiedAt: Date.now(),
+        verifiedAt: new Date(),
         verifiedBy,
         verificationExpiry,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
       .where(eq(verifiedMembers.id, memberId))
       .returning()
@@ -561,7 +561,7 @@ export class PartnershipService extends BaseService {
       .set({
         status: 'rejected',
         rejectionReason,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
       .where(eq(verifiedMembers.id, memberId))
       .returning()
@@ -662,7 +662,7 @@ export class PartnershipService extends BaseService {
   async updateMember(id: string, data: Partial<NewVerifiedMember>): Promise<VerifiedMember> {
     const [result] = await this.db
       .update(verifiedMembers)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(verifiedMembers.id, id))
       .returning()
 
@@ -714,8 +714,8 @@ export class PartnershipService extends BaseService {
       memberId?: string
       restaurantId?: string
       status?: typeof partnershipUsageLogs.$inferSelect.status
-      startDate?: number
-      endDate?: number
+      startDate?: Date
+      endDate?: Date
     } = {},
     page = 1,
     limit = 20
@@ -791,7 +791,7 @@ export class PartnershipService extends BaseService {
       .update(partnershipUsageLogs)
       .set({
         status: 'cancelled',
-        cancelledAt: Date.now(),
+        cancelledAt: new Date(),
         cancellationReason: reason,
       })
       .where(eq(partnershipUsageLogs.id, id))
@@ -808,7 +808,7 @@ export class PartnershipService extends BaseService {
       .update(partnershipUsageLogs)
       .set({
         status: 'refunded',
-        refundedAt: Date.now(),
+        refundedAt: new Date(),
       })
       .where(eq(partnershipUsageLogs.id, id))
       .returning()
@@ -841,10 +841,10 @@ export class PartnershipService extends BaseService {
    * 檢查合約是否有效
    */
   isContractValid(partnership: Partnership): boolean {
-    const now = Date.now()
+    const now = new Date()
     return (
       partnership.status === 'active' &&
-      partnership.isActive &&
+      !!partnership.isActive &&
       now >= partnership.contractStartDate &&
       now <= partnership.contractEndDate
     )
@@ -857,7 +857,7 @@ export class PartnershipService extends BaseService {
     if (!member.verificationExpiry) {
       return false
     }
-    return Date.now() > member.verificationExpiry
+    return new Date() > member.verificationExpiry
   }
 
   /**

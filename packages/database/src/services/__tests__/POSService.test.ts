@@ -238,13 +238,13 @@ describe('POSService', () => {
         const registerData = {
           name: 'POS-001',
           location: 'Front Counter',
-          restaurantId: 1,
+          restaurantId: 'R-001',
           hardwareConfig: { printer: 'EPSON-TM-T88' },
           peripherals: { scanner: 'Honeywell' },
           settings: { currency: 'TWD' }
         }
 
-        const result = await service.createRegister(registerData, 1)
+        const result = await service.createRegister(registerData, 'R-001')
 
         expect(result.success).toBe(true)
         expect(result.data).toBeDefined()
@@ -256,10 +256,9 @@ describe('POSService', () => {
       it('應該拒絕無效的收銀機名稱', async () => {
         const registerData = {
           name: '', // 無效：空名稱
-          restaurantId: 1
-        }
+          restaurantId: 'R-001' }
 
-        const result = await service.createRegister(registerData, 1)
+        const result = await service.createRegister(registerData, 'R-001')
 
         expect(result.success).toBe(false)
         expect(result.error).toBeDefined()
@@ -272,7 +271,7 @@ describe('POSService', () => {
           // 沒有提供 location, hardwareConfig 等
         }
 
-        const result = await service.createRegister(registerData, 1)
+        const result = await service.createRegister(registerData, 'R-001')
 
         expect(result.success).toBe(true)
         expect(result.data?.hardwareConfig).toBeDefined()
@@ -283,8 +282,8 @@ describe('POSService', () => {
     describe('getRegisters', () => {
       it('應該返回餐廳的所有收銀機', async () => {
         // 先創建幾個收銀機
-        await service.createRegister({ name: 'POS-001', restaurantId: 1 }, 1)
-        await service.createRegister({ name: 'POS-002', restaurantId: 1 }, 1)
+        await service.createRegister({ restaurantId: 'R-001', name: 'POS-001', restaurantId: 'R-001' }, 1)
+        await service.createRegister({ restaurantId: 'R-001', name: 'POS-002', restaurantId: 'R-001' }, 1)
 
         const result = await service.getRegisters(1)
 
@@ -294,8 +293,8 @@ describe('POSService', () => {
       })
 
       it('應該只返回指定餐廳的收銀機', async () => {
-        await service.createRegister({ name: 'POS-R1', restaurantId: 1 }, 1)
-        await service.createRegister({ name: 'POS-R2', restaurantId: 2 }, 1)
+        await service.createRegister({ restaurantId: 'R-001', name: 'POS-R1', restaurantId: 'R-001' }, 1)
+        await service.createRegister({ restaurantId: 'R-001', name: 'POS-R2', restaurantId: 'R-002' }, 1)
 
         const result = await service.getRegisters(1)
 
@@ -314,10 +313,8 @@ describe('POSService', () => {
 
     beforeEach(async () => {
       // 先創建一個測試收銀機
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
       testRegisterId = registerResult.data!.id
     })
 
@@ -456,10 +453,8 @@ describe('POSService', () => {
 
     beforeEach(async () => {
       // 創建收銀機和班次
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
 
       const shiftResult = await service.startShift({
         registerId: registerResult.data!.id,
@@ -564,10 +559,8 @@ describe('POSService', () => {
       })
 
       // 創建收銀機
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
       testRegisterId = registerResult.data!.id
     })
 
@@ -664,10 +657,8 @@ describe('POSService', () => {
       })
 
       // 創建收銀機
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
       testRegisterId = registerResult.data!.id
     })
 
@@ -790,10 +781,8 @@ describe('POSService', () => {
         fullName: 'Test Operator'
       })
 
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
 
       const shiftResult = await service.startShift({
         registerId: registerResult.data!.id,
@@ -903,10 +892,8 @@ describe('POSService', () => {
       }
 
       const errorService = new POSService(errorDB, mockEnv)
-      const result = await errorService.createRegister({
-        name: 'Test',
-        restaurantId: 1
-      }, 1)
+      const result = await errorService.createRegister({ restaurantId: 'R-001', name: 'Test',
+        restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(false)
       expect(result.error).toBeDefined()
@@ -915,10 +902,10 @@ describe('POSService', () => {
     it('應該處理無效的輸入數據', async () => {
       const invalidData: any = {
         name: '',
-        restaurantId: -1
+        restaurantId: 'R-INVALID'
       }
 
-      const result = await service.createRegister(invalidData, 1)
+      const result = await service.createRegister(invalidData, 'R-001')
 
       expect(result.success).toBe(false)
     })
@@ -929,7 +916,7 @@ describe('POSService', () => {
         // 缺少 restaurantId
       }
 
-      const result = await service.createRegister(incompleteData, 1)
+      const result = await service.createRegister(incompleteData, 'R-001')
 
       expect(result.success).toBe(false)
     })
@@ -941,10 +928,8 @@ describe('POSService', () => {
 
   describe('併發處理', () => {
     it('應該防止同時在同一收銀機開啟多個班次', async () => {
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
       const registerId = registerResult.data!.id
 
       const shiftData = {
@@ -974,10 +959,8 @@ describe('POSService', () => {
 
   describe('數據完整性', () => {
     it('班次結束後應清除收銀機的當前班次ID', async () => {
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
 
       const shiftResult = await service.startShift({
         registerId: registerResult.data!.id,
@@ -995,10 +978,8 @@ describe('POSService', () => {
     })
 
     it('應該正確累計班次銷售統計', async () => {
-      const registerResult = await service.createRegister({
-        name: 'Test-Register',
-        restaurantId: 1
-      }, 1)
+      const registerResult = await service.createRegister({ restaurantId: 'R-001', name: 'Test-Register',
+        restaurantId: 'R-001' }, 1)
 
       const shiftResult = await service.startShift({
         registerId: registerResult.data!.id,

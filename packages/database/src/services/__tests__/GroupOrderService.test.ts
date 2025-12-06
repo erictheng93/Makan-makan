@@ -262,7 +262,7 @@ describe('GroupOrderService', () => {
   describe('創建群組訂單', () => {
     it('應該成功創建群組訂單', async () => {
       const orderData = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         tableId: 10,
         expirationHours: 2,
         maxMembers: 8
@@ -280,8 +280,8 @@ describe('GroupOrderService', () => {
     })
 
     it('應該生成唯一的6位分享碼', async () => {
-      const result1 = await service.createGroupOrder({ restaurantId: 1 }, 1)
-      const result2 = await service.createGroupOrder({ restaurantId: 1 }, 1)
+      const result1 = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
+      const result2 = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
       expect(result1.data?.shareCode).toBeDefined()
       expect(result2.data?.shareCode).toBeDefined()
@@ -292,9 +292,9 @@ describe('GroupOrderService', () => {
     it('應該設置正確的過期時間', async () => {
       const expirationHours = 3
       const result = await service.createGroupOrder({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         expirationHours
-      }, 1)
+      }, 'R-001')
 
       expect(result.success).toBe(true)
 
@@ -305,7 +305,7 @@ describe('GroupOrderService', () => {
     })
 
     it('應該自動創建群組創建者成員記錄', async () => {
-      const result = await service.createGroupOrder({ restaurantId: 1 }, 1)
+      const result = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(true)
 
@@ -317,7 +317,7 @@ describe('GroupOrderService', () => {
     })
 
     it('應該記錄分享碼到 shareCodes 表', async () => {
-      const result = await service.createGroupOrder({ restaurantId: 1 }, 1)
+      const result = await service.createGroupOrder({ restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(true)
 
@@ -330,7 +330,7 @@ describe('GroupOrderService', () => {
 
     it('應該拒絕無效的 restaurantId', async () => {
       const result = await service.createGroupOrder({
-        restaurantId: -1 // 無效
+        restaurantId: 'R-INVALID' // 無效
       }, 1)
 
       expect(result.success).toBe(false)
@@ -339,8 +339,7 @@ describe('GroupOrderService', () => {
 
     it('應該使用默認過期時間（24小時）', async () => {
       const result = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(true)
 
@@ -360,9 +359,9 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 先創建一個群組
       const createResult = await service.createGroupOrder({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         maxMembers: 5
-      }, 1)
+      }, 'R-001')
       testShareCode = createResult.data!.shareCode
       testGroupOrderId = createResult.data!.groupOrderId
     })
@@ -475,8 +474,7 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 創建群組並添加一些測試數據
       const createResult = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
       testGroupOrderId = createResult.data!.groupOrderId
 
       // 添加測試菜品
@@ -485,8 +483,7 @@ describe('GroupOrderService', () => {
         name: 'Test Burger',
         price: 10.99,
         isAvailable: true,
-        restaurantId: 1
-      })
+        restaurantId: 'R-001' })
 
       // 添加第二個成員
       const memberData = {
@@ -557,8 +554,7 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 創建群組
       const createResult = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
       testGroupOrderId = createResult.data!.groupOrderId
 
       // 獲取創建者成員ID
@@ -571,8 +567,7 @@ describe('GroupOrderService', () => {
         name: 'Test Pizza',
         price: 15.99,
         isAvailable: true,
-        restaurantId: 1
-      })
+        restaurantId: 'R-001' })
     })
 
     it('應該成功添加購物車項目', async () => {
@@ -625,8 +620,7 @@ describe('GroupOrderService', () => {
         name: 'Unavailable Item',
         price: 10,
         isAvailable: false,
-        restaurantId: 1
-      })
+        restaurantId: 'R-001' })
 
       const result = await service.addCartItem(testGroupOrderId, {
         memberId: testMemberId,
@@ -672,8 +666,7 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 創建群組
       const createResult = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
       testGroupOrderId = createResult.data!.groupOrderId
 
       // 獲取創建者ID
@@ -791,8 +784,7 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 創建群組並設置分帳
       const createResult = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
       testGroupOrderId = createResult.data!.groupOrderId
 
       const members = Array.from(mockDB._mockData.groupMembers.values())
@@ -880,8 +872,7 @@ describe('GroupOrderService', () => {
     beforeEach(async () => {
       // 創建群組
       const createResult = await service.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
       testGroupOrderId = createResult.data!.groupOrderId
 
       const members = Array.from(mockDB._mockData.groupMembers.values())
@@ -954,7 +945,7 @@ describe('GroupOrderService', () => {
         status: 'active',
         expiresAt: new Date(Date.now() - 1000), // 已過期
         createdBy: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         totalAmount: 0,
         taxAmount: 0,
         serviceCharge: 0,
@@ -1017,8 +1008,7 @@ describe('GroupOrderService', () => {
 
       const errorService = new GroupOrderService(errorDB, mockEnv)
       const result = await errorService.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(false)
       expect(result.error).toBeDefined()
@@ -1026,9 +1016,9 @@ describe('GroupOrderService', () => {
 
     it('應該處理無效的輸入數據', async () => {
       const result = await service.createGroupOrder({
-        restaurantId: -1, // 無效
+        restaurantId: 'R-INVALID', // 無效
         maxMembers: 100 // 超過限制
-      }, 1)
+      }, 'R-001')
 
       expect(result.success).toBe(false)
     })
@@ -1041,9 +1031,9 @@ describe('GroupOrderService', () => {
   describe('併發處理', () => {
     it('應該處理多個成員同時加入', async () => {
       const createResult = await service.createGroupOrder({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         maxMembers: 10
-      }, 1)
+      }, 'R-001')
       const shareCode = createResult.data!.shareCode
 
       // 模擬3個成員同時加入

@@ -6,7 +6,7 @@ import { restaurants } from './restaurants'
 export const errorReports = sqliteTable('error_reports', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull(),
-  restaurantId: integer('restaurant_id'),
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)
   errorType: text('error_type', { 
     enum: ['network', 'api', 'sse', 'validation', 'permission', 'unknown'] 
   }).notNull(),
@@ -39,11 +39,11 @@ export const systemAlerts = sqliteTable('system_alerts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   description: text('description').notNull(),
-  severity: text('severity', { 
-    enum: ['low', 'medium', 'high', 'critical'] 
+  severity: text('severity', {
+    enum: ['low', 'medium', 'high', 'critical']
   }).notNull(),
   alertType: text('alert_type').notNull(),
-  restaurantId: integer('restaurant_id'),
+  restaurantId: text('restaurant_id'), // 引用 restaurants.public_id (TEXT)
   affectedComponent: text('affected_component'),
   createdAt: text('created_at').notNull(),
   resolvedAt: text('resolved_at'),
@@ -64,7 +64,7 @@ export const errorReportsRelations = relations(errorReports, ({ one }) => ({
   }),
   restaurant: one(restaurants, {
     fields: [errorReports.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   resolvedByUser: one(users, {
     fields: [errorReports.resolvedBy],
@@ -75,7 +75,7 @@ export const errorReportsRelations = relations(errorReports, ({ one }) => ({
 export const systemAlertsRelations = relations(systemAlerts, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [systemAlerts.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   resolvedByUser: one(users, {
     fields: [systemAlerts.resolvedBy],

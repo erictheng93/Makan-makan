@@ -45,7 +45,7 @@ describe('MenuService', () => {
     categories: [
       {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         name: 'Main Dishes',
         description: 'Our main courses',
         sortOrder: 1,
@@ -58,7 +58,7 @@ describe('MenuService', () => {
         menuItems: [
           {
             id: 1,
-            restaurantId: 1,
+            restaurantId: 'R-001',
             categoryId: 1,
             name: 'Pasta',
             description: 'Delicious pasta',
@@ -89,7 +89,7 @@ describe('MenuService', () => {
       },
       {
         id: 2,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         name: 'Desserts',
         description: 'Sweet treats',
         sortOrder: 2,
@@ -102,7 +102,7 @@ describe('MenuService', () => {
         menuItems: [
           {
             id: 2,
-            restaurantId: 1,
+            restaurantId: 'R-001',
             categoryId: 2,
             name: 'Cake',
             description: 'Chocolate cake',
@@ -137,7 +137,7 @@ describe('MenuService', () => {
   const mockMenuItem = mockRestaurant.categories[0].menuItems[0]
 
   const validMenuItemData: CreateMenuItemData = {
-    restaurantId: 1,
+    restaurantId: 'R-001',
     categoryId: 1,
     name: 'New Dish',
     description: 'A new dish',
@@ -176,7 +176,7 @@ describe('MenuService', () => {
       mockDb.select.mockReturnValueOnce(createQueryChain([{ itemCount: 1 }]))
 
       // Act
-      const result = await menuService.getMenu(1)
+      const result = await menuService.getMenu('R-001')
 
       // Assert
       expect(result).toBeDefined()
@@ -196,7 +196,7 @@ describe('MenuService', () => {
       }
 
       // Act & Assert
-      await expect(menuService.getMenu(999)).rejects.toThrow('Database operation failed: getMenu')
+      await expect(menuService.getMenu('R-999')).rejects.toThrow('Database operation failed: getMenu')
     })
 
     it('should call cachedQuery for menu data', async () => {
@@ -216,7 +216,7 @@ describe('MenuService', () => {
       const cachedQuerySpy = vi.spyOn(menuService as any, 'cachedQuery')
 
       // Act
-      await menuService.getMenu(1)
+      await menuService.getMenu('R-001')
 
       // Assert - cachedQuery should be called with correct cache key
       expect(cachedQuerySpy).toHaveBeenCalledWith(
@@ -238,7 +238,7 @@ describe('MenuService', () => {
       })
 
       // Act
-      const result = await menuService.getFeaturedItems(1, 10)
+      const result = await menuService.getFeaturedItems('R-001', 10)
 
       // Assert
       expect(result).toHaveLength(1)
@@ -259,7 +259,7 @@ describe('MenuService', () => {
       })
 
       // Act
-      const result = await menuService.getFeaturedItems(1, 5)
+      const result = await menuService.getFeaturedItems('R-001', 5)
 
       // Assert
       expect(result).toHaveLength(5)
@@ -272,7 +272,7 @@ describe('MenuService', () => {
       })
 
       // Act
-      const result = await menuService.getFeaturedItems(1)
+      const result = await menuService.getFeaturedItems('R-001')
 
       // Assert
       expect(result).toHaveLength(0)
@@ -292,7 +292,7 @@ describe('MenuService', () => {
       })
 
       // Act
-      const result = await menuService.getPopularItems(1)
+      const result = await menuService.getPopularItems('R-001')
 
       // Assert
       expect(result).toHaveLength(2)
@@ -306,7 +306,7 @@ describe('MenuService', () => {
       })
 
       // Act
-      const result = await menuService.getPopularItems(1)
+      const result = await menuService.getPopularItems('R-001')
 
       // Assert
       expect(result).toHaveLength(1)
@@ -326,7 +326,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters, 1, 20)
+      const result = await menuService.searchMenuItems('R-001', filters, 1, 20)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -344,7 +344,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -362,7 +362,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -380,7 +380,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -397,7 +397,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -414,7 +414,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -431,7 +431,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(1)
@@ -448,7 +448,7 @@ describe('MenuService', () => {
       mockDb.select.mockReturnValueOnce(createQueryChain([{ totalCount: 50 }]))
 
       // Act
-      const result = await menuService.searchMenuItems(1, {}, 2, 20)
+      const result = await menuService.searchMenuItems('R-001', {}, 2, 20)
 
       // Assert
       expect(result.pagination.page).toBe(2)
@@ -467,7 +467,7 @@ describe('MenuService', () => {
       }
 
       // Act
-      const result = await menuService.searchMenuItems(1, filters)
+      const result = await menuService.searchMenuItems('R-001', filters)
 
       // Assert
       expect(result.items).toHaveLength(0)
@@ -610,7 +610,7 @@ describe('MenuService', () => {
       const updateSpy = vi.spyOn(mockDb, 'update')
 
       // Act
-      await menuService.batchUpdateAvailability(1, updates)
+      await menuService.batchUpdateAvailability('R-001', updates)
 
       // Assert
       expect(updateSpy).toHaveBeenCalledTimes(2)
@@ -627,7 +627,7 @@ describe('MenuService', () => {
       const invalidateSpy = vi.spyOn(menuService['queryCache'], 'invalidate')
 
       // Act
-      await menuService.batchUpdateAvailability(1, updates)
+      await menuService.batchUpdateAvailability('R-001', updates)
 
       // Assert - Cache invalidation should be called
       expect(invalidateSpy).toHaveBeenCalled()
@@ -719,7 +719,7 @@ describe('MenuService', () => {
     it('should create new category successfully', async () => {
       // Arrange
       const categoryData = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         name: 'Beverages',
         description: 'Drinks',
         sortOrder: 3,
@@ -758,7 +758,7 @@ describe('MenuService', () => {
       // Act & Assert
       await expect(
         menuService.createCategory({
-          restaurantId: 1,
+          restaurantId: 'R-001',
           name: 'Test Category'
         })
       ).rejects.toThrow('Database operation failed: createCategory')
@@ -774,7 +774,7 @@ describe('MenuService', () => {
 
       // Act & Assert
       await expect(
-        menuService.getFeaturedItems(1)
+        menuService.getFeaturedItems('R-001')
       ).rejects.toThrow('Database operation failed: getFeaturedItems')
     })
 
@@ -786,7 +786,7 @@ describe('MenuService', () => {
 
       // Act & Assert
       await expect(
-        menuService.searchMenuItems(1, {})
+        menuService.searchMenuItems('R-001', {})
       ).rejects.toThrow('Database operation failed: searchMenuItems')
     })
 

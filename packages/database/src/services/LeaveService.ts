@@ -3,14 +3,13 @@
  * Business logic for employee leave/time-off management
  */
 
-import { eq, and, gte, lte, between, sql, desc, asc, or, inArray } from 'drizzle-orm'
+import { eq, and, gte, lte, between, sql, desc, asc, or } from 'drizzle-orm'
 import type { D1Database } from '@cloudflare/workers-types'
 import { BaseService, type CloudflareEnv } from './base'
 import {
   leaveTypes,
   employeeLeaveBalances,
   leaveRequests,
-  leaveApprovalRules,
   leaveCalendarEvents,
   users,
 } from '../schema'
@@ -23,7 +22,7 @@ import { NotificationService } from './NotificationService'
 
 export interface LeaveType {
   id: number
-  restaurantId: number | null
+  restaurantId: string | null
   code: string
   name: string
   description: string | null
@@ -60,7 +59,7 @@ export interface LeaveBalance {
   id: number
   employeeId: number
   leaveTypeId: number
-  restaurantId: number
+  restaurantId: string
   year: number
   totalDays: number
   usedDays: number
@@ -80,7 +79,7 @@ export interface LeaveBalance {
 
 export interface LeaveRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   leaveTypeId: number
   startDate: string
@@ -137,16 +136,16 @@ export interface LeaveBalanceWithType extends LeaveBalance {
   }
 }
 
-export interface CreateLeaveTypeData extends Omit<LeaveType, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> {}
+export type CreateLeaveTypeData = Omit<LeaveType, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>
 
-export interface UpdateLeaveTypeData extends Partial<Omit<LeaveType, 'id' | 'createdAt' | 'updatedAt'>> {}
+export type UpdateLeaveTypeData = Partial<Omit<LeaveType, 'id' | 'createdAt' | 'updatedAt'>>
 
-export interface CreateLeaveRequestData extends Omit<
+export type CreateLeaveRequestData = Omit<
   LeaveRequest,
   'id' | 'status' | 'approvalChain' | 'currentApprovalLevel' | 'finalApproverId' | 'finalApprovedAt' |
   'rejectedBy' | 'rejectedAt' | 'rejectionReason' | 'cancelledBy' | 'cancelledAt' | 'cancellationReason' |
   'affectedScheduleIds' | 'replacementNotified' | 'createdAt' | 'updatedAt' | 'submittedAt'
-> {}
+>
 
 export interface LeaveRequestFilters {
   employeeId?: number
@@ -186,7 +185,7 @@ export class LeaveService extends BaseService {
   /**
    * Get all leave types for a restaurant (including system-level types)
    */
-  async getLeaveTypes(restaurantId: number): Promise<LeaveType[]> {
+  async getLeaveTypes(restaurantId: string): Promise<LeaveType[]> {
     const types = await this.db
       .select()
       .from(leaveTypes)
@@ -447,7 +446,7 @@ export class LeaveService extends BaseService {
   /**
    * Accrue leave balances for all employees in a restaurant for a specific year
    */
-  async accrueLeaveBalances(restaurantId: number, year: number): Promise<number> {
+  async accrueLeaveBalances(restaurantId: string, year: number): Promise<number> {
     try {
       let count = 0
 
@@ -981,7 +980,7 @@ export class LeaveService extends BaseService {
   // Helper Methods
   // ========================================
 
-  private buildApprovalChain(restaurantId: number, leaveTypeId: number, levels: number): any[] {
+  private buildApprovalChain(restaurantId: string, leaveTypeId: number, levels: number): any[] {
     // Simplified approval chain - can be enhanced with actual approval rules
     const chain = []
     for (let i = 1; i <= levels; i++) {
@@ -1045,7 +1044,7 @@ export class LeaveService extends BaseService {
   /**
    * Get holidays for a specific year
    */
-  async getHolidays(restaurantId: number | null, year: number): Promise<any[]> {
+  async getHolidays(restaurantId: string | null, year: number): Promise<any[]> {
     const startDate = `${year}-01-01`
     const endDate = `${year}-12-31`
 
@@ -1054,10 +1053,9 @@ export class LeaveService extends BaseService {
       .from(leaveCalendarEvents)
       .where(
         and(
-          or(
-            eq(leaveCalendarEvents.restaurantId, restaurantId || 0),
-            sql`${leaveCalendarEvents.restaurantId} IS NULL`
-          ),
+          restaurantId
+            ? eq(leaveCalendarEvents.restaurantId, restaurantId)
+            : sql`${leaveCalendarEvents.restaurantId} IS NULL`,
           between(leaveCalendarEvents.eventDate, startDate, endDate)
         )
       )
@@ -1069,7 +1067,7 @@ export class LeaveService extends BaseService {
   /**
    * Check if a date is a working day
    */
-  async isWorkingDay(restaurantId: number, date: string): Promise<boolean> {
+  async isWorkingDay(restaurantId: string, date: string): Promise<boolean> {
     const [holiday] = await this.db
       .select()
       .from(leaveCalendarEvents)

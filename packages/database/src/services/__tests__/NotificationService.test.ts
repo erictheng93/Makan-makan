@@ -147,7 +147,7 @@ describe('NotificationService', () => {
     })
 
     it('應該在 email 提供者未配置時返回錯誤', async () => {
-      ;(service as any).emailProvider = null
+      (service as any).emailProvider = null
 
       const payload: NotificationPayload = {
         recipientId: 1,
@@ -305,7 +305,7 @@ describe('NotificationService', () => {
     })
 
     it('應該在 SMS 提供者未配置時返回錯誤', async () => {
-      ;(service as any).smsProvider = null
+      (service as any).smsProvider = null
 
       const payload: NotificationPayload = {
         recipientId: 1,

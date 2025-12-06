@@ -97,7 +97,7 @@ export class QRCodeService extends BaseService {
   /**
    * 批量生成QR碼
    */
-  async generateBulkQRCodes(restaurantId: number, tableIds: number[], userId: number): Promise<{ batchId: string; totalCodes: number }> {
+  async generateBulkQRCodes(restaurantId: string, tableIds: number[], userId: number): Promise<{ batchId: string; totalCodes: number }> {
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
     // 創建批次記錄

@@ -154,7 +154,7 @@ export class IntelligentD1Service extends BaseService {
   /**
    * Preload popular queries proactively
    */
-  async preloadPopularQueries(restaurantId?: number, timeWindow: string = '1h'): Promise<void> {
+  async preloadPopularQueries(restaurantId?: string, timeWindow: string = '1h'): Promise<void> {
     try {
       const popularQueries = await this.getPopularQueries(timeWindow, restaurantId)
       
@@ -304,7 +304,7 @@ export class IntelligentD1Service extends BaseService {
    * Smart menu query optimization for restaurant data
    */
   async getOptimizedMenuData(
-    restaurantId: number,
+    restaurantId: string,
     options: {
       includeCategories?: boolean
       includeAvailabilityOnly?: boolean
@@ -328,7 +328,7 @@ export class IntelligentD1Service extends BaseService {
    * Intelligent order analytics queries with time-based optimization
    */
   async getOrderAnalytics(
-    restaurantId: number,
+    restaurantId: string,
     timeRange: '1h' | '24h' | '7d' | '30d',
     metrics: string[],
     options: {
@@ -468,7 +468,7 @@ export class IntelligentD1Service extends BaseService {
 
   private async getPopularQueries(
     timeWindow: string,
-    restaurantId?: number
+    restaurantId?: string
   ): Promise<QueryMetadata[]> {
     // Get popular queries from analytics
     const queries = Array.from(this.queryAnalytics.values())
@@ -651,17 +651,17 @@ export class IntelligentD1Service extends BaseService {
   }
 
   // Placeholder methods for complex queries - would be implemented based on schema
-  private async getMenuWithCategories(restaurantId: number, strategy: CacheStrategy): Promise<any> {
+  private async getMenuWithCategories(restaurantId: string, strategy: CacheStrategy): Promise<any> {
     // Implementation would join menu_items and categories tables
     return []
   }
 
-  private async getMenuItems(restaurantId: number, strategy: CacheStrategy, options: any): Promise<any> {
+  private async getMenuItems(restaurantId: string, strategy: CacheStrategy, options: any): Promise<any> {
     // Implementation would query menu_items table with filters
     return []
   }
 
-  private getMenuCacheStrategy(restaurantId: number, options: any): CacheStrategy {
+  private getMenuCacheStrategy(restaurantId: string, options: any): CacheStrategy {
     return {
       type: 'standard',
       ttl: 600,
@@ -671,7 +671,7 @@ export class IntelligentD1Service extends BaseService {
     }
   }
 
-  private buildAnalyticsQuery(restaurantId: number, timeRange: string, metrics: string[]): { sql: string; params: any[] } {
+  private buildAnalyticsQuery(restaurantId: string, timeRange: string, metrics: string[]): { sql: string; params: any[] } {
     // Implementation would build complex analytics query
     return {
       sql: 'SELECT COUNT(*) as orders FROM orders WHERE restaurant_id = ? AND created_at > ?',

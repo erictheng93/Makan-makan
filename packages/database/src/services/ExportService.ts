@@ -28,7 +28,7 @@ export class ExportService {
    * Export leave requests
    */
   async exportLeaveRequests(
-    restaurantId: number,
+    restaurantId: string,
     options: ExportOptions
   ): Promise<ExportResult> {
     try {
@@ -108,7 +108,7 @@ export class ExportService {
    * Export leave balances
    */
   async exportLeaveBalances(
-    restaurantId: number,
+    restaurantId: string,
     year: number,
     options: Partial<ExportOptions> = {}
   ): Promise<ExportResult> {
@@ -166,7 +166,7 @@ export class ExportService {
    * Export employee schedules
    */
   async exportSchedules(
-    restaurantId: number,
+    restaurantId: string,
     options: ExportOptions
   ): Promise<ExportResult> {
     try {

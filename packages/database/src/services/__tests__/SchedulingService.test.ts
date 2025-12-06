@@ -50,7 +50,7 @@ describe('SchedulingService', () => {
     it('should create swap request with pending status', async () => {
       const mockRequest = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         requesterEmployeeId: 1,
         status: 'pending',
         createdAt: new Date(),
@@ -64,7 +64,7 @@ describe('SchedulingService', () => {
       })
 
       const result = await service.createSwapRequest({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         requesterEmployeeId: 1,
         requesterScheduleId: 1,
         requestType: 'swap',
@@ -79,7 +79,7 @@ describe('SchedulingService', () => {
       const existingRequest = {
         id: 1,
         status: 'pending',
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       const updatedRequest = {
@@ -111,7 +111,7 @@ describe('SchedulingService', () => {
       const existingRequest = {
         id: 1,
         status: 'pending',
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       const rejectedRequest = {
@@ -142,7 +142,7 @@ describe('SchedulingService', () => {
       const existingRequest = {
         id: 1,
         status: 'approved',
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       mockDb.select.mockReturnValue({
@@ -163,7 +163,7 @@ describe('SchedulingService', () => {
         id: 1,
         status: 'pending',
         requesterEmployeeId: 5,
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       const cancelledRequest = {
@@ -192,7 +192,7 @@ describe('SchedulingService', () => {
         id: 1,
         status: 'pending',
         requesterEmployeeId: 5,
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       mockDb.select.mockReturnValue({
@@ -278,7 +278,7 @@ describe('SchedulingService', () => {
       const existingRequest = {
         id: 1,
         status: 'rejected',
-        restaurantId: 1,
+        restaurantId: 'R-001',
       }
 
       mockDb.select.mockReturnValue({
@@ -311,7 +311,7 @@ describe('SchedulingService', () => {
       })
 
       const created = await service.createSwapRequest({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         requesterEmployeeId: 1,
         requesterScheduleId: 1,
         requestType: 'swap',

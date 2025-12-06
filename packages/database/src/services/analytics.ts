@@ -8,7 +8,7 @@ export interface DateRange {
 }
 
 export interface AnalyticsFilters extends DateRange {
-  restaurantId?: number
+  restaurantId?: string
   groupBy?: 'day' | 'week' | 'month' | 'year'
   includeComparison?: boolean
   limit?: number
@@ -569,7 +569,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得儀表板資料
-  async getDashboardData(restaurantId: number): Promise<DashboardData> {
+  async getDashboardData(restaurantId: string): Promise<DashboardData> {
     try {
       // If no restaurantId provided (e.g., system admin), return empty data
       if (!restaurantId || restaurantId === undefined || restaurantId === null) {
@@ -808,7 +808,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得實時儀表板資料 (Referenced in API routes)
-  async getRealtimeDashboard(restaurantId: number): Promise<{
+  async getRealtimeDashboard(restaurantId: string): Promise<{
     activeOrders: number
     kitchenQueue: number
     averageWaitTime: number
@@ -916,7 +916,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得店主儀表板資料 (Referenced in API routes)
-  async getOwnerDashboard(restaurantId: number, filters: AnalyticsFilters): Promise<{
+  async getOwnerDashboard(restaurantId: string, filters: AnalyticsFilters): Promise<{
     financialSummary: any
     operationalMetrics: any
     staffPerformance: any
@@ -1007,7 +1007,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得效能報告
-  async getPerformanceReport(restaurantId: number, dateRange: DateRange): Promise<{
+  async getPerformanceReport(restaurantId: string, dateRange: DateRange): Promise<{
     orderProcessingTime: number
     kitchenEfficiency: number
     tableUtilization: number

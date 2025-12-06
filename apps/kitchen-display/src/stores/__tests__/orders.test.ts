@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useOrdersStore } from '../orders'
-import type { KitchenOrder } from '@/types'
+import type { KitchenOrder, OrderStatus, KitchenSSEEvent } from '@/types'
 
 // Mock kitchen API - inline definition to avoid hoisting issues
 vi.mock('@/services/kitchenApi', () => ({
@@ -17,17 +17,19 @@ vi.mock('@/services/kitchenApi', () => ({
   }
 }))
 
-function createMockOrder(id: string, status: number, priority = 'normal'): KitchenOrder {
+function createMockOrder(id: string, status: OrderStatus, priority: 'normal' | 'high' | 'urgent' = 'normal'): KitchenOrder {
   return {
-    id,
+    id: parseInt(id) || 0,
     orderNumber: `ORD-${id}`,
+    tableId: 1,
     tableName: 'T1',
     status,
     priority,
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
     estimatedTime: 15,
-    items: []
+    items: [],
+    totalItems: 0
   }
 }
 
@@ -206,21 +208,26 @@ describe('Orders Store', () => {
       mockKitchenApi.updateItemStatus.mockResolvedValue({ success: true })
 
       const store = useOrdersStore()
-      await store.updateItemStatus('item-1', 'preparing')
+      // updateItemStatus requires: orderId, itemId, newStatus
+      await store.updateItemStatus(1, 101, 'preparing')
 
-      expect(mockKitchenApi.updateItemStatus).toHaveBeenCalledWith('item-1', 'preparing')
+      expect(mockKitchenApi.updateItemStatus).toHaveBeenCalledWith(1, 101, 'preparing')
     })
   })
 
   describe('SSE Event Handling', () => {
     it('should handle NEW_ORDER event', () => {
       const store = useOrdersStore()
-      const newOrder = createMockOrder('new-1', 1)
+      const newOrder = createMockOrder('1', 1)
 
-      store.handleSSEEvent({
+      const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: newOrder
-      })
+        payload: newOrder,
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
+      }
+
+      store.handleSSEEvent(event)
 
       expect(store.orders).toContainEqual(newOrder)
     })
@@ -229,12 +236,16 @@ describe('Orders Store', () => {
       const store = useOrdersStore()
       store.orders = [createMockOrder('1', 1)]
 
-      store.handleSSEEvent({
+      const event: KitchenSSEEvent = {
         type: 'ORDER_STATUS_UPDATE',
-        payload: { orderId: '1', status: 2 }
-      })
+        payload: { orderId: 1, status: 2 as OrderStatus },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
+      }
 
-      const order = store.orders.find(o => o.id === '1')
+      store.handleSSEEvent(event)
+
+      const order = store.orders.find(o => o.id === 1)
       expect(order?.status).toBe(2)
     })
 
@@ -245,13 +256,17 @@ describe('Orders Store', () => {
         createMockOrder('2', 2)
       ]
 
-      store.handleSSEEvent({
+      const event: KitchenSSEEvent = {
         type: 'ORDER_CANCELLED',
-        payload: { orderId: '1' }
-      })
+        payload: { orderId: 1 },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
+      }
+
+      store.handleSSEEvent(event)
 
       expect(store.orders).toHaveLength(1)
-      expect(store.orders[0].id).toBe('2')
+      expect(store.orders[0].id).toBe(2)
     })
   })
 

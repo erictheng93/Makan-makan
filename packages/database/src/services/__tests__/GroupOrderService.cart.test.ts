@@ -33,8 +33,7 @@ describe('GroupOrderService - 購物車操作', () => {
 
     // 創建群組
     const createResult = await service.createGroupOrder({
-      restaurantId: 1
-    }, 1)
+      restaurantId: 'R-001' }, 1)
     testGroupOrderId = createResult.data!.groupOrderId
 
     // 獲取創建者成員ID
@@ -47,8 +46,7 @@ describe('GroupOrderService - 購物車操作', () => {
       name: 'Test Pizza',
       price: 15.99,
       isAvailable: true,
-      restaurantId: 1
-    })
+      restaurantId: 'R-001' })
   })
 
   afterEach(() => {
@@ -105,8 +103,7 @@ describe('GroupOrderService - 購物車操作', () => {
       name: 'Unavailable Item',
       price: 10,
       isAvailable: false,
-      restaurantId: 1
-    })
+      restaurantId: 'R-001' })
 
     const result = await service.addCartItem(testGroupOrderId, {
       memberId: testMemberId,

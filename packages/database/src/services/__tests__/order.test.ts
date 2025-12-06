@@ -65,7 +65,7 @@ describe('OrderService', () => {
 
   const mockTable = {
     id: 1,
-    restaurantId: 1,
+    restaurantId: 'R-001',
     tableNumber: 'T1',
     isActive: true,
     isOccupied: false
@@ -73,7 +73,7 @@ describe('OrderService', () => {
 
   const mockMenuItem = {
     id: 1,
-    restaurantId: 1,
+    restaurantId: 'R-001',
     categoryId: 1,
     name: 'Burger',
     price: 15.00,
@@ -83,7 +83,7 @@ describe('OrderService', () => {
 
   const mockOrder = {
     id: 1,
-    restaurantId: 1,
+    restaurantId: 'R-001',
     tableId: 1,
     customerId: null,
     orderNumber: '1-TEST-ABC',
@@ -126,7 +126,7 @@ describe('OrderService', () => {
   }
 
   const validOrderData: CreateOrderData = {
-    restaurantId: 1,
+    restaurantId: 'R-001',
     tableId: 1,
     items: [
       {
@@ -158,7 +158,7 @@ describe('OrderService', () => {
       }
 
       // Act
-      const result = await orderService.getMinimumOrderAmount(1)
+      const result = await orderService.getMinimumOrderAmount('R-001')
 
       // Assert
       expect(result).toEqual({
@@ -179,7 +179,7 @@ describe('OrderService', () => {
       }
 
       // Act
-      const result = await orderService.getMinimumOrderAmount(1)
+      const result = await orderService.getMinimumOrderAmount('R-001')
 
       // Assert
       expect(result).toEqual({
@@ -200,7 +200,7 @@ describe('OrderService', () => {
       }
 
       // Act
-      const result = await orderService.getMinimumOrderAmount(1)
+      const result = await orderService.getMinimumOrderAmount('R-001')
 
       // Assert
       expect(result.enabled).toBe(false)
@@ -452,7 +452,7 @@ describe('OrderService', () => {
     it('should throw error when order below minimum amount', async () => {
       // Arrange
       const smallOrder: CreateOrderData = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         tableId: 1,
         items: [{
           menuItemId: 1,
@@ -611,8 +611,7 @@ describe('OrderService', () => {
       mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 2 }]))
 
       const filters: OrderFilters = {
-        restaurantId: 1
-      }
+        restaurantId: 'R-001' }
 
       // Act
       const result = await orderService.getOrders(filters, 1, 20)
@@ -634,7 +633,7 @@ describe('OrderService', () => {
       mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
 
       const filters: OrderFilters = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         tableId: 1
       }
 
@@ -656,7 +655,7 @@ describe('OrderService', () => {
       mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
 
       const filters: OrderFilters = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         status: 'pending'
       }
 
@@ -679,7 +678,7 @@ describe('OrderService', () => {
       mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
 
       const filters: OrderFilters = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         dateRange: [new Date('2024-01-01'), new Date('2024-01-31')]
       }
 
@@ -701,7 +700,7 @@ describe('OrderService', () => {
       mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
 
       const filters: OrderFilters = {
-        restaurantId: 1,
+        restaurantId: 'R-001',
         minAmount: 20,
         maxAmount: 50
       }
@@ -735,7 +734,7 @@ describe('OrderService', () => {
       }
 
       // Act
-      const result = await orderService.updateOrderStatus(1, statusData)
+      const result = await orderService.updateOrderStatus('R-001', statusData)
 
       // Assert
       expect(result).toBeDefined()
@@ -768,7 +767,7 @@ describe('OrderService', () => {
       })
 
       // Act
-      const result = await orderService.updateOrderStatus(1, { status: 'preparing' })
+      const result = await orderService.updateOrderStatus('R-001', { status: 'preparing' })
 
       // Assert
       expect(result.status).toBe('preparing')
@@ -788,7 +787,7 @@ describe('OrderService', () => {
       })
 
       // Act
-      const result = await orderService.updateOrderStatus(1, { status: 'delivered' })
+      const result = await orderService.updateOrderStatus('R-001', { status: 'delivered' })
 
       // Assert
       expect(result.status).toBe('delivered')
@@ -932,7 +931,7 @@ describe('OrderService', () => {
 
       // Act & Assert
       await expect(
-        orderService.getOrders({ restaurantId: 1 })
+        orderService.getOrders({ restaurantId: 'R-001' })
       ).rejects.toThrow('Database operation failed: getOrders')
     })
 

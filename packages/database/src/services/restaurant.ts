@@ -56,11 +56,11 @@ export class RestaurantService extends BaseService {
     }
   }
 
-  // 獲取餐廳詳情
-  async getRestaurant(id: number): Promise<Restaurant | null> {
+  // 獲取餐廳詳情 (by publicId)
+  async getRestaurant(id: string): Promise<Restaurant | null> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.id, id),
+        where: eq(restaurants.publicId, id),
         with: {
           categories: {
             where: eq(categories.isActive, true),
@@ -167,7 +167,7 @@ export class RestaurantService extends BaseService {
   }
 
   // 更新餐廳
-  async updateRestaurant(id: number, data: UpdateRestaurantData): Promise<Restaurant> {
+  async updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant> {
     try {
       const [restaurant] = await this.db
         .update(restaurants)
@@ -175,7 +175,7 @@ export class RestaurantService extends BaseService {
           ...data,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, id))
+        .where(eq(restaurants.publicId, id))
         .returning()
 
       if (!restaurant) {
@@ -189,7 +189,7 @@ export class RestaurantService extends BaseService {
   }
 
   // 軟刪除餐廳
-  async deactivateRestaurant(id: number): Promise<void> {
+  async deactivateRestaurant(id: string): Promise<void> {
     try {
       const [restaurant] = await this.db
         .update(restaurants)
@@ -198,7 +198,7 @@ export class RestaurantService extends BaseService {
           isAvailable: false,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, id))
+        .where(eq(restaurants.publicId, id))
         .returning()
 
       if (!restaurant) {
@@ -209,8 +209,8 @@ export class RestaurantService extends BaseService {
     }
   }
 
-  // 獲取餐廳統計資訊
-  async getRestaurantStats(id: number) {
+  // 獲取餐廳統計資訊 (by publicId)
+  async getRestaurantStats(id: string) {
     try {
       const stats = await this.db
         .select({
@@ -220,18 +220,18 @@ export class RestaurantService extends BaseService {
         })
         .from(restaurants)
         .leftJoin(menuItems, and(
-          eq(menuItems.restaurantId, restaurants.id),
+          eq(menuItems.restaurantId, restaurants.publicId),
           eq(menuItems.isAvailable, true)
         ))
         .leftJoin(tables, and(
-          eq(tables.restaurantId, restaurants.id),
+          eq(tables.restaurantId, restaurants.publicId),
           eq(tables.isActive, true)
         ))
         .leftJoin(users, and(
-          eq(users.restaurantId, restaurants.id),
+          eq(users.restaurantId, restaurants.publicId),
           eq(users.isActive, true)
         ))
-        .where(eq(restaurants.id, id))
+        .where(eq(restaurants.publicId, id))
         .groupBy(restaurants.id)
 
       return stats[0] || {
@@ -289,7 +289,7 @@ export class RestaurantService extends BaseService {
    * 生成店家级别 QR Code
    * 适用于无桌号的外带/自取订单场景
    */
-  async generateShopQrCode(restaurantId: number): Promise<{
+  async generateShopQrCode(restaurantId: string): Promise<{
     qrCode: string
     qrCodeImageUrl: string | null
     version: number
@@ -329,7 +329,7 @@ export class RestaurantService extends BaseService {
           shopQrSettings: defaultSettings,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, restaurantId))
+        .where(eq(restaurants.publicId, restaurantId))
         .returning()
 
       return {
@@ -346,7 +346,7 @@ export class RestaurantService extends BaseService {
    * 重新生成店家 QR Code
    * 用于 QR Code 泄露或需要更换的情况
    */
-  async regenerateShopQrCode(restaurantId: number): Promise<{
+  async regenerateShopQrCode(restaurantId: string): Promise<{
     qrCode: string
     qrCodeImageUrl: string | null
     version: number
@@ -371,7 +371,7 @@ export class RestaurantService extends BaseService {
           shopQrVersion: newVersion,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, restaurantId))
+        .where(eq(restaurants.publicId, restaurantId))
         .returning()
 
       return {
@@ -389,7 +389,7 @@ export class RestaurantService extends BaseService {
    */
   async verifyShopQrCode(qrCode: string): Promise<{
     valid: boolean
-    restaurantId?: number
+    restaurantId?: string
     restaurant?: Restaurant
   }> {
     try {
@@ -411,7 +411,7 @@ export class RestaurantService extends BaseService {
 
       return {
         valid: true,
-        restaurantId: restaurant.id,
+        restaurantId: restaurant.publicId!, // 返回 publicId 而非 id
         restaurant: this.mapToRestaurant(restaurant)
       }
     } catch (error) {
@@ -435,7 +435,7 @@ export class RestaurantService extends BaseService {
    * 更新店家模式设置
    */
   async updateShopMode(
-    restaurantId: number,
+    restaurantId: string,
     enabled: boolean,
     settings?: {
       displayName?: string
@@ -466,7 +466,7 @@ export class RestaurantService extends BaseService {
           shopQrSettings: newSettings,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, restaurantId))
+        .where(eq(restaurants.publicId, restaurantId))
     } catch (error) {
       this.handleError(error, 'updateShopMode')
     }
@@ -475,7 +475,7 @@ export class RestaurantService extends BaseService {
   /**
    * 获取店家 QR Code 信息
    */
-  async getShopQrCodeInfo(restaurantId: number): Promise<{
+  async getShopQrCodeInfo(restaurantId: string): Promise<{
     enabled: boolean
     qrCode: string | null
     qrCodeImageUrl: string | null
@@ -507,7 +507,7 @@ export class RestaurantService extends BaseService {
   /**
    * 上传/更新店家 QR Code 图片 URL
    */
-  async updateShopQrCodeImage(restaurantId: number, imageUrl: string): Promise<void> {
+  async updateShopQrCodeImage(restaurantId: string, imageUrl: string): Promise<void> {
     try {
       await this.db
         .update(restaurants)
@@ -515,7 +515,7 @@ export class RestaurantService extends BaseService {
           shopQrCodeImageUrl: imageUrl,
           updatedAt: new Date()
         })
-        .where(eq(restaurants.id, restaurantId))
+        .where(eq(restaurants.publicId, restaurantId))
     } catch (error) {
       this.handleError(error, 'updateShopQrCodeImage')
     }

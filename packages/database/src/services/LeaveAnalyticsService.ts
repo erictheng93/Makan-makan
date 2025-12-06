@@ -105,7 +105,7 @@ export class LeaveAnalyticsService {
    * Get overall leave usage statistics
    */
   async getLeaveUsageStats(
-    restaurantId: number,
+    restaurantId: string,
     startDate: string,
     endDate: string
   ): Promise<LeaveUsageStats> {
@@ -152,7 +152,7 @@ export class LeaveAnalyticsService {
    * Get leave type summary
    */
   async getLeaveTypeSummary(
-    restaurantId: number,
+    restaurantId: string,
     startDate: string,
     endDate: string
   ): Promise<LeaveTypeSummary[]> {
@@ -197,7 +197,7 @@ export class LeaveAnalyticsService {
    * Get employee leave statistics
    */
   async getEmployeeLeaveStats(
-    restaurantId: number,
+    restaurantId: string,
     year: number,
     limit: number = 50
   ): Promise<EmployeeLeaveStats[]> {
@@ -242,7 +242,7 @@ export class LeaveAnalyticsService {
    * Get leave trends over time
    */
   async getLeaveTrends(
-    restaurantId: number,
+    restaurantId: string,
     startDate: string,
     endDate: string,
     groupBy: 'month' | 'week' = 'month'
@@ -280,7 +280,7 @@ export class LeaveAnalyticsService {
    * Get leave distribution by type
    */
   async getLeaveDistribution(
-    restaurantId: number,
+    restaurantId: string,
     startDate: string,
     endDate: string
   ): Promise<LeaveDistribution[]> {
@@ -317,7 +317,7 @@ export class LeaveAnalyticsService {
    * Get peak leave periods
    */
   async getPeakLeaveAnalysis(
-    restaurantId: number,
+    restaurantId: string,
     year: number
   ): Promise<PeakLeaveAnalysis> {
     // Get most common month
@@ -383,7 +383,7 @@ export class LeaveAnalyticsService {
    * Get leave balance analytics
    */
   async getLeaveBalanceAnalytics(
-    restaurantId: number,
+    restaurantId: string,
     year: number
   ): Promise<LeaveBalanceAnalytics> {
     const result = await this.db
@@ -428,7 +428,7 @@ export class LeaveAnalyticsService {
    * Get comprehensive dashboard data
    */
   async getDashboardData(
-    restaurantId: number,
+    restaurantId: string,
     year: number
   ): Promise<{
     usageStats: LeaveUsageStats

@@ -32,10 +32,10 @@ export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]
 
 export const orders = sqliteTable('orders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  
+
   // 關聯資訊
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
-  tableId: integer('table_id').notNull().references(() => tables.id, { onDelete: 'restrict' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
+  tableId: integer('table_id').references(() => tables.id, { onDelete: 'restrict' }), // 可空：支援店家級別訂單
   customerId: integer('customer_id').references(() => users.id), // 可選：註冊用戶
   
   // 訂單基本資訊
@@ -129,7 +129,7 @@ export const orders = sqliteTable('orders', {
 export const orderRelations = relations(orders, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [orders.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId], // 使用 public_id 關聯
   }),
   table: one(tables, {
     fields: [orders.tableId],

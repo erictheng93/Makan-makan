@@ -5,7 +5,7 @@ import type { ErrorReport, NewErrorReport, SystemAlert, NewSystemAlert } from '.
 
 export interface CreateErrorReportData {
   userId: number
-  restaurantId?: number
+  restaurantId?: string
   errorType: 'network' | 'api' | 'sse' | 'validation' | 'permission' | 'unknown'
   severity: 'low' | 'medium' | 'high' | 'critical'
   errorCode?: string
@@ -19,7 +19,7 @@ export interface CreateErrorReportData {
 
 export interface ErrorReportFilters {
   userId?: number
-  restaurantId?: number
+  restaurantId?: string
   errorType?: string
   severity?: string
   dateRange?: [Date, Date]
@@ -200,7 +200,7 @@ export class ErrorReportingService extends BaseService {
 
   // 獲取錯誤統計
   async getErrorStats(
-    restaurantId?: number,
+    restaurantId?: string,
     dateRange?: [Date, Date]
   ): Promise<ErrorStats> {
     try {
@@ -291,7 +291,7 @@ export class ErrorReportingService extends BaseService {
 
   // 獲取最常見的錯誤
   async getCommonErrors(
-    restaurantId?: number,
+    restaurantId?: string,
     limit: number = 10
   ) {
     try {
@@ -355,7 +355,7 @@ export class ErrorReportingService extends BaseService {
     description: string
     severity: 'low' | 'medium' | 'high' | 'critical'
     alertType: string
-    restaurantId?: number
+    restaurantId?: string
     affectedComponent?: string
   }): Promise<SystemAlert> {
     try {
@@ -374,7 +374,7 @@ export class ErrorReportingService extends BaseService {
   }
 
   // 獲取未解決的系統警報
-  async getUnresolvedAlerts(restaurantId?: number) {
+  async getUnresolvedAlerts(restaurantId?: string) {
     try {
       const conditions = [isNull(systemAlerts.resolvedAt)]
       

@@ -120,6 +120,7 @@ export class EpsonDriver extends PrinterDriver {
 
   private async connectNetwork(host: string, port: number): Promise<any> {
     // TCP Socket 連線實作
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const net = require('net')
     
     return new Promise((resolve, reject) => {

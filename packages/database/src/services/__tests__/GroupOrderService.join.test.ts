@@ -33,9 +33,9 @@ describe('GroupOrderService - 加入群組', () => {
 
     // 先創建一個群組
     const createResult = await service.createGroupOrder({
-      restaurantId: 1,
+      restaurantId: 'R-001',
       maxMembers: 5
-    }, 1)
+    }, 'R-001')
     testShareCode = createResult.data!.shareCode
     testGroupOrderId = createResult.data!.groupOrderId
   })

@@ -14,7 +14,7 @@ import { users } from './users'
 
 export const shiftTemplates = sqliteTable('shift_templates', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // Basic Information
   name: text('name').notNull(), // 早班, 午班, 晚班, 全日班
@@ -66,7 +66,7 @@ export const shiftTemplates = sqliteTable('shift_templates', {
 
 export const employeeSchedules = sqliteTable('employee_schedules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   employeeId: integer('employee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   shiftTemplateId: integer('shift_template_id').references(() => shiftTemplates.id, { onDelete: 'set null' }),
 
@@ -111,7 +111,7 @@ export const employeeSchedules = sqliteTable('employee_schedules', {
 
 export const schedulingRules = sqliteTable('scheduling_rules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // Rule Definition
   name: text('name').notNull(),
@@ -148,7 +148,7 @@ export const schedulingRules = sqliteTable('scheduling_rules', {
 
 export const schedulingConflicts = sqliteTable('scheduling_conflicts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // Conflict Details
   conflictType: text('conflict_type', {
@@ -184,7 +184,7 @@ export const schedulingConflicts = sqliteTable('scheduling_conflicts', {
 
 export const scheduleSwapRequests = sqliteTable('schedule_swap_requests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
 
   // Requester Information
   requesterEmployeeId: integer('requester_employee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -236,7 +236,7 @@ export const scheduleSwapRequests = sqliteTable('schedule_swap_requests', {
 
 export const employeeAvailability = sqliteTable('employee_availability', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   employeeId: integer('employee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 
   // Time Pattern (either recurring or specific dates)
@@ -275,7 +275,7 @@ export const employeeAvailability = sqliteTable('employee_availability', {
 export const shiftTemplatesRelations = relations(shiftTemplates, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [shiftTemplates.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   creator: one(users, {
     fields: [shiftTemplates.createdBy],
@@ -288,7 +288,7 @@ export const shiftTemplatesRelations = relations(shiftTemplates, ({ one, many })
 export const employeeSchedulesRelations = relations(employeeSchedules, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [employeeSchedules.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   employee: one(users, {
     fields: [employeeSchedules.employeeId],
@@ -314,7 +314,7 @@ export const employeeSchedulesRelations = relations(employeeSchedules, ({ one })
 export const schedulingRulesRelations = relations(schedulingRules, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [schedulingRules.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   creator: one(users, {
     fields: [schedulingRules.createdBy],
@@ -327,7 +327,7 @@ export const schedulingRulesRelations = relations(schedulingRules, ({ one, many 
 export const schedulingConflictsRelations = relations(schedulingConflicts, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [schedulingConflicts.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   rule: one(schedulingRules, {
     fields: [schedulingConflicts.ruleId],
@@ -343,7 +343,7 @@ export const schedulingConflictsRelations = relations(schedulingConflicts, ({ on
 export const scheduleSwapRequestsRelations = relations(scheduleSwapRequests, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [scheduleSwapRequests.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   requesterEmployee: one(users, {
     fields: [scheduleSwapRequests.requesterEmployeeId],
@@ -385,7 +385,7 @@ export const scheduleSwapRequestsRelations = relations(scheduleSwapRequests, ({ 
 export const employeeAvailabilityRelations = relations(employeeAvailability, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [employeeAvailability.restaurantId],
-    references: [restaurants.id],
+    references: [restaurants.publicId],
   }),
   employee: one(users, {
     fields: [employeeAvailability.employeeId],

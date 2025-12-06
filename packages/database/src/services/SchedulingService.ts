@@ -24,7 +24,7 @@ import { NotificationService } from './NotificationService'
 
 export interface ShiftTemplate {
   id: number
-  restaurantId: number
+  restaurantId: string
   name: string
   description: string | null
   shiftType: 'regular' | 'split' | 'overnight'
@@ -52,7 +52,7 @@ export interface ShiftTemplate {
 
 export interface EmployeeSchedule {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   shiftTemplateId: number | null
   workDate: string
@@ -77,7 +77,7 @@ export interface EmployeeSchedule {
 
 export interface SchedulingConflict {
   id: number
-  restaurantId: number
+  restaurantId: string
   conflictType: 'overlapping_shifts' | 'insufficient_rest' | 'max_hours_exceeded' | 'consecutive_days_exceeded' | 'skill_mismatch' | 'leave_conflict' | 'availability_conflict'
   severity: 'error' | 'warning' | 'info'
   scheduleIds: string
@@ -96,7 +96,7 @@ export interface SchedulingConflict {
 
 export interface ScheduleSwapRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
   requesterEmployeeId: number
   requesterScheduleId: number
   targetEmployeeId: number | null
@@ -126,7 +126,7 @@ export interface ConflictCheckResult {
 }
 
 export interface ScheduleFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   shiftTemplateId?: number
   startDate?: string
@@ -137,7 +137,7 @@ export interface ScheduleFilters {
 }
 
 export interface BulkScheduleData {
-  restaurantId: number
+  restaurantId: string
   shiftTemplateId: number
   employeeIds: number[]
   dateRange: { startDate: string; endDate: string }
@@ -175,7 +175,7 @@ export class SchedulingService extends BaseService {
   // Shift Template Management
   // ========================================
 
-  async getShiftTemplates(restaurantId: number): Promise<ShiftTemplate[]> {
+  async getShiftTemplates(restaurantId: string): Promise<ShiftTemplate[]> {
     const templates = await this.db
       .select()
       .from(shiftTemplates)
@@ -904,7 +904,7 @@ export class SchedulingService extends BaseService {
     const [eh, em] = endTime.split(':').map(Number)
     const [sh, sm] = startTime.split(':').map(Number)
 
-    let endMin = eh * 60 + em
+    const endMin = eh * 60 + em
     let startMin = sh * 60 + sm
 
     if (startMin <= endMin) {
@@ -922,7 +922,7 @@ export class SchedulingService extends BaseService {
     const [sh, sm] = startTime.split(':').map(Number)
     const [eh, em] = endTime.split(':').map(Number)
 
-    let startMin = sh * 60 + sm
+    const startMin = sh * 60 + sm
     let endMin = eh * 60 + em
 
     // Handle overnight shifts (e.g., 22:00 to 06:00)
@@ -1346,7 +1346,7 @@ export class SchedulingService extends BaseService {
    * Filters out employees on leave and already scheduled
    */
   async getAvailableEmployees(params: {
-    restaurantId: number
+    restaurantId: string
     date: string
     shiftTemplateId?: number
   }): Promise<any[]> {
@@ -1508,7 +1508,7 @@ export class SchedulingService extends BaseService {
   /**
    * Get daily scheduling statistics
    */
-  async getDailyStats(restaurantId: number, date: string): Promise<any> {
+  async getDailyStats(restaurantId: string, date: string): Promise<any> {
     try {
       // Get total schedules for the day
       const [scheduleStats] = await this.db
@@ -1574,7 +1574,7 @@ export class SchedulingService extends BaseService {
   /**
    * Get weekly schedule summary
    */
-  async getWeeklySummary(restaurantId: number, weekStartDate: string): Promise<any> {
+  async getWeeklySummary(restaurantId: string, weekStartDate: string): Promise<any> {
     try {
       // Calculate week end date
       const startDate = new Date(weekStartDate)

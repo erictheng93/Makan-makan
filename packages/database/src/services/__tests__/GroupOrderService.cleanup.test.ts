@@ -44,7 +44,7 @@ describe('GroupOrderService - 清理與錯誤處理', () => {
         status: 'active',
         expiresAt: new Date(Date.now() - 1000), // 已過期
         createdBy: 1,
-        restaurantId: 1,
+        restaurantId: 'R-001',
         totalAmount: 0,
         taxAmount: 0,
         serviceCharge: 0,
@@ -103,8 +103,7 @@ describe('GroupOrderService - 清理與錯誤處理', () => {
 
       const errorService = new GroupOrderService(errorDB, mockEnv)
       const result = await errorService.createGroupOrder({
-        restaurantId: 1
-      }, 1)
+        restaurantId: 'R-001' }, 1)
 
       expect(result.success).toBe(false)
       expect(result.error).toBeDefined()
@@ -112,9 +111,9 @@ describe('GroupOrderService - 清理與錯誤處理', () => {
 
     it('應該處理無效的輸入數據', async () => {
       const result = await service.createGroupOrder({
-        restaurantId: -1, // 無效
+        restaurantId: 'R-INVALID', // 無效
         maxMembers: 100 // 超過限制
-      }, 1)
+      }, 'R-001')
 
       expect(result.success).toBe(false)
     })
@@ -123,9 +122,9 @@ describe('GroupOrderService - 清理與錯誤處理', () => {
   describe('併發處理', () => {
     it('應該處理多個成員同時加入', async () => {
       const createResult = await service.createGroupOrder({
-        restaurantId: 1,
+        restaurantId: 'R-001',
         maxMembers: 10
-      }, 1)
+      }, 'R-001')
       const shareCode = createResult.data!.shareCode
 
       // 模擬3個成員同時加入

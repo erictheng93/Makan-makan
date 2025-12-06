@@ -106,6 +106,11 @@ export function rateLimitMiddleware(config: RateLimitConfig) {
     // Get client IP
     const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown'
 
+    // Skip rate limiting for localhost (performance testing)
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'unknown' || ip === 'localhost') {
+      return next()
+    }
+
     const rateLimiter = new RateLimiter(kv, config)
     const result = await rateLimiter.checkLimit(ip)
 

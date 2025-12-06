@@ -10,7 +10,7 @@ export const images = sqliteTable('images', {
   width: integer('width'),
   height: integer('height'),
   category: text('category').notNull(), // 'menu', 'restaurant', 'profile', etc.
-  restaurantId: integer('restaurant_id').notNull(),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   uploadedBy: integer('uploaded_by'),
   cloudflareImageId: text('cloudflare_image_id'),
   variants: text('variants'), // JSON array of available variants

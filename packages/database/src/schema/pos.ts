@@ -24,7 +24,7 @@ export const cashRegisters = sqliteTable('cash_registers', {
   id: text('id').primaryKey(), // UUID
   name: text('name').notNull(),
   location: text('location'),
-  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id),
+  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   currentShiftId: text('current_shift_id'), // FK to cash_shifts
 
@@ -215,7 +215,7 @@ export const shiftReports = sqliteTable('shift_reports', {
 export const cashRegistersRelations = relations(cashRegisters, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [cashRegisters.restaurantId],
-    references: [restaurants.id]
+    references: [restaurants.publicId]
   }),
   currentShift: one(cashShifts, {
     fields: [cashRegisters.currentShiftId],

@@ -1,6 +1,11 @@
 /**
  * Realtime Authentication Service
  * 專門用於 WebSocket 連線的認證服務
+ *
+ * 功能:
+ * - Token 生成與驗證
+ * - Token 撤銷與黑名單管理
+ * - 用戶 Token 追蹤
  */
 
 import { sign, verify } from 'jsonwebtoken'
@@ -13,6 +18,7 @@ import type {
   RealtimeAuthTokenResponse,
   RoomType
 } from '@makanmakan/shared-types'
+import { TokenBlacklistService, type RevokeReason } from './TokenBlacklistService'
 
 /**
  * WebSocket Token 驗證結果
@@ -21,6 +27,7 @@ export interface WebSocketTokenVerification {
   valid: boolean
   payload?: RealtimeAuthPayload
   error?: string
+  revoked?: boolean  // 是否已被撤銷
 }
 
 /**
@@ -31,6 +38,7 @@ export class RealtimeAuthService {
   private logger: ConsoleLogger
   private env: Env
   private jwtSecret: string
+  private blacklistService: TokenBlacklistService | null = null
 
   constructor(env: Env) {
     this.env = env
@@ -40,6 +48,12 @@ export class RealtimeAuthService {
 
     if (!this.jwtSecret || this.jwtSecret.length < 32) {
       throw new Error('JWT_SECRET must be set and at least 32 characters')
+    }
+
+    // 初始化黑名單服務（使用 TOKEN_BLACKLIST 或 CACHE_KV）
+    const kvNamespace = (env as any).TOKEN_BLACKLIST || env.CACHE_KV
+    if (kvNamespace) {
+      this.blacklistService = new TokenBlacklistService(kvNamespace)
     }
   }
 
@@ -133,6 +147,19 @@ export class RealtimeAuthService {
    */
   async verifyWebSocketToken(token: string): Promise<WebSocketTokenVerification> {
     try {
+      // 🔒 首先檢查 token 是否在黑名單中
+      if (this.blacklistService) {
+        const isRevoked = await this.blacklistService.isTokenRevoked(token)
+        if (isRevoked) {
+          this.logger.warn('Token has been revoked')
+          return {
+            valid: false,
+            error: 'Token has been revoked',
+            revoked: true
+          }
+        }
+      }
+
       // 驗證 JWT token
       const payload = verify(token, this.jwtSecret) as RealtimeAuthPayload
 
@@ -180,6 +207,112 @@ export class RealtimeAuthService {
         valid: false,
         error: 'Token verification failed'
       }
+    }
+  }
+
+  /**
+   * 撤銷 WebSocket Token
+   */
+  async revokeToken(
+    token: string,
+    reason: RevokeReason,
+    revokedBy?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.blacklistService) {
+      return {
+        success: false,
+        error: 'Token blacklist service not available'
+      }
+    }
+
+    try {
+      const result = await this.blacklistService.revokeToken(token, reason, {
+        revokedBy
+      })
+
+      this.logger.info('Token revoked successfully', {
+        tokenId: result.tokenId,
+        reason,
+        revokedBy
+      })
+
+      return { success: true }
+
+    } catch (error) {
+      this.logger.error('Failed to revoke token', error as Error)
+      return {
+        success: false,
+        error: 'Failed to revoke token'
+      }
+    }
+  }
+
+  /**
+   * 撤銷用戶的所有 Token
+   */
+  async revokeUserTokens(
+    userId: string,
+    reason: RevokeReason,
+    revokedBy?: string
+  ): Promise<{ success: boolean; count?: number; error?: string }> {
+    if (!this.blacklistService) {
+      return {
+        success: false,
+        error: 'Token blacklist service not available'
+      }
+    }
+
+    try {
+      const result = await this.blacklistService.revokeUserTokens(
+        userId,
+        reason,
+        revokedBy
+      )
+
+      this.logger.info('User tokens revoked', {
+        userId,
+        count: result.count,
+        reason
+      })
+
+      return { success: true, count: result.count }
+
+    } catch (error) {
+      this.logger.error('Failed to revoke user tokens', error as Error)
+      return {
+        success: false,
+        error: 'Failed to revoke user tokens'
+      }
+    }
+  }
+
+  /**
+   * 檢查 Token 是否已被撤銷
+   */
+  async isTokenRevoked(token: string): Promise<boolean> {
+    if (!this.blacklistService) {
+      return false  // 如果沒有黑名單服務，假設 token 未被撤銷
+    }
+
+    return this.blacklistService.isTokenRevoked(token)
+  }
+
+  /**
+   * 獲取黑名單統計信息
+   */
+  async getBlacklistStats(): Promise<{
+    available: boolean
+    estimatedCount?: number
+    sampleRecords?: unknown[]
+  }> {
+    if (!this.blacklistService) {
+      return { available: false }
+    }
+
+    const stats = await this.blacklistService.getStats()
+    return {
+      available: true,
+      ...stats
     }
   }
 
