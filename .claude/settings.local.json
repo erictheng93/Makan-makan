@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Bash(npx vite:*)",
@@ -223,7 +224,27 @@
       "Bash(\"docs/locales/zh-CN/中文術語對照表.md\")",
       "Bash(\"docs/locales/zh-CN/安全文檔.md\")",
       "Bash(\"docs/locales/zh-CN/技術文檔.md\")",
-      "Bash(\"docs/locales/zh-CN/部署安全檢查清單.md\")"
+      "Bash(\"docs/locales/zh-CN/部署安全檢查清單.md\")",
+      "Bash(npm run build:*)",
+      "Bash(wc:*)",
+      "Bash(pnpm exec eslint:*)",
+      "Bash(Select-String -Pattern \"order\\.ts\")",
+      "Bash(if not exist \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\admin-dashboard\\src\\composables\\__tests__\" mkdir \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\admin-dashboard\\src\\composables\\__tests__\")",
+      "Bash(if not exist \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\admin-dashboard\\src\\components\\monitoring\\__tests__\" mkdir \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\apps\\admin-dashboard\\src\\components\\monitoring\\__tests__\")",
+      "Bash(ls:*)",
+      "Bash(npx vitest:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(Select-String -Pattern \"error TS|kitchen-display\" -Context 0,1)",
+      "Bash(Select-String -Pattern \"Test Files|Tests |PASS|FAIL|error TS|success|Tasks:|Failed:|successful\" -Context 0,1)",
+      "Bash(Select-Object -Last 50)",
+      "Bash(Select-String -Pattern \"error TS|kitchen-display\")",
+      "Bash(Select-String -Pattern \"error TS|Build|success|Failed\")",
+      "Bash(Select-String -Pattern \"Test Files|Tests |PASS|FAIL|RealtimeAuthService\" -Context 0,2)",
+      "Bash(done)",
+      "Bash(pnpm run test:coverage:*)",
+      "Bash(if not exist \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\packages\\database\\src\\services\\__tests__\" mkdir \"C:\\Users\\minim\\OneDrive\\文档\\Code\\platform\\makanmakan\\packages\\database\\src\\services\\__tests__\")",
+      "Bash(Select-String -Pattern \"Test Files|Tests |PASS|FAIL|Coverage\" -Context 0,2)"
     ],
     "deny": [],
     "ask": [],

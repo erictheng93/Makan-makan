@@ -11,7 +11,7 @@ const mockWebSocket = {
   close: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-  readyState: WebSocket.OPEN
+  readyState: WebSocket.OPEN as number
 }
 
 global.WebSocket = vi.fn(() => mockWebSocket) as any

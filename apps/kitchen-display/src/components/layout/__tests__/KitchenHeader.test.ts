@@ -24,7 +24,9 @@ const mockStats: KitchenStats = {
   readyCount: 2,
   completedToday: 15,
   averageCookingTime: 12,
-  efficiency: 85
+  averageWaitingTime: 5,
+  efficiency: 85,
+  urgentOrders: 1
 }
 
 describe('KitchenHeader Component', () => {
@@ -489,7 +491,9 @@ describe('KitchenHeader Component', () => {
         readyCount: 0,
         completedToday: 0,
         averageCookingTime: 0,
-        efficiency: 0
+        averageWaitingTime: 0,
+        efficiency: 0,
+        urgentOrders: 0
       }
 
       const wrapper = mount(KitchenHeader, {
@@ -510,7 +514,9 @@ describe('KitchenHeader Component', () => {
         readyCount: 777,
         completedToday: 1000,
         averageCookingTime: 30,
-        efficiency: 95
+        averageWaitingTime: 10,
+        efficiency: 95,
+        urgentOrders: 50
       }
 
       const wrapper = mount(KitchenHeader, {

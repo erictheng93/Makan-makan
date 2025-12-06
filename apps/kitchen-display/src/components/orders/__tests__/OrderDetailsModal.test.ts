@@ -34,14 +34,16 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
         name: '宮保雞丁',
         quantity: 2,
         status: 'pending' as ItemStatus,
-        estimatedTime: 15
+        estimatedTime: 15,
+        priority: 'normal'
       },
       {
         id: 2,
         name: '麻婆豆腐',
         quantity: 1,
         status: 'pending' as ItemStatus,
-        estimatedTime: 10
+        estimatedTime: 10,
+        priority: 'normal'
       }
     ],
     ...overrides
@@ -205,7 +207,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'preparing' as ItemStatus
+            status: 'preparing' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -225,7 +229,9 @@ describe('OrderDetailsModal Component', () => {
             name: '宮保雞丁',
             quantity: 1,
             status: 'pending' as ItemStatus,
-            notes: '不要辣'
+            notes: '不要辣',
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -245,7 +251,9 @@ describe('OrderDetailsModal Component', () => {
             name: '宮保雞丁',
             quantity: 1,
             status: 'pending' as ItemStatus,
-            customizations: ['加辣', '少油']
+            customizations: ['加辣', '少油'],
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -267,7 +275,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'pending' as ItemStatus
+            status: 'pending' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -286,7 +296,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'preparing' as ItemStatus
+            status: 'preparing' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal' as const
           }
         ]
       })
@@ -305,7 +317,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'ready' as ItemStatus
+            status: 'ready' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal' as const
           }
         ]
       })
@@ -324,7 +338,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'pending' as ItemStatus
+            status: 'pending' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -347,7 +363,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '宮保雞丁',
             quantity: 1,
-            status: 'preparing' as ItemStatus
+            status: 'preparing' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -419,8 +437,8 @@ describe('OrderDetailsModal Component', () => {
     it('should show complete all button when has uncompleted items', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus }
+          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, estimatedTime: 15, priority: 'normal' },
+          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -434,8 +452,8 @@ describe('OrderDetailsModal Component', () => {
     it('should not show complete all button when all items ready', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'ready' as ItemStatus },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'ready' as ItemStatus }
+          { id: 1, name: 'Item 1', quantity: 1, status: 'ready' as ItemStatus, estimatedTime: 15, priority: 'normal' },
+          { id: 2, name: 'Item 2', quantity: 1, status: 'ready' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -450,8 +468,8 @@ describe('OrderDetailsModal Component', () => {
     it('should emit multiple update-status events when complete all clicked', async () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus }
+          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, estimatedTime: 15, priority: 'normal' },
+          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -551,7 +569,7 @@ describe('OrderDetailsModal Component', () => {
     it('should apply correct class for pending status', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -565,7 +583,7 @@ describe('OrderDetailsModal Component', () => {
     it('should apply correct class for preparing status', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -579,7 +597,7 @@ describe('OrderDetailsModal Component', () => {
     it('should apply correct class for ready status', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'ready' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'ready' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -595,7 +613,7 @@ describe('OrderDetailsModal Component', () => {
     it('should show correct text for pending items', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -609,7 +627,7 @@ describe('OrderDetailsModal Component', () => {
     it('should show correct text for preparing items', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -623,7 +641,7 @@ describe('OrderDetailsModal Component', () => {
     it('should show correct text for ready items', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'ready' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'ready' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -637,7 +655,7 @@ describe('OrderDetailsModal Component', () => {
     it('should show correct text for completed items', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 1, status: 'completed' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 1, status: 'completed' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -668,7 +686,9 @@ describe('OrderDetailsModal Component', () => {
             id: 1,
             name: '超級特別好吃的招牌宮保雞丁配上特製醬汁',
             quantity: 1,
-            status: 'pending' as ItemStatus
+            status: 'pending' as ItemStatus,
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -683,7 +703,7 @@ describe('OrderDetailsModal Component', () => {
     it('should handle large quantities', () => {
       const order = createMockOrder({
         items: [
-          { id: 1, name: 'Item', quantity: 999, status: 'pending' as ItemStatus }
+          { id: 1, name: 'Item', quantity: 999, status: 'pending' as ItemStatus, estimatedTime: 15, priority: 'normal' }
         ]
       })
 
@@ -706,7 +726,8 @@ describe('OrderDetailsModal Component', () => {
             customizations: ['Extra spicy', 'No MSG'],
             estimatedTime: 20,
             startedAt: new Date().toISOString(),
-            completedAt: new Date().toISOString()
+            completedAt: new Date().toISOString(),
+            priority: 'normal'
           }
         ]
       })

@@ -48,32 +48,44 @@ jobs:
     name: 🧪 單元測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    
+
     strategy:
       matrix:
         node-version: [18, 20]
-    
+
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v4
-        
+
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-          
+
       - name: 🔧 設置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
-          
+
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
-        
-      - name: 🧪 執行單元測試
+
+      - name: 🧪 執行根目錄單元測試
         run: pnpm run test:unit
-        
+
+      - name: 🔄 執行 Realtime 功能測試
+        run: pnpm exec vitest run apps/api/src/features/realtime --reporter=verbose
+
+      - name: 📊 執行 Admin Dashboard 組件測試
+        run: pnpm exec vitest run apps/admin-dashboard/src --reporter=verbose
+
+      - name: 🍳 執行 Kitchen Display 測試
+        run: pnpm exec vitest run apps/kitchen-display/src --reporter=verbose
+
+      - name: 👤 執行 Customer App 測試
+        run: pnpm exec vitest run apps/customer-app/src --reporter=verbose
+
       - name: 📊 產生覆蓋率報告
         run: pnpm run test:coverage
         

@@ -9,7 +9,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import OrderCard from '../OrderCard.vue'
 import { useSettingsStore } from '@/stores/settings'
-import type { KitchenOrder, OrderItem } from '@/types'
+import type { KitchenOrder, KitchenOrderItem } from '@/types'
 
 // Mock icons
 vi.mock('@heroicons/vue/24/outline', () => ({
@@ -26,13 +26,29 @@ vi.mock('@heroicons/vue/24/outline', () => ({
   BellAlertIcon: { name: 'BellAlertIcon', template: '<svg />' }
 }))
 
+// Helper function to create mock order item
+function createMockItem(overrides: Partial<KitchenOrderItem> = {}): KitchenOrderItem {
+  return {
+    id: 1,
+    name: '宮保雞丁',
+    quantity: 2,
+    status: 'pending',
+    notes: '',
+    customizations: [],
+    estimatedTime: 15,
+    priority: 'normal',
+    ...overrides
+  }
+}
+
 // Helper function to create mock order
 function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
   const now = Date.now()
 
   return {
-    id: 'order-001',
+    id: 1,
     orderNumber: 'ORD-001',
+    tableId: 1,
     tableName: 'T1',
     customerName: '張三',
     status: 1, // Pending
@@ -40,17 +56,8 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     createdAt: new Date(now).toISOString(),
     elapsedTime: 0,
     estimatedTime: 15,
-    items: [
-      {
-        id: 'item-001',
-        name: '宮保雞丁',
-        quantity: 2,
-        status: 'pending',
-        notes: '',
-        customizations: [],
-        estimatedTime: 15
-      }
-    ],
+    totalItems: 1,
+    items: [createMockItem()],
     ...overrides
   }
 }
@@ -102,9 +109,9 @@ describe('OrderCard Component', () => {
     it('should display all order items', () => {
       const order = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 },
-          { id: '2', name: '炒麵', quantity: 2, status: 'pending', estimatedTime: 12 },
-          { id: '3', name: '湯', quantity: 1, status: 'pending', estimatedTime: 5 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10, priority: 'normal' },
+          { id: 2, name: '炒麵', quantity: 2, status: 'pending', estimatedTime: 12, priority: 'normal' },
+          { id: 3, name: '湯', quantity: 1, status: 'pending', estimatedTime: 5, priority: 'normal' }
         ]
       })
       const wrapper = mount(OrderCard, {
@@ -122,12 +129,13 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'pending',
             notes: '不要蔥',
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -142,12 +150,13 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'pending',
             customizations: ['加辣', '少油'],
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -233,11 +242,12 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'pending',
-            estimatedTime: 15
+            estimatedTime: 15,
+            priority: 'normal'
           }
         ]
       })
@@ -300,11 +310,12 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'pending',
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -319,11 +330,12 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'preparing',
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -338,11 +350,12 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'ready',
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -361,7 +374,7 @@ describe('OrderCard Component', () => {
     it('should emit start-cooking event when start button clicked', async () => {
       const order = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10, priority: 'normal' }
         ]
       })
       const wrapper = mount(OrderCard, {
@@ -380,7 +393,7 @@ describe('OrderCard Component', () => {
     it('should emit mark-ready event when complete button clicked', async () => {
       const order = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'preparing', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'preparing', estimatedTime: 10, priority: 'normal' }
         ]
       })
       const wrapper = mount(OrderCard, {
@@ -399,7 +412,7 @@ describe('OrderCard Component', () => {
     it('should emit order-complete event when all items ready', async () => {
       const order = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'ready', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'ready', estimatedTime: 10, priority: 'normal' }
         ]
       })
       const wrapper = mount(OrderCard, {
@@ -442,10 +455,11 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
-            status: 'pending'
+            status: 'pending',
+            priority: 'normal'
           }
         ]
       })
@@ -486,14 +500,14 @@ describe('OrderCard Component', () => {
   describe('Computed Properties', () => {
     it('should determine correct status type', () => {
       const statusTypes = [
-        { status: 1, expected: 'pending' },
-        { status: 2, expected: 'preparing' },
-        { status: 3, expected: 'ready' },
-        { status: 4, expected: 'completed' }
+        { status: 1 as const, expected: 'pending' },
+        { status: 2 as const, expected: 'preparing' },
+        { status: 3 as const, expected: 'ready' },
+        { status: 4 as const, expected: 'completed' }
       ]
 
       statusTypes.forEach(({ status, expected }) => {
-        const order = createMockOrder({ status })
+        const order = createMockOrder({ status: status as 1 | 2 | 3 | 4 })
         const wrapper = mount(OrderCard, {
           props: { order, statusType: 'pending' }
         })
@@ -506,8 +520,8 @@ describe('OrderCard Component', () => {
     it('should calculate if all items are ready', () => {
       const allReady = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'ready', estimatedTime: 10 },
-          { id: '2', name: '炒麵', quantity: 1, status: 'ready', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'ready', estimatedTime: 10, priority: 'normal' },
+          { id: 2, name: '炒麵', quantity: 1, status: 'ready', estimatedTime: 10, priority: 'normal' }
         ]
       })
 
@@ -522,8 +536,8 @@ describe('OrderCard Component', () => {
     it('should calculate if has pending items', () => {
       const hasPending = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 },
-          { id: '2', name: '炒麵', quantity: 1, status: 'ready', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10, priority: 'normal' },
+          { id: 2, name: '炒麵', quantity: 1, status: 'ready', estimatedTime: 10, priority: 'normal' }
         ]
       })
 
@@ -561,7 +575,7 @@ describe('OrderCard Component', () => {
     it('should handle very large item quantities', () => {
       const order = createMockOrder({
         items: [
-          { id: '1', name: '炒飯', quantity: 99, status: 'pending', estimatedTime: 10 }
+          { id: 1, name: '炒飯', quantity: 99, status: 'pending', estimatedTime: 10, priority: 'normal' }
         ]
       })
       const wrapper = mount(OrderCard, {
@@ -575,11 +589,12 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '特製超級豪華精緻手工現做美味可口營養豐富宮保雞丁炒飯套餐',
             quantity: 1,
             status: 'pending',
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })
@@ -594,12 +609,13 @@ describe('OrderCard Component', () => {
       const order = createMockOrder({
         items: [
           {
-            id: '1',
+            id: 1,
             name: '炒飯',
             quantity: 1,
             status: 'pending',
             customizations: ['加辣', '少油', '不要蔥', '不要蒜', '多醬', '少鹽'],
-            estimatedTime: 10
+            estimatedTime: 10,
+            priority: 'normal'
           }
         ]
       })

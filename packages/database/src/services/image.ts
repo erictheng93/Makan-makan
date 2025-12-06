@@ -496,7 +496,7 @@ export class ImageService extends BaseService {
    */
   async updateImage(id: string, data: Partial<CreateImageData>): Promise<void> {
     const updateData: any = {
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     }
 
     if (data.cloudflareImageId) updateData.cloudflareImageId = data.cloudflareImageId
@@ -513,9 +513,9 @@ export class ImageService extends BaseService {
   async deleteImage(id: string): Promise<void> {
     await this.db
       .update(images)
-      .set({ 
+      .set({
         isActive: false,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(images.id, id))
   }
@@ -583,9 +583,9 @@ export class ImageService extends BaseService {
     }
 
     if (status === 'processing') {
-      updateData.startedAt = new Date().toISOString()
+      updateData.startedAt = new Date()
     } else if (status === 'completed' || status === 'failed') {
-      updateData.completedAt = new Date().toISOString()
+      updateData.completedAt = new Date()
     }
 
     if (outputData) {
@@ -634,7 +634,8 @@ export class ImageService extends BaseService {
 
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    
+    const todayStartUnix = Math.floor(todayStart.getTime() / 1000)
+
     const todayStats = await this.db
       .select({
         processed_today: count()
@@ -643,7 +644,7 @@ export class ImageService extends BaseService {
       .where(
         and(
           eq(images.isActive, true),
-          sql`${images.uploadedAt} >= ${todayStart.toISOString()}`
+          sql`${images.uploadedAt} >= ${todayStartUnix}`
         )
       )
 

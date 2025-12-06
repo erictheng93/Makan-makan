@@ -46,20 +46,24 @@ describe('Realtime Updates Integration', () => {
       const { handleSSEEvent } = useAudioNotifications()
 
       const newOrder: KitchenOrder = {
-        id: 'ord-1',
+        id: 1,
         orderNumber: 'ORD-001',
+        tableId: 1,
         tableName: 'T1',
         status: 1,
         priority: 'normal',
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }
 
       const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: newOrder
+        payload: newOrder,
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       // Handle in store
@@ -77,20 +81,24 @@ describe('Realtime Updates Integration', () => {
       const { handleSSEEvent } = useAudioNotifications()
 
       const urgentOrder: KitchenOrder = {
-        id: 'ord-urgent',
+        id: 100,
         orderNumber: 'ORD-URGENT',
+        tableId: 5,
         tableName: 'T5',
         status: 1,
         priority: 'urgent',
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 10,
+        totalItems: 0,
         items: []
       }
 
       const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: urgentOrder
+        payload: urgentOrder,
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       ordersStore.handleSSEEvent(event)
@@ -105,30 +113,36 @@ describe('Realtime Updates Integration', () => {
       const { handleSSEEvent } = useAudioNotifications()
 
       ordersStore.orders = [{
-        id: 'ord-1',
+        id: 1,
         orderNumber: 'ORD-001',
+        tableId: 1,
         tableName: 'T1',
         status: 2, // preparing
         priority: 'normal',
         createdAt: new Date().toISOString(),
         elapsedTime: 10,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }]
 
       const event: KitchenSSEEvent = {
         type: 'ORDER_STATUS_UPDATE',
-        payload: { orderId: 'ord-1', status: 'ready' }
+        payload: { orderId: 1, status: 'ready' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       ordersStore.handleSSEEvent({
         type: 'ORDER_STATUS_UPDATE',
-        payload: { orderId: 'ord-1', status: 3 }
+        payload: { orderId: 1, status: 3 },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       })
 
       await handleSSEEvent(event)
 
-      const order = ordersStore.orders.find(o => o.id === 'ord-1')
+      const order = ordersStore.orders.find(o => o.id === 1)
       expect(order?.status).toBe(3)
       expect(mockAudioService.playOrderReady).toHaveBeenCalled()
     })
@@ -138,20 +152,25 @@ describe('Realtime Updates Integration', () => {
       const { handleSSEEvent } = useAudioNotifications()
 
       ordersStore.orders = [{
-        id: 'ord-1',
+        id: 1,
         orderNumber: 'ORD-001',
+        tableId: 1,
         tableName: 'T1',
         status: 1,
         priority: 'normal',
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }]
 
       const event: KitchenSSEEvent = {
         type: 'ORDER_CANCELLED',
-        payload: { orderId: 'ord-1' }
+        orderId: 1,
+        payload: { reason: 'Customer requested' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       ordersStore.handleSSEEvent(event)
@@ -168,20 +187,24 @@ describe('Realtime Updates Integration', () => {
       const { handleSSEEvent } = useAudioNotifications()
 
       const orders = Array.from({ length: 5 }, (_, i) => ({
-        id: `ord-${i}`,
+        id: i + 1,
         orderNumber: `ORD-${i}`,
+        tableId: i + 1,
         tableName: `T${i}`,
         status: 1,
-        priority: 'normal',
+        priority: 'normal' as const,
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }))
 
-      const events = orders.map(order => ({
+      const events: KitchenSSEEvent[] = orders.map(order => ({
         type: 'NEW_ORDER' as const,
-        payload: order
+        payload: order,
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }))
 
       // Process all events
@@ -198,32 +221,34 @@ describe('Realtime Updates Integration', () => {
       const ordersStore = useOrdersStore()
 
       const order: KitchenOrder = {
-        id: 'ord-1',
+        id: 1,
         orderNumber: 'ORD-001',
+        tableId: 1,
         tableName: 'T1',
         status: 1,
         priority: 'normal',
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }
 
       ordersStore.orders = [order]
 
       // Rapid status updates
-      const updates = [
-        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 'ord-1', status: 2 } },
-        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 'ord-1', status: 3 } },
-        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 'ord-1', status: 4 } }
+      const updates: KitchenSSEEvent[] = [
+        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 1, status: 2 }, timestamp: new Date().toISOString(), restaurantId: 1 },
+        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 1, status: 3 }, timestamp: new Date().toISOString(), restaurantId: 1 },
+        { type: 'ORDER_STATUS_UPDATE', payload: { orderId: 1, status: 4 }, timestamp: new Date().toISOString(), restaurantId: 1 }
       ]
 
       for (const update of updates) {
-        ordersStore.handleSSEEvent(update as KitchenSSEEvent)
+        ordersStore.handleSSEEvent(update)
       }
 
       // Final status should reflect last update
-      const finalOrder = ordersStore.orders.find(o => o.id === 'ord-1')
+      const finalOrder = ordersStore.orders.find(o => o.id === 1)
       expect(finalOrder?.status).toBe(4)
     })
   })
@@ -233,14 +258,16 @@ describe('Realtime Updates Integration', () => {
       const ordersStore = useOrdersStore()
 
       const initialOrder: KitchenOrder = {
-        id: 'ord-1',
+        id: 1,
         orderNumber: 'ORD-001',
+        tableId: 1,
         tableName: 'T1',
         status: 1,
         priority: 'normal',
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         estimatedTime: 15,
+        totalItems: 0,
         items: []
       }
 
@@ -252,7 +279,9 @@ describe('Realtime Updates Integration', () => {
       // Update status
       ordersStore.handleSSEEvent({
         type: 'ORDER_STATUS_UPDATE',
-        payload: { orderId: 'ord-1', status: 2 }
+        payload: { orderId: 1, status: 2 },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       })
 
       expect(ordersStore.pendingOrders).toHaveLength(0)
@@ -338,16 +367,20 @@ describe('Realtime Updates Integration', () => {
         ordersStore.handleSSEEvent({
           type: 'NEW_ORDER',
           payload: {
-            id: `ord-${i}`,
+            id: i + 1,
             orderNumber: `ORD-${i}`,
+            tableId: (i % 10) + 1,
             tableName: `T${i % 10}`,
             status: 1,
-            priority: 'normal',
+            priority: 'normal' as const,
             createdAt: new Date().toISOString(),
             elapsedTime: 0,
             estimatedTime: 15,
+            totalItems: 0,
             items: []
-          }
+          },
+          timestamp: new Date().toISOString(),
+          restaurantId: 1
         })
       }
 

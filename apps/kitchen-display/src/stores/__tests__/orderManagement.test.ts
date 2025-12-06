@@ -25,7 +25,8 @@ function createMockOrder(id: number, overrides: Partial<KitchenOrder> = {}): Kit
         id: id * 10 + 1,
         name: '宮保雞丁',
         quantity: 1,
-        status: 'pending' as ItemStatus
+        status: 'pending' as ItemStatus,
+        priority: 'normal' as const
       }
     ],
     ...overrides
@@ -167,10 +168,10 @@ describe('OrderManagement Store', () => {
       const store = useOrderManagementStore()
       const orders = [
         createMockOrder(1, {
-          items: [{ id: 1, name: '宮保雞丁', quantity: 1, status: 'pending' as ItemStatus }]
+          items: [{ id: 1, name: '宮保雞丁', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
         }),
         createMockOrder(2, {
-          items: [{ id: 2, name: '麻婆豆腐', quantity: 1, status: 'pending' as ItemStatus }]
+          items: [{ id: 2, name: '麻婆豆腐', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
         })
       ]
 
@@ -233,7 +234,8 @@ describe('OrderManagement Store', () => {
             name: 'Item',
             quantity: 1,
             status: 'pending' as ItemStatus,
-            customizations: ['Extra spicy']
+            customizations: ['Extra spicy'],
+            priority: 'normal' as const
           }]
         }),
         createMockOrder(2)
@@ -428,9 +430,9 @@ describe('OrderManagement Store', () => {
       const store = useOrderManagementStore()
       const order = createMockOrder(1, {
         items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus },
-          { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus }
+          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const },
+          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const },
+          { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
         ]
       })
 
@@ -443,10 +445,10 @@ describe('OrderManagement Store', () => {
       const store = useOrderManagementStore()
       const order = createMockOrder(1, {
         items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'ready' as ItemStatus },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus },
-          { id: 3, name: 'Item 3', quantity: 1, status: 'ready' as ItemStatus },
-          { id: 4, name: 'Item 4', quantity: 1, status: 'pending' as ItemStatus }
+          { id: 1, name: 'Item 1', quantity: 1, status: 'ready' as ItemStatus, priority: 'normal' as const },
+          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const },
+          { id: 3, name: 'Item 3', quantity: 1, status: 'ready' as ItemStatus, priority: 'normal' as const },
+          { id: 4, name: 'Item 4', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
         ]
       })
 
@@ -479,7 +481,7 @@ describe('OrderManagement Store', () => {
       const store = useOrderManagementStore()
       const orders = [
         createMockOrder(1, {
-          items: [{ id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus }]
+          items: [{ id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
         })
       ]
 
@@ -490,7 +492,7 @@ describe('OrderManagement Store', () => {
       const store = useOrderManagementStore()
       const orders = [
         createMockOrder(1, {
-          items: [{ id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus }]
+          items: [{ id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const }]
         })
       ]
 
@@ -502,13 +504,13 @@ describe('OrderManagement Store', () => {
       const orders = [
         createMockOrder(1, {
           items: [
-            { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus },
-            { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus }
+            { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const },
+            { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const }
           ]
         }),
         createMockOrder(2, {
           items: [
-            { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus }
+            { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
           ]
         })
       ]

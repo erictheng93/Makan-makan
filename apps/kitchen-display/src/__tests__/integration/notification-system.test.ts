@@ -5,7 +5,34 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useAudioNotifications } from '@/composables/useAudioNotifications'
-import type { KitchenSSEEvent } from '@/types'
+import type { KitchenSSEEvent, KitchenOrder } from '@/types'
+
+// Helper function to create SSE events with required fields
+function createSSEEvent(overrides: Partial<KitchenSSEEvent> & { type: KitchenSSEEvent['type']; payload: any }): KitchenSSEEvent {
+  return {
+    timestamp: new Date().toISOString(),
+    restaurantId: 1,
+    ...overrides
+  } as KitchenSSEEvent
+}
+
+// Helper function to create orders with required fields
+function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
+  return {
+    id: 1,
+    orderNumber: 'ORD-001',
+    tableId: 1,
+    tableName: 'T1',
+    status: 1,
+    priority: 'normal',
+    createdAt: new Date().toISOString(),
+    elapsedTime: 0,
+    estimatedTime: 15,
+    totalItems: 0,
+    items: [],
+    ...overrides
+  }
+}
 
 // Mock audio service - inline definition to avoid hoisting issues
 vi.mock('@/services/audioService', () => ({
@@ -40,10 +67,10 @@ describe('Notification System Integration', () => {
     it('should play notification for new order', async () => {
       const { handleSSEEvent } = useAudioNotifications()
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'NEW_ORDER',
         payload: { priority: 'normal' }
-      })
+      }))
 
       expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(false)
     })
@@ -51,10 +78,10 @@ describe('Notification System Integration', () => {
     it('should play urgent notification for urgent orders', async () => {
       const { handleSSEEvent } = useAudioNotifications()
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'NEW_ORDER',
         payload: { priority: 'urgent' }
-      })
+      }))
 
       expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true)
     })
@@ -62,10 +89,10 @@ describe('Notification System Integration', () => {
     it('should play notification when order ready', async () => {
       const { handleSSEEvent } = useAudioNotifications()
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'ORDER_STATUS_UPDATE',
         payload: { status: 'ready' }
-      })
+      }))
 
       expect(mockAudioService.playOrderReady).toHaveBeenCalled()
     })
@@ -73,10 +100,10 @@ describe('Notification System Integration', () => {
     it('should play warning for cancelled orders', async () => {
       const { handleSSEEvent } = useAudioNotifications()
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'ORDER_CANCELLED',
         payload: {}
-      })
+      }))
 
       expect(mockAudioService.playWarning).toHaveBeenCalled()
     })
@@ -88,10 +115,10 @@ describe('Notification System Integration', () => {
 
       updateConfig({ newOrderSound: false })
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'NEW_ORDER',
         payload: { priority: 'normal' }
-      })
+      }))
 
       expect(mockAudioService.playNewOrder).not.toHaveBeenCalled()
     })
@@ -109,10 +136,10 @@ describe('Notification System Integration', () => {
 
       disable()
 
-      await handleSSEEvent({
+      await handleSSEEvent(createSSEEvent({
         type: 'NEW_ORDER',
         payload: {}
-      })
+      }))
 
       expect(mockAudioService.playNewOrder).not.toHaveBeenCalled()
     })
@@ -166,15 +193,15 @@ describe('Notification System Integration', () => {
       vi.useFakeTimers()
       const { checkOrderTimes } = useAudioNotifications()
 
-      const overdueOrders = [{
-        id: '1',
+      const overdueOrders = [createMockOrder({
+        id: 1,
         orderNumber: 'ORD-001',
         status: 2,
         createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
         elapsedTime: 35,
         estimatedTime: 15,
         items: []
-      }]
+      })]
 
       await checkOrderTimes(overdueOrders)
 
@@ -225,8 +252,8 @@ describe('Notification System Integration', () => {
 
       const { handleSSEEvent } = useAudioNotifications()
 
-      await handleSSEEvent({ type: 'NEW_ORDER', payload: {} })
-      await handleSSEEvent({ type: 'NEW_ORDER', payload: {} })
+      await handleSSEEvent(createSSEEvent({ type: 'NEW_ORDER', payload: {} }))
+      await handleSSEEvent(createSSEEvent({ type: 'NEW_ORDER', payload: {} }))
 
       expect(mockAudioService.playNewOrder).toHaveBeenCalledTimes(2)
     })

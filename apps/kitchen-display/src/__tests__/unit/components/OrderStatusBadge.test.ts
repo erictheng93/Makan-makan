@@ -13,7 +13,25 @@ import { mount } from '@vue/test-utils';
  */
 
 // 簡單的 OrderStatusBadge 組件實現（範例）
-const OrderStatusBadge = {
+type StatusType = 'pending' | 'preparing' | 'ready' | 'completed';
+
+interface OrderStatusBadgeComponent {
+  name: string;
+  props: {
+    status: {
+      type: StringConstructor;
+      required: boolean;
+      validator: (value: string) => boolean;
+    };
+  };
+  computed: {
+    statusClass: () => string;
+    statusText: () => string;
+  };
+  template: string;
+}
+
+const OrderStatusBadge: OrderStatusBadgeComponent = {
   name: 'OrderStatusBadge',
   props: {
     status: {
@@ -24,17 +42,18 @@ const OrderStatusBadge = {
     },
   },
   computed: {
-    statusClass() {
-      return `status-${this.status}`;
+    statusClass(): string {
+      return `status-${(this as unknown as { status: StatusType }).status}`;
     },
-    statusText() {
-      const textMap = {
+    statusText(): string {
+      const textMap: Record<StatusType, string> = {
         pending: '待處理',
         preparing: '製作中',
         ready: '已完成',
         completed: '已送出',
       };
-      return textMap[this.status] || this.status;
+      const status = (this as unknown as { status: StatusType }).status;
+      return textMap[status] || status;
     },
   },
   template: `

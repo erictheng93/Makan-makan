@@ -8,7 +8,12 @@ export const qrCodes = sqliteTable('qr_codes', {
   format: text('format').notNull().default('png'),
   url: text('url'),
   metadataJson: text('metadata_json'),
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString())
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性，將在後續遷移中移除）
+  createdAtLegacy: text('created_at'),
 })
 
 export const qrTemplates = sqliteTable('qr_templates', {
@@ -19,8 +24,14 @@ export const qrTemplates = sqliteTable('qr_templates', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   createdBy: integer('created_by'),
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString())
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性）
+  createdAtLegacy: text('created_at'),
+  updatedAtLegacy: text('updated_at'),
 })
 
 export const qrDownloads = sqliteTable('qr_downloads', {
@@ -29,7 +40,12 @@ export const qrDownloads = sqliteTable('qr_downloads', {
   format: text('format').notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  downloadedAt: text('downloaded_at').notNull().$defaultFn(() => new Date().toISOString())
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  downloadedAt: integer('downloaded_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性）
+  downloadedAtLegacy: text('downloaded_at'),
 })
 
 export const qrBatches = sqliteTable('qr_batches', {
@@ -40,8 +56,14 @@ export const qrBatches = sqliteTable('qr_batches', {
   generatedCodes: integer('generated_codes').notNull().default(0),
   status: text('status').notNull().default('pending'),
   createdBy: integer('created_by').notNull(),
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  completedAt: text('completed_at')
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  completedAt: integer('completed_at_new', { mode: 'timestamp' }),
+
+  // 舊欄位（兼容性）
+  createdAtLegacy: text('created_at'),
+  completedAtLegacy: text('completed_at'),
 })
 
 // Export types for TypeScript

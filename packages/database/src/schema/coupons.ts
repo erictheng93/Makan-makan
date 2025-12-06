@@ -67,18 +67,22 @@ export const coupons = sqliteTable('coupons', {
   usageLimitPerUser: integer('usage_limit_per_user'), // 每用戶使用次數限制
   usedCount: integer('used_count').default(0), // 已使用次數
   
-  // 有效期設定
-  validFrom: text('valid_from').notNull(), // 有效期開始時間
-  validTo: text('valid_to').notNull(), // 有效期結束時間
-  
+  // 有效期設定（保持 TEXT 格式，日期字串更易讀）
+  validFrom: text('valid_from').notNull(), // 有效期開始時間 (YYYY-MM-DD)
+  validTo: text('valid_to').notNull(), // 有效期結束時間 (YYYY-MM-DD)
+
   // 狀態控制
   isActive: integer('is_active', { mode: 'boolean' }).default(true), // 是否啟用
   isVisible: integer('is_visible', { mode: 'boolean' }).default(true), // 是否對用戶可見
-  
-  // 元數據
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 創建者
+
+  // 舊欄位（兼容性）
+  createdAtLegacy: text('created_at'),
+  updatedAtLegacy: text('updated_at'),
 
   // 軟刪除
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
@@ -102,13 +106,18 @@ export const couponUsage = sqliteTable('coupon_usage', {
   originalAmount: real('original_amount').notNull(), // 使用前訂單金額
   finalAmount: real('final_amount').notNull(), // 使用後訂單金額
   
-  // 使用時間和狀態
-  usedAt: text('used_at').notNull().$defaultFn(() => new Date().toISOString()),
+  // 使用狀態
   status: text('status').$type<UsageStatus>().default('active'), // 使用狀態
 
-  // 元數據
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  usedAt: integer('used_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性）
+  usedAtLegacy: text('used_at'),
+  createdAtLegacy: text('created_at'),
+  updatedAtLegacy: text('updated_at'),
 }, (table) => ({
   couponIdIdx: index('idx_coupon_usage_coupon_id').on(table.couponId),
   orderIdIdx: index('idx_coupon_usage_order_id').on(table.orderId),
@@ -131,15 +140,20 @@ export const couponDistributions = sqliteTable('coupon_distributions', {
   // 發放統計
   totalDistributed: integer('total_distributed').default(0), // 總發放數量
   totalUsed: integer('total_used').default(0), // 總使用數量
-  
-  // 發放時間
-  distributedAt: text('distributed_at').notNull().$defaultFn(() => new Date().toISOString()),
-  expiresAt: text('expires_at'), // 發放過期時間
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  distributedAt: integer('distributed_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  expiresAt: integer('expires_at_new', { mode: 'timestamp' }), // 發放過期時間
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 
   // 元數據
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 發放者
   notes: text('notes'), // 發放備註
+
+  // 舊欄位（兼容性）
+  distributedAtLegacy: text('distributed_at'),
+  expiresAtLegacy: text('expires_at'),
+  createdAtLegacy: text('created_at'),
 }, (table) => ({
   couponIdIdx: index('idx_coupon_distributions_coupon_id').on(table.couponId),
   distributionTypeIdx: index('idx_coupon_distributions_type').on(table.distributionType),
@@ -162,11 +176,15 @@ export const couponTemplates = sqliteTable('coupon_templates', {
   // 狀態控制
   isActive: integer('is_active', { mode: 'boolean' }).default(true), // 是否啟用
   isSystemTemplate: integer('is_system_template', { mode: 'boolean' }).default(false), // 是否為系統模板
-  
-  // 元數據
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }), // 創建者
+
+  // 舊欄位（兼容性）
+  createdAtLegacy: text('created_at'),
+  updatedAtLegacy: text('updated_at'),
 }, (table) => ({
   restaurantIdIdx: index('idx_coupon_templates_restaurant_id').on(table.restaurantId),
   activeIdx: index('idx_coupon_templates_active').on(table.isActive),

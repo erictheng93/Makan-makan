@@ -28,43 +28,46 @@ vi.mock('@heroicons/vue/24/outline', () => ({
 // Mock orders data
 const mockOrders: KitchenOrder[] = [
   {
-    id: 'order-1',
+    id: 1,
     orderNumber: 'ORD-001',
     tableName: 'A-1',
-    tableId: 'table-1',
+    tableId: 1,
     customerName: '張三',
     priority: 'normal',
     status: 1, // confirmed
     createdAt: new Date().toISOString(),
     elapsedTime: 300,
+    totalItems: 1,
     items: [
-      { id: 'item-1', name: '宮保雞丁', quantity: 2, status: 'pending', notes: '不要辣' }
+      { id: 1, name: '宮保雞丁', quantity: 2, status: 'pending', notes: '不要辣', priority: 'normal' }
     ]
   },
   {
-    id: 'order-2',
+    id: 2,
     orderNumber: 'ORD-002',
     tableName: 'B-2',
-    tableId: 'table-2',
+    tableId: 2,
     priority: 'urgent',
     status: 2, // preparing
     createdAt: new Date().toISOString(),
     elapsedTime: 600,
+    totalItems: 1,
     items: [
-      { id: 'item-2', name: '炒飯', quantity: 1, status: 'preparing' }
+      { id: 2, name: '炒飯', quantity: 1, status: 'preparing', priority: 'urgent' }
     ]
   },
   {
-    id: 'order-3',
+    id: 3,
     orderNumber: 'ORD-003',
     tableName: 'C-3',
-    tableId: 'table-3',
+    tableId: 3,
     priority: 'high',
     status: 3, // ready
     createdAt: new Date().toISOString(),
     elapsedTime: 120,
+    totalItems: 1,
     items: [
-      { id: 'item-3', name: '湯麵', quantity: 1, status: 'ready', customizations: ['加辣', '加蛋'] }
+      { id: 3, name: '湯麵', quantity: 1, status: 'ready', customizations: ['加辣', '加蛋'], priority: 'high' }
     ]
   }
 ]
@@ -133,7 +136,7 @@ describe('OrderFilters Component', () => {
       const searchInput = wrapper.find('input[type="text"]')
       await searchInput.setValue('ORD-001')
 
-      expect(searchInput.element.value).toBe('ORD-001')
+      expect((searchInput.element as HTMLInputElement).value).toBe('ORD-001')
     })
 
     it('should emit search event with query', async () => {
@@ -193,15 +196,15 @@ describe('OrderFilters Component', () => {
 
       // Should handle order number
       await searchInput.setValue('ORD-001')
-      expect(searchInput.element.value).toBe('ORD-001')
+      expect((searchInput.element as HTMLInputElement).value).toBe('ORD-001')
 
       // Should handle customer name
       await searchInput.setValue('張三')
-      expect(searchInput.element.value).toBe('張三')
+      expect((searchInput.element as HTMLInputElement).value).toBe('張三')
 
       // Should handle table name
       await searchInput.setValue('T1')
-      expect(searchInput.element.value).toBe('T1')
+      expect((searchInput.element as HTMLInputElement).value).toBe('T1')
     })
   })
 
@@ -607,7 +610,7 @@ describe('OrderFilters Component', () => {
       const searchInput = wrapper.find('input[type="text"]')
       await searchInput.setValue(longQuery)
 
-      expect(searchInput.element.value).toBe(longQuery)
+      expect((searchInput.element as HTMLInputElement).value).toBe(longQuery)
     })
 
     it('should handle special characters in search', async () => {
@@ -617,7 +620,7 @@ describe('OrderFilters Component', () => {
       const searchInput = wrapper.find('input[type="text"]')
       await searchInput.setValue(specialChars)
 
-      expect(searchInput.element.value).toBe(specialChars)
+      expect((searchInput.element as HTMLInputElement).value).toBe(specialChars)
     })
 
     it('should handle no filter options selected', () => {

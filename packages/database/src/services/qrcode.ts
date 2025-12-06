@@ -187,7 +187,7 @@ export class QRCodeService extends BaseService {
    */
   async updateTemplate(id: number, data: Partial<CreateQRTemplateData>, userId: number): Promise<QRTemplate> {
     const updateData: Partial<NewQRTemplate> = {
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     }
 
     if (data.name) updateData.name = data.name
@@ -218,9 +218,9 @@ export class QRCodeService extends BaseService {
    */
   async deleteTemplate(id: number, userId: number): Promise<void> {
     await this.db.update(qrTemplates)
-      .set({ 
-        isActive: false, 
-        updatedAt: new Date().toISOString() 
+      .set({
+        isActive: false,
+        updatedAt: new Date()
       })
       .where(eq(qrTemplates.id, id))
 

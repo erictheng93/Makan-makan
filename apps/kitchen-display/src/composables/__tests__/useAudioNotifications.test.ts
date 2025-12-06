@@ -327,7 +327,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: { priority: 'normal' }
+        payload: { priority: 'normal' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -340,7 +342,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: { priority: 'urgent' }
+        payload: { priority: 'urgent' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -353,7 +357,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'ORDER_STATUS_UPDATE',
-        payload: { status: 'ready' }
+        payload: { status: 'ready' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -366,7 +372,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'ORDER_STATUS_UPDATE',
-        payload: { status: 'completed' }
+        payload: { status: 'completed' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -379,7 +387,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'ORDER_CANCELLED',
-        payload: {}
+        payload: {},
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -392,7 +402,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'PRIORITY_UPDATE',
-        payload: { priority: 'urgent' }
+        payload: { priority: 'urgent' },
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       await handleSSEEvent(event)
@@ -467,12 +479,16 @@ describe('useAudioNotifications', () => {
 
       const orders: KitchenOrder[] = [
         {
-          id: '1',
+          id: 1,
           orderNumber: 'ORD-001',
+          tableId: 1,
+          tableName: 'T1',
           status: 2, // Preparing
+          priority: 'normal',
           createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(), // 35 minutes ago
           elapsedTime: 35,
           estimatedTime: 15,
+          totalItems: 0,
           items: []
         }
       ]
@@ -487,12 +503,16 @@ describe('useAudioNotifications', () => {
 
       const orders: KitchenOrder[] = [
         {
-          id: '1',
+          id: 1,
           orderNumber: 'ORD-001',
+          tableId: 1,
+          tableName: 'T1',
           status: 2,
+          priority: 'normal',
           createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
           elapsedTime: 10,
           estimatedTime: 15,
+          totalItems: 0,
           items: []
         }
       ]
@@ -507,12 +527,16 @@ describe('useAudioNotifications', () => {
 
       const orders: KitchenOrder[] = [
         {
-          id: '1',
+          id: 1,
           orderNumber: 'ORD-001',
+          tableId: 1,
+          tableName: 'T1',
           status: 2,
+          priority: 'normal',
           createdAt: new Date(Date.now() - 13 * 60 * 1000).toISOString(), // 13 minutes ago
           elapsedTime: 13,
           estimatedTime: 15, // 15 * 0.8 = 12 minutes threshold
+          totalItems: 0,
           items: []
         }
       ]
@@ -657,7 +681,9 @@ describe('useAudioNotifications', () => {
 
       const event: KitchenSSEEvent = {
         type: 'NEW_ORDER',
-        payload: undefined
+        payload: undefined,
+        timestamp: new Date().toISOString(),
+        restaurantId: 1
       }
 
       // Should not throw

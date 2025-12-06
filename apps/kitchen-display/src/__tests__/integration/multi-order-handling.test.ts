@@ -150,7 +150,7 @@ describe('Multi-Order Handling Integration', () => {
       const startTime = performance.now()
 
       store.orders = Array.from({ length: 100 }, (_, i) =>
-        createMockOrder(String(i), Math.floor(Math.random() * 4) + 1)
+        createMockOrder(String(i), (Math.floor(Math.random() * 4) + 1) as OrderStatus)
       )
 
       const endTime = performance.now()
@@ -164,7 +164,7 @@ describe('Multi-Order Handling Integration', () => {
       const store = useOrdersStore()
 
       store.orders = Array.from({ length: 200 }, (_, i) =>
-        createMockOrder(String(i), (i % 4) + 1)
+        createMockOrder(String(i), ((i % 4) + 1) as OrderStatus)
       )
 
       const startTime = performance.now()
@@ -273,7 +273,7 @@ describe('Multi-Order Handling Integration', () => {
 
       // Create 500 orders
       const largeOrderSet = Array.from({ length: 500 }, (_, i) =>
-        createMockOrder(String(i), Math.floor(Math.random() * 4) + 1)
+        createMockOrder(String(i), (Math.floor(Math.random() * 4) + 1) as OrderStatus)
       )
 
       store.orders = largeOrderSet

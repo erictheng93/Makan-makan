@@ -16,8 +16,14 @@ export const images = sqliteTable('images', {
   variants: text('variants'), // JSON array of available variants
   metadata: text('metadata'), // JSON metadata
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  uploadedAt: text('uploaded_at').notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString())
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  uploadedAt: integer('uploaded_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性，將在後續遷移中移除）
+  uploadedAtLegacy: text('uploaded_at'),
+  updatedAtLegacy: text('updated_at'),
 })
 
 export const imageViews = sqliteTable('image_views', {
@@ -27,7 +33,12 @@ export const imageViews = sqliteTable('image_views', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   referer: text('referer'),
-  viewedAt: text('viewed_at').notNull().$defaultFn(() => new Date().toISOString())
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  viewedAt: integer('viewed_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+
+  // 舊欄位（兼容性）
+  viewedAtLegacy: text('viewed_at'),
 })
 
 export const imageProcessingJobs = sqliteTable('image_processing_jobs', {
@@ -41,9 +52,16 @@ export const imageProcessingJobs = sqliteTable('image_processing_jobs', {
   priority: integer('priority').notNull().default(5),
   attempts: integer('attempts').notNull().default(0),
   maxAttempts: integer('max_attempts').notNull().default(3),
-  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
-  startedAt: text('started_at'),
-  completedAt: text('completed_at')
+
+  // 時間戳 - 標準化為 INTEGER (Unix seconds)
+  createdAt: integer('created_at_new', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  startedAt: integer('started_at_new', { mode: 'timestamp' }),
+  completedAt: integer('completed_at_new', { mode: 'timestamp' }),
+
+  // 舊欄位（兼容性）
+  createdAtLegacy: text('created_at'),
+  startedAtLegacy: text('started_at'),
+  completedAtLegacy: text('completed_at'),
 })
 
 // Export types for TypeScript

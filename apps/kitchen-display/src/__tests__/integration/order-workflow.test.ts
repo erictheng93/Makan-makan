@@ -6,7 +6,47 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useOrdersStore } from '@/stores/orders'
-import type { KitchenOrder } from '@/types'
+import type { KitchenOrder, KitchenOrderItem, KitchenSSEEvent, ItemStatus } from '@/types'
+
+// Helper function to create order items with required fields
+function createMockItem(overrides: Partial<KitchenOrderItem> = {}): KitchenOrderItem {
+  return {
+    id: 1,
+    name: '炒飯',
+    quantity: 1,
+    status: 'pending' as ItemStatus,
+    estimatedTime: 10,
+    priority: 'normal',
+    ...overrides
+  }
+}
+
+// Helper function to create orders with required fields
+function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
+  return {
+    id: 1,
+    orderNumber: 'ORD-001',
+    tableId: 1,
+    tableName: 'T1',
+    status: 1,
+    priority: 'normal',
+    createdAt: new Date().toISOString(),
+    elapsedTime: 0,
+    estimatedTime: 15,
+    totalItems: 0,
+    items: [],
+    ...overrides
+  }
+}
+
+// Helper function to create SSE events with required fields
+function createSSEEvent(overrides: Partial<KitchenSSEEvent> & { type: KitchenSSEEvent['type']; payload: any }): KitchenSSEEvent {
+  return {
+    timestamp: new Date().toISOString(),
+    restaurantId: 1,
+    ...overrides
+  } as KitchenSSEEvent
+}
 
 // Mock kitchen API - inline definition to avoid hoisting issues
 vi.mock('@/services/kitchenApi', () => ({
@@ -35,19 +75,17 @@ describe('Order Workflow Integration', () => {
       const store = useOrdersStore()
 
       // Initial order in pending state
-      const order: KitchenOrder = {
-        id: 1,  // Use number ID
+      const order: KitchenOrder = createMockOrder({
+        id: 1,
         orderNumber: 'ORD-001',
         tableName: 'T1',
-        status: 1, // pending
+        status: 1,
         priority: 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
+        totalItems: 1,
         items: [
-          { id: 1, name: '炒飯', quantity: 2, status: 'pending', estimatedTime: 15 }
+          { id: 1, name: '炒飯', quantity: 2, status: 'pending', estimatedTime: 15, priority: 'normal' }
         ]
-      }
+      })
 
       store.orders = [order]
       expect(store.pendingOrders).toHaveLength(1)
@@ -70,20 +108,19 @@ describe('Order Workflow Integration', () => {
     it('should handle item-level status updates', async () => {
       const store = useOrdersStore()
 
-      const order: KitchenOrder = {
-        id: 1,  // Use number ID
+      const order: KitchenOrder = createMockOrder({
+        id: 1,
         orderNumber: 'ORD-001',
         tableName: 'T1',
         status: 2,
         priority: 'normal',
-        createdAt: new Date().toISOString(),
         elapsedTime: 5,
-        estimatedTime: 15,
+        totalItems: 2,
         items: [
-          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 },
-          { id: 2, name: '炒麵', quantity: 1, status: 'pending', estimatedTime: 12 }
+          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10, priority: 'normal' },
+          { id: 2, name: '炒麵', quantity: 1, status: 'pending', estimatedTime: 12, priority: 'normal' }
         ]
-      }
+      })
 
       store.orders = [order]
 
@@ -107,29 +144,26 @@ describe('Order Workflow Integration', () => {
     it('should handle urgent order prioritization', async () => {
       const store = useOrdersStore()
 
-      const normalOrder: KitchenOrder = {
-        id: 1,  // Use number ID
+      const normalOrder: KitchenOrder = createMockOrder({
+        id: 1,
+        tableId: 1,
         orderNumber: 'ORD-001',
         tableName: 'T1',
         status: 1,
         priority: 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        items: []
-      }
+        totalItems: 0
+      })
 
-      const urgentOrder: KitchenOrder = {
-        id: 2,  // Use number ID
+      const urgentOrder: KitchenOrder = createMockOrder({
+        id: 2,
+        tableId: 2,
         orderNumber: 'ORD-002',
         tableName: 'T2',
         status: 1,
         priority: 'urgent',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
         estimatedTime: 10,
-        items: []
-      }
+        totalItems: 0
+      })
 
       store.orders = [normalOrder, urgentOrder]
 
@@ -146,16 +180,14 @@ describe('Order Workflow Integration', () => {
     it('should handle multiple concurrent orders', async () => {
       const store = useOrdersStore()
 
-      const orders: KitchenOrder[] = Array.from({ length: 10 }, (_, i) => ({
-        id: i,  // Use number ID
+      const orders: KitchenOrder[] = Array.from({ length: 10 }, (_, i) => createMockOrder({
+        id: i,
+        tableId: i + 1,
         orderNumber: `ORD-${String(i).padStart(3, '0')}`,
         tableName: `T${i + 1}`,
         status: 1,
         priority: i < 3 ? 'urgent' : 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        items: []
+        totalItems: 0
       }))
 
       store.orders = orders
@@ -176,16 +208,14 @@ describe('Order Workflow Integration', () => {
     it('should maintain order consistency during batch updates', async () => {
       const store = useOrdersStore()
 
-      store.orders = Array.from({ length: 20 }, (_, i) => ({
-        id: i,  // Use number ID
+      store.orders = Array.from({ length: 20 }, (_, i) => createMockOrder({
+        id: i,
+        tableId: i + 1,
         orderNumber: `ORD-${i}`,
         tableName: `T${i}`,
         status: 1,
-        priority: 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        items: []
+        totalItems: 0,
+        priority: 'normal'
       }))
 
       const initialCount = store.totalOrders
@@ -207,19 +237,18 @@ describe('Order Workflow Integration', () => {
       mockKitchenApi.startCooking.mockRejectedValueOnce(new Error('API Update failed'))
 
       const store = useOrdersStore()
-      store.orders = [{
-        id: 1,  // Use number ID
+      store.orders = [createMockOrder({
+        id: 1,
+        tableId: 1,
         orderNumber: 'ORD-001',
         tableName: 'T1',
         status: 1,
         priority: 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
+        totalItems: 1,
         items: [
-          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 }
+          createMockItem({ id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 })
         ]
-      }]
+      })]
 
       // Test API call failure (startCooking is an actual API call)
       await expect(store.startCooking(1, 1, 1)).rejects.toThrow()
@@ -243,22 +272,20 @@ describe('Order Workflow Integration', () => {
     it('should add new order from SSE event', () => {
       const store = useOrdersStore()
 
-      const newOrder: KitchenOrder = {
-        id: 100,  // Use number ID
+      const newOrder: KitchenOrder = createMockOrder({
+        id: 100,
+        tableId: 5,
         orderNumber: 'ORD-NEW',
         tableName: 'T5',
         status: 1,
         priority: 'urgent',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        items: []
-      }
+        totalItems: 0
+      })
 
-      store.handleSSEEvent({
+      store.handleSSEEvent(createSSEEvent({
         type: 'NEW_ORDER',
         payload: newOrder
-      })
+      }))
 
       expect(store.orders).toContainEqual(newOrder)
       expect(store.urgentOrders).toHaveLength(1)
@@ -267,30 +294,29 @@ describe('Order Workflow Integration', () => {
     it('should update order status from SSE event', () => {
       const store = useOrdersStore()
 
-      store.orders = [{
-        id: 1,  // Use number ID
+      store.orders = [createMockOrder({
+        id: 1,
+        tableId: 1,
         orderNumber: 'ORD-001',
         tableName: 'T1',
         status: 1,
         priority: 'normal',
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
+        totalItems: 1,
         items: [
-          { id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 }
+          createMockItem({ id: 1, name: '炒飯', quantity: 1, status: 'pending', estimatedTime: 10 })
         ]
-      }]
+      })]
 
       // ORDER_STATUS_UPDATE event expects itemId in payload
-      store.handleSSEEvent({
+      store.handleSSEEvent(createSSEEvent({
         type: 'ORDER_STATUS_UPDATE',
-        orderId: 1,  // Use number ID
+        orderId: 1,
         payload: {
           itemId: 1,
           status: 'preparing',
           updatedAt: new Date().toISOString()
         }
-      })
+      }))
 
       const order = store.orders.find(o => o.id === 1)
       // The handler updates item status and then recalculates order status
@@ -302,25 +328,23 @@ describe('Order Workflow Integration', () => {
       const store = useOrdersStore()
 
       store.orders = [
-        {
-          id: 1,  // Use number ID
+        createMockOrder({
+          id: 1,
+          tableId: 1,
           orderNumber: 'ORD-001',
           tableName: 'T1',
           status: 1,
           priority: 'normal',
-          createdAt: new Date().toISOString(),
-          elapsedTime: 0,
-          estimatedTime: 15,
-          items: []
-        }
+          totalItems: 0
+        })
       ]
 
       // ORDER_CANCELLED event expects orderId at top level, not in payload
-      store.handleSSEEvent({
+      store.handleSSEEvent(createSSEEvent({
         type: 'ORDER_CANCELLED',
-        orderId: 1,  // orderId should be number at event level
+        orderId: 1,
         payload: { reason: 'Customer requested' }
-      })
+      }))
 
       expect(store.orders).toHaveLength(0)
     })

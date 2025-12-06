@@ -35,6 +35,8 @@
     "test:batch1": "pnpm test:kitchen && pnpm test:admin",
     "test:batch2": "pnpm test:api && pnpm test:packages",
     "test:all": "pnpm test:batch1 && pnpm test:batch2",
+    "test:realtime": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/api/src/features/realtime",
+    "test:features": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/api/src/features apps/admin-dashboard/src apps/kitchen-display/src apps/customer-app/src",
     "test:workers": "cross-env NODE_OPTIONS='--max-old-space-size=4096' vitest run tests/unit/workers",
     "test:workers:integration": "wrangler dev --test --local tests/integration/workers",
     "test:ci": "pnpm run test:unit && pnpm run test:e2e",

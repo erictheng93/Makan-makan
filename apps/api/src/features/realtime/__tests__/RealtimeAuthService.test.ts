@@ -32,14 +32,22 @@ describe('RealtimeAuthService', () => {
       all: vi.fn()
     }
 
+    // Mock KV namespace for token blacklist
+    const mockTokenBlacklistKV = {
+      get: vi.fn().mockResolvedValue(null), // Token not revoked by default
+      put: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      list: vi.fn().mockResolvedValue({ keys: [] })
+    }
+
     // Mock environment
     mockEnv = {
       NODE_ENV: 'test',
       JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long-for-security',
       API_VERSION: '1.0.0',
       DB: mockDb as any,
-      CACHE_KV: {} as any,
-      TOKEN_BLACKLIST: {} as any,
+      CACHE_KV: mockTokenBlacklistKV as any,
+      TOKEN_BLACKLIST: mockTokenBlacklistKV as any,
       IMAGES_BUCKET: {} as any,
       BACKUP_STORAGE: {} as any,
       JOB_QUEUE: {} as any,
@@ -316,7 +324,8 @@ describe('RealtimeAuthService', () => {
 
       expect(exists).toBe(true)
       expect(mockDb.prepare).toHaveBeenCalled()
-      expect(mockDb.bind).toHaveBeenCalledWith('table_1', 1)
+      // 實際實作使用 .bind(tableId, tableId, restaurantId) - 支持 ID 或 QR code 查詢
+      expect(mockDb.bind).toHaveBeenCalledWith('table_1', 'table_1', '1')
     })
 
     it('應該拒絕不存在的桌號', async () => {
