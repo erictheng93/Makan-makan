@@ -7,25 +7,30 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const QRCodeType = z.enum(['table', 'seat', 'shop', 'payment', 'menu']);
+const QRCodeFormat = z.enum(['svg', 'png', 'pdf']);
+const HealthStatus = z.enum(['healthy', 'degraded', 'unhealthy', 'maintenance']);
+
 /**
  * QR Code & System Health API Schemas
  */
 export const QRHealthSchemas = {
   // QR Code Type
-  QRCodeType: z.enum(['table', 'seat', 'shop', 'payment', 'menu']),
+  QRCodeType,
 
   // QR Code Format
-  QRCodeFormat: z.enum(['svg', 'png', 'pdf']),
+  QRCodeFormat,
 
   // System Health Status
-  HealthStatus: z.enum(['healthy', 'degraded', 'unhealthy', 'maintenance']),
+  HealthStatus,
 
   // QR Code Template
   QRTemplate: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
     name: z.string(),
-    type: z.lazy(() => QRHealthSchemas.QRCodeType),
+    type: QRCodeType,
     design: z.object({
       logo: z.string().url().optional(),
       primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i),
@@ -43,7 +48,7 @@ export const QRHealthSchemas = {
   CreateQRTemplateRequest: z.object({
     restaurantId: z.string().uuid(),
     name: z.string().min(1, 'Template name is required'),
-    type: z.lazy(() => QRHealthSchemas.QRCodeType),
+    type: QRCodeType,
     design: z.object({
       logo: z.string().url().optional(),
       primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
@@ -56,11 +61,11 @@ export const QRHealthSchemas = {
 
   // Generate QR Code Request
   GenerateQRCodeRequest: z.object({
-    type: z.lazy(() => QRHealthSchemas.QRCodeType),
+    type: QRCodeType,
     targetId: z.string().uuid(), // tableId, seatId, restaurantId, etc.
     restaurantId: z.string().uuid(),
     templateId: z.string().uuid().optional(),
-    format: z.lazy(() => QRHealthSchemas.QRCodeFormat).default('png'),
+    format: QRCodeFormat.default('png'),
     size: z.number().int().min(128).max(2048).default(512),
     metadata: z.record(z.string()).optional(),
   }),
@@ -70,7 +75,7 @@ export const QRHealthSchemas = {
     success: z.boolean(),
     qrCode: z.object({
       id: z.string().uuid(),
-      type: z.lazy(() => QRHealthSchemas.QRCodeType),
+      type: QRCodeType,
       url: z.string().url(),
       imageUrl: z.string().url(),
       metadata: z.record(z.string()),
@@ -81,11 +86,11 @@ export const QRHealthSchemas = {
 
   // Bulk Generate QR Codes Request
   BulkGenerateQRCodesRequest: z.object({
-    type: z.lazy(() => QRHealthSchemas.QRCodeType),
+    type: QRCodeType,
     targetIds: z.array(z.string().uuid()).min(1, 'At least one target ID required').max(100),
     restaurantId: z.string().uuid(),
     templateId: z.string().uuid().optional(),
-    format: z.lazy(() => QRHealthSchemas.QRCodeFormat).default('png'),
+    format: QRCodeFormat.default('png'),
     size: z.number().int().min(128).max(2048).default(512),
   }),
 
@@ -96,7 +101,7 @@ export const QRHealthSchemas = {
       z.object({
         id: z.string().uuid(),
         targetId: z.string().uuid(),
-        type: z.lazy(() => QRHealthSchemas.QRCodeType),
+        type: QRCodeType,
         url: z.string().url(),
         imageUrl: z.string().url(),
       })
@@ -110,33 +115,33 @@ export const QRHealthSchemas = {
 
   // System Health
   SystemHealth: z.object({
-    status: z.lazy(() => QRHealthSchemas.HealthStatus),
+    status: HealthStatus,
     timestamp: z.string().datetime(),
     uptime: z.number().int(), // seconds
     version: z.string(),
     services: z.object({
       api: z.object({
-        status: z.lazy(() => QRHealthSchemas.HealthStatus),
+        status: HealthStatus,
         responseTime: z.number(), // ms
         requestsPerMinute: z.number(),
       }),
       database: z.object({
-        status: z.lazy(() => QRHealthSchemas.HealthStatus),
+        status: HealthStatus,
         connections: z.number().int(),
         queryTime: z.number(), // ms average
       }),
       cache: z.object({
-        status: z.lazy(() => QRHealthSchemas.HealthStatus),
+        status: HealthStatus,
         hitRate: z.number().min(0).max(1),
         evictions: z.number().int(),
       }),
       websocket: z.object({
-        status: z.lazy(() => QRHealthSchemas.HealthStatus),
+        status: HealthStatus,
         activeConnections: z.number().int(),
         messageRate: z.number(), // messages per second
       }),
       storage: z.object({
-        status: z.lazy(() => QRHealthSchemas.HealthStatus),
+        status: HealthStatus,
         usedSpace: z.number(), // bytes
         totalSpace: z.number(), // bytes
       }),
@@ -225,9 +230,7 @@ export const generateQRCodeRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -257,9 +260,7 @@ export const bulkGenerateQRCodesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -292,8 +293,7 @@ export const getQRTemplatesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -326,9 +326,7 @@ export const createQRTemplateRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -381,7 +379,6 @@ export const getPerformanceMetricsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });

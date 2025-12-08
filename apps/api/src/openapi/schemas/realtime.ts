@@ -7,16 +7,19 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const RoomType = z.enum(['customer', 'admin', 'kitchen']);
+
 /**
  * Realtime API Schemas
  */
 export const RealtimeSchemas = {
   // Room Type
-  RoomType: z.enum(['customer', 'admin', 'kitchen']),
+  RoomType,
 
   // WebSocket Token Payload
   WebSocketTokenPayload: z.object({
-    roomType: z.lazy(() => RealtimeSchemas.RoomType),
+    roomType: RoomType,
     roomId: z.string(),
     restaurantId: z.string().uuid(),
     userId: z.string().uuid().optional(),
@@ -27,7 +30,7 @@ export const RealtimeSchemas = {
 
   // Generate WebSocket Token Request
   GenerateTokenRequest: z.object({
-    roomType: z.lazy(() => RealtimeSchemas.RoomType),
+    roomType: RoomType,
     roomId: z.string().min(1, 'Room ID is required'),
     restaurantId: z.string().uuid(),
     userId: z.string().uuid().optional(),
@@ -51,13 +54,21 @@ export const RealtimeSchemas = {
   VerifyTokenResponse: z.object({
     success: z.boolean(),
     valid: z.boolean(),
-    payload: z.lazy(() => RealtimeSchemas.WebSocketTokenPayload).optional(),
+    payload: z.object({
+      roomType: RoomType,
+      roomId: z.string(),
+      restaurantId: z.string().uuid(),
+      userId: z.string().uuid().optional(),
+      role: z.number().int().min(0).max(4).optional(),
+      exp: z.number().int(),
+      iat: z.number().int(),
+    }).optional(),
     error: z.string().optional(),
   }),
 
   // Broadcast Message Request
   BroadcastMessageRequest: z.object({
-    roomType: z.lazy(() => RealtimeSchemas.RoomType),
+    roomType: RoomType,
     roomId: z.string(),
     messageType: z.string(),
     payload: z.record(z.any()),
@@ -75,7 +86,7 @@ export const RealtimeSchemas = {
 
   // Connection Statistics
   ConnectionStatistics: z.object({
-    roomType: z.lazy(() => RealtimeSchemas.RoomType),
+    roomType: RoomType,
     roomId: z.string(),
     totalConnections: z.number().int(),
     activeConnections: z.number().int(),
@@ -94,7 +105,7 @@ export const RealtimeSchemas = {
     type: z.string(),
     payload: z.record(z.any()),
     timestamp: z.number().int(),
-    roomType: z.lazy(() => RealtimeSchemas.RoomType).optional(),
+    roomType: RoomType.optional(),
     roomId: z.string().optional(),
     senderId: z.string().optional(),
   }),
@@ -142,9 +153,7 @@ export const generateWebSocketTokenRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -173,7 +182,7 @@ export const verifyWebSocketTokenRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
+    ...errorResponses(400),
   },
 });
 
@@ -212,9 +221,7 @@ export const broadcastMessageRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -244,9 +251,7 @@ export const getConnectionStatsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -270,7 +275,7 @@ export const getConnectionHealthRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
+    ...errorResponses(401),
   },
 });
 
@@ -308,9 +313,7 @@ export const disconnectUserRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -347,6 +350,6 @@ export const getActiveRoomsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
+    ...errorResponses(401),
   },
 });

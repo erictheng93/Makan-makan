@@ -7,28 +7,37 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const TimePeriod = z.enum(['day', 'week', 'month', 'quarter', 'year', 'custom']);
+const MetricType = z.enum([
+  'revenue',
+  'orders',
+  'customers',
+  'average_order_value',
+  'items_sold',
+  'conversion_rate',
+]);
+const MetricDataPoint = z.object({
+  timestamp: z.string().datetime(),
+  value: z.number(),
+  label: z.string().optional(),
+});
+
 /**
  * Analytics API Schemas
  */
 export const AnalyticsSchemas = {
   // Time Period
-  TimePeriod: z.enum(['day', 'week', 'month', 'quarter', 'year', 'custom']),
+  TimePeriod,
 
   // Metric Type
-  MetricType: z.enum([
-    'revenue',
-    'orders',
-    'customers',
-    'average_order_value',
-    'items_sold',
-    'conversion_rate',
-  ]),
+  MetricType,
 
   // Analytics Query Request
   AnalyticsQueryRequest: z.object({
     restaurantId: z.string().uuid(),
-    metrics: z.array(z.lazy(() => AnalyticsSchemas.MetricType)),
-    period: z.lazy(() => AnalyticsSchemas.TimePeriod),
+    metrics: z.array(MetricType),
+    period: TimePeriod,
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     groupBy: z.enum(['hour', 'day', 'week', 'month']).optional(),
@@ -43,8 +52,8 @@ export const AnalyticsSchemas = {
 
   // Analytics Data
   AnalyticsData: z.object({
-    metric: z.lazy(() => AnalyticsSchemas.MetricType),
-    data: z.array(z.lazy(() => AnalyticsSchemas.MetricDataPoint)),
+    metric: MetricType,
+    data: z.array(MetricDataPoint),
     total: z.number(),
     average: z.number(),
     change: z.number().optional(), // Percentage change from previous period
@@ -54,11 +63,11 @@ export const AnalyticsSchemas = {
   // Analytics Response
   AnalyticsResponse: z.object({
     success: z.boolean(),
-    data: z.array(z.lazy(() => AnalyticsSchemas.AnalyticsData)),
+    data: z.array(z.any()),
     period: z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      type: z.lazy(() => AnalyticsSchemas.TimePeriod),
+      type: TimePeriod,
     }),
   }),
 
@@ -223,9 +232,7 @@ export const getAnalyticsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -260,9 +267,7 @@ export const getSalesReportRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -296,9 +301,7 @@ export const getCustomerAnalyticsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -331,9 +334,7 @@ export const getPerformanceMetricsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -368,9 +369,7 @@ export const getInventoryAnalyticsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -411,10 +410,8 @@ export const exportReportRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 403),
+    ...errorResponses(404),
   },
 });
 
@@ -475,8 +472,6 @@ export const getDashboardSummaryRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });

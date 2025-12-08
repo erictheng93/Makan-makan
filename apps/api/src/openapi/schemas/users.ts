@@ -111,8 +111,7 @@ export const getUsersRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -145,9 +144,7 @@ export const createUserRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -183,10 +180,8 @@ export const updateUserRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400),
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -222,9 +217,7 @@ export const changePasswordRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -253,8 +246,6 @@ export const deleteUserRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });

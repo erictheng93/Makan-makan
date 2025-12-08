@@ -2104,7 +2104,7 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
             if (options?.where && options.where.queryChunks) {
               // Extract filter conditions from queryChunks
               let columnName: string | null = null
-              let filterValues: any[] = []
+              const filterValues: any[] = []
 
               options.where.queryChunks.forEach((chunk: any) => {
                 // Extract column name

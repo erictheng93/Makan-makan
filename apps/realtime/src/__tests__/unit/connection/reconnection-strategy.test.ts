@@ -387,7 +387,7 @@ describe('Reconnection Strategy', () => {
     })
 
     it('should sync events on reconnection', () => {
-      let state = createReconnectionState()
+      const state = createReconnectionState()
 
       // Set last received event
       state.lastEventId = 'event-005'
@@ -444,7 +444,7 @@ describe('Reconnection Strategy', () => {
     })
 
     it('should handle missing events on server', () => {
-      let state = createReconnectionState()
+      const state = createReconnectionState()
       state.lastEventId = 'event-010'
 
       // Server only has newer events (event-010 not found)

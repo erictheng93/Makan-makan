@@ -9,7 +9,7 @@
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
     "build": "tsc",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest",
     "test:coverage": "vitest run --coverage"
   },

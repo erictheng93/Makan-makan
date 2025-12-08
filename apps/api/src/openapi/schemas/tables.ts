@@ -7,31 +7,35 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const TableStatus = z.enum(['available', 'occupied', 'reserved', 'cleaning']);
+const Table = z.object({
+  id: z.string().uuid(),
+  restaurantId: z.string().uuid(),
+  name: z.string().min(1),
+  capacity: z.number().int().positive(),
+  status: TableStatus,
+  floor: z.string().optional(),
+  section: z.string().optional(),
+  qrCodeUrl: z.string().url().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
 /**
  * Tables API Schemas
  */
 export const TablesSchemas = {
   // Table Status Enum
-  TableStatus: z.enum(['available', 'occupied', 'reserved', 'cleaning']),
+  TableStatus,
 
   // Table
-  Table: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
-    name: z.string().min(1),
-    capacity: z.number().int().positive(),
-    status: z.lazy(() => TablesSchemas.TableStatus),
-    floor: z.string().optional(),
-    section: z.string().optional(),
-    qrCodeUrl: z.string().url().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-  }),
+  Table,
 
   // Get Tables Request
   GetTablesRequest: z.object({
     restaurantId: z.string().uuid(),
-    status: z.lazy(() => TablesSchemas.TableStatus).optional(),
+    status: TableStatus.optional(),
     floor: z.string().optional(),
     page: z.string().regex(/^\d+$/).transform(Number).default('1'),
     pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
@@ -40,7 +44,7 @@ export const TablesSchemas = {
   // Get Tables Response
   GetTablesResponse: z.object({
     success: z.boolean(),
-    data: z.array(z.lazy(() => TablesSchemas.Table)),
+    data: z.array(Table),
     meta: z.object({
       total: z.number(),
       page: z.number(),
@@ -62,14 +66,14 @@ export const TablesSchemas = {
   UpdateTableRequest: z.object({
     name: z.string().min(1).optional(),
     capacity: z.number().int().positive().optional(),
-    status: z.lazy(() => TablesSchemas.TableStatus).optional(),
+    status: TableStatus.optional(),
     floor: z.string().optional(),
     section: z.string().optional(),
   }),
 
   // Update Table Status Request
   UpdateTableStatusRequest: z.object({
-    status: z.lazy(() => TablesSchemas.TableStatus),
+    status: TableStatus,
   }),
 
   // Generate QR Code Request
@@ -111,8 +115,7 @@ export const getTablesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(401, 404),
   },
 });
 
@@ -145,8 +148,7 @@ export const createTableRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });
 
@@ -182,9 +184,7 @@ export const updateTableStatusRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -224,8 +224,6 @@ export const generateQRCodeRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });

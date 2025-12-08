@@ -7,31 +7,36 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const LeaveType = z.enum(['annual', 'sick', 'personal', 'unpaid', 'maternity', 'paternity', 'other']);
+const LeaveStatus = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
+const HalfDayType = z.enum(['morning', 'afternoon', 'none']);
+
 /**
  * Leaves API Schemas
  */
 export const LeavesSchemas = {
   // Leave Type
-  LeaveType: z.enum(['annual', 'sick', 'personal', 'unpaid', 'maternity', 'paternity', 'other']),
+  LeaveType,
 
   // Leave Status
-  LeaveStatus: z.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  LeaveStatus,
 
   // Half Day Type
-  HalfDayType: z.enum(['morning', 'afternoon', 'none']),
+  HalfDayType,
 
   // Leave Request
   LeaveRequest: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
     userId: z.string().uuid(),
-    leaveType: z.lazy(() => LeavesSchemas.LeaveType),
+    leaveType: LeaveType,
     startDate: z.string().date(),
     endDate: z.string().date(),
-    halfDayType: z.lazy(() => LeavesSchemas.HalfDayType).default('none'),
+    halfDayType: HalfDayType.default('none'),
     totalDays: z.number().positive(),
     reason: z.string(),
-    status: z.lazy(() => LeavesSchemas.LeaveStatus),
+    status: LeaveStatus,
     reviewerId: z.string().uuid().optional(),
     reviewerNotes: z.string().optional(),
     reviewedAt: z.string().datetime().optional(),
@@ -44,17 +49,17 @@ export const LeavesSchemas = {
   CreateLeaveRequest: z.object({
     restaurantId: z.string().uuid(),
     userId: z.string().uuid(),
-    leaveType: z.lazy(() => LeavesSchemas.LeaveType),
+    leaveType: LeaveType,
     startDate: z.string().date(),
     endDate: z.string().date(),
-    halfDayType: z.lazy(() => LeavesSchemas.HalfDayType).default('none'),
+    halfDayType: HalfDayType.default('none'),
     reason: z.string().min(1, 'Reason is required'),
     attachments: z.array(z.string().url()).optional(),
   }),
 
   // Update Leave Status Request
   UpdateLeaveStatusRequest: z.object({
-    status: z.lazy(() => LeavesSchemas.LeaveStatus),
+    status: LeaveStatus,
     reviewerNotes: z.string().optional(),
   }),
 
@@ -63,7 +68,7 @@ export const LeavesSchemas = {
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
     userId: z.string().uuid(),
-    leaveType: z.lazy(() => LeavesSchemas.LeaveType),
+    leaveType: LeaveType,
     year: z.number().int(),
     totalAllowed: z.number().nonnegative(),
     used: z.number().nonnegative(),
@@ -77,7 +82,7 @@ export const LeavesSchemas = {
   LeavePolicy: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
-    leaveType: z.lazy(() => LeavesSchemas.LeaveType),
+    leaveType: LeaveType,
     name: z.string(),
     defaultDays: z.number().nonnegative(),
     maxCarryForward: z.number().nonnegative().default(0),
@@ -104,7 +109,7 @@ export const LeavesSchemas = {
     totalDaysTaken: z.number(),
     byLeaveType: z.array(
       z.object({
-        leaveType: z.lazy(() => LeavesSchemas.LeaveType),
+        leaveType: LeaveType,
         count: z.number().int(),
         totalDays: z.number(),
       })
@@ -158,8 +163,7 @@ export const getLeaveRequestsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -192,8 +196,7 @@ export const createLeaveRequestRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });
 
@@ -229,10 +232,8 @@ export const updateLeaveStatusRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 403),
+    ...errorResponses(404),
   },
 });
 
@@ -265,8 +266,7 @@ export const getLeaveBalancesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -298,8 +298,7 @@ export const getLeavePoliciesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -332,8 +331,7 @@ export const getLeaveStatsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -362,8 +360,6 @@ export const cancelLeaveRequestRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });

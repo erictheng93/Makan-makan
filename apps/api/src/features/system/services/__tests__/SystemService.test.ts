@@ -195,12 +195,12 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'high',
             message: 'Cannot read property of undefined',
             code: 500,
             context: { component: 'MenuList' },
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -216,22 +216,22 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'medium',
             message: 'Error 1',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           },
           {
-            type: 'ReferenceError',
+            type: 'api',
             severity: 'high',
             message: 'Error 2',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           },
           {
-            type: 'NetworkError',
+            type: 'network',
             severity: 'low',
             message: 'Error 3',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -246,16 +246,16 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'CriticalError',
+            type: 'api',
             severity: 'critical',
             message: 'Database connection failed',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           },
           {
-            type: 'WarningError',
+            type: 'validation',
             severity: 'low',
             message: 'Minor warning',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -270,11 +270,11 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'medium',
             message: 'Test error',
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -291,10 +291,10 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'medium',
             message: 'Test error',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -391,10 +391,10 @@ describe('SystemService', () => {
         const request: ErrorReportRequest = {
           errors: [
             {
-              type: i % 2 === 0 ? 'TypeError' : 'NetworkError',
+              type: i % 2 === 0 ? 'unknown' : 'network',
               severity: 'medium',
               message: `Error ${i}`,
-              timestamp: Date.now()
+              timestamp: new Date().toISOString()
             }
           ]
         }
@@ -464,10 +464,10 @@ describe('SystemService', () => {
         const request: ErrorReportRequest = {
           errors: [
             {
-              type: 'TypeError',
+              type: 'unknown',
               severity: 'low',
               message: `Old error ${i}`,
-              timestamp: Date.now() - (31 * 86400000) // 31 days ago
+              timestamp: new Date().toISOString() - (31 * 86400000) // 31 days ago
             }
           ]
         }
@@ -521,10 +521,10 @@ describe('SystemService', () => {
 
       const errors: ErrorReportItem[] = [
         {
-          type: 'CriticalError',
+          type: 'api',
           severity: 'critical',
           message: 'Database connection failed',
-          timestamp: Date.now()
+          timestamp: new Date().toISOString()
         }
       ]
 
@@ -540,10 +540,10 @@ describe('SystemService', () => {
 
       const errors: ErrorReportItem[] = [
         {
-          type: 'CriticalError',
+          type: 'api',
           severity: 'critical',
           message: 'Test error',
-          timestamp: Date.now()
+          timestamp: new Date().toISOString()
         }
       ]
 
@@ -557,16 +557,16 @@ describe('SystemService', () => {
 
       const errors: ErrorReportItem[] = [
         {
-          type: 'Error1',
+          type: 'api',
           severity: 'high',
           message: 'Error 1',
-          timestamp: Date.now()
+          timestamp: new Date().toISOString()
         },
         {
-          type: 'Error2',
+          type: 'sse',
           severity: 'critical',
           message: 'Error 2',
-          timestamp: Date.now()
+          timestamp: new Date().toISOString()
         }
       ]
 
@@ -586,10 +586,10 @@ describe('SystemService', () => {
 
       const errors: ErrorReportItem[] = [
         {
-          type: 'CriticalError',
+          type: 'api',
           severity: 'critical',
           message: 'Test error',
-          timestamp: Date.now()
+          timestamp: new Date().toISOString()
         }
       ]
 
@@ -609,10 +609,10 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'medium',
             message: 'Test error',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -630,10 +630,10 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'CriticalError',
+            type: 'api',
             severity: 'critical',
             message: 'Critical error',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -668,10 +668,10 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'medium',
             message: 'Test error',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -708,10 +708,10 @@ describe('SystemService', () => {
       const request: ErrorReportRequest = {
         errors: [
           {
-            type: 'TypeError',
+            type: 'unknown',
             severity: 'high',
             message: 'Integration test error',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           }
         ]
       }
@@ -736,10 +736,10 @@ describe('SystemService', () => {
         const request: ErrorReportRequest = {
           errors: [
             {
-              type: 'LoadTestError',
+              type: 'unknown',
               severity: 'medium',
               message: `Load test error ${i}`,
-              timestamp: Date.now()
+              timestamp: new Date().toISOString()
             }
           ]
         }

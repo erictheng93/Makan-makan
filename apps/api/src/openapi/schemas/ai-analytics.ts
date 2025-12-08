@@ -7,31 +7,36 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const LLMProvider = z.enum(['openai', 'anthropic', 'gemini', 'local']);
+const InsightType = z.enum([
+  'sales_trend',
+  'customer_behavior',
+  'menu_optimization',
+  'inventory_forecast',
+  'staffing_recommendation',
+  'revenue_prediction',
+]);
+const InsightPriority = z.enum(['low', 'medium', 'high', 'critical']);
+
 /**
  * AI Analytics API Schemas
  */
 export const AIAnalyticsSchemas = {
   // LLM Provider
-  LLMProvider: z.enum(['openai', 'anthropic', 'gemini', 'local']),
+  LLMProvider,
 
   // Insight Type
-  InsightType: z.enum([
-    'sales_trend',
-    'customer_behavior',
-    'menu_optimization',
-    'inventory_forecast',
-    'staffing_recommendation',
-    'revenue_prediction',
-  ]),
+  InsightType,
 
   // Insight Priority
-  InsightPriority: z.enum(['low', 'medium', 'high', 'critical']),
+  InsightPriority,
 
   // AI Configuration
   AIConfiguration: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
-    provider: z.lazy(() => AIAnalyticsSchemas.LLMProvider),
+    provider: LLMProvider,
     model: z.string(),
     apiKey: z.string().optional(), // Encrypted, not returned in responses
     enabled: z.boolean(),
@@ -46,7 +51,7 @@ export const AIAnalyticsSchemas = {
 
   // Create/Update AI Configuration Request
   ConfigureAIRequest: z.object({
-    provider: z.lazy(() => AIAnalyticsSchemas.LLMProvider),
+    provider: LLMProvider,
     model: z.string().min(1, 'Model is required'),
     apiKey: z.string().min(1, 'API key is required'),
     enabled: z.boolean().default(true),
@@ -63,8 +68,8 @@ export const AIAnalyticsSchemas = {
   AIInsight: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
-    type: z.lazy(() => AIAnalyticsSchemas.InsightType),
-    priority: z.lazy(() => AIAnalyticsSchemas.InsightPriority),
+    type: InsightType,
+    priority: InsightPriority,
     title: z.string(),
     summary: z.string(),
     details: z.string(),
@@ -83,7 +88,7 @@ export const AIAnalyticsSchemas = {
 
   // Generate Insights Request
   GenerateInsightsRequest: z.object({
-    types: z.array(z.lazy(() => AIAnalyticsSchemas.InsightType)).optional(),
+    types: z.array(InsightType).optional(),
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),
     includeHistorical: z.boolean().default(false),
@@ -93,11 +98,11 @@ export const AIAnalyticsSchemas = {
   // Generate Insights Response
   GenerateInsightsResponse: z.object({
     success: z.boolean(),
-    data: z.array(z.lazy(() => AIAnalyticsSchemas.AIInsight)),
+    data: z.array(z.any()),
     meta: z.object({
       totalGenerated: z.number().int(),
       processingTime: z.number(), // milliseconds
-      provider: z.lazy(() => AIAnalyticsSchemas.LLMProvider),
+      provider: LLMProvider,
       model: z.string(),
     }),
   }),
@@ -133,7 +138,7 @@ export const AIAnalyticsSchemas = {
   AIUsageLog: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
-    provider: z.lazy(() => AIAnalyticsSchemas.LLMProvider),
+    provider: LLMProvider,
     requestType: z.enum(['insight_generation', 'question_answer', 'prediction', 'analysis']),
     tokensUsed: z.number().int(),
     cost: z.number().nonnegative(),

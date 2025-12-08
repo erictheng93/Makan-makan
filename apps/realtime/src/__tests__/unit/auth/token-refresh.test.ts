@@ -218,7 +218,7 @@ describe('Token Refresh', () => {
 
   describe('Token Expiry Scenarios', () => {
     it('should handle token that expires during WebSocket connection', () => {
-      let token = createMockToken(10) // Expires in 10 seconds
+      const token = createMockToken(10) // Expires in 10 seconds
 
       expect(isTokenExpired(token)).toBe(false)
 

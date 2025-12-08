@@ -7,30 +7,33 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define Customer schema first to avoid circular reference
+const Customer = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
+  preferences: z
+    .object({
+      dietary: z.array(z.string()).optional(),
+      allergies: z.array(z.string()).optional(),
+      favoriteItems: z.array(z.string().uuid()).optional(),
+    })
+    .optional(),
+  loyaltyPoints: z.number().int().min(0).default(0),
+  totalOrders: z.number().int().min(0).default(0),
+  totalSpent: z.number().min(0).default(0),
+  lastVisit: z.string().datetime().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
 /**
  * Customers API Schemas
  */
 export const CustomersSchemas = {
   // Customer
-  Customer: z.object({
-    id: z.string().uuid(),
-    name: z.string().min(1),
-    phone: z.string().optional(),
-    email: z.string().email().optional(),
-    preferences: z
-      .object({
-        dietary: z.array(z.string()).optional(),
-        allergies: z.array(z.string()).optional(),
-        favoriteItems: z.array(z.string().uuid()).optional(),
-      })
-      .optional(),
-    loyaltyPoints: z.number().int().min(0).default(0),
-    totalOrders: z.number().int().min(0).default(0),
-    totalSpent: z.number().min(0).default(0),
-    lastVisit: z.string().datetime().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-  }),
+  Customer,
 
   // Customer Registration Request (Shop QR Mode)
   CustomerRegistrationRequest: z.object({
@@ -58,7 +61,7 @@ export const CustomersSchemas = {
   // Get Customers Response
   GetCustomersResponse: z.object({
     success: z.boolean(),
-    data: z.array(z.lazy(() => CustomersSchemas.Customer)),
+    data: z.array(Customer),
     meta: z.object({
       total: z.number(),
       page: z.number(),
@@ -149,7 +152,7 @@ export const registerCustomerRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
+    ...errorResponses(400),
   },
 });
 
@@ -182,8 +185,7 @@ export const getCustomersRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -212,8 +214,7 @@ export const getCustomerRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(401, 404),
   },
 });
 
@@ -249,9 +250,7 @@ export const updateCustomerRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -293,8 +292,7 @@ export const getCustomerOrdersRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(401, 404),
   },
 });
 
@@ -330,9 +328,7 @@ export const addLoyaltyPointsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -368,9 +364,7 @@ export const redeemLoyaltyPointsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -410,7 +404,6 @@ export const getLoyaltyPointsHistoryRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(401, 404),
   },
 });

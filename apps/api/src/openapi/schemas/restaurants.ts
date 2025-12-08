@@ -7,31 +7,36 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define schemas first to avoid circular reference
+const OperatingHours = z.object({
+  day: z.number().int().min(0).max(6), // 0 = Sunday, 6 = Saturday
+  open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/), // HH:MM format
+  close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  closed: z.boolean().default(false),
+});
+
+const RestaurantSettings = z.object({
+  enableQROrdering: z.boolean().default(true),
+  enableTableService: z.boolean().default(true),
+  enableShopQR: z.boolean().default(false),
+  autoAcceptOrders: z.boolean().default(false),
+  orderTimeout: z.number().int().min(5).max(120).default(30), // minutes
+  enableLoyaltyProgram: z.boolean().default(false),
+  taxRate: z.number().min(0).max(1).default(0),
+  serviceCharge: z.number().min(0).max(1).default(0),
+  currency: z.string().default('TWD'),
+  timezone: z.string().default('Asia/Taipei'),
+});
+
 /**
  * Restaurants API Schemas
  */
 export const RestaurantsSchemas = {
   // Operating Hours
-  OperatingHours: z.object({
-    day: z.number().int().min(0).max(6), // 0 = Sunday, 6 = Saturday
-    open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/), // HH:MM format
-    close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    closed: z.boolean().default(false),
-  }),
+  OperatingHours,
 
   // Restaurant Settings
-  RestaurantSettings: z.object({
-    enableQROrdering: z.boolean().default(true),
-    enableTableService: z.boolean().default(true),
-    enableShopQR: z.boolean().default(false),
-    autoAcceptOrders: z.boolean().default(false),
-    orderTimeout: z.number().int().min(5).max(120).default(30), // minutes
-    enableLoyaltyProgram: z.boolean().default(false),
-    taxRate: z.number().min(0).max(1).default(0),
-    serviceCharge: z.number().min(0).max(1).default(0),
-    currency: z.string().default('TWD'),
-    timezone: z.string().default('Asia/Taipei'),
-  }),
+  RestaurantSettings,
 
   // Restaurant
   Restaurant: z.object({
@@ -43,8 +48,8 @@ export const RestaurantsSchemas = {
     email: z.string().email().optional(),
     logoUrl: z.string().url().optional(),
     coverImageUrl: z.string().url().optional(),
-    operatingHours: z.array(z.lazy(() => RestaurantsSchemas.OperatingHours)).optional(),
-    settings: z.lazy(() => RestaurantsSchemas.RestaurantSettings),
+    operatingHours: z.array(OperatingHours).optional(),
+    settings: RestaurantSettings,
     ownerId: z.string().uuid(),
     isActive: z.boolean(),
     createdAt: z.string().datetime(),
@@ -58,8 +63,8 @@ export const RestaurantsSchemas = {
     address: z.string().optional(),
     phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone format').optional(),
     email: z.string().email('Invalid email format').optional(),
-    operatingHours: z.array(z.lazy(() => RestaurantsSchemas.OperatingHours)).optional(),
-    settings: z.lazy(() => RestaurantsSchemas.RestaurantSettings).optional(),
+    operatingHours: z.array(OperatingHours).optional(),
+    settings: RestaurantSettings.optional(),
   }),
 
   // Update Restaurant Request
@@ -69,8 +74,8 @@ export const RestaurantsSchemas = {
     address: z.string().optional(),
     phone: z.string().optional(),
     email: z.string().email().optional(),
-    operatingHours: z.array(z.lazy(() => RestaurantsSchemas.OperatingHours)).optional(),
-    settings: z.lazy(() => RestaurantsSchemas.RestaurantSettings).optional(),
+    operatingHours: z.array(OperatingHours).optional(),
+    settings: RestaurantSettings.optional(),
     isActive: z.boolean().optional(),
   }),
 
@@ -158,7 +163,7 @@ export const getRestaurantsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
+    ...errorResponses(401),
   },
 });
 
@@ -187,9 +192,7 @@ export const getRestaurantRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -222,9 +225,7 @@ export const createRestaurantRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -260,10 +261,8 @@ export const updateRestaurantRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400),
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -298,9 +297,7 @@ export const getRestaurantStatsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -336,10 +333,8 @@ export const generateShopQRRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400),
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -368,9 +363,7 @@ export const getShopQRRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -406,9 +399,7 @@ export const updateRestaurantSettingsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400),
+    ...errorResponses(401, 403, 404),
   },
 });

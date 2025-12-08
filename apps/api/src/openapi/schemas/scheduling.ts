@@ -7,6 +7,11 @@ import { z } from 'zod';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponses } from '../config';
 
+// Define enums first to avoid circular reference
+const ShiftType = z.enum(['morning', 'afternoon', 'evening', 'night', 'full_day']);
+const ShiftStatus = z.enum(['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show']);
+const SwapStatus = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
+
 /**
  * Scheduling API Schemas
  */
@@ -15,20 +20,20 @@ export const SchedulingSchemas = {
   DayOfWeek: z.number().int().min(0).max(6), // 0 = Sunday, 6 = Saturday
 
   // Shift Type
-  ShiftType: z.enum(['morning', 'afternoon', 'evening', 'night', 'full_day']),
+  ShiftType,
 
   // Shift Status
-  ShiftStatus: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show']),
+  ShiftStatus,
 
   // Swap Request Status
-  SwapStatus: z.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  SwapStatus,
 
   // Shift Template
   ShiftTemplate: z.object({
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
     name: z.string(),
-    shiftType: z.lazy(() => SchedulingSchemas.ShiftType),
+    shiftType: ShiftType,
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/), // HH:MM
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     durationMinutes: z.number().int().positive(),
@@ -46,7 +51,7 @@ export const SchedulingSchemas = {
   CreateShiftTemplateRequest: z.object({
     restaurantId: z.string().uuid(),
     name: z.string().min(1, 'Template name is required'),
-    shiftType: z.lazy(() => SchedulingSchemas.ShiftType),
+    shiftType: ShiftType,
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
     breakMinutes: z.number().int().nonnegative().optional(),
@@ -65,8 +70,8 @@ export const SchedulingSchemas = {
     date: z.string().date(), // YYYY-MM-DD
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    shiftType: z.lazy(() => SchedulingSchemas.ShiftType),
-    status: z.lazy(() => SchedulingSchemas.ShiftStatus),
+    shiftType: ShiftType,
+    status: ShiftStatus,
     notes: z.string().optional(),
     clockIn: z.string().datetime().optional(),
     clockOut: z.string().datetime().optional(),
@@ -83,7 +88,7 @@ export const SchedulingSchemas = {
     date: z.string().date(),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    shiftType: z.lazy(() => SchedulingSchemas.ShiftType),
+    shiftType: ShiftType,
     notes: z.string().optional(),
   }),
 
@@ -105,7 +110,7 @@ export const SchedulingSchemas = {
     requesterScheduleId: z.string().uuid(),
     targetUserId: z.string().uuid().optional(),
     targetScheduleId: z.string().uuid().optional(),
-    status: z.lazy(() => SchedulingSchemas.SwapStatus),
+    status: SwapStatus,
     reason: z.string().optional(),
     approvedBy: z.string().uuid().optional(),
     approvedAt: z.string().datetime().optional(),
@@ -192,8 +197,7 @@ export const getShiftTemplatesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -226,9 +230,7 @@ export const createShiftTemplateRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -263,8 +265,7 @@ export const getEmployeeSchedulesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -297,9 +298,7 @@ export const createScheduleRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -335,9 +334,7 @@ export const batchCreateSchedulesRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -370,8 +367,7 @@ export const createSwapRequestRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });
 
@@ -409,10 +405,8 @@ export const updateSwapRequestRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(400),
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -445,9 +439,7 @@ export const clockInOutRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -480,7 +472,6 @@ export const getScheduleStatsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
