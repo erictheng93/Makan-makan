@@ -6,12 +6,12 @@
         {{ t('charts.trend.title') }}
       </h3>
       <div class="chart-filters">
-        <select v-model="selectedMetric" @change="updateChart" class="metric-select">
+        <select v-model="selectedMetric" class="metric-select" @change="updateChart">
           <option value="total">{{ t('charts.trend.totalHours') }}</option>
           <option value="average">{{ t('charts.trend.averageHours') }}</option>
           <option value="schedules">{{ t('charts.trend.scheduleCount') }}</option>
         </select>
-        <select v-model="selectedPeriod" @change="updateChart" class="period-select">
+        <select v-model="selectedPeriod" class="period-select" @change="updateChart">
           <option value="7days">{{ t('charts.trend.last7Days') }}</option>
           <option value="30days">{{ t('charts.trend.last30Days') }}</option>
           <option value="90days">{{ t('charts.trend.last90Days') }}</option>
@@ -52,7 +52,7 @@
       type="line"
       :data="chartData"
       :height="350"
-      :isLoading="isLoading"
+      :is-loading="isLoading"
       :error="error"
     />
   </div>

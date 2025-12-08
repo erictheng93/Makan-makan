@@ -213,9 +213,9 @@ API 使用標準 HTTP 狀態碼：
 };
 
 /**
- * 通用錯誤回應
+ * 通用錯誤回應配置
  */
-export const errorResponses = {
+const errorResponseConfig = {
   400: {
     description: '請求錯誤 - 驗證失敗或參數錯誤',
     content: {
@@ -291,4 +291,34 @@ export const errorResponses = {
       },
     },
   },
-};
+} as const;
+
+/**
+ * 錯誤回應輔助函數
+ * 返回正確格式的 responses 對象部分，可直接展開使用
+ *
+ * @example
+ * responses: {
+ *   200: { ... },
+ *   ...errorResponses(400, 401, 404)
+ * }
+ */
+export function errorResponses(...codes: (400 | 401 | 403 | 404 | 500)[]) {
+  const result: Record<string, typeof errorResponseConfig[400]> = {};
+  for (const code of codes) {
+    result[code.toString()] = errorResponseConfig[code];
+  }
+  return result;
+}
+
+/**
+ * 直接訪問單個錯誤回應配置（用於 responses 對象的鍵）
+ *
+ * @example
+ * responses: {
+ *   200: { ... },
+ *   400: errorResponseDef[400],
+ *   401: errorResponseDef[401]
+ * }
+ */
+export const errorResponseDef = errorResponseConfig;

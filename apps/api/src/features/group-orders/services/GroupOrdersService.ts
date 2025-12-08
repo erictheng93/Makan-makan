@@ -317,7 +317,7 @@ export class GroupOrdersService implements IGroupOrderService {
           gci.*,
           mi.name as menu_item_name,
           mi.price as menu_item_price,
-          mi.imageUrl as menu_item_image_url
+          mi.image_url as menu_item_image_url
         FROM group_cart_items gci
         JOIN menu_items mi ON gci.menu_item_id = mi.id
         WHERE gci.group_order_id = ?
@@ -382,7 +382,7 @@ export class GroupOrdersService implements IGroupOrderService {
       // Note: Using restaurantId from groupOrder
       const restaurantId = validation.groupOrder.restaurant_id
       const menuItem = await this.db.prepare(`
-        SELECT * FROM menu_items WHERE id = ? AND restaurantId = ?
+        SELECT * FROM menu_items WHERE id = ? AND restaurant_id = ?
       `).bind(itemData.menuItemId, restaurantId).first() as any
 
       if (!menuItem) {

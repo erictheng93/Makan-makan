@@ -37,7 +37,8 @@ export enum UserRole {
   OWNER = 1,
   CHEF = 2,
   SERVICE = 3,
-  CASHIER = 4
+  CASHIER = 4,
+  CUSTOMER = 5
 }
 
 export interface DietaryInfo {

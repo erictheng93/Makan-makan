@@ -79,14 +79,14 @@
 
           <div class="mt-8 space-y-3">
             <button
-              @click="handleContinue"
               class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              @click="handleContinue"
             >
               開始訂餐
             </button>
             <button
-              @click="$router.push('/profile')"
               class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              @click="$router.push('/profile')"
             >
               查看個人資料
             </button>
@@ -131,16 +131,16 @@
 
           <div class="mt-8 space-y-3">
             <button
-              @click="resendVerification"
               :disabled="resending"
               class="w-full px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
               :class="{ 'opacity-50 cursor-not-allowed': resending }"
+              @click="resendVerification"
             >
               {{ resending ? '發送中...' : '重新發送驗證郵件' }}
             </button>
             <button
-              @click="$router.push('/login')"
               class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              @click="$router.push('/login')"
             >
               返回登入
             </button>

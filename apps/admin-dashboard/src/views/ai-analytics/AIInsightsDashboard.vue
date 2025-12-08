@@ -184,9 +184,9 @@ const formatPercent = (value: number) => {
           <select
             id="time-range-select"
             v-model="selectedTimeRange"
-            @change="handleGenerateReport()"
             aria-label="選擇分析時間範圍"
             class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            @change="handleGenerateReport()"
           >
             <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">
               {{ option.label }}
@@ -194,10 +194,10 @@ const formatPercent = (value: number) => {
           </select>
 
           <button
-            @click="handleGenerateReport(true)"
             :disabled="isGenerating"
             :aria-label="isGenerating ? '正在重新生成報告' : '重新生成報告'"
             class="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:ring-2 focus:ring-indigo-500"
+            @click="handleGenerateReport(true)"
           >
             <ArrowPathIcon
               class="w-5 h-5 text-gray-700"
@@ -217,8 +217,8 @@ const formatPercent = (value: number) => {
             <h3 class="text-red-900 font-semibold mb-1">生成報告時發生錯誤</h3>
             <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
             <button
-              @click="handleGenerateReport(true)"
               class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              @click="handleGenerateReport(true)"
             >
               重試
             </button>
@@ -458,8 +458,8 @@ const formatPercent = (value: number) => {
         <div class="text-gray-600 font-medium mb-2">尚未生成 AI 分析報告</div>
         <div class="text-sm text-gray-500 mb-6">請先配置 AI Provider 並生成報告</div>
         <button
-          @click="handleGenerateReport()"
           class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all"
+          @click="handleGenerateReport()"
         >
           立即生成報告
         </button>

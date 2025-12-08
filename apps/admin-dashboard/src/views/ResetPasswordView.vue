@@ -127,8 +127,8 @@
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                @click="showPassword = !showPassword"
                 tabindex="-1"
+                @click="showPassword = !showPassword"
               >
                 <Eye v-if="showPassword" class="w-4 h-4 text-gray-400" />
                 <EyeOff v-else class="w-4 h-4 text-gray-400" />
@@ -258,8 +258,8 @@
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                @click="showConfirmPassword = !showConfirmPassword"
                 tabindex="-1"
+                @click="showConfirmPassword = !showConfirmPassword"
               >
                 <Eye v-if="showConfirmPassword" class="w-4 h-4 text-gray-400" />
                 <EyeOff v-else class="w-4 h-4 text-gray-400" />

@@ -45,6 +45,7 @@ describe('RealtimeAuthService', () => {
       NODE_ENV: 'test',
       JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long-for-security',
       API_VERSION: '1.0.0',
+      ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
       DB: mockDb as any,
       CACHE_KV: mockTokenBlacklistKV as any,
       TOKEN_BLACKLIST: mockTokenBlacklistKV as any,

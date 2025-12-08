@@ -9,8 +9,8 @@
       <div class="flex space-x-4">
         <button
           class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          @click="refreshData"
           :disabled="loading"
+          @click="refreshData"
         >
           <ArrowPathIcon class="h-4 w-4 mr-2" />
           刷新

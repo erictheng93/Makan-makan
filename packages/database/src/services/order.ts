@@ -90,8 +90,10 @@ export class OrderService extends BaseService {
   async createOrder(data: CreateOrderData): Promise<Order> {
     try {
       // 驗證餐廳和桌子
+      // Convert restaurantId to string for publicId comparison (API may pass number)
+      const restaurantIdStr = String(data.restaurantId)
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.publicId, data.restaurantId)
+        where: eq(restaurants.publicId, restaurantIdStr)
       })
       
       if (!restaurant || !restaurant.isAvailable) {

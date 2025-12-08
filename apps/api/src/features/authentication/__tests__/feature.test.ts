@@ -65,6 +65,7 @@ const mockEnv: Env = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long',
   API_VERSION: '1.0.0',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
   DB: {} as any,
   CACHE_KV: {} as any,
   TOKEN_BLACKLIST: {} as any,
@@ -263,7 +264,11 @@ describe('Authentication Feature', () => {
         const result = await authService.register(registerData, 1)
 
         expect(result).toEqual(expectedResult)
-        expect(mockDbAuthService.register).toHaveBeenCalledWith(registerData)
+        // Service converts restaurantId to string for database layer
+        expect(mockDbAuthService.register).toHaveBeenCalledWith({
+          ...registerData,
+          restaurantId: '1'
+        })
         expect(mockCache.delete).toHaveBeenCalledWith('user:newuser')
         expect(mockLogger.info).toHaveBeenCalledWith(
           'User registration successful',

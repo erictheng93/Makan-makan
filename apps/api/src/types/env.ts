@@ -20,6 +20,7 @@ export interface Env {
   NODE_ENV: string
   JWT_SECRET: string
   API_VERSION: string
+  ENCRYPTION_KEY: string // For encrypting sensitive data like API keys
   
   // Performance optimization variables
   CACHE_TTL_DEFAULT?: string
@@ -57,6 +58,7 @@ export interface Env {
   API_BASE_URL?: string
   INTERNAL_API_TOKEN?: string
   SLACK_WEBHOOK_URL?: string
+  REALTIME_SERVICE_URL?: string // URL for realtime WebSocket service
 
   // Test-only variables
   MOCK_DRIZZLE_DB?: any // Mock Drizzle database for testing

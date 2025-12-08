@@ -44,7 +44,7 @@ export class TablesService {
     filters: Omit<TableFilters, 'restaurantId'>
   ): Promise<TableListResult> {
     try {
-      const result = await this.tableService.getRestaurantTables(restaurantId, filters)
+      const result = await this.tableService.getRestaurantTables(String(restaurantId), filters)
       return {
         tables: result.tables,
         pagination: {
@@ -79,7 +79,12 @@ export class TablesService {
    */
   async createTable(data: CreateTableData): Promise<Table> {
     try {
-      const newTable = await this.tableService.createTable(data)
+      // Convert restaurantId to string for database layer
+      const dbData = {
+        ...data,
+        restaurantId: String(data.restaurantId)
+      }
+      const newTable = await this.tableService.createTable(dbData)
       return newTable
     } catch (error) {
       this.logError('createTable', error)
@@ -182,7 +187,7 @@ export class TablesService {
     options?: QRCodeOptions
   ): Promise<BulkQRResult> {
     try {
-      const result = await this.tableService.generateBulkQRCodes(restaurantId, tableIds, options)
+      const result = await this.tableService.generateBulkQRCodes(String(restaurantId), tableIds, options)
       if (result.success && result.qrCodes) {
         return {
           success: true,
@@ -213,7 +218,7 @@ export class TablesService {
    */
   async getAvailableTables(restaurantId: number, capacity?: number): Promise<Table[]> {
     try {
-      const availableTables = await this.tableService.getAvailableTables(restaurantId, capacity)
+      const availableTables = await this.tableService.getAvailableTables(String(restaurantId), capacity)
       return availableTables
     } catch (error) {
       this.logError('getAvailableTables', error)
@@ -226,7 +231,7 @@ export class TablesService {
    */
   async getTableStats(restaurantId: number): Promise<TableStats> {
     try {
-      const stats = await this.tableService.getTableStats(restaurantId)
+      const stats = await this.tableService.getTableStats(String(restaurantId))
       // Adapt database stats to feature stats format
       return {
         total: stats.totalTables,

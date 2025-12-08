@@ -22,6 +22,14 @@ import type {
   IAnalyticsService
 } from '../types'
 
+// Helper to convert filters for database service (number -> string for restaurantId)
+function toDbFilters(filters: AnalyticsFilters): { restaurantId?: string; startDate?: string; endDate?: string } {
+  return {
+    ...filters,
+    restaurantId: filters.restaurantId ? String(filters.restaurantId) : undefined
+  }
+}
+
 export class AnalyticsService implements IAnalyticsService {
   private databaseService: DatabaseAnalyticsService
   private cache: CacheService
@@ -55,7 +63,7 @@ export class AnalyticsService implements IAnalyticsService {
       }
 
       // Get data from database service
-      const dashboardData = await this.databaseService.getDashboardData(restaurantId!)
+      const dashboardData = await this.databaseService.getDashboardData(restaurantId ? String(restaurantId) : undefined as any)
 
       if (!dashboardData) {
         throw new Error('Failed to retrieve dashboard data')
@@ -97,7 +105,7 @@ export class AnalyticsService implements IAnalyticsService {
       }
 
       // Get data from database service
-      const revenueData = await this.databaseService.getRevenueAnalytics(filters)
+      const revenueData = await this.databaseService.getRevenueAnalytics(toDbFilters(filters))
 
       if (!revenueData) {
         return []
@@ -134,7 +142,7 @@ export class AnalyticsService implements IAnalyticsService {
       }
 
       // Get data from database service
-      const productData = await this.databaseService.getMenuAnalytics(filters)
+      const productData = await this.databaseService.getMenuAnalytics(toDbFilters(filters))
 
       if (!productData) {
         throw new Error('Failed to retrieve product analytics')
@@ -172,7 +180,7 @@ export class AnalyticsService implements IAnalyticsService {
       }
 
       // Get data from database service
-      const customerData = await this.databaseService.getCustomerAnalytics(filters)
+      const customerData = await this.databaseService.getCustomerAnalytics(toDbFilters(filters))
 
       if (!customerData) {
         throw new Error('Failed to retrieve customer analytics')
@@ -210,7 +218,7 @@ export class AnalyticsService implements IAnalyticsService {
       }
 
       // Get data from database service
-      const performanceData = await this.databaseService.getOrderAnalytics(filters)
+      const performanceData = await this.databaseService.getOrderAnalytics(toDbFilters(filters))
 
       if (!performanceData) {
         throw new Error('Failed to retrieve performance analytics')
@@ -326,8 +334,12 @@ export class AnalyticsService implements IAnalyticsService {
         return cached
       }
 
-      // Get data from database service
-      const rawFinancialData = await this.databaseService.getFinancialReport(filters)
+      // Get data from database service - convert restaurantId to string
+      const dbFilters = {
+        ...filters,
+        restaurantId: filters.restaurantId ? String(filters.restaurantId) : undefined
+      }
+      const rawFinancialData = await this.databaseService.getFinancialReport(dbFilters)
 
       if (!rawFinancialData) {
         throw new Error('Failed to retrieve financial report')

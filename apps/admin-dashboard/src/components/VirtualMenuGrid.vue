@@ -22,7 +22,7 @@
       :style="{ minHeight: itemHeight + 'px' }"
       class="virtual-grid-item"
     >
-      <slot :menuItem="menuItem" :index="menuItem._virtualIndex" />
+      <slot :menu-item="menuItem" :index="menuItem._virtualIndex" />
     </div>
 
     <!-- Virtual spacer for items after visible area -->

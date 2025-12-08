@@ -5,14 +5,49 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { TablesService } from '../services/TablesService'
 import type { Env } from '../../../types/env'
 import type { CreateTableData, UpdateTableData } from '../types'
+
+// Use vi.hoisted to define mocks BEFORE vi.mock is executed
+// This ensures the mock object is available when the mock factory runs
+const { mockTableService } = vi.hoisted(() => ({
+  mockTableService: {
+    getRestaurantTables: vi.fn(),
+    getTableById: vi.fn(),
+    createTable: vi.fn(),
+    updateTable: vi.fn(),
+    deleteTable: vi.fn(),
+    occupyTable: vi.fn(),
+    releaseTable: vi.fn(),
+    markTableCleaned: vi.fn(),
+    regenerateQRCode: vi.fn(),
+    generateBulkQRCodes: vi.fn(),
+    getAvailableTables: vi.fn(),
+    getTableStats: vi.fn(),
+    getTableByQRCode: vi.fn()
+  }
+}))
+
+// Mock the database service - uses the hoisted mockTableService
+vi.mock('@makanmakan/database', () => ({
+  TableService: vi.fn(() => mockTableService),
+  USER_ROLES: {
+    ADMIN: 0,
+    OWNER: 1,
+    CHEF: 2,
+    SERVICE: 3,
+    CASHIER: 4
+  }
+}))
+
+// Import after mocking
+import { TablesService } from '../services/TablesService'
 
 // Mock environment
 const mockEnv: Env = {
   DB: {} as any,
   JWT_SECRET: 'test-secret',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
   CACHE_KV: {} as any,
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test',
   NODE_ENV: 'test',
@@ -28,35 +63,6 @@ const mockEnv: Env = {
   CLOUDFLARE_IMAGES_KEY: 'test-key',
   CLOUDFLARE_ACCOUNT_ID: 'test-account'
 }
-
-// Mock TableService
-const mockTableService = {
-  getRestaurantTables: vi.fn(),
-  getTableById: vi.fn(),
-  createTable: vi.fn(),
-  updateTable: vi.fn(),
-  deleteTable: vi.fn(),
-  occupyTable: vi.fn(),
-  releaseTable: vi.fn(),
-  markTableCleaned: vi.fn(),
-  regenerateQRCode: vi.fn(),
-  generateBulkQRCodes: vi.fn(),
-  getAvailableTables: vi.fn(),
-  getTableStats: vi.fn(),
-  getTableByQRCode: vi.fn()
-}
-
-// Mock the database service
-vi.mock('@makanmakan/database', () => ({
-  TableService: vi.fn(() => mockTableService),
-  USER_ROLES: {
-    ADMIN: 0,
-    OWNER: 1,
-    CHEF: 2,
-    SERVICE: 3,
-    CASHIER: 4
-  }
-}))
 
 describe('TablesService', () => {
   let tablesService: TablesService
@@ -116,7 +122,8 @@ describe('TablesService', () => {
 
       const result = await tablesService.getRestaurantTables(1, { page: 1, limit: 20 })
 
-      expect(mockTableService.getRestaurantTables).toHaveBeenCalledWith(1, { page: 1, limit: 20 })
+      // Service converts restaurantId to string for database layer
+      expect(mockTableService.getRestaurantTables).toHaveBeenCalledWith('1', { page: 1, limit: 20 })
       expect(result).toEqual(expectedResult)
     })
 
@@ -176,7 +183,11 @@ describe('TablesService', () => {
 
       const result = await tablesService.createTable(tableData)
 
-      expect(mockTableService.createTable).toHaveBeenCalledWith(tableData)
+      // Service converts restaurantId to string for database layer
+      expect(mockTableService.createTable).toHaveBeenCalledWith({
+        ...tableData,
+        restaurantId: '1'
+      })
       expect(result).toEqual(mockCreatedTable)
     })
 

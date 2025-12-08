@@ -8,7 +8,7 @@ interface Props {
         width?: string;
     }>;
 }
-declare var __VLS_1: {};
+declare let __VLS_1: {};
 type __VLS_Slots = {} & {
     default?: (props: typeof __VLS_1) => any;
 };

@@ -113,16 +113,16 @@
           <div class="flex flex-wrap gap-2">
             <button
               class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all hover:-translate-y-0.5 hover:shadow text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              @click="handleResolve(conflict)"
               :disabled="conflict.status !== 'unresolved'"
+              @click="handleResolve(conflict)"
             >
               <CheckIcon class="h-4 w-4" />
               <span>標記為已解決</span>
             </button>
             <button
               class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="handleIgnore(conflict)"
               :disabled="conflict.status !== 'unresolved'"
+              @click="handleIgnore(conflict)"
             >
               <EyeSlashIcon class="h-4 w-4" />
               <span>忽略</span>

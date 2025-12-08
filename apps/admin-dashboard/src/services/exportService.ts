@@ -25,7 +25,7 @@ export class ExportService {
       const filename = options.filename || this.generateFilename(options)
 
       let exportedData: Blob
-      let rowCount = data.length
+      const rowCount = data.length
 
       switch (options.format) {
         case 'csv':

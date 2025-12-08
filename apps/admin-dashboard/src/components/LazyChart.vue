@@ -47,8 +47,8 @@
       <h4 class="text-sm font-semibold text-red-800 mb-1">載入失敗</h4>
       <p class="text-xs text-red-600 mb-3">{{ state.error.message }}</p>
       <button
-        @click="reset"
         class="text-sm text-red-600 hover:text-red-700 font-medium"
+        @click="reset"
       >
         重試
       </button>

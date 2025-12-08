@@ -155,9 +155,9 @@ function handleClose() {
             <h2 class="text-xl font-semibold text-gray-900">導出監控報告</h2>
           </div>
           <button
-            @click="handleClose"
             :disabled="isExporting"
             class="text-gray-400 hover:text-gray-600"
+            @click="handleClose"
           >
             <XMarkIcon class="w-6 h-6" />
           </button>
@@ -172,13 +172,13 @@ function handleClose() {
               <button
                 v-for="template in REPORT_TEMPLATES"
                 :key="template.id"
-                @click="selectTemplate(template)"
                 :class="[
                   'p-4 text-left border-2 rounded-lg transition-colors',
                   selectedTemplate === template.id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300',
                 ]"
+                @click="selectTemplate(template)"
               >
                 <div class="flex items-start gap-3">
                   <component
@@ -212,13 +212,13 @@ function handleClose() {
                 <button
                   v-for="format in formatOptions"
                   :key="format"
-                  @click="exportOptions.format = format"
                   :class="[
                     'p-3 border-2 rounded-lg transition-colors',
                     exportOptions.format === format
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300',
                   ]"
+                  @click="exportOptions.format = format"
                 >
                   <component
                     :is="formatIcons[format]"
@@ -384,14 +384,13 @@ function handleClose() {
         <!-- 操作按鈕 -->
         <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
           <button
-            @click="handleClose"
             :disabled="isExporting"
             class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+            @click="handleClose"
           >
             取消
           </button>
           <button
-            @click="handleExport"
             :disabled="!canExport"
             :class="[
               'flex items-center gap-2 px-6 py-2 text-sm text-white rounded-lg',
@@ -399,6 +398,7 @@ function handleClose() {
                 ? 'bg-blue-600 hover:bg-blue-700'
                 : 'bg-gray-300 cursor-not-allowed',
             ]"
+            @click="handleExport"
           >
             <DocumentArrowDownIcon class="w-4 h-4" />
             {{ isExporting ? '導出中...' : '導出報告' }}

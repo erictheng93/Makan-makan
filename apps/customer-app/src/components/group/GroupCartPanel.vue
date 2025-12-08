@@ -149,8 +149,8 @@ function getMemberColor(memberId: string): string {
                   <!-- Quantity Controls -->
                   <button
                     class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                    @click="emit('update-quantity', item.id, item.quantity - 1)"
                     :disabled="item.quantity <= 1"
+                    @click="emit('update-quantity', item.id, item.quantity - 1)"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />

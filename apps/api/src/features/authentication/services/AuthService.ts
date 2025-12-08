@@ -61,7 +61,7 @@ export class AuthService implements IAuthService {
         user: dbResult.user ? {
           ...dbResult.user,
           role: dbResult.user.role as UserRole,
-          restaurantId: dbResult.user.restaurantId || undefined, // Convert null to undefined
+          restaurantId: dbResult.user.restaurantId ? Number(dbResult.user.restaurantId) : undefined, // Convert string to number
           isVerified: false, // Would need to be fetched from database
           twoFactorEnabled: false, // Would need to be fetched from database
           createdAt: new Date(), // Would need to be fetched from database
@@ -146,8 +146,12 @@ export class AuthService implements IAuthService {
         await this.validateRoleCreationPermissions(createdBy, data.role)
       }
 
-      // Call the existing DatabaseAuthService
-      const dbResult = await this.dbAuthService.register(data)
+      // Call the existing DatabaseAuthService - convert restaurantId to string
+      const dbRegisterData = {
+        ...data,
+        restaurantId: data.restaurantId ? String(data.restaurantId) : undefined
+      }
+      const dbResult = await this.dbAuthService.register(dbRegisterData)
 
       // Transform database result to match our interface
       const result: AuthResult = {
@@ -155,7 +159,7 @@ export class AuthService implements IAuthService {
         user: dbResult.user ? {
           ...dbResult.user,
           role: dbResult.user.role as UserRole,
-          restaurantId: dbResult.user.restaurantId || undefined, // Convert null to undefined
+          restaurantId: dbResult.user.restaurantId ? Number(dbResult.user.restaurantId) : undefined, // Convert string to number
           email: data.email,
           phone: data.phone,
           isVerified: false,
@@ -215,7 +219,7 @@ export class AuthService implements IAuthService {
         user: dbResult.user ? {
           ...dbResult.user,
           role: dbResult.user.role as UserRole,
-          restaurantId: dbResult.user.restaurantId || undefined, // Convert null to undefined
+          restaurantId: dbResult.user.restaurantId ? Number(dbResult.user.restaurantId) : undefined, // Convert string to number
           isVerified: false,
           twoFactorEnabled: false,
           createdAt: new Date(),

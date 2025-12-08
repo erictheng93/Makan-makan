@@ -66,14 +66,14 @@
           <p class="mt-2 text-sm text-gray-600">{{ tokenError }}</p>
           <div class="mt-6 space-y-3">
             <button
-              @click="$router.push('/forgot-password')"
               class="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              @click="$router.push('/forgot-password')"
             >
               重新發送連結
             </button>
             <button
-              @click="$router.push('/login')"
               class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              @click="$router.push('/login')"
             >
               返回登入
             </button>
@@ -103,8 +103,8 @@
           <h3 class="mt-4 text-lg font-medium text-gray-900">密碼重設成功！</h3>
           <p class="mt-2 text-sm text-gray-600">{{ successMessage }}</p>
           <button
-            @click="$router.push('/login')"
             class="mt-6 w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+            @click="$router.push('/login')"
           >
             前往登入
           </button>

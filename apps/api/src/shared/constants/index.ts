@@ -16,16 +16,20 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500
 } as const
 
-// User Roles (from CLAUDE.md)
+// User Roles - matches @makanmakan/shared-types UserRole enum
+// Includes both shared-types naming (OWNER, SERVICE) and legacy naming (SHOP_OWNER, SERVICE_CREW)
 export const USER_ROLES = {
   ADMIN: 0,
-  SHOP_OWNER: 1,
+  OWNER: 1,
+  SHOP_OWNER: 1,    // Alias for OWNER (legacy naming)
   CHEF: 2,
-  SERVICE_CREW: 3,
-  CASHIER: 4
+  SERVICE: 3,
+  SERVICE_CREW: 3,  // Alias for SERVICE (legacy naming)
+  CASHIER: 4,
+  CUSTOMER: 5
 } as const
 
-export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES]
+export type UserRole = 0 | 1 | 2 | 3 | 4 | 5
 
 // Common validation limits
 export const VALIDATION_LIMITS = {

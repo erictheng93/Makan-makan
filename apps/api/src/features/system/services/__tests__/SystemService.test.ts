@@ -9,7 +9,7 @@ import type {
   ErrorReportRequest,
   ErrorReportItem,
   ErrorStats
-} from '../types'
+} from '../../types'
 
 // ========================================
 // Mock Services

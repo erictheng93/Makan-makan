@@ -140,7 +140,7 @@
           {{ $t('validation.title') || 'Form Validation' }}
         </h2>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="submitForm">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               {{ $t('common.name') }}

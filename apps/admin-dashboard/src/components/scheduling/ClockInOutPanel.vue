@@ -28,7 +28,7 @@
             {{ todaySchedule.startTime }} - {{ todaySchedule.endTime }}
           </span>
         </div>
-        <div class="detail-row" v-if="todaySchedule.shiftTemplate">
+        <div v-if="todaySchedule.shiftTemplate" class="detail-row">
           <span class="detail-label">班別:</span>
           <span class="detail-value">
             <span
@@ -51,17 +51,17 @@
 
       <!-- Clock Status -->
       <div v-if="todaySchedule.actualStartTime || todaySchedule.actualEndTime" class="clock-status">
-        <div class="status-row" v-if="todaySchedule.actualStartTime">
+        <div v-if="todaySchedule.actualStartTime" class="status-row">
           <span class="status-icon">✓</span>
           <span class="status-label">上班打卡:</span>
           <span class="status-time">{{ todaySchedule.actualStartTime }}</span>
         </div>
-        <div class="status-row" v-if="todaySchedule.actualEndTime">
+        <div v-if="todaySchedule.actualEndTime" class="status-row">
           <span class="status-icon">✓</span>
           <span class="status-label">下班打卡:</span>
           <span class="status-time">{{ todaySchedule.actualEndTime }}</span>
         </div>
-        <div class="status-row" v-if="todaySchedule.actualHours">
+        <div v-if="todaySchedule.actualHours" class="status-row">
           <span class="status-icon">📊</span>
           <span class="status-label">實際工時:</span>
           <span class="status-time">{{ todaySchedule.actualHours }} 小時</span>
@@ -73,8 +73,8 @@
         <button
           v-if="!todaySchedule.actualStartTime"
           class="btn btn-clock-in"
-          @click="handleClockIn"
           :disabled="loading"
+          @click="handleClockIn"
         >
           <span class="btn-icon">🟢</span>
           <span>上班打卡</span>
@@ -83,8 +83,8 @@
         <button
           v-else-if="!todaySchedule.actualEndTime"
           class="btn btn-clock-out"
-          @click="handleClockOut"
           :disabled="loading"
+          @click="handleClockOut"
         >
           <span class="btn-icon">🔴</span>
           <span>下班打卡</span>

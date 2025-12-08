@@ -67,6 +67,7 @@ export const mockEnv = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-jwt-secret-key-for-testing-only',
   API_VERSION: 'v1',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars', // For encrypting sensitive data
   DB: mockDB,
   CACHE_KV: mockKV,
   TOKEN_BLACKLIST: mockKV,
@@ -82,7 +83,8 @@ export const mockEnv = {
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test/webhook',
   API_BASE_URL: 'http://localhost:8787',
   INTERNAL_API_TOKEN: 'test-internal-token',
-  CLOUDFLARE_IMAGES_KEY: 'test-images-key'
+  CLOUDFLARE_IMAGES_KEY: 'test-images-key',
+  REALTIME_SERVICE_URL: 'http://localhost:8788' // For realtime WebSocket service
 }
 
 // Mock Hono context
@@ -125,7 +127,7 @@ export const mockAdminUser = {
   id: 999,
   username: 'admin',
   role: 0, // Admin role
-  restaurantId: null,
+  restaurantId: undefined, // Admin has no specific restaurant (changed from null to undefined)
   email: 'admin@example.com'
 }
 

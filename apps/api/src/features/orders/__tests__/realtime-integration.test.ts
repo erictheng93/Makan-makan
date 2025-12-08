@@ -76,6 +76,7 @@ describe('Orders + Realtime Integration', () => {
       NODE_ENV: 'test',
       JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long',
       API_VERSION: '1.0.0',
+      ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
       DB: {} as any,
       CACHE_KV: {
         get: vi.fn().mockResolvedValue(null),

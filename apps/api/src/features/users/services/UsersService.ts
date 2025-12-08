@@ -103,9 +103,14 @@ export class UsersService {
       filters.restaurantId = currentUser.restaurantId
     }
 
+    // Convert restaurantId to string for database layer
+    const dbFilters = {
+      ...filters,
+      restaurantId: filters.restaurantId ? String(filters.restaurantId) : undefined
+    }
     const result = currentUser.role === USER_ROLES.ADMIN
-      ? await this.userService.getAllUsers(filters)
-      : await this.userService.getRestaurantUsers(currentUser.restaurantId!, filters)
+      ? await this.userService.getAllUsers(dbFilters)
+      : await this.userService.getRestaurantUsers(String(currentUser.restaurantId!), dbFilters)
 
     // 格式化用戶資料
     const formattedUsers = result.users.map((user: any) => this.formatUser(user))
@@ -159,7 +164,12 @@ export class UsersService {
       }
     }
 
-    const newUser = await this.userService.createUser(userData)
+    // Convert restaurantId to string for database layer
+    const dbUserData = {
+      ...userData,
+      restaurantId: userData.restaurantId ? String(userData.restaurantId) : undefined
+    }
+    const newUser = await this.userService.createUser(dbUserData)
 
     return {
       success: true,
@@ -359,7 +369,7 @@ export class UsersService {
       targetRestaurantId = restaurantId
     }
 
-    const stats = await this.userService.getUserStats(targetRestaurantId)
+    const stats = await this.userService.getUserStats(targetRestaurantId ? String(targetRestaurantId) : undefined)
 
     const roleNames = {
       [USER_ROLES.ADMIN]: 'Admin',
@@ -403,7 +413,7 @@ export class UsersService {
       targetRestaurantId = restaurantId
     }
 
-    const results = await this.userService.searchUsers(query, targetRestaurantId, limit)
+    const results = await this.userService.searchUsers(query, targetRestaurantId ? String(targetRestaurantId) : undefined, limit)
 
     return results.map((user: any) => this.formatUser(user))
   }

@@ -163,9 +163,9 @@
                     :class="{ selected: applicableDaysArray.includes(index) }"
                   >
                     <input
+                      v-model="applicableDaysArray"
                       type="checkbox"
                       :value="index"
-                      v-model="applicableDaysArray"
                       class="day-checkbox"
                     />
                     <span class="day-name">{{ day }}</span>
@@ -274,10 +274,10 @@
 
           <!-- Modal Footer -->
           <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" @click="closeModal" :disabled="loading">
+            <button type="button" class="btn btn-cancel" :disabled="loading" @click="closeModal">
               取消
             </button>
-            <button type="button" class="btn btn-submit" @click="handleSubmit" :disabled="loading || !isFormValid">
+            <button type="button" class="btn btn-submit" :disabled="loading || !isFormValid" @click="handleSubmit">
               <span v-if="loading" class="btn-spinner"></span>
               <span>{{ isEditing ? '儲存' : '新增' }}</span>
             </button>

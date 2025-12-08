@@ -313,7 +313,7 @@ describe('Group Orders Feature', () => {
     it('should validate statistics query parameters', () => {
       const validQuery = {
         timeRange: 'month' as const,
-        restaurantId: 1,
+        restaurantId: '1', // Schema expects string that transforms to number
         startDate: '2023-01-01T00:00:00Z',
         endDate: '2023-01-31T23:59:59Z'
       }

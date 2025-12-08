@@ -11,8 +11,8 @@
         </button>
         <button
           class="btn btn-secondary"
-          @click="refreshDashboard"
           :disabled="isLoading"
+          @click="refreshDashboard"
         >
           {{ t('backup.actions.refresh') }}
         </button>
@@ -84,7 +84,7 @@
         </router-link>
       </div>
 
-      <div class="backup-list" v-if="recentBackups.length > 0">
+      <div v-if="recentBackups.length > 0" class="backup-list">
         <BackupListItem
           v-for="backup in recentBackups"
           :key="backup.id"
@@ -95,7 +95,7 @@
         />
       </div>
 
-      <div class="empty-state" v-else>
+      <div v-else class="empty-state">
         <div class="empty-icon">📦</div>
         <h3>{{ t('backup.empty.title') }}</h3>
         <p>{{ t('backup.empty.description') }}</p>
@@ -109,7 +109,7 @@
     </div>
 
     <!-- Backup Alerts -->
-    <div class="alerts-section" v-if="alerts.length > 0">
+    <div v-if="alerts.length > 0" class="alerts-section">
       <h2>{{ t('backup.alerts.title') }}</h2>
       <div class="alert-list">
         <BackupAlert

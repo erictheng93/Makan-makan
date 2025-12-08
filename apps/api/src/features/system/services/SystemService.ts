@@ -57,10 +57,10 @@ export class SystemService implements ISystemService {
         error.severity === 'high' || error.severity === 'critical'
       )
 
-      // Prepare error report data
+      // Prepare error report data (convert restaurantId to string for database service)
       const errorReportsData: CreateErrorReportData[] = data.errors.map(error => ({
         userId,
-        restaurantId: restaurantId || undefined,
+        restaurantId: restaurantId ? String(restaurantId) : undefined,
         errorType: error.type,
         severity: error.severity,
         errorCode: error.code?.toString(),
@@ -239,15 +239,15 @@ export class SystemService implements ISystemService {
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
 
-      // Get statistics from database
+      // Get statistics from database (convert restaurantId to string)
       const stats = await this.errorReportingService.getErrorStats(
-        restaurantId,
+        restaurantId ? String(restaurantId) : undefined,
         [yesterday, now]
       )
 
       // Get common errors
       const commonErrors = await this.errorReportingService.getCommonErrors(
-        restaurantId,
+        restaurantId ? String(restaurantId) : undefined,
         10
       ) || []
 

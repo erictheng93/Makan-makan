@@ -13,6 +13,7 @@ const mockEnv: Env = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-secret',
   API_VERSION: '1.0.0',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
   DB: {} as any,
   CACHE_KV: {
     get: vi.fn(),
@@ -142,7 +143,8 @@ describe('RestaurantsService', () => {
       const result = await service.getRestaurant(1)
 
       expect(result).toEqual(mockRestaurant)
-      expect(service['dbService'].getRestaurant).toHaveBeenCalledWith(1)
+      // Service converts id to string for database layer
+      expect(service['dbService'].getRestaurant).toHaveBeenCalledWith('1')
     })
 
     it('should return null for non-existent restaurant', async () => {
@@ -214,7 +216,8 @@ describe('RestaurantsService', () => {
       const result = await service.updateRestaurant(1, updateData)
 
       expect(result).toEqual(updatedRestaurant)
-      expect(service['dbService'].updateRestaurant).toHaveBeenCalledWith(1, updateData)
+      // Service converts id to string for database layer
+      expect(service['dbService'].updateRestaurant).toHaveBeenCalledWith('1', updateData)
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1')
     })
 
@@ -233,7 +236,8 @@ describe('RestaurantsService', () => {
       const result = await service.deactivateRestaurant(1)
 
       expect(result).toBe(true)
-      expect(service['dbService'].deactivateRestaurant).toHaveBeenCalledWith(1)
+      // Service converts id to string for database layer
+      expect(service['dbService'].deactivateRestaurant).toHaveBeenCalledWith('1')
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1')
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1:stats')
     })
@@ -310,6 +314,7 @@ describe('RestaurantsService', () => {
       const result = await service.searchNearbyRestaurants('Test District', 5)
 
       expect(result).toEqual(nearbyRestaurants)
+      // District stays as string, limit as number
       expect(service['dbService'].searchNearbyRestaurants).toHaveBeenCalledWith('Test District', 5)
     })
 

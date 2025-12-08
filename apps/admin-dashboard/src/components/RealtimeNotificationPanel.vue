@@ -23,8 +23,8 @@
       <button
         class="sound-toggle"
         :class="{ muted: !soundEnabled }"
-        @click="toggleSound"
         :title="soundEnabled ? '靜音' : '開啟音效'"
+        @click="toggleSound"
       >
         <span v-if="soundEnabled">🔔</span>
         <span v-else>🔕</span>

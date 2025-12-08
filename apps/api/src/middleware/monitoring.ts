@@ -1,14 +1,45 @@
 /**
  * 監控中間件
  * 自動收集 API 請求指標和效能數據
+ *
+ * 支援工廠模式的依賴注入，便於測試
  */
 
 import { Context, Next } from 'hono'
-import { createMonitoringService } from '../features/monitoring'
+import { createMonitoringService as defaultCreateMonitoringService } from '../features/monitoring'
 import type { Env } from '../types/env'
 
+/**
+ * Monitoring Service 介面定義
+ */
+export interface MonitoringServiceInterface {
+  recordApiRequest: (responseTime: number, statusCode: number, endpoint: string) => Promise<void>
+  recordError: (errorType: string, errorMessage: string, severity: string) => Promise<void>
+  getHealthStatus: () => Promise<{ overall: string; components: Record<string, unknown> }>
+  recordCacheMetrics: (hitRate: number, totalKeys: number, size: number) => Promise<void>
+  getMetrics: () => Promise<{
+    apiMetrics: { totalRequests: number; averageResponseTime: number }
+    errorMetrics: { totalErrors: number }
+    cacheMetrics: { hitRate: number }
+  }>
+}
+
+/**
+ * Monitoring Service 工廠函數類型
+ */
+export type MonitoringServiceFactory = (kv: unknown) => MonitoringServiceInterface
+
+/**
+ * 中間件依賴注入配置
+ */
+export interface MonitoringMiddlewareDependencies {
+  createMonitoringService?: MonitoringServiceFactory
+}
+
 // 請求指標收集中間件
-export function metricsMiddleware() {
+export function metricsMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const startTime = Date.now()
     const monitoringService = createMonitoringService(c.env.CACHE_KV)
@@ -62,7 +93,9 @@ export function databaseMonitoringMiddleware() {
 }
 
 // 錯誤監控中間件
-export function errorMonitoringMiddleware() {
+export function errorMonitoringMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       await next()
@@ -102,13 +135,15 @@ export function errorMonitoringMiddleware() {
 }
 
 // 健康檢查中間件
-export function healthCheckMiddleware() {
+export function healthCheckMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     // 只對健康檢查端點應用
     if (!c.req.path.includes('/health')) {
       return await next()
     }
-    
+
     const monitoringService = createMonitoringService(c.env.CACHE_KV)
     
     try {
@@ -144,7 +179,9 @@ export function healthCheckMiddleware() {
 }
 
 // 性能監控中間件
-export function performanceMonitoringMiddleware() {
+export function performanceMonitoringMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const monitoringService = createMonitoringService(c.env.CACHE_KV)
     
@@ -187,7 +224,9 @@ export function performanceMonitoringMiddleware() {
 }
 
 // 快取監控增強
-export function cacheMonitoringMiddleware() {
+export function cacheMonitoringMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const monitoringService = createMonitoringService(c.env.CACHE_KV)
     
@@ -270,10 +309,12 @@ function getErrorType(error: unknown): string {
 }
 
 // 監控統計輔助中間件
-export function monitoringStatsMiddleware() {
+export function monitoringStatsMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
+  const createMonitoringService = deps.createMonitoringService ?? defaultCreateMonitoringService
+
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     await next()
-    
+
     // 在響應頭中添加監控統計（僅開發環境）
     if (c.env.NODE_ENV === 'development') {
       try {

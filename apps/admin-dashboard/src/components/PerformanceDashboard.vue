@@ -3,11 +3,11 @@
     <div class="dashboard-header">
       <h2>Performance Monitoring</h2>
       <div class="header-actions">
-        <button @click="refresh" class="btn-secondary" :disabled="isRefreshing">
+        <button class="btn-secondary" :disabled="isRefreshing" @click="refresh">
           <span v-if="isRefreshing">Refreshing...</span>
           <span v-else>Refresh</span>
         </button>
-        <button @click="exportReport" class="btn-primary">
+        <button class="btn-primary" @click="exportReport">
           Export Report
         </button>
       </div>

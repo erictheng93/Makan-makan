@@ -124,8 +124,8 @@
                 <input
                   type="checkbox"
                   :checked="isAllSelected"
-                  @change="toggleSelectAll"
                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  @change="toggleSelectAll"
                 />
               </th>
               <th
@@ -188,8 +188,8 @@
                 <input
                   type="checkbox"
                   :checked="isSelected(schedule.id)"
-                  @change="toggleSelect(schedule.id)"
                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  @change="toggleSelect(schedule.id)"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -232,15 +232,15 @@
                 <div class="flex gap-2">
                   <button
                     class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                    @click="$emit('edit', schedule)"
                     title="編輯"
+                    @click="$emit('edit', schedule)"
                   >
                     <PencilIcon class="h-4 w-4" />
                   </button>
                   <button
                     class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                    @click="$emit('delete', schedule)"
                     title="刪除"
+                    @click="$emit('delete', schedule)"
                   >
                     <TrashIcon class="h-4 w-4" />
                   </button>
@@ -264,8 +264,8 @@
           <button
             class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="currentPage === 1"
-            @click="goToPage(1)"
             title="第一頁"
+            @click="goToPage(1)"
           >
             ««
           </button>
@@ -303,8 +303,8 @@
           <button
             class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="currentPage === totalPages"
-            @click="goToPage(totalPages)"
             title="最後一頁"
+            @click="goToPage(totalPages)"
           >
             »»
           </button>
@@ -425,7 +425,7 @@ const visiblePages = computed(() => {
   const pages: number[] = []
   const maxVisible = 5
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  const end = Math.min(totalPages.value, start + maxVisible - 1)
 
   if (end - start < maxVisible - 1) {
     start = Math.max(1, end - maxVisible + 1)

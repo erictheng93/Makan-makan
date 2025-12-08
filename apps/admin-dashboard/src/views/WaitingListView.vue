@@ -8,16 +8,16 @@
       </div>
       <div class="flex space-x-3">
         <button
-          @click="showAddDialog = true"
           class="btn-primary inline-flex items-center"
+          @click="showAddDialog = true"
         >
           <Plus class="w-5 h-5 mr-2" />
           新增候位
         </button>
         <button
-          @click="batchCallNext"
           :disabled="batchCalling"
           class="btn-secondary inline-flex items-center disabled:opacity-50"
+          @click="batchCallNext"
         >
           <Bell class="w-5 h-5 mr-2" />
           <span v-if="!batchCalling">叫號下一組</span>
@@ -108,15 +108,15 @@
         </div>
 
         <div class="flex items-end space-x-2 col-span-2">
-          <button @click="loadWaitingList" class="btn-primary flex-1">
+          <button class="btn-primary flex-1" @click="loadWaitingList">
             <Search class="w-4 h-4 mr-2" />
             搜尋
           </button>
-          <button @click="resetFilters" class="btn-secondary flex-1">
+          <button class="btn-secondary flex-1" @click="resetFilters">
             <RotateCcw class="w-4 h-4 mr-2" />
             重置
           </button>
-          <button @click="loadWaitingList" class="btn-secondary flex-1">
+          <button class="btn-secondary flex-1" @click="loadWaitingList">
             <RefreshCw class="w-4 h-4 mr-2" />
             重新整理
           </button>
@@ -130,24 +130,24 @@
         <h2 class="text-lg font-medium text-gray-900">候位隊列</h2>
         <div class="flex rounded-lg shadow-sm">
           <button
-            @click="viewMode = 'card'"
             :class="[
               viewMode === 'card'
                 ? 'bg-primary-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50',
               'px-4 py-2 text-sm font-medium rounded-l-md border border-gray-300'
             ]"
+            @click="viewMode = 'card'"
           >
             <LayoutGrid class="w-4 h-4" />
           </button>
           <button
-            @click="viewMode = 'table'"
             :class="[
               viewMode === 'table'
                 ? 'bg-primary-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50',
               'px-4 py-2 text-sm font-medium rounded-r-md border border-l-0 border-gray-300'
             ]"
+            @click="viewMode = 'table'"
           >
             <List class="w-4 h-4" />
           </button>
@@ -216,32 +216,32 @@
             <div class="flex flex-wrap gap-2">
               <button
                 v-if="entry.status === 'waiting'"
-                @click="callCustomer(entry)"
                 class="btn-sm btn-primary flex-1"
+                @click="callCustomer(entry)"
               >
                 <Bell class="w-4 h-4 mr-1" />
                 叫號
               </button>
               <button
                 v-if="entry.status === 'called' || entry.status === 'confirmed'"
-                @click="markSeated(entry.id)"
                 class="btn-sm bg-green-600 text-white hover:bg-green-700 flex-1"
+                @click="markSeated(entry.id)"
               >
                 <CheckCircle class="w-4 h-4 mr-1" />
                 入座
               </button>
               <button
                 v-if="entry.status === 'called'"
-                @click="markExpired(entry.id)"
                 class="btn-sm bg-red-600 text-white hover:bg-red-700 flex-1"
+                @click="markExpired(entry.id)"
               >
                 <XCircle class="w-4 h-4 mr-1" />
                 過號
               </button>
               <button
                 v-if="['waiting', 'called'].includes(entry.status)"
-                @click="cancelEntry(entry)"
                 class="btn-sm btn-secondary flex-1"
+                @click="cancelEntry(entry)"
               >
                 取消
               </button>
@@ -265,7 +265,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="loading" v-for="i in 5" :key="i" class="animate-pulse">
+            <tr v-for="i in 5" v-if="loading" :key="i" class="animate-pulse">
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-16"></div></td>
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
@@ -305,16 +305,16 @@
                 {{ formatTime(entry.createdAt) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button v-if="entry.status === 'waiting'" @click="callCustomer(entry)" class="text-blue-600 hover:text-blue-900" title="叫號">
+                <button v-if="entry.status === 'waiting'" class="text-blue-600 hover:text-blue-900" title="叫號" @click="callCustomer(entry)">
                   <Bell class="w-5 h-5" />
                 </button>
-                <button v-if="entry.status === 'called' || entry.status === 'confirmed'" @click="markSeated(entry.id)" class="text-green-600 hover:text-green-900" title="入座">
+                <button v-if="entry.status === 'called' || entry.status === 'confirmed'" class="text-green-600 hover:text-green-900" title="入座" @click="markSeated(entry.id)">
                   <CheckCircle class="w-5 h-5" />
                 </button>
-                <button v-if="entry.status === 'called'" @click="markExpired(entry.id)" class="text-red-600 hover:text-red-900" title="過號">
+                <button v-if="entry.status === 'called'" class="text-red-600 hover:text-red-900" title="過號" @click="markExpired(entry.id)">
                   <XCircle class="w-5 h-5" />
                 </button>
-                <button v-if="['waiting', 'called'].includes(entry.status)" @click="cancelEntry(entry)" class="text-gray-600 hover:text-gray-900" title="取消">
+                <button v-if="['waiting', 'called'].includes(entry.status)" class="text-gray-600 hover:text-gray-900" title="取消" @click="cancelEntry(entry)">
                   <Trash2 class="w-5 h-5" />
                 </button>
               </td>
@@ -331,16 +331,16 @@
           <div>
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
               <button
-                @click="pagination.page--; loadWaitingList()"
                 :disabled="pagination.page === 1"
                 class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                @click="pagination.page--; loadWaitingList()"
               >
                 <ChevronLeft class="h-5 w-5" />
               </button>
               <button
-                @click="pagination.page++; loadWaitingList()"
                 :disabled="pagination.page * pagination.limit >= pagination.total"
                 class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                @click="pagination.page++; loadWaitingList()"
               >
                 <ChevronRight class="h-5 w-5" />
               </button>
@@ -412,9 +412,9 @@
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button
-                    @click="addToQueue"
                     :disabled="submitting"
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
+                    @click="addToQueue"
                   >
                     <span v-if="!submitting">確認加入</span>
                     <span v-else class="flex items-center justify-center">
@@ -423,8 +423,8 @@
                     </span>
                   </button>
                   <button
-                    @click="showAddDialog = false"
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
+                    @click="showAddDialog = false"
                   >
                     取消
                   </button>
@@ -508,9 +508,9 @@
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button
-                    @click="confirmCall"
                     :disabled="calling"
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
+                    @click="confirmCall"
                   >
                     <Bell class="w-4 h-4 mr-2" />
                     <span v-if="!calling">確認叫號</span>
@@ -520,8 +520,8 @@
                     </span>
                   </button>
                   <button
-                    @click="showCallDialog = false"
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
+                    @click="showCallDialog = false"
                   >
                     取消
                   </button>

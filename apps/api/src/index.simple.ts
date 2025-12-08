@@ -5,7 +5,7 @@ import { prettyJSON } from 'hono/pretty-json'
 import type { Env } from './types/env'
 
 // Import only essential routes for login
-import authRouter from './routes/auth'
+import authRouter from './features/authentication/routes'
 
 // Create simple app
 const app = new Hono<{ Bindings: Env }>()

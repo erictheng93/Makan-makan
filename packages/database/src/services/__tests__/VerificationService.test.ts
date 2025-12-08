@@ -73,7 +73,7 @@ describe('VerificationService', () => {
       })
 
       // Mock NotificationService
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue(undefined)
+      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
 
       // Act
       const result = await verificationService.requestPasswordReset({
@@ -261,7 +261,7 @@ describe('VerificationService', () => {
         }),
       })
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue(undefined)
+      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
 
       // Act
       const result = await verificationService.resetPassword({
@@ -330,7 +330,7 @@ describe('VerificationService', () => {
         }),
       })
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue(undefined)
+      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
 
       // Act
       const result = await verificationService.sendEmailVerification({
@@ -375,7 +375,7 @@ describe('VerificationService', () => {
         }),
       })
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue(undefined)
+      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
 
       // Act
       const result = await verificationService.verifyEmail({
@@ -453,7 +453,7 @@ describe('VerificationService', () => {
         }),
       })
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue(undefined)
+      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
 
       // Act
       const result = await verificationService.verifyPhone({

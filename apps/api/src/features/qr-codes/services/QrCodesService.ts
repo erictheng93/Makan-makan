@@ -116,8 +116,8 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
       // Extract table IDs from the request
       const tableIds = data.tables.map(table => table.id)
 
-      // Call the existing QRCodeService for bulk generation
-      const result = await this.qrService.generateBulkQRCodes(restaurantId, tableIds, userId)
+      // Call the existing QRCodeService for bulk generation (convert to string for database service)
+      const result = await this.qrService.generateBulkQRCodes(String(restaurantId), tableIds, userId)
 
       // Transform result to match our entity interface
       const batchEntity: QRBatchEntity = {

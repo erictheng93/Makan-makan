@@ -49,7 +49,7 @@ routes.post('/',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const partnership = await service.createPartnership({
         ...data,
@@ -82,7 +82,7 @@ routes.get('/',
   async (c) => {
     try {
       const filters = c.get('validatedQuery')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const { page, limit, ...restFilters } = filters
       const result = await service.listPartnerships(restFilters, page, limit)
@@ -113,7 +113,7 @@ routes.get('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const partnership = await service.getPartnership(id)
 
@@ -150,7 +150,7 @@ routes.get('/:id/statistics',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const stats = await service.getPartnershipStatistics(id)
 
@@ -182,7 +182,7 @@ routes.put('/:id',
     try {
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const partnership = await service.updatePartnership(id, data)
 
@@ -212,7 +212,7 @@ routes.delete('/:id',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       await service.deletePartnership(id)
 
@@ -247,7 +247,7 @@ routes.post('/plans',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const plan = await service.createPlan({
         ...data,
@@ -278,7 +278,7 @@ routes.get('/plans',
   async (c) => {
     try {
       const filters = c.get('validatedQuery')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const { page, limit, ...restFilters } = filters
       const result = await service.listPlans(restFilters, page, limit)
@@ -307,7 +307,7 @@ routes.get('/plans/:planId',
   async (c) => {
     try {
       const { planId } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const plan = await service.getPlan(planId)
 
@@ -343,7 +343,7 @@ routes.post('/plans/validate',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const result = await service.validatePlan(
         data.planId,
@@ -381,7 +381,7 @@ routes.put('/plans/:planId',
     try {
       const { planId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const plan = await service.updatePlan(planId, data)
 
@@ -411,7 +411,7 @@ routes.delete('/plans/:planId',
   async (c) => {
     try {
       const { planId } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       await service.deletePlan(planId)
 
@@ -443,7 +443,7 @@ routes.post('/members/verify',
   async (c) => {
     try {
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const member = await service.submitMemberVerification(data)
 
@@ -474,7 +474,7 @@ routes.get('/members',
   async (c) => {
     try {
       const filters = c.get('validatedQuery')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const { page, limit, ...restFilters } = filters
       const result = await service.listMembers(restFilters, page, limit)
@@ -505,7 +505,7 @@ routes.get('/members/:memberId',
   async (c) => {
     try {
       const { memberId } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const member = await service.getMember(memberId)
 
@@ -545,11 +545,11 @@ routes.post('/members/:memberId/approve',
       const { memberId } = c.get('validatedParams')
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const member = await service.approveMember(
         memberId,
-        user.id,
+        String(user.id),
         data.verificationExpiry
       )
 
@@ -582,7 +582,7 @@ routes.post('/members/:memberId/reject',
     try {
       const { memberId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const member = await service.rejectMember(memberId, data.rejectionReason)
 
@@ -615,7 +615,7 @@ routes.put('/members/:memberId',
     try {
       const { memberId } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const member = await service.updateMember(memberId, data)
 
@@ -650,7 +650,7 @@ routes.post('/usage',
     try {
       const data = c.get('validatedBody')
       const user = c.get('user')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const usageLog = await service.logUsage({
         ...data,
@@ -684,7 +684,7 @@ routes.get('/usage',
   async (c) => {
     try {
       const filters = c.get('validatedQuery')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const { page, limit, ...restFilters } = filters
       const result = await service.listUsageLogs(restFilters, page, limit)
@@ -717,7 +717,7 @@ routes.post('/usage/:id/cancel',
     try {
       const { id } = c.get('validatedParams')
       const data = c.get('validatedBody')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const usageLog = await service.cancelUsageLog(id, data.reason)
 
@@ -748,7 +748,7 @@ routes.post('/usage/:id/refund',
   async (c) => {
     try {
       const { id } = c.get('validatedParams')
-      const service = new PartnershipService(c.env.DB as any)
+      const service = new PartnershipService(c.env.DB as any, c.env as any)
 
       const usageLog = await service.refundUsageLog(id)
 

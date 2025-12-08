@@ -1,8 +1,8 @@
 <template>
   <div class="relative">
     <button
-      @click="toggleDropdown"
       class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+      @click="toggleDropdown"
     >
       <span class="text-lg">{{ currentLocale.flag }}</span>
       <span class="hidden sm:block">{{ currentLocale.name }}</span>
@@ -27,11 +27,11 @@
           <button
             v-for="locale in availableLocales"
             :key="locale.code"
-            @click="switchToLocale(locale.code)"
             class="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
             :class="{
               'bg-gray-50 text-gray-900': locale.code === currentLocale.code
             }"
+            @click="switchToLocale(locale.code)"
           >
             <div class="flex items-center space-x-3">
               <span class="text-lg">{{ locale.flag }}</span>

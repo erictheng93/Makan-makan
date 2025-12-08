@@ -6,7 +6,7 @@
         {{ t('scheduling.stats.totalHours') }}
       </h3>
       <div class="chart-filters">
-        <select v-model="selectedPeriod" @change="updateChart" class="period-select">
+        <select v-model="selectedPeriod" class="period-select" @change="updateChart">
           <option value="week">{{ t('scheduling.stats.thisWeek') }}</option>
           <option value="month">{{ t('scheduling.stats.thisMonth') }}</option>
           <option value="custom">{{ t('charts.workHours.customPeriod') }}</option>
@@ -37,7 +37,7 @@
       :type="chartType"
       :data="chartData"
       :height="350"
-      :isLoading="isLoading"
+      :is-loading="isLoading"
       :error="error"
     />
   </div>

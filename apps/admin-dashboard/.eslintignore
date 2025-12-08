@@ -1,7 +1,0 @@
-# Generated files from TypeScript/Vue compilation
-*.vue.js
-*.vue.d.ts
-src/**/*.js
-src/**/*.d.ts
-*.d.ts
-**/*.stories.d.ts

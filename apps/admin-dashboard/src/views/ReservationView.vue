@@ -7,8 +7,8 @@
         <p class="text-gray-600 mt-1">管理餐廳訂位與預約</p>
       </div>
       <button
-        @click="showCreateDialog = true"
         class="btn-primary inline-flex items-center"
+        @click="showCreateDialog = true"
       >
         <Plus class="w-5 h-5 mr-2" />
         建立訂位
@@ -105,11 +105,11 @@
         </div>
 
         <div class="flex items-end space-x-2">
-          <button @click="loadReservations" class="btn-primary flex-1">
+          <button class="btn-primary flex-1" @click="loadReservations">
             <Search class="w-4 h-4 mr-2" />
             搜尋
           </button>
-          <button @click="resetFilters" class="btn-secondary flex-1">
+          <button class="btn-secondary flex-1" @click="resetFilters">
             <RotateCcw class="w-4 h-4 mr-2" />
             重置
           </button>
@@ -147,7 +147,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="loading" v-for="i in 5" :key="i" class="animate-pulse">
+            <tr v-for="i in 5" v-if="loading" :key="i" class="animate-pulse">
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-20"></div></td>
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
               <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-40"></div></td>
@@ -187,38 +187,38 @@
                 {{ reservation.specialRequests || '--' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button @click="viewDetail(reservation)" class="text-blue-600 hover:text-blue-900" title="查看詳情">
+                <button class="text-blue-600 hover:text-blue-900" title="查看詳情" @click="viewDetail(reservation)">
                   <Eye class="w-5 h-5" />
                 </button>
                 <button
                   v-if="reservation.status === 'pending'"
-                  @click="confirmReservation(reservation.id)"
                   class="text-green-600 hover:text-green-900"
                   title="確認訂位"
+                  @click="confirmReservation(reservation.id)"
                 >
                   <CheckCircle class="w-5 h-5" />
                 </button>
                 <button
                   v-if="reservation.status === 'confirmed'"
-                  @click="markArrived(reservation.id)"
                   class="text-purple-600 hover:text-purple-900"
                   title="標記到店"
+                  @click="markArrived(reservation.id)"
                 >
                   <UserCheck class="w-5 h-5" />
                 </button>
                 <button
                   v-if="reservation.status === 'arrived'"
-                  @click="markSeated(reservation.id)"
                   class="text-indigo-600 hover:text-indigo-900"
                   title="標記入座"
+                  @click="markSeated(reservation.id)"
                 >
                   <CheckCheck class="w-5 h-5" />
                 </button>
                 <button
                   v-if="['pending', 'confirmed'].includes(reservation.status)"
-                  @click="cancelReservation(reservation.id)"
                   class="text-red-600 hover:text-red-900"
                   title="取消訂位"
+                  @click="cancelReservation(reservation.id)"
                 >
                   <XCircle class="w-5 h-5" />
                 </button>
@@ -232,16 +232,16 @@
       <div v-if="pagination.total > 0" class="px-6 py-4 flex items-center justify-between border-t border-gray-200">
         <div class="flex-1 flex justify-between sm:hidden">
           <button
-            @click="pagination.page--; loadReservations()"
             :disabled="pagination.page === 1"
             class="btn-secondary"
+            @click="pagination.page--; loadReservations()"
           >
             上一頁
           </button>
           <button
-            @click="pagination.page++; loadReservations()"
             :disabled="pagination.page * pagination.limit >= pagination.total"
             class="btn-secondary"
+            @click="pagination.page++; loadReservations()"
           >
             下一頁
           </button>
@@ -261,29 +261,29 @@
           <div>
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
               <button
-                @click="pagination.page--; loadReservations()"
                 :disabled="pagination.page === 1"
                 class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                @click="pagination.page--; loadReservations()"
               >
                 <ChevronLeft class="h-5 w-5" />
               </button>
               <button
                 v-for="page in getPaginationPages()"
                 :key="page"
-                @click="pagination.page = page; loadReservations()"
                 :class="[
                   page === pagination.page
                     ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
                     : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
                   'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
                 ]"
+                @click="pagination.page = page; loadReservations()"
               >
                 {{ page }}
               </button>
               <button
-                @click="pagination.page++; loadReservations()"
                 :disabled="pagination.page * pagination.limit >= pagination.total"
                 class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                @click="pagination.page++; loadReservations()"
               >
                 <ChevronRight class="h-5 w-5" />
               </button>
@@ -365,9 +365,9 @@
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button
-                    @click="createReservation"
                     :disabled="submitting"
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
+                    @click="createReservation"
                   >
                     <span v-if="!submitting">確認建立</span>
                     <span v-else class="flex items-center justify-center">
@@ -376,8 +376,8 @@
                     </span>
                   </button>
                   <button
-                    @click="showCreateDialog = false"
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
+                    @click="showCreateDialog = false"
                   >
                     取消
                   </button>
@@ -467,8 +467,8 @@
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button
-                    @click="showDetailDialog = false"
                     class="btn-secondary w-full sm:w-auto"
+                    @click="showDetailDialog = false"
                   >
                     關閉
                   </button>

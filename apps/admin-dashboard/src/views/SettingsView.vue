@@ -440,9 +440,9 @@
           <!-- 儲存設定按鈕 -->
           <div class="flex justify-end pt-4">
             <button
-              @click="saveShopSettings"
               :disabled="isSavingShopSettings"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="saveShopSettings"
             >
               <span v-if="!isSavingShopSettings">儲存設定</span>
               <span v-else class="flex items-center">
@@ -470,9 +470,9 @@
           </div>
           <p class="text-gray-600 mb-4">尚未生成店家 QR Code</p>
           <button
-            @click="generateShopQR"
             :disabled="isGeneratingQR"
             class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="generateShopQR"
           >
             <span v-if="!isGeneratingQR">生成 QR Code</span>
             <span v-else class="flex items-center">
@@ -513,9 +513,9 @@
                     {{ shopQR.qrCode }}
                   </code>
                   <button
-                    @click="copyQRCode"
                     class="px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
                     title="複製"
+                    @click="copyQRCode"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -546,8 +546,8 @@
               <!-- 操作按鈕 -->
               <div class="flex flex-wrap gap-3 pt-2">
                 <button
-                  @click="downloadQRCode"
                   class="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                  @click="downloadQRCode"
                 >
                   <span class="flex items-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,9 +558,9 @@
                 </button>
 
                 <button
-                  @click="regenerateShopQR"
                   :disabled="isRegeneratingQR"
                   class="px-4 py-2 text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="regenerateShopQR"
                 >
                   <span v-if="!isRegeneratingQR" class="flex items-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

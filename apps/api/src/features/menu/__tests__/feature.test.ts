@@ -168,6 +168,7 @@ const mockEnv: Env = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-jwt-secret-key-for-testing-only',
   API_VERSION: 'v1',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
   DB: {} as any,
   CACHE_KV: mockCacheKV as any,
   TOKEN_BLACKLIST: {} as any,
@@ -240,7 +241,7 @@ describe('Menu Feature Module', () => {
         const result = await menuService.getMenu(mockRestaurantId)
 
         expect(result).toEqual(mockMenuStructure)
-        expect(mockDbService.getMenu).toHaveBeenCalledWith(mockRestaurantId)
+        expect(mockDbService.getMenu).toHaveBeenCalledWith(String(mockRestaurantId))
       })
 
       test('should fetch menu item by id successfully', async () => {
@@ -290,7 +291,10 @@ describe('Menu Feature Module', () => {
         const result = await menuService.createMenuItem(createData)
 
         expect(result).toEqual(mockMenuItem)
-        expect(mockDbService.createMenuItem).toHaveBeenCalledWith(createData)
+        expect(mockDbService.createMenuItem).toHaveBeenCalledWith({
+          ...createData,
+          restaurantId: String(createData.restaurantId)
+        })
       })
 
       test('should update menu item successfully', async () => {
@@ -342,7 +346,10 @@ describe('Menu Feature Module', () => {
         const result = await menuService.createCategory(createData)
 
         expect(result).toEqual(mockCategory)
-        expect(mockDbService.createCategory).toHaveBeenCalledWith(createData)
+        expect(mockDbService.createCategory).toHaveBeenCalledWith({
+          ...createData,
+          restaurantId: String(createData.restaurantId)
+        })
       })
     })
 
@@ -375,7 +382,7 @@ describe('Menu Feature Module', () => {
 
         expect(result).toEqual(mockSearchResult)
         expect(mockDbService.searchMenuItems).toHaveBeenCalledWith(
-          mockRestaurantId,
+          String(mockRestaurantId),
           expect.objectContaining({
             search: 'test',
             categoryId: 1
@@ -433,7 +440,7 @@ describe('Menu Feature Module', () => {
 
         await menuService.batchUpdateAvailability(mockRestaurantId, updates)
 
-        expect(mockDbService.batchUpdateAvailability).toHaveBeenCalledWith(mockRestaurantId, updates)
+        expect(mockDbService.batchUpdateAvailability).toHaveBeenCalledWith(String(mockRestaurantId), updates)
       })
 
       test('should batch update prices', async () => {
@@ -761,7 +768,7 @@ describe('Menu Feature Module', () => {
       const result = await service.getMenu(mockRestaurantId)
 
       expect(result).toEqual(mockMenuStructure)
-      expect(mockDbService.getMenu).toHaveBeenCalledWith(mockRestaurantId)
+      expect(mockDbService.getMenu).toHaveBeenCalledWith(String(mockRestaurantId))
     })
   })
 })

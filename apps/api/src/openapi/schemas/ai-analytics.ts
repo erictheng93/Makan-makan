@@ -194,9 +194,7 @@ export const getAIConfigRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });
 
@@ -232,9 +230,7 @@ export const configureAIRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -267,9 +263,7 @@ export const generateInsightsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -312,8 +306,7 @@ export const getInsightsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -351,9 +344,7 @@ export const updateInsightStatusRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(400, 401, 404),
   },
 });
 
@@ -386,9 +377,7 @@ export const askAIRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(400, 401, 403),
   },
 });
 
@@ -429,8 +418,7 @@ export const getAIUsageRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
+    ...errorResponses(401, 403),
   },
 });
 
@@ -464,8 +452,6 @@ export const getProductAnalyticsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[403],
-    ...errorResponses[404],
+    ...errorResponses(401, 403, 404),
   },
 });

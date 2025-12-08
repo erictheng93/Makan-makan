@@ -230,8 +230,8 @@ function toggleStatus(status: AlertStatus) {
         </div>
         <button
           v-if="isFilterModified"
-          @click="handleReset"
           class="text-sm text-gray-600 hover:text-gray-900"
+          @click="handleReset"
         >
           重置篩選
         </button>
@@ -242,13 +242,13 @@ function toggleStatus(status: AlertStatus) {
         <button
           v-for="preset in FILTER_PRESETS"
           :key="preset.id"
-          @click="applyPreset(preset)"
           :class="[
             'px-3 py-1.5 text-sm rounded-lg border transition-colors',
             selectedPreset === preset.id
               ? 'bg-blue-50 border-blue-300 text-blue-700'
               : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
           ]"
+          @click="applyPreset(preset)"
         >
           {{ preset.name }}
         </button>
@@ -316,13 +316,13 @@ function toggleStatus(status: AlertStatus) {
           <button
             v-for="option in componentOptions"
             :key="option.value"
-            @click="toggleComponent(option.value)"
             :class="[
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               localFilter.components.includes(option.value)
                 ? 'bg-blue-50 border-blue-300 text-blue-700'
                 : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
             ]"
+            @click="toggleComponent(option.value)"
           >
             <CheckIcon
               v-if="localFilter.components.includes(option.value)"
@@ -342,13 +342,13 @@ function toggleStatus(status: AlertStatus) {
           <button
             v-for="option in severityOptions"
             :key="option.value"
-            @click="toggleSeverity(option.value)"
             :class="[
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               localFilter.severity.includes(option.value)
                 ? `bg-${option.color}-50 border-${option.color}-300 text-${option.color}-700`
                 : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
             ]"
+            @click="toggleSeverity(option.value)"
           >
             <CheckIcon
               v-if="localFilter.severity.includes(option.value)"
@@ -368,13 +368,13 @@ function toggleStatus(status: AlertStatus) {
           <button
             v-for="option in statusOptions"
             :key="option.value"
-            @click="toggleStatus(option.value)"
             :class="[
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               localFilter.status.includes(option.value)
                 ? 'bg-blue-50 border-blue-300 text-blue-700'
                 : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
             ]"
+            @click="toggleStatus(option.value)"
           >
             <CheckIcon
               v-if="localFilter.status.includes(option.value)"
@@ -387,8 +387,8 @@ function toggleStatus(status: AlertStatus) {
 
       <!-- 高級選項 Toggle -->
       <button
-        @click="showAdvanced = !showAdvanced"
         class="text-sm text-blue-600 hover:text-blue-800"
+        @click="showAdvanced = !showAdvanced"
       >
         {{ showAdvanced ? '隱藏' : '顯示' }}高級選項
       </button>
@@ -450,8 +450,8 @@ function toggleStatus(status: AlertStatus) {
     <!-- 操作按鈕 -->
     <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
       <button
-        @click="showSaveDialog = true"
         class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+        @click="showSaveDialog = true"
       >
         <BookmarkIcon class="w-4 h-4" />
         保存篩選器
@@ -459,13 +459,12 @@ function toggleStatus(status: AlertStatus) {
 
       <div class="flex gap-2">
         <button
-          @click="handleReset"
           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+          @click="handleReset"
         >
           重置
         </button>
         <button
-          @click="handleApply"
           :disabled="!isValidFilter"
           :class="[
             'px-4 py-2 text-sm text-white rounded-lg',
@@ -473,6 +472,7 @@ function toggleStatus(status: AlertStatus) {
               ? 'bg-blue-600 hover:bg-blue-700'
               : 'bg-gray-300 cursor-not-allowed',
           ]"
+          @click="handleApply"
         >
           應用篩選
         </button>
@@ -513,13 +513,12 @@ function toggleStatus(status: AlertStatus) {
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button
-            @click="showSaveDialog = false"
             class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+            @click="showSaveDialog = false"
           >
             取消
           </button>
           <button
-            @click="handleSave"
             :disabled="!filterName.trim()"
             :class="[
               'px-4 py-2 text-sm text-white rounded-lg',
@@ -527,6 +526,7 @@ function toggleStatus(status: AlertStatus) {
                 ? 'bg-blue-600 hover:bg-blue-700'
                 : 'bg-gray-300 cursor-not-allowed',
             ]"
+            @click="handleSave"
           >
             保存
           </button>

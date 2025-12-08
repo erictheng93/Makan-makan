@@ -121,12 +121,12 @@ export class OrdersService implements IOrdersService {
 
       // Convert feature-specific data to base service format
       const baseOrderData = {
-        restaurantId: data.restaurantId,
-        tableId: data.tableId || 0, // Default table for takeaway/delivery
-        customerId: data.customerId,
+        restaurantId: String(data.restaurantId),
+        tableId: data.tableId || 0, // Keep as number, default table for takeaway/delivery
+        customerId: data.customerId, // Keep as number
         customerInfo: data.customerInfo,
         items: data.items.map(item => ({
-          menuItemId: item.menuItemId,
+          menuItemId: item.menuItemId, // Keep as number
           quantity: item.quantity,
           customizations: item.customizations,
           notes: item.notes
@@ -434,7 +434,7 @@ export class OrdersService implements IOrdersService {
         throw new Error('Restaurant ID required for analytics')
       }
 
-      const dailyStats = await this.baseOrderService.getDailyOrderStats(restaurantId, new Date())
+      const dailyStats = await this.baseOrderService.getDailyOrderStats(String(restaurantId), new Date())
 
       // Build comprehensive analytics
       const analytics: OrderAnalytics = {
@@ -498,7 +498,7 @@ export class OrdersService implements IOrdersService {
 
   async getDailyStats(restaurantId: number, date?: Date): Promise<OrderStats> {
     try {
-      const baseStats = await this.baseOrderService.getDailyOrderStats(restaurantId, date || new Date())
+      const baseStats = await this.baseOrderService.getDailyOrderStats(String(restaurantId), date || new Date())
       return {
         ...baseStats,
         preparingOrders: 0, // Add when available

@@ -271,7 +271,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.updateTable('R-001', updateData)
+      const result = await tableService.updateTable(1, updateData)
 
       // Assert
       expect(result).toBeDefined()
@@ -305,7 +305,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.updateTable('R-001', { isActive: false })
+      const result = await tableService.updateTable(1, { isActive: false })
 
       // Assert
       expect(result.isActive).toBe(false)
@@ -320,7 +320,7 @@ describe('TableService', () => {
       })
 
       // Act
-      const result = await tableService.deleteTable('R-001')
+      const result = await tableService.deleteTable(1)
 
       // Assert
       expect(result).toBe(true)
@@ -351,7 +351,7 @@ describe('TableService', () => {
       mockDb.select.mockReturnValueOnce(createQueryChain([{ total: 2 }]))
 
       // Act
-      const result = await tableService.getRestaurantTables(1)
+      const result = await tableService.getRestaurantTables('1')
 
       // Assert
       expect(result.tables).toHaveLength(2)
@@ -369,7 +369,7 @@ describe('TableService', () => {
       }
 
       // Act
-      const result = await tableService.getRestaurantTables(1, filters)
+      const result = await tableService.getRestaurantTables('1', filters)
 
       // Assert
       expect(result.tables).toHaveLength(1)
@@ -386,7 +386,7 @@ describe('TableService', () => {
       }
 
       // Act
-      const result = await tableService.getRestaurantTables(1, filters)
+      const result = await tableService.getRestaurantTables('1', filters)
 
       // Assert
       expect(result.tables).toHaveLength(1)
@@ -404,7 +404,7 @@ describe('TableService', () => {
       }
 
       // Act
-      const result = await tableService.getRestaurantTables(1, filters)
+      const result = await tableService.getRestaurantTables('1', filters)
 
       // Assert
       expect(result.tables).toHaveLength(1)
@@ -422,7 +422,7 @@ describe('TableService', () => {
       }
 
       // Act
-      const result = await tableService.getRestaurantTables(1, filters)
+      const result = await tableService.getRestaurantTables('1', filters)
 
       // Assert
       expect(result.tables).toHaveLength(1)
@@ -563,7 +563,7 @@ describe('TableService', () => {
       mockDb.select.mockReturnValue(createQueryChain(largeTables))
 
       // Act
-      const result = await tableService.getAvailableTables(1, 6)
+      const result = await tableService.getAvailableTables('1', 6)
 
       // Assert
       expect(result).toHaveLength(1)
@@ -667,7 +667,7 @@ describe('TableService', () => {
 
       // Act & Assert
       await expect(
-        tableService.getRestaurantTables(1)
+        tableService.getRestaurantTables('1')
       ).rejects.toThrow('Database operation failed: getRestaurantTables')
     })
 

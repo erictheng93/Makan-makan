@@ -978,7 +978,7 @@ describe('LeaveService', () => {
         requiredApprovalLevels: 2, // Multi-level approval
       }
 
-      // Mock get request
+      // Mock get request (first select call)
       mockDb.select.mockReturnValueOnce(createQueryChain([
         {
           request: existingRequest,
@@ -991,6 +991,9 @@ describe('LeaveService', () => {
           leaveType: mockLeaveType,
         },
       ]))
+
+      // Mock get leave type (second select call)
+      mockDb.select.mockReturnValueOnce(createQueryChain([mockLeaveType]))
 
       const partiallyApprovedRequest = {
         ...existingRequest,

@@ -531,7 +531,7 @@
                         <MultiMetricChart
                           :series="multiMetricChartSeries"
                           unit="ms"
-                          y-axis-label="?��??��? (毫�?)"
+                          y-axis-label="回應時間 (毫秒)"
                         />
                       </div>
                     </div>
@@ -539,13 +539,13 @@
                     <!-- Cache hit rate trend -->
                     <div class="bg-gray-50 rounded-lg p-6">
                       <h4 class="text-md font-medium text-gray-900 mb-4">
-                        快�??�中?�趨?��??��?4小�?�?
+                        快取命中率趨勢（過去4小時）
                       </h4>
                       <div class="h-64">
                         <MetricTrendChart
-                          :data="cacheHitRateTrendData"
-                          label="快�??�中??
+                          label="快取命中率"
                           color="#8b5cf6"
+                          :data="cacheHitRateTrendData"
                           fill-color="rgba(139, 92, 246, 0.1)"
                           unit="%"
                         />
@@ -563,7 +563,7 @@
                         <InformationCircleIcon class="h-5 w-5 text-blue-400" />
                       </div>
                       <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800">?��?建議</h3>
+                        <h3 class="text-sm font-medium text-blue-800">優化建議</h3>
                         <div class="mt-2 text-sm text-blue-700">
                           <ul class="list-disc list-inside space-y-1">
                             <li

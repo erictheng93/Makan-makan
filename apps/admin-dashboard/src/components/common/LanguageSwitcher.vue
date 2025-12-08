@@ -1,6 +1,6 @@
 <template>
   <div class="language-switcher">
-    <button class="language-button" @click="toggleDropdown" :class="{ active: isOpen }">
+    <button class="language-button" :class="{ active: isOpen }" @click="toggleDropdown">
       <span class="flag">{{ currentLocaleConfig.flag }}</span>
       <span class="name">{{ currentLocaleConfig.name }}</span>
       <span class="arrow" :class="{ rotated: isOpen }">▼</span>

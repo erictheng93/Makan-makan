@@ -4,8 +4,8 @@
     <div class="flex items-center justify-between mb-6">
       <button
         class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="previousMonth"
         :disabled="loading"
+        @click="previousMonth"
       >
         <ChevronLeftIcon class="h-5 w-5" />
       </button>
@@ -24,8 +24,8 @@
 
       <button
         class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="nextMonth"
         :disabled="loading"
+        @click="nextMonth"
       >
         <ChevronRightIcon class="h-5 w-5" />
       </button>

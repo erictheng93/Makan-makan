@@ -188,9 +188,9 @@ const getTrendColor = (trend: number) => {
             </select>
 
             <button
-              @click="loadData()"
               :disabled="isRefreshing"
               class="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+              @click="loadData()"
             >
               <ArrowPathIcon
                 class="w-5 h-5 text-gray-700"
@@ -207,11 +207,11 @@ const getTrendColor = (trend: number) => {
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id as any"
             class="flex-1 px-6 py-4 flex items-center justify-center space-x-3 transition-all relative"
             :class="activeTab === tab.id
               ? 'bg-gradient-to-br from-' + tab.color + '-50 to-' + tab.color + '-100 border-b-2 border-' + tab.color + '-600'
               : 'hover:bg-gray-50'"
+            @click="activeTab = tab.id as any"
           >
             <component
               :is="tab.icon"
@@ -239,8 +239,8 @@ const getTrendColor = (trend: number) => {
             <h3 class="text-red-900 font-semibold mb-1">載入數據時發生錯誤</h3>
             <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
             <button
-              @click="loadData()"
               class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              @click="loadData()"
             >
               重試
             </button>

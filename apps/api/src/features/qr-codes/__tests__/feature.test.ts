@@ -12,6 +12,7 @@ const mockEnv: Env = {
   NODE_ENV: 'test',
   JWT_SECRET: 'test-secret',
   API_VERSION: '1.0.0',
+  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
   DB: {} as any,
   CACHE_KV: {
     get: vi.fn(),

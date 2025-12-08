@@ -86,9 +86,9 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 
 // Make mocks available globally for tests
 declare global {
-  // eslint-disable-next-line no-var
+   
   var localStorageMock: Storage;
-  // eslint-disable-next-line no-var
+   
   var documentElementMock: HTMLElement;
 }
 

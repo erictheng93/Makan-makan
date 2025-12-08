@@ -5,7 +5,7 @@
  */
 
 import { Context, Next } from 'hono'
-import type { CloudflareEnv } from '@makanmakan/database'
+import type { Env } from '../types/env'
 
 export interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
@@ -95,7 +95,7 @@ export class RateLimiter {
  * Rate limiting middleware factory
  */
 export function rateLimitMiddleware(config: RateLimitConfig) {
-  return async (c: Context<{ Bindings: CloudflareEnv }>, next: Next) => {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const kv = c.env.CACHE_KV
 
     if (!kv) {
@@ -184,12 +184,12 @@ export const RateLimitPresets = {
  * User-based rate limiter (in addition to IP-based)
  */
 export function userRateLimitMiddleware(config: RateLimitConfig) {
-  return async (c: Context<{ Bindings: CloudflareEnv }>, next: Next) => {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const kv = c.env.CACHE_KV
     if (!kv) return next()
 
     // Get user ID from request body or JWT
-    const userId = c.get('userId') || (await c.req.json().catch(() => ({})))?.userId
+    const userId = (c.get as (key: string) => unknown)('userId') || (await c.req.json().catch(() => ({})))?.userId
 
     if (!userId) {
       return next() // Skip if no user ID

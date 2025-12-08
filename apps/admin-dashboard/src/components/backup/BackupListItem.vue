@@ -14,7 +14,7 @@
           <span class="backup-separator">•</span>
           <span class="backup-size">{{ formatFileSize(backup.file_size) }}</span>
         </div>
-        <div class="backup-status" v-if="backup.status !== 'completed'">
+        <div v-if="backup.status !== 'completed'" class="backup-status">
           <span class="status-badge" :class="`status-${backup.status}`">
             {{ t(`backup.status.${backup.status}`) }}
           </span>
@@ -43,8 +43,8 @@
         <button
           v-if="backup.status === 'completed'"
           class="action-btn download-btn"
-          @click="$emit('download', backup)"
           :title="t('backup.actions.download')"
+          @click="$emit('download', backup)"
         >
           <DownloadIcon />
         </button>
@@ -53,8 +53,8 @@
         <button
           v-if="backup.status === 'completed'"
           class="action-btn restore-btn"
-          @click="$emit('restore', backup)"
           :title="t('backup.actions.restore')"
+          @click="$emit('restore', backup)"
         >
           <ArrowPathIcon />
         </button>
@@ -62,8 +62,8 @@
         <!-- Info/Details button -->
         <button
           class="action-btn info-btn"
-          @click="showDetails = !showDetails"
           :title="t('backup.actions.details')"
+          @click="showDetails = !showDetails"
         >
           <InformationCircleIcon />
         </button>
@@ -71,8 +71,8 @@
         <!-- Delete button -->
         <button
           class="action-btn delete-btn"
-          @click="$emit('delete', backup)"
           :title="t('backup.actions.delete')"
+          @click="$emit('delete', backup)"
         >
           <TrashIcon />
         </button>

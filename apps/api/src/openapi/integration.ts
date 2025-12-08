@@ -188,8 +188,7 @@ export const authLoginRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });
 
@@ -223,8 +222,7 @@ export const getMenuItemsRoute = createRoute({
         },
       },
     },
-    ...errorResponses[401],
-    ...errorResponses[404],
+    ...errorResponses(401, 404),
   },
 });
 
@@ -259,8 +257,7 @@ export const createOrderRoute = createRoute({
         },
       },
     },
-    ...errorResponses[400],
-    ...errorResponses[401],
+    ...errorResponses(400, 401),
   },
 });
 

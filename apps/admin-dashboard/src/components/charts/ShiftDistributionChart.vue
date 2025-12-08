@@ -36,7 +36,7 @@
       :type="selectedType"
       :data="chartData"
       :height="400"
-      :isLoading="isLoading"
+      :is-loading="isLoading"
       :error="error"
     />
   </div>

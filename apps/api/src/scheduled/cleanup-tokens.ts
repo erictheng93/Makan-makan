@@ -4,8 +4,8 @@
  * Cloudflare Workers Cron Trigger
  */
 
-import type { CloudflareEnv } from '@makanmakan/database'
 import { VerificationService } from '@makanmakan/database'
+import type { Env } from '../types/env'
 import { AlertService } from '../services/AlertService'
 
 export interface CleanupResult {
@@ -23,7 +23,7 @@ export interface CleanupResult {
  * Clean up expired tokens
  * This function is called by Cloudflare Workers cron trigger
  */
-export async function cleanupExpiredTokens(env: CloudflareEnv): Promise<CleanupResult> {
+export async function cleanupExpiredTokens(env: Env): Promise<CleanupResult> {
   const startTime = Date.now()
 
   try {

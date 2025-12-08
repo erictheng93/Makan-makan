@@ -8,7 +8,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="backup-form">
+      <form class="backup-form" @submit.prevent="handleSubmit">
         <!-- Basic Information -->
         <div class="form-section">
           <h3>{{ t('backup.create.basicInfo') }}</h3>
@@ -71,8 +71,8 @@
             <div class="radio-group">
               <label class="radio-option">
                 <input
-                  type="radio"
                   v-model="configMode"
+                  type="radio"
                   value="existing"
                   @change="handleConfigModeChange"
                 />
@@ -80,8 +80,8 @@
               </label>
               <label class="radio-option">
                 <input
-                  type="radio"
                   v-model="configMode"
+                  type="radio"
                   value="manual"
                   @change="handleConfigModeChange"
                 />
@@ -124,8 +124,8 @@
             <div class="radio-group">
               <label class="radio-option">
                 <input
-                  type="radio"
                   v-model="tableMode"
+                  type="radio"
                   value="all"
                   @change="handleTableModeChange"
                 />
@@ -133,8 +133,8 @@
               </label>
               <label class="radio-option">
                 <input
-                  type="radio"
                   v-model="tableMode"
+                  type="radio"
                   value="include"
                   @change="handleTableModeChange"
                 />
@@ -142,8 +142,8 @@
               </label>
               <label class="radio-option">
                 <input
-                  type="radio"
                   v-model="tableMode"
+                  type="radio"
                   value="exclude"
                   @change="handleTableModeChange"
                 />
@@ -164,9 +164,9 @@
                 class="checkbox-option"
               >
                 <input
+                  v-model="form.include_tables"
                   type="checkbox"
                   :value="table"
-                  v-model="form.include_tables"
                 />
                 <span>{{ table }}</span>
               </label>
@@ -185,9 +185,9 @@
                 class="checkbox-option"
               >
                 <input
+                  v-model="form.exclude_tables"
                   type="checkbox"
                   :value="table"
-                  v-model="form.exclude_tables"
                 />
                 <span>{{ table }}</span>
               </label>
@@ -202,8 +202,8 @@
           <div class="form-group">
             <label class="checkbox-option large">
               <input
-                type="checkbox"
                 v-model="form.force_immediate"
+                type="checkbox"
               />
               <div>
                 <span class="checkbox-label">{{ t('backup.create.forceImmediate') }}</span>

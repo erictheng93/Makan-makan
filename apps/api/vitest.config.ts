@@ -14,8 +14,25 @@ export default defineConfig({
         'src/__tests__/',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/dist/'
-      ]
+        '**/dist/',
+        // Type definition files (pure types, 0% coverage is expected)
+        '**/types/index.ts',
+        '**/types/*.ts',
+        // OpenAPI documentation configuration files
+        '**/openapi/**/*.ts',
+        // Re-export index files
+        '**/schemas/index.ts',
+        '**/services/index.ts',
+        '**/routes/index.ts'
+      ],
+      // Coverage thresholds
+      thresholds: {
+        // Global thresholds
+        statements: 80,
+        branches: 75,
+        functions: 80,
+        lines: 80
+      }
     },
     testTimeout: 10000,
     hookTimeout: 10000

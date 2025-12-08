@@ -61,12 +61,15 @@ describe('Group Orders E2E Tests', () => {
   })
 
   async function seedTestData() {
+    // Use ISO timestamp format compatible with sql.js (strftime instead of unixepoch)
+    const now = new Date().toISOString()
+
     // Create test restaurant
     const restaurantResult = await db.prepare(`
       INSERT INTO restaurants (
         name, type, category, description, address, district, city, phone,
-        isAvailable, isActive, status, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
+        is_available, is_active, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       'Test Restaurant',
       'restaurant',
@@ -78,17 +81,20 @@ describe('Group Orders E2E Tests', () => {
       '04-1234-5678',
       1,
       1,
-      1
+      1,
+      now,
+      now
     ).run()
 
     testRestaurantId = restaurantResult.meta?.last_row_id as number
+    console.log('[E2E Setup] Restaurant created, ID:', testRestaurantId, 'Result:', restaurantResult)
 
     // Create test table
     const tableResult = await db.prepare(`
       INSERT INTO tables (
-        restaurantId, number, name, capacity, location, qrCode,
-        isOccupied, isActive, isReservable, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
+        restaurant_id, number, name, capacity, location, qr_code,
+        is_occupied, is_active, is_reservable, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       testRestaurantId,
       'T1',
@@ -98,17 +104,20 @@ describe('Group Orders E2E Tests', () => {
       'QR-TABLE-1',
       0,
       1,
-      1
+      1,
+      now,
+      now
     ).run()
 
     testTableId = tableResult.meta?.last_row_id as number
+    console.log('[E2E Setup] Table created, ID:', testTableId, 'Result:', tableResult)
 
     // Create test category
     const categoryResult = await db.prepare(`
       INSERT INTO categories (
-        restaurantId, name, description, sortOrder, isActive, isVisible,
-        itemCount, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
+        restaurant_id, name, description, sort_order, is_active, is_visible,
+        item_count, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       testRestaurantId,
       'Main Dishes',
@@ -116,18 +125,21 @@ describe('Group Orders E2E Tests', () => {
       0,
       1,
       1,
-      0
+      0,
+      now,
+      now
     ).run()
 
     const testCategoryId = categoryResult.meta?.last_row_id as number
+    console.log('[E2E Setup] Category created, ID:', testCategoryId, 'Result:', categoryResult)
 
     // Create test menu item
     const menuItemResult = await db.prepare(`
       INSERT INTO menu_items (
-        restaurantId, categoryId, name, description, price,
-        isAvailable, isFeatured, isPopular, sortOrder,
-        preparationTime, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
+        restaurant_id, category_id, name, description, price,
+        is_available, is_featured, is_popular, sort_order,
+        preparation_time, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       testRestaurantId,
       testCategoryId,
@@ -138,10 +150,13 @@ describe('Group Orders E2E Tests', () => {
       1,
       1,
       0,
-      20
+      20,
+      now,
+      now
     ).run()
 
     testMenuItemId = menuItemResult.meta?.last_row_id as number
+    console.log('[E2E Setup] Menu item created, ID:', testMenuItemId, 'Result:', menuItemResult)
 
     console.log('[E2E Setup] Created test data:', {
       restaurantId: testRestaurantId,

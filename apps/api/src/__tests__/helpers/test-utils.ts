@@ -50,6 +50,17 @@ class SharedDataStore {
     const SQL = await initSqlJs()
     const db = new SQL.Database()
 
+    // Register custom unixepoch function to emulate SQLite 3.38+ behavior
+    // This is necessary because sql.js uses an older SQLite version
+    db.create_function('unixepoch', (arg: string | null) => {
+      if (arg === 'now' || arg === null) {
+        return Math.floor(Date.now() / 1000)
+      }
+      // Parse date string to Unix timestamp
+      const date = new Date(arg)
+      return Math.floor(date.getTime() / 1000)
+    })
+
     const store = new SharedDataStore(db)
     await store.createTables()
 
@@ -58,10 +69,13 @@ class SharedDataStore {
   }
 
   private async createTables() {
-    // 1. Restaurants Table (using camelCase to match test expectations)
+    // 1. Restaurants Table (using snake_case to match Drizzle schema)
+    // Note: Test SQL uses snake_case, MockDrizzle insert uses camelCase
+    // We use snake_case here and handle conversion in insert()
     this.db.run(`
       CREATE TABLE IF NOT EXISTS restaurants (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        public_id TEXT UNIQUE,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         category TEXT NOT NULL,
@@ -72,269 +86,271 @@ class SharedDataStore {
         phone TEXT NOT NULL,
         email TEXT,
         website TEXT,
-        businessHours TEXT,
-        isAvailable INTEGER NOT NULL DEFAULT 1,
-        isActive INTEGER NOT NULL DEFAULT 1,
+        business_hours TEXT,
+        is_available INTEGER NOT NULL DEFAULT 1,
+        is_active INTEGER NOT NULL DEFAULT 1,
         status INTEGER DEFAULT 1,
-        logoUrl TEXT,
-        bannerUrl TEXT,
-        imageUrls TEXT,
-        shopQrCode TEXT UNIQUE,
-        shopQrCodeImageUrl TEXT,
-        enableShopMode INTEGER NOT NULL DEFAULT 0,
-        shopQrSettings TEXT,
-        shopQrVersion INTEGER NOT NULL DEFAULT 1,
+        logo_url TEXT,
+        banner_url TEXT,
+        image_urls TEXT,
+        shop_qr_code TEXT UNIQUE,
+        shop_qr_code_image_url TEXT,
+        enable_shop_mode INTEGER NOT NULL DEFAULT 0,
+        shop_qr_settings TEXT,
+        shop_qr_version INTEGER NOT NULL DEFAULT 1,
         settings TEXT,
         rating REAL DEFAULT 0,
-        reviewCount INTEGER NOT NULL DEFAULT 0,
-        totalOrders INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        review_count INTEGER NOT NULL DEFAULT 0,
+        total_orders INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
     // 2. Users Table (using camelCase to match test expectations)
+    // 2. Users Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         email TEXT,
         phone TEXT,
-        fullName TEXT,
+        full_name TEXT,
         password TEXT,
-        passwordHash TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
         role INTEGER NOT NULL DEFAULT 5,
-        restaurantId TEXT,
+        restaurant_id TEXT,
         address TEXT,
-        dateOfBirth TEXT,
-        profileImageUrl TEXT,
-        isActive INTEGER NOT NULL DEFAULT 1,
-        isVerified INTEGER NOT NULL DEFAULT 0,
+        date_of_birth TEXT,
+        profile_image_url TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        is_verified INTEGER NOT NULL DEFAULT 0,
         preferences TEXT,
-        totalOrders INTEGER NOT NULL DEFAULT 0,
-        totalSpent INTEGER NOT NULL DEFAULT 0,
-        lastLoginAt INTEGER,
-        passwordChangedAt INTEGER,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        total_orders INTEGER NOT NULL DEFAULT 0,
+        total_spent INTEGER NOT NULL DEFAULT 0,
+        last_login_at INTEGER,
+        password_changed_at INTEGER,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 3. Sessions Table (using camelCase)
+    // 3. Sessions Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
-        userId INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         token TEXT NOT NULL UNIQUE,
-        refreshToken TEXT UNIQUE,
-        userAgent TEXT,
-        ipAddress TEXT,
-        deviceInfo TEXT,
+        refresh_token TEXT UNIQUE,
+        user_agent TEXT,
+        ip_address TEXT,
+        device_info TEXT,
         location TEXT,
-        isActive INTEGER NOT NULL DEFAULT 1,
-        lastAccessedAt INTEGER NOT NULL,
-        expiresAt INTEGER NOT NULL,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        is_active INTEGER NOT NULL DEFAULT 1,
+        last_accessed_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 4. Categories Table (using camelCase)
+    // 4. Categories Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        restaurantId TEXT NOT NULL,
+        restaurant_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        sortOrder INTEGER NOT NULL DEFAULT 0,
-        isActive INTEGER NOT NULL DEFAULT 1,
-        isVisible INTEGER NOT NULL DEFAULT 1,
-        imageUrl TEXT,
-        iconUrl TEXT,
-        availableHours TEXT,
-        itemCount INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        is_visible INTEGER NOT NULL DEFAULT 1,
+        image_url TEXT,
+        icon_url TEXT,
+        available_hours TEXT,
+        item_count INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 5. Menu Items Table (using camelCase)
+    // 5. Menu Items Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS menu_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        restaurantId TEXT NOT NULL,
-        categoryId INTEGER NOT NULL,
+        restaurant_id TEXT NOT NULL,
+        category_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
         ingredients TEXT,
         price REAL NOT NULL,
-        originalPrice REAL,
-        costPrice REAL,
-        imageUrl TEXT,
-        imageVariants TEXT,
-        isAvailable INTEGER NOT NULL DEFAULT 1,
-        isFeatured INTEGER NOT NULL DEFAULT 0,
-        isPopular INTEGER NOT NULL DEFAULT 0,
-        sortOrder INTEGER NOT NULL DEFAULT 0,
-        inventoryCount INTEGER,
-        minInventoryAlert INTEGER DEFAULT 5,
-        spiceLevel INTEGER NOT NULL DEFAULT 0,
-        preparationTime INTEGER DEFAULT 15,
+        original_price REAL,
+        cost_price REAL,
+        image_url TEXT,
+        image_variants TEXT,
+        is_available INTEGER NOT NULL DEFAULT 1,
+        is_featured INTEGER NOT NULL DEFAULT 0,
+        is_popular INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        inventory_count INTEGER,
+        min_inventory_alert INTEGER DEFAULT 5,
+        spice_level INTEGER NOT NULL DEFAULT 0,
+        preparation_time INTEGER DEFAULT 15,
         calories INTEGER,
-        dietaryInfo TEXT,
+        dietary_info TEXT,
         allergens TEXT,
         options TEXT,
-        availableHours TEXT,
-        orderCount INTEGER NOT NULL DEFAULT 0,
+        available_hours TEXT,
+        order_count INTEGER NOT NULL DEFAULT 0,
         rating REAL DEFAULT 0,
-        reviewCount INTEGER NOT NULL DEFAULT 0,
-        viewCount INTEGER NOT NULL DEFAULT 0,
+        review_count INTEGER NOT NULL DEFAULT 0,
+        view_count INTEGER NOT NULL DEFAULT 0,
         tags TEXT,
         keywords TEXT,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 6. Tables Table (using camelCase)
+    // 6. Tables Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        restaurantId TEXT NOT NULL,
+        restaurant_id TEXT NOT NULL,
         number TEXT NOT NULL,
         name TEXT,
         capacity INTEGER NOT NULL DEFAULT 4,
         location TEXT,
         floor INTEGER DEFAULT 1,
         section TEXT,
-        qrCode TEXT NOT NULL UNIQUE,
-        qrCodeImageUrl TEXT,
-        qrCodeVersion INTEGER NOT NULL DEFAULT 1,
-        qrMode TEXT DEFAULT 'table',
-        seatCount INTEGER DEFAULT 0,
-        seatLayout TEXT,
-        seatNumberingStyle TEXT DEFAULT 'numeric',
-        isOccupied INTEGER NOT NULL DEFAULT 0,
-        isActive INTEGER NOT NULL DEFAULT 1,
-        isReservable INTEGER NOT NULL DEFAULT 1,
+        qr_code TEXT NOT NULL UNIQUE,
+        qr_code_image_url TEXT,
+        qr_code_version INTEGER NOT NULL DEFAULT 1,
+        qr_mode TEXT DEFAULT 'table',
+        seat_count INTEGER DEFAULT 0,
+        seat_layout TEXT,
+        seat_numbering_style TEXT DEFAULT 'numeric',
+        is_occupied INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        is_reservable INTEGER NOT NULL DEFAULT 1,
         features TEXT,
-        currentOrderId INTEGER,
-        occupiedAt INTEGER,
-        occupiedBy TEXT,
-        estimatedFreeAt INTEGER,
-        lastCleanedAt INTEGER,
-        maintenanceNotes TEXT,
-        totalUsage INTEGER NOT NULL DEFAULT 0,
-        averageOccupancyMinutes INTEGER DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        current_order_id INTEGER,
+        occupied_at INTEGER,
+        occupied_by TEXT,
+        estimated_free_at INTEGER,
+        last_cleaned_at INTEGER,
+        maintenance_notes TEXT,
+        total_usage INTEGER NOT NULL DEFAULT 0,
+        average_occupancy_minutes INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 7. Seats Table (using camelCase)
+    // 7. Seats Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS seats (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tableId INTEGER NOT NULL,
-        seatNumber TEXT NOT NULL,
-        seatName TEXT,
+        table_id INTEGER NOT NULL,
+        seat_number TEXT NOT NULL,
+        seat_name TEXT,
         position TEXT,
-        qrCode TEXT NOT NULL UNIQUE,
-        qrCodeImageUrl TEXT,
-        qrCodeVersion INTEGER NOT NULL DEFAULT 1,
-        isOccupied INTEGER NOT NULL DEFAULT 0,
-        isActive INTEGER NOT NULL DEFAULT 1,
-        currentOrderId INTEGER,
-        occupiedAt INTEGER,
-        occupiedBy TEXT,
-        totalUsage INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        qr_code TEXT NOT NULL UNIQUE,
+        qr_code_image_url TEXT,
+        qr_code_version INTEGER NOT NULL DEFAULT 1,
+        is_occupied INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        current_order_id INTEGER,
+        occupied_at INTEGER,
+        occupied_by TEXT,
+        total_usage INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
     // 8. Orders Table (using camelCase)
+    // 8. Orders Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        restaurantId TEXT NOT NULL,
-        tableId INTEGER NOT NULL,
-        customerId INTEGER,
-        orderNumber TEXT NOT NULL UNIQUE,
+        restaurant_id TEXT NOT NULL,
+        table_id INTEGER NOT NULL,
+        customer_id INTEGER,
+        order_number TEXT NOT NULL UNIQUE,
         status TEXT NOT NULL DEFAULT 'pending',
-        orderType TEXT DEFAULT 'table',
+        order_type TEXT DEFAULT 'table',
         subtotal REAL NOT NULL,
-        taxAmount REAL NOT NULL DEFAULT 0,
-        serviceCharge REAL NOT NULL DEFAULT 0,
-        discountAmount REAL NOT NULL DEFAULT 0,
-        totalAmount REAL NOT NULL,
-        customerInfo TEXT,
-        estimatedPrepTime INTEGER,
-        actualPrepTime INTEGER,
-        confirmedAt INTEGER,
-        preparingAt INTEGER,
-        readyAt INTEGER,
-        deliveredAt INTEGER,
-        paidAt INTEGER,
-        cancelledAt INTEGER,
-        paymentMethod TEXT,
-        paymentStatus TEXT DEFAULT 'pending',
-        paymentTransactionId TEXT,
-        couponCode TEXT,
-        promotionIds TEXT,
+        tax_amount REAL NOT NULL DEFAULT 0,
+        service_charge REAL NOT NULL DEFAULT 0,
+        discount_amount REAL NOT NULL DEFAULT 0,
+        total_amount REAL NOT NULL,
+        customer_info TEXT,
+        estimated_prep_time INTEGER,
+        actual_prep_time INTEGER,
+        confirmed_at INTEGER,
+        preparing_at INTEGER,
+        ready_at INTEGER,
+        delivered_at INTEGER,
+        paid_at INTEGER,
+        cancelled_at INTEGER,
+        payment_method TEXT,
+        payment_status TEXT DEFAULT 'pending',
+        payment_transaction_id TEXT,
+        coupon_code TEXT,
+        promotion_ids TEXT,
         rating INTEGER,
-        reviewComment TEXT,
-        reviewedAt INTEGER,
+        review_comment TEXT,
+        reviewed_at INTEGER,
         notes TEXT,
-        internalNotes TEXT,
-        cancellationReason TEXT,
-        refundAmount REAL,
-        deliveryInfo TEXT,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        internal_notes TEXT,
+        cancellation_reason TEXT,
+        refund_amount REAL,
+        delivery_info TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 9. Order Items Table (using camelCase)
+    // 9. Order Items Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS order_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        orderId INTEGER NOT NULL,
-        menuItemId INTEGER NOT NULL,
+        order_id INTEGER NOT NULL,
+        menu_item_id INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
-        unitPrice REAL NOT NULL,
-        totalPrice REAL NOT NULL,
-        itemSnapshot TEXT,
+        unit_price REAL NOT NULL,
+        total_price REAL NOT NULL,
+        item_snapshot TEXT,
         customizations TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
-        preparedAt INTEGER,
-        servedAt INTEGER,
+        prepared_at INTEGER,
+        served_at INTEGER,
         notes TEXT,
-        kitchenNotes TEXT,
-        cancelledAt INTEGER,
-        cancellationReason TEXT,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL
+        kitchen_notes TEXT,
+        cancelled_at INTEGER,
+        cancellation_reason TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     `)
 
-    // 10. Audit Logs Table (using camelCase)
+    // 10. Audit Logs Table (using snake_case to match Drizzle schema)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER,
-        restaurantId TEXT,
+        user_id INTEGER,
+        restaurant_id TEXT,
         action TEXT NOT NULL,
         resource TEXT NOT NULL,
-        resourceId TEXT,
+        resource_id TEXT,
         description TEXT NOT NULL,
         changes TEXT,
-        ipAddress TEXT,
-        userAgent TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
         success INTEGER NOT NULL DEFAULT 1,
-        errorMessage TEXT,
-        executionTimeMs INTEGER,
-        createdAt INTEGER NOT NULL
+        error_message TEXT,
+        execution_time_ms INTEGER,
+        created_at TEXT NOT NULL
       )
     `)
 
@@ -476,6 +492,11 @@ class SharedDataStore {
   }
 
   insert(tableName: string, data: any): any {
+    // Helper function to convert camelCase to snake_case
+    const toSnakeCase = (str: string): string => {
+      return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+    }
+
     // Add timestamps if not provided
     const now = new Date().toISOString()
     const enrichedData = { ...data }
@@ -494,9 +515,18 @@ class SharedDataStore {
       enrichedData.joined_at = now
     }
 
-    const columns = Object.keys(enrichedData).filter(k => enrichedData[k] !== undefined)
+    // Convert camelCase keys to snake_case for database columns
+    const snakeCaseData: any = {}
+    for (const key of Object.keys(enrichedData)) {
+      if (enrichedData[key] !== undefined) {
+        const snakeKey = toSnakeCase(key)
+        snakeCaseData[snakeKey] = enrichedData[key]
+      }
+    }
+
+    const columns = Object.keys(snakeCaseData)
     const values = columns.map(k => {
-      const value = enrichedData[k]
+      const value = snakeCaseData[k]
       // Convert boolean to integer for SQLite
       if (typeof value === 'boolean') {
         return value ? 1 : 0
@@ -1894,19 +1924,26 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
 
             const updatedRecords: any[] = []
 
+            // Helper function to convert camelCase to snake_case
+            const toSnakeCase = (str: string): string => {
+              return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+            }
+
             for (const record of recordsToUpdate) {
               // Process data to handle sql`` template literals for increments
-              const processedData: any = { updatedAt: new Date().toISOString() }
+              const processedData: any = { updated_at: new Date().toISOString() }
 
               for (const [key, value] of Object.entries(data)) {
+                // Convert camelCase key to snake_case for database
+                const snakeKey = toSnakeCase(key)
                 // Check if value is an SQL increment expression (has queryChunks or sql property)
                 if (value && typeof value === 'object' && ((value as any).queryChunks || (value as any).sql)) {
                   // For increment operations like sql`${field} + 1`, just increment by 1
                   // This is a simplified mock - doesn't parse the actual SQL
-                  const currentValue = record[key] || 0
-                  processedData[key] = currentValue + 1
+                  const currentValue = record[snakeKey] || 0
+                  processedData[snakeKey] = currentValue + 1
                 } else {
-                  processedData[key] = value
+                  processedData[snakeKey] = value
                 }
               }
 
@@ -1914,7 +1951,7 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
               // Update the record in dataStore
               // Filter out undefined values and convert Date objects to ISO strings for SQLite compatibility
               const entries = Object.entries(processedData).filter(([_, v]) => v !== undefined)
-              const keys = entries.map(([k]) => k)
+              const keys = entries.map(([k]) => k) // Already snake_case
               const values = entries.map(([_, v]) =>
                 v instanceof Date ? v.toISOString() : (v === null ? null : v)
               )
@@ -1958,6 +1995,30 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
         const normalizedTableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
         console.log('[MockDrizzle] Normalized table name:', tableName, '->', normalizedTableName)
 
+        // Helper function to convert camelCase to snake_case for column names
+        const toSnakeCase = (str: string): string => {
+          return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+        }
+
+        // Helper function to convert snake_case to camelCase for returned data
+        const toCamelCase = (str: string): string => {
+          return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+        }
+
+        // Helper function to convert all keys in an object from snake_case to camelCase
+        const convertKeysToCamelCase = (obj: any): any => {
+          if (obj === null || obj === undefined) return obj
+          if (Array.isArray(obj)) return obj.map(convertKeysToCamelCase)
+          if (typeof obj !== 'object') return obj
+
+          const result: any = {}
+          for (const key of Object.keys(obj)) {
+            const camelKey = toCamelCase(key)
+            result[camelKey] = obj[key]
+          }
+          return result
+        }
+
         return {
         findFirst: async (options: any) => {
           console.log('[MockDrizzle] query.findFirst() called for table:', tableName)
@@ -1975,7 +2036,10 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                 type: c?.constructor?.name,
                 hasValue: c?.value !== undefined,
                 value: c?.value,
-                valueType: typeof c?.value
+                valueType: typeof c?.value,
+                name: c?.name,
+                columnName: c?.column?.name,
+                keys: c ? Object.keys(c) : []
               }))))
 
               // Extract column name and filter value from queryChunks
@@ -1985,8 +2049,13 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
 
               options.where.queryChunks.forEach((chunk: any) => {
                 // Extract column name from SQLiteInteger or similar objects
-                if (chunk && chunk.name && typeof chunk.name === 'string') {
-                  columnName = chunk.name
+                // Try multiple possible locations for the column name
+                if (chunk && !columnName) {
+                  if (chunk.name && typeof chunk.name === 'string') {
+                    columnName = chunk.name
+                  } else if (chunk.column?.name && typeof chunk.column.name === 'string') {
+                    columnName = chunk.column.name
+                  }
                 }
                 // Extract filter value ONLY from Param objects (check for numeric/string value, not array)
                 if (chunk && chunk.value !== undefined) {
@@ -1998,12 +2067,14 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
               })
 
               if (columnName && filterValue !== null && filterValue !== undefined) {
-                console.log('[MockDrizzle] Filtering by:', columnName, '=', filterValue)
+                // Convert camelCase column name to snake_case for SQLite lookup
+                const snakeCaseColName = toSnakeCase(columnName)
+                console.log('[MockDrizzle] Filtering by:', columnName, '(snake_case:', snakeCaseColName, ') =', filterValue)
 
-                // Filter records in memory using dynamic column name
-                const colName = columnName // Type assertion to fix TS2538
+                // Filter records in memory using both camelCase and snake_case column names
                 records = allRecords.filter((record: any) => {
-                  return record[colName] === filterValue
+                  // Try camelCase first, then snake_case
+                  return record[columnName!] === filterValue || record[snakeCaseColName] === filterValue
                 })
               } else {
                 console.log('[MockDrizzle] Could not extract column name or value from WHERE clause')
@@ -2012,8 +2083,10 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
 
             console.log('[MockDrizzle] Found', records.length, 'matching records')
             if (records.length > 0) {
-              console.log('[MockDrizzle] First record:', JSON.stringify(records[0]))
-              return records[0]
+              // Convert snake_case keys to camelCase for Drizzle ORM compatibility
+              const result = convertKeysToCamelCase(records[0])
+              console.log('[MockDrizzle] First record (camelCase):', JSON.stringify(result))
+              return result
             }
             console.log('[MockDrizzle] No records found')
             return null
@@ -2025,12 +2098,47 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
         findMany: async (options: any) => {
           console.log('[MockDrizzle] query.findMany() called for table:', tableName)
           try {
-            const results = dataStore.query(`SELECT * FROM ${normalizedTableName}`)
-            console.log('[MockDrizzle] findMany() returning', results.length, 'records')
-            if (results.length > 0) {
-              console.log('[MockDrizzle] First record:', JSON.stringify(results[0]))
+            let results = dataStore.query(`SELECT * FROM ${normalizedTableName}`)
+
+            // Apply WHERE filter if provided
+            if (options?.where && options.where.queryChunks) {
+              // Extract filter conditions from queryChunks
+              let columnName: string | null = null
+              let filterValues: any[] = []
+
+              options.where.queryChunks.forEach((chunk: any) => {
+                // Extract column name
+                if (chunk && !columnName && chunk.name && typeof chunk.name === 'string') {
+                  columnName = chunk.name
+                }
+                // Extract filter values (handle both single value and array for inArray)
+                if (chunk && chunk.value !== undefined && !Array.isArray(chunk.value)) {
+                  filterValues.push(chunk.value)
+                }
+                // Handle inArray values (array of values)
+                if (chunk && chunk.values && Array.isArray(chunk.values)) {
+                  filterValues.push(...chunk.values)
+                }
+              })
+
+              if (columnName && filterValues.length > 0) {
+                const snakeCaseColName = toSnakeCase(columnName)
+                console.log('[MockDrizzle] findMany filtering by:', columnName, '(snake_case:', snakeCaseColName, ') in', filterValues)
+
+                results = results.filter((record: any) => {
+                  const value = record[columnName!] ?? record[snakeCaseColName]
+                  return filterValues.includes(value)
+                })
+              }
             }
-            return results
+
+            // Convert snake_case keys to camelCase for Drizzle ORM compatibility
+            const camelCaseResults = results.map(convertKeysToCamelCase)
+            console.log('[MockDrizzle] findMany() returning', camelCaseResults.length, 'records')
+            if (camelCaseResults.length > 0) {
+              console.log('[MockDrizzle] First record (camelCase):', JSON.stringify(camelCaseResults[0]))
+            }
+            return camelCaseResults
           } catch (error) {
             console.error('[MockDrizzle] Error querying table:', tableName, error)
             return []

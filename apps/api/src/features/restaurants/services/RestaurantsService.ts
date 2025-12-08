@@ -90,8 +90,8 @@ export class RestaurantsService {
         return cached
       }
 
-      // Get from database
-      const restaurant = await this.dbService.getRestaurant(id)
+      // Get from database (convert id to string for database service)
+      const restaurant = await this.dbService.getRestaurant(String(id))
 
       if (restaurant) {
         // Cache the result
@@ -145,7 +145,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Updating restaurant', { id, data })
 
-      const restaurant = await this.dbService.updateRestaurant(id, data)
+      const restaurant = await this.dbService.updateRestaurant(String(id), data)
 
       if (restaurant) {
         // Invalidate caches
@@ -180,7 +180,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Deactivating restaurant', { id })
 
-      await this.dbService.deactivateRestaurant(id)
+      await this.dbService.deactivateRestaurant(String(id))
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -217,7 +217,7 @@ export class RestaurantsService {
       }
 
       // Get basic stats from database service
-      const dbStats = await this.dbService.getRestaurantStats(id)
+      const dbStats = await this.dbService.getRestaurantStats(String(id))
 
       // Transform to expected format (extend with additional metrics)
       const stats: EnhancedRestaurantStats = {
@@ -359,7 +359,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Generating shop QR code', { id })
 
-      const result = await this.dbService.generateShopQrCode(id)
+      const result = await this.dbService.generateShopQrCode(String(id))
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -381,7 +381,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Regenerating shop QR code', { id })
 
-      const result = await this.dbService.regenerateShopQrCode(id)
+      const result = await this.dbService.regenerateShopQrCode(String(id))
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -427,7 +427,7 @@ export class RestaurantsService {
         return cached
       }
 
-      const info = await this.dbService.getShopQrCodeInfo(id)
+      const info = await this.dbService.getShopQrCodeInfo(String(id))
 
       // Cache the result
       await this.cache.set(cacheKey, info, CACHE_TTL.MEDIUM)
@@ -448,7 +448,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Updating shop QR code image', { id, imageUrl })
 
-      await this.dbService.updateShopQrCodeImage(id, imageUrl)
+      await this.dbService.updateShopQrCodeImage(String(id), imageUrl)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -468,7 +468,7 @@ export class RestaurantsService {
     try {
       this.logger.debug('Updating shop mode', { id, enabled, settings })
 
-      await this.dbService.updateShopMode(id, enabled, settings)
+      await this.dbService.updateShopMode(String(id), enabled, settings)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -501,7 +501,12 @@ export class RestaurantsService {
         restaurantId: result.restaurantId
       })
 
-      return result
+      // Convert restaurantId from string to number for API layer
+      return {
+        valid: result.valid,
+        restaurantId: result.restaurantId ? Number(result.restaurantId) : undefined,
+        restaurant: result.restaurant
+      }
     } catch (error) {
       this.logger.error('Failed to verify shop QR code', error as Error, { qrCode })
       throw new Error('Failed to verify shop QR code')

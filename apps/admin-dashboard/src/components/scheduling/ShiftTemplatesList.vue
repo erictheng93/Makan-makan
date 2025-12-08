@@ -73,15 +73,15 @@
           <div class="flex items-center gap-2">
             <button
               class="p-2 rounded-lg hover:bg-blue-50 transition-colors group"
-              @click="$emit('edit', template)"
               title="編輯模板"
+              @click="$emit('edit', template)"
             >
               <PencilIcon class="h-4 w-4 text-gray-400 group-hover:text-blue-600" />
             </button>
             <button
               class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
-              @click="handleDelete(template)"
               title="刪除模板"
+              @click="handleDelete(template)"
             >
               <TrashIcon class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
             </button>
@@ -148,12 +148,12 @@
         <div class="p-4 bg-gray-50 border-t border-gray-200">
           <button
             class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 rounded-lg font-bold transition-all hover:-translate-y-0.5 hover:shadow"
-            @click="$emit('use', template)"
             :style="{
               backgroundColor: template.colorCode + '15',
               color: template.colorCode,
               borderColor: template.colorCode
             }"
+            @click="$emit('use', template)"
           >
             <CheckIcon class="h-5 w-5" />
             <span>使用此模板</span>

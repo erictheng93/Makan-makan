@@ -23,7 +23,7 @@
 
     <!-- 快速統計卡片 -->
     <div class="quick-stats">
-      <div class="stat-card" v-for="(stat, index) in quickStats" :key="index">
+      <div v-for="(stat, index) in quickStats" :key="index" class="stat-card">
         <div class="stat-icon" :style="{ backgroundColor: stat.color + '20', color: stat.color }">
           {{ stat.icon }}
         </div>
@@ -42,16 +42,16 @@
     <div class="charts-grid">
       <!-- 工時分析圖表 -->
       <div class="chart-section full-width">
-        <WorkHoursChart :autoFetch="true" />
+        <WorkHoursChart :auto-fetch="true" />
       </div>
 
       <!-- 班別分布和趨勢圖表 -->
       <div class="chart-section">
-        <ShiftDistributionChart :autoFetch="true" />
+        <ShiftDistributionChart :auto-fetch="true" />
       </div>
 
       <div class="chart-section">
-        <TrendChart :autoFetch="true" />
+        <TrendChart :auto-fetch="true" />
       </div>
 
       <!-- 數據洞察面板 -->

@@ -57,13 +57,16 @@ import { BackupRoutes } from './features/backup'
 import sseFeature from './features/sse'
 // import cacheRouter from './routes/cache' // Replaced with modular Cache feature
 import cacheFeature from './features/cache'
-import monitoringRouter from './routes/monitoring'
+// import monitoringRouter from './routes/monitoring' // Replaced with modular Monitoring feature
+import monitoringFeature from './features/monitoring'
 // import couponsRouter from './routes/coupons' // Replaced with modular Coupons feature
 import couponsFeature from './features/coupons'
 // import printRouter from './routes/print' // Disabled - incomplete feature
 // import { printApp } from './features/print' // Disabled - incomplete feature
-import aiAnalyticsRouter from './routes/ai-analytics'
-import seatsRouter from './routes/seats'
+// import aiAnalyticsRouter from './routes/ai-analytics' // Replaced with modular AI Analytics feature
+import aiAnalyticsFeature from './features/ai-analytics'
+// import seatsRouter from './routes/seats' // Replaced with modular Seats feature
+import seatsFeature from './features/seats'
 import customersRouter from './features/customers/routes'
 // import leavesRouter from './routes/leaves' // Replaced with modular Leaves feature
 import leavesFeature from './features/leaves'
@@ -77,7 +80,8 @@ import realtimeRoutes from './features/realtime/routes'
 // Notification system feature
 import notificationsRoutes from './features/notifications/routes'
 // Verification system (password reset, email/phone verification)
-import verificationRoutes from './routes/verification'
+// import verificationRoutes from './routes/verification' // Replaced with modular Verification feature
+import verificationFeature from './features/verification'
 // Partnership system feature
 import partnershipsRoutes from './features/partnerships/routes'
 import { ErrorSanitizer, createSafeErrorResponse } from './utils/errorSanitizer'
@@ -252,7 +256,7 @@ const apiV1 = new Hono<{ Bindings: Env }>()
 // Attach CSRF tokens to auth responses
 apiV1.use('/auth/*', attachCSRFToken())
 apiV1.route('/auth', authFeature.routes)
-apiV1.route('/auth', verificationRoutes) // Password reset, email/phone verification
+apiV1.route('/auth', verificationFeature.routes) // Password reset, email/phone verification
 // apiV1.route('/health', healthRouter) // Replaced with modular System feature (/system/health)
 apiV1.route('/qr', qrCodesFeature.routes)
 apiV1.route('/queue', queueFeature.routes) // 統一候位系統 (public + protected endpoints)
@@ -313,14 +317,14 @@ apiV1.route('/pos', posFeature.routes)
 // apiV1.route('/payments', paymentsRouter) // Disabled
 // apiV1.route('/print', printApp) // Disabled - incomplete feature
 apiV1.route('/tables', tablesFeature.routes)
-apiV1.route('/seats', seatsRouter)
+apiV1.route('/seats', seatsFeature.routes)
 apiV1.route('/users', usersFeature.routes)
 apiV1.route('/analytics', analyticsFeature.routes)
-apiV1.route('/ai-analytics', aiAnalyticsRouter)
+apiV1.route('/ai-analytics', aiAnalyticsFeature.routes)
 apiV1.route('/sse', sseFeature.routes)
 apiV1.route('/system', systemFeature.routes)
 apiV1.route('/cache', cacheFeature)
-apiV1.route('/monitoring', monitoringRouter)
+apiV1.route('/monitoring', monitoringFeature.routes)
 apiV1.route('/backup', BackupRoutes)
 apiV1.route('/customers', customersRouter)
 apiV1.route('/leaves', leavesFeature.routes)

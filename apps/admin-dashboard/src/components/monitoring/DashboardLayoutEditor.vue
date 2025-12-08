@@ -163,15 +163,15 @@ function handleCancel() {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <button
-            @click="showWidgetPicker = true"
             class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            @click="showWidgetPicker = true"
           >
             <PlusIcon class="w-4 h-4" />
             新增小部件
           </button>
           <button
-            @click="showPresetPicker = true"
             class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            @click="showPresetPicker = true"
           >
             載入預設
           </button>
@@ -179,14 +179,14 @@ function handleCancel() {
 
         <div class="flex items-center gap-2">
           <button
-            @click="handleCancel"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+            @click="handleCancel"
           >
             取消
           </button>
           <button
-            @click="handleSave"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            @click="handleSave"
           >
             保存佈局
           </button>
@@ -212,24 +212,24 @@ function handleCancel() {
           <h3 class="text-sm font-medium text-gray-900">{{ widget.title }}</h3>
           <div v-if="editMode" class="flex items-center gap-1">
             <button
-              @click.stop="toggleWidgetLock(widget.id)"
               class="p-1 text-gray-500 hover:text-gray-700 rounded"
               :title="widget.locked ? '解鎖' : '鎖定'"
+              @click.stop="toggleWidgetLock(widget.id)"
             >
               <LockClosedIcon v-if="widget.locked" class="w-4 h-4" />
               <LockOpenIcon v-else class="w-4 h-4" />
             </button>
             <button
-              @click.stop="configureWidget(widget.id)"
               class="p-1 text-gray-500 hover:text-gray-700 rounded"
               title="配置"
+              @click.stop="configureWidget(widget.id)"
             >
               <Cog6ToothIcon class="w-4 h-4" />
             </button>
             <button
-              @click.stop="removeWidget(widget.id)"
               class="p-1 text-red-500 hover:text-red-700 rounded"
               title="移除"
+              @click.stop="removeWidget(widget.id)"
             >
               <XMarkIcon class="w-4 h-4" />
             </button>
@@ -273,8 +273,8 @@ function handleCancel() {
           <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-900">選擇小部件</h2>
             <button
-              @click="showWidgetPicker = false"
               class="text-gray-400 hover:text-gray-600"
+              @click="showWidgetPicker = false"
             >
               <XMarkIcon class="w-6 h-6" />
             </button>
@@ -292,8 +292,8 @@ function handleCancel() {
                 <button
                   v-for="widget in widgets"
                   :key="widget.type"
-                  @click="addWidget(widget.type)"
                   class="p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                  @click="addWidget(widget.type)"
                 >
                   <p class="font-medium text-gray-900">{{ widget.name }}</p>
                   <p class="text-xs text-gray-500 mt-1 line-clamp-2">
@@ -321,8 +321,8 @@ function handleCancel() {
           <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-900">選擇預設佈局</h2>
             <button
-              @click="showPresetPicker = false"
               class="text-gray-400 hover:text-gray-600"
+              @click="showPresetPicker = false"
             >
               <XMarkIcon class="w-6 h-6" />
             </button>
@@ -332,8 +332,8 @@ function handleCancel() {
             <button
               v-for="preset in LAYOUT_PRESETS"
               :key="preset.id"
-              @click="applyPreset(preset)"
               class="p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              @click="applyPreset(preset)"
             >
               <p class="font-medium text-gray-900">{{ preset.name }}</p>
               <p class="text-sm text-gray-600 mt-2">{{ preset.description }}</p>

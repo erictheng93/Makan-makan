@@ -394,14 +394,14 @@ realtimeRoutes.get('/health', async (c) => {
       }, HTTP_STATUS.OK)
     }
 
-    const healthData = await response.json()
+    const healthData = await response.json() as Record<string, unknown>
 
     return c.json({
       success: true,
       data: {
         status: 'healthy',
         realtimeService: 'up',
-        ...healthData,
+        ...(typeof healthData === 'object' && healthData !== null ? healthData : {}),
         timestamp: new Date().toISOString()
       }
     }, HTTP_STATUS.OK)

@@ -5,8 +5,8 @@
       <div class="header-actions">
         <button
           class="btn btn-secondary"
-          @click="refreshData"
           :disabled="isLoading"
+          @click="refreshData"
         >
           {{ t('backup.actions.refresh') }}
         </button>
@@ -44,7 +44,7 @@
             </div>
           </div>
 
-          <div class="storage-info" v-if="systemHealth?.storage_usage">
+          <div v-if="systemHealth?.storage_usage" class="storage-info">
             <h3>{{ t('backup.monitoring.storageUsage') }}</h3>
             <div class="storage-bar">
               <div
@@ -73,11 +73,11 @@
           </select>
         </div>
 
-        <div class="chart-container" v-if="performanceData.length > 0">
+        <div v-if="performanceData.length > 0" class="chart-container">
           <canvas ref="performanceChart" width="800" height="300"></canvas>
         </div>
 
-        <div class="empty-chart" v-else>
+        <div v-else class="empty-chart">
           <p>{{ t('backup.monitoring.noPerformanceData') }}</p>
         </div>
       </div>
@@ -143,7 +143,7 @@
     </div>
 
     <!-- Critical Alerts -->
-    <div class="alerts-section" v-if="criticalAlerts.length > 0">
+    <div v-if="criticalAlerts.length > 0" class="alerts-section">
       <div class="section-header">
         <h3>{{ t('backup.monitoring.criticalAlerts') }}</h3>
         <span class="alert-count">{{ criticalAlerts.length }}</span>
@@ -172,16 +172,16 @@
           </div>
           <div class="alert-actions">
             <button
+              v-if="!alert.acknowledged"
               class="btn btn-sm btn-secondary"
               @click="acknowledgeAlert(alert.id)"
-              v-if="!alert.acknowledged"
             >
               {{ t('backup.monitoring.acknowledge') }}
             </button>
             <button
+              v-if="!alert.resolved"
               class="btn btn-sm btn-primary"
               @click="resolveAlert(alert.id)"
-              v-if="!alert.resolved"
             >
               {{ t('backup.monitoring.resolve') }}
             </button>

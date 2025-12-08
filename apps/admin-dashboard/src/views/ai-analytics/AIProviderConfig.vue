@@ -207,11 +207,11 @@ const handleSaveConfig = async () => {
               v-for="provider in providers"
               :key="provider.value"
               type="button"
-              @click="form.provider = provider.value as LLMProvider; onProviderChange()"
               class="relative flex items-start p-4 border-2 rounded-xl transition-all duration-200 hover:border-indigo-300 hover:shadow-sm"
               :class="form.provider === provider.value
                 ? 'border-indigo-600 bg-indigo-50'
                 : 'border-gray-200 bg-white'"
+              @click="form.provider = provider.value as LLMProvider; onProviderChange()"
             >
               <div class="flex-shrink-0 text-2xl mr-3">{{ provider.icon }}</div>
               <div class="flex-1 text-left">
@@ -319,9 +319,9 @@ const handleSaveConfig = async () => {
           <!-- Action Buttons -->
           <div class="flex space-x-3 pt-4">
             <button
-              @click="handleTestConnection"
               :disabled="isTesting || !form.apiKey"
               class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:border-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              @click="handleTestConnection"
             >
               <ArrowPathIcon
                 class="w-5 h-5 inline mr-2"
@@ -331,9 +331,9 @@ const handleSaveConfig = async () => {
             </button>
 
             <button
-              @click="handleSaveConfig"
               :disabled="isSaving || !form.apiKey"
               class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/30"
+              @click="handleSaveConfig"
             >
               {{ isSaving ? '保存中...' : '保存配置' }}
             </button>
