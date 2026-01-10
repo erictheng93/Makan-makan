@@ -17,6 +17,7 @@ bindings = [
 tag = "v1"
 new_classes = ["RealtimeSession"]
 
+# === STAGING ENVIRONMENT ===
 [env.staging]
 name = "makanmakan-realtime-staging"
 
@@ -27,12 +28,23 @@ database_name = "makanmakan-staging"
 # Run: wrangler d1 create makanmakan-staging
 database_id = "STAGING_DB_ID_TO_BE_REPLACED"
 
+# Cache KV - aligned with API naming convention
 [[env.staging.kv_namespaces]]
-binding = "CACHE"
-# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
-# Run: wrangler kv:namespace create "REALTIME_CACHE" --env staging
-id = "STAGING_KV_ID_TO_BE_REPLACED"
+binding = "CACHE_KV"
+# Use same KV namespace as API for data consistency
+id = "makanmakan-cache-staging"
 
+# Token Blacklist KV - dedicated security namespace
+[[env.staging.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmakan-token-blacklist-staging"
+
+# Rate Limit KV - for WebSocket connection rate limiting
+[[env.staging.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "makanmakan-ratelimit-staging"
+
+# === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmakan-realtime-prod"
 
@@ -43,8 +55,24 @@ database_name = "makanmakan-prod"
 # Run: wrangler d1 create makanmakan-prod
 database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
 
+# Cache KV - aligned with API naming convention
 [[env.production.kv_namespaces]]
-binding = "CACHE"
-# TODO: Replace with actual KV namespace ID from Cloudflare dashboard
-# Run: wrangler kv:namespace create "REALTIME_CACHE" --env production
-id = "PRODUCTION_KV_ID_TO_BE_REPLACED"
+binding = "CACHE_KV"
+# Use same KV namespace as API for data consistency
+id = "makanmakan-cache-prod"
+
+# Token Blacklist KV - dedicated security namespace
+[[env.production.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmakan-token-blacklist-prod"
+
+# Rate Limit KV - for WebSocket connection rate limiting
+[[env.production.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "makanmakan-ratelimit-prod"
+
+# Smart placement for production
+[env.production.placement]
+mode = "smart"
+strategy = "closest"
+hints = ["asia-southeast1"]
