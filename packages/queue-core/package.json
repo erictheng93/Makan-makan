@@ -27,29 +27,29 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./types": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
-      "require": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
+      "require": "./dist/types/index.js"
     },
     "./validators": {
+      "types": "./dist/validators/index.d.ts",
       "import": "./dist/validators/index.js",
-      "require": "./dist/validators/index.js",
-      "types": "./dist/validators/index.d.ts"
+      "require": "./dist/validators/index.js"
     },
     "./performance/queue-cache": {
+      "types": "./dist/performance/queue-cache.d.ts",
       "import": "./dist/performance/queue-cache.js",
-      "require": "./dist/performance/queue-cache.js",
-      "types": "./dist/performance/queue-cache.d.ts"
+      "require": "./dist/performance/queue-cache.js"
     },
     "./print": {
+      "types": "./dist/print/index.d.ts",
       "import": "./dist/print/index.js",
-      "require": "./dist/print/index.js",
-      "types": "./dist/print/index.d.ts"
+      "require": "./dist/print/index.js"
     }
   }
 }
