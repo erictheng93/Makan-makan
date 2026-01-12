@@ -1,5 +1,5 @@
 // Realtime - Message Dispatcher 測試
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
  * Message Dispatcher 測試
@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 interface RealtimeMessage {
   type: string;
-  roomType: 'customer' | 'admin' | 'kitchen';
+  roomType: "customer" | "admin" | "kitchen";
   roomId: string;
   payload: any;
   timestamp: number;
@@ -22,48 +22,49 @@ interface RealtimeMessage {
 
 interface Connection {
   id: string;
-  type: 'customer' | 'admin' | 'kitchen';
+  type: "customer" | "admin" | "kitchen";
   roomId: string;
   ws: any;
 }
 
-describe('Message Dispatcher', () => {
+describe("Message Dispatcher", () => {
   let connections: Map<string, Connection>;
-  let mockWebSocket: any;
+
+  // Helper to create a fresh mock WebSocket for each connection
+  const createMockWebSocket = () => ({
+    send: vi.fn(),
+    close: vi.fn(),
+    readyState: 1, // OPEN
+  });
 
   beforeEach(() => {
     connections = new Map();
-    mockWebSocket = {
-      send: vi.fn(),
-      close: vi.fn(),
-      readyState: 1, // OPEN
-    };
   });
 
-  describe('訊息路由', () => {
-    it('應該將訊息路由到正確的 room', () => {
+  describe("訊息路由", () => {
+    it("應該將訊息路由到正確的 room", () => {
       const conn1 = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const conn2 = {
-        id: 'conn-2',
-        type: 'customer' as const,
-        roomId: 'table-2',
-        ws: { ...mockWebSocket },
+        id: "conn-2",
+        type: "customer" as const,
+        roomId: "table-2",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', conn1);
-      connections.set('conn-2', conn2);
+      connections.set("conn-1", conn1);
+      connections.set("conn-2", conn2);
 
       const message: RealtimeMessage = {
-        type: 'order.created',
-        roomType: 'customer',
-        roomId: 'table-1',
-        payload: { orderId: 'order-123' },
+        type: "order.created",
+        roomType: "customer",
+        roomId: "table-1",
+        payload: { orderId: "order-123" },
         timestamp: Date.now(),
       };
 
@@ -81,28 +82,28 @@ describe('Message Dispatcher', () => {
       expect(conn2.ws.send).not.toHaveBeenCalled();
     });
 
-    it('應該支持多個連接在同一個 room', () => {
+    it("應該支持多個連接在同一個 room", () => {
       const conn1 = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const conn2 = {
-        id: 'conn-2',
-        type: 'customer' as const,
-        roomId: 'table-1', // Same room
-        ws: { ...mockWebSocket },
+        id: "conn-2",
+        type: "customer" as const,
+        roomId: "table-1", // Same room
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', conn1);
-      connections.set('conn-2', conn2);
+      connections.set("conn-1", conn1);
+      connections.set("conn-2", conn2);
 
       const message: RealtimeMessage = {
-        type: 'menu.updated',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "menu.updated",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
       };
@@ -121,28 +122,28 @@ describe('Message Dispatcher', () => {
       expect(conn2.ws.send).toHaveBeenCalled();
     });
 
-    it('應該根據 roomType 過濾連接', () => {
+    it("應該根據 roomType 過濾連接", () => {
       const customerConn = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const adminConn = {
-        id: 'conn-2',
-        type: 'admin' as const,
-        roomId: 'dashboard-1',
-        ws: { ...mockWebSocket },
+        id: "conn-2",
+        type: "admin" as const,
+        roomId: "dashboard-1",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', customerConn);
-      connections.set('conn-2', adminConn);
+      connections.set("conn-1", customerConn);
+      connections.set("conn-2", adminConn);
 
       const message: RealtimeMessage = {
-        type: 'order.status.changed',
-        roomType: 'admin',
-        roomId: 'dashboard-1',
+        type: "order.status.changed",
+        roomType: "admin",
+        roomId: "dashboard-1",
         payload: {},
         timestamp: Date.now(),
       };
@@ -162,30 +163,30 @@ describe('Message Dispatcher', () => {
     });
   });
 
-  describe('廣播機制', () => {
-    it('應該廣播到所有連接', () => {
+  describe("廣播機制", () => {
+    it("應該廣播到所有連接", () => {
       const conn1 = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const conn2 = {
-        id: 'conn-2',
-        type: 'admin' as const,
-        roomId: 'dashboard-1',
-        ws: { ...mockWebSocket },
+        id: "conn-2",
+        type: "admin" as const,
+        roomId: "dashboard-1",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', conn1);
-      connections.set('conn-2', conn2);
+      connections.set("conn-1", conn1);
+      connections.set("conn-2", conn2);
 
       const message: RealtimeMessage = {
-        type: 'system.announcement',
-        roomType: 'customer',
-        roomId: 'broadcast',
-        payload: { text: 'System maintenance' },
+        type: "system.announcement",
+        roomType: "customer",
+        roomId: "broadcast",
+        payload: { text: "System maintenance" },
         timestamp: Date.now(),
       };
 
@@ -201,36 +202,36 @@ describe('Message Dispatcher', () => {
       expect(conn2.ws.send).toHaveBeenCalled();
     });
 
-    it('應該廣播到特定類型的所有連接', () => {
+    it("應該廣播到特定類型的所有連接", () => {
       const customer1 = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const customer2 = {
-        id: 'conn-2',
-        type: 'customer' as const,
-        roomId: 'table-2',
-        ws: { ...mockWebSocket },
+        id: "conn-2",
+        type: "customer" as const,
+        roomId: "table-2",
+        ws: createMockWebSocket(),
       };
 
       const admin = {
-        id: 'conn-3',
-        type: 'admin' as const,
-        roomId: 'dashboard-1',
-        ws: { ...mockWebSocket },
+        id: "conn-3",
+        type: "admin" as const,
+        roomId: "dashboard-1",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', customer1);
-      connections.set('conn-2', customer2);
-      connections.set('conn-3', admin);
+      connections.set("conn-1", customer1);
+      connections.set("conn-2", customer2);
+      connections.set("conn-3", admin);
 
       const message: RealtimeMessage = {
-        type: 'menu.updated',
-        roomType: 'customer',
-        roomId: 'broadcast',
+        type: "menu.updated",
+        roomType: "customer",
+        roomId: "broadcast",
         payload: {},
         timestamp: Date.now(),
       };
@@ -243,38 +244,38 @@ describe('Message Dispatcher', () => {
         });
       };
 
-      broadcastToType(message, 'customer');
+      broadcastToType(message, "customer");
 
       expect(customer1.ws.send).toHaveBeenCalled();
       expect(customer2.ws.send).toHaveBeenCalled();
       expect(admin.ws.send).not.toHaveBeenCalled();
     });
 
-    it('應該排除發送者本身', () => {
+    it("應該排除發送者本身", () => {
       const sender = {
-        id: 'conn-sender',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-sender",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
       const receiver = {
-        id: 'conn-receiver',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: { ...mockWebSocket },
+        id: "conn-receiver",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-sender', sender);
-      connections.set('conn-receiver', receiver);
+      connections.set("conn-sender", sender);
+      connections.set("conn-receiver", receiver);
 
       const message: RealtimeMessage = {
-        type: 'user.typing',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "user.typing",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
-        senderId: 'conn-sender',
+        senderId: "conn-sender",
       };
 
       const dispatchExcludingSender = (msg: RealtimeMessage) => {
@@ -296,38 +297,54 @@ describe('Message Dispatcher', () => {
     });
   });
 
-  describe('訊息過濾', () => {
-    it('應該過濾無效的訊息', () => {
+  describe("訊息過濾", () => {
+    it("應該過濾無效的訊息", () => {
       const isValidMessage = (msg: any): boolean => {
-        return (
+        // Use Boolean() to ensure a proper boolean return value
+        return Boolean(
           msg &&
-          typeof msg.type === 'string' &&
-          typeof msg.roomType === 'string' &&
-          typeof msg.roomId === 'string' &&
-          msg.payload !== undefined
+          typeof msg.type === "string" &&
+          typeof msg.roomType === "string" &&
+          typeof msg.roomId === "string" &&
+          msg.payload !== undefined,
         );
       };
 
-      expect(isValidMessage({ type: 'test', roomType: 'customer', roomId: 'room-1', payload: {} })).toBe(true);
-      expect(isValidMessage({ type: 'test', roomType: 'customer', roomId: 'room-1' })).toBe(false); // Missing payload
-      expect(isValidMessage({ roomType: 'customer', roomId: 'room-1', payload: {} })).toBe(false); // Missing type
+      expect(
+        isValidMessage({
+          type: "test",
+          roomType: "customer",
+          roomId: "room-1",
+          payload: {},
+        }),
+      ).toBe(true);
+      expect(
+        isValidMessage({
+          type: "test",
+          roomType: "customer",
+          roomId: "room-1",
+        }),
+      ).toBe(false); // Missing payload
+      expect(
+        isValidMessage({ roomType: "customer", roomId: "room-1", payload: {} }),
+      ).toBe(false); // Missing type
       expect(isValidMessage(null)).toBe(false);
     });
 
-    it('應該驗證 roomType', () => {
-      const validRoomTypes = ['customer', 'admin', 'kitchen'];
+    it("應該驗證 roomType", () => {
+      const validRoomTypes = ["customer", "admin", "kitchen"];
 
       const isValidRoomType = (roomType: string): boolean => {
         return validRoomTypes.includes(roomType);
       };
 
-      expect(isValidRoomType('customer')).toBe(true);
-      expect(isValidRoomType('admin')).toBe(true);
-      expect(isValidRoomType('kitchen')).toBe(true);
-      expect(isValidRoomType('invalid')).toBe(false);
+      expect(isValidRoomType("customer")).toBe(true);
+      expect(isValidRoomType("admin")).toBe(true);
+      expect(isValidRoomType("kitchen")).toBe(true);
+      expect(isValidRoomType("invalid")).toBe(false);
     });
 
-    it('應該過濾過大的訊息', () => {
+    it("應該過濾過大的訊息", () => {
       const MAX_MESSAGE_SIZE = 1024 * 64; // 64KB
 
       const isMessageTooLarge = (msg: RealtimeMessage): boolean => {
@@ -336,18 +353,18 @@ describe('Message Dispatcher', () => {
       };
 
       const smallMessage: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'room-1',
-        payload: { data: 'small' },
+        type: "test",
+        roomType: "customer",
+        roomId: "room-1",
+        payload: { data: "small" },
         timestamp: Date.now(),
       };
 
       const largeMessage: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'room-1',
-        payload: { data: 'x'.repeat(100000) },
+        type: "test",
+        roomType: "customer",
+        roomId: "room-1",
+        payload: { data: "x".repeat(100000) },
         timestamp: Date.now(),
       };
 
@@ -356,28 +373,28 @@ describe('Message Dispatcher', () => {
     });
   });
 
-  describe('錯誤處理', () => {
-    it('應該處理發送失敗', () => {
+  describe("錯誤處理", () => {
+    it("應該處理發送失敗", () => {
       const failingWs = {
         send: vi.fn(() => {
-          throw new Error('Send failed');
+          throw new Error("Send failed");
         }),
         readyState: 1,
       };
 
       const conn = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
         ws: failingWs,
       };
 
-      connections.set('conn-1', conn);
+      connections.set("conn-1", conn);
 
       const message: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "test",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
       };
@@ -397,29 +414,30 @@ describe('Message Dispatcher', () => {
       expect(result.success).toBe(false);
     });
 
-    it('應該跳過已關閉的連接', () => {
+    it("應該跳過已關閉的連接", () => {
       const closedWs = {
         send: vi.fn(),
         readyState: 3, // CLOSED
       };
 
       const conn = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
         ws: closedWs,
       };
 
       const message: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "test",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
       };
 
       const sendIfOpen = (conn: Connection, msg: RealtimeMessage) => {
-        if (conn.ws.readyState === 1) { // OPEN
+        if (conn.ws.readyState === 1) {
+          // OPEN
           conn.ws.send(JSON.stringify(msg));
           return true;
         }
@@ -432,28 +450,28 @@ describe('Message Dispatcher', () => {
       expect(closedWs.send).not.toHaveBeenCalled();
     });
 
-    it('應該清理失敗的連接', () => {
+    it("應該清理失敗的連接", () => {
       const failingWs = {
         send: vi.fn(() => {
-          throw new Error('Send failed');
+          throw new Error("Send failed");
         }),
         close: vi.fn(),
         readyState: 1,
       };
 
       const conn = {
-        id: 'conn-fail',
-        type: 'customer' as const,
-        roomId: 'table-1',
+        id: "conn-fail",
+        type: "customer" as const,
+        roomId: "table-1",
         ws: failingWs,
       };
 
-      connections.set('conn-fail', conn);
+      connections.set("conn-fail", conn);
 
       const message: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "test",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
       };
@@ -472,7 +490,7 @@ describe('Message Dispatcher', () => {
           }
         });
 
-        failedConnections.forEach(id => connections.delete(id));
+        failedConnections.forEach((id) => connections.delete(id));
 
         return failedConnections.length;
       };
@@ -480,31 +498,31 @@ describe('Message Dispatcher', () => {
       const failedCount = dispatchWithCleanup(message);
 
       expect(failedCount).toBe(1);
-      expect(connections.has('conn-fail')).toBe(false);
+      expect(connections.has("conn-fail")).toBe(false);
       expect(failingWs.close).toHaveBeenCalled();
     });
   });
 
-  describe('訊息統計', () => {
-    it('應該統計發送的訊息數量', () => {
+  describe("訊息統計", () => {
+    it("應該統計發送的訊息數量", () => {
       const stats = {
         messagesSent: 0,
         messagesDropped: 0,
       };
 
       const conn = {
-        id: 'conn-1',
-        type: 'customer' as const,
-        roomId: 'table-1',
-        ws: mockWebSocket,
+        id: "conn-1",
+        type: "customer" as const,
+        roomId: "table-1",
+        ws: createMockWebSocket(),
       };
 
-      connections.set('conn-1', conn);
+      connections.set("conn-1", conn);
 
       const message: RealtimeMessage = {
-        type: 'test',
-        roomType: 'customer',
-        roomId: 'table-1',
+        type: "test",
+        roomType: "customer",
+        roomId: "table-1",
         payload: {},
         timestamp: Date.now(),
       };

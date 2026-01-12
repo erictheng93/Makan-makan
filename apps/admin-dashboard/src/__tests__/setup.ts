@@ -6,7 +6,7 @@
 import { vi, beforeEach } from "vitest";
 import { config } from "@vue/test-utils";
 import { ref, h } from "vue";
-import { setupAllBrowserAPIs } from './browser-api-mocks';
+import { setupAllBrowserAPIs } from "./browser-api-mocks";
 
 // ============================================================
 // Vue Router Mock (完整版)
@@ -27,14 +27,14 @@ const mockRouter = {
   // 路由解析（修復 "invalid location" 警告）
   resolve: vi.fn((to) => {
     // 處理字符串路徑
-    if (typeof to === 'string') {
+    if (typeof to === "string") {
       return {
         href: to,
         path: to,
         name: undefined,
         params: {},
         query: {},
-        hash: '',
+        hash: "",
         fullPath: to,
         matched: [],
         meta: {},
@@ -44,13 +44,13 @@ const mockRouter = {
 
     // 處理對象格式的路由
     return {
-      href: to.path || to.name || '/',
-      path: to.path || '/',
+      href: to.path || to.name || "/",
+      path: to.path || "/",
       name: to.name || undefined,
       params: to.params || {},
       query: to.query || {},
-      hash: to.hash || '',
-      fullPath: to.path || '/',
+      hash: to.hash || "",
+      fullPath: to.path || "/",
       matched: [],
       meta: to.meta || {},
       redirectedFrom: undefined,
@@ -70,8 +70,8 @@ const mockRouter = {
     params: {},
     query: {},
     meta: {},
-    hash: '',
-    fullPath: '/',
+    hash: "",
+    fullPath: "/",
     matched: [],
     redirectedFrom: undefined,
   }),
@@ -80,7 +80,7 @@ const mockRouter = {
   options: {
     history: {
       state: {},
-      location: '/',
+      location: "/",
     },
     routes: [],
   },
@@ -150,19 +150,19 @@ export const mockOrderStore = {
  * Mock Settings Store (修復 getters 問題)
  */
 export const mockSettingsStore = {
-  language: ref('en-US'),
-  theme: ref('light'),
+  language: ref("en-US"),
+  theme: ref("light"),
   getters: {
-    'settings/language': 'en-US',
-    'settings/theme': 'light',
+    "settings/language": "en-US",
+    "settings/theme": "light",
   },
   setLanguage: vi.fn((lang) => {
     mockSettingsStore.language.value = lang;
-    mockSettingsStore.getters['settings/language'] = lang;
+    mockSettingsStore.getters["settings/language"] = lang;
   }),
   setTheme: vi.fn((theme) => {
     mockSettingsStore.theme.value = theme;
-    mockSettingsStore.getters['settings/theme'] = theme;
+    mockSettingsStore.getters["settings/theme"] = theme;
   }),
 };
 
@@ -175,7 +175,7 @@ export const mockSettingsStore = {
  * 避免 "Failed to resolve component: router-link" 警告
  */
 const RouterLinkStub = {
-  name: 'RouterLink',
+  name: "RouterLink",
   props: {
     to: {
       type: [String, Object],
@@ -189,13 +189,17 @@ const RouterLinkStub = {
   setup(props: any, { slots }: any) {
     return () => {
       const children = slots.default ? slots.default() : [];
-      return h('a', {
-        href: typeof props.to === 'string' ? props.to : props.to.path || '#',
-        onClick: (e: Event) => {
-          e.preventDefault();
-          mockRouter.push(props.to);
+      return h(
+        "a",
+        {
+          href: typeof props.to === "string" ? props.to : props.to.path || "#",
+          onClick: (e: Event) => {
+            e.preventDefault();
+            mockRouter.push(props.to);
+          },
         },
-      }, children);
+        children,
+      );
     };
   },
 };
@@ -213,11 +217,83 @@ const createIconStub = (name: string) => ({
   template: `<svg data-testid="${name.toLowerCase()}" :class="class" :style="style"><title>${name}</title></svg>`,
 });
 
-const ShareIconStub = createIconStub('ShareIcon');
-const CashIconStub = createIconStub('CashIcon');
-const UserIconStub = createIconStub('UserIcon');
-const BellIconStub = createIconStub('BellIcon');
-const CogIconStub = createIconStub('CogIcon');
+const ShareIconStub = createIconStub("ShareIcon");
+const CashIconStub = createIconStub("CashIcon");
+const UserIconStub = createIconStub("UserIcon");
+const BellIconStub = createIconStub("BellIcon");
+const CogIconStub = createIconStub("CogIcon");
+
+// ============================================================
+// Chart.js Mock (修復 Chart.register is not a function 錯誤)
+// ============================================================
+
+vi.mock("chart.js", () => {
+  const mockChartInstance = {
+    destroy: vi.fn(),
+    update: vi.fn(),
+    resize: vi.fn(),
+    render: vi.fn(),
+    data: { labels: [], datasets: [] },
+    options: {},
+  };
+
+  return {
+    Chart: Object.assign(
+      vi.fn(() => mockChartInstance),
+      {
+        register: vi.fn(),
+        unregister: vi.fn(),
+        defaults: {
+          font: { family: "sans-serif" },
+          color: "#666",
+          plugins: {},
+        },
+        overrides: {},
+        controllers: {},
+        elements: {},
+        plugins: {},
+        scales: {},
+      },
+    ),
+    // Scale types
+    CategoryScale: vi.fn(),
+    LinearScale: vi.fn(),
+    PointElement: vi.fn(),
+    LineElement: vi.fn(),
+    BarElement: vi.fn(),
+    ArcElement: vi.fn(),
+    Title: vi.fn(),
+    Tooltip: vi.fn(),
+    Legend: vi.fn(),
+    Filler: vi.fn(),
+    // Additional exports
+    registerables: [],
+  };
+});
+
+// Also mock vue-chartjs
+vi.mock("vue-chartjs", () => ({
+  Bar: {
+    name: "Bar",
+    props: ["data", "options"],
+    template: '<canvas data-testid="chart-canvas"></canvas>',
+  },
+  Line: {
+    name: "Line",
+    props: ["data", "options"],
+    template: '<canvas data-testid="chart-canvas"></canvas>',
+  },
+  Pie: {
+    name: "Pie",
+    props: ["data", "options"],
+    template: '<canvas data-testid="chart-canvas"></canvas>',
+  },
+  Doughnut: {
+    name: "Doughnut",
+    props: ["data", "options"],
+    template: '<canvas data-testid="chart-canvas"></canvas>',
+  },
+}));
 
 // ============================================================
 // Element Plus Mocks
@@ -281,13 +357,13 @@ vi.mock("vue-router", async () => {
       back: vi.fn(),
       forward: vi.fn(),
       resolve: vi.fn((to) => ({
-        href: typeof to === 'string' ? to : (to.path || '/'),
-        path: typeof to === 'string' ? to : (to.path || '/'),
-        name: typeof to === 'object' ? to.name : undefined,
-        params: typeof to === 'object' ? (to.params || {}) : {},
-        query: typeof to === 'object' ? (to.query || {}) : {},
-        hash: '',
-        fullPath: typeof to === 'string' ? to : (to.path || '/'),
+        href: typeof to === "string" ? to : to.path || "/",
+        path: typeof to === "string" ? to : to.path || "/",
+        name: typeof to === "object" ? to.name : undefined,
+        params: typeof to === "object" ? to.params || {} : {},
+        query: typeof to === "object" ? to.query || {} : {},
+        hash: "",
+        fullPath: typeof to === "string" ? to : to.path || "/",
         matched: [],
         meta: {},
       })),
@@ -297,8 +373,8 @@ vi.mock("vue-router", async () => {
         params: {},
         query: {},
         meta: {},
-        hash: '',
-        fullPath: '/',
+        hash: "",
+        fullPath: "/",
         matched: [],
       }),
     }),
@@ -308,18 +384,18 @@ vi.mock("vue-router", async () => {
       params: {},
       query: {},
       meta: {},
-      hash: '',
-      fullPath: '/',
+      hash: "",
+      fullPath: "/",
       matched: [],
     }),
     RouterLink: {
-      name: 'RouterLink',
-      template: '<a><slot /></a>',
-      props: ['to'],
+      name: "RouterLink",
+      template: "<a><slot /></a>",
+      props: ["to"],
     },
     RouterView: {
-      name: 'RouterView',
-      template: '<div><slot /></div>',
+      name: "RouterView",
+      template: "<div><slot /></div>",
     },
     createRouter: vi.fn(),
     createWebHistory: vi.fn(),
@@ -346,15 +422,15 @@ config.global = {
 
   // Stubs (組件替身)
   stubs: {
-    'router-link': RouterLinkStub,
-    'RouterLink': RouterLinkStub,
-    'ShareIcon': ShareIconStub,
-    'CashIcon': CashIconStub,
-    'UserIcon': UserIconStub,
-    'BellIcon': BellIconStub,
-    'CogIcon': CogIconStub,
-    'transition': false,  // 禁用過渡動畫以加快測試
-    'transition-group': false,
+    "router-link": RouterLinkStub,
+    RouterLink: RouterLinkStub,
+    ShareIcon: ShareIconStub,
+    CashIcon: CashIconStub,
+    UserIcon: UserIconStub,
+    BellIcon: BellIconStub,
+    CogIcon: CogIconStub,
+    transition: false, // 禁用過渡動畫以加快測試
+    "transition-group": false,
   },
 
   // Provide (依賴注入) - 使用多種方式確保 router 可用
@@ -395,108 +471,108 @@ global.EventSource = vi.fn().mockImplementation(() => ({
  * Mock Notification API
  * 測試環境不支持瀏覽器通知 API，需要手動 mock
  */
-if (typeof global.Notification === 'undefined') {
+if (typeof global.Notification === "undefined") {
   global.Notification = class Notification extends EventTarget {
-    static permission: NotificationPermission = 'default'
+    static permission: NotificationPermission = "default";
 
     static requestPermission(): Promise<NotificationPermission> {
-      return Promise.resolve('granted')
+      return Promise.resolve("granted");
     }
 
-    title: string
-    body?: string
-    icon?: string
-    tag?: string
-    data?: any
-    onclick: ((event: Event) => void) | null = null
-    onclose: ((event: Event) => void) | null = null
-    onerror: ((event: Event) => void) | null = null
-    onshow: ((event: Event) => void) | null = null
+    title: string;
+    body?: string;
+    icon?: string;
+    tag?: string;
+    data?: any;
+    onclick: ((event: Event) => void) | null = null;
+    onclose: ((event: Event) => void) | null = null;
+    onerror: ((event: Event) => void) | null = null;
+    onshow: ((event: Event) => void) | null = null;
 
     constructor(title: string, options?: NotificationOptions) {
-      super()
-      this.title = title
-      this.body = options?.body
-      this.icon = options?.icon
-      this.tag = options?.tag
-      this.data = options?.data
+      super();
+      this.title = title;
+      this.body = options?.body;
+      this.icon = options?.icon;
+      this.tag = options?.tag;
+      this.data = options?.data;
 
       // Auto-trigger show event in next tick
       setTimeout(() => {
-        this.onshow?.(new Event('show'))
-      }, 0)
+        this.onshow?.(new Event("show"));
+      }, 0);
     }
 
     close(): void {
       setTimeout(() => {
-        this.onclose?.(new Event('close'))
-      }, 0)
+        this.onclose?.(new Event("close"));
+      }, 0);
     }
-  } as any
+  } as any;
 }
 
 /**
  * Mock CloseEvent (for WebSocket testing)
  * jsdom 可能不完全支持 CloseEvent
  */
-if (typeof global.CloseEvent === 'undefined') {
+if (typeof global.CloseEvent === "undefined") {
   global.CloseEvent = class CloseEvent extends Event {
-    code: number
-    reason: string
-    wasClean: boolean
+    code: number;
+    reason: string;
+    wasClean: boolean;
 
     constructor(
       type: string,
       eventInitDict?: {
-        code?: number
-        reason?: string
-        wasClean?: boolean
-        bubbles?: boolean
-        cancelable?: boolean
-        composed?: boolean
-      }
+        code?: number;
+        reason?: string;
+        wasClean?: boolean;
+        bubbles?: boolean;
+        cancelable?: boolean;
+        composed?: boolean;
+      },
     ) {
-      super(type, eventInitDict)
-      this.code = eventInitDict?.code ?? 0
-      this.reason = eventInitDict?.reason ?? ''
-      this.wasClean = eventInitDict?.wasClean ?? false
+      super(type, eventInitDict);
+      this.code = eventInitDict?.code ?? 0;
+      this.reason = eventInitDict?.reason ?? "";
+      this.wasClean = eventInitDict?.wasClean ?? false;
     }
-  } as any
+  } as any;
 }
 
 /**
  * Mock MessageEvent (for WebSocket testing)
  * 確保 MessageEvent 在測試環境中可用
  */
-if (typeof global.MessageEvent === 'undefined') {
+if (typeof global.MessageEvent === "undefined") {
   global.MessageEvent = class MessageEvent extends Event {
-    data: any
-    origin: string
-    lastEventId: string
-    source: any
-    ports: any[]
+    data: any;
+    origin: string;
+    lastEventId: string;
+    source: any;
+    ports: any[];
 
     constructor(
       type: string,
       eventInitDict?: {
-        data?: any
-        origin?: string
-        lastEventId?: string
-        source?: any
-        ports?: any[]
-        bubbles?: boolean
-        cancelable?: boolean
-        composed?: boolean
-      }
+        data?: any;
+        origin?: string;
+        lastEventId?: string;
+        source?: any;
+        ports?: any[];
+        bubbles?: boolean;
+        cancelable?: boolean;
+        composed?: boolean;
+      },
     ) {
-      super(type, eventInitDict)
-      this.data = eventInitDict?.data
-      this.origin = eventInitDict?.origin ?? ''
-      this.lastEventId = eventInitDict?.lastEventId ?? ''
-      this.source = eventInitDict?.source ?? null
-      this.ports = eventInitDict?.ports ?? []
+      super(type, eventInitDict);
+      this.data = eventInitDict?.data;
+      this.origin = eventInitDict?.origin ?? "";
+      this.lastEventId = eventInitDict?.lastEventId ?? "";
+      this.source = eventInitDict?.source ?? null;
+      this.ports = eventInitDict?.ports ?? [];
     }
-  } as any
+  } as any;
 }
 
 // ============================================================
@@ -507,7 +583,7 @@ if (typeof global.MessageEvent === 'undefined') {
  * 設置所有瀏覽器 API mocks
  * 包含真正的 localStorage、URL.createObjectURL 等
  */
-setupAllBrowserAPIs()
+setupAllBrowserAPIs();
 
 /**
  * Mock window.location
@@ -534,20 +610,20 @@ Object.defineProperty(window, "location", {
  * Mock window.alert, window.confirm, window.prompt
  * jsdom 不完全實現這些方法，需要手動 mock
  */
-Object.defineProperty(window, 'alert', {
+Object.defineProperty(window, "alert", {
   value: vi.fn(),
   writable: true,
   configurable: true,
 });
 
-Object.defineProperty(window, 'confirm', {
+Object.defineProperty(window, "confirm", {
   value: vi.fn(() => true),
   writable: true,
   configurable: true,
 });
 
-Object.defineProperty(window, 'prompt', {
-  value: vi.fn((_message: string, defaultValue?: string) => defaultValue || ''),
+Object.defineProperty(window, "prompt", {
+  value: vi.fn((_message: string, defaultValue?: string) => defaultValue || ""),
   writable: true,
   configurable: true,
 });
@@ -560,14 +636,14 @@ Object.defineProperty(window, 'prompt', {
  * Mock Clipboard API
  * 用於測試複製功能
  */
-if (typeof global.navigator === 'undefined') {
+if (typeof global.navigator === "undefined") {
   (global as any).navigator = {};
 }
 
-Object.defineProperty(global.navigator, 'clipboard', {
+Object.defineProperty(global.navigator, "clipboard", {
   value: {
     writeText: vi.fn(() => Promise.resolve()),
-    readText: vi.fn(() => Promise.resolve('')),
+    readText: vi.fn(() => Promise.resolve("")),
   },
   writable: true,
 });
@@ -589,8 +665,8 @@ beforeEach(() => {
     params: {},
     query: {},
     meta: {},
-    hash: '',
-    fullPath: '/',
+    hash: "",
+    fullPath: "/",
     matched: [],
     redirectedFrom: undefined,
   };
@@ -602,8 +678,8 @@ beforeEach(() => {
   mockNotificationStore.notifications.value = [];
   mockOrderStore.orders.value = [];
   mockOrderStore.currentOrder.value = null;
-  mockSettingsStore.language.value = 'en-US';
-  mockSettingsStore.theme.value = 'light';
+  mockSettingsStore.language.value = "en-US";
+  mockSettingsStore.theme.value = "light";
 
   // 重置 localStorage (使用真正的 clear 方法)
   window.localStorage.clear();

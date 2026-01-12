@@ -233,11 +233,13 @@ const calculatedHours = computed(() => {
   // Subtract break time
   totalMinutes -= formData.breakDurationMinutes || 0
 
-  const hours = (totalMinutes / 60).toFixed(1)
-  formData.scheduledHours = parseFloat(hours)
-
-  return hours
+  return (totalMinutes / 60).toFixed(1)
 })
+
+// Sync calculated hours to formData
+watch(calculatedHours, (hours) => {
+  formData.scheduledHours = parseFloat(hours)
+}, { immediate: true })
 
 // Fetch available employees when date changes
 const handleDateChange = async () => {

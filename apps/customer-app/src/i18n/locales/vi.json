@@ -28,7 +28,8 @@
     "sort": "Sắp xếp",
     "clear": "Xóa",
     "apply": "Áp dụng",
-    "reset": "Đặt lại"
+    "reset": "Đặt lại",
+    "off": "Giảm giá"
   },
   "navigation": {
     "home": "Trang chủ",
@@ -145,7 +146,25 @@
     "editNotes": "Chỉnh sửa",
     "hideNotes": "Ẩn",
     "notes": "Ghi chú",
-    "itemTotal": "Tổng cộng món"
+    "itemTotal": "Tổng cộng món",
+    "couponCode": "Mã giảm giá",
+    "couponPlaceholder": "Nhập mã giảm giá",
+    "applyCoupon": "Áp dụng",
+    "removeCoupon": "Xóa mã giảm giá",
+    "coupons": "Mã giảm giá",
+    "viewAvailable": "Xem mã khả dụng",
+    "availableCoupons": "Mã giảm giá khả dụng",
+    "noCouponsAvailable": "Không có mã giảm giá khả dụng",
+    "orEnterCode": "Hoặc nhập mã giảm giá thủ công",
+    "saving": "Tiết kiệm",
+    "minOrder": "Đơn hàng tối thiểu",
+    "maxDiscount": "Giảm tối đa",
+    "validUntil": "Có hiệu lực đến",
+    "percentage": "Giảm theo phần trăm",
+    "fixedAmount": "Giảm số tiền cố định",
+    "recommendedForYou": "Đề xuất cho bạn",
+    "potentialSaving": "Tiết kiệm dự kiến",
+    "use": "Sử dụng"
   },
   "order": {
     "title": "Xác nhận đơn hàng",

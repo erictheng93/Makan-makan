@@ -90,7 +90,7 @@ export interface SystemUsageOverview {
 // ============================================================================
 
 const USAGE_PREFIX = "_kv_usage:";
-const SYSTEM_OVERVIEW_KEY = "_kv_system_overview";
+const _SYSTEM_OVERVIEW_KEY = "_kv_system_overview";
 
 const DEFAULT_QUOTA_CONFIG: KVQuotaConfig = {
   maxKeysPerRestaurant: 10000,

@@ -10,89 +10,104 @@
  * - Coupon integration
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock query-cache utilities
-vi.mock('../../utils/query-cache', () => ({
+vi.mock("../../utils/query-cache", () => ({
   QueryCache: vi.fn().mockImplementation(() => ({
     getOrExecute: vi.fn(async (key, queryFn) => await queryFn()),
-    invalidate: vi.fn().mockResolvedValue(undefined)
+    invalidate: vi.fn().mockResolvedValue(undefined),
   })),
-  buildCacheKey: vi.fn((resource, identifier, suffix) =>
-    `${resource}:${identifier}${suffix ? ':' + suffix : ''}`
-  )
-}))
+  buildCacheKey: vi.fn(
+    (resource, identifier, suffix) =>
+      `${resource}:${identifier}${suffix ? ":" + suffix : ""}`,
+  ),
+}));
 
 // Mock connection-manager
-vi.mock('../../utils/connection-manager', () => ({
+vi.mock("../../utils/connection-manager", () => ({
   getConnectionManager: vi.fn(() => ({
-    executeQuery: vi.fn(async (queryFn) => await queryFn())
-  }))
-}))
+    executeQuery: vi.fn(async (queryFn) => await queryFn()),
+  })),
+}));
 
 // Mock coupon service
-vi.mock('../coupon', () => ({
+vi.mock("../coupon", () => ({
   CouponService: vi.fn().mockImplementation(() => ({
     validateCoupon: vi.fn().mockResolvedValue({
       valid: true,
       discountAmount: 10,
-      coupon: { id: 1, code: 'TEST10', discountType: 'fixed', discountValue: 10 }
+      coupon: {
+        id: 1,
+        code: "TEST10",
+        discountType: "fixed",
+        discountValue: 10,
+      },
     }),
-    useCoupon: vi.fn().mockResolvedValue(undefined)
-  }))
-}))
+    useCoupon: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
 
-import { OrderService } from '../order'
-import { createMockDatabase, createMockEnv, setupMockDbResponses, createQueryChain } from './helpers/mockD1'
-import type { CreateOrderData, UpdateOrderStatusData, OrderFilters } from '../order'
+import { OrderService } from "../order";
+import {
+  createMockDatabase,
+  createMockEnv,
+  setupMockDbResponses,
+  createQueryChain,
+} from "./helpers/mockD1";
+import type {
+  CreateOrderData,
+  UpdateOrderStatusData,
+  OrderFilters,
+} from "../order";
 
-describe('OrderService', () => {
-  let orderService: OrderService
-  let mockDb: any
-  let mockEnv: any
+describe("OrderService", () => {
+  let orderService: OrderService;
+  let mockDb: any;
+  let mockEnv: any;
 
   // Mock data
   const mockRestaurant = {
     id: 1,
-    name: 'Test Restaurant',
+    name: "Test Restaurant",
     isAvailable: true,
     settings: {
       minOrderAmount: 20,
       taxRate: 0.06,
-      serviceChargeRate: 0.1
-    }
-  }
+      serviceChargeRate: 0.1,
+    },
+  };
 
   const mockTable = {
     id: 1,
-    restaurantId: 'R-001',
-    tableNumber: 'T1',
+    restaurantId: "R-001",
+    tableNumber: "T1",
     isActive: true,
-    isOccupied: false
-  }
+    isOccupied: false,
+  };
 
   const mockMenuItem = {
     id: 1,
-    restaurantId: 'R-001',
+    restaurantId: "R-001",
     categoryId: 1,
-    name: 'Burger',
-    price: 15.00,
+    name: "Burger",
+    price: 15.0,
     isAvailable: true,
-    inventoryCount: 50
-  }
+    inventoryCount: 50,
+  };
 
   const mockOrder = {
     id: 1,
-    restaurantId: 'R-001',
+    restaurantId: "R-001",
     tableId: 1,
     customerId: null,
-    orderNumber: '1-TEST-ABC',
-    status: 'pending',
-    subtotal: 30.00,
-    taxAmount: 1.80,
-    serviceCharge: 3.00,
+    orderNumber: "1-TEST-ABC",
+    status: "pending",
+    subtotal: 30.0,
+    taxAmount: 1.8,
+    serviceCharge: 3.0,
     discountAmount: 0,
-    totalAmount: 34.80,
+    totalAmount: 34.8,
     customerInfo: null,
     estimatedPrepTime: 15,
     actualPrepTime: null,
@@ -103,425 +118,437 @@ describe('OrderService', () => {
     paidAt: null,
     cancelledAt: null,
     paymentMethod: null,
-    paymentStatus: 'unpaid',
+    paymentStatus: "unpaid",
     rating: null,
     reviewComment: null,
     notes: undefined,
     internalNotes: null,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
     items: [
       {
         id: 1,
         orderId: 1,
         menuItemId: 1,
         quantity: 2,
-        unitPrice: 15.00,
-        totalPrice: 30.00,
+        unitPrice: 15.0,
+        totalPrice: 30.0,
         customizations: undefined,
         notes: undefined,
-        status: 'pending'
-      }
-    ]
-  }
+        status: "pending",
+      },
+    ],
+  };
 
   const validOrderData: CreateOrderData = {
-    restaurantId: 'R-001',
+    restaurantId: "R-001",
     tableId: 1,
     items: [
       {
         menuItemId: 1,
         quantity: 2,
         customizations: undefined,
-        notes: undefined
-      }
+        notes: undefined,
+      },
     ],
-    notes: 'Test order'
-  }
+    notes: "Test order",
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockDb = createMockDatabase()
+    vi.clearAllMocks();
+    mockDb = createMockDatabase();
     mockEnv = createMockEnv({
-      JWT_SECRET: 'test-jwt-secret-key'
-    })
-    orderService = new OrderService(mockDb, mockEnv)
-  })
+      JWT_SECRET: "test-jwt-secret-key",
+    });
+    orderService = new OrderService(mockDb, mockEnv);
+  });
 
-  describe('getMinimumOrderAmount', () => {
-    it('should return minimum order amount and enabled status', async () => {
+  describe("getMinimumOrderAmount", () => {
+    it("should return minimum order amount and enabled status", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
+        },
+      };
 
       // Act
-      const result = await orderService.getMinimumOrderAmount('R-001')
+      const result = await orderService.getMinimumOrderAmount("R-001");
 
       // Assert
       expect(result).toEqual({
         minOrderAmount: 20,
-        enabled: true
-      })
-    })
+        enabled: true,
+      });
+    });
 
-    it('should return disabled when minOrderAmount is 0', async () => {
+    it("should return disabled when minOrderAmount is 0", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockRestaurant,
-            settings: { minOrderAmount: 0 }
-          })
-        }
-      }
+            settings: { minOrderAmount: 0 },
+          }),
+        },
+      };
 
       // Act
-      const result = await orderService.getMinimumOrderAmount('R-001')
+      const result = await orderService.getMinimumOrderAmount("R-001");
 
       // Assert
       expect(result).toEqual({
         minOrderAmount: 0,
-        enabled: false
-      })
-    })
+        enabled: false,
+      });
+    });
 
-    it('should return disabled when restaurant is not available', async () => {
+    it("should return disabled when restaurant is not available", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockRestaurant,
-            isAvailable: false
-          })
-        }
-      }
+            isAvailable: false,
+          }),
+        },
+      };
 
       // Act
-      const result = await orderService.getMinimumOrderAmount('R-001')
+      const result = await orderService.getMinimumOrderAmount("R-001");
 
       // Assert
-      expect(result.enabled).toBe(false)
-    })
+      expect(result.enabled).toBe(false);
+    });
 
-    it('should throw error when restaurant not found', async () => {
+    it("should throw error when restaurant not found", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(null)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.getMinimumOrderAmount(999)
-      ).rejects.toThrow('Database operation failed: getMinimumOrderAmount')
-    })
-  })
+      await expect(orderService.getMinimumOrderAmount("999")).rejects.toThrow(
+        "Restaurant not found",
+      );
+    });
+  });
 
-  describe('validateMinimumOrder', () => {
-    it('should validate successful when amount meets minimum', async () => {
+  describe("validateMinimumOrder", () => {
+    it("should validate successful when amount meets minimum", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
+        },
+      };
 
       // Act
-      const result = await orderService.validateMinimumOrder(1, 25)
+      const result = await orderService.validateMinimumOrder("R-001", 25);
 
       // Assert
-      expect(result).toEqual({ valid: true })
-    })
+      expect(result).toEqual({ valid: true });
+    });
 
-    it('should return invalid when amount below minimum', async () => {
+    it("should return invalid when amount below minimum", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
+        },
+      };
 
       // Act
-      const result = await orderService.validateMinimumOrder(1, 15)
+      const result = await orderService.validateMinimumOrder("R-001", 15);
 
       // Assert
-      expect(result.valid).toBe(false)
-      expect(result.shortfall).toBe(5)
-      expect(result.message).toContain('最低消費')
-    })
+      expect(result.valid).toBe(false);
+      expect(result.shortfall).toBe(5);
+      expect(result.message).toContain("最低消費");
+    });
 
-    it('should validate successful when minimum order disabled', async () => {
+    it("should validate successful when minimum order disabled", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockRestaurant,
-            settings: { minOrderAmount: 0 }
-          })
-        }
-      }
+            settings: { minOrderAmount: 0 },
+          }),
+        },
+      };
 
       // Act
-      const result = await orderService.validateMinimumOrder(1, 5)
+      const result = await orderService.validateMinimumOrder("R-001", 5);
 
       // Assert
-      expect(result.valid).toBe(true)
-    })
-  })
+      expect(result.valid).toBe(true);
+    });
+  });
 
-  describe('createOrder', () => {
-    it('should create order successfully', async () => {
+  describe("createOrder", () => {
+    it("should create order successfully", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([mockMenuItem])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockMenuItem]),
+        },
+      };
 
       setupMockDbResponses(mockDb, {
-        insert: [mockOrder, mockOrder.items]
-      })
+        insert: [mockOrder, mockOrder.items],
+      });
 
       // Mock update for inventory updates
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([]))
-      })
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
 
       // Act
-      const result = await orderService.createOrder(validOrderData)
+      const result = await orderService.createOrder(validOrderData);
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.id).toBe(1)
-      expect(result.totalAmount).toBe(34.80)
-    })
+      expect(result).toBeDefined();
+      expect(result.id).toBe(1);
+      expect(result.totalAmount).toBe(34.8);
+    });
 
-    it('should throw error when restaurant not available', async () => {
+    it("should throw error when restaurant not available", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockRestaurant,
-            isAvailable: false
-          })
-        }
-      }
+            isAvailable: false,
+          }),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(validOrderData)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should throw error when table not available', async () => {
+    it("should throw error when table not available", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockTable,
-            isActive: false
-          })
-        }
-      }
+            isActive: false,
+          }),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(validOrderData)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should throw error when menu item not available', async () => {
+    it("should throw error when menu item not available", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([{
-            ...mockMenuItem,
-            isAvailable: false
-          }])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockMenuItem,
+              isAvailable: false,
+            },
+          ]),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(validOrderData)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should throw error when insufficient inventory', async () => {
+    it("should throw error when insufficient inventory", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([{
-            ...mockMenuItem,
-            inventoryCount: 1
-          }])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockMenuItem,
+              inventoryCount: 1,
+            },
+          ]),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(validOrderData)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should calculate price with customizations', async () => {
+    it("should calculate price with customizations", async () => {
       // Arrange
       const orderWithCustomizations: CreateOrderData = {
         ...validOrderData,
-        items: [{
-          menuItemId: 1,
-          quantity: 1,
-          customizations: {
-            size: { id: 'size-large', name: 'Large', priceAdjustment: 3 },
-            options: [{
-              id: 'opt-1',
-              optionName: 'Cheese Options',
-              choiceId: 'choice-extra-cheese',
-              choiceName: 'Extra Cheese',
-              priceAdjustment: 2
-            }],
-            addOns: [{
-              id: 'addon-fries',
-              name: 'Fries',
-              unitPrice: 5,
-              quantity: 1,
-              totalPrice: 5
-            }]
+        items: [
+          {
+            menuItemId: 1,
+            quantity: 1,
+            customizations: {
+              size: { id: "size-large", name: "Large", priceAdjustment: 3 },
+              options: [
+                {
+                  id: "opt-1",
+                  optionName: "Cheese Options",
+                  choiceId: "choice-extra-cheese",
+                  choiceName: "Extra Cheese",
+                  priceAdjustment: 2,
+                },
+              ],
+              addOns: [
+                {
+                  id: "addon-fries",
+                  name: "Fries",
+                  unitPrice: 5,
+                  quantity: 1,
+                  totalPrice: 5,
+                },
+              ],
+            },
+            notes: undefined,
           },
-          notes: undefined
-        }]
-      }
+        ],
+      };
 
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([mockMenuItem])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockMenuItem]),
+        },
+      };
 
       setupMockDbResponses(mockDb, {
         insert: [
           { ...mockOrder, subtotal: 25, totalAmount: 29 },
-          mockOrder.items
-        ]
-      })
+          mockOrder.items,
+        ],
+      });
 
       // Mock update for inventory updates
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([]))
-      })
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
 
       // Act
-      const result = await orderService.createOrder(orderWithCustomizations)
+      const result = await orderService.createOrder(orderWithCustomizations);
 
       // Assert
-      expect(result).toBeDefined()
+      expect(result).toBeDefined();
       // Price: 15 (base) + 3 (size) + 2 (option) + 5 (add-on) = 25
-    })
+    });
 
-    it('should throw error when order below minimum amount', async () => {
+    it("should throw error when order below minimum amount", async () => {
       // Arrange
       const smallOrder: CreateOrderData = {
-        restaurantId: 'R-001',
+        restaurantId: "R-001",
         tableId: 1,
-        items: [{
-          menuItemId: 1,
-          quantity: 1, // Only 15, below minimum 20
-          customizations: undefined,
-          notes: undefined
-        }]
-      }
+        items: [
+          {
+            menuItemId: 1,
+            quantity: 1, // Only 15, below minimum 20
+            customizations: undefined,
+            notes: undefined,
+          },
+        ],
+      };
 
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([mockMenuItem])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockMenuItem]),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(smallOrder)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(smallOrder)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should apply coupon discount', async () => {
+    it("should apply coupon discount", async () => {
       // Arrange
       const orderWithCoupon: CreateOrderData = {
         ...validOrderData,
-        couponCode: 'TEST10'
-      }
+        couponCode: "TEST10",
+      };
 
       mockDb.query = {
         restaurants: {
-          findFirst: vi.fn().mockResolvedValue(mockRestaurant)
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
         },
         tables: {
-          findFirst: vi.fn().mockResolvedValue(mockTable)
+          findFirst: vi.fn().mockResolvedValue(mockTable),
         },
         menuItems: {
-          findMany: vi.fn().mockResolvedValue([mockMenuItem])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockMenuItem]),
+        },
+      };
 
       setupMockDbResponses(mockDb, {
         insert: [
-          { ...mockOrder, discountAmount: 10, totalAmount: 24.80 },
-          mockOrder.items
-        ]
-      })
+          { ...mockOrder, discountAmount: 10, totalAmount: 24.8 },
+          mockOrder.items,
+        ],
+      });
 
       // Mock update for inventory updates
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([]))
-      })
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
 
       // Act
-      const result = await orderService.createOrder(orderWithCoupon)
+      const result = await orderService.createOrder(orderWithCoupon);
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.discountAmount).toBe(10)
-    })
-  })
+      expect(result).toBeDefined();
+      expect(result.discountAmount).toBe(10);
+    });
+  });
 
-  describe('getOrder', () => {
-    it('should fetch order with related data', async () => {
+  describe("getOrder", () => {
+    it("should fetch order with related data", async () => {
       // Arrange
       mockDb.query = {
         orders: {
@@ -529,327 +556,332 @@ describe('OrderService', () => {
             ...mockOrder,
             items: mockOrder.items,
             restaurant: mockRestaurant,
-            table: mockTable
-          })
-        }
-      }
+            table: mockTable,
+          }),
+        },
+      };
 
       // Act
-      const result = await orderService.getOrder(1)
+      const result = await orderService.getOrder(1);
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result!.id).toBe(1)
-      expect(result!.items).toHaveLength(1)
-    })
+      expect(result).toBeDefined();
+      expect(result!.id).toBe(1);
+      expect(result!.items).toHaveLength(1);
+    });
 
-    it('should return null when order not found', async () => {
+    it("should return null when order not found", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findFirst: vi.fn().mockResolvedValue(null)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      };
 
       // Act
-      const result = await orderService.getOrder(999)
+      const result = await orderService.getOrder(999);
 
       // Assert
-      expect(result).toBeNull()
-    })
-  })
+      expect(result).toBeNull();
+    });
+  });
 
-  describe('getOrderByNumber', () => {
-    it('should fetch order by order number', async () => {
+  describe("getOrderByNumber", () => {
+    it("should fetch order by order number", async () => {
       // Arrange
       mockDb.query = {
         orders: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockOrder,
-            items: mockOrder.items
-          })
-        }
-      }
+            items: mockOrder.items,
+          }),
+        },
+      };
 
       // Act
-      const result = await orderService.getOrderByNumber('1-TEST-ABC')
+      const result = await orderService.getOrderByNumber("1-TEST-ABC");
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result!.orderNumber).toBe('1-TEST-ABC')
-    })
+      expect(result).toBeDefined();
+      expect(result!.orderNumber).toBe("1-TEST-ABC");
+    });
 
-    it('should return null when order number not found', async () => {
+    it("should return null when order number not found", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findFirst: vi.fn().mockResolvedValue(null)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      };
 
       // Act
-      const result = await orderService.getOrderByNumber('INVALID')
+      const result = await orderService.getOrderByNumber("INVALID");
 
       // Assert
-      expect(result).toBeNull()
-    })
-  })
+      expect(result).toBeNull();
+    });
+  });
 
-  describe('getOrders', () => {
-    it('should fetch orders with pagination', async () => {
+  describe("getOrders", () => {
+    it("should fetch orders with pagination", async () => {
       // Arrange
-      const orders = [mockOrder, { ...mockOrder, id: 2 }]
+      const orders = [mockOrder, { ...mockOrder, id: 2 }];
 
       // Mock relational query for orders list
       mockDb.query = {
         orders: {
-          findMany: vi.fn().mockResolvedValue(orders)
-        }
-      }
+          findMany: vi.fn().mockResolvedValue(orders),
+        },
+      };
 
       // Mock select query for count
-      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 2 }]))
+      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 2 }]));
 
       const filters: OrderFilters = {
-        restaurantId: 'R-001' }
+        restaurantId: "R-001",
+      };
 
       // Act
-      const result = await orderService.getOrders(filters, 1, 20)
+      const result = await orderService.getOrders(filters, 1, 20);
 
       // Assert
-      expect(result.orders).toHaveLength(2)
-      expect(result.pagination.total).toBe(2)
-      expect(result.pagination.page).toBe(1)
-    })
+      expect(result.orders).toHaveLength(2);
+      expect(result.pagination.total).toBe(2);
+      expect(result.pagination.page).toBe(1);
+    });
 
-    it('should filter by table', async () => {
+    it("should filter by table", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findMany: vi.fn().mockResolvedValue([mockOrder])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockOrder]),
+        },
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
+      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]));
 
       const filters: OrderFilters = {
-        restaurantId: 'R-001',
-        tableId: 1
-      }
+        restaurantId: "R-001",
+        tableId: 1,
+      };
 
       // Act
-      const result = await orderService.getOrders(filters)
+      const result = await orderService.getOrders(filters);
 
       // Assert
-      expect(result.orders).toHaveLength(1)
-    })
+      expect(result.orders).toHaveLength(1);
+    });
 
-    it('should filter by status', async () => {
+    it("should filter by status", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findMany: vi.fn().mockResolvedValue([mockOrder])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockOrder]),
+        },
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
+      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]));
 
       const filters: OrderFilters = {
-        restaurantId: 'R-001',
-        status: 'pending'
-      }
+        restaurantId: "R-001",
+        status: "pending",
+      };
 
       // Act
-      const result = await orderService.getOrders(filters)
+      const result = await orderService.getOrders(filters);
 
       // Assert
-      expect(result.orders).toHaveLength(1)
-      expect(result.orders[0].status).toBe('pending')
-    })
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0].status).toBe("pending");
+    });
 
-    it('should filter by date range', async () => {
+    it("should filter by date range", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findMany: vi.fn().mockResolvedValue([mockOrder])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockOrder]),
+        },
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
+      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]));
 
       const filters: OrderFilters = {
-        restaurantId: 'R-001',
-        dateRange: [new Date('2024-01-01'), new Date('2024-01-31')]
-      }
+        restaurantId: "R-001",
+        dateRange: [new Date("2024-01-01"), new Date("2024-01-31")],
+      };
 
       // Act
-      const result = await orderService.getOrders(filters)
+      const result = await orderService.getOrders(filters);
 
       // Assert
-      expect(result.orders).toHaveLength(1)
-    })
+      expect(result.orders).toHaveLength(1);
+    });
 
-    it('should filter by amount range', async () => {
+    it("should filter by amount range", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findMany: vi.fn().mockResolvedValue([mockOrder])
-        }
-      }
+          findMany: vi.fn().mockResolvedValue([mockOrder]),
+        },
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]))
+      mockDb.select.mockReturnValue(createQueryChain([{ totalCount: 1 }]));
 
       const filters: OrderFilters = {
-        restaurantId: 'R-001',
+        restaurantId: "R-001",
         minAmount: 20,
-        maxAmount: 50
-      }
+        maxAmount: 50,
+      };
 
       // Act
-      const result = await orderService.getOrders(filters)
+      const result = await orderService.getOrders(filters);
 
       // Assert
-      expect(result.orders).toHaveLength(1)
-      expect(result.orders[0].totalAmount).toBeGreaterThanOrEqual(20)
-      expect(result.orders[0].totalAmount).toBeLessThanOrEqual(50)
-    })
-  })
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0].totalAmount).toBeGreaterThanOrEqual(20);
+      expect(result.orders[0].totalAmount).toBeLessThanOrEqual(50);
+    });
+  });
 
-  describe('updateOrderStatus', () => {
-    it('should update order status successfully', async () => {
+  describe("updateOrderStatus", () => {
+    it("should update order status successfully", async () => {
       // Arrange
       const updatedOrder = {
         ...mockOrder,
-        status: 'confirmed',
-        confirmedAt: new Date()
-      }
+        status: "confirmed",
+        confirmedAt: new Date(),
+      };
 
       setupMockDbResponses(mockDb, {
-        update: [updatedOrder]
-      })
+        update: [updatedOrder],
+      });
 
       const statusData: UpdateOrderStatusData = {
-        status: 'confirmed',
-        notes: 'Order confirmed'
-      }
+        status: "confirmed",
+        notes: "Order confirmed",
+      };
 
       // Act
-      const result = await orderService.updateOrderStatus('R-001', statusData)
+      const result = await orderService.updateOrderStatus(1, statusData);
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.status).toBe('confirmed')
-      expect(result.confirmedAt).toBeDefined()
-    })
+      expect(result).toBeDefined();
+      expect(result.status).toBe("confirmed");
+      expect(result.confirmedAt).toBeDefined();
+    });
 
-    it('should throw error when order not found', async () => {
+    it("should throw error when order not found", async () => {
       // Arrange
       setupMockDbResponses(mockDb, {
-        update: []
-      })
+        update: [],
+      });
 
       // Act & Assert
       await expect(
-        orderService.updateOrderStatus(999, { status: 'confirmed' })
-      ).rejects.toThrow('Database operation failed: updateOrderStatus')
-    })
+        orderService.updateOrderStatus(999, { status: "confirmed" }),
+      ).rejects.toThrow("Database error");
+    });
 
-    it('should update preparing status with timestamp', async () => {
+    it("should update preparing status with timestamp", async () => {
       // Arrange
       const updatedOrder = {
         ...mockOrder,
-        status: 'preparing',
-        preparingAt: new Date()
-      }
+        status: "preparing",
+        preparingAt: new Date(),
+      };
 
       setupMockDbResponses(mockDb, {
-        update: [updatedOrder]
-      })
+        update: [updatedOrder],
+      });
 
       // Act
-      const result = await orderService.updateOrderStatus('R-001', { status: 'preparing' })
+      const result = await orderService.updateOrderStatus(1, {
+        status: "preparing",
+      });
 
       // Assert
-      expect(result.status).toBe('preparing')
-      expect(result.preparingAt).toBeDefined()
-    })
+      expect(result.status).toBe("preparing");
+      expect(result.preparingAt).toBeDefined();
+    });
 
-    it('should update delivered status with timestamp', async () => {
+    it("should update delivered status with timestamp", async () => {
       // Arrange
       const updatedOrder = {
         ...mockOrder,
-        status: 'delivered',
-        deliveredAt: new Date()
-      }
+        status: "delivered",
+        deliveredAt: new Date(),
+      };
 
       setupMockDbResponses(mockDb, {
-        update: [updatedOrder]
-      })
+        update: [updatedOrder],
+      });
 
       // Act
-      const result = await orderService.updateOrderStatus('R-001', { status: 'delivered' })
+      const result = await orderService.updateOrderStatus(1, {
+        status: "delivered",
+      });
 
       // Assert
-      expect(result.status).toBe('delivered')
-      expect(result.deliveredAt).toBeDefined()
-    })
-  })
+      expect(result.status).toBe("delivered");
+      expect(result.deliveredAt).toBeDefined();
+    });
+  });
 
-  describe('cancelOrder', () => {
-    it('should cancel order successfully', async () => {
+  describe("cancelOrder", () => {
+    it("should cancel order successfully", async () => {
       // Arrange
       const cancelledOrder = {
         ...mockOrder,
-        status: 'cancelled',
+        status: "cancelled",
         cancelledAt: new Date(),
-        internalNotes: 'Customer request'
-      }
+        internalNotes: "Customer request",
+      };
 
       // Mock getOrder call (called by cancelOrder)
       mockDb.query = {
         orders: {
           findFirst: vi.fn().mockResolvedValue({
             ...mockOrder,
-            items: mockOrder.items
-          })
-        }
-      }
+            items: mockOrder.items,
+          }),
+        },
+      };
 
       // Mock inventory restore updates
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([]))
-      })
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
 
       setupMockDbResponses(mockDb, {
-        update: [cancelledOrder]
-      })
+        update: [cancelledOrder],
+      });
 
       // Act
-      const result = await orderService.cancelOrder(1, 'Customer request')
+      const result = await orderService.cancelOrder(1, "Customer request");
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.status).toBe('cancelled')
-      expect(result.cancelledAt).toBeDefined()
-    })
+      expect(result).toBeDefined();
+      expect(result.status).toBe("cancelled");
+      expect(result.cancelledAt).toBeDefined();
+    });
 
-    it('should throw error when order not found', async () => {
+    it("should throw error when order not found", async () => {
       // Arrange
       mockDb.query = {
         orders: {
-          findFirst: vi.fn().mockResolvedValue(null)
-        }
-      }
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.cancelOrder(999)
-      ).rejects.toThrow('Database operation failed: cancelOrder')
-    })
-  })
+      await expect(orderService.cancelOrder(999)).rejects.toThrow(
+        "Database error",
+      );
+    });
+  });
 
-  describe('getDailyOrderStats', () => {
-    it('should return daily statistics', async () => {
+  describe("getDailyOrderStats", () => {
+    it("should return daily statistics", async () => {
       // Arrange
       const stats = {
         totalOrders: 10,
@@ -858,31 +890,31 @@ describe('OrderService', () => {
         pendingOrders: 2,
         confirmedOrders: 3,
         completedOrders: 4,
-        cancelledOrders: 1
-      }
+        cancelledOrders: 1,
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([stats]))
+      mockDb.select.mockReturnValue(createQueryChain([stats]));
 
       // Act
-      const result = await orderService.getDailyOrderStats(1)
+      const result = await orderService.getDailyOrderStats("R-001");
 
       // Assert
-      expect(result).toEqual(stats)
-    })
+      expect(result).toEqual(stats);
+    });
 
-    it('should return zero stats when no orders', async () => {
+    it("should return zero stats when no orders", async () => {
       // Arrange
-      mockDb.select.mockReturnValue(createQueryChain([]))
+      mockDb.select.mockReturnValue(createQueryChain([]));
 
       // Act
-      const result = await orderService.getDailyOrderStats(1)
+      const result = await orderService.getDailyOrderStats("R-001");
 
       // Assert
-      expect(result.totalOrders).toBe(0)
-      expect(result.totalRevenue).toBe(0)
-    })
+      expect(result.totalOrders).toBe(0);
+      expect(result.totalRevenue).toBe(0);
+    });
 
-    it('should filter by specific date', async () => {
+    it("should filter by specific date", async () => {
       // Arrange
       const stats = {
         totalOrders: 5,
@@ -891,60 +923,63 @@ describe('OrderService', () => {
         pendingOrders: 1,
         confirmedOrders: 2,
         completedOrders: 2,
-        cancelledOrders: 0
-      }
+        cancelledOrders: 0,
+      };
 
-      mockDb.select.mockReturnValue(createQueryChain([stats]))
+      mockDb.select.mockReturnValue(createQueryChain([stats]));
 
       // Act
-      const specificDate = new Date('2024-01-15')
-      const result = await orderService.getDailyOrderStats(1, specificDate)
+      const specificDate = new Date("2024-01-15");
+      const result = await orderService.getDailyOrderStats(
+        "R-001",
+        specificDate,
+      );
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.totalOrders).toBe(5)
-    })
-  })
+      expect(result).toBeDefined();
+      expect(result.totalOrders).toBe(5);
+    });
+  });
 
-  describe('Error Handling', () => {
-    it('should handle database errors in createOrder', async () => {
+  describe("Error Handling", () => {
+    it("should handle database errors in createOrder", async () => {
       // Arrange
       mockDb.query = {
         restaurants: {
           findFirst: vi.fn().mockImplementation(() => {
-            throw new Error('Database error')
-          })
-        }
-      }
+            throw new Error("Database error");
+          }),
+        },
+      };
 
       // Act & Assert
-      await expect(
-        orderService.createOrder(validOrderData)
-      ).rejects.toThrow('Database operation failed: createOrder')
-    })
+      await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
+        "Database error",
+      );
+    });
 
-    it('should handle database errors in getOrders', async () => {
+    it("should handle database errors in getOrders", async () => {
       // Arrange
       mockDb.select.mockImplementation(() => {
-        throw new Error('Database error')
-      })
+        throw new Error("Database error");
+      });
 
       // Act & Assert
       await expect(
-        orderService.getOrders({ restaurantId: 'R-001' })
-      ).rejects.toThrow('Database operation failed: getOrders')
-    })
+        orderService.getOrders({ restaurantId: "R-001" }),
+      ).rejects.toThrow("Database error");
+    });
 
-    it('should handle database errors in getDailyOrderStats', async () => {
+    it("should handle database errors in getDailyOrderStats", async () => {
       // Arrange
       mockDb.select.mockImplementation(() => {
-        throw new Error('Database error')
-      })
+        throw new Error("Database error");
+      });
 
       // Act & Assert
-      await expect(
-        orderService.getDailyOrderStats(1)
-      ).rejects.toThrow('Database operation failed: getDailyOrderStats')
-    })
-  })
-})
+      await expect(orderService.getDailyOrderStats("R-001")).rejects.toThrow(
+        "Database error",
+      );
+    });
+  });
+});

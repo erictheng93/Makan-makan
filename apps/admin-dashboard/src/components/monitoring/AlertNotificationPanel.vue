@@ -17,7 +17,7 @@
         class="text-xs underline hover:no-underline"
         @click="$emit('reconnect')"
       >
-        ?�新??��
+        重新連線
       </button>
     </div>
 
@@ -26,7 +26,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center">
           <BellIcon class="w-5 h-5 text-gray-600 mr-2" />
-          <h3 class="text-sm font-semibold text-gray-900">?��?警報</h3>
+          <h3 class="text-sm font-semibold text-gray-900">即時警報</h3>
           <span
             v-if="unacknowledgedCount > 0"
             class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
@@ -44,7 +44,7 @@
                 ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                 : 'text-gray-400 hover:bg-gray-100',
             ]"
-            :title="soundEnabled ? '?��??�音' : '?��??�音'"
+            :title="soundEnabled ? '關閉聲音' : '開啟聲音'"
             @click="toggleSound"
           >
             <component :is="soundEnabled ? SpeakerWaveIcon : SpeakerXMarkIcon" class="w-4 h-4" />
@@ -56,7 +56,7 @@
             class="text-xs text-gray-600 hover:text-gray-900 underline"
             @click="clearAll"
           >
-            清除?�部
+            清除全部
           </button>
         </div>
       </div>
@@ -100,9 +100,9 @@
                       {{ alert.ruleName }}
                     </span>
                     <span v-if="alert.currentValue !== undefined" class="flex items-center">
-                      ?��??? {{ alert.currentValue }}
+                      目前值: {{ alert.currentValue }}
                       <span v-if="alert.threshold !== undefined" class="ml-1">
-                        (?��? {{ alert.threshold }})
+                        (閾值: {{ alert.threshold }})
                       </span>
                     </span>
                   </div>
@@ -112,7 +112,7 @@
                 <CheckCircleIcon
                   v-if="alert.acknowledged"
                   class="w-5 h-5 text-green-500 ml-2 flex-shrink-0"
-                  title="已確�?
+                  title="已確認"
                 />
               </div>
             </div>
@@ -123,15 +123,15 @@
       <!-- Empty State -->
       <div v-if="alerts.length === 0" class="px-4 py-12 text-center">
         <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900">沒�?警報</h3>
-        <p class="mt-1 text-sm text-gray-500">系統?��?�?��</p>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">沒有警報</h3>
+        <p class="mt-1 text-sm text-gray-500">系統正常運作</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   BellIcon,
   CheckCircleIcon,
@@ -253,11 +253,11 @@ function formatTimestamp(timestamp: number): string {
   const diff = now - timestamp
 
   if (diff < 60000) {
-    return '?��?'
+    return '剛才'
   } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)} ?��??�`
+    return `${Math.floor(diff / 60000)} 分鐘前`
   } else if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)} 小�??�`
+    return `${Math.floor(diff / 3600000)} 小時前`
   } else {
     return new Date(timestamp).toLocaleString('zh-TW')
   }
@@ -279,13 +279,11 @@ function playAlertSound() {
 // Watch for new alerts and play sound
 const lastAlertCount = ref(props.alerts.length)
 // Watch alerts for changes and play sound on new alerts
-computed(() => {
-  const newCount = props.alerts.length
+watch(() => props.alerts.length, (newCount) => {
   if (newCount > lastAlertCount.value) {
     playAlertSound()
   }
   lastAlertCount.value = newCount
-  return null
 })
 </script>
 

@@ -33,7 +33,12 @@ export function useAudioNotifications() {
   const loadConfig = () => {
     const saved = localStorage.getItem("kitchen-audio-notifications");
     if (saved) {
-      config.value = { ...config.value, ...JSON.parse(saved) };
+      try {
+        config.value = { ...config.value, ...JSON.parse(saved) };
+      } catch (error) {
+        console.error("Failed to parse audio notification config:", error);
+        // Keep default config if parsing fails
+      }
     }
   };
 

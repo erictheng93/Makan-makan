@@ -28,7 +28,8 @@
     "sort": "排序",
     "clear": "清除",
     "apply": "应用",
-    "reset": "重置"
+    "reset": "重置",
+    "off": "折扣"
   },
   "navigation": {
     "home": "首页",
@@ -145,7 +146,25 @@
     "editNotes": "编辑",
     "hideNotes": "收起",
     "notes": "备注",
-    "itemTotal": "项目总计"
+    "itemTotal": "项目总计",
+    "couponCode": "优惠券代码",
+    "couponPlaceholder": "请输入优惠券代码",
+    "applyCoupon": "使用",
+    "removeCoupon": "移除优惠券",
+    "coupons": "优惠券",
+    "viewAvailable": "查看可用优惠券",
+    "availableCoupons": "可用优惠券",
+    "noCouponsAvailable": "目前没有可用的优惠券",
+    "orEnterCode": "或手动输入优惠券代码",
+    "saving": "节省",
+    "minOrder": "最低消费",
+    "maxDiscount": "最高折扣",
+    "validUntil": "有效期至",
+    "percentage": "百分比折扣",
+    "fixedAmount": "固定金额折扣",
+    "recommendedForYou": "为您推荐",
+    "potentialSaving": "预计节省",
+    "use": "使用"
   },
   "order": {
     "title": "订单确认",

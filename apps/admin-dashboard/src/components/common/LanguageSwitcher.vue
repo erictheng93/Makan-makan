@@ -9,15 +9,15 @@
     <transition name="dropdown">
       <div v-if="isOpen" class="language-dropdown">
         <div
-          v-for="locale in supportedLocales"
-          :key="locale.code"
+          v-for="localeItem in supportedLocales"
+          :key="localeItem.code"
           class="language-option"
-          :class="{ active: locale.code === currentLocale }"
-          @click="selectLocale(locale.code)"
+          :class="{ active: localeItem.code === currentLocale }"
+          @click="selectLocale(localeItem.code)"
         >
-          <span class="flag">{{ locale.flag }}</span>
-          <span class="name">{{ locale.name }}</span>
-          <span v-if="locale.code === currentLocale" class="check">✓</span>
+          <span class="flag">{{ localeItem.flag }}</span>
+          <span class="name">{{ localeItem.name }}</span>
+          <span v-if="localeItem.code === currentLocale" class="check">✓</span>
         </div>
       </div>
     </transition>

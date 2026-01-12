@@ -3,8 +3,8 @@
  * Provides a complete D1Database interface mock for unit tests
  */
 
-import { vi } from 'vitest'
-import type { D1Database } from '@cloudflare/workers-types'
+import { vi } from "vitest";
+import type { D1Database } from "@cloudflare/workers-types";
 
 /**
  * Creates a mock D1Database with all required methods
@@ -22,8 +22,8 @@ export function createMockD1Database(): D1Database {
         duration: 0,
         size_after: 0,
         rows_read: 0,
-        rows_written: 0
-      }
+        rows_written: 0,
+      },
     }),
     run: vi.fn().mockResolvedValue({
       success: true,
@@ -33,11 +33,11 @@ export function createMockD1Database(): D1Database {
         rows_read: 0,
         rows_written: 0,
         changes: 0,
-        last_row_id: 0
-      }
+        last_row_id: 0,
+      },
     }),
-    raw: vi.fn().mockResolvedValue([])
-  })
+    raw: vi.fn().mockResolvedValue([]),
+  });
 
   // Create mock D1Database object
   const mockD1: Partial<D1Database> = {
@@ -46,12 +46,12 @@ export function createMockD1Database(): D1Database {
     exec: vi.fn().mockResolvedValue({
       count: 0,
       duration: 0,
-      results: []
+      results: [],
     }),
-    dump: vi.fn().mockResolvedValue(new ArrayBuffer(0))
-  }
+    dump: vi.fn().mockResolvedValue(new ArrayBuffer(0)),
+  };
 
-  return mockD1 as D1Database
+  return mockD1 as D1Database;
 }
 
 /**
@@ -64,12 +64,12 @@ export function createMockEnv(overrides: Partial<any> = {}) {
       get: vi.fn().mockResolvedValue(null),
       put: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
-      list: vi.fn().mockResolvedValue({ keys: [] })
+      list: vi.fn().mockResolvedValue({ keys: [] }),
     },
-    JWT_SECRET: 'test-secret-key',
-    NODE_ENV: 'test',
-    ...overrides
-  }
+    JWT_SECRET: "test-secret-key",
+    NODE_ENV: "test",
+    ...overrides,
+  };
 }
 
 /**
@@ -81,42 +81,48 @@ export function createMockEnv(overrides: Partial<any> = {}) {
  */
 export function createQueryChain(finalResult: any = []) {
   // Create a mock that can be awaited
-  const mock: any = vi.fn().mockResolvedValue(finalResult)
+  const mock: any = vi.fn().mockResolvedValue(finalResult);
 
-  // Add all chainable methods
-  const methods = {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    offset: vi.fn().mockReturnThis(),
-    leftJoin: vi.fn().mockReturnThis(),
-    rightJoin: vi.fn().mockReturnThis(),
-    innerJoin: vi.fn().mockReturnThis(),
-    fullJoin: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    groupBy: vi.fn().mockReturnThis(),
-    having: vi.fn().mockReturnThis(),
-    distinct: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue(finalResult),
-    get: vi.fn().mockResolvedValue(Array.isArray(finalResult) ? finalResult[0] || null : finalResult),
-    all: vi.fn().mockResolvedValue(Array.isArray(finalResult) ? finalResult : [finalResult]),
-  }
+  // Add all chainable methods - each method returns the mock object itself
+  // This ensures proper chaining like db.select().from().leftJoin().where()
+  const returnMock = () => mock;
 
-  // Assign methods to mock
-  Object.assign(mock, methods)
+  mock.from = vi.fn(returnMock);
+  mock.where = vi.fn(returnMock);
+  mock.limit = vi.fn(returnMock);
+  mock.offset = vi.fn(returnMock);
+  mock.leftJoin = vi.fn(returnMock);
+  mock.rightJoin = vi.fn(returnMock);
+  mock.innerJoin = vi.fn(returnMock);
+  mock.fullJoin = vi.fn(returnMock);
+  mock.orderBy = vi.fn(returnMock);
+  mock.groupBy = vi.fn(returnMock);
+  mock.having = vi.fn(returnMock);
+  mock.distinct = vi.fn(returnMock);
+  mock.returning = vi.fn().mockResolvedValue(finalResult);
+  mock.get = vi
+    .fn()
+    .mockResolvedValue(
+      Array.isArray(finalResult) ? finalResult[0] || null : finalResult,
+    );
+  mock.all = vi
+    .fn()
+    .mockResolvedValue(
+      Array.isArray(finalResult) ? finalResult : [finalResult],
+    );
 
   // Make it awaitable - resolve to finalResult
   mock.then = (resolve: any, reject: any) => {
-    return Promise.resolve(finalResult).then(resolve, reject)
-  }
+    return Promise.resolve(finalResult).then(resolve, reject);
+  };
   mock.catch = (reject: any) => {
-    return Promise.resolve(finalResult).catch(reject)
-  }
+    return Promise.resolve(finalResult).catch(reject);
+  };
   mock.finally = (onFinally: any) => {
-    return Promise.resolve(finalResult).finally(onFinally)
-  }
+    return Promise.resolve(finalResult).finally(onFinally);
+  };
 
-  return mock
+  return mock;
 }
 
 /**
@@ -130,11 +136,11 @@ export function createMockDatabase() {
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([]),
         onConflictDoNothing: vi.fn().mockResolvedValue([]),
-        onConflictDoUpdate: vi.fn().mockResolvedValue([])
-      })
+        onConflictDoUpdate: vi.fn().mockResolvedValue([]),
+      }),
     })),
     update: vi.fn((table: any) => ({
-      set: vi.fn().mockReturnValue(createQueryChain([]))
+      set: vi.fn().mockReturnValue(createQueryChain([])),
     })),
     delete: vi.fn((table: any) => createQueryChain([])),
 
@@ -142,48 +148,50 @@ export function createMockDatabase() {
     query: {
       coupons: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       users: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       restaurants: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       menuItems: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       categories: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       orders: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
+        findMany: vi.fn().mockResolvedValue([]),
       },
       sessions: {
         findFirst: vi.fn().mockResolvedValue(null),
-        findMany: vi.fn().mockResolvedValue([])
-      }
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     },
 
     // Transaction support
-    transaction: vi.fn((callback: any) => callback({
-      select: vi.fn(() => createQueryChain([])),
-      insert: vi.fn(() => ({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([])
-        })
-      })),
-      update: vi.fn(() => ({
-        set: vi.fn().mockReturnValue(createQueryChain([]))
-      })),
-      delete: vi.fn(() => createQueryChain([]))
-    }))
-  }
+    transaction: vi.fn((callback: any) =>
+      callback({
+        select: vi.fn(() => createQueryChain([])),
+        insert: vi.fn(() => ({
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        })),
+        update: vi.fn(() => ({
+          set: vi.fn().mockReturnValue(createQueryChain([])),
+        })),
+        delete: vi.fn(() => createQueryChain([])),
+      }),
+    ),
+  };
 }
 
 /**
@@ -198,31 +206,34 @@ export function createMockDatabase() {
  * })
  * ```
  */
-export function setupMockDbResponses(db: any, responses: {
-  select?: any[]
-  insert?: any[]
-  update?: any[]
-  delete?: any[]
-}) {
+export function setupMockDbResponses(
+  db: any,
+  responses: {
+    select?: any[];
+    insert?: any[];
+    update?: any[];
+    delete?: any[];
+  },
+) {
   if (responses.select) {
-    db.select.mockReturnValue(createQueryChain(responses.select))
+    db.select.mockReturnValue(createQueryChain(responses.select));
   }
 
   if (responses.insert) {
     db.insert.mockReturnValue({
       values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue(responses.insert)
-      })
-    })
+        returning: vi.fn().mockResolvedValue(responses.insert),
+      }),
+    });
   }
 
   if (responses.update) {
     db.update.mockReturnValue({
-      set: vi.fn().mockReturnValue(createQueryChain(responses.update))
-    })
+      set: vi.fn().mockReturnValue(createQueryChain(responses.update)),
+    });
   }
 
   if (responses.delete) {
-    db.delete.mockReturnValue(createQueryChain(responses.delete))
+    db.delete.mockReturnValue(createQueryChain(responses.delete));
   }
 }

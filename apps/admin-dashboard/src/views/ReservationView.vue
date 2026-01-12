@@ -147,15 +147,17 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="i in 5" v-if="loading" :key="i" class="animate-pulse">
-              <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-20"></div></td>
-              <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
-              <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-40"></div></td>
-              <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
-              <td class="px-6 py-4"><div class="h-6 bg-gray-200 rounded w-16"></div></td>
-              <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-24"></div></td>
-              <td class="px-6 py-4"><div class="h-8 bg-gray-200 rounded w-32 ml-auto"></div></td>
-            </tr>
+            <template v-if="loading">
+              <tr v-for="i in 5" :key="i" class="animate-pulse">
+                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-20"></div></td>
+                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
+                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-40"></div></td>
+                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
+                <td class="px-6 py-4"><div class="h-6 bg-gray-200 rounded w-16"></div></td>
+                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-24"></div></td>
+                <td class="px-6 py-4"><div class="h-8 bg-gray-200 rounded w-32 ml-auto"></div></td>
+              </tr>
+            </template>
             <tr v-else-if="reservations.length === 0">
               <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                 <Calendar class="w-12 h-12 mx-auto mb-3 text-gray-400" />

@@ -3,13 +3,14 @@
  * 特約商店服務單元測試
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { PartnershipService } from '../PartnershipService'
-import type { D1Database } from '@cloudflare/workers-types'
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PartnershipService } from "../PartnershipService";
+import type { D1Database } from "@cloudflare/workers-types";
+import type { CloudflareEnv } from "../base";
 
 // Mock D1 Database
 const createMockD1 = (): D1Database => {
-  const mockResults: any[] = []
+  const mockResults: any[] = [];
 
   return {
     prepare: vi.fn().mockReturnValue({
@@ -21,464 +22,474 @@ const createMockD1 = (): D1Database => {
     dump: vi.fn(),
     batch: vi.fn(),
     exec: vi.fn(),
-  } as any
-}
+  } as any;
+};
 
-describe('PartnershipService', () => {
-  let service: PartnershipService
-  let mockDb: D1Database
+// Mock Environment
+const createMockEnv = (): CloudflareEnv =>
+  ({
+    DB: {} as D1Database,
+    JWT_SECRET: "test-secret",
+    CUSTOMER_APP_URL: "https://test.makanmakan.com",
+  }) as CloudflareEnv;
+
+describe("PartnershipService", () => {
+  let service: PartnershipService;
+  let mockDb: D1Database;
+  let mockEnv: CloudflareEnv;
 
   beforeEach(() => {
-    mockDb = createMockD1()
-    service = new PartnershipService(mockDb)
-  })
+    mockDb = createMockD1();
+    mockEnv = createMockEnv();
+    service = new PartnershipService(mockDb, mockEnv);
+  });
 
-  describe('Partnership Management', () => {
-    it('should create a new partnership', async () => {
+  describe("Partnership Management", () => {
+    it("should create a new partnership", async () => {
       const partnershipData = {
-        partnerCode: 'TEST-2025',
-        partnerName: 'Test University',
-        partnerType: 'university' as const,
-        contactPerson: 'John Doe',
-        contactPhone: '123456789',
-        contactEmail: 'contact@test.edu',
+        partnerCode: "TEST-2025",
+        partnerName: "Test University",
+        partnerType: "university" as const,
+        contactPerson: "John Doe",
+        contactPhone: "123456789",
+        contactEmail: "contact@test.edu",
         contractStartDate: Date.now(),
         contractEndDate: Date.now() + 365 * 24 * 60 * 60 * 1000,
-        verificationMethod: 'email_domain' as const,
-        status: 'active' as const,
-      }
+        verificationMethod: "email_domain" as const,
+        status: "active" as const,
+      };
 
       // This will call the actual service method
       // In a real test, we would mock the database response
-      expect(service).toBeDefined()
-      expect(service.createPartnership).toBeDefined()
-    })
+      expect(service).toBeDefined();
+      expect(service.createPartnership).toBeDefined();
+    });
 
-    it('should get partnership by ID', async () => {
-      const partnershipId = 'test-partnership-id'
+    it("should get partnership by ID", async () => {
+      const partnershipId = "test-partnership-id";
 
-      expect(service.getPartnership).toBeDefined()
+      expect(service.getPartnership).toBeDefined();
       // Would test actual retrieval with mocked data
-    })
+    });
 
-    it('should get partnership by code', async () => {
-      const partnerCode = 'TEST-2025'
+    it("should get partnership by code", async () => {
+      const partnerCode = "TEST-2025";
 
-      expect(service.getPartnershipByCode).toBeDefined()
+      expect(service.getPartnershipByCode).toBeDefined();
       // Would test actual retrieval with mocked data
-    })
+    });
 
-    it('should update partnership', async () => {
-      const partnershipId = 'test-partnership-id'
+    it("should update partnership", async () => {
+      const partnershipId = "test-partnership-id";
       const updateData = {
-        contactPhone: '987654321',
-        status: 'suspended' as const,
-      }
+        contactPhone: "987654321",
+        status: "suspended" as const,
+      };
 
-      expect(service.updatePartnership).toBeDefined()
+      expect(service.updatePartnership).toBeDefined();
       // Would test actual update with mocked data
-    })
+    });
 
-    it('should delete partnership', async () => {
-      const partnershipId = 'test-partnership-id'
+    it("should delete partnership", async () => {
+      const partnershipId = "test-partnership-id";
 
-      expect(service.deletePartnership).toBeDefined()
+      expect(service.deletePartnership).toBeDefined();
       // Would test actual deletion with mocked data
-    })
+    });
 
-    it('should list partnerships with filters', async () => {
+    it("should list partnerships with filters", async () => {
       const filters = {
-        partnerType: 'university' as const,
-        status: 'active' as const,
+        partnerType: "university" as const,
+        status: "active" as const,
         isActive: true,
-      }
+      };
 
-      expect(service.listPartnerships).toBeDefined()
+      expect(service.listPartnerships).toBeDefined();
       // Would test listing with filters
-    })
+    });
 
-    it('should get partnership statistics', async () => {
-      const partnershipId = 'test-partnership-id'
+    it("should get partnership statistics", async () => {
+      const partnershipId = "test-partnership-id";
 
-      expect(service.getPartnershipStatistics).toBeDefined()
+      expect(service.getPartnershipStatistics).toBeDefined();
       // Would test statistics calculation
-    })
-  })
+    });
+  });
 
-  describe('Plan Management', () => {
-    it('should create a partnership plan', async () => {
+  describe("Plan Management", () => {
+    it("should create a partnership plan", async () => {
       const planData = {
-        partnershipId: 'partnership-id',
-        restaurantId: 'restaurant-id',
-        planCode: 'LUNCH-15',
-        planName: 'Lunch Discount 15%',
-        discountType: 'percentage' as const,
+        partnershipId: "partnership-id",
+        restaurantId: "restaurant-id",
+        planCode: "LUNCH-15",
+        planName: "Lunch Discount 15%",
+        discountType: "percentage" as const,
         discountValue: 15,
         minOrderAmount: 100,
         validFrom: Date.now(),
         validTo: Date.now() + 180 * 24 * 60 * 60 * 1000,
         isActive: true,
-      }
+      };
 
-      expect(service.createPlan).toBeDefined()
+      expect(service.createPlan).toBeDefined();
       // Would test plan creation
-    })
+    });
 
-    it('should validate plan and calculate discount - percentage', async () => {
+    it("should validate plan and calculate discount - percentage", async () => {
       // Mock plan data
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 200
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 200;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test validation logic
-    })
+    });
 
-    it('should validate plan and calculate discount - fixed amount', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 200
+    it("should validate plan and calculate discount - fixed amount", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 200;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test fixed discount calculation
-    })
+    });
 
-    it('should reject plan if order amount below minimum', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 50 // Below minimum
+    it("should reject plan if order amount below minimum", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 50; // Below minimum
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test minimum order validation
-    })
+    });
 
-    it('should reject plan if usage limit exceeded', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 200
+    it("should reject plan if usage limit exceeded", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 200;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test usage limit validation
-    })
+    });
 
-    it('should respect max discount amount for percentage discount', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 1000 // Large amount
+    it("should respect max discount amount for percentage discount", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 1000; // Large amount
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test max discount cap
-    })
+    });
 
-    it('should validate applicable days', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 200
+    it("should validate applicable days", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 200;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test day of week validation
-    })
+    });
 
-    it('should validate applicable time slots', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 200
+    it("should validate applicable time slots", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 200;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test time slot validation
-    })
+    });
 
-    it('should update plan', async () => {
-      const planId = 'plan-id'
+    it("should update plan", async () => {
+      const planId = "plan-id";
       const updateData = {
         discountValue: 20,
         isActive: false,
-      }
+      };
 
-      expect(service.updatePlan).toBeDefined()
+      expect(service.updatePlan).toBeDefined();
       // Would test plan update
-    })
+    });
 
-    it('should delete plan', async () => {
-      const planId = 'plan-id'
+    it("should delete plan", async () => {
+      const planId = "plan-id";
 
-      expect(service.deletePlan).toBeDefined()
+      expect(service.deletePlan).toBeDefined();
       // Would test plan deletion
-    })
+    });
 
-    it('should list plans with filters', async () => {
+    it("should list plans with filters", async () => {
       const filters = {
-        partnershipId: 'partnership-id',
-        restaurantId: 'restaurant-id',
+        partnershipId: "partnership-id",
+        restaurantId: "restaurant-id",
         isActive: true,
         validOnly: true,
-      }
+      };
 
-      expect(service.listPlans).toBeDefined()
+      expect(service.listPlans).toBeDefined();
       // Would test plan listing
-    })
-  })
+    });
+  });
 
-  describe('Member Management', () => {
-    it('should submit member verification', async () => {
+  describe("Member Management", () => {
+    it("should submit member verification", async () => {
       const verificationData = {
-        partnershipId: 'partnership-id',
-        memberId: 'B10812345',
-        memberType: 'student' as const,
-        fullName: 'John Student',
-        email: 'john@test.edu',
-        verificationMethod: 'email_domain' as const,
-      }
+        partnershipId: "partnership-id",
+        memberId: "B10812345",
+        memberType: "student" as const,
+        fullName: "John Student",
+        email: "john@test.edu",
+        verificationMethod: "email_domain" as const,
+      };
 
-      expect(service.submitMemberVerification).toBeDefined()
+      expect(service.submitMemberVerification).toBeDefined();
       // Would test verification submission
-    })
+    });
 
-    it('should approve member verification', async () => {
-      const memberId = 'member-id'
-      const verifiedBy = 'admin-id'
-      const verificationExpiry = Date.now() + 365 * 24 * 60 * 60 * 1000
+    it("should approve member verification", async () => {
+      const memberId = "member-id";
+      const verifiedBy = "admin-id";
+      const verificationExpiry = Date.now() + 365 * 24 * 60 * 60 * 1000;
 
-      expect(service.approveMember).toBeDefined()
+      expect(service.approveMember).toBeDefined();
       // Would test member approval
-    })
+    });
 
-    it('should reject member verification', async () => {
-      const memberId = 'member-id'
-      const rejectionReason = 'Invalid student ID'
+    it("should reject member verification", async () => {
+      const memberId = "member-id";
+      const rejectionReason = "Invalid student ID";
 
-      expect(service.rejectMember).toBeDefined()
+      expect(service.rejectMember).toBeDefined();
       // Would test member rejection
-    })
+    });
 
-    it('should get member by ID', async () => {
-      const memberId = 'member-id'
+    it("should get member by ID", async () => {
+      const memberId = "member-id";
 
-      expect(service.getMember).toBeDefined()
+      expect(service.getMember).toBeDefined();
       // Would test member retrieval
-    })
+    });
 
-    it('should get member by member ID', async () => {
-      const partnershipId = 'partnership-id'
-      const memberId = 'B10812345'
+    it("should get member by member ID", async () => {
+      const partnershipId = "partnership-id";
+      const memberId = "B10812345";
 
-      expect(service.getMemberByMemberId).toBeDefined()
+      expect(service.getMemberByMemberId).toBeDefined();
       // Would test member retrieval by member ID
-    })
+    });
 
-    it('should update member', async () => {
-      const memberId = 'member-id'
+    it("should update member", async () => {
+      const memberId = "member-id";
       const updateData = {
-        email: 'newemail@test.edu',
-        phone: '987654321',
-      }
+        email: "newemail@test.edu",
+        phone: "987654321",
+      };
 
-      expect(service.updateMember).toBeDefined()
+      expect(service.updateMember).toBeDefined();
       // Would test member update
-    })
+    });
 
-    it('should delete member', async () => {
-      const memberId = 'member-id'
+    it("should delete member", async () => {
+      const memberId = "member-id";
 
-      expect(service.deleteMember).toBeDefined()
+      expect(service.deleteMember).toBeDefined();
       // Would test member deletion
-    })
+    });
 
-    it('should list members with filters', async () => {
+    it("should list members with filters", async () => {
       const filters = {
-        partnershipId: 'partnership-id',
-        status: 'verified' as const,
-        memberType: 'student' as const,
-      }
+        partnershipId: "partnership-id",
+        status: "verified" as const,
+        memberType: "student" as const,
+      };
 
-      expect(service.listMembers).toBeDefined()
+      expect(service.listMembers).toBeDefined();
       // Would test member listing
-    })
-  })
+    });
+  });
 
-  describe('Usage Logging', () => {
-    it('should log partnership usage', async () => {
+  describe("Usage Logging", () => {
+    it("should log partnership usage", async () => {
       const usageData = {
-        partnershipId: 'partnership-id',
-        planId: 'plan-id',
-        memberId: 'member-id',
-        orderId: 'order-id',
-        restaurantId: 'restaurant-id',
-        discountType: 'percentage',
+        partnershipId: "partnership-id",
+        planId: "plan-id",
+        memberId: "member-id",
+        orderId: "order-id",
+        restaurantId: "restaurant-id",
+        discountType: "percentage",
         discountValue: 15,
         discountAmount: 30,
         originalAmount: 200,
         finalAmount: 170,
-        status: 'completed' as const,
-      }
+        status: "completed" as const,
+      };
 
-      expect(service.logUsage).toBeDefined()
+      expect(service.logUsage).toBeDefined();
       // Would test usage logging
-    })
+    });
 
-    it('should get usage log', async () => {
-      const logId = 'log-id'
+    it("should get usage log", async () => {
+      const logId = "log-id";
 
-      expect(service.getUsageLog).toBeDefined()
+      expect(service.getUsageLog).toBeDefined();
       // Would test usage log retrieval
-    })
+    });
 
-    it('should list usage logs with filters', async () => {
+    it("should list usage logs with filters", async () => {
       const filters = {
-        partnershipId: 'partnership-id',
-        planId: 'plan-id',
-        memberId: 'member-id',
-        status: 'completed' as const,
-      }
+        partnershipId: "partnership-id",
+        planId: "plan-id",
+        memberId: "member-id",
+        status: "completed" as const,
+      };
 
-      expect(service.listUsageLogs).toBeDefined()
+      expect(service.listUsageLogs).toBeDefined();
       // Would test usage log listing
-    })
+    });
 
-    it('should cancel usage log', async () => {
-      const logId = 'log-id'
-      const reason = 'Customer request'
+    it("should cancel usage log", async () => {
+      const logId = "log-id";
+      const reason = "Customer request";
 
-      expect(service.cancelUsageLog).toBeDefined()
+      expect(service.cancelUsageLog).toBeDefined();
       // Would test usage log cancellation
-    })
+    });
 
-    it('should refund usage log', async () => {
-      const logId = 'log-id'
+    it("should refund usage log", async () => {
+      const logId = "log-id";
 
-      expect(service.refundUsageLog).toBeDefined()
+      expect(service.refundUsageLog).toBeDefined();
       // Would test usage log refund
-    })
-  })
+    });
+  });
 
-  describe('Utility Methods', () => {
-    it('should verify email domain', async () => {
-      const email = 'student@test.edu'
-      const partnershipId = 'partnership-id'
+  describe("Utility Methods", () => {
+    it("should verify email domain", async () => {
+      const email = "student@test.edu";
+      const partnershipId = "partnership-id";
 
-      expect(service.verifyEmailDomain).toBeDefined()
+      expect(service.verifyEmailDomain).toBeDefined();
       // Would test email domain verification
-    })
+    });
 
-    it('should check if contract is valid', () => {
+    it("should check if contract is valid", () => {
       const partnership = {
-        status: 'active' as const,
+        status: "active" as const,
         isActive: true,
         contractStartDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
         contractEndDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      }
+      };
 
-      expect(service.isContractValid).toBeDefined()
+      expect(service.isContractValid).toBeDefined();
       // Would test contract validity
-    })
+    });
 
-    it('should check if member verification is expired', () => {
+    it("should check if member verification is expired", () => {
       const member = {
         verificationExpiry: Date.now() - 24 * 60 * 60 * 1000, // Yesterday
-      }
+      };
 
-      expect(service.isMemberVerificationExpired).toBeDefined()
+      expect(service.isMemberVerificationExpired).toBeDefined();
       // Would test verification expiry
-    })
+    });
 
-    it('should reset daily usage counts', async () => {
-      expect(service.resetDailyUsageCounts).toBeDefined()
+    it("should reset daily usage counts", async () => {
+      expect(service.resetDailyUsageCounts).toBeDefined();
       // Would test daily reset
-    })
-  })
+    });
+  });
 
-  describe('Business Logic Validation', () => {
-    it('should not allow overlapping plans with same code', async () => {
+  describe("Business Logic Validation", () => {
+    it("should not allow overlapping plans with same code", async () => {
       // Test business rule validation
-      expect(service.createPlan).toBeDefined()
-    })
+      expect(service.createPlan).toBeDefined();
+    });
 
-    it('should calculate correct discount for percentage type', () => {
+    it("should calculate correct discount for percentage type", () => {
       // Test discount calculation logic
-      const orderAmount = 200
-      const discountValue = 15 // 15%
-      const expectedDiscount = 30
+      const orderAmount = 200;
+      const discountValue = 15; // 15%
+      const expectedDiscount = 30;
 
-      expect(orderAmount * (discountValue / 100)).toBe(expectedDiscount)
-    })
+      expect(orderAmount * (discountValue / 100)).toBe(expectedDiscount);
+    });
 
-    it('should apply max discount cap for percentage discount', () => {
+    it("should apply max discount cap for percentage discount", () => {
       // Test max discount logic
-      const orderAmount = 1000
-      const discountValue = 20 // 20%
-      const maxDiscountAmount = 100
-      const calculatedDiscount = orderAmount * (discountValue / 100) // 200
-      const expectedDiscount = Math.min(calculatedDiscount, maxDiscountAmount) // 100
+      const orderAmount = 1000;
+      const discountValue = 20; // 20%
+      const maxDiscountAmount = 100;
+      const calculatedDiscount = orderAmount * (discountValue / 100); // 200
+      const expectedDiscount = Math.min(calculatedDiscount, maxDiscountAmount); // 100
 
-      expect(expectedDiscount).toBe(100)
-    })
+      expect(expectedDiscount).toBe(100);
+    });
 
-    it('should validate time slot format', () => {
-      const validTimeSlot = { start: '11:00', end: '14:00' }
-      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+    it("should validate time slot format", () => {
+      const validTimeSlot = { start: "11:00", end: "14:00" };
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-      expect(timeRegex.test(validTimeSlot.start)).toBe(true)
-      expect(timeRegex.test(validTimeSlot.end)).toBe(true)
-    })
+      expect(timeRegex.test(validTimeSlot.start)).toBe(true);
+      expect(timeRegex.test(validTimeSlot.end)).toBe(true);
+    });
 
-    it('should validate day of week range', () => {
-      const validDays = [0, 1, 2, 3, 4, 5, 6]
-      validDays.forEach(day => {
-        expect(day).toBeGreaterThanOrEqual(0)
-        expect(day).toBeLessThanOrEqual(6)
-      })
-    })
+    it("should validate day of week range", () => {
+      const validDays = [0, 1, 2, 3, 4, 5, 6];
+      validDays.forEach((day) => {
+        expect(day).toBeGreaterThanOrEqual(0);
+        expect(day).toBeLessThanOrEqual(6);
+      });
+    });
 
-    it('should not allow negative discount values', () => {
-      const invalidDiscountValue = -10
-      expect(invalidDiscountValue).toBeLessThan(0)
+    it("should not allow negative discount values", () => {
+      const invalidDiscountValue = -10;
+      expect(invalidDiscountValue).toBeLessThan(0);
       // In actual implementation, this would be caught by validation
-    })
+    });
 
-    it('should not allow end date before start date', () => {
-      const startDate = Date.now()
-      const endDate = startDate - 24 * 60 * 60 * 1000 // Yesterday
+    it("should not allow end date before start date", () => {
+      const startDate = Date.now();
+      const endDate = startDate - 24 * 60 * 60 * 1000; // Yesterday
 
-      expect(endDate < startDate).toBe(true)
+      expect(endDate < startDate).toBe(true);
       // In actual implementation, this would be caught by validation
-    })
-  })
+    });
+  });
 
-  describe('Edge Cases', () => {
-    it('should handle missing optional fields', async () => {
+  describe("Edge Cases", () => {
+    it("should handle missing optional fields", async () => {
       const minimalPlanData = {
-        partnershipId: 'partnership-id',
-        restaurantId: 'restaurant-id',
-        planCode: 'TEST',
-        planName: 'Test Plan',
-        discountType: 'percentage' as const,
+        partnershipId: "partnership-id",
+        restaurantId: "restaurant-id",
+        planCode: "TEST",
+        planName: "Test Plan",
+        discountType: "percentage" as const,
         discountValue: 10,
         validFrom: Date.now(),
         validTo: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      }
+      };
 
-      expect(service.createPlan).toBeDefined()
+      expect(service.createPlan).toBeDefined();
       // Would test creation with minimal data
-    })
+    });
 
-    it('should handle zero order amount', async () => {
-      const planId = 'plan-id'
-      const memberId = 'member-id'
-      const orderAmount = 0
+    it("should handle zero order amount", async () => {
+      const planId = "plan-id";
+      const memberId = "member-id";
+      const orderAmount = 0;
 
-      expect(service.validatePlan).toBeDefined()
+      expect(service.validatePlan).toBeDefined();
       // Would test zero amount validation
-    })
+    });
 
-    it('should handle very large discount values', async () => {
-      const discountValue = 999999
-      expect(discountValue).toBeGreaterThan(0)
+    it("should handle very large discount values", async () => {
+      const discountValue = 999999;
+      expect(discountValue).toBeGreaterThan(0);
       // Would test upper bound validation
-    })
+    });
 
-    it('should handle concurrent usage logging', async () => {
+    it("should handle concurrent usage logging", async () => {
       // Test concurrent access scenarios
-      expect(service.logUsage).toBeDefined()
-    })
-  })
-})
+      expect(service.logUsage).toBeDefined();
+    });
+  });
+});

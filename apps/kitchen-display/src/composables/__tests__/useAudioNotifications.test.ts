@@ -3,12 +3,12 @@
  * 測試音頻通知 composable 的功能
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { useAudioNotifications } from '../useAudioNotifications'
-import type { KitchenOrder, KitchenSSEEvent } from '@/types'
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { useAudioNotifications } from "../useAudioNotifications";
+import type { KitchenOrder, KitchenSSEEvent } from "@/types";
 
 // Mock audio service - inline in vi.mock to avoid hoisting issues
-vi.mock('@/services/audioService', () => ({
+vi.mock("@/services/audioService", () => ({
   audioService: {
     playNewOrder: vi.fn().mockResolvedValue(undefined),
     playOrderReady: vi.fn().mockResolvedValue(undefined),
@@ -20,48 +20,48 @@ vi.mock('@/services/audioService', () => ({
     enable: vi.fn(),
     disable: vi.fn(),
     setMasterVolume: vi.fn(),
-    updateSettings: vi.fn()
-  }
-}))
+    updateSettings: vi.fn(),
+  },
+}));
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store: Record<string, string> = {}
+  let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
     setItem: (key: string, value: string) => {
-      store[key] = value
+      store[key] = value;
     },
     clear: () => {
-      store = {}
-    }
-  }
-})()
+      store = {};
+    },
+  };
+})();
 
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock
-})
+Object.defineProperty(global, "localStorage", {
+  value: localStorageMock,
+});
 
-describe('useAudioNotifications', () => {
+describe("useAudioNotifications", () => {
   // Get reference to mocked audioService
-  let mockAudioService: any
+  let mockAudioService: any;
 
   beforeEach(async () => {
-    vi.clearAllMocks()
-    localStorageMock.clear()
+    vi.clearAllMocks();
+    localStorageMock.clear();
 
     // Get mocked audioService
-    const { audioService } = await import('@/services/audioService')
-    mockAudioService = audioService
-  })
+    const { audioService } = await import("@/services/audioService");
+    mockAudioService = audioService;
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
-  describe('Initialization', () => {
-    it('should initialize with default config', () => {
-      const { config } = useAudioNotifications()
+  describe("Initialization", () => {
+    it("should initialize with default config", () => {
+      const { config } = useAudioNotifications();
 
       expect(config.value).toEqual({
         newOrderSound: true,
@@ -72,11 +72,11 @@ describe('useAudioNotifications', () => {
         successSound: true,
         errorSound: true,
         volume: 0.7,
-        enabled: true
-      })
-    })
+        enabled: true,
+      });
+    });
 
-    it('should load config from localStorage if available', () => {
+    it("should load config from localStorage if available", () => {
       const savedConfig = {
         newOrderSound: false,
         urgentOrderSound: true,
@@ -86,151 +86,156 @@ describe('useAudioNotifications', () => {
         successSound: true,
         errorSound: false,
         volume: 0.5,
-        enabled: false
-      }
+        enabled: false,
+      };
 
-      localStorageMock.setItem('kitchen-audio-notifications', JSON.stringify(savedConfig))
+      localStorageMock.setItem(
+        "kitchen-audio-notifications",
+        JSON.stringify(savedConfig),
+      );
 
-      const { config } = useAudioNotifications()
+      const { config } = useAudioNotifications();
 
-      expect(config.value).toMatchObject(savedConfig)
-    })
+      expect(config.value).toMatchObject(savedConfig);
+    });
 
-    it('should start as enabled by default', () => {
-      const { isEnabled } = useAudioNotifications()
+    it("should start as enabled by default", () => {
+      const { isEnabled } = useAudioNotifications();
 
-      expect(isEnabled.value).toBe(true)
-    })
-  })
+      expect(isEnabled.value).toBe(true);
+    });
+  });
 
-  describe('Sound Playback', () => {
-    it('should play new order sound', async () => {
-      const { playNewOrderSound } = useAudioNotifications()
+  describe("Sound Playback", () => {
+    it("should play new order sound", async () => {
+      const { playNewOrderSound } = useAudioNotifications();
 
-      await playNewOrderSound()
+      await playNewOrderSound();
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(false)
-    })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(false);
+    });
 
-    it('should play urgent order sound', async () => {
-      const { playNewOrderSound } = useAudioNotifications()
+    it("should play urgent order sound", async () => {
+      const { playNewOrderSound } = useAudioNotifications();
 
-      await playNewOrderSound(true)
+      await playNewOrderSound(true);
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true)
-    })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true);
+    });
 
-    it('should play order ready sound', async () => {
-      const { playOrderReadySound } = useAudioNotifications()
+    it("should play order ready sound", async () => {
+      const { playOrderReadySound } = useAudioNotifications();
 
-      await playOrderReadySound()
+      await playOrderReadySound();
 
-      expect(mockAudioService.playOrderReady).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderReady).toHaveBeenCalled();
+    });
 
-    it('should play order complete sound', async () => {
-      const { playOrderCompleteSound } = useAudioNotifications()
+    it("should play order complete sound", async () => {
+      const { playOrderCompleteSound } = useAudioNotifications();
 
-      await playOrderCompleteSound()
+      await playOrderCompleteSound();
 
-      expect(mockAudioService.playOrderComplete).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderComplete).toHaveBeenCalled();
+    });
 
-    it('should play warning sound', async () => {
-      const { playWarningSound } = useAudioNotifications()
+    it("should play warning sound", async () => {
+      const { playWarningSound } = useAudioNotifications();
 
-      await playWarningSound()
+      await playWarningSound();
 
-      expect(mockAudioService.playWarning).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playWarning).toHaveBeenCalled();
+    });
 
-    it('should play success sound', async () => {
-      const { playSuccessSound } = useAudioNotifications()
+    it("should play success sound", async () => {
+      const { playSuccessSound } = useAudioNotifications();
 
-      await playSuccessSound()
+      await playSuccessSound();
 
-      expect(mockAudioService.playSuccess).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playSuccess).toHaveBeenCalled();
+    });
 
-    it('should play error sound', async () => {
-      const { playErrorSound } = useAudioNotifications()
+    it("should play error sound", async () => {
+      const { playErrorSound } = useAudioNotifications();
 
-      await playErrorSound()
+      await playErrorSound();
 
-      expect(mockAudioService.playError).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playError).toHaveBeenCalled();
+    });
 
-    it('should not play sounds when disabled', async () => {
-      const { playNewOrderSound, disable } = useAudioNotifications()
+    it("should not play sounds when disabled", async () => {
+      const { playNewOrderSound, disable } = useAudioNotifications();
 
-      disable()
-      await playNewOrderSound()
+      disable();
+      await playNewOrderSound();
 
-      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled()
-    })
+      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled();
+    });
 
-    it('should handle playback errors gracefully', async () => {
-      mockAudioService.playNewOrder.mockRejectedValueOnce(new Error('Audio error'))
+    it("should handle playback errors gracefully", async () => {
+      mockAudioService.playNewOrder.mockRejectedValueOnce(
+        new Error("Audio error"),
+      );
 
-      const { playNewOrderSound } = useAudioNotifications()
+      const { playNewOrderSound } = useAudioNotifications();
 
       // Should not throw
-      await expect(playNewOrderSound()).resolves.not.toThrow()
-    })
-  })
+      await expect(playNewOrderSound()).resolves.not.toThrow();
+    });
+  });
 
-  describe('Configuration Management', () => {
-    it('should update configuration', () => {
-      const { config, updateConfig } = useAudioNotifications()
+  describe("Configuration Management", () => {
+    it("should update configuration", () => {
+      const { config, updateConfig } = useAudioNotifications();
 
       updateConfig({
         volume: 0.5,
-        newOrderSound: false
-      })
+        newOrderSound: false,
+      });
 
-      expect(config.value.volume).toBe(0.5)
-      expect(config.value.newOrderSound).toBe(false)
-    })
+      expect(config.value.volume).toBe(0.5);
+      expect(config.value.newOrderSound).toBe(false);
+    });
 
-    it('should save configuration to localStorage', () => {
-      const { updateConfig } = useAudioNotifications()
+    it("should save configuration to localStorage", () => {
+      const { updateConfig } = useAudioNotifications();
 
       updateConfig({
-        volume: 0.8
-      })
+        volume: 0.8,
+      });
 
-      const saved = localStorageMock.getItem('kitchen-audio-notifications')
-      expect(saved).toBeTruthy()
+      const saved = localStorageMock.getItem("kitchen-audio-notifications");
+      expect(saved).toBeTruthy();
 
-      const parsed = JSON.parse(saved!)
-      expect(parsed.volume).toBe(0.8)
-    })
+      const parsed = JSON.parse(saved!);
+      expect(parsed.volume).toBe(0.8);
+    });
 
-    it('should update audio service settings on config change', () => {
-      const { updateConfig } = useAudioNotifications()
+    it("should update audio service settings on config change", () => {
+      const { updateConfig } = useAudioNotifications();
 
       updateConfig({
         enabled: false,
-        volume: 0.3
-      })
+        volume: 0.3,
+      });
 
       expect(mockAudioService.updateSettings).toHaveBeenCalledWith({
         enabled: false,
-        masterVolume: 0.3
-      })
-    })
+        masterVolume: 0.3,
+      });
+    });
 
-    it('should reset configuration to defaults', () => {
-      const { config, updateConfig, resetConfig } = useAudioNotifications()
+    it("should reset configuration to defaults", () => {
+      const { config, updateConfig, resetConfig } = useAudioNotifications();
 
       // Change config
       updateConfig({
         volume: 0.1,
-        newOrderSound: false
-      })
+        newOrderSound: false,
+      });
 
       // Reset
-      resetConfig()
+      resetConfig();
 
       expect(config.value).toEqual({
         newOrderSound: true,
@@ -241,479 +246,491 @@ describe('useAudioNotifications', () => {
         successSound: true,
         errorSound: true,
         volume: 0.7,
-        enabled: true
-      })
-    })
-  })
+        enabled: true,
+      });
+    });
+  });
 
-  describe('Enable/Disable Control', () => {
-    it('should enable audio notifications', () => {
-      const { enable } = useAudioNotifications()
+  describe("Enable/Disable Control", () => {
+    it("should enable audio notifications", () => {
+      const { enable } = useAudioNotifications();
 
-      enable()
+      enable();
 
-      expect(mockAudioService.enable).toHaveBeenCalled()
-    })
+      expect(mockAudioService.enable).toHaveBeenCalled();
+    });
 
-    it('should disable audio notifications', () => {
-      const { disable } = useAudioNotifications()
+    it("should disable audio notifications", () => {
+      const { disable } = useAudioNotifications();
 
-      disable()
+      disable();
 
-      expect(mockAudioService.disable).toHaveBeenCalled()
-    })
+      expect(mockAudioService.disable).toHaveBeenCalled();
+    });
 
-    it('should toggle audio notifications', () => {
-      const { toggle, isEnabled } = useAudioNotifications()
+    it("should toggle audio notifications", () => {
+      const { toggle, isEnabled } = useAudioNotifications();
 
-      const initialState = isEnabled.value
+      const initialState = isEnabled.value;
 
-      toggle()
+      toggle();
 
-      expect(isEnabled.value).not.toBe(initialState)
-    })
+      expect(isEnabled.value).not.toBe(initialState);
+    });
 
-    it('should respect enabled state when playing sounds', async () => {
-      const { playNewOrderSound, disable } = useAudioNotifications()
+    it("should respect enabled state when playing sounds", async () => {
+      const { playNewOrderSound, disable } = useAudioNotifications();
 
-      disable()
-      await playNewOrderSound()
+      disable();
+      await playNewOrderSound();
 
-      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled()
-    })
-  })
+      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled();
+    });
+  });
 
-  describe('Volume Control', () => {
-    it('should set volume within valid range', () => {
-      const { setVolume, currentVolume } = useAudioNotifications()
+  describe("Volume Control", () => {
+    it("should set volume within valid range", () => {
+      const { setVolume, currentVolume } = useAudioNotifications();
 
-      setVolume(0.5)
+      setVolume(0.5);
 
-      expect(currentVolume.value).toBe(0.5)
-      expect(mockAudioService.setMasterVolume).toHaveBeenCalledWith(0.5)
-    })
+      expect(currentVolume.value).toBe(0.5);
+      expect(mockAudioService.setMasterVolume).toHaveBeenCalledWith(0.5);
+    });
 
-    it('should cap volume at maximum 1.0', () => {
-      const { setVolume, currentVolume } = useAudioNotifications()
+    it("should cap volume at maximum 1.0", () => {
+      const { setVolume, currentVolume } = useAudioNotifications();
 
-      setVolume(1.5)
+      setVolume(1.5);
 
-      expect(currentVolume.value).toBe(1.0)
-    })
+      expect(currentVolume.value).toBe(1.0);
+    });
 
-    it('should cap volume at minimum 0.0', () => {
-      const { setVolume, currentVolume } = useAudioNotifications()
+    it("should cap volume at minimum 0.0", () => {
+      const { setVolume, currentVolume } = useAudioNotifications();
 
-      setVolume(-0.5)
+      setVolume(-0.5);
 
-      expect(currentVolume.value).toBe(0.0)
-    })
+      expect(currentVolume.value).toBe(0.0);
+    });
 
-    it('should persist volume changes', () => {
-      const { setVolume } = useAudioNotifications()
+    it("should persist volume changes", () => {
+      const { setVolume } = useAudioNotifications();
 
-      setVolume(0.6)
+      setVolume(0.6);
 
-      const saved = localStorageMock.getItem('kitchen-audio-notifications')
-      const parsed = JSON.parse(saved!)
+      const saved = localStorageMock.getItem("kitchen-audio-notifications");
+      const parsed = JSON.parse(saved!);
 
-      expect(parsed.volume).toBe(0.6)
-    })
-  })
+      expect(parsed.volume).toBe(0.6);
+    });
+  });
 
-  describe('SSE Event Handling', () => {
-    it('should handle NEW_ORDER event', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+  describe("SSE Event Handling", () => {
+    it("should handle NEW_ORDER event", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'NEW_ORDER',
-        payload: { priority: 'normal' },
+        type: "NEW_ORDER",
+        payload: { priority: "normal" },
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(false)
-    })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(false);
+    });
 
-    it('should handle urgent NEW_ORDER event', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+    it("should handle urgent NEW_ORDER event", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'NEW_ORDER',
-        payload: { priority: 'urgent' },
+        type: "NEW_ORDER",
+        payload: { priority: "urgent" },
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true)
-    })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true);
+    });
 
-    it('should handle ORDER_STATUS_UPDATE to ready', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+    it("should handle ORDER_STATUS_UPDATE to ready", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'ORDER_STATUS_UPDATE',
-        payload: { status: 'ready' },
+        type: "ORDER_STATUS_UPDATE",
+        payload: { status: "ready" },
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playOrderReady).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderReady).toHaveBeenCalled();
+    });
 
-    it('should handle ORDER_STATUS_UPDATE to completed', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+    it("should handle ORDER_STATUS_UPDATE to completed", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'ORDER_STATUS_UPDATE',
-        payload: { status: 'completed' },
+        type: "ORDER_STATUS_UPDATE",
+        payload: { status: "completed" },
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playOrderComplete).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderComplete).toHaveBeenCalled();
+    });
 
-    it('should handle ORDER_CANCELLED event', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+    it("should handle ORDER_CANCELLED event", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'ORDER_CANCELLED',
+        type: "ORDER_CANCELLED",
         payload: {},
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playWarning).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playWarning).toHaveBeenCalled();
+    });
 
-    it('should handle PRIORITY_UPDATE to urgent', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+    it("should handle PRIORITY_UPDATE to urgent", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'PRIORITY_UPDATE',
-        payload: { priority: 'urgent' },
+        type: "PRIORITY_UPDATE",
+        payload: { priority: "urgent" },
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
-      await handleSSEEvent(event)
+      await handleSSEEvent(event);
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true)
-    })
-  })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalledWith(true);
+    });
+  });
 
-  describe('Order Event Handlers', () => {
-    it('should handle order start cooking', async () => {
-      const { handleOrderStartCooking } = useAudioNotifications()
+  describe("Order Event Handlers", () => {
+    it("should handle order start cooking", async () => {
+      const { handleOrderStartCooking } = useAudioNotifications();
 
-      await handleOrderStartCooking()
+      await handleOrderStartCooking();
 
-      expect(mockAudioService.playSuccess).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playSuccess).toHaveBeenCalled();
+    });
 
-    it('should handle order mark ready', async () => {
-      const { handleOrderMarkReady } = useAudioNotifications()
+    it("should handle order mark ready", async () => {
+      const { handleOrderMarkReady } = useAudioNotifications();
 
-      await handleOrderMarkReady()
+      await handleOrderMarkReady();
 
-      expect(mockAudioService.playOrderReady).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderReady).toHaveBeenCalled();
+    });
 
-    it('should handle order complete', async () => {
-      const { handleOrderComplete } = useAudioNotifications()
+    it("should handle order complete", async () => {
+      const { handleOrderComplete } = useAudioNotifications();
 
-      await handleOrderComplete()
+      await handleOrderComplete();
 
-      expect(mockAudioService.playOrderComplete).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playOrderComplete).toHaveBeenCalled();
+    });
 
-    it('should handle batch operation with small count', async () => {
-      const { handleBatchOperation } = useAudioNotifications()
+    it("should handle batch operation with small count", async () => {
+      const { handleBatchOperation } = useAudioNotifications();
 
-      await handleBatchOperation(3)
+      await handleBatchOperation(3);
 
-      expect(mockAudioService.playSuccess).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playSuccess).toHaveBeenCalled();
+    });
 
-    it('should handle batch operation with medium count', async () => {
-      const { handleBatchOperation } = useAudioNotifications()
+    it("should handle batch operation with medium count", async () => {
+      const { handleBatchOperation } = useAudioNotifications();
 
-      await handleBatchOperation(7)
+      await handleBatchOperation(7);
 
-      expect(mockAudioService.play).toHaveBeenCalledWith('chime', {
+      expect(mockAudioService.play).toHaveBeenCalledWith("chime", {
         repeat: 2,
-        priority: 'medium'
-      })
-    })
+        priority: "medium",
+      });
+    });
 
-    it('should handle batch operation with large count', async () => {
-      const { handleBatchOperation } = useAudioNotifications()
+    it("should handle batch operation with large count", async () => {
+      const { handleBatchOperation } = useAudioNotifications();
 
-      await handleBatchOperation(15)
+      await handleBatchOperation(15);
 
-      expect(mockAudioService.play).toHaveBeenCalledWith('chime', {
+      expect(mockAudioService.play).toHaveBeenCalledWith("chime", {
         repeat: 3,
-        priority: 'high'
-      })
-    })
-  })
+        priority: "high",
+      });
+    });
+  });
 
-  describe('Time-based Monitoring', () => {
+  describe("Time-based Monitoring", () => {
     beforeEach(() => {
-      vi.useFakeTimers()
-    })
+      vi.useFakeTimers();
+    });
 
-    it('should check order times and play warning for overdue orders', async () => {
-      const { checkOrderTimes } = useAudioNotifications()
+    it("should check order times and play warning for overdue orders", async () => {
+      const { checkOrderTimes } = useAudioNotifications();
 
       const orders: KitchenOrder[] = [
         {
           id: 1,
-          orderNumber: 'ORD-001',
+          orderNumber: "ORD-001",
           tableId: 1,
-          tableName: 'T1',
+          tableName: "T1",
           status: 2, // Preparing
-          priority: 'normal',
+          priority: "normal",
           createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(), // 35 minutes ago
           elapsedTime: 35,
           estimatedTime: 15,
           totalItems: 0,
-          items: []
-        }
-      ]
+          items: [],
+        },
+      ];
 
-      await checkOrderTimes(orders)
+      await checkOrderTimes(orders);
 
-      expect(mockAudioService.playWarning).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playWarning).toHaveBeenCalled();
+    });
 
-    it('should not play warning for recent orders', async () => {
-      const { checkOrderTimes } = useAudioNotifications()
+    it("should not play warning for recent orders", async () => {
+      const { checkOrderTimes } = useAudioNotifications();
 
       const orders: KitchenOrder[] = [
         {
           id: 1,
-          orderNumber: 'ORD-001',
+          orderNumber: "ORD-001",
           tableId: 1,
-          tableName: 'T1',
+          tableName: "T1",
           status: 2,
-          priority: 'normal',
+          priority: "normal",
           createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
           elapsedTime: 10,
           estimatedTime: 15,
           totalItems: 0,
-          items: []
-        }
-      ]
+          items: [],
+        },
+      ];
 
-      await checkOrderTimes(orders)
+      await checkOrderTimes(orders);
 
-      expect(mockAudioService.playWarning).not.toHaveBeenCalled()
-    })
+      expect(mockAudioService.playWarning).not.toHaveBeenCalled();
+    });
 
-    it('should check orders near completion time', async () => {
-      const { checkOrderTimes } = useAudioNotifications()
+    it("should check orders near completion time", async () => {
+      const { checkOrderTimes } = useAudioNotifications();
 
       const orders: KitchenOrder[] = [
         {
           id: 1,
-          orderNumber: 'ORD-001',
+          orderNumber: "ORD-001",
           tableId: 1,
-          tableName: 'T1',
+          tableName: "T1",
           status: 2,
-          priority: 'normal',
+          priority: "normal",
           createdAt: new Date(Date.now() - 13 * 60 * 1000).toISOString(), // 13 minutes ago
           elapsedTime: 13,
           estimatedTime: 15, // 15 * 0.8 = 12 minutes threshold
           totalItems: 0,
-          items: []
-        }
-      ]
+          items: [],
+        },
+      ];
 
-      await checkOrderTimes(orders)
+      await checkOrderTimes(orders);
 
-      expect(mockAudioService.play).toHaveBeenCalledWith('notification', { priority: 'low' })
-    })
+      expect(mockAudioService.play).toHaveBeenCalledWith("notification", {
+        priority: "low",
+      });
+    });
 
-    it('should start time monitoring', () => {
-      const { startTimeMonitoring } = useAudioNotifications()
+    it("should start time monitoring", () => {
+      const { startTimeMonitoring } = useAudioNotifications();
 
-      const orders: KitchenOrder[] = []
+      const orders: KitchenOrder[] = [];
 
-      startTimeMonitoring(orders)
+      startTimeMonitoring(orders);
 
       // Monitoring should be active
-      expect(vi.getTimerCount()).toBeGreaterThan(0)
-    })
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+    });
 
-    it('should stop time monitoring', () => {
-      const { startTimeMonitoring, stopTimeMonitoring } = useAudioNotifications()
+    it("should stop time monitoring", () => {
+      const { startTimeMonitoring, stopTimeMonitoring } =
+        useAudioNotifications();
 
-      const orders: KitchenOrder[] = []
+      const orders: KitchenOrder[] = [];
 
-      startTimeMonitoring(orders)
-      stopTimeMonitoring()
+      startTimeMonitoring(orders);
+      stopTimeMonitoring();
 
       // All timers should be cleared
-      expect(vi.getTimerCount()).toBe(0)
-    })
+      expect(vi.getTimerCount()).toBe(0);
+    });
 
-    it('should not start duplicate monitoring', () => {
-      const { startTimeMonitoring } = useAudioNotifications()
+    it("should not start duplicate monitoring", () => {
+      const { startTimeMonitoring } = useAudioNotifications();
 
-      const orders: KitchenOrder[] = []
+      const orders: KitchenOrder[] = [];
 
-      startTimeMonitoring(orders)
-      const timersAfterFirst = vi.getTimerCount()
+      startTimeMonitoring(orders);
+      const timersAfterFirst = vi.getTimerCount();
 
-      startTimeMonitoring(orders)
-      const timersAfterSecond = vi.getTimerCount()
+      startTimeMonitoring(orders);
+      const timersAfterSecond = vi.getTimerCount();
 
-      expect(timersAfterFirst).toBe(timersAfterSecond)
-    })
-  })
+      expect(timersAfterFirst).toBe(timersAfterSecond);
+    });
+  });
 
-  describe('Testing Methods', () => {
+  describe("Testing Methods", () => {
     beforeEach(() => {
-      vi.useFakeTimers()
-    })
+      vi.useFakeTimers();
+    });
 
-    it('should run notification tests', async () => {
-      const { testNotifications } = useAudioNotifications()
+    it("should run notification tests", async () => {
+      const { testNotifications } = useAudioNotifications();
 
-      await testNotifications()
+      // Start the test and run all timers asynchronously
+      const testPromise = testNotifications();
+
+      // Run all pending timers (the 1000ms delays between sounds)
+      await vi.runAllTimersAsync();
+
+      await testPromise;
 
       // Should have played multiple test sounds
-      expect(mockAudioService.playNewOrder).toHaveBeenCalled()
-      expect(mockAudioService.playOrderReady).toHaveBeenCalled()
-      expect(mockAudioService.playOrderComplete).toHaveBeenCalled()
-      expect(mockAudioService.playSuccess).toHaveBeenCalled()
-    })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalled();
+      expect(mockAudioService.playOrderReady).toHaveBeenCalled();
+      expect(mockAudioService.playOrderComplete).toHaveBeenCalled();
+      expect(mockAudioService.playSuccess).toHaveBeenCalled();
+    });
 
-    it('should not run tests when disabled', async () => {
-      const { testNotifications, disable } = useAudioNotifications()
+    it("should not run tests when disabled", async () => {
+      const { testNotifications, disable } = useAudioNotifications();
 
-      disable()
-      await testNotifications()
+      disable();
+      await testNotifications();
 
-      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled()
-    })
+      expect(mockAudioService.playNewOrder).not.toHaveBeenCalled();
+    });
 
-    it('should wait between test sounds', async () => {
-      const { testNotifications } = useAudioNotifications()
+    it("should wait between test sounds", async () => {
+      const { testNotifications } = useAudioNotifications();
 
-      const testPromise = testNotifications()
+      const testPromise = testNotifications();
 
-      // Advance time for delays between tests
-      vi.advanceTimersByTime(5000)
+      // Run all timers to complete the test sequence
+      await vi.runAllTimersAsync();
 
-      await testPromise
+      await testPromise;
 
-      expect(mockAudioService.playNewOrder).toHaveBeenCalled()
-    })
-  })
+      expect(mockAudioService.playNewOrder).toHaveBeenCalled();
+    });
+  });
 
-  describe('Computed Properties', () => {
-    it('should compute isEnabled correctly', () => {
-      const { isEnabled, disable } = useAudioNotifications()
+  describe("Computed Properties", () => {
+    it("should compute isEnabled correctly", () => {
+      const { isEnabled, disable } = useAudioNotifications();
 
-      expect(isEnabled.value).toBe(true)
+      expect(isEnabled.value).toBe(true);
 
-      disable()
+      disable();
 
-      expect(isEnabled.value).toBe(false)
-    })
+      expect(isEnabled.value).toBe(false);
+    });
 
-    it('should compute currentVolume correctly', () => {
-      const { currentVolume, setVolume } = useAudioNotifications()
+    it("should compute currentVolume correctly", () => {
+      const { currentVolume, setVolume } = useAudioNotifications();
 
-      expect(currentVolume.value).toBe(0.7) // Default
+      expect(currentVolume.value).toBe(0.7); // Default
 
-      setVolume(0.5)
+      setVolume(0.5);
 
-      expect(currentVolume.value).toBe(0.5)
-    })
-  })
+      expect(currentVolume.value).toBe(0.5);
+    });
+  });
 
-  describe('Lifecycle', () => {
-    it('should load config on mount', () => {
+  describe("Lifecycle", () => {
+    it("should load config on mount", () => {
       const savedConfig = {
         volume: 0.9,
-        enabled: false
-      }
+        enabled: false,
+      };
 
-      localStorageMock.setItem('kitchen-audio-notifications', JSON.stringify(savedConfig))
+      localStorageMock.setItem(
+        "kitchen-audio-notifications",
+        JSON.stringify(savedConfig),
+      );
 
-      const { config } = useAudioNotifications()
+      const { config } = useAudioNotifications();
 
-      expect(config.value.volume).toBe(0.9)
-      expect(config.value.enabled).toBe(false)
-    })
+      expect(config.value.volume).toBe(0.9);
+      expect(config.value.enabled).toBe(false);
+    });
 
-    it('should stop monitoring on unmount', () => {
-      vi.useFakeTimers()
+    it("should stop monitoring on unmount", () => {
+      vi.useFakeTimers();
 
-      const { startTimeMonitoring } = useAudioNotifications()
+      const { startTimeMonitoring } = useAudioNotifications();
 
-      const orders: KitchenOrder[] = []
-      startTimeMonitoring(orders)
+      const orders: KitchenOrder[] = [];
+      startTimeMonitoring(orders);
 
       // Component unmount would trigger this
       // Manual cleanup for test
-      expect(vi.getTimerCount()).toBeGreaterThan(0)
-    })
-  })
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+    });
+  });
 
-  describe('Edge Cases', () => {
-    it('should handle missing payload in SSE events', async () => {
-      const { handleSSEEvent } = useAudioNotifications()
+  describe("Edge Cases", () => {
+    it("should handle missing payload in SSE events", async () => {
+      const { handleSSEEvent } = useAudioNotifications();
 
       const event: KitchenSSEEvent = {
-        type: 'NEW_ORDER',
+        type: "NEW_ORDER",
         payload: undefined,
         timestamp: new Date().toISOString(),
-        restaurantId: 1
-      }
+        restaurantId: 1,
+      };
 
       // Should not throw
-      await expect(handleSSEEvent(event)).resolves.not.toThrow()
-    })
+      await expect(handleSSEEvent(event)).resolves.not.toThrow();
+    });
 
-    it('should handle invalid config in localStorage', () => {
-      localStorageMock.setItem('kitchen-audio-notifications', 'invalid json')
+    it("should handle invalid config in localStorage", () => {
+      localStorageMock.setItem("kitchen-audio-notifications", "invalid json");
 
       // Should not throw and use defaults
-      const { config } = useAudioNotifications()
+      const { config } = useAudioNotifications();
 
-      expect(config.value.volume).toBe(0.7)
-    })
+      expect(config.value.volume).toBe(0.7);
+    });
 
-    it('should handle empty orders array in time check', async () => {
-      const { checkOrderTimes } = useAudioNotifications()
+    it("should handle empty orders array in time check", async () => {
+      const { checkOrderTimes } = useAudioNotifications();
 
-      await checkOrderTimes([])
+      await checkOrderTimes([]);
 
       // Should not throw or play sounds
-      expect(mockAudioService.playWarning).not.toHaveBeenCalled()
-    })
+      expect(mockAudioService.playWarning).not.toHaveBeenCalled();
+    });
 
-    it('should handle batch operation with zero count', async () => {
-      const { handleBatchOperation } = useAudioNotifications()
+    it("should handle batch operation with zero count", async () => {
+      const { handleBatchOperation } = useAudioNotifications();
 
-      await handleBatchOperation(0)
+      await handleBatchOperation(0);
 
-      expect(mockAudioService.playSuccess).toHaveBeenCalled()
-    })
-  })
-})
+      expect(mockAudioService.playSuccess).toHaveBeenCalled();
+    });
+  });
+});

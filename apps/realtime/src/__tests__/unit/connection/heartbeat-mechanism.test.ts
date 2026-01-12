@@ -1,5 +1,5 @@
 // Realtime - Heartbeat Mechanism 測試
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
  * Heartbeat Mechanism 測試
@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * - 連接保活機制
  */
 
-describe('Heartbeat Mechanism', () => {
+describe("Heartbeat Mechanism", () => {
   let mockWebSocket: any;
   let heartbeatInterval: ReturnType<typeof setInterval> | null;
   let timeouts: ReturnType<typeof setTimeout>[];
@@ -35,21 +35,23 @@ describe('Heartbeat Mechanism', () => {
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval);
     }
-    timeouts.forEach(timeout => clearTimeout(timeout));
+    timeouts.forEach((timeout) => clearTimeout(timeout));
     vi.useRealTimers();
   });
 
-  describe('Ping 訊息發送', () => {
-    it('應該定期發送 ping 訊息', () => {
+  describe("Ping 訊息發送", () => {
+    it("應該定期發送 ping 訊息", () => {
       const HEARTBEAT_INTERVAL = 30000; // 30 seconds
       const connection = { ws: mockWebSocket, lastHeartbeat: Date.now() };
 
       // 模擬心跳機制
       const sendPing = () => {
-        connection.ws.send(JSON.stringify({
-          type: 'ping',
-          timestamp: Date.now()
-        }));
+        connection.ws.send(
+          JSON.stringify({
+            type: "ping",
+            timestamp: Date.now(),
+          }),
+        );
         connection.lastHeartbeat = Date.now();
       };
 
@@ -62,7 +64,7 @@ describe('Heartbeat Mechanism', () => {
       vi.advanceTimersByTime(HEARTBEAT_INTERVAL);
       expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
       expect(mockWebSocket.send).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"ping"')
+        expect.stringContaining('"type":"ping"'),
       );
 
       // Fast-forward another 30 seconds
@@ -74,15 +76,17 @@ describe('Heartbeat Mechanism', () => {
       expect(mockWebSocket.send).toHaveBeenCalledTimes(3);
     });
 
-    it('ping 訊息應該包含時間戳', () => {
+    it("ping 訊息應該包含時間戳", () => {
       const now = 1700000000000; // Fixed timestamp
       vi.setSystemTime(now);
 
       const sendPing = () => {
-        mockWebSocket.send(JSON.stringify({
-          type: 'ping',
-          timestamp: Date.now()
-        }));
+        mockWebSocket.send(
+          JSON.stringify({
+            type: "ping",
+            timestamp: Date.now(),
+          }),
+        );
       };
 
       sendPing();
@@ -90,14 +94,15 @@ describe('Heartbeat Mechanism', () => {
       const sentMessage = mockWebSocket.send.mock.calls[0][0];
       const parsedMessage = JSON.parse(sentMessage);
 
-      expect(parsedMessage.type).toBe('ping');
+      expect(parsedMessage.type).toBe("ping");
       expect(parsedMessage.timestamp).toBe(now);
     });
 
-    it('應該在連接打開時才發送 ping', () => {
+    it("應該在連接打開時才發送 ping", () => {
       const sendPing = () => {
-        if (mockWebSocket.readyState === 1) { // OPEN
-          mockWebSocket.send(JSON.stringify({ type: 'ping' }));
+        if (mockWebSocket.readyState === 1) {
+          // OPEN
+          mockWebSocket.send(JSON.stringify({ type: "ping" }));
           return true;
         }
         return false;
@@ -116,14 +121,14 @@ describe('Heartbeat Mechanism', () => {
       expect(mockWebSocket.send).not.toHaveBeenCalled();
     });
 
-    it('應該處理 ping 發送失敗', () => {
+    it("應該處理 ping 發送失敗", () => {
       mockWebSocket.send = vi.fn(() => {
-        throw new Error('Send failed');
+        throw new Error("Send failed");
       });
 
       const safeSendPing = () => {
         try {
-          mockWebSocket.send(JSON.stringify({ type: 'ping' }));
+          mockWebSocket.send(JSON.stringify({ type: "ping" }));
           return { success: true };
         } catch (error) {
           return { success: false, error: (error as Error).message };
@@ -133,12 +138,12 @@ describe('Heartbeat Mechanism', () => {
       const result = safeSendPing();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Send failed');
+      expect(result.error).toBe("Send failed");
     });
   });
 
-  describe('Pong 訊息處理', () => {
-    it('應該正確處理收到的 pong 訊息', () => {
+  describe("Pong 訊息處理", () => {
+    it("應該正確處理收到的 pong 訊息", () => {
       const connection = {
         lastHeartbeat: Date.now() - 10000, // 10 seconds ago
       };
@@ -153,7 +158,7 @@ describe('Heartbeat Mechanism', () => {
       expect(connection.lastHeartbeat).toBeGreaterThan(beforeUpdate);
     });
 
-    it('應該記錄 pong 的時間戳', () => {
+    it("應該記錄 pong 的時間戳", () => {
       const connection = {
         lastHeartbeat: 0,
         pongHistory: [] as number[],
@@ -165,30 +170,33 @@ describe('Heartbeat Mechanism', () => {
       };
 
       const timestamps = [1000, 2000, 3000];
-      timestamps.forEach(ts => handlePong(ts));
+      timestamps.forEach((ts) => handlePong(ts));
 
       expect(connection.pongHistory).toEqual([1000, 2000, 3000]);
       expect(connection.lastHeartbeat).toBe(3000);
     });
 
-    it('應該驗證 pong 訊息格式', () => {
+    it("應該驗證 pong 訊息格式", () => {
       const validatePongMessage = (message: any): boolean => {
-        return (
+        // Use Boolean() to ensure a proper boolean return value
+        return Boolean(
           message &&
-          message.type === 'pong' &&
-          typeof message.timestamp === 'number'
+          message.type === "pong" &&
+          typeof message.timestamp === "number",
         );
       };
 
-      expect(validatePongMessage({ type: 'pong', timestamp: 1000 })).toBe(true);
-      expect(validatePongMessage({ type: 'ping', timestamp: 1000 })).toBe(false);
-      expect(validatePongMessage({ type: 'pong' })).toBe(false);
+      expect(validatePongMessage({ type: "pong", timestamp: 1000 })).toBe(true);
+      expect(validatePongMessage({ type: "ping", timestamp: 1000 })).toBe(
+        false,
+      );
+      expect(validatePongMessage({ type: "pong" })).toBe(false);
       expect(validatePongMessage(null)).toBe(false);
     });
   });
 
-  describe('心跳間隔控制', () => {
-    it('應該使用正確的心跳間隔（30 秒）', () => {
+  describe("心跳間隔控制", () => {
+    it("應該使用正確的心跳間隔（30 秒）", () => {
       const HEARTBEAT_INTERVAL = 30000;
       let pingCount = 0;
 
@@ -214,7 +222,7 @@ describe('Heartbeat Mechanism', () => {
       expect(pingCount).toBe(4);
     });
 
-    it('應該允許動態調整心跳間隔', () => {
+    it("應該允許動態調整心跳間隔", () => {
       let pingCount = 0;
       let currentInterval = 30000;
 
@@ -244,7 +252,7 @@ describe('Heartbeat Mechanism', () => {
       expect(pingCount).toBe(3);
     });
 
-    it('應該在連接關閉時停止心跳', () => {
+    it("應該在連接關閉時停止心跳", () => {
       let pingCount = 0;
 
       const sendPing = () => {
@@ -268,32 +276,34 @@ describe('Heartbeat Mechanism', () => {
     });
   });
 
-  describe('超時檢測', () => {
-    it('應該檢測超時的連接（60 秒無響應）', () => {
+  describe("超時檢測", () => {
+    it("應該檢測超時的連接（60 秒無響應）", () => {
       const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
       const connection = {
-        id: 'conn-123',
+        id: "conn-123",
         lastHeartbeat: Date.now() - 70000, // 70 seconds ago
       };
 
-      const isTimedOut = (Date.now() - connection.lastHeartbeat) > HEARTBEAT_TIMEOUT;
+      const isTimedOut =
+        Date.now() - connection.lastHeartbeat > HEARTBEAT_TIMEOUT;
 
       expect(isTimedOut).toBe(true);
     });
 
-    it('應該識別健康的連接', () => {
+    it("應該識別健康的連接", () => {
       const HEARTBEAT_TIMEOUT = 60000;
       const connection = {
-        id: 'conn-456',
+        id: "conn-456",
         lastHeartbeat: Date.now() - 30000, // 30 seconds ago
       };
 
-      const isTimedOut = (Date.now() - connection.lastHeartbeat) > HEARTBEAT_TIMEOUT;
+      const isTimedOut =
+        Date.now() - connection.lastHeartbeat > HEARTBEAT_TIMEOUT;
 
       expect(isTimedOut).toBe(false);
     });
 
-    it('應該正確處理邊界情況（恰好 60 秒）', () => {
+    it("應該正確處理邊界情況（恰好 60 秒）", () => {
       const HEARTBEAT_TIMEOUT = 60000;
       const now = 1000000;
       vi.setSystemTime(now);
@@ -302,12 +312,13 @@ describe('Heartbeat Mechanism', () => {
         lastHeartbeat: now - 60000, // Exactly 60 seconds ago
       };
 
-      const isTimedOut = (Date.now() - connection.lastHeartbeat) > HEARTBEAT_TIMEOUT;
+      const isTimedOut =
+        Date.now() - connection.lastHeartbeat > HEARTBEAT_TIMEOUT;
 
       expect(isTimedOut).toBe(false); // Exactly at threshold, not over
     });
 
-    it('應該在超時後關閉連接', () => {
+    it("應該在超時後關閉連接", () => {
       const HEARTBEAT_TIMEOUT = 60000;
       const connection = {
         ws: mockWebSocket,
@@ -315,26 +326,30 @@ describe('Heartbeat Mechanism', () => {
       };
 
       const checkAndCloseIfTimedOut = () => {
-        const isTimedOut = (Date.now() - connection.lastHeartbeat) > HEARTBEAT_TIMEOUT;
+        const isTimedOut =
+          Date.now() - connection.lastHeartbeat > HEARTBEAT_TIMEOUT;
         if (isTimedOut) {
-          connection.ws.close(1000, 'Heartbeat timeout');
+          connection.ws.close(1000, "Heartbeat timeout");
           return true;
         }
         return false;
       };
 
       expect(checkAndCloseIfTimedOut()).toBe(true);
-      expect(mockWebSocket.close).toHaveBeenCalledWith(1000, 'Heartbeat timeout');
+      expect(mockWebSocket.close).toHaveBeenCalledWith(
+        1000,
+        "Heartbeat timeout",
+      );
     });
   });
 
-  describe('連接保活機制', () => {
-    it('應該定期檢查所有連接的心跳狀態', () => {
+  describe("連接保活機制", () => {
+    it("應該定期檢查所有連接的心跳狀態", () => {
       const HEARTBEAT_CHECK_INTERVAL = 30000;
       const connections = new Map([
-        ['conn-1', { ws: mockWebSocket, lastHeartbeat: Date.now() - 70000 }], // Timed out
-        ['conn-2', { ws: mockWebSocket, lastHeartbeat: Date.now() - 30000 }], // Healthy
-        ['conn-3', { ws: mockWebSocket, lastHeartbeat: Date.now() - 10000 }], // Healthy
+        ["conn-1", { ws: mockWebSocket, lastHeartbeat: Date.now() - 70000 }], // Timed out
+        ["conn-2", { ws: mockWebSocket, lastHeartbeat: Date.now() - 30000 }], // Healthy
+        ["conn-3", { ws: mockWebSocket, lastHeartbeat: Date.now() - 10000 }], // Healthy
       ]);
 
       const checkAllConnections = () => {
@@ -344,7 +359,7 @@ describe('Heartbeat Mechanism', () => {
         connections.forEach((conn, id) => {
           if (Date.now() - conn.lastHeartbeat > TIMEOUT) {
             timedOutConnections.push(id);
-            conn.ws.close(1000, 'Heartbeat timeout');
+            conn.ws.close(1000, "Heartbeat timeout");
           }
         });
 
@@ -353,13 +368,13 @@ describe('Heartbeat Mechanism', () => {
 
       const timedOut = checkAllConnections();
 
-      expect(timedOut).toEqual(['conn-1']);
+      expect(timedOut).toEqual(["conn-1"]);
       expect(mockWebSocket.close).toHaveBeenCalledTimes(1);
     });
 
-    it('應該清理超時的連接', () => {
+    it("應該清理超時的連接", () => {
       const connections = new Map([
-        ['conn-1', { ws: mockWebSocket, lastHeartbeat: Date.now() - 70000 }],
+        ["conn-1", { ws: mockWebSocket, lastHeartbeat: Date.now() - 70000 }],
       ]);
 
       const cleanupTimedOutConnections = () => {
@@ -373,7 +388,7 @@ describe('Heartbeat Mechanism', () => {
           }
         });
 
-        toRemove.forEach(id => connections.delete(id));
+        toRemove.forEach((id) => connections.delete(id));
 
         return toRemove.length;
       };
@@ -384,7 +399,7 @@ describe('Heartbeat Mechanism', () => {
       expect(connections.size).toBe(0);
     });
 
-    it('應該在收到 pong 後更新心跳時間', () => {
+    it("應該在收到 pong 後更新心跳時間", () => {
       const connection = {
         lastHeartbeat: Date.now() - 30000, // 30 seconds ago
         ws: mockWebSocket,
@@ -399,7 +414,7 @@ describe('Heartbeat Mechanism', () => {
       expect(connection.lastHeartbeat).toBeGreaterThan(oldHeartbeat);
     });
 
-    it('應該記錄心跳統計信息', () => {
+    it("應該記錄心跳統計信息", () => {
       const stats = {
         totalPingsSent: 0,
         totalPongsReceived: 0,
@@ -431,27 +446,30 @@ describe('Heartbeat Mechanism', () => {
     });
   });
 
-  describe('錯誤恢復', () => {
-    it('應該在 ping 失敗後重試', async () => {
+  describe("錯誤恢復", () => {
+    it("應該在 ping 失敗後重試", async () => {
+      // Use real timers for this async test
+      vi.useRealTimers();
+
       let failCount = 0;
       mockWebSocket.send = vi.fn(() => {
         if (failCount < 2) {
           failCount++;
-          throw new Error('Network error');
+          throw new Error("Network error");
         }
       });
 
       const sendPingWithRetry = async (maxRetries: number = 3) => {
         for (let i = 0; i < maxRetries; i++) {
           try {
-            mockWebSocket.send(JSON.stringify({ type: 'ping' }));
+            mockWebSocket.send(JSON.stringify({ type: "ping" }));
             return { success: true, attempts: i + 1 };
           } catch (error) {
             if (i === maxRetries - 1) {
               return { success: false, attempts: i + 1 };
             }
-            // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Short delay before retry (reduced for test speed)
+            await new Promise((resolve) => setTimeout(resolve, 10));
           }
         }
         return { success: false, attempts: maxRetries };
@@ -461,17 +479,20 @@ describe('Heartbeat Mechanism', () => {
 
       expect(result.success).toBe(true);
       expect(result.attempts).toBe(3); // Failed 2 times, succeeded on 3rd
+
+      // Restore fake timers for other tests
+      vi.useFakeTimers();
     });
 
-    it('應該在多次失敗後放棄', async () => {
+    it("應該在多次失敗後放棄", async () => {
       mockWebSocket.send = vi.fn(() => {
-        throw new Error('Permanent failure');
+        throw new Error("Permanent failure");
       });
 
       const sendPingWithRetry = async (maxRetries: number = 3) => {
         for (let i = 0; i < maxRetries; i++) {
           try {
-            mockWebSocket.send(JSON.stringify({ type: 'ping' }));
+            mockWebSocket.send(JSON.stringify({ type: "ping" }));
             return { success: true };
           } catch (error) {
             if (i === maxRetries - 1) {
@@ -485,7 +506,7 @@ describe('Heartbeat Mechanism', () => {
       const result = await sendPingWithRetry();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Permanent failure');
+      expect(result.error).toBe("Permanent failure");
     });
   });
 });

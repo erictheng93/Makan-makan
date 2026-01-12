@@ -5,17 +5,17 @@
  * - 使用 @hono/zod-openapi 生成 OpenAPI 規範
  * - 整合 Swagger UI
  */
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 export const createOpenAPIApp = () => {
   const app = new OpenAPIHono();
 
   // OpenAPI 文檔配置
-  app.doc('/openapi.json', {
-    openapi: '3.1.0',
+  app.doc("/openapi.json", {
+    openapi: "3.1.0",
     info: {
-      title: 'MakanMakan API',
-      version: '2.0.0',
+      title: "MakanMakan API",
+      version: "2.0.0",
       description: `
 # MakanMakan API Documentation
 
@@ -69,133 +69,133 @@ API 使用標準 HTTP 狀態碼：
 \`\`\`
       `,
       contact: {
-        name: 'MakanMakan Development Team',
-        email: 'api@makanmakan.com',
-        url: 'https://github.com/makanmakan/platform',
+        name: "MakanMakan Development Team",
+        email: "api@makanmakan.com",
+        url: "https://github.com/makanmakan/platform",
       },
       license: {
-        name: 'MIT License',
-        url: 'https://opensource.org/licenses/MIT',
+        name: "MIT License",
+        url: "https://opensource.org/licenses/MIT",
       },
     },
     servers: [
       {
-        url: 'https://api.makanmakan.com',
-        description: 'Production Server',
+        url: "https://api.makanmakan.com",
+        description: "Production Server",
       },
       {
-        url: 'https://api-staging.makanmakan.com',
-        description: 'Staging Server',
+        url: "https://api-staging.makanmakan.com",
+        description: "Staging Server",
       },
       {
-        url: 'http://localhost:8787',
-        description: 'Local Development',
+        url: "http://localhost:8787",
+        description: "Local Development",
       },
     ],
     tags: [
       {
-        name: 'auth',
-        description: '身份驗證 - 登入、註冊、Token 管理',
+        name: "auth",
+        description: "身份驗證 - 登入、註冊、Token 管理",
       },
       {
-        name: 'menu',
-        description: '菜單管理 - 菜品、分類、圖片上傳',
+        name: "menu",
+        description: "菜單管理 - 菜品、分類、圖片上傳",
       },
       {
-        name: 'orders',
-        description: '訂單管理 - 創建、查詢、更新訂單狀態',
+        name: "orders",
+        description: "訂單管理 - 創建、查詢、更新訂單狀態",
       },
       {
-        name: 'tables',
-        description: '桌位管理 - QR Code 生成、桌位狀態',
+        name: "tables",
+        description: "桌位管理 - QR Code 生成、桌位狀態",
       },
       {
-        name: 'users',
-        description: '用戶管理 - 員工、客戶、角色權限',
+        name: "users",
+        description: "用戶管理 - 員工、客戶、角色權限",
       },
       {
-        name: 'customers',
-        description: '客戶管理 - 客戶資料、偏好設定',
+        name: "customers",
+        description: "客戶管理 - 客戶資料、偏好設定",
       },
       {
-        name: 'restaurants',
-        description: '餐廳管理 - 餐廳資訊、設定',
+        name: "restaurants",
+        description: "餐廳管理 - 餐廳資訊、設定",
       },
       {
-        name: 'realtime',
-        description: '即時通訊 - WebSocket 連接與訊息',
+        name: "realtime",
+        description: "即時通訊 - WebSocket 連接與訊息",
       },
       {
-        name: 'analytics',
-        description: '數據分析 - 營運報表、統計數據',
+        name: "analytics",
+        description: "數據分析 - 營運報表、統計數據",
       },
       {
-        name: 'ai-analytics',
-        description: 'AI 分析 - 智能洞察、預測分析',
+        name: "ai-analytics",
+        description: "AI 分析 - 智能洞察、預測分析",
       },
       {
-        name: 'scheduling',
-        description: '排班管理 - 班表、輪班',
+        name: "scheduling",
+        description: "排班管理 - 班表、輪班",
       },
       {
-        name: 'leaves',
-        description: '請假管理 - 假期申請、審批',
+        name: "leaves",
+        description: "請假管理 - 假期申請、審批",
       },
       {
-        name: 'qr',
-        description: 'QR Code - 生成、範本、批次處理',
+        name: "qr",
+        description: "QR Code - 生成、範本、批次處理",
       },
       {
-        name: 'health',
-        description: '系統健康 - 健康檢查、狀態監控',
+        name: "health",
+        description: "系統健康 - 健康檢查、狀態監控",
       },
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'JWT Token 認證。通過 /auth/login 獲取 token',
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "JWT Token 認證。通過 /auth/login 獲取 token",
         },
       },
       schemas: {
         // 通用 Schema
         Error: {
-          type: 'object',
+          type: "object",
           properties: {
             success: {
-              type: 'boolean',
+              type: "boolean",
               example: false,
             },
             error: {
-              type: 'string',
-              example: 'Error message',
+              type: "string",
+              example: "Error message",
             },
             code: {
-              type: 'string',
-              example: 'ERROR_CODE',
+              type: "string",
+              example: "ERROR_CODE",
             },
           },
-          required: ['success', 'error'],
+          required: ["success", "error"],
         },
         PaginationMeta: {
-          type: 'object',
+          type: "object",
           properties: {
             total: {
-              type: 'integer',
+              type: "integer",
               example: 100,
             },
             page: {
-              type: 'integer',
+              type: "integer",
               example: 1,
             },
             pageSize: {
-              type: 'integer',
+              type: "integer",
               example: 20,
             },
             totalPages: {
-              type: 'integer',
+              type: "integer",
               example: 5,
             },
           },
@@ -207,7 +207,7 @@ API 使用標準 HTTP 狀態碼：
         bearerAuth: [],
       },
     ],
-  });
+  } as any);
 
   return app;
 };
@@ -217,76 +217,76 @@ API 使用標準 HTTP 狀態碼：
  */
 const errorResponseConfig = {
   400: {
-    description: '請求錯誤 - 驗證失敗或參數錯誤',
+    description: "請求錯誤 - 驗證失敗或參數錯誤",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          $ref: '#/components/schemas/Error',
+          $ref: "#/components/schemas/Error",
         },
         example: {
           success: false,
-          error: 'Invalid request parameters',
-          code: 'VALIDATION_ERROR',
+          error: "Invalid request parameters",
+          code: "VALIDATION_ERROR",
         },
       },
     },
   },
   401: {
-    description: '未認證 - 缺少或無效的 Token',
+    description: "未認證 - 缺少或無效的 Token",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          $ref: '#/components/schemas/Error',
+          $ref: "#/components/schemas/Error",
         },
         example: {
           success: false,
-          error: 'Unauthorized',
-          code: 'UNAUTHORIZED',
+          error: "Unauthorized",
+          code: "UNAUTHORIZED",
         },
       },
     },
   },
   403: {
-    description: '權限不足 - Token 有效但無權訪問',
+    description: "權限不足 - Token 有效但無權訪問",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          $ref: '#/components/schemas/Error',
+          $ref: "#/components/schemas/Error",
         },
         example: {
           success: false,
-          error: 'Forbidden',
-          code: 'FORBIDDEN',
+          error: "Forbidden",
+          code: "FORBIDDEN",
         },
       },
     },
   },
   404: {
-    description: '資源不存在',
+    description: "資源不存在",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          $ref: '#/components/schemas/Error',
+          $ref: "#/components/schemas/Error",
         },
         example: {
           success: false,
-          error: 'Resource not found',
-          code: 'NOT_FOUND',
+          error: "Resource not found",
+          code: "NOT_FOUND",
         },
       },
     },
   },
   500: {
-    description: '服務器內部錯誤',
+    description: "服務器內部錯誤",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          $ref: '#/components/schemas/Error',
+          $ref: "#/components/schemas/Error",
         },
         example: {
           success: false,
-          error: 'Internal server error',
-          code: 'INTERNAL_ERROR',
+          error: "Internal server error",
+          code: "INTERNAL_ERROR",
         },
       },
     },
@@ -304,7 +304,10 @@ const errorResponseConfig = {
  * }
  */
 export function errorResponses(...codes: (400 | 401 | 403 | 404 | 500)[]) {
-  const result: Record<string, typeof errorResponseConfig[400]> = {};
+  const result: Record<
+    string,
+    (typeof errorResponseConfig)[keyof typeof errorResponseConfig]
+  > = {};
   for (const code of codes) {
     result[code.toString()] = errorResponseConfig[code];
   }

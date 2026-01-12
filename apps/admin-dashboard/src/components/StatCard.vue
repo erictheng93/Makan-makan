@@ -85,7 +85,7 @@ interface Props {
   title: string;
   value: string | number;
   icon: string;
-  color: "green" | "blue" | "yellow" | "red" | "purple" | "gray";
+  color?: "green" | "blue" | "yellow" | "red" | "purple" | "gray";
   subtitle?: string;
   trend?: "up" | "down" | "stable";
   progress?: number;

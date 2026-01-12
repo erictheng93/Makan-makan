@@ -36,7 +36,9 @@ global.webkitAudioContext = global.AudioContext;
 
 // Mock URL.createObjectURL and URL.revokeObjectURL for audio/file tests
 // Always override to ensure consistent mocking
-global.URL.createObjectURL = vi.fn(() => 'blob:mock-url-' + Math.random().toString(36).substring(7));
+global.URL.createObjectURL = vi.fn(
+  () => "blob:mock-url-" + Math.random().toString(36).substring(7),
+);
 global.URL.revokeObjectURL = vi.fn();
 
 // Mock localStorage with unlimited storage (no quota errors)
@@ -129,23 +131,19 @@ Object.defineProperty(navigator, "onLine", {
   value: true,
 });
 
-// Mock window events
-global.window = Object.create(window);
-Object.defineProperty(window, "addEventListener", {
-  value: vi.fn(),
-});
-Object.defineProperty(window, "removeEventListener", {
-  value: vi.fn(),
-});
+// Note: We intentionally do NOT mock window.addEventListener/removeEventListener
+// and document.addEventListener/removeEventListener to allow proper event handling
+// in integration tests (especially keyboard shortcuts tests)
 
-// Mock document events
-Object.defineProperty(document, "addEventListener", {
-  value: vi.fn(),
-});
-Object.defineProperty(document, "removeEventListener", {
-  value: vi.fn(),
-});
+// Mock document.hidden for visibility tests
 Object.defineProperty(document, "hidden", {
   writable: true,
   value: false,
 });
+
+// Spy on window/document event listeners instead of mocking them
+// This allows both real event handling AND ability to verify calls
+vi.spyOn(window, "addEventListener");
+vi.spyOn(window, "removeEventListener");
+vi.spyOn(document, "addEventListener");
+vi.spyOn(document, "removeEventListener");

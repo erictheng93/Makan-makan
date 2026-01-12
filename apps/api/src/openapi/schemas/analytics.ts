@@ -3,25 +3,33 @@
  * 數據分析 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define enums first to avoid circular reference
-const TimePeriod = z.enum(['day', 'week', 'month', 'quarter', 'year', 'custom']);
+const TimePeriod = z.enum([
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
+  "custom",
+]);
 const MetricType = z.enum([
-  'revenue',
-  'orders',
-  'customers',
-  'average_order_value',
-  'items_sold',
-  'conversion_rate',
+  "revenue",
+  "orders",
+  "customers",
+  "average_order_value",
+  "items_sold",
+  "conversion_rate",
 ]);
 const MetricDataPoint = z.object({
   timestamp: z.string().datetime(),
   value: z.number(),
   label: z.string().optional(),
 });
+const ExportFormat = z.enum(["csv", "excel", "pdf", "json"]);
 
 /**
  * Analytics API Schemas
@@ -33,6 +41,9 @@ export const AnalyticsSchemas = {
   // Metric Type
   MetricType,
 
+  // Export Format
+  ExportFormat,
+
   // Analytics Query Request
   AnalyticsQueryRequest: z.object({
     restaurantId: z.string().uuid(),
@@ -40,7 +51,7 @@ export const AnalyticsSchemas = {
     period: TimePeriod,
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
-    groupBy: z.enum(['hour', 'day', 'week', 'month']).optional(),
+    groupBy: z.enum(["hour", "day", "week", "month"]).optional(),
   }),
 
   // Metric Data Point
@@ -57,7 +68,7 @@ export const AnalyticsSchemas = {
     total: z.number(),
     average: z.number(),
     change: z.number().optional(), // Percentage change from previous period
-    trend: z.enum(['up', 'down', 'stable']).optional(),
+    trend: z.enum(["up", "down", "stable"]).optional(),
   }),
 
   // Analytics Response
@@ -85,7 +96,7 @@ export const AnalyticsSchemas = {
         category: z.string(),
         quantitySold: z.number().int(),
         revenue: z.number(),
-      })
+      }),
     ),
     revenueByCategory: z.array(
       z.object({
@@ -93,14 +104,14 @@ export const AnalyticsSchemas = {
         categoryName: z.string(),
         revenue: z.number(),
         percentage: z.number(),
-      })
+      }),
     ),
     salesByHour: z.array(
       z.object({
         hour: z.number().int().min(0).max(23),
         orders: z.number().int(),
         revenue: z.number(),
-      })
+      }),
     ),
     period: z.object({
       startDate: z.string().datetime(),
@@ -123,7 +134,7 @@ export const AnalyticsSchemas = {
         count: z.number().int(),
         percentage: z.number(),
         averageSpend: z.number(),
-      })
+      }),
     ),
     period: z.object({
       startDate: z.string().datetime(),
@@ -142,7 +153,7 @@ export const AnalyticsSchemas = {
       z.object({
         hour: z.number().int().min(0).max(23),
         utilization: z.number().min(0).max(1),
-      })
+      }),
     ),
     staffEfficiency: z.object({
       ordersPerStaff: z.number().min(0),
@@ -163,7 +174,7 @@ export const AnalyticsSchemas = {
         itemName: z.string(),
         currentStock: z.number(),
         reorderLevel: z.number(),
-      })
+      }),
     ),
     wasteItems: z.array(
       z.object({
@@ -172,7 +183,7 @@ export const AnalyticsSchemas = {
         wasteQuantity: z.number(),
         wasteValue: z.number(),
         wastePercentage: z.number(),
-      })
+      }),
     ),
     itemPerformance: z.array(
       z.object({
@@ -181,7 +192,7 @@ export const AnalyticsSchemas = {
         salesVelocity: z.number(),
         turnoverRate: z.number(),
         stockDays: z.number(),
-      })
+      }),
     ),
     period: z.object({
       startDate: z.string().datetime(),
@@ -189,13 +200,10 @@ export const AnalyticsSchemas = {
     }),
   }),
 
-  // Export Format
-  ExportFormat: z.enum(['csv', 'excel', 'pdf', 'json']),
-
   // Export Request
   ExportRequest: z.object({
-    reportType: z.enum(['sales', 'customer', 'performance', 'inventory']),
-    format: z.lazy(() => AnalyticsSchemas.ExportFormat),
+    reportType: z.enum(["sales", "customer", "performance", "inventory"]),
+    format: ExportFormat,
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),
     includeCharts: z.boolean().default(false),
@@ -208,16 +216,16 @@ export const AnalyticsSchemas = {
 
 // Get Analytics Data
 export const getAnalyticsRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/analytics/query',
-  tags: ['analytics'],
-  summary: '查詢分析數據',
-  description: '查詢指定時間段的業務分析數據',
+  method: "post",
+  path: "/api/v1/analytics/query",
+  tags: ["analytics"],
+  summary: "查詢分析數據",
+  description: "查詢指定時間段的業務分析數據",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AnalyticsSchemas.AnalyticsQueryRequest,
         },
       },
@@ -225,9 +233,9 @@ export const getAnalyticsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取分析數據',
+      description: "成功獲取分析數據",
       content: {
-        'application/json': {
+        "application/json": {
           schema: AnalyticsSchemas.AnalyticsResponse,
         },
       },
@@ -238,11 +246,11 @@ export const getAnalyticsRoute = createRoute({
 
 // Get Sales Report
 export const getSalesReportRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/analytics/:restaurantId/sales',
-  tags: ['analytics'],
-  summary: '獲取銷售報告',
-  description: '獲取餐廳的詳細銷售報告',
+  method: "get",
+  path: "/api/v1/analytics/:restaurantId/sales",
+  tags: ["analytics"],
+  summary: "獲取銷售報告",
+  description: "獲取餐廳的詳細銷售報告",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -251,15 +259,21 @@ export const getSalesReportRoute = createRoute({
     query: z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      includeTopItems: z.string().transform((val) => val === 'true').default('true'),
-      includeHourlyBreakdown: z.string().transform((val) => val === 'true').default('true'),
+      includeTopItems: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
+      includeHourlyBreakdown: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取銷售報告',
+      description: "成功獲取銷售報告",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AnalyticsSchemas.SalesReport,
@@ -273,11 +287,11 @@ export const getSalesReportRoute = createRoute({
 
 // Get Customer Analytics
 export const getCustomerAnalyticsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/analytics/:restaurantId/customers',
-  tags: ['analytics'],
-  summary: '獲取客戶分析',
-  description: '獲取客戶行為和價值分析數據',
+  method: "get",
+  path: "/api/v1/analytics/:restaurantId/customers",
+  tags: ["analytics"],
+  summary: "獲取客戶分析",
+  description: "獲取客戶行為和價值分析數據",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -286,14 +300,17 @@ export const getCustomerAnalyticsRoute = createRoute({
     query: z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      includeSegmentation: z.string().transform((val) => val === 'true').default('true'),
+      includeSegmentation: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取客戶分析',
+      description: "成功獲取客戶分析",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AnalyticsSchemas.CustomerAnalytics,
@@ -307,11 +324,11 @@ export const getCustomerAnalyticsRoute = createRoute({
 
 // Get Performance Metrics
 export const getPerformanceMetricsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/analytics/:restaurantId/performance',
-  tags: ['analytics'],
-  summary: '獲取性能指標',
-  description: '獲取餐廳運營效率和性能指標',
+  method: "get",
+  path: "/api/v1/analytics/:restaurantId/performance",
+  tags: ["analytics"],
+  summary: "獲取性能指標",
+  description: "獲取餐廳運營效率和性能指標",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -324,9 +341,9 @@ export const getPerformanceMetricsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取性能指標',
+      description: "成功獲取性能指標",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AnalyticsSchemas.PerformanceMetrics,
@@ -340,11 +357,11 @@ export const getPerformanceMetricsRoute = createRoute({
 
 // Get Inventory Analytics
 export const getInventoryAnalyticsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/analytics/:restaurantId/inventory',
-  tags: ['analytics'],
-  summary: '獲取庫存分析',
-  description: '獲取庫存管理和優化建議',
+  method: "get",
+  path: "/api/v1/analytics/:restaurantId/inventory",
+  tags: ["analytics"],
+  summary: "獲取庫存分析",
+  description: "獲取庫存管理和優化建議",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -353,15 +370,21 @@ export const getInventoryAnalyticsRoute = createRoute({
     query: z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      includeLowStock: z.string().transform((val) => val === 'true').default('true'),
-      includeWaste: z.string().transform((val) => val === 'true').default('true'),
+      includeLowStock: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
+      includeWaste: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取庫存分析',
+      description: "成功獲取庫存分析",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AnalyticsSchemas.InventoryAnalytics,
@@ -375,11 +398,11 @@ export const getInventoryAnalyticsRoute = createRoute({
 
 // Export Report
 export const exportReportRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/analytics/:restaurantId/export',
-  tags: ['analytics'],
-  summary: '導出報告',
-  description: '導出分析報告為指定格式（CSV、Excel、PDF）',
+  method: "post",
+  path: "/api/v1/analytics/:restaurantId/export",
+  tags: ["analytics"],
+  summary: "導出報告",
+  description: "導出分析報告為指定格式（CSV、Excel、PDF）",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -387,7 +410,7 @@ export const exportReportRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AnalyticsSchemas.ExportRequest,
         },
       },
@@ -395,9 +418,9 @@ export const exportReportRoute = createRoute({
   },
   responses: {
     200: {
-      description: '報告導出成功',
+      description: "報告導出成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.object({
@@ -417,25 +440,25 @@ export const exportReportRoute = createRoute({
 
 // Get Dashboard Summary
 export const getDashboardSummaryRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/analytics/:restaurantId/dashboard',
-  tags: ['analytics'],
-  summary: '獲取儀表板摘要',
-  description: '獲取適合儀表板顯示的關鍵指標摘要',
+  method: "get",
+  path: "/api/v1/analytics/:restaurantId/dashboard",
+  tags: ["analytics"],
+  summary: "獲取儀表板摘要",
+  description: "獲取適合儀表板顯示的關鍵指標摘要",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
       restaurantId: z.string().uuid(),
     }),
     query: z.object({
-      period: AnalyticsSchemas.TimePeriod.default('day'),
+      period: AnalyticsSchemas.TimePeriod.default("day"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取儀表板摘要',
+      description: "成功獲取儀表板摘要",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.object({
@@ -464,7 +487,7 @@ export const getDashboardSummaryRoute = createRoute({
                   itemId: z.string().uuid(),
                   itemName: z.string(),
                   revenue: z.number(),
-                })
+                }),
               ),
               recentOrders: z.array(z.any()),
             }),

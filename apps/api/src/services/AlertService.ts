@@ -4,20 +4,20 @@
  * Supports Slack webhooks and email alerts
  */
 
-import type { CloudflareEnv } from '@makanmakan/database'
+import type { Env } from "../types/env";
 
-export type AlertSeverity = 'info' | 'warning' | 'error' | 'critical'
+export type AlertSeverity = "info" | "warning" | "error" | "critical";
 
 export interface Alert {
-  title: string
-  message: string
-  severity: AlertSeverity
-  metadata?: Record<string, any>
-  timestamp?: Date
+  title: string;
+  message: string;
+  severity: AlertSeverity;
+  metadata?: Record<string, any>;
+  timestamp?: Date;
 }
 
 export interface AlertChannel {
-  sendAlert(alert: Alert): Promise<void>
+  sendAlert(alert: Alert): Promise<void>;
 }
 
 /**
@@ -27,12 +27,12 @@ export class SlackAlertChannel implements AlertChannel {
   constructor(private webhookUrl: string) {}
 
   async sendAlert(alert: Alert): Promise<void> {
-    const color = this.getSeverityColor(alert.severity)
-    const emoji = this.getSeverityEmoji(alert.severity)
+    const color = this.getSeverityColor(alert.severity);
+    const emoji = this.getSeverityEmoji(alert.severity);
 
     const payload = {
-      username: 'MakanMakan Security Bot',
-      icon_emoji: ':shield:',
+      username: "MakanMakan Security Bot",
+      icon_emoji: ":shield:",
       attachments: [
         {
           color,
@@ -45,37 +45,37 @@ export class SlackAlertChannel implements AlertChannel {
                 short: true,
               }))
             : [],
-          footer: 'MakanMakan Security System',
+          footer: "MakanMakan Security System",
           ts: Math.floor((alert.timestamp || new Date()).getTime() / 1000),
         },
       ],
-    }
+    };
 
     await fetch(this.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    })
+    });
   }
 
   private getSeverityColor(severity: AlertSeverity): string {
     const colors = {
-      info: '#36a64f',      // Green
-      warning: '#ff9800',   // Orange
-      error: '#f44336',     // Red
-      critical: '#9c27b0',  // Purple
-    }
-    return colors[severity]
+      info: "#36a64f", // Green
+      warning: "#ff9800", // Orange
+      error: "#f44336", // Red
+      critical: "#9c27b0", // Purple
+    };
+    return colors[severity];
   }
 
   private getSeverityEmoji(severity: AlertSeverity): string {
     const emojis = {
-      info: 'ℹ️',
-      warning: '⚠️',
-      error: '🚨',
-      critical: '🔥',
-    }
-    return emojis[severity]
+      info: "ℹ️",
+      warning: "⚠️",
+      error: "🚨",
+      critical: "🔥",
+    };
+    return emojis[severity];
   }
 }
 
@@ -85,41 +85,41 @@ export class SlackAlertChannel implements AlertChannel {
 export class EmailAlertChannel implements AlertChannel {
   constructor(
     private toEmail: string,
-    private fromEmail: string = 'alerts@makanmakan.com'
+    private fromEmail: string = "alerts@makanmakan.com",
   ) {}
 
   async sendAlert(alert: Alert): Promise<void> {
-    const html = this.generateAlertHTML(alert)
+    const html = this.generateAlertHTML(alert);
 
-    await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("https://api.mailchannels.net/tx/v1/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: this.toEmail }] }],
         from: {
           email: this.fromEmail,
-          name: 'MakanMakan Security System',
+          name: "MakanMakan Security System",
         },
         subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
         content: [
           {
-            type: 'text/html',
+            type: "text/html",
             value: html,
           },
         ],
       }),
-    })
+    });
   }
 
   private generateAlertHTML(alert: Alert): string {
     const severityColors = {
-      info: '#36a64f',
-      warning: '#ff9800',
-      error: '#f44336',
-      critical: '#9c27b0',
-    }
+      info: "#36a64f",
+      warning: "#ff9800",
+      error: "#f44336",
+      critical: "#9c27b0",
+    };
 
-    const color = severityColors[alert.severity]
+    const color = severityColors[alert.severity];
 
     return `
       <!DOCTYPE html>
@@ -155,12 +155,12 @@ export class EmailAlertChannel implements AlertChannel {
                     <div class="metadata-item">
                       <span class="metadata-key">${key}:</span> ${value}
                     </div>
-                  `
+                  `,
                     )
-                    .join('')}
+                    .join("")}
                 </div>
               `
-                  : ''
+                  : ""
               }
               <p style="margin-top: 20px; font-size: 12px; color: #888;">
                 Time: ${(alert.timestamp || new Date()).toISOString()}
@@ -173,7 +173,7 @@ export class EmailAlertChannel implements AlertChannel {
           </div>
         </body>
       </html>
-    `
+    `;
   }
 }
 
@@ -181,139 +181,143 @@ export class EmailAlertChannel implements AlertChannel {
  * Main Alert Service
  */
 export class AlertService {
-  private channels: AlertChannel[] = []
+  private channels: AlertChannel[] = [];
 
-  constructor(private env: CloudflareEnv) {
-    this.initializeChannels()
+  constructor(private env: Env) {
+    this.initializeChannels();
   }
 
   private initializeChannels() {
     // Slack webhook
     if (this.env.SLACK_WEBHOOK_URL) {
-      this.channels.push(new SlackAlertChannel(this.env.SLACK_WEBHOOK_URL))
+      this.channels.push(new SlackAlertChannel(this.env.SLACK_WEBHOOK_URL));
     }
 
     // Email alerts
-    if (this.env.ALERT_EMAIL) {
+    if (this.env.ALERT_EMAIL_TO) {
       this.channels.push(
         new EmailAlertChannel(
-          this.env.ALERT_EMAIL,
-          this.env.NOTIFICATION_FROM_EMAIL || 'alerts@makanmakan.com'
-        )
-      )
+          this.env.ALERT_EMAIL_TO,
+          this.env.NOTIFICATION_FROM_EMAIL || "alerts@makanmakan.com",
+        ),
+      );
     }
 
     if (this.channels.length === 0) {
-      console.warn('No alert channels configured')
+      console.warn("No alert channels configured");
     }
   }
 
   async sendAlert(alert: Alert): Promise<void> {
     if (this.channels.length === 0) {
-      console.warn('No alert channels available, skipping alert:', alert.title)
-      return
+      console.warn("No alert channels available, skipping alert:", alert.title);
+      return;
     }
 
     const alertWithTimestamp = {
       ...alert,
       timestamp: alert.timestamp || new Date(),
-    }
+    };
 
     await Promise.allSettled(
-      this.channels.map((channel) => channel.sendAlert(alertWithTimestamp))
-    )
+      this.channels.map((channel) => channel.sendAlert(alertWithTimestamp)),
+    );
   }
 
   // Convenience methods for common alerts
-  async rateLimitExceeded(ip: string, endpoint: string, limit: number): Promise<void> {
+  async rateLimitExceeded(
+    ip: string,
+    endpoint: string,
+    limit: number,
+  ): Promise<void> {
     await this.sendAlert({
-      title: 'Rate Limit Exceeded',
+      title: "Rate Limit Exceeded",
       message: `IP address ${ip} has exceeded rate limit on ${endpoint}`,
-      severity: 'warning',
+      severity: "warning",
       metadata: {
         IP: ip,
         Endpoint: endpoint,
         Limit: `${limit} requests`,
-        Action: 'Temporarily blocked',
+        Action: "Temporarily blocked",
       },
-    })
+    });
   }
 
   async suspiciousActivity(
     activity: string,
     userId?: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<void> {
     await this.sendAlert({
-      title: 'Suspicious Activity Detected',
+      title: "Suspicious Activity Detected",
       message: activity,
-      severity: 'error',
+      severity: "error",
       metadata: {
-        ...(userId ? { 'User ID': userId } : {}),
+        ...(userId ? { "User ID": userId } : {}),
         ...metadata,
       },
-    })
+    });
   }
 
   async passwordResetAttempt(
     email: string,
     ip: string,
-    success: boolean
+    success: boolean,
   ): Promise<void> {
     if (!success) {
       await this.sendAlert({
-        title: 'Failed Password Reset Attempt',
+        title: "Failed Password Reset Attempt",
         message: `Failed password reset attempt for ${email}`,
-        severity: 'warning',
+        severity: "warning",
         metadata: {
           Email: email,
           IP: ip,
-          Status: 'Failed - User not found',
+          Status: "Failed - User not found",
         },
-      })
+      });
     }
   }
 
   async multipleFailedLogins(
     username: string,
     ip: string,
-    attemptCount: number
+    attemptCount: number,
   ): Promise<void> {
     await this.sendAlert({
-      title: 'Multiple Failed Login Attempts',
+      title: "Multiple Failed Login Attempts",
       message: `${attemptCount} failed login attempts detected for ${username}`,
-      severity: 'warning',
+      severity: "warning",
       metadata: {
         Username: username,
         IP: ip,
         Attempts: attemptCount,
-        Action: 'Account temporarily locked',
+        Action: "Account temporarily locked",
       },
-    })
+    });
   }
 
   async systemError(error: Error, context?: string): Promise<void> {
     await this.sendAlert({
-      title: 'System Error',
+      title: "System Error",
       message: error.message,
-      severity: 'error',
+      severity: "error",
       metadata: {
         ...(context ? { Context: context } : {}),
-        'Error Name': error.name,
-        Stack: error.stack?.split('\n').slice(0, 3).join('\n') || 'N/A',
+        "Error Name": error.name,
+        Stack: error.stack?.split("\n").slice(0, 3).join("\n") || "N/A",
       },
-    })
+    });
   }
 
   async databaseConnectionError(error: Error): Promise<void> {
     await this.sendAlert({
-      title: 'Database Connection Error',
-      message: 'Critical: Unable to connect to database',
-      severity: 'critical',
+      title: "Database Connection Error",
+      message: "Critical: Unable to connect to database",
+      severity: "critical",
       metadata: {
         Error: error.message,
-        'Affected Service': 'D1 Database',
+        "Affected Service": "D1 Database",
       },
-    })
+    });
   }
 }
