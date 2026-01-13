@@ -16,6 +16,8 @@ import tenantsRouter from "./routes/tenants";
 import deploymentsRouter from "./routes/deployments";
 import licensesRouter from "./routes/licenses";
 import healthRouter from "./routes/health";
+import monitoringRouter from "./routes/monitoring";
+import updatesRouter from "./routes/updates";
 
 // Create main application
 const app = new Hono<{ Bindings: ManagementEnv }>();
@@ -115,12 +117,16 @@ app.get("/info", (c) => {
       "License management",
       "Health monitoring",
       "Deployment automation",
+      "Batch version updates",
+      "Alert system",
     ],
     endpoints: {
       tenants: "/api/v1/tenants",
       deployments: "/api/v1/deployments",
       licenses: "/api/v1/licenses",
       health: "/api/v1/health",
+      monitoring: "/api/v1/monitoring",
+      updates: "/api/v1/updates",
     },
   });
 });
@@ -139,6 +145,8 @@ apiV1.route("/tenants", tenantsRouter);
 apiV1.route("/deployments", deploymentsRouter);
 apiV1.route("/licenses", licensesRouter);
 apiV1.route("/health", healthRouter);
+apiV1.route("/monitoring", monitoringRouter);
+apiV1.route("/updates", updatesRouter);
 
 // Mount API version
 app.route("/api/v1", apiV1);
