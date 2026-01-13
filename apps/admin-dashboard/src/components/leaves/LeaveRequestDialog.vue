@@ -287,7 +287,6 @@ const warnings = ref<string[]>([])
 // 狀態
 const isSubmitting = ref(false)
 const calculatedDays = ref(0)
-const fileInput = ref<HTMLInputElement>()
 
 // 最小日期（今天）
 const minDate = computed(() => {

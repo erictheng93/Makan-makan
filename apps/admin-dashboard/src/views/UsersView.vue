@@ -570,7 +570,7 @@ const filteredUsers = computed(() => {
 
 // 虛擬滾動設置
 const {
-  containerRef,
+  containerRef: _containerRef,
   visibleItems,
   totalHeight,
   offsetY,

@@ -24,7 +24,7 @@
   "dependencies": {
     "@makanmakan/database": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
-    "drizzle-orm": "^0.29.0",
+    "drizzle-orm": "^0.44.7",
     "hono": "^4.9.6",
     "zod": "^3.22.0"
   },

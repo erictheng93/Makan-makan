@@ -216,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, withDefaults } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
   ArrowPathIcon,
   ArrowsPointingInIcon,

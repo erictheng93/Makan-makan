@@ -119,7 +119,7 @@ const chartOptions = computed((): ChartOptions<'line'> => ({
       displayColors: true,
       callbacks: {
         label: (context) => {
-          const value = context.parsed.y
+          const value = context.parsed.y ?? 0
           return `${context.dataset.label}: ${value.toFixed(2)}${props.unit}`
         },
       },

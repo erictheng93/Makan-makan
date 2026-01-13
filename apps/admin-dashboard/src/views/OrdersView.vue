@@ -416,7 +416,7 @@ const ITEM_HEIGHT = 60; // 每個訂單行的固定高度 (px)
 const CONTAINER_HEIGHT = 500; // 容器高度 (px)
 
 const {
-  containerRef,
+  containerRef: _containerRef,
   visibleItems,
   totalHeight,
   offsetY,

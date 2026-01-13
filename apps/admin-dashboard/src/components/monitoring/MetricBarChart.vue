@@ -86,7 +86,7 @@ const chartOptions = computed((): ChartOptions<'bar'> => ({
       displayColors: false,
       callbacks: {
         label: (context) => {
-          const value = context.parsed[props.horizontal ? 'x' : 'y']
+          const value = context.parsed[props.horizontal ? 'x' : 'y'] ?? 0
           return `${context.label}: ${value.toFixed(0)}${props.unit}`
         },
       },

@@ -176,7 +176,7 @@ const createChart = async () => {
           cornerRadius: 8,
           callbacks: {
             label: function (context) {
-              const value = context.parsed.y;
+              const value = context.parsed.y ?? 0;
               const dataPoint = props.data[context.dataIndex];
               return [
                 `營收: $${value.toLocaleString()}`,

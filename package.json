@@ -136,7 +136,9 @@
   },
   "pnpm": {
     "overrides": {
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "drizzle-orm": "0.44.7",
+      "better-sqlite3": "12.6.0"
     }
   }
 }
