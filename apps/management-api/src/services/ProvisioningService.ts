@@ -1,0 +1,662 @@
+/**
+ * Provisioning Service
+ *
+ * Handles resource provisioning and deployment for tenants
+ */
+
+import type {
+  ManagementEnv,
+  TenantResource,
+  ResourceType,
+  DeploymentLog,
+  DeploymentType,
+  DeploymentStatus,
+} from "../types";
+import { CloudflareApiClient } from "./CloudflareApiClient";
+
+interface ProvisionResult {
+  success: boolean;
+  resources?: TenantResource[];
+  failedResources?: Array<{ type: ResourceType; error: string }>;
+  error?: string;
+}
+
+interface DeployResult {
+  success: boolean;
+  deploymentId?: string;
+  error?: string;
+}
+
+interface BatchDeployResult {
+  tenantId: string;
+  success: boolean;
+  deploymentId?: string;
+  error?: string;
+}
+
+export class ProvisioningService {
+  private env: ManagementEnv;
+  private cfClient: CloudflareApiClient;
+
+  constructor(env: ManagementEnv) {
+    this.env = env;
+    this.cfClient = new CloudflareApiClient(env);
+  }
+
+  /**
+   * Provision all required resources for a tenant
+   */
+  async provisionTenant(
+    tenantId: string,
+    resourceTypes?: ResourceType[],
+  ): Promise<ProvisionResult> {
+    // Get tenant info including CF credentials
+    const tenant = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT id, subdomain, cf_account_id, cf_api_token_enc
+      FROM tenants WHERE id = ?
+    `,
+    )
+      .bind(tenantId)
+      .first<{
+        id: string;
+        subdomain: string;
+        cf_account_id: string;
+        cf_api_token_enc: string;
+      }>();
+
+    if (!tenant) {
+      return { success: false, error: "Tenant not found" };
+    }
+
+    if (!tenant.cf_account_id || !tenant.cf_api_token_enc) {
+      return { success: false, error: "Cloudflare account not connected" };
+    }
+
+    // Decrypt API token
+    const apiToken = await this.decryptToken(tenant.cf_api_token_enc);
+    const accountId = tenant.cf_account_id;
+    const prefix = `makanmakan-${tenant.subdomain}`;
+
+    // Default resource types if not specified
+    const types = resourceTypes || ["d1", "kv", "r2"];
+    const results: TenantResource[] = [];
+    const failures: Array<{ type: ResourceType; error: string }> = [];
+
+    // Update tenant status to provisioning
+    await this.updateTenantStatus(tenantId, "provisioning");
+
+    for (const type of types) {
+      const resourceName = this.getResourceName(prefix, type);
+      const resourceId = crypto.randomUUID();
+
+      // Create resource record as pending
+      await this.createResourceRecord(
+        tenantId,
+        resourceId,
+        type,
+        resourceName,
+        "creating",
+      );
+
+      try {
+        let result: { success: boolean; error?: string; resourceId?: string };
+
+        switch (type) {
+          case "d1":
+            result = await this.provisionD1(apiToken, accountId, resourceName);
+            break;
+          case "kv":
+            result = await this.provisionKV(apiToken, accountId, resourceName);
+            break;
+          case "r2":
+            result = await this.provisionR2(apiToken, accountId, resourceName);
+            break;
+          default:
+            result = {
+              success: false,
+              error: `Unsupported resource type: ${type}`,
+            };
+        }
+
+        if (result.success) {
+          await this.updateResourceRecord(
+            resourceId,
+            "ready",
+            result.resourceId,
+          );
+          results.push({
+            id: resourceId,
+            tenantId,
+            resourceType: type,
+            resourceName,
+            resourceId: result.resourceId,
+            status: "ready",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          await this.updateResourceRecord(
+            resourceId,
+            "error",
+            undefined,
+            result.error,
+          );
+          failures.push({ type, error: result.error || "Unknown error" });
+        }
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Unknown error";
+        await this.updateResourceRecord(
+          resourceId,
+          "error",
+          undefined,
+          errorMsg,
+        );
+        failures.push({ type, error: errorMsg });
+      }
+    }
+
+    // Update tenant status based on results
+    const newStatus =
+      failures.length === 0
+        ? "active"
+        : failures.length === types.length
+          ? "pending"
+          : "active";
+    await this.updateTenantStatus(tenantId, newStatus);
+
+    return {
+      success: failures.length === 0,
+      resources: results,
+      failedResources: failures.length > 0 ? failures : undefined,
+    };
+  }
+
+  /**
+   * Deploy application to tenant
+   */
+  async deployToTenant(
+    tenantId: string,
+    targetVersion: string,
+    deploymentType: DeploymentType = "update",
+  ): Promise<DeployResult> {
+    const deploymentId = crypto.randomUUID();
+    const startedAt = new Date().toISOString();
+
+    // Create deployment log
+    await this.createDeploymentLog(
+      deploymentId,
+      tenantId,
+      deploymentType,
+      targetVersion,
+      startedAt,
+    );
+
+    try {
+      // Get tenant info
+      const tenant = await this.env.MANAGEMENT_DB.prepare(
+        `
+        SELECT id, subdomain, deployed_version, cf_account_id, cf_api_token_enc
+        FROM tenants WHERE id = ?
+      `,
+      )
+        .bind(tenantId)
+        .first<{
+          id: string;
+          subdomain: string;
+          deployed_version: string;
+          cf_account_id: string;
+          cf_api_token_enc: string;
+        }>();
+
+      if (!tenant) {
+        await this.updateDeploymentLog(
+          deploymentId,
+          "failed",
+          "Tenant not found",
+        );
+        return { success: false, deploymentId, error: "Tenant not found" };
+      }
+
+      if (!tenant.cf_account_id || !tenant.cf_api_token_enc) {
+        await this.updateDeploymentLog(
+          deploymentId,
+          "failed",
+          "Cloudflare account not connected",
+        );
+        return {
+          success: false,
+          deploymentId,
+          error: "Cloudflare account not connected",
+        };
+      }
+
+      // Store from version for rollback purposes
+      if (tenant.deployed_version) {
+        await this.updateDeploymentLogFromVersion(
+          deploymentId,
+          tenant.deployed_version,
+        );
+      }
+
+      // TODO: Actual deployment logic
+      // This would involve:
+      // 1. Fetch the worker bundle for targetVersion from our bundle storage
+      // 2. Deploy to tenant's Cloudflare account
+      // 3. Run any database migrations
+      // 4. Update tenant's deployed_version
+
+      // For now, simulate successful deployment
+      await this.env.MANAGEMENT_DB.prepare(
+        `
+        UPDATE tenants SET deployed_version = ?, updated_at = ? WHERE id = ?
+      `,
+      )
+        .bind(targetVersion, new Date().toISOString(), tenantId)
+        .run();
+
+      await this.updateDeploymentLog(deploymentId, "completed");
+
+      return { success: true, deploymentId };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      await this.updateDeploymentLog(deploymentId, "failed", errorMsg);
+      return { success: false, deploymentId, error: errorMsg };
+    }
+  }
+
+  /**
+   * Rollback deployment to previous version
+   */
+  async rollbackDeployment(
+    tenantId: string,
+    targetVersion?: string,
+  ): Promise<{ success: boolean; version?: string; error?: string }> {
+    // Get last successful deployment
+    const lastDeployment = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT from_version FROM deployment_logs
+      WHERE tenant_id = ? AND status = 'completed'
+      ORDER BY completed_at DESC
+      LIMIT 1
+    `,
+    )
+      .bind(tenantId)
+      .first<{ from_version: string }>();
+
+    const rollbackVersion = targetVersion || lastDeployment?.from_version;
+
+    if (!rollbackVersion) {
+      return {
+        success: false,
+        error: "No previous version found for rollback",
+      };
+    }
+
+    const result = await this.deployToTenant(
+      tenantId,
+      rollbackVersion,
+      "rollback",
+    );
+
+    if (result.success) {
+      return { success: true, version: rollbackVersion };
+    }
+
+    return { success: false, error: result.error };
+  }
+
+  /**
+   * Batch deploy to multiple tenants
+   */
+  async batchDeploy(
+    tenantIds: string[],
+    targetVersion: string,
+  ): Promise<BatchDeployResult[]> {
+    const results: BatchDeployResult[] = [];
+
+    // Deploy to each tenant (could be parallelized with limits)
+    for (const tenantId of tenantIds) {
+      try {
+        const result = await this.deployToTenant(
+          tenantId,
+          targetVersion,
+          "update",
+        );
+        results.push({
+          tenantId,
+          success: result.success,
+          deploymentId: result.deploymentId,
+          error: result.error,
+        });
+      } catch (error) {
+        results.push({
+          tenantId,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get deployment status for tenant
+   */
+  async getDeploymentStatus(tenantId: string): Promise<{
+    currentVersion?: string;
+    lastDeployment?: DeploymentLog;
+    resources: TenantResource[];
+  }> {
+    // Get tenant info
+    const tenant = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT deployed_version FROM tenants WHERE id = ?
+    `,
+    )
+      .bind(tenantId)
+      .first<{ deployed_version: string }>();
+
+    // Get last deployment
+    const lastDeployment = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT * FROM deployment_logs
+      WHERE tenant_id = ?
+      ORDER BY started_at DESC
+      LIMIT 1
+    `,
+    )
+      .bind(tenantId)
+      .first<{
+        id: string;
+        tenant_id: string;
+        deployment_type: DeploymentType;
+        from_version: string;
+        to_version: string;
+        status: DeploymentStatus;
+        logs: string;
+        started_at: string;
+        completed_at: string;
+      }>();
+
+    // Get resources
+    const resourcesResult = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT * FROM tenant_resources WHERE tenant_id = ?
+    `,
+    )
+      .bind(tenantId)
+      .all<{
+        id: string;
+        tenant_id: string;
+        resource_type: string;
+        resource_name: string;
+        resource_id: string;
+        status: string;
+        error_message: string;
+        created_at: string;
+        updated_at: string;
+      }>();
+
+    return {
+      currentVersion: tenant?.deployed_version,
+      lastDeployment: lastDeployment
+        ? {
+            id: lastDeployment.id,
+            tenantId: lastDeployment.tenant_id,
+            deploymentType: lastDeployment.deployment_type,
+            fromVersion: lastDeployment.from_version,
+            toVersion: lastDeployment.to_version,
+            status: lastDeployment.status,
+            logs: lastDeployment.logs,
+            startedAt: lastDeployment.started_at,
+            completedAt: lastDeployment.completed_at,
+          }
+        : undefined,
+      resources: resourcesResult.results.map((r) => ({
+        id: r.id,
+        tenantId: r.tenant_id,
+        resourceType: r.resource_type as ResourceType,
+        resourceName: r.resource_name,
+        resourceId: r.resource_id,
+        status: r.status as TenantResource["status"],
+        errorMessage: r.error_message,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      })),
+    };
+  }
+
+  /**
+   * Get deployment history for tenant
+   */
+  async getDeploymentHistory(
+    tenantId: string,
+    limit: number,
+  ): Promise<DeploymentLog[]> {
+    const result = await this.env.MANAGEMENT_DB.prepare(
+      `
+      SELECT * FROM deployment_logs
+      WHERE tenant_id = ?
+      ORDER BY started_at DESC
+      LIMIT ?
+    `,
+    )
+      .bind(tenantId, limit)
+      .all<{
+        id: string;
+        tenant_id: string;
+        deployment_type: DeploymentType;
+        from_version: string;
+        to_version: string;
+        status: DeploymentStatus;
+        logs: string;
+        started_at: string;
+        completed_at: string;
+      }>();
+
+    return result.results.map((row) => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      deploymentType: row.deployment_type,
+      fromVersion: row.from_version,
+      toVersion: row.to_version,
+      status: row.status,
+      logs: row.logs,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+    }));
+  }
+
+  // ============================================================
+  // Private Helper Methods
+  // ============================================================
+
+  private async decryptToken(encryptedToken: string): Promise<string> {
+    // In production, use proper decryption with ENCRYPTION_KEY
+    return atob(encryptedToken);
+  }
+
+  private getResourceName(prefix: string, type: ResourceType): string {
+    switch (type) {
+      case "d1":
+        return `${prefix}-db`;
+      case "kv":
+        return `${prefix}-cache`;
+      case "r2":
+        return `${prefix}-storage`;
+      case "worker":
+        return `${prefix}-api`;
+      case "page":
+        return `${prefix}-app`;
+      default:
+        return `${prefix}-${type}`;
+    }
+  }
+
+  private async provisionD1(
+    apiToken: string,
+    accountId: string,
+    name: string,
+  ): Promise<{ success: boolean; resourceId?: string; error?: string }> {
+    const result = await this.cfClient.createD1Database(
+      apiToken,
+      accountId,
+      name,
+    );
+    return {
+      success: result.success,
+      resourceId: result.database?.uuid,
+      error: result.error,
+    };
+  }
+
+  private async provisionKV(
+    apiToken: string,
+    accountId: string,
+    name: string,
+  ): Promise<{ success: boolean; resourceId?: string; error?: string }> {
+    const result = await this.cfClient.createKVNamespace(
+      apiToken,
+      accountId,
+      name,
+    );
+    return {
+      success: result.success,
+      resourceId: result.namespace?.id,
+      error: result.error,
+    };
+  }
+
+  private async provisionR2(
+    apiToken: string,
+    accountId: string,
+    name: string,
+  ): Promise<{ success: boolean; resourceId?: string; error?: string }> {
+    const result = await this.cfClient.createR2Bucket(
+      apiToken,
+      accountId,
+      name,
+    );
+    return {
+      success: result.success,
+      resourceId: result.bucket?.name,
+      error: result.error,
+    };
+  }
+
+  private async updateTenantStatus(
+    tenantId: string,
+    status: string,
+  ): Promise<void> {
+    await this.env.MANAGEMENT_DB.prepare(
+      `
+      UPDATE tenants SET status = ?, updated_at = ? WHERE id = ?
+    `,
+    )
+      .bind(status, new Date().toISOString(), tenantId)
+      .run();
+  }
+
+  private async createResourceRecord(
+    tenantId: string,
+    resourceId: string,
+    type: ResourceType,
+    name: string,
+    status: string,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    await this.env.MANAGEMENT_DB.prepare(
+      `
+      INSERT INTO tenant_resources (id, tenant_id, resource_type, resource_name, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+    )
+      .bind(resourceId, tenantId, type, name, status, now, now)
+      .run();
+  }
+
+  private async updateResourceRecord(
+    resourceId: string,
+    status: string,
+    cfResourceId?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    if (cfResourceId) {
+      await this.env.MANAGEMENT_DB.prepare(
+        `
+        UPDATE tenant_resources SET status = ?, resource_id = ?, updated_at = ? WHERE id = ?
+      `,
+      )
+        .bind(status, cfResourceId, new Date().toISOString(), resourceId)
+        .run();
+    } else if (errorMessage) {
+      await this.env.MANAGEMENT_DB.prepare(
+        `
+        UPDATE tenant_resources SET status = ?, error_message = ?, updated_at = ? WHERE id = ?
+      `,
+      )
+        .bind(status, errorMessage, new Date().toISOString(), resourceId)
+        .run();
+    } else {
+      await this.env.MANAGEMENT_DB.prepare(
+        `
+        UPDATE tenant_resources SET status = ?, updated_at = ? WHERE id = ?
+      `,
+      )
+        .bind(status, new Date().toISOString(), resourceId)
+        .run();
+    }
+  }
+
+  private async createDeploymentLog(
+    id: string,
+    tenantId: string,
+    type: DeploymentType,
+    toVersion: string,
+    startedAt: string,
+  ): Promise<void> {
+    await this.env.MANAGEMENT_DB.prepare(
+      `
+      INSERT INTO deployment_logs (id, tenant_id, deployment_type, to_version, status, started_at)
+      VALUES (?, ?, ?, ?, 'in_progress', ?)
+    `,
+    )
+      .bind(id, tenantId, type, toVersion, startedAt)
+      .run();
+  }
+
+  private async updateDeploymentLog(
+    id: string,
+    status: DeploymentStatus,
+    errorLog?: string,
+  ): Promise<void> {
+    const completedAt = new Date().toISOString();
+    const logs = errorLog
+      ? JSON.stringify([{ error: errorLog, timestamp: completedAt }])
+      : null;
+
+    await this.env.MANAGEMENT_DB.prepare(
+      `
+      UPDATE deployment_logs SET status = ?, logs = ?, completed_at = ? WHERE id = ?
+    `,
+    )
+      .bind(status, logs, completedAt, id)
+      .run();
+  }
+
+  private async updateDeploymentLogFromVersion(
+    id: string,
+    fromVersion: string,
+  ): Promise<void> {
+    await this.env.MANAGEMENT_DB.prepare(
+      `
+      UPDATE deployment_logs SET from_version = ? WHERE id = ?
+    `,
+    )
+      .bind(fromVersion, id)
+      .run();
+  }
+}

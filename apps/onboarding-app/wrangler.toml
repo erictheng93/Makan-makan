@@ -1,0 +1,21 @@
+# Onboarding App - Cloudflare Pages Configuration
+# 客戶申請入口
+
+name = "makanmakan-onboarding-app"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[vars]
+VITE_API_URL = "https://manage-api.makanmakan.app/api/v1"
+
+[env.staging]
+name = "makanmakan-onboarding-staging"
+
+[env.staging.vars]
+VITE_API_URL = "https://manage-api-staging.makanmakan.app/api/v1"
+
+[env.production]
+name = "makanmakan-onboarding"
+
+[env.production.vars]
+VITE_API_URL = "https://manage-api.makanmakan.app/api/v1"

@@ -1,0 +1,95 @@
+# MakanMakan Management API - Cloudflare Workers Configuration
+# Central management platform for hybrid deployment strategy
+
+name = "makanmakan-management-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Development server configuration
+[dev]
+port = 8788
+local_protocol = "http"
+
+# Default variables for development
+[vars]
+NODE_ENV = "development"
+API_VERSION = "v1"
+API_BASE_URL = "http://localhost:8788"
+CORS_ORIGIN = "*"
+LOG_LEVEL = "debug"
+
+# D1 Database binding (management database)
+[[d1_databases]]
+binding = "MANAGEMENT_DB"
+database_name = "makanmakan-management-local"
+database_id = "local"
+migrations_dir = "migrations"
+
+# KV namespace for caching
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "makanmakan-management-cache-dev"
+preview_id = "makanmakan-management-cache-preview"
+
+# KV namespace for deployment status tracking
+[[kv_namespaces]]
+binding = "DEPLOYMENT_STATUS_KV"
+id = "makanmakan-deployment-status-dev"
+preview_id = "makanmakan-deployment-status-preview"
+
+# === STAGING ENVIRONMENT ===
+[env.staging]
+name = "makanmakan-management-api-staging"
+[env.staging.vars]
+NODE_ENV = "staging"
+API_VERSION = "v1"
+API_BASE_URL = "https://manage-staging.makanmakan.app"
+CORS_ORIGIN = "https://admin-staging.makanmakan.app"
+LOG_LEVEL = "info"
+
+[[env.staging.d1_databases]]
+binding = "MANAGEMENT_DB"
+database_name = "makanmakan-management-staging"
+database_id = "staging-management-db-id"
+
+[[env.staging.kv_namespaces]]
+binding = "CACHE_KV"
+id = "makanmakan-management-cache-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "DEPLOYMENT_STATUS_KV"
+id = "makanmakan-deployment-status-staging"
+
+# === PRODUCTION ENVIRONMENT ===
+[env.production]
+name = "makanmakan-management-api-prod"
+[env.production.vars]
+NODE_ENV = "production"
+API_VERSION = "v1"
+API_BASE_URL = "https://manage.makanmakan.app"
+CORS_ORIGIN = "https://admin.makanmakan.app"
+LOG_LEVEL = "warn"
+
+[[env.production.d1_databases]]
+binding = "MANAGEMENT_DB"
+database_name = "makanmakan-management-prod"
+database_id = "production-management-db-id"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE_KV"
+id = "makanmakan-management-cache-prod"
+
+[[env.production.kv_namespaces]]
+binding = "DEPLOYMENT_STATUS_KV"
+id = "makanmakan-deployment-status-prod"
+
+# Smart placement for production
+[env.production.placement]
+mode = "smart"
+
+# Secrets (set via wrangler secret put):
+# - JWT_SECRET: JWT signing secret for management tokens
+# - ENCRYPTION_KEY: For encrypting stored API tokens
+# - CF_API_TOKEN: Cloudflare API token for resource provisioning
+# - CF_ACCOUNT_ID: Main Cloudflare account ID

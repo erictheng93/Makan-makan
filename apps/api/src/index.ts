@@ -25,6 +25,7 @@ import {
   healthCheckMiddleware,
   monitoringStatsMiddleware,
 } from "./middleware/monitoring";
+import { tenantContextMiddleware } from "./middleware/tenantContext";
 // import restaurantsRouter from './routes/restaurants' // Replaced with modular Restaurants feature
 import restaurantsFeature from "./features/restaurants";
 // import menuRouter from './routes/menu' // Replaced with modular Menu feature
@@ -207,6 +208,10 @@ app.use("*", metricsMiddleware()); // Tenth: Metrics collection
 app.use("*", errorMonitoringMiddleware()); // Eleventh: Error monitoring
 app.use("*", monitoringStatsMiddleware()); // Twelfth: Monitoring stats
 
+// 🏢 DEPLOYMENT MODE: Tenant context middleware for hybrid deployment strategy
+// Sets up tenant context based on deployment mode (SaaS vs Independent)
+app.use("*", tenantContextMiddleware); // Thirteenth: Tenant context
+
 // 錯誤處理中間件 - SECURITY ENHANCED
 app.onError((err, c) => {
   // Log the original error securely and get sanitized version
@@ -251,11 +256,27 @@ app.get("/health", healthCheckMiddleware(), (c) =>
 
 // API 資訊端點
 app.get("/info", (c) => {
+  // Get deployment mode information
+  const deploymentMode = c.env.DEPLOYMENT_MODE || "saas";
+  const deploymentInfo =
+    deploymentMode === "independent"
+      ? {
+          mode: deploymentMode,
+          tenantId: c.env.TENANT_ID,
+          tenantName: c.env.TENANT_NAME,
+          platformVersion: c.env.PLATFORM_VERSION || "1.0.0",
+        }
+      : {
+          mode: deploymentMode,
+          platformVersion: c.env.PLATFORM_VERSION || "1.0.0",
+        };
+
   return c.json({
     name: "MakanMakan API",
     version: c.env.API_VERSION || "v1",
     description: "RESTful API for MakanMakan restaurant management system",
     environment: c.env.NODE_ENV || "development",
+    deployment: deploymentInfo,
     features: [
       "Restaurant management",
       "Menu management",

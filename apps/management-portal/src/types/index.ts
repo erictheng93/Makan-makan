@@ -1,0 +1,209 @@
+/**
+ * Management Portal Types
+ * 管理平台類型定義
+ */
+
+// 租戶狀態
+export type TenantStatus =
+  | "pending"
+  | "provisioning"
+  | "active"
+  | "suspended"
+  | "terminated";
+
+// 授權等級
+export type LicenseTier = "standard" | "professional" | "enterprise";
+
+// 健康狀態
+export type HealthStatus = "healthy" | "degraded" | "down" | "unknown";
+
+// 資源類型
+export type ResourceType = "d1" | "kv" | "r2" | "worker" | "pages";
+
+// 部署類型
+export type DeploymentType = "initial" | "update" | "rollback";
+
+// 部署狀態
+export type DeploymentStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "rolled_back";
+
+/**
+ * 租戶資訊
+ */
+export interface Tenant {
+  id: string;
+  businessName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  subdomain?: string;
+  customDomain?: string;
+  deployedVersion?: string;
+  status: TenantStatus;
+  planId?: string;
+  cfAccountId?: string;
+  createdAt: string;
+  activatedAt?: string;
+}
+
+/**
+ * 租戶資源
+ */
+export interface TenantResource {
+  id: string;
+  tenantId: string;
+  resourceType: ResourceType;
+  resourceName: string;
+  resourceId?: string;
+  status: "pending" | "provisioned" | "failed";
+  createdAt: string;
+}
+
+/**
+ * 部署日誌
+ */
+export interface DeploymentLog {
+  id: string;
+  tenantId: string;
+  deploymentType: DeploymentType;
+  fromVersion?: string;
+  toVersion: string;
+  status: DeploymentStatus;
+  logs?: string[];
+  startedAt: string;
+  completedAt?: string;
+}
+
+/**
+ * 健康檢查記錄
+ */
+export interface HealthCheck {
+  id: string;
+  tenantId: string;
+  status: HealthStatus;
+  responseTimeMs?: number;
+  details?: {
+    api?: HealthStatus;
+    database?: HealthStatus;
+    cache?: HealthStatus;
+    storage?: HealthStatus;
+  };
+  checkedAt: string;
+}
+
+/**
+ * 授權資訊
+ */
+export interface License {
+  id: string;
+  tenantId: string;
+  licenseKey: string;
+  tier: LicenseTier;
+  expiresAt?: string;
+  revokedAt?: string;
+  revokeReason?: string;
+  createdAt: string;
+}
+
+/**
+ * 統計卡片資料
+ */
+export interface StatCard {
+  title: string;
+  value: string | number;
+  change?: string;
+  changeType?: "positive" | "negative" | "neutral";
+  icon?: string;
+}
+
+/**
+ * API 響應
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * 分頁參數
+ */
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+/**
+ * 分頁響應
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * 創建租戶請求
+ */
+export interface CreateTenantRequest {
+  businessName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  subdomain?: string;
+  planId?: string;
+}
+
+/**
+ * 更新租戶請求
+ */
+export interface UpdateTenantRequest {
+  businessName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  subdomain?: string;
+  customDomain?: string;
+  status?: TenantStatus;
+}
+
+/**
+ * 連接 Cloudflare 請求
+ */
+export interface ConnectCloudflareRequest {
+  accountId: string;
+  apiToken: string;
+}
+
+/**
+ * 部署請求
+ */
+export interface DeployRequest {
+  tenantId: string;
+  version?: string;
+}
+
+/**
+ * 批量部署請求
+ */
+export interface BatchDeployRequest {
+  tenantIds: string[];
+  version: string;
+}
+
+/**
+ * 授權生成請求
+ */
+export interface GenerateLicenseRequest {
+  tenantId: string;
+  tier: LicenseTier;
+  expiresAt?: string;
+}

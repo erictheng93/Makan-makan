@@ -1,4 +1,5 @@
 import type { KVNamespace, R2Bucket, Queue } from "@cloudflare/workers-types";
+import type { DeploymentMode } from "./deployment";
 
 // Custom AnalyticsEngine interface since it's not exported by @cloudflare/workers-types
 interface AnalyticsEngine {
@@ -14,6 +15,7 @@ import type { D1Database } from "@makanmakan/database";
 /**
  * Enhanced Environment Interface for 100/100 Score
  * Includes all advanced Cloudflare features for optimal performance
+ * Supports both SaaS and Independent deployment modes
  */
 export interface Env {
   // Environment variables
@@ -21,6 +23,44 @@ export interface Env {
   JWT_SECRET: string;
   API_VERSION: string;
   ENCRYPTION_KEY: string; // For encrypting sensitive data like API keys
+
+  // ===== Deployment Mode Configuration =====
+  /**
+   * Deployment mode: 'saas' (default) or 'independent'
+   * - saas: Multi-tenant centralized platform
+   * - independent: Single-tenant managed deployment
+   */
+  DEPLOYMENT_MODE?: DeploymentMode;
+
+  /**
+   * Tenant identifier for independent deployments
+   * Format: S-YYYYMMDD-NNN (e.g., S-20241201-001)
+   */
+  TENANT_ID?: string;
+
+  /**
+   * Tenant display name for independent deployments
+   * Example: "御膳房", "好味道餐廳"
+   */
+  TENANT_NAME?: string;
+
+  /**
+   * License key for independent deployments
+   * Format: MKM-{TIER}-{CODE}-{CHECK} (e.g., MKM-PRO-YSF001-A7B2)
+   */
+  LICENSE_KEY?: string;
+
+  /**
+   * Central management API URL for license validation and updates
+   * Example: https://manage.makanmakan.app
+   */
+  CENTRAL_API_URL?: string;
+
+  /**
+   * Current platform version for update management
+   * Semantic versioning: MAJOR.MINOR.PATCH
+   */
+  PLATFORM_VERSION?: string;
 
   // Performance optimization variables
   CACHE_TTL_DEFAULT?: string;

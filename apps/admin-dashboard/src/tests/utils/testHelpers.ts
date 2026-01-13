@@ -81,6 +81,9 @@ export function createTrackedMockWebSocket(): {
     static readonly CLOSING = 2;
     static readonly CLOSED = 3;
 
+    // Static property to track last created instance (avoids this-alias)
+    static lastInstance: MockWebSocketInstance | null = null;
+
     onopen: ((event: Event) => void) | null = null;
     onclose: ((event: CloseEvent) => void) | null = null;
     onmessage: ((event: MessageEvent) => void) | null = null;
@@ -91,8 +94,9 @@ export function createTrackedMockWebSocket(): {
       this.protocol = protocol || "";
       this.connectionAttempts++;
 
-      // 記錄活動實例
-      activeInstance = this;
+      // 記錄活動實例 (use static property to avoid this-alias)
+      MockWebSocketInstance.lastInstance = this;
+      activeInstance = MockWebSocketInstance.lastInstance;
 
       // 模擬異步連接
       setTimeout(() => {
