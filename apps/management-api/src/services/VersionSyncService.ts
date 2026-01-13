@@ -3,7 +3,7 @@
  * 版本同步服務 - Phase 3 實施
  */
 
-import type { ManagementEnv, Tenant, DeploymentLog } from "../types";
+import type { ManagementEnv, Tenant } from "../types";
 import { ProvisioningService } from "./ProvisioningService";
 
 export interface VersionRelease {
@@ -261,7 +261,7 @@ export class VersionSyncService {
         targetVersion,
       );
       result.status = "completed";
-      result.deploymentId = deployment.id;
+      result.deploymentId = deployment.deploymentId;
       progress.completedTenants++;
     } catch (error) {
       result.status = "failed";

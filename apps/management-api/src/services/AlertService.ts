@@ -207,7 +207,7 @@ export class AlertService {
   /**
    * 獲取活躍告警
    */
-  async getActiveAlerts(tenantId?: string): Promise<Alert[]> {
+  async getActiveAlerts(_tenantId?: string): Promise<Alert[]> {
     // 在實際實現中，這會從資料庫獲取告警
     return [];
   }

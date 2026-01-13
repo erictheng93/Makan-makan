@@ -27,6 +27,7 @@ export interface ManagementEnv {
   ENCRYPTION_KEY: string;
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
+  SLACK_WEBHOOK_URL?: string; // Optional: for alert notifications
 
   // D1 Database binding
   MANAGEMENT_DB: D1Database;
