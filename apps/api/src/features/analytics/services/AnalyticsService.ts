@@ -3,11 +3,11 @@
  * Business logic for analytics operations within the feature module
  */
 
-import { AnalyticsService as DatabaseAnalyticsService } from '@makanmakan/database'
-import { KVCacheService, type CacheService } from '../../../core/cache'
-import { ConsoleLogger } from '../../../core/monitoring'
-import { CACHE_TTL } from '../../../shared/constants'
-import type { Env } from '../../../shared/types'
+import { AnalyticsService as DatabaseAnalyticsService } from "@makanmakan/database";
+import { KVCacheService, type CacheService } from "../../../core/cache";
+import { ConsoleLogger } from "../../../core/monitoring";
+import { CACHE_TTL } from "../../../shared/constants";
+import type { Env } from "../../../shared/types";
 import type {
   AnalyticsFilters,
   DashboardSummary,
@@ -19,73 +19,83 @@ import type {
   ExportRequest,
   ExportResponse,
   FinancialReportData,
-  IAnalyticsService
-} from '../types'
+  IAnalyticsService,
+} from "../types";
 
 // Helper to convert filters for database service (number -> string for restaurantId)
-function toDbFilters(filters: AnalyticsFilters): { restaurantId?: string; startDate?: string; endDate?: string } {
+function toDbFilters(filters: AnalyticsFilters): {
+  restaurantId?: string;
+  startDate?: string;
+  endDate?: string;
+} {
   return {
     ...filters,
-    restaurantId: filters.restaurantId ? String(filters.restaurantId) : undefined
-  }
+    restaurantId: filters.restaurantId
+      ? String(filters.restaurantId)
+      : undefined,
+  };
 }
 
 export class AnalyticsService implements IAnalyticsService {
-  private databaseService: DatabaseAnalyticsService
-  private cache: CacheService
-  private logger: ConsoleLogger
-  private env: Env
+  private databaseService: DatabaseAnalyticsService;
+  private cache: CacheService;
+  private logger: ConsoleLogger;
+  private env: Env;
 
-  constructor(
-    db: Env['DB'],
-    env: Env,
-    kv?: Env['CACHE_KV']
-  ) {
-    this.databaseService = new DatabaseAnalyticsService(db, env)
-    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any)
-    this.logger = new ConsoleLogger('AnalyticsService')
-    this.env = env
+  constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
+    this.databaseService = new DatabaseAnalyticsService(db, env);
+    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
+    this.logger = new ConsoleLogger("AnalyticsService");
+    this.env = env;
   }
 
   /**
    * Get dashboard data with caching
    */
-  async getDashboardData(restaurantId?: number, period: string = 'today'): Promise<DashboardSummary> {
+  async getDashboardData(
+    restaurantId?: number,
+    period: string = "today",
+  ): Promise<DashboardSummary> {
     try {
-      this.logger.debug('Getting dashboard data', { restaurantId, period })
+      this.logger.debug("Getting dashboard data", { restaurantId, period });
 
       // Try cache first
-      const cacheKey = `analytics:dashboard:${restaurantId || 'all'}:${period}`
-      const cached = await this.cache.get<DashboardSummary>(cacheKey)
+      const cacheKey = `analytics:dashboard:${restaurantId || "all"}:${period}`;
+      const cached = await this.cache.get<DashboardSummary>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached dashboard data')
-        return cached
+        this.logger.debug("Returning cached dashboard data");
+        return cached;
       }
 
       // Get data from database service
-      const dashboardData = await this.databaseService.getDashboardData(restaurantId ? String(restaurantId) : undefined as any)
+      const dashboardData = await this.databaseService.getDashboardData(
+        restaurantId ? String(restaurantId) : (undefined as any),
+      );
 
       if (!dashboardData) {
-        throw new Error('Failed to retrieve dashboard data')
+        throw new Error("Failed to retrieve dashboard data");
       }
 
       // Extract summary from dashboard data
-      const summary: DashboardSummary = dashboardData.summary
+      const summary: DashboardSummary = dashboardData.summary;
 
       // Cache the result
-      await this.cache.set(cacheKey, summary, CACHE_TTL.SHORT)
+      await this.cache.set(cacheKey, summary, CACHE_TTL.SHORT);
 
-      this.logger.info('Dashboard data retrieved successfully', {
+      this.logger.info("Dashboard data retrieved successfully", {
         restaurantId,
         period,
         todayRevenue: summary.todayRevenue,
-        todayOrders: summary.todayOrders
-      })
+        todayOrders: summary.todayOrders,
+      });
 
-      return summary
+      return summary;
     } catch (error) {
-      this.logger.error('Failed to get dashboard data', error as Error, { restaurantId, period })
-      throw new Error('Failed to retrieve dashboard data')
+      this.logger.error("Failed to get dashboard data", error as Error, {
+        restaurantId,
+        period,
+      });
+      throw new Error("Failed to retrieve dashboard data");
     }
   }
 
@@ -94,149 +104,179 @@ export class AnalyticsService implements IAnalyticsService {
    */
   async getRevenueAnalytics(filters: AnalyticsFilters): Promise<RevenueData[]> {
     try {
-      this.logger.debug('Getting revenue analytics', filters)
+      this.logger.debug("Getting revenue analytics", filters);
 
       // Try cache first
-      const cacheKey = `analytics:revenue:${JSON.stringify(filters)}`
-      const cached = await this.cache.get<RevenueData[]>(cacheKey)
+      const cacheKey = `analytics:revenue:${JSON.stringify(filters)}`;
+      const cached = await this.cache.get<RevenueData[]>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached revenue analytics')
-        return cached
+        this.logger.debug("Returning cached revenue analytics");
+        return cached;
       }
 
       // Get data from database service
-      const revenueData = await this.databaseService.getRevenueAnalytics(toDbFilters(filters))
+      const revenueData = await this.databaseService.getRevenueAnalytics(
+        toDbFilters(filters),
+      );
 
       if (!revenueData) {
-        return []
+        return [];
       }
 
       // Cache the result
-      await this.cache.set(cacheKey, revenueData, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, revenueData, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Revenue analytics retrieved successfully', {
+      this.logger.info("Revenue analytics retrieved successfully", {
         restaurantId: filters.restaurantId,
-        recordCount: revenueData.length
-      })
+        recordCount: revenueData.length,
+      });
 
-      return revenueData
+      return revenueData;
     } catch (error) {
-      this.logger.error('Failed to get revenue analytics', error as Error, filters)
-      throw new Error('Failed to retrieve revenue analytics')
+      this.logger.error(
+        "Failed to get revenue analytics",
+        error as Error,
+        filters,
+      );
+      throw new Error("Failed to retrieve revenue analytics");
     }
   }
 
   /**
    * Get product analytics with caching
    */
-  async getProductAnalytics(filters: AnalyticsFilters): Promise<ProductAnalytics> {
+  async getProductAnalytics(
+    filters: AnalyticsFilters,
+  ): Promise<ProductAnalytics> {
     try {
-      this.logger.debug('Getting product analytics', filters)
+      this.logger.debug("Getting product analytics", filters);
 
       // Try cache first
-      const cacheKey = `analytics:products:${JSON.stringify(filters)}`
-      const cached = await this.cache.get<ProductAnalytics>(cacheKey)
+      const cacheKey = `analytics:products:${JSON.stringify(filters)}`;
+      const cached = await this.cache.get<ProductAnalytics>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached product analytics')
-        return cached
+        this.logger.debug("Returning cached product analytics");
+        return cached;
       }
 
       // Get data from database service
-      const productData = await this.databaseService.getMenuAnalytics(toDbFilters(filters))
+      const productData = await this.databaseService.getMenuAnalytics(
+        toDbFilters(filters),
+      );
 
       if (!productData) {
-        throw new Error('Failed to retrieve product analytics')
+        throw new Error("Failed to retrieve product analytics");
       }
 
       // Cache the result
-      await this.cache.set(cacheKey, productData, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, productData, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Product analytics retrieved successfully', {
+      this.logger.info("Product analytics retrieved successfully", {
         restaurantId: filters.restaurantId,
         popularItemsCount: productData.popularItems.length,
-        categoriesCount: productData.categoryPerformance.length
-      })
+        categoriesCount: productData.categoryPerformance.length,
+      });
 
-      return productData
+      return productData;
     } catch (error) {
-      this.logger.error('Failed to get product analytics', error as Error, filters)
-      throw new Error('Failed to retrieve product analytics')
+      this.logger.error(
+        "Failed to get product analytics",
+        error as Error,
+        filters,
+      );
+      throw new Error("Failed to retrieve product analytics");
     }
   }
 
   /**
    * Get customer analytics with caching
    */
-  async getCustomerAnalytics(filters: AnalyticsFilters): Promise<CustomerAnalytics> {
+  async getCustomerAnalytics(
+    filters: AnalyticsFilters,
+  ): Promise<CustomerAnalytics> {
     try {
-      this.logger.debug('Getting customer analytics', filters)
+      this.logger.debug("Getting customer analytics", filters);
 
       // Try cache first
-      const cacheKey = `analytics:customers:${JSON.stringify(filters)}`
-      const cached = await this.cache.get<CustomerAnalytics>(cacheKey)
+      const cacheKey = `analytics:customers:${JSON.stringify(filters)}`;
+      const cached = await this.cache.get<CustomerAnalytics>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached customer analytics')
-        return cached
+        this.logger.debug("Returning cached customer analytics");
+        return cached;
       }
 
       // Get data from database service
-      const customerData = await this.databaseService.getCustomerAnalytics(toDbFilters(filters))
+      const customerData = await this.databaseService.getCustomerAnalytics(
+        toDbFilters(filters),
+      );
 
       if (!customerData) {
-        throw new Error('Failed to retrieve customer analytics')
+        throw new Error("Failed to retrieve customer analytics");
       }
 
       // Cache the result
-      await this.cache.set(cacheKey, customerData, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, customerData, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Customer analytics retrieved successfully', {
+      this.logger.info("Customer analytics retrieved successfully", {
         restaurantId: filters.restaurantId,
         totalCustomers: customerData.totalCustomers,
-        newCustomers: customerData.newCustomers
-      })
+        newCustomers: customerData.newCustomers,
+      });
 
-      return customerData
+      return customerData;
     } catch (error) {
-      this.logger.error('Failed to get customer analytics', error as Error, filters)
-      throw new Error('Failed to retrieve customer analytics')
+      this.logger.error(
+        "Failed to get customer analytics",
+        error as Error,
+        filters,
+      );
+      throw new Error("Failed to retrieve customer analytics");
     }
   }
 
   /**
    * Get performance analytics with caching
    */
-  async getPerformanceAnalytics(filters: AnalyticsFilters): Promise<PerformanceAnalytics> {
+  async getPerformanceAnalytics(
+    filters: AnalyticsFilters,
+  ): Promise<PerformanceAnalytics> {
     try {
-      this.logger.debug('Getting performance analytics', filters)
+      this.logger.debug("Getting performance analytics", filters);
 
       // Try cache first
-      const cacheKey = `analytics:performance:${JSON.stringify(filters)}`
-      const cached = await this.cache.get<PerformanceAnalytics>(cacheKey)
+      const cacheKey = `analytics:performance:${JSON.stringify(filters)}`;
+      const cached = await this.cache.get<PerformanceAnalytics>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached performance analytics')
-        return cached
+        this.logger.debug("Returning cached performance analytics");
+        return cached;
       }
 
       // Get data from database service
-      const performanceData = await this.databaseService.getOrderAnalytics(toDbFilters(filters))
+      const performanceData = await this.databaseService.getOrderAnalytics(
+        toDbFilters(filters),
+      );
 
       if (!performanceData) {
-        throw new Error('Failed to retrieve performance analytics')
+        throw new Error("Failed to retrieve performance analytics");
       }
 
       // Cache the result
-      await this.cache.set(cacheKey, performanceData, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, performanceData, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Performance analytics retrieved successfully', {
+      this.logger.info("Performance analytics retrieved successfully", {
         restaurantId: filters.restaurantId,
         totalOrders: performanceData.totalOrders,
-        completedOrders: performanceData.completedOrders
-      })
+        completedOrders: performanceData.completedOrders,
+      });
 
-      return performanceData
+      return performanceData;
     } catch (error) {
-      this.logger.error('Failed to get performance analytics', error as Error, filters)
-      throw new Error('Failed to retrieve performance analytics')
+      this.logger.error(
+        "Failed to get performance analytics",
+        error as Error,
+        filters,
+      );
+      throw new Error("Failed to retrieve performance analytics");
     }
   }
 
@@ -245,29 +285,55 @@ export class AnalyticsService implements IAnalyticsService {
    */
   async getRealtimeData(restaurantId?: number): Promise<RealtimeAnalyticsData> {
     try {
-      this.logger.debug('Getting real-time analytics data', { restaurantId })
+      this.logger.debug("Getting real-time analytics data", { restaurantId });
 
       // Get fresh data for real-time (no caching)
-      const dashboardData = await this.getDashboardData(restaurantId, 'today')
+      const dashboardData = await this.getDashboardData(restaurantId, "today");
 
-      // Additional real-time metrics could be added here
+      // Get realtime metrics from database service
+      let activeOrders = 0;
+      let pendingOrders = 0;
+      let tableUtilization = 0;
+
+      if (restaurantId) {
+        const realtimeDashboard =
+          await this.databaseService.getRealtimeDashboard(String(restaurantId));
+        activeOrders = realtimeDashboard.activeOrders || 0;
+        pendingOrders = realtimeDashboard.kitchenQueue || 0; // Kitchen queue = orders in preparing status
+
+        // Calculate table utilization from dashboard data
+        const totalTables = dashboardData.tableStatus?.total || 0;
+        const occupiedTables = realtimeDashboard.occupiedTables || 0;
+        tableUtilization =
+          totalTables > 0
+            ? Math.round((occupiedTables / totalTables) * 100)
+            : 0;
+      }
+
       const realtimeData: RealtimeAnalyticsData = {
         timestamp: new Date().toISOString(),
         summary: dashboardData,
-        activeOrders: 0, // TODO: Implement active orders count
-        pendingOrders: 0, // TODO: Implement pending orders count
-        tableUtilization: 0 // TODO: Implement table utilization calculation
-      }
+        activeOrders,
+        pendingOrders,
+        tableUtilization,
+      };
 
-      this.logger.info('Real-time analytics data retrieved successfully', {
+      this.logger.info("Real-time analytics data retrieved successfully", {
         restaurantId,
-        timestamp: realtimeData.timestamp
-      })
+        timestamp: realtimeData.timestamp,
+        activeOrders,
+        pendingOrders,
+        tableUtilization,
+      });
 
-      return realtimeData
+      return realtimeData;
     } catch (error) {
-      this.logger.error('Failed to get real-time analytics data', error as Error, { restaurantId })
-      throw new Error('Failed to retrieve real-time analytics data')
+      this.logger.error(
+        "Failed to get real-time analytics data",
+        error as Error,
+        { restaurantId },
+      );
+      throw new Error("Failed to retrieve real-time analytics data");
     }
   }
 
@@ -276,13 +342,15 @@ export class AnalyticsService implements IAnalyticsService {
    */
   async generateExport(request: ExportRequest): Promise<ExportResponse> {
     try {
-      this.logger.debug('Generating analytics export', request)
+      this.logger.debug("Generating analytics export", request);
 
       // Create unique filename
-      const timestamp = Date.now()
-      const filename = `${request.type}_${timestamp}.${request.format}`
-      const downloadUrl = `https://api.example.com/exports/${filename}`
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      const timestamp = Date.now();
+      const filename = `${request.type}_${timestamp}.${request.format}`;
+      const downloadUrl = `https://api.example.com/exports/${filename}`;
+      const expiresAt = new Date(
+        Date.now() + 24 * 60 * 60 * 1000,
+      ).toISOString();
 
       // TODO: Implement actual export generation and storage
       // This would typically involve:
@@ -299,50 +367,59 @@ export class AnalyticsService implements IAnalyticsService {
           format: request.format,
           period: {
             from: request.dateFrom,
-            to: request.dateTo
+            to: request.dateTo,
           },
           download_url: downloadUrl,
-          expires_at: expiresAt
-        }
-      }
+          expires_at: expiresAt,
+        },
+      };
 
-      this.logger.info('Analytics export generated successfully', {
+      this.logger.info("Analytics export generated successfully", {
         type: request.type,
         format: request.format,
-        downloadUrl
-      })
+        downloadUrl,
+      });
 
-      return response
+      return response;
     } catch (error) {
-      this.logger.error('Failed to generate analytics export', error as Error, request)
-      throw new Error('Failed to generate export')
+      this.logger.error(
+        "Failed to generate analytics export",
+        error as Error,
+        request,
+      );
+      throw new Error("Failed to generate export");
     }
   }
 
   /**
    * Get financial report data
    */
-  async getFinancialReport(filters: AnalyticsFilters): Promise<FinancialReportData> {
+  async getFinancialReport(
+    filters: AnalyticsFilters,
+  ): Promise<FinancialReportData> {
     try {
-      this.logger.debug('Getting financial report', filters)
+      this.logger.debug("Getting financial report", filters);
 
       // Try cache first
-      const cacheKey = `analytics:financial:${JSON.stringify(filters)}`
-      const cached = await this.cache.get<FinancialReportData>(cacheKey)
+      const cacheKey = `analytics:financial:${JSON.stringify(filters)}`;
+      const cached = await this.cache.get<FinancialReportData>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached financial report')
-        return cached
+        this.logger.debug("Returning cached financial report");
+        return cached;
       }
 
       // Get data from database service - convert restaurantId to string
       const dbFilters = {
         ...filters,
-        restaurantId: filters.restaurantId ? String(filters.restaurantId) : undefined
-      }
-      const rawFinancialData = await this.databaseService.getFinancialReport(dbFilters)
+        restaurantId: filters.restaurantId
+          ? String(filters.restaurantId)
+          : undefined,
+      };
+      const rawFinancialData =
+        await this.databaseService.getFinancialReport(dbFilters);
 
       if (!rawFinancialData) {
-        throw new Error('Failed to retrieve financial report')
+        throw new Error("Failed to retrieve financial report");
       }
 
       // Transform the raw data to match our interface
@@ -352,22 +429,26 @@ export class AnalyticsService implements IAnalyticsService {
         averageOrderValue: rawFinancialData.summary?.averageOrderValue || 0,
         taxAmount: rawFinancialData.summary?.taxAmount || 0,
         netRevenue: rawFinancialData.summary?.netRevenue || 0,
-        breakdown: rawFinancialData.revenueBreakdown || {}
-      }
+        breakdown: rawFinancialData.revenueBreakdown || {},
+      };
 
       // Cache the result
-      await this.cache.set(cacheKey, financialData, CACHE_TTL.LONG)
+      await this.cache.set(cacheKey, financialData, CACHE_TTL.LONG);
 
-      this.logger.info('Financial report retrieved successfully', {
+      this.logger.info("Financial report retrieved successfully", {
         restaurantId: filters.restaurantId,
         period: filters.period,
-        totalRevenue: financialData.totalRevenue
-      })
+        totalRevenue: financialData.totalRevenue,
+      });
 
-      return financialData
+      return financialData;
     } catch (error) {
-      this.logger.error('Failed to get financial report', error as Error, filters)
-      throw new Error('Failed to retrieve financial report')
+      this.logger.error(
+        "Failed to get financial report",
+        error as Error,
+        filters,
+      );
+      throw new Error("Failed to retrieve financial report");
     }
   }
 
@@ -376,17 +457,21 @@ export class AnalyticsService implements IAnalyticsService {
    */
   async clearCache(restaurantId?: number): Promise<void> {
     try {
-      this.logger.debug('Clearing analytics cache', { restaurantId })
+      this.logger.debug("Clearing analytics cache", { restaurantId });
 
       const pattern = restaurantId
         ? `analytics:*:${restaurantId}:*`
-        : 'analytics:*'
+        : "analytics:*";
 
-      await this.cache.clear(pattern)
+      await this.cache.clear(pattern);
 
-      this.logger.info('Analytics cache cleared successfully', { restaurantId })
+      this.logger.info("Analytics cache cleared successfully", {
+        restaurantId,
+      });
     } catch (error) {
-      this.logger.error('Failed to clear analytics cache', error as Error, { restaurantId })
+      this.logger.error("Failed to clear analytics cache", error as Error, {
+        restaurantId,
+      });
       // Don't throw here as cache clearing failure shouldn't break the main flow
     }
   }

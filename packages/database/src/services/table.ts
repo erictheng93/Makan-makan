@@ -1,78 +1,87 @@
-import { eq, and, desc, asc, like, or, count, isNull, isNotNull } from 'drizzle-orm'
-import { BaseService } from './base'
-import { tables, restaurants, orders, seats } from '../schema'
-import { SeatService } from './seat'
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  like,
+  or,
+  count,
+  isNull,
+  isNotNull,
+} from "drizzle-orm";
+import { BaseService } from "./base";
+import { tables, restaurants, orders, seats } from "../schema";
+import { SeatService } from "./seat";
 
 export interface CreateTableData {
-  restaurantId: string
-  number: string
-  name?: string
-  capacity: number
-  location?: string
-  floor?: number
-  section?: string
+  restaurantId: string;
+  number: string;
+  name?: string;
+  capacity: number;
+  location?: string;
+  floor?: number;
+  section?: string;
   features?: {
-    hasChargingPort?: boolean
-    hasWifi?: boolean
-    isAccessible?: boolean
-    hasView?: boolean
-    isQuietZone?: boolean
-    smokingAllowed?: boolean
-  }
-  isReservable?: boolean
+    hasChargingPort?: boolean;
+    hasWifi?: boolean;
+    isAccessible?: boolean;
+    hasView?: boolean;
+    isQuietZone?: boolean;
+    smokingAllowed?: boolean;
+  };
+  isReservable?: boolean;
   // 座位模式支持（新增）
-  qrMode?: 'table' | 'seat'
-  seatCount?: number
-  seatNumberingStyle?: 'numeric' | 'alphabetic' | 'custom'
+  qrMode?: "table" | "seat";
+  seatCount?: number;
+  seatNumberingStyle?: "numeric" | "alphabetic" | "custom";
 }
 
 export interface UpdateTableData {
-  number?: string
-  name?: string
-  capacity?: number
-  location?: string
-  floor?: number
-  section?: string
-  features?: any
-  isActive?: boolean
-  isReservable?: boolean
-  maintenanceNotes?: string
+  number?: string;
+  name?: string;
+  capacity?: number;
+  location?: string;
+  floor?: number;
+  section?: string;
+  features?: any;
+  isActive?: boolean;
+  isReservable?: boolean;
+  maintenanceNotes?: string;
 }
 
 export interface TableFilters {
-  restaurantId?: string
-  floor?: number
-  section?: string
-  isOccupied?: boolean
-  isActive?: boolean
-  isReservable?: boolean
-  minCapacity?: number
-  maxCapacity?: number
-  search?: string
-  page?: number
-  limit?: number
+  restaurantId?: string;
+  floor?: number;
+  section?: string;
+  isOccupied?: boolean;
+  isActive?: boolean;
+  isReservable?: boolean;
+  minCapacity?: number;
+  maxCapacity?: number;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface QRCodeOptions {
-  size?: 'small' | 'medium' | 'large'
-  format?: 'png' | 'svg' | 'pdf'
-  includeTableInfo?: boolean
-  customData?: any
+  size?: "small" | "medium" | "large";
+  format?: "png" | "svg" | "pdf";
+  includeTableInfo?: boolean;
+  customData?: any;
 }
 
 export interface TableStats {
-  totalTables: number
-  occupiedTables: number
-  availableTables: number
-  inactiveTables: number
-  averageOccupancyRate: number
-  byFloor: Record<number, number>
-  bySection: Record<string, number>
-  byCapacity: Record<number, number>
+  totalTables: number;
+  occupiedTables: number;
+  availableTables: number;
+  inactiveTables: number;
+  averageOccupancyRate: number;
+  byFloor: Record<number, number>;
+  bySection: Record<string, number>;
+  byCapacity: Record<number, number>;
 }
 
 export class TableService extends BaseService {
-
   // 創建新桌子
   async createTable(data: CreateTableData): Promise<any> {
     try {
@@ -83,21 +92,21 @@ export class TableService extends BaseService {
         .where(
           and(
             eq(tables.restaurantId, data.restaurantId),
-            eq(tables.number, data.number)
-          )
+            eq(tables.number, data.number),
+          ),
         )
-        .get()
+        .get();
 
       if (existingTable) {
-        throw new Error('Table number already exists in this restaurant')
+        throw new Error("Table number already exists in this restaurant");
       }
 
       // 生成 QR Code 內容（桌子模式）
-      const qrCode = this.generateQRCodeData(data.restaurantId, data.number)
+      const qrCode = this.generateQRCodeData(data.restaurantId, data.number);
 
-      const qrMode = data.qrMode || 'table'
-      const seatCount = data.seatCount || 0
-      const seatNumberingStyle = data.seatNumberingStyle || 'numeric'
+      const qrMode = data.qrMode || "table";
+      const seatCount = data.seatCount || 0;
+      const seatNumberingStyle = data.seatNumberingStyle || "numeric";
 
       const [newTable] = await this.db
         .insert(tables)
@@ -117,22 +126,21 @@ export class TableService extends BaseService {
           features: data.features,
           isReservable: data.isReservable ?? true,
           isActive: true,
-          isOccupied: false
+          isOccupied: false,
         })
-        .returning()
+        .returning();
 
       // 如果是座位模式，自動創建座位
-      if (qrMode === 'seat' && seatCount > 0) {
-        const seatService = new SeatService(this.db as any, this.env)
+      if (qrMode === "seat" && seatCount > 0) {
+        const seatService = new SeatService(this.db as any, this.env);
         await seatService.createSeatsForTable(newTable.id, seatCount, {
-          numberingStyle: seatNumberingStyle
-        })
+          numberingStyle: seatNumberingStyle,
+        });
       }
 
-      return newTable
-
+      return newTable;
     } catch (error) {
-      this.handleError(error, 'createTable')
+      this.handleError(error, "createTable");
     }
   }
 
@@ -171,16 +179,16 @@ export class TableService extends BaseService {
           createdAt: tables.createdAt,
           updatedAt: tables.updatedAt,
           // 餐廳資訊
-          restaurantName: restaurants.name
+          restaurantName: restaurants.name,
         })
         .from(tables)
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
         .where(eq(tables.id, id))
-        .get()
+        .get();
 
       // Return null if no table found
       if (!table) {
-        return null
+        return null;
       }
 
       // Convert SQLite integer booleans (0/1) to JavaScript booleans
@@ -188,47 +196,60 @@ export class TableService extends BaseService {
       const tableData: any = {
         id: Number(table.id),
         restaurantId: Number(table.restaurantId),
-        number: String(table.number || ''),
+        number: String(table.number || ""),
         name: table.name ? String(table.name) : null,
         capacity: table.capacity ? Number(table.capacity) : null,
         location: table.location ? String(table.location) : null,
         floor: Number(table.floor || 1),
         section: table.section ? String(table.section) : null,
         qrCode: table.qrCode ? String(table.qrCode) : null,
-        qrCodeImageUrl: table.qrCodeImageUrl ? String(table.qrCodeImageUrl) : null,
+        qrCodeImageUrl: table.qrCodeImageUrl
+          ? String(table.qrCodeImageUrl)
+          : null,
         qrCodeVersion: table.qrCodeVersion ? Number(table.qrCodeVersion) : null,
-        qrMode: table.qrMode ? String(table.qrMode) : 'table',
+        qrMode: table.qrMode ? String(table.qrMode) : "table",
         seatCount: table.seatCount ? Number(table.seatCount) : 0,
-        seatNumberingStyle: table.seatNumberingStyle ? String(table.seatNumberingStyle) : 'numeric',
+        seatNumberingStyle: table.seatNumberingStyle
+          ? String(table.seatNumberingStyle)
+          : "numeric",
         seatLayout: table.seatLayout ? String(table.seatLayout) : null,
         isOccupied: Boolean(Number(table.isOccupied)),
         isActive: Boolean(Number(table.isActive)),
         isReservable: Boolean(Number(table.isReservable)),
         features: table.features ? String(table.features) : null,
-        currentOrderId: table.currentOrderId ? Number(table.currentOrderId) : null,
+        currentOrderId: table.currentOrderId
+          ? Number(table.currentOrderId)
+          : null,
         occupiedAt: table.occupiedAt ? String(table.occupiedAt) : null,
         occupiedBy: table.occupiedBy ? Number(table.occupiedBy) : null,
-        estimatedFreeAt: table.estimatedFreeAt ? String(table.estimatedFreeAt) : null,
+        estimatedFreeAt: table.estimatedFreeAt
+          ? String(table.estimatedFreeAt)
+          : null,
         lastCleanedAt: table.lastCleanedAt ? String(table.lastCleanedAt) : null,
-        maintenanceNotes: table.maintenanceNotes ? String(table.maintenanceNotes) : null,
+        maintenanceNotes: table.maintenanceNotes
+          ? String(table.maintenanceNotes)
+          : null,
         totalUsage: table.totalUsage ? Number(table.totalUsage) : 0,
-        averageOccupancyMinutes: table.averageOccupancyMinutes ? Number(table.averageOccupancyMinutes) : 0,
+        averageOccupancyMinutes: table.averageOccupancyMinutes
+          ? Number(table.averageOccupancyMinutes)
+          : 0,
         createdAt: table.createdAt ? String(table.createdAt) : null,
         updatedAt: table.updatedAt ? String(table.updatedAt) : null,
-        restaurantName: table.restaurantName ? String(table.restaurantName) : null
-      }
+        restaurantName: table.restaurantName
+          ? String(table.restaurantName)
+          : null,
+      };
 
       // 如果是座位模式，附加座位資訊
-      if (tableData.qrMode === 'seat') {
-        const seatService = new SeatService(this.db as any, this.env)
-        const seatsResult = await seatService.getSeatsByTableId(id)
-        tableData.seats = seatsResult.seats
+      if (tableData.qrMode === "seat") {
+        const seatService = new SeatService(this.db as any, this.env);
+        const seatsResult = await seatService.getSeatsByTableId(id);
+        tableData.seats = seatsResult.seats;
       }
 
-      return tableData
-
+      return tableData;
     } catch (error) {
-      this.handleError(error, 'getTableById')
+      this.handleError(error, "getTableById");
     }
   }
 
@@ -239,12 +260,11 @@ export class TableService extends BaseService {
         .select()
         .from(tables)
         .where(eq(tables.qrCode, qrCode))
-        .get()
+        .get();
 
-      return table
-
+      return table;
     } catch (error) {
-      this.handleError(error, 'getTableByQRCode')
+      this.handleError(error, "getTableByQRCode");
     }
   }
 
@@ -257,7 +277,7 @@ export class TableService extends BaseService {
           .select({ restaurantId: tables.restaurantId })
           .from(tables)
           .where(eq(tables.id, id))
-          .get()
+          .get();
 
         if (table) {
           const existingTable = await this.db
@@ -267,13 +287,13 @@ export class TableService extends BaseService {
               and(
                 eq(tables.restaurantId, table.restaurantId),
                 eq(tables.number, data.number),
-                eq(tables.id, id) // 排除自己
-              )
+                eq(tables.id, id), // 排除自己
+              ),
             )
-            .get()
+            .get();
 
           if (existingTable && existingTable.id !== id) {
-            throw new Error('Table number already exists in this restaurant')
+            throw new Error("Table number already exists in this restaurant");
           }
         }
       }
@@ -282,15 +302,14 @@ export class TableService extends BaseService {
         .update(tables)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(tables.id, id))
-        .returning()
+        .returning();
 
-      return updatedTable
-
+      return updatedTable;
     } catch (error) {
-      this.handleError(error, 'updateTable')
+      this.handleError(error, "updateTable");
     }
   }
 
@@ -301,68 +320,71 @@ export class TableService extends BaseService {
         .update(tables)
         .set({
           isActive: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(tables.id, id))
+        .returning({ id: tables.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Delete table error:', error)
-      return false
+      console.error("Delete table error:", error);
+      return false;
     }
   }
 
   // 取得餐廳的所有桌子
-  async getRestaurantTables(restaurantId: string, filters: Omit<TableFilters, 'restaurantId'> = {}): Promise<{
-    tables: any[]
-    total: number
-    pagination: { page: number; limit: number; totalPages: number }
+  async getRestaurantTables(
+    restaurantId: string,
+    filters: Omit<TableFilters, "restaurantId"> = {},
+  ): Promise<{
+    tables: any[];
+    total: number;
+    pagination: { page: number; limit: number; totalPages: number };
   }> {
     try {
-      const { 
-        page = 1, 
-        limit = 20, 
-        floor, 
-        section, 
-        isOccupied, 
-        isActive, 
+      const {
+        page = 1,
+        limit = 20,
+        floor,
+        section,
+        isOccupied,
+        isActive,
         isReservable,
         minCapacity,
         maxCapacity,
-        search 
-      } = filters
-      const { offset } = this.createPagination(page, limit)
+        search,
+      } = filters;
+      const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = [eq(tables.restaurantId, restaurantId)]
+      const conditions = [eq(tables.restaurantId, restaurantId)];
 
       if (floor !== undefined) {
-        conditions.push(eq(tables.floor, floor))
+        conditions.push(eq(tables.floor, floor));
       }
 
       if (section) {
-        conditions.push(eq(tables.section, section))
+        conditions.push(eq(tables.section, section));
       }
 
       if (isOccupied !== undefined) {
-        conditions.push(eq(tables.isOccupied, isOccupied))
+        conditions.push(eq(tables.isOccupied, isOccupied));
       }
 
       if (isActive !== undefined) {
-        conditions.push(eq(tables.isActive, isActive))
+        conditions.push(eq(tables.isActive, isActive));
       }
 
       if (isReservable !== undefined) {
-        conditions.push(eq(tables.isReservable, isReservable))
+        conditions.push(eq(tables.isReservable, isReservable));
       }
 
       if (minCapacity !== undefined) {
-        conditions.push(eq(tables.capacity, minCapacity))
+        conditions.push(eq(tables.capacity, minCapacity));
       }
 
       if (maxCapacity !== undefined) {
-        conditions.push(eq(tables.capacity, maxCapacity))
+        conditions.push(eq(tables.capacity, maxCapacity));
       }
 
       if (search) {
@@ -370,9 +392,9 @@ export class TableService extends BaseService {
           or(
             like(tables.number, `%${search}%`),
             like(tables.name, `%${search}%`),
-            like(tables.location, `%${search}%`)
-          )!
-        )
+            like(tables.location, `%${search}%`),
+          )!,
+        );
       }
 
       // 查詢桌子列表
@@ -393,40 +415,44 @@ export class TableService extends BaseService {
           estimatedFreeAt: tables.estimatedFreeAt,
           totalUsage: tables.totalUsage,
           lastCleanedAt: tables.lastCleanedAt,
-          createdAt: tables.createdAt
+          createdAt: tables.createdAt,
         })
         .from(tables)
         .where(and(...conditions))
         .orderBy(asc(tables.floor), asc(tables.number))
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 計算總數 (使用安全解構避免 undefined 錯誤)
       const countResult = await this.db
         .select({ total: count() })
         .from(tables)
-        .where(and(...conditions))
+        .where(and(...conditions));
 
-      const total = countResult?.[0]?.total ?? 0
-      const totalPages = Math.ceil(total / limit)
+      const total = countResult?.[0]?.total ?? 0;
+      const totalPages = Math.ceil(total / limit);
 
       return {
         tables: tablesList,
         total,
-        pagination: { page, limit, totalPages }
-      }
-
+        pagination: { page, limit, totalPages },
+      };
     } catch (error) {
-      this.handleError(error, 'getRestaurantTables')
+      this.handleError(error, "getRestaurantTables");
     }
   }
 
   // 佔用桌子
-  async occupyTable(tableId: number, orderId: number, occupiedBy?: string, estimatedMinutes?: number): Promise<boolean> {
+  async occupyTable(
+    tableId: number,
+    orderId: number,
+    occupiedBy?: string,
+    estimatedMinutes?: number,
+  ): Promise<boolean> {
     try {
-      const estimatedFreeAt = estimatedMinutes 
+      const estimatedFreeAt = estimatedMinutes
         ? new Date(Date.now() + estimatedMinutes * 60 * 1000)
-        : null
+        : null;
 
       const result = await this.db
         .update(tables)
@@ -436,19 +462,20 @@ export class TableService extends BaseService {
           occupiedAt: new Date(),
           occupiedBy,
           estimatedFreeAt,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(tables.id, tableId))
+        .returning({ id: tables.id });
 
       // 更新使用統計
-      // TODO: Drizzle ORM doesn't return changes count directly
-      await this.updateTableUsageStats(tableId)
+      if (result.length > 0) {
+        await this.updateTableUsageStats(tableId);
+      }
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Occupy table error:', error)
-      return false
+      console.error("Occupy table error:", error);
+      return false;
     }
   }
 
@@ -457,25 +484,30 @@ export class TableService extends BaseService {
     try {
       // 取得當前佔用資訊來計算佔用時間
       const table = await this.db
-        .select({ 
-          occupiedAt: tables.occupiedAt, 
+        .select({
+          occupiedAt: tables.occupiedAt,
           totalUsage: tables.totalUsage,
-          averageOccupancyMinutes: tables.averageOccupancyMinutes
+          averageOccupancyMinutes: tables.averageOccupancyMinutes,
         })
         .from(tables)
         .where(eq(tables.id, tableId))
-        .get()
+        .get();
 
-      let newAverageOccupancy = table?.averageOccupancyMinutes || 0
-      
+      let newAverageOccupancy = table?.averageOccupancyMinutes || 0;
+
       // 計算這次佔用時間
       if (table?.occupiedAt) {
-        const occupancyMinutes = Math.floor((Date.now() - table.occupiedAt.getTime()) / (1000 * 60))
-        const totalUsage = (table.totalUsage || 0) + 1
-        
+        const occupancyMinutes = Math.floor(
+          (Date.now() - table.occupiedAt.getTime()) / (1000 * 60),
+        );
+        const totalUsage = (table.totalUsage || 0) + 1;
+
         // 計算新的平均佔用時間
-        const currentTotal = (table.averageOccupancyMinutes || 0) * (totalUsage - 1)
-        newAverageOccupancy = Math.round((currentTotal + occupancyMinutes) / totalUsage)
+        const currentTotal =
+          (table.averageOccupancyMinutes || 0) * (totalUsage - 1);
+        newAverageOccupancy = Math.round(
+          (currentTotal + occupancyMinutes) / totalUsage,
+        );
       }
 
       const result = await this.db
@@ -488,15 +520,15 @@ export class TableService extends BaseService {
           estimatedFreeAt: null,
           totalUsage: (table?.totalUsage || 0) + 1,
           averageOccupancyMinutes: newAverageOccupancy,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(tables.id, tableId))
+        .returning({ id: tables.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Release table error:', error)
-      return false
+      console.error("Release table error:", error);
+      return false;
     }
   }
 
@@ -508,69 +540,87 @@ export class TableService extends BaseService {
         .set({
           lastCleanedAt: new Date(),
           maintenanceNotes: notes,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(tables.id, tableId))
+        .returning({ id: tables.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Mark table cleaned error:', error)
-      return false
+      console.error("Mark table cleaned error:", error);
+      return false;
     }
   }
 
   // 生成 QR Code 資料
-  private generateQRCodeData(restaurantId: string, tableNumber: string, customData?: any): string {
-    const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
+  private generateQRCodeData(
+    restaurantId: string,
+    tableNumber: string,
+    customData?: any,
+  ): string {
+    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
     const qrData = {
-      type: 'table',
+      type: "table",
       restaurantId,
       tableNumber,
       timestamp: Date.now(),
-      ...customData
-    }
+      ...customData,
+    };
 
-    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
+    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString("base64")}`;
   }
 
   // 重新生成 QR Code
-  async regenerateQRCode(tableId: number, customData?: any): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+  async regenerateQRCode(
+    tableId: number,
+    customData?: any,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
     try {
       const table = await this.db
-        .select({ restaurantId: tables.restaurantId, number: tables.number, qrCodeVersion: tables.qrCodeVersion })
+        .select({
+          restaurantId: tables.restaurantId,
+          number: tables.number,
+          qrCodeVersion: tables.qrCodeVersion,
+        })
         .from(tables)
         .where(eq(tables.id, tableId))
-        .get()
+        .get();
 
       if (!table) {
-        return { success: false, error: 'Table not found' }
+        return { success: false, error: "Table not found" };
       }
 
-      const newQRCode = this.generateQRCodeData(table.restaurantId, table.number, customData)
-      const newVersion = (table.qrCodeVersion || 0) + 1
+      const newQRCode = this.generateQRCodeData(
+        table.restaurantId,
+        table.number,
+        customData,
+      );
+      const newVersion = (table.qrCodeVersion || 0) + 1;
 
       await this.db
         .update(tables)
         .set({
           qrCode: newQRCode,
           qrCodeVersion: newVersion,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId))
+        .where(eq(tables.id, tableId));
 
-      return { success: true, qrCode: newQRCode }
-
+      return { success: true, qrCode: newQRCode };
     } catch (error) {
-      return { success: false, error: 'Failed to regenerate QR code' }
+      return { success: false, error: "Failed to regenerate QR code" };
     }
   }
 
   // 批量生成 QR Codes
-  async generateBulkQRCodes(restaurantId: string, tableIds: number[], options: QRCodeOptions = {}): Promise<{
-    success: boolean
-    qrCodes?: Array<{ tableId: number; qrCode: string; tableNumber: string }>
-    error?: string
+  async generateBulkQRCodes(
+    restaurantId: string,
+    tableIds: number[],
+    options: QRCodeOptions = {},
+  ): Promise<{
+    success: boolean;
+    qrCodes?: Array<{ tableId: number; qrCode: string; tableNumber: string }>;
+    error?: string;
   }> {
     try {
       const tablesData = await this.db
@@ -579,15 +629,19 @@ export class TableService extends BaseService {
         .where(
           and(
             eq(tables.restaurantId, restaurantId),
-            eq(tables.id, tableIds[0]) // 這裡需要用 in 操作符，但 drizzle 的語法可能不同
-          )
-        )
+            eq(tables.id, tableIds[0]), // 這裡需要用 in 操作符，但 drizzle 的語法可能不同
+          ),
+        );
 
-      const qrCodes = tablesData.map(table => ({
+      const qrCodes = tablesData.map((table) => ({
         tableId: table.id,
         tableNumber: table.number,
-        qrCode: this.generateQRCodeData(restaurantId, table.number, options.customData)
-      }))
+        qrCode: this.generateQRCodeData(
+          restaurantId,
+          table.number,
+          options.customData,
+        ),
+      }));
 
       // 批量更新 QR codes
       for (const { tableId, qrCode } of qrCodes) {
@@ -595,36 +649,40 @@ export class TableService extends BaseService {
           .update(tables)
           .set({
             qrCode,
-            qrCodeVersion: ((await this.db
-              .select({ qrCodeVersion: tables.qrCodeVersion })
-              .from(tables)
-              .where(eq(tables.id, tableId))
-              .get()
-            )?.qrCodeVersion || 0) + 1,
-            updatedAt: new Date()
+            qrCodeVersion:
+              ((
+                await this.db
+                  .select({ qrCodeVersion: tables.qrCodeVersion })
+                  .from(tables)
+                  .where(eq(tables.id, tableId))
+                  .get()
+              )?.qrCodeVersion || 0) + 1,
+            updatedAt: new Date(),
           })
-          .where(eq(tables.id, tableId))
+          .where(eq(tables.id, tableId));
       }
 
-      return { success: true, qrCodes }
-
+      return { success: true, qrCodes };
     } catch (error) {
-      return { success: false, error: 'Failed to generate bulk QR codes' }
+      return { success: false, error: "Failed to generate bulk QR codes" };
     }
   }
 
   // 取得可用桌子
-  async getAvailableTables(restaurantId: string, capacity?: number): Promise<any[]> {
+  async getAvailableTables(
+    restaurantId: string,
+    capacity?: number,
+  ): Promise<any[]> {
     try {
       const conditions = [
         eq(tables.restaurantId, restaurantId),
         eq(tables.isActive, true),
         eq(tables.isOccupied, false),
-        eq(tables.isReservable, true)
-      ]
+        eq(tables.isReservable, true),
+      ];
 
       if (capacity) {
-        conditions.push(eq(tables.capacity, capacity))
+        conditions.push(eq(tables.capacity, capacity));
       }
 
       const availableTables = await this.db
@@ -636,16 +694,15 @@ export class TableService extends BaseService {
           location: tables.location,
           floor: tables.floor,
           section: tables.section,
-          features: tables.features
+          features: tables.features,
         })
         .from(tables)
         .where(and(...conditions))
-        .orderBy(asc(tables.floor), asc(tables.number))
+        .orderBy(asc(tables.floor), asc(tables.number));
 
-      return availableTables
-
+      return availableTables;
     } catch (error) {
-      this.handleError(error, 'getAvailableTables')
+      this.handleError(error, "getAvailableTables");
     }
   }
 
@@ -656,7 +713,7 @@ export class TableService extends BaseService {
       const [{ totalTables }] = await this.db
         .select({ totalTables: count() })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId))
+        .where(eq(tables.restaurantId, restaurantId));
 
       // 被佔用的桌子數
       const [{ occupiedTables }] = await this.db
@@ -666,9 +723,9 @@ export class TableService extends BaseService {
           and(
             eq(tables.restaurantId, restaurantId),
             eq(tables.isOccupied, true),
-            eq(tables.isActive, true)
-          )
-        )
+            eq(tables.isActive, true),
+          ),
+        );
 
       // 可用桌子數
       const [{ availableTables }] = await this.db
@@ -678,9 +735,9 @@ export class TableService extends BaseService {
           and(
             eq(tables.restaurantId, restaurantId),
             eq(tables.isOccupied, false),
-            eq(tables.isActive, true)
-          )
-        )
+            eq(tables.isActive, true),
+          ),
+        );
 
       // 不活躍桌子數
       const [{ inactiveTables }] = await this.db
@@ -689,64 +746,62 @@ export class TableService extends BaseService {
         .where(
           and(
             eq(tables.restaurantId, restaurantId),
-            eq(tables.isActive, false)
-          )
-        )
+            eq(tables.isActive, false),
+          ),
+        );
 
       // 計算平均佔用率
-      const averageOccupancyRate = totalTables > 0 ? (occupiedTables / totalTables) * 100 : 0
+      const averageOccupancyRate =
+        totalTables > 0 ? (occupiedTables / totalTables) * 100 : 0;
 
       // 按樓層統計
       const floorStats = await this.db
         .select({
           floor: tables.floor,
-          count: count()
+          count: count(),
         })
         .from(tables)
         .where(eq(tables.restaurantId, restaurantId))
-        .groupBy(tables.floor)
+        .groupBy(tables.floor);
 
-      const byFloor: Record<number, number> = {}
-      floorStats.forEach(stat => {
-        byFloor[stat.floor || 1] = stat.count
-      })
+      const byFloor: Record<number, number> = {};
+      floorStats.forEach((stat) => {
+        byFloor[stat.floor || 1] = stat.count;
+      });
 
       // 按區域統計
       const sectionStats = await this.db
         .select({
           section: tables.section,
-          count: count()
+          count: count(),
         })
         .from(tables)
         .where(
-          and(
-            eq(tables.restaurantId, restaurantId),
-            isNotNull(tables.section)
-          )
+          and(eq(tables.restaurantId, restaurantId), isNotNull(tables.section)),
         )
-        .groupBy(tables.section)
+        .groupBy(tables.section);
 
-      const bySection: Record<string, number> = {}
-      sectionStats.forEach(stat => {
+      const bySection: Record<string, number> = {};
+      sectionStats.forEach((stat) => {
         if (stat.section) {
-          bySection[stat.section] = stat.count
+          bySection[stat.section] = stat.count;
         }
-      })
+      });
 
       // 按容量統計
       const capacityStats = await this.db
         .select({
           capacity: tables.capacity,
-          count: count()
+          count: count(),
         })
         .from(tables)
         .where(eq(tables.restaurantId, restaurantId))
-        .groupBy(tables.capacity)
+        .groupBy(tables.capacity);
 
-      const byCapacity: Record<number, number> = {}
-      capacityStats.forEach(stat => {
-        byCapacity[stat.capacity] = stat.count
-      })
+      const byCapacity: Record<number, number> = {};
+      capacityStats.forEach((stat) => {
+        byCapacity[stat.capacity] = stat.count;
+      });
 
       return {
         totalTables,
@@ -756,11 +811,10 @@ export class TableService extends BaseService {
         averageOccupancyRate: Math.round(averageOccupancyRate * 100) / 100,
         byFloor,
         bySection,
-        byCapacity
-      }
-
+        byCapacity,
+      };
     } catch (error) {
-      this.handleError(error, 'getTableStats')
+      this.handleError(error, "getTableStats");
     }
   }
 
@@ -770,18 +824,19 @@ export class TableService extends BaseService {
       await this.db
         .update(tables)
         .set({
-          totalUsage: ((await this.db
-            .select({ totalUsage: tables.totalUsage })
-            .from(tables)
-            .where(eq(tables.id, tableId))
-            .get()
-          )?.totalUsage || 0) + 1,
-          updatedAt: new Date()
+          totalUsage:
+            ((
+              await this.db
+                .select({ totalUsage: tables.totalUsage })
+                .from(tables)
+                .where(eq(tables.id, tableId))
+                .get()
+            )?.totalUsage || 0) + 1,
+          updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId))
-
+        .where(eq(tables.id, tableId));
     } catch (error) {
-      console.error('Update table usage stats error:', error)
+      console.error("Update table usage stats error:", error);
     }
   }
 
@@ -791,65 +846,65 @@ export class TableService extends BaseService {
    */
   async switchQRMode(
     tableId: number,
-    newMode: 'table' | 'seat',
+    newMode: "table" | "seat",
     seatConfig?: {
-      count: number
-      numberingStyle: 'numeric' | 'alphabetic' | 'custom'
-      prefix?: string
-    }
+      count: number;
+      numberingStyle: "numeric" | "alphabetic" | "custom";
+      prefix?: string;
+    },
   ): Promise<{
-    success: boolean
-    message?: string
+    success: boolean;
+    message?: string;
     data?: {
-      tableId: number
-      oldMode: 'table' | 'seat'
-      newMode: 'table' | 'seat'
-      seatsCreated?: number
-      seatsDeleted?: number
-    }
+      tableId: number;
+      oldMode: "table" | "seat";
+      newMode: "table" | "seat";
+      seatsCreated?: number;
+      seatsDeleted?: number;
+    };
   }> {
     try {
-      const table = await this.getTableById(tableId)
+      const table = await this.getTableById(tableId);
 
       if (!table) {
         return {
           success: false,
-          message: '桌子不存在'
-        }
+          message: "桌子不存在",
+        };
       }
 
-      const oldMode = table.qrMode || 'table'
+      const oldMode = table.qrMode || "table";
 
       // 如果已經是目標模式，直接返回
       if (oldMode === newMode) {
         return {
           success: true,
-          message: `桌子已經是 ${newMode === 'table' ? '桌子' : '座位'} 模式`,
+          message: `桌子已經是 ${newMode === "table" ? "桌子" : "座位"} 模式`,
           data: {
             tableId,
             oldMode,
-            newMode
-          }
-        }
+            newMode,
+          },
+        };
       }
 
-      const seatService = new SeatService(this.db as any, this.env)
+      const seatService = new SeatService(this.db as any, this.env);
 
       // 從桌子模式切換到座位模式
-      if (oldMode === 'table' && newMode === 'seat') {
+      if (oldMode === "table" && newMode === "seat") {
         // 檢查桌子是否正在使用中
         if (table.isOccupied) {
           return {
             success: false,
-            message: '桌子正在使用中，無法切換為座位模式。請先釋放桌子。'
-          }
+            message: "桌子正在使用中，無法切換為座位模式。請先釋放桌子。",
+          };
         }
 
         if (!seatConfig || !seatConfig.count || seatConfig.count <= 0) {
           return {
             success: false,
-            message: '請提供座位數量配置'
-          }
+            message: "請提供座位數量配置",
+          };
         }
 
         // 創建座位
@@ -857,21 +912,21 @@ export class TableService extends BaseService {
           tableId,
           seatConfig.count,
           {
-            numberingStyle: seatConfig.numberingStyle || 'numeric',
-            prefix: seatConfig.prefix
-          }
-        )
+            numberingStyle: seatConfig.numberingStyle || "numeric",
+            prefix: seatConfig.prefix,
+          },
+        );
 
         // 更新桌子為座位模式
         await this.db
           .update(tables)
           .set({
-            qrMode: 'seat',
+            qrMode: "seat",
             seatCount: seatConfig.count,
-            seatNumberingStyle: seatConfig.numberingStyle || 'numeric',
-            updatedAt: new Date()
+            seatNumberingStyle: seatConfig.numberingStyle || "numeric",
+            updatedAt: new Date(),
           })
-          .where(eq(tables.id, tableId))
+          .where(eq(tables.id, tableId));
 
         return {
           success: true,
@@ -880,45 +935,47 @@ export class TableService extends BaseService {
             tableId,
             oldMode,
             newMode,
-            seatsCreated: createdSeats.length
-          }
-        }
+            seatsCreated: createdSeats.length,
+          },
+        };
       }
 
       // 從座位模式切換到桌子模式
-      if (oldMode === 'seat' && newMode === 'table') {
+      if (oldMode === "seat" && newMode === "table") {
         // 檢查所有座位是否都沒在使用
-        const seatsResult = await seatService.getSeatsByTableId(tableId)
-        const hasOccupiedSeats = seatsResult.seats.some((seat: any) => seat.isOccupied)
+        const seatsResult = await seatService.getSeatsByTableId(tableId);
+        const hasOccupiedSeats = seatsResult.seats.some(
+          (seat: any) => seat.isOccupied,
+        );
 
         if (hasOccupiedSeats) {
           return {
             success: false,
-            message: '有座位正在使用中，無法切換為桌子模式。請先釋放所有座位。'
-          }
+            message: "有座位正在使用中，無法切換為桌子模式。請先釋放所有座位。",
+          };
         }
 
-        const seatCount = seatsResult.total
+        const seatCount = seatsResult.total;
 
         // 刪除所有座位（硬刪除）
-        const deleted = await seatService.deleteSeatsForTable(tableId)
+        const deleted = await seatService.deleteSeatsForTable(tableId);
 
         if (!deleted) {
           return {
             success: false,
-            message: '刪除座位失敗'
-          }
+            message: "刪除座位失敗",
+          };
         }
 
         // 更新桌子為桌子模式
         await this.db
           .update(tables)
           .set({
-            qrMode: 'table',
+            qrMode: "table",
             seatCount: 0,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
-          .where(eq(tables.id, tableId))
+          .where(eq(tables.id, tableId));
 
         return {
           success: true,
@@ -927,22 +984,21 @@ export class TableService extends BaseService {
             tableId,
             oldMode,
             newMode,
-            seatsDeleted: seatCount
-          }
-        }
+            seatsDeleted: seatCount,
+          },
+        };
       }
 
       return {
         success: false,
-        message: '未知的模式切換操作'
-      }
-
+        message: "未知的模式切換操作",
+      };
     } catch (error) {
-      console.error('Switch QR mode error:', error)
+      console.error("Switch QR mode error:", error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : '切換模式失敗'
-      }
+        message: error instanceof Error ? error.message : "切換模式失敗",
+      };
     }
   }
 
@@ -958,17 +1014,16 @@ export class TableService extends BaseService {
           customerInfo: orders.customerInfo,
           createdAt: orders.createdAt,
           confirmedAt: orders.confirmedAt,
-          completedAt: orders.readyAt
+          completedAt: orders.readyAt,
         })
         .from(orders)
         .where(eq(orders.tableId, tableId))
         .orderBy(desc(orders.createdAt))
-        .limit(limit)
+        .limit(limit);
 
-      return orderHistory
-
+      return orderHistory;
     } catch (error) {
-      this.handleError(error, 'getTableOrderHistory')
+      this.handleError(error, "getTableOrderHistory");
     }
   }
 }

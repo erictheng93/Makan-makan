@@ -3,6 +3,322 @@
  * 提供通用的測試工具函數和輔助方法
  */
 
+import { defineComponent, h } from "vue";
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { createTestingPinia } from "@pinia/testing";
+import { vi } from "vitest";
+
+// Re-export for easier access
+export { vi } from "vitest";
+
+/**
+ * 在 Vue 組件上下文中掛載 composable
+ * 這解決了 composable 使用 onMounted/onUnmounted 時需要組件上下文的問題
+ *
+ * @param composable - 要測試的 composable 函數
+ * @param options - 掛載選項
+ * @returns 包含 wrapper 和 result 的對象
+ */
+export function mountComposable<T>(
+  composable: () => T,
+  options: {
+    global?: Record<string, any>;
+    attachTo?: HTMLElement | string;
+    shallow?: boolean;
+  } = {},
+): { wrapper: VueWrapper<any>; result: T } {
+  let result: T;
+
+  const TestComponent = defineComponent({
+    setup() {
+      result = composable();
+      return { result };
+    },
+    render() {
+      return h("div", { "data-testid": "composable-wrapper" });
+    },
+  });
+
+  const wrapper = mount(TestComponent, {
+    global: {
+      plugins: [
+        createTestingPinia({
+          createSpy: vi.fn,
+          stubActions: false,
+        }),
+      ],
+      ...options.global,
+    },
+    attachTo: options.attachTo,
+    shallow: options.shallow,
+  });
+
+  return { wrapper, result: result! };
+}
+
+/**
+ * 創建可追蹤的 Mock WebSocket 類
+ * 用於在測試中協調 composable 和測試代碼之間的 WebSocket 實例
+ */
+export function createTrackedMockWebSocket(): {
+  TrackedMockWebSocket: typeof WebSocket;
+  getActiveInstance: () => MockWebSocketInstance | null;
+  clearActiveInstance: () => void;
+} {
+  let activeInstance: MockWebSocketInstance | null = null;
+
+  class MockWebSocketInstance {
+    public readyState: number = WebSocket.CONNECTING;
+    public url: string;
+    public protocol: string;
+
+    private listeners: Record<string, Function[]> = {};
+    private sentMessages: any[] = [];
+    public connectionAttempts: number = 0;
+
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+
+    onopen: ((event: Event) => void) | null = null;
+    onclose: ((event: CloseEvent) => void) | null = null;
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    onerror: ((event: Event) => void) | null = null;
+
+    constructor(url: string, protocol?: string) {
+      this.url = url;
+      this.protocol = protocol || "";
+      this.connectionAttempts++;
+
+      // 記錄活動實例
+      activeInstance = this;
+
+      // 模擬異步連接
+      setTimeout(() => {
+        this.readyState = WebSocket.OPEN;
+        this.dispatchEvent(new Event("open"));
+      }, 10);
+    }
+
+    send(data: string | ArrayBuffer): void {
+      if (this.readyState !== WebSocket.OPEN) {
+        throw new Error("WebSocket is not open");
+      }
+
+      try {
+        const message = typeof data === "string" ? JSON.parse(data) : data;
+        this.sentMessages.push(message);
+
+        // 自動模擬響應
+        this.handleMockResponse(message);
+      } catch (error) {
+        console.error("Mock WebSocket send error:", error);
+      }
+    }
+
+    close(code?: number, reason?: string): void {
+      this.readyState = WebSocket.CLOSING;
+
+      setTimeout(() => {
+        this.readyState = WebSocket.CLOSED;
+        this.dispatchEvent(
+          new CloseEvent("close", { code: code || 1000, reason }),
+        );
+      }, 10);
+    }
+
+    addEventListener(type: string, listener: Function): void {
+      if (!this.listeners[type]) {
+        this.listeners[type] = [];
+      }
+      this.listeners[type].push(listener);
+    }
+
+    removeEventListener(type: string, listener: Function): void {
+      if (this.listeners[type]) {
+        const index = this.listeners[type].indexOf(listener);
+        if (index !== -1) {
+          this.listeners[type].splice(index, 1);
+        }
+      }
+    }
+
+    private dispatchEvent(event: Event): void {
+      const type = event.type;
+      if (this.listeners[type]) {
+        this.listeners[type].forEach((listener) => {
+          try {
+            listener(event);
+          } catch (error) {
+            console.error("Mock WebSocket event listener error:", error);
+          }
+        });
+      }
+
+      const handlerName = `on${type}` as keyof this;
+      if (typeof this[handlerName] === "function") {
+        (this[handlerName] as any)(event);
+      }
+    }
+
+    // 測試工具方法
+    mockReceiveMessage(data: any): void {
+      if (this.readyState === WebSocket.OPEN) {
+        const messageEvent = new MessageEvent("message", {
+          data: typeof data === "string" ? data : JSON.stringify(data),
+        });
+        this.dispatchEvent(messageEvent);
+      }
+    }
+
+    mockError(error?: any): void {
+      const errorEvent = new Event("error");
+      if (error) {
+        (errorEvent as any).error = error;
+      }
+      this.dispatchEvent(errorEvent);
+    }
+
+    mockResponse(response: any): void {
+      setTimeout(() => {
+        this.mockReceiveMessage(response);
+      }, 5);
+    }
+
+    open(): void {
+      if (
+        this.readyState === WebSocket.CLOSED ||
+        this.readyState === WebSocket.CLOSING
+      ) {
+        this.readyState = WebSocket.OPEN;
+        this.dispatchEvent(new Event("open"));
+      }
+    }
+
+    getSentMessages(): any[] {
+      return [...this.sentMessages];
+    }
+
+    getLastSentMessage(): any {
+      return this.sentMessages[this.sentMessages.length - 1];
+    }
+
+    clearSentMessages(): void {
+      this.sentMessages = [];
+    }
+
+    reset(): void {
+      this.sentMessages = [];
+      this.connectionAttempts = 0;
+      this.readyState = WebSocket.CLOSED;
+      this.listeners = {};
+    }
+
+    private handleMockResponse(message: any): void {
+      switch (message.type) {
+        case "join_group_order":
+          this.mockResponse({
+            type: "group_order_joined",
+            success: true,
+            groupOrder: {
+              id: message.data?.shareCode || "mock-group-id",
+              shareCode: message.data?.shareCode || "MOCK-CODE",
+              status: "active",
+              members: [
+                {
+                  id: "mock-member-id",
+                  name: message.data?.memberName || "Mock User",
+                  isOnline: true,
+                },
+              ],
+            },
+            memberId: "mock-member-id",
+          });
+          break;
+
+        case "add_cart_item":
+          this.mockResponse({
+            type: "cart_item_added",
+            success: true,
+            item: {
+              id: "mock-item-id",
+              ...message.data,
+            },
+          });
+          break;
+
+        case "heartbeat":
+          this.mockResponse({
+            type: "heartbeat_ack",
+            timestamp: Date.now(),
+          });
+          break;
+      }
+    }
+  }
+
+  return {
+    TrackedMockWebSocket: MockWebSocketInstance as any,
+    getActiveInstance: () => activeInstance,
+    clearActiveInstance: () => {
+      activeInstance = null;
+    },
+  };
+}
+
+/**
+ * Mock WebSocket 實例類型
+ */
+export interface MockWebSocketInstance {
+  readyState: number;
+  url: string;
+  protocol: string;
+  connectionAttempts: number;
+  onopen: ((event: Event) => void) | null;
+  onclose: ((event: CloseEvent) => void) | null;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  send(data: string | ArrayBuffer): void;
+  close(code?: number, reason?: string): void;
+  addEventListener(type: string, listener: Function): void;
+  removeEventListener(type: string, listener: Function): void;
+  mockReceiveMessage(data: any): void;
+  mockError(error?: any): void;
+  mockResponse(response: any): void;
+  open(): void;
+  getSentMessages(): any[];
+  getLastSentMessage(): any;
+  clearSentMessages(): void;
+  reset(): void;
+}
+
+/**
+ * 創建模擬的 localStorage
+ */
+export function createMockLocalStorage(
+  initialData: Record<string, string> = {},
+): Storage {
+  let store: Record<string, string> = { ...initialData };
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: (index: number) => Object.keys(store)[index] || null,
+  };
+}
+
 // 等待條件滿足的工具函數
 export async function waitFor(
   condition: () => boolean | Promise<boolean>,
@@ -383,6 +699,9 @@ export class ConnectionSimulator {
 
 // 導出所有工具
 export default {
+  mountComposable,
+  createTrackedMockWebSocket,
+  createMockLocalStorage,
   waitFor,
   sleep,
   createTestUsers,

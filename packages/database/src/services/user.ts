@@ -1,53 +1,52 @@
-import { eq, and, desc, asc, like, or, count } from 'drizzle-orm'
-import { BaseService } from './base'
-import { users, USER_ROLES, type UserRole } from '../schema'
-import * as bcrypt from 'bcryptjs'
+import { eq, and, desc, asc, like, or, count } from "drizzle-orm";
+import { BaseService } from "./base";
+import { users, USER_ROLES, type UserRole } from "../schema";
+import * as bcrypt from "bcryptjs";
 
 export interface CreateUserData {
-  username: string
-  email?: string
-  phone?: string
-  fullName: string
-  password: string
-  role: number
-  restaurantId?: string
-  address?: string
-  dateOfBirth?: string
-  profileImageUrl?: string
-  preferences?: any
+  username: string;
+  email?: string;
+  phone?: string;
+  fullName: string;
+  password: string;
+  role: number;
+  restaurantId?: string;
+  address?: string;
+  dateOfBirth?: string;
+  profileImageUrl?: string;
+  preferences?: any;
 }
 
 export interface UpdateUserData {
-  email?: string
-  phone?: string
-  fullName?: string
-  address?: string
-  dateOfBirth?: string
-  profileImageUrl?: string
-  preferences?: any
-  isActive?: boolean
-  isVerified?: boolean
+  email?: string;
+  phone?: string;
+  fullName?: string;
+  address?: string;
+  dateOfBirth?: string;
+  profileImageUrl?: string;
+  preferences?: any;
+  isActive?: boolean;
+  isVerified?: boolean;
 }
 
 export interface UserFilters {
-  restaurantId?: string
-  role?: number
-  isActive?: boolean
-  isVerified?: boolean
-  search?: string // 搜尋用戶名或全名
-  page?: number
-  limit?: number
+  restaurantId?: string;
+  role?: number;
+  isActive?: boolean;
+  isVerified?: boolean;
+  search?: string; // 搜尋用戶名或全名
+  page?: number;
+  limit?: number;
 }
 
 export interface UserStats {
-  totalUsers: number
-  activeUsers: number
-  byRole: Record<number, number>
-  recentRegistrations: number // 最近30天註冊
+  totalUsers: number;
+  activeUsers: number;
+  byRole: Record<number, number>;
+  recentRegistrations: number; // 最近30天註冊
 }
 
 export class UserService extends BaseService {
-
   // 創建新用戶
   async createUser(data: CreateUserData): Promise<any> {
     try {
@@ -56,10 +55,10 @@ export class UserService extends BaseService {
         .select({ id: users.id })
         .from(users)
         .where(eq(users.username, data.username))
-        .get()
+        .get();
 
       if (existingUser) {
-        throw new Error('Username already exists')
+        throw new Error("Username already exists");
       }
 
       // 檢查 email 是否已存在（如果提供）
@@ -68,16 +67,16 @@ export class UserService extends BaseService {
           .select({ id: users.id })
           .from(users)
           .where(eq(users.email, data.email))
-          .get()
+          .get();
 
         if (existingEmail) {
-          throw new Error('Email already exists')
+          throw new Error("Email already exists");
         }
       }
 
       // 加密密碼
-      const saltRounds = 10
-      const passwordHash = await bcrypt.hash(data.password, saltRounds)
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(data.password, saltRounds);
 
       // 插入新用戶
       const [newUser] = await this.db
@@ -95,9 +94,9 @@ export class UserService extends BaseService {
           profileImageUrl: data.profileImageUrl,
           preferences: data.preferences,
           isActive: true,
-          isVerified: false
+          isVerified: false,
         })
-        .returning()
+        .returning();
 
       // Convert Drizzle objects to primitive values to avoid circular references
       // Also remove sensitive information (passwordHash)
@@ -108,10 +107,14 @@ export class UserService extends BaseService {
         phone: newUser.phone ? String(newUser.phone) : null,
         fullName: newUser.fullName ? String(newUser.fullName) : null,
         role: Number(newUser.role),
-        restaurantId: newUser.restaurantId ? Number(newUser.restaurantId) : null,
+        restaurantId: newUser.restaurantId
+          ? Number(newUser.restaurantId)
+          : null,
         address: newUser.address ? String(newUser.address) : null,
         dateOfBirth: newUser.dateOfBirth ? String(newUser.dateOfBirth) : null,
-        profileImageUrl: newUser.profileImageUrl ? String(newUser.profileImageUrl) : null,
+        profileImageUrl: newUser.profileImageUrl
+          ? String(newUser.profileImageUrl)
+          : null,
         preferences: newUser.preferences ? String(newUser.preferences) : null,
         isActive: Boolean(Number(newUser.isActive)),
         isVerified: Boolean(Number(newUser.isVerified)),
@@ -119,13 +122,12 @@ export class UserService extends BaseService {
         totalSpent: newUser.totalSpent ? Number(newUser.totalSpent) : 0,
         lastLoginAt: newUser.lastLoginAt ? String(newUser.lastLoginAt) : null,
         createdAt: newUser.createdAt ? String(newUser.createdAt) : null,
-        updatedAt: newUser.updatedAt ? String(newUser.updatedAt) : null
-      }
+        updatedAt: newUser.updatedAt ? String(newUser.updatedAt) : null,
+      };
 
-      return userWithoutPassword
-
+      return userWithoutPassword;
     } catch (error) {
-      this.handleError(error, 'createUser')
+      this.handleError(error, "createUser");
     }
   }
 
@@ -151,13 +153,13 @@ export class UserService extends BaseService {
           totalSpent: users.totalSpent,
           lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
-          updatedAt: users.updatedAt
+          updatedAt: users.updatedAt,
         })
         .from(users)
         .where(eq(users.id, id))
-        .get()
+        .get();
 
-      if (!user) return null
+      if (!user) return null;
 
       // Convert Drizzle objects to primitive values to avoid circular references
       return {
@@ -170,7 +172,9 @@ export class UserService extends BaseService {
         restaurantId: user.restaurantId ? Number(user.restaurantId) : null,
         address: user.address ? String(user.address) : null,
         dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth) : null,
-        profileImageUrl: user.profileImageUrl ? String(user.profileImageUrl) : null,
+        profileImageUrl: user.profileImageUrl
+          ? String(user.profileImageUrl)
+          : null,
         isActive: Boolean(Number(user.isActive)),
         isVerified: Boolean(Number(user.isVerified)),
         preferences: user.preferences ? String(user.preferences) : null,
@@ -178,11 +182,10 @@ export class UserService extends BaseService {
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
         createdAt: user.createdAt ? String(user.createdAt) : null,
-        updatedAt: user.updatedAt ? String(user.updatedAt) : null
-      }
-
+        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
+      };
     } catch (error) {
-      this.handleError(error, 'getUserById')
+      this.handleError(error, "getUserById");
     }
   }
 
@@ -201,13 +204,13 @@ export class UserService extends BaseService {
           isActive: users.isActive,
           isVerified: users.isVerified,
           lastLoginAt: users.lastLoginAt,
-          createdAt: users.createdAt
+          createdAt: users.createdAt,
         })
         .from(users)
         .where(eq(users.username, username))
-        .get()
+        .get();
 
-      if (!user) return null
+      if (!user) return null;
 
       // Convert Drizzle objects to primitive values to avoid circular references
       return {
@@ -221,11 +224,10 @@ export class UserService extends BaseService {
         isActive: Boolean(Number(user.isActive)),
         isVerified: Boolean(Number(user.isVerified)),
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null
-      }
-
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+      };
     } catch (error) {
-      this.handleError(error, 'getUserByUsername')
+      this.handleError(error, "getUserByUsername");
     }
   }
 
@@ -237,14 +239,16 @@ export class UserService extends BaseService {
         const existingEmail = await this.db
           .select({ id: users.id })
           .from(users)
-          .where(and(
-            eq(users.email, data.email),
-            eq(users.id, id) // 排除自己
-          ))
-          .get()
+          .where(
+            and(
+              eq(users.email, data.email),
+              eq(users.id, id), // 排除自己
+            ),
+          )
+          .get();
 
         if (existingEmail && existingEmail.id !== id) {
-          throw new Error('Email already exists')
+          throw new Error("Email already exists");
         }
       }
 
@@ -252,7 +256,7 @@ export class UserService extends BaseService {
         .update(users)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
         .returning({
@@ -269,13 +273,12 @@ export class UserService extends BaseService {
           isActive: users.isActive,
           isVerified: users.isVerified,
           preferences: users.preferences,
-          updatedAt: users.updatedAt
-        })
+          updatedAt: users.updatedAt,
+        });
 
-      return updatedUser
-
+      return updatedUser;
     } catch (error) {
-      this.handleError(error, 'updateUser')
+      this.handleError(error, "updateUser");
     }
   }
 
@@ -286,50 +289,60 @@ export class UserService extends BaseService {
         .update(users)
         .set({
           isActive: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
+        .returning({ id: users.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Delete user error:', error)
-      return false
+      console.error("Delete user error:", error);
+      return false;
     }
   }
 
   // 取得餐廳的所有用戶
-  async getRestaurantUsers(restaurantId: string, filters: Omit<UserFilters, 'restaurantId'> = {}): Promise<{
-    users: any[]
-    total: number
-    pagination: { page: number; limit: number; totalPages: number }
+  async getRestaurantUsers(
+    restaurantId: string,
+    filters: Omit<UserFilters, "restaurantId"> = {},
+  ): Promise<{
+    users: any[];
+    total: number;
+    pagination: { page: number; limit: number; totalPages: number };
   }> {
     try {
-      const { page = 1, limit = 20, role, isActive, isVerified, search } = filters
-      const { offset } = this.createPagination(page, limit)
+      const {
+        page = 1,
+        limit = 20,
+        role,
+        isActive,
+        isVerified,
+        search,
+      } = filters;
+      const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = [eq(users.restaurantId, restaurantId)]
+      const conditions = [eq(users.restaurantId, restaurantId)];
 
       if (role !== undefined) {
-        conditions.push(eq(users.role, role))
+        conditions.push(eq(users.role, role));
       }
 
       if (isActive !== undefined) {
-        conditions.push(eq(users.isActive, isActive))
+        conditions.push(eq(users.isActive, isActive));
       }
 
       if (isVerified !== undefined) {
-        conditions.push(eq(users.isVerified, isVerified))
+        conditions.push(eq(users.isVerified, isVerified));
       }
 
       if (search) {
         conditions.push(
           or(
             like(users.username, `%${search}%`),
-            like(users.fullName, `%${search}%`)
-          )!
-        )
+            like(users.fullName, `%${search}%`),
+          )!,
+        );
       }
 
       // 查詢用戶列表
@@ -346,25 +359,25 @@ export class UserService extends BaseService {
           totalOrders: users.totalOrders,
           totalSpent: users.totalSpent,
           lastLoginAt: users.lastLoginAt,
-          createdAt: users.createdAt
+          createdAt: users.createdAt,
         })
         .from(users)
         .where(and(...conditions))
         .orderBy(desc(users.createdAt))
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 計算總數 (使用安全解構避免 undefined 錯誤)
       const countResult = await this.db
         .select({ total: count() })
         .from(users)
-        .where(and(...conditions))
+        .where(and(...conditions));
 
-      const total = countResult?.[0]?.total ?? 0
-      const totalPages = Math.ceil(total / limit)
+      const total = countResult?.[0]?.total ?? 0;
+      const totalPages = Math.ceil(total / limit);
 
       // Convert Drizzle objects to primitive values
-      const serializedUsers = usersList.map(user => ({
+      const serializedUsers = usersList.map((user) => ({
         id: Number(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
@@ -376,47 +389,54 @@ export class UserService extends BaseService {
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null
-      }))
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+      }));
 
       return {
         users: serializedUsers,
         total,
-        pagination: { page, limit, totalPages }
-      }
-
+        pagination: { page, limit, totalPages },
+      };
     } catch (error) {
-      this.handleError(error, 'getRestaurantUsers')
+      this.handleError(error, "getRestaurantUsers");
     }
   }
 
   // 取得系統中所有用戶（管理員功能）
   async getAllUsers(filters: UserFilters = {}): Promise<{
-    users: any[]
-    total: number
-    pagination: { page: number; limit: number; totalPages: number }
+    users: any[];
+    total: number;
+    pagination: { page: number; limit: number; totalPages: number };
   }> {
     try {
-      const { page = 1, limit = 20, restaurantId, role, isActive, isVerified, search } = filters
-      const { offset } = this.createPagination(page, limit)
+      const {
+        page = 1,
+        limit = 20,
+        restaurantId,
+        role,
+        isActive,
+        isVerified,
+        search,
+      } = filters;
+      const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = []
+      const conditions = [];
 
       if (restaurantId) {
-        conditions.push(eq(users.restaurantId, restaurantId))
+        conditions.push(eq(users.restaurantId, restaurantId));
       }
 
       if (role !== undefined) {
-        conditions.push(eq(users.role, role))
+        conditions.push(eq(users.role, role));
       }
 
       if (isActive !== undefined) {
-        conditions.push(eq(users.isActive, isActive))
+        conditions.push(eq(users.isActive, isActive));
       }
 
       if (isVerified !== undefined) {
-        conditions.push(eq(users.isVerified, isVerified))
+        conditions.push(eq(users.isVerified, isVerified));
       }
 
       if (search) {
@@ -424,9 +444,9 @@ export class UserService extends BaseService {
           or(
             like(users.username, `%${search}%`),
             like(users.fullName, `%${search}%`),
-            like(users.email, `%${search}%`)
-          )
-        )
+            like(users.email, `%${search}%`),
+          ),
+        );
       }
 
       // 查詢用戶列表
@@ -443,25 +463,25 @@ export class UserService extends BaseService {
           totalOrders: users.totalOrders,
           totalSpent: users.totalSpent,
           lastLoginAt: users.lastLoginAt,
-          createdAt: users.createdAt
+          createdAt: users.createdAt,
         })
         .from(users)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(users.createdAt))
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 計算總數 (使用安全解構避免 undefined 錯誤)
       const countResult = await this.db
         .select({ total: count() })
         .from(users)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-      const total = countResult?.[0]?.total ?? 0
-      const totalPages = Math.ceil(total / limit)
+      const total = countResult?.[0]?.total ?? 0;
+      const totalPages = Math.ceil(total / limit);
 
       // Convert Drizzle objects to primitive values
-      const serializedUsers = usersList.map(user => ({
+      const serializedUsers = usersList.map((user) => ({
         id: Number(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
@@ -473,34 +493,37 @@ export class UserService extends BaseService {
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null
-      }))
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+      }));
 
       return {
         users: serializedUsers,
         total,
-        pagination: { page, limit, totalPages }
-      }
-
+        pagination: { page, limit, totalPages },
+      };
     } catch (error) {
-      this.handleError(error, 'getAllUsers')
+      this.handleError(error, "getAllUsers");
     }
   }
 
   // 更新用戶角色
-  async updateUserRole(id: number, role: number, updatedBy: number): Promise<any> {
+  async updateUserRole(
+    id: number,
+    role: number,
+    updatedBy: number,
+  ): Promise<any> {
     try {
       // 驗證角色是否有效
-      const validRoles = Object.values(USER_ROLES)
+      const validRoles = Object.values(USER_ROLES);
       if (!validRoles.includes(role as UserRole)) {
-        throw new Error('Invalid role')
+        throw new Error("Invalid role");
       }
 
       const [updatedUser] = await this.db
         .update(users)
         .set({
           role,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
         .returning({
@@ -508,13 +531,12 @@ export class UserService extends BaseService {
           username: users.username,
           fullName: users.fullName,
           role: users.role,
-          updatedAt: users.updatedAt
-        })
+          updatedAt: users.updatedAt,
+        });
 
-      return updatedUser
-
+      return updatedUser;
     } catch (error) {
-      this.handleError(error, 'updateUserRole')
+      this.handleError(error, "updateUserRole");
     }
   }
 
@@ -525,129 +547,141 @@ export class UserService extends BaseService {
         .update(users)
         .set({
           isVerified: true,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
+        .returning({ id: users.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Verify user error:', error)
-      return false
+      console.error("Verify user error:", error);
+      return false;
     }
   }
 
   // 重設密碼
   async resetPassword(id: number, newPassword: string): Promise<boolean> {
     try {
-      const saltRounds = 10
-      const passwordHash = await bcrypt.hash(newPassword, saltRounds)
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
       const result = await this.db
         .update(users)
         .set({
           passwordHash,
           passwordChangedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
+        .returning({ id: users.id });
 
-      return true // TODO: Drizzle ORM doesn't return changes count directly
-
+      return result.length > 0;
     } catch (error) {
-      console.error('Reset password error:', error)
-      return false
+      console.error("Reset password error:", error);
+      return false;
     }
   }
 
   // 更新用戶統計資訊（訂單數量和消費金額）
-  async updateUserStats(userId: number, orderCount: number, orderAmount: number): Promise<void> {
+  async updateUserStats(
+    userId: number,
+    orderCount: number,
+    orderAmount: number,
+  ): Promise<void> {
     try {
       await this.db
         .update(users)
         .set({
           totalOrders: orderCount,
           totalSpent: orderAmount,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(users.id, userId))
-
+        .where(eq(users.id, userId));
     } catch (error) {
-      this.handleError(error, 'updateUserStats')
+      this.handleError(error, "updateUserStats");
     }
   }
 
   // 取得用戶統計資訊
   async getUserStats(restaurantId?: string): Promise<UserStats> {
     try {
-      const conditions = restaurantId ? [eq(users.restaurantId, restaurantId)] : []
+      const conditions = restaurantId
+        ? [eq(users.restaurantId, restaurantId)]
+        : [];
 
       // 總用戶數 (使用安全解構避免 undefined 錯誤)
       const totalUsersResult = await this.db
         .select({ totalUsers: count() })
         .from(users)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-      const totalUsers = totalUsersResult?.[0]?.totalUsers ?? 0
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+      const totalUsers = totalUsersResult?.[0]?.totalUsers ?? 0;
 
       // 活躍用戶數 (使用安全解構避免 undefined 錯誤)
-      const activeConditions = [...conditions, eq(users.isActive, true)]
+      const activeConditions = [...conditions, eq(users.isActive, true)];
       const activeUsersResult = await this.db
         .select({ activeUsers: count() })
         .from(users)
-        .where(and(...activeConditions))
-      const activeUsers = activeUsersResult?.[0]?.activeUsers ?? 0
+        .where(and(...activeConditions));
+      const activeUsers = activeUsersResult?.[0]?.activeUsers ?? 0;
 
       // 按角色分組統計
       const roleStats = await this.db
         .select({
           role: users.role,
-          count: count()
+          count: count(),
         })
         .from(users)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .groupBy(users.role)
+        .groupBy(users.role);
 
-      const byRole: Record<number, number> = {}
-      roleStats.forEach(stat => {
-        byRole[Number(stat.role)] = Number(stat.count)
-      })
+      const byRole: Record<number, number> = {};
+      roleStats.forEach((stat) => {
+        byRole[Number(stat.role)] = Number(stat.count);
+      });
 
       // 最近30天註冊用戶數 (使用安全解構避免 undefined 錯誤)
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const recentConditions = [...conditions, eq(users.createdAt, thirtyDaysAgo)]
+      const recentConditions = [
+        ...conditions,
+        eq(users.createdAt, thirtyDaysAgo),
+      ];
       const recentRegistrationsResult = await this.db
         .select({ recentRegistrations: count() })
         .from(users)
-        .where(and(...recentConditions))
-      const recentRegistrations = recentRegistrationsResult?.[0]?.recentRegistrations ?? 0
+        .where(and(...recentConditions));
+      const recentRegistrations =
+        recentRegistrationsResult?.[0]?.recentRegistrations ?? 0;
 
       return {
         totalUsers,
         activeUsers,
         byRole,
-        recentRegistrations
-      }
-
+        recentRegistrations,
+      };
     } catch (error) {
-      this.handleError(error, 'getUserStats')
+      this.handleError(error, "getUserStats");
     }
   }
 
   // 搜尋用戶
-  async searchUsers(query: string, restaurantId?: string, limit = 10): Promise<any[]> {
+  async searchUsers(
+    query: string,
+    restaurantId?: string,
+    limit = 10,
+  ): Promise<any[]> {
     try {
       const conditions = [
         or(
           like(users.username, `%${query}%`),
           like(users.fullName, `%${query}%`),
-          like(users.email, `%${query}%`)
-        )
-      ]
+          like(users.email, `%${query}%`),
+        ),
+      ];
 
       if (restaurantId) {
-        conditions.push(eq(users.restaurantId, restaurantId))
+        conditions.push(eq(users.restaurantId, restaurantId));
       }
 
       const results = await this.db
@@ -657,35 +691,36 @@ export class UserService extends BaseService {
           fullName: users.fullName,
           email: users.email,
           role: users.role,
-          profileImageUrl: users.profileImageUrl
+          profileImageUrl: users.profileImageUrl,
         })
         .from(users)
         .where(and(...conditions))
         .orderBy(asc(users.fullName))
-        .limit(limit)
+        .limit(limit);
 
       // Convert Drizzle objects to primitive values
-      return results.map(user => ({
+      return results.map((user) => ({
         id: Number(user.id),
         username: String(user.username),
         fullName: user.fullName ? String(user.fullName) : null,
         email: user.email ? String(user.email) : null,
         role: Number(user.role),
-        profileImageUrl: user.profileImageUrl ? String(user.profileImageUrl) : null
-      }))
-
+        profileImageUrl: user.profileImageUrl
+          ? String(user.profileImageUrl)
+          : null,
+      }));
     } catch (error) {
-      this.handleError(error, 'searchUsers')
+      this.handleError(error, "searchUsers");
     }
   }
 
   // 取得特定角色的用戶
   async getUsersByRole(role: number, restaurantId?: string): Promise<any[]> {
     try {
-      const conditions = [eq(users.role, role), eq(users.isActive, true)]
+      const conditions = [eq(users.role, role), eq(users.isActive, true)];
 
       if (restaurantId) {
-        conditions.push(eq(users.restaurantId, restaurantId))
+        conditions.push(eq(users.restaurantId, restaurantId));
       }
 
       const results = await this.db
@@ -697,14 +732,14 @@ export class UserService extends BaseService {
           phone: users.phone,
           role: users.role,
           lastLoginAt: users.lastLoginAt,
-          createdAt: users.createdAt
+          createdAt: users.createdAt,
         })
         .from(users)
         .where(and(...conditions))
-        .orderBy(asc(users.fullName))
+        .orderBy(asc(users.fullName));
 
       // Convert Drizzle objects to primitive values
-      return results.map(user => ({
+      return results.map((user) => ({
         id: Number(user.id),
         username: String(user.username),
         fullName: user.fullName ? String(user.fullName) : null,
@@ -712,11 +747,10 @@ export class UserService extends BaseService {
         phone: user.phone ? String(user.phone) : null,
         role: Number(user.role),
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null
-      }))
-
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+      }));
     } catch (error) {
-      this.handleError(error, 'getUsersByRole')
+      this.handleError(error, "getUsersByRole");
     }
   }
 }

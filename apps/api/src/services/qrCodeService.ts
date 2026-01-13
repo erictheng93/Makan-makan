@@ -59,6 +59,10 @@ export interface QRCodeOptions {
 }
 
 export interface BulkQROptions {
+  /** Restaurant ID for the QR codes */
+  restaurantId: string;
+  /** User ID who is generating the QR codes */
+  userId: number;
   tables: Array<{
     id: number;
     name: string;
@@ -374,14 +378,11 @@ export class QRCodeService {
         bulkDownloadUrl = `${this.getBaseUrl()}/api/v1/qr/batch/${batchId}/download?format=${options.format}`;
       }
 
-      // 儲存批量生成記錄 - 需要添加餐廳ID和用戶ID參數
-      // 當前的generateBulkQRCodes方法需要這些參數，暫時使用默認值
-      const restaurantId = "1"; // TODO: 從options或context獲取實際的餐廳ID
-      const userId = 1; // TODO: 從context獲取實際的用戶ID
+      // 儲存批量生成記錄
       await this.dbService.generateBulkQRCodes(
-        restaurantId,
+        options.restaurantId,
         qrCodes.map((qr) => qr.tableId),
-        userId,
+        options.userId,
       );
 
       return {
@@ -449,7 +450,9 @@ export class QRCodeService {
    * 創建自訂模板
    */
   async createTemplate(
-    template: Omit<QRTemplate, "id" | "createdAt" | "updatedAt">,
+    template: Omit<QRTemplate, "id" | "createdAt" | "updatedAt"> & {
+      createdBy?: number;
+    },
   ): Promise<{
     success: boolean;
     data?: QRTemplate;
@@ -464,7 +467,7 @@ export class QRCodeService {
         name: template.name,
         description: template.description,
         style: template.style as QRStyleData,
-        createdBy: 1, // TODO: 從context獲取實際的用戶ID
+        createdBy: template.createdBy || 1, // Use provided createdBy from auth context
       });
 
       const newTemplate: QRTemplate = {
@@ -602,7 +605,14 @@ export class QRCodeService {
   }
 
   private getBaseUrl(): string {
-    return "https://api.makanmakan.com"; // TODO: Pass from env bindings
+    const baseUrl = this.env.API_BASE_URL;
+    if (!baseUrl) {
+      throw new Error(
+        "[Config Error] API_BASE_URL is required in environment bindings. " +
+          "Please set this in wrangler.toml or via wrangler secret.",
+      );
+    }
+    return baseUrl;
   }
 }
 

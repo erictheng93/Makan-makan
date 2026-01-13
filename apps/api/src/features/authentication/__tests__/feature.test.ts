@@ -3,31 +3,31 @@
  * Comprehensive unit tests for authentication functionality
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { Env } from '../../../shared/types'
-import { AuthService } from '../services/AuthService'
-import { authSchemas } from '../schemas/validation'
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { Env } from "../../../shared/types";
+import { AuthService } from "../services/AuthService";
+import { authSchemas } from "../schemas/validation";
 import type {
   LoginData,
   RegisterData,
   AuthResult,
   TokenValidation,
   UserProfile,
-  SessionSummary
-} from '../types'
+  SessionSummary,
+} from "../types";
 
 // Mock dependencies
-vi.mock('../../../core/database')
-vi.mock('../../../core/cache')
-vi.mock('../../../core/monitoring')
-vi.mock('@makanmakan/database')
-vi.mock('../../../utils/errorSanitizer')
+vi.mock("../../../core/database");
+vi.mock("../../../core/cache");
+vi.mock("../../../core/monitoring");
+vi.mock("@makanmakan/database");
+vi.mock("../../../utils/errorSanitizer");
 
 // Import mocked modules for type safety
-import * as databaseModule from '../../../core/database'
-import * as cacheModule from '../../../core/cache'
-import * as monitoringModule from '../../../core/monitoring'
-import * as dbModule from '@makanmakan/database'
+import * as databaseModule from "../../../core/database";
+import * as cacheModule from "../../../core/cache";
+import * as monitoringModule from "../../../core/monitoring";
+import * as dbModule from "@makanmakan/database";
 
 // Mock implementations
 const mockDbAuthService = {
@@ -37,35 +37,35 @@ const mockDbAuthService = {
   logout: vi.fn(),
   validateToken: vi.fn(),
   changePassword: vi.fn(),
-  getUserSessions: vi.fn()
-}
+  getUserSessions: vi.fn(),
+};
 
 const mockCache = {
-  get: vi.fn(),
-  set: vi.fn(),
-  delete: vi.fn(),
-  clear: vi.fn()
-}
+  get: vi.fn().mockResolvedValue(null),
+  set: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(true),
+  clear: vi.fn().mockResolvedValue(undefined),
+};
 
 const mockLogger = {
   info: vi.fn(),
   debug: vi.fn(),
   warn: vi.fn(),
-  error: vi.fn()
-}
+  error: vi.fn(),
+};
 
 const mockPerformance = {
-  startTimer: vi.fn(() => 'timer-123'),
+  startTimer: vi.fn(() => "timer-123"),
   endTimer: vi.fn(() => 100),
-  recordMetric: vi.fn()
-}
+  recordMetric: vi.fn(),
+};
 
 // Mock environment
 const mockEnv: Env = {
-  NODE_ENV: 'test',
-  JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long',
-  API_VERSION: '1.0.0',
-  ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
+  NODE_ENV: "test",
+  JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
+  API_VERSION: "1.0.0",
+  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
   DB: {} as any,
   CACHE_KV: {} as any,
   TOKEN_BLACKLIST: {} as any,
@@ -75,177 +75,202 @@ const mockEnv: Env = {
   REALTIME_ORDERS: {} as any,
   ANALYTICS_ENGINE: {} as any,
   RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any
-}
+  REALTIME_SESSION: {} as any,
+};
 
-describe('Authentication Feature', () => {
-  let authService: AuthService
+describe("Authentication Feature", () => {
+  let authService: AuthService;
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
 
-    // Setup mocks
-    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue({} as any)
-    vi.mocked(cacheModule.KVCacheService).mockImplementation(() => mockCache as any)
-    vi.mocked(monitoringModule.ConsoleLogger).mockImplementation(() => mockLogger as any)
-    vi.mocked(monitoringModule.SimplePerformanceTracker).mockImplementation(() => mockPerformance as any)
-    vi.mocked(dbModule.AuthService).mockImplementation(() => mockDbAuthService as any)
+    // Reset mockCache methods to return promises
+    mockCache.get.mockResolvedValue(null);
+    mockCache.set.mockResolvedValue(undefined);
+    mockCache.delete.mockResolvedValue(true);
+    mockCache.clear.mockResolvedValue(undefined);
 
-    authService = new AuthService(mockEnv)
-  })
+    // Setup mocks (use function for constructors in Vitest 4)
+    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue({} as any);
+    vi.mocked(cacheModule.KVCacheService).mockImplementation(function () {
+      return mockCache as any;
+    });
+    vi.mocked(monitoringModule.ConsoleLogger).mockImplementation(function () {
+      return mockLogger as any;
+    });
+    vi.mocked(monitoringModule.SimplePerformanceTracker).mockImplementation(
+      function () {
+        return mockPerformance as any;
+      },
+    );
+    vi.mocked(dbModule.AuthService).mockImplementation(function () {
+      return mockDbAuthService as any;
+    });
+
+    authService = new AuthService(mockEnv);
+  });
 
   afterEach(() => {
-    vi.restoreAllMocks()
-  })
+    vi.restoreAllMocks();
+  });
 
-  describe('AuthService', () => {
-    describe('login', () => {
-      it('should successfully login a user with valid credentials', async () => {
+  describe("AuthService", () => {
+    describe("login", () => {
+      it("should successfully login a user with valid credentials", async () => {
         const loginData: LoginData = {
-          username: 'testuser',
-          password: 'testpass123',
+          username: "testuser",
+          password: "testpass123",
           deviceInfo: {
-            userAgent: 'Test Browser',
-            ipAddress: '192.168.1.1',
-            platform: 'desktop'
+            userAgent: "Test Browser",
+            ipAddress: "192.168.1.1",
+            platform: "desktop",
           },
           location: {
-            country: 'US'
-          }
-        }
+            country: "US",
+          },
+        };
 
         // Mock database service response (raw format)
         const dbResult = {
           success: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
-            isActive: true
+            isActive: true,
           },
           tokens: {
-            accessToken: 'test-access-token',
-            refreshToken: 'test-refresh-token',
-            expiresAt: new Date(Date.now() + 86400000) // 24 hours from now
-          }
-        }
+            accessToken: "test-access-token",
+            refreshToken: "test-refresh-token",
+            expiresAt: new Date(Date.now() + 86400000), // 24 hours from now
+          },
+        };
 
         // Expected result after AuthService transformation
         const expectedResult: AuthResult = {
           success: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
             isActive: true,
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
             createdAt: expect.any(Date),
-            updatedAt: expect.any(Date)
+            updatedAt: expect.any(Date),
           },
           tokens: {
-            accessToken: 'test-access-token',
-            refreshToken: 'test-refresh-token',
+            accessToken: "test-access-token",
+            refreshToken: "test-refresh-token",
             expiresAt: expect.any(Date),
-            expiresIn: expect.any(Number) // Calculated dynamically
+            expiresIn: expect.any(Number), // Calculated dynamically
           },
-          error: undefined // AuthService includes error field
-        }
+          error: undefined, // AuthService includes error field
+        };
 
-        mockDbAuthService.login.mockResolvedValue(dbResult)
-        mockCache.set.mockResolvedValue(undefined)
+        mockDbAuthService.login.mockResolvedValue(dbResult);
+        mockCache.set.mockResolvedValue(undefined);
 
-        const result = await authService.login(loginData)
+        const result = await authService.login(loginData);
 
-        expect(result).toEqual(expectedResult)
-        expect(mockDbAuthService.login).toHaveBeenCalledWith(loginData)
-        expect(mockCache.set).toHaveBeenCalled()
+        expect(result).toEqual(expectedResult);
+        expect(mockDbAuthService.login).toHaveBeenCalledWith(loginData);
+        expect(mockCache.set).toHaveBeenCalled();
         expect(mockLogger.info).toHaveBeenCalledWith(
-          'User login successful',
+          "User login successful",
           expect.objectContaining({
             userId: 1,
-            username: 'testuser',
-            role: 2
-          })
-        )
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.login.success', 1)
-      })
+            username: "testuser",
+            role: 2,
+          }),
+        );
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.login.success",
+          1,
+        );
+      });
 
-      it('should handle login failure with invalid credentials', async () => {
+      it("should handle login failure with invalid credentials", async () => {
         const loginData: LoginData = {
-          username: 'testuser',
-          password: 'wrongpassword'
-        }
+          username: "testuser",
+          password: "wrongpassword",
+        };
 
         const expectedResult: AuthResult = {
           success: false,
-          error: 'Invalid username or password'
-        }
+          error: "Invalid username or password",
+        };
 
-        mockDbAuthService.login.mockResolvedValue(expectedResult)
+        mockDbAuthService.login.mockResolvedValue(expectedResult);
 
-        const result = await authService.login(loginData)
+        const result = await authService.login(loginData);
 
-        expect(result).toEqual(expectedResult)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.login.failed', 1)
-      })
+        expect(result).toEqual(expectedResult);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.login.failed",
+          1,
+        );
+      });
 
-      it('should handle login errors and throw', async () => {
+      it("should handle login errors and throw", async () => {
         const loginData: LoginData = {
-          username: 'testuser',
-          password: 'testpass123'
-        }
+          username: "testuser",
+          password: "testpass123",
+        };
 
-        const error = new Error('Database connection failed')
-        mockDbAuthService.login.mockRejectedValue(error)
+        const error = new Error("Database connection failed");
+        mockDbAuthService.login.mockRejectedValue(error);
 
-        await expect(authService.login(loginData)).rejects.toThrow('Database connection failed')
-        expect(mockLogger.error).toHaveBeenCalledWith(
-          'Login failed',
-          error,
-          { username: 'testuser' }
-        )
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.login.error', 1)
-      })
-    })
+        await expect(authService.login(loginData)).rejects.toThrow(
+          "Database connection failed",
+        );
+        expect(mockLogger.error).toHaveBeenCalledWith("Login failed", error, {
+          username: "testuser",
+        });
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.login.error",
+          1,
+        );
+      });
+    });
 
-    describe('register', () => {
-      it('should successfully register a new user', async () => {
+    describe("register", () => {
+      it("should successfully register a new user", async () => {
         const registerData: RegisterData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'newpass123',
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "newpass123",
           role: 2,
-          restaurantId: 1
-        }
+          restaurantId: 1,
+        };
 
         // Mock database service response (raw format)
         const dbResult = {
           success: true,
           user: {
             id: 2,
-            username: 'newuser',
-            fullName: 'New User',
-            email: 'new@example.com',
+            username: "newuser",
+            fullName: "New User",
+            email: "new@example.com",
             role: 2,
             restaurantId: 1,
-            isActive: true
-          }
-        }
+            isActive: true,
+          },
+        };
 
         // Expected result after AuthService transformation
         const expectedResult: AuthResult = {
           success: true,
           user: {
             id: 2,
-            username: 'newuser',
-            fullName: 'New User',
-            email: 'new@example.com',
+            username: "newuser",
+            fullName: "New User",
+            email: "new@example.com",
             phone: undefined,
             role: 2,
             restaurantId: 1,
@@ -253,621 +278,690 @@ describe('Authentication Feature', () => {
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
             createdAt: expect.any(Date),
-            updatedAt: expect.any(Date)
+            updatedAt: expect.any(Date),
           },
           tokens: undefined, // Register doesn't return tokens
-          error: undefined // AuthService includes error field
-        }
+          error: undefined, // AuthService includes error field
+        };
 
-        mockDbAuthService.register.mockResolvedValue(dbResult)
+        mockDbAuthService.register.mockResolvedValue(dbResult);
 
-        const result = await authService.register(registerData, 1)
+        const result = await authService.register(registerData, 1);
 
-        expect(result).toEqual(expectedResult)
+        expect(result).toEqual(expectedResult);
         // Service converts restaurantId to string for database layer
         expect(mockDbAuthService.register).toHaveBeenCalledWith({
           ...registerData,
-          restaurantId: '1'
-        })
-        expect(mockCache.delete).toHaveBeenCalledWith('user:newuser')
+          restaurantId: "1",
+        });
+        expect(mockCache.delete).toHaveBeenCalledWith("user:newuser");
         expect(mockLogger.info).toHaveBeenCalledWith(
-          'User registration successful',
+          "User registration successful",
           expect.objectContaining({
             userId: 2,
-            username: 'newuser',
+            username: "newuser",
             role: 2,
-            createdBy: 1
-          })
-        )
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.register.success', 1)
-      })
+            createdBy: 1,
+          }),
+        );
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.register.success",
+          1,
+        );
+      });
 
-      it('should handle registration failure when username exists', async () => {
+      it("should handle registration failure when username exists", async () => {
         const registerData: RegisterData = {
-          username: 'existinguser',
-          fullName: 'Existing User',
-          password: 'testpass123',
-          role: 2
-        }
+          username: "existinguser",
+          fullName: "Existing User",
+          password: "testpass123",
+          role: 2,
+        };
 
         const expectedResult: AuthResult = {
           success: false,
-          error: 'Username already exists'
-        }
+          error: "Username already exists",
+        };
 
-        mockDbAuthService.register.mockResolvedValue(expectedResult)
+        mockDbAuthService.register.mockResolvedValue(expectedResult);
 
-        const result = await authService.register(registerData)
+        const result = await authService.register(registerData);
 
-        expect(result).toEqual(expectedResult)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.register.failed', 1)
-      })
-    })
+        expect(result).toEqual(expectedResult);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.register.failed",
+          1,
+        );
+      });
+    });
 
-    describe('refreshToken', () => {
-      it('should successfully refresh a valid token', async () => {
-        const refreshToken = 'valid-refresh-token'
+    describe("refreshToken", () => {
+      it("should successfully refresh a valid token", async () => {
+        const refreshToken = "valid-refresh-token";
 
         // Mock database service response (raw format)
         const dbResult = {
           success: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
-            isActive: true
+            isActive: true,
           },
           tokens: {
-            accessToken: 'new-access-token',
-            refreshToken: 'new-refresh-token',
-            expiresAt: new Date(Date.now() + 86400000) // 24 hours from now
-          }
-        }
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
+            expiresAt: new Date(Date.now() + 86400000), // 24 hours from now
+          },
+        };
 
         // Expected result after AuthService transformation
         const expectedResult: AuthResult = {
           success: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
             isActive: true,
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
             createdAt: expect.any(Date),
-            updatedAt: expect.any(Date)
+            updatedAt: expect.any(Date),
           },
           tokens: {
-            accessToken: 'new-access-token',
-            refreshToken: 'new-refresh-token',
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
             expiresAt: expect.any(Date),
-            expiresIn: expect.any(Number) // Calculated dynamically
+            expiresIn: expect.any(Number), // Calculated dynamically
           },
-          error: undefined // AuthService includes error field
-        }
+          error: undefined, // AuthService includes error field
+        };
 
-        mockDbAuthService.refreshToken.mockResolvedValue(dbResult)
+        mockDbAuthService.refreshToken.mockResolvedValue(dbResult);
 
-        const result = await authService.refreshToken(refreshToken)
+        const result = await authService.refreshToken(refreshToken);
 
-        expect(result).toEqual(expectedResult)
-        expect(mockDbAuthService.refreshToken).toHaveBeenCalledWith(refreshToken)
-        expect(mockCache.set).toHaveBeenCalled()
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.refreshToken.success', 1)
-      })
+        expect(result).toEqual(expectedResult);
+        expect(mockDbAuthService.refreshToken).toHaveBeenCalledWith(
+          refreshToken,
+        );
+        expect(mockCache.set).toHaveBeenCalled();
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.refreshToken.success",
+          1,
+        );
+      });
 
-      it('should handle invalid refresh token', async () => {
-        const refreshToken = 'invalid-refresh-token'
+      it("should handle invalid refresh token", async () => {
+        const refreshToken = "invalid-refresh-token";
 
         const expectedResult: AuthResult = {
           success: false,
-          error: 'Invalid refresh token'
-        }
+          error: "Invalid refresh token",
+        };
 
-        mockDbAuthService.refreshToken.mockResolvedValue(expectedResult)
+        mockDbAuthService.refreshToken.mockResolvedValue(expectedResult);
 
-        const result = await authService.refreshToken(refreshToken)
+        const result = await authService.refreshToken(refreshToken);
 
-        expect(result).toEqual(expectedResult)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.refreshToken.failed', 1)
-      })
-    })
+        expect(result).toEqual(expectedResult);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.refreshToken.failed",
+          1,
+        );
+      });
+    });
 
-    describe('logout', () => {
-      it('should successfully logout a user', async () => {
-        const userId = 1
-        const token = 'access-token'
+    describe("logout", () => {
+      it("should successfully logout a user", async () => {
+        const userId = 1;
+        const token = "access-token";
 
-        mockDbAuthService.logout.mockResolvedValue(true)
+        mockDbAuthService.logout.mockResolvedValue(true);
 
-        const result = await authService.logout(userId, token)
+        const result = await authService.logout(userId, token);
 
-        expect(result).toBe(true)
-        expect(mockDbAuthService.logout).toHaveBeenCalledWith(userId, token)
-        expect(mockCache.delete).toHaveBeenCalledWith(`token:${token}`)
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'User logout successful',
-          { userId, allSessions: undefined }
-        )
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.logout.success', 1)
-      })
+        expect(result).toBe(true);
+        expect(mockDbAuthService.logout).toHaveBeenCalledWith(userId, token);
+        expect(mockCache.delete).toHaveBeenCalledWith(`token:${token}`);
+        expect(mockLogger.info).toHaveBeenCalledWith("User logout successful", {
+          userId,
+          allSessions: undefined,
+        });
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.logout.success",
+          1,
+        );
+      });
 
-      it('should handle logout failure', async () => {
-        const userId = 1
-        const token = 'access-token'
+      it("should handle logout failure", async () => {
+        const userId = 1;
+        const token = "access-token";
 
-        mockDbAuthService.logout.mockResolvedValue(false)
+        mockDbAuthService.logout.mockResolvedValue(false);
 
-        const result = await authService.logout(userId, token)
+        const result = await authService.logout(userId, token);
 
-        expect(result).toBe(false)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.logout.failed', 1)
-      })
-    })
+        expect(result).toBe(false);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.logout.failed",
+          1,
+        );
+      });
+    });
 
-    describe('validateToken', () => {
-      it('should successfully validate a token', async () => {
-        const token = 'valid-token'
+    describe("validateToken", () => {
+      it("should successfully validate a token", async () => {
+        const token = "valid-token";
 
         const dbResult = {
           valid: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
-            isActive: true
-          }
-        }
+            isActive: true,
+          },
+        };
 
-        mockCache.get.mockResolvedValue(null)
-        mockDbAuthService.validateToken.mockResolvedValue(dbResult)
+        mockCache.get.mockResolvedValue(null);
+        mockDbAuthService.validateToken.mockResolvedValue(dbResult);
 
-        const result = await authService.validateToken(token)
+        const result = await authService.validateToken(token);
 
-        expect(result.valid).toBe(true)
-        expect(result.user).toBeDefined()
-        expect(result.user?.username).toBe('testuser')
-        expect(mockDbAuthService.validateToken).toHaveBeenCalledWith(token)
-        expect(mockCache.set).toHaveBeenCalled()
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.validateToken.success', 1)
-      })
+        expect(result.valid).toBe(true);
+        expect(result.user).toBeDefined();
+        expect(result.user?.username).toBe("testuser");
+        expect(mockDbAuthService.validateToken).toHaveBeenCalledWith(token);
+        expect(mockCache.set).toHaveBeenCalled();
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.validateToken.success",
+          1,
+        );
+      });
 
-      it('should return cached validation result', async () => {
-        const token = 'valid-token'
+      it("should return cached validation result", async () => {
+        const token = "valid-token";
 
         const cachedResult: TokenValidation = {
           valid: true,
           user: {
             id: 1,
-            username: 'testuser',
-            fullName: 'Test User',
+            username: "testuser",
+            fullName: "Test User",
             role: 2,
             restaurantId: 1,
             isActive: true,
             isVerified: true,
             twoFactorEnabled: false,
             createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        }
+            updatedAt: new Date(),
+          },
+        };
 
-        mockCache.get.mockResolvedValue(cachedResult)
+        mockCache.get.mockResolvedValue(cachedResult);
 
-        const result = await authService.validateToken(token)
+        const result = await authService.validateToken(token);
 
-        expect(result).toEqual(cachedResult)
-        expect(mockDbAuthService.validateToken).not.toHaveBeenCalled()
-        expect(mockLogger.debug).toHaveBeenCalledWith('Token validation retrieved from cache')
-      })
+        expect(result).toEqual(cachedResult);
+        expect(mockDbAuthService.validateToken).not.toHaveBeenCalled();
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          "Token validation retrieved from cache",
+        );
+      });
 
-      it('should handle invalid token', async () => {
-        const token = 'invalid-token'
+      it("should handle invalid token", async () => {
+        const token = "invalid-token";
 
         const dbResult = {
           valid: false,
-          error: 'Token expired'
-        }
+          error: "Token expired",
+        };
 
-        mockCache.get.mockResolvedValue(null)
-        mockDbAuthService.validateToken.mockResolvedValue(dbResult)
+        mockCache.get.mockResolvedValue(null);
+        mockDbAuthService.validateToken.mockResolvedValue(dbResult);
 
-        const result = await authService.validateToken(token)
+        const result = await authService.validateToken(token);
 
-        expect(result.valid).toBe(false)
-        expect(result.error).toBe('Token expired')
-        expect(mockCache.set).not.toHaveBeenCalled()
-      })
-    })
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe("Token expired");
+        expect(mockCache.set).not.toHaveBeenCalled();
+      });
+    });
 
-    describe('changePassword', () => {
-      it('should successfully change password', async () => {
-        const userId = 1
-        const oldPassword = 'oldpass123'
-        const newPassword = 'newpass123'
+    describe("changePassword", () => {
+      it("should successfully change password", async () => {
+        const userId = 1;
+        const oldPassword = "oldpass123";
+        const newPassword = "newpass123";
 
         const expectedResult = {
-          success: true
-        }
+          success: true,
+        };
 
-        mockDbAuthService.changePassword.mockResolvedValue(expectedResult)
+        mockDbAuthService.changePassword.mockResolvedValue(expectedResult);
 
-        const result = await authService.changePassword(userId, oldPassword, newPassword)
+        const result = await authService.changePassword(
+          userId,
+          oldPassword,
+          newPassword,
+        );
 
-        expect(result).toEqual(expectedResult)
-        expect(mockDbAuthService.changePassword).toHaveBeenCalledWith(userId, oldPassword, newPassword)
-        expect(mockCache.delete).toHaveBeenCalledWith(`user-profile:${userId}`)
-        expect(mockCache.clear).toHaveBeenCalledWith(`user-session:${userId}`)
-        expect(mockLogger.info).toHaveBeenCalledWith('Password change successful', { userId })
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.changePassword.success', 1)
-      })
+        expect(result).toEqual(expectedResult);
+        expect(mockDbAuthService.changePassword).toHaveBeenCalledWith(
+          userId,
+          oldPassword,
+          newPassword,
+        );
+        expect(mockCache.delete).toHaveBeenCalledWith(`user-profile:${userId}`);
+        expect(mockCache.clear).toHaveBeenCalledWith(`user-session:${userId}`);
+        expect(mockLogger.info).toHaveBeenCalledWith(
+          "Password change successful",
+          { userId },
+        );
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.changePassword.success",
+          1,
+        );
+      });
 
-      it('should handle password change failure', async () => {
-        const userId = 1
-        const oldPassword = 'wrongpass'
-        const newPassword = 'newpass123'
+      it("should handle password change failure", async () => {
+        const userId = 1;
+        const oldPassword = "wrongpass";
+        const newPassword = "newpass123";
 
         const expectedResult = {
           success: false,
-          error: 'Current password is incorrect'
-        }
+          error: "Current password is incorrect",
+        };
 
-        mockDbAuthService.changePassword.mockResolvedValue(expectedResult)
+        mockDbAuthService.changePassword.mockResolvedValue(expectedResult);
 
-        const result = await authService.changePassword(userId, oldPassword, newPassword)
+        const result = await authService.changePassword(
+          userId,
+          oldPassword,
+          newPassword,
+        );
 
-        expect(result).toEqual(expectedResult)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.changePassword.failed', 1)
-      })
-    })
+        expect(result).toEqual(expectedResult);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.changePassword.failed",
+          1,
+        );
+      });
+    });
 
-    describe('getUserSessions', () => {
-      it('should return user sessions', async () => {
-        const userId = 1
+    describe("getUserSessions", () => {
+      it("should return user sessions", async () => {
+        const userId = 1;
 
         const mockSessions = [
           {
-            id: 'session-1',
-            deviceInfo: { platform: 'desktop' },
-            location: { country: 'US' },
+            id: "session-1",
+            deviceInfo: { platform: "desktop" },
+            location: { country: "US" },
             lastAccessedAt: new Date(),
             expiresAt: new Date(),
-            createdAt: new Date()
-          }
-        ]
+            createdAt: new Date(),
+          },
+        ];
 
-        mockDbAuthService.getUserSessions.mockResolvedValue(mockSessions)
+        mockDbAuthService.getUserSessions.mockResolvedValue(mockSessions);
 
-        const result = await authService.getUserSessions(userId)
+        const result = await authService.getUserSessions(userId);
 
-        expect(result).toHaveLength(1)
-        expect(result[0].id).toBe('session-1')
-        expect(result[0].isCurrent).toBe(false)
-        expect(mockDbAuthService.getUserSessions).toHaveBeenCalledWith(userId)
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.getUserSessions.success', 1)
-      })
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe("session-1");
+        expect(result[0].isCurrent).toBe(false);
+        expect(mockDbAuthService.getUserSessions).toHaveBeenCalledWith(userId);
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.getUserSessions.success",
+          1,
+        );
+      });
 
-      it('should handle errors and return empty array', async () => {
-        const userId = 1
-        const error = new Error('Database error')
+      it("should handle errors and return empty array", async () => {
+        const userId = 1;
+        const error = new Error("Database error");
 
-        mockDbAuthService.getUserSessions.mockRejectedValue(error)
+        mockDbAuthService.getUserSessions.mockRejectedValue(error);
 
-        const result = await authService.getUserSessions(userId)
+        const result = await authService.getUserSessions(userId);
 
-        expect(result).toEqual([])
+        expect(result).toEqual([]);
         expect(mockLogger.error).toHaveBeenCalledWith(
-          'Failed to get user sessions',
+          "Failed to get user sessions",
           error,
-          { userId }
-        )
-        expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.getUserSessions.error', 1)
-      })
-    })
-  })
+          { userId },
+        );
+        expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+          "auth.getUserSessions.error",
+          1,
+        );
+      });
+    });
+  });
 
-  describe('Validation Schemas', () => {
-    describe('login schema', () => {
-      it('should validate correct login data', () => {
+  describe("Validation Schemas", () => {
+    describe("login schema", () => {
+      it("should validate correct login data", () => {
         const validData = {
-          username: 'testuser',
-          password: 'testpass123'
-        }
+          username: "testuser",
+          password: "testpass123",
+        };
 
-        const result = authSchemas.login.safeParse(validData)
-        expect(result.success).toBe(true)
-      })
+        const result = authSchemas.login.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
 
-      it('should reject invalid username', () => {
+      it("should reject invalid username", () => {
         const invalidData = {
-          username: 'te', // Too short
-          password: 'testpass123'
-        }
+          username: "te", // Too short
+          password: "testpass123",
+        };
 
-        const result = authSchemas.login.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.login.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Username must be at least 3 characters')
+          expect(result.error.issues[0].message).toContain(
+            "Username must be at least 3 characters",
+          );
         }
-      })
+      });
 
-      it('should reject missing password', () => {
+      it("should reject missing password", () => {
         const invalidData = {
-          username: 'testuser'
-        }
+          username: "testuser",
+        };
 
-        const result = authSchemas.login.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.login.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].path).toContain('password')
+          expect(result.error.issues[0].path).toContain("password");
         }
-      })
-    })
+      });
+    });
 
-    describe('register schema', () => {
-      it('should validate correct registration data', () => {
+    describe("register schema", () => {
+      it("should validate correct registration data", () => {
         const validData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'StrongPass123!',
-          confirmPassword: 'StrongPass123!',
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "StrongPass123!",
+          confirmPassword: "StrongPass123!",
           role: 2,
-          restaurantId: 1
-        }
+          restaurantId: 1,
+        };
 
-        const result = authSchemas.register.safeParse(validData)
-        expect(result.success).toBe(true)
-      })
+        const result = authSchemas.register.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
 
-      it('should reject mismatched passwords', () => {
+      it("should reject mismatched passwords", () => {
         const invalidData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'StrongPass123!',
-          confirmPassword: 'DifferentPass123!',
-          role: 2
-        }
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "StrongPass123!",
+          confirmPassword: "DifferentPass123!",
+          role: 2,
+        };
 
-        const result = authSchemas.register.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.register.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Passwords do not match')
+          expect(result.error.issues[0].message).toContain(
+            "Passwords do not match",
+          );
         }
-      })
+      });
 
-      it('should reject weak password when 8+ characters', () => {
+      it("should reject weak password when 8+ characters", () => {
         const invalidData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'weakpass', // 8+ chars but no uppercase, numbers, or symbols
-          confirmPassword: 'weakpass',
-          role: 2
-        }
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "weakpass", // 8+ chars but no uppercase, numbers, or symbols
+          confirmPassword: "weakpass",
+          role: 2,
+        };
 
-        const result = authSchemas.register.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.register.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Password must contain')
+          expect(result.error.issues[0].message).toContain(
+            "Password must contain",
+          );
         }
-      })
+      });
 
-      it('should accept shorter passwords without strength requirements', () => {
+      it("should accept shorter passwords without strength requirements", () => {
         const validData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'pass12', // 6 chars, no strength requirement
-          confirmPassword: 'pass12',
-          role: 2
-        }
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "pass12", // 6 chars, no strength requirement
+          confirmPassword: "pass12",
+          role: 2,
+        };
 
-        const result = authSchemas.register.safeParse(validData)
-        expect(result.success).toBe(true)
-      })
+        const result = authSchemas.register.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
 
-      it('should reject invalid email format', () => {
+      it("should reject invalid email format", () => {
         const invalidData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'invalid-email',
-          password: 'StrongPass123!',
-          confirmPassword: 'StrongPass123!',
-          role: 2
-        }
+          username: "newuser",
+          fullName: "New User",
+          email: "invalid-email",
+          password: "StrongPass123!",
+          confirmPassword: "StrongPass123!",
+          role: 2,
+        };
 
-        const result = authSchemas.register.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.register.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Invalid email format')
+          expect(result.error.issues[0].message).toContain(
+            "Invalid email format",
+          );
         }
-      })
+      });
 
-      it('should reject invalid role', () => {
+      it("should reject invalid role", () => {
         const invalidData = {
-          username: 'newuser',
-          fullName: 'New User',
-          email: 'new@example.com',
-          password: 'StrongPass123!',
-          confirmPassword: 'StrongPass123!',
-          role: 999 // Invalid role
-        }
+          username: "newuser",
+          fullName: "New User",
+          email: "new@example.com",
+          password: "StrongPass123!",
+          confirmPassword: "StrongPass123!",
+          role: 999, // Invalid role
+        };
 
-        const result = authSchemas.register.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.register.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Role must be 5 or less')
+          expect(result.error.issues[0].message).toContain(
+            "Role must be 5 or less",
+          );
         }
-      })
+      });
 
-      it('should require at least email or phone', () => {
+      it("should require at least email or phone", () => {
         const invalidData = {
-          username: 'newuser',
-          fullName: 'New User',
-          password: 'StrongPass123!',
-          confirmPassword: 'StrongPass123!',
-          role: 2
-        }
+          username: "newuser",
+          fullName: "New User",
+          password: "StrongPass123!",
+          confirmPassword: "StrongPass123!",
+          role: 2,
+        };
 
-        const result = authSchemas.register.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.register.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Either email or phone number is required')
+          expect(result.error.issues[0].message).toContain(
+            "Either email or phone number is required",
+          );
         }
-      })
-    })
+      });
+    });
 
-    describe('changePassword schema', () => {
-      it('should validate correct password change data', () => {
+    describe("changePassword schema", () => {
+      it("should validate correct password change data", () => {
         const validData = {
-          currentPassword: 'oldpass123',
-          newPassword: 'NewStrongPass123!',
-          confirmPassword: 'NewStrongPass123!'
-        }
+          currentPassword: "oldpass123",
+          newPassword: "NewStrongPass123!",
+          confirmPassword: "NewStrongPass123!",
+        };
 
-        const result = authSchemas.changePassword.safeParse(validData)
-        expect(result.success).toBe(true)
-      })
+        const result = authSchemas.changePassword.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
 
-      it('should reject same old and new passwords', () => {
+      it("should reject same old and new passwords", () => {
         const invalidData = {
-          currentPassword: 'SameStrongPass123!',
-          newPassword: 'SameStrongPass123!',
-          confirmPassword: 'SameStrongPass123!'
-        }
+          currentPassword: "SameStrongPass123!",
+          newPassword: "SameStrongPass123!",
+          confirmPassword: "SameStrongPass123!",
+        };
 
-        const result = authSchemas.changePassword.safeParse(invalidData)
-        expect(result.success).toBe(false)
+        const result = authSchemas.changePassword.safeParse(invalidData);
+        expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('New password must be different from current password')
+          expect(result.error.issues[0].message).toContain(
+            "New password must be different from current password",
+          );
         }
-      })
-    })
-  })
+      });
+    });
+  });
 
-  describe('Error Handling', () => {
-    it('should handle database connection errors gracefully', async () => {
-      const error = new Error('Database connection failed')
-      mockDbAuthService.login.mockRejectedValue(error)
+  describe("Error Handling", () => {
+    it("should handle database connection errors gracefully", async () => {
+      const error = new Error("Database connection failed");
+      mockDbAuthService.login.mockRejectedValue(error);
 
-      await expect(authService.login({ username: 'test', password: 'test' }))
-        .rejects.toThrow('Database connection failed')
+      await expect(
+        authService.login({ username: "test", password: "test" }),
+      ).rejects.toThrow("Database connection failed");
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Login failed',
-        error,
-        { username: 'test' }
-      )
-    })
+      expect(mockLogger.error).toHaveBeenCalledWith("Login failed", error, {
+        username: "test",
+      });
+    });
 
-    it('should handle cache errors gracefully', async () => {
-      const cacheError = new Error('Cache unavailable')
-      mockCache.get.mockRejectedValue(cacheError)
-      mockCache.set.mockRejectedValue(cacheError)
+    it("should handle cache errors gracefully", async () => {
+      const cacheError = new Error("Cache unavailable");
+      mockCache.get.mockRejectedValue(cacheError);
+      mockCache.set.mockRejectedValue(cacheError);
 
       // Should still work even with cache errors
       const dbResult = {
         valid: true,
-        user: { id: 1, username: 'test' }
-      }
-      mockDbAuthService.validateToken.mockResolvedValue(dbResult)
+        user: { id: 1, username: "test" },
+      };
+      mockDbAuthService.validateToken.mockResolvedValue(dbResult);
 
-      const result = await authService.validateToken('test-token')
-      expect(result.valid).toBe(true)
-    })
-  })
+      const result = await authService.validateToken("test-token");
+      expect(result.valid).toBe(true);
+    });
+  });
 
-  describe('Performance Metrics', () => {
-    it('should record performance metrics for all operations', async () => {
-      mockDbAuthService.login.mockResolvedValue({ success: true })
+  describe("Performance Metrics", () => {
+    it("should record performance metrics for all operations", async () => {
+      mockDbAuthService.login.mockResolvedValue({ success: true });
 
-      await authService.login({ username: 'test', password: 'test' })
+      await authService.login({ username: "test", password: "test" });
 
-      expect(mockPerformance.startTimer).toHaveBeenCalledWith('auth.login')
-      expect(mockPerformance.endTimer).toHaveBeenCalledWith('timer-123')
-      expect(mockPerformance.recordMetric).toHaveBeenCalledWith('auth.login.duration', 100, 'ms')
-    })
-  })
+      expect(mockPerformance.startTimer).toHaveBeenCalledWith("auth.login");
+      expect(mockPerformance.endTimer).toHaveBeenCalledWith("timer-123");
+      expect(mockPerformance.recordMetric).toHaveBeenCalledWith(
+        "auth.login.duration",
+        100,
+        "ms",
+      );
+    });
+  });
 
-  describe('Security Features', () => {
-    it('should log security events on login', async () => {
+  describe("Security Features", () => {
+    it("should log security events on login", async () => {
       const loginData: LoginData = {
-        username: 'testuser',
-        password: 'testpass123',
-        deviceInfo: { ipAddress: '192.168.1.1' }
-      }
+        username: "testuser",
+        password: "testpass123",
+        deviceInfo: { ipAddress: "192.168.1.1" },
+      };
 
       // Mock successful login with complete result structure
       mockDbAuthService.login.mockResolvedValue({
         success: true,
         user: {
           id: 1,
-          username: 'testuser',
-          fullName: 'Test User',
+          username: "testuser",
+          fullName: "Test User",
           role: 2,
           restaurantId: 1,
-          isActive: true
+          isActive: true,
         },
         tokens: {
-          accessToken: 'test-access-token',
-          refreshToken: 'test-refresh-token',
-          expiresAt: new Date(Date.now() + 86400000)
-        }
-      })
+          accessToken: "test-access-token",
+          refreshToken: "test-refresh-token",
+          expiresAt: new Date(Date.now() + 86400000),
+        },
+      });
 
-      await authService.login(loginData)
+      await authService.login(loginData);
 
       // Should have logged a successful login security event
       expect(mockCache.set).toHaveBeenCalledWith(
         expect.stringMatching(/^security-event:/),
         expect.objectContaining({
-          type: 'LOGIN',
+          type: "LOGIN",
           userId: 1,
-          username: 'testuser',
-          severity: 'LOW'
+          username: "testuser",
+          severity: "LOW",
         }),
-        expect.any(Number)
-      )
-    })
+        expect.any(Number),
+      );
+    });
 
-    it('should log failed login attempts', async () => {
+    it("should log failed login attempts", async () => {
       const loginData: LoginData = {
-        username: 'testuser',
-        password: 'wrongpass',
-        deviceInfo: { ipAddress: '192.168.1.1' }
-      }
+        username: "testuser",
+        password: "wrongpass",
+        deviceInfo: { ipAddress: "192.168.1.1" },
+      };
 
       mockDbAuthService.login.mockResolvedValue({
         success: false,
-        error: 'Invalid credentials'
-      })
+        error: "Invalid credentials",
+      });
 
-      await authService.login(loginData)
+      await authService.login(loginData);
 
       // Should have logged failed login attempt
       expect(mockCache.set).toHaveBeenCalledWith(
         expect.stringMatching(/^failed-login:/),
         1,
-        expect.any(Number)
-      )
+        expect.any(Number),
+      );
 
       // Should have logged security event
       expect(mockCache.set).toHaveBeenCalledWith(
         expect.stringMatching(/^security-event:/),
         expect.objectContaining({
-          type: 'LOGIN_FAILED',
-          username: 'testuser',
-          severity: 'MEDIUM'
+          type: "LOGIN_FAILED",
+          username: "testuser",
+          severity: "MEDIUM",
         }),
-        expect.any(Number)
-      )
-    })
-  })
-})
+        expect.any(Number),
+      );
+    });
+  });
+});

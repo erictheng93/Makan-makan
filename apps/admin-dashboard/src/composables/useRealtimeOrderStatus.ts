@@ -40,7 +40,14 @@ export function useRealtimeOrderStatus() {
   );
 
   const connect = (restaurantId: string) => {
-    const wsUrl = `${import.meta.env.VITE_REALTIME_WS_URL || "wss://realtime.makanmakan.com"}/admin/${restaurantId}`;
+    const realtimeWsUrl = import.meta.env.VITE_REALTIME_WS_URL;
+    if (!realtimeWsUrl) {
+      console.error(
+        "[Config Error] VITE_REALTIME_WS_URL is required for admin realtime service",
+      );
+      return;
+    }
+    const wsUrl = `${realtimeWsUrl}/admin/${restaurantId}`;
 
     try {
       wsConnection.value = new WebSocket(wsUrl);

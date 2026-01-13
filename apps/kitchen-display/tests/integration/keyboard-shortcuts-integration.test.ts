@@ -8,8 +8,24 @@ import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 
 // TODO: These tests need to be updated to use the current useKeyboardShortcuts API
-// The tests reference functions (executeShortcut, setupEventListeners, handleKeyDown)
-// that are not exported by the composable. Skipping until tests are updated.
+// The tests reference functions not exported by the composable:
+// - executeShortcut: NOT exported - tests need to use registerHandler + trigger keydown events
+// - setupEventListeners: NOT exported - handled internally by composable (onMounted)
+// - handleKeyDown: NOT exported - use document.dispatchEvent(new KeyboardEvent(...)) instead
+// - keySequence: NOT exported as ref - use activeKeys ref instead
+// - validateShortcuts: NOT exported - need to implement if needed
+// - cleanup: NOT exported - handled by onUnmounted
+//
+// Available API from useKeyboardShortcuts():
+// State: shortcuts, enabled, showHelp, activeKeys, actionQueue, shortcutGroups
+// Registration: registerHandler, unregisterHandler, registerMultipleHandlers
+// Management: addShortcut, removeShortcut, enableShortcut, disableShortcut, updateShortcutKeys
+// Control: enable, disable, toggle
+// Help: toggleHelp, hideHelp
+// Utils: formatShortcut, getCategoryTitle
+// Storage: saveShortcuts, loadShortcuts, resetToDefaults, exportShortcuts, importShortcuts
+//
+// Estimated effort: 3-4 hours to refactor all tests
 describe.skip("Keyboard Shortcuts Integration Tests", () => {
   let orderStore: ReturnType<typeof useOrderManagementStore>;
 

@@ -14,7 +14,14 @@ export function useRealtimeNotifications() {
   const toast = useToast();
 
   const connect = () => {
-    const wsUrl = `${import.meta.env.VITE_REALTIME_WS_URL || "wss://realtime.makanmakan.com"}/customer`;
+    const realtimeWsUrl = import.meta.env.VITE_REALTIME_WS_URL;
+    if (!realtimeWsUrl) {
+      console.error(
+        "[Config Error] VITE_REALTIME_WS_URL is required for realtime notifications",
+      );
+      return;
+    }
+    const wsUrl = `${realtimeWsUrl}/customer`;
 
     try {
       wsConnection.value = new WebSocket(wsUrl);

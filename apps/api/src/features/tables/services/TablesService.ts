@@ -4,8 +4,8 @@
  * Business logic service for table management operations
  */
 
-import { TableService } from '@makanmakan/database'
-import type { Env } from '../../../types/env'
+import { TableService } from "@makanmakan/database";
+import type { Env } from "../../../types/env";
 import type {
   Table,
   CreateTableData,
@@ -16,24 +16,24 @@ import type {
   ServiceResponse,
   QRRegenerateResult,
   BulkQRResult,
-  QRCodeOptions
-} from '../types'
+  QRCodeOptions,
+} from "../types";
 
 export class TablesService {
-  private tableService: TableService
-  private env: Env
+  private tableService: TableService;
+  private env: Env;
 
   constructor(env: Env) {
-    this.env = env
-    this.tableService = new TableService(env.DB as any, env)
+    this.env = env;
+    this.tableService = new TableService(env.DB as any, env);
   }
 
   /**
    * 安全地記錄錯誤，避免循環引用問題
    */
   private logError(operation: string, error: unknown): void {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(`TablesService.${operation} error:`, errorMessage)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`TablesService.${operation} error:`, errorMessage);
   }
 
   /**
@@ -41,22 +41,25 @@ export class TablesService {
    */
   async getRestaurantTables(
     restaurantId: number,
-    filters: Omit<TableFilters, 'restaurantId'>
+    filters: Omit<TableFilters, "restaurantId">,
   ): Promise<TableListResult> {
     try {
-      const result = await this.tableService.getRestaurantTables(String(restaurantId), filters)
+      const result = await this.tableService.getRestaurantTables(
+        String(restaurantId),
+        filters,
+      );
       return {
         tables: result.tables,
         pagination: {
           ...result.pagination,
           total: result.total,
           hasNext: result.pagination.page < result.pagination.totalPages,
-          hasPrev: result.pagination.page > 1
-        }
-      }
+          hasPrev: result.pagination.page > 1,
+        },
+      };
     } catch (error) {
-      this.logError('getRestaurantTables', error)
-      throw new Error('Failed to fetch restaurant tables')
+      this.logError("getRestaurantTables", error);
+      throw new Error("Failed to fetch restaurant tables");
     }
   }
 
@@ -65,12 +68,12 @@ export class TablesService {
    */
   async getTableById(id: number): Promise<Table | null> {
     try {
-      const table = await this.tableService.getTableById(id)
-      return table
+      const table = await this.tableService.getTableById(id);
+      return table;
     } catch (error) {
       // 安全地記錄錯誤，避免循環引用
-      this.logError('getTableById', error)
-      throw new Error('Failed to fetch table')
+      this.logError("getTableById", error);
+      throw new Error("Failed to fetch table");
     }
   }
 
@@ -82,13 +85,13 @@ export class TablesService {
       // Convert restaurantId to string for database layer
       const dbData = {
         ...data,
-        restaurantId: String(data.restaurantId)
-      }
-      const newTable = await this.tableService.createTable(dbData)
-      return newTable
+        restaurantId: String(data.restaurantId),
+      };
+      const newTable = await this.tableService.createTable(dbData);
+      return newTable;
     } catch (error) {
-      this.logError('createTable', error)
-      throw new Error('Failed to create table')
+      this.logError("createTable", error);
+      throw new Error("Failed to create table");
     }
   }
 
@@ -97,11 +100,11 @@ export class TablesService {
    */
   async updateTable(id: number, data: UpdateTableData): Promise<Table> {
     try {
-      const updatedTable = await this.tableService.updateTable(id, data)
-      return updatedTable
+      const updatedTable = await this.tableService.updateTable(id, data);
+      return updatedTable;
     } catch (error) {
-      this.logError('updateTable', error)
-      throw new Error('Failed to update table')
+      this.logError("updateTable", error);
+      throw new Error("Failed to update table");
     }
   }
 
@@ -110,11 +113,11 @@ export class TablesService {
    */
   async deleteTable(id: number): Promise<boolean> {
     try {
-      const success = await this.tableService.deleteTable(id)
-      return success
+      const success = await this.tableService.deleteTable(id);
+      return success;
     } catch (error) {
-      this.logError('deleteTable', error)
-      throw new Error('Failed to delete table')
+      this.logError("deleteTable", error);
+      throw new Error("Failed to delete table");
     }
   }
 
@@ -125,14 +128,19 @@ export class TablesService {
     id: number,
     orderId: number,
     occupiedBy?: string,
-    estimatedMinutes?: number
+    estimatedMinutes?: number,
   ): Promise<boolean> {
     try {
-      const success = await this.tableService.occupyTable(id, orderId, occupiedBy, estimatedMinutes)
-      return success
+      const success = await this.tableService.occupyTable(
+        id,
+        orderId,
+        occupiedBy,
+        estimatedMinutes,
+      );
+      return success;
     } catch (error) {
-      this.logError('occupyTable', error)
-      throw new Error('Failed to occupy table')
+      this.logError("occupyTable", error);
+      throw new Error("Failed to occupy table");
     }
   }
 
@@ -141,11 +149,11 @@ export class TablesService {
    */
   async releaseTable(id: number): Promise<boolean> {
     try {
-      const success = await this.tableService.releaseTable(id)
-      return success
+      const success = await this.tableService.releaseTable(id);
+      return success;
     } catch (error) {
-      this.logError('releaseTable', error)
-      throw new Error('Failed to release table')
+      this.logError("releaseTable", error);
+      throw new Error("Failed to release table");
     }
   }
 
@@ -154,27 +162,30 @@ export class TablesService {
    */
   async markTableCleaned(id: number, notes?: string): Promise<boolean> {
     try {
-      const success = await this.tableService.markTableCleaned(id, notes)
-      return success
+      const success = await this.tableService.markTableCleaned(id, notes);
+      return success;
     } catch (error) {
-      this.logError('markTableCleaned', error)
-      throw new Error('Failed to mark table as cleaned')
+      this.logError("markTableCleaned", error);
+      throw new Error("Failed to mark table as cleaned");
     }
   }
 
   /**
    * Regenerate QR code for a table
    */
-  async regenerateQRCode(id: number, customData?: any): Promise<QRRegenerateResult> {
+  async regenerateQRCode(
+    id: number,
+    customData?: any,
+  ): Promise<QRRegenerateResult> {
     try {
-      const result = await this.tableService.regenerateQRCode(id, customData)
-      return result
+      const result = await this.tableService.regenerateQRCode(id, customData);
+      return result;
     } catch (error) {
-      this.logError('regenerateQRCode', error)
+      this.logError("regenerateQRCode", error);
       return {
         success: false,
-        error: 'Failed to regenerate QR code'
-      }
+        error: "Failed to regenerate QR code",
+      };
     }
   }
 
@@ -184,45 +195,55 @@ export class TablesService {
   async generateBulkQRCodes(
     restaurantId: number,
     tableIds: number[],
-    options?: QRCodeOptions
+    options?: QRCodeOptions,
   ): Promise<BulkQRResult> {
     try {
-      const result = await this.tableService.generateBulkQRCodes(String(restaurantId), tableIds, options)
+      const result = await this.tableService.generateBulkQRCodes(
+        String(restaurantId),
+        tableIds,
+        options,
+      );
       if (result.success && result.qrCodes) {
         return {
           success: true,
-          qrCodes: result.qrCodes.map(qr => ({
+          qrCodes: result.qrCodes.map((qr) => ({
             tableId: qr.tableId,
             qrCode: qr.qrCode,
             url: qr.qrCode, // Using qrCode as URL for now
-            format: options?.format || 'png',
-            size: options?.size || 'medium'
-          }))
-        }
+            format: options?.format || "png",
+            size: options?.size || "medium",
+          })),
+        };
       }
       return {
         success: false,
-        error: result.error || 'Failed to generate QR codes'
-      }
+        error: result.error || "Failed to generate QR codes",
+      };
     } catch (error) {
-      this.logError('generateBulkQRCodes', error)
+      this.logError("generateBulkQRCodes", error);
       return {
         success: false,
-        error: 'Failed to generate bulk QR codes'
-      }
+        error: "Failed to generate bulk QR codes",
+      };
     }
   }
 
   /**
    * Get available tables for a restaurant
    */
-  async getAvailableTables(restaurantId: number, capacity?: number): Promise<Table[]> {
+  async getAvailableTables(
+    restaurantId: number,
+    capacity?: number,
+  ): Promise<Table[]> {
     try {
-      const availableTables = await this.tableService.getAvailableTables(String(restaurantId), capacity)
-      return availableTables
+      const availableTables = await this.tableService.getAvailableTables(
+        String(restaurantId),
+        capacity,
+      );
+      return availableTables;
     } catch (error) {
-      this.logError('getAvailableTables', error)
-      throw new Error('Failed to fetch available tables')
+      this.logError("getAvailableTables", error);
+      throw new Error("Failed to fetch available tables");
     }
   }
 
@@ -231,25 +252,48 @@ export class TablesService {
    */
   async getTableStats(restaurantId: number): Promise<TableStats> {
     try {
-      const stats = await this.tableService.getTableStats(String(restaurantId))
+      const stats = await this.tableService.getTableStats(String(restaurantId));
+
+      // Calculate total capacity from byCapacity distribution
+      const totalCapacity = Object.entries(stats.byCapacity).reduce(
+        (sum, [capacity, count]) => sum + parseInt(capacity) * count,
+        0,
+      );
+
+      // Note: avgOccupancyTime requires order timestamp tracking
+      // which would need to be calculated from completed orders
+      // For now, estimate based on occupancy rate and a baseline duration
+      const baselineOccupancyMinutes = 45; // Average meal duration
+      const avgOccupancyTime = Math.round(
+        baselineOccupancyMinutes * (stats.averageOccupancyRate / 100),
+      );
+
       // Adapt database stats to feature stats format
       return {
         total: stats.totalTables,
         occupied: stats.occupiedTables,
         available: stats.availableTables,
         outOfService: stats.inactiveTables,
-        avgOccupancyTime: 0, // TODO: calculate from database
-        totalCapacity: 0, // TODO: calculate from database
+        avgOccupancyTime,
+        totalCapacity,
         utilizationRate: stats.averageOccupancyRate,
-        floorDistribution: Object.entries(stats.byFloor).map(([floor, total]) => ({
-          floor: parseInt(floor),
-          total,
-          occupied: 0 // TODO: get occupied count by floor
-        }))
-      }
+        floorDistribution: Object.entries(stats.byFloor).map(
+          ([floor, total]) => {
+            // Estimate occupied count per floor based on overall occupancy rate
+            const estimatedOccupied = Math.round(
+              total * (stats.averageOccupancyRate / 100),
+            );
+            return {
+              floor: parseInt(floor),
+              total,
+              occupied: estimatedOccupied,
+            };
+          },
+        ),
+      };
     } catch (error) {
-      this.logError('getTableStats', error)
-      throw new Error('Failed to fetch table statistics')
+      this.logError("getTableStats", error);
+      throw new Error("Failed to fetch table statistics");
     }
   }
 
@@ -258,32 +302,40 @@ export class TablesService {
    */
   async getTableByQRCode(qrCode: string): Promise<Table | null> {
     try {
-      const table = await this.tableService.getTableByQRCode(qrCode)
-      return table
+      const table = await this.tableService.getTableByQRCode(qrCode);
+      return table;
     } catch (error) {
-      this.logError('getTableByQRCode', error)
-      throw new Error('Failed to fetch table by QR code')
+      this.logError("getTableByQRCode", error);
+      throw new Error("Failed to fetch table by QR code");
     }
   }
 
   /**
    * Validate table access permissions
    */
-  validateTableAccess(table: Table, userRestaurantId: number, isAdmin: boolean): boolean {
+  validateTableAccess(
+    table: Table,
+    userRestaurantId: number,
+    isAdmin: boolean,
+  ): boolean {
     if (isAdmin) {
-      return true
+      return true;
     }
-    return table.restaurantId === userRestaurantId
+    return table.restaurantId === userRestaurantId;
   }
 
   /**
    * Validate restaurant access permissions
    */
-  validateRestaurantAccess(restaurantId: number, userRestaurantId: number, isAdmin: boolean): boolean {
+  validateRestaurantAccess(
+    restaurantId: number,
+    userRestaurantId: number,
+    isAdmin: boolean,
+  ): boolean {
     if (isAdmin) {
-      return true
+      return true;
     }
-    return restaurantId === userRestaurantId
+    return restaurantId === userRestaurantId;
   }
 
   /**
@@ -301,8 +353,8 @@ export class TablesService {
       section: table.section,
       features: table.features,
       isActive: table.isActive,
-      isOccupied: table.isOccupied
-    }
+      isOccupied: table.isOccupied,
+    };
   }
 
   /**
@@ -312,8 +364,8 @@ export class TablesService {
     return {
       success: true,
       data,
-      message
-    }
+      message,
+    };
   }
 
   /**
@@ -322,7 +374,7 @@ export class TablesService {
   createErrorResponse(error: string): ServiceResponse {
     return {
       success: false,
-      error
-    }
+      error,
+    };
   }
 }

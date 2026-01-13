@@ -50,7 +50,14 @@ export function useRealtimeKitchen() {
   );
 
   const connect = (restaurantId: string) => {
-    const wsUrl = `${import.meta.env.VITE_REALTIME_WS_URL || "wss://realtime.makanmakan.com"}/kitchen/${restaurantId}`;
+    const realtimeWsUrl = import.meta.env.VITE_REALTIME_WS_URL;
+    if (!realtimeWsUrl) {
+      console.error(
+        "[Config Error] VITE_REALTIME_WS_URL is required for kitchen realtime service",
+      );
+      return;
+    }
+    const wsUrl = `${realtimeWsUrl}/kitchen/${restaurantId}`;
 
     try {
       wsConnection.value = new WebSocket(wsUrl);

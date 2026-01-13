@@ -1,6 +1,7 @@
 // Comprehensive kitchen statistics and analytics service
 import { ref, reactive } from "vue";
 import { useOrderManagementStore } from "@/stores/orderManagement";
+import { useOrdersStore } from "@/stores/orders";
 import type { KitchenOrder } from "@/types";
 
 export interface TimeRange {
@@ -85,7 +86,8 @@ export interface KitchenStats {
 }
 
 class KitchenStatisticsService {
-  private orderStore = useOrderManagementStore();
+  private orderManagementStore = useOrderManagementStore();
+  private ordersStore = useOrdersStore();
 
   // Reactive state
   public timeRange = ref<TimeRange>({
@@ -412,7 +414,7 @@ class KitchenStatisticsService {
 
   // Real-time statistics
   private computeRealTimeStats() {
-    const currentOrders: KitchenOrder[] = []; // TODO: Get orders from proper store
+    const currentOrders: KitchenOrder[] = this.ordersStore.orders;
     const activeOrders = currentOrders.filter(
       (o: KitchenOrder) => o.status < 3,
     ).length;
@@ -445,7 +447,7 @@ class KitchenStatisticsService {
     const start = this.timeRange.value.start.getTime();
     const end = this.timeRange.value.end.getTime();
 
-    const orders: KitchenOrder[] = []; // TODO: Get orders from proper store
+    const orders: KitchenOrder[] = this.ordersStore.orders;
     return orders.filter((order: KitchenOrder) => {
       const orderTime = new Date(order.createdAt).getTime();
       return orderTime >= start && orderTime <= end;
@@ -541,7 +543,7 @@ class KitchenStatisticsService {
             itemTimes[item.name] = { totalTime: 0, count: 0 };
           }
 
-          itemTimes[item.name].totalTime += (item as any).cookingTime || 0; // TODO: Add cookingTime to KitchenOrderItem type
+          itemTimes[item.name].totalTime += item.cookingTime || 0;
           itemTimes[item.name].count++;
         });
       });
@@ -576,7 +578,7 @@ class KitchenStatisticsService {
 
   private calculateWorkload(chefId: string): number {
     // Calculate current workload for the chef
-    const orders: KitchenOrder[] = []; // TODO: Get orders from proper store
+    const orders: KitchenOrder[] = this.ordersStore.orders;
     const activeOrders = orders.filter(
       (o: KitchenOrder) => String(o.assignedChef) === chefId && o.status < 3,
     ).length;
@@ -644,7 +646,7 @@ class KitchenStatisticsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const orders: KitchenOrder[] = []; // TODO: Get orders from proper store
+    const orders: KitchenOrder[] = this.ordersStore.orders;
     const todayOrders = orders.filter(
       (order: KitchenOrder) => new Date(order.createdAt) >= today,
     );

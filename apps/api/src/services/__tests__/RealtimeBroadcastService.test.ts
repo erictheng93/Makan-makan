@@ -41,12 +41,14 @@ import {
 
 // Mock logger
 vi.mock("../../core/monitoring", () => ({
-  ConsoleLogger: vi.fn().mockImplementation(() => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-  })),
+  ConsoleLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
 }));
 
 describe("RealtimeBroadcastService", () => {

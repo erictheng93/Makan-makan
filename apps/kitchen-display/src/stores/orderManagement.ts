@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useSettingsStore } from "./settings";
+import { useOrdersStore } from "./orders";
+import { kitchenApi } from "@/services/kitchenApi";
 import type {
   KitchenOrder,
   KitchenOrderItem,
@@ -408,16 +410,53 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
   });
 
   // Order operations
-  const completeOrder = async (orderId: number) => {
-    // TODO: Implement actual order completion API call
-    console.log(`Completing order ${orderId}`);
-    // This would call the API to mark order as complete
+  const completeOrder = async (orderId: number, restaurantId?: number) => {
+    const ordersStore = useOrdersStore();
+    const restId = restaurantId || ordersStore.orders[0]?.id;
+
+    if (!restId) {
+      console.error("No restaurant ID available for completing order");
+      return;
+    }
+
+    // Find the order to get all preparing items
+    const order = ordersStore.orders.find((o) => o.id === orderId);
+    if (!order) {
+      console.error(`Order ${orderId} not found`);
+      return;
+    }
+
+    // Mark all preparing items as ready
+    const preparingItems = order.items
+      .filter((item) => item.status === "preparing")
+      .map((item) => item.id);
+
+    if (preparingItems.length > 0) {
+      await ordersStore.markAllReady(restId, orderId);
+    }
+
+    console.log(`Order ${orderId} completed`);
   };
 
-  const startCooking = async (orderId: number) => {
-    // TODO: Implement actual start cooking API call
-    console.log(`Starting cooking for order ${orderId}`);
-    // This would call the API to start cooking process
+  const startCooking = async (orderId: number, restaurantId?: number) => {
+    const ordersStore = useOrdersStore();
+    const restId = restaurantId || ordersStore.orders[0]?.id;
+
+    if (!restId) {
+      console.error("No restaurant ID available for starting cooking");
+      return;
+    }
+
+    // Find the order to get all pending items
+    const order = ordersStore.orders.find((o) => o.id === orderId);
+    if (!order) {
+      console.error(`Order ${orderId} not found`);
+      return;
+    }
+
+    // Start all pending items
+    await ordersStore.startAllItems(restId, orderId);
+    console.log(`Started cooking for order ${orderId}`);
   };
 
   // Navigation methods
@@ -478,17 +517,72 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
   };
 
   // Refresh operations
-  const refreshOrders = async () => {
-    // TODO: Implement actual order refresh from API
-    console.log("Refreshing orders");
-    // This would call the API to fetch latest orders
+  const refreshOrders = async (restaurantId?: number) => {
+    const ordersStore = useOrdersStore();
+    const restId = restaurantId || ordersStore.orders[0]?.id;
+
+    if (!restId) {
+      console.warn("No restaurant ID available for refreshing orders");
+      return;
+    }
+
+    await ordersStore.fetchOrders(restId);
+    console.log("Orders refreshed successfully");
   };
 
   // Batch operations
-  const batchOperation = async (operation: string, orderIds: number[]) => {
-    // TODO: Implement actual batch operations
-    console.log(`Performing ${operation} on orders:`, orderIds);
-    // This would call the appropriate API endpoints for batch operations
+  const batchOperation = async (
+    operation: string,
+    orderIds: number[],
+    restaurantId?: number,
+  ) => {
+    const ordersStore = useOrdersStore();
+    const restId = restaurantId || ordersStore.orders[0]?.id;
+
+    if (!restId) {
+      console.error("No restaurant ID available for batch operation");
+      return;
+    }
+
+    const updates: Array<{
+      orderId: number;
+      itemId: number;
+      status: ItemStatus;
+    }> = [];
+
+    // Collect all items that need to be updated based on operation type
+    for (const orderId of orderIds) {
+      const order = ordersStore.orders.find((o) => o.id === orderId);
+      if (!order) continue;
+
+      for (const item of order.items) {
+        if (operation === "start_cooking" && item.status === "pending") {
+          updates.push({ orderId, itemId: item.id, status: "preparing" });
+        } else if (operation === "mark_ready" && item.status === "preparing") {
+          updates.push({ orderId, itemId: item.id, status: "ready" });
+        } else if (operation === "complete" && item.status === "ready") {
+          updates.push({ orderId, itemId: item.id, status: "completed" });
+        }
+      }
+    }
+
+    if (updates.length === 0) {
+      console.log(`No items to update for operation: ${operation}`);
+      return;
+    }
+
+    // Execute batch update via API
+    const result = await kitchenApi.batchUpdateItemStatus(restId, updates);
+
+    if (result.success) {
+      console.log(
+        `Batch operation ${operation} completed for ${updates.length} items`,
+      );
+      // Refresh orders to get the latest state
+      await ordersStore.fetchOrders(restId);
+    } else {
+      console.error(`Batch operation ${operation} failed:`, result.error);
+    }
   };
 
   // Reset all management state

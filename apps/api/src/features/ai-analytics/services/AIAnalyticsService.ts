@@ -9,32 +9,163 @@ import {
   testProvider as testAIProvider,
   getDefaultModel,
   getAvailableModels,
-} from '@makanmakan/ai-analytics';
-import { getCurrentTimestamp } from '@makanmakan/database';
-import type { LLMConfig } from '@makanmakan/ai-analytics';
+} from "@makanmakan/ai-analytics";
+import { getCurrentTimestamp } from "@makanmakan/database";
+import type { LLMConfig } from "@makanmakan/ai-analytics";
 import type {
   AIConfiguration,
   AIConfigInput,
   TestProviderInput,
   TimeRange,
   AIUsageStats,
-} from '../types';
-import type { ProductAnalysis as PackageProductAnalysis, AIAnalyticsReport } from '@makanmakan/ai-analytics';
+} from "../types";
+import type {
+  ProductAnalysis as PackageProductAnalysis,
+  AIAnalyticsReport,
+} from "@makanmakan/ai-analytics";
 
 /**
- * Simple AES-256 encryption for API keys
- * Note: In production, use a proper encryption library
+ * AES-256-GCM encryption for API keys using Web Crypto API
+ * Format: base64(iv):base64(encrypted):base64(authTag)
  */
-async function encryptApiKey(apiKey: string, _key: string): Promise<string> {
-  // For now, use base64 encoding
-  // TODO: Implement proper AES-256 encryption
-  return btoa(apiKey);
+
+// Helper to convert string to Uint8Array
+function stringToUint8Array(str: string): Uint8Array {
+  const encoder = new TextEncoder();
+  return encoder.encode(str);
 }
 
-async function decryptApiKey(encryptedKey: string, _key: string): Promise<string> {
-  // For now, use base64 decoding
-  // TODO: Implement proper AES-256 decryption
-  return atob(encryptedKey);
+// Helper to convert ArrayBuffer to string
+function arrayBufferToString(buffer: ArrayBuffer): string {
+  const decoder = new TextDecoder();
+  return decoder.decode(buffer);
+}
+
+// Helper to convert ArrayBuffer to base64
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+// Helper to convert base64 to ArrayBuffer
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// Derive a 256-bit key from the encryption key string
+async function deriveKey(keyString: string): Promise<CryptoKey> {
+  // Use the key string as password and derive a proper AES key
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    stringToUint8Array(keyString),
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"],
+  );
+
+  // Use a fixed salt (in production, consider storing salt per-encryption)
+  const salt = stringToUint8Array("makanmakan-api-key-encryption-salt");
+
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encryptApiKey(
+  apiKey: string,
+  encryptionKey: string,
+): Promise<string> {
+  try {
+    // Generate a random 12-byte IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Derive AES key from encryption key string
+    const key = await deriveKey(encryptionKey);
+
+    // Encrypt the API key
+    const encrypted = await crypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv,
+        tagLength: 128, // 128-bit auth tag
+      },
+      key,
+      stringToUint8Array(apiKey),
+    );
+
+    // The encrypted result includes the ciphertext and auth tag
+    // Format: base64(iv):base64(encryptedWithTag)
+    const ivBase64 = arrayBufferToBase64(iv.buffer);
+    const encryptedBase64 = arrayBufferToBase64(encrypted);
+
+    return `${ivBase64}:${encryptedBase64}`;
+  } catch (error) {
+    console.error("Encryption error:", error);
+    throw new Error("Failed to encrypt API key");
+  }
+}
+
+async function decryptApiKey(
+  encryptedKey: string,
+  encryptionKey: string,
+): Promise<string> {
+  try {
+    // Check if it's the old base64-only format (for backward compatibility)
+    if (!encryptedKey.includes(":")) {
+      // Legacy format - just base64 encoded
+      console.warn(
+        "Using legacy base64 decoding for API key - please re-save configuration to use encryption",
+      );
+      return atob(encryptedKey);
+    }
+
+    // Parse the encrypted format: base64(iv):base64(encryptedWithTag)
+    const [ivBase64, encryptedBase64] = encryptedKey.split(":");
+
+    if (!ivBase64 || !encryptedBase64) {
+      throw new Error("Invalid encrypted key format");
+    }
+
+    const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
+    const encrypted = base64ToArrayBuffer(encryptedBase64);
+
+    // Derive AES key from encryption key string
+    const key = await deriveKey(encryptionKey);
+
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv,
+        tagLength: 128,
+      },
+      key,
+      encrypted,
+    );
+
+    return arrayBufferToString(decrypted);
+  } catch (error) {
+    console.error("Decryption error:", error);
+    throw new Error("Failed to decrypt API key");
+  }
 }
 
 export class AIAnalyticsService {
@@ -70,7 +201,7 @@ export class AIAnalyticsService {
     return {
       id: result.id,
       restaurantId: result.restaurant_id,
-      provider: result.provider as AIConfiguration['provider'],
+      provider: result.provider as AIConfiguration["provider"],
       apiKeyEncrypted: result.api_key_encrypted,
       model: result.model,
       customBaseUrl: result.custom_base_url,
@@ -98,10 +229,13 @@ export class AIAnalyticsService {
 
     if (!result) return null;
 
-    const apiKey = await decryptApiKey(result.api_key_encrypted, this.encryptionKey);
+    const apiKey = await decryptApiKey(
+      result.api_key_encrypted,
+      this.encryptionKey,
+    );
 
     return {
-      provider: result.provider as LLMConfig['provider'],
+      provider: result.provider as LLMConfig["provider"],
       apiKey,
       model: result.model || undefined,
       baseUrl: result.custom_base_url || undefined,
@@ -140,19 +274,27 @@ export class AIAnalyticsService {
         updated_at = excluded.updated_at
     `;
 
-    await this.db.prepare(query)
+    await this.db
+      .prepare(query)
       .bind(
         input.restaurantId,
         input.provider,
         encryptedKey,
         input.model || null,
         input.customBaseUrl || null,
-        now
+        now,
       )
       .run();
   }
 
-  async testProvider(input: TestProviderInput): Promise<{ success: boolean; latencyMs?: number; model?: string; error?: string }> {
+  async testProvider(
+    input: TestProviderInput,
+  ): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    model?: string;
+    error?: string;
+  }> {
     try {
       const result = await testAIProvider({
         provider: input.provider,
@@ -164,7 +306,7 @@ export class AIAnalyticsService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Test failed',
+        error: error instanceof Error ? error.message : "Test failed",
       };
     }
   }
@@ -172,12 +314,14 @@ export class AIAnalyticsService {
   async generateReport(
     restaurantId: string,
     timeRange: TimeRange,
-    options?: { includeForecasting?: boolean; refreshCache?: boolean }
+    options?: { includeForecasting?: boolean; refreshCache?: boolean },
   ): Promise<AIAnalyticsReport> {
     const llmConfig = await this.getLLMConfig(restaurantId);
 
     if (!llmConfig) {
-      throw new Error('AI provider not configured. Please configure an AI provider first.');
+      throw new Error(
+        "AI provider not configured. Please configure an AI provider first.",
+      );
     }
 
     const service = new AIInsightsService(this.db);
@@ -188,47 +332,71 @@ export class AIAnalyticsService {
       {
         includeForecasting: options?.includeForecasting,
         refreshCache: options?.refreshCache,
-      }
+      },
     );
 
     // Log usage
-    await this.db.prepare(`
+    await this.db
+      .prepare(
+        `
       INSERT INTO ai_usage_logs (
         restaurant_id, provider, model, operation, tokens_used, latency_ms, success
       ) VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).bind(
-      restaurantId,
-      llmConfig.provider,
-      llmConfig.model || getDefaultModel(llmConfig.provider),
-      'generate_report',
-      report.metadata.tokensUsed || 0,
-      report.metadata.processingTimeMs
-    ).run();
+    `,
+      )
+      .bind(
+        restaurantId,
+        llmConfig.provider,
+        llmConfig.model || getDefaultModel(llmConfig.provider),
+        "generate_report",
+        report.metadata.tokensUsed || 0,
+        report.metadata.processingTimeMs,
+      )
+      .run();
 
     return report;
   }
 
-  async getTrafficDrivers(restaurantId: string, timeRange: TimeRange, limit: number = 10): Promise<PackageProductAnalysis[]> {
+  async getTrafficDrivers(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit: number = 10,
+  ): Promise<PackageProductAnalysis[]> {
     const service = new ProductAnalysisService(this.db);
     return service.getTrafficDrivers(restaurantId, timeRange, limit);
   }
 
-  async getBestsellers(restaurantId: string, timeRange: TimeRange, limit: number = 10): Promise<PackageProductAnalysis[]> {
+  async getBestsellers(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit: number = 10,
+  ): Promise<PackageProductAnalysis[]> {
     const service = new ProductAnalysisService(this.db);
     return service.getBestsellers(restaurantId, timeRange, limit);
   }
 
-  async getProfitLeaders(restaurantId: string, timeRange: TimeRange, limit: number = 10): Promise<PackageProductAnalysis[]> {
+  async getProfitLeaders(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit: number = 10,
+  ): Promise<PackageProductAnalysis[]> {
     const service = new ProductAnalysisService(this.db);
     return service.getProfitLeaders(restaurantId, timeRange, limit);
   }
 
-  async analyzeProducts(restaurantId: string, timeRange: TimeRange): Promise<PackageProductAnalysis[]> {
+  async analyzeProducts(
+    restaurantId: string,
+    timeRange: TimeRange,
+  ): Promise<PackageProductAnalysis[]> {
     const service = new ProductAnalysisService(this.db);
     return service.analyzeProducts(restaurantId, timeRange);
   }
 
-  async getUsageStats(restaurantId: string, startDate?: string, endDate?: string): Promise<AIUsageStats[]> {
+  async getUsageStats(
+    restaurantId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<AIUsageStats[]> {
     let query = `
       SELECT
         provider,
@@ -245,28 +413,31 @@ export class AIAnalyticsService {
     const bindings: (string | number)[] = [restaurantId];
 
     if (startDate) {
-      query += ' AND DATE(created_at) >= ?';
+      query += " AND DATE(created_at) >= ?";
       bindings.push(startDate);
     }
     if (endDate) {
-      query += ' AND DATE(created_at) <= ?';
+      query += " AND DATE(created_at) <= ?";
       bindings.push(endDate);
     }
 
-    query += ' GROUP BY provider, model, operation ORDER BY request_count DESC';
+    query += " GROUP BY provider, model, operation ORDER BY request_count DESC";
 
-    const result = await this.db.prepare(query).bind(...bindings).all<{
-      provider: string;
-      model: string;
-      operation: string;
-      request_count: number;
-      total_tokens: number;
-      avg_latency_ms: number;
-      successful_requests: number;
-    }>();
+    const result = await this.db
+      .prepare(query)
+      .bind(...bindings)
+      .all<{
+        provider: string;
+        model: string;
+        operation: string;
+        request_count: number;
+        total_tokens: number;
+        avg_latency_ms: number;
+        successful_requests: number;
+      }>();
 
-    return (result.results || []).map(row => ({
-      provider: row.provider as AIUsageStats['provider'],
+    return (result.results || []).map((row) => ({
+      provider: row.provider as AIUsageStats["provider"],
       model: row.model,
       operation: row.operation,
       requestCount: row.request_count,
@@ -278,10 +449,10 @@ export class AIAnalyticsService {
 
   // Static helper methods
   static getAvailableModels(provider: string) {
-    return getAvailableModels(provider as LLMConfig['provider']);
+    return getAvailableModels(provider as LLMConfig["provider"]);
   }
 
   static getDefaultModel(provider: string) {
-    return getDefaultModel(provider as LLMConfig['provider']);
+    return getDefaultModel(provider as LLMConfig["provider"]);
   }
 }

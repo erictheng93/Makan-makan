@@ -6,8 +6,19 @@ import type {
 } from "@makanmakan/shared-types";
 
 // API 配置
+const getApiBaseUrl = (): string => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error(
+      "[Config Error] VITE_API_BASE_URL is required. " +
+        "Please set this environment variable in your .env file.",
+    );
+  }
+  return baseUrl;
+};
+
 const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://api.makanmakan.com",
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   retries: 3,
   retryDelay: 1000,

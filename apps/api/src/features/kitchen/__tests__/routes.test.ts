@@ -3,7 +3,7 @@
  * 廚房路由層測試 - 專注於路由邏輯和驗證
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock KitchenService
 const mockKitchenService = {
@@ -14,89 +14,96 @@ const mockKitchenService = {
   getKitchenOrders: vi.fn(),
   updateOrderItemStatus: vi.fn(),
   broadcastTestEvent: vi.fn(),
-  getConnectionStatus: vi.fn()
-}
+  getConnectionStatus: vi.fn(),
+};
 
-vi.mock('../services/KitchenService', () => ({
-  KitchenService: vi.fn().mockImplementation(() => mockKitchenService)
-}))
+vi.mock("../services/KitchenService", () => ({
+  KitchenService: vi.fn(function () {
+    return mockKitchenService;
+  }),
+}));
 
-describe('Kitchen Routes - Unit Tests', () => {
+describe("Kitchen Routes - Unit Tests", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockKitchenService.validateChefAccess.mockReturnValue(true)
-    mockKitchenService.generateConnectionId.mockReturnValue('kitchen_123_abc')
+    vi.clearAllMocks();
+    mockKitchenService.validateChefAccess.mockReturnValue(true);
+    mockKitchenService.generateConnectionId.mockReturnValue("kitchen_123_abc");
     mockKitchenService.getConnectionStatus.mockReturnValue({
       totalConnections: 1,
       restaurantConnections: 1,
-      connections: []
-    })
-  })
+      connections: [],
+    });
+  });
 
-  describe('Service Method Calls', () => {
-    describe('getKitchenOrders', () => {
-      it('should return kitchen orders data structure', async () => {
+  describe("Service Method Calls", () => {
+    describe("getKitchenOrders", () => {
+      it("should return kitchen orders data structure", async () => {
         const mockOrders = {
-          pending: [{ id: 1, orderNumber: 'ORD-001' }],
-          preparing: [{ id: 2, orderNumber: 'ORD-002' }],
+          pending: [{ id: 1, orderNumber: "ORD-001" }],
+          preparing: [{ id: 2, orderNumber: "ORD-002" }],
           ready: [],
-          stats: { pendingCount: 1, preparingCount: 1, readyCount: 0 }
-        }
-        mockKitchenService.getKitchenOrders.mockResolvedValue(mockOrders)
+          stats: { pendingCount: 1, preparingCount: 1, readyCount: 0 },
+        };
+        mockKitchenService.getKitchenOrders.mockResolvedValue(mockOrders);
 
-        const result = await mockKitchenService.getKitchenOrders(1, 100)
+        const result = await mockKitchenService.getKitchenOrders(1, 100);
 
-        expect(result.pending).toHaveLength(1)
-        expect(result.preparing).toHaveLength(1)
-        expect(result.stats.pendingCount).toBe(1)
-      })
+        expect(result.pending).toHaveLength(1);
+        expect(result.preparing).toHaveLength(1);
+        expect(result.stats.pendingCount).toBe(1);
+      });
 
-      it('should handle empty orders', async () => {
+      it("should handle empty orders", async () => {
         mockKitchenService.getKitchenOrders.mockResolvedValue({
           pending: [],
           preparing: [],
           ready: [],
-          stats: { pendingCount: 0, preparingCount: 0, readyCount: 0 }
-        })
+          stats: { pendingCount: 0, preparingCount: 0, readyCount: 0 },
+        });
 
-        const result = await mockKitchenService.getKitchenOrders(1, 100)
+        const result = await mockKitchenService.getKitchenOrders(1, 100);
 
-        expect(result.pending).toHaveLength(0)
-        expect(result.stats.pendingCount).toBe(0)
-      })
+        expect(result.pending).toHaveLength(0);
+        expect(result.stats.pendingCount).toBe(0);
+      });
 
-      it('should handle service errors', async () => {
-        mockKitchenService.getKitchenOrders.mockRejectedValue(new Error('Database error'))
+      it("should handle service errors", async () => {
+        mockKitchenService.getKitchenOrders.mockRejectedValue(
+          new Error("Database error"),
+        );
 
-        await expect(mockKitchenService.getKitchenOrders(1, 100))
-          .rejects.toThrow('Database error')
-      })
-    })
+        await expect(
+          mockKitchenService.getKitchenOrders(1, 100),
+        ).rejects.toThrow("Database error");
+      });
+    });
 
-    describe('updateOrderItemStatus', () => {
-      it('should update item status successfully', async () => {
+    describe("updateOrderItemStatus", () => {
+      it("should update item status successfully", async () => {
         mockKitchenService.updateOrderItemStatus.mockResolvedValue({
           orderId: 100,
           itemId: 50,
-          status: 'preparing',
+          status: "preparing",
           updatedAt: new Date().toISOString(),
-          broadcastSent: 1
-        })
+          broadcastSent: 1,
+        });
 
         const result = await mockKitchenService.updateOrderItemStatus(
-          1, 100, 50,
-          { status: 'preparing', notes: 'Started cooking' },
-          100
-        )
+          1,
+          100,
+          50,
+          { status: "preparing", notes: "Started cooking" },
+          100,
+        );
 
-        expect(result.orderId).toBe(100)
-        expect(result.itemId).toBe(50)
-        expect(result.status).toBe('preparing')
-        expect(result.broadcastSent).toBe(1)
-      })
+        expect(result.orderId).toBe(100);
+        expect(result.itemId).toBe(50);
+        expect(result.status).toBe("preparing");
+        expect(result.broadcastSent).toBe(1);
+      });
 
-      it('should handle update with all status types', async () => {
-        const statuses = ['pending', 'preparing', 'ready', 'completed']
+      it("should handle update with all status types", async () => {
+        const statuses = ["pending", "preparing", "ready", "completed"];
 
         for (const status of statuses) {
           mockKitchenService.updateOrderItemStatus.mockResolvedValue({
@@ -104,244 +111,261 @@ describe('Kitchen Routes - Unit Tests', () => {
             itemId: 50,
             status,
             updatedAt: new Date().toISOString(),
-            broadcastSent: 0
-          })
+            broadcastSent: 0,
+          });
 
           const result = await mockKitchenService.updateOrderItemStatus(
-            1, 100, 50, { status, notes: '' }, 100
-          )
+            1,
+            100,
+            50,
+            { status, notes: "" },
+            100,
+          );
 
-          expect(result.status).toBe(status)
+          expect(result.status).toBe(status);
         }
-      })
+      });
 
-      it('should handle update errors', async () => {
-        mockKitchenService.updateOrderItemStatus.mockRejectedValue(new Error('Update failed'))
+      it("should handle update errors", async () => {
+        mockKitchenService.updateOrderItemStatus.mockRejectedValue(
+          new Error("Update failed"),
+        );
 
-        await expect(mockKitchenService.updateOrderItemStatus(1, 100, 50, { status: 'ready' }, 100))
-          .rejects.toThrow('Update failed')
-      })
-    })
+        await expect(
+          mockKitchenService.updateOrderItemStatus(
+            1,
+            100,
+            50,
+            { status: "ready" },
+            100,
+          ),
+        ).rejects.toThrow("Update failed");
+      });
+    });
 
-    describe('broadcastTestEvent', () => {
-      it('should broadcast test event', async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(2)
+    describe("broadcastTestEvent", () => {
+      it("should broadcast test event", async () => {
+        mockKitchenService.broadcastTestEvent.mockReturnValue(2);
 
         const result = mockKitchenService.broadcastTestEvent(1, {
-          type: 'NEW_ORDER',
-          payload: { test: true }
-        })
+          type: "NEW_ORDER",
+          payload: { test: true },
+        });
 
-        expect(result).toBe(2)
-      })
+        expect(result).toBe(2);
+      });
 
-      it('should broadcast with default type', async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(1)
+      it("should broadcast with default type", async () => {
+        mockKitchenService.broadcastTestEvent.mockReturnValue(1);
 
-        const result = mockKitchenService.broadcastTestEvent(1, {})
+        const result = mockKitchenService.broadcastTestEvent(1, {});
 
-        expect(result).toBe(1)
-      })
+        expect(result).toBe(1);
+      });
 
-      it('should return 0 when no connections', async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(0)
+      it("should return 0 when no connections", async () => {
+        mockKitchenService.broadcastTestEvent.mockReturnValue(0);
 
-        const result = mockKitchenService.broadcastTestEvent(999, {})
+        const result = mockKitchenService.broadcastTestEvent(999, {});
 
-        expect(result).toBe(0)
-      })
-    })
+        expect(result).toBe(0);
+      });
+    });
 
-    describe('getConnectionStatus', () => {
-      it('should return connection status', async () => {
+    describe("getConnectionStatus", () => {
+      it("should return connection status", async () => {
         mockKitchenService.getConnectionStatus.mockReturnValue({
           totalConnections: 5,
           restaurantConnections: 3,
           connections: [
-            { id: 'conn-1', userId: 100, connected: true },
-            { id: 'conn-2', userId: 101, connected: true },
-            { id: 'conn-3', userId: 102, connected: false }
-          ]
-        })
+            { id: "conn-1", userId: 100, connected: true },
+            { id: "conn-2", userId: 101, connected: true },
+            { id: "conn-3", userId: 102, connected: false },
+          ],
+        });
 
-        const result = mockKitchenService.getConnectionStatus(1)
+        const result = mockKitchenService.getConnectionStatus(1);
 
-        expect(result.totalConnections).toBe(5)
-        expect(result.restaurantConnections).toBe(3)
-        expect(result.connections).toHaveLength(3)
-      })
+        expect(result.totalConnections).toBe(5);
+        expect(result.restaurantConnections).toBe(3);
+        expect(result.connections).toHaveLength(3);
+      });
 
-      it('should return empty status for restaurant with no connections', async () => {
+      it("should return empty status for restaurant with no connections", async () => {
         mockKitchenService.getConnectionStatus.mockReturnValue({
           totalConnections: 0,
           restaurantConnections: 0,
-          connections: []
-        })
+          connections: [],
+        });
 
-        const result = mockKitchenService.getConnectionStatus(999)
+        const result = mockKitchenService.getConnectionStatus(999);
 
-        expect(result.restaurantConnections).toBe(0)
-        expect(result.connections).toHaveLength(0)
-      })
-    })
+        expect(result.restaurantConnections).toBe(0);
+        expect(result.connections).toHaveLength(0);
+      });
+    });
 
-    describe('validateChefAccess', () => {
-      it('should allow valid chef roles', () => {
-        mockKitchenService.validateChefAccess.mockReturnValue(true)
+    describe("validateChefAccess", () => {
+      it("should allow valid chef roles", () => {
+        mockKitchenService.validateChefAccess.mockReturnValue(true);
 
-        expect(mockKitchenService.validateChefAccess(1, 0, 1)).toBe(true) // Admin
-        expect(mockKitchenService.validateChefAccess(1, 1, 1)).toBe(true) // Owner
-        expect(mockKitchenService.validateChefAccess(1, 2, 1)).toBe(true) // Chef
-        expect(mockKitchenService.validateChefAccess(1, 3, 1)).toBe(true) // Service
-      })
+        expect(mockKitchenService.validateChefAccess(1, 0, 1)).toBe(true); // Admin
+        expect(mockKitchenService.validateChefAccess(1, 1, 1)).toBe(true); // Owner
+        expect(mockKitchenService.validateChefAccess(1, 2, 1)).toBe(true); // Chef
+        expect(mockKitchenService.validateChefAccess(1, 3, 1)).toBe(true); // Service
+      });
 
-      it('should deny invalid roles', () => {
-        mockKitchenService.validateChefAccess.mockReturnValue(false)
+      it("should deny invalid roles", () => {
+        mockKitchenService.validateChefAccess.mockReturnValue(false);
 
-        expect(mockKitchenService.validateChefAccess(1, 4, 1)).toBe(false) // Cashier
-        expect(mockKitchenService.validateChefAccess(1, 5, 1)).toBe(false) // Customer
-      })
-    })
-  })
+        expect(mockKitchenService.validateChefAccess(1, 4, 1)).toBe(false); // Cashier
+        expect(mockKitchenService.validateChefAccess(1, 5, 1)).toBe(false); // Customer
+      });
+    });
+  });
 
-  describe('Connection Management', () => {
-    describe('registerConnection', () => {
-      it('should register connection', () => {
-        mockKitchenService.registerConnection('conn-1', {
+  describe("Connection Management", () => {
+    describe("registerConnection", () => {
+      it("should register connection", () => {
+        mockKitchenService.registerConnection("conn-1", {
           restaurantId: 1,
           userId: 100,
           controller: null,
-          lastHeartbeat: Date.now()
-        })
+          lastHeartbeat: Date.now(),
+        });
 
-        expect(mockKitchenService.registerConnection).toHaveBeenCalled()
-      })
-    })
+        expect(mockKitchenService.registerConnection).toHaveBeenCalled();
+      });
+    });
 
-    describe('removeConnection', () => {
-      it('should remove connection', () => {
-        mockKitchenService.removeConnection('conn-1')
+    describe("removeConnection", () => {
+      it("should remove connection", () => {
+        mockKitchenService.removeConnection("conn-1");
 
-        expect(mockKitchenService.removeConnection).toHaveBeenCalledWith('conn-1')
-      })
-    })
+        expect(mockKitchenService.removeConnection).toHaveBeenCalledWith(
+          "conn-1",
+        );
+      });
+    });
 
-    describe('generateConnectionId', () => {
-      it('should generate unique connection ID', () => {
-        mockKitchenService.generateConnectionId.mockReturnValue('kitchen_123_abc')
+    describe("generateConnectionId", () => {
+      it("should generate unique connection ID", () => {
+        mockKitchenService.generateConnectionId.mockReturnValue(
+          "kitchen_123_abc",
+        );
 
-        const id = mockKitchenService.generateConnectionId()
+        const id = mockKitchenService.generateConnectionId();
 
-        expect(id).toMatch(/^kitchen_/)
-      })
-    })
-  })
+        expect(id).toMatch(/^kitchen_/);
+      });
+    });
+  });
 
-  describe('Response Formatting', () => {
-    it('should format success response correctly', () => {
+  describe("Response Formatting", () => {
+    it("should format success response correctly", () => {
       const data = {
         pending: [],
         preparing: [],
         ready: [],
-        stats: { pendingCount: 0 }
-      }
+        stats: { pendingCount: 0 },
+      };
       const response = {
         success: true,
         data,
-        message: 'Kitchen orders retrieved successfully'
-      }
+        message: "Kitchen orders retrieved successfully",
+      };
 
-      expect(response.success).toBe(true)
-      expect(response.data).toEqual(data)
-    })
+      expect(response.success).toBe(true);
+      expect(response.data).toEqual(data);
+    });
 
-    it('should format error response correctly', () => {
+    it("should format error response correctly", () => {
       const response = {
         success: false,
-        error: 'Access denied',
-        code: 403
-      }
+        error: "Access denied",
+        code: 403,
+      };
 
-      expect(response.success).toBe(false)
-      expect(response.error).toBe('Access denied')
-      expect(response.code).toBe(403)
-    })
-  })
+      expect(response.success).toBe(false);
+      expect(response.error).toBe("Access denied");
+      expect(response.code).toBe(403);
+    });
+  });
 
-  describe('Permission Checks', () => {
-    it('should check restaurant permission', () => {
-      const user = { id: 1, role: 2, restaurantId: 1 }
-      const requestedRestaurantId = 1
+  describe("Permission Checks", () => {
+    it("should check restaurant permission", () => {
+      const user = { id: 1, role: 2, restaurantId: 1 };
+      const requestedRestaurantId = 1;
 
-      const hasPermission = user.restaurantId === requestedRestaurantId
+      const hasPermission = user.restaurantId === requestedRestaurantId;
 
-      expect(hasPermission).toBe(true)
-    })
+      expect(hasPermission).toBe(true);
+    });
 
-    it('should deny access for different restaurant', () => {
-      const user = { id: 1, role: 2, restaurantId: 1 }
-      const requestedRestaurantId = 2
+    it("should deny access for different restaurant", () => {
+      const user = { id: 1, role: 2, restaurantId: 1 };
+      const requestedRestaurantId = 2;
 
-      const hasPermission = user.restaurantId === requestedRestaurantId
+      const hasPermission = user.restaurantId === requestedRestaurantId;
 
-      expect(hasPermission).toBe(false)
-    })
+      expect(hasPermission).toBe(false);
+    });
 
-    it('should allow admin access to any restaurant', () => {
-      const user = { id: 1, role: 0, restaurantId: null }
-      const requestedRestaurantId = 999
+    it("should allow admin access to any restaurant", () => {
+      const user = { id: 1, role: 0, restaurantId: null };
+      const requestedRestaurantId = 999;
 
-      const hasPermission = user.role === 0 // Admin
+      const hasPermission = user.role === 0; // Admin
 
-      expect(hasPermission).toBe(true)
-    })
-  })
+      expect(hasPermission).toBe(true);
+    });
+  });
 
-  describe('Parameter Validation', () => {
-    it('should validate restaurant ID is positive integer', () => {
+  describe("Parameter Validation", () => {
+    it("should validate restaurant ID is positive integer", () => {
       const validateRestaurantId = (id: string) => {
-        const num = parseInt(id, 10)
-        return !isNaN(num) && num > 0
-      }
+        const num = parseInt(id, 10);
+        return !isNaN(num) && num > 0;
+      };
 
-      expect(validateRestaurantId('1')).toBe(true)
-      expect(validateRestaurantId('123')).toBe(true)
-      expect(validateRestaurantId('0')).toBe(false)
-      expect(validateRestaurantId('-1')).toBe(false)
-      expect(validateRestaurantId('abc')).toBe(false)
-    })
+      expect(validateRestaurantId("1")).toBe(true);
+      expect(validateRestaurantId("123")).toBe(true);
+      expect(validateRestaurantId("0")).toBe(false);
+      expect(validateRestaurantId("-1")).toBe(false);
+      expect(validateRestaurantId("abc")).toBe(false);
+    });
 
-    it('should validate order ID is positive integer', () => {
+    it("should validate order ID is positive integer", () => {
       const validateOrderId = (id: string) => {
-        const num = parseInt(id, 10)
-        return !isNaN(num) && num > 0
-      }
+        const num = parseInt(id, 10);
+        return !isNaN(num) && num > 0;
+      };
 
-      expect(validateOrderId('100')).toBe(true)
-      expect(validateOrderId('0')).toBe(false)
-      expect(validateOrderId('invalid')).toBe(false)
-    })
+      expect(validateOrderId("100")).toBe(true);
+      expect(validateOrderId("0")).toBe(false);
+      expect(validateOrderId("invalid")).toBe(false);
+    });
 
-    it('should validate item ID is positive integer', () => {
+    it("should validate item ID is positive integer", () => {
       const validateItemId = (id: string) => {
-        const num = parseInt(id, 10)
-        return !isNaN(num) && num > 0
-      }
+        const num = parseInt(id, 10);
+        return !isNaN(num) && num > 0;
+      };
 
-      expect(validateItemId('50')).toBe(true)
-      expect(validateItemId('0')).toBe(false)
-    })
-  })
+      expect(validateItemId("50")).toBe(true);
+      expect(validateItemId("0")).toBe(false);
+    });
+  });
 
-  describe('Status Update Validation', () => {
-    it('should validate status values', () => {
-      const validStatuses = ['pending', 'preparing', 'ready', 'completed']
+  describe("Status Update Validation", () => {
+    it("should validate status values", () => {
+      const validStatuses = ["pending", "preparing", "ready", "completed"];
 
-      validStatuses.forEach(status => {
-        expect(validStatuses.includes(status)).toBe(true)
-      })
+      validStatuses.forEach((status) => {
+        expect(validStatuses.includes(status)).toBe(true);
+      });
 
-      expect(validStatuses.includes('invalid')).toBe(false)
-    })
-  })
-})
+      expect(validStatuses.includes("invalid")).toBe(false);
+    });
+  });
+});

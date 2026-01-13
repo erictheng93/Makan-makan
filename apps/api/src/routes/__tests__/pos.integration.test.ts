@@ -32,12 +32,24 @@ const mockPOSService = {
 };
 
 vi.mock("@makanmakan/database", () => ({
-  POSService: vi.fn().mockImplementation(() => mockPOSService),
+  POSService: vi.fn(function () {
+    return mockPOSService;
+  }),
   getCurrentTimestamp: vi.fn().mockReturnValue("2024-01-01T00:00:00Z"),
 }));
 
 import posRoutes from "../../features/pos/routes";
 
+// TODO: Fix this test suite - requires complex service mocking refactoring
+// Current Issues:
+// 1. Test mocks POSService but routes use RegisterService, ShiftService, ReceiptService, RefundService
+// 2. Database mock (createMockDB) returns null which causes service methods to fail
+// 3. Need to mock: apps/api/src/features/pos/services/*.ts
+// Solution Options:
+// A. Mock individual services (RegisterService, ShiftService, etc.) instead of POSService
+// B. Create complete database mock that returns proper data for all queries
+// C. Use dependency injection pattern in routes for easier testing
+// Estimated effort: 4-6 hours
 describe.skip("POS API Integration Tests", () => {
   let app: Hono<{ Bindings: Env }>;
   let mockEnv: Env;
