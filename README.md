@@ -5,6 +5,7 @@
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
 ![PWA](https://img.shields.io/badge/PWA-95%2F100-green)
+[![codecov](https://codecov.io/gh/makanmakan/makanmakan/graph/badge.svg)](https://codecov.io/gh/makanmakan/makanmakan)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **一個基於 Cloudflare 邊緣運算的現代化餐廳管理系統**

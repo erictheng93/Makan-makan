@@ -1,0 +1,88 @@
+# Codecov 配置
+# 用於測試覆蓋率報告和 PR 評論
+
+coverage:
+  # 覆蓋率門檻設定
+  status:
+    # 專案整體覆蓋率
+    project:
+      default:
+        # 覆蓋率目標
+        target: 85%
+        # 允許的降幅（相對於基準）
+        threshold: 2%
+        # 如果沒有足夠的報告數據，不要失敗
+        informational: false
+
+      # 關鍵模組更高標準
+      api:
+        target: 90%
+        threshold: 1%
+        paths:
+          - "apps/api/src/features/**"
+
+      realtime:
+        target: 85%
+        threshold: 2%
+        paths:
+          - "apps/realtime/src/**"
+
+      frontend:
+        target: 80%
+        threshold: 3%
+        paths:
+          - "apps/admin-dashboard/src/**"
+          - "apps/customer-app/src/**"
+          - "apps/kitchen-display/src/**"
+
+    # 每次變更的覆蓋率
+    patch:
+      default:
+        # 新增程式碼的覆蓋率目標
+        target: 80%
+        threshold: 5%
+
+# PR 評論配置
+comment:
+  # 在 PR 中顯示覆蓋率報告
+  layout: "header, diff, flags, components, tree"
+  # 評論行為
+  behavior: default
+  # 需要多少報告才顯示評論
+  require_changes: true
+  # 覆蓋率降低時是否顯示評論
+  require_base: true
+  # 覆蓋率跳過評論
+  require_head: true
+
+# Flag 設定
+flags:
+  unit-tests:
+    paths:
+      - "apps/"
+      - "packages/"
+    carryforward: true
+
+# 忽略的路徑
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.d.ts"
+  - "**/*.config.ts"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  - "**/legacy/**"
+  - "**/Backup/**"
+  - "**/*.test.ts"
+  - "**/*.test.js"
+  - "**/*.spec.ts"
+  - "**/*.spec.js"
+
+# 解析器設定
+parsers:
+  javascript:
+    enable_partials: true
+
+# GitHub Checks 配置
+github_checks:
+  annotations: true
