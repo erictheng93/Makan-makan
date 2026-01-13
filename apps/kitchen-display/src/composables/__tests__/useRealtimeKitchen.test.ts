@@ -22,6 +22,9 @@ class MockWebSocket {
   static CLOSING = WS_CLOSING;
   static CLOSED = WS_CLOSED;
 
+  // Static property to track last created instance
+  static lastInstance: MockWebSocket | null = null;
+
   readyState = WS_OPEN;
   send = vi.fn();
   close = vi.fn();
@@ -30,7 +33,9 @@ class MockWebSocket {
 
   constructor(url: string) {
     wsConstructorCalls.push(url);
-    mockWsInstance = this;
+    // Store instance for test access (use static property to avoid this-alias)
+    MockWebSocket.lastInstance = this;
+    mockWsInstance = MockWebSocket.lastInstance;
   }
 }
 

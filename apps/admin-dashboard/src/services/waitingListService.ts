@@ -3,7 +3,7 @@
  * API service for waiting list management
  */
 
-import axios from 'axios';
+import axios from "axios";
 import {
   WaitingStatus,
   type WaitingListEntry,
@@ -15,9 +15,20 @@ import {
   type WaitingStats,
   type WaitTimeEstimateRequest,
   type WaitTimeEstimateResult,
-} from '@makanmakan/shared-types';
+} from "@makanmakan/shared-types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api/v1';
+const getApiBaseUrl = (): string => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error(
+      "[Config Error] VITE_API_BASE_URL is required. " +
+        "Please set this environment variable in your .env file.",
+    );
+  }
+  return baseUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export class WaitingListService {
   /**
@@ -26,19 +37,22 @@ export class WaitingListService {
   static async listWaitingList(filters: WaitingListFilters = {}) {
     const params = new URLSearchParams();
 
-    if (filters.restaurantId) params.append('restaurantId', filters.restaurantId);
+    if (filters.restaurantId)
+      params.append("restaurantId", filters.restaurantId);
     if (filters.status) {
       const statusValue = Array.isArray(filters.status)
-        ? filters.status.map(s => String(s)).join(',')
+        ? filters.status.map((s) => String(s)).join(",")
         : String(filters.status);
-      params.append('status', statusValue);
+      params.append("status", statusValue);
     }
-    if (filters.customerPhone) params.append('phone', filters.customerPhone);
-    if (filters.date) params.append('date', filters.date);
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.customerPhone) params.append("phone", filters.customerPhone);
+    if (filters.date) params.append("date", filters.date);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
 
-    const response = await axios.get<WaitingListResponse>(`${API_BASE_URL}/waiting-list?${params.toString()}`);
+    const response = await axios.get<WaitingListResponse>(
+      `${API_BASE_URL}/waiting-list?${params.toString()}`,
+    );
     return response.data;
   }
 
@@ -46,7 +60,10 @@ export class WaitingListService {
    * 取得單一候位詳情
    */
   static async getWaitingEntry(id: string) {
-    const response = await axios.get<{ success: boolean; data: WaitingListEntry }>(`${API_BASE_URL}/waiting-list/${id}`);
+    const response = await axios.get<{
+      success: boolean;
+      data: WaitingListEntry;
+    }>(`${API_BASE_URL}/waiting-list/${id}`);
     return response.data.data;
   }
 
@@ -54,10 +71,11 @@ export class WaitingListService {
    * 加入候位（管理員代為加入）
    */
   static async joinWaitingList(data: JoinWaitingListRequest) {
-    const response = await axios.post<{ success: boolean; data: WaitingListEntry; message: string }>(
-      `${API_BASE_URL}/waiting-list`,
-      data
-    );
+    const response = await axios.post<{
+      success: boolean;
+      data: WaitingListEntry;
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list`, data);
     return response.data;
   }
 
@@ -65,10 +83,11 @@ export class WaitingListService {
    * 叫號
    */
   static async callWaiting(id: string, data: CallWaitingRequest) {
-    const response = await axios.post<{ success: boolean; data: WaitingListEntry; message: string }>(
-      `${API_BASE_URL}/waiting-list/${id}/call`,
-      data
-    );
+    const response = await axios.post<{
+      success: boolean;
+      data: WaitingListEntry;
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list/${id}/call`, data);
     return response.data;
   }
 
@@ -76,9 +95,11 @@ export class WaitingListService {
    * 標記入座
    */
   static async markSeated(id: string) {
-    const response = await axios.post<{ success: boolean; data: WaitingListEntry; message: string }>(
-      `${API_BASE_URL}/waiting-list/${id}/seat`
-    );
+    const response = await axios.post<{
+      success: boolean;
+      data: WaitingListEntry;
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list/${id}/seat`);
     return response.data;
   }
 
@@ -86,9 +107,11 @@ export class WaitingListService {
    * 標記過號
    */
   static async expireWaiting(id: string) {
-    const response = await axios.post<{ success: boolean; data: WaitingListEntry; message: string }>(
-      `${API_BASE_URL}/waiting-list/${id}/expire`
-    );
+    const response = await axios.post<{
+      success: boolean;
+      data: WaitingListEntry;
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list/${id}/expire`);
     return response.data;
   }
 
@@ -96,10 +119,11 @@ export class WaitingListService {
    * 取消候位
    */
   static async cancelWaiting(id: string, customerPhone: string) {
-    const response = await axios.delete<{ success: boolean; data: WaitingListEntry; message: string }>(
-      `${API_BASE_URL}/waiting-list/${id}`,
-      { data: { customerPhone } }
-    );
+    const response = await axios.delete<{
+      success: boolean;
+      data: WaitingListEntry;
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list/${id}`, { data: { customerPhone } });
     return response.data;
   }
 
@@ -108,7 +132,7 @@ export class WaitingListService {
    */
   static async getQueueStatus(restaurantId: string) {
     const response = await axios.get<{ success: boolean; data: QueueStatus }>(
-      `${API_BASE_URL}/waiting-list/queue-status/${restaurantId}`
+      `${API_BASE_URL}/waiting-list/queue-status/${restaurantId}`,
     );
     return response.data.data;
   }
@@ -118,11 +142,14 @@ export class WaitingListService {
    */
   static async estimateWaitTime(request: WaitTimeEstimateRequest) {
     const params = new URLSearchParams({
-      partySize: request.partySize.toString()
+      partySize: request.partySize.toString(),
     });
 
-    const response = await axios.get<{ success: boolean; data: WaitTimeEstimateResult }>(
-      `${API_BASE_URL}/waiting-list/estimate-wait/${request.restaurantId}?${params.toString()}`
+    const response = await axios.get<{
+      success: boolean;
+      data: WaitTimeEstimateResult;
+    }>(
+      `${API_BASE_URL}/waiting-list/estimate-wait/${request.restaurantId}?${params.toString()}`,
     );
     return response.data.data;
   }
@@ -133,7 +160,7 @@ export class WaitingListService {
   static async getStats(restaurantId: string, date?: string) {
     const params = new URLSearchParams({ ...(date && { date }) });
     const response = await axios.get<{ success: boolean; data: WaitingStats }>(
-      `${API_BASE_URL}/waiting-list/stats/${restaurantId}?${params.toString()}`
+      `${API_BASE_URL}/waiting-list/stats/${restaurantId}?${params.toString()}`,
     );
     return response.data.data;
   }
@@ -142,10 +169,11 @@ export class WaitingListService {
    * 批次叫號
    */
   static async batchCall(restaurantId: string, count: number = 1) {
-    const response = await axios.post<{ success: boolean; data: any[]; message: string }>(
-      `${API_BASE_URL}/waiting-list/batch-call`,
-      { restaurantId, count }
-    );
+    const response = await axios.post<{
+      success: boolean;
+      data: any[];
+      message: string;
+    }>(`${API_BASE_URL}/waiting-list/batch-call`, { restaurantId, count });
     return response.data;
   }
 
@@ -154,13 +182,13 @@ export class WaitingListService {
    */
   static getStatusText(status: WaitingStatus): string {
     const statusMap: Record<WaitingStatus, string> = {
-      [WaitingStatus.WAITING]: '等待中',
-      [WaitingStatus.CALLED]: '已叫號',
-      [WaitingStatus.CONFIRMED]: '已確認',
-      [WaitingStatus.SEATED]: '已入座',
-      [WaitingStatus.CANCELLED]: '已取消',
-      [WaitingStatus.EXPIRED]: '已過號',
-      [WaitingStatus.NO_SHOW]: '未到'
+      [WaitingStatus.WAITING]: "等待中",
+      [WaitingStatus.CALLED]: "已叫號",
+      [WaitingStatus.CONFIRMED]: "已確認",
+      [WaitingStatus.SEATED]: "已入座",
+      [WaitingStatus.CANCELLED]: "已取消",
+      [WaitingStatus.EXPIRED]: "已過號",
+      [WaitingStatus.NO_SHOW]: "未到",
     };
     return statusMap[status] || status;
   }
@@ -170,15 +198,15 @@ export class WaitingListService {
    */
   static getStatusColor(status: WaitingStatus): string {
     const colorMap: Record<WaitingStatus, string> = {
-      [WaitingStatus.WAITING]: 'info',
-      [WaitingStatus.CALLED]: 'warning',
-      [WaitingStatus.CONFIRMED]: 'primary',
-      [WaitingStatus.SEATED]: 'success',
-      [WaitingStatus.CANCELLED]: 'default',
-      [WaitingStatus.EXPIRED]: 'error',
-      [WaitingStatus.NO_SHOW]: 'error'
+      [WaitingStatus.WAITING]: "info",
+      [WaitingStatus.CALLED]: "warning",
+      [WaitingStatus.CONFIRMED]: "primary",
+      [WaitingStatus.SEATED]: "success",
+      [WaitingStatus.CANCELLED]: "default",
+      [WaitingStatus.EXPIRED]: "error",
+      [WaitingStatus.NO_SHOW]: "error",
     };
-    return colorMap[status] || 'default';
+    return colorMap[status] || "default";
   }
 
   /**
@@ -194,7 +222,7 @@ export class WaitingListService {
    * 格式化等待時間
    */
   static formatWaitTime(minutes?: number): string {
-    if (!minutes) return '--';
+    if (!minutes) return "--";
     if (minutes < 60) return `${minutes} 分鐘`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;

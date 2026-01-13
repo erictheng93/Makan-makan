@@ -159,8 +159,8 @@ const settingsStore = useSettingsStore();
 
 // State
 const credentials = ref({
-  username: "admin",
-  password: "admin123",
+  username: "",
+  password: "",
 });
 
 const showPassword = ref(false);

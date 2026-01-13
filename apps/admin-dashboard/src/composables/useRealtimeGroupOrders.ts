@@ -164,7 +164,13 @@ export function useRealtimeGroupOrders() {
       }
 
       // 構建WebSocket URL
-      const baseUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8787";
+      const baseUrl = import.meta.env.VITE_WS_URL;
+      if (!baseUrl) {
+        throw new Error(
+          "[Config Error] VITE_WS_URL is required for WebSocket connection. " +
+            "Please set this environment variable in your .env file.",
+        );
+      }
       const params = new URLSearchParams({
         userId: authStore.user?.id?.toString() || "0",
         restaurantId: authStore.user?.restaurantId?.toString() || "0",

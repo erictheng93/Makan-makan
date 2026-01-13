@@ -177,39 +177,43 @@ describe("useWebSocket Composable", () => {
       constructor(url: string) {
         // Track constructor calls for testing
         wsConstructorCalls.push(url);
-        // Store instance for test access
-        mockWsInstance = this;
+        // Store instance for test access (use static property to avoid this-alias)
+        MockWebSocket.lastInstance = this;
+        mockWsInstance = MockWebSocket.lastInstance;
       }
 
-      set onopen(callback: () => void) {
+      // Static property to track last created instance
+      static lastInstance: MockWebSocket | null = null;
+
+      set onopen(callback: (() => void) | null) {
         this._onopen = callback;
         onOpenCallback = callback;
       }
-      get onopen() {
+      get onopen(): (() => void) | null {
         return this._onopen;
       }
 
-      set onmessage(callback: (event: any) => void) {
+      set onmessage(callback: ((event: any) => void) | null) {
         this._onmessage = callback;
         onMessageCallback = callback;
       }
-      get onmessage() {
+      get onmessage(): ((event: any) => void) | null {
         return this._onmessage;
       }
 
-      set onerror(callback: (event: any) => void) {
+      set onerror(callback: ((event: any) => void) | null) {
         this._onerror = callback;
         onErrorCallback = callback;
       }
-      get onerror() {
+      get onerror(): ((event: any) => void) | null {
         return this._onerror;
       }
 
-      set onclose(callback: () => void) {
+      set onclose(callback: (() => void) | null) {
         this._onclose = callback;
         onCloseCallback = callback;
       }
-      get onclose() {
+      get onclose(): (() => void) | null {
         return this._onclose;
       }
     }

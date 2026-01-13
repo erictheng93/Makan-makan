@@ -16,6 +16,17 @@ export interface StatisticsSSEEvent {
   id?: string;
 }
 
+const getDefaultSseUrl = (): string => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    console.error(
+      "[Config Error] VITE_API_BASE_URL is required for SSE connection",
+    );
+    return "";
+  }
+  return `${baseUrl.replace("/api/v1", "")}/api/v1/analytics/sse`;
+};
+
 export function useStatisticsSSE(
   options: {
     url?: string;
@@ -25,7 +36,7 @@ export function useStatisticsSSE(
   } = {},
 ) {
   const {
-    url = `${import.meta.env.VITE_API_BASE_URL?.replace("/api/v1", "") || "http://localhost:8787"}/api/v1/analytics/sse`,
+    url = getDefaultSseUrl(),
     autoConnect = true,
     retryAttempts = 5,
     retryDelay = 3000,

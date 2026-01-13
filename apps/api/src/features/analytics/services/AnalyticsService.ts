@@ -287,8 +287,12 @@ export class AnalyticsService implements IAnalyticsService {
     try {
       this.logger.debug("Getting real-time analytics data", { restaurantId });
 
-      // Get fresh data for real-time (no caching)
-      const dashboardData = await this.getDashboardData(restaurantId, "today");
+      // Get fresh data directly from database service (no caching for real-time)
+      // Use databaseService.getDashboardData() to get full DashboardData including tableStatus
+      const fullDashboardData = await this.databaseService.getDashboardData(
+        restaurantId ? String(restaurantId) : (undefined as any),
+      );
+      const dashboardSummary = fullDashboardData.summary;
 
       // Get realtime metrics from database service
       let activeOrders = 0;
@@ -301,8 +305,8 @@ export class AnalyticsService implements IAnalyticsService {
         activeOrders = realtimeDashboard.activeOrders || 0;
         pendingOrders = realtimeDashboard.kitchenQueue || 0; // Kitchen queue = orders in preparing status
 
-        // Calculate table utilization from dashboard data
-        const totalTables = dashboardData.tableStatus?.total || 0;
+        // Calculate table utilization from full dashboard data (includes tableStatus)
+        const totalTables = fullDashboardData.tableStatus?.total || 0;
         const occupiedTables = realtimeDashboard.occupiedTables || 0;
         tableUtilization =
           totalTables > 0
@@ -312,7 +316,7 @@ export class AnalyticsService implements IAnalyticsService {
 
       const realtimeData: RealtimeAnalyticsData = {
         timestamp: new Date().toISOString(),
-        summary: dashboardData,
+        summary: dashboardSummary,
         activeOrders,
         pendingOrders,
         tableUtilization,

@@ -223,7 +223,14 @@ export function useGroupOrder(options: {
       const token = tokenResponse.token;
 
       // Connect to WebSocket using URL string
-      const wsUrl = `${import.meta.env.VITE_REALTIME_URL || "ws://localhost:8788"}/customer/${groupOrderId}?token=${token}`;
+      const realtimeUrl = import.meta.env.VITE_REALTIME_URL;
+      if (!realtimeUrl) {
+        throw new Error(
+          "[Config Error] VITE_REALTIME_URL is required for group order WebSocket. " +
+            "Please set this environment variable in your .env file.",
+        );
+      }
+      const wsUrl = `${realtimeUrl}/customer/${groupOrderId}?token=${token}`;
       connect(wsUrl);
 
       isConnected.value = true;

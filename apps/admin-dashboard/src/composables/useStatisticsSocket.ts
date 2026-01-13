@@ -13,6 +13,17 @@ export interface StatisticsSocketEvent {
   timestamp: string;
 }
 
+const getDefaultWsUrl = (): string => {
+  const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
+  if (!wsBaseUrl) {
+    console.error(
+      "[Config Error] VITE_WS_BASE_URL is required for WebSocket connection",
+    );
+    return "";
+  }
+  return `${wsBaseUrl}/statistics`;
+};
+
 export function useStatisticsSocket(
   options: {
     url?: string;
@@ -22,7 +33,7 @@ export function useStatisticsSocket(
   } = {},
 ) {
   const {
-    url = `${import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8787"}/statistics`,
+    url = getDefaultWsUrl(),
     autoConnect = true,
     retryAttempts = 5,
     retryDelay = 3000,
