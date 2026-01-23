@@ -153,8 +153,21 @@ vitest.workspace.ts.bak
 # Turbo cache
 .turbo/
 
+# Generated Vue/TypeScript files (should not be in source directories)
+**/*.vue.js
+**/*.vue.d.ts
+**/src/**/*.d.ts
+**/src/**/*.js
+!**/src/**/*.config.js
+!**/src/**/*.test.js
+!**/src/**/*.spec.js
+
+# Vite temporary files
+vite.config.ts.timestamp-*.mjs
+
 # Local Claude Code settings
 .claude/settings.local.json
+.mcp.json
 
 # Coverage and test output files
 coverage-*.txt

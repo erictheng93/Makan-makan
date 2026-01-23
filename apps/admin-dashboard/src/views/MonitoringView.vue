@@ -127,7 +127,7 @@
                       <!-- Health Score Progress Bar -->
                       <div class="mt-4 max-w-md">
                         <div class="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>系統?�康�?/span>
+                          <span>系統健康度</span>
                           <span>{{ healthScore }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
@@ -214,7 +214,7 @@
 
         <!-- Components Status Grid -->
         <div class="mb-8">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">系統組件?�??/h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">系統組件狀態</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div
               v-for="component in componentsStatus"
@@ -239,7 +239,7 @@
                 <!-- Health Indicator -->
                 <div class="mb-3">
                   <div class="flex justify-between text-xs text-gray-600 mb-1">
-                    <span>?�康�?/span>
+                    <span>健康度</span>
                     <span>{{ component.healthScore }}/100</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2">
@@ -420,9 +420,9 @@
                     class="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                     @change="loadPerformanceReport"
                   >
-                    <option :value="1">?��?1 �?/option>
-                    <option :value="7">?��?7 �?/option>
-                    <option :value="30">?��?30 �?/option>
+                    <option :value="1">過去 1 天</option>
+                    <option :value="7">過去 7 天</option>
+                    <option :value="30">過去 30 天</option>
                   </select>
                 </div>
 
@@ -450,7 +450,7 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">?�誤??/dt>
+                        <dt class="text-sm text-gray-500">錯誤率</dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.apiPerformance.errorRate }}
                         </dd>
@@ -481,7 +481,7 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">?�詢?�誤??/dt>
+                        <dt class="text-sm text-gray-500">查詢錯誤率</dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.databasePerformance.queryErrorRate }}
                         </dd>
@@ -494,13 +494,13 @@
                     <h4 class="text-md font-medium text-gray-900 mb-4">快�??�能</h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
-                        <dt class="text-sm text-gray-500">?�中??/dt>
+                        <dt class="text-sm text-gray-500">命中率</dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.hitRate }}
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">快�??�總??/dt>
+                        <dt class="text-sm text-gray-500">快取總數</dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.totalKeys }}
                         </dd>
@@ -596,8 +596,8 @@
                     <div class="h-80">
                       <MetricBarChart
                         :data="errorBarChartData"
-                        title="?�誤次數"
-                        unit=" �?
+                        title="錯誤次數"
+                        unit="次"
                         :horizontal="true"
                       />
                     </div>
@@ -605,7 +605,7 @@
 
                   <!-- Error list -->
                   <div class="space-y-3">
-                    <h4 class="text-md font-medium text-gray-900">?�誤詳�?</h4>
+                    <h4 class="text-md font-medium text-gray-900">錯誤詳情</h4>
                     <div
                       v-for="error in overview.topErrors"
                       :key="error.type"
