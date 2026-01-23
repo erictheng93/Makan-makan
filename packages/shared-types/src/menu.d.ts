@@ -93,4 +93,3 @@ export interface PopularMenuItem extends MenuItem {
     orderFrequency: number;
     revenueContribution: number;
 }
-//# sourceMappingURL=menu.d.ts.map

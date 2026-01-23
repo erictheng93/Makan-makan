@@ -32,7 +32,8 @@ export declare enum UserRole {
     OWNER = 1,
     CHEF = 2,
     SERVICE = 3,
-    CASHIER = 4
+    CASHIER = 4,
+    CUSTOMER = 5
 }
 export interface DietaryInfo {
     vegetarian?: boolean;
@@ -65,4 +66,3 @@ export interface ImageVariants {
     large?: string;
     original?: string;
 }
-//# sourceMappingURL=common.d.ts.map

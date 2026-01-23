@@ -73,4 +73,3 @@ export interface RestaurantStats {
     totalTables: number;
     occupiedTables: number;
 }
-//# sourceMappingURL=restaurant.d.ts.map

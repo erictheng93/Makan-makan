@@ -11,6 +11,7 @@ export var UserRole;
     UserRole[UserRole["CHEF"] = 2] = "CHEF";
     UserRole[UserRole["SERVICE"] = 3] = "SERVICE";
     UserRole[UserRole["CASHIER"] = 4] = "CASHIER";
+    UserRole[UserRole["CUSTOMER"] = 5] = "CUSTOMER";
 })(UserRole || (UserRole = {}));
 export var SpiceLevel;
 (function (SpiceLevel) {

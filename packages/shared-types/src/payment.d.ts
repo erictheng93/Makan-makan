@@ -118,4 +118,3 @@ export interface PaymentTransaction {
     metadata?: Record<string, any>;
     error?: string;
 }
-//# sourceMappingURL=payment.d.ts.map

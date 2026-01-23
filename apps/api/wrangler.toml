@@ -10,6 +10,7 @@ compatibility_flags = ["nodejs_compat"]
 [dev]
 port = 8787
 local_protocol = "http"
+inspector_port = 9232
 
 # Default variables for development
 [vars]

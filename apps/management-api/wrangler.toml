@@ -8,14 +8,15 @@ compatibility_flags = ["nodejs_compat"]
 
 # Development server configuration
 [dev]
-port = 8788
+port = 8789
 local_protocol = "http"
+inspector_port = 9231
 
 # Default variables for development
 [vars]
 NODE_ENV = "development"
 API_VERSION = "v1"
-API_BASE_URL = "http://localhost:8788"
+API_BASE_URL = "http://localhost:8789"
 CORS_ORIGIN = "*"
 LOG_LEVEL = "debug"
 

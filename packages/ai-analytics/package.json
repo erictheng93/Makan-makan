@@ -2,8 +2,8 @@
   "name": "@makanmakan/ai-analytics",
   "version": "1.0.0",
   "description": "AI-powered business analytics and insights for MakanMakan",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/ai-analytics/src/index.js",
+  "types": "dist/ai-analytics/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

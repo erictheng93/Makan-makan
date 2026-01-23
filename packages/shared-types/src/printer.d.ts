@@ -430,4 +430,3 @@ export interface PrinterHealth {
     errorCount: number;
     maintenanceNeeded: boolean;
 }
-//# sourceMappingURL=printer.d.ts.map

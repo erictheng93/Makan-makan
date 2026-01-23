@@ -61,4 +61,3 @@ export interface DatabaseStats {
     totalSize: number;
     lastUpdated: string;
 }
-//# sourceMappingURL=database.d.ts.map

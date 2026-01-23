@@ -1,4 +1,0 @@
-
-> makanmakan-admin-dashboard@1.0.0 lint C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\admin-dashboard
-> eslint src --fix
-

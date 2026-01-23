@@ -58,7 +58,7 @@ export const authMiddleware = async (
       }
     }
 
-    const decoded = (await verify(token, c.env.JWT_SECRET)) as any;
+    const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
 
     if (!decoded || typeof decoded !== "object") {
       return c.json(
@@ -177,7 +177,7 @@ export const optionalAuth = async (
         }
       }
 
-      const decoded = (await verify(token, c.env.JWT_SECRET)) as any;
+      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
 
       if (decoded && typeof decoded === "object") {
         c.set("user", {
@@ -334,7 +334,7 @@ export const checkImageAccess = async (
     const hasAccess =
       imageResult.uploaded_by === user.id || // 上傳者
       (imageResult.restaurant_id &&
-        imageResult.restaurant_id === user.restaurantId) || // 同餐廳
+        String(imageResult.restaurant_id) === String(user.restaurantId)) || // 同餐廳
       imageResult.restaurant_id === null; // 公開圖片
 
     if (!hasAccess) {

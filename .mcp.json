@@ -2,27 +2,18 @@
   "mcpServers": {
     "playwright": {
       "type": "stdio",
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "@playwright/mcp@latest"
-      ],
-      "env": {}
+      ]
     },
     "chrome-devtools": {
       "type": "stdio",
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "chrome-devtools-mcp@latest",
         "--isolated"
-      ],
-      "env": {
-        "SystemRoot": "C:\\Windows",
-        "PROGRAMFILES": "C:\\Program Files"
-      }
+      ]
     },
     "context7": {
       "type": "http",
