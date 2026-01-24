@@ -1,8 +1,47 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useOnboardingStore } from '@/stores/onboarding'
-import { CheckCircleIcon, EnvelopeIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import {
+  CheckCircleIcon,
+  EnvelopeIcon,
+  ClockIcon,
+  RocketLaunchIcon,
+  DocumentDuplicateIcon
+} from '@heroicons/vue/24/outline'
+import { useToast } from 'vue-toastification'
 
+const router = useRouter()
+const toast = useToast()
 const store = useOnboardingStore()
+
+// Redirect if no completion data
+onMounted(() => {
+  if (!store.completionResult) {
+    router.push('/apply')
+  }
+})
+
+const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text)
+  toast.success('已複製到剪貼簿')
+}
+
+const getPlanLabel = (planId: string) => {
+  switch (planId) {
+    case 'professional':
+      return '專業版'
+    case 'enterprise':
+      return '企業版'
+    default:
+      return '標準版'
+  }
+}
+
+const handleStartNew = () => {
+  store.reset()
+  router.push('/')
+}
 </script>
 
 <template>
@@ -30,16 +69,44 @@ const store = useOnboardingStore()
         <CheckCircleIcon class="h-10 w-10 text-green-600" />
       </div>
 
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">申請已提交！</h1>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">申請已完成！</h1>
       <p class="text-gray-600 mb-8">
-        感謝您選擇 MakanMakan 獨立部署方案。<br />
-        我們已收到您的申請，將盡快為您處理。
+        恭喜您！您的 MakanMakan 獨立部署已建立完成。<br />
+        系統正在為您準備專屬環境。
       </p>
 
       <!-- 申請摘要 -->
       <div class="bg-gray-50 rounded-lg p-6 text-left mb-8">
         <h3 class="font-medium text-gray-900 mb-4">申請摘要</h3>
         <dl class="space-y-3 text-sm">
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500">申請編號</dt>
+            <dd class="text-gray-900 font-mono text-xs flex items-center">
+              {{ store.applicationId || '-' }}
+              <button
+                v-if="store.applicationId"
+                type="button"
+                class="ml-2 text-gray-400 hover:text-gray-600"
+                @click="copyToClipboard(store.applicationId!)"
+              >
+                <DocumentDuplicateIcon class="h-4 w-4" />
+              </button>
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500">租戶編號</dt>
+            <dd class="text-gray-900 font-mono text-xs flex items-center">
+              {{ store.completionResult?.tenantId || '-' }}
+              <button
+                v-if="store.completionResult?.tenantId"
+                type="button"
+                class="ml-2 text-gray-400 hover:text-gray-600"
+                @click="copyToClipboard(store.completionResult!.tenantId)"
+              >
+                <DocumentDuplicateIcon class="h-4 w-4" />
+              </button>
+            </dd>
+          </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">餐廳名稱</dt>
             <dd class="text-gray-900 font-medium">{{ store.application?.businessName || '-' }}</dd>
@@ -51,14 +118,33 @@ const store = useOnboardingStore()
           <div class="flex justify-between">
             <dt class="text-gray-500">選擇方案</dt>
             <dd class="text-gray-900">
-              {{ store.application?.planId === 'professional' ? '專業版' :
-                 store.application?.planId === 'enterprise' ? '企業版' : '標準版' }}
+              {{ getPlanLabel(store.application?.planId || 'standard') }}
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500">專屬網址</dt>
+            <dd class="text-primary-600 font-medium flex items-center">
+              <a
+                :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`"
+                target="_blank"
+                class="hover:underline"
+              >
+                {{ store.completionResult?.subdomain || store.assignedSubdomain }}.makanmakan.app
+              </a>
+              <button
+                v-if="store.completionResult?.subdomain || store.assignedSubdomain"
+                type="button"
+                class="ml-2 text-gray-400 hover:text-gray-600"
+                @click="copyToClipboard(`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`)"
+              >
+                <DocumentDuplicateIcon class="h-4 w-4" />
+              </button>
             </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">Cloudflare 帳號</dt>
-            <dd class="text-gray-900">
-              {{ store.cloudflareInfo ? '已連接' : '待連接' }}
+            <dd class="text-green-600 font-medium">
+              已連接 ✓
             </dd>
           </div>
         </dl>
@@ -75,7 +161,7 @@ const store = useOnboardingStore()
             <div class="ml-4">
               <p class="font-medium text-gray-900">確認郵件</p>
               <p class="text-sm text-gray-500">
-                我們已發送確認郵件至您的信箱，請查收。
+                我們已發送確認郵件至 <span class="font-medium">{{ store.application?.contactEmail }}</span>，請查收。
               </p>
             </div>
           </div>
@@ -86,7 +172,18 @@ const store = useOnboardingStore()
             <div class="ml-4">
               <p class="font-medium text-gray-900">系統部署</p>
               <p class="text-sm text-gray-500">
-                我們會在 24 小時內完成您的專屬系統部署，並發送登入資訊。
+                您的專屬系統正在部署中，通常在幾分鐘內完成。完成後會發送登入資訊。
+              </p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div class="flex-shrink-0 p-2 bg-primary-100 rounded-lg">
+              <RocketLaunchIcon class="h-5 w-5 text-primary-600" />
+            </div>
+            <div class="ml-4">
+              <p class="font-medium text-gray-900">開始使用</p>
+              <p class="text-sm text-gray-500">
+                收到登入資訊後，您可以立即登入管理後台開始設定您的餐廳。
               </p>
             </div>
           </div>
@@ -94,13 +191,21 @@ const store = useOnboardingStore()
       </div>
 
       <!-- 按鈕 -->
-      <div class="mt-8">
+      <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          href="https://makanmakan.app"
+          :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app/admin`"
+          target="_blank"
           class="btn btn-primary"
         >
-          返回首頁
+          前往管理後台
         </a>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          @click="handleStartNew"
+        >
+          返回首頁
+        </button>
       </div>
     </div>
 

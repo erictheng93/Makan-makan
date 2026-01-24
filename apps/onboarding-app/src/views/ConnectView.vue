@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { useOnboardingStore } from '@/stores/onboarding'
 import {
   InformationCircleIcon,
   ClipboardDocumentIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -19,23 +22,28 @@ const form = ref({
 })
 
 const errors = ref<Record<string, string>>({})
-const verifying = ref(false)
-const verified = ref(false)
+const completing = ref(false)
 
-// 檢查是否有申請資料
-if (!store.application) {
-  router.push('/apply')
-}
+// Check if we have application data
+onMounted(() => {
+  if (!store.applicationId) {
+    router.push('/apply')
+  }
+})
 
 const validate = (): boolean => {
   errors.value = {}
 
   if (!form.value.accountId.trim()) {
     errors.value.accountId = '請輸入 Account ID'
+  } else if (form.value.accountId.length !== 32) {
+    errors.value.accountId = 'Account ID 應為 32 位字元'
   }
 
   if (!form.value.apiToken.trim()) {
     errors.value.apiToken = '請輸入 API Token'
+  } else if (form.value.apiToken.length < 40) {
+    errors.value.apiToken = 'API Token 格式不正確'
   }
 
   return Object.keys(errors.value).length === 0
@@ -44,30 +52,35 @@ const validate = (): boolean => {
 const handleVerify = async () => {
   if (!validate()) return
 
-  verifying.value = true
-  try {
-    // 模擬驗證 API 呼叫
-    await new Promise(resolve => setTimeout(resolve, 2000))
+  store.clearError()
 
-    // 儲存 Cloudflare 資訊
-    store.setCloudflareInfo(form.value)
-    verified.value = true
+  const success = await store.verifyCloudflare(
+    form.value.accountId,
+    form.value.apiToken
+  )
+
+  if (success) {
     toast.success('Cloudflare 帳號驗證成功！')
-  } catch (e) {
-    toast.error('驗證失敗，請檢查您的資訊')
-  } finally {
-    verifying.value = false
+  } else {
+    toast.error(store.apiError || '驗證失敗，請檢查您的資訊')
   }
 }
 
 const handleComplete = async () => {
-  // 提交最終申請
+  completing.value = true
+  store.clearError()
+
   try {
-    // 模擬 API 呼叫
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    router.push('/success')
-  } catch (e) {
-    toast.error('提交失敗，請稍後再試')
+    const success = await store.completeApplication()
+
+    if (success) {
+      toast.success('申請已完成！')
+      router.push('/success')
+    } else {
+      toast.error(store.apiError || '完成申請失敗，請稍後再試')
+    }
+  } finally {
+    completing.value = false
   }
 }
 
@@ -75,6 +88,9 @@ const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text)
   toast.success('已複製到剪貼簿')
 }
+
+// Helper to check if verified
+const isVerified = () => store.cloudflareInfo?.verified === true
 </script>
 
 <template>
@@ -90,11 +106,11 @@ const copyToClipboard = (text: string) => {
           2
         </div>
         <div class="w-24 h-1 bg-gray-200">
-          <div :class="verified ? 'w-full' : 'w-0'" class="h-full bg-primary-600 transition-all" />
+          <div :class="isVerified() ? 'w-full' : 'w-0'" class="h-full bg-primary-600 transition-all" />
         </div>
         <div
           class="w-8 h-8 rounded-full flex items-center justify-center font-medium"
-          :class="verified ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'"
+          :class="isVerified() ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'"
         >
           3
         </div>
@@ -103,6 +119,23 @@ const copyToClipboard = (text: string) => {
 
     <div class="card">
       <h1 class="text-2xl font-bold text-gray-900 mb-6">連接 Cloudflare 帳號</h1>
+
+      <!-- Application Info -->
+      <div v-if="store.assignedSubdomain" class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <p class="text-sm text-gray-600">
+          您的專屬網址：<span class="font-mono font-medium text-gray-900">{{ store.assignedSubdomain }}.makanmakan.app</span>
+        </p>
+      </div>
+
+      <!-- API Error Alert -->
+      <div v-if="store.apiError" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div class="flex">
+          <ExclamationTriangleIcon class="h-5 w-5 text-red-500 flex-shrink-0" />
+          <div class="ml-3">
+            <p class="text-sm text-red-700">{{ store.apiError }}</p>
+          </div>
+        </div>
+      </div>
 
       <!-- 說明 -->
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -154,7 +187,7 @@ const copyToClipboard = (text: string) => {
             class="input font-mono"
             :class="{ 'input-error': errors.accountId }"
             placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            :disabled="verified"
+            :disabled="isVerified()"
           />
           <p v-if="errors.accountId" class="mt-1 text-sm text-red-600">
             {{ errors.accountId }}
@@ -170,15 +203,49 @@ const copyToClipboard = (text: string) => {
             class="input font-mono"
             :class="{ 'input-error': errors.apiToken }"
             placeholder="••••••••••••••••••••••••••••••••"
-            :disabled="verified"
+            :disabled="isVerified()"
           />
           <p v-if="errors.apiToken" class="mt-1 text-sm text-red-600">
             {{ errors.apiToken }}
           </p>
         </div>
 
+        <!-- Permission Status (shown after verification attempt) -->
+        <div v-if="store.cloudflareInfo?.permissions" class="p-4 rounded-lg" :class="isVerified() ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
+          <h4 class="font-medium mb-3" :class="isVerified() ? 'text-green-800' : 'text-yellow-800'">
+            {{ isVerified() ? '權限檢查通過' : '權限檢查結果' }}
+          </h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="flex items-center">
+              <CheckCircleIcon v-if="store.cloudflareInfo.permissions.workers" class="h-4 w-4 text-green-500 mr-2" />
+              <XCircleIcon v-else class="h-4 w-4 text-red-500 mr-2" />
+              <span :class="store.cloudflareInfo.permissions.workers ? 'text-green-700' : 'text-red-700'">Workers</span>
+            </div>
+            <div class="flex items-center">
+              <CheckCircleIcon v-if="store.cloudflareInfo.permissions.d1" class="h-4 w-4 text-green-500 mr-2" />
+              <XCircleIcon v-else class="h-4 w-4 text-red-500 mr-2" />
+              <span :class="store.cloudflareInfo.permissions.d1 ? 'text-green-700' : 'text-red-700'">D1 Database</span>
+            </div>
+            <div class="flex items-center">
+              <CheckCircleIcon v-if="store.cloudflareInfo.permissions.kv" class="h-4 w-4 text-green-500 mr-2" />
+              <XCircleIcon v-else class="h-4 w-4 text-red-500 mr-2" />
+              <span :class="store.cloudflareInfo.permissions.kv ? 'text-green-700' : 'text-red-700'">KV Storage</span>
+            </div>
+            <div class="flex items-center">
+              <CheckCircleIcon v-if="store.cloudflareInfo.permissions.r2" class="h-4 w-4 text-green-500 mr-2" />
+              <XCircleIcon v-else class="h-4 w-4 text-red-500 mr-2" />
+              <span :class="store.cloudflareInfo.permissions.r2 ? 'text-green-700' : 'text-red-700'">R2 Storage</span>
+            </div>
+            <div class="flex items-center">
+              <CheckCircleIcon v-if="store.cloudflareInfo.permissions.pages" class="h-4 w-4 text-green-500 mr-2" />
+              <XCircleIcon v-else class="h-4 w-4 text-red-500 mr-2" />
+              <span :class="store.cloudflareInfo.permissions.pages ? 'text-green-700' : 'text-red-700'">Pages (選用)</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 驗證成功提示 -->
-        <div v-if="verified" class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div v-if="isVerified()" class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg">
           <CheckCircleIcon class="h-5 w-5 text-green-500" />
           <span class="ml-2 text-green-700">Cloudflare 帳號已成功連接！</span>
         </div>
@@ -193,20 +260,23 @@ const copyToClipboard = (text: string) => {
             返回
           </button>
           <button
-            v-if="!verified"
+            v-if="!isVerified()"
             type="submit"
             class="btn btn-primary"
-            :disabled="verifying"
+            :disabled="store.isVerifyingCf"
           >
-            {{ verifying ? '驗證中...' : '驗證連接' }}
+            <ArrowPathIcon v-if="store.isVerifyingCf" class="h-4 w-4 mr-2 animate-spin" />
+            {{ store.isVerifyingCf ? '驗證中...' : '驗證連接' }}
           </button>
           <button
             v-else
             type="button"
             class="btn btn-primary"
+            :disabled="completing || store.isCompleting"
             @click="handleComplete"
           >
-            完成申請
+            <ArrowPathIcon v-if="completing || store.isCompleting" class="h-4 w-4 mr-2 animate-spin" />
+            {{ completing || store.isCompleting ? '處理中...' : '完成申請' }}
           </button>
         </div>
       </form>

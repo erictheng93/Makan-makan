@@ -356,3 +356,81 @@ export interface WorkerInfo {
   handlers: string[];
   modified_on: string;
 }
+
+// ============================================================
+// Onboarding Types
+// ============================================================
+
+/**
+ * Onboarding application status
+ */
+export type OnboardingStatus =
+  | "submitted"
+  | "cf_verified"
+  | "provisioning"
+  | "completed"
+  | "rejected";
+
+/**
+ * Onboarding application record
+ */
+export interface OnboardingApplication {
+  id: string;
+  businessName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  planId: LicenseTier;
+  requestedSubdomain?: string;
+  assignedSubdomain?: string;
+  cfAccountId?: string;
+  cfVerifiedAt?: string;
+  status: OnboardingStatus;
+  tenantId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+  submittedAt?: string;
+  completedAt?: string;
+  updatedAt: string;
+}
+
+/**
+ * Create onboarding application request
+ */
+export interface CreateApplicationRequest {
+  businessName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  planId: LicenseTier;
+  subdomain?: string;
+}
+
+/**
+ * Verify Cloudflare credentials request
+ */
+export interface VerifyCloudflareRequest {
+  accountId: string;
+  apiToken: string;
+}
+
+/**
+ * Cloudflare permission check result
+ */
+export interface CloudflarePermissions {
+  workers: boolean;
+  d1: boolean;
+  kv: boolean;
+  r2: boolean;
+  pages: boolean;
+}
+
+/**
+ * Cloudflare verification result
+ */
+export interface CloudflareVerificationResult {
+  valid: boolean;
+  permissions: CloudflarePermissions;
+  error?: string;
+}

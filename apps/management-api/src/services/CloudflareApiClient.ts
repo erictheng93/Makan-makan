@@ -10,6 +10,8 @@ import type {
   D1DatabaseInfo,
   KVNamespaceInfo,
   R2BucketInfo,
+  CloudflareVerificationResult,
+  CloudflarePermissions,
 } from "../types";
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
@@ -39,6 +41,175 @@ export class CloudflareApiClient {
         },
       });
 
+      const data = (await response.json()) as CloudflareApiResponse<unknown>;
+      return data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Verify API token with detailed permission checks
+   * Checks if the token can access Workers, D1, KV, R2, and Pages
+   */
+  async verifyTokenWithPermissions(
+    apiToken: string,
+    accountId: string,
+  ): Promise<CloudflareVerificationResult> {
+    const permissions: CloudflarePermissions = {
+      workers: false,
+      d1: false,
+      kv: false,
+      r2: false,
+      pages: false,
+    };
+
+    // First, verify basic account access
+    const accountValid = await this.verifyToken(apiToken, accountId);
+    if (!accountValid) {
+      return {
+        valid: false,
+        permissions,
+        error: "Invalid API token or account ID",
+      };
+    }
+
+    // Check permissions in parallel for better performance
+    const [workersResult, d1Result, kvResult, r2Result, pagesResult] =
+      await Promise.allSettled([
+        this.checkWorkersPermission(apiToken, accountId),
+        this.checkD1Permission(apiToken, accountId),
+        this.checkKVPermission(apiToken, accountId),
+        this.checkR2Permission(apiToken, accountId),
+        this.checkPagesPermission(apiToken, accountId),
+      ]);
+
+    permissions.workers =
+      workersResult.status === "fulfilled" && workersResult.value;
+    permissions.d1 = d1Result.status === "fulfilled" && d1Result.value;
+    permissions.kv = kvResult.status === "fulfilled" && kvResult.value;
+    permissions.r2 = r2Result.status === "fulfilled" && r2Result.value;
+    permissions.pages = pagesResult.status === "fulfilled" && pagesResult.value;
+
+    return {
+      valid: true,
+      permissions,
+    };
+  }
+
+  /**
+   * Check if token has Workers permission
+   */
+  private async checkWorkersPermission(
+    apiToken: string,
+    accountId: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${CF_API_BASE}/accounts/${accountId}/workers/scripts`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = (await response.json()) as CloudflareApiResponse<unknown>;
+      return data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if token has D1 permission
+   */
+  private async checkD1Permission(
+    apiToken: string,
+    accountId: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${CF_API_BASE}/accounts/${accountId}/d1/database`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = (await response.json()) as CloudflareApiResponse<unknown>;
+      return data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if token has KV permission
+   */
+  private async checkKVPermission(
+    apiToken: string,
+    accountId: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${CF_API_BASE}/accounts/${accountId}/storage/kv/namespaces`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = (await response.json()) as CloudflareApiResponse<unknown>;
+      return data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if token has R2 permission
+   */
+  private async checkR2Permission(
+    apiToken: string,
+    accountId: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${CF_API_BASE}/accounts/${accountId}/r2/buckets`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = (await response.json()) as CloudflareApiResponse<unknown>;
+      return data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if token has Pages permission
+   */
+  private async checkPagesPermission(
+    apiToken: string,
+    accountId: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${CF_API_BASE}/accounts/${accountId}/pages/projects`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
       const data = (await response.json()) as CloudflareApiResponse<unknown>;
       return data.success;
     } catch {
