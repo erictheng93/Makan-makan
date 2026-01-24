@@ -61,37 +61,93 @@ makanmakan/
 **Employee Management**: shift_templates, employee_schedules, leave_types, leave_requests, employee_leave_balances
 **Partnership System**: partnerships, partnership_plans, partnership_members, partnership_usage_logs
 
-### Database Commands
+### Database Migrations
+
+**Source of Truth**: Drizzle schema files in `packages/database/src/schema/`
+
+**Generated Migrations**: `packages/database/migrations_fresh/`
+
+**ID Strategy**:
+- Primary keys: `INTEGER` with auto-increment
+- Foreign key `restaurant_id`: `TEXT` referencing `restaurants.public_id`
+- `public_id` format: Business-readable `S-YYYYMMDD-NNN` pattern
+- Timestamps: `INTEGER` (Unix milliseconds via `unixepoch('now') * 1000`)
+
+**Commands**:
 ```bash
-# Apply migrations
-npx wrangler d1 migrations apply makanmakan-staging --env staging
-npx wrangler d1 migrations apply makanmakan-prod --env production
+# Generate new migration from schema changes
+pnpm db:generate
+
+# Apply migrations locally
+pnpm db:migrate:local
+
+# Reset local database (clears all data)
+pnpm db:reset:local
+
+# Seed mock data
+pnpm db:seed:mock
+```
+
+**Adding New Tables**:
+1. Create schema file in `packages/database/src/schema/new-table.ts`
+2. Export from `packages/database/src/schema/index.ts`
+3. Run `pnpm db:generate` to create migration
+4. Run `pnpm db:migrate:local` to apply
+
+### Database Commands (Legacy)
+```bash
+# Apply migrations to remote environments
+pnpm db:migrate:staging
+pnpm db:migrate:prod
 
 # Query database
-npx wrangler d1 execute makanmakan-staging --local --command "SELECT * FROM users LIMIT 5"
+npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM users LIMIT 5" --config=./apps/api/wrangler.toml
 ```
 
 ## Development Setup
 
 ### Prerequisites
 - Node.js 20+
+- pnpm 8+ (required - this project uses pnpm workspaces)
 - Cloudflare Account (paid plan for D1, R2, Images)
-- Wrangler CLI: `npm install -g wrangler`
+- Wrangler CLI: `pnpm add -g wrangler`
 
 ### Quick Start
 ```bash
-# 1. Install dependencies
-npm install
+# 1. Install dependencies (must use pnpm)
+pnpm install
 
 # 2. Authenticate with Cloudflare
-npx wrangler login
+pnpm wrangler login
 
 # 3. Run database migrations
-npm run db:migrate:local
+pnpm db:migrate:local
 
 # 4. Start development servers
-npm run dev  # Starts all apps in parallel
+pnpm dev  # Starts all apps in parallel
 ```
+
+### Package Manager (pnpm)
+
+**重要**: 此專案使用 pnpm，請勿使用 npm 或 yarn。
+
+**防護機制**:
+- `package.json` 的 `engines` 和 `packageManager` 欄位強制使用 pnpm
+- `.npmrc` 設定 `engine-strict=true` 會阻止錯誤的套件管理器
+
+**Monorepo 結構**:
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'packages/shared/src/i18n'  # 特殊：嵌套的 i18n 套件
+```
+
+**維護注意事項** (2025-01-24 修復):
+- 所有 scripts 必須使用 `pnpm run` 而非 `npm run`
+- CI/CD workflows 必須使用 `pnpm` 命令
+- 子目錄的 `node_modules` 是 pnpm 的符號連結，不是重複安裝
 
 ### Environment Variables
 ```env
@@ -149,22 +205,22 @@ WebSocket Endpoints (apps/realtime/):
 
 ### Testing
 ```bash
-npm run test                    # Unit tests
-npm run typecheck              # TypeScript check
-npm run test:integration       # Integration tests
-npm run test:e2e              # End-to-end tests
+pnpm test                    # Unit tests
+pnpm typecheck              # TypeScript check
+pnpm test:integration       # Integration tests
+pnpm test:e2e              # End-to-end tests
 ```
 
 ### Deployment
 ```bash
-npm run deploy:staging        # Deploy to staging
-npm run deploy:prod          # Deploy to production (automatic on push to main)
+pnpm deploy:staging        # Deploy to staging
+pnpm deploy:prod          # Deploy to production (automatic on push to main)
 ```
 
 ### Monitoring
 ```bash
-npx wrangler tail makanmakan-api-prod                    # View logs
-npx wrangler d1 execute makanmakan-prod --command "..."  # Query database
+pnpm wrangler tail makanmakan-api-prod                    # View logs
+pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ```
 
 ## Current Development Status
@@ -277,7 +333,7 @@ npx wrangler d1 execute makanmakan-prod --command "..."  # Query database
 4. **WebSocket Disconnections**: Monitor Durable Objects health
 
 ### Debug Tools
-- Worker logs: `npx wrangler tail`
+- Worker logs: `pnpm wrangler tail`
 - Health endpoint: `/api/v1/health`
 - Error tracking: Automatic Slack notifications
 
@@ -285,7 +341,14 @@ npx wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 **For detailed changelog, see: `docs/archive/CHANGELOG.md`**
 
-### Latest (2025-11-24)
+### Latest (2025-01-24)
+- **Package Manager Cleanup**: 移除遺留的 npm 命令，統一使用 pnpm
+  - ✅ 修復 `package.json` 中 2 處 `npm run` → `pnpm run`
+  - ✅ 修復 `.github/workflows/test.yml` 中 1 處 `npm run` → `pnpm run`
+  - ✅ 更新 `CLAUDE.md` 文檔中所有 npm 命令為 pnpm
+  - ✅ 新增 Package Manager 章節說明 pnpm 使用規範
+
+### Previous (2025-11-24)
 - **Partnership System - Complete Implementation**: Full-stack merchant collaboration system
   - ✅ **Backend Services**: PartnershipService with comprehensive business logic (759 lines)
   - ✅ **Database Schema**: partnerships, partnership_plans, partnership_members, partnership_usage_logs (359 lines)
@@ -438,13 +501,13 @@ npx wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 ---
 
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-01-24
 **Architecture**: 2.0 (Cloudflare Serverless)
 **Status**: Production Ready | 98% Complete | ✅ 0 TypeScript Errors | ✅ 0 ESLint Errors | 95/100 PWA Score | Employee Management 100% | Realtime Services 90% | Partnership System 100% | Testing Infrastructure Phase 1: 100%
 
-**Latest Achievements (2025-11-24)**:
-- ✅ Partnership System: Complete full-stack implementation (3,163 lines, 83 test cases)
-- ✅ TypeScript Compliance: Fixed all remaining test errors (106 → 0), maintained 100% compliance across 17 packages
+**Latest Achievements (2025-01-24)**:
+- ✅ Package Manager Cleanup: 統一使用 pnpm，移除所有遺留 npm 命令
+- ✅ Documentation Update: 更新所有開發指令和新增 pnpm 使用規範章節
 - Always use context7 when I need code generation, setup or configuration steps, or
 library/API documentation. This means you should automatically use the Context7 MCP
 tools to resolve library id and get library docs without me having to explicitly ask.

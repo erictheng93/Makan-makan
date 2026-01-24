@@ -842,6 +842,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
       - name: 🧪 部署後煙霧測試
-        run: npm run test:smoke:staging
+        run: pnpm run test:smoke:staging
         env:
           STAGING_URL: ${{ secrets.STAGING_URL }}

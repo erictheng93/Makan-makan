@@ -1,14 +1,14 @@
-import type { Config } from 'drizzle-kit'
+import type { Config } from "drizzle-kit";
 
 export default {
-  schema: './src/schema/index.ts',
-  out: './migrations',
-  dialect: 'sqlite',
-  driver: 'd1-http',
+  schema: "./src/schema/index.ts",
+  out: "./migrations_fresh",
+  dialect: "sqlite",
+  driver: "d1-http",
   verbose: true,
   strict: true,
   dbCredentials: {
-    wranglerConfigPath: '../../wrangler.toml',
-    dbName: 'makanmakan-local'
-  }
-} satisfies Config
+    wranglerConfigPath: "../../wrangler.toml",
+    dbName: "makanmakan-local",
+  },
+} satisfies Config;

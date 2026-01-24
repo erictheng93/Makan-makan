@@ -50,7 +50,7 @@ TWILIO_PHONE_NUMBER = "+1234567890"  # Update with actual number
 binding = "DB"
 database_name = "makanmakan-local"
 database_id = "local"
-migrations_dir = "../../packages/database/migrations"
+migrations_dir = "../../packages/database/migrations_fresh"
 
 # KV namespaces for caching and rate limiting
 [[kv_namespaces]]

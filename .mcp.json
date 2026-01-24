@@ -1,18 +1,17 @@
 {
   "mcpServers": {
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
-    },
     "chrome-devtools": {
       "type": "stdio",
-      "command": "npx",
+      "command": "/Users/eric/.npm/_npx/15c61037b1978c83/node_modules/.bin/chrome-devtools-mcp",
       "args": [
-        "chrome-devtools-mcp@latest",
         "--isolated"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/Users/eric/.npm/_npx/9833c18b2d85bc59/node_modules/@playwright/mcp/cli.js"
       ]
     },
     "context7": {
