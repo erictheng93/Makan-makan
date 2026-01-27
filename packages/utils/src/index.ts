@@ -14,15 +14,15 @@ export {
   batchDedupe,
   type RequestCacheEntry,
   type RequestDeduplicationOptions,
-} from './request-deduplication'
+} from "./request-deduplication";
 
 // Axios deduplication interceptor
 export {
   installAxiosDeduplication,
   skipDedup,
   withDedupTTL,
-  combineConfigs
-} from './axios-deduplication-interceptor'
+  combineConfigs,
+} from "./axios-deduplication-interceptor";
 
 // Error tracking
 export {
@@ -34,8 +34,8 @@ export {
   type ErrorContext,
   type ErrorBreadcrumb,
   type TrackedError,
-  type ErrorTrackingOptions
-} from './error-tracking'
+  type ErrorTrackingOptions,
+} from "./error-tracking";
 
 // Performance monitoring
 export {
@@ -46,5 +46,30 @@ export {
   type WebVitals,
   type ResourceTiming,
   type PerformanceReport,
-  type PerformanceMonitorOptions
-} from './performance-monitor'
+  type PerformanceMonitorOptions,
+} from "./performance-monitor";
+
+// UUID utilities
+export {
+  generateUUID,
+  isValidUUID,
+  isValidRestaurantId,
+  isLegacyRestaurantId,
+  extractUUIDTimestamp,
+} from "./uuid";
+
+// Validation schemas
+export {
+  uuidSchema,
+  restaurantIdSchema,
+  restaurantIdSchemaCompat,
+  numericIdSchema,
+  numericIdParamSchema,
+  restaurantIdParamSchema,
+  restaurantIdParamSchemaCompat,
+  optionalRestaurantIdSchema,
+  optionalNumericIdSchema,
+  type UUID,
+  type RestaurantId,
+  type NumericId,
+} from "./validation";
