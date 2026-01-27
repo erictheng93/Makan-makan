@@ -1,6 +1,6 @@
-import { BaseEntity, Status, BusinessHours } from './common';
+import { UUIDEntity, Status, BusinessHours } from "./common";
 
-export interface Restaurant extends BaseEntity {
+export interface Restaurant extends UUIDEntity {
   name: string;
   type?: string;
   category?: string;
@@ -41,7 +41,7 @@ export interface ShopQrSettings {
 export enum PlanType {
   FREE = 0,
   BASIC = 1,
-  PRO = 2
+  PRO = 2,
 }
 
 export interface RestaurantSettings {

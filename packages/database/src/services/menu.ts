@@ -1,88 +1,89 @@
-import { eq, and, desc, asc, count, like, sql, inArray } from 'drizzle-orm'
-import { BaseService } from './base'
-import { restaurants, categories, menuItems } from '../schema'
-import type { MenuStructure, MenuItem, Category } from '@makanmakan/shared-types'
+import { eq, and, desc, asc, count, like, sql, inArray } from "drizzle-orm";
+import { BaseService } from "./base";
+import { restaurants, categories, menuItems } from "../schema";
+import type {
+  MenuStructure,
+  MenuItem,
+  Category,
+} from "@makanmakan/shared-types";
 
 export interface CreateMenuItemData {
-  restaurantId: string
-  categoryId: number
-  name: string
-  description?: string
-  ingredients?: string
-  price: number
-  originalPrice?: number
-  imageUrl?: string
-  imageVariants?: any
-  isAvailable?: boolean
-  isFeatured?: boolean
-  isPopular?: boolean
-  spiceLevel?: number
-  preparationTime?: number
-  calories?: number
-  dietaryInfo?: any
-  allergens?: string[]
-  options?: any
-  availableHours?: any
-  tags?: string[]
-  keywords?: string
+  restaurantId: string;
+  categoryId: number;
+  name: string;
+  description?: string;
+  ingredients?: string;
+  price: number;
+  originalPrice?: number;
+  imageUrl?: string;
+  imageVariants?: any;
+  isAvailable?: boolean;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  spiceLevel?: number;
+  preparationTime?: number;
+  calories?: number;
+  dietaryInfo?: any;
+  allergens?: string[];
+  options?: any;
+  availableHours?: any;
+  tags?: string[];
+  keywords?: string;
 }
 
 export interface UpdateMenuItemData extends Partial<CreateMenuItemData> {
-  isAvailable?: boolean
-  isFeatured?: boolean
-  isPopular?: boolean
-  sortOrder?: number
-  inventoryCount?: number
+  isAvailable?: boolean;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  sortOrder?: number;
+  inventoryCount?: number;
 }
 
 export interface MenuFilters {
-  categoryId?: number
-  priceRange?: [number, number]
-  spiceLevel?: number
-  dietaryPreferences?: string[]
-  isAvailable?: boolean
-  isFeatured?: boolean
-  search?: string
+  categoryId?: number;
+  priceRange?: [number, number];
+  spiceLevel?: number;
+  dietaryPreferences?: string[];
+  isAvailable?: boolean;
+  isFeatured?: boolean;
+  search?: string;
 }
 
 export class MenuService extends BaseService {
-  
   // 獲取完整菜單結構
   async getMenu(restaurantId: string): Promise<MenuStructure> {
     try {
       // Use query cache with 1 hour TTL for menu data
-      const cacheKey = this.buildCacheKey('menu', restaurantId, 'full')
+      const cacheKey = this.buildCacheKey("menu", restaurantId, "full");
 
       return await this.cachedQuery(
         cacheKey,
         async () => {
           const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.publicId, restaurantId),
-        with: {
-          categories: {
-            where: and(
-              eq(categories.isActive, true),
-              eq(categories.isVisible, true)
-            ),
-            orderBy: asc(categories.sortOrder),
+            where: eq(restaurants.id, restaurantId),
             with: {
-              menuItems: {
+              categories: {
                 where: and(
-                  eq(menuItems.isAvailable, true)
+                  eq(categories.isActive, true),
+                  eq(categories.isVisible, true),
                 ),
-                orderBy: [asc(menuItems.sortOrder), asc(menuItems.name)]
-              }
-            }
-          }
-        }
-      })
+                orderBy: asc(categories.sortOrder),
+                with: {
+                  menuItems: {
+                    where: and(eq(menuItems.isAvailable, true)),
+                    orderBy: [asc(menuItems.sortOrder), asc(menuItems.name)],
+                  },
+                },
+              },
+            },
+          });
 
-      if (!restaurant) {
-        throw new Error('Restaurant not found')
-      }
+          if (!restaurant) {
+            throw new Error("Restaurant not found");
+          }
 
           // 更新分類的商品數量
-          await this.updateCategoryItemCounts(restaurantId)
+          await this.updateCategoryItemCounts(restaurantId);
 
           return {
             categories: restaurant.categories.map((cat: any) => ({
@@ -95,25 +96,28 @@ export class MenuService extends BaseService {
               imageUrl: cat.imageUrl,
               itemCount: cat.menuItems.length,
               createdAt: cat.createdAt,
-              updatedAt: cat.updatedAt
+              updatedAt: cat.updatedAt,
             })),
             menuItems: restaurant.categories.flatMap((cat: any) =>
-              cat.menuItems.map((item: any) => this.mapToMenuItem(item))
-            )
-          }
+              cat.menuItems.map((item: any) => this.mapToMenuItem(item)),
+            ),
+          };
         },
         {
           ttl: 3600, // 1 hour cache
-          tags: [`menu:${restaurantId}`, `restaurant:${restaurantId}`]
-        }
-      )
+          tags: [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+        },
+      );
     } catch (error) {
-      this.handleError(error, 'getMenu')
+      this.handleError(error, "getMenu");
     }
   }
 
   // 獲取特色菜品
-  async getFeaturedItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
+  async getFeaturedItems(
+    restaurantId: string,
+    limit: number = 10,
+  ): Promise<MenuItem[]> {
     try {
       const items = await this.db
         .select({
@@ -138,27 +142,30 @@ export class MenuService extends BaseService {
           orderCount: menuItems.orderCount,
           rating: menuItems.rating,
           createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt
+          updatedAt: menuItems.updatedAt,
         })
         .from(menuItems)
         .where(
           and(
             eq(menuItems.restaurantId, restaurantId),
             eq(menuItems.isFeatured, true),
-            eq(menuItems.isAvailable, true)
-          )
+            eq(menuItems.isAvailable, true),
+          ),
         )
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
-        .limit(limit)
+        .limit(limit);
 
-      return items.map(item => this.mapToMenuItem(item))
+      return items.map((item) => this.mapToMenuItem(item));
     } catch (error) {
-      this.handleError(error, 'getFeaturedItems')
+      this.handleError(error, "getFeaturedItems");
     }
   }
 
   // 獲取熱門菜品
-  async getPopularItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
+  async getPopularItems(
+    restaurantId: string,
+    limit: number = 10,
+  ): Promise<MenuItem[]> {
     try {
       const items = await this.db
         .select({
@@ -183,21 +190,21 @@ export class MenuService extends BaseService {
           orderCount: menuItems.orderCount,
           rating: menuItems.rating,
           createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt
+          updatedAt: menuItems.updatedAt,
         })
         .from(menuItems)
         .where(
           and(
             eq(menuItems.restaurantId, restaurantId),
-            eq(menuItems.isAvailable, true)
-          )
+            eq(menuItems.isAvailable, true),
+          ),
         )
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
-        .limit(limit)
+        .limit(limit);
 
-      return items.map(item => this.mapToMenuItem(item))
+      return items.map((item) => this.mapToMenuItem(item));
     } catch (error) {
-      this.handleError(error, 'getPopularItems')
+      this.handleError(error, "getPopularItems");
     }
   }
 
@@ -206,51 +213,52 @@ export class MenuService extends BaseService {
     restaurantId: string,
     filters: MenuFilters,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ) {
     try {
-      const { offset } = this.createPagination(page, limit)
-      const conditions = [eq(menuItems.restaurantId, restaurantId)]
+      const { offset } = this.createPagination(page, limit);
+      const conditions = [eq(menuItems.restaurantId, restaurantId)];
 
       // 建構查詢條件
       if (filters.categoryId) {
-        conditions.push(eq(menuItems.categoryId, filters.categoryId))
+        conditions.push(eq(menuItems.categoryId, filters.categoryId));
       }
 
       if (filters.priceRange) {
-        const [minPrice, maxPrice] = filters.priceRange
+        const [minPrice, maxPrice] = filters.priceRange;
         conditions.push(
           and(
             sql`${menuItems.price} >= ${minPrice}`,
-            sql`${menuItems.price} <= ${maxPrice}`
-          )!
-        )
+            sql`${menuItems.price} <= ${maxPrice}`,
+          )!,
+        );
       }
 
       if (filters.spiceLevel !== undefined) {
-        conditions.push(eq(menuItems.spiceLevel, filters.spiceLevel))
+        conditions.push(eq(menuItems.spiceLevel, filters.spiceLevel));
       }
 
       if (filters.isAvailable !== undefined) {
-        conditions.push(eq(menuItems.isAvailable, filters.isAvailable))
+        conditions.push(eq(menuItems.isAvailable, filters.isAvailable));
       }
 
       if (filters.isFeatured !== undefined) {
-        conditions.push(eq(menuItems.isFeatured, filters.isFeatured))
+        conditions.push(eq(menuItems.isFeatured, filters.isFeatured));
       }
 
       if (filters.search) {
         conditions.push(
-          sql`(${menuItems.name} LIKE ${`%${filters.search}%`} OR ${menuItems.description} LIKE ${`%${filters.search}%`} OR ${menuItems.keywords} LIKE ${`%${filters.search}%`})`
-        )
+          sql`(${menuItems.name} LIKE ${`%${filters.search}%`} OR ${menuItems.description} LIKE ${`%${filters.search}%`} OR ${menuItems.keywords} LIKE ${`%${filters.search}%`})`,
+        );
       }
 
       // 飲食偏好篩選
       if (filters.dietaryPreferences?.length) {
-        const dietaryConditions = filters.dietaryPreferences.map(pref =>
-          sql`json_extract(${menuItems.dietaryInfo}, ${sql.raw(`'$.${pref}'`)}) = true`
-        )
-        conditions.push(sql`(${sql.join(dietaryConditions, sql` OR `)})`)
+        const dietaryConditions = filters.dietaryPreferences.map(
+          (pref) =>
+            sql`json_extract(${menuItems.dietaryInfo}, ${sql.raw(`'$.${pref}'`)}) = true`,
+        );
+        conditions.push(sql`(${sql.join(dietaryConditions, sql` OR `)})`);
       }
 
       // 查詢結果
@@ -277,33 +285,37 @@ export class MenuService extends BaseService {
           orderCount: menuItems.orderCount,
           rating: menuItems.rating,
           createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt
+          updatedAt: menuItems.updatedAt,
         })
         .from(menuItems)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(menuItems.isFeatured), desc(menuItems.orderCount), asc(menuItems.sortOrder))
+        .orderBy(
+          desc(menuItems.isFeatured),
+          desc(menuItems.orderCount),
+          asc(menuItems.sortOrder),
+        )
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 查詢總數 (使用安全解構避免 undefined 錯誤)
       const countResult = await this.db
         .select({ totalCount: count() })
         .from(menuItems)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-      const totalCount = countResult?.[0]?.totalCount ?? 0
+      const totalCount = countResult?.[0]?.totalCount ?? 0;
 
       return {
-        items: items.map(item => this.mapToMenuItem(item)),
+        items: items.map((item) => this.mapToMenuItem(item)),
         pagination: {
           page,
           limit,
           total: totalCount,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      }
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
     } catch (error) {
-      this.handleError(error, 'searchMenuItems')
+      this.handleError(error, "searchMenuItems");
     }
   }
 
@@ -314,53 +326,62 @@ export class MenuService extends BaseService {
         .insert(menuItems)
         .values({
           ...data,
-          isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,  // Default: available
+          isAvailable: data.isAvailable !== undefined ? data.isAvailable : true, // Default: available
           isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
-          isPopular: data.isPopular !== undefined ? data.isPopular : false
+          isPopular: data.isPopular !== undefined ? data.isPopular : false,
         })
-        .returning()
+        .returning();
 
       // 更新分類商品數量
-      await this.updateCategoryItemCount(data.categoryId)
+      await this.updateCategoryItemCount(data.categoryId);
 
       // Invalidate menu cache for this restaurant
-      await this.invalidateCache([`menu:${data.restaurantId}`, `restaurant:${data.restaurantId}`], 'tag')
+      await this.invalidateCache(
+        [`menu:${data.restaurantId}`, `restaurant:${data.restaurantId}`],
+        "tag",
+      );
 
-      return this.mapToMenuItem(item)
+      return this.mapToMenuItem(item);
     } catch (error) {
-      this.handleError(error, 'createMenuItem')
+      this.handleError(error, "createMenuItem");
     }
   }
 
   // 更新菜單項目
-  async updateMenuItem(id: number, data: UpdateMenuItemData): Promise<MenuItem> {
+  async updateMenuItem(
+    id: number,
+    data: UpdateMenuItemData,
+  ): Promise<MenuItem> {
     try {
       const [item] = await this.db
         .update(menuItems)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(menuItems.id, id))
-        .returning()
+        .returning();
 
       if (!item) {
-        throw new Error('Menu item not found')
+        throw new Error("Menu item not found");
       }
 
       // Invalidate menu cache for this restaurant
-      await this.invalidateCache([`menu:${item.restaurantId}`, `restaurant:${item.restaurantId}`], 'tag')
+      await this.invalidateCache(
+        [`menu:${item.restaurantId}`, `restaurant:${item.restaurantId}`],
+        "tag",
+      );
 
-      return this.mapToMenuItem(item)
+      return this.mapToMenuItem(item);
     } catch (error) {
-      this.handleError(error, 'updateMenuItem')
+      this.handleError(error, "updateMenuItem");
     }
   }
 
   // 批量更新菜品可用性
   async batchUpdateAvailability(
     restaurantId: string,
-    updates: { id: number; isAvailable: boolean }[]
+    updates: { id: number; isAvailable: boolean }[],
   ): Promise<void> {
     try {
       for (const update of updates) {
@@ -368,36 +389,41 @@ export class MenuService extends BaseService {
           .update(menuItems)
           .set({
             isAvailable: update.isAvailable,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(
             and(
               eq(menuItems.id, update.id),
-              eq(menuItems.restaurantId, restaurantId)
-            )
-          )
+              eq(menuItems.restaurantId, restaurantId),
+            ),
+          );
       }
 
       // Invalidate menu cache after batch update
-      await this.invalidateCache([`menu:${restaurantId}`, `restaurant:${restaurantId}`], 'tag')
-
+      await this.invalidateCache(
+        [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+        "tag",
+      );
     } catch (error) {
-      this.handleError(error, 'batchUpdateAvailability')
+      this.handleError(error, "batchUpdateAvailability");
     }
   }
 
   // 更新菜品點餐次數
-  async incrementOrderCount(menuItemId: number, increment: number = 1): Promise<void> {
+  async incrementOrderCount(
+    menuItemId: number,
+    increment: number = 1,
+  ): Promise<void> {
     try {
       await this.db
         .update(menuItems)
         .set({
           orderCount: sql`${menuItems.orderCount} + ${increment}`,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(menuItems.id, menuItemId))
+        .where(eq(menuItems.id, menuItemId));
     } catch (error) {
-      this.handleError(error, 'incrementOrderCount')
+      this.handleError(error, "incrementOrderCount");
     }
   }
 
@@ -408,11 +434,11 @@ export class MenuService extends BaseService {
         .update(menuItems)
         .set({
           viewCount: sql`${menuItems.viewCount} + 1`,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(menuItems.id, menuItemId))
+        .where(eq(menuItems.id, menuItemId));
     } catch (error) {
-      this.handleError(error, 'incrementViewCount')
+      this.handleError(error, "incrementViewCount");
     }
   }
 
@@ -426,35 +452,35 @@ export class MenuService extends BaseService {
           restaurant: {
             columns: {
               id: true,
-              name: true
-            }
-          }
-        }
-      })
+              name: true,
+            },
+          },
+        },
+      });
 
-      return item ? this.mapToMenuItem(item) : null
+      return item ? this.mapToMenuItem(item) : null;
     } catch (error) {
-      this.handleError(error, 'getMenuItem')
+      this.handleError(error, "getMenuItem");
     }
   }
 
   // 創建或更新分類
   async createCategory(data: {
-    restaurantId: string
-    name: string
-    description?: string
-    sortOrder?: number
-    imageUrl?: string
+    restaurantId: string;
+    name: string;
+    description?: string;
+    sortOrder?: number;
+    imageUrl?: string;
   }) {
     try {
       const [category] = await this.db
         .insert(categories)
         .values(data)
-        .returning()
+        .returning();
 
-      return category
+      return category;
     } catch (error) {
-      this.handleError(error, 'createCategory')
+      this.handleError(error, "createCategory");
     }
   }
 
@@ -462,12 +488,12 @@ export class MenuService extends BaseService {
   async getCategory(id: number) {
     try {
       const category = await this.db.query.categories.findFirst({
-        where: eq(categories.id, id)
-      })
+        where: eq(categories.id, id),
+      });
 
-      return category || null
+      return category || null;
     } catch (error) {
-      this.handleError(error, 'getCategory')
+      this.handleError(error, "getCategory");
     }
   }
 
@@ -479,19 +505,19 @@ export class MenuService extends BaseService {
       .where(
         and(
           eq(menuItems.categoryId, categoryId),
-          eq(menuItems.isAvailable, true)
-        )
-      )
+          eq(menuItems.isAvailable, true),
+        ),
+      );
 
-    const itemCount = countResult?.[0]?.itemCount ?? 0
+    const itemCount = countResult?.[0]?.itemCount ?? 0;
 
     await this.db
       .update(categories)
       .set({
         itemCount,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(eq(categories.id, categoryId))
+      .where(eq(categories.id, categoryId));
   }
 
   // 更新所有分類商品數量
@@ -499,10 +525,10 @@ export class MenuService extends BaseService {
     const restaurantCategories = await this.db
       .select({ id: categories.id })
       .from(categories)
-      .where(eq(categories.restaurantId, restaurantId))
+      .where(eq(categories.restaurantId, restaurantId));
 
     for (const category of restaurantCategories) {
-      await this.updateCategoryItemCount(category.id)
+      await this.updateCategoryItemCount(category.id);
     }
   }
 
@@ -532,7 +558,7 @@ export class MenuService extends BaseService {
       options: item.options,
       orderCount: item.orderCount,
       createdAt: item.createdAt,
-      updatedAt: item.updatedAt
-    } as MenuItem
+      updatedAt: item.updatedAt,
+    } as MenuItem;
   }
 }

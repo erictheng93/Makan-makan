@@ -1,88 +1,105 @@
-import { eq, and, desc, asc, count, sql, gte, lte, inArray } from 'drizzle-orm'
-import { BaseService } from './base'
-import { orders, orderItems, menuItems, restaurants, tables, users, ORDER_STATUS } from '../schema'
-import type { Order, OrderItem, SelectedCustomizations } from '@makanmakan/shared-types'
+import { eq, and, desc, asc, count, sql, gte, lte, inArray } from "drizzle-orm";
+import { BaseService } from "./base";
+import {
+  orders,
+  orderItems,
+  menuItems,
+  restaurants,
+  tables,
+  users,
+  ORDER_STATUS,
+} from "../schema";
+import type {
+  Order,
+  OrderItem,
+  SelectedCustomizations,
+} from "@makanmakan/shared-types";
 
 export interface CreateOrderData {
-  restaurantId: string
-  tableId: number
-  customerId?: number
-  customerInfo?: any
+  restaurantId: string;
+  tableId: number;
+  customerId?: number;
+  customerInfo?: any;
   items: Array<{
-    menuItemId: number
-    quantity: number
-    customizations?: SelectedCustomizations
-    notes?: string
-  }>
-  notes?: string
-  couponCode?: string
+    menuItemId: number;
+    quantity: number;
+    customizations?: SelectedCustomizations;
+    notes?: string;
+  }>;
+  notes?: string;
+  couponCode?: string;
 }
 
 export interface UpdateOrderStatusData {
-  status: string
-  notes?: string
+  status: string;
+  notes?: string;
 }
 
 export interface OrderFilters {
-  restaurantId?: string
-  tableId?: number
-  customerId?: number
-  status?: string | string[]
-  dateRange?: [Date, Date]
-  minAmount?: number
-  maxAmount?: number
+  restaurantId?: string;
+  tableId?: number;
+  customerId?: number;
+  status?: string | string[];
+  dateRange?: [Date, Date];
+  minAmount?: number;
+  maxAmount?: number;
 }
 
 export class OrderService extends BaseService {
-
   // 獲取餐廳最低消費設定
-  async getMinimumOrderAmount(restaurantId: string): Promise<{ minOrderAmount: number; enabled: boolean }> {
+  async getMinimumOrderAmount(
+    restaurantId: string,
+  ): Promise<{ minOrderAmount: number; enabled: boolean }> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.publicId, restaurantId),
+        where: eq(restaurants.id, restaurantId),
         columns: {
           settings: true,
-          isAvailable: true
-        }
-      })
+          isAvailable: true,
+        },
+      });
 
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
-      const settings = restaurant.settings || {}
-      const minOrderAmount = settings.minOrderAmount || 0
+      const settings = restaurant.settings || {};
+      const minOrderAmount = settings.minOrderAmount || 0;
 
       return {
         minOrderAmount,
-        enabled: minOrderAmount > 0 && restaurant.isAvailable
-      }
+        enabled: minOrderAmount > 0 && restaurant.isAvailable,
+      };
     } catch (error) {
-      this.handleError(error, 'getMinimumOrderAmount')
+      this.handleError(error, "getMinimumOrderAmount");
     }
   }
 
   // 驗證訂單是否符合最低消費要求
-  async validateMinimumOrder(restaurantId: string, orderAmount: number): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
+  async validateMinimumOrder(
+    restaurantId: string,
+    orderAmount: number,
+  ): Promise<{ valid: boolean; message?: string; shortfall?: number }> {
     try {
-      const { minOrderAmount, enabled } = await this.getMinimumOrderAmount(restaurantId)
+      const { minOrderAmount, enabled } =
+        await this.getMinimumOrderAmount(restaurantId);
 
       if (!enabled) {
-        return { valid: true }
+        return { valid: true };
       }
 
       if (orderAmount >= minOrderAmount) {
-        return { valid: true }
+        return { valid: true };
       }
 
-      const shortfall = minOrderAmount - orderAmount
+      const shortfall = minOrderAmount - orderAmount;
       return {
         valid: false,
         message: `訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`,
-        shortfall
-      }
+        shortfall,
+      };
     } catch (error) {
-      this.handleError(error, 'validateMinimumOrder')
+      this.handleError(error, "validateMinimumOrder");
     }
   }
 
@@ -90,72 +107,75 @@ export class OrderService extends BaseService {
   async createOrder(data: CreateOrderData): Promise<Order> {
     try {
       // 驗證餐廳和桌子
-      // Convert restaurantId to string for publicId comparison (API may pass number)
-      const restaurantIdStr = String(data.restaurantId)
+      // Convert restaurantId to string for UUID comparison
+      const restaurantIdStr = String(data.restaurantId);
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.publicId, restaurantIdStr)
-      })
-      
+        where: eq(restaurants.id, restaurantIdStr),
+      });
+
       if (!restaurant || !restaurant.isAvailable) {
-        throw new Error('Restaurant is not available')
+        throw new Error("Restaurant is not available");
       }
 
       const table = await this.db.query.tables.findFirst({
-        where: eq(tables.id, data.tableId)
-      })
-      
+        where: eq(tables.id, data.tableId),
+      });
+
       if (!table || !table.isActive) {
-        throw new Error('Table is not available')
+        throw new Error("Table is not available");
       }
 
       // 計算訂單總金額
-      let subtotal = 0
-      const orderItemsData = []
+      let subtotal = 0;
+      const orderItemsData = [];
 
       // Fetch all menu items in one query to avoid N+1 problem
-      const menuItemIds = data.items.map(item => item.menuItemId)
+      const menuItemIds = data.items.map((item) => item.menuItemId);
       const fetchedMenuItems = await this.db.query.menuItems.findMany({
-        where: inArray(menuItems.id, menuItemIds)
-      })
+        where: inArray(menuItems.id, menuItemIds),
+      });
 
       // Create a map for quick lookup
       const menuItemMap = new Map(
-        fetchedMenuItems.map(item => [item.id, item])
-      )
+        fetchedMenuItems.map((item) => [item.id, item]),
+      );
 
       for (const item of data.items) {
-        const menuItem = menuItemMap.get(item.menuItemId)
+        const menuItem = menuItemMap.get(item.menuItemId);
 
         if (!menuItem || !menuItem.isAvailable) {
-          throw new Error(`Menu item ${item.menuItemId} is not available`)
+          throw new Error(`Menu item ${item.menuItemId} is not available`);
         }
 
         // 檢查庫存
-        if (menuItem.inventoryCount !== null && menuItem.inventoryCount < item.quantity) {
-          throw new Error(`Insufficient inventory for ${menuItem.name}`)
+        if (
+          menuItem.inventoryCount !== null &&
+          menuItem.inventoryCount < item.quantity
+        ) {
+          throw new Error(`Insufficient inventory for ${menuItem.name}`);
         }
 
         // 計算單價（含客製化選項）
-        let unitPrice = menuItem.price
-        
+        let unitPrice = menuItem.price;
+
         if (item.customizations?.size?.priceAdjustment) {
-          unitPrice += item.customizations.size.priceAdjustment
+          unitPrice += item.customizations.size.priceAdjustment;
         }
-        
+
         if (item.customizations?.options) {
           for (const option of item.customizations.options) {
-            unitPrice += option.priceAdjustment || 0
-          }
-        }
-        
-        if (item.customizations?.addOns) {
-          for (const addOn of item.customizations.addOns) {
-            unitPrice += addOn.unitPrice * (addOn.quantity || 1)
+            unitPrice += option.priceAdjustment || 0;
           }
         }
 
-        const totalPrice = unitPrice * item.quantity
-        subtotal += totalPrice
+        if (item.customizations?.addOns) {
+          for (const addOn of item.customizations.addOns) {
+            unitPrice += addOn.unitPrice * (addOn.quantity || 1);
+          }
+        }
+
+        const totalPrice = unitPrice * item.quantity;
+        subtotal += totalPrice;
 
         orderItemsData.push({
           menuItemId: item.menuItemId,
@@ -168,19 +188,19 @@ export class OrderService extends BaseService {
             name: menuItem.name,
             description: menuItem.description || undefined,
             imageUrl: menuItem.imageUrl || undefined,
-            category: 'category' // 需要從關聯獲取
-          }
-        })
+            category: "category", // 需要從關聯獲取
+          },
+        });
       }
 
       // 優惠券驗證和折扣計算
-      let discountAmount = 0
-      let validatedCoupon = null
-      
+      let discountAmount = 0;
+      let validatedCoupon = null;
+
       if (data.couponCode) {
         // 導入優惠券服務
-        const { CouponService } = await import('./coupon')
-        const couponService = new CouponService(this.d1, this.env)
+        const { CouponService } = await import("./coupon");
+        const couponService = new CouponService(this.d1, this.env);
 
         // 驗證優惠券
         const validationResult = await couponService.validateCoupon(
@@ -188,39 +208,42 @@ export class OrderService extends BaseService {
           data.restaurantId.toString(),
           subtotal,
           data.customerId,
-          data.items
-        )
+          data.items,
+        );
 
         if (validationResult.valid) {
-          discountAmount = validationResult.discountAmount || 0
-          validatedCoupon = validationResult.coupon
+          discountAmount = validationResult.discountAmount || 0;
+          validatedCoupon = validationResult.coupon;
         } else {
-          throw new Error(`優惠券驗證失敗: ${validationResult.error}`)
+          throw new Error(`優惠券驗證失敗: ${validationResult.error}`);
         }
       }
 
       // 驗證最低消費（在折扣後但在計算稅金前）
-      const settings = restaurant.settings || {}
-      const minOrderAmount = settings.minOrderAmount || 0
-      const orderAmountAfterDiscount = subtotal - discountAmount
+      const settings = restaurant.settings || {};
+      const minOrderAmount = settings.minOrderAmount || 0;
+      const orderAmountAfterDiscount = subtotal - discountAmount;
 
       if (minOrderAmount > 0 && orderAmountAfterDiscount < minOrderAmount) {
-        const shortfall = minOrderAmount - orderAmountAfterDiscount
-        throw new Error(`訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmountAfterDiscount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`)
+        const shortfall = minOrderAmount - orderAmountAfterDiscount;
+        throw new Error(
+          `訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmountAfterDiscount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`,
+        );
       }
 
       // 計算稅金和服務費（考慮折扣）
-      const taxRate = settings.taxRate || 0
-      const serviceChargeRate = settings.serviceChargeRate || 0
-      const { taxAmount, serviceCharge, totalAmount } = this.calculateOrderTotal(
-        subtotal,
-        taxRate,
-        serviceChargeRate,
-        discountAmount
-      )
+      const taxRate = settings.taxRate || 0;
+      const serviceChargeRate = settings.serviceChargeRate || 0;
+      const { taxAmount, serviceCharge, totalAmount } =
+        this.calculateOrderTotal(
+          subtotal,
+          taxRate,
+          serviceChargeRate,
+          discountAmount,
+        );
 
       // 生成訂單號碼
-      const orderNumber = this.generateOrderNumber(data.restaurantId)
+      const orderNumber = this.generateOrderNumber(data.restaurantId);
 
       // 創建訂單
       const [order] = await this.db
@@ -238,25 +261,25 @@ export class OrderService extends BaseService {
           customerInfo: data.customerInfo,
           notes: data.notes,
           couponCode: data.couponCode,
-          estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData)
+          estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
         })
-        .returning()
+        .returning();
 
       // 創建訂單項目
       const items = await this.db
         .insert(orderItems)
         .values(
-          orderItemsData.map(item => ({
+          orderItemsData.map((item) => ({
             ...item,
-            orderId: order.id
-          }))
+            orderId: order.id,
+          })),
         )
-        .returning()
+        .returning();
 
       // 記錄優惠券使用情況
       if (validatedCoupon && discountAmount > 0) {
-        const { CouponService } = await import('./coupon')
-        const couponService = new CouponService(this.d1, this.env)
+        const { CouponService } = await import("./coupon");
+        const couponService = new CouponService(this.d1, this.env);
 
         await couponService.useCoupon({
           couponId: validatedCoupon.id,
@@ -264,8 +287,8 @@ export class OrderService extends BaseService {
           userId: data.customerId,
           discountAmount,
           originalAmount: subtotal,
-          finalAmount: totalAmount
-        })
+          finalAmount: totalAmount,
+        });
       }
 
       // 更新菜品訂購次數和庫存 (batch updates in parallel for better performance)
@@ -276,10 +299,10 @@ export class OrderService extends BaseService {
             orderCount: sql`${menuItems.orderCount} + ${quantity}`,
             inventoryCount: menuItems.inventoryCount
               ? sql`${menuItems.inventoryCount} - ${quantity}`
-              : null
+              : null,
           })
-          .where(eq(menuItems.id, menuItemId))
-      )
+          .where(eq(menuItems.id, menuItemId)),
+      );
 
       // Execute all inventory updates and restaurant update in parallel
       await Promise.all([
@@ -287,14 +310,14 @@ export class OrderService extends BaseService {
         this.db
           .update(restaurants)
           .set({
-            totalOrders: sql`${restaurants.totalOrders} + 1`
+            totalOrders: sql`${restaurants.totalOrders} + 1`,
           })
-          .where(eq(restaurants.publicId, data.restaurantId))
-      ])
+          .where(eq(restaurants.id, data.restaurantId)),
+      ]);
 
-      return this.mapToOrder({ ...order, items })
+      return this.mapToOrder({ ...order, items });
     } catch (error) {
-      this.handleError(error, 'createOrder')
+      this.handleError(error, "createOrder");
     }
   }
 
@@ -308,21 +331,21 @@ export class OrderService extends BaseService {
             columns: {
               id: true,
               name: true,
-              phone: true
-            }
+              phone: true,
+            },
           },
           table: {
             columns: {
               id: true,
-              number: true
-            }
+              number: true,
+            },
           },
           customer: {
             columns: {
               id: true,
               fullName: true,
-              phone: true
-            }
+              phone: true,
+            },
           },
           items: {
             with: {
@@ -330,17 +353,17 @@ export class OrderService extends BaseService {
                 columns: {
                   id: true,
                   name: true,
-                  imageUrl: true
-                }
-              }
-            }
-          }
-        }
-      })
+                  imageUrl: true,
+                },
+              },
+            },
+          },
+        },
+      });
 
-      return order ? this.mapToOrder(order) : null
+      return order ? this.mapToOrder(order) : null;
     } catch (error) {
-      this.handleError(error, 'getOrder')
+      this.handleError(error, "getOrder");
     }
   }
 
@@ -355,15 +378,15 @@ export class OrderService extends BaseService {
           customer: true,
           items: {
             with: {
-              menuItem: true
-            }
-          }
-        }
-      })
+              menuItem: true,
+            },
+          },
+        },
+      });
 
-      return order ? this.mapToOrder(order) : null
+      return order ? this.mapToOrder(order) : null;
     } catch (error) {
-      this.handleError(error, 'getOrderByNumber')
+      this.handleError(error, "getOrderByNumber");
     }
   }
 
@@ -371,188 +394,206 @@ export class OrderService extends BaseService {
   async getOrders(
     filters: OrderFilters = {},
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ) {
     try {
-      const { offset } = this.createPagination(page, limit)
-      const conditions = []
+      const { offset } = this.createPagination(page, limit);
+      const conditions = [];
 
       if (filters.restaurantId) {
-        conditions.push(eq(orders.restaurantId, filters.restaurantId))
+        conditions.push(eq(orders.restaurantId, filters.restaurantId));
       }
 
       if (filters.tableId) {
-        conditions.push(eq(orders.tableId, filters.tableId))
+        conditions.push(eq(orders.tableId, filters.tableId));
       }
 
       if (filters.customerId) {
-        conditions.push(eq(orders.customerId, filters.customerId))
+        conditions.push(eq(orders.customerId, filters.customerId));
       }
 
       if (filters.status !== undefined && filters.status !== null) {
         if (Array.isArray(filters.status)) {
           // Handle status array with inArray
-          conditions.push(inArray(orders.status, filters.status))
+          conditions.push(inArray(orders.status, filters.status));
         } else {
           // Handle single status with eq
-          conditions.push(eq(orders.status, filters.status))
+          conditions.push(eq(orders.status, filters.status));
         }
       }
 
       if (filters.dateRange) {
-        const [startDate, endDate] = filters.dateRange
+        const [startDate, endDate] = filters.dateRange;
         conditions.push(
-          and(
-            gte(orders.createdAt, startDate),
-            lte(orders.createdAt, endDate)
-          )
-        )
+          and(gte(orders.createdAt, startDate), lte(orders.createdAt, endDate)),
+        );
       }
 
       if (filters.minAmount) {
-        conditions.push(gte(orders.totalAmount, filters.minAmount))
+        conditions.push(gte(orders.totalAmount, filters.minAmount));
       }
 
       if (filters.maxAmount) {
-        conditions.push(lte(orders.totalAmount, filters.maxAmount))
+        conditions.push(lte(orders.totalAmount, filters.maxAmount));
       }
 
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
       const orderList = await this.db.query.orders.findMany({
         where: whereClause,
         with: {
           restaurant: {
-            columns: { id: true, name: true }
+            columns: { id: true, name: true },
           },
           table: {
-            columns: { id: true, number: true }
+            columns: { id: true, number: true },
           },
           items: {
             with: {
               menuItem: {
-                columns: { id: true, name: true, imageUrl: true }
-              }
-            }
-          }
+                columns: { id: true, name: true, imageUrl: true },
+              },
+            },
+          },
         },
         orderBy: desc(orders.createdAt),
         limit,
-        offset
-      })
+        offset,
+      });
 
       const countResult = await this.db
         .select({ totalCount: count() })
         .from(orders)
-        .where(whereClause)
+        .where(whereClause);
 
-      const totalCount = countResult?.[0]?.totalCount ?? 0
+      const totalCount = countResult?.[0]?.totalCount ?? 0;
 
       return {
-        orders: orderList.map(order => this.mapToOrder(order)),
+        orders: orderList.map((order) => this.mapToOrder(order)),
         pagination: {
           page,
           limit,
           total: totalCount,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      }
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
     } catch (error) {
-      this.handleError(error, 'getOrders')
+      this.handleError(error, "getOrders");
     }
   }
 
   // 更新訂單狀態
-  async updateOrderStatus(id: number, data: UpdateOrderStatusData): Promise<Order> {
+  async updateOrderStatus(
+    id: number,
+    data: UpdateOrderStatusData,
+  ): Promise<Order> {
     try {
-      const statusField = `${data.status}At` as keyof typeof orders
+      const statusField = `${data.status}At` as keyof typeof orders;
       const updateData: any = {
         status: data.status,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      };
 
       // 設置狀態時間戳
-      if (['confirmed', 'preparing', 'ready', 'delivered', 'paid', 'cancelled'].includes(data.status)) {
-        updateData[statusField] = new Date()
+      if (
+        [
+          "confirmed",
+          "preparing",
+          "ready",
+          "delivered",
+          "paid",
+          "cancelled",
+        ].includes(data.status)
+      ) {
+        updateData[statusField] = new Date();
       }
 
       // 添加備註
       if (data.notes) {
-        updateData.internalNotes = data.notes
+        updateData.internalNotes = data.notes;
       }
 
       const [order] = await this.db
         .update(orders)
         .set(updateData)
         .where(eq(orders.id, id))
-        .returning()
+        .returning();
 
       if (!order) {
-        throw new Error('Order not found')
+        throw new Error("Order not found");
       }
 
       // 如果訂單完成，釋放桌子（僅限有桌號的訂單）
-      if ((data.status === ORDER_STATUS.PAID || data.status === ORDER_STATUS.DELIVERED) && order.tableId) {
+      if (
+        (data.status === ORDER_STATUS.PAID ||
+          data.status === ORDER_STATUS.DELIVERED) &&
+        order.tableId
+      ) {
         await this.db
           .update(tables)
           .set({
             isOccupied: false,
             currentOrderId: null,
             occupiedAt: null,
-            occupiedBy: null
+            occupiedBy: null,
           })
-          .where(eq(tables.id, order.tableId))
+          .where(eq(tables.id, order.tableId));
       }
 
-      return this.mapToOrder(order)
+      return this.mapToOrder(order);
     } catch (error) {
-      this.handleError(error, 'updateOrderStatus')
+      this.handleError(error, "updateOrderStatus");
     }
   }
 
   // 取消訂單
   async cancelOrder(id: number, reason?: string): Promise<Order> {
     try {
-      const order = await this.getOrder(id)
+      const order = await this.getOrder(id);
       if (!order) {
-        throw new Error('Order not found')
+        throw new Error("Order not found");
       }
 
-      if (![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.status as any)) {
-        throw new Error('Order cannot be cancelled')
+      if (
+        ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(
+          order.status as any,
+        )
+      ) {
+        throw new Error("Order cannot be cancelled");
       }
 
       // 恢復庫存 (batch updates in parallel)
-      const inventoryRestores = (order.items || []).map(item =>
+      const inventoryRestores = (order.items || []).map((item) =>
         this.db
           .update(menuItems)
           .set({
             inventoryCount: menuItems.inventoryCount
               ? sql`${menuItems.inventoryCount} + ${item.quantity}`
-              : null
+              : null,
           })
-          .where(eq(menuItems.id, item.menuItemId))
-      )
+          .where(eq(menuItems.id, item.menuItemId)),
+      );
 
-      await Promise.all(inventoryRestores)
+      await Promise.all(inventoryRestores);
 
       return await this.updateOrderStatus(id, {
         status: ORDER_STATUS.CANCELLED,
-        notes: reason
-      })
+        notes: reason,
+      });
     } catch (error) {
-      this.handleError(error, 'cancelOrder')
+      this.handleError(error, "cancelOrder");
     }
   }
 
   // 獲取餐廳當日訂單統計
   async getDailyOrderStats(restaurantId: string, date: Date = new Date()) {
     try {
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-      
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
 
       const stats = await this.db
         .select({
@@ -562,56 +603,58 @@ export class OrderService extends BaseService {
           pendingOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'pending' THEN 1 ELSE 0 END)`,
           confirmedOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'confirmed' THEN 1 ELSE 0 END)`,
           completedOrders: sql<number>`SUM(CASE WHEN ${orders.status} IN ('delivered', 'paid') THEN 1 ELSE 0 END)`,
-          cancelledOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'cancelled' THEN 1 ELSE 0 END)`
+          cancelledOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'cancelled' THEN 1 ELSE 0 END)`,
         })
         .from(orders)
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
             gte(orders.createdAt, startOfDay),
-            lte(orders.createdAt, endOfDay)
-          )
-        )
+            lte(orders.createdAt, endOfDay),
+          ),
+        );
 
-      return stats[0] || {
-        totalOrders: 0,
-        totalRevenue: 0,
-        avgOrderValue: 0,
-        pendingOrders: 0,
-        confirmedOrders: 0,
-        completedOrders: 0,
-        cancelledOrders: 0
-      }
+      return (
+        stats[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          avgOrderValue: 0,
+          pendingOrders: 0,
+          confirmedOrders: 0,
+          completedOrders: 0,
+          cancelledOrders: 0,
+        }
+      );
     } catch (error) {
-      this.handleError(error, 'getDailyOrderStats')
+      this.handleError(error, "getDailyOrderStats");
     }
   }
 
   // 計算預估準備時間
   private calculateEstimatedPrepTime(orderItems: any[]): number {
-    let maxPrepTime = 0
-    let totalComplexity = 0
+    let maxPrepTime = 0;
+    let totalComplexity = 0;
 
     for (const item of orderItems) {
       // 基礎準備時間（預設 15 分鐘）
-      const basePrepTime = 15
-      
+      const basePrepTime = 15;
+
       // 根據客製化增加時間
-      let itemComplexity = 1
+      let itemComplexity = 1;
       if (item.customizations?.options?.length > 0) {
-        itemComplexity += item.customizations.options.length * 0.2
+        itemComplexity += item.customizations.options.length * 0.2;
       }
       if (item.customizations?.addOns?.length > 0) {
-        itemComplexity += item.customizations.addOns.length * 0.1
+        itemComplexity += item.customizations.addOns.length * 0.1;
       }
 
-      const itemPrepTime = basePrepTime * itemComplexity * item.quantity
-      maxPrepTime = Math.max(maxPrepTime, itemPrepTime)
-      totalComplexity += itemComplexity
+      const itemPrepTime = basePrepTime * itemComplexity * item.quantity;
+      maxPrepTime = Math.max(maxPrepTime, itemPrepTime);
+      totalComplexity += itemComplexity;
     }
 
     // 綜合計算：取最長時間和平均複雜度的平衡
-    return Math.ceil(Math.max(maxPrepTime, totalComplexity * 10))
+    return Math.ceil(Math.max(maxPrepTime, totalComplexity * 10));
   }
 
   // 資料轉換
@@ -643,22 +686,23 @@ export class OrderService extends BaseService {
       reviewComment: order.reviewComment,
       notes: order.notes,
       internalNotes: order.internalNotes,
-      items: order.items?.map((item: any) => ({
-        id: item.id,
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-        customizations: item.customizations,
-        notes: item.notes,
-        status: item.status,
-        menuItem: item.menuItem
-      })) || [],
+      items:
+        order.items?.map((item: any) => ({
+          id: item.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          customizations: item.customizations,
+          notes: item.notes,
+          status: item.status,
+          menuItem: item.menuItem,
+        })) || [],
       restaurant: order.restaurant,
       table: order.table,
       customer: order.customer,
       createdAt: order.createdAt,
-      updatedAt: order.updatedAt
-    } as Order
+      updatedAt: order.updatedAt,
+    } as Order;
   }
 }

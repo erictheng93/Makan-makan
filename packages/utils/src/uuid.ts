@@ -30,30 +30,6 @@ export const isValidUUID = (id: string): boolean => {
 };
 
 /**
- * Legacy restaurant ID format pattern (S-YYYYMMDD-NNN)
- */
-const LEGACY_RESTAURANT_ID_PATTERN = /^S-\d{8}-\d{3}$/;
-
-/**
- * Validates a restaurant ID (backward compatible during migration)
- * Accepts both UUID v7 and legacy S-YYYYMMDD-NNN format
- * @param id - The restaurant ID to validate
- * @returns true if the ID is valid (either UUID or legacy format)
- */
-export const isValidRestaurantId = (id: string): boolean => {
-  return isValidUUID(id) || LEGACY_RESTAURANT_ID_PATTERN.test(id);
-};
-
-/**
- * Checks if a restaurant ID is in the legacy format
- * @param id - The restaurant ID to check
- * @returns true if the ID is in legacy S-YYYYMMDD-NNN format
- */
-export const isLegacyRestaurantId = (id: string): boolean => {
-  return LEGACY_RESTAURANT_ID_PATTERN.test(id);
-};
-
-/**
  * Extracts the timestamp from a UUID v7
  * UUID v7 contains a Unix timestamp in the first 48 bits
  * @param uuid - The UUID v7 string

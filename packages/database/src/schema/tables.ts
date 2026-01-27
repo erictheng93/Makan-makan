@@ -1,90 +1,109 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
-import { relations } from 'drizzle-orm'
-import { restaurants } from './restaurants'
-import { seats } from './seats'
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
+import { restaurants } from "./restaurants";
+import { seats } from "./seats";
 
-export const tables = sqliteTable('tables', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  restaurantId: text('restaurant_id').notNull(), // 引用 restaurants.public_id (TEXT)
-  
-  // 桌子資訊
-  number: text('number').notNull(), // 桌號（如：A1, B2, 101）
-  name: text('name'), // 桌子名稱（可選）
-  capacity: integer('capacity').notNull().default(4), // 容納人數
-  
-  // 位置資訊
-  location: text('location'), // 位置描述（如：窗邊、角落）
-  floor: integer('floor').default(1), // 樓層
-  section: text('section'), // 區域（如：A區、B區）
-  
-  // QR Code 資訊
-  qrCode: text('qr_code').notNull().unique(), // QR Code 內容
-  qrCodeImageUrl: text('qr_code_image_url'), // QR Code 圖片 URL
-  qrCodeVersion: integer('qr_code_version').notNull().default(1), // QR Code 版本（用於更新）
+export const tables = sqliteTable(
+  "tables",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
 
-  // 座位管理模式（新增）
-  qrMode: text('qr_mode').$type<'table' | 'seat'>().default('table'), // QR 碼管理模式
-  seatCount: integer('seat_count').default(0), // 座位數量（座位模式時使用）
-  seatLayout: text('seat_layout', { mode: 'json' }).$type<{
-    rows?: number
-    columns?: number
-    positions?: Array<{
-      seatNumber: string
-      x: number
-      y: number
-    }>
-  }>(), // 座位布局配置
-  seatNumberingStyle: text('seat_numbering_style')
-    .$type<'numeric' | 'alphabetic' | 'custom'>()
-    .default('numeric'), // 座位編號風格
+    // 桌子資訊
+    number: text("number").notNull(), // 桌號（如：A1, B2, 101）
+    name: text("name"), // 桌子名稱（可選）
+    capacity: integer("capacity").notNull().default(4), // 容納人數
 
-  // 狀態
-  isOccupied: integer('is_occupied', { mode: 'boolean' }).notNull().default(false),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  isReservable: integer('is_reservable', { mode: 'boolean' }).notNull().default(true),
-  
-  // 設備和設定
-  features: text('features', { mode: 'json' }).$type<{
-    hasChargingPort?: boolean // 充電插座
-    hasWifi?: boolean         // WiFi 訊號強度
-    isAccessible?: boolean    // 無障礙設施
-    hasView?: boolean         // 景觀位置
-    isQuietZone?: boolean     // 安靜區域
-    smokingAllowed?: boolean  // 吸菸區
-  }>(),
-  
-  // 目前使用狀況
-  currentOrderId: integer('current_order_id'),
-  occupiedAt: integer('occupied_at', { mode: 'timestamp' }),
-  occupiedBy: text('occupied_by'), // 使用者標識
-  estimatedFreeAt: integer('estimated_free_at', { mode: 'timestamp' }),
-  
-  // 清潔和維護
-  lastCleanedAt: integer('last_cleaned_at', { mode: 'timestamp' }),
-  maintenanceNotes: text('maintenance_notes'),
-  
-  // 統計資訊
-  totalUsage: integer('total_usage').notNull().default(0), // 使用次數
-  averageOccupancyMinutes: integer('average_occupancy_minutes').default(0),
-  
-  // 時間戳記
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$onUpdate(() => new Date()),
+    // 位置資訊
+    location: text("location"), // 位置描述（如：窗邊、角落）
+    floor: integer("floor").default(1), // 樓層
+    section: text("section"), // 區域（如：A區、B區）
 
-  // 軟刪除
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
-}, (table) => ({
-  // 索引優化
-  restaurantNumberIdx: index('tables_restaurant_number_idx').on(table.restaurantId, table.number),
-  restaurantStatusIdx: index('tables_restaurant_status_idx').on(table.restaurantId, table.isOccupied, table.isActive),
-  qrCodeIdx: index('tables_qr_code_idx').on(table.qrCode),
-}))
+    // QR Code 資訊
+    qrCode: text("qr_code").notNull().unique(), // QR Code 內容
+    qrCodeImageUrl: text("qr_code_image_url"), // QR Code 圖片 URL
+    qrCodeVersion: integer("qr_code_version").notNull().default(1), // QR Code 版本（用於更新）
+
+    // 座位管理模式（新增）
+    qrMode: text("qr_mode").$type<"table" | "seat">().default("table"), // QR 碼管理模式
+    seatCount: integer("seat_count").default(0), // 座位數量（座位模式時使用）
+    seatLayout: text("seat_layout", { mode: "json" }).$type<{
+      rows?: number;
+      columns?: number;
+      positions?: Array<{
+        seatNumber: string;
+        x: number;
+        y: number;
+      }>;
+    }>(), // 座位布局配置
+    seatNumberingStyle: text("seat_numbering_style")
+      .$type<"numeric" | "alphabetic" | "custom">()
+      .default("numeric"), // 座位編號風格
+
+    // 狀態
+    isOccupied: integer("is_occupied", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    isReservable: integer("is_reservable", { mode: "boolean" })
+      .notNull()
+      .default(true),
+
+    // 設備和設定
+    features: text("features", { mode: "json" }).$type<{
+      hasChargingPort?: boolean; // 充電插座
+      hasWifi?: boolean; // WiFi 訊號強度
+      isAccessible?: boolean; // 無障礙設施
+      hasView?: boolean; // 景觀位置
+      isQuietZone?: boolean; // 安靜區域
+      smokingAllowed?: boolean; // 吸菸區
+    }>(),
+
+    // 目前使用狀況
+    currentOrderId: integer("current_order_id"),
+    occupiedAt: integer("occupied_at", { mode: "timestamp" }),
+    occupiedBy: text("occupied_by"), // 使用者標識
+    estimatedFreeAt: integer("estimated_free_at", { mode: "timestamp" }),
+
+    // 清潔和維護
+    lastCleanedAt: integer("last_cleaned_at", { mode: "timestamp" }),
+    maintenanceNotes: text("maintenance_notes"),
+
+    // 統計資訊
+    totalUsage: integer("total_usage").notNull().default(0), // 使用次數
+    averageOccupancyMinutes: integer("average_occupancy_minutes").default(0),
+
+    // 時間戳記
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$onUpdate(() => new Date()),
+
+    // 軟刪除
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  },
+  (table) => ({
+    // 索引優化
+    restaurantNumberIdx: index("tables_restaurant_number_idx").on(
+      table.restaurantId,
+      table.number,
+    ),
+    restaurantStatusIdx: index("tables_restaurant_status_idx").on(
+      table.restaurantId,
+      table.isOccupied,
+      table.isActive,
+    ),
+    qrCodeIdx: index("tables_qr_code_idx").on(table.qrCode),
+  }),
+);
 
 export const tableRelations = relations(tables, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [tables.restaurantId],
-    references: [restaurants.publicId], // 使用 public_id 關聯
+    references: [restaurants.id], // UUID v7 關聯
   }),
   // 座位關聯（座位模式時）
   seats: many(seats),
-}))
+}));

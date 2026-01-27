@@ -27,9 +27,18 @@ export interface BaseEntity {
   updatedAt: string;
 }
 
+/**
+ * Base entity for UUID-based tables (like restaurants)
+ */
+export interface UUIDEntity {
+  id: string; // UUID v7
+  createdAt: string;
+  updatedAt: string;
+}
+
 export enum Status {
   INACTIVE = 0,
-  ACTIVE = 1
+  ACTIVE = 1,
 }
 
 export enum UserRole {
@@ -38,7 +47,7 @@ export enum UserRole {
   CHEF = 2,
   SERVICE = 3,
   CASHIER = 4,
-  CUSTOMER = 5
+  CUSTOMER = 5,
 }
 
 export interface DietaryInfo {
@@ -55,7 +64,7 @@ export enum SpiceLevel {
   MILD = 1,
   MEDIUM = 2,
   HOT = 3,
-  EXTREME = 4
+  EXTREME = 4,
 }
 
 export interface BusinessHours {

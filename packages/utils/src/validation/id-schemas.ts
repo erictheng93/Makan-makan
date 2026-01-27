@@ -6,7 +6,6 @@
  */
 
 import { z } from "zod";
-import { isValidRestaurantId } from "../uuid";
 
 /**
  * UUID schema - validates standard UUID format
@@ -16,22 +15,10 @@ export const uuidSchema = z.string().uuid("Invalid UUID format");
 
 /**
  * Restaurant ID schema - validates UUID v7 format
- * Use this for all restaurant ID validations after migration
  */
 export const restaurantIdSchema = z
   .string()
   .uuid("Invalid restaurant ID format");
-
-/**
- * Restaurant ID schema with backward compatibility
- * Accepts both UUID v7 and legacy S-YYYYMMDD-NNN format
- * Use during migration period only
- */
-export const restaurantIdSchemaCompat = z
-  .string()
-  .refine(isValidRestaurantId, {
-    message: "Invalid restaurant ID format (expected UUID or S-YYYYMMDD-NNN)",
-  });
 
 /**
  * Numeric ID schema - for entity IDs that remain as integers
@@ -53,19 +40,10 @@ export const numericIdParamSchema = z
 
 /**
  * Restaurant ID param schema - for route parameters
- * Use this for restaurant ID path parameters
  */
 export const restaurantIdParamSchema = z
   .string()
   .uuid("Invalid restaurant ID format");
-
-/**
- * Restaurant ID param schema with backward compatibility
- * For route parameters during migration period
- */
-export const restaurantIdParamSchemaCompat = z
-  .string()
-  .refine(isValidRestaurantId, { message: "Invalid restaurant ID format" });
 
 /**
  * Optional restaurant ID schema

@@ -1,118 +1,132 @@
-import { eq, and, desc, asc, count, like, sql } from 'drizzle-orm'
-import { BaseService } from './base'
-import { restaurants, categories, menuItems, tables, users } from '../schema'
-import type { Restaurant } from '@makanmakan/shared-types'
+import { eq, and, desc, asc, count, like, sql } from "drizzle-orm";
+import { BaseService } from "./base";
+import { restaurants, categories, menuItems, tables, users } from "../schema";
+import type { Restaurant } from "@makanmakan/shared-types";
 
 export interface CreateRestaurantData {
-  name: string
-  type: string
-  category: string
-  description?: string
-  address: string
-  district: string
-  city?: string
-  phone: string
-  email?: string
-  website?: string
-  businessHours?: any
-  logoUrl?: string
-  bannerUrl?: string
+  name: string;
+  type: string;
+  category: string;
+  description?: string;
+  address: string;
+  district: string;
+  city?: string;
+  phone: string;
+  email?: string;
+  website?: string;
+  businessHours?: any;
+  logoUrl?: string;
+  bannerUrl?: string;
 }
 
 export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
-  isAvailable?: boolean
-  isActive?: boolean
-  settings?: any
+  isAvailable?: boolean;
+  isActive?: boolean;
+  settings?: any;
 }
 
 export class RestaurantService extends BaseService {
-  
   // 創建餐廳
   async createRestaurant(data: CreateRestaurantData): Promise<Restaurant> {
     try {
-      console.log('[RestaurantService] Creating restaurant with data:', data)
+      console.log("[RestaurantService] Creating restaurant with data:", data);
       const result = await this.db
         .insert(restaurants)
         .values({
           ...data,
-          city: data.city || '台中市',
-          isAvailable: true,  // Default: restaurant is available
-          isActive: true      // Default: restaurant is active
+          city: data.city || "台中市",
+          isAvailable: true, // Default: restaurant is available
+          isActive: true, // Default: restaurant is active
         })
-        .returning()
+        .returning();
 
-      console.log('[RestaurantService] Insert result:', result)
-      const [restaurant] = result
+      console.log("[RestaurantService] Insert result:", result);
+      const [restaurant] = result;
 
       if (!restaurant) {
-        console.error('[RestaurantService] No restaurant returned from insert!')
-        throw new Error('Failed to create restaurant: no data returned')
+        console.error(
+          "[RestaurantService] No restaurant returned from insert!",
+        );
+        throw new Error("Failed to create restaurant: no data returned");
       }
 
-      console.log('[RestaurantService] Restaurant created with ID:', restaurant.id)
-      return this.mapToRestaurant(restaurant)
+      console.log(
+        "[RestaurantService] Restaurant created with ID:",
+        restaurant.id,
+      );
+      return this.mapToRestaurant(restaurant);
     } catch (error) {
-      this.handleError(error, 'createRestaurant')
+      this.handleError(error, "createRestaurant");
     }
   }
 
-  // 獲取餐廳詳情 (by publicId)
+  // 獲取餐廳詳情 (by id (UUID v7))
   async getRestaurant(id: string): Promise<Restaurant | null> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        where: eq(restaurants.publicId, id),
+        where: eq(restaurants.id, id),
         with: {
           categories: {
             where: eq(categories.isActive, true),
-            orderBy: asc(categories.sortOrder)
-          }
-        }
-      })
+            orderBy: asc(categories.sortOrder),
+          },
+        },
+      });
 
-      return restaurant ? this.mapToRestaurant(restaurant) : null
+      return restaurant ? this.mapToRestaurant(restaurant) : null;
     } catch (error) {
-      this.handleError(error, 'getRestaurant')
+      this.handleError(error, "getRestaurant");
     }
   }
 
   // 獲取餐廳列表（帶分頁和搜尋）
-  async getRestaurants(params: {
-    page?: number
-    limit?: number
-    search?: string
-    type?: string
-    district?: string
-    isAvailable?: boolean
-  } = {}) {
+  async getRestaurants(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      type?: string;
+      district?: string;
+      isAvailable?: boolean;
+    } = {},
+  ) {
     try {
-      const { page = 1, limit = 20, search, type, district, isAvailable } = params
-      const { offset } = this.createPagination(page, limit)
+      const {
+        page = 1,
+        limit = 20,
+        search,
+        type,
+        district,
+        isAvailable,
+      } = params;
+      const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = []
-      
+      const conditions = [];
+
       if (search) {
         conditions.push(
-          sql`${restaurants.name} LIKE ${`%${search}%`} OR ${restaurants.description} LIKE ${`%${search}%`}`
-        )
+          sql`${restaurants.name} LIKE ${`%${search}%`} OR ${restaurants.description} LIKE ${`%${search}%`}`,
+        );
       }
-      
+
       if (type) {
-        conditions.push(eq(restaurants.type, type))
+        conditions.push(eq(restaurants.type, type));
       }
-      
+
       if (district) {
-        conditions.push(eq(restaurants.district, district))
+        conditions.push(eq(restaurants.district, district));
       }
-      
+
       if (isAvailable !== undefined) {
-        conditions.push(eq(restaurants.isAvailable, isAvailable))
+        conditions.push(eq(restaurants.isAvailable, isAvailable));
       }
 
       // 總是篩選啟用的餐廳
-      conditions.push(eq(restaurants.isActive, true))
+      conditions.push(eq(restaurants.isActive, true));
 
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
       // 查詢餐廳列表 (only select needed fields for list view - excludes large JSON fields)
       const restaurantList = await this.db
@@ -138,53 +152,56 @@ export class RestaurantService extends BaseService {
           enableShopMode: restaurants.enableShopMode,
           shopQrCode: restaurants.shopQrCode,
           createdAt: restaurants.createdAt,
-          updatedAt: restaurants.updatedAt
+          updatedAt: restaurants.updatedAt,
         })
         .from(restaurants)
         .where(whereClause)
         .orderBy(desc(restaurants.rating), asc(restaurants.name))
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 查詢總數
       const [{ totalCount }] = await this.db
         .select({ totalCount: count() })
         .from(restaurants)
-        .where(whereClause)
+        .where(whereClause);
 
       return {
-        restaurants: restaurantList.map(r => this.mapToRestaurant(r)),
+        restaurants: restaurantList.map((r) => this.mapToRestaurant(r)),
         pagination: {
           page,
           limit,
           total: totalCount,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      }
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
     } catch (error) {
-      this.handleError(error, 'getRestaurants')
+      this.handleError(error, "getRestaurants");
     }
   }
 
   // 更新餐廳
-  async updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant> {
+  async updateRestaurant(
+    id: string,
+    data: UpdateRestaurantData,
+  ): Promise<Restaurant> {
     try {
       const [restaurant] = await this.db
         .update(restaurants)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, id))
-        .returning()
+        .where(eq(restaurants.id, id))
+        .returning();
 
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
-      return this.mapToRestaurant(restaurant)
+      return this.mapToRestaurant(restaurant);
     } catch (error) {
-      this.handleError(error, 'updateRestaurant')
+      this.handleError(error, "updateRestaurant");
     }
   }
 
@@ -193,54 +210,62 @@ export class RestaurantService extends BaseService {
     try {
       const [restaurant] = await this.db
         .update(restaurants)
-        .set({ 
+        .set({
           isActive: false,
           isAvailable: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, id))
-        .returning()
+        .where(eq(restaurants.id, id))
+        .returning();
 
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
     } catch (error) {
-      this.handleError(error, 'deactivateRestaurant')
+      this.handleError(error, "deactivateRestaurant");
     }
   }
 
-  // 獲取餐廳統計資訊 (by publicId)
+  // 獲取餐廳統計資訊 (by id (UUID v7))
   async getRestaurantStats(id: string) {
     try {
       const stats = await this.db
         .select({
           totalMenuItems: count(menuItems.id),
           totalTables: count(tables.id),
-          totalStaff: count(users.id)
+          totalStaff: count(users.id),
         })
         .from(restaurants)
-        .leftJoin(menuItems, and(
-          eq(menuItems.restaurantId, restaurants.publicId),
-          eq(menuItems.isAvailable, true)
-        ))
-        .leftJoin(tables, and(
-          eq(tables.restaurantId, restaurants.publicId),
-          eq(tables.isActive, true)
-        ))
-        .leftJoin(users, and(
-          eq(users.restaurantId, restaurants.publicId),
-          eq(users.isActive, true)
-        ))
-        .where(eq(restaurants.publicId, id))
-        .groupBy(restaurants.id)
+        .leftJoin(
+          menuItems,
+          and(
+            eq(menuItems.restaurantId, restaurants.id),
+            eq(menuItems.isAvailable, true),
+          ),
+        )
+        .leftJoin(
+          tables,
+          and(
+            eq(tables.restaurantId, restaurants.id),
+            eq(tables.isActive, true),
+          ),
+        )
+        .leftJoin(
+          users,
+          and(eq(users.restaurantId, restaurants.id), eq(users.isActive, true)),
+        )
+        .where(eq(restaurants.id, id))
+        .groupBy(restaurants.id);
 
-      return stats[0] || {
-        totalMenuItems: 0,
-        totalTables: 0,
-        totalStaff: 0
-      }
+      return (
+        stats[0] || {
+          totalMenuItems: 0,
+          totalTables: 0,
+          totalStaff: 0,
+        }
+      );
     } catch (error) {
-      this.handleError(error, 'getRestaurantStats')
+      this.handleError(error, "getRestaurantStats");
     }
   }
 
@@ -254,13 +279,13 @@ export class RestaurantService extends BaseService {
           and(
             eq(restaurants.district, district),
             eq(restaurants.isAvailable, true),
-            eq(restaurants.isActive, true)
-          )
+            eq(restaurants.isActive, true),
+          ),
         )
         .orderBy(desc(restaurants.rating))
-        .limit(limit)
+        .limit(limit);
     } catch (error) {
-      this.handleError(error, 'searchNearbyRestaurants')
+      this.handleError(error, "searchNearbyRestaurants");
     }
   }
 
@@ -273,13 +298,13 @@ export class RestaurantService extends BaseService {
         .where(
           and(
             eq(restaurants.isAvailable, true),
-            eq(restaurants.isActive, true)
-          )
+            eq(restaurants.isActive, true),
+          ),
         )
         .orderBy(desc(restaurants.totalOrders), desc(restaurants.rating))
-        .limit(limit)
+        .limit(limit);
     } catch (error) {
-      this.handleError(error, 'getPopularRestaurants')
+      this.handleError(error, "getPopularRestaurants");
     }
   }
 
@@ -290,14 +315,14 @@ export class RestaurantService extends BaseService {
    * 适用于无桌号的外带/自取订单场景
    */
   async generateShopQrCode(restaurantId: string): Promise<{
-    qrCode: string
-    qrCodeImageUrl: string | null
-    version: number
+    qrCode: string;
+    qrCodeImageUrl: string | null;
+    version: number;
   }> {
     try {
-      const restaurant = await this.getRestaurant(restaurantId)
+      const restaurant = await this.getRestaurant(restaurantId);
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
       // 如果已有 QR Code，直接返回
@@ -305,20 +330,20 @@ export class RestaurantService extends BaseService {
         return {
           qrCode: restaurant.shopQrCode,
           qrCodeImageUrl: restaurant.shopQrCodeImageUrl || null,
-          version: restaurant.shopQrVersion || 1
-        }
+          version: restaurant.shopQrVersion || 1,
+        };
       }
 
       // 生成新的 QR Code：格式 SHOP-{restaurantId}-{timestamp}
-      const timestamp = Math.floor(Date.now() / 1000)
-      const qrCode = `SHOP-${restaurantId}-${timestamp}`
+      const timestamp = Math.floor(Date.now() / 1000);
+      const qrCode = `SHOP-${restaurantId}-${timestamp}`;
 
       // 默认设置
       const defaultSettings = {
         displayName: restaurant.name,
-        instructions: '扫描 QR Code 开始点餐',
-        requirePhone: true
-      }
+        instructions: "扫描 QR Code 开始点餐",
+        requirePhone: true,
+      };
 
       // 更新数据库
       const [updated] = await this.db
@@ -327,18 +352,18 @@ export class RestaurantService extends BaseService {
           shopQrCode: qrCode,
           shopQrVersion: 1,
           shopQrSettings: defaultSettings,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, restaurantId))
-        .returning()
+        .where(eq(restaurants.id, restaurantId))
+        .returning();
 
       return {
         qrCode: updated.shopQrCode!,
         qrCodeImageUrl: updated.shopQrCodeImageUrl || null,
-        version: updated.shopQrVersion || 1
-      }
+        version: updated.shopQrVersion || 1,
+      };
     } catch (error) {
-      this.handleError(error, 'generateShopQrCode')
+      this.handleError(error, "generateShopQrCode");
     }
   }
 
@@ -347,20 +372,20 @@ export class RestaurantService extends BaseService {
    * 用于 QR Code 泄露或需要更换的情况
    */
   async regenerateShopQrCode(restaurantId: string): Promise<{
-    qrCode: string
-    qrCodeImageUrl: string | null
-    version: number
+    qrCode: string;
+    qrCodeImageUrl: string | null;
+    version: number;
   }> {
     try {
-      const restaurant = await this.getRestaurant(restaurantId)
+      const restaurant = await this.getRestaurant(restaurantId);
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
       // 生成新的 QR Code
-      const timestamp = Math.floor(Date.now() / 1000)
-      const qrCode = `SHOP-${restaurantId}-${timestamp}`
-      const newVersion = (restaurant.shopQrVersion || 0) + 1
+      const timestamp = Math.floor(Date.now() / 1000);
+      const qrCode = `SHOP-${restaurantId}-${timestamp}`;
+      const newVersion = (restaurant.shopQrVersion || 0) + 1;
 
       // 更新数据库
       const [updated] = await this.db
@@ -369,18 +394,18 @@ export class RestaurantService extends BaseService {
           shopQrCode: qrCode,
           shopQrCodeImageUrl: null, // 清除旧的图片 URL
           shopQrVersion: newVersion,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, restaurantId))
-        .returning()
+        .where(eq(restaurants.id, restaurantId))
+        .returning();
 
       return {
         qrCode: updated.shopQrCode!,
         qrCodeImageUrl: null,
-        version: updated.shopQrVersion || newVersion
-      }
+        version: updated.shopQrVersion || newVersion,
+      };
     } catch (error) {
-      this.handleError(error, 'regenerateShopQrCode')
+      this.handleError(error, "regenerateShopQrCode");
     }
   }
 
@@ -388,34 +413,34 @@ export class RestaurantService extends BaseService {
    * 验证店家 QR Code 是否有效
    */
   async verifyShopQrCode(qrCode: string): Promise<{
-    valid: boolean
-    restaurantId?: string
-    restaurant?: Restaurant
+    valid: boolean;
+    restaurantId?: string;
+    restaurant?: Restaurant;
   }> {
     try {
       // QR Code 格式验证：SHOP-{restaurantId}-{timestamp}
-      if (!qrCode || !qrCode.startsWith('SHOP-')) {
-        return { valid: false }
+      if (!qrCode || !qrCode.startsWith("SHOP-")) {
+        return { valid: false };
       }
 
       const restaurant = await this.db.query.restaurants.findFirst({
         where: and(
           eq(restaurants.shopQrCode, qrCode),
-          eq(restaurants.isActive, true)
-        )
-      })
+          eq(restaurants.isActive, true),
+        ),
+      });
 
       if (!restaurant) {
-        return { valid: false }
+        return { valid: false };
       }
 
       return {
         valid: true,
-        restaurantId: restaurant.publicId!, // 返回 publicId 而非 id
-        restaurant: this.mapToRestaurant(restaurant)
-      }
+        restaurantId: restaurant.id, // 返回 id (UUID v7)
+        restaurant: this.mapToRestaurant(restaurant),
+      };
     } catch (error) {
-      this.handleError(error, 'verifyShopQrCode')
+      this.handleError(error, "verifyShopQrCode");
     }
   }
 
@@ -424,10 +449,10 @@ export class RestaurantService extends BaseService {
    */
   async getRestaurantByShopQrCode(qrCode: string): Promise<Restaurant | null> {
     try {
-      const result = await this.verifyShopQrCode(qrCode)
-      return result.valid && result.restaurant ? result.restaurant : null
+      const result = await this.verifyShopQrCode(qrCode);
+      return result.valid && result.restaurant ? result.restaurant : null;
     } catch (error) {
-      this.handleError(error, 'getRestaurantByShopQrCode')
+      this.handleError(error, "getRestaurantByShopQrCode");
     }
   }
 
@@ -438,25 +463,27 @@ export class RestaurantService extends BaseService {
     restaurantId: string,
     enabled: boolean,
     settings?: {
-      displayName?: string
-      instructions?: string
-      requirePhone?: boolean
-    }
+      displayName?: string;
+      instructions?: string;
+      requirePhone?: boolean;
+    },
   ): Promise<void> {
     try {
-      const restaurant = await this.getRestaurant(restaurantId)
+      const restaurant = await this.getRestaurant(restaurantId);
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
       // 如果启用店家模式但没有 QR Code，先生成一个
       if (enabled && !restaurant.shopQrCode) {
-        await this.generateShopQrCode(restaurantId)
+        await this.generateShopQrCode(restaurantId);
       }
 
       // 合并设置
-      const currentSettings = restaurant.shopQrSettings || {}
-      const newSettings = settings ? { ...currentSettings, ...settings } : currentSettings
+      const currentSettings = restaurant.shopQrSettings || {};
+      const newSettings = settings
+        ? { ...currentSettings, ...settings }
+        : currentSettings;
 
       // 更新数据库
       await this.db
@@ -464,11 +491,11 @@ export class RestaurantService extends BaseService {
         .set({
           enableShopMode: enabled,
           shopQrSettings: newSettings,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, restaurantId))
+        .where(eq(restaurants.id, restaurantId));
     } catch (error) {
-      this.handleError(error, 'updateShopMode')
+      this.handleError(error, "updateShopMode");
     }
   }
 
@@ -476,16 +503,16 @@ export class RestaurantService extends BaseService {
    * 获取店家 QR Code 信息
    */
   async getShopQrCodeInfo(restaurantId: string): Promise<{
-    enabled: boolean
-    qrCode: string | null
-    qrCodeImageUrl: string | null
-    version: number
-    settings: any
+    enabled: boolean;
+    qrCode: string | null;
+    qrCodeImageUrl: string | null;
+    version: number;
+    settings: any;
   }> {
     try {
-      const restaurant = await this.getRestaurant(restaurantId)
+      const restaurant = await this.getRestaurant(restaurantId);
       if (!restaurant) {
-        throw new Error('Restaurant not found')
+        throw new Error("Restaurant not found");
       }
 
       return {
@@ -495,29 +522,32 @@ export class RestaurantService extends BaseService {
         version: restaurant.shopQrVersion || 1,
         settings: restaurant.shopQrSettings || {
           displayName: restaurant.name,
-          instructions: '扫描 QR Code 开始点餐',
-          requirePhone: true
-        }
-      }
+          instructions: "扫描 QR Code 开始点餐",
+          requirePhone: true,
+        },
+      };
     } catch (error) {
-      this.handleError(error, 'getShopQrCodeInfo')
+      this.handleError(error, "getShopQrCodeInfo");
     }
   }
 
   /**
    * 上传/更新店家 QR Code 图片 URL
    */
-  async updateShopQrCodeImage(restaurantId: string, imageUrl: string): Promise<void> {
+  async updateShopQrCodeImage(
+    restaurantId: string,
+    imageUrl: string,
+  ): Promise<void> {
     try {
       await this.db
         .update(restaurants)
         .set({
           shopQrCodeImageUrl: imageUrl,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(restaurants.publicId, restaurantId))
+        .where(eq(restaurants.id, restaurantId));
     } catch (error) {
-      this.handleError(error, 'updateShopQrCodeImage')
+      this.handleError(error, "updateShopQrCodeImage");
     }
   }
 
@@ -554,7 +584,7 @@ export class RestaurantService extends BaseService {
       shopQrSettings: restaurant.shopQrSettings,
       shopQrVersion: restaurant.shopQrVersion,
       createdAt: restaurant.createdAt,
-      updatedAt: restaurant.updatedAt
-    } as Restaurant
+      updatedAt: restaurant.updatedAt,
+    } as Restaurant;
   }
 }

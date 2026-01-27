@@ -1,120 +1,64 @@
 /**
- * Restaurant Public ID Generator
- * 生成格式: S-20251026-001
+ * Restaurant ID Generator
+ * Generates UUID v7 for restaurant identification
  */
 
+import { v7 as uuidv7 } from "uuid";
+
+// UUID regex pattern
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class RestaurantIdGenerator {
-  constructor(private db: D1Database) {}
-
   /**
-   * 生成新的餐廳公開 ID
-   * @returns 格式化的 ID，例如 "S-20251026-001"
+   * Generate a new restaurant ID using UUID v7
+   * UUID v7 is time-sortable and globally unique
+   * @returns UUID v7 string
    */
-  async generatePublicId(): Promise<string> {
-    const today = this.getFormattedDate();
-    const prefix = 'S'; // S = Shop/Store
-
-    // 獲取當天最後一個序號
-    const lastSerial = await this.getLastSerialForToday(today);
-    const newSerial = lastSerial + 1;
-
-    // 格式化序號為 3 位數
-    const serialStr = newSerial.toString().padStart(3, '0');
-
-    return `${prefix}-${today}-${serialStr}`;
+  generateId(): string {
+    return uuidv7();
   }
 
   /**
-   * 獲取當天的最後序號
+   * Validate if a string is a valid restaurant ID (UUID format)
+   * @param id - The ID to validate
+   * @returns true if valid UUID
    */
-  private async getLastSerialForToday(date: string): Promise<number> {
-    const pattern = `S-${date}-%`;
-
-    const result = await this.db
-      .prepare(`
-        SELECT public_id
-        FROM restaurants
-        WHERE public_id LIKE ?
-        ORDER BY public_id DESC
-        LIMIT 1
-      `)
-      .bind(pattern)
-      .first<{ public_id: string }>();
-
-    if (!result || !result.public_id) {
-      return 0;
-    }
-
-    // 提取序號部分: S-20251026-001 → 001
-    const parts = result.public_id.split('-');
-    const serialStr = parts[2];
-
-    return parseInt(serialStr, 10);
+  static validateFormat(id: string): boolean {
+    return UUID_REGEX.test(id);
   }
 
   /**
-   * 獲取格式化日期 (YYYYMMDD)
+   * Extract timestamp from UUID v7
+   * UUID v7 encodes creation timestamp in the first 48 bits
+   * @param uuid - UUID v7 string
+   * @returns Date object or null if not a valid UUID
    */
-  private getFormattedDate(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-
-    return `${year}${month}${day}`;
-  }
-
-  /**
-   * 驗證 Public ID 格式
-   */
-  static validateFormat(publicId: string): boolean {
-    const pattern = /^S-\d{8}-\d{3}$/;
-    return pattern.test(publicId);
-  }
-
-  /**
-   * 從 Public ID 提取日期
-   */
-  static extractDate(publicId: string): Date | null {
-    if (!this.validateFormat(publicId)) {
+  static extractTimestamp(uuid: string): Date | null {
+    if (!UUID_REGEX.test(uuid)) {
       return null;
     }
 
-    const parts = publicId.split('-');
-    const dateStr = parts[1]; // 20251026
+    // UUID v7 format: xxxxxxxx-xxxx-7xxx-xxxx-xxxxxxxxxxxx
+    // First 48 bits (12 hex chars) contain Unix timestamp in milliseconds
+    const hex = uuid.replace(/-/g, "").substring(0, 12);
+    const timestamp = parseInt(hex, 16);
 
-    const year = parseInt(dateStr.substring(0, 4));
-    const month = parseInt(dateStr.substring(4, 6)) - 1;
-    const day = parseInt(dateStr.substring(6, 8));
-
-    return new Date(year, month, day);
-  }
-
-  /**
-   * 從 Public ID 提取序號
-   */
-  static extractSerial(publicId: string): number | null {
-    if (!this.validateFormat(publicId)) {
-      return null;
-    }
-
-    const parts = publicId.split('-');
-    return parseInt(parts[2], 10);
+    return new Date(timestamp);
   }
 }
 
 /**
- * 使用範例:
+ * Usage Examples:
  *
- * const generator = new RestaurantIdGenerator(db);
- * const publicId = await generator.generatePublicId();
- * // 返回: "S-20251026-001"
+ * const generator = new RestaurantIdGenerator();
+ * const id = generator.generateId();
+ * // Returns: "019416c4-e9b0-7000-8000-000000000000"
  *
- * // 驗證格式
- * RestaurantIdGenerator.validateFormat("S-20251026-001"); // true
+ * // Validation
+ * RestaurantIdGenerator.validateFormat("019416c4-e9b0-7000-8000-000000000000"); // true
  * RestaurantIdGenerator.validateFormat("INVALID"); // false
  *
- * // 提取資訊
- * const date = RestaurantIdGenerator.extractDate("S-20251026-001");
- * const serial = RestaurantIdGenerator.extractSerial("S-20251026-001"); // 1
+ * // Extract timestamp from UUID v7
+ * const date = RestaurantIdGenerator.extractTimestamp("019416c4-e9b0-7000-8000-000000000000");
  */

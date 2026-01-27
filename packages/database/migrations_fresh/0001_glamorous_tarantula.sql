@@ -1,0 +1,25 @@
+CREATE INDEX `idx_customers_email` ON `customers` (`email`);--> statement-breakpoint
+CREATE INDEX `idx_customers_phone` ON `customers` (`phone`);--> statement-breakpoint
+CREATE INDEX `idx_customers_created_at` ON `customers` (`created_at`);--> statement-breakpoint
+CREATE INDEX `idx_employee_leave_balances_employee_year` ON `employee_leave_balances` (`employee_id`,`year`);--> statement-breakpoint
+CREATE INDEX `idx_employee_leave_balances_restaurant_year_type` ON `employee_leave_balances` (`restaurant_id`,`year`,`leave_type_id`);--> statement-breakpoint
+CREATE INDEX `idx_leave_approval_rules_restaurant_type` ON `leave_approval_rules` (`restaurant_id`,`leave_type_id`);--> statement-breakpoint
+CREATE INDEX `idx_leave_approval_rules_level_active` ON `leave_approval_rules` (`approval_level`,`is_active`);--> statement-breakpoint
+CREATE INDEX `idx_leave_calendar_events_restaurant_date` ON `leave_calendar_events` (`restaurant_id`,`event_date`);--> statement-breakpoint
+CREATE INDEX `idx_leave_calendar_events_type` ON `leave_calendar_events` (`event_type`);--> statement-breakpoint
+CREATE INDEX `idx_leave_requests_restaurant_status` ON `leave_requests` (`restaurant_id`,`status`);--> statement-breakpoint
+CREATE INDEX `idx_leave_requests_employee_date` ON `leave_requests` (`employee_id`,`start_date`);--> statement-breakpoint
+CREATE INDEX `idx_leave_requests_status_date` ON `leave_requests` (`status`,`start_date`);--> statement-breakpoint
+CREATE INDEX `idx_leave_types_restaurant_code` ON `leave_types` (`restaurant_id`,`code`);--> statement-breakpoint
+CREATE INDEX `idx_leave_types_restaurant_active` ON `leave_types` (`restaurant_id`,`is_active`);--> statement-breakpoint
+CREATE INDEX `idx_employee_availability_restaurant_employee` ON `employee_availability` (`restaurant_id`,`employee_id`);--> statement-breakpoint
+CREATE INDEX `idx_employee_availability_day_preference` ON `employee_availability` (`day_of_week`,`preference_type`);--> statement-breakpoint
+CREATE INDEX `idx_employee_schedules_restaurant_date` ON `employee_schedules` (`restaurant_id`,`work_date`);--> statement-breakpoint
+CREATE INDEX `idx_employee_schedules_employee_date` ON `employee_schedules` (`employee_id`,`work_date`);--> statement-breakpoint
+CREATE INDEX `idx_employee_schedules_status_date` ON `employee_schedules` (`status`,`work_date`);--> statement-breakpoint
+CREATE INDEX `idx_schedule_swap_requests_restaurant_status` ON `schedule_swap_requests` (`restaurant_id`,`status`);--> statement-breakpoint
+CREATE INDEX `idx_schedule_swap_requests_requester_status` ON `schedule_swap_requests` (`requester_employee_id`,`status`);--> statement-breakpoint
+CREATE INDEX `idx_scheduling_conflicts_restaurant_status` ON `scheduling_conflicts` (`restaurant_id`,`status`);--> statement-breakpoint
+CREATE INDEX `idx_scheduling_conflicts_detected_at` ON `scheduling_conflicts` (`detected_at`);--> statement-breakpoint
+CREATE INDEX `idx_scheduling_rules_restaurant_type_active` ON `scheduling_rules` (`restaurant_id`,`rule_type`,`is_active`);--> statement-breakpoint
+CREATE INDEX `idx_shift_templates_restaurant_active` ON `shift_templates` (`restaurant_id`,`is_active`);

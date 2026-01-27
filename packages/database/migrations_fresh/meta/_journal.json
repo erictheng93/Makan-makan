@@ -8,6 +8,13 @@
       "when": 1769261410479,
       "tag": "0000_loose_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1769523971911,
+      "tag": "0001_glamorous_tarantula",
+      "breakpoints": true
     }
   ]
 }
