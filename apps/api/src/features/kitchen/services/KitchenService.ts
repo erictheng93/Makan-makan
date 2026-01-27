@@ -62,7 +62,7 @@ export class KitchenService implements IKitchenService {
     }
   }
 
-  broadcastToKitchen(restaurantId: number, event: KitchenSSEEvent): number {
+  broadcastToKitchen(restaurantId: string, event: KitchenSSEEvent): number {
     let sentCount = 0;
 
     for (const [connectionId, connection] of this.connections.entries()) {
@@ -101,7 +101,7 @@ export class KitchenService implements IKitchenService {
     }
   }
 
-  getConnectionStatus(restaurantId: number): ConnectionStatus {
+  getConnectionStatus(restaurantId: string): ConnectionStatus {
     const restaurantConnections = Array.from(this.connections.entries())
       .filter(([_, conn]) => conn.restaurantId === restaurantId)
       .map(([id, conn]) => ({
@@ -121,7 +121,7 @@ export class KitchenService implements IKitchenService {
 
   // Kitchen Operations
   async getKitchenOrders(
-    restaurantId: number,
+    restaurantId: string,
     userId?: number,
   ): Promise<KitchenOrdersResponse> {
     try {
@@ -271,7 +271,7 @@ export class KitchenService implements IKitchenService {
   }
 
   async updateOrderItemStatus(
-    restaurantId: number,
+    restaurantId: string,
     orderId: number,
     itemId: number,
     statusUpdate: OrderItemStatusUpdate,
@@ -342,7 +342,7 @@ export class KitchenService implements IKitchenService {
   }
 
   // Development/Testing
-  broadcastTestEvent(restaurantId: number, event: BroadcastTestEvent): number {
+  broadcastTestEvent(restaurantId: string, event: BroadcastTestEvent): number {
     const testEvent: KitchenSSEEvent = {
       id: `test_${Date.now()}`,
       event: "test-event",
@@ -389,7 +389,7 @@ export class KitchenService implements IKitchenService {
   validateChefAccess(
     userId: number,
     userRole: number,
-    restaurantId: number,
+    restaurantId: string,
   ): boolean {
     // Kitchen access: Admin (0), Owner (1), Chef (2), Service Crew (3)
     const allowedRoles = [0, 1, 2, 3];

@@ -3,26 +3,34 @@
  * Zod schemas for validating leave-related requests
  */
 
-import { z } from 'zod'
+import { z } from "zod";
 
 // Base validation schemas
-const positiveInteger = z.number().int().positive()
-const nonNegativeInteger = z.number().int().min(0)
-const nonNegativeNumber = z.number().min(0)
-const nonEmptyString = z.string().min(1).trim()
-const optionalUrl = z.string().url().optional()
-const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-const yearInteger = z.number().int().min(2020).max(2100)
+const positiveInteger = z.number().int().positive();
+const nonNegativeInteger = z.number().int().min(0);
+const nonNegativeNumber = z.number().min(0);
+const nonEmptyString = z.string().min(1).trim();
+const optionalUrl = z.string().url().optional();
+const dateString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
+const yearInteger = z.number().int().min(2020).max(2100);
+// Restaurant ID format: S-YYYYMMDD-NNN (e.g., S-20250124-001)
+const restaurantIdString = z
+  .string()
+  .regex(/^S-\d{8}-\d{3}$/, "Restaurant ID must be in S-YYYYMMDD-NNN format");
 
 // Leave Type Schemas
 export const createLeaveTypeSchema = z.object({
-  restaurantId: positiveInteger.optional().nullable(),
-  code: nonEmptyString.max(20).regex(/^[A-Z_]+$/, 'Code must be uppercase letters and underscores'),
+  restaurantId: restaurantIdString.optional().nullable(),
+  code: nonEmptyString
+    .max(20)
+    .regex(/^[A-Z_]+$/, "Code must be uppercase letters and underscores"),
   name: nonEmptyString.max(50),
   description: z.string().max(500).optional().nullable(),
 
   // Accrual Rules
-  accrualType: z.enum(['yearly', 'monthly', 'none']),
+  accrualType: z.enum(["yearly", "monthly", "none"]),
   accrualAmount: nonNegativeNumber,
   accrualBasedOnSeniority: z.boolean().default(false),
 
@@ -43,58 +51,65 @@ export const createLeaveTypeSchema = z.object({
 
   // Restrictions
   allowHalfDay: z.boolean().default(true),
-  gender: z.enum(['any', 'male', 'female']).optional().nullable(),
+  gender: z.enum(["any", "male", "female"]).optional().nullable(),
   applicableToRoles: z.string().optional().nullable(), // JSON array string
   maxUsagePerYear: nonNegativeNumber.optional().nullable(),
 
   // System Fields
   isActive: z.boolean().default(true),
   sortOrder: nonNegativeInteger.default(0),
-  color: z.string().max(7).regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
-  icon: z.string().max(50).optional().nullable()
-})
+  color: z
+    .string()
+    .max(7)
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .nullable(),
+  icon: z.string().max(50).optional().nullable(),
+});
 
-export const updateLeaveTypeSchema = createLeaveTypeSchema.partial()
+export const updateLeaveTypeSchema = createLeaveTypeSchema.partial();
 
 // Leave Request Schemas
-export const createLeaveRequestSchema = z.object({
-  restaurantId: positiveInteger,
-  employeeId: positiveInteger,
-  leaveTypeId: positiveInteger,
+export const createLeaveRequestSchema = z
+  .object({
+    restaurantId: restaurantIdString,
+    employeeId: positiveInteger,
+    leaveTypeId: positiveInteger,
 
-  // Date & Duration
-  startDate: dateString,
-  endDate: dateString,
-  startPeriod: z.enum(['full', 'am', 'pm']).default('full'),
-  endPeriod: z.enum(['full', 'am', 'pm']).default('full'),
+    // Date & Duration
+    startDate: dateString,
+    endDate: dateString,
+    startPeriod: z.enum(["full", "am", "pm"]).default("full"),
+    endPeriod: z.enum(["full", "am", "pm"]).default("full"),
 
-  // Request Details
-  reason: nonEmptyString.max(500),
-  attachmentUrl: optionalUrl.nullable(),
-  emergencyContact: z.string().max(100).optional().nullable()
-}).refine(
-  (data) => {
-    const start = new Date(data.startDate)
-    const end = new Date(data.endDate)
-    return end >= start
-  },
-  { message: 'End date must be equal to or after start date' }
-)
+    // Request Details
+    reason: nonEmptyString.max(500),
+    attachmentUrl: optionalUrl.nullable(),
+    emergencyContact: z.string().max(100).optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      return end >= start;
+    },
+    { message: "End date must be equal to or after start date" },
+  );
 
 export const approveLeaveRequestSchema = z.object({
   approverId: positiveInteger,
-  comments: z.string().max(500).optional()
-})
+  comments: z.string().max(500).optional(),
+});
 
 export const rejectLeaveRequestSchema = z.object({
   approverId: positiveInteger,
-  reason: nonEmptyString.max(500)
-})
+  reason: nonEmptyString.max(500),
+});
 
 export const cancelLeaveRequestSchema = z.object({
   userId: positiveInteger,
-  reason: nonEmptyString.max(500)
-})
+  reason: nonEmptyString.max(500),
+});
 
 // Leave Balance Schemas
 export const adjustLeaveBalanceSchema = z.object({
@@ -103,24 +118,24 @@ export const adjustLeaveBalanceSchema = z.object({
   year: yearInteger,
   adjustment: z.number().min(-365).max(365), // Allow both positive and negative adjustments
   reason: nonEmptyString.max(500),
-  adjustedBy: positiveInteger
-})
+  adjustedBy: positiveInteger,
+});
 
 export const accrueLeaveBalancesSchema = z.object({
-  restaurantId: positiveInteger,
-  year: yearInteger
-})
+  restaurantId: restaurantIdString,
+  year: yearInteger,
+});
 
 // Leave Approval Rule Schemas
 const baseLeaveApprovalRuleSchema = z.object({
-  restaurantId: positiveInteger,
+  restaurantId: restaurantIdString,
   leaveTypeId: positiveInteger.optional().nullable(),
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
   approvalLevel: positiveInteger.max(5),
 
   // Approvers
-  approverType: z.enum(['role', 'specific_user']),
+  approverType: z.enum(["role", "specific_user"]),
   approverRoleIds: z.string().optional().nullable(), // JSON array string
   approverUserIds: z.string().optional().nullable(), // JSON array string
 
@@ -135,38 +150,47 @@ const baseLeaveApprovalRuleSchema = z.object({
 
   // Priority
   priority: nonNegativeInteger.default(0),
-  isActive: z.boolean().default(true)
-})
+  isActive: z.boolean().default(true),
+});
 
-export const createLeaveApprovalRuleSchema = baseLeaveApprovalRuleSchema.refine(
-  (data) => {
-    if (data.approverType === 'role' && !data.approverRoleIds) {
-      return false
-    }
-    if (data.approverType === 'specific_user' && !data.approverUserIds) {
-      return false
-    }
-    return true
-  },
-  { message: 'Approver IDs must be provided based on approver type' }
-).refine(
-  (data) => {
-    if (data.enableAutoEscalation && (!data.escalationTimeoutHours || !data.escalationToUserId)) {
-      return false
-    }
-    return true
-  },
-  { message: 'Escalation timeout and user must be provided when auto-escalation is enabled' }
-)
+export const createLeaveApprovalRuleSchema = baseLeaveApprovalRuleSchema
+  .refine(
+    (data) => {
+      if (data.approverType === "role" && !data.approverRoleIds) {
+        return false;
+      }
+      if (data.approverType === "specific_user" && !data.approverUserIds) {
+        return false;
+      }
+      return true;
+    },
+    { message: "Approver IDs must be provided based on approver type" },
+  )
+  .refine(
+    (data) => {
+      if (
+        data.enableAutoEscalation &&
+        (!data.escalationTimeoutHours || !data.escalationToUserId)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "Escalation timeout and user must be provided when auto-escalation is enabled",
+    },
+  );
 
-export const updateLeaveApprovalRuleSchema = baseLeaveApprovalRuleSchema.partial()
+export const updateLeaveApprovalRuleSchema =
+  baseLeaveApprovalRuleSchema.partial();
 
 // Leave Calendar Event Schemas
 export const createLeaveCalendarEventSchema = z.object({
-  restaurantId: positiveInteger.optional().nullable(),
+  restaurantId: restaurantIdString.optional().nullable(),
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
-  eventType: z.enum(['public_holiday', 'company_holiday', 'special_event']),
+  eventType: z.enum(["public_holiday", "company_holiday", "special_event"]),
   eventDate: dateString,
 
   // Recurrence
@@ -178,154 +202,185 @@ export const createLeaveCalendarEventSchema = z.object({
   compensatoryFor: dateString.optional().nullable(),
 
   // Metadata
-  color: z.string().max(7).regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
-  icon: z.string().max(50).optional().nullable()
-})
+  color: z
+    .string()
+    .max(7)
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .nullable(),
+  icon: z.string().max(50).optional().nullable(),
+});
 
-export const updateLeaveCalendarEventSchema = createLeaveCalendarEventSchema.partial()
+export const updateLeaveCalendarEventSchema =
+  createLeaveCalendarEventSchema.partial();
 
 // Query Parameter Schemas
 export const leaveRequestFiltersSchema = z.object({
   employeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
   leaveTypeId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  status: z.enum(['pending', 'approved', 'rejected', 'cancelled', 'withdrawn']).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('20')
-})
+  status: z
+    .enum(["pending", "approved", "rejected", "cancelled", "withdrawn"])
+    .optional(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+});
 
 export const leaveBalanceQuerySchema = z.object({
   employeeId: z.string().regex(/^\d+$/).transform(Number),
-  year: z.string().regex(/^\d+$/).transform(Number).optional()
-})
+  year: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
 
 export const holidaysQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  year: z.string().regex(/^\d+$/).transform(Number)
-})
+  restaurantId: restaurantIdString.optional(),
+  year: z.string().regex(/^\d+$/).transform(Number),
+});
 
 export const statisticsQuerySchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-})
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
 
 export const upcomingLeavesQuerySchema = z.object({
-  days: z.string().regex(/^\d+$/).transform(Number).default('30')
-})
+  days: z.string().regex(/^\d+$/).transform(Number).default("30"),
+});
 
 export const expiringBalancesQuerySchema = z.object({
-  months: z.string().regex(/^\d+$/).transform(Number).default('3')
-})
+  months: z.string().regex(/^\d+$/).transform(Number).default("3"),
+});
 
 // Parameter Schemas
 export const restaurantIdParamSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number)
-})
+  restaurantId: restaurantIdString,
+});
 
 export const leaveTypeIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number)
-})
+  id: z.string().regex(/^\d+$/).transform(Number),
+});
 
 export const leaveRequestIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number)
-})
+  id: z.string().regex(/^\d+$/).transform(Number),
+});
 
 export const leaveApprovalRuleIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number)
-})
+  id: z.string().regex(/^\d+$/).transform(Number),
+});
 
 export const leaveCalendarEventIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number)
-})
+  id: z.string().regex(/^\d+$/).transform(Number),
+});
 
 export const workingDayParamSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-})
+  restaurantId: restaurantIdString,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
 
 // Complex validation functions
-const validateLeaveRequestDates = (startDate: string, endDate: string, minNoticeDays: number = 0) => {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+const validateLeaveRequestDates = (
+  startDate: string,
+  endDate: string,
+  minNoticeDays: number = 0,
+) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Check end date is after start date
   if (end < start) {
-    throw new Error('End date must be equal to or after start date')
+    throw new Error("End date must be equal to or after start date");
   }
 
   // Check minimum notice period
-  const daysDifference = Math.floor((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const daysDifference = Math.floor(
+    (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
   if (daysDifference < minNoticeDays) {
-    throw new Error(`Leave must be requested at least ${minNoticeDays} days in advance`)
+    throw new Error(
+      `Leave must be requested at least ${minNoticeDays} days in advance`,
+    );
   }
 
-  return true
-}
+  return true;
+};
 
 const validateLeaveBalance = (
   requestedDays: number,
-  availableBalance: number
+  availableBalance: number,
 ) => {
   if (requestedDays > availableBalance) {
-    throw new Error(`Insufficient leave balance. Requested: ${requestedDays} days, Available: ${availableBalance} days`)
+    throw new Error(
+      `Insufficient leave balance. Requested: ${requestedDays} days, Available: ${availableBalance} days`,
+    );
   }
-  return true
-}
+  return true;
+};
 
 const calculateLeaveDays = (
   startDate: string,
   endDate: string,
-  startPeriod: 'full' | 'am' | 'pm',
-  endPeriod: 'full' | 'am' | 'pm'
+  startPeriod: "full" | "am" | "pm",
+  endPeriod: "full" | "am" | "pm",
 ): number => {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
   // Calculate full days between dates
-  const daysDifference = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const daysDifference =
+    Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   // Adjust for half-day periods
-  let adjustedDays = daysDifference
+  let adjustedDays = daysDifference;
 
   // If start is PM only, subtract 0.5 day
-  if (startPeriod === 'pm') {
-    adjustedDays -= 0.5
+  if (startPeriod === "pm") {
+    adjustedDays -= 0.5;
   }
 
   // If end is AM only, subtract 0.5 day
-  if (endPeriod === 'am') {
-    adjustedDays -= 0.5
+  if (endPeriod === "am") {
+    adjustedDays -= 0.5;
   }
 
-  return adjustedDays
-}
+  return adjustedDays;
+};
 
 const validateConsecutiveDays = (
   requestedDays: number,
-  maxConsecutiveDays: number | null
+  maxConsecutiveDays: number | null,
 ) => {
   if (maxConsecutiveDays && requestedDays > maxConsecutiveDays) {
-    throw new Error(`Cannot request more than ${maxConsecutiveDays} consecutive days`)
+    throw new Error(
+      `Cannot request more than ${maxConsecutiveDays} consecutive days`,
+    );
   }
-  return true
-}
+  return true;
+};
 
 // Comprehensive leave request validation
-export const validateCompleteLeaveRequest = createLeaveRequestSchema
-  .refine(
-    (data) => {
-      try {
-        const days = calculateLeaveDays(data.startDate, data.endDate, data.startPeriod, data.endPeriod)
-        return days > 0
-      } catch {
-        return false
-      }
-    },
-    { message: 'Invalid date range or period configuration' }
-  )
+export const validateCompleteLeaveRequest = createLeaveRequestSchema.refine(
+  (data) => {
+    try {
+      const days = calculateLeaveDays(
+        data.startDate,
+        data.endDate,
+        data.startPeriod,
+        data.endPeriod,
+      );
+      return days > 0;
+    } catch {
+      return false;
+    }
+  },
+  { message: "Invalid date range or period configuration" },
+);
 
 // Export all schemas as a single object for easy import
 export const leaveSchemas = {
@@ -368,13 +423,13 @@ export const leaveSchemas = {
   workingDayParam: workingDayParamSchema,
 
   // Complete validation
-  validateCompleteLeaveRequest
-}
+  validateCompleteLeaveRequest,
+};
 
 // Export validation helper functions
 export {
   validateLeaveRequestDates,
   validateLeaveBalance,
   calculateLeaveDays,
-  validateConsecutiveDays
-}
+  validateConsecutiveDays,
+};

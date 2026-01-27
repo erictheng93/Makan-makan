@@ -6,7 +6,7 @@ export interface AuthUser {
   id: number;
   username: string;
   role: number;
-  restaurantId?: number;
+  restaurantId?: string;
   fullName?: string;
   email?: string;
   phone?: string;
@@ -166,7 +166,7 @@ export const requireRestaurantAccess = (
 ) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const user = c.get("user");
-    const restaurantId = parseInt(c.req.param(restaurantIdParam));
+    const restaurantId = c.req.param(restaurantIdParam);
 
     if (!user) {
       return c.json({ success: false, error: "Authentication required" }, 401);

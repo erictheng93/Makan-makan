@@ -53,7 +53,7 @@ export class AnalyticsService implements IAnalyticsService {
    * Get dashboard data with caching
    */
   async getDashboardData(
-    restaurantId?: number,
+    restaurantId?: string,
     period: string = "today",
   ): Promise<DashboardSummary> {
     try {
@@ -283,7 +283,7 @@ export class AnalyticsService implements IAnalyticsService {
   /**
    * Get real-time analytics data
    */
-  async getRealtimeData(restaurantId?: number): Promise<RealtimeAnalyticsData> {
+  async getRealtimeData(restaurantId?: string): Promise<RealtimeAnalyticsData> {
     try {
       this.logger.debug("Getting real-time analytics data", { restaurantId });
 
@@ -459,7 +459,7 @@ export class AnalyticsService implements IAnalyticsService {
   /**
    * Clear analytics cache
    */
-  async clearCache(restaurantId?: number): Promise<void> {
+  async clearCache(restaurantId?: string): Promise<void> {
     try {
       this.logger.debug("Clearing analytics cache", { restaurantId });
 

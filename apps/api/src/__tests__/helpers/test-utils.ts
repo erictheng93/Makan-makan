@@ -1482,7 +1482,7 @@ async function runMigrations(db: TestDB) {
 export function createMockQueueData() {
   return {
     validJoinRequest: {
-      restaurantId: 1,
+      restaurantId: "S-20250124-001",
       customerName: "測試顧客",
       customerPhone: "012-3456789",
       customerEmail: "test@example.com",
@@ -1500,7 +1500,7 @@ export function createMockQueueData() {
     },
 
     validCallRequest: {
-      restaurantId: 1,
+      restaurantId: "S-20250124-001",
       tableId: 5,
     },
 
@@ -1510,7 +1510,7 @@ export function createMockQueueData() {
 
     sampleQueueItem: {
       id: "queue_001",
-      restaurantId: 1,
+      restaurantId: "S-20250124-001",
       queueNumber: 1,
       customerName: "張先生",
       customerPhone: "012-3456789",
@@ -1529,7 +1529,7 @@ export function createMockQueueData() {
     },
 
     sampleSettings: {
-      restaurantId: 1,
+      restaurantId: "S-20250124-001",
       isEnabled: true,
       maxQueueSize: 50,
       avgServiceTime: 45,
@@ -2410,13 +2410,13 @@ export function generateTestToken(payload?: {
   id?: number;
   username?: string;
   role?: number;
-  restaurantId?: number | null;
+  restaurantId?: string | null;
 }): string {
   const defaultPayload = {
     id: 1,
     username: "testuser",
     role: 0, // Admin role
-    restaurantId: 1,
+    restaurantId: "S-20250124-001",
   };
 
   const tokenPayload = { ...defaultPayload, ...payload };
