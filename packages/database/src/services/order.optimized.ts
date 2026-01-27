@@ -178,7 +178,6 @@ export class OrderServiceOptimized extends BaseService {
           where: eq(restaurants.id, data.restaurantId),
           columns: {
             id: true,
-            publicId: true,
             isAvailable: true,
             settings: true,
           },

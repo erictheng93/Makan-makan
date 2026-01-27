@@ -315,7 +315,7 @@ export class TablesService {
    */
   validateTableAccess(
     table: Table,
-    userRestaurantId: number,
+    userRestaurantId: string,
     isAdmin: boolean,
   ): boolean {
     if (isAdmin) {
@@ -328,8 +328,8 @@ export class TablesService {
    * Validate restaurant access permissions
    */
   validateRestaurantAccess(
-    restaurantId: number,
-    userRestaurantId: number,
+    restaurantId: string,
+    userRestaurantId: string,
     isAdmin: boolean,
   ): boolean {
     if (isAdmin) {

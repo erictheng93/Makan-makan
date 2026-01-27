@@ -1,7 +1,7 @@
 import { BaseEntity, Status, DietaryInfo, SpiceLevel, ImageVariants } from './common';
 
 export interface Category extends BaseEntity {
-  restaurantId: number;
+  restaurantId: string;
   name: string;
   description?: string;
   parentId?: number;
@@ -10,7 +10,7 @@ export interface Category extends BaseEntity {
 }
 
 export interface MenuItem extends BaseEntity {
-  restaurantId: number;
+  restaurantId: string;
   categoryId: number;
   name: string;
   description?: string;
@@ -65,7 +65,7 @@ export interface MenuItemOptions {
 }
 
 export interface CreateCategoryRequest {
-  restaurantId: number;
+  restaurantId: string;
   name: string;
   description?: string;
   parentId?: number;
@@ -75,7 +75,7 @@ export interface CreateCategoryRequest {
 export interface UpdateCategoryRequest extends Partial<CreateCategoryRequest> {}
 
 export interface CreateMenuItemRequest {
-  restaurantId: number;
+  restaurantId: string;
   categoryId: number;
   name: string;
   description?: string;

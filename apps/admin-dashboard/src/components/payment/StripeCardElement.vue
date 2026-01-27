@@ -402,10 +402,14 @@ const fillTestCard = (testCard: (typeof testCards)[0]) => {
 // 監聽 props 變化
 watch(
   () => props.clientSecret,
-  (newSecret) => {
-    if (newSecret && stripe && elements) {
-      // 重新初始化 elements 以使用新的 clientSecret
-      elements.update({ clientSecret: newSecret });
+  async (newSecret) => {
+    if (newSecret && stripe) {
+      // Stripe Elements v4+ 不支援透過 update() 更新 clientSecret
+      // 需要重新建立 Elements 實例
+      if (cardElement) {
+        cardElement.destroy();
+      }
+      await initializeStripe();
     }
   },
 );

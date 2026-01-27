@@ -89,7 +89,7 @@ describe("TablesService", () => {
         tables: [
           {
             id: 1,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             number: "T01",
             capacity: 4,
             isOccupied: false,
@@ -108,7 +108,7 @@ describe("TablesService", () => {
         tables: [
           {
             id: 1,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             number: "T01",
             capacity: 4,
             isOccupied: false,
@@ -155,7 +155,7 @@ describe("TablesService", () => {
     it("should fetch table by ID successfully", async () => {
       const mockTable = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         capacity: 4,
         isOccupied: false,
@@ -181,7 +181,7 @@ describe("TablesService", () => {
   describe("createTable", () => {
     it("should create table successfully", async () => {
       const tableData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         capacity: 4,
         floor: 1,
@@ -203,14 +203,14 @@ describe("TablesService", () => {
       // Service converts restaurantId to string for database layer
       expect(mockTableService.createTable).toHaveBeenCalledWith({
         ...tableData,
-        restaurantId: "1",
+        restaurantId: "test-restaurant-1",
       });
       expect(result).toEqual(mockCreatedTable);
     });
 
     it("should handle errors when creating table", async () => {
       const tableData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         capacity: 4,
       };
@@ -234,7 +234,7 @@ describe("TablesService", () => {
 
       const mockUpdatedTable = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         capacity: 6,
         maintenanceNotes: "Updated capacity",
@@ -299,43 +299,43 @@ describe("TablesService", () => {
 
   describe("permission validation", () => {
     it("should validate table access for admin users", () => {
-      const table = { id: 1, restaurantId: 1 } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, 2, true);
+      const result = tablesService.validateTableAccess(table, "test-restaurant-2", true);
 
       expect(result).toBe(true);
     });
 
     it("should validate table access for restaurant owners", () => {
-      const table = { id: 1, restaurantId: 1 } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, 1, false);
+      const result = tablesService.validateTableAccess(table, "test-restaurant-1", false);
 
       expect(result).toBe(true);
     });
 
     it("should deny table access for different restaurant", () => {
-      const table = { id: 1, restaurantId: 1 } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, 2, false);
+      const result = tablesService.validateTableAccess(table, "test-restaurant-2", false);
 
       expect(result).toBe(false);
     });
 
     it("should validate restaurant access for admin users", () => {
-      const result = tablesService.validateRestaurantAccess(1, 2, true);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", true);
 
       expect(result).toBe(true);
     });
 
     it("should validate restaurant access for same restaurant", () => {
-      const result = tablesService.validateRestaurantAccess(1, 1, false);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-1", false);
 
       expect(result).toBe(true);
     });
 
     it("should deny restaurant access for different restaurant", () => {
-      const result = tablesService.validateRestaurantAccess(1, 2, false);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", false);
 
       expect(result).toBe(false);
     });
@@ -345,7 +345,7 @@ describe("TablesService", () => {
     it("should return only public table information", () => {
       const table = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         name: "Window Table",
         capacity: 4,
@@ -367,7 +367,7 @@ describe("TablesService", () => {
 
       expect(result).toEqual({
         id: 1,
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01",
         name: "Window Table",
         capacity: 4,

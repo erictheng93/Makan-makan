@@ -35,20 +35,21 @@ export class MockTableStore {
 /**
  * Mock Restaurant Data Store
  * Simulates restaurant records for testing without database dependency
+ * Supports both string and number IDs for backward compatibility
  */
 export class MockRestaurantStore {
-  private restaurants = new Set<number>()
+  private restaurants = new Set<string>()
 
-  addRestaurant(id: number) {
-    this.restaurants.add(id)
+  addRestaurant(id: string | number) {
+    this.restaurants.add(String(id))
   }
 
-  hasRestaurant(id: number): boolean {
-    return this.restaurants.has(id)
+  hasRestaurant(id: string | number): boolean {
+    return this.restaurants.has(String(id))
   }
 
-  removeRestaurant(id: number) {
-    this.restaurants.delete(id)
+  removeRestaurant(id: string | number) {
+    this.restaurants.delete(String(id))
   }
 
   clear() {
@@ -73,9 +74,10 @@ export function createTableServiceMock(store: MockTableStore) {
 /**
  * Create a mock function for restaurant validation in UnifiedQueueService
  * Uses the MockRestaurantStore to validate restaurants
+ * Supports both string and number IDs for backward compatibility
  */
 export function createRestaurantValidationMock(store: MockRestaurantStore) {
-  return vi.fn(async (restaurantId: number) => {
+  return vi.fn(async (restaurantId: string | number) => {
     if (!store.hasRestaurant(restaurantId)) {
       throw new Error('Restaurant not found')
     }

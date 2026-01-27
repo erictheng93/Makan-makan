@@ -28,7 +28,7 @@ describe('Group Orders E2E Tests', () => {
   let db: TestDB
   let adminToken: string
   let ownerToken: string
-  let testRestaurantId: number
+  let testRestaurantId: string
   let testTableId: number
   let testMenuItemId: number
 
@@ -41,7 +41,7 @@ describe('Group Orders E2E Tests', () => {
 
     // Generate test tokens
     adminToken = generateTestToken({ id: 1, username: 'admin', role: 0, restaurantId: null })
-    ownerToken = generateTestToken({ id: 2, username: 'owner', role: 1, restaurantId: 1 })
+    ownerToken = generateTestToken({ id: 2, username: 'owner', role: 1, restaurantId: '1' })
 
     // Seed test data
     await seedTestData()
@@ -86,7 +86,7 @@ describe('Group Orders E2E Tests', () => {
       now
     ).run()
 
-    testRestaurantId = restaurantResult.meta?.last_row_id as number
+    testRestaurantId = String(restaurantResult.meta?.last_row_id)
     console.log('[E2E Setup] Restaurant created, ID:', testRestaurantId, 'Result:', restaurantResult)
 
     // Create test table

@@ -76,7 +76,7 @@ class SchedulingService {
   /**
    * Get all shift templates for a restaurant
    */
-  async getShiftTemplates(restaurantId: number): Promise<ShiftTemplate[]> {
+  async getShiftTemplates(restaurantId: string): Promise<ShiftTemplate[]> {
     const response = await this.api.get<ApiResponse<ShiftTemplate[]>>(
       `/scheduling/${restaurantId}/templates`,
     );
@@ -97,7 +97,7 @@ class SchedulingService {
    * Create a new shift template
    */
   async createShiftTemplate(
-    restaurantId: number,
+    restaurantId: string,
     data: CreateShiftTemplateData,
   ): Promise<ShiftTemplate> {
     const response = await this.api.post<ApiResponse<ShiftTemplate>>(
@@ -160,7 +160,7 @@ class SchedulingService {
    * Create a new schedule
    */
   async createSchedule(
-    restaurantId: number,
+    restaurantId: string,
     data: CreateScheduleData,
   ): Promise<EmployeeSchedule> {
     const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
@@ -195,7 +195,7 @@ class SchedulingService {
    * Bulk create schedules
    */
   async bulkCreateSchedules(
-    restaurantId: number,
+    restaurantId: string,
     data: BulkCreateSchedulesData,
   ): Promise<{ count: number }> {
     const response = await this.api.post<ApiResponse<{ count: number }>>(
@@ -214,7 +214,7 @@ class SchedulingService {
    * Filters out employees on approved leave
    */
   async getAvailableEmployees(
-    restaurantId: number,
+    restaurantId: string,
     date: string,
     shiftTemplateId?: number,
   ): Promise<AvailableEmployee[]> {
@@ -311,7 +311,7 @@ class SchedulingService {
    * Create a swap request
    */
   async createSwapRequest(
-    restaurantId: number,
+    restaurantId: string,
     data: CreateSwapRequestData,
   ): Promise<SwapRequest> {
     const response = await this.api.post<ApiResponse<SwapRequest>>(
@@ -381,7 +381,7 @@ class SchedulingService {
   /**
    * Get daily scheduling statistics
    */
-  async getDailyStats(restaurantId: number, date: string): Promise<DailyStats> {
+  async getDailyStats(restaurantId: string, date: string): Promise<DailyStats> {
     const response = await this.api.get<ApiResponse<DailyStats>>(
       `/scheduling/${restaurantId}/stats/daily`,
       { params: { date } },
@@ -393,7 +393,7 @@ class SchedulingService {
    * Get weekly summary
    */
   async getWeeklySummary(
-    restaurantId: number,
+    restaurantId: string,
     weekStartDate: string,
   ): Promise<WeeklySummary> {
     const response = await this.api.get<ApiResponse<WeeklySummary>>(

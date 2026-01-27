@@ -50,23 +50,15 @@ export {
 } from "./performance-monitor";
 
 // UUID utilities
-export {
-  generateUUID,
-  isValidUUID,
-  isValidRestaurantId,
-  isLegacyRestaurantId,
-  extractUUIDTimestamp,
-} from "./uuid";
+export { generateUUID, isValidUUID, extractUUIDTimestamp } from "./uuid";
 
 // Validation schemas
 export {
   uuidSchema,
   restaurantIdSchema,
-  restaurantIdSchemaCompat,
   numericIdSchema,
   numericIdParamSchema,
   restaurantIdParamSchema,
-  restaurantIdParamSchemaCompat,
   optionalRestaurantIdSchema,
   optionalNumericIdSchema,
   type UUID,

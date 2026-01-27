@@ -111,7 +111,7 @@ export interface QRCodeEntity extends BaseEntity {
   downloadUrl?: string;
   downloadCount: number;
   fileSize?: number;
-  restaurantId?: number;
+  restaurantId?: string;
   userId?: number;
   batchId?: string;
 }
@@ -124,7 +124,7 @@ export interface QRBatchEntity extends BaseEntity {
   downloadUrl?: string;
   downloadCount: number;
   totalFileSize: number;
-  restaurantId?: number;
+  restaurantId?: string;
   userId?: number;
   status: "pending" | "processing" | "completed" | "failed";
   progress?: number;
@@ -155,12 +155,12 @@ export interface IQRCodeService {
   generateQR(
     data: GenerateQRRequest,
     userId?: number,
-    restaurantId?: number,
+    restaurantId?: string,
   ): Promise<QRCodeEntity>;
   generateBulkQR(
     data: BulkQRRequest,
     userId?: number,
-    restaurantId?: number,
+    restaurantId?: string,
   ): Promise<QRBatchEntity>;
   downloadQR(
     id: number,
@@ -168,7 +168,7 @@ export interface IQRCodeService {
   downloadBatch(
     batchId: string,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null>;
-  getStatistics(restaurantId?: number): Promise<QRStatistics>;
+  getStatistics(restaurantId?: string): Promise<QRStatistics>;
 }
 
 export interface IQRTemplateService {

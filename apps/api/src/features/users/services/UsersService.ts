@@ -23,7 +23,7 @@ export class UsersService {
   /**
    * Check if current user can manage target user
    */
-  canManageUser(currentUser: any, targetRole: number, targetRestaurantId?: number): boolean {
+  canManageUser(currentUser: any, targetRole: number, targetRestaurantId?: string): boolean {
     // 管理員可以管理所有人
     if (currentUser.role === USER_ROLES.ADMIN) return true
 
@@ -360,16 +360,16 @@ export class UsersService {
   /**
    * Get user statistics
    */
-  async getUserStats(currentUser: any, restaurantId?: number): Promise<UserStats> {
+  async getUserStats(currentUser: any, restaurantId?: string): Promise<UserStats> {
     // 權限過濾
-    let targetRestaurantId: number | undefined
+    let targetRestaurantId: string | undefined
     if (currentUser.role === USER_ROLES.OWNER) {
       targetRestaurantId = currentUser.restaurantId
     } else if (restaurantId) {
       targetRestaurantId = restaurantId
     }
 
-    const stats = await this.userService.getUserStats(targetRestaurantId ? String(targetRestaurantId) : undefined)
+    const stats = await this.userService.getUserStats(targetRestaurantId)
 
     const roleNames = {
       [USER_ROLES.ADMIN]: 'Admin',
@@ -404,16 +404,16 @@ export class UsersService {
   /**
    * Search users
    */
-  async searchUsers(currentUser: any, query: string, restaurantId?: number, limit?: number) {
+  async searchUsers(currentUser: any, query: string, restaurantId?: string, limit?: number) {
     // 權限過濾
-    let targetRestaurantId: number | undefined
+    let targetRestaurantId: string | undefined
     if (currentUser.role === USER_ROLES.OWNER) {
       targetRestaurantId = currentUser.restaurantId
     } else if (restaurantId) {
       targetRestaurantId = restaurantId
     }
 
-    const results = await this.userService.searchUsers(query, targetRestaurantId ? String(targetRestaurantId) : undefined, limit)
+    const results = await this.userService.searchUsers(query, targetRestaurantId, limit)
 
     return results.map((user: any) => this.formatUser(user))
   }

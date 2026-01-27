@@ -6,7 +6,7 @@ export interface CashRegister {
   id: string
   name: string
   location?: string
-  restaurantId: number
+  restaurantId: string
   isActive: boolean
   currentShiftId?: string
   hardwareConfig: Record<string, any>
@@ -104,7 +104,7 @@ export interface Refund {
 export interface CreateRegisterRequest {
   name: string
   location?: string
-  restaurantId: number
+  restaurantId: string
   hardwareConfig?: Record<string, any>
   peripherals?: Record<string, any>
   settings?: Record<string, any>

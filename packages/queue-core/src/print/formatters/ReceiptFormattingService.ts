@@ -337,7 +337,7 @@ export class ReceiptFormattingService {
     return {
       country,
       type,
-      restaurantId: 1,
+      restaurantId: '1',
       data: {
         order: {
           id: 'TEST-' + Date.now(),

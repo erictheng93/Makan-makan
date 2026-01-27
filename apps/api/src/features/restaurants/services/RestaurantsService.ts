@@ -78,7 +78,7 @@ export class RestaurantsService {
   /**
    * Get a single restaurant by ID
    */
-  async getRestaurant(id: number): Promise<Restaurant | null> {
+  async getRestaurant(id: string): Promise<Restaurant | null> {
     try {
       this.logger.debug('Getting restaurant by ID', { id })
 
@@ -90,8 +90,8 @@ export class RestaurantsService {
         return cached
       }
 
-      // Get from database (convert id to string for database service)
-      const restaurant = await this.dbService.getRestaurant(String(id))
+      // Get from database
+      const restaurant = await this.dbService.getRestaurant(id)
 
       if (restaurant) {
         // Cache the result
@@ -141,11 +141,11 @@ export class RestaurantsService {
   /**
    * Update an existing restaurant
    */
-  async updateRestaurant(id: number, data: UpdateRestaurantData): Promise<Restaurant | null> {
+  async updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null> {
     try {
       this.logger.debug('Updating restaurant', { id, data })
 
-      const restaurant = await this.dbService.updateRestaurant(String(id), data)
+      const restaurant = await this.dbService.updateRestaurant(id, data)
 
       if (restaurant) {
         // Invalidate caches
@@ -176,11 +176,11 @@ export class RestaurantsService {
   /**
    * Deactivate a restaurant (soft delete)
    */
-  async deactivateRestaurant(id: number): Promise<boolean> {
+  async deactivateRestaurant(id: string): Promise<boolean> {
     try {
       this.logger.debug('Deactivating restaurant', { id })
 
-      await this.dbService.deactivateRestaurant(String(id))
+      await this.dbService.deactivateRestaurant(id)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -204,7 +204,7 @@ export class RestaurantsService {
   /**
    * Get restaurant statistics
    */
-  async getRestaurantStats(id: number): Promise<EnhancedRestaurantStats> {
+  async getRestaurantStats(id: string): Promise<EnhancedRestaurantStats> {
     try {
       this.logger.debug('Getting restaurant stats', { id })
 
@@ -217,7 +217,7 @@ export class RestaurantsService {
       }
 
       // Get basic stats from database service
-      const dbStats = await this.dbService.getRestaurantStats(String(id))
+      const dbStats = await this.dbService.getRestaurantStats(id)
 
       // Transform to expected format (extend with additional metrics)
       const stats: EnhancedRestaurantStats = {
@@ -355,11 +355,11 @@ export class RestaurantsService {
   /**
    * Generate shop-level QR code for a restaurant
    */
-  async generateShopQrCode(id: number): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+  async generateShopQrCode(id: string): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
     try {
       this.logger.debug('Generating shop QR code', { id })
 
-      const result = await this.dbService.generateShopQrCode(String(id))
+      const result = await this.dbService.generateShopQrCode(id)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -377,11 +377,11 @@ export class RestaurantsService {
   /**
    * Regenerate shop-level QR code (increments version)
    */
-  async regenerateShopQrCode(id: number): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+  async regenerateShopQrCode(id: string): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
     try {
       this.logger.debug('Regenerating shop QR code', { id })
 
-      const result = await this.dbService.regenerateShopQrCode(String(id))
+      const result = await this.dbService.regenerateShopQrCode(id)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -403,7 +403,7 @@ export class RestaurantsService {
   /**
    * Get shop QR code information
    */
-  async getShopQrCodeInfo(id: number): Promise<{
+  async getShopQrCodeInfo(id: string): Promise<{
     qrCode: string | null
     qrCodeImageUrl: string | null
     enabled: boolean
@@ -427,7 +427,7 @@ export class RestaurantsService {
         return cached
       }
 
-      const info = await this.dbService.getShopQrCodeInfo(String(id))
+      const info = await this.dbService.getShopQrCodeInfo(id)
 
       // Cache the result
       await this.cache.set(cacheKey, info, CACHE_TTL.MEDIUM)
@@ -444,11 +444,11 @@ export class RestaurantsService {
   /**
    * Update shop QR code image URL
    */
-  async updateShopQrCodeImage(id: number, imageUrl: string): Promise<void> {
+  async updateShopQrCodeImage(id: string, imageUrl: string): Promise<void> {
     try {
       this.logger.debug('Updating shop QR code image', { id, imageUrl })
 
-      await this.dbService.updateShopQrCodeImage(String(id), imageUrl)
+      await this.dbService.updateShopQrCodeImage(id, imageUrl)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -464,11 +464,11 @@ export class RestaurantsService {
   /**
    * Enable or disable shop mode with settings
    */
-  async updateShopMode(id: number, enabled: boolean, settings?: any): Promise<void> {
+  async updateShopMode(id: string, enabled: boolean, settings?: any): Promise<void> {
     try {
       this.logger.debug('Updating shop mode', { id, enabled, settings })
 
-      await this.dbService.updateShopMode(String(id), enabled, settings)
+      await this.dbService.updateShopMode(id, enabled, settings)
 
       // Invalidate caches
       await this.cache.delete(`restaurant:${id}`)
@@ -487,7 +487,7 @@ export class RestaurantsService {
    */
   async verifyShopQrCode(qrCode: string): Promise<{
     valid: boolean
-    restaurantId?: number
+    restaurantId?: string
     restaurant?: any
   }> {
     try {
@@ -501,10 +501,9 @@ export class RestaurantsService {
         restaurantId: result.restaurantId
       })
 
-      // Convert restaurantId from string to number for API layer
       return {
         valid: result.valid,
-        restaurantId: result.restaurantId ? Number(result.restaurantId) : undefined,
+        restaurantId: result.restaurantId,
         restaurant: result.restaurant
       }
     } catch (error) {

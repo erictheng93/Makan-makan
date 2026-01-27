@@ -93,7 +93,7 @@ const mockMenuItem: MenuItem = {
   price: 12.99,
   originalPrice: 15.99,
   categoryId: 1,
-  restaurantId: 1,
+  restaurantId: '1',
   isAvailable: true,
   isFeatured: true,
   isPopular: true,
@@ -130,7 +130,7 @@ const mockCategory: Category = {
   status: 1,
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-01T00:00:00.000Z",
-  restaurantId: 1,
+  restaurantId: '1',
   isActive: true,
   isVisible: true,
   itemCount: 10,
@@ -163,7 +163,7 @@ describe("MenuService", () => {
     it("should fetch menu from cache when available", async () => {
       (mockEnv.CACHE_KV.get as any).mockResolvedValue(mockMenuStructure);
 
-      const result = await menuService.getMenu(1);
+      const result = await menuService.getMenu('1');
 
       expect(result).toEqual(mockMenuStructure);
       expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith("menu:1", "json");
@@ -174,7 +174,7 @@ describe("MenuService", () => {
       (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      const result = await menuService.getMenu(1);
+      const result = await menuService.getMenu('1');
 
       expect(result).toEqual(mockMenuStructure);
       expect(mockDbService.getMenu).toHaveBeenCalledWith("1");
@@ -184,7 +184,7 @@ describe("MenuService", () => {
       (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      await menuService.getMenu(1);
+      await menuService.getMenu('1');
 
       expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "menu:1",
@@ -197,7 +197,7 @@ describe("MenuService", () => {
       (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
       mockDbService.getMenu.mockResolvedValue(null);
 
-      const result = await menuService.getMenu(999);
+      const result = await menuService.getMenu('999');
 
       expect(result).toBeNull();
     });
@@ -206,7 +206,7 @@ describe("MenuService", () => {
       (mockEnv.CACHE_KV.get as any).mockRejectedValue(new Error("Cache error"));
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      const result = await menuService.getMenu(1);
+      const result = await menuService.getMenu('1');
 
       expect(result).toEqual(mockMenuStructure);
     });
@@ -218,7 +218,7 @@ describe("MenuService", () => {
       );
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      const result = await menuService.getMenu(1);
+      const result = await menuService.getMenu('1');
 
       expect(result).toEqual(mockMenuStructure);
     });
@@ -227,7 +227,7 @@ describe("MenuService", () => {
       (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
       mockDbService.getMenu.mockRejectedValue(new Error("Database error"));
 
-      await expect(menuService.getMenu(1)).rejects.toThrow("Database error");
+      await expect(menuService.getMenu('1')).rejects.toThrow("Database error");
     });
   });
 
@@ -277,7 +277,7 @@ describe("MenuService", () => {
   // ========================================
   describe("createMenuItem", () => {
     const createData: CreateMenuItemData = {
-      restaurantId: 1,
+      restaurantId: '1',
       categoryId: 1,
       name: "New Item",
       description: "A new item",
@@ -428,7 +428,7 @@ describe("MenuService", () => {
   // ========================================
   describe("createCategory", () => {
     const createData: CreateCategoryData = {
-      restaurantId: 1,
+      restaurantId: '1',
       name: "New Category",
       description: "A new category",
     };
@@ -555,7 +555,7 @@ describe("MenuService", () => {
         limit: 20,
       };
 
-      const result = await menuService.searchMenuItems(1, params);
+      const result = await menuService.searchMenuItems('1', params);
 
       expect(result.items).toHaveLength(1);
       expect(mockDbService.searchMenuItems).toHaveBeenCalledWith(
@@ -575,7 +575,7 @@ describe("MenuService", () => {
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
       });
 
-      await menuService.searchMenuItems(1, {});
+      await menuService.searchMenuItems('1', {});
 
       expect(mockDbService.searchMenuItems).toHaveBeenCalledWith(
         "1",
@@ -591,10 +591,10 @@ describe("MenuService", () => {
         pagination: {},
       });
 
-      const result = await menuService.searchMenuItems(1, {});
+      const result = await menuService.searchMenuItems('1', {});
 
       expect(result.items[0].categoryId).toBe(1);
-      expect(result.items[0].restaurantId).toBe(1);
+      expect(result.items[0].restaurantId).toBe('1');
     });
   });
 
@@ -605,7 +605,7 @@ describe("MenuService", () => {
     it("should fetch featured items", async () => {
       mockDbService.getFeaturedItems.mockResolvedValue([mockMenuItem]);
 
-      const result = await menuService.getFeaturedItems(1, 10);
+      const result = await menuService.getFeaturedItems('1', 10);
 
       expect(result).toHaveLength(1);
       expect(mockDbService.getFeaturedItems).toHaveBeenCalledWith("1", 10);
@@ -614,7 +614,7 @@ describe("MenuService", () => {
     it("should use default limit", async () => {
       mockDbService.getFeaturedItems.mockResolvedValue([]);
 
-      await menuService.getFeaturedItems(1);
+      await menuService.getFeaturedItems('1');
 
       expect(mockDbService.getFeaturedItems).toHaveBeenCalledWith("1", 10);
     });
@@ -624,7 +624,7 @@ describe("MenuService", () => {
         { ...mockMenuItem, categoryId: "1" },
       ]);
 
-      const result = await menuService.getFeaturedItems(1);
+      const result = await menuService.getFeaturedItems('1');
 
       expect(result[0].categoryId).toBe(1);
     });
@@ -637,7 +637,7 @@ describe("MenuService", () => {
     it("should fetch popular items", async () => {
       mockDbService.getPopularItems.mockResolvedValue([mockMenuItem]);
 
-      const result = await menuService.getPopularItems(1, 10);
+      const result = await menuService.getPopularItems('1', 10);
 
       expect(result).toHaveLength(1);
       expect(mockDbService.getPopularItems).toHaveBeenCalledWith("1", 10);
@@ -646,7 +646,7 @@ describe("MenuService", () => {
     it("should use default limit", async () => {
       mockDbService.getPopularItems.mockResolvedValue([]);
 
-      await menuService.getPopularItems(1);
+      await menuService.getPopularItems('1');
 
       expect(mockDbService.getPopularItems).toHaveBeenCalledWith("1", 10);
     });
@@ -664,7 +664,7 @@ describe("MenuService", () => {
         { id: 2, isAvailable: true },
       ];
 
-      await menuService.batchUpdateAvailability(1, updates);
+      await menuService.batchUpdateAvailability('1', updates);
 
       expect(mockDbService.batchUpdateAvailability).toHaveBeenCalledWith(
         "1",
@@ -675,7 +675,7 @@ describe("MenuService", () => {
     it("should invalidate cache after batch update", async () => {
       mockDbService.batchUpdateAvailability.mockResolvedValue(undefined);
 
-      await menuService.batchUpdateAvailability(1, []);
+      await menuService.batchUpdateAvailability('1', []);
 
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
     });
@@ -690,7 +690,7 @@ describe("MenuService", () => {
         { id: 2, price: 12.99 },
       ];
 
-      await menuService.batchUpdatePrices(1, updates);
+      await menuService.batchUpdatePrices('1', updates);
 
       expect(mockDbService.updateMenuItem).toHaveBeenCalledTimes(2);
       expect(mockDbService.updateMenuItem).toHaveBeenCalledWith(1, {
@@ -702,7 +702,7 @@ describe("MenuService", () => {
     it("should invalidate cache after batch update", async () => {
       mockDbService.updateMenuItem.mockResolvedValue(mockMenuItem);
 
-      await menuService.batchUpdatePrices(1, [{ id: 1, price: 10 }]);
+      await menuService.batchUpdatePrices('1', [{ id: 1, price: 10 }]);
 
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
     });
@@ -720,7 +720,7 @@ describe("MenuService", () => {
         { id: 2, categoryId: 2 },
       ];
 
-      await menuService.batchMoveItems(1, moves);
+      await menuService.batchMoveItems('1', moves);
 
       expect(mockDbService.updateMenuItem).toHaveBeenCalledTimes(2);
     });
@@ -731,7 +731,7 @@ describe("MenuService", () => {
         { id: 2, categoryId: 3 },
       ];
 
-      await menuService.batchMoveItems(1, moves);
+      await menuService.batchMoveItems('1', moves);
 
       expect(mockDbService.getCategory).toHaveBeenCalledTimes(2);
     });
@@ -740,12 +740,12 @@ describe("MenuService", () => {
       mockDbService.getCategory.mockResolvedValue(null);
 
       await expect(
-        menuService.batchMoveItems(1, [{ id: 1, categoryId: 99 }]),
+        menuService.batchMoveItems('1', [{ id: 1, categoryId: 99 }]),
       ).rejects.toThrow("Category not found");
     });
 
     it("should invalidate cache after moves", async () => {
-      await menuService.batchMoveItems(1, [{ id: 1, categoryId: 2 }]);
+      await menuService.batchMoveItems('1', [{ id: 1, categoryId: 2 }]);
 
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
     });
@@ -772,7 +772,7 @@ describe("MenuService", () => {
     });
 
     it("should calculate basic statistics", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.totalItems).toBe(3);
       expect(result.availableItems).toBeGreaterThan(0);
@@ -780,7 +780,7 @@ describe("MenuService", () => {
     });
 
     it("should calculate price statistics", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.averagePrice).toBeGreaterThan(0);
       expect(result.priceRange.min).toBeDefined();
@@ -788,7 +788,7 @@ describe("MenuService", () => {
     });
 
     it("should calculate category distribution", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.categoryDistribution).toBeInstanceOf(Array);
       expect(result.categoryDistribution[0]).toHaveProperty("categoryId");
@@ -798,7 +798,7 @@ describe("MenuService", () => {
     });
 
     it("should get top performing items", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.topPerformingItems).toBeInstanceOf(Array);
       expect(result.topPerformingItems[0]).toHaveProperty("orderCount");
@@ -806,7 +806,7 @@ describe("MenuService", () => {
     });
 
     it("should calculate dietary info stats", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.dietaryInfoStats).toHaveProperty("vegetarian");
       expect(result.dietaryInfoStats).toHaveProperty("vegan");
@@ -815,7 +815,7 @@ describe("MenuService", () => {
     });
 
     it("should calculate spice level distribution", async () => {
-      const result = await menuService.getMenuAnalytics(1);
+      const result = await menuService.getMenuAnalytics('1');
 
       expect(result.spiceLevelDistribution).toBeDefined();
     });
@@ -823,7 +823,7 @@ describe("MenuService", () => {
     it("should throw when menu not found", async () => {
       mockDbService.getMenu.mockResolvedValue(null);
 
-      await expect(menuService.getMenuAnalytics(999)).rejects.toThrow(
+      await expect(menuService.getMenuAnalytics('999')).rejects.toThrow(
         "Menu not found for restaurant",
       );
     });
@@ -839,7 +839,7 @@ describe("MenuService", () => {
     });
 
     it("should fetch all popularity metrics", async () => {
-      const result = await menuService.getPopularityMetrics(1);
+      const result = await menuService.getPopularityMetrics('1');
 
       expect(result.mostOrdered).toBeInstanceOf(Array);
       expect(result.mostViewed).toBeInstanceOf(Array);
@@ -911,7 +911,7 @@ describe("MenuService", () => {
 
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      await serviceWithoutCache.getMenu(1);
+      await serviceWithoutCache.getMenu('1');
 
       // Should not throw and should work without cache
       expect(mockDbService.getMenu).toHaveBeenCalled();

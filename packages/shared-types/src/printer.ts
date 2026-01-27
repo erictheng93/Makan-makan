@@ -68,7 +68,7 @@ export interface PrintJob {
   cancelledAt?: Date
   error?: PrintError
   metadata?: {
-    restaurantId?: number
+    restaurantId?: string
     orderId?: string
     userId?: string
     country?: CountryCode
@@ -402,7 +402,7 @@ export interface PrintRequest {
   priority?: PrintJobPriority
   deviceId?: string
   templateId?: string
-  restaurantId?: number
+  restaurantId?: string
   userId?: string
   data: {
     order: OrderData

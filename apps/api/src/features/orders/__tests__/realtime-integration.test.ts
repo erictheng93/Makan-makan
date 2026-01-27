@@ -115,7 +115,7 @@ describe('Orders + Realtime Integration', () => {
   describe('createOrder - Realtime Integration', () => {
     it('應該在創建訂單後廣播 NEW_ORDER 事件', async () => {
       const orderData = {
-        restaurantId: 1,
+        restaurantId: '1',
         tableId: 10,
         customerName: 'John Doe',
         customerPhone: '+1234567890',
@@ -131,7 +131,7 @@ describe('Orders + Realtime Integration', () => {
 
       const createdOrder = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: '1',
         tableId: 10,
         orderNumber: '#001',
         customerName: 'John Doe',
@@ -186,7 +186,7 @@ describe('Orders + Realtime Integration', () => {
 
     it('應該即使廣播失敗也能成功創建訂單', async () => {
       const orderData = {
-        restaurantId: 2,
+        restaurantId: '2',
         tableId: 20,
         items: [
           {
@@ -198,7 +198,7 @@ describe('Orders + Realtime Integration', () => {
 
       const createdOrder = {
         id: 2,
-        restaurantId: 2,
+        restaurantId: '2',
         tableId: 20,
         orderNumber: '#002',
         totalAmount: 500,
@@ -251,7 +251,7 @@ describe('Orders + Realtime Integration', () => {
 
       const currentOrder = {
         id: orderId,
-        restaurantId: 3,
+        restaurantId: '3',
         tableId: 30,
         orderNumber: '#003',
         status: currentStatus as any,
@@ -293,7 +293,7 @@ describe('Orders + Realtime Integration', () => {
     it('應該正確處理訂單更新事件', async () => {
       const order = {
         id: 4,
-        restaurantId: 4,
+        restaurantId: '4',
         tableId: 40,
         orderNumber: '#004',
         status: 'confirmed' as any,
@@ -336,7 +336,7 @@ describe('Orders + Realtime Integration', () => {
   describe('Event Data Mapping', () => {
     it('應該正確映射訂單項目到事件資料', async () => {
       const orderData = {
-        restaurantId: 5,
+        restaurantId: '5',
         tableId: 50,
         items: [
           {
@@ -352,7 +352,7 @@ describe('Orders + Realtime Integration', () => {
 
       const createdOrder = {
         id: 5,
-        restaurantId: 5,
+        restaurantId: '5',
         tableId: 50,
         orderNumber: '#005',
         totalAmount: 4500,

@@ -86,7 +86,7 @@ export abstract class RegionReceiptFormatter {
 export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || '1')
 
     return {
       header: this.formatHeader(restaurant, {
@@ -223,7 +223,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
     return translations[method] || method
   }
 
-  private getRestaurantInfo(restaurantId: number): any {
+  private getRestaurantInfo(restaurantId: string): any {
     // 實際實作中會從資料庫獲取
     return {
       name: 'MakanMakan Restaurant',
@@ -244,7 +244,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
 export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || '1')
 
     return {
       header: this.formatHeader(restaurant, {
@@ -357,7 +357,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
     return translations[method] || method
   }
 
-  private getRestaurantInfo(restaurantId: number): any {
+  private getRestaurantInfo(restaurantId: string): any {
     return {
       name: 'MakanMakan Restaurant',
       // nameLocal: 'Restoran MakanMakan',
@@ -376,7 +376,7 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
 export class VietnamReceiptFormatter extends RegionReceiptFormatter {
   formatReceipt(request: PrintRequest): PrintContent {
     const { order, customer, payment } = request.data
-    const restaurant = this.getRestaurantInfo(request.restaurantId || 1)
+    const restaurant = this.getRestaurantInfo(request.restaurantId || '1')
 
     return {
       header: this.formatHeader(restaurant, {
@@ -491,7 +491,7 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
     return translations[method] || method
   }
 
-  private getRestaurantInfo(restaurantId: number): any {
+  private getRestaurantInfo(restaurantId: string): any {
     return {
       name: 'MakanMakan Restaurant',
       // nameLocal: 'Nhà Hàng MakanMakan',

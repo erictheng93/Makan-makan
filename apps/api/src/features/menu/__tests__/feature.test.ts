@@ -63,12 +63,12 @@ const mockCacheKV = {
 };
 
 // Mock data
-const mockRestaurantId = 1;
+const mockRestaurantId = '1';
 const mockUserId = 100;
 
 const mockMenuItem: MenuItem = {
   id: 1,
-  restaurantId: mockRestaurantId,
+  restaurantId: mockRestaurantId as string,
   categoryId: 1,
   name: "Test Menu Item",
   inventoryCount: 100,
@@ -100,7 +100,7 @@ const mockMenuItem: MenuItem = {
 
 const mockCategory: Category = {
   id: 1,
-  restaurantId: mockRestaurantId,
+  restaurantId: mockRestaurantId as string,
   name: "Test Category",
   description: "A test category",
   sortOrder: 0,
@@ -192,7 +192,7 @@ const mockUser = {
   id: mockUserId,
   username: "testuser",
   fullName: "Test User",
-  restaurantId: mockRestaurantId,
+  restaurantId: mockRestaurantId as string,
   role: 1, // SHOP_OWNER
   email: "test@example.com",
   isActive: true,
@@ -275,7 +275,7 @@ describe("Menu Feature Module", () => {
     describe("Menu Item Management", () => {
       test("should create menu item successfully", async () => {
         const createData: CreateMenuItemData = {
-          restaurantId: mockRestaurantId,
+          restaurantId: mockRestaurantId as string,
           categoryId: 1,
           name: "New Test Item",
           description: "A new test item",
@@ -346,7 +346,7 @@ describe("Menu Feature Module", () => {
     describe("Category Management", () => {
       test("should create category successfully", async () => {
         const createData: CreateCategoryData = {
-          restaurantId: mockRestaurantId,
+          restaurantId: mockRestaurantId as string,
           name: "New Category",
           description: "A new test category",
         };

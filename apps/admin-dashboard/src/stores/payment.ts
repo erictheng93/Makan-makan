@@ -404,7 +404,7 @@ export const usePaymentStore = defineStore("payment", () => {
       errors.orderId = "訂單 ID 不能為空";
     }
 
-    if (!request.restaurantId || request.restaurantId <= 0) {
+    if (!request.restaurantId) {
       errors.restaurantId = "餐廳 ID 無效";
     }
 

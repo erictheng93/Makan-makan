@@ -30,7 +30,7 @@ export interface ErrorDetails {
   userAgent?: string;
   url?: string;
   userId?: number | string;
-  restaurantId?: number | string;
+  restaurantId?: string;
 }
 
 // 離線狀態管理

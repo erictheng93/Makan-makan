@@ -1020,7 +1020,7 @@ export class GroupOrdersService implements IGroupOrderService {
   /**
    * Get statistics
    */
-  async getStatistics(restaurantId?: number, timeRange?: string): Promise<GroupOrderStatistics> {
+  async getStatistics(restaurantId?: string, timeRange?: string): Promise<GroupOrderStatistics> {
     try {
       // Calculate time range
       const now = Math.floor(Date.now() / 1000)

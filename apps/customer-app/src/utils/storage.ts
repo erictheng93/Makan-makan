@@ -33,7 +33,7 @@ const MenuDataSchema = z.object({
 });
 
 const RestaurantDataSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string(),
   address: z.string().optional(),
   businessHours: z.record(z.string(), z.unknown()).optional(),
@@ -64,7 +64,7 @@ export interface MenuData {
 }
 
 export interface RestaurantData {
-  id: number;
+  id: string;
   name: string;
   address?: string;
   businessHours?: Record<string, unknown>;
@@ -348,7 +348,7 @@ export const cacheStorage = new StorageManager("makanmakan_cache_");
  */
 export const cartStorageHelper = {
   saveCart(
-    restaurantId: number,
+    restaurantId: string,
     tableId: number,
     cartData: CartData,
     expires: number = 24 * 60 * 60 * 1000,
@@ -357,17 +357,17 @@ export const cartStorageHelper = {
     return cartStorage.set(key, cartData, { expires });
   },
 
-  getCart(restaurantId: number, tableId: number): CartData | undefined {
+  getCart(restaurantId: string, tableId: number): CartData | undefined {
     const key = `${restaurantId}_${tableId}`;
     return cartStorage.get<CartData>(key, undefined, CartDataSchema);
   },
 
-  clearCart(restaurantId: number, tableId: number) {
+  clearCart(restaurantId: string, tableId: number) {
     const key = `${restaurantId}_${tableId}`;
     return cartStorage.remove(key);
   },
 
-  hasCart(restaurantId: number, tableId: number): boolean {
+  hasCart(restaurantId: string, tableId: number): boolean {
     const key = `${restaurantId}_${tableId}`;
     return cartStorage.has(key);
   },
@@ -423,11 +423,11 @@ export const cacheHelper = {
   },
 
   // 餐廳菜單快取
-  cacheMenu(restaurantId: number, menuData: MenuData) {
+  cacheMenu(restaurantId: string, menuData: MenuData) {
     return this.setCache(`menu_${restaurantId}`, menuData, 10 * 60 * 1000); // 10分鐘
   },
 
-  getCachedMenu(restaurantId: number): MenuData | undefined {
+  getCachedMenu(restaurantId: string): MenuData | undefined {
     return cacheStorage.get<MenuData>(
       `menu_${restaurantId}`,
       undefined,
@@ -436,7 +436,7 @@ export const cacheHelper = {
   },
 
   // 餐廳資訊快取
-  cacheRestaurant(restaurantId: number, restaurantData: RestaurantData) {
+  cacheRestaurant(restaurantId: string, restaurantData: RestaurantData) {
     return this.setCache(
       `restaurant_${restaurantId}`,
       restaurantData,
@@ -444,7 +444,7 @@ export const cacheHelper = {
     ); // 30分鐘
   },
 
-  getCachedRestaurant(restaurantId: number): RestaurantData | undefined {
+  getCachedRestaurant(restaurantId: string): RestaurantData | undefined {
     return cacheStorage.get<RestaurantData>(
       `restaurant_${restaurantId}`,
       undefined,

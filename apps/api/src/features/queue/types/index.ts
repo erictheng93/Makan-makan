@@ -23,7 +23,7 @@ export type QueueStatistics = _QueueStatistics
 
 // Define request/response types locally since they may not be properly exported
 export interface JoinQueueRequest {
-  restaurantId: number
+  restaurantId: string
   customerName: string
   customerPhone?: string
   partySize: number
@@ -37,7 +37,7 @@ export interface JoinQueueResponse {
 }
 
 export interface CallNextRequest {
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   specificQueueId?: string
 }
@@ -60,7 +60,7 @@ export { QueueStatus, QueueType, NotificationType }
 // Legacy compatibility types
 export interface LegacyQueueEntry {
   id: number
-  restaurant_id: number
+  restaurant_id: string
   customer_name: string
   customer_phone?: string
   party_size: number
@@ -79,7 +79,7 @@ export interface LegacyQueueEntry {
 
 export interface LegacyQueueSettings {
   id: number
-  restaurant_id: number
+  restaurant_id: string
   average_wait_time: number
   max_party_size: number
   enable_sms_notifications: boolean
@@ -93,15 +93,15 @@ export interface LegacyQueueSettings {
 export interface UnifiedQueueService {
   // New modular methods
   joinQueue(data: JoinQueueRequest): Promise<ApiResponse<QueueEntry>>
-  callNext(restaurantId: number, data: CallNextRequest): Promise<ApiResponse<QueueEntry>>
-  getQueueStatus(restaurantId: number): Promise<ApiResponse<QueueStatistics>>
+  callNext(restaurantId: string, data: CallNextRequest): Promise<ApiResponse<QueueEntry>>
+  getQueueStatus(restaurantId: string): Promise<ApiResponse<QueueStatistics>>
 
   // Legacy compatibility methods
   joinQueueLegacy(data: Partial<LegacyQueueEntry>): Promise<LegacyQueueEntry>
-  getQueueLegacy(restaurantId: number): Promise<LegacyQueueEntry[]>
-  updateQueueSettingsLegacy(restaurantId: number, settings: Partial<LegacyQueueSettings>): Promise<LegacyQueueSettings>
+  getQueueLegacy(restaurantId: string): Promise<LegacyQueueEntry[]>
+  updateQueueSettingsLegacy(restaurantId: string, settings: Partial<LegacyQueueSettings>): Promise<LegacyQueueSettings>
 
   // Migration methods
   migrateQueueEntry(legacy: LegacyQueueEntry): QueueEntry
-  migrateLegacyToModular(restaurantId: number): Promise<void>
+  migrateLegacyToModular(restaurantId: string): Promise<void>
 }

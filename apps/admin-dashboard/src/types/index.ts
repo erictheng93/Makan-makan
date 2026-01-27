@@ -3,7 +3,7 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  restaurantId: number;
+  restaurantId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,7 +52,7 @@ export interface OrderSettings {
 
 export interface MenuItem {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   categoryId: number;
   name: string;
   description: string;
@@ -67,7 +67,7 @@ export interface MenuItem {
 
 export interface MenuCategory {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   name: string;
   description?: string;
   sortOrder: number;
@@ -92,7 +92,7 @@ export interface CustomizationOption {
 
 export interface Order {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   tableId?: number;
   status: OrderStatus;
   totalAmount: number;
@@ -137,7 +137,7 @@ export interface CustomerInfo {
 
 export interface Table {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   number: string;
   name?: string;
   capacity: number;

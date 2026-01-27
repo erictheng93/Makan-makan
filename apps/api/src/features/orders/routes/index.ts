@@ -703,7 +703,7 @@ app.get(
       logger.debug("Getting order statistics", { query, userId: user.id });
 
       // Determine restaurant ID
-      let restaurantId: number | undefined;
+      let restaurantId: string | undefined;
       if (user.role === 1) {
         // Owner only sees their restaurant
         restaurantId = user.restaurantId;
@@ -1013,7 +1013,7 @@ app.get(
 
       const restaurantId =
         user.role === 0
-          ? parseInt(c.req.query("restaurantId") || "0")
+          ? c.req.query("restaurantId") || ''
           : user.restaurantId;
 
       if (!restaurantId) {

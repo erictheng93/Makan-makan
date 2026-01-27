@@ -25,33 +25,33 @@ describe('Users Feature Module', () => {
       test('admin can manage all users', () => {
         const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
 
-        expect(usersService.canManageUser(adminUser, USER_ROLES.OWNER, 2)).toBe(true)
-        expect(usersService.canManageUser(adminUser, USER_ROLES.CHEF, 2)).toBe(true)
-        expect(usersService.canManageUser(adminUser, USER_ROLES.CUSTOMER, 2)).toBe(true)
+        expect(usersService.canManageUser(adminUser, USER_ROLES.OWNER, '2')).toBe(true)
+        expect(usersService.canManageUser(adminUser, USER_ROLES.CHEF, '2')).toBe(true)
+        expect(usersService.canManageUser(adminUser, USER_ROLES.CUSTOMER, '2')).toBe(true)
       })
 
       test('owner can only manage restaurant staff', () => {
         const ownerUser = userFactory.buildShopOwner(1)
 
         // Can manage staff in same restaurant
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.CHEF, 1)).toBe(true)
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.SERVICE, 1)).toBe(true)
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.CASHIER, 1)).toBe(true)
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.CUSTOMER, 1)).toBe(true)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.CHEF, '1')).toBe(true)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.SERVICE, '1')).toBe(true)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.CASHIER, '1')).toBe(true)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.CUSTOMER, '1')).toBe(true)
 
         // Cannot manage other owners or admins
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.ADMIN, 1)).toBe(false)
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.OWNER, 1)).toBe(false)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.ADMIN, '1')).toBe(false)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.OWNER, '1')).toBe(false)
 
         // Cannot manage staff in different restaurant
-        expect(usersService.canManageUser(ownerUser, USER_ROLES.CHEF, 2)).toBe(false)
+        expect(usersService.canManageUser(ownerUser, USER_ROLES.CHEF, '2')).toBe(false)
       })
 
       test('other roles cannot manage users', () => {
         const chefUser = userFactory.buildChef(1)
 
-        expect(usersService.canManageUser(chefUser, USER_ROLES.CHEF, 1)).toBe(false)
-        expect(usersService.canManageUser(chefUser, USER_ROLES.CUSTOMER, 1)).toBe(false)
+        expect(usersService.canManageUser(chefUser, USER_ROLES.CHEF, '1')).toBe(false)
+        expect(usersService.canManageUser(chefUser, USER_ROLES.CUSTOMER, '1')).toBe(false)
       })
     })
 

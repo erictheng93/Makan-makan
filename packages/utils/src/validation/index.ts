@@ -7,11 +7,9 @@
 export {
   uuidSchema,
   restaurantIdSchema,
-  restaurantIdSchemaCompat,
   numericIdSchema,
   numericIdParamSchema,
   restaurantIdParamSchema,
-  restaurantIdParamSchemaCompat,
   optionalRestaurantIdSchema,
   optionalNumericIdSchema,
   type UUID,

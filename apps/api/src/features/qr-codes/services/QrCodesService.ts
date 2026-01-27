@@ -46,7 +46,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
   async generateQR(
     data: GenerateQRRequest,
     userId?: number,
-    restaurantId?: number,
+    restaurantId?: string,
   ): Promise<QRCodeEntity> {
     const timer = this.performance.startTimer("qr-codes.generate");
 
@@ -124,7 +124,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
   async generateBulkQR(
     data: BulkQRRequest,
     userId?: number,
-    restaurantId?: number,
+    restaurantId?: string,
   ): Promise<QRBatchEntity> {
     const timer = this.performance.startTimer("qr-codes.generateBulk");
 
@@ -275,7 +275,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
     }
   }
 
-  async getStatistics(restaurantId?: number): Promise<QRStatistics> {
+  async getStatistics(restaurantId?: string): Promise<QRStatistics> {
     const timer = this.performance.startTimer("qr-codes.getStatistics");
 
     try {

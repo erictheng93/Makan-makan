@@ -71,7 +71,7 @@ export class RegisterService extends BaseService {
    * 獲取收銀機列表
    */
   async getRegisters(
-    restaurantId: number
+    restaurantId: string
   ): Promise<{ success: boolean; data?: CashRegister[]; error?: string }> {
     try {
       const result = await this.d1.prepare(`

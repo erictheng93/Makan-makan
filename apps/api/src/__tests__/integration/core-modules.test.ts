@@ -12,7 +12,7 @@ import { MockTableStore, MockRestaurantStore, enhanceMockDrizzle } from '../help
 describe('Core Modules Integration Tests', () => {
   let app: any
   let db: any
-  let testRestaurantId: number
+  let testRestaurantId: string
   let testUserId: number
   let authToken: string
 
@@ -22,7 +22,7 @@ describe('Core Modules Integration Tests', () => {
     app = await createTestApp(db) // Pass db to createTestApp so they share the same instance
 
     // Create test restaurant and user
-    testRestaurantId = 1
+    testRestaurantId = 'test-restaurant-1'
     testUserId = 1
     // Generate a valid JWT token for testing
     authToken = generateTestToken({
@@ -59,8 +59,8 @@ describe('Core Modules Integration Tests', () => {
       INSERT INTO restaurants (id, public_id, name, type, category, address, district, phone, email, is_available, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      testRestaurantId,
-      testRestaurantId.toString(), // publicId must match restaurantId used in orders
+      1, // Use numeric id for database
+      testRestaurantId, // publicId must match restaurantId used in orders
       'Test Restaurant',
       'Casual Dining',
       'Restaurant',
@@ -84,7 +84,7 @@ describe('Core Modules Integration Tests', () => {
       'Test User', // fullName is required (NOT NULL)
       'hashedpassword', // Placeholder password hash
       0, // Admin role
-      testRestaurantId,
+      testRestaurantId, // restaurant_id is now TEXT
       1, // isActive = true
       new Date().toISOString(),
       new Date().toISOString()

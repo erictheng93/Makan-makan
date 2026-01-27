@@ -1,7 +1,7 @@
 import { BaseEntity } from './common';
 
 export interface Table extends BaseEntity {
-  restaurantId: number;
+  restaurantId: string;
   tableNumber: number;
   tableName?: string;
   capacity: number;
@@ -17,7 +17,7 @@ export enum TableStatus {
 }
 
 export interface CreateTableRequest {
-  restaurantId: number;
+  restaurantId: string;
   tableNumber: number;
   tableName?: string;
   capacity?: number;
@@ -28,7 +28,7 @@ export interface UpdateTableRequest extends Partial<CreateTableRequest> {
 }
 
 export interface BulkCreateTablesRequest {
-  restaurantId: number;
+  restaurantId: string;
   startNumber: number;
   endNumber: number;
   prefix?: string;
@@ -36,7 +36,7 @@ export interface BulkCreateTablesRequest {
 }
 
 export interface TableQRCodeRequest {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
   size?: number;
   format?: 'png' | 'svg';
@@ -45,7 +45,7 @@ export interface TableQRCodeRequest {
 
 export interface TableSession {
   tableId: number;
-  restaurantId: number;
+  restaurantId: string;
   sessionId: string;
   customerCount?: number;
   startTime: string;

@@ -373,7 +373,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
 // parseQRCode 已被 parseQRContent (from qr-parser.ts) 取代
 
 const addToRecentRestaurants = async (qrData: {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
 }) => {
   try {
@@ -452,7 +452,7 @@ const handleRestaurantSelected = ({
   restaurantId,
   tableId,
 }: {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
 }) => {
   router.push(`/restaurant/${restaurantId}/table/${tableId}`);

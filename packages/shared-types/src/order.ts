@@ -42,7 +42,7 @@ export interface CustomerProfile {
 }
 
 export interface Order extends BaseEntity {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
   customerId?: number;
   orderNumber: string;
@@ -136,7 +136,7 @@ export interface SelectedCustomizations {
 }
 
 export interface CreateOrderRequest {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
   customerName?: string;
   customerPhone?: string;
@@ -203,7 +203,7 @@ export interface CartItem {
 
 export interface CartState {
   items: CartItem[];
-  restaurantId?: number;
+  restaurantId?: string;
   tableId?: number;
   total: number; // in cents
   itemCount: number;

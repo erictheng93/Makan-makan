@@ -301,7 +301,7 @@ import type {
 
 // Props
 const props = defineProps<{
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
 }>();
 

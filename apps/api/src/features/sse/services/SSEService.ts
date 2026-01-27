@@ -54,7 +54,7 @@ export class SSEService implements ISSEService {
     }
   }
 
-  getConnectionsByRestaurant(restaurantId: number): SSEConnection[] {
+  getConnectionsByRestaurant(restaurantId: string): SSEConnection[] {
     return Array.from(this.connections.values()).filter(
       conn => conn.restaurantId === restaurantId
     )
@@ -93,7 +93,7 @@ export class SSEService implements ISSEService {
     await this.sendToConnections(targetConnections, sseEvent)
   }
 
-  async broadcastToRestaurant(restaurantId: number, event: SSEEvent): Promise<void> {
+  async broadcastToRestaurant(restaurantId: string, event: SSEEvent): Promise<void> {
     const connections = this.getConnectionsByRestaurant(restaurantId)
     await this.sendToConnections(connections, event)
   }
@@ -134,7 +134,7 @@ export class SSEService implements ISSEService {
   getConnectionStatus(): ConnectionStatus {
     const connections = Array.from(this.connections.values())
 
-    const connectionsByRestaurant: Record<number, number> = {}
+    const connectionsByRestaurant: Record<string, number> = {}
     const connectionsByRole: Record<number, number> = {}
 
     for (const conn of connections) {

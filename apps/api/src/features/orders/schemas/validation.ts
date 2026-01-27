@@ -89,7 +89,7 @@ const createOrderItemSchema = z.object({
 
 // Main order creation schema
 export const createOrderSchema = z.object({
-  restaurantId: idSchema,
+  restaurantId: z.string().min(1),
   tableId: optionalIdSchema,
   customerName: z.string().min(1).max(100).optional(),
   customerPhone: phoneSchema,
@@ -134,7 +134,7 @@ export const updatePaymentStatusSchema = z.object({
 
 // Order filtering and query schemas
 export const orderFilterSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().optional(),
   status: z.union([
     orderStatusSchema,
     z.string().transform(s => s.split(',')).pipe(z.array(orderStatusSchema))
@@ -178,7 +178,7 @@ export const orderSearchSchema = z.object({
 
 // Coupon validation schema
 export const previewCouponSchema = z.object({
-  restaurantId: idSchema,
+  restaurantId: z.string().min(1),
   couponCode: z.string().min(1).max(50),
   orderAmount: positiveNumberSchema,
   userId: optionalIdSchema,
@@ -203,7 +203,7 @@ export const bulkOrderOperationSchema = z.object({
 
 // Analytics and statistics schemas
 export const orderStatsQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().optional(),
   dateFrom: dateStringSchema,
   dateTo: dateStringSchema,
   timeRange: z.enum(['today', 'yesterday', 'week', 'month', 'quarter', 'year', 'custom']).optional().default('today'),

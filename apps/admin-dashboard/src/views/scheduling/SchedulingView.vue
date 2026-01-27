@@ -263,7 +263,7 @@ const showTemplateFormModal = ref(false)
 const selectedTemplate = ref<ShiftTemplate | null>(null)
 
 // Get restaurant ID from auth store
-const restaurantId = computed(() => authStore.user?.restaurantId || 1)
+const restaurantId = computed(() => authStore.user?.restaurantId || '')
 
 // Icon mapping for tabs
 const getIconComponent = (icon: string) => {

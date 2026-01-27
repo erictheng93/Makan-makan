@@ -222,7 +222,7 @@ export interface MenuOperation {
 
 export interface MenuVersion {
   id: number
-  restaurantId: number
+  restaurantId: string
   version: string
   changes: MenuOperation[]
   publishedAt?: Date
@@ -234,7 +234,7 @@ export interface MenuVersion {
 // Service Interfaces
 export interface IMenuService {
   // Menu structure
-  getMenu(restaurantId: number): Promise<MenuStructure | null>
+  getMenu(restaurantId: string): Promise<MenuStructure | null>
   getMenuItem(id: number): Promise<MenuItem | null>
 
   // Menu items management
@@ -248,18 +248,18 @@ export interface IMenuService {
   deleteCategory(id: number): Promise<boolean>
 
   // Search and filtering
-  searchMenuItems(restaurantId: number, params: MenuSearchParams): Promise<MenuSearchResult>
-  getFeaturedItems(restaurantId: number, limit?: number): Promise<MenuItem[]>
-  getPopularItems(restaurantId: number, limit?: number): Promise<MenuItem[]>
+  searchMenuItems(restaurantId: string, params: MenuSearchParams): Promise<MenuSearchResult>
+  getFeaturedItems(restaurantId: string, limit?: number): Promise<MenuItem[]>
+  getPopularItems(restaurantId: string, limit?: number): Promise<MenuItem[]>
 
   // Bulk operations
-  batchUpdateAvailability(restaurantId: number, updates: BulkAvailabilityUpdate[]): Promise<void>
-  batchUpdatePrices(restaurantId: number, updates: BulkPriceUpdate[]): Promise<void>
-  batchMoveItems(restaurantId: number, moves: BulkCategoryMove[]): Promise<void>
+  batchUpdateAvailability(restaurantId: string, updates: BulkAvailabilityUpdate[]): Promise<void>
+  batchUpdatePrices(restaurantId: string, updates: BulkPriceUpdate[]): Promise<void>
+  batchMoveItems(restaurantId: string, moves: BulkCategoryMove[]): Promise<void>
 
   // Analytics
-  getMenuAnalytics(restaurantId: number): Promise<MenuAnalytics>
-  getPopularityMetrics(restaurantId: number): Promise<PopularityMetrics>
+  getMenuAnalytics(restaurantId: string): Promise<MenuAnalytics>
+  getPopularityMetrics(restaurantId: string): Promise<PopularityMetrics>
 
   // Utility functions
   incrementOrderCount(menuItemId: number, increment?: number): Promise<void>
@@ -271,10 +271,10 @@ export interface IMenuService {
 export type MenuEvent =
   | { type: 'MENU_ITEM_CREATED'; payload: MenuItem }
   | { type: 'MENU_ITEM_UPDATED'; payload: MenuItem }
-  | { type: 'MENU_ITEM_DELETED'; payload: { id: number; restaurantId: number } }
+  | { type: 'MENU_ITEM_DELETED'; payload: { id: number; restaurantId: string } }
   | { type: 'CATEGORY_CREATED'; payload: Category }
   | { type: 'CATEGORY_UPDATED'; payload: Category }
-  | { type: 'CATEGORY_DELETED'; payload: { id: number; restaurantId: number } }
+  | { type: 'CATEGORY_DELETED'; payload: { id: number; restaurantId: string } }
   | { type: 'MENU_ITEM_VIEWED'; payload: { id: number; viewCount: number } }
   | { type: 'MENU_ITEM_ORDERED'; payload: { id: number; orderCount: number } }
   | { type: 'AVAILABILITY_UPDATED'; payload: { updates: BulkAvailabilityUpdate[] } }

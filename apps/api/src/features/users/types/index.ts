@@ -22,7 +22,7 @@ export interface CreateUserData {
   phone?: string
   password: string
   role: number
-  restaurantId?: number
+  restaurantId?: string
   address?: string
   dateOfBirth?: string
   profileImageUrl?: string
@@ -57,7 +57,7 @@ export interface UpdatePasswordData {
  * User filter interface for search and listing
  */
 export interface UserFilters {
-  restaurantId?: number
+  restaurantId?: string
   role?: number
   isActive?: boolean
   isVerified?: boolean
@@ -86,7 +86,7 @@ export interface ResetPasswordData {
  */
 export interface UserSearchQuery {
   query: string
-  restaurantId?: number
+  restaurantId?: string
   limit?: number
 }
 
@@ -98,7 +98,7 @@ export interface FormattedUser {
   username: string
   role: number
   role_name: string
-  restaurantId?: number
+  restaurantId?: string
   email?: string
   fullName: string
   phone?: string

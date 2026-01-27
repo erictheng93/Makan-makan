@@ -85,7 +85,7 @@ const mockEnv: Env = {
 const mockUser = {
   id: 1,
   role: 1, // Shop Owner
-  restaurantId: 1,
+  restaurantId: '1',
   username: 'testuser',
   email: 'test@example.com'
 }
@@ -94,7 +94,7 @@ const mockOrder = {
   id: 1,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
-  restaurantId: 1,
+  restaurantId: '1',
   tableId: 1,
   customerId: 1,
   orderNumber: 'ORD-001',
@@ -117,7 +117,7 @@ const mockOrder = {
 } as Order
 
 const mockCreateOrderData: CreateOrderData = {
-  restaurantId: 1,
+  restaurantId: '1',
   tableId: 1,
   customerInfo: {
     name: 'John Doe',
@@ -284,7 +284,7 @@ describe('Orders Feature', () => {
       it('should get orders with filters', async () => {
         // Arrange
         const filters = {
-          restaurantId: 1,
+          restaurantId: '1',
           status: [OrderStatus.PENDING],
           page: 1,
           limit: 20
@@ -387,7 +387,7 @@ describe('Orders Feature', () => {
       it('should preview valid coupon', async () => {
         // Arrange
         const previewRequest: CouponPreviewRequest = {
-          restaurantId: 1,
+          restaurantId: '1',
           couponCode: 'SAVE10',
           orderAmount: 2000,
           userId: 1
@@ -418,7 +418,7 @@ describe('Orders Feature', () => {
       it('should preview invalid coupon', async () => {
         // Arrange
         const previewRequest: CouponPreviewRequest = {
-          restaurantId: 1,
+          restaurantId: '1',
           couponCode: 'INVALID',
           orderAmount: 2000
         }
@@ -484,7 +484,7 @@ describe('Orders Feature', () => {
       it('should validate valid create order data', () => {
         // Arrange
         const validData = {
-          restaurantId: 1,
+          restaurantId: '1',
           tableId: 1,
           customerName: 'John Doe',
           customerPhone: '+1234567890',
@@ -504,7 +504,7 @@ describe('Orders Feature', () => {
         // Assert
         expect(result.success).toBe(true)
         if (result.success) {
-          expect(result.data.restaurantId).toBe(1)
+          expect(result.data.restaurantId).toBe('1')
           expect(result.data.items).toHaveLength(1)
           expect(result.data.orderType).toBe('dine_in')
         }
@@ -513,7 +513,7 @@ describe('Orders Feature', () => {
       it('should reject invalid create order data', () => {
         // Arrange
         const invalidData = {
-          restaurantId: -1, // Invalid negative ID
+          restaurantId: '', // Invalid empty string ID
           items: [] // Empty items array
         }
 
@@ -574,7 +574,7 @@ describe('Orders Feature', () => {
       it('should validate valid coupon preview data', () => {
         // Arrange
         const validData = {
-          restaurantId: 1,
+          restaurantId: '1',
           couponCode: 'SAVE10',
           orderAmount: 2000,
           userId: 1
@@ -593,7 +593,7 @@ describe('Orders Feature', () => {
       it('should reject invalid coupon preview data', () => {
         // Arrange
         const invalidData = {
-          restaurantId: -1,
+          restaurantId: '', // Invalid empty string ID
           couponCode: '', // Empty code
           orderAmount: -100 // Negative amount
         }
@@ -621,7 +621,7 @@ describe('Orders Feature', () => {
       // Arrange
       const invalidOrderData = {
         ...mockCreateOrderData,
-        restaurantId: -1 // Invalid ID
+        restaurantId: '' // Invalid empty string ID
       }
 
       // Act & Assert
@@ -632,7 +632,7 @@ describe('Orders Feature', () => {
     it('should handle coupon service errors gracefully', async () => {
       // Arrange
       const previewRequest: CouponPreviewRequest = {
-        restaurantId: 1,
+        restaurantId: '1',
         couponCode: 'ERROR',
         orderAmount: 2000
       }

@@ -232,7 +232,7 @@ async function getWarmupData(_c: Context<{ Bindings: Env }>): Promise<Array<{ ke
     
     // 示例：預熱系統健康狀態
     warmupData.push({
-      key: CacheKeys.analytics(0, 'system_health'),
+      key: CacheKeys.analytics('0', 'system_health'),
       value: { status: 'healthy', timestamp: Date.now() },
       config: CACHE_STRATEGIES.ANALYTICS
     })
@@ -254,7 +254,7 @@ export const menuCache = (keyGenerator?: (c: Context) => string) =>
     strategy: 'MENU',
     keyGenerator: keyGenerator || ((c) => {
       const restaurantId = c.req.param('restaurantId')
-      return CacheKeys.menu(parseInt(restaurantId))
+      return CacheKeys.menu(restaurantId)
     }),
     condition: (c) => c.req.method === 'GET'
   })
@@ -267,7 +267,7 @@ export const restaurantCache = (keyGenerator?: (c: Context) => string) =>
     strategy: 'RESTAURANT',
     keyGenerator: keyGenerator || ((c) => {
       const id = c.req.param('id') || c.req.param('restaurantId')
-      return CacheKeys.restaurant(parseInt(id))
+      return CacheKeys.restaurant(id)
     }),
     condition: (c) => c.req.method === 'GET'
   })
@@ -280,7 +280,7 @@ export const analyticsCache = (period: string = 'daily') =>
     strategy: 'ANALYTICS',
     keyGenerator: (c) => {
       const restaurantId = c.req.param('restaurantId')
-      return CacheKeys.analytics(parseInt(restaurantId), period)
+      return CacheKeys.analytics(restaurantId, period)
     },
     condition: (c) => c.req.method === 'GET'
   })
@@ -294,7 +294,7 @@ export const tableCache = () =>
     keyGenerator: (c) => {
       const restaurantId = c.req.param('restaurantId')
       const tableId = c.req.param('tableId')
-      return CacheKeys.table(parseInt(restaurantId), parseInt(tableId))
+      return CacheKeys.table(restaurantId, parseInt(tableId))
     },
     condition: (c) => c.req.method === 'GET'
   })

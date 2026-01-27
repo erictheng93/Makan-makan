@@ -313,7 +313,7 @@ import axios from "axios";
 
 const props = defineProps<{
   show: boolean;
-  restaurantId: number;
+  restaurantId: string;
   phoneLastDigits?: string;
 }>();
 

@@ -295,7 +295,7 @@ import type { ShiftTemplate } from '@/types/scheduling'
 interface Props {
   modelValue: boolean
   template?: ShiftTemplate | null
-  restaurantId: number
+  restaurantId: string
 }
 
 const props = defineProps<Props>()

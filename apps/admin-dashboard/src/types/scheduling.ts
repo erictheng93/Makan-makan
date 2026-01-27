@@ -9,7 +9,7 @@
 
 export interface ShiftTemplate {
   id: number
-  restaurantId: number
+  restaurantId: string
   name: string
   description: string | null
   shiftType: 'regular' | 'split' | 'overnight'
@@ -64,7 +64,7 @@ export interface CreateShiftTemplateData {
 
 export interface EmployeeSchedule {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   employeeName?: string // Joined from users table
   shiftTemplateId: number | null
@@ -139,7 +139,7 @@ export interface AvailableEmployee {
 
 export interface SchedulingConflict {
   id: number
-  restaurantId: number
+  restaurantId: string
   scheduleId: number
   employeeId: number
   conflictType:
@@ -167,7 +167,7 @@ export interface SchedulingConflict {
 
 export interface SwapRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
   requesterEmployeeId: number
   requesterEmployeeName?: string
   requesterName?: string // Alias for requesterEmployeeName
@@ -237,7 +237,7 @@ export interface ClockOutData {
 // ========================================
 
 export interface ScheduleFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   shiftTemplateId?: number
   startDate?: string
@@ -248,7 +248,7 @@ export interface ScheduleFilters {
 }
 
 export interface ConflictFilters {
-  restaurantId?: number
+  restaurantId?: string
   conflictType?: SchedulingConflict['conflictType']
   severity?: SchedulingConflict['severity']
   status?: SchedulingConflict['status']
@@ -260,7 +260,7 @@ export interface ConflictFilters {
 }
 
 export interface SwapRequestFilters {
-  restaurantId?: number
+  restaurantId?: string
   requesterEmployeeId?: number
   targetEmployeeId?: number
   status?: SwapRequest['status']

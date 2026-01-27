@@ -178,7 +178,7 @@ class StatisticsService {
   }
 
   // Main dashboard data fetching
-  public async fetchDashboardData(restaurantId?: number): Promise<void> {
+  public async fetchDashboardData(restaurantId?: string): Promise<void> {
     if (this.isLoading.value) return;
 
     this.isLoading.value = true;
@@ -214,7 +214,7 @@ class StatisticsService {
   // Detailed performance data fetching
   public async fetchDetailedPerformance(
     options: {
-      restaurantId?: number;
+      restaurantId?: string;
       dateFrom?: string;
       dateTo?: string;
       groupBy?: "day" | "week" | "month" | "year";

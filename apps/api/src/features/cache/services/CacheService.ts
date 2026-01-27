@@ -534,17 +534,17 @@ export function createCacheService(kv: KVNamespace): CacheService {
 
 // 預定義的快取鍵生成器
 export const CacheKeys = {
-  menu: (restaurantId: number) => `menu:${restaurantId}`,
-  restaurant: (id: number) => `restaurant:${id}`,
-  table: (restaurantId: number, tableId: number) =>
+  menu: (restaurantId: string) => `menu:${restaurantId}`,
+  restaurant: (id: string) => `restaurant:${id}`,
+  table: (restaurantId: string, tableId: number) =>
     `table:${restaurantId}:${tableId}`,
-  analytics: (restaurantId: number, period: string) =>
+  analytics: (restaurantId: string, period: string) =>
     `analytics:${restaurantId}:${period}`,
   session: (userId: number) => `session:${userId}`,
   qrcode: (id: string) => `qrcode:${id}`,
-  menuCategory: (restaurantId: number, categoryId: number) =>
+  menuCategory: (restaurantId: string, categoryId: number) =>
     `menu_category:${restaurantId}:${categoryId}`,
   userPreferences: (userId: number) => `user_prefs:${userId}`,
-  orderStats: (restaurantId: number, date: string) =>
+  orderStats: (restaurantId: string, date: string) =>
     `order_stats:${restaurantId}:${date}`,
 } as const;

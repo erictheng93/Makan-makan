@@ -113,7 +113,7 @@ describe("Coupon Functionality in CartView", () => {
 
     wrapper = mount(CartView, {
       props: {
-        restaurantId: 1,
+        restaurantId: "1",
         tableId: 1,
       },
       global: {

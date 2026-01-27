@@ -184,7 +184,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 // Props
 interface Props {
   orderId: string;
-  restaurantId: number;
+  restaurantId: string;
   country: CountryCode;
   currency: "TWD" | "MYR" | "VND";
   amount: number;

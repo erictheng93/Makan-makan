@@ -7,7 +7,7 @@ export interface User extends BaseEntity {
   email: string;
   name: string;
   role: UserRole;
-  restaurantId?: number;
+  restaurantId?: string;
   phone?: string;
   address?: string;
   status: Status;
@@ -19,7 +19,7 @@ export interface CreateUserRequest {
   password: string;
   name: string;
   role: UserRole;
-  restaurantId?: number;
+  restaurantId?: string;
   phone?: string;
   address?: string;
 }

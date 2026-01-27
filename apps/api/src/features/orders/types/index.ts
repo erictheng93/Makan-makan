@@ -49,7 +49,7 @@ export type OrderItem = SharedOrderItem
 
 // Order Creation and Management Types
 export interface CreateOrderData {
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   customerId?: number
   customerInfo?: {
@@ -107,7 +107,7 @@ export interface CouponValidation {
 }
 
 export interface CouponPreviewRequest {
-  restaurantId: number
+  restaurantId: string
   couponCode: string
   orderAmount: number
   userId?: number
@@ -119,7 +119,7 @@ export interface CouponPreviewRequest {
 
 // Order Query and Filter Types
 export interface OrderQueryFilters {
-  restaurantId?: number
+  restaurantId?: string
   status?: OrderStatus[]
   paymentStatus?: OrderPaymentStatus[]
   orderType?: 'dine_in' | 'takeaway' | 'delivery'
@@ -234,7 +234,7 @@ export interface OrderNotification {
   type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_CANCELLED' | 'PAYMENT_UPDATED'
   orderId: number
   orderNumber: string
-  restaurantId: number
+  restaurantId: string
   message: string
   priority: 'low' | 'normal' | 'high' | 'urgent'
   targetRoles: UserRole[]
@@ -378,8 +378,8 @@ export interface IOrdersService {
 
   // Analytics and Reporting
   getOrderAnalytics(filters: OrderQueryFilters, userId?: number): Promise<OrderAnalytics>
-  getDailyStats(restaurantId: number, date?: Date): Promise<OrderStats>
-  getPopularItems(restaurantId: number, timeRange?: string): Promise<Array<{
+  getDailyStats(restaurantId: string, date?: Date): Promise<OrderStats>
+  getPopularItems(restaurantId: string, timeRange?: string): Promise<Array<{
     menuItemId: number
     name: string
     quantity: number
@@ -408,7 +408,7 @@ export interface IOrdersService {
 
   // Real-time Updates
   broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void>
-  subscribeToOrderUpdates(restaurantId: number, roles: UserRole[]): Promise<void>
+  subscribeToOrderUpdates(restaurantId: string, roles: UserRole[]): Promise<void>
 }
 
 // Error Types

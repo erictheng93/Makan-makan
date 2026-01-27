@@ -38,7 +38,7 @@ describe('SSE Routes', () => {
             status: 'confirmed',
             tableId: 3
           },
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
           targetRoles: [0, 1, 2]
         })
       })
@@ -103,7 +103,7 @@ describe('SSE Routes', () => {
         body: JSON.stringify({
           type: 'system_notification',
           payload: { message: 'Test message' },
-          restaurantId: 1
+          restaurantId: 'test-restaurant-1'
         })
       })
 
@@ -125,7 +125,7 @@ describe('SSE Routes', () => {
           type: 'order_update' as const,
           payload: { orderId: 1, status: 'confirmed' },
           timestamp: '2025-08-30T12:00:00Z',
-          restaurantId: 1
+          restaurantId: 'test-restaurant-1'
         }
       }
 

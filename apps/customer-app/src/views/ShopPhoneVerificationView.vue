@@ -244,7 +244,7 @@ import axios from "axios";
 import type { Restaurant } from "@makanmakan/shared-types";
 
 const props = defineProps<{
-  restaurantId: number;
+  restaurantId: string;
   shopQrCode?: string;
 }>();
 

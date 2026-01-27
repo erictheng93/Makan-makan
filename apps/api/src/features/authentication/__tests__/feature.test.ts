@@ -138,7 +138,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
           },
           tokens: {
@@ -156,7 +156,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
@@ -246,7 +246,7 @@ describe("Authentication Feature", () => {
           email: "new@example.com",
           password: "newpass123",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
         };
 
         // Mock database service response (raw format)
@@ -258,7 +258,7 @@ describe("Authentication Feature", () => {
             fullName: "New User",
             email: "new@example.com",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
           },
         };
@@ -273,7 +273,7 @@ describe("Authentication Feature", () => {
             email: "new@example.com",
             phone: undefined,
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
@@ -289,10 +289,10 @@ describe("Authentication Feature", () => {
         const result = await authService.register(registerData, 1);
 
         expect(result).toEqual(expectedResult);
-        // Service converts restaurantId to string for database layer
+        // Service passes restaurantId to database layer
         expect(mockDbAuthService.register).toHaveBeenCalledWith({
           ...registerData,
-          restaurantId: "1",
+          restaurantId: "test-restaurant-1",
         });
         expect(mockCache.delete).toHaveBeenCalledWith("user:newuser");
         expect(mockLogger.info).toHaveBeenCalledWith(
@@ -347,7 +347,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
           },
           tokens: {
@@ -365,7 +365,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
             isVerified: false, // AuthService hardcodes to false
             twoFactorEnabled: false, // AuthService hardcodes to false
@@ -465,7 +465,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
           },
         };
@@ -496,7 +496,7 @@ describe("Authentication Feature", () => {
             username: "testuser",
             fullName: "Test User",
             role: 2,
-            restaurantId: 1,
+            restaurantId: "test-restaurant-1",
             isActive: true,
             isVerified: true,
             twoFactorEnabled: false,
@@ -697,7 +697,7 @@ describe("Authentication Feature", () => {
           password: "StrongPass123!",
           confirmPassword: "StrongPass123!",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
         };
 
         const result = authSchemas.register.safeParse(validData);
@@ -906,7 +906,7 @@ describe("Authentication Feature", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {

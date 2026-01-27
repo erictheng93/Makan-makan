@@ -232,7 +232,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  restaurantId: number;
+  restaurantId: string;
   restaurantName?: string;
   tableNumber?: string;
   country: CountryCode;

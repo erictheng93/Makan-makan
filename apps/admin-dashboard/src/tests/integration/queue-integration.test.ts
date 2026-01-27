@@ -31,7 +31,7 @@ vi.mock("@/composables/useRealtimeQueue", () => ({
 
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
-    user: { id: 1, restaurantId: 1 }, // Added id for operatorId, changed to number to match new API
+    user: { id: 1, restaurantId: 'test-restaurant-1' },
     hasPermission: () => true,
   }),
 }));
@@ -115,7 +115,7 @@ describe("Queue Management Integration Tests", () => {
       data: {
         id: "queue_003",
         queueNumber: 3,
-        restaurantId: 1,
+        restaurantId: 'test-restaurant-1',
         customerName: "王先生",
         customerPhone: "012-5555555",
         partySize: 2,
@@ -223,7 +223,7 @@ describe("Queue Management Integration Tests", () => {
     it("should load queue data on mount", async () => {
       await wrapper.vm.$nextTick();
       expect(mockQueueService.getQueue).toHaveBeenCalledWith(
-        1, // Updated to number
+        'test-restaurant-1',
       );
     });
 
@@ -349,7 +349,7 @@ describe("Queue Management Integration Tests", () => {
 
       // Component may not pass operatorId in the call
       expect(mockQueueService.callNext).toHaveBeenCalledWith(
-        1,
+        'test-restaurant-1',
         expect.any(Object),
       );
     });
@@ -458,7 +458,7 @@ describe("Queue Management Integration Tests", () => {
       await component.submitAddToQueue();
 
       expect(mockQueueService.joinQueue).toHaveBeenCalledWith({
-        restaurantId: 1, // Updated to number
+        restaurantId: 'test-restaurant-1',
         customerName: "測試顧客",
         customerPhone: "012-1234567",
         customerEmail: "",

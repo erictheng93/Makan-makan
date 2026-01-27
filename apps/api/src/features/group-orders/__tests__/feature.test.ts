@@ -41,7 +41,7 @@ describe('Group Orders Feature', () => {
   describe('Group Order Creation', () => {
     it('should create a group order successfully', async () => {
       const createData: CreateGroupOrderRequest = {
-        restaurantId: 1,
+        restaurantId: '1',
         tableId: 5,
         expirationHours: 24,
         maxMembers: 8,
@@ -74,7 +74,7 @@ describe('Group Orders Feature', () => {
 
     it('should validate expiration hours range', () => {
       const invalidData = {
-        restaurantId: 1,
+        restaurantId: '1',
         expirationHours: 200 // Too long
       }
 
@@ -343,7 +343,7 @@ describe('Group Orders Feature', () => {
       })
 
       const createData: CreateGroupOrderRequest = {
-        restaurantId: 1
+        restaurantId: '1'
       }
 
       const result = await groupOrderService.createGroupOrder(createData, 1)
@@ -356,7 +356,7 @@ describe('Group Orders Feature', () => {
 
       // Generate multiple share codes and check uniqueness
       for (let i = 0; i < 100; i++) {
-        const createData: CreateGroupOrderRequest = { restaurantId: 1 }
+        const createData: CreateGroupOrderRequest = { restaurantId: '1' }
         const result = await groupOrderService.createGroupOrder(createData, 1)
 
         if (result.success && result.data?.shareCode) {

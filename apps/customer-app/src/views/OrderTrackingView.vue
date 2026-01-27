@@ -302,7 +302,7 @@ import type { OrderStatus, WebSocketMessage } from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
   orderId: number;
 }>();

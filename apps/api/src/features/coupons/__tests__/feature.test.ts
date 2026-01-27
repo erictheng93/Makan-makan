@@ -37,7 +37,7 @@ vi.mock("../services/CouponsService", () => ({
 // Mock middleware
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn((c: any, next: any) => {
-    c.set("user", { id: 1, role: 1, restaurantId: 1 });
+    c.set("user", { id: 1, role: 1, restaurantId: 'test-restaurant-1' });
     return next();
   }),
   requireRole: vi.fn(() => (c: any, next: any) => next()),
@@ -207,7 +207,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();
@@ -251,7 +251,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();
@@ -278,8 +278,8 @@ describe("Coupons Feature Module", () => {
       const bulkResult = { success: 2, failed: 0 };
 
       mockCouponsService.getCoupon
-        .mockResolvedValueOnce({ id: 1, restaurantId: 1 })
-        .mockResolvedValueOnce({ id: 2, restaurantId: 1 });
+        .mockResolvedValueOnce({ id: 1, restaurantId: 'test-restaurant-1' })
+        .mockResolvedValueOnce({ id: 2, restaurantId: 'test-restaurant-1' });
       mockCouponsService.bulkActivateCoupons.mockResolvedValue(bulkResult);
 
       const testApp = new Hono();
@@ -289,7 +289,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();
@@ -321,7 +321,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();
@@ -349,7 +349,7 @@ describe("Coupons Feature Module", () => {
         name: "Test Coupon",
         discountType: "percentage",
         discountValue: 10,
-        restaurantId: 1,
+        restaurantId: 'test-restaurant-1',
       };
 
       const stats = {
@@ -372,7 +372,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();
@@ -407,7 +407,7 @@ describe("Coupons Feature Module", () => {
           id: 1,
           username: "testuser",
           role: 1,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
         c.env = { DB: {} };
         return next();

@@ -126,7 +126,7 @@ describe("AuthService Extended Tests", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {
@@ -227,7 +227,7 @@ describe("AuthService Extended Tests", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {
@@ -256,7 +256,7 @@ describe("AuthService Extended Tests", () => {
         phone: "+1234567890",
         password: "NewPass123!",
         role: 3,
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
       };
 
       const dbResult = {
@@ -267,7 +267,7 @@ describe("AuthService Extended Tests", () => {
           fullName: "New User",
           email: "new@example.com",
           role: 3,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
       };
@@ -801,7 +801,7 @@ describe("AuthService Extended Tests", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {
@@ -841,7 +841,7 @@ describe("AuthService Extended Tests", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {

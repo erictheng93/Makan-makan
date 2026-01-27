@@ -57,7 +57,7 @@ describe('PrinterService', () => {
         country: 'TW',
         type: 'receipt',
         priority: 'normal',
-        restaurantId: 1,
+        restaurantId: '1',
         userId: 'test-user',
         data: {
           order: {

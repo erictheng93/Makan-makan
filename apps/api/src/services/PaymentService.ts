@@ -545,7 +545,7 @@ export class PaymentService {
   private async createPaymentTransaction(data: {
     transactionId: string
     orderId: string
-    restaurantId: number
+    restaurantId: string
     method: string
     amount: number
     currency: string

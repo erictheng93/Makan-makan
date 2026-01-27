@@ -58,7 +58,7 @@ export class OrdersService implements IOrdersService {
 
       // ========== INPUT VALIDATION ==========
       // 1. Validate restaurant ID
-      if (!data.restaurantId || data.restaurantId <= 0) {
+      if (!data.restaurantId || data.restaurantId.trim() === '') {
         throw new Error('Invalid restaurant ID')
       }
 
@@ -482,11 +482,11 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async getOrderStatistics(restaurantId: number, _filters?: OrderQueryFilters): Promise<OrderStats> {
+  async getOrderStatistics(restaurantId: string, _filters?: OrderQueryFilters): Promise<OrderStats> {
     return this.getDailyStats(restaurantId, new Date())
   }
 
-  async getActiveOrders(restaurantId: number): Promise<Order[]> {
+  async getActiveOrders(restaurantId: string): Promise<Order[]> {
     const filters: OrderQueryFilters = {
       restaurantId,
       status: ['confirmed', 'preparing', 'ready'] as any,
@@ -496,9 +496,9 @@ export class OrdersService implements IOrdersService {
     return result.orders
   }
 
-  async getDailyStats(restaurantId: number, date?: Date): Promise<OrderStats> {
+  async getDailyStats(restaurantId: string, date?: Date): Promise<OrderStats> {
     try {
-      const baseStats = await this.baseOrderService.getDailyOrderStats(String(restaurantId), date || new Date())
+      const baseStats = await this.baseOrderService.getDailyOrderStats(restaurantId, date || new Date())
       return {
         ...baseStats,
         preparingOrders: 0, // Add when available
@@ -512,7 +512,7 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async getPopularItems(restaurantId: number, timeRange?: string): Promise<Array<{
+  async getPopularItems(restaurantId: string, timeRange?: string): Promise<Array<{
     menuItemId: number
     name: string
     quantity: number
@@ -683,7 +683,7 @@ export class OrdersService implements IOrdersService {
       const receipt: OrderReceipt = {
         orderNumber: order.orderNumber,
         restaurantInfo: {
-          id: order.restaurantId,
+          id: Number(order.restaurantId),
           name: order.restaurant?.name || 'Restaurant',
           address: order.restaurant?.address,
           phone: order.restaurant?.phone,
@@ -869,7 +869,7 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async subscribeToOrderUpdates(restaurantId: number, roles: UserRole[]): Promise<void> {
+  async subscribeToOrderUpdates(restaurantId: string, roles: UserRole[]): Promise<void> {
     try {
       // Implementation would depend on real-time service
       this.logger.info('Subscribing to order updates', { restaurantId, roles })
@@ -879,7 +879,7 @@ export class OrdersService implements IOrdersService {
   }
 
   // Private helper methods
-  private async validateBusinessHours(_restaurantId: number, _scheduledTime?: Date): Promise<void> {
+  private async validateBusinessHours(_restaurantId: string, _scheduledTime?: Date): Promise<void> {
     // Implementation would check restaurant business hours
   }
 

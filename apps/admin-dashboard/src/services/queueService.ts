@@ -5,7 +5,7 @@ import type { ApiResponse } from "@/types";
 export interface QueueItem {
   id: string;
   queueNumber: number;
-  restaurantId: number; // 修改為 number 類型
+  restaurantId: string;
   customerName: string | null;
   customerPhone?: string; // 修改欄位名稱
   customerEmail?: string;
@@ -39,7 +39,7 @@ export interface QueueNotification {
 }
 
 export interface QueueSettings {
-  restaurantId: number;
+  restaurantId: string;
   isEnabled: boolean;
   maxQueueSize: number;
   avgServiceTime: number;
@@ -78,7 +78,7 @@ export interface QueueStats {
 export const queueService = {
   // 排隊管理 - 使用新 API
   async getQueue(
-    restaurantId: number,
+    restaurantId: string,
     params?: {
       status?: QueueItem["status"];
       limit?: number;
@@ -91,7 +91,7 @@ export const queueService = {
   },
 
   async getQueueStatus(
-    restaurantId: number
+    restaurantId: string
   ): Promise<{
     queue: any;
     activity: any;
@@ -107,7 +107,7 @@ export const queueService = {
   },
 
   async joinQueue(data: {
-    restaurantId: number;
+    restaurantId: string;
     customerName: string;
     customerPhone?: string;
     customerEmail?: string;
@@ -159,7 +159,7 @@ export const queueService = {
 
   // 叫號管理 - 使用新 API
   async callNext(
-    restaurantId: number,
+    restaurantId: string,
     data: {
       tableId?: number;
       specificQueueId?: string;
@@ -194,7 +194,7 @@ export const queueService = {
 
 
   // 設定管理 - 使用新 API
-  async getSettings(restaurantId: number): Promise<ApiResponse<QueueSettings>> {
+  async getSettings(restaurantId: string): Promise<ApiResponse<QueueSettings>> {
     const response = await apiClient.get(
       `/api/v1/queue/${restaurantId}/settings`,
     );
@@ -202,7 +202,7 @@ export const queueService = {
   },
 
   async updateSettings(
-    restaurantId: number,
+    restaurantId: string,
     data: Partial<QueueSettings>,
   ): Promise<ApiResponse<{}>> {
     const response = await apiClient.put(
@@ -215,7 +215,7 @@ export const queueService = {
 
   // 統計和分析 - 暫時保留舊 API 直到新統計端點實現
   async getDailyStats(
-    restaurantId: number,
+    restaurantId: string,
     date?: string,
   ): Promise<QueueStats> {
     const response = await apiClient.get(
@@ -229,7 +229,7 @@ export const queueService = {
 
 
   // 即時狀態 - 使用新 API
-  async getRealtimeStatus(restaurantId: number): Promise<{
+  async getRealtimeStatus(restaurantId: string): Promise<{
     queue: {
       total_waiting: number;
       avg_estimated_wait: number;
@@ -274,7 +274,7 @@ export const queueService = {
 
   // 預測和智能功能 - 暫時保留舊端點，等待新實現
   async getWaitTimeEstimate(
-    restaurantId: number,
+    restaurantId: string,
     partySize: number,
   ): Promise<{
     estimatedWaitTime: number;
@@ -311,7 +311,7 @@ export const queueService = {
   },
 
   async getCapacityForecast(
-    _restaurantId: number,
+    _restaurantId: string,
     _date: string,
   ): Promise<{
     hourlyForecast: Array<{
@@ -349,7 +349,7 @@ export const queueService = {
     return response.data as any;
   },
 
-  async optimizeQueue(restaurantId: number): Promise<ApiResponse<{
+  async optimizeQueue(restaurantId: string): Promise<ApiResponse<{
     message: string;
     timestamp: string;
   }>> {

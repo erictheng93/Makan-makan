@@ -18,7 +18,7 @@ export const menuApi = {
    * 獲取餐廳完整菜單資訊
    */
   async getRestaurantMenu(
-    restaurantId: number,
+    restaurantId: string,
     tableId?: number,
   ): Promise<MenuApiResponse> {
     const params = new URLSearchParams();
@@ -35,7 +35,7 @@ export const menuApi = {
   /**
    * 獲取餐廳基本資訊
    */
-  async getRestaurant(restaurantId: number): Promise<Restaurant> {
+  async getRestaurant(restaurantId: string): Promise<Restaurant> {
     const response = await apiClient.get<Restaurant>(
       `/restaurants/${restaurantId}`,
     );
@@ -46,7 +46,7 @@ export const menuApi = {
    * 獲取特定分類的菜單項目
    */
   async getCategoryMenu(
-    restaurantId: number,
+    restaurantId: string,
     categoryId: number,
   ): Promise<CategoryMenuResponse> {
     const response = await apiClient.get<CategoryMenuResponse>(
@@ -59,7 +59,7 @@ export const menuApi = {
    * 獲取單個菜單項目詳情
    */
   async getMenuItem(
-    restaurantId: number,
+    restaurantId: string,
     menuItemId: number,
   ): Promise<MenuItem> {
     const response = await apiClient.get<MenuItem>(
@@ -72,7 +72,7 @@ export const menuApi = {
    * 獲取推薦菜品
    */
   async getFeaturedItems(
-    restaurantId: number,
+    restaurantId: string,
     limit: number = 10,
   ): Promise<MenuItem[]> {
     const response = await apiClient.get<MenuItem[]>(
@@ -85,7 +85,7 @@ export const menuApi = {
    * 搜索菜單項目
    */
   async searchMenuItems(
-    restaurantId: number,
+    restaurantId: string,
     query: string,
     options?: {
       categoryId?: number;
@@ -133,7 +133,7 @@ export const menuApi = {
    * 檢查菜單項目庫存
    */
   async checkItemAvailability(
-    restaurantId: number,
+    restaurantId: string,
     menuItemIds: number[],
   ): Promise<Record<number, { isAvailable: boolean; inventoryCount: number }>> {
     const response = await apiClient.post<
@@ -151,7 +151,7 @@ export const menuApi = {
   /**
    * 獲取菜單分類
    */
-  async getCategories(restaurantId: number): Promise<Category[]> {
+  async getCategories(restaurantId: string): Promise<Category[]> {
     const response = await apiClient.get<Category[]>(
       `/restaurants/${restaurantId}/categories`,
     );
@@ -161,7 +161,7 @@ export const menuApi = {
   /**
    * 獲取營業時間和可用性
    */
-  async getRestaurantAvailability(restaurantId: number): Promise<{
+  async getRestaurantAvailability(restaurantId: string): Promise<{
     isOpen: boolean;
     businessHours: Record<string, string>;
     nextOpenTime?: string;
@@ -188,7 +188,7 @@ export const menuApi = {
    * 驗證桌號
    */
   async validateTable(
-    restaurantId: number,
+    restaurantId: string,
     tableId: number,
   ): Promise<{
     isValid: boolean;
@@ -217,7 +217,7 @@ export const menuApi = {
    * 取得菜單 - getRestaurantMenu 的別名
    */
   async getMenu(
-    restaurantId: number,
+    restaurantId: string,
     tableId?: number,
   ): Promise<MenuApiResponse> {
     return this.getRestaurantMenu(restaurantId, tableId);

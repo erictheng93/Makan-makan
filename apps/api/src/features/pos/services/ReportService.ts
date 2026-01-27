@@ -141,12 +141,12 @@ export class ReportService extends BaseService {
    * 獲取班次統計
    */
   async getShiftStats(
-    restaurantId: number,
+    restaurantId: string,
     dateRange?: { from: Date; to: Date }
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       let dateFilter = ''
-      const params = [restaurantId.toString()]
+      const params = [restaurantId]
 
       if (dateRange) {
         dateFilter = ' AND cs.started_at >= ? AND cs.started_at <= ?'
@@ -187,7 +187,7 @@ export class ReportService extends BaseService {
    * 獲取日營業報表
    */
   async getDailyReport(
-    restaurantId: number,
+    restaurantId: string,
     date: string
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
@@ -280,7 +280,7 @@ export class ReportService extends BaseService {
    * 獲取收銀機使用統計
    */
   async getRegisterUsageStats(
-    restaurantId: number,
+    restaurantId: string,
     period: 'day' | 'week' | 'month' = 'day'
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {

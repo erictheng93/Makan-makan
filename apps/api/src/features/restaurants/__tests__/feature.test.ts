@@ -39,7 +39,7 @@ const mockEnv: Env = {
 
 // Mock restaurant data
 const mockRestaurant: Restaurant = {
-  id: 1,
+  id: '1',
   name: 'Test Restaurant',
   type: 'Fast Food',
   category: 'Asian',
@@ -140,17 +140,16 @@ describe('RestaurantsService', () => {
     it('should get a single restaurant by ID', async () => {
       vi.spyOn(service['dbService'], 'getRestaurant').mockResolvedValue(mockRestaurant)
 
-      const result = await service.getRestaurant(1)
+      const result = await service.getRestaurant('1')
 
       expect(result).toEqual(mockRestaurant)
-      // Service converts id to string for database layer
       expect(service['dbService'].getRestaurant).toHaveBeenCalledWith('1')
     })
 
     it('should return null for non-existent restaurant', async () => {
       vi.spyOn(service['dbService'], 'getRestaurant').mockResolvedValue(null)
 
-      const result = await service.getRestaurant(999)
+      const result = await service.getRestaurant('999')
 
       expect(result).toBeNull()
     })
@@ -159,7 +158,7 @@ describe('RestaurantsService', () => {
       vi.spyOn(service['cache'], 'get').mockResolvedValue(mockRestaurant)
       vi.spyOn(service['dbService'], 'getRestaurant')
 
-      const result = await service.getRestaurant(1)
+      const result = await service.getRestaurant('1')
 
       expect(result).toEqual(mockRestaurant)
       expect(service['dbService'].getRestaurant).not.toHaveBeenCalled()
@@ -213,10 +212,9 @@ describe('RestaurantsService', () => {
       const updatedRestaurant = { ...mockRestaurant, ...updateData }
       vi.spyOn(service['dbService'], 'updateRestaurant').mockResolvedValue(updatedRestaurant)
 
-      const result = await service.updateRestaurant(1, updateData)
+      const result = await service.updateRestaurant('1', updateData)
 
       expect(result).toEqual(updatedRestaurant)
-      // Service converts id to string for database layer
       expect(service['dbService'].updateRestaurant).toHaveBeenCalledWith('1', updateData)
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1')
     })
@@ -225,7 +223,7 @@ describe('RestaurantsService', () => {
       const updateData: UpdateRestaurantData = { name: 'Updated Restaurant' }
       vi.spyOn(service['dbService'], 'updateRestaurant').mockRejectedValue(new Error('Restaurant not found'))
 
-      await expect(service.updateRestaurant(999, updateData)).rejects.toThrow('Failed to update restaurant')
+      await expect(service.updateRestaurant('999', updateData)).rejects.toThrow('Failed to update restaurant')
     })
   })
 
@@ -233,10 +231,9 @@ describe('RestaurantsService', () => {
     it('should deactivate a restaurant successfully', async () => {
       vi.spyOn(service['dbService'], 'deactivateRestaurant').mockResolvedValue()
 
-      const result = await service.deactivateRestaurant(1)
+      const result = await service.deactivateRestaurant('1')
 
       expect(result).toBe(true)
-      // Service converts id to string for database layer
       expect(service['dbService'].deactivateRestaurant).toHaveBeenCalledWith('1')
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1')
       expect(service['cache'].delete).toHaveBeenCalledWith('restaurant:1:stats')
@@ -245,7 +242,7 @@ describe('RestaurantsService', () => {
     it('should handle deactivation errors', async () => {
       vi.spyOn(service['dbService'], 'deactivateRestaurant').mockRejectedValue(new Error('Deactivation failed'))
 
-      await expect(service.deactivateRestaurant(1)).rejects.toThrow('Failed to deactivate restaurant')
+      await expect(service.deactivateRestaurant('1')).rejects.toThrow('Failed to deactivate restaurant')
     })
   })
 
@@ -259,7 +256,7 @@ describe('RestaurantsService', () => {
 
       vi.spyOn(service['dbService'], 'getRestaurantStats').mockResolvedValue(mockDbStats)
 
-      const result = await service.getRestaurantStats(1)
+      const result = await service.getRestaurantStats('1')
 
       expect(result).toMatchObject({
         totalOrders: 0,
@@ -299,7 +296,7 @@ describe('RestaurantsService', () => {
       vi.spyOn(service['cache'], 'get').mockResolvedValue(mockStats)
       vi.spyOn(service['dbService'], 'getRestaurantStats')
 
-      const result = await service.getRestaurantStats(1)
+      const result = await service.getRestaurantStats('1')
 
       expect(result).toEqual(mockStats)
       expect(service['dbService'].getRestaurantStats).not.toHaveBeenCalled()

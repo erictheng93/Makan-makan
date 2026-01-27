@@ -38,7 +38,7 @@ export class MenuService implements IMenuService {
   }
 
   // Menu Structure Operations
-  async getMenu(restaurantId: number): Promise<MenuStructure | null> {
+  async getMenu(restaurantId: string): Promise<MenuStructure | null> {
     try {
       this.logger.info('Fetching complete menu', { restaurantId })
 
@@ -56,7 +56,7 @@ export class MenuService implements IMenuService {
         }
       }
 
-      const menu = await this.dbService.getMenu(String(restaurantId))
+      const menu = await this.dbService.getMenu(restaurantId)
 
       // Cache the result for 30 minutes
       if (this.cacheService && menu) {
@@ -258,7 +258,7 @@ export class MenuService implements IMenuService {
   }
 
   // Search and Filtering
-  async searchMenuItems(restaurantId: number, params: MenuSearchParams): Promise<MenuSearchResult> {
+  async searchMenuItems(restaurantId: string, params: MenuSearchParams): Promise<MenuSearchResult> {
     try {
       this.logger.debug('Searching menu items', { restaurantId, params })
 
@@ -274,7 +274,7 @@ export class MenuService implements IMenuService {
       }
 
       const result = await this.dbService.searchMenuItems(
-        String(restaurantId),
+        restaurantId,
         filters,
         params.page || 1,
         params.limit || 20
@@ -290,10 +290,10 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async getFeaturedItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
+  async getFeaturedItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
     try {
       this.logger.debug('Fetching featured items', { restaurantId, limit })
-      const items = await this.dbService.getFeaturedItems(String(restaurantId), limit)
+      const items = await this.dbService.getFeaturedItems(restaurantId, limit)
       return items.map(item => this.transformMenuItem(item))
     } catch (error) {
       this.logger.error('Failed to fetch featured items', error instanceof Error ? error : undefined, { restaurantId })
@@ -301,10 +301,10 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async getPopularItems(restaurantId: number, limit: number = 10): Promise<MenuItem[]> {
+  async getPopularItems(restaurantId: string, limit: number = 10): Promise<MenuItem[]> {
     try {
       this.logger.debug('Fetching popular items', { restaurantId, limit })
-      const items = await this.dbService.getPopularItems(String(restaurantId), limit)
+      const items = await this.dbService.getPopularItems(restaurantId, limit)
       return items.map(item => this.transformMenuItem(item))
     } catch (error) {
       this.logger.error('Failed to fetch popular items', error instanceof Error ? error : undefined, { restaurantId })
@@ -313,11 +313,11 @@ export class MenuService implements IMenuService {
   }
 
   // Bulk Operations
-  async batchUpdateAvailability(restaurantId: number, updates: BulkAvailabilityUpdate[]): Promise<void> {
+  async batchUpdateAvailability(restaurantId: string, updates: BulkAvailabilityUpdate[]): Promise<void> {
     try {
       this.logger.info('Batch updating availability', { restaurantId, count: updates.length })
 
-      await this.dbService.batchUpdateAvailability(String(restaurantId), updates)
+      await this.dbService.batchUpdateAvailability(restaurantId, updates)
 
       // Invalidate menu cache
       await this.invalidateMenuCache(restaurantId)
@@ -329,7 +329,7 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async batchUpdatePrices(restaurantId: number, updates: BulkPriceUpdate[]): Promise<void> {
+  async batchUpdatePrices(restaurantId: string, updates: BulkPriceUpdate[]): Promise<void> {
     try {
       this.logger.info('Batch updating prices', { restaurantId, count: updates.length })
 
@@ -351,7 +351,7 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async batchMoveItems(restaurantId: number, moves: BulkCategoryMove[]): Promise<void> {
+  async batchMoveItems(restaurantId: string, moves: BulkCategoryMove[]): Promise<void> {
     try {
       this.logger.info('Batch moving items to categories', { restaurantId, count: moves.length })
 
@@ -378,7 +378,7 @@ export class MenuService implements IMenuService {
   }
 
   // Analytics
-  async getMenuAnalytics(restaurantId: number): Promise<MenuAnalytics> {
+  async getMenuAnalytics(restaurantId: string): Promise<MenuAnalytics> {
     try {
       this.logger.debug('Fetching menu analytics', { restaurantId })
 
@@ -463,7 +463,7 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async getPopularityMetrics(restaurantId: number): Promise<PopularityMetrics> {
+  async getPopularityMetrics(restaurantId: string): Promise<PopularityMetrics> {
     try {
       this.logger.debug('Fetching popularity metrics', { restaurantId })
 
@@ -517,7 +517,7 @@ export class MenuService implements IMenuService {
   }
 
   // Private Helper Methods
-  private async validateCategoryAccess(categoryId: number, restaurantId: number): Promise<void> {
+  private async validateCategoryAccess(categoryId: number, restaurantId: string): Promise<void> {
     const category = await this.getCategory(categoryId)
     if (!category) {
       throw new Error('Category not found')
@@ -542,9 +542,9 @@ export class MenuService implements IMenuService {
     }
   }
 
-  private async getMostViewedItems(restaurantId: number, limit: number): Promise<MenuItem[]> {
+  private async getMostViewedItems(restaurantId: string, limit: number): Promise<MenuItem[]> {
     const result = await this.dbService.searchMenuItems(
-      String(restaurantId),
+      restaurantId,
       { isAvailable: true },
       1,
       limit
@@ -554,9 +554,9 @@ export class MenuService implements IMenuService {
     return transformedItems.sort((a, b) => b.viewCount - a.viewCount)
   }
 
-  private async getHighestRatedItems(restaurantId: number, limit: number): Promise<MenuItem[]> {
+  private async getHighestRatedItems(restaurantId: string, limit: number): Promise<MenuItem[]> {
     const result = await this.dbService.searchMenuItems(
-      String(restaurantId),
+      restaurantId,
       { isAvailable: true },
       1,
       limit
@@ -568,9 +568,9 @@ export class MenuService implements IMenuService {
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
   }
 
-  private async getRecentlyAddedItems(restaurantId: number, limit: number): Promise<MenuItem[]> {
+  private async getRecentlyAddedItems(restaurantId: string, limit: number): Promise<MenuItem[]> {
     const result = await this.dbService.searchMenuItems(
-      String(restaurantId),
+      restaurantId,
       { isAvailable: true },
       1,
       limit
@@ -582,7 +582,7 @@ export class MenuService implements IMenuService {
     )
   }
 
-  private async invalidateMenuCache(restaurantId: number): Promise<void> {
+  private async invalidateMenuCache(restaurantId: string): Promise<void> {
     if (!this.cacheService) return
 
     try {
@@ -604,7 +604,7 @@ export class MenuService implements IMenuService {
       price: item.price,
       originalPrice: item.originalPrice,
       categoryId: Number(item.categoryId),
-      restaurantId: Number(item.restaurantId),
+      restaurantId: String(item.restaurantId),
       isAvailable: item.isAvailable || false,
       isFeatured: item.isFeatured || false,
       isPopular: item.isPopular || false,
@@ -640,7 +640,7 @@ export class MenuService implements IMenuService {
       status: category.status || 1,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
-      restaurantId: Number(category.restaurantId),
+      restaurantId: String(category.restaurantId),
       isActive: category.isActive,
       isVisible: category.isVisible,
       itemCount: category.itemCount

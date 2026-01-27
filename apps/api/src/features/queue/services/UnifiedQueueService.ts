@@ -70,7 +70,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     }
   }
 
-  async callNext(restaurantId: number, _data: CallNextRequest): Promise<ApiResponse<QueueEntry>> {
+  async callNext(restaurantId: string, _data: CallNextRequest): Promise<ApiResponse<QueueEntry>> {
     if (this.useModular) {
       // TODO: Implement modular service when repositories are ready
       throw new Error('Modular queue service not yet implemented')
@@ -123,7 +123,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     }
   }
 
-  async getQueueStatus(restaurantId: number): Promise<ApiResponse<QueueStatistics>> {
+  async getQueueStatus(restaurantId: string): Promise<ApiResponse<QueueStatistics>> {
     if (this.useModular) {
       // TODO: Implement modular service when repositories are ready
       throw new Error('Modular queue service not yet implemented')
@@ -224,7 +224,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     return mockEntry
   }
 
-      async getQueueLegacy(restaurantId: number): Promise<LegacyQueueEntry[]> {
+      async getQueueLegacy(restaurantId: string): Promise<LegacyQueueEntry[]> {
         // Legacy database query would go here
         this.logger.info('Getting legacy queue', { restaurantId })
         // For testing purposes, return a mock entry if a joinQueue was performed
@@ -245,7 +245,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
         };
         return [mockEntry]; // Return a single mock entry
       }
-  async updateQueueSettingsLegacy(restaurantId: number, settings: Partial<LegacyQueueSettings>): Promise<LegacyQueueSettings> {
+  async updateQueueSettingsLegacy(restaurantId: string, settings: Partial<LegacyQueueSettings>): Promise<LegacyQueueSettings> {
     // Legacy settings update would go here
     const mockSettings: LegacyQueueSettings = {
       id: 1,
@@ -268,7 +268,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
   migrateQueueEntry(legacy: LegacyQueueEntry): QueueEntry {
     return {
       id: legacy.id.toString(),
-      restaurantId: legacy.restaurant_id,
+      restaurantId: parseInt(legacy.restaurant_id, 10) || 0,
       queueNumber: legacy.queue_number,
       customerName: legacy.customer_name,
       customerPhone: legacy.customer_phone,
@@ -291,7 +291,7 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     }
   }
 
-  async migrateLegacyToModular(restaurantId: number): Promise<void> {
+  async migrateLegacyToModular(restaurantId: string): Promise<void> {
     this.logger.info('Starting legacy to modular migration', { restaurantId })
 
     const legacyEntries = await this.getQueueLegacy(restaurantId)

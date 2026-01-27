@@ -5,7 +5,7 @@
 
 export interface SSEConnection {
   id: string
-  restaurantId: number
+  restaurantId: string
   userId: number
   role: number
   lastHeartbeat: number
@@ -22,13 +22,13 @@ export interface SSEEvent {
 export interface BroadcastEvent {
   type: string
   data: any
-  restaurantId?: number
+  restaurantId?: string
   targetRoles?: number[]
 }
 
 export interface ConnectionStatus {
   totalConnections: number
-  connectionsByRestaurant: Record<number, number>
+  connectionsByRestaurant: Record<string, number>
   connectionsByRole: Record<number, number>
 }
 
@@ -43,12 +43,12 @@ export interface SSEService {
   // Connection Management
   registerConnection(connectionId: string, connection: SSEConnection): void
   removeConnection(connectionId: string): void
-  getConnectionsByRestaurant(restaurantId: number): SSEConnection[]
+  getConnectionsByRestaurant(restaurantId: string): SSEConnection[]
   getConnectionsByRole(role: number): SSEConnection[]
 
   // Broadcasting
   broadcast(event: BroadcastEvent): Promise<void>
-  broadcastToRestaurant(restaurantId: number, event: SSEEvent): Promise<void>
+  broadcastToRestaurant(restaurantId: string, event: SSEEvent): Promise<void>
   broadcastToRole(role: number, event: SSEEvent): Promise<void>
 
   // Health & Status

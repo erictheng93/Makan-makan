@@ -110,7 +110,7 @@ describe('Orders Analytics', () => {
 
       mockCacheKV.get.mockResolvedValueOnce(cachedAnalytics)
 
-      const result = await ordersService.getOrderAnalytics({ restaurantId: 1 })
+      const result = await ordersService.getOrderAnalytics({ restaurantId: '1' })
 
       expect(mockCacheKV.get).toHaveBeenCalled()
       expect(result).toEqual(cachedAnalytics)
@@ -128,7 +128,7 @@ describe('Orders Analytics', () => {
         cancelledOrders: 5
       })
 
-      const result = await ordersService.getOrderAnalytics({ restaurantId: 1 })
+      const result = await ordersService.getOrderAnalytics({ restaurantId: '1' })
 
       expect(result.summary.totalOrders).toBe(50)
       expect(result.summary.totalRevenue).toBe(25000)
@@ -149,7 +149,7 @@ describe('Orders Analytics', () => {
         avgOrderValue: 500
       })
 
-      const result = await ordersService.getOrderAnalytics({ restaurantId: 1 })
+      const result = await ordersService.getOrderAnalytics({ restaurantId: '1' })
 
       expect(result.performanceMetrics).toBeDefined()
       expect(result.performanceMetrics.orderAccuracy).toBeDefined()
@@ -169,7 +169,7 @@ describe('Orders Analytics', () => {
         cancelledOrders: 2
       })
 
-      const result = await ordersService.getDailyStats(1)
+      const result = await ordersService.getDailyStats('1')
 
       expect(result.totalOrders).toBe(25)
       expect(result.totalRevenue).toBe(12500)
@@ -184,7 +184,7 @@ describe('Orders Analytics', () => {
         avgOrderValue: 500
       })
 
-      const result = await ordersService.getDailyStats(1, specificDate)
+      const result = await ordersService.getDailyStats('1', specificDate)
 
       // Service converts restaurantId to string for database layer
       expect(mockOrderServiceInstance.getDailyOrderStats).toHaveBeenCalledWith('1', specificDate)
@@ -194,7 +194,7 @@ describe('Orders Analytics', () => {
     it('should handle database errors gracefully', async () => {
       mockOrderServiceInstance.getDailyOrderStats.mockRejectedValue(new Error('Database error'))
 
-      await expect(ordersService.getDailyStats(1))
+      await expect(ordersService.getDailyStats('1'))
         .rejects.toThrow('Database error')
     })
   })
@@ -202,9 +202,9 @@ describe('Orders Analytics', () => {
   describe('getActiveOrders', () => {
     it('should return only active orders', async () => {
       const activeOrders = [
-        { id: 1, status: OrderStatus.CONFIRMED, restaurantId: 1 },
-        { id: 2, status: OrderStatus.PREPARING, restaurantId: 1 },
-        { id: 3, status: OrderStatus.READY, restaurantId: 1 }
+        { id: 1, status: OrderStatus.CONFIRMED, restaurantId: '1' },
+        { id: 2, status: OrderStatus.PREPARING, restaurantId: '1' },
+        { id: 3, status: OrderStatus.READY, restaurantId: '1' }
       ]
 
       mockOrderServiceInstance.getOrders.mockResolvedValue({
@@ -212,7 +212,7 @@ describe('Orders Analytics', () => {
         pagination: { page: 1, limit: 100, total: 3, totalPages: 1 }
       })
 
-      const result = await ordersService.getActiveOrders(1)
+      const result = await ordersService.getActiveOrders('1')
 
       expect(result).toHaveLength(3)
       expect(mockOrderServiceInstance.getOrders).toHaveBeenCalled()
@@ -224,7 +224,7 @@ describe('Orders Analytics', () => {
         pagination: { page: 1, limit: 100, total: 0, totalPages: 0 }
       })
 
-      const result = await ordersService.getActiveOrders(1)
+      const result = await ordersService.getActiveOrders('1')
 
       expect(result).toHaveLength(0)
     })
@@ -239,7 +239,7 @@ describe('Orders Analytics', () => {
 
       mockCacheKV.get.mockResolvedValueOnce(cachedItems)
 
-      const result = await ordersService.getPopularItems(1)
+      const result = await ordersService.getPopularItems('1')
 
       expect(result).toEqual(cachedItems)
     })
@@ -247,7 +247,7 @@ describe('Orders Analytics', () => {
     it('should return empty array when no data', async () => {
       mockCacheKV.get.mockResolvedValueOnce(null)
 
-      const result = await ordersService.getPopularItems(1)
+      const result = await ordersService.getPopularItems('1')
 
       expect(result).toEqual([])
       expect(mockCacheKV.set).toHaveBeenCalled()
@@ -256,7 +256,7 @@ describe('Orders Analytics', () => {
     it('should accept time range parameter', async () => {
       mockCacheKV.get.mockResolvedValueOnce(null)
 
-      await ordersService.getPopularItems(1, 'week')
+      await ordersService.getPopularItems('1', 'week')
 
       expect(mockCacheKV.get).toHaveBeenCalledWith(
         expect.stringContaining('week'),
@@ -277,7 +277,7 @@ describe('Orders Analytics', () => {
         cancelledOrders: 5
       })
 
-      const result = await ordersService.getOrderStatistics(1)
+      const result = await ordersService.getOrderStatistics('1')
 
       expect(result.totalOrders).toBe(50)
       expect(result.totalRevenue).toBe(25000)

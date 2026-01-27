@@ -196,7 +196,7 @@ const emit = defineEmits<{
 
 // Auth
 const authStore = useAuthStore()
-const restaurantId = computed(() => authStore.user?.restaurantId || 1)
+const restaurantId = computed(() => authStore.user?.restaurantId || '')
 
 // State
 const loading = ref(false)

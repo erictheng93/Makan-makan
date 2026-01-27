@@ -118,7 +118,7 @@ export const mockUser = {
   id: 1,
   username: 'testuser',
   role: 1, // Owner role
-  restaurantId: 1,
+  restaurantId: 'test-restaurant-1',
   email: 'test@example.com'
 }
 

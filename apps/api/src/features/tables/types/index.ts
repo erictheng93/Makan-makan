@@ -8,7 +8,7 @@
 // Core table types
 export interface Table {
   id: number
-  restaurantId: number
+  restaurantId: string
   number: string
   name?: string
   capacity: number
@@ -42,7 +42,7 @@ export interface TableFeatures {
 
 // Table operation types
 export interface CreateTableData {
-  restaurantId: number
+  restaurantId: string
   number: string
   name?: string
   capacity: number
@@ -67,7 +67,7 @@ export interface UpdateTableData {
 }
 
 export interface TableFilters {
-  restaurantId?: number
+  restaurantId?: string
   floor?: number
   section?: string
   isOccupied?: boolean
@@ -104,7 +104,7 @@ export interface QRCodeOptions {
 }
 
 export interface BulkQRRequest {
-  restaurantId: number
+  restaurantId: string
   tableIds: number[]
   options?: QRCodeOptions
 }

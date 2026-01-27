@@ -76,7 +76,7 @@ interface StaffActivity {
 class OwnerService {
   private baseURL = "/api/v1";
 
-  async getDashboardData(restaurantId?: number): Promise<OwnerDashboardData> {
+  async getDashboardData(restaurantId?: string): Promise<OwnerDashboardData> {
     try {
       const params = new URLSearchParams();
       if (restaurantId) {
@@ -103,7 +103,7 @@ class OwnerService {
 
   async getFinancialReport(
     options: {
-      restaurantId?: number;
+      restaurantId?: string;
       period?: "daily" | "weekly" | "monthly" | "yearly";
       year?: string;
       month?: string;
@@ -142,7 +142,7 @@ class OwnerService {
     }
   }
 
-  async getRealtimeOrders(restaurantId?: number): Promise<RealtimeOrder[]> {
+  async getRealtimeOrders(restaurantId?: string): Promise<RealtimeOrder[]> {
     try {
       const params = new URLSearchParams();
       if (restaurantId) {
@@ -167,7 +167,7 @@ class OwnerService {
     }
   }
 
-  async getStaffActivity(_restaurantId?: number): Promise<StaffActivity[]> {
+  async getStaffActivity(_restaurantId?: string): Promise<StaffActivity[]> {
     try {
       // 模擬員工活動數據，實際應該從 API 獲取
       return [
@@ -323,7 +323,7 @@ class OwnerService {
   }
 
   async getDashboardDataCached(
-    restaurantId?: number,
+    restaurantId?: string,
   ): Promise<OwnerDashboardData> {
     const cacheKey = `dashboard-${restaurantId || "all"}`;
     const cached = this.getCachedData<OwnerDashboardData>(cacheKey);

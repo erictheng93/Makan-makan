@@ -15,7 +15,7 @@ describe("CartItemCard.vue", () => {
     id: "cart-item-1",
     menuItem: {
       id: 1,
-      restaurantId: 1,
+      restaurantId: "1",
       name: "牛肉麵",
       description: "香濃牛肉湯配手工麵條",
       price: 12000,

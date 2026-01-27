@@ -192,7 +192,7 @@ describe('Orders Permissions', () => {
   describe('Status Transition Validation', () => {
     const createMockOrder = (status: string) => ({
       id: 1,
-      restaurantId: 1,
+      restaurantId: '1',
       orderNumber: 'ORD-001',
       status,
       totalAmount: 1000,
@@ -299,7 +299,7 @@ describe('Orders Permissions', () => {
   describe('Order Access Control', () => {
     const mockOrder = {
       id: 1,
-      restaurantId: 1,
+      restaurantId: '1',
       orderNumber: 'ORD-001',
       status: 'pending',
       totalAmount: 1000,
@@ -315,7 +315,7 @@ describe('Orders Permissions', () => {
       })
 
       const result = await ordersService.getOrders(
-        { restaurantId: 1 },
+        { restaurantId: '1' },
         1, // userId
         ROLES.OWNER
       )
@@ -330,7 +330,7 @@ describe('Orders Permissions', () => {
       })
 
       await ordersService.getOrders(
-        { restaurantId: 1 },
+        { restaurantId: '1' },
         1,
         ROLES.CHEF
       )
@@ -343,7 +343,7 @@ describe('Orders Permissions', () => {
     it('should only allow deleting pending orders', async () => {
       const pendingOrder = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: '1',
         status: 'pending',
         totalAmount: 1000,
         createdAt: new Date().toISOString(),
@@ -366,7 +366,7 @@ describe('Orders Permissions', () => {
     it('should reject deleting non-pending orders', async () => {
       const confirmedOrder = {
         id: 1,
-        restaurantId: 1,
+        restaurantId: '1',
         status: 'confirmed',
         totalAmount: 1000,
         createdAt: new Date().toISOString(),

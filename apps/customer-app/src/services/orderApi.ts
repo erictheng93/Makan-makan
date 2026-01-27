@@ -112,7 +112,7 @@ export const orderApi = {
    * 計算訂單價格摘要
    */
   async calculateOrderSummary(
-    restaurantId: number,
+    restaurantId: string,
     items: Array<{
       menuItemId: number;
       quantity: number;
@@ -130,7 +130,7 @@ export const orderApi = {
    * 獲取餐廳訂單歷史（針對桌號）
    */
   async getTableOrderHistory(
-    restaurantId: number,
+    restaurantId: string,
     tableId: number,
     options?: {
       limit?: number;
@@ -178,7 +178,7 @@ export const orderApi = {
    * 請求服務（呼叫服務員）
    */
   async requestService(
-    restaurantId: number,
+    restaurantId: string,
     tableId: number,
     request: {
       type: "water" | "napkins" | "utensils" | "assistance" | "bill" | "other";
@@ -277,7 +277,7 @@ export const orderApi = {
    * 檢查桌子當前訂單狀態
    */
   async getTableCurrentOrder(
-    restaurantId: number,
+    restaurantId: string,
     tableId: number,
   ): Promise<Order | null> {
     try {
@@ -297,7 +297,7 @@ export const orderApi = {
   /**
    * 獲取餐廳等待時間估算
    */
-  async getRestaurantWaitTime(restaurantId: number): Promise<{
+  async getRestaurantWaitTime(restaurantId: string): Promise<{
     averageWaitTime: number; // 分鐘
     currentOrderCount: number;
     kitchenStatus: "normal" | "busy" | "very_busy";

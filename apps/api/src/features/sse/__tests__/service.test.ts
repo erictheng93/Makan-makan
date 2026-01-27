@@ -60,7 +60,7 @@ describe("SSEService", () => {
     it("should register a new connection", () => {
       const connection: SSEConnection = {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -75,7 +75,7 @@ describe("SSEService", () => {
     it("should overwrite existing connection with same id", () => {
       const connection1: SSEConnection = {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -83,7 +83,7 @@ describe("SSEService", () => {
 
       const connection2: SSEConnection = {
         id: "conn-1",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 2,
         role: 1,
         lastHeartbeat: Date.now(),
@@ -94,14 +94,14 @@ describe("SSEService", () => {
 
       const status = service.getConnectionStatus();
       expect(status.totalConnections).toBe(1);
-      expect(status.connectionsByRestaurant[2]).toBe(1);
+      expect(status.connectionsByRestaurant["2"]).toBe(1);
     });
 
     it("should register multiple connections", () => {
       for (let i = 1; i <= 5; i++) {
         service.registerConnection(`conn-${i}`, {
           id: `conn-${i}`,
-          restaurantId: i % 2 === 0 ? 1 : 2,
+          restaurantId: i % 2 === 0 ? "1" : "2",
           userId: i,
           role: i % 3,
           lastHeartbeat: Date.now(),
@@ -117,7 +117,7 @@ describe("SSEService", () => {
     it("should remove an existing connection", () => {
       const connection: SSEConnection = {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -140,35 +140,35 @@ describe("SSEService", () => {
     it("should return connections for a specific restaurant", () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 1,
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 3,
         role: 0,
         lastHeartbeat: Date.now(),
       });
 
-      const restaurant1Connections = service.getConnectionsByRestaurant(1);
+      const restaurant1Connections = service.getConnectionsByRestaurant("1");
       expect(restaurant1Connections).toHaveLength(2);
 
-      const restaurant2Connections = service.getConnectionsByRestaurant(2);
+      const restaurant2Connections = service.getConnectionsByRestaurant("2");
       expect(restaurant2Connections).toHaveLength(1);
     });
 
     it("should return empty array when no connections for restaurant", () => {
-      const connections = service.getConnectionsByRestaurant(999);
+      const connections = service.getConnectionsByRestaurant("999");
       expect(connections).toHaveLength(0);
     });
   });
@@ -177,21 +177,21 @@ describe("SSEService", () => {
     it("should return connections for a specific role", () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0, // Admin
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 3,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
@@ -223,7 +223,7 @@ describe("SSEService", () => {
     it("should broadcast to all connections when no filters", async () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -231,7 +231,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 2,
         role: 1,
         lastHeartbeat: Date.now(),
@@ -251,7 +251,7 @@ describe("SSEService", () => {
     it("should broadcast only to specific restaurant", async () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -259,7 +259,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 2,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -269,7 +269,7 @@ describe("SSEService", () => {
       const event: BroadcastEvent = {
         type: "test_event",
         data: { message: "Hello" },
-        restaurantId: 1,
+        restaurantId: "1",
       };
 
       await service.broadcast(event);
@@ -280,7 +280,7 @@ describe("SSEService", () => {
     it("should broadcast only to specific roles", async () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0, // Admin
         lastHeartbeat: Date.now(),
@@ -288,7 +288,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
@@ -296,7 +296,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 3,
         role: 2, // Chef
         lastHeartbeat: Date.now(),
@@ -317,7 +317,7 @@ describe("SSEService", () => {
     it("should broadcast with both restaurant and role filters", async () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
@@ -325,7 +325,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 2, // Chef
         lastHeartbeat: Date.now(),
@@ -333,7 +333,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 3,
         role: 1, // Owner but different restaurant
         lastHeartbeat: Date.now(),
@@ -343,7 +343,7 @@ describe("SSEService", () => {
       const event: BroadcastEvent = {
         type: "test_event",
         data: { message: "Hello" },
-        restaurantId: 1,
+        restaurantId: "1",
         targetRoles: [1], // Only owners of restaurant 1
       };
 
@@ -355,7 +355,7 @@ describe("SSEService", () => {
     it("should handle connections without controller", async () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -380,7 +380,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -402,7 +402,7 @@ describe("SSEService", () => {
       const before = Date.now() - 1000;
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: before,
@@ -416,7 +416,7 @@ describe("SSEService", () => {
 
       await service.broadcast(event);
 
-      const connections = service.getConnectionsByRestaurant(1);
+      const connections = service.getConnectionsByRestaurant("1");
       expect(connections[0].lastHeartbeat).toBeGreaterThan(before);
     });
   });
@@ -427,7 +427,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -435,7 +435,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 2,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -448,7 +448,7 @@ describe("SSEService", () => {
         data: { orderId: 1 },
       };
 
-      await service.broadcastToRestaurant(1, event);
+      await service.broadcastToRestaurant("1", event);
 
       expect(mockController.enqueue).toHaveBeenCalledTimes(1);
     });
@@ -460,7 +460,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0, // Admin
         lastHeartbeat: Date.now(),
@@ -468,7 +468,7 @@ describe("SSEService", () => {
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 2, // Chef
         lastHeartbeat: Date.now(),
@@ -502,21 +502,21 @@ describe("SSEService", () => {
     it("should return correct counts by restaurant", () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 1,
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 3,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -525,28 +525,28 @@ describe("SSEService", () => {
       const status = service.getConnectionStatus();
 
       expect(status.totalConnections).toBe(3);
-      expect(status.connectionsByRestaurant[1]).toBe(2);
-      expect(status.connectionsByRestaurant[2]).toBe(1);
+      expect(status.connectionsByRestaurant["1"]).toBe(2);
+      expect(status.connectionsByRestaurant["2"]).toBe(1);
     });
 
     it("should return correct counts by role", () => {
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0, // Admin
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-2", {
         id: "conn-2",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
       });
       service.registerConnection("conn-3", {
         id: "conn-3",
-        restaurantId: 2,
+        restaurantId: "2",
         userId: 3,
         role: 1, // Owner
         lastHeartbeat: Date.now(),
@@ -566,14 +566,14 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-fresh", {
         id: "conn-fresh",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: now,
       });
       service.registerConnection("conn-expired", {
         id: "conn-expired",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 2,
         role: 0,
         lastHeartbeat: fiveMinutesAgo,
@@ -584,7 +584,7 @@ describe("SSEService", () => {
       const status = service.getConnectionStatus();
       expect(status.totalConnections).toBe(1);
 
-      const connections = service.getConnectionsByRestaurant(1);
+      const connections = service.getConnectionsByRestaurant("1");
       expect(connections[0].id).toBe("conn-fresh");
     });
 
@@ -594,7 +594,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-recent", {
         id: "conn-recent",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: fourMinutesAgo,
@@ -621,7 +621,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -652,7 +652,7 @@ describe("SSEService", () => {
       for (let i = 0; i < 100; i++) {
         service.registerConnection(`conn-${i}`, {
           id: `conn-${i}`,
-          restaurantId: 1,
+          restaurantId: "1",
           userId: i,
           role: i % 5,
           lastHeartbeat: Date.now(),
@@ -675,7 +675,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -700,7 +700,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),
@@ -710,7 +710,7 @@ describe("SSEService", () => {
       const event: BroadcastEvent = {
         type: "test_event",
         data: { message: "Hello" },
-        restaurantId: 999, // Non-existent
+        restaurantId: "999", // Non-existent
       };
 
       await service.broadcast(event);
@@ -723,7 +723,7 @@ describe("SSEService", () => {
 
       service.registerConnection("conn-1", {
         id: "conn-1",
-        restaurantId: 1,
+        restaurantId: "1",
         userId: 1,
         role: 0,
         lastHeartbeat: Date.now(),

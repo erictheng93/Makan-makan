@@ -623,7 +623,7 @@ import type { CreateOrderRequest } from "@makanmakan/shared-types";
 
 // Props
 const props = defineProps<{
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
 }>();
 

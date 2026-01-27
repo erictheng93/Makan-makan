@@ -54,7 +54,7 @@ export interface NotificationPayload {
 
 export interface NotificationRecord {
   id: number
-  restaurantId: number
+  restaurantId: string
   recipientId: number
   category: NotificationCategory
   type: NotificationType

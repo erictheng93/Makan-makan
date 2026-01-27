@@ -8,7 +8,7 @@ import type { BaseEntity } from '../../../shared/types'
 // Core Group Order Types
 export interface GroupOrder extends BaseEntity {
   groupOrderId: string
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   shareCode: string
   createdBy: number
@@ -72,7 +72,7 @@ export interface GroupOrderPermissions {
 
 // Request/Response Types
 export interface CreateGroupOrderRequest {
-  restaurantId: number
+  restaurantId: string
   tableId?: number
   expirationHours?: number
   maxMembers?: number
@@ -210,7 +210,7 @@ export interface IGroupOrderService {
   cleanupExpiredGroups(): Promise<{ cleaned: number; errors: string[] }>
 
   // Statistics
-  getStatistics(restaurantId?: number, timeRange?: string): Promise<GroupOrderStatistics>
+  getStatistics(restaurantId?: string, timeRange?: string): Promise<GroupOrderStatistics>
 }
 
 // Error Types

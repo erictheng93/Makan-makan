@@ -326,7 +326,7 @@ const handleRestaurantSelected = ({
   restaurantId,
   tableId,
 }: {
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
 }) => {
   router.push(`/restaurant/${restaurantId}/table/${tableId}`);

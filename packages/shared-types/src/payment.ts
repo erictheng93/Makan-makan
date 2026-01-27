@@ -34,7 +34,7 @@ export type PaymentStatus =
 
 export interface PaymentRequest {
   orderId: string
-  restaurantId: number
+  restaurantId: string
   country: CountryCode
   currency: CurrencyCode
   amount: number

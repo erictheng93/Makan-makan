@@ -9,7 +9,7 @@
  */
 export interface ShiftTemplate {
   id: number
-  restaurantId: number
+  restaurantId: string
   name: string
   description: string | null
   shiftType: 'regular' | 'split' | 'overnight'
@@ -41,7 +41,7 @@ export interface ShiftTemplate {
  */
 export interface EmployeeSchedule {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   shiftTemplateId: number | null
   workDate: string // YYYY-MM-DD
@@ -69,7 +69,7 @@ export interface EmployeeSchedule {
  */
 export interface SchedulingRule {
   id: number
-  restaurantId: number
+  restaurantId: string
   name: string
   description: string | null
   ruleType: 'max_hours_per_day' | 'max_hours_per_week' | 'min_rest_period' | 'max_consecutive_days' | 'skill_requirement' | 'custom'
@@ -91,7 +91,7 @@ export interface SchedulingRule {
  */
 export interface SchedulingConflict {
   id: number
-  restaurantId: number
+  restaurantId: string
   conflictType: 'overlapping_shifts' | 'insufficient_rest' | 'max_hours_exceeded' | 'consecutive_days_exceeded' | 'skill_mismatch' | 'leave_conflict' | 'availability_conflict'
   severity: 'error' | 'warning' | 'info'
   scheduleIds: string // JSON array
@@ -113,7 +113,7 @@ export interface SchedulingConflict {
  */
 export interface ScheduleSwapRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
   requesterEmployeeId: number
   requesterScheduleId: number
   targetEmployeeId: number | null
@@ -140,7 +140,7 @@ export interface ScheduleSwapRequest {
  */
 export interface EmployeeAvailability {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   availabilityType: 'recurring' | 'specific_date'
   dayOfWeek: number | null // 0-6
@@ -245,7 +245,7 @@ export type CreateEmployeeAvailabilityData = Omit<EmployeeAvailability, 'id' | '
  */
 
 export interface ScheduleFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   shiftTemplateId?: number
   startDate?: string
@@ -256,7 +256,7 @@ export interface ScheduleFilters {
 }
 
 export interface ConflictFilters {
-  restaurantId?: number
+  restaurantId?: string
   conflictType?: SchedulingConflict['conflictType']
   severity?: SchedulingConflict['severity']
   status?: SchedulingConflict['status']
@@ -268,7 +268,7 @@ export interface ConflictFilters {
 }
 
 export interface SwapRequestFilters {
-  restaurantId?: number
+  restaurantId?: string
   requesterEmployeeId?: number
   targetEmployeeId?: number
   status?: ScheduleSwapRequest['status']
@@ -289,7 +289,7 @@ export interface ConflictCheckResult {
 }
 
 export interface ScheduleStats {
-  restaurantId: number
+  restaurantId: string
   date: string
   totalSchedules: number
   totalEmployees: number
@@ -300,7 +300,7 @@ export interface ScheduleStats {
 }
 
 export interface WeeklyScheduleSummary {
-  restaurantId: number
+  restaurantId: string
   weekStartDate: string
   weekEndDate: string
   totalSchedules: number
@@ -323,7 +323,7 @@ export interface EmployeeScheduleSummary {
 }
 
 export interface BulkScheduleData {
-  restaurantId: number
+  restaurantId: string
   shiftTemplateId: number
   employeeIds: number[]
   dateRange: {
@@ -413,7 +413,7 @@ export interface ConsecutiveDaysCheck {
 
 export interface ISchedulingService {
   // Shift Templates
-  getShiftTemplates(restaurantId: number): Promise<ShiftTemplate[]>
+  getShiftTemplates(restaurantId: string): Promise<ShiftTemplate[]>
   getShiftTemplate(id: number): Promise<ShiftTemplate | null>
   createShiftTemplate(data: CreateShiftTemplateData): Promise<ShiftTemplate>
   updateShiftTemplate(id: number, data: UpdateShiftTemplateData): Promise<ShiftTemplate>
@@ -448,7 +448,7 @@ export interface ISchedulingService {
   setEmployeeAvailability(data: CreateEmployeeAvailabilityData): Promise<EmployeeAvailability>
 
   // Statistics
-  getScheduleStats(restaurantId: number, date: string): Promise<ScheduleStats>
-  getWeeklySummary(restaurantId: number, weekStartDate: string): Promise<WeeklyScheduleSummary>
+  getScheduleStats(restaurantId: string, date: string): Promise<ScheduleStats>
+  getWeeklySummary(restaurantId: string, weekStartDate: string): Promise<WeeklyScheduleSummary>
   getEmployeeSummary(employeeId: number, weekStartDate: string): Promise<EmployeeScheduleSummary>
 }

@@ -26,7 +26,7 @@ export type HalfDayType = typeof HALF_DAY_TYPES[number]
  */
 export interface LeaveType {
   id: number
-  restaurantId?: number // NULL for system-wide types
+  restaurantId?: string // NULL for system-wide types
 
   // Type Information
   code: string // "ANNUAL", "SICK", "PERSONAL", etc.
@@ -120,7 +120,7 @@ export interface LeaveBalance {
  */
 export interface LeaveRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   leaveTypeId: number
 
@@ -218,7 +218,7 @@ export interface LeaveApprovalRecord {
  * Leave Type API Payloads
  */
 export interface CreateLeaveTypeRequest {
-  restaurantId?: number
+  restaurantId?: string
   code: string
   name: string
   description?: string
@@ -252,7 +252,7 @@ export interface UpdateLeaveTypeRequest extends Partial<CreateLeaveTypeRequest> 
  * Leave Request API Payloads
  */
 export interface CreateLeaveRequestRequest {
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   leaveTypeId: number
   startDate: string
@@ -313,7 +313,7 @@ export interface InitializeLeaveBalancesRequest {
  * Filter & Query Types
  */
 export interface LeaveRequestFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   leaveTypeId?: number
   status?: LeaveStatus
@@ -325,14 +325,14 @@ export interface LeaveRequestFilters {
 }
 
 export interface LeaveBalanceFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   leaveTypeId?: number
   year?: number
 }
 
 export interface LeaveTypeFilters {
-  restaurantId?: number
+  restaurantId?: string
   isActive?: boolean
   isSystemDefined?: boolean
 }
@@ -369,7 +369,7 @@ export interface LeaveConflictCheckResult {
  * Leave Statistics
  */
 export interface LeaveStatistics {
-  restaurantId: number
+  restaurantId: string
   period: {
     startDate: string
     endDate: string
@@ -412,7 +412,7 @@ export interface EmployeeLeaveSummary {
  * Team Leave Calendar
  */
 export interface TeamLeaveCalendar {
-  restaurantId: number
+  restaurantId: string
   date: string
   onLeave: Array<{
     employeeId: number

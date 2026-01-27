@@ -70,7 +70,7 @@ export interface Seat {
 export interface SeatWithDetails extends Seat {
   tableName?: string
   tableNumber: string
-  restaurantId: number
+  restaurantId: string
   restaurantName: string
 }
 

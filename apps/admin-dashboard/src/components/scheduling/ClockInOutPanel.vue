@@ -176,7 +176,7 @@ import type { EmployeeSchedule } from '@/types/scheduling'
 
 interface Props {
   employeeId?: number
-  restaurantId: number
+  restaurantId: string
 }
 
 const props = defineProps<Props>()

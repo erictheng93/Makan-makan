@@ -38,7 +38,7 @@ export interface Seat {
   id: number;
   tableId: number;
   tableNumber?: string;
-  restaurantId?: number;
+  restaurantId?: string;
   restaurantName?: string;
   seatNumber: string;
   seatName?: string;

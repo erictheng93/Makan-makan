@@ -206,7 +206,7 @@ describe("Authentication Routes", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
         tokens: {
@@ -387,7 +387,7 @@ describe("Authentication Routes", () => {
           username: "newstaff",
           fullName: "New Staff",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
       };
@@ -407,7 +407,7 @@ describe("Authentication Routes", () => {
           password: "StaffPass123!",
           confirmPassword: "StaffPass123!",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
         }),
       });
 
@@ -456,7 +456,7 @@ describe("Authentication Routes", () => {
           password: "StaffPass123!",
           confirmPassword: "StaffPass123!",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
         }),
       });
 
@@ -581,7 +581,7 @@ describe("Authentication Routes", () => {
           username: "testuser",
           fullName: "Test User",
           role: 2,
-          restaurantId: 1,
+          restaurantId: "test-restaurant-1",
           isActive: true,
         },
       });

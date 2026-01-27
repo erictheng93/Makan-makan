@@ -75,7 +75,7 @@ const mockEnv: Env = {
 // Mock table data
 const mockTable: Table = {
   id: 1,
-  restaurantId: 1,
+  restaurantId: "test-restaurant-1",
   number: "T01",
   name: "Window Table",
   capacity: 4,
@@ -246,7 +246,7 @@ describe("TablesService", () => {
   describe("createTable", () => {
     it("should create table successfully", async () => {
       const tableData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T02",
         capacity: 6,
         floor: 2,
@@ -260,13 +260,13 @@ describe("TablesService", () => {
       // Service converts restaurantId to string for database layer
       expect(mockTableService.createTable).toHaveBeenCalledWith({
         ...tableData,
-        restaurantId: "1",
+        restaurantId: "test-restaurant-1",
       });
     });
 
     it("should handle creation errors", async () => {
       const tableData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T01", // Duplicate
         capacity: 4,
       };
@@ -282,7 +282,7 @@ describe("TablesService", () => {
 
     it("should create table with all optional fields", async () => {
       const tableData: CreateTableData = {
-        restaurantId: 1,
+        restaurantId: "test-restaurant-1",
         number: "T03",
         name: "VIP Table",
         capacity: 8,
@@ -803,26 +803,26 @@ describe("TablesService", () => {
   // ========================================
   describe("validateTableAccess", () => {
     it("should grant access to admin users", () => {
-      const table = { ...mockTable, restaurantId: 1 };
-      const result = tablesService.validateTableAccess(table as Table, 2, true);
+      const table = { ...mockTable, restaurantId: "test-restaurant-1" };
+      const result = tablesService.validateTableAccess(table as Table, "test-restaurant-2", true);
       expect(result).toBe(true);
     });
 
     it("should grant access to same restaurant", () => {
-      const table = { ...mockTable, restaurantId: 1 };
+      const table = { ...mockTable, restaurantId: "test-restaurant-1" };
       const result = tablesService.validateTableAccess(
         table as Table,
-        1,
+        "test-restaurant-1",
         false,
       );
       expect(result).toBe(true);
     });
 
     it("should deny access to different restaurant for non-admin", () => {
-      const table = { ...mockTable, restaurantId: 1 };
+      const table = { ...mockTable, restaurantId: "test-restaurant-1" };
       const result = tablesService.validateTableAccess(
         table as Table,
-        2,
+        "test-restaurant-2",
         false,
       );
       expect(result).toBe(false);
@@ -831,17 +831,17 @@ describe("TablesService", () => {
 
   describe("validateRestaurantAccess", () => {
     it("should grant access to admin users", () => {
-      const result = tablesService.validateRestaurantAccess(1, 2, true);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", true);
       expect(result).toBe(true);
     });
 
     it("should grant access to same restaurant", () => {
-      const result = tablesService.validateRestaurantAccess(1, 1, false);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-1", false);
       expect(result).toBe(true);
     });
 
     it("should deny access to different restaurant for non-admin", () => {
-      const result = tablesService.validateRestaurantAccess(1, 2, false);
+      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", false);
       expect(result).toBe(false);
     });
   });

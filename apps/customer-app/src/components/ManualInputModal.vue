@@ -136,7 +136,7 @@ const props = defineProps<{
 // Emits
 const emits = defineEmits<{
   close: [];
-  confirm: [data: { restaurantId: number; tableId: number }];
+  confirm: [data: { restaurantId: string; tableId: number }];
 }>();
 
 // State
@@ -192,7 +192,7 @@ const handleConfirm = () => {
 
   if (isFormValid.value) {
     emits("confirm", {
-      restaurantId: parseInt(form.value.restaurantId),
+      restaurantId: form.value.restaurantId,
       tableId: parseInt(form.value.tableId),
     });
   }

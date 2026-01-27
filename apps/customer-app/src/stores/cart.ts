@@ -52,7 +52,7 @@ const CartItemSchema = z
 
 const CartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),
-  restaurantId: z.number().int().positive(),
+  restaurantId: z.string().min(1),
   tableId: z.number().int().positive(),
   timestamp: z.number().int().positive(),
 });
@@ -60,7 +60,7 @@ const CartDataSchema = z.object({
 export const useCartStore = defineStore("cart", () => {
   // State
   const items = ref<CartItem[]>([]);
-  const restaurantId = ref<number | null>(null);
+  const restaurantId = ref<string | null>(null);
   const tableId = ref<number | null>(null);
 
   // Getters
@@ -79,7 +79,7 @@ export const useCartStore = defineStore("cart", () => {
   };
 
   // Actions
-  const initializeCart = (restId: number, tblId: number) => {
+  const initializeCart = (restId: string, tblId: number) => {
     // 如果是不同的餐廳/桌台，清空購物車
     if (restaurantId.value !== restId || tableId.value !== tblId) {
       clearCart();

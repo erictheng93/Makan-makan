@@ -24,7 +24,7 @@ class MockErrorReportingService {
     this.errorReports.push(...reports);
   }
 
-  async getErrorStats(restaurantId: number | undefined, dateRange: Date[]) {
+  async getErrorStats(restaurantId: string | undefined, dateRange: Date[]) {
     const now = Date.now();
     const yesterday = now - 86400000;
 
@@ -42,7 +42,7 @@ class MockErrorReportingService {
     };
   }
 
-  async getCommonErrors(restaurantId: number | undefined, limit: number) {
+  async getCommonErrors(restaurantId: string | undefined, limit: number) {
     const errorGroups = this.errorReports.reduce((acc: any, report) => {
       const key = report.errorMessage;
       if (!acc[key]) {
@@ -205,7 +205,7 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, 1);
+      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(1);
@@ -236,7 +236,7 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, 1);
+      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(3);
@@ -260,7 +260,7 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, 1);
+      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
 
       expect(result.success).toBe(true);
       expect(result.data.significant_errors).toBe(1);
@@ -282,7 +282,7 @@ describe("SystemService", () => {
       const result = await service.createErrorReport(
         request,
         1,
-        1,
+        "test-restaurant-1",
         "Chrome/91.0",
       );
 
@@ -304,7 +304,7 @@ describe("SystemService", () => {
         ],
       };
 
-      await expect(service.createErrorReport(request, 1, 1)).rejects.toThrow(
+      await expect(service.createErrorReport(request, 1, "test-restaurant-1")).rejects.toThrow(
         "Failed to submit error report",
       );
     });
@@ -411,7 +411,7 @@ describe("SystemService", () => {
             },
           ],
         };
-        await service.createErrorReport(request, i + 1, 1);
+        await service.createErrorReport(request, i + 1, "test-restaurant-1");
       }
     });
 
@@ -428,7 +428,7 @@ describe("SystemService", () => {
     });
 
     it("應該支持餐廳篩選", async () => {
-      const stats = await service.getErrorStats(1);
+      const stats = await service.getErrorStats("test-restaurant-1");
 
       expect(stats).toBeDefined();
       expect(stats.summary).toBeDefined();
@@ -486,7 +486,7 @@ describe("SystemService", () => {
             },
           ],
         };
-        await service.createErrorReport(request, 1, 1);
+        await service.createErrorReport(request, 1, "test-restaurant-1");
       }
     });
 
@@ -545,7 +545,7 @@ describe("SystemService", () => {
         },
       ];
 
-      const user = { id: 1, restaurantId: 1 };
+      const user = { id: 1, restaurantId: "test-restaurant-1" };
 
       await service.sendCriticalErrorNotification(
         errors,
@@ -646,7 +646,7 @@ describe("SystemService", () => {
         ],
       };
 
-      await service.createErrorReport(request, 1, 1);
+      await service.createErrorReport(request, 1, "test-restaurant-1");
 
       // Check logger for event emission
       const debugLogs = mockLogger.logs.filter((log) => log.level === "debug");
@@ -667,7 +667,7 @@ describe("SystemService", () => {
         ],
       };
 
-      await service.createErrorReport(request, 1, 1);
+      await service.createErrorReport(request, 1, "test-restaurant-1");
 
       const debugLogs = mockLogger.logs.filter((log) => log.level === "debug");
       const eventLogs = debugLogs.filter(
@@ -708,7 +708,7 @@ describe("SystemService", () => {
       };
 
       try {
-        await service.createErrorReport(request, 1, 1);
+        await service.createErrorReport(request, 1, "test-restaurant-1");
       } catch (error) {
         // Expected to fail
       }
@@ -722,7 +722,7 @@ describe("SystemService", () => {
         errors: [],
       };
 
-      const result = await service.createErrorReport(request, 1, 1);
+      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(0);
@@ -747,7 +747,7 @@ describe("SystemService", () => {
         ],
       };
 
-      const createResult = await service.createErrorReport(request, 1, 1);
+      const createResult = await service.createErrorReport(request, 1, "test-restaurant-1");
       expect(createResult.success).toBe(true);
 
       // 2. Get statistics
@@ -774,7 +774,7 @@ describe("SystemService", () => {
             },
           ],
         };
-        promises.push(service.createErrorReport(request, i, 1));
+        promises.push(service.createErrorReport(request, i, "test-restaurant-1"));
       }
 
       const results = await Promise.all(promises);

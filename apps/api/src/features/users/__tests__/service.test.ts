@@ -142,58 +142,58 @@ describe("UsersService", () => {
   describe("canManageUser", () => {
     it("admin can manage all users", () => {
       expect(
-        usersService.canManageUser(mockAdminUser, USER_ROLES.OWNER, 2),
+        usersService.canManageUser(mockAdminUser, USER_ROLES.OWNER, '2'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockAdminUser, USER_ROLES.ADMIN, 1),
+        usersService.canManageUser(mockAdminUser, USER_ROLES.ADMIN, '1'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockAdminUser, USER_ROLES.CHEF, 1),
+        usersService.canManageUser(mockAdminUser, USER_ROLES.CHEF, '1'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockAdminUser, USER_ROLES.CUSTOMER, 1),
+        usersService.canManageUser(mockAdminUser, USER_ROLES.CUSTOMER, '1'),
       ).toBe(true);
     });
 
     it("owner can manage staff in same restaurant", () => {
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.CHEF, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.CHEF, '1'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.SERVICE, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.SERVICE, '1'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.CASHIER, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.CASHIER, '1'),
       ).toBe(true);
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.CUSTOMER, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.CUSTOMER, '1'),
       ).toBe(true);
     });
 
     it("owner cannot manage admin or other owners", () => {
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.ADMIN, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.ADMIN, '1'),
       ).toBe(false);
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.OWNER, 1),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.OWNER, '1'),
       ).toBe(false);
     });
 
     it("owner cannot manage staff in different restaurant", () => {
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.CHEF, 2),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.CHEF, '2'),
       ).toBe(false);
       expect(
-        usersService.canManageUser(mockOwnerUser, USER_ROLES.SERVICE, 2),
+        usersService.canManageUser(mockOwnerUser, USER_ROLES.SERVICE, '2'),
       ).toBe(false);
     });
 
     it("other roles cannot manage users", () => {
-      expect(usersService.canManageUser(mockChefUser, USER_ROLES.CHEF, 1)).toBe(
+      expect(usersService.canManageUser(mockChefUser, USER_ROLES.CHEF, '1')).toBe(
         false,
       );
       expect(
-        usersService.canManageUser(mockChefUser, USER_ROLES.CUSTOMER, 1),
+        usersService.canManageUser(mockChefUser, USER_ROLES.CUSTOMER, '1'),
       ).toBe(false);
     });
   });
@@ -380,11 +380,11 @@ describe("UsersService", () => {
       const mockResult = { users: [], pagination: {} };
       mockUserService.getRestaurantUsers.mockResolvedValue(mockResult);
 
-      const filters: UserFilters = { restaurantId: 999 }; // Different from owner's restaurant
+      const filters: UserFilters = { restaurantId: '999' }; // Different from owner's restaurant
       await usersService.getUsers(mockOwnerUser, filters);
 
       // Should override with owner's restaurant
-      expect(filters.restaurantId).toBe(1);
+      expect(filters.restaurantId).toBe('1');
     });
 
     it("should format all users in response", async () => {
@@ -460,7 +460,7 @@ describe("UsersService", () => {
         role: USER_ROLES.OWNER,
         email: "new@example.com",
         fullName: "New User",
-        restaurantId: 1,
+        restaurantId: '1',
       };
       mockUserService.createUser.mockResolvedValue({ id: 10, ...userData });
 
@@ -475,7 +475,7 @@ describe("UsersService", () => {
         username: "newchef",
         password: "password123",
         role: USER_ROLES.CHEF,
-        restaurantId: 1,
+        restaurantId: '1',
         fullName: "New Chef",
       };
       mockUserService.createUser.mockResolvedValue({ id: 11, ...userData });
@@ -507,7 +507,7 @@ describe("UsersService", () => {
         username: "newchef",
         password: "password123",
         role: USER_ROLES.CHEF,
-        restaurantId: 2, // Different restaurant
+        restaurantId: '2', // Different restaurant
         fullName: "New Chef",
       };
 
@@ -933,7 +933,7 @@ describe("UsersService", () => {
         byRole: {},
       });
 
-      await usersService.getUserStats(mockAdminUser, 5);
+      await usersService.getUserStats(mockAdminUser, '5');
 
       // Service converts restaurantId to string for database layer
       expect(mockUserService.getUserStats).toHaveBeenCalledWith("5");
@@ -969,7 +969,7 @@ describe("UsersService", () => {
     it("should apply restaurant filter for admin", async () => {
       mockUserService.searchUsers.mockResolvedValue([]);
 
-      await usersService.searchUsers(mockAdminUser, "test", 5);
+      await usersService.searchUsers(mockAdminUser, "test", '5');
 
       // Service converts restaurantId to string for database layer
       expect(mockUserService.searchUsers).toHaveBeenCalledWith(

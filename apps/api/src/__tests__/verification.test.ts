@@ -80,7 +80,7 @@ describe("Verification Routes", () => {
           id: 1,
           username: "testuser",
           role: 0,
-          restaurantId: 1,
+          restaurantId: 'test-restaurant-1',
         });
       }
 

@@ -90,11 +90,11 @@ export interface IRestaurantService {
       totalPages: number
     }
   }>
-  getRestaurant(id: number): Promise<Restaurant | null>
+  getRestaurant(id: string): Promise<Restaurant | null>
   createRestaurant(data: CreateRestaurantData): Promise<Restaurant>
-  updateRestaurant(id: number, data: UpdateRestaurantData): Promise<Restaurant | null>
-  deactivateRestaurant(id: number): Promise<boolean>
-  getRestaurantStats(id: number): Promise<EnhancedRestaurantStats>
+  updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null>
+  deactivateRestaurant(id: string): Promise<boolean>
+  getRestaurantStats(id: string): Promise<EnhancedRestaurantStats>
   searchNearbyRestaurants(district: string, limit: number): Promise<Restaurant[]>
   getPopularRestaurants(limit: number): Promise<Restaurant[]>
 }
@@ -103,5 +103,5 @@ export interface IRestaurantService {
 export type RestaurantEvent =
   | { type: 'RESTAURANT_CREATED'; payload: Restaurant }
   | { type: 'RESTAURANT_UPDATED'; payload: Restaurant }
-  | { type: 'RESTAURANT_DEACTIVATED'; payload: { id: number } }
-  | { type: 'RESTAURANT_STATS_UPDATED'; payload: { id: number; stats: RestaurantStats } }
+  | { type: 'RESTAURANT_DEACTIVATED'; payload: { id: string } }
+  | { type: 'RESTAURANT_STATS_UPDATED'; payload: { id: string; stats: RestaurantStats } }

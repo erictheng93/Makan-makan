@@ -69,7 +69,7 @@ export type AvailabilityType = typeof AVAILABILITY_TYPES[number]
  */
 export interface ShiftTemplate {
   id: number
-  restaurantId: number
+  restaurantId: string
 
   // Basic Information
   name: string
@@ -119,7 +119,7 @@ export interface ShiftTemplate {
  */
 export interface EmployeeSchedule {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   shiftTemplateId?: number
 
@@ -170,7 +170,7 @@ export interface EmployeeSchedule {
  */
 export interface SchedulingRule {
   id: number
-  restaurantId: number
+  restaurantId: string
 
   // Rule Definition
   name: string
@@ -205,7 +205,7 @@ export interface SchedulingRule {
  */
 export interface SchedulingConflict {
   id: number
-  restaurantId: number
+  restaurantId: string
 
   // Conflict Details
   conflictType: ConflictType
@@ -236,7 +236,7 @@ export interface SchedulingConflict {
  */
 export interface ScheduleSwapRequest {
   id: number
-  restaurantId: number
+  restaurantId: string
 
   // Requester Information
   requesterEmployeeId: number
@@ -292,7 +292,7 @@ export interface ScheduleSwapRequest {
  */
 export interface EmployeeAvailability {
   id: number
-  restaurantId: number
+  restaurantId: string
   employeeId: number
 
   // Availability Type
@@ -327,7 +327,7 @@ export interface EmployeeAvailability {
  * Shift Template API Payloads
  */
 export interface CreateShiftTemplateRequest {
-  restaurantId: number
+  restaurantId: string
   name: string
   description?: string
   shiftType: ShiftType
@@ -357,7 +357,7 @@ export interface UpdateShiftTemplateRequest extends Partial<CreateShiftTemplateR
  * Employee Schedule API Payloads
  */
 export interface CreateScheduleRequest {
-  restaurantId: number
+  restaurantId: string
   employeeId: number
   shiftTemplateId?: number
   workDate: string
@@ -376,7 +376,7 @@ export interface UpdateScheduleRequest extends Partial<CreateScheduleRequest> {
 }
 
 export interface BulkCreateScheduleRequest {
-  restaurantId: number
+  restaurantId: string
   shiftTemplateId: number
   employeeIds: number[]
   dateRange: {
@@ -408,7 +408,7 @@ export interface ClockOutRequest {
  * Swap Request API Payloads
  */
 export interface CreateSwapRequestRequest {
-  restaurantId: number
+  restaurantId: string
   requesterEmployeeId: number
   requesterScheduleId: number
   targetEmployeeId?: number
@@ -433,7 +433,7 @@ export interface RejectSwapRequestRequest {
  * Filter & Query Types
  */
 export interface ScheduleFilters {
-  restaurantId?: number
+  restaurantId?: string
   employeeId?: number
   shiftTemplateId?: number
   startDate?: string
@@ -444,7 +444,7 @@ export interface ScheduleFilters {
 }
 
 export interface ConflictFilters {
-  restaurantId?: number
+  restaurantId?: string
   conflictType?: ConflictType
   severity?: ConflictSeverity
   status?: ConflictStatus
@@ -456,7 +456,7 @@ export interface ConflictFilters {
 }
 
 export interface SwapRequestFilters {
-  restaurantId?: number
+  restaurantId?: string
   requestType?: SwapRequestType
   status?: SwapRequestStatus
   requesterEmployeeId?: number
@@ -479,7 +479,7 @@ export interface ConflictCheckResult {
  * Available Employees Query
  */
 export interface AvailableEmployeesRequest {
-  restaurantId: number
+  restaurantId: string
   date: string
   shiftTemplateId?: number
 }
@@ -500,7 +500,7 @@ export interface AvailableEmployee {
  * Schedule Statistics
  */
 export interface ScheduleStatistics {
-  restaurantId: number
+  restaurantId: string
   period: {
     startDate: string
     endDate: string
@@ -525,7 +525,7 @@ export interface ScheduleStatistics {
 export interface EmployeeWeeklyHours {
   employeeId: number
   employeeName: string
-  restaurantId: number
+  restaurantId: string
   yearWeek: string // YYYY-WW format
   shiftsCount: number
   totalHours: number
@@ -537,7 +537,7 @@ export interface EmployeeWeeklyHours {
  * Daily Staffing Coverage
  */
 export interface DailyStaffingCoverage {
-  restaurantId: number
+  restaurantId: string
   workDate: string
   shiftType: ShiftType
   shiftName: string
@@ -551,7 +551,7 @@ export interface DailyStaffingCoverage {
  * Weekly Schedule Summary
  */
 export interface WeeklyScheduleSummary {
-  restaurantId: number
+  restaurantId: string
   workDate: string
   weekNumber: number
   year: number

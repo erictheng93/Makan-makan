@@ -37,13 +37,13 @@ describe('Kitchen Feature Module', () => {
     const service = new KitchenService(mockEnv)
 
     // Kitchen-allowed roles should have access
-    expect(service.validateChefAccess(1, 0, 1)).toBe(true) // Admin
-    expect(service.validateChefAccess(1, 1, 1)).toBe(true) // Owner
-    expect(service.validateChefAccess(1, 2, 1)).toBe(true) // Chef
-    expect(service.validateChefAccess(1, 3, 1)).toBe(true) // Service
+    expect(service.validateChefAccess(1, 0, 'test-restaurant-1')).toBe(true) // Admin
+    expect(service.validateChefAccess(1, 1, 'test-restaurant-1')).toBe(true) // Owner
+    expect(service.validateChefAccess(1, 2, 'test-restaurant-1')).toBe(true) // Chef
+    expect(service.validateChefAccess(1, 3, 'test-restaurant-1')).toBe(true) // Service
 
     // Cashier role should not have kitchen access
-    expect(service.validateChefAccess(1, 4, 1)).toBe(false) // Cashier
+    expect(service.validateChefAccess(1, 4, 'test-restaurant-1')).toBe(false) // Cashier
   })
 
   test('should format SSE events correctly', () => {
@@ -56,7 +56,7 @@ describe('Kitchen Feature Module', () => {
         type: 'NEW_ORDER',
         orderId: 123,
         timestamp: '2024-01-01T00:00:00.000Z',
-        restaurantId: 1
+        restaurantId: 'test-restaurant-1'
       }
     }
 
@@ -68,7 +68,7 @@ describe('Kitchen Feature Module', () => {
 
   test('should get connection status', () => {
     const service = new KitchenService(mockEnv)
-    const status = service.getConnectionStatus(1)
+    const status = service.getConnectionStatus('test-restaurant-1')
 
     expect(status).toHaveProperty('totalConnections')
     expect(status).toHaveProperty('restaurantConnections')
@@ -88,16 +88,16 @@ describe('Kitchen Feature Module', () => {
     const connectionId = 'test-connection'
 
     service.registerConnection(connectionId, {
-      restaurantId: 1,
+      restaurantId: 'test-restaurant-1',
       userId: 1,
       lastHeartbeat: Date.now()
     })
 
-    let status = service.getConnectionStatus(1)
+    let status = service.getConnectionStatus('test-restaurant-1')
     expect(status.restaurantConnections).toBe(1)
 
     service.removeConnection(connectionId)
-    status = service.getConnectionStatus(1)
+    status = service.getConnectionStatus('test-restaurant-1')
     expect(status.restaurantConnections).toBe(0)
   })
 })
@@ -109,11 +109,11 @@ describe('Kitchen Module Types', () => {
       data: {
         type: 'NEW_ORDER',
         timestamp: '2024-01-01T00:00:00.000Z',
-        restaurantId: 1
+        restaurantId: 'test-restaurant-1'
       }
     }
 
     expect(event.data.type).toBe('NEW_ORDER')
-    expect(event.data.restaurantId).toBe(1)
+    expect(event.data.restaurantId).toBe('test-restaurant-1')
   })
 })

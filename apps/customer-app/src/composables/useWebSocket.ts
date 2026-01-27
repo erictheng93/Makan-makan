@@ -7,7 +7,7 @@ interface UseWebSocketOptions {
   reconnectAttempts?: number;
   reconnectInterval?: number;
   heartbeatInterval?: number;
-  restaurantId?: number;
+  restaurantId?: string;
   onMessage?: (data: any) => void;
   onError?: (error: Event) => void;
   onOpen?: (event: Event) => void;
@@ -324,7 +324,7 @@ export function useOrderTracking(orderId: number) {
 /**
  * 餐廳狀態 WebSocket Hook
  */
-export function useRestaurantStatus(restaurantId: number, tableId?: number) {
+export function useRestaurantStatus(restaurantId: string, tableId?: number) {
   const restaurantStatus = ref<any>({});
   const notifications = ref<any[]>([]);
 

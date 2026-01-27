@@ -49,7 +49,7 @@ export interface GroupOrderState {
   id: string;
   shareCode: string;
   status: "active" | "ordering" | "checkout" | "completed" | "cancelled";
-  restaurantId: number;
+  restaurantId: string;
   members: GroupOrderMember[];
   cart: GroupOrderCartItem[];
   splitBills: GroupOrderSplitBill[];

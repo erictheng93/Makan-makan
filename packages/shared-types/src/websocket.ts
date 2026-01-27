@@ -3,7 +3,7 @@ import { OrderStatus, OrderItemStatus, Order } from './order';
 // Order update data structure
 export interface OrderUpdateData {
   order: Partial<Order>;
-  restaurantId: number;
+  restaurantId: string;
   status?: OrderStatus;
   previousStatus?: OrderStatus;
   estimatedTime?: number;
@@ -12,7 +12,7 @@ export interface OrderUpdateData {
 
 // Restaurant status data structure
 export interface RestaurantStatusData {
-  restaurantId: number;
+  restaurantId: string;
   isOpen: boolean;
   capacity?: number;
   currentOrders?: number;
@@ -32,7 +32,7 @@ export interface NotificationData {
 
 // Menu update data structure
 export interface MenuUpdateData {
-  restaurantId: number;
+  restaurantId: string;
   menuItemId: number;
   action: 'added' | 'updated' | 'removed' | 'availability_changed';
   isAvailable?: boolean;
@@ -69,7 +69,7 @@ export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
 export interface NewOrderMessage extends BaseWebSocketMessage {
   type: 'NEW_ORDER';
   orderId: number;
-  restaurantId: number;
+  restaurantId: string;
   tableId: number;
   totalAmount: number;
   itemCount: number;
@@ -162,7 +162,7 @@ export interface WebSocketConnectionState {
 
 // WebSocket 訂閱選項
 export interface WebSocketSubscriptionOptions {
-  restaurantId: number;
+  restaurantId: string;
   userRole?: string;
   tableId?: number;
   filters?: {
