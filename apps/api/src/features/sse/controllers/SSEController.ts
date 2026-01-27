@@ -3,25 +3,28 @@
  * Handles Server-Sent Events requests and business logic
  */
 
-import { Context } from 'hono'
-import { streamSSE } from 'hono/streaming'
-import { SSEService } from '../services/SSEService'
-import { createSuccessResponse, createErrorResponse } from '../../../shared/utils/response'
-import type { Env } from '../../../types/env'
-import type { SSEConnection, SSEEvent, BroadcastEvent } from '../types'
+import { Context } from "hono";
+import { streamSSE } from "hono/streaming";
+import { SSEService } from "../services/SSEService";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "../../../shared/utils/response";
+import type { Env } from "../../../types/env";
+import type { SSEConnection, SSEEvent, BroadcastEvent } from "../types";
 
 export class SSEController {
-  private sseService: SSEService
-  private env: Env
+  private sseService: SSEService;
+  private env: Env;
 
   constructor(env: Env) {
-    this.env = env
-    this.sseService = new SSEService(env)
+    this.env = env;
+    this.sseService = new SSEService(env);
   }
 
   // Generate connection ID
   private generateConnectionId(): string {
-    return `sse_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `sse_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -29,20 +32,23 @@ export class SSEController {
    * GET /api/v1/sse/events
    */
   async connect(c: Context) {
-    const user = c.get('user')
-    const queryRestaurantId = parseInt(c.req.query('restaurant_id') || '0')
-    const restaurantId = queryRestaurantId > 0 ? queryRestaurantId : user.restaurantId
+    const user = c.get("user");
+    const queryRestaurantId = c.req.query("restaurant_id") || "";
+    const restaurantId = queryRestaurantId || user.restaurantId;
 
     // Verify restaurant permissions
     if (user.role !== 0 && user.restaurantId !== restaurantId) {
-      return c.json({
-        success: false,
-        error: 'Access denied. Restaurant permission required.'
-      }, 403)
+      return c.json(
+        {
+          success: false,
+          error: "Access denied. Restaurant permission required.",
+        },
+        403,
+      );
     }
 
     return streamSSE(c, async (stream) => {
-      const connectionId = this.generateConnectionId()
+      const connectionId = this.generateConnectionId();
 
       // Create SSE connection
       const connection: SSEConnection = {
@@ -51,64 +57,64 @@ export class SSEController {
         userId: user.id,
         role: user.role,
         lastHeartbeat: Date.now(),
-        controller: stream as any // Type compatibility
-      }
+        controller: stream as any, // Type compatibility
+      };
 
       // Register connection
-      this.sseService.registerConnection(connectionId, connection)
+      this.sseService.registerConnection(connectionId, connection);
 
       // Send welcome message
       const welcomeEvent: SSEEvent = {
         id: Date.now().toString(),
-        event: 'connected',
+        event: "connected",
         data: {
-          type: 'connection_established',
-          message: 'SSE connected',
+          type: "connection_established",
+          message: "SSE connected",
           timestamp: new Date().toISOString(),
-          connectionId
-        }
-      }
+          connectionId,
+        },
+      };
 
       stream.writeSSE({
         data: JSON.stringify(welcomeEvent.data),
         event: welcomeEvent.event,
-        id: welcomeEvent.id
-      })
+        id: welcomeEvent.id,
+      });
 
       // Set up heartbeat
       const heartbeatInterval = setInterval(() => {
         try {
           stream.writeSSE({
             data: JSON.stringify({
-              type: 'heartbeat',
-              timestamp: new Date().toISOString()
+              type: "heartbeat",
+              timestamp: new Date().toISOString(),
             }),
-            event: 'heartbeat'
-          })
-          connection.lastHeartbeat = Date.now()
+            event: "heartbeat",
+          });
+          connection.lastHeartbeat = Date.now();
         } catch (error) {
-          console.error('SSE heartbeat error:', error)
-          clearInterval(heartbeatInterval)
-          this.sseService.removeConnection(connectionId)
+          console.error("SSE heartbeat error:", error);
+          clearInterval(heartbeatInterval);
+          this.sseService.removeConnection(connectionId);
         }
-      }, 30000) // Every 30 seconds
+      }, 30000); // Every 30 seconds
 
       // Cleanup on connection close
-      c.req.raw.signal?.addEventListener('abort', () => {
-        clearInterval(heartbeatInterval)
-        this.sseService.removeConnection(connectionId)
-        console.log(`SSE connection ${connectionId} closed`)
-      })
+      c.req.raw.signal?.addEventListener("abort", () => {
+        clearInterval(heartbeatInterval);
+        this.sseService.removeConnection(connectionId);
+        console.log(`SSE connection ${connectionId} closed`);
+      });
 
       // Keep connection alive
       const keepAliveInterval = setInterval(() => {
         if (c.req.raw.signal?.aborted) {
-          clearInterval(keepAliveInterval)
-          clearInterval(heartbeatInterval)
-          this.sseService.removeConnection(connectionId)
+          clearInterval(keepAliveInterval);
+          clearInterval(heartbeatInterval);
+          this.sseService.removeConnection(connectionId);
         }
-      }, 1000)
-    })
+      }, 1000);
+    });
   }
 
   /**
@@ -117,42 +123,48 @@ export class SSEController {
    */
   async getConnections(c: Context) {
     try {
-      const restaurantId = parseInt(c.req.query('restaurant_id') || '0')
-      const user = c.get('user')
+      const restaurantId = c.req.query("restaurant_id") || "";
+      const user = c.get("user");
 
       // Admin can see all connections, others only their restaurant
       if (user.role !== 0 && restaurantId !== user.restaurantId) {
-        return c.json({
-          success: false,
-          error: 'Access denied. Admin access required.'
-        }, 403)
+        return c.json(
+          {
+            success: false,
+            error: "Access denied. Admin access required.",
+          },
+          403,
+        );
       }
 
-      const status = this.sseService.getConnectionStatus()
+      const status = this.sseService.getConnectionStatus();
 
       // Filter by restaurant if not admin
       if (user.role !== 0 && restaurantId) {
-        const restaurantConnections = this.sseService.getConnectionsByRestaurant(restaurantId)
-        return c.json(createSuccessResponse({
-          connections: restaurantConnections.length,
-          restaurantId,
-          details: restaurantConnections.map(conn => ({
-            id: conn.id,
-            userId: conn.userId,
-            role: conn.role,
-            lastHeartbeat: conn.lastHeartbeat,
-            connected: Date.now() - conn.lastHeartbeat < 60000 // Active within 1 minute
-          }))
-        }))
+        const restaurantConnections =
+          this.sseService.getConnectionsByRestaurant(restaurantId);
+        return c.json(
+          createSuccessResponse({
+            connections: restaurantConnections.length,
+            restaurantId,
+            details: restaurantConnections.map((conn) => ({
+              id: conn.id,
+              userId: conn.userId,
+              role: conn.role,
+              lastHeartbeat: conn.lastHeartbeat,
+              connected: Date.now() - conn.lastHeartbeat < 60000, // Active within 1 minute
+            })),
+          }),
+        );
       }
 
-      return c.json(createSuccessResponse(status))
+      return c.json(createSuccessResponse(status));
     } catch (error) {
-      console.error('SSE connections status error:', error)
+      console.error("SSE connections status error:", error);
       return c.json(
-        createErrorResponse('Failed to get connection status'),
-        500
-      )
+        createErrorResponse("Failed to get connection status"),
+        500,
+      );
     }
   }
 
@@ -162,34 +174,36 @@ export class SSEController {
    */
   async broadcastOrderUpdate(c: Context) {
     try {
-      const { orderId, orderData, restaurantId, targetRoles } = await c.req.json()
+      const { orderId, orderData, restaurantId, targetRoles } =
+        await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'order-update',
+        type: "order-update",
         data: {
           orderId,
           order: orderData,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         restaurantId,
-        targetRoles
-      }
+        targetRoles,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'order_update',
-        orderId,
-        restaurantId,
-        timestamp: new Date().toISOString()
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast order update:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast order update'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "order_update",
+          orderId,
+          restaurantId,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast order update:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast order update"),
+        500,
+      );
     }
   }
 
@@ -199,35 +213,37 @@ export class SSEController {
    */
   async broadcastMenuUpdate(c: Context) {
     try {
-      const { menuItemId, updateType, restaurantId, targetRoles } = await c.req.json()
+      const { menuItemId, updateType, restaurantId, targetRoles } =
+        await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'menu-update',
+        type: "menu-update",
         data: {
           menuItemId,
           updateType, // 'created', 'updated', 'deleted', 'availability_changed'
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         restaurantId,
-        targetRoles
-      }
+        targetRoles,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'menu_update',
-        menuItemId,
-        updateType,
-        restaurantId,
-        timestamp: new Date().toISOString()
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast menu update:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast menu update'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "menu_update",
+          menuItemId,
+          updateType,
+          restaurantId,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast menu update:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast menu update"),
+        500,
+      );
     }
   }
 
@@ -237,37 +253,39 @@ export class SSEController {
    */
   async broadcastSystemNotification(c: Context) {
     try {
-      const { title, message, level, persistent, restaurantId, targetRoles } = await c.req.json()
+      const { title, message, level, persistent, restaurantId, targetRoles } =
+        await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'system-notification',
+        type: "system-notification",
         data: {
           title,
           message,
-          level: level || 'info', // 'info', 'warning', 'error', 'success'
+          level: level || "info", // 'info', 'warning', 'error', 'success'
           persistent: persistent || false,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         restaurantId,
-        targetRoles
-      }
+        targetRoles,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'system_notification',
-        title,
-        level,
-        restaurantId,
-        timestamp: new Date().toISOString()
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast system notification:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast system notification'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "system_notification",
+          title,
+          level,
+          restaurantId,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast system notification:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast system notification"),
+        500,
+      );
     }
   }
 
@@ -277,33 +295,35 @@ export class SSEController {
    */
   async broadcastGroupCreated(c: Context) {
     try {
-      const { groupOrderId, restaurantId, tableId, shareCode } = await c.req.json()
+      const { groupOrderId, restaurantId, tableId, shareCode } =
+        await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'group-created',
+        type: "group-created",
         data: {
           groupOrderId,
           shareCode,
           tableId,
-          action: 'group_created',
-          timestamp: new Date().toISOString()
+          action: "group_created",
+          timestamp: new Date().toISOString(),
         },
-        restaurantId
-      }
+        restaurantId,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'group_created',
-        groupOrderId
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast group creation:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast group creation'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "group_created",
+          groupOrderId,
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast group creation:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast group creation"),
+        500,
+      );
     }
   }
 
@@ -313,34 +333,36 @@ export class SSEController {
    */
   async broadcastMemberJoined(c: Context) {
     try {
-      const { groupOrderId, memberId, memberName, restaurantId } = await c.req.json()
+      const { groupOrderId, memberId, memberName, restaurantId } =
+        await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'member-joined',
+        type: "member-joined",
         data: {
           groupOrderId,
           memberId,
           memberName,
-          action: 'member_joined',
-          timestamp: new Date().toISOString()
+          action: "member_joined",
+          timestamp: new Date().toISOString(),
         },
-        restaurantId
-      }
+        restaurantId,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'member_joined',
-        groupOrderId,
-        memberId
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast member join:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast member join'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "member_joined",
+          groupOrderId,
+          memberId,
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast member join:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast member join"),
+        500,
+      );
     }
   }
 
@@ -350,10 +372,18 @@ export class SSEController {
    */
   async broadcastCartUpdated(c: Context) {
     try {
-      const { groupOrderId, memberId, action, item, itemId, updates, restaurantId } = await c.req.json()
+      const {
+        groupOrderId,
+        memberId,
+        action,
+        item,
+        itemId,
+        updates,
+        restaurantId,
+      } = await c.req.json();
 
       const event: BroadcastEvent = {
-        type: 'cart-updated',
+        type: "cart-updated",
         data: {
           groupOrderId,
           memberId,
@@ -361,25 +391,26 @@ export class SSEController {
           item,
           itemId,
           updates,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
-        restaurantId
-      }
+        restaurantId,
+      };
 
-      await this.sseService.broadcast(event)
+      await this.sseService.broadcast(event);
 
-      return c.json(createSuccessResponse({
-        event_type: 'cart_updated',
-        groupOrderId,
-        action
-      }))
-
-    } catch (error) {
-      console.error('Failed to broadcast cart update:', error)
       return c.json(
-        createErrorResponse('Failed to broadcast cart update'),
-        500
-      )
+        createSuccessResponse({
+          event_type: "cart_updated",
+          groupOrderId,
+          action,
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast cart update:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast cart update"),
+        500,
+      );
     }
   }
 
@@ -389,29 +420,31 @@ export class SSEController {
    */
   async broadcastTest(c: Context) {
     // Disable test endpoint in production
-    if (this.env?.NODE_ENV === 'production') {
-      return c.json(createErrorResponse('Test endpoint not available in production'), 401)
+    if (this.env?.NODE_ENV === "production") {
+      return c.json(
+        createErrorResponse("Test endpoint not available in production"),
+        401,
+      );
     }
 
     try {
-      const { event, message } = await c.req.json()
+      const { event, message } = await c.req.json();
 
       await this.sseService.broadcastTest({
-        event: event || 'test',
-        message: message || 'Test broadcast message',
+        event: event || "test",
+        message: message || "Test broadcast message",
         timestamp: new Date().toISOString(),
-        connectionId: 'test'
-      })
+        connectionId: "test",
+      });
 
-      return c.json(createSuccessResponse({
-        message: 'Test broadcast sent successfully'
-      }))
-    } catch (error) {
-      console.error('SSE test broadcast error:', error)
       return c.json(
-        createErrorResponse('Failed to send test broadcast'),
-        500
-      )
+        createSuccessResponse({
+          message: "Test broadcast sent successfully",
+        }),
+      );
+    } catch (error) {
+      console.error("SSE test broadcast error:", error);
+      return c.json(createErrorResponse("Failed to send test broadcast"), 500);
     }
   }
 }
