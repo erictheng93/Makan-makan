@@ -91,24 +91,7 @@ describe("Admin Dashboard Integration Tests", () => {
     });
   });
 
-  describe("Real-time Updates Integration", () => {
-    it.skip("should handle real-time queue updates (requires data-testid in component)", async () => {
-      // Test skipped: Component doesn't have the expected data-testid attributes
-      // This test needs to be rewritten to match actual component structure
-    });
-
-    it.skip("should handle connection status changes (requires data-testid in component)", async () => {
-      // Test skipped: Component doesn't have the expected data-testid attributes
-      // This test needs to be rewritten to match actual component structure
-    });
-  });
-
   describe("Error Handling Integration", () => {
-    it.skip("should handle API errors gracefully (requires data-testid in component)", async () => {
-      // Test skipped: Component doesn't have the expected data-testid attributes
-      // This test needs to be rewritten to match actual component structure
-    });
-
     it("should handle validation errors", async () => {
       wrapper = mount(SettingsView, {
         global: {

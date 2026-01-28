@@ -41,7 +41,7 @@ jobs:
         id: check
         run: |
           # 非阻塞模式運行檢查
-          OUTPUT_FORMAT=github node scripts/check-factory-usage.js > check-output.txt 2>&1 || true
+          OUTPUT_FORMAT=github node scripts/check-factory-usage.cjs > check-output.txt 2>&1 || true
 
           # 保存結果
           cat check-output.txt

@@ -81,14 +81,14 @@
     "migration:update": "node scripts/migration-progress-tracker.js update",
     "migration:report": "node scripts/migration-progress-tracker.js report",
     "migration:dashboard": "node scripts/migration-progress-tracker.js report && node scripts/factory-usage-tracker.js",
-    "factory:check": "node scripts/check-factory-usage.js",
-    "factory:check:ci": "OUTPUT_FORMAT=github FAIL_ON_ERROR=false node scripts/check-factory-usage.js",
+    "factory:check": "node scripts/check-factory-usage.cjs",
+    "factory:check:ci": "OUTPUT_FORMAT=github FAIL_ON_ERROR=false node scripts/check-factory-usage.cjs",
     "factory:badges": "node scripts/factory-badge-system.js",
     "prepare": "husky"
   },
   "lint-staged": {
     "**/*.test.ts": [
-      "node scripts/check-factory-usage.js"
+      "node scripts/check-factory-usage.cjs"
     ],
     "**/*.{ts,tsx,js,jsx}": [
       "eslint --fix",

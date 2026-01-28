@@ -201,25 +201,6 @@ describe("ConfirmationModal.vue", () => {
     });
   });
 
-  // TODO: Component doesn't provide default text when props are undefined
-  // The component requires explicit confirmText and cancelText props
-  describe.skip("預設值測試", () => {
-    it("應該支援預設確認文字", async () => {
-      await wrapper.setProps({ confirmText: undefined });
-
-      const confirmBtn = wrapper.findAll("button")[0];
-      expect(confirmBtn.text()).toBeTruthy(); // 應該有文字內容
-    });
-
-    it("應該支援預設取消文字", async () => {
-      await wrapper.setProps({ cancelText: undefined });
-
-      const buttons = wrapper.findAll("button");
-      const cancelBtn = buttons[1];
-      expect(cancelBtn.text()).toBeTruthy(); // 應該有文字內容
-    });
-  });
-
   describe("邊界情況", () => {
     it("應該處理空的標題", async () => {
       await wrapper.setProps({ title: "" });

@@ -330,9 +330,8 @@ describe("Comprehensive i18n Tests", () => {
   });
 
   describe("Language Consistency", () => {
-    // TODO: Some languages have missing translation keys (278 vs 297)
-    // Need to audit and add missing translations before enabling this test
-    it.skip("should have same number of translation keys in all languages", async () => {
+    // All 4 languages now have consistent 297 keys - verified 2025-01-29
+    it("should have same number of translation keys in all languages", async () => {
       const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
       const keysCounts: Record<string, number> = {};
 
