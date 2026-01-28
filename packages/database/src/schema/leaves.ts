@@ -84,7 +84,7 @@ export const leaveTypes = sqliteTable(
     color: text("color"),
     icon: text("icon"),
 
-    // Timestamps
+    // Timestamps (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -93,6 +93,14 @@ export const leaveTypes = sqliteTable(
       .$onUpdate(() => new Date()),
     createdBy: integer("created_by").references(() => users.id),
     updatedBy: integer("updated_by").references(() => users.id),
+
+    // Timestamps (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantCodeIdx: index("idx_leave_types_restaurant_code").on(
@@ -129,18 +137,18 @@ export const employeeLeaveBalances = sqliteTable(
     pendingDays: real("pending_days").notNull().default(0),
     // remainingDays is a VIRTUAL GENERATED column in SQL, calculated in application layer
 
-    // Carryover Management (遞延管理)
+    // Carryover Management (遞延管理) (legacy - seconds)
     carryoverFromPrevious: real("carryover_from_previous").default(0),
     carryoverToNext: real("carryover_to_next").default(0),
     carryoverExpiresAt: integer("carryover_expires_at", { mode: "timestamp" }),
 
-    // Manual Adjustments (手動調整)
+    // Manual Adjustments (手動調整) (legacy - seconds)
     manualAdjustment: real("manual_adjustment").default(0),
     adjustmentReason: text("adjustment_reason"),
     adjustedBy: integer("adjusted_by").references(() => users.id),
     adjustedAt: integer("adjusted_at", { mode: "timestamp" }),
 
-    // Metadata
+    // Metadata (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -148,6 +156,22 @@ export const employeeLeaveBalances = sqliteTable(
       .notNull()
       .$onUpdate(() => new Date()),
     lastUpdatedBy: integer("last_updated_by").references(() => users.id),
+
+    // Carryover Management (milliseconds - new standard)
+    carryoverExpiresAtMs: integer("carryover_expires_at_ms", {
+      mode: "timestamp_ms",
+    }),
+
+    // Manual Adjustments (milliseconds - new standard)
+    adjustedAtMs: integer("adjusted_at_ms", { mode: "timestamp_ms" }),
+
+    // Metadata (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     employeeYearIdx: index("idx_employee_leave_balances_employee_year").on(
@@ -192,7 +216,7 @@ export const leaveRequests = sqliteTable(
     attachmentUrl: text("attachment_url"),
     emergencyContact: text("emergency_contact"),
 
-    // Approval Workflow (審批流程)
+    // Approval Workflow (審批流程) (legacy - seconds)
     status: text("status", {
       enum: ["pending", "approved", "rejected", "cancelled", "withdrawn"],
     })
@@ -208,7 +232,7 @@ export const leaveRequests = sqliteTable(
     rejectedAt: integer("rejected_at", { mode: "timestamp" }),
     rejectionReason: text("rejection_reason"),
 
-    // Cancellation (取消)
+    // Cancellation (取消) (legacy - seconds)
     cancelledBy: integer("cancelled_by").references(() => users.id),
     cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
     cancellationReason: text("cancellation_reason"),
@@ -219,7 +243,7 @@ export const leaveRequests = sqliteTable(
       .notNull()
       .default(false),
 
-    // Metadata
+    // Metadata (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -227,6 +251,24 @@ export const leaveRequests = sqliteTable(
       .notNull()
       .$onUpdate(() => new Date()),
     submittedAt: integer("submitted_at", { mode: "timestamp" }),
+
+    // Approval Workflow (milliseconds - new standard)
+    finalApprovedAtMs: integer("final_approved_at_ms", {
+      mode: "timestamp_ms",
+    }),
+    rejectedAtMs: integer("rejected_at_ms", { mode: "timestamp_ms" }),
+
+    // Cancellation (milliseconds - new standard)
+    cancelledAtMs: integer("cancelled_at_ms", { mode: "timestamp_ms" }),
+
+    // Metadata (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
+    submittedAtMs: integer("submitted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantStatusIdx: index("idx_leave_requests_restaurant_status").on(
@@ -288,7 +330,7 @@ export const leaveApprovalRules = sqliteTable(
     priority: integer("priority").notNull().default(0),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
-    // Timestamps
+    // Timestamps (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -299,6 +341,14 @@ export const leaveApprovalRules = sqliteTable(
       .notNull()
       .references(() => users.id),
     updatedBy: integer("updated_by").references(() => users.id),
+
+    // Timestamps (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantTypeIdx: index("idx_leave_approval_rules_restaurant_type").on(
@@ -342,7 +392,7 @@ export const leaveCalendarEvents = sqliteTable(
       .default(false),
     compensatoryFor: text("compensatory_for"), // Date that this day compensates for
 
-    // Metadata
+    // Metadata (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -352,6 +402,14 @@ export const leaveCalendarEvents = sqliteTable(
     createdBy: integer("created_by").references(() => users.id),
     color: text("color"),
     icon: text("icon"),
+
+    // Metadata (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantDateIdx: index("idx_leave_calendar_events_restaurant_date").on(

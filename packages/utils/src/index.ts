@@ -65,3 +65,17 @@ export {
   type RestaurantId,
   type NumericId,
 } from "./validation";
+
+// Timestamp utilities
+export {
+  ensureMilliseconds,
+  ensureSeconds,
+  nowMs,
+  nowSeconds,
+  toMs,
+  toSeconds,
+  fromMs,
+  fromSeconds,
+  isMilliseconds,
+  isSeconds,
+} from "./timestamp";

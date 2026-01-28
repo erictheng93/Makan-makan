@@ -129,7 +129,7 @@ export const menuItems = sqliteTable(
     tags: text("tags", { mode: "json" }).$type<string[]>(), // 搜尋標籤
     keywords: text("keywords"), // 關鍵字（用於搜尋）
 
-    // 時間戳記
+    // 時間戳記 (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -137,8 +137,19 @@ export const menuItems = sqliteTable(
       .notNull()
       .$onUpdate(() => new Date()),
 
-    // 軟刪除
+    // 軟刪除 (legacy - seconds)
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
+
+    // 時間戳記 (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
+
+    // 軟刪除 (milliseconds - new standard)
+    deletedAtMs: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     // 關鍵索引優化

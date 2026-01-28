@@ -65,7 +65,7 @@ export const shiftTemplates = sqliteTable(
     // Status
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
-    // Audit
+    // Audit (legacy - seconds)
     createdBy: integer("created_by").references(() => users.id),
     updatedBy: integer("updated_by").references(() => users.id),
     createdAt: integer("created_at", { mode: "timestamp" })
@@ -74,6 +74,14 @@ export const shiftTemplates = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Audit (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantActiveIdx: index("idx_shift_templates_restaurant_active").on(
@@ -106,9 +114,13 @@ export const employeeSchedules = sqliteTable(
     endTime: text("end_time").notNull(),
     breakDurationMinutes: integer("break_duration_minutes").default(0),
 
-    // Clock In/Out (Actual times)
+    // Clock In/Out (Actual times) (legacy - seconds)
     clockInTime: integer("clock_in_time", { mode: "timestamp" }),
     clockOutTime: integer("clock_out_time", { mode: "timestamp" }),
+
+    // Clock In/Out (milliseconds - new standard)
+    clockInTimeMs: integer("clock_in_time_ms", { mode: "timestamp_ms" }),
+    clockOutTimeMs: integer("clock_out_time_ms", { mode: "timestamp_ms" }),
 
     // Hours Tracking
     scheduledHours: real("scheduled_hours").notNull(),
@@ -126,11 +138,11 @@ export const employeeSchedules = sqliteTable(
     notes: text("notes"),
     managerNotes: text("manager_notes"),
 
-    // Confirmation
+    // Confirmation (legacy - seconds)
     confirmedBy: integer("confirmed_by").references(() => users.id),
     confirmedAt: integer("confirmed_at", { mode: "timestamp" }),
 
-    // Audit
+    // Audit (legacy - seconds)
     createdBy: integer("created_by")
       .notNull()
       .references(() => users.id),
@@ -141,6 +153,17 @@ export const employeeSchedules = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Confirmation (milliseconds - new standard)
+    confirmedAtMs: integer("confirmed_at_ms", { mode: "timestamp_ms" }),
+
+    // Audit (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantDateIdx: index("idx_employee_schedules_restaurant_date").on(
@@ -201,7 +224,7 @@ export const schedulingRules = sqliteTable(
       .default(false),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
-    // Audit
+    // Audit (legacy - seconds)
     createdBy: integer("created_by")
       .notNull()
       .references(() => users.id),
@@ -212,6 +235,14 @@ export const schedulingRules = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Audit (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantTypeActiveIdx: index(
@@ -258,7 +289,7 @@ export const schedulingConflicts = sqliteTable(
     message: text("message").notNull(),
     details: text("details"), // JSON object with conflict details
 
-    // Resolution
+    // Resolution (legacy - seconds)
     status: text("status", {
       enum: ["unresolved", "acknowledged", "resolved", "ignored"],
     })
@@ -268,7 +299,7 @@ export const schedulingConflicts = sqliteTable(
     resolvedAt: integer("resolved_at", { mode: "timestamp" }),
     resolutionNotes: text("resolution_notes"),
 
-    // Auto-detected
+    // Auto-detected (legacy - seconds)
     detectedAt: integer("detected_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -278,6 +309,20 @@ export const schedulingConflicts = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Resolution (milliseconds - new standard)
+    resolvedAtMs: integer("resolved_at_ms", { mode: "timestamp_ms" }),
+
+    // Auto-detected (milliseconds - new standard)
+    detectedAtMs: integer("detected_at_ms", {
+      mode: "timestamp_ms",
+    }).$defaultFn(() => new Date()),
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantStatusIdx: index("idx_scheduling_conflicts_restaurant_status").on(
@@ -350,6 +395,7 @@ export const scheduleSwapRequests = sqliteTable(
       .notNull()
       .default("pending"),
 
+    // Approval Workflow (legacy - seconds)
     acceptedBy: integer("accepted_by").references(() => users.id), // Employee who accepts (for open requests)
     acceptedAt: integer("accepted_at", { mode: "timestamp" }),
 
@@ -360,16 +406,32 @@ export const scheduleSwapRequests = sqliteTable(
     rejectedAt: integer("rejected_at", { mode: "timestamp" }),
     rejectionReason: text("rejection_reason"),
 
-    // Expiration
+    // Expiration (legacy - seconds)
     expiresAt: integer("expires_at", { mode: "timestamp" }),
 
-    // Audit
+    // Audit (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Approval Workflow (milliseconds - new standard)
+    acceptedAtMs: integer("accepted_at_ms", { mode: "timestamp_ms" }),
+    approvedAtMs: integer("approved_at_ms", { mode: "timestamp_ms" }),
+    rejectedAtMs: integer("rejected_at_ms", { mode: "timestamp_ms" }),
+
+    // Expiration (milliseconds - new standard)
+    expiresAtMs: integer("expires_at_ms", { mode: "timestamp_ms" }),
+
+    // Audit (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantStatusIdx: index(
@@ -423,13 +485,21 @@ export const employeeAvailability = sqliteTable(
     // Status
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
-    // Audit
+    // Audit (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // Audit (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     restaurantEmployeeIdx: index(

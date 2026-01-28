@@ -78,13 +78,21 @@ export const orders = sqliteTable(
     estimatedPrepTime: integer("estimated_prep_time"), // 預估準備時間（分鐘）
     actualPrepTime: integer("actual_prep_time"), // 實際準備時間（分鐘）
 
-    // 狀態時間戳記
+    // 狀態時間戳記 (legacy - seconds, will be migrated to _ms fields)
     confirmedAt: integer("confirmed_at", { mode: "timestamp" }),
     preparingAt: integer("preparing_at", { mode: "timestamp" }),
     readyAt: integer("ready_at", { mode: "timestamp" }),
     deliveredAt: integer("delivered_at", { mode: "timestamp" }),
     paidAt: integer("paid_at", { mode: "timestamp" }),
     cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
+
+    // 狀態時間戳記 (milliseconds - new standard)
+    confirmedAtMs: integer("confirmed_at_ms", { mode: "timestamp_ms" }),
+    preparingAtMs: integer("preparing_at_ms", { mode: "timestamp_ms" }),
+    readyAtMs: integer("ready_at_ms", { mode: "timestamp_ms" }),
+    deliveredAtMs: integer("delivered_at_ms", { mode: "timestamp_ms" }),
+    paidAtMs: integer("paid_at_ms", { mode: "timestamp_ms" }),
+    cancelledAtMs: integer("cancelled_at_ms", { mode: "timestamp_ms" }),
 
     // 付款資訊
     paymentMethod: text("payment_method"),
@@ -99,6 +107,7 @@ export const orders = sqliteTable(
     rating: integer("rating"), // 1-5 星評分
     reviewComment: text("review_comment"),
     reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
+    reviewedAtMs: integer("reviewed_at_ms", { mode: "timestamp_ms" }),
 
     // 訂單備註
     notes: text("notes"), // 顧客備註
@@ -118,13 +127,21 @@ export const orders = sqliteTable(
       estimatedDeliveryTime?: number;
     }>(),
 
-    // 時間戳記
+    // 時間戳記 (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$onUpdate(() => new Date()),
+
+    // 時間戳記 (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     // 關鍵索引優化

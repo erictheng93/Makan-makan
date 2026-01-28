@@ -59,13 +59,13 @@ export const tables = sqliteTable(
       smokingAllowed?: boolean; // 吸菸區
     }>(),
 
-    // 目前使用狀況
+    // 目前使用狀況 (legacy - seconds)
     currentOrderId: integer("current_order_id"),
     occupiedAt: integer("occupied_at", { mode: "timestamp" }),
     occupiedBy: text("occupied_by"), // 使用者標識
     estimatedFreeAt: integer("estimated_free_at", { mode: "timestamp" }),
 
-    // 清潔和維護
+    // 清潔和維護 (legacy - seconds)
     lastCleanedAt: integer("last_cleaned_at", { mode: "timestamp" }),
     maintenanceNotes: text("maintenance_notes"),
 
@@ -73,7 +73,7 @@ export const tables = sqliteTable(
     totalUsage: integer("total_usage").notNull().default(0), // 使用次數
     averageOccupancyMinutes: integer("average_occupancy_minutes").default(0),
 
-    // 時間戳記
+    // 時間戳記 (legacy - seconds)
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -81,8 +81,28 @@ export const tables = sqliteTable(
       .notNull()
       .$onUpdate(() => new Date()),
 
-    // 軟刪除
+    // 軟刪除 (legacy - seconds)
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
+
+    // 目前使用狀況 (milliseconds - new standard)
+    occupiedAtMs: integer("occupied_at_ms", { mode: "timestamp_ms" }),
+    estimatedFreeAtMs: integer("estimated_free_at_ms", {
+      mode: "timestamp_ms",
+    }),
+
+    // 清潔和維護 (milliseconds - new standard)
+    lastCleanedAtMs: integer("last_cleaned_at_ms", { mode: "timestamp_ms" }),
+
+    // 時間戳記 (milliseconds - new standard)
+    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
+      () => new Date(),
+    ),
+
+    // 軟刪除 (milliseconds - new standard)
+    deletedAtMs: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     // 索引優化
