@@ -83,15 +83,18 @@ function parseJSONFormat(content: string): QRData | null {
   try {
     const data = JSON.parse(content);
 
-    if (data && (typeof data.restaurantId === "number" || typeof data.restaurantId === "string")) {
+    if (
+      data &&
+      (typeof data.restaurantId === "number" ||
+        typeof data.restaurantId === "string")
+    ) {
       const restaurantId = String(data.restaurantId);
       // 新格式：包含 type 字段
       if (data.type === "shop") {
         return {
           type: "shop",
           restaurantId,
-          shopQrCode:
-            data.shopQrCode || `SHOP-${restaurantId}-${Date.now()}`,
+          shopQrCode: data.shopQrCode || `SHOP-${restaurantId}-${Date.now()}`,
           source: "json",
           raw: content,
         };
@@ -137,7 +140,9 @@ function parseURLFormat(content: string): QRData | null {
     const url = new URL(content);
 
     // 標準路徑格式: /restaurant/123/table/5 or /restaurant/S-20250101-001/table/5
-    const pathMatch1 = url.pathname.match(/\/restaurant\/([^\/]+)\/table\/(\d+)/);
+    const pathMatch1 = url.pathname.match(
+      /\/restaurant\/([^/]+)\/table\/(\d+)/,
+    );
     if (pathMatch1) {
       return {
         type: "table",
@@ -149,7 +154,7 @@ function parseURLFormat(content: string): QRData | null {
     }
 
     // 簡短路徑格式: /r/123/t/5
-    const pathMatch2 = url.pathname.match(/\/r\/([^\/]+)\/t\/(\d+)/);
+    const pathMatch2 = url.pathname.match(/\/r\/([^/]+)\/t\/(\d+)/);
     if (pathMatch2) {
       return {
         type: "table",
@@ -161,7 +166,7 @@ function parseURLFormat(content: string): QRData | null {
     }
 
     // 店家模式路徑: /restaurant/123/shop
-    const shopPathMatch = url.pathname.match(/\/restaurant\/([^\/]+)\/shop/);
+    const shopPathMatch = url.pathname.match(/\/restaurant\/([^/]+)\/shop/);
     if (shopPathMatch) {
       return {
         type: "shop",
@@ -248,7 +253,11 @@ function parseSimpleFormat(content: string): QRData | null {
  */
 export function validateQRData(data: QRData): boolean {
   // 檢查餐廳 ID
-  if (!data.restaurantId || typeof data.restaurantId !== "string" || data.restaurantId.trim() === "") {
+  if (
+    !data.restaurantId ||
+    typeof data.restaurantId !== "string" ||
+    data.restaurantId.trim() === ""
+  ) {
     return false;
   }
 
