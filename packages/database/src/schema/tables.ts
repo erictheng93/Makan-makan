@@ -59,50 +59,30 @@ export const tables = sqliteTable(
       smokingAllowed?: boolean; // 吸菸區
     }>(),
 
-    // 目前使用狀況 (legacy - seconds)
+    // 目前使用狀況
     currentOrderId: integer("current_order_id"),
-    occupiedAt: integer("occupied_at", { mode: "timestamp" }),
+    occupiedAt: integer("occupied_at_ms", { mode: "timestamp_ms" }),
     occupiedBy: text("occupied_by"), // 使用者標識
-    estimatedFreeAt: integer("estimated_free_at", { mode: "timestamp" }),
+    estimatedFreeAt: integer("estimated_free_at_ms", { mode: "timestamp_ms" }),
 
-    // 清潔和維護 (legacy - seconds)
-    lastCleanedAt: integer("last_cleaned_at", { mode: "timestamp" }),
+    // 清潔和維護
+    lastCleanedAt: integer("last_cleaned_at_ms", { mode: "timestamp_ms" }),
     maintenanceNotes: text("maintenance_notes"),
 
     // 統計資訊
     totalUsage: integer("total_usage").notNull().default(0), // 使用次數
     averageOccupancyMinutes: integer("average_occupancy_minutes").default(0),
 
-    // 時間戳記 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" })
+    // 時間戳記
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
 
-    // 軟刪除 (legacy - seconds)
-    deletedAt: integer("deleted_at", { mode: "timestamp" }),
-
-    // 目前使用狀況 (milliseconds - new standard)
-    occupiedAtMs: integer("occupied_at_ms", { mode: "timestamp_ms" }),
-    estimatedFreeAtMs: integer("estimated_free_at_ms", {
-      mode: "timestamp_ms",
-    }),
-
-    // 清潔和維護 (milliseconds - new standard)
-    lastCleanedAtMs: integer("last_cleaned_at_ms", { mode: "timestamp_ms" }),
-
-    // 時間戳記 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
-      () => new Date(),
-    ),
-    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
-      () => new Date(),
-    ),
-
-    // 軟刪除 (milliseconds - new standard)
-    deletedAtMs: integer("deleted_at_ms", { mode: "timestamp_ms" }),
+    // 軟刪除
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     // 索引優化

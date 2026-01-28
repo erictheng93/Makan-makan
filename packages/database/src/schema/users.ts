@@ -64,45 +64,26 @@ export const users = sqliteTable("users", {
   totalOrders: integer("total_orders").notNull().default(0),
   totalSpent: integer("total_spent").notNull().default(0), // 以分為單位
 
-  // 安全資訊 (legacy - seconds)
-  lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
-  passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
-
-  // 驗證時間戳 (legacy - seconds)
-  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
-  phoneVerifiedAt: integer("phone_verified_at", { mode: "timestamp" }),
-
-  // 時間戳記 (legacy - seconds)
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$onUpdate(() => new Date()),
-
-  // 軟刪除 (legacy - seconds)
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-
-  // 安全資訊 (milliseconds - new standard)
-  lastLoginAtMs: integer("last_login_at_ms", { mode: "timestamp_ms" }),
-  passwordChangedAtMs: integer("password_changed_at_ms", {
+  // 安全資訊
+  lastLoginAt: integer("last_login_at_ms", { mode: "timestamp_ms" }),
+  passwordChangedAt: integer("password_changed_at_ms", {
     mode: "timestamp_ms",
   }),
 
-  // 驗證時間戳 (milliseconds - new standard)
-  emailVerifiedAtMs: integer("email_verified_at_ms", { mode: "timestamp_ms" }),
-  phoneVerifiedAtMs: integer("phone_verified_at_ms", { mode: "timestamp_ms" }),
+  // 驗證時間戳
+  emailVerifiedAt: integer("email_verified_at_ms", { mode: "timestamp_ms" }),
+  phoneVerifiedAt: integer("phone_verified_at_ms", { mode: "timestamp_ms" }),
 
-  // 時間戳記 (milliseconds - new standard)
-  createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
-    () => new Date(),
-  ),
+  // 時間戳記
+  createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
+    .notNull()
+    .$onUpdate(() => new Date()),
 
-  // 軟刪除 (milliseconds - new standard)
-  deletedAtMs: integer("deleted_at_ms", { mode: "timestamp_ms" }),
+  // 軟刪除
+  deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
 });
 
 export const userRelations = relations(users, ({ one, many }) => ({

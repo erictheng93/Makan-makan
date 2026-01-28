@@ -68,15 +68,10 @@ export const auditLogs = sqliteTable(
     // 效能資訊
     executionTimeMs: integer("execution_time_ms"), // 執行時間（毫秒）
 
-    // 時間戳記 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" })
+    // 時間戳記
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
-
-    // 時間戳記 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
-      () => new Date(),
-    ),
   },
   (table) => ({
     // 索引優化

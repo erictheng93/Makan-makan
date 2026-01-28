@@ -77,25 +77,16 @@ export const restaurants = sqliteTable("restaurants", {
   reviewCount: integer("review_count").notNull().default(0),
   totalOrders: integer("total_orders").notNull().default(0),
 
-  // 時間戳記 (legacy - seconds)
-  createdAt: integer("created_at", { mode: "timestamp" })
+  // 時間戳記
+  createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
     .notNull()
     .$onUpdate(() => new Date()),
 
-  // 軟刪除 (legacy - seconds)
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-
-  // 時間戳記 (milliseconds - new standard)
-  createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).$onUpdate(
-    () => new Date(),
-  ),
-  deletedAtMs: integer("deleted_at_ms", { mode: "timestamp_ms" }),
+  // 軟刪除
+  deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
 });
 
 export const restaurantRelations = relations(restaurants, ({ many }) => ({

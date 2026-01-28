@@ -57,10 +57,10 @@ export const groupOrders = sqliteTable(
     serviceCharge: real("service_charge").notNull().default(0),
     finalAmount: real("final_amount").notNull().default(0),
 
-    // 時間資訊 (legacy - seconds)
-    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-    lockedAt: integer("locked_at", { mode: "timestamp" }),
-    completedAt: integer("completed_at", { mode: "timestamp" }),
+    // 時間資訊 (milliseconds)
+    expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }).notNull(),
+    lockedAt: integer("locked_at_ms", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
 
     // 設定與備註
     settings: text("settings", { mode: "json" })
@@ -69,18 +69,9 @@ export const groupOrders = sqliteTable(
       .default({}),
     notes: text("notes"),
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-
-    // 時間資訊 (milliseconds - new standard)
-    expiresAtMs: integer("expires_at_ms", { mode: "timestamp_ms" }),
-    lockedAtMs: integer("locked_at_ms", { mode: "timestamp_ms" }),
-    completedAtMs: integer("completed_at_ms", { mode: "timestamp_ms" }),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
-    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳 (milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     restaurantStatusIdx: index("idx_group_orders_restaurant_status").on(
@@ -123,16 +114,13 @@ export const groupMembers = sqliteTable(
       .notNull()
       .default({}),
 
-    // 狀態與時間 (legacy - seconds)
-    joinedAt: integer("joined_at", { mode: "timestamp" }).notNull(),
-    lastActiveAt: integer("last_active_at", { mode: "timestamp" }).notNull(),
+    // 狀態與時間 (milliseconds)
+    joinedAt: integer("joined_at_ms", { mode: "timestamp_ms" }).notNull(),
+    lastActiveAt: integer("last_active_at_ms", {
+      mode: "timestamp_ms",
+    }).notNull(),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    leftAt: integer("left_at", { mode: "timestamp" }),
-
-    // 狀態與時間 (milliseconds - new standard)
-    joinedAtMs: integer("joined_at_ms", { mode: "timestamp_ms" }),
-    lastActiveAtMs: integer("last_active_at_ms", { mode: "timestamp_ms" }),
-    leftAtMs: integer("left_at_ms", { mode: "timestamp_ms" }),
+    leftAt: integer("left_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     groupOrderIdx: index("idx_group_members_group_order").on(
@@ -180,13 +168,9 @@ export const groupCartItems = sqliteTable(
     // 狀態
     status: text("status").notNull().default("active"), // active, removed, ordered
 
-    // 時間戳 (legacy - seconds)
-    addedAt: integer("added_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-
-    // 時間戳 (milliseconds - new standard)
-    addedAtMs: integer("added_at_ms", { mode: "timestamp_ms" }),
-    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳 (milliseconds)
+    addedAt: integer("added_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     groupOrderIdx: index("idx_group_cart_items_group_order").on(
@@ -229,22 +213,15 @@ export const splitBills = sqliteTable(
       .notNull()
       .default([]),
 
-    // 支付資訊 (legacy - seconds)
+    // 支付資訊 (milliseconds)
     paymentStatus: text("payment_status").notNull().default("pending"), // pending, processing, paid, failed, refunded
     paymentMethod: text("payment_method"),
     paymentReference: text("payment_reference"),
-    paidAt: integer("paid_at", { mode: "timestamp" }),
+    paidAt: integer("paid_at_ms", { mode: "timestamp_ms" }),
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-
-    // 支付資訊 (milliseconds - new standard)
-    paidAtMs: integer("paid_at_ms", { mode: "timestamp_ms" }),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
-    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳 (milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     groupOrderIdx: index("idx_split_bills_group_order").on(table.groupOrderId),
@@ -268,11 +245,11 @@ export const shareCodes = sqliteTable(
     type: text("type").notNull(), // group_order, table, event, etc.
     resourceId: text("resource_id").notNull(), // 關聯的資源ID
 
-    // 創建者與過期時間 (legacy - seconds)
+    // 創建者與過期時間 (milliseconds)
     createdBy: integer("created_by")
       .notNull()
       .references(() => users.id),
-    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }).notNull(),
 
     // 使用統計
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
@@ -285,14 +262,8 @@ export const shareCodes = sqliteTable(
       .notNull()
       .default({}),
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-
-    // 過期時間 (milliseconds - new standard)
-    expiresAtMs: integer("expires_at_ms", { mode: "timestamp_ms" }),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳 (milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     typeResourceIdx: index("idx_share_codes_type_resource").on(
@@ -327,11 +298,8 @@ export const groupActivityLogs = sqliteTable(
       .notNull()
       .default({}),
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳 (milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     groupOrderIdx: index("idx_group_activity_logs_group_order").on(

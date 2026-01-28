@@ -41,21 +41,14 @@ export const cashRegisters = sqliteTable(
     peripherals: text("peripherals").notNull().default("{}"), // JSON: 周邊設備（打印機、錢箱等）
     settings: text("settings").notNull().default("{}"), // JSON: 設定
 
-    // 維護資訊 (legacy - seconds)
-    lastMaintenanceAt: integer("last_maintenance_at", { mode: "timestamp" }),
-
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-
-    // 維護資訊 (milliseconds - new standard)
-    lastMaintenanceAtMs: integer("last_maintenance_at_ms", {
+    // 維護資訊
+    lastMaintenanceAt: integer("last_maintenance_at_ms", {
       mode: "timestamp_ms",
     }),
 
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
-    updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     restaurantIdx: index("idx_cash_registers_restaurant").on(
@@ -98,19 +91,15 @@ export const cashShifts = sqliteTable(
     digitalSales: real("digital_sales").notNull().default(0),
     totalTransactions: integer("total_transactions").notNull().default(0),
 
-    // 時間資訊 (legacy - seconds)
-    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
-    endedAt: integer("ended_at", { mode: "timestamp" }),
+    // 時間資訊
+    startedAt: integer("started_at_ms", { mode: "timestamp_ms" }).notNull(),
+    endedAt: integer("ended_at_ms", { mode: "timestamp_ms" }),
 
     // 狀態
     status: text("status").notNull().default("active"), // active, closed, suspended
 
     // 備註
     notes: text("notes"),
-
-    // 時間資訊 (milliseconds - new standard)
-    startedAtMs: integer("started_at_ms", { mode: "timestamp_ms" }),
-    endedAtMs: integer("ended_at_ms", { mode: "timestamp_ms" }),
     closingNotes: text("closing_notes"),
   },
   (table) => ({
@@ -167,11 +156,8 @@ export const cashMovements = sqliteTable(
     // 額外資訊
     metadata: text("metadata").notNull().default("{}"), // JSON
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     shiftIdx: index("idx_cash_movements_shift").on(table.shiftId),
@@ -206,28 +192,19 @@ export const receipts = sqliteTable(
     content: text("content").notNull(), // JSON: 格式化的收據內容
     rawContent: text("raw_content"), // 原始打印指令
 
-    // 打印狀態 (legacy - seconds)
+    // 打印狀態
     printStatus: text("print_status").notNull().default("pending"), // pending, printing, printed, failed, cancelled
     printAttempts: integer("print_attempts").notNull().default(0),
     printerName: text("printer_name"),
     printerResponse: text("printer_response"),
-    printedAt: integer("printed_at", { mode: "timestamp" }),
+    printedAt: integer("printed_at_ms", { mode: "timestamp_ms" }),
 
-    // 重印資訊 (legacy - seconds)
+    // 重印資訊
     reprintedCount: integer("reprinted_count").notNull().default(0),
-    lastReprintAt: integer("last_reprint_at", { mode: "timestamp" }),
+    lastReprintAt: integer("last_reprint_at_ms", { mode: "timestamp_ms" }),
 
-    // 時間戳 (legacy - seconds)
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-
-    // 打印狀態 (milliseconds - new standard)
-    printedAtMs: integer("printed_at_ms", { mode: "timestamp_ms" }),
-
-    // 重印資訊 (milliseconds - new standard)
-    lastReprintAtMs: integer("last_reprint_at_ms", { mode: "timestamp_ms" }),
-
-    // 時間戳 (milliseconds - new standard)
-    createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }),
+    // 時間戳
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     orderIdx: index("idx_receipts_order").on(table.orderId),
@@ -279,16 +256,12 @@ export const refunds = sqliteTable(
     // 狀態
     status: text("status").notNull().default("pending"), // pending, processing, completed, failed, cancelled
 
-    // 處理時間 (legacy - seconds)
-    processedAt: integer("processed_at", { mode: "timestamp" }),
-    completedAt: integer("completed_at", { mode: "timestamp" }),
+    // 處理時間
+    processedAt: integer("processed_at_ms", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
 
     // 額外資訊
     metadata: text("metadata").notNull().default("{}"), // JSON
-
-    // 處理時間 (milliseconds - new standard)
-    processedAtMs: integer("processed_at_ms", { mode: "timestamp_ms" }),
-    completedAtMs: integer("completed_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     orderIdx: index("idx_refunds_order").on(table.originalOrderId),
@@ -320,11 +293,8 @@ export const shiftReports = sqliteTable(
     reportData: text("report_data").notNull(), // JSON: 完整報表內容
     summaryData: text("summary_data").notNull(), // JSON: 摘要數據
 
-    // 生成時間 (legacy - seconds)
-    generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
-
-    // 生成時間 (milliseconds - new standard)
-    generatedAtMs: integer("generated_at_ms", { mode: "timestamp_ms" }),
+    // 生成時間
+    generatedAt: integer("generated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
     shiftIdx: index("idx_shift_reports_shift").on(table.shiftId),
