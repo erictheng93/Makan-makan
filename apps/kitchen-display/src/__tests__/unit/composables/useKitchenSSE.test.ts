@@ -290,10 +290,10 @@ describe("useKitchenSSE", () => {
 
     kitchenSSE = createMockUseKitchenSSE({
       restaurantId: 1,
-      onNewOrder,
-      onOrderUpdate,
-      onOrderCancelled,
-      onPriorityUpdate,
+      onNewOrder: onNewOrder as any,
+      onOrderUpdate: onOrderUpdate as any,
+      onOrderCancelled: onOrderCancelled as any,
+      onPriorityUpdate: onPriorityUpdate as any,
       autoConnect: false,
     });
   });

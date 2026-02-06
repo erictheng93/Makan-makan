@@ -10,8 +10,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import type { RealtimeEvent } from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import type {
+  RealtimeEvent,
+  OrderStatusUpdateEvent,
+} from "@makanmakan/shared-types";
+import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
@@ -292,12 +295,25 @@ describe("Cross-Room Communication", () => {
       );
 
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: { orderId: 1 },
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          tableId: "table-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 2,
+              price: 100,
+            },
+          ],
+          totalAmount: 200,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-123",
       };
 
       const count = roomManager.broadcastToRoom("customer", "table-001", event);
@@ -317,7 +333,7 @@ describe("Cross-Room Communication", () => {
 
       expect(conn1?.messages).toHaveLength(1);
       expect(conn2?.messages).toHaveLength(1);
-      expect(conn1?.messages[0].id).toBe("event-001");
+      expect(conn1?.messages[0].eventId).toBe("event-001");
     });
 
     it("應該不影響其他房間", () => {
@@ -335,12 +351,25 @@ describe("Cross-Room Communication", () => {
       );
 
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: { orderId: 1 },
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          tableId: "table-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 1,
+              price: 100,
+            },
+          ],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-123",
       };
 
       roomManager.broadcastToRoom("customer", "table-001", event);
@@ -406,12 +435,11 @@ describe("Cross-Room Communication", () => {
 
     it("應該能向餐廳的所有房間廣播", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
-        type: RealtimeEventType.MENU_ITEM_UPDATED,
-        payload: { menuItemId: 1, available: false },
+        eventId: "event-001",
+        type: RealtimeEventType.MENU_ITEM_UPDATE,
+        data: { menuItemId: 1, action: "updated" as const },
         timestamp: Date.now(),
-        roomType: "admin",
-        roomId: "restaurant-123",
+        restaurantId: "restaurant-123",
       };
 
       const result = roomManager.broadcastToRestaurant("restaurant-123", event);
@@ -430,12 +458,24 @@ describe("Cross-Room Communication", () => {
 
     it("應該能只向特定類型的房間廣播", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: { orderId: 1 },
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 1,
+              price: 100,
+            },
+          ],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "admin",
-        roomId: "restaurant-123",
+        restaurantId: "restaurant-123",
       };
 
       // 只向管理後台和廚房廣播
@@ -467,12 +507,11 @@ describe("Cross-Room Communication", () => {
 
     it("應該能向所有顧客桌位廣播", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
-        type: RealtimeEventType.STORE_CLOSED,
-        payload: { message: "餐廳即將打烊" },
+        eventId: "event-001",
+        type: RealtimeEventType.RESTAURANT_STATUS_UPDATE,
+        data: { isOpen: false },
         timestamp: Date.now(),
-        roomType: "admin",
-        roomId: "restaurant-123",
+        restaurantId: "restaurant-123",
       };
 
       const count = roomManager.broadcastToAllTables("restaurant-123", event);
@@ -526,16 +565,25 @@ describe("Cross-Room Communication", () => {
 
     it("新訂單應該通知廚房和管理後台", () => {
       const orderEvent: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: {
+        data: {
           orderId: 1,
+          orderNumber: "ORD-001",
           tableId: "table-001",
-          items: [{ menuItemId: 1, quantity: 2 }],
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 2,
+              price: 100,
+            },
+          ],
+          totalAmount: 200,
         },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-123",
       };
 
       // 訂單建立應該通知廚房和管理後台
@@ -562,16 +610,16 @@ describe("Cross-Room Communication", () => {
 
     it("訂單狀態更新應該通知顧客", () => {
       const statusEvent: RealtimeEvent = {
-        id: "event-002",
+        eventId: "event-002",
         type: EventTypes.ORDER_STATUS_CHANGED,
-        payload: {
+        data: {
           orderId: 1,
-          status: "preparing",
-          tableId: "table-001",
+          orderNumber: "ORD-001",
+          status: OrderStatus.PREPARING,
+          previousStatus: OrderStatus.CONFIRMED,
         },
         timestamp: Date.now(),
-        roomType: "kitchen",
-        roomId: "restaurant-123",
+        restaurantId: "restaurant-123",
       };
 
       // 狀態更新應該通知對應桌位的顧客
@@ -583,21 +631,22 @@ describe("Cross-Room Communication", () => {
         "customer-1",
       );
       expect(customerConn?.messages).toHaveLength(1);
-      expect(customerConn?.messages[0].payload.status).toBe("preparing");
+      const receivedEvent = customerConn?.messages[0] as OrderStatusUpdateEvent;
+      expect(receivedEvent.data.status).toBe(OrderStatus.PREPARING);
     });
 
     it("訂單完成應該通知所有相關方", () => {
       const readyEvent: RealtimeEvent = {
-        id: "event-003",
+        eventId: "event-003",
         type: EventTypes.ORDER_STATUS_CHANGED,
-        payload: {
+        data: {
           orderId: 1,
-          status: "ready",
-          tableId: "table-001",
+          orderNumber: "ORD-001",
+          status: OrderStatus.READY,
+          previousStatus: OrderStatus.PREPARING,
         },
         timestamp: Date.now(),
-        roomType: "kitchen",
-        roomId: "restaurant-123",
+        restaurantId: "restaurant-123",
       };
 
       // 訂單完成應該通知顧客、管理後台
@@ -663,12 +712,24 @@ describe("Cross-Room Communication", () => {
 
     it("餐廳 A 的事件不應影響餐廳 B", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: { orderId: 1 },
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 1,
+              price: 100,
+            },
+          ],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-A",
       };
 
       roomManager.broadcastToRestaurant("restaurant-A", event);
@@ -740,12 +801,24 @@ describe("Cross-Room Communication", () => {
   describe("Edge Cases", () => {
     it("應該處理廣播到空房間", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: {},
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 1,
+              price: 100,
+            },
+          ],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "non-existent",
+        restaurantId: "non-existent",
       };
 
       const count = roomManager.broadcastToRoom(
@@ -758,12 +831,24 @@ describe("Cross-Room Communication", () => {
 
     it("應該處理廣播到不存在的餐廳", () => {
       const event: RealtimeEvent = {
-        id: "event-001",
+        eventId: "event-001",
         type: EventTypes.ORDER_CREATED,
-        payload: {},
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [
+            {
+              orderItemId: 1,
+              menuItemId: 1,
+              menuItemName: "Test Item",
+              quantity: 1,
+              price: 100,
+            },
+          ],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "admin",
-        roomId: "non-existent",
+        restaurantId: "non-existent",
       };
 
       const result = roomManager.broadcastToRestaurant(

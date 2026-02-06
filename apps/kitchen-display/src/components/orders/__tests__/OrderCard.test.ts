@@ -111,7 +111,7 @@ describe("OrderCard Component", () => {
 
       // Component should render without errors
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.props("order").customerName).toBe("王五");
+      expect((wrapper.props as any)("order").customerName).toBe("王五");
     });
 
     it("should display all order items", () => {
@@ -535,7 +535,7 @@ describe("OrderCard Component", () => {
         props: { order, statusType: "pending" },
       });
 
-      expect(wrapper.props("order")).toEqual(order);
+      expect((wrapper.props as any)("order")).toEqual(order);
     });
 
     it("should mount successfully with required props", () => {
@@ -545,7 +545,7 @@ describe("OrderCard Component", () => {
       });
 
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.props("statusType")).toBe("pending");
+      expect((wrapper.props as any)("statusType")).toBe("pending");
     });
   });
 

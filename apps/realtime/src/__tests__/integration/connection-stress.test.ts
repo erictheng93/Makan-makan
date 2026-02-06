@@ -16,7 +16,7 @@ import type {
   RealtimeAuthPayload,
   RealtimeEvent,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
@@ -507,12 +507,17 @@ describe("Connection Stress Integration Tests", () => {
       let totalDelivered = 0;
       for (let i = 0; i < 100; i++) {
         const event: RealtimeEvent = {
-          id: `msg-${i}`,
+          eventId: `msg-${i}`,
           type: EventTypes.ORDER_STATUS_CHANGED,
-          payload: { orderId: i, status: "preparing" },
+          data: {
+            orderId: i,
+            orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+            status: OrderStatus.PREPARING,
+            previousStatus: OrderStatus.CONFIRMED,
+            updatedBy: { userId: 1, userName: "Test", role: "staff" },
+          },
           timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
+          restaurantId: "restaurant-1",
         };
 
         const result = manager.broadcast("customer", "table-001", event);
@@ -536,12 +541,16 @@ describe("Connection Stress Integration Tests", () => {
       const latencies: number[] = [];
       for (let i = 0; i < 50; i++) {
         const event: RealtimeEvent = {
-          id: `latency-msg-${i}`,
+          eventId: `latency-msg-${i}`,
           type: EventTypes.ORDER_CREATED,
-          payload: {},
+          data: {
+            orderId: i,
+            orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+            items: [],
+            totalAmount: 100,
+          },
           timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
+          restaurantId: "restaurant-1",
         };
 
         const result = manager.broadcast("customer", "table-001", event);
@@ -566,12 +575,16 @@ describe("Connection Stress Integration Tests", () => {
       const broadcastPromises = Array.from({ length: 20 }, (_, i) =>
         Promise.resolve(
           manager.broadcast("customer", "table-001", {
-            id: `concurrent-${i}`,
+            eventId: `concurrent-${i}`,
             type: EventTypes.ORDER_STATUS_CHANGED,
-            payload: {},
+            data: {
+              orderId: i,
+              orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+              status: OrderStatus.PREPARING,
+              previousStatus: OrderStatus.CONFIRMED,
+            },
             timestamp: Date.now(),
-            roomType: "customer",
-            roomId: "table-001",
+            restaurantId: "restaurant-1",
           }),
         ),
       );
@@ -857,12 +870,16 @@ describe("Connection Stress Integration Tests", () => {
 
       // System should still be operational
       const event: RealtimeEvent = {
-        id: "recovery-test",
+        eventId: "recovery-test",
         type: EventTypes.ORDER_CREATED,
-        payload: {},
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-1",
       };
 
       const broadcastResult = limitedManager.broadcast(
@@ -899,12 +916,16 @@ describe("Connection Stress Integration Tests", () => {
         operations.push(
           Promise.resolve(
             manager.broadcast("customer", "table-001", {
-              id: `mixed-op-${i}`,
+              eventId: `mixed-op-${i}`,
               type: EventTypes.ORDER_CREATED,
-              payload: {},
+              data: {
+                orderId: i,
+                orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+                items: [],
+                totalAmount: 100,
+              },
               timestamp: Date.now(),
-              roomType: "customer",
-              roomId: "table-001",
+              restaurantId: "restaurant-1",
             }),
           ),
         );
@@ -951,12 +972,16 @@ describe("Connection Stress Integration Tests", () => {
 
       // Broadcast to each room should only affect that room
       const event: RealtimeEvent = {
-        id: "room-specific",
+        eventId: "room-specific",
         type: EventTypes.ORDER_CREATED,
-        payload: {},
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-0",
+        restaurantId: "restaurant-1",
       };
 
       const result = highLimitManager.broadcast("customer", "table-0", event);
@@ -982,12 +1007,16 @@ describe("Connection Stress Integration Tests", () => {
 
       // Broadcast to restaurant-1 should not affect restaurant-2
       const event: RealtimeEvent = {
-        id: "rest-1-event",
+        eventId: "rest-1-event",
         type: EventTypes.ORDER_CREATED,
-        payload: {},
+        data: {
+          orderId: 1,
+          orderNumber: "ORD-001",
+          items: [],
+          totalAmount: 100,
+        },
         timestamp: Date.now(),
-        roomType: "customer",
-        roomId: "table-001",
+        restaurantId: "restaurant-1",
       };
 
       // Note: Our simplified manager doesn't separate by restaurant for room keys
@@ -1042,12 +1071,16 @@ describe("Connection Stress Integration Tests", () => {
       // Broadcast 1000 messages
       for (let i = 0; i < 1000; i++) {
         perfManager.broadcast("customer", "table-001", {
-          id: `perf-msg-${i}`,
+          eventId: `perf-msg-${i}`,
           type: EventTypes.ORDER_STATUS_CHANGED,
-          payload: { iteration: i },
+          data: {
+            orderId: i,
+            orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+            status: OrderStatus.PREPARING,
+            previousStatus: OrderStatus.CONFIRMED,
+          },
           timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
+          restaurantId: "restaurant-1",
         });
       }
 
@@ -1076,12 +1109,16 @@ describe("Connection Stress Integration Tests", () => {
       // Measure latency over multiple broadcasts
       for (let i = 0; i < 100; i++) {
         const result = latencyManager.broadcast("customer", "table-001", {
-          id: `latency-check-${i}`,
+          eventId: `latency-check-${i}`,
           type: EventTypes.ORDER_STATUS_CHANGED,
-          payload: {},
+          data: {
+            orderId: i,
+            orderNumber: `ORD-${String(i).padStart(3, "0")}`,
+            status: OrderStatus.PREPARING,
+            previousStatus: OrderStatus.CONFIRMED,
+          },
           timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
+          restaurantId: "restaurant-1",
         });
         latencies.push(result.avgLatencyMs);
       }

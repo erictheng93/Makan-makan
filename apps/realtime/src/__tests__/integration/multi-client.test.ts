@@ -11,11 +11,20 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import type {
-  RealtimeAuthPayload,
-  RealtimeEvent,
-} from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
 import { RealtimeEventType } from "@makanmakan/shared-types";
+
+// Test-local event interface for mock connection management testing.
+// Intentionally differs from production TestRealtimeEvent which uses eventId/data/restaurantId,
+// since these tests validate multi-client connection logic, not event shape compliance.
+interface TestRealtimeEvent {
+  id?: string;
+  type: RealtimeEventType;
+  payload?: Record<string, unknown>;
+  timestamp: number;
+  roomType?: string;
+  roomId?: string;
+}
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
@@ -35,7 +44,7 @@ interface MockClientConnection {
   roomId: string;
   restaurantId: string;
   auth: RealtimeAuthPayload;
-  receivedMessages: RealtimeEvent[];
+  receivedMessages: TestRealtimeEvent[];
   isConnected: boolean;
   connectedAt: number;
   lastActivity: number;
@@ -122,7 +131,7 @@ class MockConnectionManager {
   broadcastToRoom(
     roomType: string,
     roomId: string,
-    event: RealtimeEvent,
+    event: TestRealtimeEvent,
     excludeConnectionId?: string,
   ): number {
     const roomKey = this.getRoomKey(roomType, roomId);
@@ -147,7 +156,7 @@ class MockConnectionManager {
   // Broadcast to all connections of a specific restaurant
   broadcastToRestaurant(
     restaurantId: string,
-    event: RealtimeEvent,
+    event: TestRealtimeEvent,
     targetRoomTypes?: ("customer" | "admin" | "kitchen")[],
   ): number {
     let deliveredCount = 0;
@@ -167,7 +176,7 @@ class MockConnectionManager {
   }
 
   // Send message to a specific client
-  sendToClient(connectionId: string, event: RealtimeEvent): boolean {
+  sendToClient(connectionId: string, event: TestRealtimeEvent): boolean {
     const connection = this.connections.get(connectionId);
     if (!connection || !connection.isConnected) return false;
 
@@ -360,7 +369,7 @@ describe("Multi-Client Integration Tests", () => {
       connectionManager.connect(auth2);
       connectionManager.connect(auth3);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-001",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1, items: [] },
@@ -399,7 +408,7 @@ describe("Multi-Client Integration Tests", () => {
       const result2 = connectionManager.connect(auth);
       const result3 = connectionManager.connect(auth);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-002",
         type: EventTypes.ORDER_STATUS_CHANGED,
         payload: { orderId: 1, status: "preparing" },
@@ -451,7 +460,7 @@ describe("Multi-Client Integration Tests", () => {
       const adminResult = connectionManager.connect(adminAuth);
       const kitchenResult = connectionManager.connect(kitchenAuth);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-003",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1 },
@@ -504,7 +513,7 @@ describe("Multi-Client Integration Tests", () => {
       const adminResult = connectionManager.connect(adminAuth);
       const kitchenResult = connectionManager.connect(kitchenAuth);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-004",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 2 },
@@ -561,7 +570,7 @@ describe("Multi-Client Integration Tests", () => {
       ).toBe(2);
 
       // Remaining clients should still be able to receive messages
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-005",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 3 },
@@ -743,7 +752,7 @@ describe("Multi-Client Integration Tests", () => {
       connectionManager.connect(auth);
 
       // Broadcast multiple messages concurrently
-      const events: RealtimeEvent[] = Array.from({ length: 5 }, (_, i) => ({
+      const events: TestRealtimeEvent[] = Array.from({ length: 5 }, (_, i) => ({
         id: `event-concurrent-${i}`,
         type: EventTypes.ORDER_STATUS_CHANGED,
         payload: { orderId: i, status: "preparing" },
@@ -818,7 +827,7 @@ describe("Multi-Client Integration Tests", () => {
       const result1 = connectionManager.connect(auth);
       const result2 = connectionManager.connect(auth);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-private",
         type: EventTypes.CART_UPDATED,
         payload: { cartItems: [] },
@@ -838,7 +847,7 @@ describe("Multi-Client Integration Tests", () => {
     });
 
     it("應該在客戶端不存在時返回失敗", () => {
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-test",
         type: EventTypes.CART_UPDATED,
         payload: {},
@@ -862,7 +871,7 @@ describe("Multi-Client Integration Tests", () => {
 
       connectionManager.disconnect(result.connectionId!);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-test",
         type: EventTypes.CART_UPDATED,
         payload: {},
@@ -893,7 +902,7 @@ describe("Multi-Client Integration Tests", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Send a message
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-activity",
         type: EventTypes.ORDER_CREATED,
         payload: {},
@@ -944,7 +953,7 @@ describe("Multi-Client Integration Tests", () => {
       connectionManager.connect(authRest1);
       connectionManager.connect(authRest2);
 
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-rest1",
         type: EventTypes.ORDER_CREATED,
         payload: {},

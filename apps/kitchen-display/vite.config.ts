@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   define: {
-    __APP_VERSION__: JSON.stringify('1.0.0'),
+    __APP_VERSION__: JSON.stringify("1.0.0"),
     __VUE_PROD_DEVTOOLS__: false,
   },
   server: {
@@ -124,17 +124,6 @@ export default defineConfig({
       format: {
         comments: false,
       },
-    },
-  },
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: ["./tests/setup.ts"],
-    include: ["src/**/*.{test,spec}.{js,ts}", "tests/**/*.{test,spec}.{js,ts}"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "tests/setup.ts", "dist/", "**/*.d.ts"],
     },
   },
 });

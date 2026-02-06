@@ -13,14 +13,66 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import type {
   RealtimeAuthPayload,
   RealtimeEvent,
+  NewOrderEvent,
+  OrderStatusUpdateEvent,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
   ORDER_CREATED: RealtimeEventType.NEW_ORDER,
   ORDER_STATUS_CHANGED: RealtimeEventType.ORDER_STATUS_UPDATE,
 } as const;
+
+// Helper to create a NewOrderEvent for testing
+function createNewOrderEvent(
+  eventId: string,
+  orderId: number,
+  restaurantId = "restaurant-123",
+): NewOrderEvent {
+  return {
+    eventId,
+    type: RealtimeEventType.NEW_ORDER,
+    timestamp: Date.now(),
+    restaurantId,
+    data: {
+      orderId,
+      orderNumber: `ORD-${orderId}`,
+      items: [
+        {
+          orderItemId: 1,
+          menuItemId: 1,
+          menuItemName: "Test Item",
+          quantity: 1,
+          price: 100,
+        },
+      ],
+      totalAmount: 100,
+    },
+  };
+}
+
+// Helper to create an OrderStatusUpdateEvent for testing
+function createOrderStatusUpdateEvent(
+  eventId: string,
+  orderId: number,
+  status: OrderStatus = OrderStatus.PREPARING,
+  previousStatus: OrderStatus = OrderStatus.PENDING,
+  restaurantId = "restaurant-123",
+): OrderStatusUpdateEvent {
+  return {
+    eventId,
+    type: RealtimeEventType.ORDER_STATUS_UPDATE,
+    timestamp: Date.now(),
+    restaurantId,
+    data: {
+      orderId,
+      orderNumber: `ORD-${orderId}`,
+      status,
+      previousStatus,
+    },
+  };
+}
 import {
   createTestAuthPayload,
   MockWebSocketPair,
@@ -117,17 +169,18 @@ class TestableRealtimeSession {
   // Initialize from storage (simulate DO wake-up)
   async initialize(): Promise<void> {
     // Restore room info
-    const savedRoomInfo = await this.state.storage.get<{
+    const savedRoomInfo = (await this.state.storage.get<{
       type: string;
       id: string;
-    }>("roomInfo");
+    }>("roomInfo")) as { type: string; id: string } | undefined;
     if (savedRoomInfo) {
       this.roomInfo = savedRoomInfo;
     }
 
     // Restore event history
-    const savedHistory =
-      await this.state.storage.get<RealtimeEvent[]>("eventHistory");
+    const savedHistory = (await this.state.storage.get<RealtimeEvent[]>(
+      "eventHistory",
+    )) as RealtimeEvent[] | undefined;
     if (savedHistory) {
       this.eventHistory = savedHistory;
     }
@@ -197,7 +250,7 @@ class TestableRealtimeSession {
   }
 
   getEventsSince(eventId: string): RealtimeEvent[] {
-    const index = this.eventHistory.findIndex((e) => e.id === eventId);
+    const index = this.eventHistory.findIndex((e) => e.eventId === eventId);
     if (index === -1) return this.eventHistory;
     return this.eventHistory.slice(index + 1);
   }
@@ -258,43 +311,33 @@ describe("Durable Object Persistence", () => {
   describe("Event History Persistence", () => {
     it("應該持久化事件歷史", async () => {
       const events: RealtimeEvent[] = [
-        {
-          id: "event-1",
-          type: EventTypes.ORDER_CREATED,
-          payload: { orderId: 1 },
-          timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
-        },
-        {
-          id: "event-2",
-          type: EventTypes.ORDER_STATUS_CHANGED,
-          payload: { orderId: 1, status: "preparing" },
-          timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
-        },
+        createNewOrderEvent("event-1", 1, "table-001"),
+        createOrderStatusUpdateEvent(
+          "event-2",
+          1,
+          OrderStatus.PREPARING,
+          OrderStatus.PENDING,
+          "table-001",
+        ),
       ];
 
       events.forEach((e) => session.addEvent(e));
       await session.persistState();
 
-      const savedHistory =
-        await state.storage.get<RealtimeEvent[]>("eventHistory");
+      const savedHistory = (await state.storage.get<RealtimeEvent[]>(
+        "eventHistory",
+      )) as RealtimeEvent[];
       expect(savedHistory).toHaveLength(2);
-      expect(savedHistory![0].id).toBe("event-1");
-      expect(savedHistory![1].id).toBe("event-2");
+      expect(savedHistory![0].eventId).toBe("event-1");
+      expect(savedHistory![1].eventId).toBe("event-2");
     });
 
     it("應該在初始化時恢復事件歷史", async () => {
-      const event: RealtimeEvent = {
-        id: "event-001",
-        type: EventTypes.ORDER_CREATED,
-        payload: { orderId: 1 },
-        timestamp: Date.now(),
-        roomType: "kitchen",
-        roomId: "restaurant-123",
-      };
+      const event: RealtimeEvent = createNewOrderEvent(
+        "event-001",
+        1,
+        "restaurant-123",
+      );
 
       session.addEvent(event);
       await session.persistState();
@@ -304,43 +347,29 @@ describe("Durable Object Persistence", () => {
 
       const history = newSession.getEventHistory();
       expect(history).toHaveLength(1);
-      expect(history[0].id).toBe("event-001");
+      expect(history[0].eventId).toBe("event-001");
     });
 
     it("應該限制事件歷史大小", async () => {
       // 添加超過 MAX_EVENT_HISTORY 的事件
       for (let i = 0; i < 150; i++) {
-        session.addEvent({
-          id: `event-${i}`,
-          type: EventTypes.ORDER_CREATED,
-          payload: { orderId: i },
-          timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
-        });
+        session.addEvent(createNewOrderEvent(`event-${i}`, i, "table-001"));
       }
 
       const history = session.getEventHistory();
       expect(history.length).toBeLessThanOrEqual(100);
       // 應該保留最新的事件
-      expect(history[history.length - 1].id).toBe("event-149");
+      expect(history[history.length - 1].eventId).toBe("event-149");
     });
 
     it("應該能獲取特定事件之後的歷史", async () => {
       for (let i = 0; i < 10; i++) {
-        session.addEvent({
-          id: `event-${i}`,
-          type: EventTypes.ORDER_CREATED,
-          payload: { orderId: i },
-          timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
-        });
+        session.addEvent(createNewOrderEvent(`event-${i}`, i, "table-001"));
       }
 
       const eventsSince = session.getEventsSince("event-5");
       expect(eventsSince).toHaveLength(4); // event-6, 7, 8, 9
-      expect(eventsSince[0].id).toBe("event-6");
+      expect(eventsSince[0].eventId).toBe("event-6");
     });
   });
 
@@ -365,13 +394,14 @@ describe("Durable Object Persistence", () => {
 
       await session.persistState();
 
-      const savedMetadata =
-        await state.storage.get<Record<string, any>>("connectionMetadata");
+      const savedMetadata = (await state.storage.get<Record<string, any>>(
+        "connectionMetadata",
+      )) as Record<string, any>;
       expect(savedMetadata).toBeDefined();
-      expect(savedMetadata!["conn-001"]).toBeDefined();
-      expect(savedMetadata!["conn-001"].id).toBe("conn-001");
-      expect(savedMetadata!["conn-001"].type).toBe("customer");
-      expect(savedMetadata!["conn-001"].lastEventId).toBe("event-5");
+      expect(savedMetadata["conn-001"]).toBeDefined();
+      expect(savedMetadata["conn-001"].id).toBe("conn-001");
+      expect(savedMetadata["conn-001"].type).toBe("customer");
+      expect(savedMetadata["conn-001"].lastEventId).toBe("event-5");
     });
 
     it("應該持久化多個連接的元數據", async () => {
@@ -387,8 +417,9 @@ describe("Durable Object Persistence", () => {
 
       await session.persistState();
 
-      const savedMetadata =
-        await state.storage.get<Record<string, any>>("connectionMetadata");
+      const savedMetadata = (await state.storage.get<Record<string, any>>(
+        "connectionMetadata",
+      )) as Record<string, any>;
       expect(Object.keys(savedMetadata!).length).toBe(3);
     });
   });
@@ -406,14 +437,15 @@ describe("Durable Object Persistence", () => {
         lastActivity: Date.now(),
       });
 
-      session.addEvent({
-        id: "event-001",
-        type: EventTypes.ORDER_STATUS_CHANGED,
-        payload: { orderId: 1, status: "ready" },
-        timestamp: Date.now(),
-        roomType: "kitchen",
-        roomId: "restaurant-456",
-      });
+      session.addEvent(
+        createOrderStatusUpdateEvent(
+          "event-001",
+          1,
+          OrderStatus.READY,
+          OrderStatus.PREPARING,
+          "restaurant-456",
+        ),
+      );
 
       await session.persistState();
 
@@ -427,7 +459,7 @@ describe("Durable Object Persistence", () => {
         id: "restaurant-456",
       });
       expect(newSession.getEventHistory()).toHaveLength(1);
-      expect(newSession.getEventHistory()[0].id).toBe("event-001");
+      expect(newSession.getEventHistory()[0].eventId).toBe("event-001");
     });
 
     it("應該處理空的初始狀態", async () => {
@@ -477,22 +509,13 @@ describe("Durable Object Persistence", () => {
     it("應該處理大量事件的持久化", async () => {
       // 添加 100 個事件
       for (let i = 0; i < 100; i++) {
-        session.addEvent({
-          id: `event-${i}`,
-          type: EventTypes.ORDER_CREATED,
-          payload: {
-            orderId: i,
-            items: Array(10).fill({ name: "item", quantity: 1 }),
-          },
-          timestamp: Date.now(),
-          roomType: "customer",
-          roomId: "table-001",
-        });
+        session.addEvent(createNewOrderEvent(`event-${i}`, i, "table-001"));
       }
 
       await session.persistState();
-      const savedHistory =
-        await state.storage.get<RealtimeEvent[]>("eventHistory");
+      const savedHistory = (await state.storage.get<RealtimeEvent[]>(
+        "eventHistory",
+      )) as RealtimeEvent[];
       expect(savedHistory).toHaveLength(100);
     });
 
@@ -520,10 +543,11 @@ describe("Durable Object Persistence", () => {
 
       await session.persistState();
 
-      const savedMetadata =
-        await state.storage.get<Record<string, any>>("connectionMetadata");
-      expect(savedMetadata!["conn-001"].auth).toBeNull();
-      expect(savedMetadata!["conn-001"].lastEventId).toBeUndefined();
+      const savedMetadata = (await state.storage.get<Record<string, any>>(
+        "connectionMetadata",
+      )) as Record<string, any>;
+      expect(savedMetadata["conn-001"].auth).toBeNull();
+      expect(savedMetadata["conn-001"].lastEventId).toBeUndefined();
     });
   });
 });

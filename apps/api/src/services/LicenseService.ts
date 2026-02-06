@@ -9,11 +9,7 @@
  */
 
 import type { Env } from "../types/env";
-import type {
-  LicenseStatus,
-  LicenseFeatures,
-  LICENSE_TIER_FEATURES,
-} from "../types/deployment";
+import type { LicenseStatus, LicenseFeatures } from "../types/deployment";
 
 // Re-export for convenience
 export { LICENSE_TIER_FEATURES } from "../types/deployment";
@@ -195,7 +191,7 @@ export class LicenseService {
         expiresAt: data.expiresAt,
         error: data.error,
       };
-    } catch (error) {
+    } catch {
       // Network error - use offline validation with grace period
       console.warn(
         "[LicenseService] Central API unreachable, using offline validation",

@@ -12,11 +12,20 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import type {
-  RealtimeAuthPayload,
-  RealtimeEvent,
-} from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
 import { RealtimeEventType } from "@makanmakan/shared-types";
+
+// Test-local event interface for mock event history testing.
+// Intentionally differs from production TestRealtimeEvent which uses eventId/data/restaurantId,
+// since these tests validate event history storage logic, not event shape compliance.
+interface TestRealtimeEvent {
+  id?: string;
+  type: RealtimeEventType;
+  payload?: Record<string, unknown>;
+  timestamp: number;
+  roomType?: string;
+  roomId?: string;
+}
 
 // Use string literal types for testing since enum values may differ
 const EventTypes = {
@@ -31,7 +40,7 @@ import {
 
 // Event History Item
 interface EventHistoryItem {
-  event: RealtimeEvent;
+  event: TestRealtimeEvent;
   storedAt: number;
   deliveredTo: Set<string>; // connectionIds that received this event
 }
@@ -52,7 +61,7 @@ class MockEventHistoryManager {
   storeEvent(
     roomType: string,
     roomId: string,
-    event: RealtimeEvent,
+    event: TestRealtimeEvent,
   ): { eventId: string; stored: boolean } {
     const roomKey = this.getRoomKey(roomType, roomId);
     let roomHistory = this.history.get(roomKey);
@@ -87,7 +96,7 @@ class MockEventHistoryManager {
     roomType: string,
     roomId: string,
     lastEventId?: string,
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const roomKey = this.getRoomKey(roomType, roomId);
     let roomHistory = this.history.get(roomKey);
 
@@ -129,7 +138,7 @@ class MockEventHistoryManager {
     roomId: string,
     startTime: number,
     endTime: number,
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const roomKey = this.getRoomKey(roomType, roomId);
     const roomHistory = this.history.get(roomKey);
 
@@ -150,7 +159,7 @@ class MockEventHistoryManager {
     roomType: string,
     roomId: string,
     eventTypes: RealtimeEventType[],
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const roomKey = this.getRoomKey(roomType, roomId);
     const roomHistory = this.history.get(roomKey);
 
@@ -170,7 +179,7 @@ class MockEventHistoryManager {
     roomType: string,
     roomId: string,
     count: number,
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const roomKey = this.getRoomKey(roomType, roomId);
     const roomHistory = this.history.get(roomKey);
 
@@ -186,7 +195,7 @@ class MockEventHistoryManager {
     roomType: string,
     roomId: string,
     eventId: string,
-  ): RealtimeEvent | undefined {
+  ): TestRealtimeEvent | undefined {
     const roomKey = this.getRoomKey(roomType, roomId);
     const roomHistory = this.history.get(roomKey);
 
@@ -226,7 +235,7 @@ class MockEventHistoryManager {
     roomType: string,
     roomId: string,
     connectionId: string,
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const roomKey = this.getRoomKey(roomType, roomId);
     const roomHistory = this.history.get(roomKey);
 
@@ -317,7 +326,7 @@ class MockReconnectionHandler {
     connectionId: string,
     roomType: string,
     roomId: string,
-  ): RealtimeEvent[] {
+  ): TestRealtimeEvent[] {
     const lastEventId = this.lastEventIds.get(connectionId);
     return this.eventHistory.getEventsSince(roomType, roomId, lastEventId);
   }
@@ -327,7 +336,7 @@ class MockReconnectionHandler {
     connectionId: string,
     roomType: string,
     roomId: string,
-    onEvent: (event: RealtimeEvent) => void,
+    onEvent: (event: TestRealtimeEvent) => void,
   ): number {
     const missedEvents = this.getMissedEvents(connectionId, roomType, roomId);
 
@@ -368,7 +377,7 @@ describe("Event History Integration Tests", () => {
 
   describe("事件儲存和檢索", () => {
     it("應該正確儲存事件", () => {
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-001",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1 },
@@ -385,13 +394,13 @@ describe("Event History Integration Tests", () => {
     });
 
     it("應該自動分配事件 ID", () => {
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1 },
         timestamp: Date.now(),
         roomType: "customer",
         roomId: "table-001",
-      } as RealtimeEvent;
+      };
 
       const result = eventHistory.storeEvent("customer", "table-001", event);
 
@@ -400,7 +409,7 @@ describe("Event History Integration Tests", () => {
     });
 
     it("應該能通過 ID 檢索事件", () => {
-      const event: RealtimeEvent = {
+      const event: TestRealtimeEvent = {
         id: "event-lookup",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1, items: ["item1"] },
@@ -419,7 +428,7 @@ describe("Event History Integration Tests", () => {
 
       expect(retrieved).toBeDefined();
       expect(retrieved!.id).toBe("event-lookup");
-      expect(retrieved!.payload.items).toContain("item1");
+      expect(retrieved!.payload!.items).toContain("item1");
     });
 
     it("應該返回 undefined 當事件不存在時", () => {
@@ -432,7 +441,7 @@ describe("Event History Integration Tests", () => {
     });
 
     it("應該為不同房間分別儲存事件", () => {
-      const event1: RealtimeEvent = {
+      const event1: TestRealtimeEvent = {
         id: "event-room1",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 1 },
@@ -441,7 +450,7 @@ describe("Event History Integration Tests", () => {
         roomId: "table-001",
       };
 
-      const event2: RealtimeEvent = {
+      const event2: TestRealtimeEvent = {
         id: "event-room2",
         type: EventTypes.ORDER_CREATED,
         payload: { orderId: 2 },
@@ -811,7 +820,7 @@ describe("Event History Integration Tests", () => {
       reconnectionHandler.recordLastEvent("conn-001", "event-0");
 
       // Replay missed events
-      const receivedEvents: RealtimeEvent[] = [];
+      const receivedEvents: TestRealtimeEvent[] = [];
       const replayedCount = reconnectionHandler.replayEvents(
         "conn-001",
         "customer",
@@ -839,7 +848,7 @@ describe("Event History Integration Tests", () => {
       }
 
       // New connection with no history
-      const receivedEvents: RealtimeEvent[] = [];
+      const receivedEvents: TestRealtimeEvent[] = [];
       const replayedCount = reconnectionHandler.replayEvents(
         "new-conn",
         "customer",
