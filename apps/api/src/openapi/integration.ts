@@ -8,6 +8,158 @@ import { createOpenAPIApp, errorResponses } from "./config";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Hono } from "hono";
 
+// ========== Schema Imports ==========
+import {
+  TablesSchemas,
+  getTablesRoute,
+  createTableRoute,
+  updateTableStatusRoute,
+  generateQRCodeRoute as generateTableQRCodeRoute,
+} from "./schemas/tables";
+
+import {
+  UsersSchemas,
+  getUsersRoute,
+  createUserRoute,
+  updateUserRoute,
+  changePasswordRoute,
+  deleteUserRoute,
+} from "./schemas/users";
+
+import {
+  RestaurantsSchemas,
+  getRestaurantsRoute,
+  getRestaurantRoute,
+  createRestaurantRoute,
+  updateRestaurantRoute,
+  getRestaurantStatsRoute,
+  generateShopQRRoute,
+  getShopQRRoute,
+  updateRestaurantSettingsRoute,
+} from "./schemas/restaurants";
+
+import {
+  CustomersSchemas,
+  registerCustomerRoute,
+  getCustomersRoute,
+  getCustomerRoute,
+  updateCustomerRoute,
+  getCustomerOrdersRoute,
+  addLoyaltyPointsRoute,
+  redeemLoyaltyPointsRoute,
+  getLoyaltyPointsHistoryRoute,
+} from "./schemas/customers";
+
+import {
+  RealtimeSchemas,
+  generateWebSocketTokenRoute,
+  verifyWebSocketTokenRoute,
+  broadcastMessageRoute,
+  getConnectionStatsRoute,
+  getConnectionHealthRoute,
+  disconnectUserRoute,
+  getActiveRoomsRoute,
+} from "./schemas/realtime";
+
+import {
+  AnalyticsSchemas,
+  getAnalyticsRoute,
+  getSalesReportRoute,
+  getCustomerAnalyticsRoute,
+  getPerformanceMetricsRoute as getAnalyticsPerformanceRoute,
+  getInventoryAnalyticsRoute,
+  exportReportRoute,
+  getDashboardSummaryRoute,
+} from "./schemas/analytics";
+
+import {
+  AIAnalyticsSchemas,
+  getAIConfigRoute,
+  configureAIRoute,
+  generateInsightsRoute,
+  getInsightsRoute,
+  updateInsightStatusRoute,
+  askAIRoute,
+  getAIUsageRoute,
+  getProductAnalyticsRoute,
+} from "./schemas/ai-analytics";
+
+import {
+  SchedulingSchemas,
+  getShiftTemplatesRoute,
+  createShiftTemplateRoute,
+  getEmployeeSchedulesRoute,
+  createScheduleRoute,
+  batchCreateSchedulesRoute,
+  createSwapRequestRoute,
+  updateSwapRequestRoute,
+  clockInOutRoute,
+  getScheduleStatsRoute,
+} from "./schemas/scheduling";
+
+import {
+  LeavesSchemas,
+  getLeaveRequestsRoute,
+  createLeaveRequestRoute,
+  updateLeaveStatusRoute,
+  getLeaveBalancesRoute,
+  getLeavePoliciesRoute,
+  getLeaveStatsRoute,
+  cancelLeaveRequestRoute,
+} from "./schemas/leaves";
+
+import {
+  QRHealthSchemas,
+  generateQRCodeRoute,
+  bulkGenerateQRCodesRoute,
+  getQRTemplatesRoute,
+  createQRTemplateRoute,
+  getSystemHealthRoute,
+  getPerformanceMetricsRoute,
+} from "./schemas/qr-health";
+
+import {
+  PartnershipsSchemas,
+  createPartnershipRoute,
+  getPartnershipsRoute,
+  getPartnershipRoute,
+  getPartnershipStatsRoute,
+  updatePartnershipRoute,
+  deletePartnershipRoute,
+  createPlanRoute,
+  getPlansRoute,
+  getPlanRoute,
+  validatePlanRoute,
+  updatePlanRoute,
+  deletePlanRoute,
+  submitMemberVerificationRoute,
+  getMembersRoute,
+  getMemberRoute,
+  approveMemberRoute,
+  rejectMemberRoute,
+  updateMemberRoute,
+  logUsageRoute,
+  getUsageLogsRoute,
+  cancelUsageRoute,
+  refundUsageRoute,
+} from "./schemas/partnerships";
+
+import {
+  SeatsSchemas,
+  getSeatsRoute,
+  getSeatStatsRoute,
+  getSeatByQRCodeRoute,
+  getSeatRoute,
+  batchCreateSeatsRoute,
+  batchRegenerateQRRoute,
+  updateSeatRoute,
+  deleteSeatRoute,
+  deleteSeatsForTableRoute,
+  occupySeatRoute,
+  releaseSeatRoute,
+  regenerateSeatQRRoute,
+} from "./schemas/seats";
+
 /**
  * 整合 OpenAPI 到 Hono 應用
  */
@@ -188,7 +340,7 @@ export const OrdersSchemas = {
 };
 
 /**
- * 示範：Auth Login 路由（OpenAPI 文檔化）
+ * Auth Login 路由
  */
 export const authLoginRoute = createRoute({
   method: "post",
@@ -219,7 +371,7 @@ export const authLoginRoute = createRoute({
 });
 
 /**
- * 示範：Menu Items 列表路由（OpenAPI 文檔化）
+ * Menu Items 列表路由
  */
 export const getMenuItemsRoute = createRoute({
   method: "get",
@@ -256,7 +408,7 @@ export const getMenuItemsRoute = createRoute({
 });
 
 /**
- * 示範：創建訂單路由（OpenAPI 文檔化）
+ * 創建訂單路由
  */
 export const createOrderRoute = createRoute({
   method: "post",
@@ -293,16 +445,23 @@ export const createOrderRoute = createRoute({
 /**
  * 導出所有 OpenAPI 路由定義
  *
- * 使用方式：
- * ```typescript
- * import { authLoginRoute, getMenuItemsRoute } from './openapi/integration';
- *
- * // 在實際的路由處理器中使用
- * app.openapi(authLoginRoute, async (c) => {
- *   const { email, password } = await c.req.json();
- *   // ... 實現登入邏輯
- * });
- * ```
+ * 包含 16 個端點組的完整 API 路由：
+ * - auth: 身份驗證
+ * - menu: 菜單管理
+ * - orders: 訂單管理
+ * - tables: 桌位管理
+ * - users: 用戶管理
+ * - restaurants: 餐廳管理
+ * - customers: 客戶管理
+ * - realtime: 即時通訊
+ * - analytics: 數據分析
+ * - ai-analytics: AI 分析
+ * - scheduling: 排班管理
+ * - leaves: 請假管理
+ * - qr: QR Code 管理
+ * - health: 系統健康
+ * - partnerships: 特約商店體系
+ * - seats: 座位管理
  */
 export const OpenAPIRoutes = {
   auth: {
@@ -314,4 +473,149 @@ export const OpenAPIRoutes = {
   orders: {
     create: createOrderRoute,
   },
+  tables: {
+    getAll: getTablesRoute,
+    create: createTableRoute,
+    updateStatus: updateTableStatusRoute,
+    generateQR: generateTableQRCodeRoute,
+  },
+  users: {
+    getAll: getUsersRoute,
+    create: createUserRoute,
+    update: updateUserRoute,
+    changePassword: changePasswordRoute,
+    delete: deleteUserRoute,
+  },
+  restaurants: {
+    getAll: getRestaurantsRoute,
+    getById: getRestaurantRoute,
+    create: createRestaurantRoute,
+    update: updateRestaurantRoute,
+    getStats: getRestaurantStatsRoute,
+    generateShopQR: generateShopQRRoute,
+    getShopQR: getShopQRRoute,
+    updateSettings: updateRestaurantSettingsRoute,
+  },
+  customers: {
+    register: registerCustomerRoute,
+    getAll: getCustomersRoute,
+    getById: getCustomerRoute,
+    update: updateCustomerRoute,
+    getOrders: getCustomerOrdersRoute,
+    addLoyaltyPoints: addLoyaltyPointsRoute,
+    redeemLoyaltyPoints: redeemLoyaltyPointsRoute,
+    getLoyaltyHistory: getLoyaltyPointsHistoryRoute,
+  },
+  realtime: {
+    generateToken: generateWebSocketTokenRoute,
+    verifyToken: verifyWebSocketTokenRoute,
+    broadcast: broadcastMessageRoute,
+    getConnectionStats: getConnectionStatsRoute,
+    getConnectionHealth: getConnectionHealthRoute,
+    disconnectUser: disconnectUserRoute,
+    getActiveRooms: getActiveRoomsRoute,
+  },
+  analytics: {
+    query: getAnalyticsRoute,
+    getSalesReport: getSalesReportRoute,
+    getCustomerAnalytics: getCustomerAnalyticsRoute,
+    getPerformance: getAnalyticsPerformanceRoute,
+    getInventory: getInventoryAnalyticsRoute,
+    exportReport: exportReportRoute,
+    getDashboard: getDashboardSummaryRoute,
+  },
+  aiAnalytics: {
+    getConfig: getAIConfigRoute,
+    configure: configureAIRoute,
+    generateInsights: generateInsightsRoute,
+    getInsights: getInsightsRoute,
+    updateInsightStatus: updateInsightStatusRoute,
+    ask: askAIRoute,
+    getUsage: getAIUsageRoute,
+    getProductAnalytics: getProductAnalyticsRoute,
+  },
+  scheduling: {
+    getTemplates: getShiftTemplatesRoute,
+    createTemplate: createShiftTemplateRoute,
+    getSchedules: getEmployeeSchedulesRoute,
+    createSchedule: createScheduleRoute,
+    batchCreate: batchCreateSchedulesRoute,
+    createSwapRequest: createSwapRequestRoute,
+    updateSwapRequest: updateSwapRequestRoute,
+    clockInOut: clockInOutRoute,
+    getStats: getScheduleStatsRoute,
+  },
+  leaves: {
+    getRequests: getLeaveRequestsRoute,
+    createRequest: createLeaveRequestRoute,
+    updateStatus: updateLeaveStatusRoute,
+    getBalances: getLeaveBalancesRoute,
+    getPolicies: getLeavePoliciesRoute,
+    getStats: getLeaveStatsRoute,
+    cancel: cancelLeaveRequestRoute,
+  },
+  qr: {
+    generate: generateQRCodeRoute,
+    bulkGenerate: bulkGenerateQRCodesRoute,
+    getTemplates: getQRTemplatesRoute,
+    createTemplate: createQRTemplateRoute,
+  },
+  health: {
+    getSystemHealth: getSystemHealthRoute,
+    getPerformanceMetrics: getPerformanceMetricsRoute,
+  },
+  partnerships: {
+    create: createPartnershipRoute,
+    getAll: getPartnershipsRoute,
+    getById: getPartnershipRoute,
+    getStats: getPartnershipStatsRoute,
+    update: updatePartnershipRoute,
+    delete: deletePartnershipRoute,
+    createPlan: createPlanRoute,
+    getPlans: getPlansRoute,
+    getPlan: getPlanRoute,
+    validatePlan: validatePlanRoute,
+    updatePlan: updatePlanRoute,
+    deletePlan: deletePlanRoute,
+    submitMemberVerification: submitMemberVerificationRoute,
+    getMembers: getMembersRoute,
+    getMember: getMemberRoute,
+    approveMember: approveMemberRoute,
+    rejectMember: rejectMemberRoute,
+    updateMember: updateMemberRoute,
+    logUsage: logUsageRoute,
+    getUsageLogs: getUsageLogsRoute,
+    cancelUsage: cancelUsageRoute,
+    refundUsage: refundUsageRoute,
+  },
+  seats: {
+    getAll: getSeatsRoute,
+    getStats: getSeatStatsRoute,
+    getByQRCode: getSeatByQRCodeRoute,
+    getById: getSeatRoute,
+    batchCreate: batchCreateSeatsRoute,
+    batchRegenerateQR: batchRegenerateQRRoute,
+    update: updateSeatRoute,
+    delete: deleteSeatRoute,
+    deleteForTable: deleteSeatsForTableRoute,
+    occupy: occupySeatRoute,
+    release: releaseSeatRoute,
+    regenerateQR: regenerateSeatQRRoute,
+  },
+};
+
+// Re-export all schemas for external use
+export {
+  TablesSchemas,
+  UsersSchemas,
+  RestaurantsSchemas,
+  CustomersSchemas,
+  RealtimeSchemas,
+  AnalyticsSchemas,
+  AIAnalyticsSchemas,
+  SchedulingSchemas,
+  LeavesSchemas,
+  QRHealthSchemas,
+  PartnershipsSchemas,
+  SeatsSchemas,
 };

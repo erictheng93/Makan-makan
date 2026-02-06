@@ -115,39 +115,47 @@ API 使用標準 HTTP 狀態碼：
       },
       {
         name: "customers",
-        description: "客戶管理 - 客戶資料、偏好設定",
+        description: "客戶管理 - 客戶資料、偏好設定、忠誠積分",
       },
       {
         name: "restaurants",
-        description: "餐廳管理 - 餐廳資訊、設定",
+        description: "餐廳管理 - 餐廳資訊、設定、Shop QR",
       },
       {
         name: "realtime",
-        description: "即時通訊 - WebSocket 連接與訊息",
+        description: "即時通訊 - WebSocket 連接、廣播、Room 管理",
       },
       {
         name: "analytics",
-        description: "數據分析 - 營運報表、統計數據",
+        description: "數據分析 - 銷售報表、客戶分析、庫存、性能指標",
       },
       {
         name: "ai-analytics",
-        description: "AI 分析 - 智能洞察、預測分析",
+        description: "AI 分析 - 智能洞察、預測分析、產品分析",
       },
       {
         name: "scheduling",
-        description: "排班管理 - 班表、輪班",
+        description: "排班管理 - 班次模板、排班、換班、打卡",
       },
       {
         name: "leaves",
-        description: "請假管理 - 假期申請、審批",
+        description: "請假管理 - 假期申請、審批、餘額、政策",
       },
       {
-        name: "qr",
+        name: "qr-codes",
         description: "QR Code - 生成、範本、批次處理",
       },
       {
-        name: "health",
-        description: "系統健康 - 健康檢查、狀態監控",
+        name: "system-health",
+        description: "系統健康 - 健康檢查、性能監控",
+      },
+      {
+        name: "partnerships",
+        description: "特約商店 - 合作夥伴、方案、會員認證、使用記錄",
+      },
+      {
+        name: "seats",
+        description: "座位管理 - 座位級 QR Code、佔用/釋放、批次操作",
       },
     ],
     components: {
