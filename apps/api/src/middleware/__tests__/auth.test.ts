@@ -74,7 +74,7 @@ describe("Auth Middleware", () => {
     describe("Authorization Header Validation", () => {
       it("should reject request without Authorization header", async () => {
         const req = new Request("http://localhost/protected/test");
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -85,7 +85,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: "" },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -96,7 +96,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: "Basic some-token" },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -107,7 +107,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: "Bearer" },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(401);
       });
@@ -135,7 +135,7 @@ describe("Auth Middleware", () => {
         appNoSecret.use("/protected/*", authMiddleware);
         appNoSecret.get("/protected/test", (c) => c.json({ success: true }));
 
-        const res = await appNoSecret.request(req, { env: mockEnv } as any);
+        const res = await appNoSecret.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(500);
@@ -161,7 +161,7 @@ describe("Auth Middleware", () => {
         appShortSecret.use("/protected/*", authMiddleware);
         appShortSecret.get("/protected/test", (c) => c.json({ success: true }));
 
-        const res = await appShortSecret.request(req, { env: mockEnv } as any);
+        const res = await appShortSecret.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(500);
@@ -181,7 +181,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -209,7 +209,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await appNoBlacklist.request(req, { env: mockEnv } as any);
+        const res = await appNoBlacklist.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(200);
       });
@@ -232,7 +232,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -249,7 +249,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -267,7 +267,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -292,7 +292,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -316,7 +316,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -334,7 +334,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -347,7 +347,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -363,7 +363,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -379,7 +379,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -395,7 +395,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -411,7 +411,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -430,7 +430,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(200);
         expect(res.headers.get("X-Token-Refresh-Recommended")).toBe("true");
@@ -447,7 +447,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(200);
         expect(res.headers.get("X-Token-Refresh-Recommended")).toBeNull();
@@ -464,7 +464,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(200);
@@ -487,7 +487,7 @@ describe("Auth Middleware", () => {
           const req = new Request("http://localhost/protected/test", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const res = await app.request(req, { env: mockEnv } as any);
+          const res = await app.request(req, undefined, mockEnv);
           const result = (await res.json()) as any;
 
           expect(res.status).toBe(200);
@@ -501,7 +501,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: "Bearer invalid-token-format" },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -517,7 +517,7 @@ describe("Auth Middleware", () => {
         const req = new Request("http://localhost/protected/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const res = await app.request(req, { env: mockEnv } as any);
+        const res = await app.request(req, undefined, mockEnv);
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
@@ -548,7 +548,7 @@ describe("Auth Middleware", () => {
       appNoAuth.get("/admin/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/admin/test");
-      const res = await appNoAuth.request(req, { env: mockEnv } as any);
+      const res = await appNoAuth.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(401);
@@ -564,7 +564,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/admin/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
@@ -580,7 +580,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/admin/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -596,7 +596,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/staff/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -625,7 +625,7 @@ describe("Auth Middleware", () => {
       );
 
       const req = new Request("http://localhost/restaurant/123/menu");
-      const res = await appNoAuth.request(req, { env: mockEnv } as any);
+      const res = await appNoAuth.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(401);
@@ -641,7 +641,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/restaurant/999/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -657,7 +657,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/restaurant/123/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
@@ -673,7 +673,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/restaurant/123/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
@@ -682,14 +682,14 @@ describe("Auth Middleware", () => {
 
     it("should allow when user restaurantId matches", async () => {
       const token = await createToken(
-        { id: 1, username: "owner", role: 1, restaurantId: 123 },
+        { id: 1, username: "owner", role: 1, restaurantId: "123" },
         mockEnv.JWT_SECRET,
       );
 
       const req = new Request("http://localhost/restaurant/123/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -709,14 +709,14 @@ describe("Auth Middleware", () => {
       );
 
       const token = await createToken(
-        { id: 1, username: "owner", role: 1, restaurantId: 789 },
+        { id: 1, username: "owner", role: 1, restaurantId: "789" },
         mockEnv.JWT_SECRET,
       );
 
       const req = new Request("http://localhost/shop/789/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await appCustomParam.request(req, { env: mockEnv } as any);
+      const res = await appCustomParam.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -804,7 +804,7 @@ describe("Auth Middleware", () => {
 
     it("should continue without token", async () => {
       const req = new Request("http://localhost/public/menu");
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -821,7 +821,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/public/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -845,7 +845,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/public/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -857,7 +857,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/public/menu", {
         headers: { Authorization: "Bearer invalid-token" },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);
@@ -874,7 +874,7 @@ describe("Auth Middleware", () => {
       const req = new Request("http://localhost/public/menu", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, undefined, mockEnv);
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(200);

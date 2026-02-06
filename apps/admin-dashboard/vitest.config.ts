@@ -37,6 +37,7 @@ export default defineConfig({
     // Mock environment variables for testing
     "import.meta.env.MODE": '"test"',
     "import.meta.env.VITE_API_BASE_URL": '"http://localhost:8787"',
+    "import.meta.env.VITE_WS_URL": '"ws://localhost:8787"',
   },
   esbuild: {
     target: "node14",

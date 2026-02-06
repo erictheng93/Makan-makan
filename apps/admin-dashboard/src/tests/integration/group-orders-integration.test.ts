@@ -175,8 +175,11 @@ describe("Group Orders Integration Tests", () => {
   });
   describe("Group Order Creation", () => {
     it("should open create dialog", async () => {
-      const createButton = wrapper.find('button:contains("建立團體訂單")');
-      if (createButton.exists()) {
+      const buttons = wrapper.findAll("button");
+      const createButton = buttons.find((btn) =>
+        btn.text().includes("建立團體訂單"),
+      );
+      if (createButton) {
         await createButton.trigger("click");
         await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain("建立團體訂單");

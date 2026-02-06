@@ -217,10 +217,13 @@ describe("CartItemCard.vue", () => {
   });
 
   describe("備註功能", () => {
-    // TODO: Component doesn't have data-testid="toggle-notes-btn" attribute
-    it.skip("應該顯示備註切換按鈕", () => {
-      const toggleBtn = wrapper.find('button[data-testid="toggle-notes-btn"]');
-      expect(toggleBtn.text()).toContain("新增備註");
+    it("應該顯示備註切換按鈕", () => {
+      // Find the toggle button by its text content (contains "備註")
+      const buttons = wrapper.findAll("button");
+      const toggleBtn = buttons.find((btn) => btn.text().includes("備註"));
+      expect(toggleBtn).toBeTruthy();
+      // When notes exist, button shows "收起備註"
+      expect(toggleBtn?.text()).toContain("收起");
     });
 
     it("當有備註時應該自動顯示備註輸入框", () => {
@@ -229,29 +232,47 @@ describe("CartItemCard.vue", () => {
       expect(textarea.element.value).toBe("不要香菜");
     });
 
-    // TODO: Toggle button selector needs updating to match actual component
-    it.skip("點擊切換按鈕應該顯示/隱藏備註輸入框", async () => {
-      // 清除備註，重新渲染
-      await wrapper.setProps({
-        item: { ...mockCartItem, notes: undefined },
+    it("點擊切換按鈕應該顯示/隱藏備註輸入框", async () => {
+      // Need to remount the component with no notes to get correct initial state
+      // because showNotesInput is initialized based on props.item.notes
+      const itemWithoutNotes = { ...mockCartItem, notes: undefined };
+      const newWrapper = mount(CartItemCard, {
+        props: { item: itemWithoutNotes },
+        global: {
+          directives: { lazy: {} },
+          stubs: { teleport: true },
+        },
       });
 
-      let textarea = wrapper.find("textarea");
+      // Find toggle button by text content
+      const findToggleBtn = () => {
+        const buttons = newWrapper.findAll("button");
+        return buttons.find((btn) => btn.text().includes("備註"));
+      };
+
+      // Initially should show "新增備註" and textarea should be hidden
+      let toggleBtn = findToggleBtn();
+      expect(toggleBtn?.text()).toContain("新增");
+
+      let textarea = newWrapper.find("textarea");
       expect(textarea.exists()).toBe(false);
 
       // 點擊顯示備註
-      const buttons = wrapper.findAll("button");
-      const toggleBtn = buttons[buttons.length - 1];
-      await toggleBtn.trigger("click");
+      await toggleBtn?.trigger("click");
+      await newWrapper.vm.$nextTick();
 
-      textarea = wrapper.find("textarea");
+      textarea = newWrapper.find("textarea");
       expect(textarea.exists()).toBe(true);
 
       // 再次點擊隱藏備註
-      await toggleBtn.trigger("click");
+      toggleBtn = findToggleBtn();
+      await toggleBtn?.trigger("click");
+      await newWrapper.vm.$nextTick();
 
-      textarea = wrapper.find("textarea");
+      textarea = newWrapper.find("textarea");
       expect(textarea.exists()).toBe(false);
+
+      newWrapper.unmount();
     });
 
     it("修改備註應該觸發 update-notes 事件", async () => {

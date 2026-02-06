@@ -334,6 +334,7 @@ vi.mock("@/services/realtimeService", () => ({
     sendMessage: vi.fn(() => Promise.resolve({ ok: true })),
     getLastEventId: vi.fn(() => null),
     setLastEventId: vi.fn(),
+    syncGroupState: vi.fn(() => Promise.resolve(null)),
   },
   // Mock REALTIME_EVENTS constant
   REALTIME_EVENTS: {
