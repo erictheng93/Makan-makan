@@ -649,7 +649,7 @@ routes.post(
 
       const member = await service.approveMember(
         memberId,
-        String(user.id),
+        user.id,
         data.verificationExpiry,
       );
 

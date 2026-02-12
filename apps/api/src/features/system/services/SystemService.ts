@@ -71,7 +71,7 @@ export class SystemService implements ISystemService {
           originalError: error.originalError,
           userAgent: error.userAgent || userAgent,
           url: error.url,
-          timestamp: error.timestamp,
+          timestamp: new Date(error.timestamp),
         }),
       );
 

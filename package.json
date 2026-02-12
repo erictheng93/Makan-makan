@@ -9,8 +9,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --concurrency=14",
-    "dev:core": "turbo run dev --filter=!@makanmakan/image-processor --filter=!@makanmakan/print-agent --concurrency=12",
+    "dev": "turbo run dev --concurrency=20",
+    "dev:core": "turbo run dev --filter=!@makanmakan/image-processor --filter=!@makanmakan/print-agent --concurrency=20",
     "dev:customer": "turbo run dev --filter=apps/customer-app",
     "dev:admin": "turbo run dev --filter=apps/admin-dashboard",
     "dev:api": "turbo run dev --filter=apps/api",

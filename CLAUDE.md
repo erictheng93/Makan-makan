@@ -11,7 +11,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 **MIGRATION COMPLETED**
 - **Legacy System**: PHP + MySQL (archived externally)
 - **New System**: Cloudflare Workers + D1 + TypeScript (**Production Ready**)
-- **TypeScript Status**: ✅ 0 errors (100% Compliance - All 17 packages passing)
+- **TypeScript Status**: ✅ 0 errors (100% Compliance - All 20 packages passing)
 - **ESLint Status**: ✅ 100% Compliance (0 errors, 0 warnings)
 - **PWA Performance**: 95/100 Score
 - **Current Phase**: Feature enhancement and optimization
@@ -24,7 +24,10 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 - **Cache**: Cloudflare KV Store
 - **Real-time**: Durable Objects (WebSocket connections)
 - **File Storage**: Cloudflare R2 + Images API
+- **Build System**: Turborepo (parallel builds with caching)
 - **Monitoring**: Workers Analytics + Custom metrics
+- **Backup**: Cloudflare Workers Cron + R2
+- **Print**: Local Node.js agent (Express + WebSocket)
 - **Security**: Cloudflare WAF + Zero Trust
 
 ## Project Structure
@@ -32,17 +35,26 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 ```
 makanmakan/
 ├── apps/
-│   ├── customer-app/          # Consumer ordering app
+│   ├── customer-app/          # Consumer ordering app (Vue.js PWA)
 │   ├── admin-dashboard/       # Restaurant management dashboard
 │   ├── kitchen-display/       # Kitchen display system
 │   ├── api/                   # API services (Cloudflare Workers)
-│   └── realtime/              # Real-time services (Durable Objects)
+│   ├── realtime/              # Real-time services (Durable Objects)
+│   ├── onboarding-app/        # New customer onboarding (Vue.js SPA)
+│   ├── management-portal/     # Multi-tenant management UI (Vue.js)
+│   ├── management-api/        # Tenant management API (Workers)
+│   ├── backup-scheduler/      # Scheduled D1 backup (Workers Cron)
+│   ├── print-agent/           # Local receipt printing (Express + WS)
+│   └── image-processor/       # Image optimization service (Workers)
 ├── packages/
 │   ├── shared-types/          # TypeScript definitions
-│   ├── database/              # D1 schema & migrations
-│   ├── utils/                 # Shared utilities
+│   ├── database/              # D1 schema & migrations (Drizzle ORM)
+│   ├── utils/                 # Shared utilities (UUID v7, helpers)
 │   ├── queue-core/            # Queue system core
-│   └── shared/                # Shared Vue components
+│   ├── queue-service/         # Queue service implementation
+│   ├── ai-analytics/          # AI analytics package
+│   ├── testing-utils/         # Test utilities and helpers
+│   └── shared/                # Shared Vue components + i18n
 └── docs/                      # Documentation
 ```
 
@@ -53,13 +65,16 @@ makanmakan/
 - **Staging**: `makanmakan-staging`
 - **Local**: Local SQLite database
 
-### Core Tables
+### Core Tables (21 schema files, 69 tables)
 **Business**: users, restaurants, tables, seats, orders, order_items, menu_items, categories, customers
-**QR & Media**: qr_codes, qr_templates, qr_batches, images, image_variants
-**System**: sessions, audit_logs, error_reports
-**AI Analytics**: ai_configurations, ai_insights_cache, product_analytics, ai_usage_logs
-**Employee Management**: shift_templates, employee_schedules, leave_types, leave_requests, employee_leave_balances
-**Partnership System**: partnerships, partnership_plans, partnership_members, partnership_usage_logs
+**QR & Media**: qr_codes, qr_templates, qr_batches, qr_downloads, images, image_views, image_processing_jobs
+**System**: sessions, audit_logs, error_reports, system_alerts
+**Employee Management**: shift_templates, employee_schedules, scheduling_rules, scheduling_conflicts, schedule_swap_requests, employee_availability, leave_types, leave_requests, leave_approval_rules, leave_calendar_events, employee_leave_balances
+**Partnership System**: partnerships, partnership_plans, verified_members, partnership_usage_logs
+**POS**: cash_registers, cash_shifts, cash_movements, receipts, refunds, shift_reports
+**Group Orders**: group_orders, group_members, group_cart_items, split_bills, share_codes, group_activity_logs
+**Coupons**: coupons, coupon_usage, coupon_distributions, coupon_templates
+**Verification**: password_reset_tokens, email_verification_tokens, phone_verification_tokens, password_change_logs
 
 ### Database Migrations
 
@@ -67,11 +82,12 @@ makanmakan/
 
 **Generated Migrations**: `packages/database/migrations_fresh/`
 
-**ID Strategy**:
-- Primary keys: `INTEGER` with auto-increment
-- Foreign key `restaurant_id`: `TEXT` referencing `restaurants.public_id`
-- `public_id` format: Business-readable `S-YYYYMMDD-NNN` pattern
-- Timestamps: `INTEGER` (Unix milliseconds via `unixepoch('now') * 1000`)
+**ID Strategy** (UUID v7):
+- Primary keys: `TEXT` (UUID v7 via `packages/utils/src/uuid.ts`)
+- `restaurant_id`: `TEXT` referencing `restaurants.id` (UUID v7)
+- UUID v7: Time-sortable, globally unique (timestamp in first 48 bits)
+- Helpers: `generateUUID()`, `isValidUUID()`, `extractUUIDTimestamp()`
+- Timestamps: `INTEGER` (Unix milliseconds via `timestamp_ms` mode)
 
 **Commands**:
 ```bash
@@ -170,28 +186,51 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 
 ```
 /api/v1/
-├── auth/          # Authentication
-├── restaurants/   # Restaurant management (includes shop QR)
-├── menu/          # Menu and categories
-├── orders/        # Order management
-├── tables/        # Table management and QR codes
-├── seats/         # Seat management (dual-mode QR)
-├── users/         # User/employee management
-├── customers/     # Customer registration and profiles
-├── leaves/        # Leave management (100% complete - full-stack implementation)
-├── scheduling/    # Employee scheduling (100% complete)
-├── analytics/     # Business analytics
-├── ai-analytics/  # AI-powered insights (backend complete)
-├── qr/            # QR code generation and templates
-├── realtime/      # Realtime WebSocket authentication (100% complete)
-│   ├── /auth/token   # Generate WebSocket token
-│   └── /auth/verify  # Verify WebSocket token
-├── partnerships/  # Partnership & merchant collaboration (100% complete)
-│   ├── /partnerships          # Partnership CRUD operations
-│   ├── /partnerships/:id/plans     # Plan management
-│   ├── /partnerships/:id/members   # Member management
-│   └── /partnerships/:id/usage     # Usage logging
-└── health/        # System health monitoring
+├── auth/            # Authentication
+├── verification/    # Password reset, email/phone verification
+├── restaurants/     # Restaurant management (includes shop QR)
+├── menu/            # Menu and categories
+├── orders/          # Order management
+├── tables/          # Table management and QR codes
+├── seats/           # Seat management (dual-mode QR)
+├── users/           # User/employee management
+├── customers/       # Customer registration and profiles
+├── leaves/          # Leave management
+├── scheduling/      # Employee scheduling
+├── analytics/       # Business analytics
+├── ai-analytics/    # AI-powered insights
+├── qr/              # QR code generation and templates
+├── realtime/        # Realtime WebSocket authentication
+├── partnerships/    # Partnership & merchant collaboration
+├── pos/             # Point-of-sale system
+│   ├── registers/       # Cash register management
+│   ├── shifts/          # Cash shift open/close
+│   ├── cash-movements/  # Cash in/out tracking
+│   ├── receipts/        # Receipt generation
+│   ├── refunds/         # Refund processing
+│   └── reports/         # Shift reports
+├── coupons/         # Coupon & promotion management
+├── group-orders/    # Group ordering & split billing
+├── reservations/    # Table reservations
+├── waiting-list/    # Walk-in waiting list
+├── sse/             # Server-Sent Events
+├── kitchen/         # Kitchen display API
+├── backup/          # Database backup operations
+├── cache/           # Cache management
+├── monitoring/      # System monitoring
+├── notifications/   # Push/email notifications
+├── queue/           # Job queue management
+├── system/          # System configuration
+└── health/          # System health monitoring
+
+Management API (apps/management-api/):
+├── /api/v1/tenants/       # Tenant provisioning & management
+├── /api/v1/deployments/   # Deployment management
+├── /api/v1/licenses/      # License management
+├── /api/v1/onboarding/    # Onboarding workflow
+├── /api/v1/monitoring/    # Multi-tenant monitoring
+├── /api/v1/updates/       # Version sync & updates
+└── /health                # Health check
 
 WebSocket Endpoints (apps/realtime/):
 ├── /customer/:tableId      # Customer real-time updates
@@ -226,53 +265,44 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Current Development Status
 
 ### Production-Ready Features
-- Core API infrastructure
+- Core API infrastructure with 29 endpoint groups
 - JWT-based multi-role authentication with bcrypt password hashing
+- **Verification System**: Password reset, email/phone verification with token management
 - QR code service (advanced generation with templates)
 - **Shop QR System**: Full-stack shop-level ordering (table-free mode)
 - **Seat Management**: Dual-mode QR (table-level or seat-level)
 - **AI Analytics**: Complete backend + frontend UI (4 LLM providers)
 - **Multi-language Support (i18n)**: 6-language system (zh-TW, zh-CN, en-US, ja-JP, vi-VN, id-ID)
-- **Employee Scheduling System**: 100% complete (7,392 lines - full-stack with testing)
-- **Leave Management System**: 100% complete (3,596 lines - full-stack implementation with notification, export, analytics)
-- **Realtime Services**: 90% complete (6,500+ lines - production-ready with frontend integration)
-  - WebSocket infrastructure with Durable Objects (95%)
-  - JWT authentication for WebSocket connections (100%)
-  - Intelligent message routing with role-based access (95%)
-  - Offline reconnection support with event history (90%)
-  - Enterprise features (85%): State machines, cross-object communication, Hibernation API
-  - Group ordering functionality (80%)
-  - Split billing with 3 payment modes (80%)
-  - Frontend integration: Customer app (85%), **Admin dashboard (100%)**, **Kitchen display (100%)**
-  - Test coverage: Unit tests (80%), Integration tests (70%)
-- **Partnership System**: 100% complete (3,163 lines - full-stack implementation with comprehensive testing)
-  - Partnership management with contract tracking
-  - Flexible discount plans (percentage, fixed, special price)
-  - Member verification and approval workflow
-  - Usage logging with cancellation and refund support
-  - Authorization and role-based access control
-  - Complete test coverage: 83 test cases (46 unit + 37 integration)
+- **Employee Scheduling System**: 100% complete (full-stack with testing)
+- **Leave Management System**: 100% complete (full-stack with notification, export, analytics)
+- **Realtime Services**: 90% complete (production-ready with frontend integration)
+  - WebSocket infrastructure with Durable Objects
+  - JWT authentication, role-based message routing
+  - Offline reconnection with event history
+  - Frontend integration: Customer app, Admin dashboard, Kitchen display
+- **Partnership System**: 100% complete (full-stack with comprehensive testing)
+- **POS System**: Cash registers, shifts, movements, receipts, refunds, shift reports
+- **Coupon System**: Coupons, usage tracking, distributions, templates
+- **Group Orders & Split Billing**: Group ordering with cart sharing, split bills, share codes, activity logs
+- **Hybrid Deployment Architecture**: Multi-tenant management portal + API, tenant provisioning, license management
+- **Onboarding System**: New customer onboarding workflow (dedicated app)
+- **Backup & Recovery**: Automated D1 backup scheduler with R2 storage
+- **Print Agent**: Local receipt printing via Express + WebSocket
+- **Image Processing**: Dedicated image optimization worker
 - Customer authentication and profile management
 - PWA with 95/100 performance score
 - Comprehensive error monitoring and logging
 - Complete test coverage and CI/CD pipeline
 
 ### In Development
-- **Testing Infrastructure Enhancement**: Phase 1-3 完成
-  - ✅ Phase 1 (100%): OpenAPI 工具安裝、測試結構創建、覆蓋率配置
-  - ✅ Phase 2 (100%): 48/45 個核心測試文件（超越原始目標 107%）
-    - Kitchen Display: 28 個測試文件，794 測試案例（含 5 service tests + 9 composable tests + 4 store tests + 10 component tests）
-    - Realtime Services: 20 個測試文件（12 unit + 8 integration），100% 完成
-  - ✅ Phase 3 (100%): 16/16 個 API 端點組已文檔化
-    - 原 14 組: Auth, Menu, Orders, Tables, Users, Restaurants, Customers, Realtime, Analytics, AI-Analytics, Scheduling, Leaves, QR-Codes, System-Health
-    - 新增 2 組: Partnerships (22 routes), Seats (12 routes)
-    - 總計: 12 個 Schema 文件 + integration.ts，120+ 個 OpenAPI 路由定義
-- **Realtime Services - Final 10%**: Performance testing, monitoring dashboard, group order frontend, staging deployment
+- **Realtime Services - Final 10%**: Performance testing, monitoring dashboard, staging deployment
+- **POS Frontend**: Admin dashboard integration for POS features
+- **Reservation System**: Completion of reservations and waiting-list frontend
 
 ### Next Phase
-- Complete realtime services final 10%
-- Payment Integration (deferred to Phase 2)
-- Native mobile apps (deferred to Phase 2)
+- Payment integration (payment gateway)
+- Native mobile apps
+- Advanced analytics dashboards
 
 ## Key Features
 
@@ -281,13 +311,19 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - QR code-based ordering (table, seat, or shop modes)
 - Real-time order tracking (Durable Objects)
 - Role-based access control with specialized interfaces
+- POS system with cash register, shift, and receipt management
+- Coupon and promotion management system
+- Group ordering with split billing
 - Global edge deployment for low latency
 
 ### Advanced Features
+- Hybrid multi-tenant deployment (management portal + API)
 - Smart multi-layer caching strategy
 - Business analytics with custom metrics
 - AI-powered product analysis and insights (4 LLM providers)
 - Progressive Web App for offline functionality
+- Automated backup and disaster recovery (D1 → R2)
+- Local print agent for receipt printing
 - Automated monitoring with health checks and alerting
 
 ## Common Tasks
@@ -345,138 +381,23 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 **For detailed changelog, see: `docs/archive/CHANGELOG.md`**
 
-### Latest (2025-01-24)
-- **Package Manager Cleanup**: 移除遺留的 npm 命令，統一使用 pnpm
-  - ✅ 修復 `package.json` 中 2 處 `npm run` → `pnpm run`
-  - ✅ 修復 `.github/workflows/test.yml` 中 1 處 `npm run` → `pnpm run`
-  - ✅ 更新 `CLAUDE.md` 文檔中所有 npm 命令為 pnpm
-  - ✅ 新增 Package Manager 章節說明 pnpm 使用規範
+### Latest (2026-02-13)
+- **CLAUDE.md Sync with Reality**: Comprehensive documentation update
+  - Updated project structure (11 apps, 8 packages + i18n)
+  - Documented UUID v7 migration, 69 database tables across 21 schema files
+  - Added POS, Coupon, Group Orders, Verification systems
+  - Added Hybrid Deployment (management portal + API), Onboarding, Backup, Print Agent
+  - Documented 29 API endpoint groups + Management API
 
-### Previous (2025-11-24)
-- **Partnership System - Complete Implementation**: Full-stack merchant collaboration system
-  - ✅ **Backend Services**: PartnershipService with comprehensive business logic (759 lines)
-  - ✅ **Database Schema**: partnerships, partnership_plans, partnership_members, partnership_usage_logs (359 lines)
-  - ✅ **API Layer**: RESTful endpoints with validation (694 routes + 290 validation)
-  - ✅ **Test Coverage**: 83 test cases covering all scenarios (922 lines)
-    - Unit tests: 46 test cases (partnership, plan, member, usage management)
-    - Integration tests: 37 test cases (authorization, validation, business logic)
-  - ✅ **Features**:
-    - Partnership CRUD operations with contract tracking
-    - Flexible discount plans (percentage, fixed, special price)
-    - Member verification and approval workflow
-    - Usage logging with cancellation and refund support
-    - Max discount cap and usage limit enforcement
-    - Time-based restrictions (days, time slots)
-  - 📊 **Total**: 3,163 lines (1,118 core + 922 tests + 1,123 API layer)
+### Previous (2026-02-06)
+- **Testing Infrastructure Phase 2 Complete**: 48/45 test files (107% of target)
+  - Kitchen Display: 28 test files, Realtime Services: 20 test files
+- **API Documentation Phase 3 Complete**: 16/16 endpoint groups documented (120+ OpenAPI routes)
 
-- **TypeScript Compliance - All Tests Fixed**: Resolved all remaining TypeScript errors
-  - ✅ Fixed 106 TypeScript errors in realtime tests (106 → 0)
-  - ✅ Created test utilities helper with proper type definitions
-  - ✅ Updated 8 test files with correct RealtimeAuthPayload types
-  - ✅ Maintained 100% TypeScript compliance across all 17 packages
-
-### Previous (2025-11-15)
-- **Testing Infrastructure & API Documentation - Phase 1-3 Core Complete**: 測試基礎設施與 API 文檔化核心實施
-  - ✅ **Phase 1 - 基礎設施準備（100%）**:
-    - OpenAPI 工具安裝: @hono/swagger-ui 0.5.2, @hono/zod-openapi 1.1.4, zod 3.25.76
-    - 測試結構創建: 45 個測試文件位置準備就緒
-    - 覆蓋率配置: vitest.config.ts 全局 85%、關鍵模組 90% 門檻
-    - 實施指南: 1000+ 行詳細文檔
-  - ✅ **Phase 2 - 核心測試實施（完成）**:
-    - Realtime Services: 5 個測試文件（1,726 行，75 個測試案例）
-    - Kitchen Display: 2 個測試文件（460 行，39 個測試案例）
-    - 總計: 7 個測試文件，2,186 行，114 個測試案例
-    - 估計覆蓋率: 85%+（核心模組）
-  - ✅ **Phase 3 - API 文檔化（核心完成）**:
-    - OpenAPI 3.1 基礎設施: config.ts (295 行)
-    - Swagger UI 集成: /docs 和 /openapi.json 端點
-    - API Schema 文件: 12 個文件（5,200+ 行）
-    - 已文檔化端點組: 16/16（原 14 組 + Partnerships, Seats）
-    - OpenAPI 路由定義: 120+ 個
-  - 📊 **總成果**: 24+ 個文件，5,200+ 行代碼，114 個測試案例
-  - ⏳ **剩餘工作**: 28 個測試文件（團隊執行）
-
-### Previous (2025-11-06)
-- **Employee Management Modules - 100% Complete**: Both scheduling and leave management achieved full completion
-  - ✅ **Leave Management - Final 5%**: Completed all remaining features (940+ lines)
-    - ExportService: 440+ lines (CSV, Excel, PDF export for leave requests, balances, schedules)
-    - LeaveAnalyticsService: 540+ lines (comprehensive analytics and insights)
-    - NotificationService: Verified existing 480-line implementation (Email, SMS, Push)
-    - Updated completion: 95% → 100%
-  - ✅ **User Manuals Created**: Comprehensive bilingual documentation
-    - SCHEDULING_MANUAL.md: 1,000+ lines (complete employee scheduling guide)
-    - LEAVE_MANAGEMENT_MANUAL.md: 1,800+ lines (complete leave management guide)
-    - Both manuals: Chinese/English bilingual, 10+ sections, detailed workflows, FAQ
-  - ✅ **Total Employee Management**: 13,304+ lines (12,364 core + 940 new features)
-  - ✅ **Updated status**: Leave Management (95% → 100%), Scheduling (98% → 100%)
-  - ✅ **Overall project completion**: 97% → 98%
-
-### Previous (2025-11-03)
-- **Realtime Services - Frontend Integration Complete**: Full-stack WebSocket implementation
-  - ✅ **Admin Dashboard Integration**: Complete real-time notification system
-    - WebSocket service layer: 492 lines (connection management, auto-reconnection)
-    - useAdminRealtime composable: 634 lines (order notifications, kitchen stats, menu alerts)
-    - RealtimeNotificationPanel component: 719 lines (4 tabs: orders, kitchen, menu, system)
-    - Integrated into DashboardView with connection status indicator
-  - ✅ **Kitchen Display Integration**: Real-time order management
-    - useKitchenRealtime composable: 710 lines (order queue, item status, urgent alerts)
-    - Order operations: confirm, complete, update item status
-    - Sound notifications for new orders and urgent items
-    - Kitchen queue statistics with real-time updates
-  - ✅ **Integration Tests**: Comprehensive WebSocket testing
-    - websocket-integration.test.ts: Connection lifecycle, heartbeat, events
-    - broadcast-integration.test.ts: Message routing, concurrent broadcasts
-    - offline-reconnection.test.ts: Event history, reconnection mechanism
-    - message-routing.test.ts: Role-based message filtering logic
-  - ✅ **Updated status**: Realtime Services (82.5% → 90%)
-  - ✅ **Total lines**: 6,500+ lines (3,886 core + 2,614 frontend integration)
-
-- **Realtime Services Verification** (earlier today): System audit and progress update
-  - ✅ Discovered 3,886+ lines of production-ready code (vs 40% estimated)
-  - ✅ WebSocket Infrastructure: 2,822 lines with Durable Objects
-  - ✅ JWT Authentication: 352 lines complete system
-  - ✅ Enterprise Features: 1,603 lines (state machines, cross-object communication, hibernation)
-  - ✅ Shared Type Definitions: 642 lines with 15 event types
-  - ✅ Frontend Integration: Customer app 485+ lines
-  - ✅ API Integration: 520+ lines (broadcast service, auth service)
-  - ✅ Comprehensive documentation: 1,800+ lines implementation guide
-
-### Previous (2025-11-02)
-- **Employee Management Module Verification**: Comprehensive codebase audit completed
-  - ✅ Leave Management System: Discovered 2,656 lines of complete frontend implementation
-  - ✅ Employee Scheduling System: Verified 7,392 lines of production-ready code
-  - ✅ Total Employee Management: 12,364 lines across all layers (frontend, API, services)
-  - ✅ Updated completion status: Leave (0% → 95%), Scheduling (95% → 98%)
-  - ✅ Overall project completion: 85% → 97%
-
-### Previous (2025-10-30)
-- **Employee Scheduling - Final 5%**: Completed remaining features and testing
-  - ✅ Swap Request Management: Added accept, reject, cancel methods (backend + frontend)
-  - ✅ Clock In/Out UI Component: 856-line component with real-time tracking
-  - ✅ Shift Template Form Modal: 894-line form with validation and preview
-  - ✅ Unit Tests: 370-line test suite for SchedulingService
-  - ✅ Updated progress: 43% → 95%
-
-### Previous (2025-10-12)
-- **i18n System**: Multi-language support implementation complete (6 languages)
-- **Module Resolution**: Fixed i18n module and ESLint errors
-
-### Recent (2025-10-06 - 2025-10-11)
-- **AI Analytics UI**: Complete frontend implementation with TypeScript compliance
-- **Employee Scheduling System**: Complete implementation (95%) - database, service, API, frontend, tests
-- **Build System**: pnpm upgrade and protection measures
-
-### Previous Milestones (2025-10-10)
-- **Shop-Level QR System**: Full-stack implementation (2,860 lines, 3 phases)
-- **Leave Management System**: Complete design ready for implementation
-- **Password Security**: Migrated to bcrypt hashing
-
-### Earlier Milestones (2025-09/10)
-- **Seat Management**: Dual-mode QR (table/seat level)
-- **AI Analytics Backend**: Multi-LLM support (4 providers)
-- **PWA Optimization**: 95/100 performance score
-- **ESLint Compliance**: 0 errors, 0 warnings
-- **Payment System Removal**: Simplified architecture (14 tables removed)
+### Previous (2025-01-24)
+- **Package Manager Cleanup**: Unified pnpm usage, removed legacy npm commands
+- **Partnership System**: Full-stack merchant collaboration (3,163 lines, 83 test cases)
+- **TypeScript Compliance**: 0 errors across all packages
 
 ## Documentation
 
@@ -506,24 +427,13 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 ---
 
-**Last Updated**: 2026-02-06
-**Architecture**: 2.0 (Cloudflare Serverless)
-**Status**: Production Ready | 98% Complete | ✅ 0 TypeScript Errors | ✅ 0 ESLint Errors | 95/100 PWA Score | Employee Management 100% | Realtime Services 90% | Partnership System 100% | Testing Infrastructure Phase 1-3: 100%
+**Last Updated**: 2026-02-13
+**Architecture**: 2.0 (Cloudflare Serverless + Hybrid Deployment)
+**Status**: Production Ready | ✅ 0 TypeScript Errors | ✅ 0 ESLint Errors | 95/100 PWA Score
+**Systems**: 11 apps, 8 packages, 21 schema files (69 tables), 29 API endpoint groups, UUID v7
+**Complete**: Employee Management | Partnership | POS | Coupons | Group Orders | Verification | Testing Phase 1-3
+**In Progress**: Realtime Services (90%) | POS Frontend | Reservations
 
-**Latest Achievements (2026-02-06)**:
-- ✅ Testing Infrastructure Phase 2 Complete: 48/45 測試文件（107% 超越目標）
-  - Kitchen Display: 28 個測試文件（components, composables, stores, services, integration）
-  - Realtime Services: 20 個測試文件（connection, auth, routing, integration）
-  - 新增 5 個 service tests: kitchenApi, offlineService, audioService, sseService, errorReportingService
-  - 新增 3 個 realtime tests: auth-middleware, auth-error-handling, role-based-routing
-- ✅ API Documentation Phase 3 Complete: 16/16 端點組完整文檔化（120+ OpenAPI 路由定義）
-  - 新增 partnerships.ts (22 routes) 和 seats.ts (12 routes)
-  - integration.ts 整合所有 12 個 Schema 文件
-  - config.ts 新增 partnerships、seats 標籤
-
-**Previous Achievements (2025-01-24)**:
-- ✅ Package Manager Cleanup: 統一使用 pnpm，移除所有遺留 npm 命令
-- ✅ Documentation Update: 更新所有開發指令和新增 pnpm 使用規範章節
 - Always use context7 when I need code generation, setup or configuration steps, or
 library/API documentation. This means you should automatically use the Context7 MCP
 tools to resolve library id and get library docs without me having to explicitly ask.

@@ -5,6 +5,7 @@ import {
   real,
   index,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { users } from "./users";
@@ -88,23 +89,19 @@ export const coupons = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).default(true), // 是否啟用
     isVisible: integer("is_visible", { mode: "boolean" }).default(true), // 是否對用戶可見
 
-    // 時間戳 - 標準化為 INTEGER (Unix seconds)
-    createdAt: integer("created_at_new", { mode: "timestamp" })
+    // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer("updated_at_new", { mode: "timestamp" })
+      .default(sql`(unixepoch('now') * 1000)`),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
+      .default(sql`(unixepoch('now') * 1000)`),
     createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 創建者
 
-    // 舊欄位（兼容性）
-    createdAtLegacy: text("created_at"),
-    updatedAtLegacy: text("updated_at"),
-
     // 軟刪除
-    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     codeIdx: index("idx_coupons_code").on(table.code),
@@ -141,21 +138,16 @@ export const couponUsage = sqliteTable(
     // 使用狀態
     status: text("status").$type<UsageStatus>().default("active"), // 使用狀態
 
-    // 時間戳 - 標準化為 INTEGER (Unix seconds)
-    usedAt: integer("used_at_new", { mode: "timestamp" })
+    // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
+    usedAt: integer("used_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-    createdAt: integer("created_at_new", { mode: "timestamp" })
+      .default(sql`(unixepoch('now') * 1000)`),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer("updated_at_new", { mode: "timestamp" })
+      .default(sql`(unixepoch('now') * 1000)`),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-
-    // 舊欄位（兼容性）
-    usedAtLegacy: text("used_at"),
-    createdAtLegacy: text("created_at"),
-    updatedAtLegacy: text("updated_at"),
+      .default(sql`(unixepoch('now') * 1000)`),
   },
   (table) => ({
     couponIdIdx: index("idx_coupon_usage_coupon_id").on(table.couponId),
@@ -190,25 +182,20 @@ export const couponDistributions = sqliteTable(
     totalDistributed: integer("total_distributed").default(0), // 總發放數量
     totalUsed: integer("total_used").default(0), // 總使用數量
 
-    // 時間戳 - 標準化為 INTEGER (Unix seconds)
-    distributedAt: integer("distributed_at_new", { mode: "timestamp" })
+    // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
+    distributedAt: integer("distributed_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-    expiresAt: integer("expires_at_new", { mode: "timestamp" }), // 發放過期時間
-    createdAt: integer("created_at_new", { mode: "timestamp" })
+      .default(sql`(unixepoch('now') * 1000)`),
+    expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }), // 發放過期時間
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
+      .default(sql`(unixepoch('now') * 1000)`),
 
     // 元數據
     createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 發放者
     notes: text("notes"), // 發放備註
-
-    // 舊欄位（兼容性）
-    distributedAtLegacy: text("distributed_at"),
-    expiresAtLegacy: text("expires_at"),
-    createdAtLegacy: text("created_at"),
   },
   (table) => ({
     couponIdIdx: index("idx_coupon_distributions_coupon_id").on(table.couponId),
@@ -242,20 +229,16 @@ export const couponTemplates = sqliteTable(
       mode: "boolean",
     }).default(false), // 是否為系統模板
 
-    // 時間戳 - 標準化為 INTEGER (Unix seconds)
-    createdAt: integer("created_at_new", { mode: "timestamp" })
+    // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: integer("updated_at_new", { mode: "timestamp" })
+      .default(sql`(unixepoch('now') * 1000)`),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
-      .$defaultFn(() => new Date()),
+      .default(sql`(unixepoch('now') * 1000)`),
     createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 創建者
-
-    // 舊欄位（兼容性）
-    createdAtLegacy: text("created_at"),
-    updatedAtLegacy: text("updated_at"),
   },
   (table) => ({
     restaurantIdIdx: index("idx_coupon_templates_restaurant_id").on(

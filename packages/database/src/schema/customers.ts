@@ -24,10 +24,10 @@ export const customers = sqliteTable(
     phone: text("phone"),
 
     // 時間戳記
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
   },

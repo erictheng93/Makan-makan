@@ -126,10 +126,10 @@ export const partnerships = sqliteTable(
 
     // 合約資訊
     contractNumber: text("contract_number").unique(),
-    contractStartDate: integer("contract_start_date", {
+    contractStartDate: integer("contract_start_date_ms", {
       mode: "timestamp_ms",
     }).notNull(),
-    contractEndDate: integer("contract_end_date", {
+    contractEndDate: integer("contract_end_date_ms", {
       mode: "timestamp_ms",
     }).notNull(),
     contractDocumentUrl: text("contract_document_url"),
@@ -175,13 +175,13 @@ export const partnerships = sqliteTable(
       .default({}),
 
     // 時間戳記
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    createdBy: text("created_by").references(() => users.id, {
+    createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
   },
@@ -258,8 +258,8 @@ export const partnershipPlans = sqliteTable(
     totalUsageCount: integer("total_usage_count").default(0),
 
     // 有效期
-    validFrom: integer("valid_from", { mode: "timestamp_ms" }).notNull(),
-    validTo: integer("valid_to", { mode: "timestamp_ms" }).notNull(),
+    validFrom: integer("valid_from_ms", { mode: "timestamp_ms" }).notNull(),
+    validTo: integer("valid_to_ms", { mode: "timestamp_ms" }).notNull(),
 
     // 優先級和組合
     priority: integer("priority").default(0),
@@ -290,13 +290,13 @@ export const partnershipPlans = sqliteTable(
       .default({}),
 
     // 時間戳記
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    createdBy: text("created_by").references(() => users.id, {
+    createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
   },
@@ -348,11 +348,11 @@ export const verifiedMembers = sqliteTable(
     // 認證資訊
     verificationMethod: text("verification_method").notNull(),
     verificationDocumentUrl: text("verification_document_url"),
-    verifiedAt: integer("verified_at", { mode: "timestamp_ms" }),
-    verifiedBy: text("verified_by").references(() => users.id, {
+    verifiedAt: integer("verified_at_ms", { mode: "timestamp_ms" }),
+    verifiedBy: integer("verified_by").references(() => users.id, {
       onDelete: "set null",
     }),
-    verificationExpiry: integer("verification_expiry", {
+    verificationExpiry: integer("verification_expiry_ms", {
       mode: "timestamp_ms",
     }),
 
@@ -364,7 +364,7 @@ export const verifiedMembers = sqliteTable(
     totalUsageCount: integer("total_usage_count").default(0),
     totalDiscountReceived: real("total_discount_received").default(0),
     totalSpending: real("total_spending").default(0),
-    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+    lastUsedAt: integer("last_used_at_ms", { mode: "timestamp_ms" }),
 
     // 額外資訊
     department: text("department"),
@@ -376,10 +376,10 @@ export const verifiedMembers = sqliteTable(
       .default({}),
 
     // 時間戳記
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
   },
@@ -418,7 +418,7 @@ export const partnershipUsageLogs = sqliteTable(
     memberId: text("member_id")
       .notNull()
       .references(() => verifiedMembers.id, { onDelete: "cascade" }),
-    orderId: text("order_id")
+    orderId: integer("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
@@ -436,25 +436,28 @@ export const partnershipUsageLogs = sqliteTable(
       .default([]),
 
     // 使用資訊
-    usedAt: integer("used_at", { mode: "timestamp_ms" })
+    usedAt: integer("used_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
     channel: text("channel").$type<UsageChannel>(),
 
     // 驗證資訊
     verificationMethod: text("verification_method"),
-    verifiedByUserId: text("verified_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
+    verifiedByUserId: integer("verified_by_user_id").references(
+      () => users.id,
+      {
+        onDelete: "set null",
+      },
+    ),
 
     // 狀態
     status: text("status")
       .notNull()
       .default("completed")
       .$type<UsageLogStatus>(),
-    cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
+    cancelledAt: integer("cancelled_at_ms", { mode: "timestamp_ms" }),
     cancellationReason: text("cancellation_reason"),
-    refundedAt: integer("refunded_at", { mode: "timestamp_ms" }),
+    refundedAt: integer("refunded_at_ms", { mode: "timestamp_ms" }),
 
     // 額外資訊
     metadata: text("metadata", { mode: "json" })
@@ -462,7 +465,7 @@ export const partnershipUsageLogs = sqliteTable(
       .default({}),
 
     // 時間戳記
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
   },

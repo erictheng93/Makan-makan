@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { users } from "./users";
 import { restaurants } from "./restaurants";
@@ -21,9 +22,11 @@ export const errorReports = sqliteTable(
     originalError: text("original_error"), // JSON format
     userAgent: text("user_agent"),
     url: text("url"),
-    timestamp: text("timestamp").notNull(), // ISO datetime string
-    createdAt: text("created_at").notNull(),
-    resolvedAt: text("resolved_at"),
+    timestamp: integer("timestamp_ms", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+    resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
     resolvedBy: integer("resolved_by"),
     resolutionNotes: text("resolution_notes"),
   },
@@ -59,8 +62,10 @@ export const systemAlerts = sqliteTable(
     alertType: text("alert_type").notNull(),
     restaurantId: text("restaurant_id"), // 引用 restaurants.public_id (TEXT)
     affectedComponent: text("affected_component"),
-    createdAt: text("created_at").notNull(),
-    resolvedAt: text("resolved_at"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+    resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
     resolvedBy: integer("resolved_by"),
     resolutionNotes: text("resolution_notes"),
     autoResolved: integer("auto_resolved", { mode: "boolean" }).default(false),

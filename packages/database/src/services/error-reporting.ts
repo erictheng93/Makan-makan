@@ -36,7 +36,7 @@ export interface CreateErrorReportData {
   originalError?: any;
   userAgent?: string;
   url?: string;
-  timestamp: string;
+  timestamp: Date;
 }
 
 export interface ErrorReportFilters {
@@ -78,7 +78,6 @@ export class ErrorReportingService extends BaseService {
           userAgent: data.userAgent,
           url: data.url,
           timestamp: data.timestamp,
-          createdAt: new Date().toISOString(),
         })
         .returning();
 
@@ -109,7 +108,6 @@ export class ErrorReportingService extends BaseService {
         userAgent: data.userAgent,
         url: data.url,
         timestamp: data.timestamp,
-        createdAt: new Date().toISOString(),
       }));
 
       return await this.db.insert(errorReports).values(newReports).returning();
@@ -145,11 +143,12 @@ export class ErrorReportingService extends BaseService {
       }
 
       if (filters.dateRange) {
-        const [startDate, endDate] = filters.dateRange;
+        const startDate = new Date(filters.dateRange[0]);
+        const endDate = new Date(filters.dateRange[1]);
         conditions.push(
           and(
-            gte(errorReports.createdAt, startDate.toISOString()),
-            lte(errorReports.createdAt, endDate.toISOString()),
+            gte(errorReports.createdAt, startDate),
+            lte(errorReports.createdAt, endDate),
           ),
         );
       }
@@ -214,7 +213,7 @@ export class ErrorReportingService extends BaseService {
       const [report] = await this.db
         .update(errorReports)
         .set({
-          resolvedAt: new Date().toISOString(),
+          resolvedAt: new Date() as Date,
           resolvedBy,
           resolutionNotes,
         })
@@ -244,11 +243,12 @@ export class ErrorReportingService extends BaseService {
       }
 
       if (dateRange) {
-        const [startDate, endDate] = dateRange;
+        const startDate = new Date(dateRange[0]);
+        const endDate = new Date(dateRange[1]);
         conditions.push(
           and(
-            gte(errorReports.createdAt, startDate.toISOString()),
-            lte(errorReports.createdAt, endDate.toISOString()),
+            gte(errorReports.createdAt, startDate),
+            lte(errorReports.createdAt, endDate),
           ),
         );
       }
@@ -288,13 +288,13 @@ export class ErrorReportingService extends BaseService {
       // 錯誤趨勢（過去30天）
       const trendStats = await this.db
         .select({
-          date: sql<string>`DATE(${errorReports.createdAt})`,
+          date: sql<string>`DATE(${errorReports.createdAt} / 1000, 'unixepoch')`,
           count: count(),
         })
         .from(errorReports)
         .where(whereClause)
-        .groupBy(sql`DATE(${errorReports.createdAt})`)
-        .orderBy(sql`DATE(${errorReports.createdAt})`);
+        .groupBy(sql`DATE(${errorReports.createdAt} / 1000, 'unixepoch')`)
+        .orderBy(sql`DATE(${errorReports.createdAt} / 1000, 'unixepoch')`);
 
       const errorsByType = typeStats.reduce(
         (acc, item) => {
@@ -339,9 +339,8 @@ export class ErrorReportingService extends BaseService {
       }
 
       // 只查看最近7天的錯誤
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      conditions.push(gte(errorReports.createdAt, sevenDaysAgo.toISOString()));
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      conditions.push(gte(errorReports.createdAt, sevenDaysAgo));
 
       const whereClause =
         conditions.length > 0 ? and(...conditions) : undefined;
@@ -372,14 +371,15 @@ export class ErrorReportingService extends BaseService {
   // 清理舊的錯誤報告
   async cleanupOldErrorReports(daysToKeep: number = 30): Promise<number> {
     try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+      const cutoffDate = new Date(
+        Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
+      );
 
       const result = await this.db
         .delete(errorReports)
         .where(
           and(
-            lte(errorReports.createdAt, cutoffDate.toISOString()),
+            lte(errorReports.createdAt, cutoffDate),
             // 不刪除 critical 和 high 級別的錯誤
             sql`${errorReports.severity} NOT IN ('critical', 'high')`,
           ),
@@ -406,7 +406,6 @@ export class ErrorReportingService extends BaseService {
         .insert(systemAlerts)
         .values({
           ...data,
-          createdAt: new Date().toISOString(),
         })
         .returning();
 
