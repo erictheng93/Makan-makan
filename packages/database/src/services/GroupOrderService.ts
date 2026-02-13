@@ -203,60 +203,62 @@ export class GroupOrderService extends BaseService {
 
       // 創建群組訂單
       const now = new Date();
-      const groupOrderData = {
-        id: groupOrderId,
-        shareCode: shareCode,
-        createdBy: createdBy,
-        restaurantId: validatedData.restaurantId,
-        tableId: validatedData.tableId || null,
-        expiresAt: new Date(expiresAt),
-        settings: settings,
-        status: "active" as const,
-        splitType: "individual" as const,
-        totalAmount: 0,
-        taxAmount: 0,
-        serviceCharge: 0,
-        finalAmount: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await this.db.insert(groupOrders).values(groupOrderData);
-
-      // 創建創建者成員記錄
       const creatorMemberId = crypto.randomUUID();
       const sessionId = crypto.randomUUID();
 
-      const creatorMemberData = {
-        id: creatorMemberId,
-        groupOrderId: groupOrderId,
-        userId: createdBy,
-        sessionId: sessionId,
-        name: "Creator", // 可以後續更新為實際用戶名
-        role: "creator" as const,
-        permissions: { canModifyOthers: true, canRemoveMembers: true },
-        joinedAt: now,
-        lastActiveAt: now,
-        isActive: true,
-      };
+      await this.db.transaction(async (tx) => {
+        const groupOrderData = {
+          id: groupOrderId,
+          shareCode: shareCode,
+          createdBy: createdBy,
+          restaurantId: validatedData.restaurantId,
+          tableId: validatedData.tableId || null,
+          expiresAt: new Date(expiresAt),
+          settings: settings,
+          status: "active" as const,
+          splitType: "individual" as const,
+          totalAmount: 0,
+          taxAmount: 0,
+          serviceCharge: 0,
+          finalAmount: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
 
-      await this.db.insert(groupMembers).values(creatorMemberData);
+        await tx.insert(groupOrders).values(groupOrderData);
 
-      // 記錄分享代碼
-      const shareCodeData = {
-        id: crypto.randomUUID(),
-        code: shareCode,
-        type: "group_order" as const,
-        resourceId: groupOrderId,
-        createdBy: createdBy,
-        expiresAt: new Date(expiresAt),
-        isActive: true,
-        usageCount: 0,
-        metadata: { purpose: "group_order" },
-        createdAt: now,
-      };
+        // 創建創建者成員記錄
+        const creatorMemberData = {
+          id: creatorMemberId,
+          groupOrderId: groupOrderId,
+          userId: createdBy,
+          sessionId: sessionId,
+          name: "Creator", // 可以後續更新為實際用戶名
+          role: "creator" as const,
+          permissions: { canModifyOthers: true, canRemoveMembers: true },
+          joinedAt: now,
+          lastActiveAt: now,
+          isActive: true,
+        };
 
-      await this.db.insert(shareCodes).values(shareCodeData);
+        await tx.insert(groupMembers).values(creatorMemberData);
+
+        // 記錄分享代碼
+        const shareCodeData = {
+          id: crypto.randomUUID(),
+          code: shareCode,
+          type: "group_order" as const,
+          resourceId: groupOrderId,
+          createdBy: createdBy,
+          expiresAt: new Date(expiresAt),
+          isActive: true,
+          usageCount: 0,
+          metadata: { purpose: "group_order" },
+          createdAt: now,
+        };
+
+        await tx.insert(shareCodes).values(shareCodeData);
+      });
 
       const baseUrl =
         this.env.CUSTOMER_APP_URL || "https://order.makanmakan.com";
@@ -381,46 +383,48 @@ export class GroupOrderService extends BaseService {
       const sessionId = crypto.randomUUID();
       const joinedTime = new Date();
 
-      const newMemberData = {
-        id: memberId,
-        groupOrderId: groupOrder.id,
-        sessionId: sessionId,
-        name: validatedData.memberName,
-        phone: validatedData.phone || null,
-        email: validatedData.email || null,
-        role: "member" as const,
-        permissions: { canAddItems: true, canRemoveItems: true },
-        joinedAt: joinedTime,
-        lastActiveAt: joinedTime,
-        isActive: true,
-      };
+      await this.db.transaction(async (tx) => {
+        const newMemberData = {
+          id: memberId,
+          groupOrderId: groupOrder.id,
+          sessionId: sessionId,
+          name: validatedData.memberName,
+          phone: validatedData.phone || null,
+          email: validatedData.email || null,
+          role: "member" as const,
+          permissions: { canAddItems: true, canRemoveItems: true },
+          joinedAt: joinedTime,
+          lastActiveAt: joinedTime,
+          isActive: true,
+        };
 
-      await this.db.insert(groupMembers).values(newMemberData);
+        await tx.insert(groupMembers).values(newMemberData);
 
-      // 更新分享代碼使用次數
-      await this.db
-        .update(shareCodes)
-        .set({ usageCount: sql`${shareCodes.usageCount} + 1` })
-        .where(
-          and(
-            eq(shareCodes.code, shareCode),
-            eq(shareCodes.type, "group_order"),
-          ),
-        )
-        .run();
+        // 更新分享代碼使用次數
+        await tx
+          .update(shareCodes)
+          .set({ usageCount: sql`${shareCodes.usageCount} + 1` })
+          .where(
+            and(
+              eq(shareCodes.code, shareCode),
+              eq(shareCodes.type, "group_order"),
+            ),
+          )
+          .run();
 
-      // 記錄活動日誌
-      const joinActivityLogData = {
-        id: crypto.randomUUID(),
-        groupOrderId: groupOrder.id,
-        memberId: memberId,
-        action: "joined" as const,
-        description: `${validatedData.memberName} 加入了群組`,
-        metadata: { reason: "joined via share code" },
-        createdAt: new Date(joinedTime),
-      };
+        // 記錄活動日誌
+        const joinActivityLogData = {
+          id: crypto.randomUUID(),
+          groupOrderId: groupOrder.id,
+          memberId: memberId,
+          action: "joined" as const,
+          description: `${validatedData.memberName} 加入了群組`,
+          metadata: { reason: "joined via share code" },
+          createdAt: new Date(joinedTime),
+        };
 
-      await this.db.insert(groupActivityLogs).values(joinActivityLogData);
+        await tx.insert(groupActivityLogs).values(joinActivityLogData);
+      });
 
       return {
         success: true,
@@ -611,40 +615,42 @@ export class GroupOrderService extends BaseService {
       const cartItemId = crypto.randomUUID();
       const addedTime = new Date();
 
-      const cartItemData = {
-        id: cartItemId,
-        groupOrderId: groupOrderId,
-        memberId: validatedData.memberId,
-        menuItemId: validatedData.menuItemId,
-        quantity: validatedData.quantity,
-        unitPrice: unitPrice,
-        totalPrice: totalPrice,
-        customizations: validatedData.customizations || {},
-        specialInstructions: validatedData.specialInstructions || null,
-        status: "active" as const,
-        addedAt: addedTime,
-        updatedAt: addedTime,
-      };
-
-      await this.db.insert(groupCartItems).values(cartItemData);
-
-      // 記錄活動日誌
-      const addItemActivityLogData = {
-        id: crypto.randomUUID(),
-        groupOrderId: groupOrderId,
-        memberId: validatedData.memberId,
-        action: "added_item" as const,
-        description: `添加了 ${validatedData.quantity}x ${menuItem.name}`,
-        metadata: {
-          itemId: validatedData.menuItemId.toString(),
-          itemName: menuItem.name,
+      await this.db.transaction(async (tx) => {
+        const cartItemData = {
+          id: cartItemId,
+          groupOrderId: groupOrderId,
+          memberId: validatedData.memberId,
+          menuItemId: validatedData.menuItemId,
           quantity: validatedData.quantity,
-          amount: totalPrice,
-        },
-        createdAt: new Date(addedTime),
-      };
+          unitPrice: unitPrice,
+          totalPrice: totalPrice,
+          customizations: validatedData.customizations || {},
+          specialInstructions: validatedData.specialInstructions || null,
+          status: "active" as const,
+          addedAt: addedTime,
+          updatedAt: addedTime,
+        };
 
-      await this.db.insert(groupActivityLogs).values(addItemActivityLogData);
+        await tx.insert(groupCartItems).values(cartItemData);
+
+        // 記錄活動日誌
+        const addItemActivityLogData = {
+          id: crypto.randomUUID(),
+          groupOrderId: groupOrderId,
+          memberId: validatedData.memberId,
+          action: "added_item" as const,
+          description: `添加了 ${validatedData.quantity}x ${menuItem.name}`,
+          metadata: {
+            itemId: validatedData.menuItemId.toString(),
+            itemName: menuItem.name,
+            quantity: validatedData.quantity,
+            amount: totalPrice,
+          },
+          createdAt: new Date(addedTime),
+        };
+
+        await tx.insert(groupActivityLogs).values(addItemActivityLogData);
+      });
 
       const cartItem: GroupCartItem = {
         id: cartItemId,
@@ -706,19 +712,7 @@ export class GroupOrderService extends BaseService {
         };
       }
 
-      // 鎖定群組訂單
-      const lockedTime = new Date();
-
-      await this.db
-        .update(groupOrders)
-        .set({
-          status: "checkout" as const,
-          lockedAt: lockedTime,
-        })
-        .where(eq(groupOrders.id, groupOrderId))
-        .run();
-
-      // 獲取所有購物車項目和成員
+      // 獲取所有購物車項目和成員 (reads outside transaction)
       const cartItemsResult = await this.db
         .select()
         .from(groupCartItems)
@@ -803,28 +797,40 @@ export class GroupOrderService extends BaseService {
       }
       // 其他分帳類型的邏輯...
 
-      // 保存分帳記錄
+      // 鎖定群組訂單 and 保存分帳記錄 atomically
+      const lockedTime = new Date();
       const billCreatedTime = new Date();
 
-      for (const bill of splitBillsData) {
-        const splitBillData = {
-          id: bill.id,
-          groupOrderId: bill.groupOrderId,
-          memberId: bill.memberId,
-          subtotal: bill.subtotal,
-          taxAmount: bill.taxAmount,
-          serviceCharge: bill.serviceCharge,
-          discountAmount: bill.discountAmount,
-          tipAmount: bill.tipAmount,
-          totalAmount: bill.totalAmount,
-          items: bill.items,
-          paymentStatus: "pending" as const,
-          createdAt: billCreatedTime,
-          updatedAt: billCreatedTime,
-        };
+      await this.db.transaction(async (tx) => {
+        await tx
+          .update(groupOrders)
+          .set({
+            status: "checkout" as const,
+            lockedAt: lockedTime,
+          })
+          .where(eq(groupOrders.id, groupOrderId))
+          .run();
 
-        await this.db.insert(splitBills).values(splitBillData);
-      }
+        for (const bill of splitBillsData) {
+          const splitBillData = {
+            id: bill.id,
+            groupOrderId: bill.groupOrderId,
+            memberId: bill.memberId,
+            subtotal: bill.subtotal,
+            taxAmount: bill.taxAmount,
+            serviceCharge: bill.serviceCharge,
+            discountAmount: bill.discountAmount,
+            tipAmount: bill.tipAmount,
+            totalAmount: bill.totalAmount,
+            items: bill.items,
+            paymentStatus: "pending" as const,
+            createdAt: billCreatedTime,
+            updatedAt: billCreatedTime,
+          };
+
+          await tx.insert(splitBills).values(splitBillData);
+        }
+      });
 
       return {
         success: true,
@@ -869,43 +875,45 @@ export class GroupOrderService extends BaseService {
       // 更新支付狀態（實際應整合支付閘道）
       const paidTime = new Date();
 
-      await this.db
-        .update(splitBills)
-        .set({
-          paymentStatus: "paid" as const,
-          paymentMethod: paymentData.paymentMethod,
-          paymentReference: paymentData.transactionId || crypto.randomUUID(),
-          paidAt: paidTime,
-          updatedAt: paidTime,
-        })
-        .where(eq(splitBills.id, splitBill.id))
-        .run();
-
-      // 檢查是否所有人都已付款
-      const unpaidCount = await this.db
-        .select({ count: count() })
-        .from(splitBills)
-        .where(
-          and(
-            eq(splitBills.groupOrderId, groupOrderId),
-            sql`${splitBills.paymentStatus} != 'paid'`,
-          ),
-        )
-        .get();
-
-      if (unpaidCount && unpaidCount.count === 0) {
-        // 所有人都已付款，完成群組訂單
-        const completedTime = new Date();
-
-        await this.db
-          .update(groupOrders)
+      await this.db.transaction(async (tx) => {
+        await tx
+          .update(splitBills)
           .set({
-            status: "completed" as const,
-            completedAt: completedTime,
+            paymentStatus: "paid" as const,
+            paymentMethod: paymentData.paymentMethod,
+            paymentReference: paymentData.transactionId || crypto.randomUUID(),
+            paidAt: paidTime,
+            updatedAt: paidTime,
           })
-          .where(eq(groupOrders.id, groupOrderId))
+          .where(eq(splitBills.id, splitBill.id))
           .run();
-      }
+
+        // 檢查是否所有人都已付款
+        const unpaidCount = await tx
+          .select({ count: count() })
+          .from(splitBills)
+          .where(
+            and(
+              eq(splitBills.groupOrderId, groupOrderId),
+              sql`${splitBills.paymentStatus} != 'paid'`,
+            ),
+          )
+          .get();
+
+        if (unpaidCount && unpaidCount.count === 0) {
+          // 所有人都已付款，完成群組訂單
+          const completedTime = new Date();
+
+          await tx
+            .update(groupOrders)
+            .set({
+              status: "completed" as const,
+              completedAt: completedTime,
+            })
+            .where(eq(groupOrders.id, groupOrderId))
+            .run();
+        }
+      });
 
       return { success: true };
     } catch (error) {
@@ -949,29 +957,31 @@ export class GroupOrderService extends BaseService {
         };
       }
 
-      // 將成員標記為非活躍
+      // 將成員標記為非活躍 and 移除購物車項目 atomically
       const leftTime = new Date();
 
-      await this.db
-        .update(groupMembers)
-        .set({
-          isActive: false,
-          leftAt: leftTime,
-        })
-        .where(eq(groupMembers.id, memberId))
-        .run();
+      await this.db.transaction(async (tx) => {
+        await tx
+          .update(groupMembers)
+          .set({
+            isActive: false,
+            leftAt: leftTime,
+          })
+          .where(eq(groupMembers.id, memberId))
+          .run();
 
-      // 移除該成員的購物車項目
-      await this.db
-        .update(groupCartItems)
-        .set({ status: "removed" as const })
-        .where(
-          and(
-            eq(groupCartItems.groupOrderId, groupOrderId),
-            eq(groupCartItems.memberId, memberId),
-          ),
-        )
-        .run();
+        // 移除該成員的購物車項目
+        await tx
+          .update(groupCartItems)
+          .set({ status: "removed" as const })
+          .where(
+            and(
+              eq(groupCartItems.groupOrderId, groupOrderId),
+              eq(groupCartItems.memberId, memberId),
+            ),
+          )
+          .run();
+      });
 
       return { success: true };
     } catch (error) {
