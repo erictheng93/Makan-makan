@@ -129,7 +129,7 @@ export function createQueryChain(finalResult: any = []) {
  * Creates a complete mock database with full Drizzle ORM support
  */
 export function createMockDatabase() {
-  return {
+  const mockDb: any = {
     // Query Builder API
     select: vi.fn((fields?: any) => createQueryChain([])),
     insert: vi.fn((table: any) => ({
@@ -176,22 +176,11 @@ export function createMockDatabase() {
       },
     },
 
-    // Transaction support
-    transaction: vi.fn((callback: any) =>
-      callback({
-        select: vi.fn(() => createQueryChain([])),
-        insert: vi.fn(() => ({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([]),
-          }),
-        })),
-        update: vi.fn(() => ({
-          set: vi.fn().mockReturnValue(createQueryChain([])),
-        })),
-        delete: vi.fn(() => createQueryChain([])),
-      }),
-    ),
+    // Transaction support - passes the same mock db to callback so test mock setups are preserved
+    transaction: vi.fn(async (callback: any) => callback(mockDb)),
   };
+
+  return mockDb;
 }
 
 /**

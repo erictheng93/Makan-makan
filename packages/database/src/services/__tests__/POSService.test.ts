@@ -379,6 +379,8 @@ const createMockDB = () => {
         }),
       };
     },
+    // Transaction support - passes the same mock db to callback
+    transaction: async (callback: any) => callback(db),
     _mockData: mockData, // 暴露 mockData 用于测试验证
   };
 
