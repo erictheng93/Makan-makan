@@ -115,10 +115,11 @@ describe("GroupOrderService - 創建群組訂單", () => {
     expect(shareCodeRecord?.isActive).toBe(true);
   });
 
-  it("應該拒絕無效的 restaurantId", async () => {
+  it("應該拒絕超過限制的 maxMembers", async () => {
     const result = await service.createGroupOrder(
       {
-        restaurantId: "R-INVALID", // 無效
+        restaurantId: "R-001",
+        maxMembers: 100, // 超過限制 (最大 20)
       },
       1,
     );

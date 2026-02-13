@@ -12,16 +12,36 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock query-cache utilities
-vi.mock("../../utils/query-cache", () => ({
-  QueryCache: vi.fn().mockImplementation(() => ({
-    getOrExecute: vi.fn(async (key, queryFn) => await queryFn()),
-    invalidate: vi.fn().mockResolvedValue(undefined),
-  })),
-  buildCacheKey: vi.fn(
-    (resource, identifier, suffix) =>
-      `${resource}:${identifier}${suffix ? ":" + suffix : ""}`,
-  ),
-}));
+vi.mock("../../utils/query-cache", () => {
+  class MockQueryCache {
+    constructor(_kv: any) {}
+    async getOrExecute<T>(
+      _cacheKey: string,
+      queryFn: () => Promise<T>,
+      _options?: any,
+    ): Promise<T> {
+      return await queryFn();
+    }
+    async invalidate(
+      _keyOrTags: string | string[],
+      _type: "key" | "tag" = "key",
+    ): Promise<void> {}
+    async getStats() {
+      return { total_keys: 0, hit_rate: 0, popular_queries: [] };
+    }
+  }
+  return {
+    QueryCache: MockQueryCache,
+    buildCacheKey: (
+      _resource: string,
+      _identifier: string | number,
+      _suffix?: string,
+    ) => {
+      const key = `query:${_resource}:${_identifier}`;
+      return _suffix ? `${key}:${_suffix}` : key;
+    },
+  };
+});
 
 // Mock connection-manager
 vi.mock("../../utils/connection-manager", () => ({
@@ -30,16 +50,19 @@ vi.mock("../../utils/connection-manager", () => ({
   })),
 }));
 
-// Mock seat service
-vi.mock("../seat", () => ({
-  SeatService: vi.fn().mockImplementation(() => ({
-    createSeatsForTable: vi.fn().mockResolvedValue([
-      { id: 1, tableId: 1, seatNumber: "1", isOccupied: false },
-      { id: 2, tableId: 1, seatNumber: "2", isOccupied: false },
-    ]),
-    deleteSeatsForTable: vi.fn().mockResolvedValue(true),
-  })),
-}));
+// Mock seat service - use a class mock for proper constructor support
+vi.mock("../seat", () => {
+  return {
+    SeatService: class MockSeatService {
+      createSeatsForTable = vi.fn().mockResolvedValue([
+        { id: 1, tableId: 1, seatNumber: "1", isOccupied: false },
+        { id: 2, tableId: 1, seatNumber: "2", isOccupied: false },
+      ]);
+      deleteSeatsForTable = vi.fn().mockResolvedValue(true);
+      getSeatsByTableId = vi.fn().mockResolvedValue({ seats: [], total: 0 });
+    },
+  };
+});
 
 import { TableService } from "../table";
 import {
@@ -141,12 +164,12 @@ describe("TableService", () => {
     });
 
     it("should throw error when table number already exists", async () => {
-      // Arrange
+      // Arrange - select().from().where().get() returns existing table
       mockDb.select.mockReturnValue(createQueryChain([{ id: 1 }]));
 
-      // Act & Assert
+      // Act & Assert - service throws directly before handleError translates it
       await expect(tableService.createTable(validTableData)).rejects.toThrow(
-        "Record already exists",
+        "Table number already exists in this restaurant",
       );
     });
 
@@ -338,17 +361,18 @@ describe("TableService", () => {
       expect(result).toBe(true);
     });
 
-    it("should always return true (soft delete)", async () => {
-      // Arrange - Drizzle ORM doesn't return changes count, so always returns true
+    it("should return false when no rows matched (non-existent table)", async () => {
+      // Arrange - returning() returns empty array when no rows matched
+      const chain = createQueryChain([]);
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([])),
+        set: vi.fn().mockReturnValue(chain),
       });
 
       // Act
       const result = await tableService.deleteTable(999);
 
       // Assert
-      expect(result).toBe(true); // Always true unless database error
+      expect(result).toBe(false); // No rows returned from .returning()
     });
   });
 
@@ -462,20 +486,18 @@ describe("TableService", () => {
       expect(result).toBe(true);
     });
 
-    it("should always return true (Drizzle ORM limitation)", async () => {
-      // Arrange - occupyTable always returns true unless database error
+    it("should return false when no rows matched", async () => {
+      // Arrange - returning() returns empty array when no rows matched
+      const chain = createQueryChain([]);
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([])),
+        set: vi.fn().mockReturnValue(chain),
       });
-
-      // Mock updateTableUsageStats (called internally)
-      mockDb.select.mockReturnValue(createQueryChain([]));
 
       // Act
       const result = await tableService.occupyTable(1, 1);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBe(false); // No rows returned from .returning()
     });
   });
 
@@ -503,23 +525,21 @@ describe("TableService", () => {
       expect(result).toBe(true);
     });
 
-    it("should always return true (Drizzle ORM limitation)", async () => {
-      // Arrange - Always returns true unless database error
-      mockDb.query = {
-        tables: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+    it("should return false when no rows matched", async () => {
+      // Arrange - select().from().where().get() returns null (no table found)
+      mockDb.select.mockReturnValue(createQueryChain([]));
 
+      // update().set().where().returning() returns empty (no rows matched)
+      const chain = createQueryChain([]);
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([])),
+        set: vi.fn().mockReturnValue(chain),
       });
 
       // Act
       const result = await tableService.releaseTable(999);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBe(false); // No rows returned from .returning()
     });
   });
 
@@ -544,17 +564,18 @@ describe("TableService", () => {
       expect(result).toBe(true);
     });
 
-    it("should always return true (Drizzle ORM limitation)", async () => {
-      // Arrange
+    it("should return false when no rows matched", async () => {
+      // Arrange - returning() returns empty array when no rows matched
+      const chain = createQueryChain([]);
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue(createQueryChain([])),
+        set: vi.fn().mockReturnValue(chain),
       });
 
       // Act
       const result = await tableService.markTableCleaned(999);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBe(false); // No rows returned from .returning()
     });
   });
 
@@ -685,26 +706,22 @@ describe("TableService", () => {
 
   describe("Error Handling", () => {
     it("should handle database errors in createTable", async () => {
-      // Arrange
+      // Arrange - select() throws a database error
       mockDb.select.mockImplementation(() => {
         throw new Error("Database error");
       });
 
-      // Act & Assert
+      // Act & Assert - handleError re-throws the original error message
       await expect(tableService.createTable(validTableData)).rejects.toThrow(
-        "Record already exists",
+        "Database error",
       );
     });
 
     it("should handle database errors in getRestaurantTables", async () => {
-      // Arrange
-      mockDb.query = {
-        tables: {
-          findMany: vi.fn().mockImplementation(() => {
-            throw new Error("Database error");
-          }),
-        },
-      };
+      // Arrange - getRestaurantTables uses this.db.select(), not query API
+      mockDb.select.mockImplementation(() => {
+        throw new Error("Database error");
+      });
 
       // Act & Assert
       await expect(tableService.getRestaurantTables("1")).rejects.toThrow(

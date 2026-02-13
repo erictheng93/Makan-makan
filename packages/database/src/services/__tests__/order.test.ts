@@ -13,16 +13,36 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock query-cache utilities
-vi.mock("../../utils/query-cache", () => ({
-  QueryCache: vi.fn().mockImplementation(() => ({
-    getOrExecute: vi.fn(async (key, queryFn) => await queryFn()),
-    invalidate: vi.fn().mockResolvedValue(undefined),
-  })),
-  buildCacheKey: vi.fn(
-    (resource, identifier, suffix) =>
-      `${resource}:${identifier}${suffix ? ":" + suffix : ""}`,
-  ),
-}));
+vi.mock("../../utils/query-cache", () => {
+  class MockQueryCache {
+    constructor(_kv: any) {}
+    async getOrExecute<T>(
+      _cacheKey: string,
+      queryFn: () => Promise<T>,
+      _options?: any,
+    ): Promise<T> {
+      return await queryFn();
+    }
+    async invalidate(
+      _keyOrTags: string | string[],
+      _type: "key" | "tag" = "key",
+    ): Promise<void> {}
+    async getStats() {
+      return { total_keys: 0, hit_rate: 0, popular_queries: [] };
+    }
+  }
+  return {
+    QueryCache: MockQueryCache,
+    buildCacheKey: (
+      _resource: string,
+      _identifier: string | number,
+      _suffix?: string,
+    ) => {
+      const key = `query:${_resource}:${_identifier}`;
+      return _suffix ? `${key}:${_suffix}` : key;
+    },
+  };
+});
 
 // Mock connection-manager
 vi.mock("../../utils/connection-manager", () => ({
@@ -32,9 +52,9 @@ vi.mock("../../utils/connection-manager", () => ({
 }));
 
 // Mock coupon service
-vi.mock("../coupon", () => ({
-  CouponService: vi.fn().mockImplementation(() => ({
-    validateCoupon: vi.fn().mockResolvedValue({
+vi.mock("../coupon", () => {
+  const MockCouponService = class {
+    validateCoupon = vi.fn().mockResolvedValue({
       valid: true,
       discountAmount: 10,
       coupon: {
@@ -43,10 +63,12 @@ vi.mock("../coupon", () => ({
         discountType: "fixed",
         discountValue: 10,
       },
-    }),
-    useCoupon: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+    });
+    useCoupon = vi.fn().mockResolvedValue(undefined);
+    constructor(_d1: any, _env: any) {}
+  };
+  return { CouponService: MockCouponService };
+});
 
 import { OrderService } from "../order";
 import {
@@ -334,7 +356,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
-        "Database error",
+        "Restaurant is not available",
       );
     });
 
@@ -354,7 +376,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
-        "Database error",
+        "Table is not available",
       );
     });
 
@@ -379,7 +401,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
-        "Database error",
+        "Menu item 1 is not available",
       );
     });
 
@@ -404,7 +426,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.createOrder(validOrderData)).rejects.toThrow(
-        "Database error",
+        "Insufficient inventory for Burger",
       );
     });
 
@@ -503,7 +525,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.createOrder(smallOrder)).rejects.toThrow(
-        "Database error",
+        "訂單未達最低消費標準",
       );
     });
 
@@ -779,7 +801,7 @@ describe("OrderService", () => {
       // Act & Assert
       await expect(
         orderService.updateOrderStatus(999, { status: "confirmed" }),
-      ).rejects.toThrow("Database error");
+      ).rejects.toThrow("Order not found");
     });
 
     it("should update preparing status with timestamp", async () => {
@@ -875,7 +897,7 @@ describe("OrderService", () => {
 
       // Act & Assert
       await expect(orderService.cancelOrder(999)).rejects.toThrow(
-        "Database error",
+        "Order not found",
       );
     });
   });

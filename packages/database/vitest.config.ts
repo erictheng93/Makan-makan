@@ -10,12 +10,8 @@ export default defineConfig({
     exclude: ["node_modules/", "dist/"],
     // Memory optimization settings - use forks for better isolation
     pool: "forks",
-    poolOptions: {
-      forks: {
-        singleFork: true, // Use single fork to reduce memory
-        isolate: false, // Share memory between tests
-      },
-    },
+    singleFork: true, // Use single fork to reduce memory (moved from poolOptions in vitest 4.x)
+    isolate: false, // Share memory between tests (moved from poolOptions in vitest 4.x)
     // Run test files sequentially to prevent memory issues
     fileParallelism: false,
     // Limit concurrent tests to reduce memory pressure
@@ -29,8 +25,8 @@ export default defineConfig({
     // Clear mocks between tests automatically
     clearMocks: true,
     restoreMocks: true,
-    // Reduce memory by disabling watch mode reporters
-    reporters: ["basic"],
+    // Use default reporter without summary for minimal output
+    reporters: [["default", { summary: false }]],
   },
   resolve: {
     alias: {

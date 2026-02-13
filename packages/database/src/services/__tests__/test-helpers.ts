@@ -28,11 +28,42 @@ export interface MockData {
 // ==========================================
 
 /**
- * 從表對象中提取表名
+ * SQL table name → MockData key mapping
+ * Drizzle table objects use Symbol('drizzle:Name') for SQL table names (snake_case).
+ */
+const sqlToMockKeyMap: Record<string, string> = {
+  group_orders: "groupOrders",
+  group_members: "groupMembers",
+  group_cart_items: "groupCartItems",
+  split_bills: "splitBills",
+  share_codes: "shareCodes",
+  group_activity_logs: "groupActivityLogs",
+  menu_items: "menuItems",
+  users: "users",
+};
+
+/**
+ * 從表對象中提取表名 (MockData key)
  */
 export const getTableName = (table: any): string => {
-  if (table?._ && "name" in table._) return table._.name;
+  // Try Drizzle Symbol-based name first
+  if (table && typeof table === "object") {
+    const symbols = Object.getOwnPropertySymbols(table);
+    for (const sym of symbols) {
+      if (sym.description === "drizzle:Name") {
+        const sqlName = table[sym];
+        return sqlToMockKeyMap[sqlName] || sqlName;
+      }
+    }
+  }
 
+  // Fallback: check _ property (older Drizzle versions)
+  if (table?._ && "name" in table._) {
+    const sqlName = table._.name;
+    return sqlToMockKeyMap[sqlName] || sqlName;
+  }
+
+  // Fallback: string matching
   const tableStr = String(table);
   if (tableStr.includes("groupOrders")) return "groupOrders";
   if (tableStr.includes("groupMembers")) return "groupMembers";
@@ -50,12 +81,233 @@ export const getTableName = (table: any): string => {
 // ==========================================
 
 /**
+ * Extract filter criteria from Drizzle WHERE conditions.
+ * Drizzle eq() creates queryChunks: [StringChunk, Column, StringChunk(' = '), Param, StringChunk]
+ * Drizzle lt() creates queryChunks: [StringChunk, Column, StringChunk(' < '), Param, StringChunk]
+ * Drizzle and() wraps multiple conditions.
+ * Drizzle inArray() creates: [StringChunk, Column, StringChunk(' in ('), ...Params, StringChunk(')')]
+ */
+function extractFilters(
+  condition: any,
+): Array<{ column: string; value: any; op: string }> {
+  const filters: Array<{ column: string; value: any; op: string }> = [];
+  if (!condition) return filters;
+
+  const chunks = condition?.queryChunks;
+  if (!chunks) return filters;
+
+  // Single binary op (eq/lt/gt/lte/gte): 5 chunks with column and param
+  if (
+    chunks.length === 5 &&
+    chunks[1]?.name &&
+    chunks[3]?.value !== undefined
+  ) {
+    // Detect operator from the separator chunk (chunks[2])
+    const separator = chunks[2]?.value?.[0] || "=";
+    let op = "eq";
+    if (separator.includes("<")) op = "lt";
+    else if (separator.includes(">")) op = "gt";
+    filters.push({ column: chunks[1].name, value: chunks[3].value, op });
+    return filters;
+  }
+
+  // inArray(): 5 chunks where chunks[2] contains ' in ' and chunks[3] is an Array of Param objects
+  if (
+    chunks.length === 5 &&
+    chunks[1]?.name &&
+    chunks[2]?.value?.[0]?.includes?.(" in ") &&
+    Array.isArray(chunks[3])
+  ) {
+    // Extract .value from each Param in the array
+    const values = chunks[3].map((p: any) =>
+      p?.value !== undefined ? p.value : p,
+    );
+    filters.push({ column: chunks[1].name, value: values, op: "in" });
+    return filters;
+  }
+
+  // and(): recursively extract from nested conditions
+  for (const chunk of chunks) {
+    if (chunk?.queryChunks) {
+      filters.push(...extractFilters(chunk));
+    }
+  }
+  return filters;
+}
+
+/**
+ * SQL column name → JS property name mapping for common columns.
+ * Drizzle table columns use snake_case SQL names but camelCase TS properties.
+ */
+const sqlColToJsMap: Record<string, string> = {
+  group_order_id: "groupOrderId",
+  share_code: "shareCode",
+  user_id: "userId",
+  member_id: "memberId",
+  menu_item_id: "menuItemId",
+  restaurant_id: "restaurantId",
+  table_id: "tableId",
+  is_available: "isAvailable",
+  is_active: "isActive",
+  created_by: "createdBy",
+  payment_status: "paymentStatus",
+  payment_method: "paymentMethod",
+  payment_reference: "paymentReference",
+  paid_at: "paidAt",
+  updated_at: "updatedAt",
+  left_at: "leftAt",
+  locked_at: "lockedAt",
+  completed_at: "completedAt",
+  expires_at: "expiresAt",
+  expires_at_ms: "expiresAt",
+  created_at_ms: "createdAt",
+  updated_at_ms: "updatedAt",
+  locked_at_ms: "lockedAt",
+  completed_at_ms: "completedAt",
+  paid_at_ms: "paidAt",
+  left_at_ms: "leftAt",
+  joined_at_ms: "joinedAt",
+  last_active_at_ms: "lastActiveAt",
+  added_at_ms: "addedAt",
+};
+
+function sqlToJs(sqlCol: string): string {
+  return sqlColToJsMap[sqlCol] || sqlCol;
+}
+
+/**
+ * Compare a record value against a filter value using the specified operator.
+ */
+function matchFilterOp(recordVal: any, filterVal: any, op: string): boolean {
+  if (op === "eq") {
+    return recordVal === filterVal;
+  }
+  if (op === "lt") {
+    // Handle Date comparison
+    const rv = recordVal instanceof Date ? recordVal.getTime() : recordVal;
+    const fv = filterVal instanceof Date ? filterVal.getTime() : filterVal;
+    return rv < fv;
+  }
+  if (op === "gt") {
+    const rv = recordVal instanceof Date ? recordVal.getTime() : recordVal;
+    const fv = filterVal instanceof Date ? filterVal.getTime() : filterVal;
+    return rv > fv;
+  }
+  if (op === "in") {
+    if (Array.isArray(filterVal)) {
+      return filterVal.includes(recordVal);
+    }
+    return false;
+  }
+  // Default: equality
+  return recordVal === filterVal;
+}
+
+/**
+ * Detect the type of select fields being used.
+ *
+ * Drizzle select() patterns:
+ *   - select()                    → no fields, return full record
+ *   - select({count: count()})    → aggregate, has sql chunks
+ *   - select({role: col, ...})    → column pick, each value has .name
+ *   - select({groupOrder: table}) → table wrap, value is a table object with Symbol('drizzle:Name')
+ */
+interface FieldMapping {
+  type: "none" | "columns" | "tables" | "count";
+  fields?: Record<string, any>;
+  /** For "tables" type: which key maps to the primary table */
+  primaryTableKey?: string;
+}
+
+function analyzeFields(fields: any): FieldMapping {
+  if (!fields || typeof fields !== "object") return { type: "none" };
+
+  const keys = Object.keys(fields);
+  if (keys.length === 0) return { type: "none" };
+
+  // Check for count() — has queryChunks
+  for (const key of keys) {
+    const val = fields[key];
+    if (val && typeof val === "object" && val.queryChunks) {
+      return { type: "count", fields };
+    }
+  }
+
+  // Check for table references (has Symbol('drizzle:Name'))
+  for (const key of keys) {
+    const val = fields[key];
+    if (val && typeof val === "object") {
+      const symbols = Object.getOwnPropertySymbols(val);
+      for (const sym of symbols) {
+        if (sym.description === "drizzle:Name") {
+          return { type: "tables", fields, primaryTableKey: key };
+        }
+      }
+    }
+  }
+
+  // Check for column references (has .name property — a Drizzle column)
+  for (const key of keys) {
+    const val = fields[key];
+    if (val && typeof val === "object" && "name" in val) {
+      return { type: "columns", fields };
+    }
+  }
+
+  return { type: "none" };
+}
+
+/**
+ * Transform a raw record based on the field mapping.
+ */
+function transformRecord(record: any, mapping: FieldMapping): any {
+  if (mapping.type === "none") return record;
+
+  if (mapping.type === "count") {
+    // Return a count result — the actual count is computed by the caller
+    return record;
+  }
+
+  if (mapping.type === "columns") {
+    // Pick specific columns from the record
+    const result: Record<string, any> = {};
+    for (const [alias, col] of Object.entries(mapping.fields!)) {
+      if (col && typeof col === "object" && "name" in col) {
+        const jsKey = sqlToJs(col.name);
+        result[alias] =
+          record[jsKey] !== undefined ? record[jsKey] : record[col.name];
+      }
+    }
+    return result;
+  }
+
+  if (mapping.type === "tables") {
+    // Wrap the record in the table key
+    const result: Record<string, any> = {};
+    for (const [alias, val] of Object.entries(mapping.fields!)) {
+      if (alias === mapping.primaryTableKey) {
+        result[alias] = record;
+      } else {
+        // For joined table columns, set to null (mock doesn't resolve joins)
+        result[alias] = null;
+      }
+    }
+    return result;
+  }
+
+  return record;
+}
+
+/**
  * QueryBuilder 類 - 單例模式,避免每次創建新閉包
+ * Supports basic WHERE filtering via Drizzle expression inspection.
  */
 export class QueryBuilder {
   private db: any;
   private currentTable: string = "";
   private recordsCache: any[] | null = null;
+  private filters: Array<{ column: string; value: any; op: string }> = [];
+  private fieldMapping: FieldMapping = { type: "none" };
 
   constructor(db: any) {
     this.db = db;
@@ -64,6 +316,13 @@ export class QueryBuilder {
   reset() {
     this.currentTable = "";
     this.recordsCache = null;
+    this.filters = [];
+    this.fieldMapping = { type: "none" };
+    return this;
+  }
+
+  setFieldMapping(fields: any) {
+    this.fieldMapping = analyzeFields(fields);
     return this;
   }
 
@@ -74,7 +333,7 @@ export class QueryBuilder {
   }
 
   where(condition: any) {
-    // 簡化實現 - 不做實際過濾
+    this.filters = extractFilters(condition);
     return this;
   }
 
@@ -90,31 +349,72 @@ export class QueryBuilder {
     return this;
   }
 
+  private matchesFilters(record: any): boolean {
+    if (this.filters.length === 0) return true;
+    return this.filters.every((f) => {
+      const jsKey = sqlToJs(f.column);
+      const recordVal =
+        record[jsKey] !== undefined ? record[jsKey] : record[f.column];
+      return matchFilterOp(recordVal, f.value, f.op);
+    });
+  }
+
   async get() {
     const dataMap = this.db._mockData[this.currentTable as keyof MockData];
+
+    // Handle count() queries
+    if (this.fieldMapping.type === "count") {
+      if (!dataMap) return { count: 0 };
+      let c = 0;
+      for (const value of dataMap.values()) {
+        if (this.matchesFilters(value)) c++;
+      }
+      return { count: c };
+    }
+
     if (!dataMap || dataMap.size === 0) return null;
+
+    // If we have filters, find the first matching record
+    if (this.filters.length > 0) {
+      for (const value of dataMap.values()) {
+        if (this.matchesFilters(value))
+          return transformRecord(value, this.fieldMapping);
+      }
+      return null;
+    }
 
     // 優先返回最後插入的記錄
     if (this.db._lastInserted?.table === this.currentTable) {
       const record = dataMap.get(this.db._lastInserted.id);
-      if (record) return record;
+      if (record) return transformRecord(record, this.fieldMapping);
     }
 
     // 返回第一條記錄 - 使用 iterator 避免 Array.from
     for (const value of dataMap.values()) {
-      return value;
+      return transformRecord(value, this.fieldMapping);
     }
     return null;
   }
 
   async all() {
-    // 使用緩存避免重複轉換
-    if (this.recordsCache) return this.recordsCache;
-
     const dataMap = this.db._mockData[this.currentTable as keyof MockData];
     if (!dataMap) return [];
 
-    this.recordsCache = Array.from(dataMap.values());
+    // If we have filters, filter results
+    if (this.filters.length > 0) {
+      const results: any[] = [];
+      for (const value of dataMap.values()) {
+        if (this.matchesFilters(value))
+          results.push(transformRecord(value, this.fieldMapping));
+      }
+      return results;
+    }
+
+    // 使用緩存避免重複轉換
+    if (this.recordsCache) return this.recordsCache;
+    this.recordsCache = Array.from(dataMap.values()).map((v) =>
+      transformRecord(v, this.fieldMapping),
+    );
     return this.recordsCache;
   }
 }
@@ -170,27 +470,58 @@ export const createOptimizedMockDB = () => {
     },
     select: (fields?: any) => {
       queryBuilder.reset();
+      if (fields) {
+        queryBuilder.setFieldMapping(fields);
+      }
       return queryBuilder;
     },
     update: (table: any) => {
       const tableName = getTableName(table);
       return {
-        set: (data: any) => ({
+        set: (updateData: any) => ({
           where: (condition: any) => ({
             run: async () => {
               const dataMap = mockData[tableName as keyof MockData];
               if (!dataMap) return { success: true, changes: 0 };
 
-              // 只更新最後插入的記錄 - 避免全量更新
-              if (lastInserted?.table === tableName && lastInserted?.id) {
-                const existing = dataMap.get(lastInserted.id);
-                if (existing) {
-                  dataMap.set(lastInserted.id, { ...existing, ...data });
-                  return { success: true, changes: 1 };
+              // Extract WHERE filters and update all matching records
+              const filters = extractFilters(condition);
+
+              // Resolve any SQL expression values in updateData to plain values
+              const resolvedData: Record<string, any> = {};
+              for (const [key, val] of Object.entries(updateData)) {
+                // Skip SQL expressions (like sql`col + 1`) - they can't be resolved in mock
+                if (
+                  val &&
+                  typeof val === "object" &&
+                  (val as any).queryChunks
+                ) {
+                  continue;
+                }
+                resolvedData[key] = val;
+              }
+
+              let changes = 0;
+              const matchesRecord = (record: any): boolean => {
+                if (filters.length === 0) return true;
+                return filters.every((f) => {
+                  const jsKey = sqlToJs(f.column);
+                  const recordVal =
+                    record[jsKey] !== undefined
+                      ? record[jsKey]
+                      : record[f.column];
+                  return matchFilterOp(recordVal, f.value, f.op);
+                });
+              };
+
+              for (const [id, record] of dataMap.entries()) {
+                if (matchesRecord(record)) {
+                  dataMap.set(id, { ...record, ...resolvedData });
+                  changes++;
                 }
               }
 
-              return { success: true, changes: 0 };
+              return { success: true, changes };
             },
           }),
         }),

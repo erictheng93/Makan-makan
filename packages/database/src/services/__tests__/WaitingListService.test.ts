@@ -14,7 +14,7 @@ describe("WaitingListService", () => {
 
   beforeEach(() => {
     mockDB = createMockDB();
-    mockEnv = createMockEnv();
+    mockEnv = createMockEnv(mockDB);
     service = new WaitingListService(mockDB, mockEnv);
     vi.clearAllMocks();
   });
@@ -489,9 +489,16 @@ describe("WaitingListService", () => {
         run: async () => {
           throw new Error("Database error");
         },
+        transaction: async (cb: any) => cb(errorDB),
       };
 
-      const errorService = new WaitingListService(errorDB, mockEnv);
+      const errorEnv = {
+        JWT_SECRET: "test-secret",
+        NODE_ENV: "test",
+        MOCK_DRIZZLE_DB: errorDB,
+      };
+
+      const errorService = new WaitingListService(errorDB, errorEnv as any);
 
       await expect(
         errorService.joinWaitingList({
@@ -515,84 +522,315 @@ describe("WaitingListService", () => {
 // Mock Helpers
 // ==========================================
 
+/**
+ * Extract query string and parameter values from a drizzle sql tagged template object.
+ * The sql`...` tagged template produces an object with queryChunks array containing
+ * alternating StringChunk (with .value array) and parameter values.
+ * sql.raw() produces the same structure but with all text in a single StringChunk.
+ */
+function extractQueryInfo(query: any): { queryStr: string; values: any[] } {
+  const chunks = query?.queryChunks;
+  if (!chunks) {
+    return { queryStr: String(query), values: [] };
+  }
+  const strings: string[] = [];
+  const values: any[] = [];
+  for (const chunk of chunks) {
+    if (chunk && typeof chunk === "object" && "value" in chunk) {
+      strings.push(...chunk.value);
+    } else {
+      values.push(chunk);
+    }
+  }
+  return { queryStr: strings.join(" ? "), values };
+}
+
+/**
+ * Creates a mock that acts as a drizzle db instance (with get/all/run methods).
+ * It is injected via env.MOCK_DRIZZLE_DB so BaseService uses it directly as this.db,
+ * bypassing the real drizzle(d1) wrapper.
+ *
+ * The service code calls:
+ *   this.db.get(sql`...`) -> returns single row or null
+ *   this.db.all(sql`...`) -> returns array of rows
+ *   this.db.run(sql`...`) -> executes mutation, returns { success: true }
+ */
 function createMockDB() {
   const mockData = {
-    waitingList: new Map(),
-    tables: new Map(),
-    orders: new Map(),
-    restaurants: new Map(),
+    waitingList: new Map<string, any>(),
+    tables: new Map<string | number, any>(),
+    orders: new Map<string, any>(),
+    restaurants: new Map<string, any>(),
   };
 
-  // Use an object to hold the flag so it's a reference, not a value copy
   const state = { updateCalled: false };
 
-  const db = {
-    get: async (query: any) => {
-      const queryStr = query?.strings?.join(" ") || query?.toString?.() || "";
+  function extractTableName(queryStr: string): string {
+    if (queryStr.includes("waiting_list")) return "waitingList";
+    if (queryStr.includes("tables")) return "tables";
+    if (queryStr.includes("orders")) return "orders";
+    return "waitingList";
+  }
 
-      // Handle COUNT queries for waiting_list
-      if (queryStr.includes("COUNT") && queryStr.includes("waiting_list")) {
-        const entries = Array.from(mockData.waitingList.values()) as any[];
+  function handleSelect(queryStr: string, values: any[]): any[] {
+    const tableName = extractTableName(queryStr);
 
-        // Try to extract queue_number filter if present
-        if (queryStr.includes("queue_number <")) {
-          // Extract the queue number from the query values
-          const queueNum = query?.values?.[1] || 999;
-          const filtered = entries.filter(
-            (e: any) => e.status === "waiting" && e.queue_number < queueNum,
+    // COUNT queries for waiting_list
+    if (queryStr.includes("COUNT") && tableName === "waitingList") {
+      const entries = Array.from(mockData.waitingList.values()) as any[];
+
+      if (queryStr.includes("queue_number <")) {
+        // getPartiesAhead: values = [restaurantId, queueNumber, partySize+2]
+        const queueNum = values[1];
+        const filtered = entries.filter(
+          (e: any) =>
+            e.status === "waiting" && (e.queue_number || 0) < queueNum,
+        );
+        return [{ count: filtered.length }];
+      }
+
+      // Default: count all waiting entries
+      const waiting = entries.filter((e: any) => e.status === "waiting");
+      return [{ count: waiting.length }];
+    }
+
+    // COUNT queries for tables
+    if (queryStr.includes("COUNT") && tableName === "tables") {
+      const tables = Array.from(mockData.tables.values()) as any[];
+      if (queryStr.includes("available")) {
+        const available = tables.filter(
+          (t: any) => t.current_status === "available",
+        );
+        return [{ count: available.length }];
+      }
+      if (queryStr.includes("capacity >=")) {
+        if (queryStr.includes("occupied") || queryStr.includes("reserved")) {
+          const occupied = tables.filter(
+            (t: any) =>
+              t.current_status === "occupied" ||
+              t.current_status === "reserved",
           );
-          return { count: filtered.length };
+          return [
+            { occupied_count: occupied.length, earliest_available: null },
+          ];
         }
-
-        // Default: count all waiting entries
-        const waiting = entries.filter((e: any) => e.status === "waiting");
-        return { count: waiting.length };
+        return [{ count: tables.length }];
       }
+      return [{ count: tables.length }];
+    }
 
-      // Handle COUNT queries for tables
-      if (queryStr.includes("COUNT") && queryStr.includes("tables")) {
-        const tables = Array.from(mockData.tables.values()) as any[];
-        if (queryStr.includes("available")) {
-          const available = tables.filter(
-            (t: any) => t.current_status === "available",
-          );
-          return { count: available.length };
-        }
-        return { count: tables.length };
-      }
+    // AVG queries (orders turnover)
+    if (queryStr.includes("AVG") && tableName === "orders") {
+      return [{ avg_turnover_minutes: 45 }];
+    }
 
-      // Handle AVG queries (orders)
-      if (queryStr.includes("AVG")) {
-        return { avg_turnover_minutes: 45 };
-      }
+    // MAX queue_number query (generateQueueNumber)
+    if (queryStr.includes("MAX(queue_number)")) {
+      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const letter = values[1]; // [restaurantId, letter]
+      const matching = entries.filter((e: any) => e.queue_letter === letter);
+      const maxNum = matching.reduce(
+        (max: number, e: any) => Math.max(max, e.queue_number || 0),
+        0,
+      );
+      return [{ max_number: maxNum }];
+    }
 
-      // Default: return first entry from the relevant table
-      const tableName = extractTableNameFromQuery(queryStr);
-      const data = mockData[tableName as keyof typeof mockData];
-      if (data && data.size > 0) {
-        return Array.from(data.values())[0];
-      }
-      return null;
-    },
-    all: async (query: any) => {
-      const queryStr = query?.strings?.join(" ") || query?.toString?.() || "";
-      const tableName = extractTableNameFromQuery(queryStr);
-      const data = mockData[tableName as keyof typeof mockData];
-      if (data) {
-        return Array.from(data.values());
+    // Stats query (getWaitingStats) - uses sql.raw so params are baked in
+    if (
+      queryStr.includes("total_waiting") &&
+      queryStr.includes("seated_count")
+    ) {
+      const entries = Array.from(mockData.waitingList.values()) as any[];
+      return [
+        {
+          total_waiting: entries.length,
+          seated_count: entries.filter((e: any) => e.status === "seated")
+            .length,
+          expired_count: entries.filter((e: any) => e.status === "expired")
+            .length,
+          cancelled_count: entries.filter((e: any) => e.status === "cancelled")
+            .length,
+          avg_wait_minutes: 0,
+          expire_rate: 0,
+        },
+      ];
+    }
+
+    // listWaitingList count query (sql.raw with total)
+    if (
+      queryStr.includes("COUNT(*)") &&
+      queryStr.includes("as total") &&
+      tableName === "waitingList"
+    ) {
+      const entries = Array.from(mockData.waitingList.values()) as any[];
+      return [{ total: entries.length }];
+    }
+
+    // SELECT with WHERE w.id = ? (getWaitingListEntryById)
+    if (tableName === "waitingList" && queryStr.includes("w.id")) {
+      const id = values[0];
+      const entry = mockData.waitingList.get(id);
+      if (entry) {
+        return [{ ...entry, table: null }];
       }
       return [];
+    }
+
+    // SELECT from tables WHERE id = ? (callWaiting table check)
+    if (
+      tableName === "tables" &&
+      queryStr.includes("WHERE") &&
+      queryStr.includes("id =")
+    ) {
+      const tableId = values[0];
+      const table = mockData.tables.get(tableId);
+      if (table && queryStr.includes("available")) {
+        if (table.current_status === "available") {
+          return [table];
+        }
+        return [];
+      }
+      if (table) return [table];
+      return [];
+    }
+
+    // SELECT from waiting_list with duplicate check (customer_phone)
+    if (tableName === "waitingList" && queryStr.includes("customer_phone")) {
+      const restaurantId = values[0];
+      const phone = values[1];
+      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const existing = entries.find(
+        (e: any) =>
+          e.restaurant_id === restaurantId &&
+          e.customer_phone === phone &&
+          ["waiting", "called", "confirmed"].includes(e.status),
+      );
+      return existing ? [existing] : [];
+    }
+
+    // Default: return all entries from the relevant table
+    const data = mockData[tableName as keyof typeof mockData];
+    if (data && data.size > 0) {
+      return Array.from(data.values());
+    }
+    return [];
+  }
+
+  function handleInsert(queryStr: string, values: any[]): void {
+    if (queryStr.includes("waiting_list")) {
+      // INSERT INTO waiting_list (id, restaurant_id, customer_id, customer_name, customer_phone,
+      //   party_size, preferred_table_type, queue_number, queue_letter,
+      //   priority, estimated_wait_minutes, status, notes, created_at, updated_at)
+      const entry: any = {
+        id: values[0],
+        restaurant_id: values[1],
+        customer_id: values[2],
+        customer_name: values[3],
+        customer_phone: values[4],
+        party_size: values[5],
+        preferred_table_type: values[6],
+        queue_number: values[7],
+        queue_letter: values[8],
+        priority: values[9],
+        estimated_wait_minutes: values[10],
+        status: values[11],
+        notes: values[12],
+        created_at: values[13],
+        updated_at: values[14],
+      };
+      mockData.waitingList.set(entry.id, entry);
+    }
+  }
+
+  function handleUpdate(queryStr: string, values: any[]): void {
+    state.updateCalled = true;
+
+    if (queryStr.includes("waiting_list")) {
+      // The last value is always the id from the WHERE clause
+      const id = values[values.length - 1];
+      const entry = mockData.waitingList.get(id);
+      if (!entry) return;
+
+      // Status is a literal string in the SQL (e.g. status = 'called'), not a parameter.
+      // Extract it from the query string.
+      const statusMatch = queryStr.match(/status\s*=\s*'(\w+)'/);
+      if (statusMatch) {
+        entry.status = statusMatch[1];
+      }
+
+      // Identify the specific update by distinctive column names in SET clause
+      // Note: status is literal in SQL, so values start from the first ? parameter
+      if (queryStr.includes("called_at")) {
+        // callWaiting: SET status='called', table_id=?, called_at=?, timeout_at=?, updated_at=? WHERE id=?
+        // values: [tableId, calledAt, timeoutAt, updatedAt, id]
+        entry.table_id = values[0];
+        entry.called_at = values[1];
+        entry.timeout_at = values[2];
+        entry.updated_at = values[3];
+      } else if (queryStr.includes("confirmed_at")) {
+        // confirmWaiting: SET status='confirmed', confirmed_at=?, updated_at=? WHERE id=?
+        // values: [confirmedAt, updatedAt, id]
+        entry.confirmed_at = values[0];
+        entry.updated_at = values[1];
+      } else if (queryStr.includes("seated_at")) {
+        // markSeated: SET status='seated', seated_at=?, updated_at=? WHERE id=?
+        // values: [seatedAt, updatedAt, id]
+        entry.seated_at = values[0];
+        entry.updated_at = values[1];
+      } else if (queryStr.includes("cancelled_at")) {
+        // cancelWaiting: SET status='cancelled', cancelled_at=?, updated_at=? WHERE id=?
+        // values: [cancelledAt, updatedAt, id]
+        entry.cancelled_at = values[0];
+        entry.updated_at = values[1];
+      } else if (queryStr.includes("expired_at")) {
+        // expireWaiting: SET status='expired', expired_at=?, updated_at=? WHERE id=?
+        // values: [expiredAt, updatedAt, id]
+        entry.expired_at = values[0];
+        entry.updated_at = values[1];
+      } else if (queryStr.includes("estimated_wait_minutes")) {
+        // recalculateWaitTimes: SET estimated_wait_minutes=?, updated_at=? WHERE id=?
+        // values: [minutes, updatedAt, id]
+        entry.estimated_wait_minutes = values[0];
+        entry.updated_at = values[1];
+      }
+
+      mockData.waitingList.set(id, entry);
+    }
+
+    // Table status updates are tracked via state.updateCalled
+  }
+
+  const db: any = {
+    get: async (query: any) => {
+      const { queryStr, values } = extractQueryInfo(query);
+      const upperStr = queryStr.trimStart().toUpperCase();
+      if (upperStr.startsWith("INSERT")) {
+        handleInsert(queryStr, values);
+        return null;
+      }
+      const results = handleSelect(queryStr, values);
+      return results[0] || null;
+    },
+    all: async (query: any) => {
+      const { queryStr, values } = extractQueryInfo(query);
+      return handleSelect(queryStr, values);
     },
     run: async (query: any) => {
-      state.updateCalled = true;
+      const { queryStr, values } = extractQueryInfo(query);
+      const upperStr = queryStr.trimStart().toUpperCase();
+      if (upperStr.startsWith("INSERT")) {
+        handleInsert(queryStr, values);
+      } else if (upperStr.startsWith("UPDATE")) {
+        handleUpdate(queryStr, values);
+      }
       return { success: true };
     },
+    transaction: async (callback: any) => callback(db),
     _mockData: mockData,
-    // Use getter to return current value from state object
     get _updateCalled() {
       return state.updateCalled;
     },
-    // Reset method for test cleanup
     _resetUpdateCalled() {
       state.updateCalled = false;
     },
@@ -601,15 +839,10 @@ function createMockDB() {
   return db;
 }
 
-function extractTableNameFromQuery(queryStr: string): string {
-  if (queryStr.includes("waiting_list")) return "waitingList";
-  if (queryStr.includes("tables")) return "tables";
-  if (queryStr.includes("orders")) return "orders";
-  return "waitingList";
-}
-
-function createMockEnv() {
+function createMockEnv(mockDB?: any) {
   return {
     JWT_SECRET: "test-secret",
+    NODE_ENV: "test",
+    MOCK_DRIZZLE_DB: mockDB,
   };
 }

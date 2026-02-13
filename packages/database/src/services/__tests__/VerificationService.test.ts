@@ -3,60 +3,60 @@
  * Simplified test coverage focusing on core functionality
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { VerificationService } from '../VerificationService'
-import { NotificationService } from '../NotificationService'
-import { createMockDatabase, createMockEnv } from './helpers/mockD1'
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { VerificationService } from "../VerificationService";
+import { NotificationService } from "../NotificationService";
+import { createMockDatabase, createMockEnv } from "./helpers/mockD1";
 
 // Mock bcrypt
-vi.mock('bcryptjs', () => ({
+vi.mock("bcryptjs", () => ({
   default: {
     hash: vi.fn(),
   },
   hash: vi.fn(),
-}))
+}));
 
-import * as bcrypt from 'bcryptjs'
+import * as bcrypt from "bcryptjs";
 
-describe('VerificationService', () => {
-  let verificationService: VerificationService
-  let mockDb: any
-  let mockEnv: any
+describe("VerificationService", () => {
+  let verificationService: VerificationService;
+  let mockDb: any;
+  let mockEnv: any;
 
   beforeEach(() => {
     // Create fresh mocks for each test
-    mockDb = createMockDatabase()
+    mockDb = createMockDatabase();
     mockEnv = createMockEnv({
-      JWT_SECRET: 'test-jwt-secret-key',
-      API_BASE_URL: 'http://localhost:3000',
-      NOTIFICATION_FROM_EMAIL: 'test@makanmakan.com',
-    })
+      JWT_SECRET: "test-jwt-secret-key",
+      API_BASE_URL: "http://localhost:3000",
+      NOTIFICATION_FROM_EMAIL: "test@makanmakan.com",
+    });
 
     // Initialize service
-    verificationService = new VerificationService(mockDb, mockEnv)
+    verificationService = new VerificationService(mockDb, mockEnv);
 
     // Clear all mocks
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
   afterEach(() => {
-    vi.restoreAllMocks()
-  })
+    vi.restoreAllMocks();
+  });
 
   // ========================================
   // Password Reset Tests
   // ========================================
 
-  describe('requestPasswordReset', () => {
+  describe("requestPasswordReset", () => {
     const mockUser = {
       id: 1,
-      username: 'testuser',
-      email: 'test@example.com',
-      phone: '+60123456789',
-      fullName: 'Test User',
-    }
+      username: "testuser",
+      email: "test@example.com",
+      phone: "+60123456789",
+      fullName: "Test User",
+    };
 
-    it('should successfully request password reset via email', async () => {
+    it("should successfully request password reset via email", async () => {
       // Arrange
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -64,257 +64,274 @@ describe('VerificationService', () => {
             get: vi.fn().mockResolvedValue(mockUser),
           }),
         }),
-      })
+      });
 
       mockDb.insert.mockReturnValue({
         values: vi.fn().mockReturnValue({
           run: vi.fn().mockResolvedValue(undefined),
         }),
-      })
+      });
 
       // Mock NotificationService
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
+      vi.spyOn(
+        NotificationService.prototype,
+        "sendNotification",
+      ).mockResolvedValue({ success: true, errors: [] });
 
       // Act
       const result = await verificationService.requestPasswordReset({
-        identifier: 'test@example.com',
-        method: 'email',
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-      })
+        identifier: "test@example.com",
+        method: "email",
+        ipAddress: "127.0.0.1",
+        userAgent: "Test Agent",
+      });
 
       // Assert
-      expect(result.success).toBe(true)
-      expect(result.message).toContain('重設連結已發送')
-    })
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("重設連結已發送");
+    });
 
-    it('should fail if user not found', async () => {
+    it("should fail if user not found", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            get: vi.fn().mockResolvedValue(null),
-          }),
-        }),
-      })
+      // Mock select to return null for user lookup
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(null),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.requestPasswordReset({
-        identifier: 'nonexistent@example.com',
-        method: 'email',
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-      })
+        identifier: "nonexistent@example.com",
+        method: "email",
+        ipAddress: "127.0.0.1",
+        userAgent: "Test Agent",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toBeDefined()
-    })
+      // Security: Service returns success even if user not found (to prevent user enumeration)
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("如果該帳號存在");
+      // But it should not insert a token or send email
+      expect(mockDb.insert).not.toHaveBeenCalled();
+    });
 
-    it('should handle errors gracefully', async () => {
+    it("should handle errors gracefully", async () => {
       // Arrange
       mockDb.select.mockImplementation(() => {
-        throw new Error('Database error')
-      })
+        throw new Error("Database error");
+      });
 
       // Act
       const result = await verificationService.requestPasswordReset({
-        identifier: 'test@example.com',
-        method: 'email',
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-      })
+        identifier: "test@example.com",
+        method: "email",
+        ipAddress: "127.0.0.1",
+        userAgent: "Test Agent",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toBeDefined()
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
 
-  describe('verifyResetToken', () => {
-    const validToken = '12345678-1234-1234-1234-123456789abc'
+  describe("verifyResetToken", () => {
+    const validToken = "12345678-1234-1234-1234-123456789abc";
     const mockTokenRecord = {
       id: 1,
       userId: 1,
-      expiresAt: Math.floor(Date.now() / 1000) + 900, // 15 minutes from now
+      expiresAt: new Date(Date.now() + 900 * 1000), // 15 minutes from now
       usedAt: null,
-      userEmail: 'test@example.com',
-    }
+      userEmail: "test@example.com",
+    };
 
-    it('should successfully verify valid token', async () => {
+    it("should successfully verify valid token", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.verifyResetToken({
         token: validToken,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.valid).toBe(true)
-      expect(result.userId).toBe(mockTokenRecord.userId)
-    })
+      expect(result.valid).toBe(true);
+      expect(result.userId).toBe(mockTokenRecord.userId);
+    });
 
-    it('should fail if token is expired', async () => {
+    it("should fail if token is expired", async () => {
       // Arrange
       const expiredToken = {
         ...mockTokenRecord,
-        expiresAt: Math.floor(Date.now() / 1000) - 3600, // Expired
-      }
+        expiresAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
+      };
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(expiredToken),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(expiredToken),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.verifyResetToken({
         token: validToken,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Token 已過期')
-    })
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Token 已過期");
+    });
 
-    it('should fail if token already used', async () => {
+    it("should fail if token already used", async () => {
       // Arrange
       const usedToken = {
         ...mockTokenRecord,
-        usedAt: Math.floor(Date.now() / 1000) - 60,
-      }
+        usedAt: new Date(Date.now() - 60 * 1000), // 1 minute ago
+      };
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(usedToken),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(usedToken),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.verifyResetToken({
         token: validToken,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Token 已被使用')
-    })
-  })
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Token 已被使用");
+    });
+  });
 
-  describe('resetPassword', () => {
-    const validToken = '12345678-1234-1234-1234-123456789abc'
-    const newPassword = 'NewPass@123'
+  describe("resetPassword", () => {
+    const validToken = "12345678-1234-1234-1234-123456789abc";
+    const newPassword = "NewPass@123";
 
     const mockTokenRecord = {
       id: 1,
       userId: 1,
-      expiresAt: Math.floor(Date.now() / 1000) + 900,
+      expiresAt: new Date(Date.now() + 900 * 1000), // 15 minutes from now
       usedAt: null,
-      tokenType: 'email',
-      userEmail: 'test@example.com',
-      userFullName: 'Test User',
-    }
+      tokenType: "email",
+      userEmail: "test@example.com",
+      userFullName: "Test User",
+    };
 
-    it('should successfully reset password', async () => {
+    it("should successfully reset password", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
+      // First select: verify reset token
+      const mockVerifyQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      // Second select: get user details after password reset
+      const mockUserQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue({
+          id: mockTokenRecord.userId,
+          email: mockTokenRecord.userEmail,
+          fullName: mockTokenRecord.userFullName,
         }),
-      })
+      };
+      mockDb.select
+        .mockReturnValueOnce(mockVerifyQueryChain)
+        .mockReturnValueOnce(mockUserQueryChain);
 
-      vi.mocked(bcrypt.hash).mockResolvedValue('$2a$10$hashedpassword' as never)
+      vi.mocked(bcrypt.hash).mockResolvedValue(
+        "$2a$10$hashedpassword" as never,
+      );
 
       mockDb.update.mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue(undefined),
+          }),
         }),
-      })
+      });
 
       mockDb.insert.mockReturnValue({
         values: vi.fn().mockReturnValue({
           run: vi.fn().mockResolvedValue(undefined),
         }),
-      })
+      });
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
+      vi.spyOn(
+        NotificationService.prototype,
+        "sendNotification",
+      ).mockResolvedValue({ success: true, errors: [] });
 
       // Act
       const result = await verificationService.resetPassword({
         token: validToken,
         newPassword,
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-      })
+        ipAddress: "127.0.0.1",
+        userAgent: "Test Agent",
+      });
 
       // Assert
-      expect(result.success).toBe(true)
-      expect(result.message).toContain('密碼已成功重設')
-      expect(bcrypt.hash).toHaveBeenCalledWith(newPassword, 10)
-    })
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("密碼已成功重設");
+      expect(bcrypt.hash).toHaveBeenCalledWith(newPassword, 10);
+    });
 
-    it('should fail with weak password', async () => {
+    it("should fail with weak password", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
-        }),
-      })
+      // Mock for verifyResetToken call
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.resetPassword({
         token: validToken,
-        newPassword: '123', // Too short
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-      })
+        newPassword: "123", // Too short
+        ipAddress: "127.0.0.1",
+        userAgent: "Test Agent",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('密碼至少需要 6 個字符')
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("密碼至少需要 6 個字符");
+    });
+  });
 
   // ========================================
   // Email Verification Tests
   // ========================================
 
-  describe('sendEmailVerification', () => {
+  describe("sendEmailVerification", () => {
     const mockUser = {
       id: 1,
-      email: 'test@example.com',
-      fullName: 'Test User',
-    }
+      email: "test@example.com",
+      fullName: "Test User",
+    };
 
-    it('should successfully send email verification', async () => {
+    it("should successfully send email verification", async () => {
       // Arrange
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -322,232 +339,249 @@ describe('VerificationService', () => {
             get: vi.fn().mockResolvedValue(mockUser),
           }),
         }),
-      })
+      });
 
       mockDb.insert.mockReturnValue({
         values: vi.fn().mockReturnValue({
           run: vi.fn().mockResolvedValue(undefined),
         }),
-      })
+      });
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
+      vi.spyOn(
+        NotificationService.prototype,
+        "sendNotification",
+      ).mockResolvedValue({ success: true, errors: [] });
 
       // Act
       const result = await verificationService.sendEmailVerification({
         userId: 1,
-        email: 'test@example.com',
-        ipAddress: '127.0.0.1',
-      })
+        email: "test@example.com",
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(true)
-      expect(result.message).toContain('驗證郵件已發送')
-    })
-  })
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("驗證郵件已發送");
+    });
+  });
 
-  describe('verifyEmail', () => {
-    const validToken = '12345678-1234-1234-1234-123456789abc'
+  describe("verifyEmail", () => {
+    const validToken = "12345678-1234-1234-1234-123456789abc";
 
     const mockTokenRecord = {
       id: 1,
       userId: 1,
-      email: 'test@example.com',
-      expiresAt: Math.floor(Date.now() / 1000) + 86400,
+      email: "test@example.com",
+      expiresAt: new Date(Date.now() + 86400 * 1000), // 24 hours from now
       verifiedAt: null,
-      userFullName: 'Test User',
-    }
+      userFullName: "Test User",
+    };
 
-    it('should successfully verify email', async () => {
+    it("should successfully verify email", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
+      // First select: get verification token
+      const mockTokenQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      // Second select: get user details after verification
+      const mockUserQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue({
+          id: mockTokenRecord.userId,
+          email: mockTokenRecord.email,
+          fullName: mockTokenRecord.userFullName,
         }),
-      })
+      };
+      mockDb.select
+        .mockReturnValueOnce(mockTokenQueryChain)
+        .mockReturnValueOnce(mockUserQueryChain);
 
       mockDb.update.mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue(undefined),
+          }),
         }),
-      })
+      });
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
+      vi.spyOn(
+        NotificationService.prototype,
+        "sendNotification",
+      ).mockResolvedValue({ success: true, errors: [] });
 
       // Act
       const result = await verificationService.verifyEmail({
         token: validToken,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(true)
-      expect(result.message).toContain('Email 驗證成功')
-    })
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Email 驗證成功");
+    });
 
-    it('should fail if token is expired', async () => {
+    it("should fail if token is expired", async () => {
       // Arrange
       const expiredToken = {
         ...mockTokenRecord,
-        expiresAt: Math.floor(Date.now() / 1000) - 3600,
-      }
+        expiresAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
+      };
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(expiredToken),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(expiredToken),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.verifyEmail({
         token: validToken,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Token 已過期')
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Token 已過期");
+    });
+  });
 
   // ========================================
   // Phone Verification Tests
   // ========================================
 
-  describe('verifyPhone', () => {
-    const validOtp = '123456'
+  describe("verifyPhone", () => {
+    const validOtp = "123456";
 
     const mockTokenRecord = {
       id: 1,
       userId: 1,
-      phone: '+60123456789',
+      phone: "+60123456789",
       otpCode: validOtp,
-      expiresAt: Math.floor(Date.now() / 1000) + 300,
+      expiresAt: new Date(Date.now() + 300 * 1000), // 5 minutes from now
       verifiedAt: null,
       attemptCount: 0,
-      userFullName: 'Test User',
-    }
+      userFullName: "Test User",
+    };
 
-    it('should successfully verify phone with correct OTP', async () => {
+    it("should successfully verify phone with correct OTP", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
-        }),
-      })
+      // Mock the select for getting verification token
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       mockDb.update.mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue(undefined),
+          }),
         }),
-      })
+      });
 
-      vi.spyOn(NotificationService.prototype, 'sendNotification').mockResolvedValue({ success: true, errors: [] })
+      vi.spyOn(
+        NotificationService.prototype,
+        "sendNotification",
+      ).mockResolvedValue({ success: true, errors: [] });
 
       // Act
       const result = await verificationService.verifyPhone({
         userId: 1,
-        phone: '+60123456789',
+        phone: "+60123456789",
         otpCode: validOtp,
-        ipAddress: '127.0.0.1',
-      })
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(true)
-      expect(result.message).toContain('手機驗證成功')
-    })
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("手機驗證成功");
+    });
 
-    it('should fail with incorrect OTP', async () => {
+    it("should fail with incorrect OTP", async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(mockTokenRecord),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(mockTokenRecord),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       mockDb.update.mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue(undefined),
+          }),
         }),
-      })
+      });
 
       // Act
       const result = await verificationService.verifyPhone({
         userId: 1,
-        phone: '+60123456789',
-        otpCode: '000000', // Wrong OTP
-        ipAddress: '127.0.0.1',
-      })
+        phone: "+60123456789",
+        otpCode: "000000", // Wrong OTP
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('驗證碼錯誤')
-    })
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("驗證碼錯誤");
+    });
 
-    it('should fail after 3 failed attempts', async () => {
+    it("should fail after 3 failed attempts", async () => {
       // Arrange
       const lockedToken = {
         ...mockTokenRecord,
         attemptCount: 3,
-      }
+      };
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue(lockedToken),
-            }),
-          }),
-        }),
-      })
+      const mockQueryChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(lockedToken),
+      };
+      mockDb.select.mockReturnValue(mockQueryChain);
 
       // Act
       const result = await verificationService.verifyPhone({
         userId: 1,
-        phone: '+60123456789',
-        otpCode: '123456',
-        ipAddress: '127.0.0.1',
-      })
+        phone: "+60123456789",
+        otpCode: "123456",
+        ipAddress: "127.0.0.1",
+      });
 
       // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('驗證次數已達上限')
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("驗證碼已失效");
+    });
+  });
 
   // ========================================
   // Cleanup Tests
   // ========================================
 
-  describe('cleanupExpiredTokens', () => {
-    it('should delete expired tokens', async () => {
+  describe("cleanupExpiredTokens", () => {
+    it("should delete expired tokens", async () => {
       // Arrange
       mockDb.delete.mockReturnValue({
         where: vi.fn().mockReturnValue({
           run: vi.fn().mockResolvedValue(undefined),
         }),
-      })
+      });
 
       // Act
-      await verificationService.cleanupExpiredTokens()
+      await verificationService.cleanupExpiredTokens();
 
       // Assert
-      expect(mockDb.delete).toHaveBeenCalled()
-    })
-  })
-})
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
+  });
+});
