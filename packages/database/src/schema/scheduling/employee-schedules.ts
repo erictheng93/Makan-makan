@@ -72,6 +72,7 @@ export const employeeSchedules = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantDateIdx: index("idx_employee_schedules_restaurant_date").on(

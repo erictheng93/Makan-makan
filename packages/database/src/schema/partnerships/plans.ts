@@ -131,6 +131,7 @@ export const partnershipPlans = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
     createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
     }),

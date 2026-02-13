@@ -81,6 +81,7 @@ export const leaveRequests = sqliteTable(
       .notNull()
       .$onUpdate(() => new Date()),
     submittedAt: integer("submitted_at_ms", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantStatusIdx: index("idx_leave_requests_restaurant_status").on(

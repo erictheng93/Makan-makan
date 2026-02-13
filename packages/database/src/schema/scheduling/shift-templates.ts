@@ -74,6 +74,7 @@ export const shiftTemplates = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
+    deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantActiveIdx: index("idx_shift_templates_restaurant_active").on(
