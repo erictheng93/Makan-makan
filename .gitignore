@@ -190,3 +190,6 @@ orders-kitchen-coverage*.txt
 *-latest*.txt
 *-final*.txt
 tmpclaude-*
+
+# Git worktrees
+.worktrees/
