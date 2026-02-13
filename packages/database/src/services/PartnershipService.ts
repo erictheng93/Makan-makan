@@ -15,7 +15,9 @@ import {
   inArray,
   isNull,
 } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
+import { paginateWithCursor } from "../utils/pagination-helpers";
 import {
   partnerships,
   partnershipPlans,
@@ -766,21 +768,17 @@ export class PartnershipService extends BaseService {
   }
 
   /**
-   * 查詢使用記錄列表
+   * Build where clause from usage log filters
    */
-  async listUsageLogs(
-    filters: {
-      partnershipId?: string;
-      planId?: string;
-      memberId?: string;
-      restaurantId?: string;
-      status?: typeof partnershipUsageLogs.$inferSelect.status;
-      startDate?: Date;
-      endDate?: Date;
-    } = {},
-    page = 1,
-    limit = 20,
-  ) {
+  private buildUsageLogWhereClause(filters: {
+    partnershipId?: string;
+    planId?: string;
+    memberId?: string;
+    restaurantId?: string;
+    status?: typeof partnershipUsageLogs.$inferSelect.status;
+    startDate?: Date;
+    endDate?: Date;
+  }): SQL | undefined {
     const conditions = [];
 
     if (filters.partnershipId) {
@@ -815,8 +813,45 @@ export class PartnershipService extends BaseService {
       conditions.push(lte(partnershipUsageLogs.usedAt, filters.endDate));
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    return conditions.length > 0 ? and(...conditions) : undefined;
+  }
 
+  /**
+   * 查詢使用記錄列表（支援游標分頁與偏移分頁）
+   */
+  async listUsageLogs(
+    filters: {
+      partnershipId?: string;
+      planId?: string;
+      memberId?: string;
+      restaurantId?: string;
+      status?: typeof partnershipUsageLogs.$inferSelect.status;
+      startDate?: Date;
+      endDate?: Date;
+      cursor?: string;
+    } = {},
+    page = 1,
+    limit = 20,
+  ) {
+    const { cursor, ...filterParams } = filters;
+    const whereClause = this.buildUsageLogWhereClause(filterParams);
+
+    // Cursor-based pagination path
+    if (cursor) {
+      return paginateWithCursor(
+        this.db,
+        partnershipUsageLogs,
+        {
+          cursor,
+          limit,
+          where: whereClause,
+        },
+        "id",
+        "usedAt",
+      );
+    }
+
+    // Offset-based pagination path (existing behavior)
     const [results, countResult] = await Promise.all([
       this.db.query.partnershipUsageLogs.findMany({
         where: whereClause,

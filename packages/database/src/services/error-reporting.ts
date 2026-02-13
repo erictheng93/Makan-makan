@@ -10,8 +10,10 @@ import {
   isNull,
   isNotNull,
 } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { errorReports, systemAlerts, users, restaurants } from "../schema";
+import { paginateWithCursor } from "../utils/pagination-helpers";
 import type {
   ErrorReport,
   NewErrorReport,
@@ -116,53 +118,92 @@ export class ErrorReportingService extends BaseService {
     }
   }
 
-  // 獲取錯誤報告列表
+  /**
+   * Build where clause from error report filters
+   */
+  private buildErrorReportWhereClause(
+    filters: ErrorReportFilters,
+  ): SQL | undefined {
+    const conditions = [];
+
+    if (filters.userId) {
+      conditions.push(eq(errorReports.userId, filters.userId));
+    }
+
+    if (filters.restaurantId) {
+      conditions.push(eq(errorReports.restaurantId, filters.restaurantId));
+    }
+
+    if (filters.errorType) {
+      conditions.push(eq(errorReports.errorType, filters.errorType as any));
+    }
+
+    if (filters.severity) {
+      conditions.push(eq(errorReports.severity, filters.severity as any));
+    }
+
+    if (filters.dateRange) {
+      const startDate = new Date(filters.dateRange[0]);
+      const endDate = new Date(filters.dateRange[1]);
+      conditions.push(
+        and(
+          gte(errorReports.createdAt, startDate),
+          lte(errorReports.createdAt, endDate),
+        ),
+      );
+    }
+
+    if (filters.resolved !== undefined) {
+      if (filters.resolved) {
+        conditions.push(isNotNull(errorReports.resolvedAt));
+      } else {
+        conditions.push(isNull(errorReports.resolvedAt));
+      }
+    }
+
+    return conditions.length > 0 ? and(...conditions) : undefined;
+  }
+
+  // 獲取錯誤報告列表（支援游標分頁與偏移分頁）
   async getErrorReports(
-    filters: ErrorReportFilters = {},
+    filters: ErrorReportFilters & { cursor?: string } = {},
     page: number = 1,
     limit: number = 20,
   ) {
     try {
-      const { offset } = this.createPagination(page, limit);
-      const conditions = [];
+      const { cursor, ...filterParams } = filters;
+      const whereClause = this.buildErrorReportWhereClause(filterParams);
 
-      if (filters.userId) {
-        conditions.push(eq(errorReports.userId, filters.userId));
-      }
-
-      if (filters.restaurantId) {
-        conditions.push(eq(errorReports.restaurantId, filters.restaurantId));
-      }
-
-      if (filters.errorType) {
-        conditions.push(eq(errorReports.errorType, filters.errorType as any));
-      }
-
-      if (filters.severity) {
-        conditions.push(eq(errorReports.severity, filters.severity as any));
-      }
-
-      if (filters.dateRange) {
-        const startDate = new Date(filters.dateRange[0]);
-        const endDate = new Date(filters.dateRange[1]);
-        conditions.push(
-          and(
-            gte(errorReports.createdAt, startDate),
-            lte(errorReports.createdAt, endDate),
-          ),
+      // Cursor-based pagination path
+      if (cursor) {
+        const cursorResult = await paginateWithCursor(
+          this.db,
+          errorReports,
+          {
+            cursor,
+            limit,
+            where: whereClause,
+          },
+          "id",
+          "createdAt",
         );
+
+        return {
+          reports: cursorResult.data.map((report: any) => ({
+            ...report,
+            errorContext: report.errorContext
+              ? JSON.parse(report.errorContext)
+              : null,
+            originalError: report.originalError
+              ? JSON.parse(report.originalError)
+              : null,
+          })),
+          pagination: cursorResult.pagination,
+        };
       }
 
-      if (filters.resolved !== undefined) {
-        if (filters.resolved) {
-          conditions.push(isNotNull(errorReports.resolvedAt));
-        } else {
-          conditions.push(isNull(errorReports.resolvedAt));
-        }
-      }
-
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      // Offset-based pagination path (existing behavior)
+      const { offset } = this.createPagination(page, limit);
 
       const reports = await this.db
         .select()
