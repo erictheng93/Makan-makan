@@ -10,8 +10,8 @@ export default defineConfig({
     exclude: ["node_modules/", "dist/"],
     // Memory optimization settings - use forks for better isolation
     pool: "forks",
-    singleFork: true, // Use single fork to reduce memory (moved from poolOptions in vitest 4.x)
-    isolate: false, // Share memory between tests (moved from poolOptions in vitest 4.x)
+    maxWorkers: 1,
+    isolate: false,
     // Run test files sequentially to prevent memory issues
     fileParallelism: false,
     // Limit concurrent tests to reduce memory pressure
@@ -19,6 +19,7 @@ export default defineConfig({
     // Sequence tests to avoid race conditions
     sequence: {
       shuffle: false,
+      groupOrder: "database",
     },
     // Increase test timeout for slower tests
     testTimeout: 30000,
