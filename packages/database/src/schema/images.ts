@@ -1,11 +1,11 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
-import { createId } from "@paralleldrive/cuid2";
+import { v7 as uuidv7 } from "uuid";
 
 export const images = sqliteTable("images", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => createId()),
+    .$defaultFn(() => uuidv7()),
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   mimeType: text("mime_type").notNull(),

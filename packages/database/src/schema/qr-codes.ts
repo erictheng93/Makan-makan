@@ -1,11 +1,11 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
-import { createId } from "@paralleldrive/cuid2";
+import { v7 as uuidv7 } from "uuid";
 
 export const qrCodes = sqliteTable("qr_codes", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => createId()),
+    .$defaultFn(() => uuidv7()),
   content: text("content").notNull(),
   styleJson: text("style_json"),
   format: text("format").notNull().default("png"),
