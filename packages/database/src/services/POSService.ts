@@ -552,7 +552,8 @@ export class POSService extends BaseService {
       paymentMethod?: string;
       denominationBreakdown?: Record<string, number>;
     },
-    tx?: typeof this.db,
+
+    tx?: any,
   ): Promise<void> {
     const db = tx ?? this.db;
     const movementId = crypto.randomUUID();
@@ -877,7 +878,8 @@ export class POSService extends BaseService {
 
   async generateShiftReport(
     shiftId: string,
-    tx?: typeof this.db,
+
+    tx?: any,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const db = tx ?? this.db;
@@ -951,7 +953,7 @@ export class POSService extends BaseService {
           cardSales: shift.shift.cardSales,
           digitalSales: shift.shift.digitalSales,
         },
-        movements: movements.map((movement) => ({
+        movements: movements.map((movement: any) => ({
           ...movement,
           denominationBreakdown: JSON.parse(
             movement.denominationBreakdown || "{}",
