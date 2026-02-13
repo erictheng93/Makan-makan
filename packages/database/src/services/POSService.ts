@@ -370,36 +370,38 @@ export class POSService extends BaseService {
       const shiftId = crypto.randomUUID()
       const shiftStartTime = new Date()
 
-      // 插入新班次
-      const shiftData = {
-        id: shiftId,
-        registerId: validatedData.registerId,
-        operatorId: validatedData.operatorId,
-        startAmount: validatedData.startAmount,
-        expectedAmount: validatedData.startAmount,
-        differenceAmount: 0,
-        totalSales: 0,
-        totalRefunds: 0,
-        cashSales: 0,
-        cardSales: 0,
-        digitalSales: 0,
-        totalTransactions: 0,
-        startedAt: shiftStartTime,
-        status: 'active' as const,
-        notes: validatedData.notes ?? null
-      }
+      // 插入新班次和記錄開班現金操作在同一個事務中
+      await this.db.transaction(async (tx) => {
+        const shiftData = {
+          id: shiftId,
+          registerId: validatedData.registerId,
+          operatorId: validatedData.operatorId,
+          startAmount: validatedData.startAmount,
+          expectedAmount: validatedData.startAmount,
+          differenceAmount: 0,
+          totalSales: 0,
+          totalRefunds: 0,
+          cashSales: 0,
+          cardSales: 0,
+          digitalSales: 0,
+          totalTransactions: 0,
+          startedAt: shiftStartTime,
+          status: 'active' as const,
+          notes: validatedData.notes ?? null
+        }
 
-      await this.db.insert(cashShifts).values(shiftData)
+        await tx.insert(cashShifts).values(shiftData)
 
-      // 記錄開班現金操作
-      await this.recordCashMovement(shiftId, {
-        type: 'opening',
-        amount: validatedData.startAmount,
-        description: '開班現金',
-        recordedBy: validatedData.operatorId
+        // 記錄開班現金操作
+        await this.recordCashMovement(shiftId, {
+          type: 'opening',
+          amount: validatedData.startAmount,
+          description: '開班現金',
+          recordedBy: validatedData.operatorId
+        }, tx)
       })
 
-      // 查詢班次資料
+      // 查詢班次資料（在事務外）
       const shift = await this.db
         .select()
         .from(cashShifts)
@@ -450,38 +452,43 @@ export class POSService extends BaseService {
       // 計算預期金額
       const expectedAmount = shift.startAmount + shift.totalSales - shift.totalRefunds
       const differenceAmount = validatedData.actualAmount - expectedAmount
-
-      // 更新班次狀態
       const shiftEndTime = new Date()
-      await this.db
-        .update(cashShifts)
-        .set({
-          endAmount: validatedData.actualAmount,
-          actualAmount: validatedData.actualAmount,
-          expectedAmount,
-          differenceAmount,
-          endedAt: shiftEndTime,
-          status: 'closed' as const,
-          closingNotes: validatedData.closingNotes ?? null
-        })
-        .where(eq(cashShifts.id, shiftId))
 
-      // 記錄結班現金操作
-      await this.recordCashMovement(shiftId, {
-        type: 'closing',
-        amount: validatedData.actualAmount,
-        description: `結班現金 (差額: ${differenceAmount >= 0 ? '+' : ''}${differenceAmount})`,
-        recordedBy: operatorId
+      // 所有寫入操作在同一個事務中
+      let report: { success: boolean; data?: any; error?: string } = { success: false }
+
+      await this.db.transaction(async (tx) => {
+        // 更新班次狀態
+        await tx
+          .update(cashShifts)
+          .set({
+            endAmount: validatedData.actualAmount,
+            actualAmount: validatedData.actualAmount,
+            expectedAmount,
+            differenceAmount,
+            endedAt: shiftEndTime,
+            status: 'closed' as const,
+            closingNotes: validatedData.closingNotes ?? null
+          })
+          .where(eq(cashShifts.id, shiftId))
+
+        // 記錄結班現金操作
+        await this.recordCashMovement(shiftId, {
+          type: 'closing',
+          amount: validatedData.actualAmount,
+          description: `結班現金 (差額: ${differenceAmount >= 0 ? '+' : ''}${differenceAmount})`,
+          recordedBy: operatorId
+        }, tx)
+
+        // 清除收銀機的當前班次
+        await tx
+          .update(cashRegisters)
+          .set({ currentShiftId: null })
+          .where(eq(cashRegisters.id, shift.registerId))
+
+        // 生成班次報表
+        report = await this.generateShiftReport(shiftId, tx)
       })
-
-      // 清除收銀機的當前班次
-      await this.db
-        .update(cashRegisters)
-        .set({ currentShiftId: null })
-        .where(eq(cashRegisters.id, shift.registerId))
-
-      // 生成班次報表
-      const report = await this.generateShiftReport(shiftId)
 
       return {
         success: true,
@@ -522,12 +529,14 @@ export class POSService extends BaseService {
       referenceType?: string
       paymentMethod?: string
       denominationBreakdown?: Record<string, number>
-    }
+    },
+    tx?: typeof this.db
   ): Promise<void> {
+    const db = tx ?? this.db
     const movementId = crypto.randomUUID()
 
     // 獲取 register_id
-    const shift = await this.db
+    const shift = await db
       .select({ registerId: cashShifts.registerId })
       .from(cashShifts)
       .where(eq(cashShifts.id, shiftId))
@@ -557,7 +566,7 @@ export class POSService extends BaseService {
       createdAt: movementCreatedAt
     }
 
-    await this.db.insert(cashMovements).values(movementData)
+    await db.insert(cashMovements).values(movementData)
   }
 
   async processCashMovement(
@@ -752,40 +761,42 @@ export class POSService extends BaseService {
       const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`
       const refundProcessedAt = new Date()
 
-      // 插入退款記錄
-      const refundData = {
-        id: refundId,
-        originalOrderId: validatedData.originalOrderId,
-        registerId,
-        shiftId: shiftId ?? null,
-        refundNumber,
-        refundType: validatedData.refundType,
-        originalAmount: originalOrder.totalAmount,
-        refundAmount: validatedData.refundAmount,
-        refundMethod: validatedData.refundMethod,
-        reasonCode: validatedData.reasonCode,
-        reasonDescription: validatedData.reasonDescription ?? null,
-        itemsRefunded: JSON.stringify(validatedData.itemsRefunded),
-        processedBy,
-        customerSignature: validatedData.customerSignature ?? null,
-        status: 'processing' as const,
-        metadata: JSON.stringify({}),
-        processedAt: refundProcessedAt
-      }
+      // 插入退款記錄和現金流動在同一個事務中
+      await this.db.transaction(async (tx) => {
+        const refundData = {
+          id: refundId,
+          originalOrderId: validatedData.originalOrderId,
+          registerId,
+          shiftId: shiftId ?? null,
+          refundNumber,
+          refundType: validatedData.refundType,
+          originalAmount: originalOrder.totalAmount,
+          refundAmount: validatedData.refundAmount,
+          refundMethod: validatedData.refundMethod,
+          reasonCode: validatedData.reasonCode,
+          reasonDescription: validatedData.reasonDescription ?? null,
+          itemsRefunded: JSON.stringify(validatedData.itemsRefunded),
+          processedBy,
+          customerSignature: validatedData.customerSignature ?? null,
+          status: 'processing' as const,
+          metadata: JSON.stringify({}),
+          processedAt: refundProcessedAt
+        }
 
-      await this.db.insert(refunds).values(refundData)
+        await tx.insert(refunds).values(refundData)
 
-      // 記錄現金流動（如果是現金退款）
-      if (shiftId && validatedData.refundMethod === 'cash') {
-        await this.recordCashMovement(shiftId, {
-          type: 'refund',
-          amount: -validatedData.refundAmount,
-          description: `退款 - ${refundNumber}`,
-          recordedBy: processedBy,
-          referenceId: validatedData.originalOrderId,
-          referenceType: 'refund'
-        })
-      }
+        // 記錄現金流動（如果是現金退款）
+        if (shiftId && validatedData.refundMethod === 'cash') {
+          await this.recordCashMovement(shiftId, {
+            type: 'refund',
+            amount: -validatedData.refundAmount,
+            description: `退款 - ${refundNumber}`,
+            recordedBy: processedBy,
+            referenceId: validatedData.originalOrderId,
+            referenceType: 'refund'
+          }, tx)
+        }
+      })
 
       // 模擬退款完成
       setTimeout(async () => {
@@ -837,11 +848,14 @@ export class POSService extends BaseService {
   // ==========================================
 
   async generateShiftReport(
-    shiftId: string
+    shiftId: string,
+    tx?: typeof this.db
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
+      const db = tx ?? this.db
+
       // 獲取班次基本資訊（包含 JOIN）
-      const shift = await this.db
+      const shift = await db
         .select({
           shift: cashShifts,
           registerName: cashRegisters.name,
@@ -861,7 +875,7 @@ export class POSService extends BaseService {
       }
 
       // 獲取現金流動記錄
-      const movements = await this.db
+      const movements = await db
         .select()
         .from(cashMovements)
         .where(eq(cashMovements.shiftId, shiftId))
@@ -869,7 +883,7 @@ export class POSService extends BaseService {
         .all()
 
       // 獲取收據統計
-      const receiptStats = await this.db
+      const receiptStats = await db
         .select({
           totalReceipts: count(),
           printedReceipts: sql<number>`COUNT(CASE WHEN ${receipts.printStatus} = 'printed' THEN 1 END)`
@@ -928,7 +942,7 @@ export class POSService extends BaseService {
         generatedAt: reportGeneratedAt
       }
 
-      await this.db.insert(shiftReports).values(reportInsertData)
+      await db.insert(shiftReports).values(reportInsertData)
 
       return {
         success: true,
