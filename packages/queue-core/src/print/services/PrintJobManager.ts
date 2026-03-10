@@ -21,8 +21,7 @@ export class PrintJobManager {
   private jobs: Map<string, PrintJob> = new Map();
   private processing: Set<string> = new Set();
   private pausedDevices: Set<string> = new Set();
-  private eventHandlers: Map<string, ((...args: unknown[]) => unknown)[]> =
-    new Map();
+  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
   private processingInterval?: NodeJS.Timeout;
   private isInitialized = false;
 
@@ -405,14 +404,14 @@ export class PrintJobManager {
   // 事件管理
   // =============================================
 
-  on(event: string, handler: (...args: unknown[]) => unknown): void {
+  on(event: string, handler: (...args: any[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
     this.eventHandlers.get(event)!.push(handler);
   }
 
-  off(event: string, handler: (...args: unknown[]) => unknown): void {
+  off(event: string, handler: (...args: any[]) => void): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       const index = handlers.indexOf(handler);

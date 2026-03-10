@@ -12,10 +12,7 @@ export interface PrinterHealth {
 
 export class PrinterHealthMonitor {
   private healthData = new Map<string, PrinterHealth>();
-  private eventHandlers = new Map<
-    string,
-    ((...args: unknown[]) => unknown)[]
-  >();
+  private eventHandlers = new Map<string, ((...args: any[]) => void)[]>();
   private isInitialized = false;
 
   /**
@@ -129,7 +126,7 @@ export class PrinterHealthMonitor {
   /**
    * Add event listener
    */
-  on(event: string, handler: (...args: unknown[]) => unknown): void {
+  on(event: string, handler: (...args: any[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
@@ -139,7 +136,7 @@ export class PrinterHealthMonitor {
   /**
    * Remove event listener
    */
-  off(event: string, handler: (...args: unknown[]) => unknown): void {
+  off(event: string, handler: (...args: any[]) => void): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       const index = handlers.indexOf(handler);

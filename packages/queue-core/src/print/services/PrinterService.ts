@@ -31,8 +31,7 @@ export class PrinterService {
   private formattingService: ReceiptFormattingService;
   private healthMonitor: PrinterHealthMonitor;
   private statisticsCollector: PrintStatisticsCollector;
-  private eventHandlers: Map<string, ((...args: unknown[]) => unknown)[]> =
-    new Map();
+  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
   private isInitialized = false;
 
   constructor(config: Partial<PrintServiceConfig> = {}) {
@@ -354,14 +353,14 @@ export class PrinterService {
   // 事件管理
   // =============================================
 
-  on(event: string, handler: (...args: unknown[]) => unknown): void {
+  on(event: string, handler: (...args: any[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
     this.eventHandlers.get(event)!.push(handler);
   }
 
-  off(event: string, handler: (...args: unknown[]) => unknown): void {
+  off(event: string, handler: (...args: any[]) => void): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       const index = handlers.indexOf(handler);
