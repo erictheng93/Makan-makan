@@ -220,13 +220,8 @@ export function useInfiniteScroll<T>(
       const nextPage = state.value.currentPage + 1;
       params.value.page = nextPage;
 
-      // TypeScript has a known issue with generic types in complex ref structures
-      // Same pattern works in loadPage() and useCursorPagination() without issues
-      // @ts-expect-error TS2349, TS2448, TS2454: False positive - fetchFn is callable and variable is properly declared
-      const paginatedResult: PaginatedResponse<T> = await fetchFn(params.value)(
-        // @ts-expect-error TS2448, TS2454: Continuation of above TypeScript false positive
-        state.value.items as T[],
-      ).push(...paginatedResult.data);
+      const paginatedResult: PaginatedResponse<T> = await fetchFn(params.value);
+      (state.value.items as T[]).push(...paginatedResult.data);
       state.value.currentPage = nextPage;
       state.value.hasMore = paginatedResult.pagination.hasNextPage;
     } catch (e) {
