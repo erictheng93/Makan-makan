@@ -310,10 +310,10 @@ const handleQRCodeDetected = async (qrContent: string) => {
     // 根據 QR 類型進行不同的處理
     switch (qrData.type) {
       case "shop":
-        // 店家 QR - 導航到手機驗證頁面
+        // 店家 QR - 導航到取餐方式選擇頁面
         toast.success(`掃描到${getQRTypeDescription(qrData.type)}！`);
         router.push({
-          name: "ShopPhoneVerification",
+          name: "OrderTypeLanding",
           params: {
             restaurantId: qrData.restaurantId,
           },

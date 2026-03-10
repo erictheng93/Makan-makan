@@ -113,6 +113,13 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/restaurant/:restaurantId/shop/order-type",
+    name: "OrderTypeLanding",
+    component: () => import("@/views/OrderTypeLandingView.vue"),
+    props: true,
+    meta: { title: "選擇取餐方式" },
+  },
+  {
     path: "/restaurant/:restaurantId/shop/verify",
     name: "ShopPhoneVerification",
     component: () => import("@/views/ShopPhoneVerificationView.vue"),
