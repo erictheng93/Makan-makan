@@ -26,9 +26,26 @@
             </button>
 
             <div class="flex-1 text-center">
-              <h1 class="font-semibold text-gray-900">
-                {{ restaurant?.name || "載入中..." }}
-              </h1>
+              <div class="flex items-center justify-center">
+                <h1 class="font-semibold text-gray-900">
+                  {{ restaurant?.name || "載入中..." }}
+                </h1>
+                <span
+                  v-if="shopCartStore.fulfillmentType"
+                  :class="[
+                    'ml-2 px-2 py-0.5 rounded-full text-xs font-semibold',
+                    shopCartStore.fulfillmentType === 'delivery'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-green-100 text-green-800',
+                  ]"
+                >
+                  {{
+                    shopCartStore.fulfillmentType === "delivery"
+                      ? "🛵 外送"
+                      : "🛍️ 外帶"
+                  }}
+                </span>
+              </div>
               <p class="text-sm text-gray-500">店家點餐</p>
             </div>
 
