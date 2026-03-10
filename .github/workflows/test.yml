@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: '18'
-  PNPM_VERSION: '10'
 
 jobs:
   # 程式碼品質檢查
@@ -22,8 +21,6 @@ jobs:
         
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -59,8 +56,6 @@ jobs:
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 🔧 設置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -119,8 +114,6 @@ jobs:
         
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -162,8 +155,6 @@ jobs:
         
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -230,8 +221,6 @@ jobs:
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -340,8 +329,6 @@ jobs:
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -455,8 +442,6 @@ jobs:
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -532,8 +517,6 @@ jobs:
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
@@ -820,8 +803,6 @@ jobs:
         
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
           
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v4
