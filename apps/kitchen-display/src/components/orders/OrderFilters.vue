@@ -80,6 +80,17 @@
         <component :is="filter.icon" class="w-4 h-4 inline mr-1" />
         {{ filter.label }}
       </button>
+      <button
+        @click="toggleTakeawayDeliveryFilter"
+        :class="[
+          'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+          isTakeawayDeliveryActive
+            ? 'bg-amber-100 text-amber-800'
+            : 'bg-gray-100 text-gray-600',
+        ]"
+      >
+        🛍️🛵 外帶/外送
+      </button>
     </div>
 
     <!-- Detailed Filters -->
@@ -126,6 +137,31 @@
             />
             <span class="text-sm text-gray-700">{{ priority.label }}</span>
             <span :class="priority.badgeClass">{{ priority.count || 0 }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Order Type Filter -->
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-gray-600 mb-2">訂單類型</h4>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="type in orderTypeOptions"
+            :key="type.value"
+            :class="[
+              'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors',
+              selectedOrderTypes.includes(type.value)
+                ? type.activeClass
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+            ]"
+          >
+            <input
+              type="checkbox"
+              :value="type.value"
+              v-model="selectedOrderTypes"
+              class="sr-only"
+            />
+            {{ type.emoji }} {{ type.label }}
           </label>
         </div>
       </div>
@@ -261,10 +297,32 @@ const searchText = ref("");
 const selectedStatuses = ref<number[]>([]);
 const selectedPriorities = ref<string[]>([]);
 const selectedTables = ref<number[]>([]);
+const selectedOrderTypes = ref<string[]>([]);
 const minElapsedTime = ref<number>();
 const maxElapsedTime = ref<number>();
 const hasNotesFilter = ref(false);
 const hasCustomizationsFilter = ref(false);
+
+const orderTypeOptions = [
+  {
+    value: "dine_in",
+    label: "內用",
+    emoji: "🪑",
+    activeClass: "bg-blue-100 text-blue-800",
+  },
+  {
+    value: "takeaway",
+    label: "外帶",
+    emoji: "🛍️",
+    activeClass: "bg-green-100 text-green-800",
+  },
+  {
+    value: "delivery",
+    label: "外送",
+    emoji: "🛵",
+    activeClass: "bg-amber-100 text-amber-800",
+  },
+];
 
 // Computed
 const activeFilterCount = computed(() => {
@@ -273,12 +331,20 @@ const activeFilterCount = computed(() => {
   if (selectedStatuses.value.length > 0) count++;
   if (selectedPriorities.value.length > 0) count++;
   if (selectedTables.value.length > 0) count++;
+  if (selectedOrderTypes.value.length > 0) count++;
   if (minElapsedTime.value !== undefined) count++;
   if (maxElapsedTime.value !== undefined) count++;
   if (hasNotesFilter.value) count++;
   if (hasCustomizationsFilter.value) count++;
   return count;
 });
+
+const isTakeawayDeliveryActive = computed(
+  () =>
+    selectedOrderTypes.value.includes("takeaway") &&
+    selectedOrderTypes.value.includes("delivery") &&
+    !selectedOrderTypes.value.includes("dine_in"),
+);
 
 const statusOptions = computed(() => [
   {
@@ -329,6 +395,7 @@ const availableTables = computed(() => {
   >();
 
   props.orders.forEach((order) => {
+    if (order.tableId === undefined || order.tableName === undefined) return;
     const existing = tableMap.get(order.tableId);
     if (existing) {
       existing.count++;
@@ -421,11 +488,20 @@ const clearAllFilters = () => {
   selectedStatuses.value = [];
   selectedPriorities.value = [];
   selectedTables.value = [];
+  selectedOrderTypes.value = [];
   minElapsedTime.value = undefined;
   maxElapsedTime.value = undefined;
   hasNotesFilter.value = false;
   hasCustomizationsFilter.value = false;
   orderManagementStore.clearFilters();
+};
+
+const toggleTakeawayDeliveryFilter = () => {
+  if (isTakeawayDeliveryActive.value) {
+    selectedOrderTypes.value = [];
+  } else {
+    selectedOrderTypes.value = ["takeaway", "delivery"];
+  }
 };
 
 // Watch for changes and update store
@@ -466,6 +542,13 @@ watch(hasCustomizationsFilter, (newValue) => {
   orderManagementStore.setFilter(
     "hasCustomizations",
     newValue ? true : undefined,
+  );
+});
+
+watch(selectedOrderTypes, (newValue) => {
+  orderManagementStore.setFilter(
+    "orderTypes",
+    newValue.length > 0 ? newValue : undefined,
   );
 });
 </script>

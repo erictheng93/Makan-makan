@@ -19,6 +19,7 @@ export interface OrderFilter {
   tableIds?: number[];
   hasNotes?: boolean;
   hasCustomizations?: boolean;
+  orderTypes?: string[];
 }
 
 export interface OrderSort {
@@ -104,7 +105,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
           ?.toLowerCase()
           .includes(searchText);
         const matchesTableName = order.tableName
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(searchText);
         const matchesNotes = order.notes?.toLowerCase().includes(searchText);
         const matchesItemName = order.items.some((item) =>
@@ -136,8 +137,10 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
 
     // Table filter
     if (filters.value.tableIds && filters.value.tableIds.length > 0) {
-      filtered = filtered.filter((order) =>
-        filters.value.tableIds!.includes(order.tableId),
+      filtered = filtered.filter(
+        (order) =>
+          order.tableId !== undefined &&
+          filters.value.tableIds!.includes(order.tableId),
       );
     }
 
@@ -168,6 +171,14 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
       );
     }
 
+    // Order types filter
+    if (filters.value.orderTypes && filters.value.orderTypes.length > 0) {
+      filtered = filtered.filter((order) => {
+        const type = order.deliveryInfo?.type ?? "dine_in";
+        return filters.value.orderTypes!.includes(type);
+      });
+    }
+
     return filtered;
   };
 
@@ -190,7 +201,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
           break;
         }
         case "tableId":
-          comparison = a.tableId - b.tableId;
+          comparison = (a.tableId ?? 0) - (b.tableId ?? 0);
           break;
         case "totalItems":
           comparison = a.totalItems - b.totalItems;
