@@ -17,7 +17,7 @@ const configSchema = z.object({
 
   // Service settings
   serviceName: z.string().min(1),
-  restaurantId: z.number().positive(),
+  restaurantId: z.string().min(1),
 
   // Printer settings
   autoDiscovery: z.boolean(),
@@ -111,9 +111,8 @@ export function validateEnvironment(): { success: boolean; errors: string[] } {
 
   // Validate RESTAURANT_ID format
   if (process.env.RESTAURANT_ID) {
-    const restaurantId = parseInt(process.env.RESTAURANT_ID);
-    if (isNaN(restaurantId) || restaurantId < 1) {
-      errors.push("RESTAURANT_ID must be a positive integer");
+    if (process.env.RESTAURANT_ID.trim().length === 0) {
+      errors.push("RESTAURANT_ID must be a non-empty string");
     }
   }
 

@@ -27,7 +27,7 @@ describe("Print Agent Integration Tests", () => {
       port: 3005, // Use different port for testing
       wsPort: 3006,
       autoDiscovery: false, // Disable auto discovery in tests
-      restaurantId: 999, // Test restaurant ID
+      restaurantId: "test-restaurant-999", // Test restaurant ID
     };
   });
 
@@ -66,7 +66,7 @@ describe("Print Agent Integration Tests", () => {
   describe("Configuration", () => {
     it("should use provided configuration", () => {
       const serviceConfig = printService.getConfig();
-      expect(serviceConfig.restaurantId).toBe(999);
+      expect(serviceConfig.restaurantId).toBe("test-restaurant-999");
       expect(serviceConfig.port).toBe(3005);
       expect(serviceConfig.wsPort).toBe(3006);
     });
@@ -91,7 +91,7 @@ describe("Print Agent Integration Tests", () => {
     it("should handle print job creation", async () => {
       const printRequest: PrintRequest = {
         orderId: "TEST_001",
-        restaurantId: 999,
+        restaurantId: "test-restaurant-999",
         country: "TW",
         type: "receipt",
         data: {
@@ -115,19 +115,19 @@ describe("Print Agent Integration Tests", () => {
       // This would typically be tested with a mock printer
       // For now, we test that the service accepts the request
       expect(printRequest.orderId).toBe("TEST_001");
-      expect(printRequest.restaurantId).toBe(999);
+      expect(printRequest.restaurantId).toBe("test-restaurant-999");
     });
 
     it("should validate print requests", async () => {
       const invalidRequest = {
         orderId: "", // Invalid: empty
-        restaurantId: 888, // Wrong restaurant
+        restaurantId: "wrong-restaurant-888", // Wrong restaurant
         type: "receipt",
       };
 
       // Test validation would happen in the service
       expect(invalidRequest.orderId).toBe("");
-      expect(invalidRequest.restaurantId).not.toBe(999);
+      expect(invalidRequest.restaurantId).not.toBe("test-restaurant-999");
     });
   });
 
@@ -214,7 +214,7 @@ describe("Print Agent Integration Tests", () => {
       const invalidConfigs = [
         { ...config, port: 0 },
         { ...config, wsPort: 70000 },
-        { ...config, restaurantId: -1 },
+        { ...config, restaurantId: "" },
         { ...config, apiKey: "" },
       ];
 

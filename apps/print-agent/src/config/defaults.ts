@@ -5,7 +5,7 @@
 import { LocalPrintServiceConfig } from "../LocalPrintService";
 
 export function createDefaultConfig(): LocalPrintServiceConfig {
-  const restaurantId = parseInt(process.env.RESTAURANT_ID || "1");
+  const restaurantId = process.env.RESTAURANT_ID || "default";
   const port = parseInt(process.env.PRINT_AGENT_PORT || "3003");
   const wsPort = parseInt(process.env.PRINT_AGENT_WS_PORT || "3004");
 
@@ -39,7 +39,7 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
   };
 }
 
-function generateDefaultApiKey(restaurantId: number): string {
+function generateDefaultApiKey(restaurantId: string): string {
   // Generate a basic API key for development
   const timestamp = Date.now();
   const random = Math.random().toString(36).substr(2, 9);

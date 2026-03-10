@@ -22,7 +22,7 @@ export interface LocalPrintServiceConfig {
 
   // 服務設定
   serviceName: string;
-  restaurantId: number;
+  restaurantId: string;
 
   // 打印機設定
   autoDiscovery: boolean;
