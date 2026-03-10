@@ -316,6 +316,97 @@
         </div>
       </div>
 
+      <!-- 外帶/外送設定 -->
+      <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">外帶/外送設定</h3>
+        <p class="text-sm text-gray-500 mb-4">
+          管理餐廳的外帶取餐和外送服務設定
+        </p>
+
+        <!-- Enable Takeaway -->
+        <div
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2"
+        >
+          <div>
+            <div class="font-semibold text-sm">🛍️ 啟用外帶服務</div>
+            <div class="text-xs text-gray-500">
+              允許顧客透過 Shop QR 選擇外帶
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="deliverySettings.enableTakeaway"
+              class="sr-only peer"
+            />
+            <div
+              class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"
+            ></div>
+          </label>
+        </div>
+
+        <!-- Enable Delivery -->
+        <div
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-4"
+        >
+          <div>
+            <div class="font-semibold text-sm">🛵 啟用外送服務</div>
+            <div class="text-xs text-gray-500">允許顧客選擇外送到指定地址</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="deliverySettings.enableDelivery"
+              class="sr-only peer"
+            />
+            <div
+              class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"
+            ></div>
+          </label>
+        </div>
+
+        <!-- Delivery Fee -->
+        <div class="border border-gray-200 rounded-lg p-3 mb-3">
+          <label class="block font-semibold text-sm mb-2">外送費設定</label>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500 text-sm">NT$</span>
+            <input
+              type="number"
+              v-model.number="deliverySettings.deliveryFee"
+              min="0"
+              step="10"
+              class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <p class="text-xs text-gray-400 mt-1">設為 0 即為免費外送</p>
+        </div>
+
+        <!-- Estimated Prep Time -->
+        <div class="border border-gray-200 rounded-lg p-3">
+          <label class="block font-semibold text-sm mb-2"
+            >預估外帶準備時間</label
+          >
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              v-model.number="deliverySettings.estimatedPrepTimeMin"
+              min="1"
+              max="120"
+              class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <span class="text-gray-500">~</span>
+            <input
+              type="number"
+              v-model.number="deliverySettings.estimatedPrepTimeMax"
+              min="1"
+              max="120"
+              class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <span class="text-gray-500 text-sm">分鐘</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 桌台設定 -->
       <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">桌台管理設定</h3>
@@ -1110,6 +1201,15 @@ const settings = reactive({
   },
 });
 
+// 外帶/外送設定
+const deliverySettings = reactive({
+  enableTakeaway: true,
+  enableDelivery: false,
+  deliveryFee: 0,
+  estimatedPrepTimeMin: 15,
+  estimatedPrepTimeMax: 20,
+});
+
 // 預設設定
 const defaultSettings = { ...settings };
 
@@ -1117,7 +1217,7 @@ const defaultSettings = { ...settings };
 const saveSettings = async () => {
   try {
     // 這裡應該調用API保存設定
-    console.log("Saving settings:", settings);
+    console.log("Saving settings:", settings, deliverySettings);
 
     // 顯示成功訊息
     showSuccessMessage.value = true;
@@ -1140,6 +1240,8 @@ const loadSettings = async () => {
   try {
     // 這裡應該從API載入設定
     console.log("Loading settings...");
+    // 初始化外帶/外送設定 (從API載入後更新)
+    // Object.assign(deliverySettings, data.deliverySettings);
   } catch (error) {
     console.error("Failed to load settings:", error);
   }
