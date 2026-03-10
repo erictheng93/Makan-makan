@@ -251,9 +251,29 @@
         <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold">
-                訂單詳情 - {{ getOrderNumber(selectedOrder) }}
-              </h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold">
+                  訂單詳情 - {{ getOrderNumber(selectedOrder) }}
+                </h3>
+                <span
+                  v-if="
+                    selectedOrder?.deliveryInfo?.type &&
+                    selectedOrder.deliveryInfo.type !== 'dine_in'
+                  "
+                  :class="[
+                    'px-2 py-1 rounded-full text-xs font-semibold',
+                    selectedOrder.deliveryInfo.type === 'delivery'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-green-100 text-green-800',
+                  ]"
+                >
+                  {{
+                    selectedOrder.deliveryInfo.type === "delivery"
+                      ? "🛵 外送"
+                      : "🛍️ 外帶"
+                  }}
+                </span>
+              </div>
               <button
                 class="text-gray-400 hover:text-gray-600"
                 @click="selectedOrder = null"
@@ -298,6 +318,49 @@
                 </div>
               </div>
 
+              <!-- Delivery Info Section -->
+              <div
+                v-if="
+                  selectedOrder?.deliveryInfo &&
+                  selectedOrder.deliveryInfo.type !== 'dine_in'
+                "
+                class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl"
+              >
+                <h4
+                  class="font-semibold text-amber-800 mb-3 flex items-center gap-1"
+                >
+                  <span>📦</span> 外送資訊
+                </h4>
+                <div class="grid grid-cols-[80px_1fr] gap-y-2 text-sm">
+                  <span class="text-gray-500">類型</span>
+                  <span class="font-medium">
+                    {{
+                      selectedOrder.deliveryInfo.type === "delivery"
+                        ? "🛵 外送"
+                        : "🛍️ 外帶"
+                    }}
+                  </span>
+                  <template v-if="selectedOrder.deliveryInfo.address">
+                    <span class="text-gray-500">地址</span>
+                    <span>{{ selectedOrder.deliveryInfo.address }}</span>
+                  </template>
+                  <template v-if="selectedOrder.deliveryInfo.phone">
+                    <span class="text-gray-500">電話</span>
+                    <span>{{ selectedOrder.deliveryInfo.phone }}</span>
+                  </template>
+                  <template v-if="selectedOrder.deliveryInfo.instructions">
+                    <span class="text-gray-500">備註</span>
+                    <span>{{ selectedOrder.deliveryInfo.instructions }}</span>
+                  </template>
+                  <template v-if="selectedOrder.deliveryInfo.deliveryFee">
+                    <span class="text-gray-500">外送費</span>
+                    <span class="font-semibold"
+                      >NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span
+                    >
+                  </template>
+                </div>
+              </div>
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"
                   >訂單項目</label
@@ -324,6 +387,13 @@
               </div>
 
               <div class="border-t pt-4">
+                <div
+                  v-if="selectedOrder?.deliveryInfo?.deliveryFee"
+                  class="flex justify-between text-sm text-gray-500 mb-2"
+                >
+                  <span>外送費</span>
+                  <span>NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span>
+                </div>
                 <div class="flex justify-between text-lg font-semibold">
                   <span>總金額</span>
                   <span>RM{{ selectedOrder.totalAmount }}</span>

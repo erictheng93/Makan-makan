@@ -90,6 +90,14 @@ export interface CustomizationOption {
   priceModifier: number;
 }
 
+export interface DeliveryInfo {
+  type: "dine_in" | "takeaway" | "delivery";
+  address?: string;
+  phone?: string;
+  instructions?: string;
+  deliveryFee?: number;
+}
+
 export interface Order {
   id: number;
   restaurantId: string;
@@ -99,6 +107,7 @@ export interface Order {
   items: OrderItem[];
   notes?: string;
   customerInfo?: CustomerInfo;
+  deliveryInfo?: DeliveryInfo;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
