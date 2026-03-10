@@ -41,6 +41,24 @@ const selectedCustomizationsSchema = z
   })
   .optional();
 
+const deliveryInfoSchema = z
+  .object({
+    type: z.enum(["dine_in", "takeaway", "delivery"]),
+    address: z.string().min(1).optional(),
+    phone: z.string().min(8).max(15).optional(),
+    instructions: z.string().max(500).optional(),
+    deliveryFee: z.number().min(0).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.type === "delivery") {
+        return !!data.address && !!data.phone;
+      }
+      return true;
+    },
+    { message: "Delivery orders require address and phone" },
+  );
+
 const guestOrderItemSchema = z.object({
   menuItemId: z.number().int().positive(),
   quantity: z.number().int().positive().max(99),
@@ -58,6 +76,7 @@ export const createGuestOrderSchema = z
     seatId: z.number().int().positive().optional(),
     items: z.array(guestOrderItemSchema).min(1).max(20),
     notes: z.string().max(500).optional(),
+    deliveryInfo: deliveryInfoSchema.optional(),
   })
   .refine(
     (data) => {

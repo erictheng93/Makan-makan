@@ -264,6 +264,66 @@ describe("Guest Orders Validation Schemas", () => {
     });
   });
 
+  describe("deliveryInfo validation", () => {
+    it("should accept valid takeaway deliveryInfo", () => {
+      const data = {
+        restaurantId: "test-restaurant-id",
+        guestName: "Eric",
+        orderType: "shop",
+        items: [{ menuItemId: 1, quantity: 1 }],
+        phoneLastDigits: "123",
+        deliveryInfo: { type: "takeaway" },
+      };
+      const result = createGuestOrderSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept valid delivery deliveryInfo with address and phone", () => {
+      const data = {
+        restaurantId: "test-restaurant-id",
+        guestName: "Eric",
+        orderType: "shop",
+        items: [{ menuItemId: 1, quantity: 1 }],
+        phoneLastDigits: "123",
+        deliveryInfo: {
+          type: "delivery",
+          address: "台北市大安區忠孝東路四段100號",
+          phone: "0912345678",
+          instructions: "放門口",
+          deliveryFee: 60,
+        },
+      };
+      const result = createGuestOrderSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject delivery without address", () => {
+      const data = {
+        restaurantId: "test-restaurant-id",
+        guestName: "Eric",
+        orderType: "shop",
+        items: [{ menuItemId: 1, quantity: 1 }],
+        phoneLastDigits: "123",
+        deliveryInfo: { type: "delivery", phone: "0912345678" },
+      };
+      const result = createGuestOrderSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject delivery without phone", () => {
+      const data = {
+        restaurantId: "test-restaurant-id",
+        guestName: "Eric",
+        orderType: "shop",
+        items: [{ menuItemId: 1, quantity: 1 }],
+        phoneLastDigits: "123",
+        deliveryInfo: { type: "delivery", address: "台北市大安區" },
+      };
+      const result = createGuestOrderSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe("addGuestOrderItemsSchema", () => {
     it("should validate valid items addition", () => {
       const result = addGuestOrderItemsSchema.safeParse({
