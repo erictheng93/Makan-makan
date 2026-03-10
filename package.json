@@ -91,6 +91,7 @@
       "node scripts/check-factory-usage.cjs"
     ],
     "{apps,packages}/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix --no-warn-ignored --quiet",
       "prettier --write"
     ],
     "*.{ts,tsx,js,jsx,json,md,vue}": [
