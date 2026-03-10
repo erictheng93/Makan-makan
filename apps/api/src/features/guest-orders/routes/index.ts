@@ -128,6 +128,10 @@ app.post("/", async (c) => {
     }
 
     // 4. Create order via OrdersService
+    const fulfillmentType =
+      data.deliveryInfo?.type ??
+      (data.orderType === "shop" ? "takeaway" : "dine_in");
+
     const ordersService = new OrdersService(c.env);
     const order = await ordersService.createOrder({
       restaurantId: data.restaurantId,
@@ -143,7 +147,14 @@ app.post("/", async (c) => {
         notes: item.notes,
       })),
       notes: data.notes,
-      orderType: data.orderType === "shop" ? "takeaway" : "dine_in",
+      orderType: fulfillmentType,
+      deliveryInfo: {
+        type: fulfillmentType,
+        address: data.deliveryInfo?.address,
+        phone: data.deliveryInfo?.phone,
+        instructions: data.deliveryInfo?.instructions,
+        deliveryFee: data.deliveryInfo?.deliveryFee,
+      },
       isGuestOrder: true,
     });
 
