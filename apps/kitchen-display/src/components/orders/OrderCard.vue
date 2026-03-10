@@ -17,7 +17,19 @@
             {{ getPriorityText(order.priority) }}
           </span>
         </div>
-        <div class="text-sm text-gray-500">桌號 {{ order.tableName }}</div>
+        <div v-if="order.tableName" class="text-sm text-gray-500">
+          桌號 {{ order.tableName }}
+        </div>
+        <span
+          :class="[
+            getOrderTypeBadge(order).bgClass,
+            getOrderTypeBadge(order).textClass,
+          ]"
+          class="px-2 py-0.5 rounded-full text-xs font-semibold"
+        >
+          {{ getOrderTypeBadge(order).emoji }}
+          {{ getOrderTypeBadge(order).label }}
+        </span>
       </div>
 
       <div class="text-right">
@@ -223,6 +235,35 @@ const {
   urgentThreshold,
   warningThreshold,
 } = storeToRefs(settingsStore);
+
+// Order Type Badge
+function getOrderTypeBadge(order: KitchenOrder) {
+  const type = order.deliveryInfo?.type ?? "dine_in";
+  const badges: Record<
+    string,
+    { label: string; emoji: string; bgClass: string; textClass: string }
+  > = {
+    dine_in: {
+      label: "內用",
+      emoji: "🪑",
+      bgClass: "bg-blue-100",
+      textClass: "text-blue-800",
+    },
+    takeaway: {
+      label: "外帶",
+      emoji: "🛍️",
+      bgClass: "bg-green-100",
+      textClass: "text-green-800",
+    },
+    delivery: {
+      label: "外送",
+      emoji: "🛵",
+      bgClass: "bg-amber-100",
+      textClass: "text-amber-800",
+    },
+  };
+  return badges[type] || badges.dine_in;
+}
 
 // Computed
 const getCardClass = (status: string) => {

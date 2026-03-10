@@ -29,9 +29,16 @@ export interface KitchenOrderItem {
 export interface KitchenOrder {
   id: number;
   orderNumber: string;
-  tableId: number;
-  tableName: string;
+  tableId?: number;
+  tableName?: string;
   status: OrderStatus;
+  deliveryInfo?: {
+    type?: "dine_in" | "takeaway" | "delivery";
+    address?: string;
+    phone?: string;
+    instructions?: string;
+    deliveryFee?: number;
+  };
   items: KitchenOrderItem[];
   customerName?: string;
   notes?: string;
