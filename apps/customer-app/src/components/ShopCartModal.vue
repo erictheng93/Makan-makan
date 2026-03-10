@@ -50,6 +50,7 @@
 
             <!-- Cart Items -->
             <div class="flex-1 overflow-y-auto px-6 py-4">
+              <!-- Empty cart state -->
               <div v-if="shopCartStore.isEmpty" class="text-center py-12">
                 <div
                   class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -71,100 +72,156 @@
                 <p class="text-gray-600">購物車是空的</p>
               </div>
 
-              <div v-else class="space-y-4">
-                <div
-                  v-for="item in shopCartStore.items"
-                  :key="item.id"
-                  class="bg-gray-50 rounded-lg p-4"
-                >
-                  <div class="flex items-start justify-between mb-2">
-                    <div class="flex-1">
-                      <h3 class="font-semibold text-gray-900">
-                        {{ item.menuItem.name }}
-                      </h3>
-                      <p class="text-sm text-gray-600 mt-1">
-                        ${{ formatPrice(item.price) }}
-                      </p>
+              <!-- Non-empty cart content -->
+              <div v-else>
+                <!-- Fulfillment Type Toggle -->
+                <div class="mb-4">
+                  <p class="text-sm font-semibold text-gray-700 mb-2">
+                    取餐方式
+                  </p>
+                  <div class="flex gap-2">
+                    <button
+                      @click="shopCartStore.setFulfillmentType('takeaway')"
+                      :class="[
+                        'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
+                        shopCartStore.fulfillmentType === 'takeaway'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-100 text-gray-600',
+                      ]"
+                    >
+                      🛍️ 外帶
+                    </button>
+                    <button
+                      v-if="deliveryEnabled"
+                      @click="shopCartStore.setFulfillmentType('delivery')"
+                      :class="[
+                        'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
+                        shopCartStore.fulfillmentType === 'delivery'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-100 text-gray-600',
+                      ]"
+                    >
+                      🛵 外送
+                    </button>
+                  </div>
+                </div>
 
-                      <!-- Customizations -->
-                      <div
-                        v-if="item.customizations"
-                        class="mt-2 space-y-1 text-sm text-gray-500"
-                      >
-                        <p v-if="item.customizations.size">
-                          尺寸: {{ item.customizations.size.name }}
+                <!-- Delivery Form -->
+                <div
+                  v-if="shopCartStore.fulfillmentType === 'delivery'"
+                  class="mb-4 space-y-3"
+                >
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1"
+                      >外送地址 *</label
+                    >
+                    <input
+                      v-model="deliveryAddress"
+                      type="text"
+                      placeholder="請輸入外送地址..."
+                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1"
+                      >聯絡電話 *</label
+                    >
+                    <input
+                      v-model="deliveryPhone"
+                      type="tel"
+                      placeholder="0912-345-678"
+                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1"
+                      >配送備註</label
+                    >
+                    <input
+                      v-model="deliveryInstructions"
+                      type="text"
+                      placeholder="大樓密碼、放門口..."
+                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <!-- Takeaway Info -->
+                <div
+                  v-if="shopCartStore.fulfillmentType === 'takeaway'"
+                  class="mb-4 p-3 bg-gray-50 rounded-lg"
+                >
+                  <p class="text-xs text-gray-500">預計取餐時間</p>
+                  <p class="font-semibold text-sm">約 15-20 分鐘</p>
+                </div>
+
+                <!-- Cart Items List -->
+                <div class="space-y-4">
+                  <div
+                    v-for="item in shopCartStore.items"
+                    :key="item.id"
+                    class="bg-gray-50 rounded-lg p-4"
+                  >
+                    <div class="flex items-start justify-between mb-2">
+                      <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">
+                          {{ item.menuItem.name }}
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                          ${{ formatPrice(item.price) }}
                         </p>
-                        <p
-                          v-if="
-                            item.customizations.options &&
-                            item.customizations.options.length > 0
-                          "
+
+                        <!-- Customizations -->
+                        <div
+                          v-if="item.customizations"
+                          class="mt-2 space-y-1 text-sm text-gray-500"
                         >
-                          選項:
-                          {{
-                            item.customizations.options
-                              .map((o) => o.choiceName)
-                              .join(", ")
-                          }}
-                        </p>
+                          <p v-if="item.customizations.size">
+                            尺寸: {{ item.customizations.size.name }}
+                          </p>
+                          <p
+                            v-if="
+                              item.customizations.options &&
+                              item.customizations.options.length > 0
+                            "
+                          >
+                            選項:
+                            {{
+                              item.customizations.options
+                                .map((o) => o.choiceName)
+                                .join(", ")
+                            }}
+                          </p>
+                          <p
+                            v-if="
+                              item.customizations.addOns &&
+                              item.customizations.addOns.length > 0
+                            "
+                          >
+                            加購:
+                            {{
+                              item.customizations.addOns
+                                .map((a) => a.name)
+                                .join(", ")
+                            }}
+                          </p>
+                        </div>
+
+                        <!-- Notes -->
                         <p
-                          v-if="
-                            item.customizations.addOns &&
-                            item.customizations.addOns.length > 0
-                          "
+                          v-if="item.notes"
+                          class="mt-2 text-sm text-gray-500 italic"
                         >
-                          加購:
-                          {{
-                            item.customizations.addOns
-                              .map((a) => a.name)
-                              .join(", ")
-                          }}
+                          備註: {{ item.notes }}
                         </p>
                       </div>
 
-                      <!-- Notes -->
-                      <p
-                        v-if="item.notes"
-                        class="mt-2 text-sm text-gray-500 italic"
-                      >
-                        備註: {{ item.notes }}
-                      </p>
-                    </div>
-
-                    <button
-                      class="ml-4 text-red-500 hover:text-red-700 transition-colors"
-                      @click="shopCartStore.removeItem(item.id)"
-                    >
-                      <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <!-- Quantity Controls -->
-                  <div class="flex items-center justify-between mt-3">
-                    <div class="flex items-center space-x-3">
                       <button
-                        class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
-                        @click="
-                          shopCartStore.updateQuantity(
-                            item.id,
-                            item.quantity - 1,
-                          )
-                        "
+                        class="ml-4 text-red-500 hover:text-red-700 transition-colors"
+                        @click="shopCartStore.removeItem(item.id)"
                       >
                         <svg
-                          class="w-4 h-4"
+                          class="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -173,44 +230,74 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             stroke-width="2"
-                            d="M20 12H4"
-                          />
-                        </svg>
-                      </button>
-                      <span
-                        class="text-lg font-semibold text-gray-900 w-8 text-center"
-                        >{{ item.quantity }}</span
-                      >
-                      <button
-                        class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
-                        @click="
-                          shopCartStore.updateQuantity(
-                            item.id,
-                            item.quantity + 1,
-                          )
-                        "
-                      >
-                        <svg
-                          class="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 4v16m8-8H4"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                           />
                         </svg>
                       </button>
                     </div>
-                    <div class="text-lg font-bold text-gray-900">
-                      ${{ formatPrice(item.totalPrice) }}
+
+                    <!-- Quantity Controls -->
+                    <div class="flex items-center justify-between mt-3">
+                      <div class="flex items-center space-x-3">
+                        <button
+                          class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
+                          @click="
+                            shopCartStore.updateQuantity(
+                              item.id,
+                              item.quantity - 1,
+                            )
+                          "
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M20 12H4"
+                            />
+                          </svg>
+                        </button>
+                        <span
+                          class="text-lg font-semibold text-gray-900 w-8 text-center"
+                          >{{ item.quantity }}</span
+                        >
+                        <button
+                          class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
+                          @click="
+                            shopCartStore.updateQuantity(
+                              item.id,
+                              item.quantity + 1,
+                            )
+                          "
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 4v16m8-8H4"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="text-lg font-bold text-gray-900">
+                        ${{ formatPrice(item.totalPrice) }}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+              <!-- end v-else (non-empty cart) -->
             </div>
 
             <!-- Footer -->
@@ -218,11 +305,28 @@
               v-if="!shopCartStore.isEmpty"
               class="border-t border-gray-200 px-6 py-4 space-y-4"
             >
-              <!-- Subtotal -->
-              <div class="flex items-center justify-between text-lg">
-                <span class="text-gray-600">小計</span>
-                <span class="font-bold text-gray-900"
-                  >${{ formatPrice(shopCartStore.subtotal) }}</span
+              <!-- Subtotal / Totals -->
+              <div
+                v-if="shopCartStore.fulfillmentType === 'delivery'"
+                class="flex justify-between text-sm text-gray-500"
+              >
+                <span>小計</span>
+                <span>NT$ {{ formatPrice(shopCartStore.subtotal) }}</span>
+              </div>
+              <div
+                v-if="
+                  shopCartStore.fulfillmentType === 'delivery' &&
+                  shopCartStore.deliveryFee > 0
+                "
+                class="flex justify-between text-sm text-gray-500"
+              >
+                <span>外送費</span>
+                <span>NT$ {{ formatPrice(shopCartStore.deliveryFee) }}</span>
+              </div>
+              <div class="flex justify-between font-bold text-lg">
+                <span>合計</span>
+                <span class="text-gray-900"
+                  >NT$ {{ formatPrice(shopCartStore.totalWithDelivery) }}</span
                 >
               </div>
 
@@ -304,7 +408,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useShopCartStore } from "@/stores/shopCart";
@@ -326,7 +430,39 @@ const toast = useToast();
 const shopCartStore = useShopCartStore();
 const isSubmitting = ref(false);
 
+const deliveryAddress = ref("");
+const deliveryPhone = ref("");
+const deliveryInstructions = ref("");
+
+const deliveryEnabled = computed(() => {
+  // If user got to delivery selection on landing page, delivery is enabled
+  return (
+    shopCartStore.fulfillmentType === "delivery" ||
+    shopCartStore.deliveryFee >= 0
+  );
+});
+
 const handleCheckout = async () => {
+  // Validate delivery fields before submitting
+  if (shopCartStore.fulfillmentType === "delivery") {
+    if (!deliveryAddress.value.trim()) {
+      toast.error("請輸入外送地址");
+      return;
+    }
+    if (
+      !deliveryPhone.value.trim() ||
+      deliveryPhone.value.replace(/\D/g, "").length < 8
+    ) {
+      toast.error("請輸入有效的聯絡電話");
+      return;
+    }
+    shopCartStore.setDeliveryInfo({
+      address: deliveryAddress.value.trim(),
+      phone: deliveryPhone.value.trim(),
+      instructions: deliveryInstructions.value.trim(),
+    });
+  }
+
   try {
     isSubmitting.value = true;
 
@@ -345,7 +481,18 @@ const handleCheckout = async () => {
         phoneLastDigits: props.phoneLastDigits,
         orderType: "shop",
       },
-      totalAmount: shopCartStore.subtotal,
+      totalAmount: shopCartStore.totalWithDelivery,
+      deliveryInfo: {
+        type: shopCartStore.fulfillmentType,
+        ...(shopCartStore.fulfillmentType === "delivery"
+          ? {
+              address: deliveryAddress.value,
+              phone: deliveryPhone.value,
+              instructions: deliveryInstructions.value,
+              deliveryFee: shopCartStore.deliveryFee,
+            }
+          : {}),
+      },
     };
 
     // 提交訂單
