@@ -137,6 +137,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "sql.js": "^1.13.0",
+    "tsx": "^4.21.0",
     "turbo": "^2.7.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0",
