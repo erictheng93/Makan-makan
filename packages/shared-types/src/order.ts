@@ -1,6 +1,16 @@
 import { BaseEntity } from "./common";
 import { MenuItem } from "./menu";
 
+// Delivery/fulfillment information interface
+export interface DeliveryInfo {
+  type: "dine_in" | "takeaway" | "delivery";
+  address?: string;
+  phone?: string;
+  instructions?: string;
+  deliveryFee?: number;
+  estimatedDeliveryTime?: number;
+}
+
 // Customer information interface
 export interface CustomerInfo {
   name?: string;
@@ -69,6 +79,7 @@ export interface Order extends BaseEntity {
   cancelledAt?: string;
   rating?: number;
   reviewComment?: string;
+  deliveryInfo?: DeliveryInfo;
   items?: OrderItem[];
   restaurant?: RestaurantInfo;
   table?: TableInfo;
