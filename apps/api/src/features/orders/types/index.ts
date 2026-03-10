@@ -63,6 +63,13 @@ export interface CreateOrderData {
   scheduledTime?: Date;
   couponCode?: string;
   isGuestOrder?: boolean;
+  deliveryInfo?: {
+    type: "dine_in" | "takeaway" | "delivery";
+    address?: string;
+    phone?: string;
+    instructions?: string;
+    deliveryFee?: number;
+  };
 }
 
 export interface OrderItemData {
