@@ -71,6 +71,11 @@ export const restaurants = sqliteTable("restaurants", {
     minOrderAmount?: number;
     maxOrderAmount?: number;
     orderTimeoutMinutes?: number;
+    enableTakeaway?: boolean;
+    enableDelivery?: boolean;
+    deliveryFee?: number;
+    estimatedPrepTimeMin?: number;
+    estimatedPrepTimeMax?: number;
   }>(),
 
   // 評分和統計
