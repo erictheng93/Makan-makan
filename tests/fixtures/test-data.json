@@ -13,7 +13,7 @@
       }
     }
   ],
-  
+
   "categories": [
     {
       "id": 1,
@@ -24,7 +24,7 @@
     },
     {
       "id": 2,
-      "restaurant_id": "test-restaurant-123", 
+      "restaurant_id": "test-restaurant-123",
       "name": "飲料",
       "display_order": 2,
       "active": true
@@ -56,9 +56,9 @@
           "type": "radio",
           "required": false,
           "options": [
-            {"value": "mild", "label": "小辣", "price": 0},
-            {"value": "medium", "label": "中辣", "price": 0},
-            {"value": "hot", "label": "大辣", "price": 0}
+            { "value": "mild", "label": "小辣", "price": 0 },
+            { "value": "medium", "label": "中辣", "price": 0 },
+            { "value": "hot", "label": "大辣", "price": 0 }
           ]
         },
         {
@@ -67,9 +67,9 @@
           "type": "checkbox",
           "required": false,
           "options": [
-            {"value": "cheese", "label": "加起司", "price": 20},
-            {"value": "egg", "label": "加蛋", "price": 15},
-            {"value": "vegetables", "label": "加青菜", "price": 10}
+            { "value": "cheese", "label": "加起司", "price": 20 },
+            { "value": "egg", "label": "加蛋", "price": 15 },
+            { "value": "vegetables", "label": "加青菜", "price": 10 }
           ]
         }
       ]
@@ -103,9 +103,9 @@
           "type": "radio",
           "required": true,
           "options": [
-            {"value": "no_sugar", "label": "無糖", "price": 0},
-            {"value": "half_sugar", "label": "半糖", "price": 0},
-            {"value": "full_sugar", "label": "全糖", "price": 0}
+            { "value": "no_sugar", "label": "無糖", "price": 0 },
+            { "value": "half_sugar", "label": "半糖", "price": 0 },
+            { "value": "full_sugar", "label": "全糖", "price": 0 }
           ]
         },
         {
@@ -114,9 +114,9 @@
           "type": "radio",
           "required": true,
           "options": [
-            {"value": "no_ice", "label": "去冰", "price": 0},
-            {"value": "less_ice", "label": "少冰", "price": 0},
-            {"value": "normal_ice", "label": "正常冰", "price": 0}
+            { "value": "no_ice", "label": "去冰", "price": 0 },
+            { "value": "less_ice", "label": "少冰", "price": 0 },
+            { "value": "normal_ice", "label": "正常冰", "price": 0 }
           ]
         }
       ]
@@ -147,7 +147,7 @@
     {
       "id": 2,
       "restaurant_id": "test-restaurant-123",
-      "number": "2", 
+      "number": "2",
       "seats": 2,
       "active": true,
       "qr_code_url": "/qr/test-restaurant-123/table-2.png"
@@ -175,7 +175,7 @@
     },
     {
       "id": 2,
-      "email": "owner@test-restaurant.com", 
+      "email": "owner@test-restaurant.com",
       "password": "hashed_password_here",
       "name": "測試店主",
       "role": 1,
@@ -293,7 +293,7 @@
     "error_500": {
       "success": false,
       "error": {
-        "code": "INTERNAL_ERROR", 
+        "code": "INTERNAL_ERROR",
         "message": "伺服器內部錯誤，請稍後再試"
       }
     }

@@ -14,15 +14,15 @@ export async function createTestDB(): Promise<any> {
       bind: (...params: any[]) => ({
         all: async () => ({ results: [], success: true }),
         first: async () => null,
-        run: async () => ({ success: true })
+        run: async () => ({ success: true }),
       }),
       all: async () => ({ results: [], success: true }),
       first: async () => null,
-      run: async () => ({ success: true })
-    })
-  }
+      run: async () => ({ success: true }),
+    }),
+  };
 
-  return mockDB
+  return mockDB;
 }
 
 export async function cleanupTestDB(db: any): Promise<void> {

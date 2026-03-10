@@ -19,6 +19,7 @@
 ## 🔴 修復 1: 移除硬編碼 JWT 密鑰
 
 ### 問題描述
+
 - **嚴重程度**: 🔴 CRITICAL (CVSS 9.8)
 - **漏洞位置**: `apps/api/wrangler.toml:21`
 - **風險**: JWT 密鑰暴露在版本控制中，可能導致完全的身份驗證繞過
@@ -26,6 +27,7 @@
 ### 修復內容
 
 #### 1. 移除硬編碼密鑰
+
 ```diff
 # apps/api/wrangler.toml
 [vars]
@@ -40,7 +42,9 @@ LOG_LEVEL = "debug"
 ```
 
 #### 2. 創建示例配置文件
+
 **新文件**: `apps/api/.dev.vars.example`
+
 ```env
 # Local Development Environment Variables
 # Copy this file to .dev.vars and fill in the values
@@ -54,6 +58,7 @@ JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
 ```
 
 #### 3. 更新 .gitignore
+
 ```diff
 # Environment files
 .env
@@ -63,6 +68,7 @@ JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
 ```
 
 ### 部署後行動
+
 ```bash
 # 為生產環境設置密鑰（必須執行）
 wrangler secret put JWT_SECRET --env production
@@ -73,6 +79,7 @@ wrangler secret put JWT_SECRET --env staging
 ```
 
 ### 驗證
+
 ✅ wrangler.toml 中不再包含硬編碼密鑰
 ✅ .dev.vars 已加入 .gitignore
 ✅ 開發者指南文件已創建
@@ -82,6 +89,7 @@ wrangler secret put JWT_SECRET --env staging
 ## 🔴 修復 2: 移除 CSRF 保護繞過
 
 ### 問題描述
+
 - **嚴重程度**: 🔴 CRITICAL (CVSS 8.1)
 - **漏洞位置**: `apps/api/src/index.ts:276-278`
 - **風險**: Shop QR 管理端點的 CSRF 保護被禁用，可能導致未授權的 QR 碼操作
@@ -109,11 +117,13 @@ apiV1.use('*', csrfProtection({
 ```
 
 ### 影響範圍
+
 - ✅ 所有 Shop QR 管理端點現在需要有效的 CSRF Token
 - ✅ Shop 模式切換端點現在受 CSRF 保護
 - ⚠️ 前端需確保在這些請求中包含 CSRF Token
 
 ### 驗證
+
 ✅ CSRF 測試排除規則已完全移除
 ✅ Shop QR 端點現在完全受 CSRF 保護
 ✅ TypeScript 編譯通過
@@ -123,6 +133,7 @@ apiV1.use('*', csrfProtection({
 ## 🟠 修復 3: 實施登入失敗鎖定機制
 
 ### 問題描述
+
 - **嚴重程度**: 🟠 HIGH
 - **漏洞位置**: `packages/database/src/services/auth.ts:67`
 - **風險**: 無限次密碼嘗試，容易受暴力破解攻擊
@@ -192,23 +203,28 @@ async login(data: LoginData): Promise<AuthResult> {
 ### 安全特性
 
 #### 1. 帳號鎖定機制
+
 - **觸發條件**: 5 次失敗嘗試
 - **鎖定時長**: 15 分鐘
 - **存儲方式**: Cloudflare KV (自動過期)
 
 #### 2. 防用戶名枚舉
+
 - 即使用戶不存在也記錄失敗嘗試
 - 錯誤消息保持一致（"Invalid username or password"）
 
 #### 3. 自動恢復
+
 - 成功登入後自動清除失敗計數
 - 15 分鐘後自動解鎖（TTL 過期）
 
 #### 4. TypeScript 類型安全
+
 - 添加了適當的空值檢查
 - 通過完整的 TypeScript 編譯驗證
 
 ### 驗證
+
 ✅ TypeScript 編譯 0 錯誤
 ✅ 失敗嘗試計數邏輯已實施
 ✅ 帳號鎖定機制已啟用
@@ -235,12 +251,12 @@ async login(data: LoginData): Promise<AuthResult> {
 
 ### 攻擊面減少
 
-| 攻擊向量 | 修復前狀態 | 修復後狀態 |
-|---------|-----------|-----------|
-| JWT 偽造 | ❌ 可能（密鑰暴露） | ✅ 已阻止 |
-| CSRF 攻擊 | ⚠️ 部分防護 | ✅ 完全防護 |
-| 暴力破解 | ❌ 無限制 | ✅ 5次鎖定 |
-| 用戶名枚舉 | ⚠️ 可能 | ✅ 已阻止 |
+| 攻擊向量   | 修復前狀態          | 修復後狀態  |
+| ---------- | ------------------- | ----------- |
+| JWT 偽造   | ❌ 可能（密鑰暴露） | ✅ 已阻止   |
+| CSRF 攻擊  | ⚠️ 部分防護         | ✅ 完全防護 |
+| 暴力破解   | ❌ 無限制           | ✅ 5次鎖定  |
+| 用戶名枚舉 | ⚠️ 可能             | ✅ 已阻止   |
 
 ---
 
@@ -285,15 +301,16 @@ npm run deploy:prod
 ### 前端調整需求
 
 **Shop QR 端點現在需要 CSRF Token**:
+
 ```typescript
 // 前端需要在請求 headers 中包含 CSRF Token
-const response = await fetch('/api/v1/restaurants/123/qr/shop/regenerate', {
-  method: 'POST',
+const response = await fetch("/api/v1/restaurants/123/qr/shop/regenerate", {
+  method: "POST",
   headers: {
-    'X-CSRF-Token': csrfToken, // 從登入響應或 cookie 中獲取
-    'Authorization': `Bearer ${accessToken}`
-  }
-})
+    "X-CSRF-Token": csrfToken, // 從登入響應或 cookie 中獲取
+    Authorization: `Bearer ${accessToken}`,
+  },
+});
 ```
 
 ---
@@ -333,12 +350,14 @@ const response = await fetch('/api/v1/restaurants/123/qr/shop/regenerate', {
 ## 🔍 驗證結果
 
 ### TypeScript 編譯
+
 ```bash
 ✅ packages/database: 0 errors
 ✅ apps/api: 通過（修復前有 4 個錯誤）
 ```
 
 ### 代碼質量
+
 ```bash
 ✅ ESLint: 0 violations
 ✅ 格式化: 符合項目標準
@@ -346,6 +365,7 @@ const response = await fetch('/api/v1/restaurants/123/qr/shop/regenerate', {
 ```
 
 ### 功能測試需求
+
 ```
 ⏳ 登入功能測試
 ⏳ 失敗鎖定機制測試（5次錯誤→鎖定15分鐘）
@@ -368,11 +388,13 @@ const response = await fetch('/api/v1/restaurants/123/qr/shop/regenerate', {
 本次安全修復成功消除了 **3 項嚴重安全漏洞**，顯著提升了系統的安全等級。所有修復已通過 TypeScript 編譯驗證，代碼質量符合項目標準。
 
 **關鍵成就**:
+
 - 🔒 消除了 JWT 密鑰暴露風險
 - 🛡️ 恢復了完整的 CSRF 保護
 - 🚫 實施了暴力破解防護機制
 
 **待辦事項**:
+
 - ⚡ **立即**: 為 Production/Staging 設置 JWT_SECRET
 - 📋 **短期**: 實施 Token 輪換和黑名單機制
 - 🎯 **中期**: 添加 2FA 和數據加密

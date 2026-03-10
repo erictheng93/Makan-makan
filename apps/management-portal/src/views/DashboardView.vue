@@ -1,67 +1,71 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import { useTenantsStore } from '@/stores/tenants'
-import { useHealthStore } from '@/stores/health'
-import { RouterLink } from 'vue-router'
+import { onMounted, computed } from "vue";
+import { useTenantsStore } from "@/stores/tenants";
+import { useHealthStore } from "@/stores/health";
+import { RouterLink } from "vue-router";
 import {
   BuildingStorefrontIcon,
   CheckCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   XCircleIcon,
-  ArrowTrendingUpIcon
-} from '@heroicons/vue/24/outline'
+  ArrowTrendingUpIcon,
+} from "@heroicons/vue/24/outline";
 
-const tenantsStore = useTenantsStore()
-const healthStore = useHealthStore()
+const tenantsStore = useTenantsStore();
+const healthStore = useHealthStore();
 
 // 載入資料
 onMounted(async () => {
   await Promise.all([
     tenantsStore.fetchTenants(),
-    healthStore.fetchAllHealthChecks()
-  ])
-})
+    healthStore.fetchAllHealthChecks(),
+  ]);
+});
 
 // 統計卡片
 const stats = computed(() => [
   {
-    name: '總租戶數',
+    name: "總租戶數",
     value: tenantsStore.totalTenants,
     icon: BuildingStorefrontIcon,
-    color: 'text-blue-600 bg-blue-100'
+    color: "text-blue-600 bg-blue-100",
   },
   {
-    name: '運行中',
+    name: "運行中",
     value: tenantsStore.statusCounts.active,
     icon: CheckCircleIcon,
-    color: 'text-green-600 bg-green-100'
+    color: "text-green-600 bg-green-100",
   },
   {
-    name: '待處理',
-    value: tenantsStore.statusCounts.pending + tenantsStore.statusCounts.provisioning,
+    name: "待處理",
+    value:
+      tenantsStore.statusCounts.pending +
+      tenantsStore.statusCounts.provisioning,
     icon: ClockIcon,
-    color: 'text-yellow-600 bg-yellow-100'
+    color: "text-yellow-600 bg-yellow-100",
   },
   {
-    name: '健康異常',
+    name: "健康異常",
     value: healthStore.degradedCount + healthStore.downCount,
     icon: ExclamationTriangleIcon,
-    color: 'text-red-600 bg-red-100'
-  }
-])
+    color: "text-red-600 bg-red-100",
+  },
+]);
 
 // 最近的健康問題
 const recentIssues = computed(() => {
-  return [...healthStore.groupedByStatus.down, ...healthStore.groupedByStatus.degraded]
-    .slice(0, 5)
-})
+  return [
+    ...healthStore.groupedByStatus.down,
+    ...healthStore.groupedByStatus.degraded,
+  ].slice(0, 5);
+});
 
 // 獲取租戶名稱
 const getTenantName = (tenantId: string) => {
-  const tenant = tenantsStore.tenants.find(t => t.id === tenantId)
-  return tenant?.businessName || tenantId
-}
+  const tenant = tenantsStore.tenants.find((t) => t.id === tenantId);
+  return tenant?.businessName || tenantId;
+};
 </script>
 
 <template>
@@ -69,18 +73,12 @@ const getTenantName = (tenantId: string) => {
     <!-- 頁面標題 -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">總覽</h1>
-      <p class="mt-1 text-sm text-gray-500">
-        管理平台運行狀態概覽
-      </p>
+      <p class="mt-1 text-sm text-gray-500">管理平台運行狀態概覽</p>
     </div>
 
     <!-- 統計卡片 -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      <div
-        v-for="stat in stats"
-        :key="stat.name"
-        class="card"
-      >
+      <div v-for="stat in stats" :key="stat.name" class="card">
         <div class="flex items-center">
           <div :class="[stat.color, 'rounded-md p-3']">
             <component :is="stat.icon" class="h-6 w-6" />
@@ -116,7 +114,7 @@ const getTenantName = (tenantId: string) => {
                 'border-green-500': healthStore.overallStatus === 'healthy',
                 'border-yellow-500': healthStore.overallStatus === 'degraded',
                 'border-red-500': healthStore.overallStatus === 'down',
-                'border-gray-300': healthStore.overallStatus === 'unknown'
+                'border-gray-300': healthStore.overallStatus === 'unknown',
               }"
             >
               <div class="text-center">
@@ -167,7 +165,13 @@ const getTenantName = (tenantId: string) => {
           <h2 class="text-lg font-semibold text-gray-900">待處理事項</h2>
         </div>
 
-        <div v-if="tenantsStore.pendingTenants.length === 0 && recentIssues.length === 0" class="text-center py-8">
+        <div
+          v-if="
+            tenantsStore.pendingTenants.length === 0 &&
+            recentIssues.length === 0
+          "
+          class="text-center py-8"
+        >
           <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
           <p class="mt-2 text-sm text-gray-500">沒有待處理的事項</p>
         </div>
@@ -181,7 +185,9 @@ const getTenantName = (tenantId: string) => {
           >
             <ClockIcon class="h-5 w-5 text-yellow-500 flex-shrink-0" />
             <div class="ml-3 flex-1">
-              <p class="text-sm font-medium text-gray-900">{{ tenant.businessName }}</p>
+              <p class="text-sm font-medium text-gray-900">
+                {{ tenant.businessName }}
+              </p>
               <p class="text-xs text-gray-500">等待配置資源</p>
             </div>
             <RouterLink
@@ -199,7 +205,7 @@ const getTenantName = (tenantId: string) => {
             class="flex items-center p-3 rounded-lg"
             :class="{
               'bg-red-50': issue.status === 'down',
-              'bg-yellow-50': issue.status === 'degraded'
+              'bg-yellow-50': issue.status === 'degraded',
             }"
           >
             <XCircleIcon
@@ -215,7 +221,7 @@ const getTenantName = (tenantId: string) => {
                 {{ getTenantName(issue.tenantId) }}
               </p>
               <p class="text-xs text-gray-500">
-                {{ issue.status === 'down' ? '服務離線' : '服務降級' }}
+                {{ issue.status === "down" ? "服務離線" : "服務降級" }}
               </p>
             </div>
             <RouterLink
@@ -246,7 +252,10 @@ const getTenantName = (tenantId: string) => {
         <p class="mt-2 text-sm text-gray-500">載入中...</p>
       </div>
 
-      <div v-else-if="tenantsStore.tenants.length === 0" class="text-center py-8">
+      <div
+        v-else-if="tenantsStore.tenants.length === 0"
+        class="text-center py-8"
+      >
         <BuildingStorefrontIcon class="mx-auto h-12 w-12 text-gray-400" />
         <p class="mt-2 text-sm text-gray-500">暫無租戶</p>
         <RouterLink
@@ -270,26 +279,41 @@ const getTenantName = (tenantId: string) => {
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr v-for="tenant in tenantsStore.tenants.slice(0, 5)" :key="tenant.id">
+            <tr
+              v-for="tenant in tenantsStore.tenants.slice(0, 5)"
+              :key="tenant.id"
+            >
               <td class="font-medium">{{ tenant.businessName }}</td>
               <td>
                 <span
                   class="badge"
                   :class="{
                     'badge-success': tenant.status === 'active',
-                    'badge-warning': tenant.status === 'pending' || tenant.status === 'provisioning',
-                    'badge-danger': tenant.status === 'suspended' || tenant.status === 'terminated',
-                    'badge-gray': !tenant.status
+                    'badge-warning':
+                      tenant.status === 'pending' ||
+                      tenant.status === 'provisioning',
+                    'badge-danger':
+                      tenant.status === 'suspended' ||
+                      tenant.status === 'terminated',
+                    'badge-gray': !tenant.status,
                   }"
                 >
-                  {{ tenant.status === 'active' ? '運行中' :
-                     tenant.status === 'pending' ? '待處理' :
-                     tenant.status === 'provisioning' ? '配置中' :
-                     tenant.status === 'suspended' ? '已暫停' :
-                     tenant.status === 'terminated' ? '已終止' : '未知' }}
+                  {{
+                    tenant.status === "active"
+                      ? "運行中"
+                      : tenant.status === "pending"
+                        ? "待處理"
+                        : tenant.status === "provisioning"
+                          ? "配置中"
+                          : tenant.status === "suspended"
+                            ? "已暫停"
+                            : tenant.status === "terminated"
+                              ? "已終止"
+                              : "未知"
+                  }}
                 </span>
               </td>
-              <td>{{ tenant.deployedVersion || '-' }}</td>
+              <td>{{ tenant.deployedVersion || "-" }}</td>
               <td>{{ new Date(tenant.createdAt).toLocaleDateString() }}</td>
               <td>
                 <RouterLink

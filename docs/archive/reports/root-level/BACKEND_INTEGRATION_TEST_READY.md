@@ -7,12 +7,14 @@
 ### 🔧 實施內容
 
 #### 1. Backend Services (已完成)
+
 - ✅ `SchedulingService.cancelSchedulesByDateRange()` - 自動取消排班
 - ✅ `SchedulingService.getAvailableEmployees()` - 查詢可用員工
 - ✅ `LeaveService.approveLeaveRequest()` - 整合自動取消邏輯
 - ✅ API Endpoint: `GET /api/v1/scheduling/:restaurantId/available-employees`
 
 #### 2. 測試腳本 (已創建)
+
 - ✅ `test-leave-schedule-integration.sh` - Bash 測試腳本
 - ✅ `test-leave-schedule-integration.ps1` - PowerShell 測試腳本
 - ✅ `LEAVE_SCHEDULE_INTEGRATION_TESTING.md` - 詳細測試指南
@@ -85,11 +87,13 @@ curl http://localhost:8787/info
 ### 📌 重要說明
 
 **測試資料注意事項：**
+
 - 測試將創建新的班別模板、排班和請假申請
 - 測試使用未來日期（當前日期 +7 天），不影響現有數據
 - 測試創建的數據不會自動清理，需要手動刪除（如需要）
 
 **已知限制：**
+
 - 測試需要至少一個員工賬號存在於數據庫
 - 測試需要至少一個請假類型（如：annual leave）存在
 - 測試需要 Admin 權限（使用 admin 賬號登入）

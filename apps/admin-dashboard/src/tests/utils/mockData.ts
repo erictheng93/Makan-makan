@@ -23,7 +23,7 @@ export function createMockGroupOrder(
       options.shareCode ||
       `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
     status: options.status || "active",
-    restaurantId: options.restaurantId || '1',
+    restaurantId: options.restaurantId || "1",
     members: options.members || [
       createMockMember("member-1", "群組創建者", "creator"),
       createMockMember("member-2", "成員A"),

@@ -29,20 +29,13 @@
       "name": "試點完成",
       "targetDate": "2025-11-22",
       "completed": true,
-      "modules": [
-        "users"
-      ]
+      "modules": ["users"]
     },
     {
       "name": "核心模組完成",
       "targetDate": "2025-12-06",
       "completed": false,
-      "modules": [
-        "users",
-        "restaurants",
-        "menu",
-        "orders"
-      ]
+      "modules": ["users", "restaurants", "menu", "orders"]
     },
     {
       "name": "80% 採用率",

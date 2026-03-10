@@ -39,22 +39,25 @@ orders         626      高      高       P3      ⭐⭐⭐
    - 團隊學習曲線平緩
 
 2. **數據生成適中**
+
    ```typescript
    // 現有代碼有手動數據生成
    const rawUser = {
      id: 1,
-     username: 'testuser',
+     username: "testuser",
      role: USER_ROLES.CHEF,
      restaurantId: 1,
-     email: 'test@example.com',
-     fullName: 'Test User',
-     phone: '+1234567890',
+     email: "test@example.com",
+     fullName: "Test User",
+     phone: "+1234567890",
      // ... 更多字段
-   }
+   };
    ```
+
    使用 factory 可以簡化為：
+
    ```typescript
-   const user = userFactory.buildChef(1)
+   const user = userFactory.buildChef(1);
    ```
 
 3. **非核心業務邏輯**
@@ -117,35 +120,35 @@ git checkout -b pilot/migrate-users-tests-to-factory
 import {
   userFactory,
   resetAllFactories,
-  UserRoles
-} from '@makanmakan/testing-utils'
+  UserRoles,
+} from "@makanmakan/testing-utils";
 ```
 
 **步驟 2: 添加 beforeEach 重置** (5 分鐘)
 
 ```typescript
-describe('Users Feature Module', () => {
+describe("Users Feature Module", () => {
   beforeEach(() => {
-    resetAllFactories()  // 新增
-    usersService = new UsersService(mockEnv)
-  })
-})
+    resetAllFactories(); // 新增
+    usersService = new UsersService(mockEnv);
+  });
+});
 ```
 
 **步驟 3: 遷移測試數據** (1-2 小時)
 
 ```typescript
 // ❌ 遷移前
-test('admin can manage all users', () => {
-  const adminUser = { role: USER_ROLES.ADMIN, restaurantId: 1 }
+test("admin can manage all users", () => {
+  const adminUser = { role: USER_ROLES.ADMIN, restaurantId: 1 };
   // ...
-})
+});
 
 // ✅ 遷移後
-test('admin can manage all users', () => {
-  const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
+test("admin can manage all users", () => {
+  const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } });
   // ...
-})
+});
 ```
 
 **詳細遷移清單**：
@@ -192,9 +195,11 @@ npm run test apps/api/src/features/users/__tests__/feature.test.ts
 # Users 測試遷移記錄
 
 ## 遷移日期
+
 2025-11-XX
 
 ## 變更摘要
+
 - 從手動數據生成遷移到 testing-utils factory
 - 減少代碼 XX 行 (XX%)
 - 提升測試可讀性
@@ -202,20 +207,24 @@ npm run test apps/api/src/features/users/__tests__/feature.test.ts
 ## 遷移對比
 
 ### Before
+
 \`\`\`typescript
 const adminUser = { role: USER_ROLES.ADMIN, restaurantId: 1 }
 \`\`\`
 
 ### After
+
 \`\`\`typescript
 const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
 \`\`\`
 
 ## 學到的經驗
+
 - ...
 - ...
 
 ## 遇到的問題
+
 - ...
 - ...
 ```
@@ -223,6 +232,7 @@ const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
 #### 任務 2: 團隊分享 (1 小時)
 
 準備 10 分鐘分享內容：
+
 1. 遷移過程演示
 2. Before/After 對比
 3. 收益說明
@@ -237,24 +247,24 @@ const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
 ```typescript
 interface PilotMetrics {
   // 代碼量
-  linesBefore: 136,
-  linesAfter: number,     // 目標：< 120
-  reduction: number,       // 目標：> 10%
+  linesBefore: 136;
+  linesAfter: number; // 目標：< 120
+  reduction: number; // 目標：> 10%
 
   // 測試結果
-  testsTotal: 11,
-  testsPassing: number,    // 目標：11 (100%)
-  testsFailing: 0,
+  testsTotal: 11;
+  testsPassing: number; // 目標：11 (100%)
+  testsFailing: 0;
 
   // 時間
-  migrationTime: number,   // 目標：< 8 小時
+  migrationTime: number; // 目標：< 8 小時
   testExecutionTime: {
-    before: number,
-    after: number
-  },
+    before: number;
+    after: number;
+  };
 
   // 可讀性 (團隊評分 1-5)
-  readabilityScore: number  // 目標：> 4.0
+  readabilityScore: number; // 目標：> 4.0
 }
 ```
 

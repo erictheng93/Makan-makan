@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from "@playwright/test";
 
-test('基本 Playwright 測試', async ({ page }) => {
+test("基本 Playwright 測試", async ({ page }) => {
   // 測試是否能訪問一個簡單的 HTML 頁面
   const htmlContent = `
     <!DOCTYPE html>
@@ -17,17 +17,21 @@ test('基本 Playwright 測試', async ({ page }) => {
         </script>
       </body>
     </html>
-  `
-  
-  await page.setContent(htmlContent)
-  
+  `;
+
+  await page.setContent(htmlContent);
+
   // 檢查標題
-  await expect(page.locator('[data-testid="title"]')).toContainText('Hello Playwright')
-  
+  await expect(page.locator('[data-testid="title"]')).toContainText(
+    "Hello Playwright",
+  );
+
   // 點擊按鈕
-  await page.locator('[data-testid="test-btn"]').click()
-  
+  await page.locator('[data-testid="test-btn"]').click();
+
   // 檢查結果顯示
-  await expect(page.locator('[data-testid="result"]')).toBeVisible()
-  await expect(page.locator('[data-testid="result"]')).toContainText('測試成功')
-})
+  await expect(page.locator('[data-testid="result"]')).toBeVisible();
+  await expect(page.locator('[data-testid="result"]')).toContainText(
+    "測試成功",
+  );
+});

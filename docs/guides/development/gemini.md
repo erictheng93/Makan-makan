@@ -33,26 +33,32 @@ The project uses `pnpm` as its package manager and `turbo` as its build system. 
 ### Key Commands
 
 - **Installation:**
+
   ```bash
   # Install all dependencies for the monorepo
   pnpm install
   ```
 
 - **Development:**
+
   ```bash
   # Start all applications in development mode
   pnpm run dev
   ```
+
   This command uses `turbo run dev` to start development servers for all workspaces concurrently. The running applications will be accessible at different local ports (e.g., `http://localhost:5173`, `http://localhost:5174`).
 
 - **Building:**
+
   ```bash
   # Build all applications for production
   pnpm run build
   ```
+
   This uses `turbo run build` and caches outputs in `dist/`, `.output/`, etc. directories within each workspace.
 
 - **Testing:**
+
   ```bash
   # Run all unit and integration tests with vitest
   pnpm run test
@@ -86,7 +92,8 @@ The project enforces a consistent and high-quality development workflow.
 ### Git Workflow
 
 The project follows a standard Git workflow:
+
 - `main`: Represents the production-ready code.
 - `develop`: Serves as the staging branch.
 - `feature/*`: Development for new features happens in these branches.
-Pull requests are made from `feature` branches into `develop`.
+  Pull requests are made from `feature` branches into `develop`.

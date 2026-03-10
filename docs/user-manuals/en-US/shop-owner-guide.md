@@ -48,26 +48,31 @@
 ### First Login Checklist
 
 ✅ **Step 1: Complete Restaurant Profile**
+
 - Restaurant name, address, contact details
 - Business hours configuration
 - Upload restaurant photos
 
 ✅ **Step 2: Build Menu Structure**
+
 - Add menu categories
 - Upload dish information
 - Set prices and images
 
 ✅ **Step 3: Set Up Tables**
+
 - Create table information
 - Generate QR codes
 - Print and display
 
 ✅ **Step 4: Add Staff Accounts**
+
 - Create employee records
 - Assign role permissions
 - Send login credentials
 
 ✅ **Step 5: Start Operations**
+
 - Test ordering flow
 - Confirm order reception
 - Monitor operations
@@ -121,6 +126,7 @@
 ```
 
 **Explanation**:
+
 - **Owner**: Full management permissions, view all data
 - **Chef**: Receive orders, update cooking status
 - **Server**: Confirm delivery, update order progress
@@ -137,13 +143,13 @@ Navigate to: **Dashboard → Restaurant Settings → Basic Info**
 
 #### Required Information
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| Restaurant Name | Name displayed to customers | Delicious Seafood Restaurant |
-| Address | Complete address with postal code | No. 7, Section 5, Xinyi Road, Xinyi District, Taipei |
-| Contact Phone | Customer service or reservation line | 02-1234-5678 |
-| Business Hours | Daily operating hours | 11:00-14:00, 17:00-21:00 |
-| Description | Brief introduction, specialties | Fresh seafood and traditional cuisine |
+| Field           | Description                          | Example                                              |
+| --------------- | ------------------------------------ | ---------------------------------------------------- |
+| Restaurant Name | Name displayed to customers          | Delicious Seafood Restaurant                         |
+| Address         | Complete address with postal code    | No. 7, Section 5, Xinyi Road, Xinyi District, Taipei |
+| Contact Phone   | Customer service or reservation line | 02-1234-5678                                         |
+| Business Hours  | Daily operating hours                | 11:00-14:00, 17:00-21:00                             |
+| Description     | Brief introduction, specialties      | Fresh seafood and traditional cuisine                |
 
 #### Business Hours Configuration
 
@@ -171,6 +177,7 @@ Recommended size: 1920x1080 pixels
 File size: Maximum 5MB
 
 **Upload Steps**:
+
 1. Click "Upload Photo" button
 2. Select restaurant exterior or signature dish photos
 3. System automatically compresses and generates multiple sizes
@@ -206,12 +213,12 @@ Navigate to: **Menu Management → Category Management → Add Category**
 
 #### Category Settings
 
-| Setting | Description | Example |
-|---------|-------------|---------|
-| Category Name | Title displayed on menu | Seafood Dishes |
-| Category Icon | Icon symbol (optional) | 🦐 |
-| Sort Order | Display order | 1, 2, 3... |
-| Display Status | Show on menu | Active/Inactive |
+| Setting        | Description             | Example         |
+| -------------- | ----------------------- | --------------- |
+| Category Name  | Title displayed on menu | Seafood Dishes  |
+| Category Icon  | Icon symbol (optional)  | 🦐              |
+| Sort Order     | Display order           | 1, 2, 3...      |
+| Display Status | Show on menu            | Active/Inactive |
 
 #### Category Management Best Practices
 
@@ -265,11 +272,11 @@ Navigate to: **Menu Management → Item List → Add Item**
 
 #### Image Requirements
 
-| Item | Requirement |
-|------|-------------|
-| Format | JPG, PNG, WebP |
-| Recommended Size | 800x600 pixels |
-| File Size | Maximum 3MB |
+| Item             | Requirement                                      |
+| ---------------- | ------------------------------------------------ |
+| Format           | JPG, PNG, WebP                                   |
+| Recommended Size | 800x600 pixels                                   |
+| File Size        | Maximum 3MB                                      |
 | Photography Tips | Bright lighting, sharp focus, attractive plating |
 
 **Image Optimization Process**:
@@ -296,11 +303,13 @@ Fast Global Delivery (CDN)
 Navigate to: **Menu Management → Batch Operations → Price Adjustment**
 
 Use Cases:
+
 - Seasonal price adjustments
 - Cost increase adjustments
 - Promotional pricing
 
 **Steps**:
+
 1. Select items to adjust (multi-select)
 2. Set adjustment method:
    - Fixed amount (e.g., +$10)
@@ -311,6 +320,7 @@ Use Cases:
 #### Batch Enable/Disable
 
 Quick actions:
+
 - ✅ One-click enable selected items
 - ⏸️ One-click pause selected items
 - ❌ One-click disable selected items
@@ -427,13 +437,13 @@ MakanMakan supports two seat management modes:
 
 #### Mode Selection Guide
 
-| Business Type | Recommended Mode | Reason |
-|--------------|------------------|--------|
-| Traditional Restaurant | Table-level | Usually group dining |
-| Hot Pot Restaurant | Table-level | Shared pot, group ordering |
-| Fast Food | Seat-level | Individual orders, quick turnover |
-| Food Court | Seat-level | Strangers sharing, separate bills |
-| Café | Mixed | Large tables use table-level, individual seats use seat-level |
+| Business Type          | Recommended Mode | Reason                                                        |
+| ---------------------- | ---------------- | ------------------------------------------------------------- |
+| Traditional Restaurant | Table-level      | Usually group dining                                          |
+| Hot Pot Restaurant     | Table-level      | Shared pot, group ordering                                    |
+| Fast Food              | Seat-level       | Individual orders, quick turnover                             |
+| Food Court             | Seat-level       | Strangers sharing, separate bills                             |
+| Café                   | Mixed            | Large tables use table-level, individual seats use seat-level |
 
 ### Create Seats
 
@@ -486,6 +496,7 @@ MakanMakan offers three QR code modes for different business scenarios:
 ### Mode 1: Shop-Level QR Code
 
 **Use Cases**:
+
 - ✅ Takeout/Delivery shops
 - ✅ No seating (standing, street food)
 - ✅ Food trucks
@@ -533,6 +544,7 @@ Wait for Notification
 ### Mode 2: Table-Level QR Code
 
 **Use Cases**:
+
 - ✅ Traditional dine-in restaurants
 - ✅ Group dining
 - ✅ Family/friend gatherings
@@ -592,6 +604,7 @@ Sit Down → Scan Table QR
 ### Mode 3: Seat-Level QR Code
 
 **Use Cases**:
+
 - ✅ Fast food, food courts
 - ✅ Business lunches
 - ✅ Strangers sharing tables
@@ -637,12 +650,12 @@ Navigate to: **Table Management → Select Table → Seat Management → Batch G
 
 #### QR Code Size Recommendations
 
-| Display Location | Recommended Size | Scan Distance |
-|------------------|------------------|---------------|
-| Table Stand | 5cm x 5cm | 20-30cm |
-| Table Sticker | 3cm x 3cm | 10-20cm |
-| Wall Poster | 15cm x 15cm | 50-100cm |
-| Electronic Screen | Variable | 20-50cm |
+| Display Location  | Recommended Size | Scan Distance |
+| ----------------- | ---------------- | ------------- |
+| Table Stand       | 5cm x 5cm        | 20-30cm       |
+| Table Sticker     | 3cm x 3cm        | 10-20cm       |
+| Wall Poster       | 15cm x 15cm      | 50-100cm      |
+| Electronic Screen | Variable         | 20-50cm       |
 
 #### QR Code Design Templates
 
@@ -673,11 +686,13 @@ Navigate to: **QR Code Management → Design Templates → Select Template**
 #### Printing Recommendations
 
 **Paper Materials**:
+
 - 🏆 **Recommended**: Waterproof sticker, PVC material
 - ✅ **Acceptable**: Coated paper, photo paper
 - ❌ **Not Recommended**: Regular copy paper (easily damaged)
 
 **Lamination Options**:
+
 - Table use: Recommend lamination or acrylic stand
 - Outdoor use: Must be waterproofed
 - Temporary use: Can use transparent tape for protection
@@ -710,11 +725,13 @@ Navigate to: **QR Code Management → Usage Statistics**
 #### Quick QR Reset
 
 **Use Cases**:
+
 - QR code damaged, needs reprint
 - Security concerns, needs replacement
 - Table reconfiguration
 
 **Steps**:
+
 1. Navigate to: **QR Code Management → Select Target QR**
 2. Click "Regenerate"
 3. Download new QR code
@@ -873,6 +890,7 @@ Complete Order #1234
 ```
 
 **Display Method**:
+
 - New items marked with "NEW" tag
 - Color coding: Original (white), Additional (yellow)
 - Timeline shows submission time for each item
@@ -1005,18 +1023,18 @@ Navigate to: **Staff Management → Staff List → Add Staff**
 
 ### Staff Permission Matrix
 
-| Function | Owner | Chef | Server | Cashier |
-|----------|-------|------|--------|---------|
-| View Orders | ✅ | ✅ | ✅ | ✅ |
-| Update Order Status | ✅ | ✅ | ✅ | ✅ |
-| Menu Management | ✅ | ❌ | ❌ | ❌ |
-| Table Management | ✅ | ❌ | ❌ | ❌ |
-| View Revenue | ✅ | ❌ | ❌ | ✅ |
-| View Costs | ✅ | ❌ | ❌ | ❌ |
-| Staff Management | ✅ | ❌ | ❌ | ❌ |
-| Process Payments | ✅ | ❌ | ❌ | ✅ |
-| Refund/Discount | ✅ | ❌ | ❌ | ✅ |
-| View Analytics | ✅ | ❌ | ❌ | ❌ |
+| Function            | Owner | Chef | Server | Cashier |
+| ------------------- | ----- | ---- | ------ | ------- |
+| View Orders         | ✅    | ✅   | ✅     | ✅      |
+| Update Order Status | ✅    | ✅   | ✅     | ✅      |
+| Menu Management     | ✅    | ❌   | ❌     | ❌      |
+| Table Management    | ✅    | ❌   | ❌     | ❌      |
+| View Revenue        | ✅    | ❌   | ❌     | ✅      |
+| View Costs          | ✅    | ❌   | ❌     | ❌      |
+| Staff Management    | ✅    | ❌   | ❌     | ❌      |
+| Process Payments    | ✅    | ❌   | ❌     | ✅      |
+| Refund/Discount     | ✅    | ❌   | ❌     | ✅      |
+| View Analytics      | ✅    | ❌   | ❌     | ❌      |
 
 ### Staff Schedule Management
 
@@ -1994,6 +2012,7 @@ Note: Old QR code automatically deactivated
 **Q: Can I customize QR code appearance?**
 
 A: Yes. Navigate to **QR Code Management → Design Templates**, choose:
+
 - Pure QR code (black & white)
 - Branded (with logo and colors)
 - Instructional (with usage guide text)
@@ -2001,11 +2020,13 @@ A: Yes. Navigate to **QR Code Management → Design Templates**, choose:
 **Q: Customer sees error message when scanning QR code?**
 
 Possible reasons:
+
 1. QR code regenerated (old code deactivated)
 2. Restaurant temporarily closed
 3. Table deactivated
 
 Solutions:
+
 - Confirm QR code status is "Active"
 - Check restaurant operation status
 - Regenerate and display new QR code
@@ -2037,6 +2058,7 @@ System auto-notifies customer
 **Q: Too many orders, cannot handle?**
 
 Suggested handling:
+
 1. **Pause Orders**: Go to **Restaurant Settings → Pause Online Ordering**, temporarily close online ordering
 2. **Extend Prep Time**: Adjust estimated completion time on order page, inform customers of wait
 3. **Add Staff**: Temporarily assign additional chefs or servers
@@ -2062,6 +2084,7 @@ Method 2: Staff self-reset
 **Q: How to handle account when staff leaves?**
 
 Recommended approach:
+
 1. Navigate to **Staff Management → Select Staff → Deactivate Account** (don't delete, keep history)
 2. System retains staff work records (orders, schedules, etc.)
 3. Staff cannot login to system anymore
@@ -2103,6 +2126,7 @@ Complete checkout
 **Q: Can I offer discounts?**
 
 A: Yes. On checkout page:
+
 1. Click "Apply Discount"
 2. Select discount type:
    - Percentage discount (e.g., 10% off)
@@ -2136,6 +2160,7 @@ A: Yes. On checkout page:
 A: No. MakanMakan is web-based, only needs browser and internet.
 
 Recommended browsers:
+
 - Google Chrome (Recommended)
 - Microsoft Edge
 - Safari
@@ -2181,6 +2206,7 @@ Report includes:
 **Q: Can I see cost and profit for each dish?**
 
 A: Yes. Navigate to **Menu Management → Item List → Cost Analysis**, view:
+
 - Ingredient costs
 - Selling price
 - Gross margin
@@ -2287,17 +2313,20 @@ When familiar with basic operations, explore these advanced features:
 ## 📝 Version Update Log
 
 ### 2.0.0 (2025-10-26)
+
 - ✨ New owner operation interface
 - ✨ AI smart analytics live
 - ✨ Scheduling system architecture complete
 - 🔧 Performance optimization and bug fixes
 
 ### 1.5.0 (2025-10-12)
+
 - ✨ Multi-language support (6 languages)
 - ✨ Seat-level QR code feature
 - 🔧 Enhanced password security
 
 ### 1.0.0 (2025-09-01)
+
 - 🎉 MakanMakan officially launched
 - ✨ Basic restaurant management features
 - ✨ QR code ordering system
@@ -2330,4 +2359,4 @@ Ready to start using MakanMakan? 🚀
 
 ---
 
-*This manual is continuously updated. For any suggestions, please contact us.*
+_This manual is continuously updated. For any suggestions, please contact us._

@@ -3,11 +3,11 @@
  * 提供測試輔助函數，確保正確的測試環境配置
  */
 
-import { mount, VueWrapper } from '@vue/test-utils';
-import { createTestingPinia, TestingOptions } from '@pinia/testing';
-import { vi } from 'vitest';
-import { mockRouter } from './setup';
-import type { ComponentMountingOptions } from '@vue/test-utils';
+import { mount, VueWrapper } from "@vue/test-utils";
+import { createTestingPinia, TestingOptions } from "@pinia/testing";
+import { vi } from "vitest";
+import { mockRouter } from "./setup";
+import type { ComponentMountingOptions } from "@vue/test-utils";
 
 /**
  * 擴展 mount 選項以支持 router
@@ -30,13 +30,9 @@ export interface MountOptions<T = any> extends ComponentMountingOptions<T> {
  */
 export function mountWithRouter<T>(
   component: T,
-  options: MountOptions = {}
+  options: MountOptions = {},
 ): VueWrapper<any> {
-  const {
-    router = mockRouter,
-    piniaOptions = {},
-    ...mountOptions
-  } = options;
+  const { router = mockRouter, piniaOptions = {}, ...mountOptions } = options;
 
   // 合併 global 配置
   const mergedOptions: ComponentMountingOptions<any> = {
@@ -51,7 +47,7 @@ export function mountWithRouter<T>(
           createSpy: vi.fn,
           ...piniaOptions,
         }),
-        router,  // 添加 router 作為插件
+        router, // 添加 router 作為插件
       ],
 
       // 合併 mocks
@@ -71,12 +67,12 @@ export function mountWithRouter<T>(
       // 合併 stubs
       stubs: {
         ...(mountOptions.global?.stubs || {}),
-        'router-link': {
-          template: '<a><slot /></a>',
-          props: ['to'],
+        "router-link": {
+          template: "<a><slot /></a>",
+          props: ["to"],
         },
-        'transition': false,
-        'transition-group': false,
+        transition: false,
+        "transition-group": false,
       },
     },
   };
@@ -99,7 +95,7 @@ export function createAuthState(overrides: Record<string, any> = {}) {
     auth: {
       user: {
         id: 1,
-        username: 'testuser',
+        username: "testuser",
         role: 1,
         restaurantId: 1,
       },
@@ -133,7 +129,7 @@ export function wait(ms: number) {
 export async function setInputValue(
   wrapper: VueWrapper<any>,
   selector: string,
-  value: string
+  value: string,
 ) {
   const input = wrapper.find(selector);
   await input.setValue(value);
@@ -143,12 +139,9 @@ export async function setInputValue(
 /**
  * 模擬用戶點擊
  */
-export async function clickElement(
-  wrapper: VueWrapper<any>,
-  selector: string
-) {
+export async function clickElement(wrapper: VueWrapper<any>, selector: string) {
   const element = wrapper.find(selector);
-  await element.trigger('click');
+  await element.trigger("click");
   await wrapper.vm.$nextTick();
 }
 

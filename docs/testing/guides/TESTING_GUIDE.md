@@ -34,12 +34,12 @@
 
 ### 測試覆蓋率目標
 
-| 類型 | 目標覆蓋率 | 當前狀態 |
-|------|-----------|----------|
-| 單元測試 | > 80% | ✅ 82% |
-| 整合測試 | > 70% | ✅ 75% |
-| E2E 測試 | 核心流程 100% | ✅ 100% |
-| 性能測試 | 所有 API | ✅ 完成 |
+| 類型     | 目標覆蓋率    | 當前狀態 |
+| -------- | ------------- | -------- |
+| 單元測試 | > 80%         | ✅ 82%   |
+| 整合測試 | > 70%         | ✅ 75%   |
+| E2E 測試 | 核心流程 100% | ✅ 100%  |
+| 性能測試 | 所有 API      | ✅ 完成  |
 
 ## 測試類型
 
@@ -48,12 +48,14 @@
 使用 Vitest 進行單元測試。
 
 **測試範圍**：
+
 - Vue 組件
 - 服務類別 (Services)
 - 工具函數 (Utilities)
 - 資料驗證 (Validators)
 
 **執行命令**：
+
 ```bash
 # 執行所有單元測試
 pnpm test
@@ -73,12 +75,14 @@ pnpm test:coverage
 測試多個組件或服務之間的互動。
 
 **測試範圍**：
+
 - API 端點整合
 - 資料庫操作
 - 第三方服務整合
 - WebSocket 連線
 
 **執行命令**：
+
 ```bash
 # 執行整合測試
 pnpm test:integration
@@ -92,6 +96,7 @@ pnpm test:workers:integration
 使用 Playwright 測試完整的用戶流程。
 
 **測試範圍**：
+
 - ✅ 登入/登出流程
 - ✅ 訂單管理 (查看、創建、更新、取消)
 - ✅ 菜單管理 (CRUD、搜尋、分類)
@@ -102,6 +107,7 @@ pnpm test:workers:integration
 - ✅ POS 收銀 (支付處理、收據生成)
 
 **執行命令**：
+
 ```bash
 # 執行所有 E2E 測試
 pnpm test:e2e
@@ -124,12 +130,14 @@ npx playwright test --debug
 使用 Artillery 進行負載測試和壓力測試。
 
 **測試範圍**：
+
 - ✅ REST API 端點 (認證、訂單、菜單、桌台、用戶)
 - ✅ WebSocket 連線 (Kitchen、Admin、Customer)
 - ✅ 混合場景測試
 - ✅ 錯誤情境測試
 
 **執行命令**：
+
 ```bash
 # REST API 負載測試
 pnpm test:performance
@@ -194,6 +202,7 @@ tests/e2e/
 ### 核心測試場景
 
 #### 1. 訂單管理流程 (10 個測試)
+
 - ✅ 顯示訂單列表
 - ✅ 篩選訂單狀態
 - ✅ 查看訂單詳情
@@ -206,6 +215,7 @@ tests/e2e/
 - ✅ 錯誤處理
 
 #### 2. 菜單管理流程 (10 個測試)
+
 - ✅ 顯示菜單列表
 - ✅ 按分類篩選
 - ✅ 新增菜品
@@ -218,6 +228,7 @@ tests/e2e/
 - ✅ 顯示統計資訊
 
 #### 3. 桌台管理流程 (5 個測試)
+
 - ✅ 顯示桌台列表
 - ✅ 新增桌台
 - ✅ 生成 QR 碼
@@ -225,6 +236,7 @@ tests/e2e/
 - ✅ 篩選桌台狀態
 
 #### 4. 用戶管理流程 (7 個測試)
+
 - ✅ 顯示員工列表
 - ✅ 新增員工
 - ✅ 編輯員工資訊
@@ -234,6 +246,7 @@ tests/e2e/
 - ✅ 顯示統計資訊
 
 #### 5. 廚房顯示流程 (5 個測試)
+
 - ✅ 顯示待處理訂單
 - ✅ 更新訂單項目狀態
 - ✅ 標記訂單完成
@@ -241,12 +254,14 @@ tests/e2e/
 - ✅ 按優先級排序
 
 #### 6. 隊列管理流程 (4 個測試)
+
 - ✅ 顯示排隊列表
 - ✅ 安排座位
 - ✅ 取消排隊
 - ✅ 顯示統計資訊
 
 #### 7. POS 收銀流程 (3 個測試)
+
 - ✅ 顯示待付款訂單
 - ✅ 處理現金支付
 - ✅ 顯示銷售摘要
@@ -291,25 +306,25 @@ npx playwright test tests/e2e/admin/
 
 ### REST API 測試場景
 
-| 場景 | 流量佔比 | 描述 |
-|------|---------|------|
-| 認證流程 | 20% | 登入、驗證、獲取用戶資訊 |
-| 菜單管理 | 25% | 查看、搜尋菜單 |
-| 訂單管理 | 30% | CRUD 訂單、統計 |
-| 桌台管理 | 15% | 查看、更新桌台 |
-| 用戶管理 | 10% | CRUD 用戶 |
-| 混合讀取 | 50% | 並發讀取多個端點 |
-| 分析報表 | 5% | 銷售、菜品分析 |
-| 錯誤情境 | 5% | 401、404、400 測試 |
+| 場景     | 流量佔比 | 描述                     |
+| -------- | -------- | ------------------------ |
+| 認證流程 | 20%      | 登入、驗證、獲取用戶資訊 |
+| 菜單管理 | 25%      | 查看、搜尋菜單           |
+| 訂單管理 | 30%      | CRUD 訂單、統計          |
+| 桌台管理 | 15%      | 查看、更新桌台           |
+| 用戶管理 | 10%      | CRUD 用戶                |
+| 混合讀取 | 50%      | 並發讀取多個端點         |
+| 分析報表 | 5%       | 銷售、菜品分析           |
+| 錯誤情境 | 5%       | 401、404、400 測試       |
 
 ### WebSocket 測試場景
 
-| 場景 | 流量佔比 | 描述 |
-|------|---------|------|
-| Kitchen 連線 | 30% | 廚房員工連線、心跳 |
-| Admin 連線 | 30% | 管理員連線 |
-| Customer 連線 | 40% | 顧客連線（較長時間） |
-| 訊息洪流 | 10% | 高頻率訊息壓力測試 |
+| 場景          | 流量佔比 | 描述                 |
+| ------------- | -------- | -------------------- |
+| Kitchen 連線  | 30%      | 廚房員工連線、心跳   |
+| Admin 連線    | 30%      | 管理員連線           |
+| Customer 連線 | 40%      | 顧客連線（較長時間） |
+| 訊息洪流      | 10%      | 高頻率訊息壓力測試   |
 
 ### 性能指標
 
@@ -352,7 +367,7 @@ config:
   target: "http://localhost:8787"
   phases:
     - duration: 60
-      arrivalRate: 10  # 調整負載
+      arrivalRate: 10 # 調整負載
 ```
 
 ## CI/CD 整合
@@ -429,10 +444,10 @@ config:
 
 ```typescript
 // ✅ 好的命名
-test('應該在用戶登入成功後顯示儀表板', async () => {})
+test("應該在用戶登入成功後顯示儀表板", async () => {});
 
 // ❌ 不好的命名
-test('test1', async () => {})
+test("test1", async () => {});
 ```
 
 ### 2. 測試隔離
@@ -440,38 +455,42 @@ test('test1', async () => {})
 ```typescript
 // ✅ 每個測試獨立
 test.beforeEach(async ({ page }) => {
-  await page.goto('/login')
+  await page.goto("/login");
   // 登入設置
-})
+});
 
 // ❌ 測試之間有依賴
-test('test1', () => { /* 創建數據 */ })
-test('test2', () => { /* 依賴 test1 的數據 */ })
+test("test1", () => {
+  /* 創建數據 */
+});
+test("test2", () => {
+  /* 依賴 test1 的數據 */
+});
 ```
 
 ### 3. 使用 Mock
 
 ```typescript
 // ✅ Mock API 回應
-await page.route('/api/v1/orders', async route => {
+await page.route("/api/v1/orders", async (route) => {
   await route.fulfill({
     status: 200,
-    body: JSON.stringify(mockData)
-  })
-})
+    body: JSON.stringify(mockData),
+  });
+});
 
 // ❌ 依賴真實 API
-await page.goto('/orders') // 可能失敗
+await page.goto("/orders"); // 可能失敗
 ```
 
 ### 4. 適當的等待
 
 ```typescript
 // ✅ 等待特定元素
-await page.waitForSelector('[data-testid="orders-list"]')
+await page.waitForSelector('[data-testid="orders-list"]');
 
 // ❌ 硬編碼延遲
-await page.waitForTimeout(5000)
+await page.waitForTimeout(5000);
 ```
 
 ### 5. 清理資源
@@ -479,11 +498,11 @@ await page.waitForTimeout(5000)
 ```typescript
 test.afterEach(async ({ page }) => {
   // 清理測試數據
-  await cleanupTestData()
+  await cleanupTestData();
 
   // 關閉連線
-  await page.close()
-})
+  await page.close();
+});
 ```
 
 ## 故障排除
@@ -491,12 +510,14 @@ test.afterEach(async ({ page }) => {
 ### 記憶體配置問題
 
 **問題**: JavaScript heap out of memory
+
 ```bash
 FATAL ERROR: Ineffective mark-compacts near heap limit
 Allocation failed - JavaScript heap out of memory
 ```
 
 **原因**:
+
 - 測試套件過大 (MakanMakan 有 1,300+ 測試)
 - Node.js 預設 heap size 不足
 - 覆蓋率分析需要額外記憶體
@@ -504,6 +525,7 @@ Allocation failed - JavaScript heap out of memory
 **解決方案**:
 
 已在 `package.json` 配置 4GB 記憶體限制:
+
 ```json
 {
   "scripts": {
@@ -514,6 +536,7 @@ Allocation failed - JavaScript heap out of memory
 ```
 
 **記憶體分配建議**:
+
 - 小型專案 (< 100 測試): 預設值
 - 中型專案 (100-500 測試): 2GB (`2048`)
 - 大型專案 (500-1000 測試): 4GB (`4096`)
@@ -524,116 +547,127 @@ Allocation failed - JavaScript heap out of memory
 #### 1. Icon Mock 配置錯誤
 
 **問題**: Icon 組件無法解析
+
 ```bash
 [Vue warn]: Failed to resolve component: UserIcon
 No "UserIcon" export is defined on the "@heroicons/vue/24/outline" mock
 ```
 
 **解決方案**: Icon mock 必須包含 `template` 屬性
+
 ```typescript
-vi.mock('@heroicons/vue/24/outline', () => ({
-  UserIcon: { name: 'UserIcon', template: '<svg />' },
-  ClockIcon: { name: 'ClockIcon', template: '<svg />' },
+vi.mock("@heroicons/vue/24/outline", () => ({
+  UserIcon: { name: "UserIcon", template: "<svg />" },
+  ClockIcon: { name: "ClockIcon", template: "<svg />" },
   // ... 其他 icons
-}))
+}));
 ```
 
 #### 2. Pinia Store Mock 錯誤
 
 **問題**: storeToRefs 無法讀取 value
+
 ```bash
 TypeError: Cannot read properties of undefined (reading 'value')
 ```
 
 **錯誤方法**: 使用 plain values mock
+
 ```typescript
 // ❌ 錯誤
-vi.mock('@/stores/settings', () => ({
+vi.mock("@/stores/settings", () => ({
   useSettingsStore: () => ({
-    showEstimatedTime: false  // Plain value
-  })
-}))
+    showEstimatedTime: false, // Plain value
+  }),
+}));
 ```
 
 **正確方法**: 使用真實 Pinia store
+
 ```typescript
 // ✅ 正確
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia } from "pinia";
 
 beforeEach(() => {
-  const pinia = createPinia()
-  setActivePinia(pinia)
-})
+  const pinia = createPinia();
+  setActivePinia(pinia);
+});
 ```
 
 #### 3. localStorage Mock 錯誤
 
 **問題**: JSON.parse 錯誤
+
 ```bash
 "undefined" is not valid JSON
 ```
 
 **解決方案**: getItem() 必須返回 `null` (不是 `undefined`)
+
 ```typescript
 const createLocalStorageMock = () => {
-  const storage: Record<string, string> = {}
+  const storage: Record<string, string> = {};
 
   return {
-    getItem: vi.fn((key: string) => storage[key] || null),  // ✅ 返回 null
+    getItem: vi.fn((key: string) => storage[key] || null), // ✅ 返回 null
     setItem: vi.fn((key: string, value: string) => {
-      storage[key] = value
+      storage[key] = value;
     }),
     removeItem: vi.fn((key: string) => {
-      delete storage[key]
+      delete storage[key];
     }),
     clear: vi.fn(() => {
-      Object.keys(storage).forEach(key => delete storage[key])
+      Object.keys(storage).forEach((key) => delete storage[key]);
     }),
     get length() {
-      return Object.keys(storage).length
+      return Object.keys(storage).length;
     },
     key: vi.fn((index: number) => {
-      const keys = Object.keys(storage)
-      return keys[index] || null
-    })
-  }
-}
+      const keys = Object.keys(storage);
+      return keys[index] || null;
+    }),
+  };
+};
 
 beforeEach(() => {
-  const mockLocalStorage = createLocalStorageMock()
-  Object.defineProperty(global, 'localStorage', {
+  const mockLocalStorage = createLocalStorageMock();
+  Object.defineProperty(global, "localStorage", {
     value: mockLocalStorage,
-    writable: true
-  })
-})
+    writable: true,
+  });
+});
 ```
 
 #### 4. 缺少必要的 Props
 
 **問題**: Vue 警告缺少 props
+
 ```bash
 [Vue warn]: Missing required prop: "statusType"
 ```
 
 **解決方案**: 檢查組件定義,提供所有必要 props
+
 ```typescript
 // ✅ 提供所有必要 props
 mount(OrderCard, {
   props: {
     order: mockOrder,
-    statusType: 'pending'  // Required prop
-  }
-})
+    statusType: "pending", // Required prop
+  },
+});
 ```
 
 ### E2E 測試失敗
 
 **問題**: 測試超時
+
 ```bash
 Timeout exceeded while waiting for element
 ```
 
 **解決方案**:
+
 1. 檢查選擇器是否正確
 2. 增加 timeout 設置
 3. 使用 waitForLoadState('networkidle')
@@ -641,11 +675,13 @@ Timeout exceeded while waiting for element
 ### 性能測試失敗
 
 **問題**: 連線錯誤
+
 ```bash
 Error: connect ECONNREFUSED
 ```
 
 **解決方案**:
+
 1. 確保服務正在運行
 2. 檢查端口是否正確
 3. 查看防火牆設置
@@ -655,6 +691,7 @@ Error: connect ECONNREFUSED
 **問題**: 測試在本地通過，但 CI 失敗
 
 **解決方案**:
+
 1. 檢查環境變數配置
 2. 查看 CI 日誌詳細錯誤
 3. 使用 `act` 工具本地運行 GitHub Actions
@@ -683,6 +720,7 @@ Error: connect ECONNREFUSED
 ## 最近更新
 
 ### 2025-11-17
+
 - ✅ 新增記憶體配置問題解決方案 (4GB heap allocation)
 - ✅ 新增 Vue 組件測試常見問題與修復 (Icon mock, Pinia store, localStorage)
 - ✅ 完成 Kitchen Display 測試修復 (64/64 測試通過)

@@ -81,6 +81,7 @@ Sebagai server, Anda adalah jembatan penting antara restoran dan pelanggan. Tang
 ```
 
 **Penjelasan Peran**:
+
 - **Chef**: Siapkan makanan → Notifikasi pengambilan
 - **Anda (Server)**: Ambil → Antar → Update status
 - **Kasir**: Proses pembayaran → Selesaikan pesanan
@@ -137,24 +138,27 @@ Sebagai server, Anda adalah jembatan penting antara restoran dan pelanggan. Tang
 
 ### Contoh Informasi Login
 
-| Item | Keterangan | Contoh |
-|------|-----------|--------|
-| Username | Akun karyawan dibuat pemilik | crew001 atau email.anda@example.com |
-| Password Awal | Password sementara dari pemilik | Temp123456 |
-| Password Baru | Min 8 karakter, huruf dan angka | MyPass2025! |
+| Item          | Keterangan                      | Contoh                              |
+| ------------- | ------------------------------- | ----------------------------------- |
+| Username      | Akun karyawan dibuat pemilik    | crew001 atau email.anda@example.com |
+| Password Awal | Password sementara dari pemilik | Temp123456                          |
+| Password Baru | Min 8 karakter, huruf dan angka | MyPass2025!                         |
 
 ### Checklist Login Pertama
 
 ✅ **Ubah Password Default**
+
 - Set password yang aman dan mudah diingat
 - Jangan bagikan ke orang lain
 
 ✅ **Lengkapi Profil Pribadi**
+
 - Upload foto profil (opsional)
 - Isi nomor telepon kontak
 - Konfirmasi kontak darurat
 
 ✅ **Kenali Interface**
+
 - Jelajahi area fungsi utama
 - Test fungsi lihat pesanan
 - Pahami cara update status
@@ -222,13 +226,13 @@ Sebagai server, Anda adalah jembatan penting antara restoran dan pelanggan. Tang
 
 ### Panduan Informasi Pesanan
 
-| Ikon/Label | Arti | Tindakan Anda |
-|-----------|------|--------------|
-| 🔴 Pesanan Baru | Baru dipesan | Pantau progress dapur |
-| 🟡 Diproses | Dapur sedang masak | Tunggu notifikasi ambil |
-| 🟢 Siap Diambil | Makanan sudah siap | **Segera ambil** |
-| 🔵 Sedang Diantar | Anda sedang mengantar | Antar secepat mungkin |
-| ✅ Sudah Diantar | Makanan sudah diantar | Tugas selesai |
+| Ikon/Label        | Arti                  | Tindakan Anda           |
+| ----------------- | --------------------- | ----------------------- |
+| 🔴 Pesanan Baru   | Baru dipesan          | Pantau progress dapur   |
+| 🟡 Diproses       | Dapur sedang masak    | Tunggu notifikasi ambil |
+| 🟢 Siap Diambil   | Makanan sudah siap    | **Segera ambil**        |
+| 🔵 Sedang Diantar | Anda sedang mengantar | Antar secepat mungkin   |
+| ✅ Sudah Diantar  | Makanan sudah diantar | Tugas selesai           |
 
 ### Fungsi Filter Pesanan
 
@@ -293,14 +297,14 @@ Opsi Filter:
 
 Saat mengambil dari dapur, pastikan:
 
-| Item Cek | Konfirmasi |
-|---------|-----------|
-| ✅ Nomor Pesanan | Cocokkan dengan tampilan sistem |
-| ✅ Item Makanan | Verifikasi nama dan jumlah satu per satu |
-| ✅ Kelengkapan | Lauk, saus, alat makan lengkap |
-| ✅ Kondisi Makanan | Makanan panas cukup panas, minuman dingin cukup dingin |
-| ✅ Kualitas Tampilan | Plating rapi, tidak tumpah |
-| ✅ Permintaan Khusus | Cek catatan (contoh: tidak pedas, vegetarian) |
+| Item Cek             | Konfirmasi                                             |
+| -------------------- | ------------------------------------------------------ |
+| ✅ Nomor Pesanan     | Cocokkan dengan tampilan sistem                        |
+| ✅ Item Makanan      | Verifikasi nama dan jumlah satu per satu               |
+| ✅ Kelengkapan       | Lauk, saus, alat makan lengkap                         |
+| ✅ Kondisi Makanan   | Makanan panas cukup panas, minuman dingin cukup dingin |
+| ✅ Kualitas Tampilan | Plating rapi, tidak tumpah                             |
+| ✅ Permintaan Khusus | Cek catatan (contoh: tidak pedas, vegetarian)          |
 
 ### Etika Layanan Pengiriman
 
@@ -404,10 +408,10 @@ Pesanan #1236 → Meja B2 → Es Smoothie (dingin)
 
 ### Waktu Update Status
 
-| Status Saat Ini | Update Ke | Waktu |
-|----------------|-----------|-------|
-| 🟢 Siap Diambil | 🚶 Sedang Diantar | **Setelah ambil, sebelum berangkat** |
-| 🚶 Sedang Diantar | ✅ Sudah Diantar | **Setelah letakkan di meja** |
+| Status Saat Ini   | Update Ke         | Waktu                                |
+| ----------------- | ----------------- | ------------------------------------ |
+| 🟢 Siap Diambil   | 🚶 Sedang Diantar | **Setelah ambil, sebelum berangkat** |
+| 🚶 Sedang Diantar | ✅ Sudah Diantar  | **Setelah letakkan di meja**         |
 
 ### Pentingnya Update Status
 
@@ -572,12 +576,12 @@ Daftar Catatan Pengiriman
 
 ### Penjelasan Indikator Kinerja
 
-| Indikator | Keterangan | Target |
-|----------|-----------|--------|
-| Waktu Antar Rata-rata | Dari ambil hingga antar | < 5 menit |
-| Jumlah Pesanan Selesai | Pengiriman sukses per hari | Tergantung shift |
-| Kepuasan Pelanggan | Berdasarkan rating pelanggan | ≥ 4.5 / 5.0 |
-| Tingkat Tepat Waktu | Antar dalam waktu estimasi | ≥ 95% |
+| Indikator              | Keterangan                   | Target           |
+| ---------------------- | ---------------------------- | ---------------- |
+| Waktu Antar Rata-rata  | Dari ambil hingga antar      | < 5 menit        |
+| Jumlah Pesanan Selesai | Pengiriman sukses per hari   | Tergantung shift |
+| Kepuasan Pelanggan     | Berdasarkan rating pelanggan | ≥ 4.5 / 5.0      |
+| Tingkat Tepat Waktu    | Antar dalam waktu estimasi   | ≥ 95%            |
 
 ---
 
@@ -1002,6 +1006,7 @@ Terima kasih telah memilih menjadi bagian dari tim MakanMakan!
 Sebagai server, Anda adalah jembatan penting yang menghubungkan dapur dengan pelanggan. Setiap senyum Anda, setiap pengiriman tepat waktu, menciptakan pengalaman makan yang indah bagi pelanggan.
 
 Ingat:
+
 - ✨ **Sikap menentukan segalanya** - Pertahankan positif & antusias
 - 🚀 **Efisiensi ciptakan nilai** - Cepat tapi tetap stabil
 - 🤝 **Layanan dari hati** - Perlakukan setiap pelanggan dengan tulus

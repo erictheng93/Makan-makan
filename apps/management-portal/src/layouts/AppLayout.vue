@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { ref } from "vue";
+import { RouterLink, useRoute } from "vue-router";
 import {
   HomeIcon,
   BuildingStorefrontIcon,
@@ -8,26 +8,26 @@ import {
   HeartIcon,
   KeyIcon,
   Bars3Icon,
-  XMarkIcon
-} from '@heroicons/vue/24/outline'
+  XMarkIcon,
+} from "@heroicons/vue/24/outline";
 
-const route = useRoute()
-const sidebarOpen = ref(false)
+const route = useRoute();
+const sidebarOpen = ref(false);
 
 const navigation = [
-  { name: '總覽', href: '/', icon: HomeIcon },
-  { name: '租戶管理', href: '/tenants', icon: BuildingStorefrontIcon },
-  { name: '部署管理', href: '/deployments', icon: CloudIcon },
-  { name: '健康監控', href: '/health', icon: HeartIcon },
-  { name: '授權管理', href: '/licenses', icon: KeyIcon }
-]
+  { name: "總覽", href: "/", icon: HomeIcon },
+  { name: "租戶管理", href: "/tenants", icon: BuildingStorefrontIcon },
+  { name: "部署管理", href: "/deployments", icon: CloudIcon },
+  { name: "健康監控", href: "/health", icon: HeartIcon },
+  { name: "授權管理", href: "/licenses", icon: KeyIcon },
+];
 
 const isCurrentRoute = (href: string) => {
-  if (href === '/') {
-    return route.path === '/'
+  if (href === "/") {
+    return route.path === "/";
   }
-  return route.path.startsWith(href)
-}
+  return route.path.startsWith(href);
+};
 </script>
 
 <template>
@@ -40,7 +40,9 @@ const isCurrentRoute = (href: string) => {
     >
       <div class="fixed inset-0 bg-gray-600 bg-opacity-75" />
       <div class="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-        <div class="flex h-16 items-center justify-between px-4 border-b border-gray-200">
+        <div
+          class="flex h-16 items-center justify-between px-4 border-b border-gray-200"
+        >
           <span class="text-xl font-bold text-primary-600">MakanMakan</span>
           <button
             type="button"
@@ -59,7 +61,7 @@ const isCurrentRoute = (href: string) => {
               isCurrentRoute(item.href)
                 ? 'bg-primary-50 text-primary-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-              'group flex items-center px-3 py-2 text-sm font-medium rounded-md'
+              'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
             ]"
             @click="sidebarOpen = false"
           >
@@ -69,7 +71,7 @@ const isCurrentRoute = (href: string) => {
                 isCurrentRoute(item.href)
                   ? 'text-primary-600'
                   : 'text-gray-400 group-hover:text-gray-500',
-                'mr-3 h-5 w-5 flex-shrink-0'
+                'mr-3 h-5 w-5 flex-shrink-0',
               ]"
             />
             {{ item.name }}
@@ -97,7 +99,7 @@ const isCurrentRoute = (href: string) => {
               isCurrentRoute(item.href)
                 ? 'bg-primary-50 text-primary-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-              'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors'
+              'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
             ]"
           >
             <component
@@ -106,7 +108,7 @@ const isCurrentRoute = (href: string) => {
                 isCurrentRoute(item.href)
                   ? 'text-primary-600'
                   : 'text-gray-400 group-hover:text-gray-500',
-                'mr-3 h-5 w-5 flex-shrink-0'
+                'mr-3 h-5 w-5 flex-shrink-0',
               ]"
             />
             {{ item.name }}
@@ -123,7 +125,9 @@ const isCurrentRoute = (href: string) => {
     <!-- Main content area -->
     <div class="lg:pl-64">
       <!-- Top bar -->
-      <div class="sticky top-0 z-10 flex h-16 bg-white border-b border-gray-200 lg:hidden">
+      <div
+        class="sticky top-0 z-10 flex h-16 bg-white border-b border-gray-200 lg:hidden"
+      >
         <button
           type="button"
           class="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"

@@ -3,15 +3,15 @@
  * 負責管理不同地區的格式化配置和多國語言支持
  */
 
-import type { CountryCode, RegionConfig } from '@makanmakan/shared-types'
-import { REGION_CONFIGS } from '../config/regions'
+import type { CountryCode, RegionConfig } from "@makanmakan/shared-types";
+import { REGION_CONFIGS } from "../config/regions";
 
 export class RegionManager {
-  private regions: Map<CountryCode, RegionConfig>
+  private regions: Map<CountryCode, RegionConfig>;
 
   constructor() {
-    this.regions = new Map()
-    this.initializeDefaultRegions()
+    this.regions = new Map();
+    this.initializeDefaultRegions();
   }
 
   // =============================================
@@ -19,24 +19,24 @@ export class RegionManager {
   // =============================================
 
   getRegion(country: CountryCode): RegionConfig {
-    const region = this.regions.get(country)
+    const region = this.regions.get(country);
     if (!region) {
-      throw new Error(`Region configuration not found for country: ${country}`)
+      throw new Error(`Region configuration not found for country: ${country}`);
     }
-    return region
+    return region;
   }
 
   setRegion(country: CountryCode, config: RegionConfig): void {
-    this.validateRegionConfig(config)
-    this.regions.set(country, config)
+    this.validateRegionConfig(config);
+    this.regions.set(country, config);
   }
 
   hasRegion(country: CountryCode): boolean {
-    return this.regions.has(country)
+    return this.regions.has(country);
   }
 
   getSupportedRegions(): CountryCode[] {
-    return Array.from(this.regions.keys())
+    return Array.from(this.regions.keys());
   }
 
   // =============================================
@@ -44,27 +44,27 @@ export class RegionManager {
   // =============================================
 
   formatCurrency(amount: number, country: CountryCode): string {
-    const region = this.getRegion(country)
-    const { currency } = region.numberFormat
+    const region = this.getRegion(country);
+    const { currency } = region.numberFormat;
 
     const formatter = new Intl.NumberFormat(region.locale, {
-      style: 'currency',
+      style: "currency",
       currency: region.currency,
-      minimumFractionDigits: this.getCurrencyDecimals(currency.symbol)
-    })
+      minimumFractionDigits: this.getCurrencyDecimals(currency.symbol),
+    });
 
-    return formatter.format(amount)
+    return formatter.format(amount);
   }
 
   formatNumber(number: number, country: CountryCode): string {
-    const region = this.getRegion(country)
-    return new Intl.NumberFormat(region.locale).format(number)
+    const region = this.getRegion(country);
+    return new Intl.NumberFormat(region.locale).format(number);
   }
 
   private getCurrencyDecimals(currency: string): number {
     // 某些貨幣沒有小數點 (如日元、韓元、越南盾)
-    const noDecimalCurrencies = ['JPY', 'KRW', 'VND']
-    return noDecimalCurrencies.includes(currency) ? 0 : 2
+    const noDecimalCurrencies = ["JPY", "KRW", "VND"];
+    return noDecimalCurrencies.includes(currency) ? 0 : 2;
   }
 
   // =============================================
@@ -72,58 +72,65 @@ export class RegionManager {
   // =============================================
 
   formatDate(date: Date, country: CountryCode): string {
-    const region = this.getRegion(country)
+    const region = this.getRegion(country);
     return new Intl.DateTimeFormat(region.locale, {
-      dateStyle: 'short',
-      timeStyle: 'short',
-      timeZone: region.timezone
-    }).format(date)
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: region.timezone,
+    }).format(date);
   }
 
-  formatDateTime(date: Date, country: CountryCode, options?: {
-    dateStyle?: 'full' | 'long' | 'medium' | 'short'
-    timeStyle?: 'full' | 'long' | 'medium' | 'short'
-  }): string {
-    const region = this.getRegion(country)
+  formatDateTime(
+    date: Date,
+    country: CountryCode,
+    options?: {
+      dateStyle?: "full" | "long" | "medium" | "short";
+      timeStyle?: "full" | "long" | "medium" | "short";
+    },
+  ): string {
+    const region = this.getRegion(country);
     return new Intl.DateTimeFormat(region.locale, {
-      dateStyle: options?.dateStyle || 'short',
-      timeStyle: options?.timeStyle || 'short',
-      timeZone: region.timezone
-    }).format(date)
+      dateStyle: options?.dateStyle || "short",
+      timeStyle: options?.timeStyle || "short",
+      timeZone: region.timezone,
+    }).format(date);
   }
 
   // =============================================
   // 稅務計算
   // =============================================
 
-  calculateTax(subtotal: number, country: CountryCode): {
-    taxAmount: number
-    taxableAmount: number
-    totalAmount: number
-    taxConfig: RegionConfig['tax']
+  calculateTax(
+    subtotal: number,
+    country: CountryCode,
+  ): {
+    taxAmount: number;
+    taxableAmount: number;
+    totalAmount: number;
+    taxConfig: RegionConfig["tax"];
   } {
-    const region = this.getRegion(country)
-    const { tax: taxConfig } = region
+    const region = this.getRegion(country);
+    const { tax: taxConfig } = region;
 
     if (taxConfig.inclusive) {
       // 含稅價格計算稅額
-      const taxableAmount = subtotal / (1 + taxConfig.rate)
-      const taxAmount = subtotal - taxableAmount
+      const taxableAmount = subtotal / (1 + taxConfig.rate);
+      const taxAmount = subtotal - taxableAmount;
       return {
         taxAmount,
         taxableAmount,
         totalAmount: subtotal,
-        taxConfig
-      }
+        taxConfig,
+      };
     } else {
       // 未稅價格計算稅額
-      const taxAmount = subtotal * taxConfig.rate
+      const taxAmount = subtotal * taxConfig.rate;
       return {
         taxAmount,
         taxableAmount: subtotal,
         totalAmount: subtotal + taxAmount,
-        taxConfig
-      }
+        taxConfig,
+      };
     }
   }
 
@@ -131,39 +138,43 @@ export class RegionManager {
   // 地址格式化
   // =============================================
 
-  formatAddress(address: {
-    street?: string
-    city?: string
-    state?: string
-    postalCode?: string
-    country?: string
-  }, country: CountryCode): string {
+  formatAddress(
+    address: {
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      country?: string;
+    },
+    country: CountryCode,
+  ): string {
     // 根據地區調整地址格式
     switch (country) {
-      case 'TW':
+      case "TW":
         // 台灣格式: 郵遞區號 + 城市 + 街道
-        return [
-          address.postalCode,
-          address.city,
-          address.state,
-          address.street
-        ].filter(Boolean).join(' ')
+        return [address.postalCode, address.city, address.state, address.street]
+          .filter(Boolean)
+          .join(" ");
 
-      case 'MY':
+      case "MY":
         // 馬來西亞格式: 街道, 郵遞區號 城市, 州
         return [
           address.street,
-          [address.postalCode, address.city].filter(Boolean).join(' '),
-          address.state
-        ].filter(Boolean).join(', ')
+          [address.postalCode, address.city].filter(Boolean).join(" "),
+          address.state,
+        ]
+          .filter(Boolean)
+          .join(", ");
 
-      case 'VN':
+      case "VN":
         // 越南格式: 街道, 城市, 州 郵遞區號
         return [
           address.street,
           address.city,
-          [address.state, address.postalCode].filter(Boolean).join(' ')
-        ].filter(Boolean).join(', ')
+          [address.state, address.postalCode].filter(Boolean).join(" "),
+        ]
+          .filter(Boolean)
+          .join(", ");
 
       default:
         // 預設格式
@@ -172,8 +183,10 @@ export class RegionManager {
           address.city,
           address.state,
           address.postalCode,
-          address.country
-        ].filter(Boolean).join(', ')
+          address.country,
+        ]
+          .filter(Boolean)
+          .join(", ");
     }
   }
 
@@ -181,24 +194,24 @@ export class RegionManager {
   // 地區特定設定
   // =============================================
 
-  getReceiptConfig(country: CountryCode): RegionConfig['receipt'] {
-    const region = this.getRegion(country)
-    return region.receipt
+  getReceiptConfig(country: CountryCode): RegionConfig["receipt"] {
+    const region = this.getRegion(country);
+    return region.receipt;
   }
 
-  getTaxConfig(country: CountryCode): RegionConfig['tax'] {
-    const region = this.getRegion(country)
-    return region.tax
+  getTaxConfig(country: CountryCode): RegionConfig["tax"] {
+    const region = this.getRegion(country);
+    return region.tax;
   }
 
-  getLegalConfig(country: CountryCode): RegionConfig['legal'] {
-    const region = this.getRegion(country)
-    return region.legal
+  getLegalConfig(country: CountryCode): RegionConfig["legal"] {
+    const region = this.getRegion(country);
+    return region.legal;
   }
 
-  getNumberFormat(country: CountryCode): RegionConfig['numberFormat'] {
-    const region = this.getRegion(country)
-    return region.numberFormat
+  getNumberFormat(country: CountryCode): RegionConfig["numberFormat"] {
+    const region = this.getRegion(country);
+    return region.numberFormat;
   }
 
   // =============================================
@@ -207,28 +220,32 @@ export class RegionManager {
 
   private validateRegionConfig(config: RegionConfig): void {
     if (!config.country || !config.currency || !config.locale) {
-      throw new Error('Region config missing required fields: country, currency, locale')
+      throw new Error(
+        "Region config missing required fields: country, currency, locale",
+      );
     }
 
     if (!config.numberFormat || !config.tax || !config.receipt) {
-      throw new Error('Region config missing required sections: numberFormat, tax, receipt')
+      throw new Error(
+        "Region config missing required sections: numberFormat, tax, receipt",
+      );
     }
 
     // 驗證稅率
     if (config.tax.rate < 0 || config.tax.rate > 1) {
-      throw new Error('Tax rate must be between 0 and 1')
+      throw new Error("Tax rate must be between 0 and 1");
     }
 
     // 驗證收據寬度
     if (config.receipt.width < 16 || config.receipt.width > 80) {
-      throw new Error('Receipt width must be between 16 and 80 characters')
+      throw new Error("Receipt width must be between 16 and 80 characters");
     }
   }
 
   private initializeDefaultRegions(): void {
     // 載入所有預設地區配置
     for (const [country, config] of Object.entries(REGION_CONFIGS)) {
-      this.regions.set(country as CountryCode, config)
+      this.regions.set(country as CountryCode, config);
     }
   }
 
@@ -237,32 +254,32 @@ export class RegionManager {
   // =============================================
 
   getTimezone(country: CountryCode): string {
-    const region = this.getRegion(country)
-    return region.timezone
+    const region = this.getRegion(country);
+    return region.timezone;
   }
 
   getLocale(country: CountryCode): string {
-    const region = this.getRegion(country)
-    return region.locale
+    const region = this.getRegion(country);
+    return region.locale;
   }
 
   getCurrency(country: CountryCode): string {
-    const region = this.getRegion(country)
-    return region.currency
+    const region = this.getRegion(country);
+    return region.currency;
   }
 
   isRegionSupported(country: CountryCode): boolean {
-    return this.regions.has(country)
+    return this.regions.has(country);
   }
 
   // 獲取所有地區的摘要信息
   getRegionsSummary(): Array<{
-    country: CountryCode
-    currency: string
-    locale: string
-    timezone: string
-    taxRate: number
-    receiptWidth: number
+    country: CountryCode;
+    currency: string;
+    locale: string;
+    timezone: string;
+    taxRate: number;
+    receiptWidth: number;
   }> {
     return Array.from(this.regions.entries()).map(([country, config]) => ({
       country,
@@ -270,7 +287,7 @@ export class RegionManager {
       locale: config.locale,
       timezone: config.timezone,
       taxRate: config.tax.rate,
-      receiptWidth: config.receipt.width
-    }))
+      receiptWidth: config.receipt.width,
+    }));
   }
 }

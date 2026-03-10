@@ -30,7 +30,7 @@
  * })
  */
 export function getCurrentTimestamp(): string {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 /**
@@ -47,7 +47,7 @@ export function getCurrentTimestamp(): string {
  * const expiresAt = getUnixTimestamp() + 3600 // 1 hour from now
  */
 export function getUnixTimestamp(): number {
-  return Math.floor(Date.now() / 1000)
+  return Math.floor(Date.now() / 1000);
 }
 
 /**
@@ -66,7 +66,7 @@ export function getUnixTimestamp(): number {
  * const duration = getUnixTimestampMs() - startTime
  */
 export function getUnixTimestampMs(): number {
-  return Date.now()
+  return Date.now();
 }
 
 /**
@@ -81,7 +81,7 @@ export function getUnixTimestampMs(): number {
  * // 1731225045
  */
 export function isoToUnix(isoTimestamp: string): number {
-  return Math.floor(new Date(isoTimestamp).getTime() / 1000)
+  return Math.floor(new Date(isoTimestamp).getTime() / 1000);
 }
 
 /**
@@ -96,7 +96,7 @@ export function isoToUnix(isoTimestamp: string): number {
  * // "2025-11-10T08:30:45.000Z"
  */
 export function unixToIso(unixTimestamp: number): string {
-  return new Date(unixTimestamp * 1000).toISOString()
+  return new Date(unixTimestamp * 1000).toISOString();
 }
 
 /**
@@ -113,7 +113,7 @@ export function unixToIso(unixTimestamp: number): string {
  * const futureDate = getTimestampOffset(30 * 24 * 60 * 60 * 1000)
  */
 export function getTimestampOffset(offsetMs: number): string {
-  return new Date(Date.now() + offsetMs).toISOString()
+  return new Date(Date.now() + offsetMs).toISOString();
 }
 
 /**
@@ -130,10 +130,10 @@ export function getTimestampOffset(offsetMs: number): string {
  * // true (if current time is after this)
  */
 export function isExpired(timestamp: string | number): boolean {
-  if (typeof timestamp === 'string') {
-    return new Date(timestamp).getTime() < Date.now()
+  if (typeof timestamp === "string") {
+    return new Date(timestamp).getTime() < Date.now();
   }
-  return timestamp * 1000 < Date.now()
+  return timestamp * 1000 < Date.now();
 }
 
 /**
@@ -154,9 +154,9 @@ export function isExpired(timestamp: string | number): boolean {
  */
 export function formatTimestamp(
   isoTimestamp: string,
-  locale: string = 'en-US'
+  locale: string = "en-US",
 ): string {
-  return new Date(isoTimestamp).toLocaleString(locale)
+  return new Date(isoTimestamp).toLocaleString(locale);
 }
 
 /**
@@ -174,17 +174,18 @@ export function formatTimestamp(
  */
 export function getTimeDifference(
   start: string | number,
-  end?: string | number
+  end?: string | number,
 ): number {
-  const startMs = typeof start === 'string'
-    ? new Date(start).getTime()
-    : start * 1000
+  const startMs =
+    typeof start === "string" ? new Date(start).getTime() : start * 1000;
 
   const endMs = end
-    ? (typeof end === 'string' ? new Date(end).getTime() : end * 1000)
-    : Date.now()
+    ? typeof end === "string"
+      ? new Date(end).getTime()
+      : end * 1000
+    : Date.now();
 
-  return Math.floor((endMs - startMs) / 1000)
+  return Math.floor((endMs - startMs) / 1000);
 }
 
 /**
@@ -198,7 +199,7 @@ export const TIME_OFFSET = {
   ONE_WEEK: 7 * 24 * 60 * 60 * 1000,
   ONE_MONTH: 30 * 24 * 60 * 60 * 1000,
   ONE_YEAR: 365 * 24 * 60 * 60 * 1000,
-} as const
+} as const;
 
 /**
  * Common time offset constants (in seconds)
@@ -211,4 +212,4 @@ export const TIME_OFFSET_SECONDS = {
   ONE_WEEK: 7 * 24 * 60 * 60,
   ONE_MONTH: 30 * 24 * 60 * 60,
   ONE_YEAR: 365 * 24 * 60 * 60,
-} as const
+} as const;

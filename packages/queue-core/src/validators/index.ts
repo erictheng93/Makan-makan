@@ -2,7 +2,7 @@
  * Queue Validators - Main Export File
  */
 
-export * from './queue-validators'
+export * from "./queue-validators";
 
 // Re-export commonly used validators
 export {
@@ -20,5 +20,5 @@ export {
   validateCallNext,
   validateSeatCustomer,
   validateCancelQueue,
-  validateUpdateQueueSettings
-} from './queue-validators'
+  validateUpdateQueueSettings,
+} from "./queue-validators";

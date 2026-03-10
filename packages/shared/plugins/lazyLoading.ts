@@ -1,41 +1,41 @@
-import type { App } from 'vue'
-import { vLazyLoad } from '../directives/lazyLoad'
-import { lazyLoadingService } from '../services/lazyLoadingService'
-import LazyImage from '../components/LazyImage.vue'
+import type { App } from "vue";
+import { vLazyLoad } from "../directives/lazyLoad";
+import { lazyLoadingService } from "../services/lazyLoadingService";
+import LazyImage from "../components/LazyImage.vue";
 
 export interface LazyLoadingPluginOptions {
   // Service configuration
-  rootMargin?: string
-  threshold?: number
-  strategy?: 'eager' | 'lazy' | 'progressive' | 'adaptive'
-  defaultQuality?: number
-  enableProgressive?: boolean
-  enableWebP?: boolean
-  enableAVIF?: boolean
-  maxConcurrentLoads?: number
-  preloadCount?: number
-  maxRetries?: number
-  retryDelay?: number
-  enableCache?: boolean
-  cacheSize?: number
-  
+  rootMargin?: string;
+  threshold?: number;
+  strategy?: "eager" | "lazy" | "progressive" | "adaptive";
+  defaultQuality?: number;
+  enableProgressive?: boolean;
+  enableWebP?: boolean;
+  enableAVIF?: boolean;
+  maxConcurrentLoads?: number;
+  preloadCount?: number;
+  maxRetries?: number;
+  retryDelay?: number;
+  enableCache?: boolean;
+  cacheSize?: number;
+
   // Component options
-  registerComponent?: boolean
-  componentName?: string
-  
+  registerComponent?: boolean;
+  componentName?: string;
+
   // Directive options
-  registerDirective?: boolean
-  directiveName?: string
-  
+  registerDirective?: boolean;
+  directiveName?: string;
+
   // Global styles
-  injectStyles?: boolean
+  injectStyles?: boolean;
 }
 
 const defaultOptions: LazyLoadingPluginOptions = {
   // Service defaults
-  rootMargin: '50px',
+  rootMargin: "50px",
   threshold: 0.1,
-  strategy: 'adaptive',
+  strategy: "adaptive",
   defaultQuality: 85,
   enableProgressive: true,
   enableWebP: true,
@@ -46,19 +46,19 @@ const defaultOptions: LazyLoadingPluginOptions = {
   retryDelay: 1000,
   enableCache: true,
   cacheSize: 100,
-  
+
   // Plugin defaults
   registerComponent: true,
-  componentName: 'LazyImage',
+  componentName: "LazyImage",
   registerDirective: true,
-  directiveName: 'lazy',
-  injectStyles: true
-}
+  directiveName: "lazy",
+  injectStyles: true,
+};
 
 export default {
   install(app: App, options?: LazyLoadingPluginOptions) {
-    const finalOptions = { ...defaultOptions, ...options }
-    
+    const finalOptions = { ...defaultOptions, ...options };
+
     // Update lazy loading service configuration
     lazyLoadingService.updateConfig({
       rootMargin: finalOptions.rootMargin!,
@@ -73,77 +73,79 @@ export default {
       maxRetries: finalOptions.maxRetries!,
       retryDelay: finalOptions.retryDelay!,
       enableCache: finalOptions.enableCache!,
-      cacheSize: finalOptions.cacheSize!
-    })
-    
+      cacheSize: finalOptions.cacheSize!,
+    });
+
     // Register LazyImage component
     if (finalOptions.registerComponent) {
-      app.component(finalOptions.componentName!, LazyImage)
+      app.component(finalOptions.componentName!, LazyImage);
     }
-    
+
     // Register v-lazy directive
     if (finalOptions.registerDirective) {
-      app.directive(finalOptions.directiveName!, vLazyLoad)
+      app.directive(finalOptions.directiveName!, vLazyLoad);
     }
-    
+
     // Provide lazy loading service globally
-    app.provide('lazyLoadingService', lazyLoadingService)
-    
+    app.provide("lazyLoadingService", lazyLoadingService);
+
     // Add global properties for easier access
-    app.config.globalProperties.$lazyLoading = lazyLoadingService
-    
+    app.config.globalProperties.$lazyLoading = lazyLoadingService;
+
     // Inject global styles
     if (finalOptions.injectStyles) {
-      injectGlobalStyles()
+      injectGlobalStyles();
     }
-    
+
     // Preload critical images on app mount
     app.mixin({
       async mounted() {
         // Only run on root component
         if (this.$el === document.body.firstElementChild) {
-          await this.preloadCriticalImages()
+          await this.preloadCriticalImages();
         }
       },
-      
+
       methods: {
         async preloadCriticalImages() {
           // Look for images marked as critical
-          const criticalImages = document.querySelectorAll('img[data-critical="true"]')
-          const imageMetadata = Array.from(criticalImages).map(img => ({
+          const criticalImages = document.querySelectorAll(
+            'img[data-critical="true"]',
+          );
+          const imageMetadata = Array.from(criticalImages).map((img) => ({
             src: (img as HTMLImageElement).src,
             alt: (img as HTMLImageElement).alt,
             width: (img as HTMLImageElement).width,
-            height: (img as HTMLImageElement).height
-          }))
-          
+            height: (img as HTMLImageElement).height,
+          }));
+
           if (imageMetadata.length > 0) {
-            await lazyLoadingService.preloadCritical(imageMetadata)
+            await lazyLoadingService.preloadCritical(imageMetadata);
           }
-        }
-      }
-    })
-    
+        },
+      },
+    });
+
     // Setup performance monitoring
-    if (typeof window !== 'undefined') {
-      setupPerformanceMonitoring()
+    if (typeof window !== "undefined") {
+      setupPerformanceMonitoring();
     }
-  }
-}
+  },
+};
 
 /**
  * Inject global CSS styles for lazy loading
  */
 function injectGlobalStyles(): void {
-  if (typeof document === 'undefined') return
-  
-  const styleId = 'lazy-loading-global-styles'
-  
+  if (typeof document === "undefined") return;
+
+  const styleId = "lazy-loading-global-styles";
+
   // Check if styles already injected
-  if (document.getElementById(styleId)) return
-  
-  const style = document.createElement('style')
-  style.id = styleId
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement("style");
+  style.id = styleId;
   style.textContent = `
     /* Lazy loading base styles */
     .lazy-image {
@@ -219,9 +221,9 @@ function injectGlobalStyles(): void {
         background-size: 200% 100%;
       }
     }
-  `
-  
-  document.head.appendChild(style)
+  `;
+
+  document.head.appendChild(style);
 }
 
 /**
@@ -229,77 +231,84 @@ function injectGlobalStyles(): void {
  */
 function setupPerformanceMonitoring(): void {
   // Monitor page load performance
-  if ('PerformanceObserver' in window) {
+  if ("PerformanceObserver" in window) {
     const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries()
-      
+      const entries = list.getEntries();
+
       entries.forEach((entry) => {
-        if (entry.entryType === 'largest-contentful-paint') {
-          const lcp = entry.startTime
-          
+        if (entry.entryType === "largest-contentful-paint") {
+          const lcp = entry.startTime;
+
           // Adjust strategy based on LCP
-          if (lcp > 4000) { // Poor LCP
+          if (lcp > 4000) {
+            // Poor LCP
             lazyLoadingService.updateConfig({
-              strategy: 'lazy',
+              strategy: "lazy",
               defaultQuality: 70,
-              maxConcurrentLoads: 3
-            })
-          } else if (lcp > 2500) { // Needs improvement
+              maxConcurrentLoads: 3,
+            });
+          } else if (lcp > 2500) {
+            // Needs improvement
             lazyLoadingService.updateConfig({
-              strategy: 'progressive',
+              strategy: "progressive",
               defaultQuality: 80,
-              maxConcurrentLoads: 4
-            })
+              maxConcurrentLoads: 4,
+            });
           }
         }
-        
-        if (entry.entryType === 'navigation') {
-          const navEntry = entry as PerformanceNavigationTiming
-          const loadTime = navEntry.loadEventEnd - navEntry.loadEventStart
-          
+
+        if (entry.entryType === "navigation") {
+          const navEntry = entry as PerformanceNavigationTiming;
+          const loadTime = navEntry.loadEventEnd - navEntry.loadEventStart;
+
           // Adjust preload count based on load time
           if (loadTime > 3000) {
             lazyLoadingService.updateConfig({
-              preloadCount: 2
-            })
+              preloadCount: 2,
+            });
           } else if (loadTime < 1000) {
             lazyLoadingService.updateConfig({
-              preloadCount: 5
-            })
+              preloadCount: 5,
+            });
           }
         }
-      })
-    })
-    
-    observer.observe({ entryTypes: ['largest-contentful-paint', 'navigation'] })
+      });
+    });
+
+    observer.observe({
+      entryTypes: ["largest-contentful-paint", "navigation"],
+    });
   }
-  
+
   // Monitor memory usage
-  if ('memory' in performance) {
+  if ("memory" in performance) {
     setInterval(() => {
-      const memory = (performance as any).memory
-      const usedMemory = memory.usedJSHeapSize / memory.totalJSHeapSize
-      
+      const memory = (performance as any).memory;
+      const usedMemory = memory.usedJSHeapSize / memory.totalJSHeapSize;
+
       // Reduce cache size if memory usage is high
       if (usedMemory > 0.8) {
         lazyLoadingService.updateConfig({
-          cacheSize: Math.max(20, Math.floor(lazyLoadingService.getStats().cacheSize * 0.7))
-        })
+          cacheSize: Math.max(
+            20,
+            Math.floor(lazyLoadingService.getStats().cacheSize * 0.7),
+          ),
+        });
       }
-    }, 30000) // Check every 30 seconds
+    }, 30000); // Check every 30 seconds
   }
-  
+
   // Handle visibility changes
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
       // Clear cache when page is hidden to free memory
       setTimeout(() => {
-        if (document.visibilityState === 'hidden') {
-          lazyLoadingService.clearCache()
+        if (document.visibilityState === "hidden") {
+          lazyLoadingService.clearCache();
         }
-      }, 60000) // Clear after 1 minute
+      }, 60000); // Clear after 1 minute
     }
-  })
+  });
 }
 
 // Export composable for use in components
@@ -308,6 +317,6 @@ export const useLazyLoading = () => {
     service: lazyLoadingService,
     preload: lazyLoadingService.loadImage.bind(lazyLoadingService),
     getStats: lazyLoadingService.getStats.bind(lazyLoadingService),
-    clearCache: lazyLoadingService.clearCache.bind(lazyLoadingService)
-  }
-}
+    clearCache: lazyLoadingService.clearCache.bind(lazyLoadingService),
+  };
+};

@@ -70,14 +70,14 @@ describe("QrCodesService", () => {
 
       vi.spyOn(service["qrService"], "createAuditLog").mockResolvedValue();
 
-      const result = await service.generateQR(mockData, 1, '100');
+      const result = await service.generateQR(mockData, 1, "100");
 
       expect(result).toMatchObject({
         content: mockData.content,
         format: mockData.format,
         style: mockData.style,
         userId: 1,
-        restaurantId: '100',
+        restaurantId: "100",
       });
       expect(result.id).toBeDefined();
       expect(result.createdAt).toBeInstanceOf(Date);
@@ -100,14 +100,14 @@ describe("QrCodesService", () => {
         totalCodes: 2,
       });
 
-      const result = await service.generateBulkQR(mockData, 1, '100');
+      const result = await service.generateBulkQR(mockData, 1, "100");
 
       expect(result).toMatchObject({
         itemCount: 2,
         format: "zip",
         status: "completed",
         userId: 1,
-        restaurantId: '100',
+        restaurantId: "100",
       });
       expect(result.batchId).toBeDefined();
     });
@@ -170,7 +170,7 @@ describe("QrCodesService", () => {
         mockStats,
       );
 
-      const result = await service.getStatistics('100');
+      const result = await service.getStatistics("100");
 
       expect(result).toMatchObject({
         totalQRCodes: 10,
@@ -388,7 +388,7 @@ describe("QR Codes Performance", () => {
           style: { size: 200 },
         },
         1,
-        '100',
+        "100",
       );
 
       const duration = performance.now() - start;
@@ -419,7 +419,7 @@ describe("QR Codes Performance", () => {
           format: "zip",
         },
         1,
-        '100',
+        "100",
       );
 
       const duration = performance.now() - start;
@@ -440,7 +440,7 @@ describe("QR Codes Performance", () => {
 
       const start = performance.now();
 
-      await service.getStatistics('100');
+      await service.getStatistics("100");
 
       const duration = performance.now() - start;
 

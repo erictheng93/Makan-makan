@@ -37,6 +37,7 @@
 **問題嚴重性**: 🔴 Critical - 測試套件 100% 崩潰
 
 **根本原因分析**:
+
 ```
 問題層次分析:
 ┌──────────────────────────────────────────────┐
@@ -55,6 +56,7 @@
 **實施的解決方案**:
 
 #### vitest.config.ts 關鍵修改
+
 ```typescript
 // Before (失敗配置)
 pool: 'forks',
@@ -78,6 +80,7 @@ testTimeout: 60000  // ✅ 配合較慢執行速度
 ```
 
 **效果**:
+
 - ✅ 記憶體崩潰率: 100% → 0%
 - ✅ Worker heap limit: 4GB → 8GB (實際生效)
 - ✅ 峰值記憶體: ~12GB → ~7GB (-42%)
@@ -92,6 +95,7 @@ testTimeout: 60000  // ✅ 配合較慢執行速度
 **影響範圍**: 3 個測試檔案，~14 個測試失敗
 
 **根本原因**:
+
 ```
 Store 定義:
   export const useOrderManagementStore = ...
@@ -103,15 +107,17 @@ Store 定義:
 ```
 
 **修復的檔案**:
+
 1. `tests/integration/workflow-integration.test.ts`
 2. `tests/integration/end-to-end.test.ts`
 3. `tests/integration/keyboard-shortcuts-integration.test.ts`
 
 **修復內容**:
+
 ```typescript
 // 統一修復模式
-s/useOrderManagement/useOrderManagementStore/g
-s/typeof useOrderManagement/typeof useOrderManagementStore/g
+s / useOrderManagement / useOrderManagementStore / g;
+s / typeof useOrderManagement / typeof useOrderManagementStore / g;
 ```
 
 **驗證**: ✅ All import errors resolved
@@ -125,25 +131,28 @@ s/typeof useOrderManagement/typeof useOrderManagementStore/g
 **影響範圍**: ~10 個測試失敗（音訊、檔案處理相關）
 
 **根本原因**:
+
 ```typescript
 // Before (條件可能失效)
 if (!global.URL.createObjectURL) {
-  global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 }
 
-問題: 條件判斷在某些執行環境下失效
+問題: 條件判斷在某些執行環境下失效;
 ```
 
 **修復方案** (`tests/setup.ts`):
+
 ```typescript
 // After (總是覆寫，確保穩定)
-global.URL.createObjectURL = vi.fn(() =>
-  'blob:mock-url-' + Math.random().toString(36).substring(7)
+global.URL.createObjectURL = vi.fn(
+  () => "blob:mock-url-" + Math.random().toString(36).substring(7),
 );
 global.URL.revokeObjectURL = vi.fn();
 ```
 
 **改進**:
+
 - ✅ 移除條件判斷，總是設置
 - ✅ 動態生成唯一 URL (模擬真實行為)
 - ✅ 同時 mock createObjectURL 和 revokeObjectURL
@@ -159,6 +168,7 @@ global.URL.revokeObjectURL = vi.fn();
 **影響範圍**: ~7 個測試失敗（離線同步相關）
 
 **根本原因**:
+
 ```typescript
 // Before (過於簡單)
 const localStorageMock = {
@@ -175,6 +185,7 @@ const localStorageMock = {
 ```
 
 **修復方案** (`tests/setup.ts`):
+
 ```typescript
 // After (完整實現)
 const createStorageMock = () => {
@@ -207,6 +218,7 @@ global.sessionStorage = createStorageMock() as any;
 ```
 
 **改進**:
+
 - ✅ 實際的 in-memory 存儲
 - ✅ 完整的 Storage API 實現
 - ✅ 無配額限制
@@ -289,9 +301,9 @@ After (Threads - 穩定模式):
 
 ```typescript
 // 測試期望但 store 未導出的方法:
-store.updateOrderStatus(orderId, status)  // ❌ 不存在
-store.updateItemStatus(orderId, itemId, status)  // ❌ 不存在
-store.clearOrders()  // ❌ 不存在
+store.updateOrderStatus(orderId, status); // ❌ 不存在
+store.updateItemStatus(orderId, itemId, status); // ❌ 不存在
+store.clearOrders(); // ❌ 不存在
 
 // Store 實際返回的方法:
 return {
@@ -327,9 +339,11 @@ expect(store.orders).toContainEqual(order)  // ❌ 失敗
 ```
 
 **當前實現** (`handleNewOrder`):
+
 ```typescript
 const handleNewOrder = (event: KitchenSSEEvent) => {
-  if (event.payload && event.payload.order) {  // 期望 nested object
+  if (event.payload && event.payload.order) {
+    // 期望 nested object
     const newOrder: KitchenOrder = event.payload.order;
     // ...
   }
@@ -337,10 +351,11 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 ```
 
 **測試期望**:
+
 ```typescript
 const event = {
-  type: 'NEW_ORDER',
-  payload: newOrder  // 直接傳遞 order，不是 { order: newOrder }
+  type: "NEW_ORDER",
+  payload: newOrder, // 直接傳遞 order，不是 { order: newOrder }
 };
 ```
 
@@ -352,9 +367,12 @@ const event = {
 
 ```typescript
 // 測試:
-localStorageMock.setItem('kitchen-audio-notifications', JSON.stringify(savedConfig))
-const { config } = useAudioNotifications()
-expect(config.value).toMatchObject(savedConfig)  // ❌ 失敗
+localStorageMock.setItem(
+  "kitchen-audio-notifications",
+  JSON.stringify(savedConfig),
+);
+const { config } = useAudioNotifications();
+expect(config.value).toMatchObject(savedConfig); // ❌ 失敗
 
 // 原因: Composable 可能在 localStorage mock 設置前就初始化了
 ```
@@ -435,10 +453,10 @@ poolOptions: {
 
 ```typescript
 // 簡單 mock (可能失敗)
-localStorage = { getItem: vi.fn(), setItem: vi.fn() }
+localStorage = { getItem: vi.fn(), setItem: vi.fn() };
 
 // 完整實現 (穩定)
-localStorage = createStorageMock()  // 實際 in-memory 存儲
+localStorage = createStorageMock(); // 實際 in-memory 存儲
 ```
 
 ---
@@ -607,6 +625,7 @@ After:
 ### 下一步建議
 
 **短期** (1-2 天):
+
 1. 實現缺失的 store 方法
 2. 調整 SSE 事件處理邏輯
 3. 修復 composable 配置載入
@@ -615,6 +634,7 @@ After:
 **預期結果**: 95%+ 測試通過率
 
 **中期** (1 週):
+
 1. 繼續修復其他 25+ 測試檔案
 2. 完善測試覆蓋率
 3. 建立 CI/CD 集成

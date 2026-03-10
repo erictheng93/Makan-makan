@@ -9,86 +9,87 @@ import type {
   PrintJobPriority,
   PrintRequest,
   PrintContent,
-  PrintServiceConfig
-} from '@makanmakan/shared-types'
+  PrintServiceConfig,
+} from "@makanmakan/shared-types";
 
-import { PrintJobError } from '../errors/PrintErrors'
+import { PrintJobError } from "../errors/PrintErrors";
 
-export type PrintJobManagerConfig = PrintServiceConfig['queue']
+export type PrintJobManagerConfig = PrintServiceConfig["queue"];
 
 export class PrintJobManager {
-  private config: PrintJobManagerConfig
-  private jobs: Map<string, PrintJob> = new Map()
-  private processing: Set<string> = new Set()
-  private pausedDevices: Set<string> = new Set()
-  private eventHandlers: Map<string, Function[]> = new Map()
-  private processingInterval?: NodeJS.Timeout
-  private isInitialized = false
+  private config: PrintJobManagerConfig;
+  private jobs: Map<string, PrintJob> = new Map();
+  private processing: Set<string> = new Set();
+  private pausedDevices: Set<string> = new Set();
+  private eventHandlers: Map<string, ((...args: unknown[]) => unknown)[]> =
+    new Map();
+  private processingInterval?: NodeJS.Timeout;
+  private isInitialized = false;
 
   constructor(config: PrintJobManagerConfig) {
-    this.config = config
+    this.config = config;
   }
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return
+    if (this.isInitialized) return;
 
     // 啟動作業處理器
     this.processingInterval = setInterval(() => {
-      this.processNextJobs()
-    }, 1000)
+      this.processNextJobs();
+    }, 1000);
 
-    this.isInitialized = true
+    this.isInitialized = true;
   }
 
   async shutdown(): Promise<void> {
-    if (!this.isInitialized) return
+    if (!this.isInitialized) return;
 
     // 停止處理器
     if (this.processingInterval) {
-      clearInterval(this.processingInterval)
-      this.processingInterval = undefined
+      clearInterval(this.processingInterval);
+      this.processingInterval = undefined;
     }
 
     // 取消所有待處理的作業
-    const pendingJobs = this.getJobsByStatus('pending')
-    await Promise.all(
-      pendingJobs.map(job => this.cancelJob(job.id))
-    )
+    const pendingJobs = this.getJobsByStatus("pending");
+    await Promise.all(pendingJobs.map((job) => this.cancelJob(job.id)));
 
     // 等待正在處理的作業完成（最多等待 30 秒）
-    let waitTime = 0
+    let waitTime = 0;
     while (this.processing.size > 0 && waitTime < 30000) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      waitTime += 1000
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      waitTime += 1000;
     }
 
-    this.jobs.clear()
-    this.processing.clear()
-    this.pausedDevices.clear()
-    this.eventHandlers.clear()
-    this.isInitialized = false
+    this.jobs.clear();
+    this.processing.clear();
+    this.pausedDevices.clear();
+    this.eventHandlers.clear();
+    this.isInitialized = false;
   }
 
   // =============================================
   // 作業管理
   // =============================================
 
-  async createJob(request: PrintRequest & {
-    deviceId: string
-    content: PrintContent
-  }): Promise<PrintJob> {
+  async createJob(
+    request: PrintRequest & {
+      deviceId: string;
+      content: PrintContent;
+    },
+  ): Promise<PrintJob> {
     if (this.jobs.size >= this.config.maxQueueSize) {
-      throw new PrintJobError('Print queue is full')
+      throw new PrintJobError("Print queue is full");
     }
 
-    const jobId = this.generateJobId()
-    const now = new Date()
+    const jobId = this.generateJobId();
+    const now = new Date();
 
     const job: PrintJob = {
       id: jobId,
       type: request.type,
-      priority: request.priority || 'normal',
-      status: 'pending',
+      priority: request.priority || "normal",
+      status: "pending",
       deviceId: request.deviceId,
       content: request.content,
       options: {
@@ -97,7 +98,7 @@ export class PrintJobManager {
         openDrawer: false,
         buzzer: false,
         feedLines: 3,
-        ...request.options
+        ...request.options,
       },
       attempts: 0,
       maxAttempts: this.config.maxRetries,
@@ -107,109 +108,112 @@ export class PrintJobManager {
         restaurantId: request.restaurantId,
         orderId: request.data?.order?.id,
         userId: request.userId,
-        country: request.country
-      }
-    }
+        country: request.country,
+      },
+    };
 
-    this.jobs.set(jobId, job)
-    this.emit('job_created', { job })
+    this.jobs.set(jobId, job);
+    this.emit("job_created", { job });
 
-    return job
+    return job;
   }
 
   getJob(jobId: string): PrintJob | null {
-    return this.jobs.get(jobId) || null
+    return this.jobs.get(jobId) || null;
   }
 
   getJobsByStatus(status: PrintJobStatus): PrintJob[] {
     return Array.from(this.jobs.values())
-      .filter(job => job.status === status)
-      .sort(this.priorityComparator)
+      .filter((job) => job.status === status)
+      .sort(this.priorityComparator);
   }
 
   getJobsByDevice(deviceId: string): PrintJob[] {
     return Array.from(this.jobs.values())
-      .filter(job => job.deviceId === deviceId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .filter((job) => job.deviceId === deviceId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
   async cancelJob(jobId: string): Promise<boolean> {
-    const job = this.jobs.get(jobId)
-    if (!job) return false
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
 
     // 只能取消待處理的作業
-    if (job.status !== 'pending') return false
+    if (job.status !== "pending") return false;
 
     this.updateJob(jobId, {
-      status: 'cancelled',
+      status: "cancelled",
       updatedAt: new Date(),
-      cancelledAt: new Date()
-    })
+      cancelledAt: new Date(),
+    });
 
-    this.emit('job_cancelled', { job: this.jobs.get(jobId)! })
-    return true
+    this.emit("job_cancelled", { job: this.jobs.get(jobId)! });
+    return true;
   }
 
   async retryJob(jobId: string): Promise<boolean> {
-    const job = this.jobs.get(jobId)
-    if (!job) return false
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
 
     // 只能重試失敗的作業
-    if (job.status !== 'failed') return false
+    if (job.status !== "failed") return false;
 
     // 檢查重試次數
-    if (job.attempts >= job.maxAttempts) return false
+    if (job.attempts >= job.maxAttempts) return false;
 
     this.updateJob(jobId, {
-      status: 'pending',
+      status: "pending",
       updatedAt: new Date(),
-      error: undefined
-    })
+      error: undefined,
+    });
 
-    this.emit('job_retried', { job: this.jobs.get(jobId)! })
-    return true
+    this.emit("job_retried", { job: this.jobs.get(jobId)! });
+    return true;
   }
 
   async pauseDeviceJobs(deviceId: string): Promise<void> {
-    this.pausedDevices.add(deviceId)
+    this.pausedDevices.add(deviceId);
 
     // 暫停正在處理的作業
-    const processingJobs = this.getJobsByDevice(deviceId)
-      .filter(job => job.status === 'printing')
+    const processingJobs = this.getJobsByDevice(deviceId).filter(
+      (job) => job.status === "printing",
+    );
 
     for (const job of processingJobs) {
       this.updateJob(job.id, {
-        status: 'paused',
-        updatedAt: new Date()
-      })
+        status: "paused",
+        updatedAt: new Date(),
+      });
     }
 
-    this.emit('device_jobs_paused', { deviceId })
+    this.emit("device_jobs_paused", { deviceId });
   }
 
   async resumeDeviceJobs(deviceId: string): Promise<void> {
-    this.pausedDevices.delete(deviceId)
+    this.pausedDevices.delete(deviceId);
 
     // 恢復暫停的作業
-    const pausedJobs = this.getJobsByDevice(deviceId)
-      .filter(job => job.status === 'paused')
+    const pausedJobs = this.getJobsByDevice(deviceId).filter(
+      (job) => job.status === "paused",
+    );
 
     for (const job of pausedJobs) {
       this.updateJob(job.id, {
-        status: 'pending',
-        updatedAt: new Date()
-      })
+        status: "pending",
+        updatedAt: new Date(),
+      });
     }
 
-    this.emit('device_jobs_resumed', { deviceId })
+    this.emit("device_jobs_resumed", { deviceId });
   }
 
   async cancelDeviceJobs(deviceId: string): Promise<void> {
-    const deviceJobs = this.getJobsByDevice(deviceId)
-      .filter(job => job.status === 'pending' || job.status === 'paused')
+    const deviceJobs = this.getJobsByDevice(deviceId).filter(
+      (job) => job.status === "pending" || job.status === "paused",
+    );
 
     for (const job of deviceJobs) {
-      await this.cancelJob(job.id)
+      await this.cancelJob(job.id);
     }
   }
 
@@ -218,55 +222,59 @@ export class PrintJobManager {
   // =============================================
 
   getQueueStatistics(): {
-    total: number
-    pending: number
-    processing: number
-    completed: number
-    failed: number
-    cancelled: number
-    paused: number
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+    paused: number;
   } {
-    const jobs = Array.from(this.jobs.values())
+    const jobs = Array.from(this.jobs.values());
 
     return {
       total: jobs.length,
-      pending: jobs.filter(j => j.status === 'pending').length,
-      processing: jobs.filter(j => j.status === 'printing').length,
-      completed: jobs.filter(j => j.status === 'completed').length,
-      failed: jobs.filter(j => j.status === 'failed').length,
-      cancelled: jobs.filter(j => j.status === 'cancelled').length,
-      paused: jobs.filter(j => j.status === 'paused').length
-    }
+      pending: jobs.filter((j) => j.status === "pending").length,
+      processing: jobs.filter((j) => j.status === "printing").length,
+      completed: jobs.filter((j) => j.status === "completed").length,
+      failed: jobs.filter((j) => j.status === "failed").length,
+      cancelled: jobs.filter((j) => j.status === "cancelled").length,
+      paused: jobs.filter((j) => j.status === "paused").length,
+    };
   }
 
   getDeviceStatistics(deviceId: string): {
-    total: number
-    pending: number
-    processing: number
-    completed: number
-    failed: number
-    averageProcessingTime: number
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    averageProcessingTime: number;
   } {
-    const deviceJobs = this.getJobsByDevice(deviceId)
-    const completedJobs = deviceJobs.filter(j => j.status === 'completed' && j.completedAt)
+    const deviceJobs = this.getJobsByDevice(deviceId);
+    const completedJobs = deviceJobs.filter(
+      (j) => j.status === "completed" && j.completedAt,
+    );
 
-    let totalProcessingTime = 0
+    let totalProcessingTime = 0;
     for (const job of completedJobs) {
       if (job.startedAt && job.completedAt) {
-        totalProcessingTime += job.completedAt.getTime() - job.startedAt.getTime()
+        totalProcessingTime +=
+          job.completedAt.getTime() - job.startedAt.getTime();
       }
     }
 
     return {
       total: deviceJobs.length,
-      pending: deviceJobs.filter(j => j.status === 'pending').length,
-      processing: deviceJobs.filter(j => j.status === 'printing').length,
+      pending: deviceJobs.filter((j) => j.status === "pending").length,
+      processing: deviceJobs.filter((j) => j.status === "printing").length,
       completed: completedJobs.length,
-      failed: deviceJobs.filter(j => j.status === 'failed').length,
-      averageProcessingTime: completedJobs.length > 0
-        ? totalProcessingTime / completedJobs.length
-        : 0
-    }
+      failed: deviceJobs.filter((j) => j.status === "failed").length,
+      averageProcessingTime:
+        completedJobs.length > 0
+          ? totalProcessingTime / completedJobs.length
+          : 0,
+    };
   }
 
   // =============================================
@@ -275,148 +283,158 @@ export class PrintJobManager {
 
   private async processNextJobs(): Promise<void> {
     if (this.processing.size >= this.config.maxConcurrentJobs) {
-      return
+      return;
     }
 
-    const pendingJobs = this.getJobsByStatus('pending')
-      .filter(job => !this.pausedDevices.has(job.deviceId))
+    const pendingJobs = this.getJobsByStatus("pending").filter(
+      (job) => !this.pausedDevices.has(job.deviceId),
+    );
 
     for (const job of pendingJobs) {
       if (this.processing.size >= this.config.maxConcurrentJobs) {
-        break
+        break;
       }
 
-      this.processJob(job)
+      this.processJob(job);
     }
   }
 
   private async processJob(job: PrintJob): Promise<void> {
-    this.processing.add(job.id)
+    this.processing.add(job.id);
 
     try {
       // 更新作業狀態
       this.updateJob(job.id, {
-        status: 'printing',
+        status: "printing",
         attempts: job.attempts + 1,
         startedAt: new Date(),
-        updatedAt: new Date()
-      })
+        updatedAt: new Date(),
+      });
 
-      this.emit('job_started', { job: this.jobs.get(job.id)! })
+      this.emit("job_started", { job: this.jobs.get(job.id)! });
 
       // 執行實際打印邏輯
-      await this.executePrintJob(job)
+      await this.executePrintJob(job);
 
       // 標記完成
       this.updateJob(job.id, {
-        status: 'completed',
+        status: "completed",
         completedAt: new Date(),
-        updatedAt: new Date()
-      })
+        updatedAt: new Date(),
+      });
 
-      this.emit('job_completed', { job: this.jobs.get(job.id)! })
-
+      this.emit("job_completed", { job: this.jobs.get(job.id)! });
     } catch (error) {
-      this.handleJobError(job, error)
+      this.handleJobError(job, error);
     } finally {
-      this.processing.delete(job.id)
+      this.processing.delete(job.id);
     }
   }
 
   private async executePrintJob(job: PrintJob): Promise<void> {
     // 這個方法會被 PrinterService 注入實際的執行邏輯
     // 目前作為佔位符，拋出錯誤以確保被正確覆寫
-    throw new PrintJobError(`executePrintJob method must be implemented by PrinterService for job ${job.id}`)
+    throw new PrintJobError(
+      `executePrintJob method must be implemented by PrinterService for job ${job.id}`,
+    );
   }
 
   private handleJobError(job: PrintJob, error: any): void {
-    const shouldRetry = job.attempts < job.maxAttempts
-    const errorMessage = error instanceof Error ? error.message : String(error)
+    const shouldRetry = job.attempts < job.maxAttempts;
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (shouldRetry) {
       // 重試邏輯 - 延遲後重新加入佇列
       setTimeout(() => {
         this.updateJob(job.id, {
-          status: 'pending',
-          updatedAt: new Date()
-        })
-      }, this.config.retryDelay)
+          status: "pending",
+          updatedAt: new Date(),
+        });
+      }, this.config.retryDelay);
 
-      this.emit('job_retry_scheduled', {
+      this.emit("job_retry_scheduled", {
         job: this.jobs.get(job.id)!,
-        error: errorMessage
-      })
+        error: errorMessage,
+      });
     } else {
       // 標記為失敗
       this.updateJob(job.id, {
-        status: 'failed',
+        status: "failed",
         error: {
-          code: 'EXECUTION_FAILED',
+          code: "EXECUTION_FAILED",
           message: errorMessage,
-          timestamp: new Date()
+          timestamp: new Date(),
         },
-        updatedAt: new Date()
-      })
+        updatedAt: new Date(),
+      });
 
-      this.emit('job_failed', {
+      this.emit("job_failed", {
         job: this.jobs.get(job.id)!,
-        error: errorMessage
-      })
+        error: errorMessage,
+      });
     }
   }
 
   private updateJob(jobId: string, updates: Partial<PrintJob>): void {
-    const job = this.jobs.get(jobId)
+    const job = this.jobs.get(jobId);
     if (job) {
-      Object.assign(job, updates)
+      Object.assign(job, updates);
     }
   }
 
   private generateJobId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+    return `job_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   private priorityComparator = (a: PrintJob, b: PrintJob): number => {
-    const priorityOrder: Record<PrintJobPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
-    const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
+    const priorityOrder: Record<PrintJobPriority, number> = {
+      urgent: 0,
+      high: 1,
+      normal: 2,
+      low: 3,
+    };
+    const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
 
-    if (priorityDiff !== 0) return priorityDiff
+    if (priorityDiff !== 0) return priorityDiff;
 
     // 相同優先級按創建時間排序
-    return a.createdAt.getTime() - b.createdAt.getTime()
-  }
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  };
 
   // =============================================
   // 事件管理
   // =============================================
 
-  on(event: string, handler: Function): void {
+  on(event: string, handler: (...args: unknown[]) => unknown): void {
     if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, [])
+      this.eventHandlers.set(event, []);
     }
-    this.eventHandlers.get(event)!.push(handler)
+    this.eventHandlers.get(event)!.push(handler);
   }
 
-  off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event)
+  off(event: string, handler: (...args: unknown[]) => unknown): void {
+    const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      const index = handlers.indexOf(handler)
+      const index = handlers.indexOf(handler);
       if (index > -1) {
-        handlers.splice(index, 1)
+        handlers.splice(index, 1);
       }
     }
   }
 
   private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event)
+    const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         try {
-          handler(data)
+          handler(data);
         } catch (error) {
-          console.error(`PrintJobManager event handler error for ${event}:`, error)
+          console.error(
+            `PrintJobManager event handler error for ${event}:`,
+            error,
+          );
         }
-      })
+      });
     }
   }
 
@@ -425,30 +443,30 @@ export class PrintJobManager {
   // =============================================
 
   cleanupCompletedJobs(olderThanHours = 24): number {
-    const cutoffTime = new Date(Date.now() - olderThanHours * 60 * 60 * 1000)
-    const jobsToRemove: string[] = []
+    const cutoffTime = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const jobsToRemove: string[] = [];
 
     for (const [jobId, job] of this.jobs) {
       if (
-        (job.status === 'completed' || job.status === 'cancelled') &&
+        (job.status === "completed" || job.status === "cancelled") &&
         job.updatedAt < cutoffTime
       ) {
-        jobsToRemove.push(jobId)
+        jobsToRemove.push(jobId);
       }
     }
 
-    jobsToRemove.forEach(jobId => this.jobs.delete(jobId))
+    jobsToRemove.forEach((jobId) => this.jobs.delete(jobId));
 
-    this.emit('jobs_cleaned_up', {
+    this.emit("jobs_cleaned_up", {
       removedCount: jobsToRemove.length,
-      cutoffTime
-    })
+      cutoffTime,
+    });
 
-    return jobsToRemove.length
+    return jobsToRemove.length;
   }
 
   // 設置作業執行器（由 PrinterService 注入）
   setJobExecutor(executor: (job: PrintJob) => Promise<void>): void {
-    this.executePrintJob = executor
+    this.executePrintJob = executor;
   }
 }

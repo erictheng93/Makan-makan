@@ -3,15 +3,15 @@
  * Comprehensive test coverage for performance monitoring system
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   PerformanceMonitor,
   getPerformanceMonitor,
-  resetPerformanceMonitor
-} from '../performance-monitor'
+  resetPerformanceMonitor,
+} from "../performance-monitor";
 
 // Mock browser APIs with stable time values
-let mockTime = 0
+let mockTime = 0;
 const createMockPerformance = () => ({
   now: vi.fn(() => mockTime),
   mark: vi.fn(),
@@ -19,608 +19,646 @@ const createMockPerformance = () => ({
   getEntriesByName: vi.fn(() => [] as any[]),
   getEntriesByType: vi.fn(() => [] as any[]),
   clearMarks: vi.fn(),
-  clearMeasures: vi.fn()
+  clearMeasures: vi.fn(),
   // Don't include timing to avoid automatic TTFB tracking in tests
-})
+});
 
 const mockWindow = {
   addEventListener: vi.fn(),
   location: {
-    href: 'https://test.example.com'
+    href: "https://test.example.com",
   },
   navigator: {
-    userAgent: 'Test User Agent'
+    userAgent: "Test User Agent",
   },
   PerformanceObserver: class MockPerformanceObserver {
-    callback: any
+    callback: any;
 
     constructor(callback: any) {
-      this.callback = callback
+      this.callback = callback;
     }
 
     observe() {}
     disconnect() {}
-  }
-}
+  },
+};
 
 // Setup global mocks before tests
-vi.stubGlobal('window', mockWindow)
-vi.stubGlobal('PerformanceObserver', mockWindow.PerformanceObserver)
+vi.stubGlobal("window", mockWindow);
+vi.stubGlobal("PerformanceObserver", mockWindow.PerformanceObserver);
 
-describe('PerformanceMonitor', () => {
-  let monitor: PerformanceMonitor
-  let mockPerformance: ReturnType<typeof createMockPerformance>
+describe("PerformanceMonitor", () => {
+  let monitor: PerformanceMonitor;
+  let mockPerformance: ReturnType<typeof createMockPerformance>;
 
   beforeEach(() => {
     // Reset time counter
-    mockTime = 0
+    mockTime = 0;
     // Create fresh mock performance object
-    mockPerformance = createMockPerformance()
-    vi.stubGlobal('performance', mockPerformance)
-  })
+    mockPerformance = createMockPerformance();
+    vi.stubGlobal("performance", mockPerformance);
+  });
 
   afterEach(() => {
     if (monitor) {
       try {
-        monitor.clear()
-        monitor.disconnect()
+        monitor.clear();
+        monitor.disconnect();
       } catch (e) {
         // Ignore cleanup errors in tests
       }
     }
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
-  describe('Metric Tracking', () => {
-    it('should track custom metric', () => {
+  describe("Metric Tracking", () => {
+    it("should track custom metric", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
       const metric = {
-        name: 'api_call',
+        name: "api_call",
         value: 150,
-        unit: 'ms' as const
-      }
+        unit: "ms" as const,
+      };
 
       // Act
-      monitor.trackMetric(metric)
-      const metrics = monitor.getMetrics()
+      monitor.trackMetric(metric);
+      const metrics = monitor.getMetrics();
 
       // Assert
-      expect(metrics).toHaveLength(1)
-      expect(metrics[0].name).toBe('api_call')
-      expect(metrics[0].value).toBe(150)
-      expect(metrics[0].unit).toBe('ms')
-      expect(metrics[0].timestamp).toBeGreaterThan(0)
-    })
+      expect(metrics).toHaveLength(1);
+      expect(metrics[0].name).toBe("api_call");
+      expect(metrics[0].value).toBe(150);
+      expect(metrics[0].unit).toBe("ms");
+      expect(metrics[0].timestamp).toBeGreaterThan(0);
+    });
 
-    it('should track metric with tags', () => {
+    it("should track metric with tags", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
 
       // Act
       monitor.trackMetric({
-        name: 'database_query',
+        name: "database_query",
         value: 50,
-        unit: 'ms',
+        unit: "ms",
         tags: {
-          operation: 'SELECT',
-          table: 'users'
-        }
-      })
+          operation: "SELECT",
+          table: "users",
+        },
+      });
 
-      const metrics = monitor.getMetrics()
+      const metrics = monitor.getMetrics();
 
       // Assert
-      expect(metrics[0].tags?.operation).toBe('SELECT')
-      expect(metrics[0].tags?.table).toBe('users')
-    })
+      expect(metrics[0].tags?.operation).toBe("SELECT");
+      expect(metrics[0].tags?.table).toBe("users");
+    });
 
-    it('should not track metrics when disabled', () => {
+    it("should not track metrics when disabled", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: false })
+      monitor = new PerformanceMonitor({ enabled: false });
 
       // Act
       monitor.trackMetric({
-        name: 'test',
+        name: "test",
         value: 100,
-        unit: 'ms'
-      })
+        unit: "ms",
+      });
 
       // Assert
-      expect(monitor.getMetrics()).toHaveLength(0)
-    })
+      expect(monitor.getMetrics()).toHaveLength(0);
+    });
 
-    it('should track multiple metrics', () => {
+    it("should track multiple metrics", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
 
       // Act
-      monitor.trackMetric({ name: 'metric1', value: 10, unit: 'ms' })
-      monitor.trackMetric({ name: 'metric2', value: 20, unit: 'bytes' })
-      monitor.trackMetric({ name: 'metric3', value: 30, unit: 'count' })
+      monitor.trackMetric({ name: "metric1", value: 10, unit: "ms" });
+      monitor.trackMetric({ name: "metric2", value: 20, unit: "bytes" });
+      monitor.trackMetric({ name: "metric3", value: 30, unit: "count" });
 
-      const metrics = monitor.getMetrics()
+      const metrics = monitor.getMetrics();
 
       // Assert
-      expect(metrics).toHaveLength(3)
-      expect(metrics[0].name).toBe('metric1')
-      expect(metrics[1].name).toBe('metric2')
-      expect(metrics[2].name).toBe('metric3')
-    })
-  })
+      expect(metrics).toHaveLength(3);
+      expect(metrics[0].name).toBe("metric1");
+      expect(metrics[1].name).toBe("metric2");
+      expect(metrics[2].name).toBe("metric3");
+    });
+  });
 
-  describe('Function Measurement', () => {
+  describe("Function Measurement", () => {
     beforeEach(() => {
       // Mock performance.now() with incrementing time
-      let time = 0
+      let time = 0;
       mockPerformance.now.mockImplementation(() => {
-        time += 50 // Each call advances by 50ms
-        return time
-      })
-    })
+        time += 50; // Each call advances by 50ms
+        return time;
+      });
+    });
 
-    it('should measure synchronous function execution', async () => {
+    it("should measure synchronous function execution", async () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
-      const syncFn = vi.fn(() => 'result')
+      monitor = new PerformanceMonitor({ enabled: true });
+      const syncFn = vi.fn(() => "result");
 
       // Act
-      const result = await monitor.measure('sync_fn', syncFn)
+      const result = await monitor.measure("sync_fn", syncFn);
 
       // Assert
-      expect(result).toBe('result')
-      expect(syncFn).toHaveBeenCalled()
+      expect(result).toBe("result");
+      expect(syncFn).toHaveBeenCalled();
 
-      const metrics = monitor.getMetrics()
-      expect(metrics).toHaveLength(1)
-      expect(metrics[0].name).toBe('sync_fn')
-      expect(metrics[0].value).toBe(50) // Duration
-    })
+      const metrics = monitor.getMetrics();
+      expect(metrics).toHaveLength(1);
+      expect(metrics[0].name).toBe("sync_fn");
+      expect(metrics[0].value).toBe(50); // Duration
+    });
 
-    it('should measure async function execution', async () => {
+    it("should measure async function execution", async () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
       const asyncFn = vi.fn(async () => {
-        return 'async result'
-      })
+        return "async result";
+      });
 
       // Act
-      const result = await monitor.measure('async_fn', asyncFn)
+      const result = await monitor.measure("async_fn", asyncFn);
 
       // Assert
-      expect(result).toBe('async result')
-      const metrics = monitor.getMetrics()
-      expect(metrics[0].name).toBe('async_fn')
-    })
+      expect(result).toBe("async result");
+      const metrics = monitor.getMetrics();
+      expect(metrics[0].name).toBe("async_fn");
+    });
 
-    it('should track error metrics when function throws', async () => {
+    it("should track error metrics when function throws", async () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
       const errorFn = vi.fn(async () => {
-        throw new Error('Test error')
-      })
+        throw new Error("Test error");
+      });
 
       // Act & Assert
-      await expect(monitor.measure('error_fn', errorFn)).rejects.toThrow('Test error')
+      await expect(monitor.measure("error_fn", errorFn)).rejects.toThrow(
+        "Test error",
+      );
 
-      const metrics = monitor.getMetrics()
-      expect(metrics).toHaveLength(1)
-      expect(metrics[0].name).toBe('error_fn_error')
-      expect(metrics[0].value).toBe(50)
-    })
+      const metrics = monitor.getMetrics();
+      expect(metrics).toHaveLength(1);
+      expect(metrics[0].name).toBe("error_fn_error");
+      expect(metrics[0].value).toBe(50);
+    });
 
-    it('should measure with tags', async () => {
+    it("should measure with tags", async () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
-      const fn = vi.fn(() => 'result')
+      monitor = new PerformanceMonitor({ enabled: true });
+      const fn = vi.fn(() => "result");
 
       // Act
-      await monitor.measure('tagged_fn', fn, {
-        endpoint: '/api/users',
-        method: 'GET'
-      })
+      await monitor.measure("tagged_fn", fn, {
+        endpoint: "/api/users",
+        method: "GET",
+      });
 
       // Assert
-      const metrics = monitor.getMetrics()
-      expect(metrics[0].tags?.endpoint).toBe('/api/users')
-      expect(metrics[0].tags?.method).toBe('GET')
-    })
-  })
+      const metrics = monitor.getMetrics();
+      expect(metrics[0].tags?.endpoint).toBe("/api/users");
+      expect(metrics[0].tags?.method).toBe("GET");
+    });
+  });
 
-  describe('Performance Marks and Measures', () => {
-
-    it('should create performance mark', () => {
+  describe("Performance Marks and Measures", () => {
+    it("should create performance mark", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
 
       // Act
-      monitor.mark('start_operation')
+      monitor.mark("start_operation");
 
       // Assert
-      expect(mockPerformance.mark).toHaveBeenCalledWith('start_operation')
-    })
+      expect(mockPerformance.mark).toHaveBeenCalledWith("start_operation");
+    });
 
-    it('should measure between marks', () => {
+    it("should measure between marks", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
       mockPerformance.getEntriesByName.mockReturnValue([
-        { name: 'operation', duration: 100 }
-      ])
+        { name: "operation", duration: 100 },
+      ]);
 
       // Act
-      monitor.measureBetween('operation', 'start_mark', 'end_mark')
+      monitor.measureBetween("operation", "start_mark", "end_mark");
 
       // Assert
-      expect(mockPerformance.measure).toHaveBeenCalledWith('operation', 'start_mark', 'end_mark')
+      expect(mockPerformance.measure).toHaveBeenCalledWith(
+        "operation",
+        "start_mark",
+        "end_mark",
+      );
 
-      const metrics = monitor.getMetrics()
-      expect(metrics[0].name).toBe('operation')
-      expect(metrics[0].value).toBe(100)
-    })
+      const metrics = monitor.getMetrics();
+      expect(metrics[0].name).toBe("operation");
+      expect(metrics[0].value).toBe(100);
+    });
 
-    it('should handle measure errors gracefully', () => {
+    it("should handle measure errors gracefully", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
+      monitor = new PerformanceMonitor({ enabled: true });
       mockPerformance.measure.mockImplementation(() => {
-        throw new Error('Mark not found')
-      })
+        throw new Error("Mark not found");
+      });
 
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const consoleWarnSpy = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => {});
 
       // Act
-      monitor.measureBetween('operation', 'invalid_start', 'invalid_end')
+      monitor.measureBetween("operation", "invalid_start", "invalid_end");
 
       // Assert
-      expect(consoleWarnSpy).toHaveBeenCalled()
-      expect(monitor.getMetrics()).toHaveLength(0)
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      expect(monitor.getMetrics()).toHaveLength(0);
 
-      consoleWarnSpy.mockRestore()
-    })
+      consoleWarnSpy.mockRestore();
+    });
 
-    it('should not create marks when disabled', () => {
+    it("should not create marks when disabled", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: false })
+      monitor = new PerformanceMonitor({ enabled: false });
 
       // Act
-      monitor.mark('test_mark')
+      monitor.mark("test_mark");
 
       // Assert
-      expect(mockPerformance.mark).not.toHaveBeenCalled()
-    })
-  })
+      expect(mockPerformance.mark).not.toHaveBeenCalled();
+    });
+  });
 
-  describe('Web Vitals', () => {
-    it('should return empty web vitals initially', () => {
+  describe("Web Vitals", () => {
+    it("should return empty web vitals initially", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: false })
+      monitor = new PerformanceMonitor({ enabled: false });
 
       // Act
-      const vitals = monitor.getWebVitals()
+      const vitals = monitor.getWebVitals();
 
       // Assert
-      expect(vitals).toEqual({})
-    })
+      expect(vitals).toEqual({});
+    });
 
-    it('should return copy of web vitals', () => {
+    it("should return copy of web vitals", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: false })
+      monitor = new PerformanceMonitor({ enabled: false });
 
       // Act
-      const vitals1 = monitor.getWebVitals()
-      const vitals2 = monitor.getWebVitals()
+      const vitals1 = monitor.getWebVitals();
+      const vitals2 = monitor.getWebVitals();
 
       // Assert
-      expect(vitals1).not.toBe(vitals2) // Different objects
-      expect(vitals1).toEqual(vitals2) // Same content
-    })
-  })
+      expect(vitals1).not.toBe(vitals2); // Different objects
+      expect(vitals1).toEqual(vitals2); // Same content
+    });
+  });
 
-  describe('Clear and Reset', () => {
+  describe("Clear and Reset", () => {
     beforeEach(() => {
-      monitor = new PerformanceMonitor({ enabled: true })
-    })
+      monitor = new PerformanceMonitor({ enabled: true });
+    });
 
-    it('should clear all metrics', () => {
+    it("should clear all metrics", () => {
       // Arrange
-      monitor.trackMetric({ name: 'test1', value: 10, unit: 'ms' })
-      monitor.trackMetric({ name: 'test2', value: 20, unit: 'ms' })
+      monitor.trackMetric({ name: "test1", value: 10, unit: "ms" });
+      monitor.trackMetric({ name: "test2", value: 20, unit: "ms" });
 
       // Act
-      monitor.clear()
+      monitor.clear();
 
       // Assert
-      expect(monitor.getMetrics()).toHaveLength(0)
-      expect(monitor.getWebVitals()).toEqual({})
-      expect(mockPerformance.clearMarks).toHaveBeenCalled()
-      expect(mockPerformance.clearMeasures).toHaveBeenCalled()
-    })
-  })
+      expect(monitor.getMetrics()).toHaveLength(0);
+      expect(monitor.getWebVitals()).toEqual({});
+      expect(mockPerformance.clearMarks).toHaveBeenCalled();
+      expect(mockPerformance.clearMeasures).toHaveBeenCalled();
+    });
+  });
 
-  describe('Report Generation', () => {
+  describe("Report Generation", () => {
     beforeEach(() => {
-      mockPerformance.getEntriesByType.mockReturnValue([])
-    })
+      mockPerformance.getEntriesByType.mockReturnValue([]);
+    });
 
-    it('should generate performance report', () => {
+    it("should generate performance report", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: true })
-      monitor.trackMetric({ name: 'test', value: 100, unit: 'ms' })
+      monitor = new PerformanceMonitor({ enabled: true });
+      monitor.trackMetric({ name: "test", value: 100, unit: "ms" });
 
       // Act
-      const report = monitor.generateReport()
+      const report = monitor.generateReport();
 
       // Assert
-      expect(report.customMetrics).toHaveLength(1)
-      expect(report.timestamp).toBeGreaterThan(0)
-      expect(report.url).toBe('https://test.example.com')
-      expect(report.userAgent).toBeDefined() // Node.js environment has different userAgent
-      expect(report.userAgent).toBeTruthy()
-    })
+      expect(report.customMetrics).toHaveLength(1);
+      expect(report.timestamp).toBeGreaterThan(0);
+      expect(report.url).toBe("https://test.example.com");
+      expect(report.userAgent).toBeDefined(); // Node.js environment has different userAgent
+      expect(report.userAgent).toBeTruthy();
+    });
 
-    it('should include web vitals in report', () => {
+    it("should include web vitals in report", () => {
       // Arrange
-      monitor = new PerformanceMonitor({ enabled: false })
+      monitor = new PerformanceMonitor({ enabled: false });
 
       // Act
-      const report = monitor.generateReport()
+      const report = monitor.generateReport();
 
       // Assert
-      expect(report).toHaveProperty('webVitals')
-      expect(report).toHaveProperty('resources')
-      expect(report).toHaveProperty('customMetrics')
-    })
+      expect(report).toHaveProperty("webVitals");
+      expect(report).toHaveProperty("resources");
+      expect(report).toHaveProperty("customMetrics");
+    });
 
-    it('should call onReport callback when sending report', async () => {
+    it("should call onReport callback when sending report", async () => {
       // Arrange
-      const onReport = vi.fn()
+      const onReport = vi.fn();
       monitor = new PerformanceMonitor({
         enabled: false,
-        onReport
-      })
+        onReport,
+      });
 
       // Act
-      await monitor.sendReport()
+      await monitor.sendReport();
 
       // Assert
-      expect(onReport).toHaveBeenCalled()
-      expect(onReport.mock.calls[0][0]).toHaveProperty('timestamp')
-    })
+      expect(onReport).toHaveBeenCalled();
+      expect(onReport.mock.calls[0][0]).toHaveProperty("timestamp");
+    });
 
-    it('should respect sample rate when sending report', async () => {
+    it("should respect sample rate when sending report", async () => {
       // Arrange
-      const onReport = vi.fn()
+      const onReport = vi.fn();
       monitor = new PerformanceMonitor({
         enabled: false,
         sampleRate: 0, // Never sample
-        onReport
-      })
+        onReport,
+      });
 
       // Act
-      await monitor.sendReport()
+      await monitor.sendReport();
 
       // Assert
-      expect(onReport).not.toHaveBeenCalled()
-    })
+      expect(onReport).not.toHaveBeenCalled();
+    });
 
-    it('should handle report callback errors', async () => {
+    it("should handle report callback errors", async () => {
       // Arrange
-      const onReport = vi.fn().mockRejectedValue(new Error('Report failed'))
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const onReport = vi.fn().mockRejectedValue(new Error("Report failed"));
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       monitor = new PerformanceMonitor({
         enabled: false,
-        onReport
-      })
+        onReport,
+      });
 
       // Act
-      await monitor.sendReport()
+      await monitor.sendReport();
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalled()
+      expect(consoleErrorSpy).toHaveBeenCalled();
 
-      consoleErrorSpy.mockRestore()
-    })
-  })
+      consoleErrorSpy.mockRestore();
+    });
+  });
 
-  describe('Resource Timing', () => {
-
-    it('should get resource timings', () => {
+  describe("Resource Timing", () => {
+    it("should get resource timings", () => {
       // Arrange
       mockPerformance.getEntriesByType.mockReturnValue([
         {
-          name: 'https://example.com/script.js',
+          name: "https://example.com/script.js",
           duration: 100,
           transferSize: 50000,
-          initiatorType: 'script'
+          initiatorType: "script",
         },
         {
-          name: 'https://example.com/style.css',
+          name: "https://example.com/style.css",
           duration: 50,
           transferSize: 20000,
-          initiatorType: 'link'
-        }
-      ])
+          initiatorType: "link",
+        },
+      ]);
 
       monitor = new PerformanceMonitor({
         enabled: false,
-        trackResources: true
-      })
+        trackResources: true,
+      });
 
       // Act
-      const resources = monitor.getResourceTimings()
+      const resources = monitor.getResourceTimings();
 
       // Assert
-      expect(resources).toHaveLength(2)
-      expect(resources[0].type).toBe('script')
-      expect(resources[0].duration).toBe(100)
-      expect(resources[0].size).toBe(50000)
-      expect(resources[1].type).toBe('stylesheet')
-    })
+      expect(resources).toHaveLength(2);
+      expect(resources[0].type).toBe("script");
+      expect(resources[0].duration).toBe(100);
+      expect(resources[0].size).toBe(50000);
+      expect(resources[1].type).toBe("stylesheet");
+    });
 
-    it('should return empty array when resource tracking disabled', () => {
+    it("should return empty array when resource tracking disabled", () => {
       // Arrange
       monitor = new PerformanceMonitor({
         enabled: false,
-        trackResources: false
-      })
+        trackResources: false,
+      });
 
       // Act
-      const resources = monitor.getResourceTimings()
+      const resources = monitor.getResourceTimings();
 
       // Assert
-      expect(resources).toEqual([])
-    })
+      expect(resources).toEqual([]);
+    });
 
-    it('should categorize resources correctly', () => {
+    it("should categorize resources correctly", () => {
       // Arrange
       mockPerformance.getEntriesByType.mockReturnValue([
-        { name: 'script.js', initiatorType: 'script', duration: 10, transferSize: 1000 },
-        { name: 'style.css', initiatorType: 'link', duration: 10, transferSize: 1000 },
-        { name: 'image.png', initiatorType: 'img', duration: 10, transferSize: 1000 },
-        { name: 'api/data', initiatorType: 'fetch', duration: 10, transferSize: 1000 },
-        { name: 'api/xml', initiatorType: 'xmlhttprequest', duration: 10, transferSize: 1000 },
-        { name: 'font.woff', initiatorType: 'other', duration: 10, transferSize: 1000 }
-      ])
+        {
+          name: "script.js",
+          initiatorType: "script",
+          duration: 10,
+          transferSize: 1000,
+        },
+        {
+          name: "style.css",
+          initiatorType: "link",
+          duration: 10,
+          transferSize: 1000,
+        },
+        {
+          name: "image.png",
+          initiatorType: "img",
+          duration: 10,
+          transferSize: 1000,
+        },
+        {
+          name: "api/data",
+          initiatorType: "fetch",
+          duration: 10,
+          transferSize: 1000,
+        },
+        {
+          name: "api/xml",
+          initiatorType: "xmlhttprequest",
+          duration: 10,
+          transferSize: 1000,
+        },
+        {
+          name: "font.woff",
+          initiatorType: "other",
+          duration: 10,
+          transferSize: 1000,
+        },
+      ]);
 
       monitor = new PerformanceMonitor({
         enabled: false,
-        trackResources: true
-      })
+        trackResources: true,
+      });
 
       // Act
-      const resources = monitor.getResourceTimings()
+      const resources = monitor.getResourceTimings();
 
       // Assert
-      expect(resources[0].type).toBe('script')
-      expect(resources[1].type).toBe('stylesheet')
-      expect(resources[2].type).toBe('image')
-      expect(resources[3].type).toBe('fetch')
-      expect(resources[4].type).toBe('xmlhttprequest')
-      expect(resources[5].type).toBe('other')
-    })
-  })
+      expect(resources[0].type).toBe("script");
+      expect(resources[1].type).toBe("stylesheet");
+      expect(resources[2].type).toBe("image");
+      expect(resources[3].type).toBe("fetch");
+      expect(resources[4].type).toBe("xmlhttprequest");
+      expect(resources[5].type).toBe("other");
+    });
+  });
 
-  describe('Debug Mode', () => {
-    let consoleLogSpy: any
+  describe("Debug Mode", () => {
+    let consoleLogSpy: any;
 
     beforeEach(() => {
-      consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    })
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
 
     afterEach(() => {
-      consoleLogSpy.mockRestore()
-    })
+      consoleLogSpy.mockRestore();
+    });
 
-    it('should log metrics in debug mode', () => {
+    it("should log metrics in debug mode", () => {
       // Arrange
       monitor = new PerformanceMonitor({
         enabled: true,
-        debug: true
-      })
+        debug: true,
+      });
 
       // Act
       monitor.trackMetric({
-        name: 'test_metric',
+        name: "test_metric",
         value: 100,
-        unit: 'ms'
-      })
+        unit: "ms",
+      });
 
       // Assert
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[PerformanceMonitor] Metric:',
+        "[PerformanceMonitor] Metric:",
         expect.objectContaining({
-          name: 'test_metric',
-          value: 100
-        })
-      )
-    })
+          name: "test_metric",
+          value: 100,
+        }),
+      );
+    });
 
-    it('should not log when debug is disabled', () => {
+    it("should not log when debug is disabled", () => {
       // Arrange
       monitor = new PerformanceMonitor({
         enabled: true,
-        debug: false
-      })
+        debug: false,
+      });
 
       // Act
       monitor.trackMetric({
-        name: 'test_metric',
+        name: "test_metric",
         value: 100,
-        unit: 'ms'
-      })
+        unit: "ms",
+      });
 
       // Assert
-      expect(consoleLogSpy).not.toHaveBeenCalled()
-    })
-  })
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+  });
 
-  describe('Options', () => {
-    it('should respect enabled option', () => {
+  describe("Options", () => {
+    it("should respect enabled option", () => {
       // Arrange & Act
-      const enabledMonitor = new PerformanceMonitor({ enabled: true })
-      const disabledMonitor = new PerformanceMonitor({ enabled: false })
+      const enabledMonitor = new PerformanceMonitor({ enabled: true });
+      const disabledMonitor = new PerformanceMonitor({ enabled: false });
 
-      enabledMonitor.trackMetric({ name: 'test', value: 1, unit: 'count' })
-      disabledMonitor.trackMetric({ name: 'test', value: 1, unit: 'count' })
+      enabledMonitor.trackMetric({ name: "test", value: 1, unit: "count" });
+      disabledMonitor.trackMetric({ name: "test", value: 1, unit: "count" });
 
       // Assert
-      expect(enabledMonitor.getMetrics()).toHaveLength(1)
-      expect(disabledMonitor.getMetrics()).toHaveLength(0)
+      expect(enabledMonitor.getMetrics()).toHaveLength(1);
+      expect(disabledMonitor.getMetrics()).toHaveLength(0);
 
-      enabledMonitor.clear()
-      disabledMonitor.clear()
-    })
+      enabledMonitor.clear();
+      disabledMonitor.clear();
+    });
 
-    it('should apply default options', () => {
+    it("should apply default options", () => {
       // Act
-      const monitor = new PerformanceMonitor()
+      const monitor = new PerformanceMonitor();
 
       // Assert - Just verify it doesn't throw
-      expect(monitor).toBeDefined()
+      expect(monitor).toBeDefined();
 
-      monitor.clear()
-    })
-  })
-})
+      monitor.clear();
+    });
+  });
+});
 
-describe('Global Performance Monitor', () => {
+describe("Global Performance Monitor", () => {
   beforeEach(() => {
-    resetPerformanceMonitor()
-  })
+    resetPerformanceMonitor();
+  });
 
   afterEach(() => {
-    resetPerformanceMonitor()
-  })
+    resetPerformanceMonitor();
+  });
 
-  it('should return same instance on multiple calls', () => {
+  it("should return same instance on multiple calls", () => {
     // Act
-    const instance1 = getPerformanceMonitor({ enabled: false })
-    const instance2 = getPerformanceMonitor()
+    const instance1 = getPerformanceMonitor({ enabled: false });
+    const instance2 = getPerformanceMonitor();
 
     // Assert
-    expect(instance1).toBe(instance2)
-  })
+    expect(instance1).toBe(instance2);
+  });
 
-  it('should create new instance after reset', () => {
+  it("should create new instance after reset", () => {
     // Arrange
-    const instance1 = getPerformanceMonitor({ enabled: false })
+    const instance1 = getPerformanceMonitor({ enabled: false });
 
     // Act
-    resetPerformanceMonitor()
-    const instance2 = getPerformanceMonitor({ enabled: false })
+    resetPerformanceMonitor();
+    const instance2 = getPerformanceMonitor({ enabled: false });
 
     // Assert
-    expect(instance1).not.toBe(instance2)
-  })
+    expect(instance1).not.toBe(instance2);
+  });
 
-  it('should disconnect observer on reset', () => {
+  it("should disconnect observer on reset", () => {
     // Arrange
-    const instance = getPerformanceMonitor({ enabled: false })
-    const disconnectSpy = vi.spyOn(instance, 'disconnect')
+    const instance = getPerformanceMonitor({ enabled: false });
+    const disconnectSpy = vi.spyOn(instance, "disconnect");
 
     // Act
-    resetPerformanceMonitor()
+    resetPerformanceMonitor();
 
     // Assert
-    expect(disconnectSpy).toHaveBeenCalled()
-  })
-})
+    expect(disconnectSpy).toHaveBeenCalled();
+  });
+});

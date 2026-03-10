@@ -5,15 +5,18 @@
 ## 📂 文件夾結構
 
 ### 🤖 AI Analytics (`ai-analytics/`)
+
 AI 分析功能的完整實施文檔
 
 **主要文檔**:
+
 - `AI_ANALYTICS_IMPLEMENTATION.md` - 完整實施指南
 - `AI_ANALYTICS_QUICK_START.md` - 快速開始指南
 - `AI_ANALYTICS_UI_GUIDE.md` - UI 使用指南
 - `AI_ANALYTICS_OPTIMIZATION_REPORT.md` - 優化報告
 
 **功能**:
+
 - 支援 4 個 LLM 提供商（OpenAI, Anthropic, Google, Groq）
 - 產品分析與洞察
 - 銷售趨勢預測
@@ -22,9 +25,11 @@ AI 分析功能的完整實施文檔
 ---
 
 ### 👥 Employee Management (`employee-management/`)
+
 員工管理系統（排班與請假）
 
 **子模組**:
+
 - **Scheduling** (`scheduling/`) - 員工排班系統
   - 班次模板管理
   - 自動排班
@@ -42,13 +47,16 @@ AI 分析功能的完整實施文檔
 ---
 
 ### 🤝 Partnership System (`partnership-system/`)
+
 商家合作夥伴系統
 
 **主要文檔**:
+
 - `PARTNERSHIP_SYSTEM_IMPLEMENTATION.md` - 系統實施文檔
 - `CORPORATE_PARTNERSHIP_IMPLEMENTATION_PLAN.md` - 企業合作實施計劃
 
 **功能**:
+
 - 合作夥伴管理
 - 折扣方案（百分比/固定金額/特價）
 - 會員驗證與審批
@@ -60,21 +68,26 @@ AI 分析功能的完整實施文檔
 ---
 
 ### ⚡ Realtime Services (`realtime-services/`)
+
 實時服務與 WebSocket 通訊
 
 **主要文檔**:
+
 - `REALTIME_SERVICES_IMPLEMENTATION.md` - 實時服務實施指南
 - `REALTIME_FRONTEND_INTEGRATION_SUMMARY.md` - 前端整合總結
 - `REALTIME_TESTING_GUIDE.md` - 測試指南
 
 **階段文檔** (`phases/`):
+
 - Phase 3 總結
 - Phase 4 啟動與計劃
 
 **測試文檔** (`testing/`):
+
 - 測試結果報告
 
 **功能**:
+
 - WebSocket 基礎設施（Durable Objects）
 - JWT 認證
 - 訊息路由
@@ -87,14 +100,17 @@ AI 分析功能的完整實施文檔
 ---
 
 ### 🏪 Shop QR (`shop-qr/`)
+
 店家 QR 碼點餐系統
 
 **主要文檔**:
+
 - Phase 1-3 實施指南
 - Phase 2-3 完成報告
 - 測試報告
 
 **功能**:
+
 - 店家級別 QR 碼（無需桌號）
 - 直接點餐流程
 - 訂單管理
@@ -102,12 +118,15 @@ AI 分析功能的完整實施文檔
 ---
 
 ### 💺 Seat Management (`seat-management/`)
+
 座位管理系統
 
 **主要文檔**:
+
 - `SEAT_MANAGEMENT_GUIDE.md` - 座位管理指南
 
 **功能**:
+
 - 桌位管理
 - 座位級別 QR 碼
 - 雙模式支援（桌位/座位）
@@ -115,12 +134,15 @@ AI 分析功能的完整實施文檔
 ---
 
 ### 🔒 Security (`security/`)
+
 安全功能實施
 
 **主要文檔**:
+
 - `PASSWORD_SECURITY_MIGRATION.md` - 密碼安全遷移指南
 
 **功能**:
+
 - Bcrypt 密碼加密
 - JWT 令牌管理
 - 安全最佳實踐
@@ -138,6 +160,7 @@ AI 分析功能的完整實施文檔
 ### 文檔查找
 
 使用文檔名稱關鍵字搜索：
+
 ```bash
 # 查找 AI 相關文檔
 grep -r "AI Analytics" docs/features/

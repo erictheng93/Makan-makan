@@ -1,6 +1,10 @@
 <template>
   <div class="language-switcher">
-    <button class="language-button" :class="{ active: isOpen }" @click="toggleDropdown">
+    <button
+      class="language-button"
+      :class="{ active: isOpen }"
+      @click="toggleDropdown"
+    >
       <span class="flag">{{ currentLocaleConfig.flag }}</span>
       <span class="name">{{ currentLocaleConfig.name }}</span>
       <span class="arrow" :class="{ rotated: isOpen }">▼</span>
@@ -28,49 +32,51 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useI18n } from '@/i18n'
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useI18n } from "@/i18n";
 
-const { locale, switchLocale, supportedLocales } = useI18n()
+const { locale, switchLocale, supportedLocales } = useI18n();
 
-const isOpen = ref(false)
-const currentLocale = computed(() => locale.value)
+const isOpen = ref(false);
+const currentLocale = computed(() => locale.value);
 const currentLocaleConfig = computed(() => {
-  return supportedLocales.find(l => l.code === locale.value) || supportedLocales[0]
-})
+  return (
+    supportedLocales.find((l) => l.code === locale.value) || supportedLocales[0]
+  );
+});
 
 const toggleDropdown = () => {
-  isOpen.value = !isOpen.value
-}
+  isOpen.value = !isOpen.value;
+};
 
 const closeDropdown = () => {
-  isOpen.value = false
-}
+  isOpen.value = false;
+};
 
 const selectLocale = async (localeCode: string) => {
   try {
-    await switchLocale(localeCode as any)
-    closeDropdown()
+    await switchLocale(localeCode as any);
+    closeDropdown();
   } catch (error) {
-    console.error('Failed to switch locale:', error)
+    console.error("Failed to switch locale:", error);
   }
-}
+};
 
 // 點擊外部關閉
 const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.language-switcher')) {
-    closeDropdown()
+  const target = event.target as HTMLElement;
+  if (!target.closest(".language-switcher")) {
+    closeDropdown();
   }
-}
+};
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
+  document.addEventListener("click", handleClickOutside);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <style scoped>

@@ -4,8 +4,8 @@
  */
 
 // Re-export existing middleware
-export * from '../../middleware/auth'
-export * from '../../middleware/validation'
+export * from "../../middleware/auth";
+export * from "../../middleware/validation";
 
 // Placeholder for future shared middleware
-export type { MiddlewareHandler } from 'hono'
+export type { MiddlewareHandler } from "hono";

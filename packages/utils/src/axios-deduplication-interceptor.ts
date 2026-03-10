@@ -4,41 +4,59 @@
  * Automatically deduplicates Axios requests with same URL, method, and params
  */
 
-import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosError } from 'axios'
-import { RequestDeduplicator, type RequestDeduplicationOptions } from './request-deduplication'
+import type {
+  AxiosInstance,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+  AxiosError,
+} from "axios";
+import {
+  RequestDeduplicator,
+  type RequestDeduplicationOptions,
+} from "./request-deduplication";
 
-const DEDUP_KEY_SYMBOL = Symbol('dedupKey')
-const DEDUP_SKIP_SYMBOL = Symbol('dedupSkip')
+const DEDUP_KEY_SYMBOL = Symbol("dedupKey");
+const DEDUP_SKIP_SYMBOL = Symbol("dedupSkip");
 
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
-  [DEDUP_KEY_SYMBOL]?: string
-  [DEDUP_SKIP_SYMBOL]?: boolean
-  dedupTTL?: number
+  [DEDUP_KEY_SYMBOL]?: string;
+  [DEDUP_SKIP_SYMBOL]?: boolean;
+  dedupTTL?: number;
 }
 
 /**
  * Generate cache key from Axios request config
  */
 function generateRequestKey(config: AxiosRequestConfig): string {
-  const { method = 'get', url = '', params, data } = config
+  const { method = "get", url = "", params, data } = config;
 
   // Normalize method to lowercase
-  const normalizedMethod = method.toLowerCase()
+  const normalizedMethod = method.toLowerCase();
 
   // Sort params for consistent keys
   const sortedParams = params
-    ? JSON.stringify(Object.keys(params).sort().reduce((acc, key) => {
-        acc[key] = params[key]
-        return acc
-      }, {} as Record<string, any>))
-    : ''
+    ? JSON.stringify(
+        Object.keys(params)
+          .sort()
+          .reduce(
+            (acc, key) => {
+              acc[key] = params[key];
+              return acc;
+            },
+            {} as Record<string, any>,
+          ),
+      )
+    : "";
 
   // For POST/PUT/PATCH, include body in key (but limit size)
-  const bodyKey = (normalizedMethod === 'post' || normalizedMethod === 'put' || normalizedMethod === 'patch')
-    ? JSON.stringify(data).slice(0, 500) // Limit body to 500 chars for key
-    : ''
+  const bodyKey =
+    normalizedMethod === "post" ||
+    normalizedMethod === "put" ||
+    normalizedMethod === "patch"
+      ? JSON.stringify(data).slice(0, 500) // Limit body to 500 chars for key
+      : "";
 
-  return `${normalizedMethod}:${url}:${sortedParams}:${bodyKey}`
+  return `${normalizedMethod}:${url}:${sortedParams}:${bodyKey}`;
 }
 
 /**
@@ -56,158 +74,177 @@ function generateRequestKey(config: AxiosRequestConfig): string {
  */
 export function installAxiosDeduplication(
   axiosInstance: AxiosInstance,
-  options: RequestDeduplicationOptions = {}
+  options: RequestDeduplicationOptions = {},
 ): () => void {
   const deduplicator = new RequestDeduplicator({
     cacheDuration: 5000,
     maxCacheSize: 100,
     debug: false,
-    ...options
-  })
+    ...options,
+  });
 
   // Request interceptor - add deduplication
   const requestInterceptor = axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const extendedConfig = config as ExtendedAxiosRequestConfig
+      const extendedConfig = config as ExtendedAxiosRequestConfig;
 
       // Skip deduplication if explicitly requested
       if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
-        return config
+        return config;
       }
 
       // Generate deduplication key
-      const dedupKey = generateRequestKey(config)
-      extendedConfig[DEDUP_KEY_SYMBOL] = dedupKey
+      const dedupKey = generateRequestKey(config);
+      extendedConfig[DEDUP_KEY_SYMBOL] = dedupKey;
 
-      return config
+      return config;
     },
-    (error: AxiosError) => Promise.reject(error)
-  )
+    (error: AxiosError) => Promise.reject(error),
+  );
 
   // Response interceptor - handle deduplication
   const responseInterceptor = axiosInstance.interceptors.response.use(
     (response: any) => response,
     (error: AxiosError) => {
       // On error, invalidate cache for this request
-      const config = error.config as ExtendedAxiosRequestConfig
+      const config = error.config as ExtendedAxiosRequestConfig;
       if (config && config[DEDUP_KEY_SYMBOL]) {
-        deduplicator.invalidate(config[DEDUP_KEY_SYMBOL])
+        deduplicator.invalidate(config[DEDUP_KEY_SYMBOL]);
       }
-      return Promise.reject(error)
-    }
-  )
+      return Promise.reject(error);
+    },
+  );
 
   // Wrap axios methods with deduplication
-  const originalGet = axiosInstance.get
-  const originalPost = axiosInstance.post
-  const originalPut = axiosInstance.put
-  const originalPatch = axiosInstance.patch
-  const originalDelete = axiosInstance.delete
+  const originalGet = axiosInstance.get;
+  const originalPost = axiosInstance.post;
+  const originalPut = axiosInstance.put;
+  const originalPatch = axiosInstance.patch;
+  const originalDelete = axiosInstance.delete;
 
   // GET requests - always deduplicate
   axiosInstance.get = function <_T = any, R = any, D = any>(
     url: string,
-    config?: AxiosRequestConfig<D>
+    config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig
+    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig;
 
     if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
-      return originalGet.call(this, url, config) as Promise<R>
+      return originalGet.call(this, url, config) as Promise<R>;
     }
 
-    const dedupKey = generateRequestKey({ ...config, method: 'get', url })
-    const ttl = extendedConfig.dedupTTL
+    const dedupKey = generateRequestKey({ ...config, method: "get", url });
+    const ttl = extendedConfig.dedupTTL;
 
-    return deduplicator.dedupe(dedupKey, () =>
-      originalGet.call(this, url, config) as Promise<R>,
-      { ttl }
-    ) as Promise<R>
-  }
+    return deduplicator.dedupe(
+      dedupKey,
+      () => originalGet.call(this, url, config) as Promise<R>,
+      { ttl },
+    ) as Promise<R>;
+  };
 
   // POST requests - deduplicate only if cache key is same
   axiosInstance.post = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
-    config?: AxiosRequestConfig<D>
+    config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig
+    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig;
 
     if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
-      return originalPost.call(this, url, data, config) as Promise<R>
+      return originalPost.call(this, url, data, config) as Promise<R>;
     }
 
-    const dedupKey = generateRequestKey({ ...config, method: 'post', url, data })
-    const ttl = extendedConfig.dedupTTL ?? 1000 // Shorter TTL for POST (1s)
+    const dedupKey = generateRequestKey({
+      ...config,
+      method: "post",
+      url,
+      data,
+    });
+    const ttl = extendedConfig.dedupTTL ?? 1000; // Shorter TTL for POST (1s)
 
-    return deduplicator.dedupe(dedupKey, () =>
-      originalPost.call(this, url, data, config) as Promise<R>,
-      { ttl }
-    ) as Promise<R>
-  }
+    return deduplicator.dedupe(
+      dedupKey,
+      () => originalPost.call(this, url, data, config) as Promise<R>,
+      { ttl },
+    ) as Promise<R>;
+  };
 
   // PUT requests - deduplicate with short TTL
   axiosInstance.put = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
-    config?: AxiosRequestConfig<D>
+    config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig
+    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig;
 
     if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
-      return originalPut.call(this, url, data, config) as Promise<R>
+      return originalPut.call(this, url, data, config) as Promise<R>;
     }
 
-    const dedupKey = generateRequestKey({ ...config, method: 'put', url, data })
-    const ttl = extendedConfig.dedupTTL ?? 1000
+    const dedupKey = generateRequestKey({
+      ...config,
+      method: "put",
+      url,
+      data,
+    });
+    const ttl = extendedConfig.dedupTTL ?? 1000;
 
-    return deduplicator.dedupe(dedupKey, () =>
-      originalPut.call(this, url, data, config) as Promise<R>,
-      { ttl }
-    ) as Promise<R>
-  }
+    return deduplicator.dedupe(
+      dedupKey,
+      () => originalPut.call(this, url, data, config) as Promise<R>,
+      { ttl },
+    ) as Promise<R>;
+  };
 
   // PATCH requests - deduplicate with short TTL
   axiosInstance.patch = function <_T = any, R = any, D = any>(
     url: string,
     data?: D,
-    config?: AxiosRequestConfig<D>
+    config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig
+    const extendedConfig = (config || {}) as ExtendedAxiosRequestConfig;
 
     if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
-      return originalPatch.call(this, url, data, config) as Promise<R>
+      return originalPatch.call(this, url, data, config) as Promise<R>;
     }
 
-    const dedupKey = generateRequestKey({ ...config, method: 'patch', url, data })
-    const ttl = extendedConfig.dedupTTL ?? 1000
+    const dedupKey = generateRequestKey({
+      ...config,
+      method: "patch",
+      url,
+      data,
+    });
+    const ttl = extendedConfig.dedupTTL ?? 1000;
 
-    return deduplicator.dedupe(dedupKey, () =>
-      originalPatch.call(this, url, data, config) as Promise<R>,
-      { ttl }
-    ) as Promise<R>
-  }
+    return deduplicator.dedupe(
+      dedupKey,
+      () => originalPatch.call(this, url, data, config) as Promise<R>,
+      { ttl },
+    ) as Promise<R>;
+  };
 
   // DELETE requests - don't deduplicate by default (use skipDedup to force)
   axiosInstance.delete = function <_T = any, R = any, D = any>(
     url: string,
-    config?: AxiosRequestConfig<D>
+    config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    return originalDelete.call(this, url, config) as Promise<R>
-  }
+    return originalDelete.call(this, url, config) as Promise<R>;
+  };
 
   // Cleanup function
   return () => {
-    axiosInstance.interceptors.request.eject(requestInterceptor)
-    axiosInstance.interceptors.response.eject(responseInterceptor)
+    axiosInstance.interceptors.request.eject(requestInterceptor);
+    axiosInstance.interceptors.response.eject(responseInterceptor);
 
-    axiosInstance.get = originalGet
-    axiosInstance.post = originalPost
-    axiosInstance.put = originalPut
-    axiosInstance.patch = originalPatch
-    axiosInstance.delete = originalDelete
+    axiosInstance.get = originalGet;
+    axiosInstance.post = originalPost;
+    axiosInstance.put = originalPut;
+    axiosInstance.patch = originalPatch;
+    axiosInstance.delete = originalDelete;
 
-    deduplicator.clear()
-  }
+    deduplicator.clear();
+  };
 }
 
 /**
@@ -218,8 +255,8 @@ export function installAxiosDeduplication(
  */
 export function skipDedup<D = any>(): AxiosRequestConfig<D> {
   return {
-    [DEDUP_SKIP_SYMBOL]: true
-  } as AxiosRequestConfig<D>
+    [DEDUP_SKIP_SYMBOL]: true,
+  } as AxiosRequestConfig<D>;
 }
 
 /**
@@ -230,8 +267,8 @@ export function skipDedup<D = any>(): AxiosRequestConfig<D> {
  */
 export function withDedupTTL<D = any>(ttl: number): AxiosRequestConfig<D> {
   return {
-    dedupTTL: ttl
-  } as AxiosRequestConfig<D>
+    dedupTTL: ttl,
+  } as AxiosRequestConfig<D>;
 }
 
 /**
@@ -246,5 +283,5 @@ export function withDedupTTL<D = any>(ttl: number): AxiosRequestConfig<D> {
 export function combineConfigs<D = any>(
   ...configs: AxiosRequestConfig<D>[]
 ): AxiosRequestConfig<D> {
-  return Object.assign({}, ...configs)
+  return Object.assign({}, ...configs);
 }

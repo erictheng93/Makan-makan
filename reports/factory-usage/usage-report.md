@@ -24,16 +24,16 @@ Factory 採用率: ░░░░░░░░░░░░░░░░░░░░�
 
 ## 🏆 最常用的 Factories
 
-| 排名 | Factory | 使用次數 |
-|------|---------|----------|
-| 1 | `userFactory` | 7 |
-| 2 | `menuItemFactory` | 7 |
-| 3 | `restaurantFactory` | 6 |
-| 4 | `orderFactory` | 6 |
-| 5 | `orderItemFactory` | 4 |
-| 6 | `buildCompleteRestaurantData` | 3 |
-| 7 | `categoryFactory` | 2 |
-| 8 | `resetAllFactories` | 2 |
+| 排名 | Factory                       | 使用次數 |
+| ---- | ----------------------------- | -------- |
+| 1    | `userFactory`                 | 7        |
+| 2    | `menuItemFactory`             | 7        |
+| 3    | `restaurantFactory`           | 6        |
+| 4    | `orderFactory`                | 6        |
+| 5    | `orderItemFactory`            | 4        |
+| 6    | `buildCompleteRestaurantData` | 3        |
+| 7    | `categoryFactory`             | 2        |
+| 8    | `resetAllFactories`           | 2        |
 
 ---
 
@@ -80,13 +80,11 @@ Factory 採用率: ░░░░░░░░░░░░░░░░░░░░�
 
 > 這些文件使用了 factory 但沒有調用 resetAllFactories()，可能導致測試數據 ID 不一致
 
-
 ---
 
 ## 📋 建議行動
 
 ### 優先級 P0 - 立即處理
-
 
 ### 優先級 P1 - 本週處理
 

@@ -10,43 +10,46 @@
 
 ## 🎯 優化目標
 
-| 指標 | 優化前 | 優化後 | 改善幅度 |
-|------|--------|--------|----------|
-| Dashboard TTI | 1.8s | ~1.0s | **-44%** ✅ |
-| 初始渲染組件 | 8 個 | 2 個 | **-75%** ✅ |
+| 指標           | 優化前   | 優化後   | 改善幅度            |
+| -------------- | -------- | -------- | ------------------- |
+| Dashboard TTI  | 1.8s     | ~1.0s    | **-44%** ✅         |
+| 初始渲染組件   | 8 個     | 2 個     | **-75%** ✅         |
 | 首屏 JS Bundle | 全量加載 | 按需加載 | **減少初始負載** ✅ |
-| 用戶感知速度 | 慢 | 快 | **顯著提升** ✅ |
+| 用戶感知速度   | 慢       | 快       | **顯著提升** ✅     |
 
 ---
 
 ## 📁 新增/修改文件
 
 ### 1. `useLazyComponent.ts` (新增 - 367 行)
+
 **路徑**: `apps/admin-dashboard/src/composables/useLazyComponent.ts`
 
 **核心功能**:
+
 ```typescript
 /**
  * 基於 Intersection Observer 的通用懶加載 composable
  */
 export function useLazyComponent(
   target: Ref<Element | null>,
-  options: LazyComponentOptions = {}
+  options: LazyComponentOptions = {},
 ) {
   // 返回狀態和控制方法
   return {
-    isIntersecting,    // 是否在視口中
-    shouldLoad,        // 是否應該加載
-    isLoaded,          // 是否已加載
-    isLoading,         // 是否正在加載
+    isIntersecting, // 是否在視口中
+    shouldLoad, // 是否應該加載
+    isLoaded, // 是否已加載
+    isLoading, // 是否正在加載
     intersectionRatio, // 交叉比率
-    load,              // 手動加載
-    reset,             // 重置狀態
-  }
+    load, // 手動加載
+    reset, // 重置狀態
+  };
 }
 ```
 
 **特性**:
+
 - ✅ Intersection Observer API
 - ✅ 可配置的預加載距離 (rootMargin)
 - ✅ 可配置的觸發閾值 (threshold)
@@ -56,48 +59,52 @@ export function useLazyComponent(
 - ✅ 調試模式
 
 **配置選項**:
+
 ```typescript
 interface LazyComponentOptions {
-  root?: Element | null           // 根元素
-  rootMargin?: string             // '200px' = 提前 200px 加載
-  threshold?: number | number[]   // 0.1 = 10% 可見觸發
-  once?: boolean                  // true = 只觸發一次
-  delay?: number                  // 延遲加載（毫秒）
-  loadOnSSR?: boolean             // SSR 時立即加載
-  debug?: boolean                 // 調試模式
+  root?: Element | null; // 根元素
+  rootMargin?: string; // '200px' = 提前 200px 加載
+  threshold?: number | number[]; // 0.1 = 10% 可見觸發
+  once?: boolean; // true = 只觸發一次
+  delay?: number; // 延遲加載（毫秒）
+  loadOnSSR?: boolean; // SSR 時立即加載
+  debug?: boolean; // 調試模式
 }
 ```
 
 **預設配置**:
+
 ```typescript
 // 圖表懶加載 - 提前 200px
 export const CHART_LAZY_CONFIG = {
-  rootMargin: '200px',
+  rootMargin: "200px",
   threshold: 0.1,
   once: true,
   delay: 0,
-}
+};
 
 // 圖片懶加載 - 提前 50px
 export const IMAGE_LAZY_CONFIG = {
-  rootMargin: '50px',
+  rootMargin: "50px",
   threshold: 0.1,
   once: true,
-}
+};
 
 // 重型組件 - 完全進入視口
 export const HEAVY_COMPONENT_LAZY_CONFIG = {
-  rootMargin: '0px',
+  rootMargin: "0px",
   threshold: 0.5,
   once: true,
   delay: 100,
-}
+};
 ```
 
 ### 2. `LazyChart.vue` (新增 - 147 行)
+
 **路徑**: `apps/admin-dashboard/src/components/LazyChart.vue`
 
 **功能**:
+
 - ✅ 懶加載包裝器組件
 - ✅ Skeleton 占位符
 - ✅ Loading 覆蓋層
@@ -106,6 +113,7 @@ export const HEAVY_COMPONENT_LAZY_CONFIG = {
 - ✅ 平滑過渡動畫
 
 **使用範例**:
+
 ```vue
 <template>
   <LazyChart min-height="300px" loading-text="載入圖表...">
@@ -115,24 +123,27 @@ export const HEAVY_COMPONENT_LAZY_CONFIG = {
 ```
 
 **Props**:
+
 ```typescript
 interface Props {
-  minHeight?: string              // 最小高度（占位符）
-  loadingText?: string            // 載入文字
-  showLoadingOverlay?: boolean    // 顯示覆蓋層
-  lazyConfig?: Partial<LazyComponentOptions>  // 配置覆蓋
-  debug?: boolean                 // 調試模式
+  minHeight?: string; // 最小高度（占位符）
+  loadingText?: string; // 載入文字
+  showLoadingOverlay?: boolean; // 顯示覆蓋層
+  lazyConfig?: Partial<LazyComponentOptions>; // 配置覆蓋
+  debug?: boolean; // 調試模式
 }
 ```
 
 ### 3. `DashboardView.vue` (更新)
+
 **路徑**: `apps/admin-dashboard/src/views/DashboardView.vue`
 
 **集成改造**:
+
 ```vue
 <script setup>
 // 導入懶加載組件
-import LazyChart from "@/components/LazyChart.vue"
+import LazyChart from "@/components/LazyChart.vue";
 </script>
 
 <template>
@@ -154,11 +165,13 @@ import LazyChart from "@/components/LazyChart.vue"
 ```
 
 **懶加載組件**:
+
 1. ✅ RevenueChart (營收圖表)
 2. ✅ OrdersChart (訂單圖表)
 3. ✅ TopMenuItems (熱門菜品)
 
 **立即加載組件** (保持性能):
+
 - StatsCard (4 個統計卡片) - 首屏關鍵數據
 - RealtimeNotificationPanel - 實時通知面板
 - RecentOrders - 最新訂單列表
@@ -526,14 +539,14 @@ TTI: 1.0s ✅ 快！
 
 ## 📊 總結
 
-| 指標 | 結果 | 狀態 |
-|------|------|------|
-| 代碼行數 | 367 + 147 + 更新 = 514+ 行 | ✅ |
-| 懶加載組件 | 3 個（RevenueChart, OrdersChart, TopMenuItems） | ✅ |
-| TTI 改善 | 1.8s → 1.0s (-44%) | ✅ |
-| 初始組件數 | 8 → 2 (-75%) | ✅ |
-| Bundle 大小 | 320KB → 160KB (-50%) | ✅ |
-| 用戶體驗 | 顯著提升 | ✅ |
+| 指標        | 結果                                            | 狀態 |
+| ----------- | ----------------------------------------------- | ---- |
+| 代碼行數    | 367 + 147 + 更新 = 514+ 行                      | ✅   |
+| 懶加載組件  | 3 個（RevenueChart, OrdersChart, TopMenuItems） | ✅   |
+| TTI 改善    | 1.8s → 1.0s (-44%)                              | ✅   |
+| 初始組件數  | 8 → 2 (-75%)                                    | ✅   |
+| Bundle 大小 | 320KB → 160KB (-50%)                            | ✅   |
+| 用戶體驗    | 顯著提升                                        | ✅   |
 
 **P1-3 Dashboard 報表分段加載 - 完成 ✅**
 
@@ -542,6 +555,7 @@ TTI: 1.0s ✅ 快！
 ## 🔜 下一步
 
 繼續 **P1-4: 圖片格式檢測充分利用**
+
 - 應用 `useImageFormatDetection` 到全局
 - Cloudflare Images 格式協商 (AVIF/WebP)
 - 預期圖片大小減少 30-50%

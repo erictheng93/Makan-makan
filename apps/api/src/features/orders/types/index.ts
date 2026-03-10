@@ -4,7 +4,7 @@
  */
 
 // BaseEntity import available for future use
-import type { UserRole } from '../../../shared/constants'
+import type { UserRole } from "../../../shared/constants";
 
 // Import shared order types from packages/shared-types
 import type {
@@ -23,8 +23,8 @@ import type {
   OrderFilters,
   OrderStats,
   CartItem,
-  CartState
-} from '@makanmakan/shared-types'
+  CartState,
+} from "@makanmakan/shared-types";
 
 // Re-export for use in the feature module
 export type {
@@ -41,442 +41,489 @@ export type {
   OrderFilters,
   OrderStats,
   CartItem,
-  CartState
-}
+  CartState,
+};
 
-export type Order = SharedOrder
-export type OrderItem = SharedOrderItem
+export type Order = SharedOrder;
+export type OrderItem = SharedOrderItem;
 
 // Order Creation and Management Types
 export interface CreateOrderData {
-  restaurantId: string
-  tableId?: number
-  customerId?: number
+  restaurantId: string;
+  tableId?: number;
+  customerId?: number;
   customerInfo?: {
-    name?: string
-    phone?: string
-    email?: string
-  }
-  items: OrderItemData[]
-  notes?: string
-  orderType?: 'dine_in' | 'takeaway' | 'delivery'
-  scheduledTime?: Date
-  couponCode?: string
+    name?: string;
+    phone?: string;
+    email?: string;
+  };
+  items: OrderItemData[];
+  notes?: string;
+  orderType?: "dine_in" | "takeaway" | "delivery";
+  scheduledTime?: Date;
+  couponCode?: string;
+  isGuestOrder?: boolean;
 }
 
 export interface OrderItemData {
-  menuItemId: number
-  quantity: number
-  price?: number
-  customizations?: any
-  notes?: string
+  menuItemId: number;
+  quantity: number;
+  price?: number;
+  customizations?: any;
+  notes?: string;
 }
 
 export interface UpdateOrderData {
-  status?: OrderStatus
-  paymentStatus?: OrderPaymentStatus
-  paymentMethod?: OrderPaymentMethod
-  notes?: string
-  internalNotes?: string
-  estimatedPrepTime?: number
-  actualPrepTime?: number
+  status?: OrderStatus;
+  paymentStatus?: OrderPaymentStatus;
+  paymentMethod?: OrderPaymentMethod;
+  notes?: string;
+  internalNotes?: string;
+  estimatedPrepTime?: number;
+  actualPrepTime?: number;
 }
 
 export interface OrderStatusUpdateData {
-  status: OrderStatus
-  notes?: string
-  estimatedReadyTime?: Date
-  updatedBy?: number
+  status: OrderStatus;
+  notes?: string;
+  estimatedReadyTime?: Date;
+  updatedBy?: number;
 }
 
 // Coupon and Discount Types
 export interface CouponValidation {
-  valid: boolean
+  valid: boolean;
   coupon?: {
-    code: string
-    name: string
-    discountType: 'percentage' | 'fixed_amount' | 'free_item'
-    discountValue: number
-    description?: string
-  }
-  originalAmount: number
-  discountAmount: number
-  finalAmount: number
-  savings?: number
-  error?: string
+    code: string;
+    name: string;
+    discountType: "percentage" | "fixed_amount" | "free_item";
+    discountValue: number;
+    description?: string;
+  };
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  savings?: number;
+  error?: string;
 }
 
 export interface CouponPreviewRequest {
-  restaurantId: string
-  couponCode: string
-  orderAmount: number
-  userId?: number
+  restaurantId: string;
+  couponCode: string;
+  orderAmount: number;
+  userId?: number;
   menuItems?: Array<{
-    menuItemId: number
-    quantity: number
-  }>
+    menuItemId: number;
+    quantity: number;
+  }>;
 }
 
 // Order Query and Filter Types
 export interface OrderQueryFilters {
-  restaurantId?: string
-  status?: OrderStatus[]
-  paymentStatus?: OrderPaymentStatus[]
-  orderType?: 'dine_in' | 'takeaway' | 'delivery'
-  tableId?: number
-  customerId?: number
-  customerName?: string
-  customerPhone?: string
-  dateFrom?: Date
-  dateTo?: Date
-  scheduledTimeFrom?: Date
-  scheduledTimeTo?: Date
-  minAmount?: number
-  maxAmount?: number
-  paymentMethod?: OrderPaymentMethod[]
-  hasNotes?: boolean
-  rating?: number[]
-  createdBy?: number
-  page?: number
-  limit?: number
-  sortBy?: 'createdAt' | 'totalAmount' | 'status' | 'updatedAt'
-  sortOrder?: 'asc' | 'desc'
+  restaurantId?: string;
+  status?: OrderStatus[];
+  paymentStatus?: OrderPaymentStatus[];
+  orderType?: "dine_in" | "takeaway" | "delivery";
+  tableId?: number;
+  customerId?: number;
+  customerName?: string;
+  customerPhone?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  scheduledTimeFrom?: Date;
+  scheduledTimeTo?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  paymentMethod?: OrderPaymentMethod[];
+  hasNotes?: boolean;
+  rating?: number[];
+  createdBy?: number;
+  page?: number;
+  limit?: number;
+  sortBy?: "createdAt" | "totalAmount" | "status" | "updatedAt";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface OrderSearchParams {
-  query?: string
-  searchFields?: ('orderNumber' | 'customerName' | 'customerPhone' | 'notes')[]
-  fuzzy?: boolean
+  query?: string;
+  searchFields?: ("orderNumber" | "customerName" | "customerPhone" | "notes")[];
+  fuzzy?: boolean;
 }
 
 // Advanced Order Statistics
 export interface OrderAnalytics {
   summary: {
-    totalOrders: number
-    totalRevenue: number
-    averageOrderValue: number
-    averagePreparationTime: number
-    orderCompletionRate: number
-    customerRetentionRate: number
-  }
+    totalOrders: number;
+    totalRevenue: number;
+    averageOrderValue: number;
+    averagePreparationTime: number;
+    orderCompletionRate: number;
+    customerRetentionRate: number;
+  };
   byStatus: Array<{
-    status: OrderStatus
-    count: number
-    percentage: number
-    averageTime?: number
-  }>
+    status: OrderStatus;
+    count: number;
+    percentage: number;
+    averageTime?: number;
+  }>;
   byPaymentStatus: Array<{
-    status: OrderPaymentStatus
-    count: number
-    amount: number
-  }>
+    status: OrderPaymentStatus;
+    count: number;
+    amount: number;
+  }>;
   byOrderType: Array<{
-    type: 'dine_in' | 'takeaway' | 'delivery'
-    count: number
-    revenue: number
-  }>
+    type: "dine_in" | "takeaway" | "delivery";
+    count: number;
+    revenue: number;
+  }>;
   byTime: {
     hourly: Array<{
-      hour: number
-      count: number
-      revenue: number
-    }>
+      hour: number;
+      count: number;
+      revenue: number;
+    }>;
     daily: Array<{
-      date: string
-      count: number
-      revenue: number
-    }>
+      date: string;
+      count: number;
+      revenue: number;
+    }>;
     weekly: Array<{
-      week: string
-      count: number
-      revenue: number
-    }>
+      week: string;
+      count: number;
+      revenue: number;
+    }>;
     monthly: Array<{
-      month: string
-      count: number
-      revenue: number
-    }>
-  }
+      month: string;
+      count: number;
+      revenue: number;
+    }>;
+  };
   topItems: Array<{
-    menuItemId: number
-    name: string
-    quantity: number
-    revenue: number
-  }>
+    menuItemId: number;
+    name: string;
+    quantity: number;
+    revenue: number;
+  }>;
   customerAnalytics: {
-    newCustomers: number
-    returningCustomers: number
-    averageOrdersPerCustomer: number
-    customerLifetimeValue: number
-  }
+    newCustomers: number;
+    returningCustomers: number;
+    averageOrdersPerCustomer: number;
+    customerLifetimeValue: number;
+  };
   performanceMetrics: {
-    averageOrderProcessingTime: number
-    peakHours: string[]
-    busyDays: string[]
-    orderAccuracy: number
-    cancellationRate: number
-  }
+    averageOrderProcessingTime: number;
+    peakHours: string[];
+    busyDays: string[];
+    orderAccuracy: number;
+    cancellationRate: number;
+  };
 }
 
 // Real-time Order Updates and Events
 export interface OrderUpdateEvent {
-  orderId: number
-  previousStatus?: OrderStatus
-  newStatus: OrderStatus
-  updatedBy: number
-  updatedAt: Date
-  notes?: string
-  estimatedReadyTime?: Date
-  targetRoles?: UserRole[]
+  orderId: number;
+  previousStatus?: OrderStatus;
+  newStatus: OrderStatus;
+  updatedBy: number;
+  updatedAt: Date;
+  notes?: string;
+  estimatedReadyTime?: Date;
+  targetRoles?: UserRole[];
 }
 
 export interface OrderNotification {
-  type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_CANCELLED' | 'PAYMENT_UPDATED'
-  orderId: number
-  orderNumber: string
-  restaurantId: string
-  message: string
-  priority: 'low' | 'normal' | 'high' | 'urgent'
-  targetRoles: UserRole[]
-  metadata?: Record<string, any>
-  createdAt: Date
-  expiresAt?: Date
+  type:
+    | "ORDER_CREATED"
+    | "ORDER_UPDATED"
+    | "ORDER_CANCELLED"
+    | "PAYMENT_UPDATED";
+  orderId: number;
+  orderNumber: string;
+  restaurantId: string;
+  message: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  targetRoles: UserRole[];
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  expiresAt?: Date;
 }
 
 // Bulk Operations
 export interface BulkOrderOperation {
-  action: 'update_status' | 'cancel' | 'export' | 'archive'
-  orderIds: number[]
-  data?: any
-  batchId?: string
+  action: "update_status" | "cancel" | "export" | "archive";
+  orderIds: number[];
+  data?: any;
+  batchId?: string;
 }
 
 export interface BulkOrderResult {
-  batchId: string
-  totalOrders: number
-  successCount: number
-  failedCount: number
+  batchId: string;
+  totalOrders: number;
+  successCount: number;
+  failedCount: number;
   errors: Array<{
-    orderId: number
-    error: string
-  }>
+    orderId: number;
+    error: string;
+  }>;
   results: Array<{
-    orderId: number
-    success: boolean
-    data?: any
-    error?: string
-  }>
+    orderId: number;
+    success: boolean;
+    data?: any;
+    error?: string;
+  }>;
 }
 
 // Order Status Transitions and Permissions
 export interface OrderStatusTransition {
-  from: OrderStatus
-  to: OrderStatus
-  allowedRoles: UserRole[]
+  from: OrderStatus;
+  to: OrderStatus;
+  allowedRoles: UserRole[];
   conditions?: Array<{
-    field: string
-    operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than'
-    value: any
-  }>
+    field: string;
+    operator: "equals" | "not_equals" | "greater_than" | "less_than";
+    value: any;
+  }>;
   sideEffects?: Array<{
-    type: 'notification' | 'audit_log' | 'webhook' | 'email'
-    config: Record<string, any>
-  }>
+    type: "notification" | "audit_log" | "webhook" | "email";
+    config: Record<string, any>;
+  }>;
 }
 
 export interface OrderPermissions {
-  canView: boolean
-  canCreate: boolean
-  canUpdate: boolean
-  canCancel: boolean
-  canUpdateStatus: boolean
-  canUpdatePayment: boolean
-  canViewAllRestaurants: boolean
-  canManageItems: boolean
-  canViewAnalytics: boolean
-  allowedStatusTransitions: OrderStatus[]
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canCancel: boolean;
+  canUpdateStatus: boolean;
+  canUpdatePayment: boolean;
+  canViewAllRestaurants: boolean;
+  canManageItems: boolean;
+  canViewAnalytics: boolean;
+  allowedStatusTransitions: OrderStatus[];
 }
 
 // Integration and External Data
 export interface PaymentIntegration {
-  provider: 'stripe' | 'paypal' | 'square' | 'local_gateway'
-  transactionId?: string
-  paymentIntentId?: string
-  chargeId?: string
-  metadata?: Record<string, any>
+  provider: "stripe" | "paypal" | "square" | "local_gateway";
+  transactionId?: string;
+  paymentIntentId?: string;
+  chargeId?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface OrderReceipt {
-  orderNumber: string
-  restaurantInfo: RestaurantInfo
-  customerInfo: CustomerInfo
-  tableInfo?: TableInfo
+  orderNumber: string;
+  restaurantInfo: RestaurantInfo;
+  customerInfo: CustomerInfo;
+  tableInfo?: TableInfo;
   items: Array<{
-    name: string
-    quantity: number
-    unitPrice: number
-    totalPrice: number
-    customizations?: string[]
-    notes?: string
-  }>
-  summary: OrderSummary
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    customizations?: string[];
+    notes?: string;
+  }>;
+  summary: OrderSummary;
   paymentInfo: {
-    method: OrderPaymentMethod
-    status: OrderPaymentStatus
-    transactionId?: string
-    paidAt?: Date
-  }
+    method: OrderPaymentMethod;
+    status: OrderPaymentStatus;
+    transactionId?: string;
+    paidAt?: Date;
+  };
   timestamps: {
-    orderedAt: Date
-    confirmedAt?: Date
-    readyAt?: Date
-    deliveredAt?: Date
-  }
-  qrCode?: string
-  footerMessage?: string
+    orderedAt: Date;
+    confirmedAt?: Date;
+    readyAt?: Date;
+    deliveredAt?: Date;
+  };
+  qrCode?: string;
+  footerMessage?: string;
 }
 
 // Service Interface Definitions
 export interface IOrdersService {
   // Core CRUD Operations
-  createOrder(data: CreateOrderData, userId?: number): Promise<Order>
-  getOrder(id: number, includeItems?: boolean): Promise<Order | null>
-  getOrders(filters: OrderQueryFilters, userId?: number, userRole?: UserRole): Promise<{
-    orders: Order[]
-    total: number
+  createOrder(data: CreateOrderData, userId?: number): Promise<Order>;
+  getOrder(id: number, includeItems?: boolean): Promise<Order | null>;
+  getOrders(
+    filters: OrderQueryFilters,
+    userId?: number,
+    userRole?: UserRole,
+  ): Promise<{
+    orders: Order[];
+    total: number;
     pagination: {
-      page: number
-      limit: number
-      totalPages: number
-    }
-  }>
-  updateOrder(id: number, data: UpdateOrderData, userId?: number): Promise<Order | null>
-  deleteOrder(id: number, userId?: number): Promise<boolean>
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }>;
+  updateOrder(
+    id: number,
+    data: UpdateOrderData,
+    userId?: number,
+  ): Promise<Order | null>;
+  deleteOrder(id: number, userId?: number): Promise<boolean>;
 
   // Status Management
   updateOrderStatus(
     id: number,
     statusData: OrderStatusUpdateData,
     userId?: number,
-    userRole?: UserRole
-  ): Promise<Order | null>
-  cancelOrder(id: number, reason: string, userId?: number): Promise<Order | null>
-  getOrderStatusHistory(id: number): Promise<Array<{
-    status: OrderStatus
-    timestamp: Date
-    updatedBy?: number
-    notes?: string
-  }>>
+    userRole?: UserRole,
+  ): Promise<Order | null>;
+  cancelOrder(
+    id: number,
+    reason: string,
+    userId?: number,
+  ): Promise<Order | null>;
+  getOrderStatusHistory(id: number): Promise<
+    Array<{
+      status: OrderStatus;
+      timestamp: Date;
+      updatedBy?: number;
+      notes?: string;
+    }>
+  >;
 
   // Payment Operations
   updatePaymentStatus(
     id: number,
     paymentStatus: OrderPaymentStatus,
     paymentMethod?: OrderPaymentMethod,
-    transactionData?: PaymentIntegration
-  ): Promise<Order | null>
+    transactionData?: PaymentIntegration,
+  ): Promise<Order | null>;
 
   // Analytics and Reporting
-  getOrderAnalytics(filters: OrderQueryFilters, userId?: number): Promise<OrderAnalytics>
-  getDailyStats(restaurantId: string, date?: Date): Promise<OrderStats>
-  getPopularItems(restaurantId: string, timeRange?: string): Promise<Array<{
-    menuItemId: number
-    name: string
-    quantity: number
-    revenue: number
-  }>>
+  getOrderAnalytics(
+    filters: OrderQueryFilters,
+    userId?: number,
+  ): Promise<OrderAnalytics>;
+  getDailyStats(restaurantId: string, date?: Date): Promise<OrderStats>;
+  getPopularItems(
+    restaurantId: string,
+    timeRange?: string,
+  ): Promise<
+    Array<{
+      menuItemId: number;
+      name: string;
+      quantity: number;
+      revenue: number;
+    }>
+  >;
 
   // Search and Filter
   searchOrders(
     searchParams: OrderSearchParams,
     filters?: OrderQueryFilters,
-    userId?: number
-  ): Promise<Order[]>
+    userId?: number,
+  ): Promise<Order[]>;
 
   // Bulk Operations
-  bulkUpdateOrders(operation: BulkOrderOperation, userId?: number): Promise<BulkOrderResult>
+  bulkUpdateOrders(
+    operation: BulkOrderOperation,
+    userId?: number,
+  ): Promise<BulkOrderResult>;
 
   // Coupon and Discount Operations
-  validateCoupon(data: CouponPreviewRequest): Promise<CouponValidation>
+  validateCoupon(data: CouponPreviewRequest): Promise<CouponValidation>;
 
   // Receipt and Export
-  generateReceipt(orderId: number): Promise<OrderReceipt>
-  exportOrders(filters: OrderQueryFilters, format: 'csv' | 'excel' | 'pdf'): Promise<Buffer>
+  generateReceipt(orderId: number): Promise<OrderReceipt>;
+  exportOrders(
+    filters: OrderQueryFilters,
+    format: "csv" | "excel" | "pdf",
+  ): Promise<Buffer>;
 
   // Permissions
-  checkOrderPermissions(userId: number, userRole: UserRole, orderId?: number): Promise<OrderPermissions>
+  checkOrderPermissions(
+    userId: number,
+    userRole: UserRole,
+    orderId?: number,
+  ): Promise<OrderPermissions>;
 
   // Real-time Updates
-  broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void>
-  subscribeToOrderUpdates(restaurantId: string, roles: UserRole[]): Promise<void>
+  broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void>;
+  subscribeToOrderUpdates(
+    restaurantId: string,
+    roles: UserRole[],
+  ): Promise<void>;
 }
 
 // Error Types
 export interface OrderError {
-  code: string
-  message: string
-  details?: Record<string, any>
+  code: string;
+  message: string;
+  details?: Record<string, any>;
 }
 
 export const ORDER_ERROR_CODES = {
-  ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
-  INVALID_ORDER_DATA: 'INVALID_ORDER_DATA',
-  INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
-  INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
-  MENU_ITEM_NOT_FOUND: 'MENU_ITEM_NOT_FOUND',
-  MENU_ITEM_UNAVAILABLE: 'MENU_ITEM_UNAVAILABLE',
-  INVALID_QUANTITY: 'INVALID_QUANTITY',
-  INVALID_CUSTOMIZATION: 'INVALID_CUSTOMIZATION',
-  TABLE_NOT_AVAILABLE: 'TABLE_NOT_AVAILABLE',
-  RESTAURANT_CLOSED: 'RESTAURANT_CLOSED',
-  PAYMENT_FAILED: 'PAYMENT_FAILED',
-  COUPON_INVALID: 'COUPON_INVALID',
-  COUPON_EXPIRED: 'COUPON_EXPIRED',
-  COUPON_ALREADY_USED: 'COUPON_ALREADY_USED',
-  ORDER_ALREADY_CANCELLED: 'ORDER_ALREADY_CANCELLED',
-  ORDER_ALREADY_COMPLETED: 'ORDER_ALREADY_COMPLETED',
-  BULK_OPERATION_FAILED: 'BULK_OPERATION_FAILED',
-  EXPORT_FAILED: 'EXPORT_FAILED',
-  BROADCAST_FAILED: 'BROADCAST_FAILED'
-} as const
+  ORDER_NOT_FOUND: "ORDER_NOT_FOUND",
+  INVALID_ORDER_DATA: "INVALID_ORDER_DATA",
+  INVALID_STATUS_TRANSITION: "INVALID_STATUS_TRANSITION",
+  INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS",
+  MENU_ITEM_NOT_FOUND: "MENU_ITEM_NOT_FOUND",
+  MENU_ITEM_UNAVAILABLE: "MENU_ITEM_UNAVAILABLE",
+  INVALID_QUANTITY: "INVALID_QUANTITY",
+  INVALID_CUSTOMIZATION: "INVALID_CUSTOMIZATION",
+  TABLE_NOT_AVAILABLE: "TABLE_NOT_AVAILABLE",
+  RESTAURANT_CLOSED: "RESTAURANT_CLOSED",
+  PAYMENT_FAILED: "PAYMENT_FAILED",
+  COUPON_INVALID: "COUPON_INVALID",
+  COUPON_EXPIRED: "COUPON_EXPIRED",
+  COUPON_ALREADY_USED: "COUPON_ALREADY_USED",
+  ORDER_ALREADY_CANCELLED: "ORDER_ALREADY_CANCELLED",
+  ORDER_ALREADY_COMPLETED: "ORDER_ALREADY_COMPLETED",
+  BULK_OPERATION_FAILED: "BULK_OPERATION_FAILED",
+  EXPORT_FAILED: "EXPORT_FAILED",
+  BROADCAST_FAILED: "BROADCAST_FAILED",
+} as const;
 
-export type OrderErrorCode = typeof ORDER_ERROR_CODES[keyof typeof ORDER_ERROR_CODES]
+export type OrderErrorCode =
+  (typeof ORDER_ERROR_CODES)[keyof typeof ORDER_ERROR_CODES];
 
 // Configuration
 export interface OrdersConfig {
-  orderNumberFormat: string
-  defaultPreparationTime: number
-  maxOrderItems: number
-  allowGuestOrders: boolean
-  requireCustomerInfo: boolean
-  autoConfirmOrders: boolean
-  enableRealTimeUpdates: boolean
-  statusTransitionRules: OrderStatusTransition[]
+  orderNumberFormat: string;
+  defaultPreparationTime: number;
+  maxOrderItems: number;
+  allowGuestOrders: boolean;
+  requireCustomerInfo: boolean;
+  autoConfirmOrders: boolean;
+  enableRealTimeUpdates: boolean;
+  statusTransitionRules: OrderStatusTransition[];
   notificationSettings: {
-    enablePushNotifications: boolean
-    enableEmailNotifications: boolean
-    enableSMSNotifications: boolean
-  }
+    enablePushNotifications: boolean;
+    enableEmailNotifications: boolean;
+    enableSMSNotifications: boolean;
+  };
   paymentSettings: {
-    enableOnlinePayments: boolean
-    acceptCashPayments: boolean
-    acceptCardPayments: boolean
-    defaultPaymentMethod: OrderPaymentMethod
-  }
+    enableOnlinePayments: boolean;
+    acceptCashPayments: boolean;
+    acceptCardPayments: boolean;
+    defaultPaymentMethod: OrderPaymentMethod;
+  };
   analytics: {
-    retentionPeriodDays: number
-    enableAdvancedAnalytics: boolean
-    enableReporting: boolean
-  }
+    retentionPeriodDays: number;
+    enableAdvancedAnalytics: boolean;
+    enableReporting: boolean;
+  };
 }
 
 // Event Types for Real-time Updates
 export type OrderEvent =
-  | { type: 'ORDER_CREATED'; payload: Order }
-  | { type: 'ORDER_UPDATED'; payload: Order }
-  | { type: 'ORDER_STATUS_CHANGED'; payload: OrderUpdateEvent }
-  | { type: 'ORDER_CANCELLED'; payload: { orderId: number; reason: string } }
-  | { type: 'PAYMENT_STATUS_CHANGED'; payload: { orderId: number; paymentStatus: OrderPaymentStatus } }
-  | { type: 'ORDER_ITEM_UPDATED'; payload: { orderId: number; itemId: number; status: OrderItemStatus } }
-  | { type: 'BULK_OPERATION_COMPLETED'; payload: BulkOrderResult }
-  | { type: 'ORDER_NOTIFICATION'; payload: OrderNotification }
+  | { type: "ORDER_CREATED"; payload: Order }
+  | { type: "ORDER_UPDATED"; payload: Order }
+  | { type: "ORDER_STATUS_CHANGED"; payload: OrderUpdateEvent }
+  | { type: "ORDER_CANCELLED"; payload: { orderId: number; reason: string } }
+  | {
+      type: "PAYMENT_STATUS_CHANGED";
+      payload: { orderId: number; paymentStatus: OrderPaymentStatus };
+    }
+  | {
+      type: "ORDER_ITEM_UPDATED";
+      payload: { orderId: number; itemId: number; status: OrderItemStatus };
+    }
+  | { type: "BULK_OPERATION_COMPLETED"; payload: BulkOrderResult }
+  | { type: "ORDER_NOTIFICATION"; payload: OrderNotification };

@@ -4,11 +4,11 @@
  * Compatible with OpenAI API format
  */
 
-import { BaseLLMProvider } from './base';
-import type { LLMRequest, LLMResponse } from '../types';
+import { BaseLLMProvider } from "./base";
+import type { LLMRequest, LLMResponse } from "../types";
 
 interface DeepSeekMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -41,10 +41,10 @@ interface DeepSeekResponse {
 }
 
 export class DeepSeekProvider extends BaseLLMProvider {
-  private readonly baseUrl = 'https://api.deepseek.com/v1';
+  private readonly baseUrl = "https://api.deepseek.com/v1";
 
   protected getDefaultModel(): string {
-    return 'deepseek-chat';
+    return "deepseek-chat";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
@@ -55,13 +55,13 @@ export class DeepSeekProvider extends BaseLLMProvider {
 
       if (request.systemPrompt) {
         messages.push({
-          role: 'system',
+          role: "system",
           content: request.systemPrompt,
         });
       }
 
       messages.push({
-        role: 'user',
+        role: "user",
         content: request.prompt,
       });
 
@@ -74,24 +74,28 @@ export class DeepSeekProvider extends BaseLLMProvider {
       };
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify(deepseekRequest),
       });
 
       if (!response.ok) {
-        const errorData = await response.json() as { error?: { message?: string } };
-        throw new Error(`DeepSeek API error: ${errorData.error?.message || response.statusText}`);
+        const errorData = (await response.json()) as {
+          error?: { message?: string };
+        };
+        throw new Error(
+          `DeepSeek API error: ${errorData.error?.message || response.statusText}`,
+        );
       }
 
-      const data = await response.json() as DeepSeekResponse;
+      const data = (await response.json()) as DeepSeekResponse;
       const latencyMs = Date.now() - startTime;
 
       return {
-        content: data.choices[0]?.message?.content || '',
+        content: data.choices[0]?.message?.content || "",
         usage: {
           promptTokens: data.usage.prompt_tokens,
           completionTokens: data.usage.completion_tokens,
@@ -104,11 +108,17 @@ export class DeepSeekProvider extends BaseLLMProvider {
         },
       };
     } catch (error) {
-      throw new Error(`DeepSeek provider error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `DeepSeek provider error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
-  async test(): Promise<{ success: boolean; latencyMs?: number; error?: string }> {
+  async test(): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -127,7 +137,7 @@ export class DeepSeekProvider extends BaseLLMProvider {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }

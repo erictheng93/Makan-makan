@@ -7,9 +7,7 @@
           <span v-if="isRefreshing">Refreshing...</span>
           <span v-else>Refresh</span>
         </button>
-        <button class="btn-primary" @click="exportReport">
-          Export Report
-        </button>
+        <button class="btn-primary" @click="exportReport">Export Report</button>
       </div>
     </div>
 
@@ -27,7 +25,9 @@
         <div class="metric-card" :class="getVitalStatus('LCP', webVitals.LCP)">
           <div class="metric-label">LCP</div>
           <div class="metric-value">
-            {{ webVitals.LCP ? `${(webVitals.LCP / 1000).toFixed(2)}s` : 'N/A' }}
+            {{
+              webVitals.LCP ? `${(webVitals.LCP / 1000).toFixed(2)}s` : "N/A"
+            }}
           </div>
           <div class="metric-description">Largest Contentful Paint</div>
           <div class="metric-target">Target: &lt; 2.5s</div>
@@ -36,7 +36,7 @@
         <div class="metric-card" :class="getVitalStatus('FID', webVitals.FID)">
           <div class="metric-label">FID</div>
           <div class="metric-value">
-            {{ webVitals.FID ? `${webVitals.FID.toFixed(0)}ms` : 'N/A' }}
+            {{ webVitals.FID ? `${webVitals.FID.toFixed(0)}ms` : "N/A" }}
           </div>
           <div class="metric-description">First Input Delay</div>
           <div class="metric-target">Target: &lt; 100ms</div>
@@ -45,7 +45,7 @@
         <div class="metric-card" :class="getVitalStatus('CLS', webVitals.CLS)">
           <div class="metric-label">CLS</div>
           <div class="metric-value">
-            {{ webVitals.CLS ? webVitals.CLS.toFixed(3) : 'N/A' }}
+            {{ webVitals.CLS ? webVitals.CLS.toFixed(3) : "N/A" }}
           </div>
           <div class="metric-description">Cumulative Layout Shift</div>
           <div class="metric-target">Target: &lt; 0.1</div>
@@ -54,16 +54,21 @@
         <div class="metric-card" :class="getVitalStatus('FCP', webVitals.FCP)">
           <div class="metric-label">FCP</div>
           <div class="metric-value">
-            {{ webVitals.FCP ? `${(webVitals.FCP / 1000).toFixed(2)}s` : 'N/A' }}
+            {{
+              webVitals.FCP ? `${(webVitals.FCP / 1000).toFixed(2)}s` : "N/A"
+            }}
           </div>
           <div class="metric-description">First Contentful Paint</div>
           <div class="metric-target">Target: &lt; 1.8s</div>
         </div>
 
-        <div class="metric-card" :class="getVitalStatus('TTFB', webVitals.TTFB)">
+        <div
+          class="metric-card"
+          :class="getVitalStatus('TTFB', webVitals.TTFB)"
+        >
           <div class="metric-label">TTFB</div>
           <div class="metric-value">
-            {{ webVitals.TTFB ? `${webVitals.TTFB.toFixed(0)}ms` : 'N/A' }}
+            {{ webVitals.TTFB ? `${webVitals.TTFB.toFixed(0)}ms` : "N/A" }}
           </div>
           <div class="metric-description">Time to First Byte</div>
           <div class="metric-target">Target: &lt; 800ms</div>
@@ -72,7 +77,9 @@
         <div class="metric-card" :class="getVitalStatus('TTI', webVitals.TTI)">
           <div class="metric-label">TTI</div>
           <div class="metric-value">
-            {{ webVitals.TTI ? `${(webVitals.TTI / 1000).toFixed(2)}s` : 'N/A' }}
+            {{
+              webVitals.TTI ? `${(webVitals.TTI / 1000).toFixed(2)}s` : "N/A"
+            }}
           </div>
           <div class="metric-description">Time to Interactive</div>
           <div class="metric-target">Target: &lt; 3.8s</div>
@@ -95,13 +102,20 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="metric in recentMetrics" :key="`${metric.name}-${metric.timestamp}`">
+            <tr
+              v-for="metric in recentMetrics"
+              :key="`${metric.name}-${metric.timestamp}`"
+            >
               <td>{{ metric.name }}</td>
               <td>{{ formatMetricValue(metric) }}</td>
               <td>{{ metric.unit }}</td>
               <td>
                 <span v-if="metric.tags" class="tags">
-                  <span v-for="(value, key) in metric.tags" :key="key" class="tag">
+                  <span
+                    v-for="(value, key) in metric.tags"
+                    :key="key"
+                    class="tag"
+                  >
                     {{ key }}: {{ value }}
                   </span>
                 </span>
@@ -110,9 +124,7 @@
             </tr>
           </tbody>
         </table>
-        <div v-else class="empty-state">
-          No custom metrics recorded yet
-        </div>
+        <div v-else class="empty-state">No custom metrics recorded yet</div>
       </div>
     </div>
 
@@ -126,28 +138,30 @@
             :key="resource.name"
             class="resource-item"
           >
-            <div class="resource-name">{{ formatResourceName(resource.name) }}</div>
+            <div class="resource-name">
+              {{ formatResourceName(resource.name) }}
+            </div>
             <div class="resource-meta">
               <span class="resource-type">{{ resource.type }}</span>
-              <span class="resource-duration">{{ resource.duration.toFixed(0) }}ms</span>
+              <span class="resource-duration"
+                >{{ resource.duration.toFixed(0) }}ms</span
+              >
               <span v-if="resource.size" class="resource-size">
                 {{ formatBytes(resource.size) }}
               </span>
             </div>
           </div>
         </div>
-        <div v-else class="empty-state">
-          No slow resources detected
-        </div>
+        <div v-else class="empty-state">No slow resources detected</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
-import type { PerformanceMetric, ResourceTiming } from '@makanmakan/utils'
+import { computed, ref } from "vue";
+import { usePerformanceMonitor } from "../composables/usePerformanceMonitor";
+import type { PerformanceMetric, ResourceTiming } from "@makanmakan/utils";
 
 const {
   webVitals,
@@ -155,30 +169,32 @@ const {
   resources,
   getPerformanceScore,
   getPerformanceGrade,
-  generateReport
-} = usePerformanceMonitor()
+  generateReport,
+} = usePerformanceMonitor();
 
-const isRefreshing = ref(false)
+const isRefreshing = ref(false);
 
-const performanceScore = computed(() => getPerformanceScore())
-const performanceGrade = computed(() => getPerformanceGrade())
+const performanceScore = computed(() => getPerformanceScore());
+const performanceGrade = computed(() => getPerformanceGrade());
 
 const recentMetrics = computed(() => {
   return metrics.value
     .slice()
-    .sort((a: PerformanceMetric, b: PerformanceMetric) => b.timestamp - a.timestamp)
-    .slice(0, 20)
-})
+    .sort(
+      (a: PerformanceMetric, b: PerformanceMetric) => b.timestamp - a.timestamp,
+    )
+    .slice(0, 20);
+});
 
 const slowResources = computed(() => {
   return resources.value
     .filter((r: ResourceTiming) => r.duration > 1000)
     .sort((a: ResourceTiming, b: ResourceTiming) => b.duration - a.duration)
-    .slice(0, 10)
-})
+    .slice(0, 10);
+});
 
 function getVitalStatus(metric: string, value?: number): string {
-  if (!value) return 'unknown'
+  if (!value) return "unknown";
 
   const thresholds: Record<string, { good: number; poor: number }> = {
     LCP: { good: 2500, poor: 4000 },
@@ -186,66 +202,66 @@ function getVitalStatus(metric: string, value?: number): string {
     CLS: { good: 0.1, poor: 0.25 },
     FCP: { good: 1800, poor: 3000 },
     TTFB: { good: 800, poor: 1800 },
-    TTI: { good: 3800, poor: 7300 }
-  }
+    TTI: { good: 3800, poor: 7300 },
+  };
 
-  const threshold = thresholds[metric]
-  if (!threshold) return 'unknown'
+  const threshold = thresholds[metric];
+  if (!threshold) return "unknown";
 
-  if (value <= threshold.good) return 'good'
-  if (value <= threshold.poor) return 'needs-improvement'
-  return 'poor'
+  if (value <= threshold.good) return "good";
+  if (value <= threshold.poor) return "needs-improvement";
+  return "poor";
 }
 
 function formatMetricValue(metric: { value: number; unit: string }): string {
-  if (metric.unit === 'ms') {
-    return metric.value.toFixed(2)
+  if (metric.unit === "ms") {
+    return metric.value.toFixed(2);
   }
-  if (metric.unit === 'bytes') {
-    return formatBytes(metric.value)
+  if (metric.unit === "bytes") {
+    return formatBytes(metric.value);
   }
-  return metric.value.toString()
+  return metric.value.toString();
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 function formatResourceName(name: string): string {
   try {
-    const url = new URL(name)
-    return url.pathname.split('/').pop() || url.pathname
+    const url = new URL(name);
+    return url.pathname.split("/").pop() || url.pathname;
   } catch {
-    return name
+    return name;
   }
 }
 
 function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString()
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString();
 }
 
 async function refresh(): Promise<void> {
-  isRefreshing.value = true
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  isRefreshing.value = false
+  isRefreshing.value = true;
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  isRefreshing.value = false;
 }
 
 function exportReport(): void {
-  const report = generateReport()
+  const report = generateReport();
   const blob = new Blob([JSON.stringify(report, null, 2)], {
-    type: 'application/json'
-  })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `performance-report-${Date.now()}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `performance-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 

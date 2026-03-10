@@ -13,28 +13,31 @@
  * - Error handling and recovery
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { createIntegrationTestHelper, type IntegrationTestHelper } from './integration-test-helper'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  createIntegrationTestHelper,
+  type IntegrationTestHelper,
+} from "./integration-test-helper";
 
-describe('API + Realtime + Database Integration', () => {
-  let helper: IntegrationTestHelper
-  let adminUser: any
-  let testRestaurant: any
+describe("API + Realtime + Database Integration", () => {
+  let helper: IntegrationTestHelper;
+  let adminUser: any;
+  let testRestaurant: any;
 
   beforeAll(async () => {
-    helper = createIntegrationTestHelper()
-    await helper.initialize()
+    helper = createIntegrationTestHelper();
+    await helper.initialize();
 
-    adminUser = helper.getTestUser('admin')
-    testRestaurant = helper.getTestRestaurant()
-  }, 30000) // 30 second timeout for setup
+    adminUser = helper.getTestUser("admin");
+    testRestaurant = helper.getTestRestaurant();
+  }, 30000); // 30 second timeout for setup
 
   afterAll(async () => {
-    await helper.cleanup()
-  })
+    await helper.cleanup();
+  });
 
-  describe('Order Creation Flow', () => {
-    it('should create order via API and receive realtime notification', async () => {
+  describe("Order Creation Flow", () => {
+    it("should create order via API and receive realtime notification", async () => {
       /**
        * 測試流程:
        *
@@ -47,17 +50,17 @@ describe('API + Realtime + Database Integration', () => {
 
       // Step 1: Kitchen connects to WebSocket
       const kitchenWs = await helper.createWebSocketConnection(
-        'kitchen',
+        "kitchen",
         testRestaurant.id,
-        adminUser.token
-      )
+        adminUser.token,
+      );
 
       // Listen for new order notification
       const orderNotificationPromise = helper.waitForWebSocketMessage(
         kitchenWs,
-        (msg) => msg.type === 'new_order',
-        10000 // 10 second timeout
-      )
+        (msg) => msg.type === "new_order",
+        10000, // 10 second timeout
+      );
 
       // Step 2: Create order via API
       const orderData = {
@@ -68,52 +71,54 @@ describe('API + Realtime + Database Integration', () => {
             menuItemId: 1,
             quantity: 2,
             unitPrice: 120,
-            notes: '少辣'
-          }
+            notes: "少辣",
+          },
         ],
-        customerName: 'Integration Test Customer',
-        customerPhone: '012-3456789'
-      }
+        customerName: "Integration Test Customer",
+        customerPhone: "012-3456789",
+      };
 
       const createOrderResponse = await helper.apiRequest(
-        'POST',
-        '/api/v1/orders',
+        "POST",
+        "/api/v1/orders",
         {
           body: orderData,
-          user: adminUser
-        }
-      )
+          user: adminUser,
+        },
+      );
 
-      expect(createOrderResponse.status).toBe(201)
-      const orderResult = await createOrderResponse.json()
-      expect(orderResult.success).toBe(true)
-      expect(orderResult.data.id).toBeDefined()
+      expect(createOrderResponse.status).toBe(201);
+      const orderResult = await createOrderResponse.json();
+      expect(orderResult.success).toBe(true);
+      expect(orderResult.data.id).toBeDefined();
 
-      const orderId = orderResult.data.id
+      const orderId = orderResult.data.id;
 
       // Step 3: Verify order in database
       const dbOrder = await helper.executeDbQuery(
-        'SELECT * FROM orders WHERE id = ?',
-        [orderId]
-      )
-      expect(dbOrder.results).toHaveLength(1)
-      expect(dbOrder.results[0].status).toBe('pending')
+        "SELECT * FROM orders WHERE id = ?",
+        [orderId],
+      );
+      expect(dbOrder.results).toHaveLength(1);
+      expect(dbOrder.results[0].status).toBe("pending");
 
       // Step 4: Verify Kitchen received notification
-      const notification = await orderNotificationPromise
-      expect(notification.type).toBe('new_order')
-      expect(notification.data.orderId).toBe(orderId)
-      expect(notification.data.tableNumber).toBe(testRestaurant.tables[0].number)
+      const notification = await orderNotificationPromise;
+      expect(notification.type).toBe("new_order");
+      expect(notification.data.orderId).toBe(orderId);
+      expect(notification.data.tableNumber).toBe(
+        testRestaurant.tables[0].number,
+      );
 
       // Step 5: Verify data consistency
-      expect(notification.data.restaurantId).toBe(testRestaurant.id)
-      expect(notification.data.items).toHaveLength(1)
-      expect(notification.data.items[0].quantity).toBe(2)
+      expect(notification.data.restaurantId).toBe(testRestaurant.id);
+      expect(notification.data.items).toHaveLength(1);
+      expect(notification.data.items[0].quantity).toBe(2);
 
-      kitchenWs.close()
-    }, 15000)
+      kitchenWs.close();
+    }, 15000);
 
-    it('should handle order status updates across all layers', async () => {
+    it("should handle order status updates across all layers", async () => {
       /**
        * 測試流程:
        *
@@ -125,62 +130,63 @@ describe('API + Realtime + Database Integration', () => {
        */
 
       // Step 1: Create order
-      const orderResponse = await helper.apiRequest('POST', '/api/v1/orders', {
+      const orderResponse = await helper.apiRequest("POST", "/api/v1/orders", {
         body: {
           restaurantId: testRestaurant.id,
           tableId: testRestaurant.tables[0].id,
-          items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }]
+          items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }],
         },
-        user: adminUser
-      })
+        user: adminUser,
+      });
 
-      const orderData = await orderResponse.json()
-      const orderId = orderData.data.id
+      const orderData = await orderResponse.json();
+      const orderId = orderData.data.id;
 
       // Step 2: Admin connects to WebSocket
       const adminWs = await helper.createWebSocketConnection(
-        'admin',
+        "admin",
         testRestaurant.id,
-        adminUser.token
-      )
+        adminUser.token,
+      );
 
       // Listen for status update
       const statusUpdatePromise = helper.waitForWebSocketMessage(
         adminWs,
-        (msg) => msg.type === 'order_status_update' && msg.data.orderId === orderId,
-        10000
-      )
+        (msg) =>
+          msg.type === "order_status_update" && msg.data.orderId === orderId,
+        10000,
+      );
 
       // Step 3: Update order status
       const updateResponse = await helper.apiRequest(
-        'PUT',
+        "PUT",
         `/api/v1/orders/${orderId}/status`,
         {
-          body: { status: 'confirmed' },
-          user: adminUser
-        }
-      )
+          body: { status: "confirmed" },
+          user: adminUser,
+        },
+      );
 
-      expect(updateResponse.status).toBe(200)
+      expect(updateResponse.status).toBe(200);
 
       // Step 4: Verify database update
       const dbOrder = await helper.executeDbQuery(
-        'SELECT * FROM orders WHERE id = ?',
-        [orderId]
-      )
-      expect(dbOrder.results[0].status).toBe('confirmed')
+        "SELECT * FROM orders WHERE id = ?",
+        [orderId],
+      );
+      expect(dbOrder.results[0].status).toBe("confirmed");
 
       // Step 5: Verify Admin received notification
-      const statusUpdate = await statusUpdatePromise
-      expect(statusUpdate.data.status).toBe('confirmed')
-      expect(statusUpdate.data.orderId).toBe(orderId)
+      const statusUpdate = await statusUpdatePromise;
+      expect(statusUpdate.data.status).toBe("confirmed");
+      expect(statusUpdate.data.orderId).toBe(orderId);
 
-      adminWs.close()
-    }, 15000)
-  })
+      adminWs.close();
+    }, 15000);
+  });
 
-  describe('Menu Updates Flow', () => {
-    it('should sync menu updates across API, DB, and Realtime', async () => {
+  describe("Menu Updates Flow", () => {
+    it("should sync menu updates across API, DB, and Realtime", async () => {
       /**
        * 測試流程:
        *
@@ -192,49 +198,49 @@ describe('API + Realtime + Database Integration', () => {
 
       // Step 1: Customer connects
       const customerWs = await helper.createWebSocketConnection(
-        'customer',
+        "customer",
         testRestaurant.tables[0].id,
-        'customer_token'
-      )
+        "customer_token",
+      );
 
       // Listen for menu update
       const menuUpdatePromise = helper.waitForWebSocketMessage(
         customerWs,
-        (msg) => msg.type === 'menu_item_updated',
-        10000
-      )
+        (msg) => msg.type === "menu_item_updated",
+        10000,
+      );
 
       // Step 2: Update menu item
-      const menuItemId = 1
+      const menuItemId = 1;
       const updateResponse = await helper.apiRequest(
-        'PATCH',
+        "PATCH",
         `/api/v1/menu/${testRestaurant.id}/items/${menuItemId}`,
         {
           body: { isAvailable: false },
-          user: adminUser
-        }
-      )
+          user: adminUser,
+        },
+      );
 
-      expect(updateResponse.status).toBe(200)
+      expect(updateResponse.status).toBe(200);
 
       // Step 3: Verify database
       const dbMenuItem = await helper.executeDbQuery(
-        'SELECT * FROM menu_items WHERE id = ?',
-        [menuItemId]
-      )
-      expect(dbMenuItem.results[0].is_available).toBe(false)
+        "SELECT * FROM menu_items WHERE id = ?",
+        [menuItemId],
+      );
+      expect(dbMenuItem.results[0].is_available).toBe(false);
 
       // Step 4: Verify notification
-      const menuUpdate = await menuUpdatePromise
-      expect(menuUpdate.data.menuItemId).toBe(menuItemId)
-      expect(menuUpdate.data.isAvailable).toBe(false)
+      const menuUpdate = await menuUpdatePromise;
+      expect(menuUpdate.data.menuItemId).toBe(menuItemId);
+      expect(menuUpdate.data.isAvailable).toBe(false);
 
-      customerWs.close()
-    }, 15000)
-  })
+      customerWs.close();
+    }, 15000);
+  });
 
-  describe('Table Management Flow', () => {
-    it('should sync table status across all layers', async () => {
+  describe("Table Management Flow", () => {
+    it("should sync table status across all layers", async () => {
       /**
        * 測試流程:
        *
@@ -245,61 +251,62 @@ describe('API + Realtime + Database Integration', () => {
        * 5. 查詢 API 確認狀態
        */
 
-      const tableId = testRestaurant.tables[0].id
+      const tableId = testRestaurant.tables[0].id;
 
       // Step 1: Admin connects
       const adminWs = await helper.createWebSocketConnection(
-        'admin',
+        "admin",
         testRestaurant.id,
-        adminUser.token
-      )
+        adminUser.token,
+      );
 
       // Listen for table status update
       const tableUpdatePromise = helper.waitForWebSocketMessage(
         adminWs,
-        (msg) => msg.type === 'table_status_update' && msg.data.tableId === tableId,
-        10000
-      )
+        (msg) =>
+          msg.type === "table_status_update" && msg.data.tableId === tableId,
+        10000,
+      );
 
       // Step 2: Update table status
       const updateResponse = await helper.apiRequest(
-        'PATCH',
+        "PATCH",
         `/api/v1/tables/${tableId}/status`,
         {
-          body: { status: 'occupied' },
-          user: adminUser
-        }
-      )
+          body: { status: "occupied" },
+          user: adminUser,
+        },
+      );
 
-      expect(updateResponse.status).toBe(200)
+      expect(updateResponse.status).toBe(200);
 
       // Step 3: Verify database
       const dbTable = await helper.executeDbQuery(
-        'SELECT * FROM tables WHERE id = ?',
-        [tableId]
-      )
-      expect(dbTable.results[0].is_occupied).toBe(true)
+        "SELECT * FROM tables WHERE id = ?",
+        [tableId],
+      );
+      expect(dbTable.results[0].is_occupied).toBe(true);
 
       // Step 4: Verify notification
-      const tableUpdate = await tableUpdatePromise
-      expect(tableUpdate.data.status).toBe('occupied')
+      const tableUpdate = await tableUpdatePromise;
+      expect(tableUpdate.data.status).toBe("occupied");
 
       // Step 5: Verify via API query
       const queryResponse = await helper.apiRequest(
-        'GET',
+        "GET",
         `/api/v1/tables/${tableId}`,
-        { user: adminUser }
-      )
+        { user: adminUser },
+      );
 
-      const tableData = await queryResponse.json()
-      expect(tableData.data.isOccupied).toBe(true)
+      const tableData = await queryResponse.json();
+      expect(tableData.data.isOccupied).toBe(true);
 
-      adminWs.close()
-    }, 15000)
-  })
+      adminWs.close();
+    }, 15000);
+  });
 
-  describe('Performance Across Services', () => {
-    it('should complete order creation within performance budget', async () => {
+  describe("Performance Across Services", () => {
+    it("should complete order creation within performance budget", async () => {
       /**
        * 測試端到端性能:
        *
@@ -309,28 +316,28 @@ describe('API + Realtime + Database Integration', () => {
        */
 
       const performance = await helper.trackCrossServicePerformance(
-        'order_creation_e2e',
+        "order_creation_e2e",
         async () => {
-          const response = await helper.apiRequest('POST', '/api/v1/orders', {
+          const response = await helper.apiRequest("POST", "/api/v1/orders", {
             body: {
               restaurantId: testRestaurant.id,
               tableId: testRestaurant.tables[0].id,
-              items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }]
+              items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }],
             },
-            user: adminUser
-          })
+            user: adminUser,
+          });
 
-          expect(response.status).toBe(201)
-        }
-      )
+          expect(response.status).toBe(201);
+        },
+      );
 
-      console.log('📊 End-to-End Performance:', performance)
+      console.log("📊 End-to-End Performance:", performance);
 
       // Performance assertions
-      expect(performance.totalTime).toBeLessThan(500) // 500ms budget
-    })
+      expect(performance.totalTime).toBeLessThan(500); // 500ms budget
+    });
 
-    it('should handle concurrent orders efficiently', async () => {
+    it("should handle concurrent orders efficiently", async () => {
       /**
        * 測試並發處理能力:
        *
@@ -339,39 +346,43 @@ describe('API + Realtime + Database Integration', () => {
        * 驗證資料一致性
        */
 
-      const concurrentOrders = 10
-      const startTime = performance.now()
+      const concurrentOrders = 10;
+      const startTime = performance.now();
 
       const orderPromises = Array.from({ length: concurrentOrders }, (_, i) =>
-        helper.apiRequest('POST', '/api/v1/orders', {
+        helper.apiRequest("POST", "/api/v1/orders", {
           body: {
             restaurantId: testRestaurant.id,
             tableId: testRestaurant.tables[i % testRestaurant.tables.length].id,
-            items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }]
+            items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }],
           },
-          user: adminUser
-        })
-      )
+          user: adminUser,
+        }),
+      );
 
-      const responses = await Promise.all(orderPromises)
-      const endTime = performance.now()
+      const responses = await Promise.all(orderPromises);
+      const endTime = performance.now();
 
       // All orders should succeed
       responses.forEach((response) => {
-        expect(response.status).toBe(201)
-      })
+        expect(response.status).toBe(201);
+      });
 
       // Should complete within reasonable time
-      const totalTime = endTime - startTime
-      expect(totalTime).toBeLessThan(2000) // 2 seconds for 10 orders
+      const totalTime = endTime - startTime;
+      expect(totalTime).toBeLessThan(2000); // 2 seconds for 10 orders
 
-      console.log(`📊 Concurrent Order Creation: ${concurrentOrders} orders in ${totalTime.toFixed(2)}ms`)
-      console.log(`   Average: ${(totalTime / concurrentOrders).toFixed(2)}ms per order`)
-    })
-  })
+      console.log(
+        `📊 Concurrent Order Creation: ${concurrentOrders} orders in ${totalTime.toFixed(2)}ms`,
+      );
+      console.log(
+        `   Average: ${(totalTime / concurrentOrders).toFixed(2)}ms per order`,
+      );
+    });
+  });
 
-  describe('Error Handling and Recovery', () => {
-    it('should handle database errors gracefully', async () => {
+  describe("Error Handling and Recovery", () => {
+    it("should handle database errors gracefully", async () => {
       /**
        * 測試錯誤處理:
        *
@@ -382,22 +393,22 @@ describe('API + Realtime + Database Integration', () => {
        */
 
       // Try to create invalid order
-      const response = await helper.apiRequest('POST', '/api/v1/orders', {
+      const response = await helper.apiRequest("POST", "/api/v1/orders", {
         body: {
           restaurantId: 999999, // Non-existent restaurant
           tableId: 999999,
-          items: []
+          items: [],
         },
-        user: adminUser
-      })
+        user: adminUser,
+      });
 
-      expect(response.status).toBe(400)
-      const errorData = await response.json()
-      expect(errorData.success).toBe(false)
-      expect(errorData.error).toBeDefined()
-    })
+      expect(response.status).toBe(400);
+      const errorData = await response.json();
+      expect(errorData.success).toBe(false);
+      expect(errorData.error).toBeDefined();
+    });
 
-    it('should maintain data consistency after partial failures', async () => {
+    it("should maintain data consistency after partial failures", async () => {
       /**
        * 測試資料一致性:
        *
@@ -408,41 +419,41 @@ describe('API + Realtime + Database Integration', () => {
        */
 
       // Create order
-      const response = await helper.apiRequest('POST', '/api/v1/orders', {
+      const response = await helper.apiRequest("POST", "/api/v1/orders", {
         body: {
           restaurantId: testRestaurant.id,
           tableId: testRestaurant.tables[0].id,
-          items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }]
+          items: [{ menuItemId: 1, quantity: 1, unitPrice: 100 }],
         },
-        user: adminUser
-      })
+        user: adminUser,
+      });
 
-      expect(response.status).toBe(201)
-      const orderData = await response.json()
-      const orderId = orderData.data.id
+      expect(response.status).toBe(201);
+      const orderData = await response.json();
+      const orderId = orderData.data.id;
 
       // Verify order exists in database
       const dbOrder = await helper.executeDbQuery(
-        'SELECT * FROM orders WHERE id = ?',
-        [orderId]
-      )
+        "SELECT * FROM orders WHERE id = ?",
+        [orderId],
+      );
 
-      expect(dbOrder.results).toHaveLength(1)
-      expect(dbOrder.results[0].id).toBe(orderId)
+      expect(dbOrder.results).toHaveLength(1);
+      expect(dbOrder.results[0].id).toBe(orderId);
 
       // Order should be retrievable via API
       const getResponse = await helper.apiRequest(
-        'GET',
+        "GET",
         `/api/v1/orders/${orderId}`,
-        { user: adminUser }
-      )
+        { user: adminUser },
+      );
 
-      expect(getResponse.status).toBe(200)
-    })
-  })
+      expect(getResponse.status).toBe(200);
+    });
+  });
 
-  describe('WebSocket Reconnection', () => {
-    it('should handle WebSocket disconnection and reconnection', async () => {
+  describe("WebSocket Reconnection", () => {
+    it("should handle WebSocket disconnection and reconnection", async () => {
       /**
        * 測試重連機制:
        *
@@ -454,40 +465,40 @@ describe('API + Realtime + Database Integration', () => {
 
       // Connect
       const ws = await helper.createWebSocketConnection(
-        'kitchen',
+        "kitchen",
         testRestaurant.id,
-        adminUser.token
-      )
+        adminUser.token,
+      );
 
-      expect(ws.readyState).toBe(WebSocket.OPEN)
+      expect(ws.readyState).toBe(WebSocket.OPEN);
 
       // Close connection
-      ws.close()
+      ws.close();
 
       // Wait for close
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      expect(ws.readyState).toBe(WebSocket.CLOSED)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      expect(ws.readyState).toBe(WebSocket.CLOSED);
 
       // Reconnect
       const ws2 = await helper.createWebSocketConnection(
-        'kitchen',
+        "kitchen",
         testRestaurant.id,
-        adminUser.token
-      )
+        adminUser.token,
+      );
 
-      expect(ws2.readyState).toBe(WebSocket.OPEN)
+      expect(ws2.readyState).toBe(WebSocket.OPEN);
 
       // Should receive messages normally
       const messagePromise = helper.waitForWebSocketMessage(
         ws2,
-        (msg) => msg.type === 'connection_ack',
-        5000
-      )
+        (msg) => msg.type === "connection_ack",
+        5000,
+      );
 
-      const ackMessage = await messagePromise
-      expect(ackMessage.type).toBe('connection_ack')
+      const ackMessage = await messagePromise;
+      expect(ackMessage.type).toBe("connection_ack");
 
-      ws2.close()
-    })
-  })
-})
+      ws2.close();
+    });
+  });
+});

@@ -3,35 +3,31 @@
  * Business logic for restaurant operations within the feature module
  */
 
-import { RestaurantService as DatabaseRestaurantService } from '@makanmakan/database'
-import { KVCacheService, type CacheService } from '../../../core/cache'
-import { ConsoleLogger } from '../../../core/monitoring'
-import { CACHE_TTL } from '../../../shared/constants'
-import type { Env } from '../../../shared/types'
+import { RestaurantService as DatabaseRestaurantService } from "@makanmakan/database";
+import { KVCacheService, type CacheService } from "../../../core/cache";
+import { ConsoleLogger } from "../../../core/monitoring";
+import { CACHE_TTL } from "../../../shared/constants";
+import type { Env } from "../../../shared/types";
 import type {
   Restaurant,
   EnhancedRestaurantStats,
   CreateRestaurantData,
   UpdateRestaurantData,
   RestaurantFilters,
-  RestaurantEvent
-} from '../types'
+  RestaurantEvent,
+} from "../types";
 
 export class RestaurantsService {
-  private dbService: DatabaseRestaurantService
-  private cache: CacheService
-  private logger: ConsoleLogger
-  private env: Env
+  private dbService: DatabaseRestaurantService;
+  private cache: CacheService;
+  private logger: ConsoleLogger;
+  private env: Env;
 
-  constructor(
-    db: Env['DB'],
-    env: Env,
-    kv?: Env['CACHE_KV']
-  ) {
-    this.dbService = new DatabaseRestaurantService(db, env)
-    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any)
-    this.logger = new ConsoleLogger('RestaurantsService')
-    this.env = env
+  constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
+    this.dbService = new DatabaseRestaurantService(db, env);
+    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
+    this.logger = new ConsoleLogger("RestaurantsService");
+    this.env = env;
   }
 
   /**
@@ -39,16 +35,16 @@ export class RestaurantsService {
    */
   async getRestaurants(filters: RestaurantFilters) {
     try {
-      this.logger.debug('Getting restaurants with filters', { filters })
+      this.logger.debug("Getting restaurants with filters", { filters });
 
       // Generate cache key based on filters
-      const cacheKey = this.generateCacheKey('restaurants:list', filters)
+      const cacheKey = this.generateCacheKey("restaurants:list", filters);
 
       // Try to get from cache first
-      const cached = await this.cache.get(cacheKey)
+      const cached = await this.cache.get(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached restaurants')
-        return cached
+        this.logger.debug("Returning cached restaurants");
+        return cached;
       }
 
       // Get from database
@@ -57,21 +53,31 @@ export class RestaurantsService {
         limit: filters.limit,
         type: filters.type,
         district: filters.district,
-        isAvailable: filters.isAvailable
-      })
+        isAvailable: filters.isAvailable,
+      });
 
       // Cache the result
-      await this.cache.set(cacheKey, result, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, result, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Retrieved restaurants', {
+      this.logger.info("Retrieved restaurants", {
         count: result.restaurants.length,
-        total: result.pagination.total
-      })
+        total: result.pagination.total,
+      });
 
-      return result as { restaurants: Restaurant[]; pagination: { page: number; limit: number; total: number; totalPages: number } }
+      return result as {
+        restaurants: Restaurant[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      };
     } catch (error) {
-      this.logger.error('Failed to get restaurants', error as Error, { filters })
-      throw new Error('Failed to retrieve restaurants')
+      this.logger.error("Failed to get restaurants", error as Error, {
+        filters,
+      });
+      throw new Error("Failed to retrieve restaurants");
     }
   }
 
@@ -80,31 +86,31 @@ export class RestaurantsService {
    */
   async getRestaurant(id: string): Promise<Restaurant | null> {
     try {
-      this.logger.debug('Getting restaurant by ID', { id })
+      this.logger.debug("Getting restaurant by ID", { id });
 
       // Try cache first
-      const cacheKey = `restaurant:${id}`
-      const cached = await this.cache.get<Restaurant>(cacheKey)
+      const cacheKey = `restaurant:${id}`;
+      const cached = await this.cache.get<Restaurant>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached restaurant')
-        return cached
+        this.logger.debug("Returning cached restaurant");
+        return cached;
       }
 
       // Get from database
-      const restaurant = await this.dbService.getRestaurant(id)
+      const restaurant = await this.dbService.getRestaurant(id);
 
       if (restaurant) {
         // Cache the result
-        await this.cache.set(cacheKey, restaurant, CACHE_TTL.MEDIUM)
-        this.logger.info('Retrieved restaurant', { id, name: restaurant.name })
+        await this.cache.set(cacheKey, restaurant, CACHE_TTL.MEDIUM);
+        this.logger.info("Retrieved restaurant", { id, name: restaurant.name });
       } else {
-        this.logger.warn('Restaurant not found', { id })
+        this.logger.warn("Restaurant not found", { id });
       }
 
-      return restaurant as Restaurant | null
+      return restaurant as Restaurant | null;
     } catch (error) {
-      this.logger.error('Failed to get restaurant', error as Error, { id })
-      throw new Error('Failed to retrieve restaurant')
+      this.logger.error("Failed to get restaurant", error as Error, { id });
+      throw new Error("Failed to retrieve restaurant");
     }
   }
 
@@ -113,63 +119,71 @@ export class RestaurantsService {
    */
   async createRestaurant(data: CreateRestaurantData): Promise<Restaurant> {
     try {
-      this.logger.debug('Creating restaurant', { name: data.name })
+      this.logger.debug("Creating restaurant", { name: data.name });
 
-      const restaurant = await this.dbService.createRestaurant(data)
+      const restaurant = await this.dbService.createRestaurant(data);
 
       // Clear relevant caches
-      await this.invalidateListCaches()
+      await this.invalidateListCaches();
 
       // Emit event
       await this.emitEvent({
-        type: 'RESTAURANT_CREATED',
-        payload: restaurant
-      })
+        type: "RESTAURANT_CREATED",
+        payload: restaurant,
+      });
 
-      this.logger.info('Restaurant created successfully', {
+      this.logger.info("Restaurant created successfully", {
         id: restaurant.id,
-        name: restaurant.name
-      })
+        name: restaurant.name,
+      });
 
-      return restaurant as Restaurant
+      return restaurant as Restaurant;
     } catch (error) {
-      this.logger.error('Failed to create restaurant', error as Error, { data })
-      throw new Error('Failed to create restaurant')
+      this.logger.error("Failed to create restaurant", error as Error, {
+        data,
+      });
+      throw new Error("Failed to create restaurant");
     }
   }
 
   /**
    * Update an existing restaurant
    */
-  async updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null> {
+  async updateRestaurant(
+    id: string,
+    data: UpdateRestaurantData,
+  ): Promise<Restaurant | null> {
     try {
-      this.logger.debug('Updating restaurant', { id, data })
+      this.logger.debug("Updating restaurant", { id, data });
 
-      const restaurant = await this.dbService.updateRestaurant(id, data)
+      const restaurant = await this.dbService.updateRestaurant(id, data);
 
       if (restaurant) {
         // Invalidate caches
-        await this.cache.delete(`restaurant:${id}`)
-        await this.invalidateListCaches()
+        await this.cache.delete(`restaurant:${id}`);
+        await this.invalidateListCaches();
 
         // Emit event
         await this.emitEvent({
-          type: 'RESTAURANT_UPDATED',
-          payload: restaurant
-        })
+          type: "RESTAURANT_UPDATED",
+          payload: restaurant,
+        });
 
-        this.logger.info('Restaurant updated successfully', {
+        this.logger.info("Restaurant updated successfully", {
           id: restaurant.id,
-          name: restaurant.name
-        })
+          name: restaurant.name,
+        });
       } else {
-        this.logger.warn('Restaurant not found for update', { id })
+        this.logger.warn("Restaurant not found for update", { id });
       }
 
-      return restaurant as Restaurant | null
+      return restaurant as Restaurant | null;
     } catch (error) {
-      this.logger.error('Failed to update restaurant', error as Error, { id, data })
-      throw new Error('Failed to update restaurant')
+      this.logger.error("Failed to update restaurant", error as Error, {
+        id,
+        data,
+      });
+      throw new Error("Failed to update restaurant");
     }
   }
 
@@ -178,26 +192,28 @@ export class RestaurantsService {
    */
   async deactivateRestaurant(id: string): Promise<boolean> {
     try {
-      this.logger.debug('Deactivating restaurant', { id })
+      this.logger.debug("Deactivating restaurant", { id });
 
-      await this.dbService.deactivateRestaurant(id)
+      await this.dbService.deactivateRestaurant(id);
 
       // Invalidate caches
-      await this.cache.delete(`restaurant:${id}`)
-      await this.cache.delete(`restaurant:${id}:stats`)
-      await this.invalidateListCaches()
+      await this.cache.delete(`restaurant:${id}`);
+      await this.cache.delete(`restaurant:${id}:stats`);
+      await this.invalidateListCaches();
 
       // Emit event
       await this.emitEvent({
-        type: 'RESTAURANT_DEACTIVATED',
-        payload: { id }
-      })
+        type: "RESTAURANT_DEACTIVATED",
+        payload: { id },
+      });
 
-      this.logger.info('Restaurant deactivated successfully', { id })
-      return true
+      this.logger.info("Restaurant deactivated successfully", { id });
+      return true;
     } catch (error) {
-      this.logger.error('Failed to deactivate restaurant', error as Error, { id })
-      throw new Error('Failed to deactivate restaurant')
+      this.logger.error("Failed to deactivate restaurant", error as Error, {
+        id,
+      });
+      throw new Error("Failed to deactivate restaurant");
     }
   }
 
@@ -206,18 +222,18 @@ export class RestaurantsService {
    */
   async getRestaurantStats(id: string): Promise<EnhancedRestaurantStats> {
     try {
-      this.logger.debug('Getting restaurant stats', { id })
+      this.logger.debug("Getting restaurant stats", { id });
 
       // Try cache first
-      const cacheKey = `restaurant:${id}:stats`
-      const cached = await this.cache.get<EnhancedRestaurantStats>(cacheKey)
+      const cacheKey = `restaurant:${id}:stats`;
+      const cached = await this.cache.get<EnhancedRestaurantStats>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached restaurant stats')
-        return cached
+        this.logger.debug("Returning cached restaurant stats");
+        return cached;
       }
 
       // Get basic stats from database service
-      const dbStats = await this.dbService.getRestaurantStats(id)
+      const dbStats = await this.dbService.getRestaurantStats(id);
 
       // Transform to expected format (extend with additional metrics)
       const stats: EnhancedRestaurantStats = {
@@ -234,49 +250,60 @@ export class RestaurantsService {
         customerRetention: {
           newCustomers: 0,
           returningCustomers: 0,
-          retentionRate: 0
-        }
-      }
+          retentionRate: 0,
+        },
+      };
 
       // Cache the result
-      await this.cache.set(cacheKey, stats, CACHE_TTL.SHORT)
+      await this.cache.set(cacheKey, stats, CACHE_TTL.SHORT);
 
-      this.logger.info('Retrieved restaurant stats', { id })
-      return stats
+      this.logger.info("Retrieved restaurant stats", { id });
+      return stats;
     } catch (error) {
-      this.logger.error('Failed to get restaurant stats', error as Error, { id })
-      throw new Error('Failed to retrieve restaurant statistics')
+      this.logger.error("Failed to get restaurant stats", error as Error, {
+        id,
+      });
+      throw new Error("Failed to retrieve restaurant statistics");
     }
   }
 
   /**
    * Search for nearby restaurants by district
    */
-  async searchNearbyRestaurants(district: string, limit: number): Promise<Restaurant[]> {
+  async searchNearbyRestaurants(
+    district: string,
+    limit: number,
+  ): Promise<Restaurant[]> {
     try {
-      this.logger.debug('Searching nearby restaurants', { district, limit })
+      this.logger.debug("Searching nearby restaurants", { district, limit });
 
-      const cacheKey = `restaurants:nearby:${district}:${limit}`
-      const cached = await this.cache.get<Restaurant[]>(cacheKey)
+      const cacheKey = `restaurants:nearby:${district}:${limit}`;
+      const cached = await this.cache.get<Restaurant[]>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached nearby restaurants')
-        return cached
+        this.logger.debug("Returning cached nearby restaurants");
+        return cached;
       }
 
-      const restaurants = await this.dbService.searchNearbyRestaurants(district, limit)
+      const restaurants = await this.dbService.searchNearbyRestaurants(
+        district,
+        limit,
+      );
 
       // Cache the result
-      await this.cache.set(cacheKey, restaurants, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, restaurants, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Retrieved nearby restaurants', {
+      this.logger.info("Retrieved nearby restaurants", {
         district,
-        count: restaurants.length
-      })
+        count: restaurants.length,
+      });
 
-      return restaurants as unknown as Restaurant[]
+      return restaurants as unknown as Restaurant[];
     } catch (error) {
-      this.logger.error('Failed to search nearby restaurants', error as Error, { district, limit })
-      throw new Error('Failed to search nearby restaurants')
+      this.logger.error("Failed to search nearby restaurants", error as Error, {
+        district,
+        limit,
+      });
+      throw new Error("Failed to search nearby restaurants");
     }
   }
 
@@ -285,36 +312,43 @@ export class RestaurantsService {
    */
   async getPopularRestaurants(limit: number): Promise<Restaurant[]> {
     try {
-      this.logger.debug('Getting popular restaurants', { limit })
+      this.logger.debug("Getting popular restaurants", { limit });
 
-      const cacheKey = `restaurants:popular:${limit}`
-      const cached = await this.cache.get<Restaurant[]>(cacheKey)
+      const cacheKey = `restaurants:popular:${limit}`;
+      const cached = await this.cache.get<Restaurant[]>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached popular restaurants')
-        return cached
+        this.logger.debug("Returning cached popular restaurants");
+        return cached;
       }
 
-      const restaurants = await this.dbService.getPopularRestaurants(limit)
+      const restaurants = await this.dbService.getPopularRestaurants(limit);
 
       // Cache the result
-      await this.cache.set(cacheKey, restaurants, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, restaurants, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Retrieved popular restaurants', { count: restaurants.length })
+      this.logger.info("Retrieved popular restaurants", {
+        count: restaurants.length,
+      });
 
-      return restaurants as unknown as Restaurant[]
+      return restaurants as unknown as Restaurant[];
     } catch (error) {
-      this.logger.error('Failed to get popular restaurants', error as Error, { limit })
-      throw new Error('Failed to retrieve popular restaurants')
+      this.logger.error("Failed to get popular restaurants", error as Error, {
+        limit,
+      });
+      throw new Error("Failed to retrieve popular restaurants");
     }
   }
 
   /**
    * Generate cache key with consistent formatting
    */
-  private generateCacheKey(prefix: string, params: Record<string, any>): string {
-    const sortedKeys = Object.keys(params).sort()
-    const keyParts = sortedKeys.map(key => `${key}:${params[key]}`).join(':')
-    return keyParts ? `${prefix}:${keyParts}` : prefix
+  private generateCacheKey(
+    prefix: string,
+    params: Record<string, any>,
+  ): string {
+    const sortedKeys = Object.keys(params).sort();
+    const keyParts = sortedKeys.map((key) => `${key}:${params[key]}`).join(":");
+    return keyParts ? `${prefix}:${keyParts}` : prefix;
   }
 
   /**
@@ -322,13 +356,13 @@ export class RestaurantsService {
    */
   private async invalidateListCaches(): Promise<void> {
     const patterns = [
-      'restaurants:list:*',
-      'restaurants:nearby:*',
-      'restaurants:popular:*'
-    ]
+      "restaurants:list:*",
+      "restaurants:nearby:*",
+      "restaurants:popular:*",
+    ];
 
     for (const pattern of patterns) {
-      await this.cache.clear(pattern)
+      await this.cache.clear(pattern);
     }
   }
 
@@ -337,15 +371,15 @@ export class RestaurantsService {
    */
   private async emitEvent(event: RestaurantEvent): Promise<void> {
     try {
-      this.logger.debug('Emitting restaurant event', {
+      this.logger.debug("Emitting restaurant event", {
         type: event.type,
-        payload: event.payload
-      })
+        payload: event.payload,
+      });
 
       // In the future, this could integrate with an event bus
       // For now, just log the event
     } catch (error) {
-      this.logger.error('Failed to emit event', error as Error, { event })
+      this.logger.error("Failed to emit event", error as Error, { event });
       // Don't throw here as event emission shouldn't break the main flow
     }
   }
@@ -355,48 +389,63 @@ export class RestaurantsService {
   /**
    * Generate shop-level QR code for a restaurant
    */
-  async generateShopQrCode(id: string): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+  async generateShopQrCode(id: string): Promise<{
+    qrCode: string;
+    qrCodeImageUrl: string | null;
+    version: number;
+  }> {
     try {
-      this.logger.debug('Generating shop QR code', { id })
+      this.logger.debug("Generating shop QR code", { id });
 
-      const result = await this.dbService.generateShopQrCode(id)
+      const result = await this.dbService.generateShopQrCode(id);
 
       // Invalidate caches
-      await this.cache.delete(`restaurant:${id}`)
-      await this.cache.delete(`restaurant:${id}:shop-qr`)
+      await this.cache.delete(`restaurant:${id}`);
+      await this.cache.delete(`restaurant:${id}:shop-qr`);
 
-      this.logger.info('Shop QR code generated successfully', { id, qrCode: result.qrCode })
+      this.logger.info("Shop QR code generated successfully", {
+        id,
+        qrCode: result.qrCode,
+      });
 
-      return result
+      return result;
     } catch (error) {
-      this.logger.error('Failed to generate shop QR code', error as Error, { id })
-      throw new Error('Failed to generate shop QR code')
+      this.logger.error("Failed to generate shop QR code", error as Error, {
+        id,
+      });
+      throw new Error("Failed to generate shop QR code");
     }
   }
 
   /**
    * Regenerate shop-level QR code (increments version)
    */
-  async regenerateShopQrCode(id: string): Promise<{ qrCode: string; qrCodeImageUrl: string | null; version: number }> {
+  async regenerateShopQrCode(id: string): Promise<{
+    qrCode: string;
+    qrCodeImageUrl: string | null;
+    version: number;
+  }> {
     try {
-      this.logger.debug('Regenerating shop QR code', { id })
+      this.logger.debug("Regenerating shop QR code", { id });
 
-      const result = await this.dbService.regenerateShopQrCode(id)
+      const result = await this.dbService.regenerateShopQrCode(id);
 
       // Invalidate caches
-      await this.cache.delete(`restaurant:${id}`)
-      await this.cache.delete(`restaurant:${id}:shop-qr`)
+      await this.cache.delete(`restaurant:${id}`);
+      await this.cache.delete(`restaurant:${id}:shop-qr`);
 
-      this.logger.info('Shop QR code regenerated successfully', {
+      this.logger.info("Shop QR code regenerated successfully", {
         id,
         qrCode: result.qrCode,
-        version: result.version
-      })
+        version: result.version,
+      });
 
-      return result
+      return result;
     } catch (error) {
-      this.logger.error('Failed to regenerate shop QR code', error as Error, { id })
-      throw new Error('Failed to regenerate shop QR code')
+      this.logger.error("Failed to regenerate shop QR code", error as Error, {
+        id,
+      });
+      throw new Error("Failed to regenerate shop QR code");
     }
   }
 
@@ -404,40 +453,42 @@ export class RestaurantsService {
    * Get shop QR code information
    */
   async getShopQrCodeInfo(id: string): Promise<{
-    qrCode: string | null
-    qrCodeImageUrl: string | null
-    enabled: boolean
-    version: number
-    settings: any
+    qrCode: string | null;
+    qrCodeImageUrl: string | null;
+    enabled: boolean;
+    version: number;
+    settings: any;
   }> {
     try {
-      this.logger.debug('Getting shop QR code info', { id })
+      this.logger.debug("Getting shop QR code info", { id });
 
       // Try cache first
-      const cacheKey = `restaurant:${id}:shop-qr`
+      const cacheKey = `restaurant:${id}:shop-qr`;
       const cached = await this.cache.get<{
-        qrCode: string | null
-        qrCodeImageUrl: string | null
-        enabled: boolean
-        version: number
-        settings: any
-      }>(cacheKey)
+        qrCode: string | null;
+        qrCodeImageUrl: string | null;
+        enabled: boolean;
+        version: number;
+        settings: any;
+      }>(cacheKey);
       if (cached) {
-        this.logger.debug('Returning cached shop QR info')
-        return cached
+        this.logger.debug("Returning cached shop QR info");
+        return cached;
       }
 
-      const info = await this.dbService.getShopQrCodeInfo(id)
+      const info = await this.dbService.getShopQrCodeInfo(id);
 
       // Cache the result
-      await this.cache.set(cacheKey, info, CACHE_TTL.MEDIUM)
+      await this.cache.set(cacheKey, info, CACHE_TTL.MEDIUM);
 
-      this.logger.info('Retrieved shop QR code info', { id })
+      this.logger.info("Retrieved shop QR code info", { id });
 
-      return info
+      return info;
     } catch (error) {
-      this.logger.error('Failed to get shop QR code info', error as Error, { id })
-      throw new Error('Failed to retrieve shop QR code information')
+      this.logger.error("Failed to get shop QR code info", error as Error, {
+        id,
+      });
+      throw new Error("Failed to retrieve shop QR code information");
     }
   }
 
@@ -446,39 +497,49 @@ export class RestaurantsService {
    */
   async updateShopQrCodeImage(id: string, imageUrl: string): Promise<void> {
     try {
-      this.logger.debug('Updating shop QR code image', { id, imageUrl })
+      this.logger.debug("Updating shop QR code image", { id, imageUrl });
 
-      await this.dbService.updateShopQrCodeImage(id, imageUrl)
+      await this.dbService.updateShopQrCodeImage(id, imageUrl);
 
       // Invalidate caches
-      await this.cache.delete(`restaurant:${id}`)
-      await this.cache.delete(`restaurant:${id}:shop-qr`)
+      await this.cache.delete(`restaurant:${id}`);
+      await this.cache.delete(`restaurant:${id}:shop-qr`);
 
-      this.logger.info('Shop QR code image updated successfully', { id })
+      this.logger.info("Shop QR code image updated successfully", { id });
     } catch (error) {
-      this.logger.error('Failed to update shop QR code image', error as Error, { id, imageUrl })
-      throw new Error('Failed to update shop QR code image')
+      this.logger.error("Failed to update shop QR code image", error as Error, {
+        id,
+        imageUrl,
+      });
+      throw new Error("Failed to update shop QR code image");
     }
   }
 
   /**
    * Enable or disable shop mode with settings
    */
-  async updateShopMode(id: string, enabled: boolean, settings?: any): Promise<void> {
+  async updateShopMode(
+    id: string,
+    enabled: boolean,
+    settings?: any,
+  ): Promise<void> {
     try {
-      this.logger.debug('Updating shop mode', { id, enabled, settings })
+      this.logger.debug("Updating shop mode", { id, enabled, settings });
 
-      await this.dbService.updateShopMode(id, enabled, settings)
+      await this.dbService.updateShopMode(id, enabled, settings);
 
       // Invalidate caches
-      await this.cache.delete(`restaurant:${id}`)
-      await this.cache.delete(`restaurant:${id}:shop-qr`)
-      await this.invalidateListCaches()
+      await this.cache.delete(`restaurant:${id}`);
+      await this.cache.delete(`restaurant:${id}:shop-qr`);
+      await this.invalidateListCaches();
 
-      this.logger.info('Shop mode updated successfully', { id, enabled })
+      this.logger.info("Shop mode updated successfully", { id, enabled });
     } catch (error) {
-      this.logger.error('Failed to update shop mode', error as Error, { id, enabled })
-      throw new Error('Failed to update shop mode')
+      this.logger.error("Failed to update shop mode", error as Error, {
+        id,
+        enabled,
+      });
+      throw new Error("Failed to update shop mode");
     }
   }
 
@@ -486,29 +547,31 @@ export class RestaurantsService {
    * Verify shop QR code and get restaurant information
    */
   async verifyShopQrCode(qrCode: string): Promise<{
-    valid: boolean
-    restaurantId?: string
-    restaurant?: any
+    valid: boolean;
+    restaurantId?: string;
+    restaurant?: any;
   }> {
     try {
-      this.logger.debug('Verifying shop QR code', { qrCode })
+      this.logger.debug("Verifying shop QR code", { qrCode });
 
-      const result = await this.dbService.verifyShopQrCode(qrCode)
+      const result = await this.dbService.verifyShopQrCode(qrCode);
 
-      this.logger.info('Shop QR code verification complete', {
+      this.logger.info("Shop QR code verification complete", {
         qrCode,
         valid: result.valid,
-        restaurantId: result.restaurantId
-      })
+        restaurantId: result.restaurantId,
+      });
 
       return {
         valid: result.valid,
         restaurantId: result.restaurantId,
-        restaurant: result.restaurant
-      }
+        restaurant: result.restaurant,
+      };
     } catch (error) {
-      this.logger.error('Failed to verify shop QR code', error as Error, { qrCode })
-      throw new Error('Failed to verify shop QR code')
+      this.logger.error("Failed to verify shop QR code", error as Error, {
+        qrCode,
+      });
+      throw new Error("Failed to verify shop QR code");
     }
   }
 }

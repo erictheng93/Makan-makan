@@ -21,10 +21,7 @@
     </div>
 
     <!-- 座位網格 -->
-    <div
-      class="grid gap-4"
-      :style="gridStyle"
-    >
+    <div class="grid gap-4" :style="gridStyle">
       <div
         v-for="seat in seats"
         :key="seat.id"
@@ -72,9 +69,7 @@
     >
       <ChairIcon class="mx-auto h-12 w-12 text-gray-400" />
       <h3 class="mt-2 text-sm font-medium text-gray-900">暫無座位</h3>
-      <p class="mt-1 text-sm text-gray-500">
-        此桌台尚未配置座位
-      </p>
+      <p class="mt-1 text-sm text-gray-500">此桌台尚未配置座位</p>
     </div>
 
     <!-- 座位統計 -->
@@ -102,67 +97,67 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { computed } from "vue";
+import { XMarkIcon } from "@heroicons/vue/24/outline";
 
 interface Seat {
-  id: number
-  tableId: number
-  seatNumber: string
-  seatName?: string
-  position?: string
-  qrCode: string
-  isOccupied: boolean
-  isActive: boolean
-  currentOrderId?: number
-  occupiedBy?: string
-  totalUsage: number
+  id: number;
+  tableId: number;
+  seatNumber: string;
+  seatName?: string;
+  position?: string;
+  qrCode: string;
+  isOccupied: boolean;
+  isActive: boolean;
+  currentOrderId?: number;
+  occupiedBy?: string;
+  totalUsage: number;
 }
 
 interface Props {
-  seats: Seat[]
-  columns?: number
-  showDetails?: boolean
+  seats: Seat[];
+  columns?: number;
+  showDetails?: boolean;
 }
 
 interface Emits {
-  (e: 'seatClick', seat: Seat): void
+  (e: "seatClick", seat: Seat): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   columns: 4,
-  showDetails: false
-})
+  showDetails: false,
+});
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 // 計算網格樣式
 const gridStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${props.columns}, 1fr)`
-}))
+  gridTemplateColumns: `repeat(${props.columns}, 1fr)`,
+}));
 
 // 座位統計
 const stats = computed(() => ({
-  available: props.seats.filter(s => s.isActive && !s.isOccupied).length,
-  occupied: props.seats.filter(s => s.isActive && s.isOccupied).length,
-  inactive: props.seats.filter(s => !s.isActive).length
-}))
+  available: props.seats.filter((s) => s.isActive && !s.isOccupied).length,
+  occupied: props.seats.filter((s) => s.isActive && s.isOccupied).length,
+  inactive: props.seats.filter((s) => !s.isActive).length,
+}));
 
 // 獲取座位樣式類別
 const getSeatClass = (seat: Seat) => {
   if (!seat.isActive) {
-    return 'border-gray-300 bg-gray-50 opacity-50'
+    return "border-gray-300 bg-gray-50 opacity-50";
   }
   if (seat.isOccupied) {
-    return 'border-red-500 bg-red-50 hover:border-red-600'
+    return "border-red-500 bg-red-50 hover:border-red-600";
   }
-  return 'border-green-500 bg-green-50 hover:border-green-600'
-}
+  return "border-green-500 bg-green-50 hover:border-green-600";
+};
 
 // 處理座位點擊
 const handleSeatClick = (seat: Seat) => {
-  emit('seatClick', seat)
-}
+  emit("seatClick", seat);
+};
 </script>
 
 <style scoped>
@@ -175,7 +170,8 @@ const handleSeatClick = (seat: Seat) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

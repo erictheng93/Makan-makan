@@ -3,64 +3,66 @@
  * Type-safe, multi-app internationalization
  */
 
-import { createI18n, type I18n, type I18nOptions } from 'vue-i18n'
+import { createI18n, type I18n, type I18nOptions } from "vue-i18n";
 import type {
   SupportedLocale,
   LocaleInfo,
   AdminDashboardMessages,
   CustomerAppMessages,
   KitchenDisplayMessages,
-  TranslationCompletenessCheck
-} from './types'
+  TranslationCompletenessCheck,
+} from "./types";
 
 // Import locale configurations
-export * from './types'
-export { SUPPORTED_LOCALES } from './types'
+export * from "./types";
+export { SUPPORTED_LOCALES } from "./types";
 
 /**
  * Locale detection and storage utilities
  */
 export class LocaleManager {
-  private static readonly STORAGE_KEY = 'makanmakan_locale'
-  private static readonly DEFAULT_LOCALE: SupportedLocale = 'en-US'
+  private static readonly STORAGE_KEY = "makanmakan_locale";
+  private static readonly DEFAULT_LOCALE: SupportedLocale = "en-US";
 
   /**
    * Get stored locale with intelligent fallback
    */
   static getStoredLocale(): SupportedLocale {
     // Check localStorage first
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored && this.isValidLocale(stored)) {
-        return stored as SupportedLocale
+        return stored as SupportedLocale;
       }
 
       // Auto-detect from browser
-      const browserLang = navigator.language || navigator.languages?.[0]
+      const browserLang = navigator.language || navigator.languages?.[0];
       if (browserLang) {
         // Exact match
         if (this.isValidLocale(browserLang)) {
-          return browserLang as SupportedLocale
+          return browserLang as SupportedLocale;
         }
 
         // Language family match
-        const langCode = browserLang.split('-')[0]
+        const langCode = browserLang.split("-")[0];
         switch (langCode) {
-          case 'zh':
+          case "zh":
             // Prefer Traditional Chinese in Taiwan/Hong Kong, Simplified in mainland
-            return browserLang.includes('TW') || browserLang.includes('HK') ? 'zh-TW' : 'zh-CN'
-          case 'ms':
-            return 'ms-MY'
-          case 'id':
-            return 'id-ID'
-          case 'en':
+            return browserLang.includes("TW") || browserLang.includes("HK")
+              ? "zh-TW"
+              : "zh-CN";
+          case "ms":
+            return "ms-MY";
+          case "id":
+            return "id-ID";
+          case "en":
           default:
-            return 'en-US'
+            return "en-US";
         }
       }
     }
 
-    return this.DEFAULT_LOCALE
+    return this.DEFAULT_LOCALE;
   }
 
   /**
@@ -68,17 +70,19 @@ export class LocaleManager {
    */
   static setLocale(locale: SupportedLocale): void {
     if (!this.isValidLocale(locale)) {
-      console.warn(`Invalid locale: ${locale}. Falling back to ${this.DEFAULT_LOCALE}`)
-      locale = this.DEFAULT_LOCALE
+      console.warn(
+        `Invalid locale: ${locale}. Falling back to ${this.DEFAULT_LOCALE}`,
+      );
+      locale = this.DEFAULT_LOCALE;
     }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.STORAGE_KEY, locale)
-      document.documentElement.lang = locale
+    if (typeof window !== "undefined") {
+      localStorage.setItem(this.STORAGE_KEY, locale);
+      document.documentElement.lang = locale;
 
       // Set direction for RTL languages (future-proofing)
-      const localeInfo = this.getLocaleInfo(locale)
-      document.documentElement.dir = localeInfo.direction
+      const localeInfo = this.getLocaleInfo(locale);
+      document.documentElement.dir = localeInfo.direction;
     }
   }
 
@@ -86,24 +90,33 @@ export class LocaleManager {
    * Get locale information
    */
   static getLocaleInfo(locale: SupportedLocale): LocaleInfo {
-    const { SUPPORTED_LOCALES } = require('./types')
-    return SUPPORTED_LOCALES.find((l: any) => l.code === locale) || SUPPORTED_LOCALES[0]
+    const { SUPPORTED_LOCALES } = require("./types");
+    return (
+      SUPPORTED_LOCALES.find((l: any) => l.code === locale) ||
+      SUPPORTED_LOCALES[0]
+    );
   }
 
   /**
    * Check if locale is valid
    */
   static isValidLocale(locale: string): boolean {
-    const validLocales: SupportedLocale[] = ['en-US', 'zh-TW', 'zh-CN', 'ms-MY', 'id-ID']
-    return validLocales.includes(locale as SupportedLocale)
+    const validLocales: SupportedLocale[] = [
+      "en-US",
+      "zh-TW",
+      "zh-CN",
+      "ms-MY",
+      "id-ID",
+    ];
+    return validLocales.includes(locale as SupportedLocale);
   }
 
   /**
    * Get available locales for selection UI
    */
   static getAvailableLocales(): LocaleInfo[] {
-    const { SUPPORTED_LOCALES } = require('./types')
-    return SUPPORTED_LOCALES
+    const { SUPPORTED_LOCALES } = require("./types");
+    return SUPPORTED_LOCALES;
   }
 }
 
@@ -111,43 +124,43 @@ export class LocaleManager {
  * Dynamic message loader for lazy loading
  */
 export class MessageLoader {
-  private static cache = new Map<string, any>()
+  private static cache = new Map<string, any>();
 
   /**
    * Load messages for specific app and locale
    */
   static async loadMessages(
-    app: 'admin' | 'customer' | 'kitchen',
-    locale: SupportedLocale
+    app: "admin" | "customer" | "kitchen",
+    locale: SupportedLocale,
   ): Promise<any> {
-    const cacheKey = `${app}-${locale}`
+    const cacheKey = `${app}-${locale}`;
 
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)
+      return this.cache.get(cacheKey);
     }
 
     try {
       const [common, specific] = await Promise.all([
         import(`./locales/${locale}/common.json`),
-        import(`./locales/${locale}/${app}.json`)
-      ])
+        import(`./locales/${locale}/${app}.json`),
+      ]);
 
       const messages = {
         ...common.default,
-        ...specific.default
-      }
+        ...specific.default,
+      };
 
-      this.cache.set(cacheKey, messages)
-      return messages
+      this.cache.set(cacheKey, messages);
+      return messages;
     } catch (error) {
-      console.error(`Failed to load messages for ${app}-${locale}:`, error)
+      console.error(`Failed to load messages for ${app}-${locale}:`, error);
 
       // Fallback to English
-      if (locale !== 'en-US') {
-        return this.loadMessages(app, 'en-US')
+      if (locale !== "en-US") {
+        return this.loadMessages(app, "en-US");
       }
 
-      throw error
+      throw error;
     }
   }
 
@@ -155,32 +168,34 @@ export class MessageLoader {
    * Preload messages for better UX
    */
   static async preloadMessages(
-    app: 'admin' | 'customer' | 'kitchen',
-    locales: SupportedLocale[] = ['en-US', 'zh-TW']
+    app: "admin" | "customer" | "kitchen",
+    locales: SupportedLocale[] = ["en-US", "zh-TW"],
   ): Promise<void> {
-    const promises = locales.map(locale => this.loadMessages(app, locale))
-    await Promise.allSettled(promises)
+    const promises = locales.map((locale) => this.loadMessages(app, locale));
+    await Promise.allSettled(promises);
   }
 }
 
 /**
  * Create type-safe i18n instance for specific app
  */
-export function createAppI18n<T extends Record<string, unknown> = Record<string, unknown>>(
-  app: 'admin' | 'customer' | 'kitchen',
-  options: Partial<I18nOptions> = {}
+export function createAppI18n<
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(
+  app: "admin" | "customer" | "kitchen",
+  options: Partial<I18nOptions> = {},
 ): I18n<T, {}, {}, string, boolean> {
-  const locale = LocaleManager.getStoredLocale()
+  const locale = LocaleManager.getStoredLocale();
 
   return createI18n({
     legacy: false,
     locale,
-    fallbackLocale: 'en-US',
+    fallbackLocale: "en-US",
     messages: {} as any, // Will be loaded dynamically
     silentTranslationWarn: false,
     silentFallbackWarn: false,
-    ...options
-  }) as I18n<T, {}, {}, string, boolean>
+    ...options,
+  }) as I18n<T, {}, {}, string, boolean>;
 }
 
 /**
@@ -191,28 +206,31 @@ export function createI18nComposable(i18nInstance: I18n) {
     /**
      * Switch locale with persistence
      */
-    async switchLocale(locale: SupportedLocale, app: 'admin' | 'customer' | 'kitchen') {
+    async switchLocale(
+      locale: SupportedLocale,
+      app: "admin" | "customer" | "kitchen",
+    ) {
       try {
         // Load messages if not already loaded
-        const messages = await MessageLoader.loadMessages(app, locale)
+        const messages = await MessageLoader.loadMessages(app, locale);
 
         // Update i18n instance
-        i18nInstance.global.setLocaleMessage(locale, messages)
-        if (typeof i18nInstance.global.locale === 'string') {
+        i18nInstance.global.setLocaleMessage(locale, messages);
+        if (typeof i18nInstance.global.locale === "string") {
           // For legacy mode
-          (i18nInstance.global.locale as any) = locale
+          (i18nInstance.global.locale as any) = locale;
         } else {
           // For composition mode
-          i18nInstance.global.locale.value = locale
+          i18nInstance.global.locale.value = locale;
         }
 
         // Persist the change
-        LocaleManager.setLocale(locale)
+        LocaleManager.setLocale(locale);
 
-        return true
+        return true;
       } catch (error) {
-        console.error('Failed to switch locale:', error)
-        return false
+        console.error("Failed to switch locale:", error);
+        return false;
       }
     },
 
@@ -220,17 +238,19 @@ export function createI18nComposable(i18nInstance: I18n) {
      * Get current locale info
      */
     getCurrentLocaleInfo(): LocaleInfo {
-      const currentLocale = (typeof i18nInstance.global.locale === 'string'
-        ? i18nInstance.global.locale
-        : i18nInstance.global.locale.value) as SupportedLocale
-      return LocaleManager.getLocaleInfo(currentLocale)
+      const currentLocale = (
+        typeof i18nInstance.global.locale === "string"
+          ? i18nInstance.global.locale
+          : i18nInstance.global.locale.value
+      ) as SupportedLocale;
+      return LocaleManager.getLocaleInfo(currentLocale);
     },
 
     /**
      * Get available locales for UI
      */
-    getAvailableLocales: LocaleManager.getAvailableLocales
-  }
+    getAvailableLocales: LocaleManager.getAvailableLocales,
+  };
 }
 
 /**
@@ -238,16 +258,16 @@ export function createI18nComposable(i18nInstance: I18n) {
  * This utility helps catch hardcoded strings in development
  */
 export function createTranslationValidator() {
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     // In development, we can add debugging helpers
-    const originalConsoleWarn = console.warn
+    const originalConsoleWarn = console.warn;
     console.warn = (...args) => {
-      const message = args.join(' ')
-      if (message.includes('translation') && message.includes('not found')) {
-        console.trace('Missing translation detected:', message)
+      const message = args.join(" ");
+      if (message.includes("translation") && message.includes("not found")) {
+        console.trace("Missing translation detected:", message);
       }
-      originalConsoleWarn.apply(console, args)
-    }
+      originalConsoleWarn.apply(console, args);
+    };
   }
 }
 
@@ -257,5 +277,5 @@ export default {
   MessageLoader,
   createAppI18n,
   createI18nComposable,
-  createTranslationValidator
-}
+  createTranslationValidator,
+};

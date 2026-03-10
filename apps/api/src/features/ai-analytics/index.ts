@@ -8,11 +8,11 @@
  * - Usage tracking and statistics
  */
 
-import routes from './routes';
+import routes from "./routes";
 export { routes };
-export { default as aiAnalyticsRoutes } from './routes';
-export { AIAnalyticsService } from './services/AIAnalyticsService';
-export * from './types';
+export { default as aiAnalyticsRoutes } from "./routes";
+export { AIAnalyticsService } from "./services/AIAnalyticsService";
+export * from "./types";
 // Note: schemas re-export types with same names, using explicit exports to avoid conflicts
 export {
   timeRangeSchema,
@@ -22,8 +22,8 @@ export {
   generateAnalyticsSchema,
   productQuerySchema,
   usageQuerySchema,
-} from './schemas/validation';
+} from "./schemas/validation";
 
 export default {
-  routes
+  routes,
 };

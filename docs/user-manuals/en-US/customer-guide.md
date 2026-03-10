@@ -77,6 +77,7 @@ MakanMakan offers two ordering methods, depending on the restaurant's setup:
    - Each table has its own unique QR code
 
 2. **Scan the QR Code**
+
    ```
    Option 1: Use phone camera app
    └─ Open camera and point at QR code
@@ -114,6 +115,7 @@ MakanMakan offers two ordering methods, depending on the restaurant's setup:
 2. **Phone Verification Required (First Time)**
 
    **Step 1: Enter Phone Number**
+
    ```
    ┌──────────────────────────┐
    │  Enter your phone number │
@@ -124,6 +126,7 @@ MakanMakan offers two ordering methods, depending on the restaurant's setup:
    │  [Confirm]               │
    └──────────────────────────┘
    ```
+
    - Enter phone number with country code
    - E.g.: Taiwan +886, Malaysia +60
 
@@ -163,6 +166,7 @@ Register to enjoy more features!
    - Or click "Register Now" on login page
 
 2. **Fill in Registration Form**
+
    ```
    ┌────────────────────────────────┐
    │  Member Registration           │
@@ -216,6 +220,7 @@ Register to enjoy more features!
    - Click "Login" on homepage
 
 2. **Enter Credentials**
+
    ```
    ┌────────────────────────────────┐
    │  Member Login                  │
@@ -324,12 +329,12 @@ Each order displays:
 
 #### 🔍 Order Status
 
-| Status | Description |
-|--------|-------------|
-| 🟡 Pending | Order submitted, awaiting confirmation |
-| 🔵 Preparing | Restaurant accepted, preparing order |
-| 🟢 Completed | Order completed |
-| 🔴 Cancelled | Order cancelled |
+| Status       | Description                            |
+| ------------ | -------------------------------------- |
+| 🟡 Pending   | Order submitted, awaiting confirmation |
+| 🔵 Preparing | Restaurant accepted, preparing order   |
+| 🟢 Completed | Order completed                        |
+| 🔴 Cancelled | Order cancelled                        |
 
 ---
 
@@ -375,6 +380,7 @@ Each order displays:
 3. Results show in real-time
 
 **Examples**:
+
 - Search "beef" → Shows "Beef Noodle", "Beef Rice", etc.
 - Search "vegetarian" → Shows all vegetarian options
 
@@ -393,6 +399,7 @@ Each order displays:
    - Shows detailed item information
 
 2. **View Item Details**
+
    ```
    ┌────────────────────────────────┐
    │  Beef Noodle                   │
@@ -537,6 +544,7 @@ Each order displays:
    - System will confirm order information
 
 4. **Confirm Submission**
+
    ```
    ┌────────────────────────────────┐
    │  ⚠️ Confirm Order Submission?  │
@@ -636,6 +644,7 @@ System sends notifications when:
 - 🔔 Food is ready
 
 **How to receive notifications**:
+
 - Keep browser open
 - Allow site notifications (will ask on first use)
 
@@ -653,6 +662,7 @@ A: Not necessarily. Table ordering works without registration. But registration 
 
 **Q3: Didn't receive verification code?**
 A: Please check:
+
 - Phone number is correct
 - SMS not blocked as spam
 - Network connection is stable
@@ -673,6 +683,7 @@ A: Cart contents saved for 24 hours, may be cleared after timeout.
 
 **Q7: Why can't I add some dishes to cart?**
 A: Possible reasons:
+
 - Item temporarily sold out
 - Not in serving hours (e.g., lunch only)
 - System maintenance
@@ -696,6 +707,7 @@ A: Depends on restaurant policy, please confirm with staff.
 
 **Q11: Why is the page loading slowly?**
 A: Possible reasons:
+
 - Poor network signal
 - Insufficient phone memory
 - Try refreshing the page
@@ -705,6 +717,7 @@ A: Can browse loaded menu, but need internet to submit orders.
 
 **Q13: Which browsers are supported?**
 A: Recommended:
+
 - Safari (iOS)
 - Chrome (Android)
 - Other modern browsers
@@ -784,11 +797,13 @@ When encountering issues, try these solutions:
 If page shows anomalies, try clearing cache:
 
 **iOS Safari:**
+
 1. Go to "Settings" → "Safari"
 2. Tap "Clear History and Website Data"
 3. Confirm clear
 
 **Android Chrome:**
+
 1. Tap menu in top right (three dots)
 2. Go to "Settings" → "Privacy"
 3. Tap "Clear browsing data"
@@ -823,6 +838,7 @@ If this guide doesn't solve your problem, contact us via:
 Found a bug or have suggestions? We welcome your feedback!
 
 **When reporting, please provide:**
+
 - Time when issue occurred
 - Phone model and browser used
 - Detailed problem description
@@ -839,12 +855,14 @@ Enjoy your meal! 😋
 ---
 
 **Document Information**
+
 - Version: 2.0
 - Last Updated: 2025-10-26
 - Language: English (en-US)
 - Next Update: 2025-11-26
 
 **Related Documents**
+
 - [繁體中文](../zh-TW/customer-guide.md)
 - [Tiếng Việt](../vi-VN/customer-guide.md)
 - [Bahasa Indonesia](../id-ID/customer-guide.md)

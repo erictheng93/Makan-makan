@@ -22,10 +22,10 @@
 
 ```typescript
 // ❌ 現況
-const adminUser = { role: USER_ROLES.ADMIN, restaurantId: 1 }
+const adminUser = { role: USER_ROLES.ADMIN, restaurantId: 1 };
 
 // ✅ 遷移後
-const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
+const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } });
 ```
 
 **複雜度**: 🟢 低
@@ -37,10 +37,10 @@ const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
 
 ```typescript
 // ❌ 現況
-const ownerUser = { role: USER_ROLES.OWNER, restaurantId: 1 }
+const ownerUser = { role: USER_ROLES.OWNER, restaurantId: 1 };
 
 // ✅ 遷移後
-const ownerUser = userFactory.buildShopOwner(1)
+const ownerUser = userFactory.buildShopOwner(1);
 ```
 
 **複雜度**: 🟢 低
@@ -52,10 +52,10 @@ const ownerUser = userFactory.buildShopOwner(1)
 
 ```typescript
 // ❌ 現況
-const chefUser = { role: USER_ROLES.CHEF, restaurantId: 1 }
+const chefUser = { role: USER_ROLES.CHEF, restaurantId: 1 };
 
 // ✅ 遷移後
-const chefUser = userFactory.buildChef(1)
+const chefUser = userFactory.buildChef(1);
 ```
 
 **複雜度**: 🟢 低
@@ -67,12 +67,12 @@ const chefUser = userFactory.buildChef(1)
 
 ```typescript
 // ❌ 現況
-const adminUser = { role: USER_ROLES.ADMIN, id: 1, restaurantId: 1 }
-const targetUser = { id: 2, restaurantId: 2 }
+const adminUser = { role: USER_ROLES.ADMIN, id: 1, restaurantId: 1 };
+const targetUser = { id: 2, restaurantId: 2 };
 
 // ✅ 遷移後
-const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } })
-const targetUser = userFactory.build({ overrides: { restaurantId: 2 } })
+const adminUser = userFactory.buildAdmin({ overrides: { restaurantId: 1 } });
+const targetUser = userFactory.build({ overrides: { restaurantId: 2 } });
 ```
 
 **複雜度**: 🟡 中
@@ -84,12 +84,12 @@ const targetUser = userFactory.build({ overrides: { restaurantId: 2 } })
 
 ```typescript
 // ❌ 現況
-const user = { role: USER_ROLES.CHEF, id: 1, restaurantId: 1 }
-const sameUser = { id: 1, restaurantId: 1 }
+const user = { role: USER_ROLES.CHEF, id: 1, restaurantId: 1 };
+const sameUser = { id: 1, restaurantId: 1 };
 
 // ✅ 遷移後
-const user = userFactory.buildChef(1)
-const sameUser = { id: user.id, restaurantId: user.restaurantId }
+const user = userFactory.buildChef(1);
+const sameUser = { id: user.id, restaurantId: user.restaurantId };
 ```
 
 **複雜度**: 🟡 中
@@ -103,14 +103,16 @@ const sameUser = { id: user.id, restaurantId: user.restaurantId }
 
 ```typescript
 // ❌ 現況
-const ownerUser = { role: USER_ROLES.OWNER, id: 1, restaurantId: 1 }
-const staffUser = { id: 2, restaurantId: 1 }
-const otherRestaurantUser = { id: 3, restaurantId: 2 }
+const ownerUser = { role: USER_ROLES.OWNER, id: 1, restaurantId: 1 };
+const staffUser = { id: 2, restaurantId: 1 };
+const otherRestaurantUser = { id: 3, restaurantId: 2 };
 
 // ✅ 遷移後
-const ownerUser = userFactory.buildShopOwner(1)
-const staffUser = userFactory.build({ overrides: { restaurantId: 1 } })
-const otherRestaurantUser = userFactory.build({ overrides: { restaurantId: 2 } })
+const ownerUser = userFactory.buildShopOwner(1);
+const staffUser = userFactory.build({ overrides: { restaurantId: 1 } });
+const otherRestaurantUser = userFactory.build({
+  overrides: { restaurantId: 2 },
+});
 ```
 
 **複雜度**: 🟡 中
@@ -124,37 +126,38 @@ const otherRestaurantUser = userFactory.build({ overrides: { restaurantId: 2 } }
 // ❌ 現況（18 個字段的手動對象）
 const rawUser = {
   id: 1,
-  username: 'testuser',
+  username: "testuser",
   role: USER_ROLES.CHEF,
   restaurantId: 1,
-  email: 'test@example.com',
-  fullName: 'Test User',
-  phone: '+1234567890',
-  address: '123 Test St',
-  dateOfBirth: '1990-01-01',
-  profileImageUrl: 'https://example.com/avatar.jpg',
+  email: "test@example.com",
+  fullName: "Test User",
+  phone: "+1234567890",
+  address: "123 Test St",
+  dateOfBirth: "1990-01-01",
+  profileImageUrl: "https://example.com/avatar.jpg",
   isActive: true,
   isVerified: true,
-  preferences: { theme: 'dark' },
+  preferences: { theme: "dark" },
   totalOrders: 10,
-  totalSpent: 250.50,
-  lastLoginAt: '2023-01-01T00:00:00Z',
-  createdAt: '2022-01-01T00:00:00Z',
-  updatedAt: '2023-01-01T00:00:00Z'
-}
+  totalSpent: 250.5,
+  lastLoginAt: "2023-01-01T00:00:00Z",
+  createdAt: "2022-01-01T00:00:00Z",
+  updatedAt: "2023-01-01T00:00:00Z",
+};
 
 // ✅ 遷移後（factory 已提供所有字段）
 const rawUser = userFactory.buildChef(1, {
   overrides: {
-    preferences: { theme: 'dark' },
+    preferences: { theme: "dark" },
     totalOrders: 10,
-    totalSpent: 250.50
-  }
-})
+    totalSpent: 250.5,
+  },
+});
 ```
 
 **複雜度**: 🔴 高
 **改進**:
+
 - 減少 18 行代碼
 - 所有基礎字段由 factory 自動生成
 - 只需覆蓋特殊字段
@@ -166,12 +169,12 @@ const rawUser = userFactory.buildChef(1, {
 
 ### 可用的 Factory 方法
 
-| 方法 | 用途 | 使用場景 |
-|------|------|----------|
-| `userFactory.buildAdmin()` | 創建 ADMIN | Line 24, 58 |
-| `userFactory.buildShopOwner(restaurantId)` | 創建 OWNER | Line 32, 72 |
-| `userFactory.buildChef(restaurantId)` | 創建 CHEF | Line 49, 65, 83 |
-| `userFactory.build()` | 創建通用用戶 | Line 59, 73, 74 |
+| 方法                                       | 用途         | 使用場景        |
+| ------------------------------------------ | ------------ | --------------- |
+| `userFactory.buildAdmin()`                 | 創建 ADMIN   | Line 24, 58     |
+| `userFactory.buildShopOwner(restaurantId)` | 創建 OWNER   | Line 32, 72     |
+| `userFactory.buildChef(restaurantId)`      | 創建 CHEF    | Line 49, 65, 83 |
+| `userFactory.build()`                      | 創建通用用戶 | Line 59, 73, 74 |
 
 ### 所有測試場景都已覆蓋 ✅
 
@@ -266,22 +269,22 @@ After:
 
 ```typescript
 // 需要確保 sameUser 的 ID 與 user 相同
-const user = userFactory.buildChef(1)
-const sameUser = { id: user.id, restaurantId: user.restaurantId }
+const user = userFactory.buildChef(1);
+const sameUser = { id: user.id, restaurantId: user.restaurantId };
 ```
 
 #### 2. Line 150-159: 常量檢查
 
 ```typescript
 // 這個測試不需要遷移，保持不變
-test('role hierarchy is correctly enforced', () => {
+test("role hierarchy is correctly enforced", () => {
   const roles = [
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
     // ...
-  ]
-  expect(roles).toEqual([0, 1, 2, 3, 4, 5])
-})
+  ];
+  expect(roles).toEqual([0, 1, 2, 3, 4, 5]);
+});
 ```
 
 ---
@@ -325,31 +328,31 @@ test('role hierarchy is correctly enforced', () => {
 
 ```typescript
 // 模式 1: 基本角色創建
-const user = userFactory.buildChef(restaurantId)
+const user = userFactory.buildChef(restaurantId);
 
 // 模式 2: 自定義字段
 const user = userFactory.build({
-  overrides: { email: 'custom@example.com' }
-})
+  overrides: { email: "custom@example.com" },
+});
 
 // 模式 3: 關聯對象
-const user = userFactory.buildChef(restaurant.id)
+const user = userFactory.buildChef(restaurant.id);
 
 // 模式 4: 相同 ID 引用
-const user1 = userFactory.buildChef(1)
-const user2 = { id: user1.id, ...otherFields }
+const user1 = userFactory.buildChef(1);
+const user2 = { id: user1.id, ...otherFields };
 ```
 
 ---
 
 ## 📊 風險評估
 
-| 風險 | 可能性 | 影響 | 緩解措施 |
-|------|--------|------|----------|
-| 測試失敗 | 低 | 中 | 逐步遷移，每步驗證 |
-| ID 衝突 | 低 | 低 | 使用 resetAllFactories |
-| 字段遺漏 | 極低 | 中 | Factory 已包含所有字段 |
-| 性能影響 | 無 | 無 | Factory 性能優異 |
+| 風險     | 可能性 | 影響 | 緩解措施               |
+| -------- | ------ | ---- | ---------------------- |
+| 測試失敗 | 低     | 中   | 逐步遷移，每步驗證     |
+| ID 衝突  | 低     | 低   | 使用 resetAllFactories |
+| 字段遺漏 | 極低   | 中   | Factory 已包含所有字段 |
+| 性能影響 | 無     | 無   | Factory 性能優異       |
 
 **總體風險**: 🟢 低
 

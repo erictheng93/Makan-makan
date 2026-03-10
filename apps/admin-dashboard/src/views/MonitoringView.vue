@@ -26,7 +26,7 @@
                 :is="autoRefresh ? CheckCircleIcon : XCircleIcon"
                 class="w-4 h-4 mr-2"
               />
-              {{ autoRefresh ? '?��??�新' : '?��??�新' }}
+              {{ autoRefresh ? "?��??�新" : "?��??�新" }}
             </button>
 
             <!-- Refresh button -->
@@ -38,7 +38,7 @@
               <ArrowPathIcon
                 :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]"
               />
-              {{ loading ? '?�新�?..' : '立即?�新' }}
+              {{ loading ? "?�新�?.." : "立即?�新" }}
             </button>
           </div>
         </div>
@@ -88,15 +88,13 @@
                             getHealthBadgeColor(overview?.status || 'down'),
                           ]"
                         >
-                          {{ getHealthStatusText(overview?.status || 'down') }}
+                          {{ getHealthStatusText(overview?.status || "down") }}
                         </span>
                       </div>
 
                       <div class="mt-3 flex items-center space-x-6">
                         <div>
-                          <div class="text-sm text-gray-500 mb-1">
-                            ?�康?�數
-                          </div>
+                          <div class="text-sm text-gray-500 mb-1">?�康?�數</div>
                           <div class="flex items-baseline">
                             <span class="text-4xl font-bold text-gray-900">
                               {{ healthScore }}
@@ -115,9 +113,7 @@
                         </div>
 
                         <div>
-                          <div class="text-sm text-gray-500 mb-1">
-                            ?�後更??
-                          </div>
+                          <div class="text-sm text-gray-500 mb-1">?�後更??</div>
                           <div class="text-lg font-semibold text-gray-900">
                             {{ formatLastUpdate(lastUpdateTime) }}
                           </div>
@@ -126,7 +122,9 @@
 
                       <!-- Health Score Progress Bar -->
                       <div class="mt-4 max-w-md">
-                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <div
+                          class="flex justify-between text-sm text-gray-600 mb-1"
+                        >
                           <span>系統健康度</span>
                           <span>{{ healthScore }}%</span>
                         </div>
@@ -144,7 +142,11 @@
 
                     <!-- Health Score Gauge Chart -->
                     <div class="flex-shrink-0">
-                      <HealthScoreGauge :score="healthScore" label="?�康?�數" :size="200" />
+                      <HealthScoreGauge
+                        :score="healthScore"
+                        label="?�康?�數"
+                        :size="200"
+                      />
                     </div>
                   </div>
                 </div>
@@ -171,7 +173,10 @@
                         metric.bgColor,
                       ]"
                     >
-                      <component :is="metric.icon" :class="['w-6 h-6', metric.iconColor]" />
+                      <component
+                        :is="metric.icon"
+                        :class="['w-6 h-6', metric.iconColor]"
+                      />
                     </div>
                   </div>
                   <div class="ml-5 w-0 flex-1">
@@ -189,7 +194,10 @@
                             metric.trendColor,
                           ]"
                         >
-                          <component :is="metric.trendIcon" class="w-4 h-4 mr-1" />
+                          <component
+                            :is="metric.trendIcon"
+                            class="w-4 h-4 mr-1"
+                          />
                           {{ metric.trend }}
                         </div>
                       </dd>
@@ -264,14 +272,25 @@
                   <div v-if="component.issues.length > 0">
                     ?��?: {{ component.issues.length }} ??
                   </div>
-                  <div>?�後檢?? {{ formatRelativeTime(component.lastCheck) }}</div>
+                  <div>
+                    ?�後檢?? {{ formatRelativeTime(component.lastCheck) }}
+                  </div>
                 </div>
 
                 <!-- Issues List -->
-                <div v-if="component.issues.length > 0" class="mt-3 pt-3 border-t border-gray-200">
-                  <div class="text-xs font-medium text-red-600 mb-1">?�現?��?:</div>
+                <div
+                  v-if="component.issues.length > 0"
+                  class="mt-3 pt-3 border-t border-gray-200"
+                >
+                  <div class="text-xs font-medium text-red-600 mb-1">
+                    ?�現?��?:
+                  </div>
                   <ul class="text-xs text-red-600 space-y-1">
-                    <li v-for="(issue, idx) in component.issues" :key="idx" class="truncate">
+                    <li
+                      v-for="(issue, idx) in component.issues"
+                      :key="idx"
+                      class="truncate"
+                    >
                       ??{{ issue }}
                     </li>
                   </ul>
@@ -353,7 +372,7 @@
                                 : 'bg-gray-100 text-gray-800',
                             ]"
                           >
-                            {{ rule.isActive ? '?�用' : '?�用' }}
+                            {{ rule.isActive ? "?�用" : "?�用" }}
                           </span>
                           <span
                             :class="[
@@ -364,11 +383,16 @@
                             {{ getAlertSeverityText(rule.config.severity) }}
                           </span>
                         </div>
-                        <p class="mt-1 text-sm text-gray-500">{{ rule.condition }}</p>
-                        <div class="mt-2 flex items-center text-xs text-gray-500 space-x-4">
+                        <p class="mt-1 text-sm text-gray-500">
+                          {{ rule.condition }}
+                        </p>
+                        <div
+                          class="mt-2 flex items-center text-xs text-gray-500 space-x-4"
+                        >
                           <span>觸發次數: {{ rule.triggerCount }}</span>
                           <span v-if="rule.lastTriggered">
-                            ?�後觸?? {{ formatRelativeTime(rule.lastTriggered) }}
+                            ?�後觸??
+                            {{ formatRelativeTime(rule.lastTriggered) }}
                           </span>
                         </div>
                       </div>
@@ -395,7 +419,9 @@
 
                 <div v-else class="text-center py-12">
                   <BellIcon class="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 class="mt-2 text-sm font-medium text-gray-900">沒�?警報規�?</h3>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900">
+                    沒�?警報規�?
+                  </h3>
                   <p class="mt-1 text-sm text-gray-500">
                     ?��??�建警報規�?來監?�系統�???
                   </p>
@@ -429,24 +455,36 @@
                 <div v-if="performanceReport">
                   <!-- API Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
-                    <h4 class="text-md font-medium text-gray-900 mb-4">API ?�能</h4>
+                    <h4 class="text-md font-medium text-gray-900 mb-4">
+                      API ?�能
+                    </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
                         <dt class="text-sm text-gray-500">總�?求數</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.apiPerformance.totalRequests.toLocaleString() }}
+                          {{
+                            performanceReport.apiPerformance.totalRequests.toLocaleString()
+                          }}
                         </dd>
                       </div>
                       <div>
                         <dt class="text-sm text-gray-500">平�??��??��?</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.apiPerformance.averageResponseTime.toFixed(0) }}ms
+                          {{
+                            performanceReport.apiPerformance.averageResponseTime.toFixed(
+                              0,
+                            )
+                          }}ms
                         </dd>
                       </div>
                       <div>
                         <dt class="text-sm text-gray-500">P95 ?��??��?</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.apiPerformance.p95ResponseTime.toFixed(0) }}ms
+                          {{
+                            performanceReport.apiPerformance.p95ResponseTime.toFixed(
+                              0,
+                            )
+                          }}ms
                         </dd>
                       </div>
                       <div>
@@ -460,30 +498,42 @@
 
                   <!-- Database Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
-                    <h4 class="text-md font-medium text-gray-900 mb-4">資�?庫性能</h4>
+                    <h4 class="text-md font-medium text-gray-900 mb-4">
+                      資�?庫性能
+                    </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
                         <dt class="text-sm text-gray-500">總查詢數</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.databasePerformance.totalQueries.toLocaleString() }}
+                          {{
+                            performanceReport.databasePerformance.totalQueries.toLocaleString()
+                          }}
                         </dd>
                       </div>
                       <div>
                         <dt class="text-sm text-gray-500">平�??�詢?��?</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.databasePerformance.averageQueryTime.toFixed(0) }}ms
+                          {{
+                            performanceReport.databasePerformance.averageQueryTime.toFixed(
+                              0,
+                            )
+                          }}ms
                         </dd>
                       </div>
                       <div>
                         <dt class="text-sm text-gray-500">?�查詢數</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.databasePerformance.slowQueries }}
+                          {{
+                            performanceReport.databasePerformance.slowQueries
+                          }}
                         </dd>
                       </div>
                       <div>
                         <dt class="text-sm text-gray-500">查詢錯誤率</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                          {{ performanceReport.databasePerformance.queryErrorRate }}
+                          {{
+                            performanceReport.databasePerformance.queryErrorRate
+                          }}
                         </dd>
                       </div>
                     </dl>
@@ -491,7 +541,9 @@
 
                   <!-- Cache Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
-                    <h4 class="text-md font-medium text-gray-900 mb-4">快�??�能</h4>
+                    <h4 class="text-md font-medium text-gray-900 mb-4">
+                      快�??�能
+                    </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
                         <dt class="text-sm text-gray-500">命中率</dt>
@@ -521,7 +573,10 @@
                   </div>
 
                   <!-- Performance Trend Charts -->
-                  <div v-if="performanceChartData.length > 0" class="space-y-6 mt-6">
+                  <div
+                    v-if="performanceChartData.length > 0"
+                    class="space-y-6 mt-6"
+                  >
                     <!-- Multi-metric comparison chart -->
                     <div class="bg-gray-50 rounded-lg p-6">
                       <h4 class="text-md font-medium text-gray-900 mb-4">
@@ -563,11 +618,15 @@
                         <InformationCircleIcon class="h-5 w-5 text-blue-400" />
                       </div>
                       <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800">優化建議</h3>
+                        <h3 class="text-sm font-medium text-blue-800">
+                          優化建議
+                        </h3>
                         <div class="mt-2 text-sm text-blue-700">
                           <ul class="list-disc list-inside space-y-1">
                             <li
-                              v-for="(recommendation, idx) in performanceReport.recommendations"
+                              v-for="(
+                                recommendation, idx
+                              ) in performanceReport.recommendations"
                               :key="idx"
                             >
                               {{ recommendation }}
@@ -581,7 +640,9 @@
 
                 <div v-else class="text-center py-12">
                   <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 class="mt-2 text-sm font-medium text-gray-900">載入?�能?��?�?..</h3>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900">
+                    載入?�能?��?�?..
+                  </h3>
                 </div>
               </div>
 
@@ -589,10 +650,15 @@
               <div v-if="activeTab === 'errors'" class="space-y-4">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">?�誤?��?</h3>
 
-                <div v-if="overview?.topErrors && overview.topErrors.length > 0" class="space-y-6">
+                <div
+                  v-if="overview?.topErrors && overview.topErrors.length > 0"
+                  class="space-y-6"
+                >
                   <!-- Error bar chart -->
                   <div class="bg-gray-50 rounded-lg p-6">
-                    <h4 class="text-md font-medium text-gray-900 mb-4">?�誤類�?統�?</h4>
+                    <h4 class="text-md font-medium text-gray-900 mb-4">
+                      ?�誤類�?統�?
+                    </h4>
                     <div class="h-80">
                       <MetricBarChart
                         :data="errorBarChartData"
@@ -613,8 +679,12 @@
                     >
                       <div class="flex items-center justify-between">
                         <div>
-                          <h4 class="text-sm font-medium text-gray-900">{{ error.type }}</h4>
-                          <p class="text-sm text-gray-500 mt-1">?��?次數: {{ error.count }}</p>
+                          <h4 class="text-sm font-medium text-gray-900">
+                            {{ error.type }}
+                          </h4>
+                          <p class="text-sm text-gray-500 mt-1">
+                            ?��?次數: {{ error.count }}
+                          </p>
                         </div>
                         <ExclamationTriangleIcon class="w-6 h-6 text-red-500" />
                       </div>
@@ -624,7 +694,9 @@
 
                 <div v-else class="text-center py-12">
                   <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
-                  <h3 class="mt-2 text-sm font-medium text-gray-900">?�無?�誤記�?</h3>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900">
+                    ?�無?�誤記�?
+                  </h3>
                   <p class="mt-1 text-sm text-gray-500">系統?��?�?��</p>
                 </div>
               </div>
@@ -658,8 +730,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useToast } from "vue-toastification";
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -678,132 +750,132 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   MinusIcon,
-} from '@heroicons/vue/24/outline'
-import { monitoringService } from '@/services/monitoringService'
+} from "@heroicons/vue/24/outline";
+import { monitoringService } from "@/services/monitoringService";
 import type {
   MonitoringOverview,
   SystemMetrics,
   AlertRule,
   PerformanceReport,
   HealthStatusType,
-} from '@/types/monitoring'
-import HealthScoreGauge from '@/components/monitoring/HealthScoreGauge.vue'
-import MultiMetricChart from '@/components/monitoring/MultiMetricChart.vue'
-import MetricBarChart from '@/components/monitoring/MetricBarChart.vue'
-import MetricTrendChart from '@/components/monitoring/MetricTrendChart.vue'
-import AlertNotificationPanel from '@/components/monitoring/AlertNotificationPanel.vue'
-import { monitoringWebSocket } from '@/services/monitoringWebSocket'
+} from "@/types/monitoring";
+import HealthScoreGauge from "@/components/monitoring/HealthScoreGauge.vue";
+import MultiMetricChart from "@/components/monitoring/MultiMetricChart.vue";
+import MetricBarChart from "@/components/monitoring/MetricBarChart.vue";
+import MetricTrendChart from "@/components/monitoring/MetricTrendChart.vue";
+import AlertNotificationPanel from "@/components/monitoring/AlertNotificationPanel.vue";
+import { monitoringWebSocket } from "@/services/monitoringWebSocket";
 
-const toast = useToast()
+const toast = useToast();
 
 // ============================================================================
 // State
 // ============================================================================
 
-const loading = ref(false)
-const initialLoading = ref(true)
-const autoRefresh = ref(true)
-const lastUpdateTime = ref(Date.now())
-const showCreateAlertDialog = ref(false)
+const loading = ref(false);
+const initialLoading = ref(true);
+const autoRefresh = ref(true);
+const lastUpdateTime = ref(Date.now());
+const showCreateAlertDialog = ref(false);
 
-const overview = ref<MonitoringOverview | null>(null)
-const metrics = ref<SystemMetrics | null>(null)
-const alertRules = ref<AlertRule[]>([])
-const performanceReport = ref<PerformanceReport | null>(null)
+const overview = ref<MonitoringOverview | null>(null);
+const metrics = ref<SystemMetrics | null>(null);
+const alertRules = ref<AlertRule[]>([]);
+const performanceReport = ref<PerformanceReport | null>(null);
 
-const activeTab = ref<'alerts' | 'performance' | 'errors'>('alerts')
-const reportDays = ref(7)
+const activeTab = ref<"alerts" | "performance" | "errors">("alerts");
+const reportDays = ref(7);
 
 // WebSocket state
-const wsConnected = ref(false)
-const wsAlerts = monitoringWebSocket.alerts
-const wsConnectionStatus = monitoringWebSocket.connectionStatus
+const wsConnected = ref(false);
+const wsAlerts = monitoringWebSocket.alerts;
+const wsConnectionStatus = monitoringWebSocket.connectionStatus;
 
-let refreshInterval: NodeJS.Timeout | null = null
+let refreshInterval: NodeJS.Timeout | null = null;
 
 // ============================================================================
 // Computed
 // ============================================================================
 
 const healthScore = computed(() => {
-  if (!metrics.value) return 0
-  return monitoringService.calculateHealthScore(metrics.value)
-})
+  if (!metrics.value) return 0;
+  return monitoringService.calculateHealthScore(metrics.value);
+});
 
 const tabs = computed(() => [
   {
-    id: 'alerts',
-    name: '警報規�?',
+    id: "alerts",
+    name: "警報規�?",
     icon: BellIcon,
     badge: alertRules.value.length,
   },
   {
-    id: 'performance',
-    name: '?�能?��?',
+    id: "performance",
+    name: "?�能?��?",
     icon: ChartBarIcon,
     badge: null,
   },
   {
-    id: 'errors',
-    name: '?�誤?��?',
+    id: "errors",
+    name: "?�誤?��?",
     icon: ExclamationTriangleIcon,
     badge: overview.value?.topErrors?.length || 0,
   },
-])
+]);
 
 const keyMetricsCards = computed(() => {
-  if (!overview.value) return []
+  if (!overview.value) return [];
 
   return [
     {
-      id: 'requests',
-      name: '每�??��?求數',
+      id: "requests",
+      name: "每�??��?求數",
       value: overview.value.keyMetrics.requestsPerMinute,
-      trend: '+12%',
+      trend: "+12%",
       trendIcon: ArrowTrendingUpIcon,
-      trendColor: 'text-green-600',
+      trendColor: "text-green-600",
       icon: ServerIcon,
-      iconColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      iconColor: "text-blue-600",
+      bgColor: "bg-blue-50",
     },
     {
-      id: 'response',
-      name: '平�??��??��?',
+      id: "response",
+      name: "平�??��??��?",
       value: overview.value.keyMetrics.averageResponseTime,
-      trend: '-5%',
+      trend: "-5%",
       trendIcon: ArrowTrendingDownIcon,
-      trendColor: 'text-green-600',
+      trendColor: "text-green-600",
       icon: ClockIcon,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-50',
+      iconColor: "text-green-600",
+      bgColor: "bg-green-50",
     },
     {
-      id: 'cache',
-      name: '快取命中率',
+      id: "cache",
+      name: "快取命中率",
       value: overview.value.keyMetrics.cacheHitRate,
-      trend: '+3%',
+      trend: "+3%",
       trendIcon: ArrowTrendingUpIcon,
-      trendColor: 'text-green-600',
+      trendColor: "text-green-600",
       icon: CircleStackIcon,
-      iconColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      iconColor: "text-purple-600",
+      bgColor: "bg-purple-50",
     },
     {
-      id: 'errors',
-      name: '活�??�誤',
+      id: "errors",
+      name: "活�??�誤",
       value: overview.value.keyMetrics.activeErrors,
-      trend: 'stable',
+      trend: "stable",
       trendIcon: MinusIcon,
-      trendColor: 'text-gray-400',
+      trendColor: "text-gray-400",
       icon: ExclamationTriangleIcon,
-      iconColor: 'text-red-600',
-      bgColor: 'bg-red-50',
+      iconColor: "text-red-600",
+      bgColor: "bg-red-50",
     },
-  ]
-})
+  ];
+});
 
 const componentsStatus = computed(() => {
-  if (!overview.value) return []
+  if (!overview.value) return [];
 
   return overview.value.components.map((comp) => ({
     name: comp.name,
@@ -814,108 +886,113 @@ const componentsStatus = computed(() => {
     errorRate: 0, // Would be calculated from actual data
     issues: [], // Would come from actual data
     lastCheck: comp.lastCheck,
-  }))
-})
+  }));
+});
 
 // Chart data - Generate mock historical trend data
 const performanceChartData = computed(() => {
-  if (!metrics.value) return []
+  if (!metrics.value) return [];
 
   // Generate 24 hours of data points (one per hour)
-  const now = Date.now()
-  const data = []
+  const now = Date.now();
+  const data = [];
 
   for (let i = 23; i >= 0; i--) {
-    const timestamp = now - i * 60 * 60 * 1000
+    const timestamp = now - i * 60 * 60 * 1000;
     data.push({
       timestamp,
-      apiResponseTime: metrics.value.apiMetrics.averageResponseTime + Math.random() * 50 - 25,
-      dbQueryTime: metrics.value.databaseMetrics.averageQueryTime + Math.random() * 20 - 10,
-      cacheHitRate: metrics.value.cacheMetrics.hitRate + Math.random() * 0.1 - 0.05,
-    })
+      apiResponseTime:
+        metrics.value.apiMetrics.averageResponseTime + Math.random() * 50 - 25,
+      dbQueryTime:
+        metrics.value.databaseMetrics.averageQueryTime +
+        Math.random() * 20 -
+        10,
+      cacheHitRate:
+        metrics.value.cacheMetrics.hitRate + Math.random() * 0.1 - 0.05,
+    });
   }
 
-  return data
-})
+  return data;
+});
 
 const multiMetricChartSeries = computed(() => [
   {
-    label: 'API ?��??��?',
+    label: "API ?��??��?",
     data: performanceChartData.value.map((d) => ({
       timestamp: d.timestamp,
       value: d.apiResponseTime,
     })),
-    color: '#3b82f6',
-    fillColor: 'rgba(59, 130, 246, 0.1)',
+    color: "#3b82f6",
+    fillColor: "rgba(59, 130, 246, 0.1)",
   },
   {
-    label: '資料庫查詢時間',
+    label: "資料庫查詢時間",
     data: performanceChartData.value.map((d) => ({
       timestamp: d.timestamp,
       value: d.dbQueryTime,
     })),
-    color: '#10b981',
-    fillColor: 'rgba(16, 185, 129, 0.1)',
+    color: "#10b981",
+    fillColor: "rgba(16, 185, 129, 0.1)",
   },
-])
+]);
 
 const cacheHitRateTrendData = computed(() =>
   performanceChartData.value.map((d) => ({
     timestamp: d.timestamp,
     value: d.cacheHitRate * 100,
-  }))
-)
+  })),
+);
 
 const errorBarChartData = computed(() => {
-  if (!overview.value?.topErrors) return []
+  if (!overview.value?.topErrors) return [];
 
   return overview.value.topErrors.map((error) => ({
     label: error.type,
     value: error.count,
-    color: '#ef4444',
-  }))
-})
+    color: "#ef4444",
+  }));
+});
 
 // ============================================================================
 // Methods
 // ============================================================================
 
 async function refreshAllData() {
-  loading.value = true
+  loading.value = true;
   try {
-    await Promise.all([loadOverview(), loadMetrics(), loadAlertRules()])
-    lastUpdateTime.value = Date.now()
-    toast.success('數據已更新')
+    await Promise.all([loadOverview(), loadMetrics(), loadAlertRules()]);
+    lastUpdateTime.value = Date.now();
+    toast.success("數據已更新");
   } catch (error) {
-    console.error('Failed to refresh data:', error)
-    toast.error('重新整理數據失敗')
+    console.error("Failed to refresh data:", error);
+    toast.error("重新整理數據失敗");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadOverview() {
   try {
-    overview.value = await monitoringService.getOverview()
+    overview.value = await monitoringService.getOverview();
   } catch (error) {
-    console.error('Failed to load overview:', error)
+    console.error("Failed to load overview:", error);
   }
 }
 
 async function loadMetrics() {
   try {
-    metrics.value = await monitoringService.getMetrics()
+    metrics.value = await monitoringService.getMetrics();
   } catch (error) {
-    console.error('Failed to load metrics:', error)
+    console.error("Failed to load metrics:", error);
   }
 }
 
 async function loadAlertRules() {
   try {
-    const response = await monitoringService.getAlertRules()
-    alertRules.value = response.rules
+    const response = await monitoringService.getAlertRules();
+    alertRules.value = response.rules;
   } catch (error) {
-    console.error('Failed to load alert rules:', error)
+    console.error("Failed to load alert rules:", error);
   }
 }
 
@@ -923,10 +1000,10 @@ async function loadPerformanceReport() {
   try {
     performanceReport.value = await monitoringService.getPerformanceReport({
       days: reportDays.value,
-    })
+    });
   } catch (error) {
-    console.error('Failed to load performance report:', error)
-    toast.error('載入性能報告失敗')
+    console.error("Failed to load performance report:", error);
+    toast.error("載入性能報告失敗");
   }
 }
 
@@ -934,49 +1011,49 @@ async function toggleAlertRule(rule: AlertRule) {
   try {
     await monitoringService.updateAlertRule(rule.id, {
       isActive: !rule.isActive,
-    })
-    await loadAlertRules()
-    toast.success(rule.isActive ? '警報規則已停用' : '警報規則已啟用')
+    });
+    await loadAlertRules();
+    toast.success(rule.isActive ? "警報規則已停用" : "警報規則已啟用");
   } catch (error) {
-    console.error('Failed to toggle alert rule:', error)
-    toast.error('更新警報規則失敗')
+    console.error("Failed to toggle alert rule:", error);
+    toast.error("更新警報規則失敗");
   }
 }
 
 async function deleteAlert(id: string) {
-  if (!confirm('確定要刪除這個警報規則嗎?')) return
+  if (!confirm("確定要刪除這個警報規則嗎?")) return;
 
   try {
-    await monitoringService.deleteAlertRule(id)
-    await loadAlertRules()
-    toast.success('警報規則已刪除')
+    await monitoringService.deleteAlertRule(id);
+    await loadAlertRules();
+    toast.success("警報規則已刪除");
   } catch (error) {
-    console.error('Failed to delete alert rule:', error)
-    toast.error('刪除警報規則失敗')
+    console.error("Failed to delete alert rule:", error);
+    toast.error("刪除警報規則失敗");
   }
 }
 
 function toggleAutoRefresh() {
-  autoRefresh.value = !autoRefresh.value
+  autoRefresh.value = !autoRefresh.value;
   if (autoRefresh.value) {
-    startAutoRefresh()
-    toast.info('已啟用自動更新')
+    startAutoRefresh();
+    toast.info("已啟用自動更新");
   } else {
-    stopAutoRefresh()
-    toast.info('已停用自動更新')
+    stopAutoRefresh();
+    toast.info("已停用自動更新");
   }
 }
 
 function startAutoRefresh() {
   refreshInterval = setInterval(() => {
-    refreshAllData()
-  }, 30000) // 30 seconds
+    refreshAllData();
+  }, 30000); // 30 seconds
 }
 
 function stopAutoRefresh() {
   if (refreshInterval) {
-    clearInterval(refreshInterval)
-    refreshInterval = null
+    clearInterval(refreshInterval);
+    refreshInterval = null;
   }
 }
 
@@ -990,121 +1067,121 @@ function getHealthIcon(status: HealthStatusType) {
     warning: ExclamationTriangleIcon,
     critical: XCircleIcon,
     down: XCircleIcon,
-  }
-  return iconMap[status] || XCircleIcon
+  };
+  return iconMap[status] || XCircleIcon;
 }
 
 function getHealthBgColor(status: HealthStatusType) {
   const colorMap = {
-    healthy: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    critical: 'bg-red-500',
-    down: 'bg-gray-500',
-  }
-  return colorMap[status] || 'bg-gray-500'
+    healthy: "bg-green-500",
+    warning: "bg-yellow-500",
+    critical: "bg-red-500",
+    down: "bg-gray-500",
+  };
+  return colorMap[status] || "bg-gray-500";
 }
 
 function getHealthBadgeColor(status: HealthStatusType) {
   const colorMap = {
-    healthy: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    critical: 'bg-red-100 text-red-800',
-    down: 'bg-gray-100 text-gray-800',
-  }
-  return colorMap[status] || 'bg-gray-100 text-gray-800'
+    healthy: "bg-green-100 text-green-800",
+    warning: "bg-yellow-100 text-yellow-800",
+    critical: "bg-red-100 text-red-800",
+    down: "bg-gray-100 text-gray-800",
+  };
+  return colorMap[status] || "bg-gray-100 text-gray-800";
 }
 
 function getHealthStatusText(status: HealthStatusType) {
   const textMap = {
-    healthy: '?�康',
-    warning: '警�?',
-    critical: '?��?',
-    down: '?��?',
-  }
-  return textMap[status] || '?�知'
+    healthy: "?�康",
+    warning: "警�?",
+    critical: "?��?",
+    down: "?��?",
+  };
+  return textMap[status] || "?�知";
 }
 
 function getHealthScoreColor(score: number) {
-  if (score >= 80) return 'bg-green-500'
-  if (score >= 60) return 'bg-yellow-500'
-  return 'bg-red-500'
+  if (score >= 80) return "bg-green-500";
+  if (score >= 60) return "bg-yellow-500";
+  return "bg-red-500";
 }
 
 function getComponentStatusColor(status: HealthStatusType) {
   const colorMap = {
-    healthy: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    critical: 'bg-red-100 text-red-800',
-    down: 'bg-gray-100 text-gray-800',
-  }
-  return colorMap[status] || 'bg-gray-100 text-gray-800'
+    healthy: "bg-green-100 text-green-800",
+    warning: "bg-yellow-100 text-yellow-800",
+    critical: "bg-red-100 text-red-800",
+    down: "bg-gray-100 text-gray-800",
+  };
+  return colorMap[status] || "bg-gray-100 text-gray-800";
 }
 
 function getComponentStatusText(status: HealthStatusType) {
   const textMap = {
-    healthy: '健康',
-    warning: '警告',
-    critical: '嚴重',
-    down: '停機',
-  }
-  return textMap[status] || '未知'
+    healthy: "健康",
+    warning: "警告",
+    critical: "嚴重",
+    down: "停機",
+  };
+  return textMap[status] || "未知";
 }
 
 function getComponentDisplayName(name: string) {
   const nameMap: Record<string, string> = {
-    api: 'API 服務',
-    database: '資料庫',
-    cache: '快取服務',
-    external: '外部服務',
-  }
-  return nameMap[name] || name
+    api: "API 服務",
+    database: "資料庫",
+    cache: "快取服務",
+    external: "外部服務",
+  };
+  return nameMap[name] || name;
 }
 
 function calculateComponentHealthScore(component: any): number {
-  let score = 100
+  let score = 100;
 
-  if (component.status === 'critical') score -= 50
-  else if (component.status === 'warning') score -= 25
-  else if (component.status === 'down') score = 0
+  if (component.status === "critical") score -= 50;
+  else if (component.status === "warning") score -= 25;
+  else if (component.status === "down") score = 0;
 
-  if (component.latency && component.latency > 1000) score -= 20
-  else if (component.latency && component.latency > 500) score -= 10
+  if (component.latency && component.latency > 1000) score -= 20;
+  else if (component.latency && component.latency > 500) score -= 10;
 
-  if (component.issues) score -= Math.min(20, component.issues * 5)
+  if (component.issues) score -= Math.min(20, component.issues * 5);
 
-  return Math.max(0, score)
+  return Math.max(0, score);
 }
 
 function getAlertSeverityBadgeColor(severity: string) {
   const colorMap: Record<string, string> = {
-    info: 'bg-blue-100 text-blue-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    critical: 'bg-red-100 text-red-800',
-    fatal: 'bg-purple-100 text-purple-800',
-  }
-  return colorMap[severity] || 'bg-gray-100 text-gray-800'
+    info: "bg-blue-100 text-blue-800",
+    warning: "bg-yellow-100 text-yellow-800",
+    critical: "bg-red-100 text-red-800",
+    fatal: "bg-purple-100 text-purple-800",
+  };
+  return colorMap[severity] || "bg-gray-100 text-gray-800";
 }
 
 function getAlertSeverityText(severity: string) {
   const textMap: Record<string, string> = {
-    info: '資�?',
-    warning: '警�?',
-    critical: '?��?',
-    fatal: '?�命',
-  }
-  return textMap[severity] || '?�知'
+    info: "資�?",
+    warning: "警�?",
+    critical: "?��?",
+    fatal: "?�命",
+  };
+  return textMap[severity] || "?�知";
 }
 
 function formatUptime(seconds: number) {
-  return monitoringService.formatUptime(seconds)
+  return monitoringService.formatUptime(seconds);
 }
 
 function formatLastUpdate(timestamp: number) {
-  return monitoringService.formatRelativeTime(timestamp)
+  return monitoringService.formatRelativeTime(timestamp);
 }
 
 function formatRelativeTime(timestamp: number) {
-  return monitoringService.formatRelativeTime(timestamp)
+  return monitoringService.formatRelativeTime(timestamp);
 }
 
 // ============================================================================
@@ -1114,38 +1191,40 @@ function formatRelativeTime(timestamp: number) {
 function connectWebSocket() {
   try {
     // Get auth token from localStorage
-    const token = localStorage.getItem('auth_token') || ''
+    const token = localStorage.getItem("auth_token") || "";
     if (token) {
-      monitoringWebSocket.connect(token)
-      wsConnected.value = true
-      console.log('[MonitoringView] WebSocket connection initiated')
+      monitoringWebSocket.connect(token);
+      wsConnected.value = true;
+      console.log("[MonitoringView] WebSocket connection initiated");
     } else {
-      console.warn('[MonitoringView] No auth token found, WebSocket not connected')
+      console.warn(
+        "[MonitoringView] No auth token found, WebSocket not connected",
+      );
     }
   } catch (error) {
-    console.error('[MonitoringView] Failed to connect WebSocket:', error)
-    toast.error('連接到警報系統失敗')
+    console.error("[MonitoringView] Failed to connect WebSocket:", error);
+    toast.error("連接到警報系統失敗");
   }
 }
 
 function disconnectWebSocket() {
-  monitoringWebSocket.disconnect()
-  wsConnected.value = false
+  monitoringWebSocket.disconnect();
+  wsConnected.value = false;
 }
 
 function handleAcknowledgeAlert(alertId: string) {
-  monitoringWebSocket.acknowledgeAlert(alertId)
-  toast.success('警報已確認')
+  monitoringWebSocket.acknowledgeAlert(alertId);
+  toast.success("警報已確認");
 }
 
 function handleClearAllAlerts() {
-  monitoringWebSocket.clearAllAlerts()
-  toast.info('已清除所有警報')
+  monitoringWebSocket.clearAllAlerts();
+  toast.info("已清除所有警報");
 }
 
 function handleReconnectWebSocket() {
-  toast.info('重新連線中...')
-  connectWebSocket()
+  toast.info("重新連線中...");
+  connectWebSocket();
 }
 
 // ============================================================================
@@ -1153,33 +1232,33 @@ function handleReconnectWebSocket() {
 // ============================================================================
 
 onMounted(async () => {
-  initialLoading.value = true
+  initialLoading.value = true;
   try {
     await Promise.all([
       loadOverview(),
       loadMetrics(),
       loadAlertRules(),
       loadPerformanceReport(),
-    ])
+    ]);
   } catch (error) {
-    console.error('Failed to initialize monitoring view:', error)
-    toast.error('載入??��?��?失�?')
+    console.error("Failed to initialize monitoring view:", error);
+    toast.error("載入??��?��?失�?");
   } finally {
-    initialLoading.value = false
+    initialLoading.value = false;
   }
 
   if (autoRefresh.value) {
-    startAutoRefresh()
+    startAutoRefresh();
   }
 
   // Connect to WebSocket for real-time alerts
-  connectWebSocket()
-})
+  connectWebSocket();
+});
 
 onUnmounted(() => {
-  stopAutoRefresh()
-  disconnectWebSocket()
-})
+  stopAutoRefresh();
+  disconnectWebSocket();
+});
 </script>
 
 <style scoped>
@@ -1196,7 +1275,8 @@ onUnmounted(() => {
 
 /* Smooth transitions */
 * {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }

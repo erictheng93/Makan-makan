@@ -10,22 +10,24 @@
 
 ## 🎯 優化目標
 
-| 指標 | 優化前 | 優化後 | 改善幅度 |
-|------|--------|--------|----------|
-| 圖片大小 (AVIF) | 100KB (JPEG) | 40-50KB | **-50-60%** ✅ |
-| 圖片大小 (WebP) | 100KB (JPEG) | 60-70KB | **-30-40%** ✅ |
-| 格式支援檢測 | 手動 | 自動 | **100% 自動化** ✅ |
-| 響應式圖片 | 無 | srcset | **多尺寸支援** ✅ |
-| Cloudflare Images 集成 | 部分 | 完整 | **全面整合** ✅ |
+| 指標                   | 優化前       | 優化後  | 改善幅度           |
+| ---------------------- | ------------ | ------- | ------------------ |
+| 圖片大小 (AVIF)        | 100KB (JPEG) | 40-50KB | **-50-60%** ✅     |
+| 圖片大小 (WebP)        | 100KB (JPEG) | 60-70KB | **-30-40%** ✅     |
+| 格式支援檢測           | 手動         | 自動    | **100% 自動化** ✅ |
+| 響應式圖片             | 無           | srcset  | **多尺寸支援** ✅  |
+| Cloudflare Images 集成 | 部分         | 完整    | **全面整合** ✅    |
 
 ---
 
 ## 📁 新增文件
 
 ### 1. `useOptimizedImage.ts` (新增 - 669 行)
+
 **路徑**: `apps/admin-dashboard/src/composables/useOptimizedImage.ts`
 
 **核心功能**:
+
 ```typescript
 /**
  * 圖片優化 composable
@@ -33,17 +35,18 @@
  */
 export function useOptimizedImage(options: ImageOptimizationOptions) {
   return {
-    imageUrl,        // 優化後的 URL
-    srcset,          // 響應式 srcset
-    sizes,           // HTML sizes 屬性
-    detectedFormat,  // 檢測到的格式 (avif/webp/jpeg)
-    isLoading,       // 加載狀態
-    error,           // 錯誤狀態
-  }
+    imageUrl, // 優化後的 URL
+    srcset, // 響應式 srcset
+    sizes, // HTML sizes 屬性
+    detectedFormat, // 檢測到的格式 (avif/webp/jpeg)
+    isLoading, // 加載狀態
+    error, // 錯誤狀態
+  };
 }
 ```
 
 **特性**:
+
 - ✅ **自動格式檢測**: AVIF > WebP > JPEG 優先級
 - ✅ **Cloudflare Images 集成**: 完整 URL 生成
 - ✅ **響應式圖片**: 自動生成 srcset (0.5x, 1x, 1.5x, 2x)
@@ -53,101 +56,105 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
 - ✅ **智能銳化**: 小圖片自動銳化
 
 **格式檢測實現**:
+
 ```typescript
 async function detectFormatSupport(): Promise<FormatSupport> {
   // AVIF 檢測 - 使用 base64 測試圖片
-  const avifImage = new Image()
-  avifImage.src = 'data:image/avif;base64,...'
+  const avifImage = new Image();
+  avifImage.src = "data:image/avif;base64,...";
   support.avif = await new Promise((resolve) => {
-    avifImage.onload = () => resolve(true)
-    avifImage.onerror = () => resolve(false)
-  })
+    avifImage.onload = () => resolve(true);
+    avifImage.onerror = () => resolve(false);
+  });
 
   // WebP 檢測
-  const webpImage = new Image()
-  webpImage.src = 'data:image/webp;base64,...'
+  const webpImage = new Image();
+  webpImage.src = "data:image/webp;base64,...";
   support.webp = await new Promise((resolve) => {
-    webpImage.onload = () => resolve(true)
-    webpImage.onerror = () => resolve(false)
-  })
+    webpImage.onload = () => resolve(true);
+    webpImage.onerror = () => resolve(false);
+  });
 
-  return support
+  return support;
 }
 ```
 
 **Cloudflare Images URL 構建**:
+
 ```typescript
 function buildCloudflareImageURL(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
   // https://imagedelivery.net/{hash}/{id}/{params}
   const params = [
-    `w=${width}`,           // 寬度
-    `h=${height}`,          // 高度
-    `fit=${fit}`,           // 適應模式
-    `format=${format}`,     // 格式 (avif/webp/jpeg)
-    `quality=${quality}`,   // 質量
-    `dpr=${dpr}`,          // Device Pixel Ratio
-  ]
+    `w=${width}`, // 寬度
+    `h=${height}`, // 高度
+    `fit=${fit}`, // 適應模式
+    `format=${format}`, // 格式 (avif/webp/jpeg)
+    `quality=${quality}`, // 質量
+    `dpr=${dpr}`, // Device Pixel Ratio
+  ];
 
-  return `${base}/${params.join(',')}`
+  return `${base}/${params.join(",")}`;
 }
 ```
 
 **響應式 srcset 生成**:
+
 ```typescript
 function generateSrcset(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
-  const baseWidth = options.width || 800
+  const baseWidth = options.width || 800;
   const widths = [
-    baseWidth * 0.5,   // Mobile
-    baseWidth,         // Tablet
-    baseWidth * 1.5,   // Desktop
-    baseWidth * 2,     // Retina
-  ]
+    baseWidth * 0.5, // Mobile
+    baseWidth, // Tablet
+    baseWidth * 1.5, // Desktop
+    baseWidth * 2, // Retina
+  ];
 
-  return widths
-    .map(w => `${buildURL(w)} ${w}w`)
-    .join(', ')
+  return widths.map((w) => `${buildURL(w)} ${w}w`).join(", ");
 }
 ```
 
 **質量自動調整**:
+
 ```typescript
 function calculateOptimalQuality(
   format: ImageFormat,
   width: number,
-  height: number
+  height: number,
 ): number {
-  const pixels = width * height
+  const pixels = width * height;
 
-  if (format === 'avif') {
-    if (pixels > 1000000) return 75  // 大圖片
-    if (pixels > 400000) return 80   // 中等
-    return 85                         // 小圖片
+  if (format === "avif") {
+    if (pixels > 1000000) return 75; // 大圖片
+    if (pixels > 400000) return 80; // 中等
+    return 85; // 小圖片
   }
 
-  if (format === 'webp') {
-    if (pixels > 1000000) return 80
-    if (pixels > 400000) return 85
-    return 90
+  if (format === "webp") {
+    if (pixels > 1000000) return 80;
+    if (pixels > 400000) return 85;
+    return 90;
   }
 
-  return 85  // JPEG 默認
+  return 85; // JPEG 默認
 }
 ```
 
 ### 2. `OptimizedImage.vue` (新增 - 207 行)
+
 **路徑**: `apps/admin-dashboard/src/components/OptimizedImage.vue`
 
 **功能**:
+
 - ✅ 通用圖片組件
 - ✅ 自動格式優化
 - ✅ 懶加載支持
@@ -157,6 +164,7 @@ function calculateOptimalQuality(
 - ✅ 響應式圖片
 
 **使用範例**:
+
 ```vue
 <template>
   <!-- Cloudflare Images -->
@@ -171,11 +179,7 @@ function calculateOptimalQuality(
   />
 
   <!-- 本地圖片 -->
-  <OptimizedImage
-    src="/images/logo.png"
-    alt="Logo"
-    :lazy="false"
-  />
+  <OptimizedImage src="/images/logo.png" alt="Logo" :lazy="false" />
 
   <!-- 自定義錯誤處理 -->
   <OptimizedImage
@@ -195,100 +199,105 @@ function calculateOptimalQuality(
 </template>
 
 <script setup>
-import OptimizedImage from '@/components/OptimizedImage.vue'
+import OptimizedImage from "@/components/OptimizedImage.vue";
 
 const handleFormatDetected = (format) => {
-  console.log('Detected format:', format)
+  console.log("Detected format:", format);
   // 'avif' or 'webp' or 'jpeg'
-}
+};
 </script>
 ```
 
 **Props**:
+
 ```typescript
 interface Props {
   // Cloudflare Images
-  accountHash?: string          // Account Hash
-  imageId?: string              // Image ID
+  accountHash?: string; // Account Hash
+  imageId?: string; // Image ID
 
   // 或直接 URL
-  src?: string
+  src?: string;
 
   // 圖片屬性
-  alt: string                   // Alt text (必填)
-  width?: number                // 目標寬度
-  height?: number               // 目標高度
-  quality?: number              // 質量 (0-100)
-  format?: ImageFormat          // 格式 ('auto' 自動)
-  fit?: ImageFit                // 適應模式
-  gravity?: ImageGravity        // 裁切焦點
-  dpr?: number                  // Device Pixel Ratio
-  generateSrcset?: boolean      // 生成 srcset
+  alt: string; // Alt text (必填)
+  width?: number; // 目標寬度
+  height?: number; // 目標高度
+  quality?: number; // 質量 (0-100)
+  format?: ImageFormat; // 格式 ('auto' 自動)
+  fit?: ImageFit; // 適應模式
+  gravity?: ImageGravity; // 裁切焦點
+  dpr?: number; // Device Pixel Ratio
+  generateSrcset?: boolean; // 生成 srcset
 
   // 行為
-  lazy?: boolean                // 懶加載 (默認 true)
-  fadeIn?: boolean              // 淡入效果 (默認 true)
-  showLoadingState?: boolean    // 顯示加載狀態
+  lazy?: boolean; // 懶加載 (默認 true)
+  fadeIn?: boolean; // 淡入效果 (默認 true)
+  showLoadingState?: boolean; // 顯示加載狀態
 
   // 樣式
-  imageClass?: string
-  errorClass?: string
-  imageStyle?: Record<string, any>
+  imageClass?: string;
+  errorClass?: string;
+  imageStyle?: Record<string, any>;
 }
 ```
 
 ### 3. 預設配置
 
 **菜單圖片**:
+
 ```typescript
 export const MENU_IMAGE_CONFIG = {
   width: 600,
   height: 400,
-  format: 'auto',
-  fit: 'cover',
-  gravity: 'auto',
+  format: "auto",
+  fit: "cover",
+  gravity: "auto",
   quality: 85,
   generateSrcset: true,
-}
+};
 ```
 
 **縮圖**:
+
 ```typescript
 export const THUMBNAIL_IMAGE_CONFIG = {
   width: 150,
   height: 150,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 80,
   generateSrcset: false,
-}
+};
 ```
 
 **頭像**:
+
 ```typescript
 export const AVATAR_IMAGE_CONFIG = {
   width: 200,
   height: 200,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 85,
   generateSrcset: true,
-}
+};
 ```
 
 **Hero 圖片**:
+
 ```typescript
 export const HERO_IMAGE_CONFIG = {
   width: 1920,
   height: 1080,
-  format: 'auto',
-  fit: 'cover',
-  gravity: 'center',
+  format: "auto",
+  fit: "cover",
+  gravity: "center",
   quality: 90,
   generateSrcset: true,
-}
+};
 ```
 
 ---
@@ -620,11 +629,13 @@ img.onload = () => {
 ### MenuView 菜單圖片優化
 
 **優化前**:
+
 ```vue
 <img :src="`/images/menu/${item.image}`" :alt="item.name" />
 ```
 
 **優化後**:
+
 ```vue
 <OptimizedImage
   :account-hash="CLOUDFLARE_ACCOUNT_HASH"
@@ -639,6 +650,7 @@ img.onload = () => {
 ```
 
 **效果**:
+
 - 自動使用 AVIF (支援的瀏覽器)
 - 檔案大小: 100KB → 45KB (-55%)
 - 響應式加載: 手機 400w, 桌面 800w
@@ -647,14 +659,13 @@ img.onload = () => {
 ### TopMenuItems 熱門菜品
 
 **優化前**:
+
 ```vue
-<img
-  :src="item.imageUrl"
-  class="w-16 h-16 object-cover rounded"
-/>
+<img :src="item.imageUrl" class="w-16 h-16 object-cover rounded" />
 ```
 
 **優化後**:
+
 ```vue
 <OptimizedImage
   :account-hash="CLOUDFLARE_ACCOUNT_HASH"
@@ -671,6 +682,7 @@ img.onload = () => {
 ```
 
 **效果**:
+
 - 小圖片不需要 srcset
 - Quality 自動提升 (小圖片 = 85)
 - 檔案大小: 15KB → 6KB (-60%)
@@ -678,11 +690,13 @@ img.onload = () => {
 ### 用戶頭像
 
 **優化前**:
+
 ```vue
 <img :src="user.avatar" class="w-10 h-10 rounded-full" />
 ```
 
 **優化後**:
+
 ```vue
 <OptimizedImage
   :account-hash="CLOUDFLARE_ACCOUNT_HASH"
@@ -699,6 +713,7 @@ img.onload = () => {
 ```
 
 **效果**:
+
 - Retina 顯示 (dpr=2)
 - 圓形裁切
 - 檔案大小: 25KB → 10KB (-60%)
@@ -724,14 +739,14 @@ img.onload = () => {
 
 ## 📊 總結
 
-| 指標 | 結果 | 狀態 |
-|------|------|------|
-| 代碼行數 | 669 + 207 = 876 行 | ✅ |
-| 格式檢測 | 自動 (AVIF > WebP > JPEG) | ✅ |
-| 圖片大小減少 | 30-60% (根據格式) | ✅ |
-| 響應式支援 | srcset 自動生成 | ✅ |
-| Cloudflare 集成 | 完整 URL 生成 | ✅ |
-| 質量優化 | 自動調整 | ✅ |
+| 指標            | 結果                      | 狀態 |
+| --------------- | ------------------------- | ---- |
+| 代碼行數        | 669 + 207 = 876 行        | ✅   |
+| 格式檢測        | 自動 (AVIF > WebP > JPEG) | ✅   |
+| 圖片大小減少    | 30-60% (根據格式)         | ✅   |
+| 響應式支援      | srcset 自動生成           | ✅   |
+| Cloudflare 集成 | 完整 URL 生成             | ✅   |
+| 質量優化        | 自動調整                  | ✅   |
 
 **P1-4 圖片格式檢測充分利用 - 完成 ✅**
 
@@ -741,12 +756,12 @@ img.onload = () => {
 
 ### 總體成果
 
-| 項目 | 狀態 | 改善 |
-|------|------|------|
-| P1-1: Modal 異步加載 | ✅ | Bundle -15%, TTI -16% |
-| P1-2: 實時流節流 | ✅ | CPU -30%, 30fps 穩定 |
-| P1-3: Dashboard 懶加載 | ✅ | TTI -44%, 組件 -75% |
-| P1-4: 圖片優化 | ✅ | 圖片 -30-60% |
+| 項目                   | 狀態 | 改善                  |
+| ---------------------- | ---- | --------------------- |
+| P1-1: Modal 異步加載   | ✅   | Bundle -15%, TTI -16% |
+| P1-2: 實時流節流       | ✅   | CPU -30%, 30fps 穩定  |
+| P1-3: Dashboard 懶加載 | ✅   | TTI -44%, 組件 -75%   |
+| P1-4: 圖片優化         | ✅   | 圖片 -30-60%          |
 
 **總代碼量**: ~4,200+ 行
 **總體性能提升**: 顯著

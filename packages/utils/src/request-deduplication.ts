@@ -11,9 +11,9 @@
  */
 
 export interface RequestCacheEntry<T = any> {
-  promise: Promise<T>
-  timestamp: number
-  subscribers: number
+  promise: Promise<T>;
+  timestamp: number;
+  subscribers: number;
 }
 
 export interface RequestDeduplicationOptions {
@@ -22,42 +22,42 @@ export interface RequestDeduplicationOptions {
    * Requests within this window will be deduplicated
    * @default 5000 (5 seconds)
    */
-  cacheDuration?: number
+  cacheDuration?: number;
 
   /**
    * Maximum cache size (number of entries)
    * Oldest entries will be evicted when limit is reached
    * @default 100
    */
-  maxCacheSize?: number
+  maxCacheSize?: number;
 
   /**
    * Enable debug logging
    * @default false
    */
-  debug?: boolean
+  debug?: boolean;
 
   /**
    * Custom cache key generator
    * Default: JSON.stringify(args)
    */
-  keyGenerator?: (...args: any[]) => string
+  keyGenerator?: (...args: any[]) => string;
 }
 
 export class RequestDeduplicator {
-  private cache = new Map<string, RequestCacheEntry>()
-  private options: Required<RequestDeduplicationOptions>
+  private cache = new Map<string, RequestCacheEntry>();
+  private options: Required<RequestDeduplicationOptions>;
 
   constructor(options: RequestDeduplicationOptions = {}) {
     this.options = {
       cacheDuration: options.cacheDuration ?? 5000,
       maxCacheSize: options.maxCacheSize ?? 100,
       debug: options.debug ?? false,
-      keyGenerator: options.keyGenerator ?? ((...args) => JSON.stringify(args))
-    }
+      keyGenerator: options.keyGenerator ?? ((...args) => JSON.stringify(args)),
+    };
 
     // Periodic cleanup of expired entries
-    setInterval(() => this.cleanup(), this.options.cacheDuration)
+    setInterval(() => this.cleanup(), this.options.cacheDuration);
   }
 
   /**
@@ -68,59 +68,61 @@ export class RequestDeduplicator {
   async dedupe<T>(
     key: string,
     requestFn: () => Promise<T>,
-    options?: { ttl?: number }
+    options?: { ttl?: number },
   ): Promise<T> {
-    const cacheKey = key
-    const now = Date.now()
-    const ttl = options?.ttl ?? this.options.cacheDuration
+    const cacheKey = key;
+    const now = Date.now();
+    const ttl = options?.ttl ?? this.options.cacheDuration;
 
     // Check if request is already in-flight
-    const cached = this.cache.get(cacheKey)
-    if (cached && (now - cached.timestamp) < ttl) {
-      cached.subscribers++
+    const cached = this.cache.get(cacheKey);
+    if (cached && now - cached.timestamp < ttl) {
+      cached.subscribers++;
       if (this.options.debug) {
-        console.log(`[RequestDedup] Cache HIT for key: ${cacheKey} (subscribers: ${cached.subscribers})`)
+        console.log(
+          `[RequestDedup] Cache HIT for key: ${cacheKey} (subscribers: ${cached.subscribers})`,
+        );
       }
-      return cached.promise
+      return cached.promise;
     }
 
     if (this.options.debug) {
-      console.log(`[RequestDedup] Cache MISS for key: ${cacheKey}`)
+      console.log(`[RequestDedup] Cache MISS for key: ${cacheKey}`);
     }
 
     // Execute request and cache promise
     const promise = requestFn()
-      .then(result => {
+      .then((result) => {
         // Keep successful result briefly for additional subscribers
         setTimeout(() => {
-          this.cache.delete(cacheKey)
+          this.cache.delete(cacheKey);
           if (this.options.debug) {
-            console.log(`[RequestDedup] Expired key: ${cacheKey}`)
+            console.log(`[RequestDedup] Expired key: ${cacheKey}`);
           }
-        }, ttl)
-        return result
+        }, ttl);
+        return result;
       })
-      .catch(error => {
+      .catch((error) => {
         // Remove failed request immediately so it can be retried
-        this.cache.delete(cacheKey)
+        this.cache.delete(cacheKey);
         if (this.options.debug) {
-          console.error(`[RequestDedup] Error for key: ${cacheKey}`, error)
+          console.error(`[RequestDedup] Error for key: ${cacheKey}`, error);
         }
-        throw error
-      })
+        throw error;
+      });
 
     // Enforce cache size limit
     if (this.cache.size >= this.options.maxCacheSize) {
-      this.evictOldest()
+      this.evictOldest();
     }
 
     this.cache.set(cacheKey, {
       promise,
       timestamp: now,
-      subscribers: 1
-    })
+      subscribers: 1,
+    });
 
-    return promise
+    return promise;
   }
 
   /**
@@ -130,17 +132,17 @@ export class RequestDeduplicator {
     requestFn: (...args: any[]) => Promise<T>,
     ...args: any[]
   ): Promise<T> {
-    const key = this.options.keyGenerator(...args)
-    return this.dedupe(key, () => requestFn(...args))
+    const key = this.options.keyGenerator(...args);
+    return this.dedupe(key, () => requestFn(...args));
   }
 
   /**
    * Clear specific cache entry
    */
   invalidate(key: string): void {
-    const deleted = this.cache.delete(key)
+    const deleted = this.cache.delete(key);
     if (this.options.debug && deleted) {
-      console.log(`[RequestDedup] Invalidated key: ${key}`)
+      console.log(`[RequestDedup] Invalidated key: ${key}`);
     }
   }
 
@@ -148,27 +150,29 @@ export class RequestDeduplicator {
    * Clear cache entries matching pattern
    */
   invalidatePattern(pattern: RegExp): number {
-    let count = 0
+    let count = 0;
     for (const key of this.cache.keys()) {
       if (pattern.test(key)) {
-        this.cache.delete(key)
-        count++
+        this.cache.delete(key);
+        count++;
       }
     }
     if (this.options.debug && count > 0) {
-      console.log(`[RequestDedup] Invalidated ${count} keys matching: ${pattern}`)
+      console.log(
+        `[RequestDedup] Invalidated ${count} keys matching: ${pattern}`,
+      );
     }
-    return count
+    return count;
   }
 
   /**
    * Clear all cache entries
    */
   clear(): void {
-    const size = this.cache.size
-    this.cache.clear()
+    const size = this.cache.size;
+    this.cache.clear();
     if (this.options.debug && size > 0) {
-      console.log(`[RequestDedup] Cleared ${size} cache entries`)
+      console.log(`[RequestDedup] Cleared ${size} cache entries`);
     }
   }
 
@@ -176,11 +180,18 @@ export class RequestDeduplicator {
    * Get cache statistics
    */
   getStats() {
-    const entries = Array.from(this.cache.entries())
-    const totalSubscribers = entries.reduce((sum, [, entry]) => sum + entry.subscribers, 0)
-    const avgAge = entries.length > 0
-      ? entries.reduce((sum, [, entry]) => sum + (Date.now() - entry.timestamp), 0) / entries.length
-      : 0
+    const entries = Array.from(this.cache.entries());
+    const totalSubscribers = entries.reduce(
+      (sum, [, entry]) => sum + entry.subscribers,
+      0,
+    );
+    const avgAge =
+      entries.length > 0
+        ? entries.reduce(
+            (sum, [, entry]) => sum + (Date.now() - entry.timestamp),
+            0,
+          ) / entries.length
+        : 0;
 
     return {
       size: this.cache.size,
@@ -190,27 +201,27 @@ export class RequestDeduplicator {
       entries: entries.map(([key, entry]) => ({
         key,
         age: Date.now() - entry.timestamp,
-        subscribers: entry.subscribers
-      }))
-    }
+        subscribers: entry.subscribers,
+      })),
+    };
   }
 
   /**
    * Cleanup expired entries
    */
   private cleanup(): void {
-    const now = Date.now()
-    let cleaned = 0
+    const now = Date.now();
+    let cleaned = 0;
 
     for (const [key, entry] of this.cache.entries()) {
       if (now - entry.timestamp > this.options.cacheDuration) {
-        this.cache.delete(key)
-        cleaned++
+        this.cache.delete(key);
+        cleaned++;
       }
     }
 
     if (this.options.debug && cleaned > 0) {
-      console.log(`[RequestDedup] Cleaned up ${cleaned} expired entries`)
+      console.log(`[RequestDedup] Cleaned up ${cleaned} expired entries`);
     }
   }
 
@@ -218,20 +229,20 @@ export class RequestDeduplicator {
    * Evict oldest entry when cache is full
    */
   private evictOldest(): void {
-    let oldestKey: string | null = null
-    let oldestTime = Infinity // Fix: Use Infinity to find oldest entry
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity; // Fix: Use Infinity to find oldest entry
 
     for (const [key, entry] of this.cache.entries()) {
       if (entry.timestamp < oldestTime) {
-        oldestTime = entry.timestamp
-        oldestKey = key
+        oldestTime = entry.timestamp;
+        oldestKey = key;
       }
     }
 
     if (oldestKey) {
-      this.cache.delete(oldestKey)
+      this.cache.delete(oldestKey);
       if (this.options.debug) {
-        console.log(`[RequestDedup] Evicted oldest key: ${oldestKey}`)
+        console.log(`[RequestDedup] Evicted oldest key: ${oldestKey}`);
       }
     }
   }
@@ -240,18 +251,20 @@ export class RequestDeduplicator {
 /**
  * Global deduplicator instance
  */
-let globalDeduplicator: RequestDeduplicator | null = null
+let globalDeduplicator: RequestDeduplicator | null = null;
 
-export function getDeduplicator(options?: RequestDeduplicationOptions): RequestDeduplicator {
+export function getDeduplicator(
+  options?: RequestDeduplicationOptions,
+): RequestDeduplicator {
   if (!globalDeduplicator) {
-    globalDeduplicator = new RequestDeduplicator(options)
+    globalDeduplicator = new RequestDeduplicator(options);
   }
-  return globalDeduplicator
+  return globalDeduplicator;
 }
 
 export function resetDeduplicator(): void {
-  globalDeduplicator?.clear()
-  globalDeduplicator = null
+  globalDeduplicator?.clear();
+  globalDeduplicator = null;
 }
 
 /**
@@ -266,22 +279,22 @@ export function resetDeduplicator(): void {
  * }
  */
 export function deduplicate(options?: RequestDeduplicationOptions) {
-  const deduplicator = getDeduplicator(options)
+  const deduplicator = getDeduplicator(options);
 
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
-    const originalMethod = descriptor.value
+    const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const key = `${target.constructor.name}.${propertyKey}:${JSON.stringify(args)}`
-      return deduplicator.dedupe(key, () => originalMethod.apply(this, args))
-    }
+      const key = `${target.constructor.name}.${propertyKey}:${JSON.stringify(args)}`;
+      return deduplicator.dedupe(key, () => originalMethod.apply(this, args));
+    };
 
-    return descriptor
-  }
+    return descriptor;
+  };
 }
 
 /**
@@ -294,13 +307,13 @@ export function deduplicate(options?: RequestDeduplicationOptions) {
  */
 export function withDeduplication<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  options?: RequestDeduplicationOptions
+  options?: RequestDeduplicationOptions,
 ): T {
-  const deduplicator = getDeduplicator(options)
+  const deduplicator = getDeduplicator(options);
 
   return ((...args: any[]) => {
-    return deduplicator.dedupeByArgs(fn, ...args)
-  }) as T
+    return deduplicator.dedupeByArgs(fn, ...args);
+  }) as T;
 }
 
 /**
@@ -315,32 +328,32 @@ export function withDeduplication<T extends (...args: any[]) => Promise<any>>(
  */
 export async function batchDedupe<T>(
   requests: Array<() => Promise<T>>,
-  options?: RequestDeduplicationOptions
+  options?: RequestDeduplicationOptions,
 ): Promise<T[]> {
-  const deduplicator = getDeduplicator(options)
-  const keyedRequests = new Map<string, () => Promise<T>>()
+  const deduplicator = getDeduplicator(options);
+  const keyedRequests = new Map<string, () => Promise<T>>();
 
   // Group requests by their string representation
   for (const request of requests) {
-    const key = request.toString()
+    const key = request.toString();
     if (!keyedRequests.has(key)) {
-      keyedRequests.set(key, request)
+      keyedRequests.set(key, request);
     }
   }
 
   // Execute unique requests
   const uniqueResults = await Promise.all(
     Array.from(keyedRequests.entries()).map(([key, request]) =>
-      deduplicator.dedupe(key, request)
-    )
-  )
+      deduplicator.dedupe(key, request),
+    ),
+  );
 
   // Map results back to original request order
-  const resultMap = new Map<string, T>()
-  let index = 0
+  const resultMap = new Map<string, T>();
+  let index = 0;
   for (const key of keyedRequests.keys()) {
-    resultMap.set(key, uniqueResults[index++])
+    resultMap.set(key, uniqueResults[index++]);
   }
 
-  return requests.map(request => resultMap.get(request.toString())!)
+  return requests.map((request) => resultMap.get(request.toString())!);
 }

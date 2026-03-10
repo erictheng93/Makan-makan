@@ -18,7 +18,9 @@
         <div class="schedule-badge" :class="`status-${todaySchedule.status}`">
           {{ getStatusLabel(todaySchedule.status) }}
         </div>
-        <div class="schedule-date">今天 {{ formatDate(todaySchedule.workDate) }}</div>
+        <div class="schedule-date">
+          今天 {{ formatDate(todaySchedule.workDate) }}
+        </div>
       </div>
 
       <div class="schedule-details">
@@ -36,7 +38,7 @@
               :style="{
                 backgroundColor: todaySchedule.shiftTemplate.colorCode + '20',
                 color: todaySchedule.shiftTemplate.colorCode,
-                borderColor: todaySchedule.shiftTemplate.colorCode
+                borderColor: todaySchedule.shiftTemplate.colorCode,
               }"
             >
               {{ todaySchedule.shiftTemplate.name }}
@@ -45,12 +47,17 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">預計工時:</span>
-          <span class="detail-value">{{ todaySchedule.scheduledHours }} 小時</span>
+          <span class="detail-value"
+            >{{ todaySchedule.scheduledHours }} 小時</span
+          >
         </div>
       </div>
 
       <!-- Clock Status -->
-      <div v-if="todaySchedule.actualStartTime || todaySchedule.actualEndTime" class="clock-status">
+      <div
+        v-if="todaySchedule.actualStartTime || todaySchedule.actualEndTime"
+        class="clock-status"
+      >
         <div v-if="todaySchedule.actualStartTime" class="status-row">
           <span class="status-icon">✓</span>
           <span class="status-label">上班打卡:</span>
@@ -169,203 +176,211 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { schedulingService } from '@/services/schedulingService'
-import type { EmployeeSchedule } from '@/types/scheduling'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { schedulingService } from "@/services/schedulingService";
+import type { EmployeeSchedule } from "@/types/scheduling";
 
 interface Props {
-  employeeId?: number
-  restaurantId: string
+  employeeId?: number;
+  restaurantId: string;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  clockIn: [schedule: EmployeeSchedule]
-  clockOut: [schedule: EmployeeSchedule]
-}>()
+  clockIn: [schedule: EmployeeSchedule];
+  clockOut: [schedule: EmployeeSchedule];
+}>();
 
 // Auth
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 
 // State
-const loading = ref(false)
-const error = ref<string | null>(null)
-const success = ref<string | null>(null)
-const todaySchedule = ref<EmployeeSchedule | null>(null)
-const recentRecords = ref<EmployeeSchedule[]>([])
-const currentTime = ref('')
-const showNotesInput = ref(false)
-const notes = ref('')
-const pendingAction = ref<'clock-in' | 'clock-out' | null>(null)
+const loading = ref(false);
+const error = ref<string | null>(null);
+const success = ref<string | null>(null);
+const todaySchedule = ref<EmployeeSchedule | null>(null);
+const recentRecords = ref<EmployeeSchedule[]>([]);
+const currentTime = ref("");
+const showNotesInput = ref(false);
+const notes = ref("");
+const pendingAction = ref<"clock-in" | "clock-out" | null>(null);
 
 // Timer for current time
-let timeInterval: number | null = null
+let timeInterval: number | null = null;
 
 // Computed
-const effectiveEmployeeId = computed(() => props.employeeId || authStore.user?.id)
+const effectiveEmployeeId = computed(
+  () => props.employeeId || authStore.user?.id,
+);
 
 // Methods
 const updateCurrentTime = () => {
-  const now = new Date()
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const seconds = String(now.getSeconds()).padStart(2, '0')
-  currentTime.value = `${hours}:${minutes}:${seconds}`
-}
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  currentTime.value = `${hours}:${minutes}:${seconds}`;
+};
 
 const fetchTodaySchedule = async () => {
   try {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
 
-    const today = formatDateISO(new Date())
+    const today = formatDateISO(new Date());
     const response = await schedulingService.getSchedules({
       restaurantId: props.restaurantId,
       employeeId: effectiveEmployeeId.value,
       startDate: today,
       endDate: today,
       limit: 1,
-    })
+    });
 
     if (response.data.length > 0) {
-      todaySchedule.value = response.data[0]
+      todaySchedule.value = response.data[0];
     } else {
-      todaySchedule.value = null
+      todaySchedule.value = null;
     }
   } catch (err) {
-    console.error('Failed to fetch today schedule:', err)
-    error.value = '無法載入今日排班資料'
+    console.error("Failed to fetch today schedule:", err);
+    error.value = "無法載入今日排班資料";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const fetchRecentRecords = async () => {
   try {
-    const today = new Date()
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const response = await schedulingService.getSchedules({
       restaurantId: props.restaurantId,
       employeeId: effectiveEmployeeId.value,
       startDate: formatDateISO(sevenDaysAgo),
       endDate: formatDateISO(today),
-      status: 'completed',
+      status: "completed",
       limit: 5,
-    })
+    });
 
     recentRecords.value = response.data.filter(
-      (r) => r.actualStartTime || r.actualEndTime
-    )
+      (r) => r.actualStartTime || r.actualEndTime,
+    );
   } catch (err) {
-    console.error('Failed to fetch recent records:', err)
+    console.error("Failed to fetch recent records:", err);
   }
-}
+};
 
 const handleClockIn = () => {
-  pendingAction.value = 'clock-in'
-  showNotesInput.value = true
-}
+  pendingAction.value = "clock-in";
+  showNotesInput.value = true;
+};
 
 const handleClockOut = () => {
-  pendingAction.value = 'clock-out'
-  showNotesInput.value = true
-}
+  pendingAction.value = "clock-out";
+  showNotesInput.value = true;
+};
 
 const cancelNotes = () => {
-  showNotesInput.value = false
-  notes.value = ''
-  pendingAction.value = null
-}
+  showNotesInput.value = false;
+  notes.value = "";
+  pendingAction.value = null;
+};
 
 const confirmClock = async () => {
-  if (!todaySchedule.value) return
+  if (!todaySchedule.value) return;
 
   try {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
 
     const clockData = {
       scheduleId: todaySchedule.value.id,
       employeeId: effectiveEmployeeId.value!,
       notes: notes.value || undefined,
-    }
+    };
 
-    if (pendingAction.value === 'clock-in') {
-      const updated = await schedulingService.clockIn(todaySchedule.value.id, clockData)
-      todaySchedule.value = updated
-      success.value = '上班打卡成功！'
-      emit('clockIn', updated)
-    } else if (pendingAction.value === 'clock-out') {
-      const updated = await schedulingService.clockOut(todaySchedule.value.id, clockData)
-      todaySchedule.value = updated
-      success.value = '下班打卡成功！'
-      emit('clockOut', updated)
-      fetchRecentRecords() // Refresh recent records
+    if (pendingAction.value === "clock-in") {
+      const updated = await schedulingService.clockIn(
+        todaySchedule.value.id,
+        clockData,
+      );
+      todaySchedule.value = updated;
+      success.value = "上班打卡成功！";
+      emit("clockIn", updated);
+    } else if (pendingAction.value === "clock-out") {
+      const updated = await schedulingService.clockOut(
+        todaySchedule.value.id,
+        clockData,
+      );
+      todaySchedule.value = updated;
+      success.value = "下班打卡成功！";
+      emit("clockOut", updated);
+      fetchRecentRecords(); // Refresh recent records
     }
 
     // Clear success message after 3 seconds
     setTimeout(() => {
-      success.value = null
-    }, 3000)
+      success.value = null;
+    }, 3000);
 
-    cancelNotes()
+    cancelNotes();
   } catch (err) {
-    console.error('Clock action failed:', err)
-    error.value = err instanceof Error ? err.message : '打卡失敗，請稍後再試'
+    console.error("Clock action failed:", err);
+    error.value = err instanceof Error ? err.message : "打卡失敗，請稍後再試";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-  const weekday = weekdays[date.getDay()]
-  return `${month}/${day} (${weekday})`
-}
+  const date = new Date(dateStr);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+  const weekday = weekdays[date.getDay()];
+  return `${month}/${day} (${weekday})`;
+};
 
 const formatDateISO = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    scheduled: '已排班',
-    confirmed: '已確認',
-    completed: '已完成',
-    cancelled: '已取消',
-    no_show: '缺席',
-  }
-  return labels[status] || status
-}
+    scheduled: "已排班",
+    confirmed: "已確認",
+    completed: "已完成",
+    cancelled: "已取消",
+    no_show: "缺席",
+  };
+  return labels[status] || status;
+};
 
 // Lifecycle
 onMounted(() => {
-  updateCurrentTime()
-  timeInterval = window.setInterval(updateCurrentTime, 1000)
-  fetchTodaySchedule()
-  fetchRecentRecords()
-})
+  updateCurrentTime();
+  timeInterval = window.setInterval(updateCurrentTime, 1000);
+  fetchTodaySchedule();
+  fetchRecentRecords();
+});
 
 onUnmounted(() => {
   if (timeInterval) {
-    clearInterval(timeInterval)
+    clearInterval(timeInterval);
   }
-})
+});
 
 // Expose refresh method
 defineExpose({
   refresh: fetchTodaySchedule,
-})
+});
 </script>
 
 <style scoped>
@@ -407,7 +422,7 @@ defineExpose({
   gap: 6px;
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .time-icon {
@@ -527,7 +542,7 @@ defineExpose({
 .status-time {
   font-weight: 700;
   color: #059669;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   margin-left: auto;
 }
 
@@ -812,7 +827,7 @@ defineExpose({
 .record-hours {
   font-weight: 700;
   color: #3b82f6;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 /* Animations */

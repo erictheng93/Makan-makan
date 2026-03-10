@@ -6,8 +6,18 @@
     >
       <span class="text-lg">{{ currentLocale.flag }}</span>
       <span class="hidden sm:block">{{ currentLocale.name }}</span>
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      <svg
+        class="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </button>
 
@@ -29,7 +39,7 @@
             :key="locale.code"
             class="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
             :class="{
-              'bg-gray-50 text-gray-900': locale.code === currentLocale.code
+              'bg-gray-50 text-gray-900': locale.code === currentLocale.code,
             }"
             @click="switchToLocale(locale.code)"
           >
@@ -40,7 +50,10 @@
                 <span class="text-xs text-gray-500">{{ locale.code }}</span>
               </div>
             </div>
-            <CheckIcon v-if="locale.code === currentLocale.code" class="h-4 w-4 text-green-600" />
+            <CheckIcon
+              v-if="locale.code === currentLocale.code"
+              class="h-4 w-4 text-green-600"
+            />
           </button>
         </div>
       </div>
@@ -51,84 +64,87 @@
       v-if="switching"
       class="absolute inset-0 bg-white bg-opacity-75 rounded-md flex items-center justify-center"
     >
-      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+      <div
+        class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { CheckIcon } from '@heroicons/vue/24/solid'
-import { useAdminI18n } from '../i18n'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { CheckIcon } from "@heroicons/vue/24/solid";
+import { useAdminI18n } from "../i18n";
 // TODO: Fix i18n types
 // import type { SupportedLocale } from '@makanmakan/i18n'
-type SupportedLocale = string
+type SupportedLocale = string;
 
 // Composables
-const { switchLocale, getCurrentLocaleInfo, getAvailableLocales } = useAdminI18n()
+const { switchLocale, getCurrentLocaleInfo, getAvailableLocales } =
+  useAdminI18n();
 
 // State
-const dropdownOpen = ref(false)
-const switching = ref(false)
+const dropdownOpen = ref(false);
+const switching = ref(false);
 
 // Computed
-const currentLocale = computed(() => getCurrentLocaleInfo())
-const availableLocales = computed(() => getAvailableLocales())
+const currentLocale = computed(() => getCurrentLocaleInfo());
+const availableLocales = computed(() => getAvailableLocales());
 
 // Methods
 const toggleDropdown = () => {
-  dropdownOpen.value = !dropdownOpen.value
-}
+  dropdownOpen.value = !dropdownOpen.value;
+};
 
 const switchToLocale = async (locale: SupportedLocale) => {
   if (locale === currentLocale.value.code || switching.value) {
-    dropdownOpen.value = false
-    return
+    dropdownOpen.value = false;
+    return;
   }
 
-  switching.value = true
+  switching.value = true;
 
   try {
-    const success = await switchLocale()
+    const success = await switchLocale();
 
     if (success) {
       // Emit event for parent components to react
-      emit('localeChanged', locale)
+      emit("localeChanged", locale);
 
       // Close dropdown
-      dropdownOpen.value = false
+      dropdownOpen.value = false;
 
       // Optional: Reload page to ensure all components update
       // window.location.reload()
     } else {
-      console.error('Failed to switch locale')
+      console.error("Failed to switch locale");
     }
   } catch (error) {
-    console.error('Error switching locale:', error)
+    console.error("Error switching locale:", error);
   } finally {
-    switching.value = false
+    switching.value = false;
   }
-}
+};
 
 // Close dropdown when clicking outside
 const handleClickOutside = (event: Event) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.relative')) {
-    dropdownOpen.value = false
+  const target = event.target as HTMLElement;
+  if (!target.closest(".relative")) {
+    dropdownOpen.value = false;
   }
-}
+};
 
 // Events
 const emit = defineEmits<{
-  localeChanged: [locale: SupportedLocale]
-}>()
+  localeChanged: [locale: SupportedLocale];
+}>();
 
 // Lifecycle
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
+  document.addEventListener("click", handleClickOutside);
+});
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>

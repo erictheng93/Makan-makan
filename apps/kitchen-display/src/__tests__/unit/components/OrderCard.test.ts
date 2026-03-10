@@ -1,10 +1,10 @@
 // Kitchen Display - OrderCard 組件測試
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount, VueWrapper } from '@vue/test-utils';
-import { nextTick } from 'vue';
-import { createPinia, setActivePinia } from 'pinia';
-import { useSettingsStore } from '../../../stores/settings';
-import OrderCard from '../../../components/orders/OrderCard.vue';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount, VueWrapper } from "@vue/test-utils";
+import { nextTick } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+import { useSettingsStore } from "../../../stores/settings";
+import OrderCard from "../../../components/orders/OrderCard.vue";
 
 /**
  * OrderCard 組件測試
@@ -17,29 +17,29 @@ import OrderCard from '../../../components/orders/OrderCard.vue';
  * - 條件渲染
  */
 
-describe('OrderCard.vue', () => {
+describe("OrderCard.vue", () => {
   const mockOrder = {
-    id: 'order-123',
-    orderNumber: '001',
-    tableName: 'A-1',
-    customerName: '張三',
-    priority: 'normal',
-    status: 'pending',
+    id: "order-123",
+    orderNumber: "001",
+    tableName: "A-1",
+    customerName: "張三",
+    priority: "normal",
+    status: "pending",
     createdAt: new Date().toISOString(),
     elapsedTime: 300, // 5 minutes in seconds
     items: [
       {
-        id: 'item-1',
-        name: '宮保雞丁',
+        id: "item-1",
+        name: "宮保雞丁",
         quantity: 2,
-        status: 'pending',
-        notes: '不要辣',
+        status: "pending",
+        notes: "不要辣",
       },
       {
-        id: 'item-2',
-        name: '炒飯',
+        id: "item-2",
+        name: "炒飯",
         quantity: 1,
-        status: 'pending',
+        status: "pending",
       },
     ],
   };
@@ -71,64 +71,64 @@ describe('OrderCard.vue', () => {
     vi.clearAllMocks();
   });
 
-  describe('基本渲染', () => {
-    it('應該正確渲染訂單卡片', () => {
+  describe("基本渲染", () => {
+    it("應該正確渲染訂單卡片", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.find('.order-card').exists()).toBe(true);
+      expect(wrapper.find(".order-card").exists()).toBe(true);
     });
 
-    it('應該顯示訂單編號', () => {
+    it("應該顯示訂單編號", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('001');
+      expect(wrapper.text()).toContain("001");
     });
 
-    it('應該顯示桌號', () => {
+    it("應該顯示桌號", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('桌號 A-1');
+      expect(wrapper.text()).toContain("桌號 A-1");
     });
 
-    it('應該顯示所有訂單項目', () => {
+    it("應該顯示所有訂單項目", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('宮保雞丁');
-      expect(wrapper.text()).toContain('炒飯');
+      expect(wrapper.text()).toContain("宮保雞丁");
+      expect(wrapper.text()).toContain("炒飯");
     });
 
-    it('應該顯示項目數量', () => {
+    it("應該顯示項目數量", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('2'); // 宮保雞丁 x2
-      expect(wrapper.text()).toContain('1'); // 炒飯 x1
+      expect(wrapper.text()).toContain("2"); // 宮保雞丁 x2
+      expect(wrapper.text()).toContain("1"); // 炒飯 x1
     });
   });
 
-  describe('客戶名稱顯示', () => {
-    it('showCustomerNames=true 時應該顯示客戶名稱', async () => {
+  describe("客戶名稱顯示", () => {
+    it("showCustomerNames=true 時應該顯示客戶名稱", async () => {
       const settingsStore = useSettingsStore();
-      settingsStore.updateSetting('showCustomerNames', true);
+      settingsStore.updateSetting("showCustomerNames", true);
       await nextTick(); // 等待設定更新
 
       wrapper = createWrapper();
       await nextTick(); // 等待組件渲染
 
-      expect(wrapper.text()).toContain('張三');
+      expect(wrapper.text()).toContain("張三");
     });
 
-    it('showCustomerNames=false 時應該隱藏客戶名稱', async () => {
+    it("showCustomerNames=false 時應該隱藏客戶名稱", async () => {
       const settingsStore = useSettingsStore();
-      settingsStore.updateSetting('showCustomerNames', false);
+      settingsStore.updateSetting("showCustomerNames", false);
       await nextTick(); // 等待設定更新
 
       wrapper = createWrapper();
       await nextTick(); // 等待組件渲染
 
-      expect(wrapper.text()).not.toContain('張三');
+      expect(wrapper.text()).not.toContain("張三");
     });
 
-    it('沒有客戶名稱時不應顯示客戶信息區塊', () => {
+    it("沒有客戶名稱時不應顯示客戶信息區塊", () => {
       const orderWithoutCustomer = {
         ...mockOrder,
         customerName: undefined,
@@ -143,28 +143,28 @@ describe('OrderCard.vue', () => {
     });
   });
 
-  describe('優先級顯示', () => {
-    it('應該為緊急訂單顯示緊急標記', () => {
+  describe("優先級顯示", () => {
+    it("應該為緊急訂單顯示緊急標記", () => {
       const urgentOrder = {
         ...mockOrder,
-        priority: 'urgent',
+        priority: "urgent",
       };
 
       wrapper = createWrapper({ order: urgentOrder });
 
-      expect(wrapper.find('.animate-pulse-fast').exists()).toBe(true);
+      expect(wrapper.find(".animate-pulse-fast").exists()).toBe(true);
     });
 
-    it('應該為普通訂單不顯示動畫', () => {
+    it("應該為普通訂單不顯示動畫", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.find('.animate-pulse-fast').exists()).toBe(false);
+      expect(wrapper.find(".animate-pulse-fast").exists()).toBe(false);
     });
 
-    it('應該顯示優先級文字', () => {
+    it("應該顯示優先級文字", () => {
       const urgentOrder = {
         ...mockOrder,
-        priority: 'urgent',
+        priority: "urgent",
       };
 
       wrapper = createWrapper({ order: urgentOrder });
@@ -174,15 +174,15 @@ describe('OrderCard.vue', () => {
     });
   });
 
-  describe('時間顯示', () => {
-    it('應該顯示經過時間', () => {
+  describe("時間顯示", () => {
+    it("應該顯示經過時間", () => {
       wrapper = createWrapper();
 
       // Should show elapsed time (5 minutes = 300 seconds)
       expect(wrapper.text()).toMatch(/5.*分鐘?|5.*min/i);
     });
 
-    it('應該根據時間長度使用不同樣式', () => {
+    it("應該根據時間長度使用不同樣式", () => {
       // 超過 15 分鐘的訂單
       const longWaitOrder = {
         ...mockOrder,
@@ -196,96 +196,96 @@ describe('OrderCard.vue', () => {
       expect(timeElement.exists()).toBe(true);
     });
 
-    it('應該顯示創建時間', () => {
+    it("應該顯示創建時間", () => {
       wrapper = createWrapper();
 
       // Should show creation time
-      expect(wrapper.find('.text-xs.text-gray-500').exists()).toBe(true);
+      expect(wrapper.find(".text-xs.text-gray-500").exists()).toBe(true);
     });
   });
 
-  describe('狀態樣式', () => {
-    it('pending 狀態應該有對應的樣式', () => {
+  describe("狀態樣式", () => {
+    it("pending 狀態應該有對應的樣式", () => {
       wrapper = createWrapper();
 
-      const card = wrapper.find('.order-card');
+      const card = wrapper.find(".order-card");
       expect(card.classes()).toBeDefined();
     });
 
-    it('preparing 狀態應該有對應的樣式', () => {
+    it("preparing 狀態應該有對應的樣式", () => {
       const preparingOrder = {
         ...mockOrder,
-        status: 'preparing',
+        status: "preparing",
       };
 
       wrapper = createWrapper({ order: preparingOrder });
 
-      const card = wrapper.find('.order-card');
+      const card = wrapper.find(".order-card");
       expect(card.classes()).toBeDefined();
     });
 
-    it('completed 狀態應該有對應的樣式', () => {
+    it("completed 狀態應該有對應的樣式", () => {
       const completedOrder = {
         ...mockOrder,
-        status: 'completed',
+        status: "completed",
       };
 
       wrapper = createWrapper({ order: completedOrder });
 
-      const card = wrapper.find('.order-card');
+      const card = wrapper.find(".order-card");
       expect(card.classes()).toBeDefined();
     });
   });
 
-  describe('訂單項目', () => {
-    it('應該顯示項目備註', () => {
+  describe("訂單項目", () => {
+    it("應該顯示項目備註", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('不要辣');
+      expect(wrapper.text()).toContain("不要辣");
     });
 
-    it('應該為每個項目創建獨立的行', () => {
+    it("應該為每個項目創建獨立的行", () => {
       wrapper = createWrapper();
 
       const items = wrapper.findAll('[class*="bg-gray-50"]');
       expect(items.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('應該顯示項目名稱', () => {
+    it("應該顯示項目名稱", () => {
       wrapper = createWrapper();
 
-      mockOrder.items.forEach(item => {
+      mockOrder.items.forEach((item) => {
         expect(wrapper.text()).toContain(item.name);
       });
     });
 
-    it('應該正確顯示項目數量', () => {
+    it("應該正確顯示項目數量", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain('2'); // 第一個項目
-      expect(wrapper.text()).toContain('1'); // 第二個項目
+      expect(wrapper.text()).toContain("2"); // 第一個項目
+      expect(wrapper.text()).toContain("1"); // 第二個項目
     });
   });
 
-  describe('Hover 交互', () => {
-    it('應該有 hover 陰影效果', () => {
+  describe("Hover 交互", () => {
+    it("應該有 hover 陰影效果", () => {
       wrapper = createWrapper();
 
-      const card = wrapper.find('.order-card');
-      expect(card.classes()).toContain('hover:shadow-lg');
+      const card = wrapper.find(".order-card");
+      expect(card.classes()).toContain("hover:shadow-lg");
     });
 
-    it('應該有過渡動畫', () => {
+    it("應該有過渡動畫", () => {
       wrapper = createWrapper();
 
-      const card = wrapper.find('.order-card');
-      expect(card.classes()).toContain('transition-all');
-      expect(card.classes()).toContain('duration-200');
+      const card = wrapper.find(".order-card");
+      expect(card.classes()).toContain("transition-all");
+      expect(card.classes()).toContain("duration-200");
     });
   });
 
-  describe('邊界情況', () => {
-    it('應該處理空的項目列表', () => {
+  describe("邊界情況", () => {
+    it("應該處理空的項目列表", () => {
       const emptyOrder = {
         ...mockOrder,
         items: [],
@@ -296,15 +296,15 @@ describe('OrderCard.vue', () => {
       expect(wrapper.exists()).toBe(true);
     });
 
-    it('應該處理極長的項目名稱', () => {
+    it("應該處理極長的項目名稱", () => {
       const longNameOrder = {
         ...mockOrder,
         items: [
           {
-            id: 'item-1',
-            name: '超級無敵超長的菜名測試測試測試測試測試測試測試',
+            id: "item-1",
+            name: "超級無敵超長的菜名測試測試測試測試測試測試測試",
             quantity: 1,
-            status: 'pending',
+            status: "pending",
           },
         ],
       };
@@ -314,39 +314,39 @@ describe('OrderCard.vue', () => {
       expect(wrapper.exists()).toBe(true);
     });
 
-    it('應該處理大數量', () => {
+    it("應該處理大數量", () => {
       const largeQuantityOrder = {
         ...mockOrder,
         items: [
           {
-            id: 'item-1',
-            name: '炒飯',
+            id: "item-1",
+            name: "炒飯",
             quantity: 99,
-            status: 'pending',
+            status: "pending",
           },
         ],
       };
 
       wrapper = createWrapper({ order: largeQuantityOrder });
 
-      expect(wrapper.text()).toContain('99');
+      expect(wrapper.text()).toContain("99");
     });
 
-    it('應該處理缺少可選欄位的訂單', () => {
+    it("應該處理缺少可選欄位的訂單", () => {
       const minimalOrder = {
-        id: 'order-minimal',
-        orderNumber: '999',
-        tableName: 'B-1',
-        priority: 'normal',
-        status: 'pending',
+        id: "order-minimal",
+        orderNumber: "999",
+        tableName: "B-1",
+        priority: "normal",
+        status: "pending",
         createdAt: new Date().toISOString(),
         elapsedTime: 60,
         items: [
           {
-            id: 'item-1',
-            name: '測試菜品',
+            id: "item-1",
+            name: "測試菜品",
             quantity: 1,
-            status: 'pending',
+            status: "pending",
           },
         ],
       };
@@ -354,8 +354,8 @@ describe('OrderCard.vue', () => {
       wrapper = createWrapper({ order: minimalOrder });
 
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.text()).toContain('999');
-      expect(wrapper.text()).toContain('B-1');
+      expect(wrapper.text()).toContain("999");
+      expect(wrapper.text()).toContain("B-1");
     });
   });
 });

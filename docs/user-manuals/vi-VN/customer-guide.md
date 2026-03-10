@@ -77,6 +77,7 @@ MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của
    - Mỗi bàn có mã QR riêng
 
 2. **Quét Mã QR**
+
    ```
    Cách 1: Dùng camera điện thoại
    └─ Mở camera và hướng vào mã QR
@@ -114,6 +115,7 @@ MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của
 2. **Xác Minh Số Điện Thoại (Lần Đầu)**
 
    **Bước 1: Nhập Số Điện Thoại**
+
    ```
    ┌──────────────────────────┐
    │  Nhập số điện thoại      │
@@ -124,6 +126,7 @@ MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của
    │  [Xác Nhận]              │
    └──────────────────────────┘
    ```
+
    - Nhập số điện thoại có mã quốc gia
    - VD: Việt Nam +84, Malaysia +60
 
@@ -163,6 +166,7 @@ MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của
    - Hoặc nhấn "Đăng Ký Ngay" trên trang đăng nhập
 
 2. **Điền Form Đăng Ký**
+
    ```
    ┌────────────────────────────────┐
    │  Đăng Ký Thành Viên            │
@@ -216,6 +220,7 @@ MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của
    - Nhấn "Đăng Nhập" trên trang chủ
 
 2. **Nhập Thông Tin**
+
    ```
    ┌────────────────────────────────┐
    │  Đăng Nhập Thành Viên          │
@@ -324,12 +329,12 @@ Mỗi đơn hàng hiển thị:
 
 #### 🔍 Giải Thích Trạng Thái
 
-| Trạng Thái | Mô Tả |
-|------------|-------|
-| 🟡 Chờ Xác Nhận | Đơn đã gửi, đợi nhà hàng xác nhận |
-| 🔵 Đang Chuẩn Bị | Nhà hàng đã nhận, đang chuẩn bị |
-| 🟢 Hoàn Thành | Đơn hàng đã hoàn tất |
-| 🔴 Đã Hủy | Đơn hàng đã bị hủy |
+| Trạng Thái       | Mô Tả                             |
+| ---------------- | --------------------------------- |
+| 🟡 Chờ Xác Nhận  | Đơn đã gửi, đợi nhà hàng xác nhận |
+| 🔵 Đang Chuẩn Bị | Nhà hàng đã nhận, đang chuẩn bị   |
+| 🟢 Hoàn Thành    | Đơn hàng đã hoàn tất              |
+| 🔴 Đã Hủy        | Đơn hàng đã bị hủy                |
 
 ---
 
@@ -375,6 +380,7 @@ Mỗi đơn hàng hiển thị:
 3. Kết quả hiển thị ngay lập tức
 
 **Ví dụ**:
+
 - Tìm "bò" → Hiện "Phở Bò", "Cơm Bò", v.v.
 - Tìm "chay" → Hiện tất cả món chay
 
@@ -393,6 +399,7 @@ Mỗi đơn hàng hiển thị:
    - Hiển thị thông tin chi tiết món
 
 2. **Xem Chi Tiết Món**
+
    ```
    ┌────────────────────────────────┐
    │  Phở Bò                        │
@@ -537,6 +544,7 @@ Mỗi đơn hàng hiển thị:
    - Hệ thống xác nhận thông tin
 
 4. **Xác Nhận Gửi**
+
    ```
    ┌────────────────────────────────┐
    │  ⚠️ Xác Nhận Gửi Đơn?          │
@@ -636,6 +644,7 @@ Hệ thống gửi thông báo khi:
 - 🔔 Món đã sẵn sàng
 
 **Cách nhận thông báo**:
+
 - Giữ trình duyệt mở
 - Cho phép thông báo (sẽ hỏi lần đầu)
 
@@ -653,6 +662,7 @@ A: Không nhất thiết. Đặt món qua bàn không cần đăng ký. Nhưng �
 
 **Q3: Không nhận được mã xác minh?**
 A: Kiểm tra:
+
 - Số điện thoại đúng chưa
 - SMS có bị chặn không
 - Mạng có ổn định không
@@ -673,6 +683,7 @@ A: Lưu trong 24 giờ, quá thời gian có thể bị xóa.
 
 **Q7: Tại sao không thêm được một số món?**
 A: Có thể do:
+
 - Món tạm hết
 - Không trong giờ phục vụ
 - Hệ thống bảo trì
@@ -696,6 +707,7 @@ A: Tùy quy định nhà hàng, hỏi nhân viên để biết.
 
 **Q11: Tại sao tải chậm?**
 A: Có thể do:
+
 - Mạng yếu
 - Bộ nhớ điện thoại đầy
 - Thử tải lại trang
@@ -705,6 +717,7 @@ A: Xem được thực đơn đã tải, nhưng gửi đơn cần mạng.
 
 **Q13: Hỗ trợ trình duyệt nào?**
 A: Khuyến nghị:
+
 - Safari (iOS)
 - Chrome (Android)
 - Trình duyệt hiện đại khác
@@ -784,11 +797,13 @@ Khi gặp vấn đề, thử các cách sau:
 Nếu trang hiển thị lỗi, thử xóa cache:
 
 **iOS Safari:**
+
 1. Vào "Cài Đặt" → "Safari"
 2. Nhấn "Xóa Lịch Sử và Dữ Liệu Website"
 3. Xác nhận xóa
 
 **Android Chrome:**
+
 1. Nhấn menu góc trên (ba chấm)
 2. Vào "Cài Đặt" → "Quyền Riêng Tư"
 3. Nhấn "Xóa Dữ Liệu Duyệt Web"
@@ -823,6 +838,7 @@ Nếu hướng dẫn này không giải quyết được, liên hệ qua:
 Phát hiện lỗi hoặc có đề xuất? Hoan nghênh phản hồi!
 
 **Khi báo, cung cấp:**
+
 - Thời gian xảy ra lỗi
 - Model điện thoại và trình duyệt
 - Mô tả chi tiết vấn đề
@@ -839,12 +855,14 @@ Chúc ngon miệng! 😋
 ---
 
 **Thông Tin Tài Liệu**
+
 - Phiên bản: 2.0
 - Cập nhật: 2025-10-26
 - Ngôn ngữ: Tiếng Việt (vi-VN)
 - Cập nhật tiếp: 2025-11-26
 
 **Tài Liệu Liên Quan**
+
 - [繁體中文](../zh-TW/customer-guide.md)
 - [English](../en-US/customer-guide.md)
 - [Bahasa Indonesia](../id-ID/customer-guide.md)

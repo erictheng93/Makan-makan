@@ -3,7 +3,7 @@
  * All LLM providers must implement this interface
  */
 
-import type { LLMRequest, LLMResponse, LLMConfig } from '../types';
+import type { LLMRequest, LLMResponse, LLMConfig } from "../types";
 
 export abstract class BaseLLMProvider {
   protected config: LLMConfig;
@@ -20,7 +20,11 @@ export abstract class BaseLLMProvider {
   /**
    * Test if the provider is properly configured and accessible
    */
-  abstract test(): Promise<{ success: boolean; latencyMs?: number; error?: string }>;
+  abstract test(): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  }>;
 
   /**
    * Get the model name being used

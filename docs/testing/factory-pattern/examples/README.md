@@ -9,6 +9,7 @@
 ### [01-basic-usage.ts](./01-basic-usage.ts) - 基本使用
 
 **學習內容**：
+
 - ✅ 如何生成單個實體
 - ✅ 如何使用專用方法 (`buildAdmin()`, `buildChef()` 等)
 - ✅ 如何生成多筆數據 (`buildList()`)
@@ -24,6 +25,7 @@
 ### [02-relationships.ts](./02-relationships.ts) - 關聯數據
 
 **學習內容**：
+
 - ✅ 如何生成有關聯的數據
 - ✅ 如何使用 `relations` 參數
 - ✅ 如何處理多層關聯
@@ -39,6 +41,7 @@
 ### [03-complete-environment.ts](./03-complete-environment.ts) - 完整環境
 
 **學習內容**：
+
 - ✅ 如何使用 `buildCompleteRestaurantData()`
 - ✅ 如何自訂生成參數
 - ✅ 如何用於整合測試
@@ -122,15 +125,13 @@ npm run test docs/testing/examples/ -- --watch
 
 ```typescript
 // TODO: 完成這個測試
-it('練習 1: 生成顧客數據', () => {
-  resetAllFactories()
+it("練習 1: 生成顧客數據", () => {
+  resetAllFactories();
 
   // 提示：使用 buildCustomer() 和 overrides
-  const customers = // ... 你的代碼
-
-  expect(customers).toHaveLength(10)
+  const customers = expect(customers).toHaveLength(10); // ... 你的代碼
   // 驗證 VIP 邏輯
-})
+});
 ```
 
 ### 練習 2: 關聯數據（難度：⭐⭐）
@@ -158,8 +159,8 @@ it('練習 2: 生成菜單結構', () => {
 
 ```typescript
 // TODO: 完成這個測試
-it('練習 3: 完整點餐流程', () => {
-  resetAllFactories()
+it("練習 3: 完整點餐流程", () => {
+  resetAllFactories();
 
   // 1. 準備環境：餐廳、菜單、員工
   // 2. 顧客瀏覽菜單
@@ -169,7 +170,7 @@ it('練習 3: 完整點餐流程', () => {
   // 6. 收銀員結帳
 
   // 驗證每個步驟的數據正確性
-})
+});
 ```
 
 **參考答案**：請參考 `./solutions/` 目錄（稍後提供）
@@ -181,55 +182,57 @@ it('練習 3: 完整點餐流程', () => {
 ### 場景 1: 單元測試 - 測試服務層
 
 ```typescript
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
-it('should validate user email', () => {
+it("should validate user email", () => {
   const user = userFactory.build({
-    overrides: { email: 'invalid-email' }
-  })
+    overrides: { email: "invalid-email" },
+  });
 
-  expect(() => validateEmail(user.email)).toThrow()
-})
+  expect(() => validateEmail(user.email)).toThrow();
+});
 ```
 
 ### 場景 2: 整合測試 - 測試 API
 
 ```typescript
-import { buildCompleteRestaurantData } from '@makanmakan/testing-utils'
+import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
 
-it('should create order via API', async () => {
-  const testData = buildCompleteRestaurantData()
+it("should create order via API", async () => {
+  const testData = buildCompleteRestaurantData();
 
-  const response = await api.post('/orders', {
+  const response = await api.post("/orders", {
     restaurantId: testData.restaurant.id,
     customerId: testData.customers[0].id,
-    items: [/* ... */]
-  })
+    items: [
+      /* ... */
+    ],
+  });
 
-  expect(response.status).toBe(201)
-})
+  expect(response.status).toBe(201);
+});
 ```
 
 ### 場景 3: E2E 測試 - 完整流程
 
 ```typescript
-import { buildCompleteRestaurantData } from '@makanmakan/testing-utils'
+import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
 
-it('should complete order flow', async () => {
+it("should complete order flow", async () => {
   const testData = buildCompleteRestaurantData({
-    enableShopMode: true
-  })
+    enableShopMode: true,
+  });
 
   // 1. 用戶掃描 QR 碼
-  await page.goto(`/shop/${testData.restaurant.shopQrCode}`)
+  await page.goto(`/shop/${testData.restaurant.shopQrCode}`);
 
   // 2. 瀏覽菜單
-  await page.click(`[data-menu-item="${testData.menuItems[0].id}"]`)
+  await page.click(`[data-menu-item="${testData.menuItems[0].id}"]`);
 
   // 3. 下訂單
   // 4. 追蹤訂單
   // ...
-})
+});
 ```
 
 ---
@@ -253,6 +256,7 @@ it('should complete order flow', async () => {
 4. 提交 PR
 
 **範例命名規範**：
+
 - `NN-description.ts` （NN 是兩位數字）
 - 例如：`04-error-handling.ts`
 

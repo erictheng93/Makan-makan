@@ -41,6 +41,7 @@ pnpm add -D @storybook/vue3 @storybook/addon-essentials chromatic
 #### 2. 初始化 Storybook（已配置）
 
 專案已包含以下配置檔案：
+
 - `.storybook/main.js` - Storybook 主配置
 - `.storybook/preview.js` - 全域裝飾器和參數
 - `chromatic.config.json` - Chromatic 專案設置
@@ -55,6 +56,7 @@ CHROMATIC_PROJECT_TOKEN=your_chromatic_project_token_here
 ```
 
 **取得 Token 步驟：**
+
 1. 訪問 [Chromatic](https://www.chromatic.com/)
 2. 使用 GitHub 帳號登入
 3. 創建新專案或選擇現有專案
@@ -66,35 +68,35 @@ CHROMATIC_PROJECT_TOKEN=your_chromatic_project_token_here
 
 ```typescript
 // apps/admin-dashboard/src/components/Button.stories.ts
-import type { Meta, StoryObj } from '@storybook/vue3'
-import Button from './Button.vue'
+import type { Meta, StoryObj } from "@storybook/vue3";
+import Button from "./Button.vue";
 
 const meta: Meta<typeof Button> = {
-  title: 'Components/Button',
+  title: "Components/Button",
   component: Button,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['primary', 'secondary', 'danger', 'success'],
+      control: "select",
+      options: ["primary", "secondary", "danger", "success"],
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
+      control: "select",
+      options: ["sm", "md", "lg"],
     },
   },
-}
+};
 
-export default meta
-type Story = StoryObj<typeof Button>
+export default meta;
+type Story = StoryObj<typeof Button>;
 
 // 基本按鈕
 export const Primary: Story = {
   args: {
-    variant: 'primary',
-    label: 'Primary Button',
+    variant: "primary",
+    label: "Primary Button",
   },
-}
+};
 
 // 測試不同狀態
 export const AllStates: Story = {
@@ -108,20 +110,26 @@ export const AllStates: Story = {
       </div>
     `,
   }),
-}
+};
 
 // 響應式測試（多視口）
 export const Responsive: Story = {
   parameters: {
     viewport: {
       viewports: {
-        mobile: { name: 'Mobile', styles: { width: '375px', height: '667px' } },
-        tablet: { name: 'Tablet', styles: { width: '768px', height: '1024px' } },
-        desktop: { name: 'Desktop', styles: { width: '1440px', height: '900px' } },
+        mobile: { name: "Mobile", styles: { width: "375px", height: "667px" } },
+        tablet: {
+          name: "Tablet",
+          styles: { width: "768px", height: "1024px" },
+        },
+        desktop: {
+          name: "Desktop",
+          styles: { width: "1440px", height: "900px" },
+        },
       },
     },
   },
-}
+};
 ```
 
 #### 5. 本地運行 Storybook
@@ -153,12 +161,14 @@ pnpm chromatic --only-changed
 #### 7. 查看測試結果
 
 測試完成後：
+
 1. 打開終端輸出的 Chromatic URL
 2. 審查視覺變更
 3. 接受 (Accept) 或拒絕 (Deny) 變更
 4. 在 PR 中查看 Chromatic 狀態報告
 
 **測試結果說明：**
+
 - ✅ **No changes detected** - 無視覺變更
 - 🔄 **Changes found** - 發現視覺差異，需人工審查
 - ❌ **Build failed** - 建構失敗，檢查錯誤訊息
@@ -178,6 +188,7 @@ pnpm add -D @percy/cli @percy/playwright
 #### 2. 配置檔案（已完成）
 
 專案已包含：
+
 - `.percy.yml` - Percy 配置檔案
 - `tests/visual/percy-snapshots.test.ts` - Percy 測試腳本
 
@@ -189,6 +200,7 @@ PERCY_TOKEN=your_percy_token_here
 ```
 
 **取得 Token 步驟：**
+
 1. 訪問 [Percy.io](https://percy.io/)
 2. 創建帳號或登入
 3. 創建新專案
@@ -197,6 +209,7 @@ PERCY_TOKEN=your_percy_token_here
 #### 4. Percy 測試腳本說明
 
 `tests/visual/percy-snapshots.test.ts` 涵蓋：
+
 - ✅ Admin Dashboard 主要頁面（8+ 頁面）
 - ✅ Customer App 介面
 - ✅ Kitchen Display 系統
@@ -219,6 +232,7 @@ npx percy exec -- npx playwright test tests/visual/percy-snapshots.test.ts
 #### 6. 查看 Percy 結果
 
 訪問 Percy Dashboard：
+
 - 查看快照對比
 - 審查視覺差異
 - 批准或拒絕變更
@@ -231,6 +245,7 @@ npx percy exec -- npx playwright test tests/visual/percy-snapshots.test.ts
 #### 最佳實踐
 
 1. **開發前建立基準線**
+
    ```bash
    # Chromatic
    pnpm test:visual:chromatic
@@ -244,12 +259,14 @@ npx percy exec -- npx playwright test tests/visual/percy-snapshots.test.ts
    - 更新或創建對應的 Story 檔案
 
 3. **本地預覽**
+
    ```bash
    # Storybook 熱重載預覽
    pnpm storybook
    ```
 
 4. **執行視覺測試**
+
    ```bash
    # 測試所有變更
    pnpm test:visual:chromatic
@@ -311,10 +328,10 @@ visual-regression-tests:
 
 在 GitHub Repository Settings → Secrets and Variables → Actions 中添加：
 
-| Secret 名稱 | 說明 | 取得方式 |
-|------------|------|----------|
+| Secret 名稱               | 說明                 | 取得方式                                    |
+| ------------------------- | -------------------- | ------------------------------------------- |
 | `CHROMATIC_PROJECT_TOKEN` | Chromatic 專案 Token | [chromatic.com](https://www.chromatic.com/) |
-| `PERCY_TOKEN` | Percy 專案 Token | [percy.io](https://percy.io/) |
+| `PERCY_TOKEN`             | Percy 專案 Token     | [percy.io](https://percy.io/)               |
 
 #### CI/CD 行為
 
@@ -353,6 +370,7 @@ export SNYK_TOKEN=your_snyk_api_token
 ```
 
 **取得 Token 步驟：**
+
 1. 訪問 [Snyk](https://snyk.io/)
 2. 註冊或登入
 3. 前往 Account Settings → API Token
@@ -367,13 +385,13 @@ export SNYK_TOKEN=your_snyk_api_token
 language-settings:
   javascript:
     package-manager: pnpm
-    all-projects: true          # 掃描所有子專案
-    dev: true                   # 包含開發依賴
-    severity-threshold: low     # 掃描閾值
+    all-projects: true # 掃描所有子專案
+    dev: true # 包含開發依賴
+    severity-threshold: low # 掃描閾值
 
 # 策略設定
 policy:
-  fail-on: upgradable          # 可升級漏洞時失敗
+  fail-on: upgradable # 可升級漏洞時失敗
 
 # 許可證合規
 license-policy:
@@ -390,8 +408,8 @@ license-policy:
 code:
   enabled: true
   quality-gates:
-    high-severity-threshold: 0    # 不允許高嚴重性問題
-    medium-severity-threshold: 5  # 最多 5 個中等嚴重性問題
+    high-severity-threshold: 0 # 不允許高嚴重性問題
+    medium-severity-threshold: 5 # 最多 5 個中等嚴重性問題
 ```
 
 #### 4. 執行 Snyk 掃描
@@ -434,6 +452,7 @@ snyk monitor --all-projects
 ```
 
 **嚴重性級別：**
+
 - 🔴 **Critical**: 立即修復
 - 🔴 **High**: 優先修復
 - 🟡 **Medium**: 盡快修復
@@ -492,10 +511,10 @@ authentication:
 activeScan:
   policyDefinition:
     rules:
-      - id: 40012  # XSS (Reflected)
+      - id: 40012 # XSS (Reflected)
         threshold: "medium"
         strength: "high"
-      - id: 40018  # SQL Injection
+      - id: 40018 # SQL Injection
         threshold: "medium"
         strength: "high"
 ```
@@ -546,12 +565,14 @@ security-reports/
 打開 `zap-report-*.html`，報告包含：
 
 **風險分類：**
+
 - 🔴 **High Risk** (0 個) - 嚴重漏洞，立即修復
 - 🟡 **Medium Risk** (3 個) - 中等風險，盡快修復
 - 🟢 **Low Risk** (8 個) - 低風險，可選修復
 - ℹ️ **Informational** (15 個) - 資訊性建議
 
 **常見漏洞類型：**
+
 - Cross-Site Scripting (XSS)
 - SQL Injection
 - Cross-Site Request Forgery (CSRF)
@@ -566,14 +587,14 @@ security-reports/
 // apps/api/src/middleware/security.ts
 export const securityHeaders = async (c: Context, next: Next) => {
   // 設置安全標頭
-  c.header('X-Content-Type-Options', 'nosniff')
-  c.header('X-Frame-Options', 'DENY')
-  c.header('X-XSS-Protection', '1; mode=block')
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
-  c.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("X-XSS-Protection", "1; mode=block");
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  c.header("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
 
-  await next()
-}
+  await next();
+};
 ```
 
 ---
@@ -692,8 +713,8 @@ security-tests:
 
 添加以下 Secrets：
 
-| Secret 名稱 | 說明 | 取得方式 |
-|------------|------|----------|
+| Secret 名稱  | 說明           | 取得方式                                   |
+| ------------ | -------------- | ------------------------------------------ |
 | `SNYK_TOKEN` | Snyk API Token | [snyk.io/account](https://snyk.io/account) |
 
 #### CI/CD 行為
@@ -775,6 +796,7 @@ open artillery-api-report.html
 **原因**: Token 未正確設置或已過期
 
 **解決方案**:
+
 ```bash
 # 檢查環境變數
 echo $CHROMATIC_PROJECT_TOKEN
@@ -791,6 +813,7 @@ echo "CHROMATIC_PROJECT_TOKEN=your_token" >> .env.local
 **原因**: 依賴缺失或版本不相容
 
 **解決方案**:
+
 ```bash
 # 清理並重新安裝
 rm -rf node_modules pnpm-lock.yaml
@@ -805,15 +828,16 @@ pnpm list @storybook/vue3
 **原因**: 組件渲染時間過長
 
 **解決方案**:
+
 ```typescript
 // 在 Story 中增加等待時間
 export const SlowComponent: Story = {
   parameters: {
     chromatic: {
-      delay: 1000,  // 等待 1 秒
+      delay: 1000, // 等待 1 秒
     },
   },
-}
+};
 ```
 
 ---
@@ -823,6 +847,7 @@ export const SlowComponent: Story = {
 #### 問題 1: "Percy token is missing"
 
 **解決方案**:
+
 ```bash
 # 設置 Percy Token
 export PERCY_TOKEN=your_percy_token
@@ -836,6 +861,7 @@ echo "PERCY_TOKEN=your_token" >> .env.local
 **原因**: 應用未正確啟動
 
 **解決方案**:
+
 ```bash
 # 確保應用正在運行
 pnpm build
@@ -855,6 +881,7 @@ pnpm test:visual
 #### 問題 1: "Authentication failed"
 
 **解決方案**:
+
 ```bash
 # 重新認證
 snyk auth
@@ -866,12 +893,13 @@ export SNYK_TOKEN=your_snyk_token
 #### 問題 2: 過多誤報
 
 **解決方案**:
+
 ```yaml
 # 在 .snyk 中忽略誤報
 policy:
   ignore:
     - SNYK-JS-PACKAGE-1234567:
-        - '*':
+        - "*":
             reason: False positive - not exploitable
             expires: 2025-12-31
 ```
@@ -879,6 +907,7 @@ policy:
 #### 問題 3: 掃描速度慢
 
 **解決方案**:
+
 ```bash
 # 只掃描高嚴重性
 snyk test --severity-threshold=high
@@ -894,6 +923,7 @@ snyk test --production
 #### 問題 1: Docker 未運行
 
 **解決方案**:
+
 ```bash
 # 啟動 Docker Desktop
 open -a Docker  # macOS
@@ -908,6 +938,7 @@ docker ps
 **原因**: 目標應用未響應
 
 **解決方案**:
+
 ```bash
 # 檢查應用狀態
 curl http://localhost:4173/health
@@ -920,12 +951,13 @@ pnpm build && pnpm preview
 #### 問題 3: 報告中誤報過多
 
 **解決方案**:
+
 ```yaml
 # 在 zap-config.yml 中配置過濾器
 alertFilters:
-  - ruleId: 10021  # X-Content-Type-Options
+  - ruleId: 10021 # X-Content-Type-Options
     url: ".*\\.js"
-    enabled: false  # 忽略 JS 檔案
+    enabled: false # 忽略 JS 檔案
 ```
 
 ---
@@ -935,16 +967,19 @@ alertFilters:
 #### 問題 1: GitHub Actions 失敗
 
 **檢查步驟**:
+
 1. 查看 Actions 日誌中的錯誤訊息
 2. 驗證 Secrets 已正確配置
 3. 檢查依賴版本是否相容
 
 **常見原因**:
+
 - Secrets 未設置或名稱錯誤
 - 依賴版本衝突
 - 網路問題（ZAP 下載失敗）
 
 **解決方案**:
+
 ```bash
 # 本地重現問題
 pnpm run test:ci
@@ -961,6 +996,7 @@ gh secret set CHROMATIC_PROJECT_TOKEN < token.txt
 **原因**: 基準線未更新
 
 **解決方案**:
+
 ```bash
 # 在 Chromatic Dashboard 中手動接受變更
 # 或在 main 分支上重新運行測試（自動接受）
@@ -1003,12 +1039,14 @@ git push origin main
 本指南涵蓋了 MakanMakan 專案的視覺回歸測試和安全性測試的完整流程。通過這些工具，我們能夠：
 
 ### 視覺回歸測試
+
 - ✅ 自動檢測 UI 變更
 - ✅ 確保設計一致性
 - ✅ 支援多視口響應式測試
 - ✅ CI/CD 自動化整合
 
 ### 安全性測試
+
 - ✅ 深度依賴漏洞掃描（Snyk）
 - ✅ 靜態代碼分析（CodeQL）
 - ✅ 動態應用安全測試（OWASP ZAP）
@@ -1046,6 +1084,7 @@ git push origin main
 ```
 
 **建議開發流程**:
+
 1. 開發新功能 → 創建 Story 檔案
 2. 本地測試 → 運行 Storybook
 3. 提交 PR → 自動執行視覺測試

@@ -93,8 +93,9 @@ export const useNotificationStore = defineStore("notification", () => {
 
   const playNotificationSound = (type: Notification["type"]) => {
     try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
 
       // Different frequencies for different notification types
       const frequencies: Record<string, number> = {

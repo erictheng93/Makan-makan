@@ -5,6 +5,7 @@
 ### 方法 1：通過側邊欄導航（推薦）
 
 1. **啟動 Admin Dashboard**
+
    ```bash
    cd apps/admin-dashboard
    pnpm run dev
@@ -15,6 +16,7 @@
    - URL: `http://localhost:5173/login`
 
 3. **點擊側邊欄的「✨ AI 洞察」**
+
    ```
    📋 儀表板
    🛒 訂單管理
@@ -157,6 +159,7 @@ Admin Dashboard
 其他角色（廚師、服務員、收銀員）無法訪問。
 
 如果看不到「✨ AI 洞察」菜單項，請檢查：
+
 1. 是否使用正確的帳號登入
 2. 帳號角色是否為 Admin 或 Owner
 
@@ -213,6 +216,7 @@ Admin Dashboard
 ### Q1: 找不到「AI 洞察」菜單項？
 
 **A**: 檢查：
+
 1. 是否使用 Admin 或 Owner 帳號登入
 2. 前端是否已編譯（`pnpm run dev` 或 `pnpm run build`）
 3. 瀏覽器是否需要清除緩存（Ctrl+Shift+R 強制刷新）
@@ -220,6 +224,7 @@ Admin Dashboard
 ### Q2: 點擊「AI 洞察」後顯示 404？
 
 **A**: 檢查路由是否正確配置：
+
 - 檔案：`apps/admin-dashboard/src/router/index.ts`
 - 應包含三個路由：`ai-analytics/config`, `ai-analytics/insights`, `ai-analytics/products`
 
@@ -246,6 +251,7 @@ https://your-domain.com/dashboard/ai-analytics/config
 ```
 
 確保：
+
 1. 已運行數據庫遷移（`0010_ai_analytics_system.sql`）
 2. 已部署最新的 Admin Dashboard
 3. 已部署最新的 API（包含 `/api/v1/ai-analytics` 端點）
@@ -255,6 +261,7 @@ https://your-domain.com/dashboard/ai-analytics/config
 ## 📞 需要幫助？
 
 如果遇到問題：
+
 1. 查看瀏覽器控制台（F12）是否有錯誤
 2. 查看 API 是否正常運行（`/api/v1/info` 應包含 `aiAnalytics` 端點）
 3. 查看完整文檔：`docs/AI_ANALYTICS_UI_GUIDE.md`

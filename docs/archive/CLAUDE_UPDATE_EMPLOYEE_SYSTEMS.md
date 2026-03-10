@@ -7,6 +7,7 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 #### Features Implemented:
 
 **1. Shift Template Management**:
+
 - Reusable shift templates (早班, 午班, 晚班, 全日班)
 - Configurable shift times, durations, and break periods
 - Support for split shifts and overnight shifts
@@ -14,6 +15,7 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 - Color-coded visualization with custom icons
 
 **2. Employee Schedule Assignment**:
+
 - Weekly and monthly schedule planning
 - Individual and batch schedule creation
 - Clock in/out time tracking
@@ -21,6 +23,7 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 - Schedule status management (scheduled, confirmed, completed, cancelled, no_show)
 
 **3. Scheduling Rules Engine**:
+
 - **Taiwan Labor Law Compliance**:
   - Max 12 hours per day (normal + overtime)
   - Max 40 hours per week (regular), 46 hours (with overtime)
@@ -31,6 +34,7 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 - Configurable severity levels (error, warning, info)
 
 **4. Conflict Detection & Resolution**:
+
 - Real-time conflict detection during schedule creation
 - Automatic conflict alerts with detailed explanations
 - Multiple conflict types:
@@ -43,6 +47,7 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 - Conflict resolution workflow with acknowledgment tracking
 
 **5. Shift Swap Requests**:
+
 - Employee-initiated shift swap requests
 - Three request types: swap, cover, drop
 - Target employee selection or open broadcast
@@ -51,12 +56,14 @@ Implemented comprehensive employee work scheduling system with **Taiwan Labor St
 - Automatic schedule updates upon approval
 
 **6. Employee Availability Management**:
+
 - Preferred/unavailable time slots
 - Recurring weekly availability patterns
 - Specific date range restrictions
 - Flexible scheduling preferences
 
 #### Database Schema:
+
 ```sql
 shift_templates:
   - Restaurant-specific shift definitions
@@ -103,6 +110,7 @@ Views:
 ```
 
 #### Taiwan Labor Law Rules (Built-in):
+
 ```
 ✅ 每日最大工時限制 (Max 12 hours per day)
 ✅ 每週最大工時限制 (Max 40-46 hours per week)
@@ -111,6 +119,7 @@ Views:
 ```
 
 #### Use Cases:
+
 - **Restaurant Chains**: Centralized schedule management across multiple locations
 - **Part-time Staff**: Flexible scheduling with availability constraints
 - **Compliance**: Automatic labor law violation detection
@@ -118,6 +127,7 @@ Views:
 - **Analytics**: Staffing coverage analysis and optimization
 
 **Files**:
+
 - Migration: `packages/database/migrations/0034_employee_scheduling_system.sql`
 - Documentation: `docs/EMPLOYEE_SCHEDULING_IMPLEMENTATION.md` (900+ lines)
 
@@ -134,6 +144,7 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 #### Features Implemented:
 
 **1. Leave Type Management (10 Types Pre-configured)**:
+
 - **年假 (Annual Leave)**: 3-30 days based on seniority, paid, carryover allowed
 - **病假 (Sick Leave)**: 30 days/year, half-pay, requires documentation >2 days
 - **事假 (Personal Leave)**: 14 days/year, unpaid
@@ -146,6 +157,7 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 - **生理假 (Menstrual Leave)**: 12 days/year (3 days full-pay + 9 half-pay), female only
 
 **2. Leave Balance Tracking**:
+
 - Automatic annual leave accrual based on seniority
 - Monthly or yearly accrual cycles
 - Carryover management with expiration dates
@@ -154,6 +166,7 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 - Multi-year balance history
 
 **3. Leave Request Workflow**:
+
 - Full-day and half-day (AM/PM) support
 - Reason and documentation attachment
 - Multi-level approval chain configuration
@@ -162,6 +175,7 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 - Integration with work schedules for conflict detection
 
 **4. Approval Rules Engine**:
+
 - Configurable approval levels per leave type
 - Role-based approvers (owner, admin) or specific users
 - Conditional auto-approval rules
@@ -169,6 +183,7 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 - Priority-based rule evaluation
 
 **5. Public Holiday Calendar**:
+
 - **2025 Taiwan Public Holidays** pre-loaded (19 holidays):
   - 開國紀念日, 春節 (7 days), 和平紀念日
   - 兒童節/清明節, 勞動節, 端午節
@@ -178,12 +193,14 @@ Implemented comprehensive employee leave (排休) management system with **Taiwa
 - Company-specific holiday management
 
 **6. Schedule Integration**:
+
 - Automatic detection of leave-schedule conflicts
 - Cancellation of conflicting work schedules upon approval
 - Replacement staff notification workflow
 - Leave calendar view (30-day upcoming)
 
 #### Database Schema:
+
 ```sql
 leave_types:
   - Code and name (10 types pre-configured)
@@ -228,6 +245,7 @@ Views:
 ```
 
 #### Taiwan Labor Law Leave Types (Pre-configured):
+
 ```
 ✅ 年假 (Annual Leave): Based on seniority, 3-30 days
 ✅ 病假 (Sick Leave): 30 days/year, half-pay
@@ -242,6 +260,7 @@ Views:
 ```
 
 #### 2025 Taiwan Public Holidays (19 Days Pre-loaded):
+
 ```
 🎉 開國紀念日 (1/1)
 🧧 春節連假 (1/28-2/3, 7 days)
@@ -254,6 +273,7 @@ Views:
 ```
 
 #### Use Cases:
+
 - **Annual Leave Planning**: Automatic accrual based on employee seniority
 - **Sick Leave Tracking**: Half-pay calculation and documentation requirements
 - **Family Events**: Marriage, bereavement, maternity, paternity leaves
@@ -262,6 +282,7 @@ Views:
 - **Holiday Planning**: Public holiday calendar integration
 
 **Files**:
+
 - Migration: `packages/database/migrations/0035_leave_management_system.sql`
 - Documentation: `docs/LEAVE_MANAGEMENT_IMPLEMENTATION.md` (800+ lines)
 

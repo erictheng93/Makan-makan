@@ -101,103 +101,101 @@
       :buffer-size="3"
     >
       <template #default="{ menuItem: item }">
-        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
+        <div
+          class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
         >
-        <!-- 菜品圖片 - 🚀 使用優化圖片組件 -->
-        <div class="relative">
-          <OptimizedImage
-            :src="item.imageUrl || '/placeholder-food.jpg'"
-            :alt="item.name"
-            :width="600"
-            :height="400"
-            format="auto"
-            fit="cover"
-            :lazy="true"
-            :fade-in="true"
-            image-class="w-full h-48 object-cover rounded-t-lg"
-          />
-          <div class="absolute top-2 right-2">
-            <span
-              :class="[
-                'px-2 py-1 rounded-full text-xs font-medium',
-                item.isAvailable
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800',
-              ]"
-            >
-              {{ item.isAvailable ? "供應中" : "已售完" }}
-            </span>
-          </div>
-          <div v-if="item.isFeatured" class="absolute top-2 left-2">
-            <span
-              class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium"
-            >
-              推薦
-            </span>
-          </div>
-        </div>
-
-        <!-- 菜品信息 -->
-        <div class="p-4">
-          <div class="flex justify-between items-start mb-2">
-            <h3 class="text-lg font-semibold text-gray-900 line-clamp-1">
-              {{ item.name }}
-            </h3>
-            <span class="text-lg font-bold text-blue-600"
-              >RM{{ item.price }}</span
-            >
-          </div>
-
-          <p class="text-sm text-gray-600 mb-3 line-clamp-2">
-            {{ item.description }}
-          </p>
-
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">
-              {{ getCategoryName(item.categoryId) }}
-            </span>
-            <div class="flex space-x-2">
-              <button
-                class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                title="編輯"
-                @click="editMenuItem(item)"
-              >
-                <PencilIcon class="h-4 w-4" />
-              </button>
-              <button
+          <!-- 菜品圖片 - 🚀 使用優化圖片組件 -->
+          <div class="relative">
+            <OptimizedImage
+              :src="item.imageUrl || '/placeholder-food.jpg'"
+              :alt="item.name"
+              :width="600"
+              :height="400"
+              format="auto"
+              fit="cover"
+              :lazy="true"
+              :fade-in="true"
+              image-class="w-full h-48 object-cover rounded-t-lg"
+            />
+            <div class="absolute top-2 right-2">
+              <span
                 :class="[
-                  'p-1 transition-colors',
+                  'px-2 py-1 rounded-full text-xs font-medium',
                   item.isAvailable
-                    ? 'text-gray-400 hover:text-red-600'
-                    : 'text-gray-400 hover:text-green-600',
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800',
                 ]"
-                :title="item.isAvailable ? '停用' : '啟用'"
-                @click="toggleMenuItemStatus(item)"
               >
-                <component
-                  :is="item.isAvailable ? EyeSlashIcon : EyeIcon"
-                  class="h-4 w-4"
-                />
-              </button>
-              <button
-                class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                title="刪除"
-                @click="deleteMenuItem(item)"
+                {{ item.isAvailable ? "供應中" : "已售完" }}
+              </span>
+            </div>
+            <div v-if="item.isFeatured" class="absolute top-2 left-2">
+              <span
+                class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium"
               >
-                <TrashIcon class="h-4 w-4" />
-              </button>
+                推薦
+              </span>
             </div>
           </div>
-        </div>
+
+          <!-- 菜品信息 -->
+          <div class="p-4">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="text-lg font-semibold text-gray-900 line-clamp-1">
+                {{ item.name }}
+              </h3>
+              <span class="text-lg font-bold text-blue-600"
+                >RM{{ item.price }}</span
+              >
+            </div>
+
+            <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+              {{ item.description }}
+            </p>
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-500">
+                {{ getCategoryName(item.categoryId) }}
+              </span>
+              <div class="flex space-x-2">
+                <button
+                  class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                  title="編輯"
+                  @click="editMenuItem(item)"
+                >
+                  <PencilIcon class="h-4 w-4" />
+                </button>
+                <button
+                  :class="[
+                    'p-1 transition-colors',
+                    item.isAvailable
+                      ? 'text-gray-400 hover:text-red-600'
+                      : 'text-gray-400 hover:text-green-600',
+                  ]"
+                  :title="item.isAvailable ? '停用' : '啟用'"
+                  @click="toggleMenuItemStatus(item)"
+                >
+                  <component
+                    :is="item.isAvailable ? EyeSlashIcon : EyeIcon"
+                    class="h-4 w-4"
+                  />
+                </button>
+                <button
+                  class="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  title="刪除"
+                  @click="deleteMenuItem(item)"
+                >
+                  <TrashIcon class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </VirtualMenuGrid>
 
     <!-- 空狀態 -->
-    <div
-      v-if="filteredMenuItems.length === 0"
-      class="text-center py-12"
-    >
+    <div v-if="filteredMenuItems.length === 0" class="text-center py-12">
       <CakeIcon class="mx-auto h-12 w-12 text-gray-400" />
       <h3 class="mt-2 text-sm font-medium text-gray-900">暫無菜品</h3>
       <p class="mt-1 text-sm text-gray-500">開始添加您的第一道菜品</p>

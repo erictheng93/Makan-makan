@@ -5,9 +5,11 @@
 ## 📂 文件夾結構
 
 ### 📊 Reports (`reports/`)
+
 各階段完成報告與測試報告
 
 **API & Testing Reports**:
+
 - `API_DOCUMENTATION_COMPLETION_REPORT.md` - API 文檔完成報告
 - `API_TEST_FINAL_STATUS_REPORT.md` - API 測試最終狀態
 - `API_TEST_PROGRESS_REPORT.md` - API 測試進度報告
@@ -17,6 +19,7 @@
 **用途**: 保留歷史記錄，追溯項目進度
 
 ### 🐛 Bug Fixes (`bug-fixes/`)
+
 Bug 修復記錄
 
 - `BUG_FIXES_2025-10-11.md` - 2025-10-11 Bug 修復
@@ -25,6 +28,7 @@ Bug 修復記錄
 **用途**: 記錄重要的 Bug 修復，便於問題追溯
 
 ### 📦 Deprecated (`deprecated/`)
+
 已棄用的文檔
 
 - `CLAUDE_UPDATE_EMPLOYEE_SYSTEMS.md` - 員工系統更新（已整合到新文檔）
@@ -43,6 +47,7 @@ Bug 修復記錄
 ### 何時歸檔
 
 文檔應歸檔當:
+
 1. ✅ 項目階段完成（如 Phase 1-3 完成報告）
 2. ✅ 功能已移除或重構（如舊支付系統）
 3. ✅ 文檔已被新版本取代
@@ -51,6 +56,7 @@ Bug 修復記錄
 ### 不應歸檔
 
 以下文檔應保留在主文檔區:
+
 - 🔴 持續更新的文檔（如 CLAUDE.md）
 - 🔴 核心技術文檔（如架構文檔）
 - 🔴 使用手冊（如用戶手冊）
@@ -85,6 +91,7 @@ grep -r "Partnership System" docs/archive/
 ## 🗂️ 歸檔文件清單
 
 ### Reports (5 個文件)
+
 1. API 文檔完成報告
 2. API 測試最終狀態報告
 3. API 測試進度報告
@@ -92,14 +99,17 @@ grep -r "Partnership System" docs/archive/
 5. 測試 API 驗證報告
 
 ### Bug Fixes (2 個文件)
+
 1. Bug 修復 2025-10-11
 2. 安全修復 2025-10-11
 
 ### Deprecated (2 個文件)
+
 1. 員工系統更新（已整合）
 2. 支付系統實施摘要（已移除）
 
 ### Root Level (1 個文件)
+
 1. CHANGELOG.md ⭐
 
 ---
@@ -107,6 +117,7 @@ grep -r "Partnership System" docs/archive/
 ## 📖 變更日誌 (CHANGELOG.md)
 
 變更日誌記錄項目的所有重要變更，包括:
+
 - 新功能
 - Bug 修復
 - 破壞性變更
@@ -142,15 +153,19 @@ grep -r "Partnership System" docs/archive/
 ## [版本號] - YYYY-MM-DD
 
 ### Added
+
 - 新增的功能
 
 ### Changed
+
 - 改變的功能
 
 ### Fixed
+
 - 修復的 Bug
 
 ### Removed
+
 - 移除的功能
 ```
 

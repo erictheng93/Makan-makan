@@ -1,6 +1,6 @@
-import { PaymentOrchestrator } from './PaymentOrchestrator'
-import { PaymentConfigManager } from './PaymentConfigManager'
-import { getCurrentTimestamp } from '@makanmakan/database'
+import { PaymentOrchestrator } from "./PaymentOrchestrator";
+import { PaymentConfigManager } from "./PaymentConfigManager";
+import { getCurrentTimestamp } from "@makanmakan/database";
 // import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
 // import { ECPayProvider } from './providers/ECPayProvider' // Disabled
 // import { NewebPayProvider } from './providers/NewebPayProvider' // Disabled
@@ -18,52 +18,52 @@ import {
   WebhookResult,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   PaymentTransaction,
-  CountryCode
-} from '@makanmakan/shared-types'
+  CountryCode,
+} from "@makanmakan/shared-types";
 
 interface PaymentServiceConfig {
-  database: any
-  orchestratorConfig?: any
+  database: any;
+  orchestratorConfig?: any;
 }
 
 export class PaymentService {
-  private orchestrator: PaymentOrchestrator
-  private configManager: PaymentConfigManager
-  private db: any
+  private orchestrator: PaymentOrchestrator;
+  private configManager: PaymentConfigManager;
+  private db: any;
 
   constructor(config: PaymentServiceConfig) {
-    this.db = config.database
-    this.configManager = new PaymentConfigManager(this.db)
-    this.orchestrator = new PaymentOrchestrator(config.orchestratorConfig)
+    this.db = config.database;
+    this.configManager = new PaymentConfigManager(this.db);
+    this.orchestrator = new PaymentOrchestrator(config.orchestratorConfig);
   }
 
   async initialize(): Promise<void> {
     // 從資料庫載入配置
-    const countryConfigs = await this.configManager.getAllCountryConfigs()
-    
+    const countryConfigs = await this.configManager.getAllCountryConfigs();
+
     // 設置國家配置到 orchestrator
     for (const [country, config] of countryConfigs) {
-      this.orchestrator.setCountryConfig(country, config)
+      this.orchestrator.setCountryConfig(country, config);
     }
 
     // 註冊支付提供商實例
-    await this.registerPaymentProviders()
-    
-    console.log('PaymentService initialized successfully')
+    await this.registerPaymentProviders();
+
+    console.log("PaymentService initialized successfully");
   }
 
   private async registerPaymentProviders(): Promise<void> {
     try {
       // 獲取所有活躍的支付提供商配置
-      const providers = await this.configManager.getAllPaymentProviders()
-      
+      const providers = await this.configManager.getAllPaymentProviders();
+
       for (const providerConfig of providers) {
         try {
           switch (providerConfig.name) {
-            case 'stripe':
+            case "stripe":
               // await this.registerStripeProvider(providerConfig) // Temporarily disabled
-              console.warn('Stripe provider is temporarily disabled')
-              break
+              console.warn("Stripe provider is temporarily disabled");
+              break;
             /* Disabled providers
             case 'ecpay':
               await this.registerECPayProvider(providerConfig)
@@ -90,16 +90,21 @@ export class PaymentService {
               break
             */
             default:
-              console.warn(`Unknown payment provider: ${providerConfig.name}`)
+              console.warn(`Unknown payment provider: ${providerConfig.name}`);
           }
         } catch (error) {
-          console.error(`Failed to register provider ${providerConfig.name}:`, error)
+          console.error(
+            `Failed to register provider ${providerConfig.name}:`,
+            error,
+          );
         }
       }
-      
-      console.log(`Registered ${this.orchestrator.getRegisteredProviders().length} payment providers`)
+
+      console.log(
+        `Registered ${this.orchestrator.getRegisteredProviders().length} payment providers`,
+      );
     } catch (error) {
-      console.error('Failed to register payment providers:', error)
+      console.error("Failed to register payment providers:", error);
     }
   }
 
@@ -356,11 +361,11 @@ export class PaymentService {
 
   private getCurrencyForCountry(country: string): string {
     const currencyMap: Record<string, string> = {
-      'TW': 'TWD',
-      'MY': 'MYR',
-      'VN': 'VND'
-    }
-    return currencyMap[country] || 'USD'
+      TW: "TWD",
+      MY: "MYR",
+      VN: "VND",
+    };
+    return currencyMap[country] || "USD";
   }
 
   // =============================================
@@ -370,8 +375,8 @@ export class PaymentService {
   async createPayment(request: PaymentRequest): Promise<PaymentResult> {
     try {
       // 生成內部交易 ID
-      const transactionId = this.generateTransactionId()
-      
+      const transactionId = this.generateTransactionId();
+
       // 記錄交易開始
       await this.createPaymentTransaction({
         transactionId,
@@ -382,128 +387,144 @@ export class PaymentService {
         currency: request.currency,
         country: request.country,
         customerInfo: request.customerInfo,
-        status: 'pending'
-      })
+        status: "pending",
+      });
 
       // 處理支付
-      const result = await this.orchestrator.processPayment(request)
+      const result = await this.orchestrator.processPayment(request);
 
       // 更新交易狀態
       await this.updatePaymentTransaction(transactionId, {
         status: result.status,
         providerTransactionId: result.transactionId,
         metadata: result.metadata,
-        error: result.error
-      })
+        error: result.error,
+      });
 
       return {
         ...result,
-        transactionId // 返回內部交易 ID
-      }
-
+        transactionId, // 返回內部交易 ID
+      };
     } catch (error) {
-      console.error('Payment creation failed:', error)
+      console.error("Payment creation failed:", error);
       return {
         success: false,
-        transactionId: '',
-        status: 'failed',
+        transactionId: "",
+        status: "failed",
         error: {
-          code: 'SERVICE_ERROR',
-          message: (error as Error).message
-        }
-      }
+          code: "SERVICE_ERROR",
+          message: (error as Error).message,
+        },
+      };
     }
   }
 
   async getPaymentStatus(transactionId: string): Promise<PaymentStatus> {
     try {
       // 首先從資料庫獲取交易資訊
-      const transaction = await this.getPaymentTransaction(transactionId)
+      const transaction = await this.getPaymentTransaction(transactionId);
       if (!transaction) {
-        throw new Error('Transaction not found')
+        throw new Error("Transaction not found");
       }
 
       // 如果交易已經是最終狀態，直接返回
-      if (['completed', 'failed', 'cancelled', 'refunded'].includes(transaction.status)) {
-        return transaction.status as PaymentStatus
+      if (
+        ["completed", "failed", "cancelled", "refunded"].includes(
+          transaction.status,
+        )
+      ) {
+        return transaction.status as PaymentStatus;
       }
 
       // 否則從提供商查詢最新狀態
       const status = await this.orchestrator.getPaymentStatus(
         transaction.providerTransactionId || transaction.transactionId,
-        transaction.providerId
-      )
+        transaction.providerId,
+      );
 
       // 如果狀態有變化，更新資料庫
       if (status !== transaction.status) {
-        await this.updatePaymentTransaction(transactionId, { status })
+        await this.updatePaymentTransaction(transactionId, { status });
       }
 
-      return status
+      return status;
     } catch (error) {
-      console.error('Failed to get payment status:', error)
-      return 'pending'
+      console.error("Failed to get payment status:", error);
+      return "pending";
     }
   }
 
-  async refundPayment(request: RefundRequest & { transactionId: string }): Promise<RefundResult> {
+  async refundPayment(
+    request: RefundRequest & { transactionId: string },
+  ): Promise<RefundResult> {
     try {
       // 獲取原始交易
-      const transaction = await this.getPaymentTransaction(request.transactionId)
+      const transaction = await this.getPaymentTransaction(
+        request.transactionId,
+      );
       if (!transaction) {
-        throw new Error('Original transaction not found')
+        throw new Error("Original transaction not found");
       }
 
-      if (transaction.status !== 'completed') {
-        throw new Error('Cannot refund non-completed transaction')
+      if (transaction.status !== "completed") {
+        throw new Error("Cannot refund non-completed transaction");
       }
 
       // 建立退款交易記錄
-      const refundId = this.generateRefundId()
+      const refundId = this.generateRefundId();
       await this.createRefundTransaction({
         refundId,
         paymentTransactionId: request.transactionId,
         amount: request.amount || transaction.amount,
         reason: request.reason,
-        status: 'pending'
-      })
+        status: "pending",
+      });
 
       // 執行退款
       const refundRequest: RefundRequest = {
-        transactionId: transaction.providerTransactionId || transaction.transactionId,
+        transactionId:
+          transaction.providerTransactionId || transaction.transactionId,
         amount: request.amount,
         reason: request.reason,
-        metadata: request.metadata
-      }
+        metadata: request.metadata,
+      };
 
-      const result = await this.orchestrator.refundPayment(refundRequest, transaction.providerId)
+      const result = await this.orchestrator.refundPayment(
+        refundRequest,
+        transaction.providerId,
+      );
 
       // 更新退款記錄
       await this.updateRefundTransaction(refundId, {
         status: result.status,
         providerRefundId: result.refundId,
-        error: result.error
-      })
+        error: result.error,
+      });
 
       // 如果退款成功，更新原始交易狀態
       if (result.success) {
-        const newStatus = (result.amount === transaction.amount) ? 'refunded' : 'partial_refunded'
-        await this.updatePaymentTransaction(request.transactionId, { status: newStatus })
+        const newStatus =
+          result.amount === transaction.amount
+            ? "refunded"
+            : "partial_refunded";
+        await this.updatePaymentTransaction(request.transactionId, {
+          status: newStatus,
+        });
       }
 
-      return result
+      return result;
     } catch (error) {
-      console.error('Refund failed:', error)
+      console.error("Refund failed:", error);
       return {
         success: false,
-        refundId: '',
+        refundId: "",
         amount: request.amount || 0,
-        status: 'failed',
+        status: "failed",
         error: {
-          code: 'REFUND_ERROR',
-          message: (error as Error).message
-        }
-      }
+          code: "REFUND_ERROR",
+          message: (error as Error).message,
+        },
+      };
     }
   }
 
@@ -511,30 +532,38 @@ export class PaymentService {
   // Webhook 處理
   // =============================================
 
-  async handleWebhook(providerId: string, payload: any, signature?: string): Promise<WebhookResult> {
+  async handleWebhook(
+    providerId: string,
+    payload: any,
+    signature?: string,
+  ): Promise<WebhookResult> {
     try {
       // 記錄 webhook 事件
-      await this.logWebhookEvent(providerId, payload, signature)
+      await this.logWebhookEvent(providerId, payload, signature);
 
       // 處理 webhook
-      const result = await this.orchestrator.handleWebhook(providerId, payload, signature)
+      const result = await this.orchestrator.handleWebhook(
+        providerId,
+        payload,
+        signature,
+      );
 
       if (result.processed && result.transactionId && result.newStatus) {
         // 更新交易狀態
         await this.updatePaymentTransactionByProviderTxnId(
           result.transactionId,
           providerId,
-          { status: result.newStatus }
-        )
+          { status: result.newStatus },
+        );
       }
 
-      return result
+      return result;
     } catch (error) {
-      console.error('Webhook handling failed:', error)
+      console.error("Webhook handling failed:", error);
       return {
         processed: false,
-        error: (error as Error).message
-      }
+        error: (error as Error).message,
+      };
     }
   }
 
@@ -543,24 +572,24 @@ export class PaymentService {
   // =============================================
 
   private async createPaymentTransaction(data: {
-    transactionId: string
-    orderId: string
-    restaurantId: string
-    method: string
-    amount: number
-    currency: string
-    country: string
-    customerInfo?: any
-    status: string
+    transactionId: string;
+    orderId: string;
+    restaurantId: string;
+    method: string;
+    amount: number;
+    currency: string;
+    country: string;
+    customerInfo?: any;
+    status: string;
   }): Promise<void> {
-    const now = getCurrentTimestamp()
+    const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       INSERT INTO payment_transactions (
         transaction_id, order_id, restaurant_id, provider_name,
         payment_method, amount, currency, country_code, status,
         customer_name, customer_email, customer_phone, created_at
       ) VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    `);
 
     stmt.run(
       data.transactionId,
@@ -574,98 +603,101 @@ export class PaymentService {
       data.customerInfo?.name,
       data.customerInfo?.email,
       data.customerInfo?.phone,
-      now
-    )
+      now,
+    );
   }
 
-  private async updatePaymentTransaction(transactionId: string, updates: {
-    status?: string
-    providerId?: string
-    providerTransactionId?: string
-    metadata?: any
-    error?: any
-  }): Promise<void> {
-    const setParts: string[] = []
-    const values: any[] = []
-    const now = getCurrentTimestamp()
+  private async updatePaymentTransaction(
+    transactionId: string,
+    updates: {
+      status?: string;
+      providerId?: string;
+      providerTransactionId?: string;
+      metadata?: any;
+      error?: any;
+    },
+  ): Promise<void> {
+    const setParts: string[] = [];
+    const values: any[] = [];
+    const now = getCurrentTimestamp();
 
     if (updates.status) {
-      setParts.push('status = ?')
-      values.push(updates.status)
+      setParts.push("status = ?");
+      values.push(updates.status);
 
-      if (updates.status === 'completed') {
-        setParts.push('completed_at = ?')
-        values.push(now)
-      } else if (updates.status === 'failed') {
-        setParts.push('failed_at = ?')
-        values.push(now)
+      if (updates.status === "completed") {
+        setParts.push("completed_at = ?");
+        values.push(now);
+      } else if (updates.status === "failed") {
+        setParts.push("failed_at = ?");
+        values.push(now);
       }
     }
 
     if (updates.providerId) {
-      setParts.push('provider_name = ?')
-      values.push(updates.providerId)
+      setParts.push("provider_name = ?");
+      values.push(updates.providerId);
     }
 
     if (updates.providerTransactionId) {
-      setParts.push('provider_transaction_id = ?')
-      values.push(updates.providerTransactionId)
+      setParts.push("provider_transaction_id = ?");
+      values.push(updates.providerTransactionId);
     }
 
     if (updates.metadata) {
-      setParts.push('metadata = ?')
-      values.push(JSON.stringify(updates.metadata))
+      setParts.push("metadata = ?");
+      values.push(JSON.stringify(updates.metadata));
     }
 
     if (updates.error) {
-      setParts.push('error_code = ?', 'error_message = ?')
-      values.push(updates.error.code, updates.error.message)
+      setParts.push("error_code = ?", "error_message = ?");
+      values.push(updates.error.code, updates.error.message);
     }
 
-    if (setParts.length === 0) return
+    if (setParts.length === 0) return;
 
-    setParts.push('updated_at = ?')
-    values.push(now)
-    values.push(transactionId)
+    setParts.push("updated_at = ?");
+    values.push(now);
+    values.push(transactionId);
 
     const stmt = this.db.prepare(`
       UPDATE payment_transactions 
-      SET ${setParts.join(', ')} 
+      SET ${setParts.join(", ")} 
       WHERE transaction_id = ?
-    `)
+    `);
 
-    stmt.run(...values)
+    stmt.run(...values);
   }
 
   private async updatePaymentTransactionByProviderTxnId(
     providerTransactionId: string,
     providerId: string,
-    updates: { status?: string }
+    updates: { status?: string },
   ): Promise<void> {
-    const now = getCurrentTimestamp()
+    const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       UPDATE payment_transactions
       SET status = ?, updated_at = ?
       WHERE provider_transaction_id = ? AND provider_name = ?
-    `)
+    `);
 
-    stmt.run(updates.status, now, providerTransactionId, providerId)
+    stmt.run(updates.status, now, providerTransactionId, providerId);
   }
 
   private async getPaymentTransaction(transactionId: string): Promise<any> {
     const stmt = this.db.prepare(`
       SELECT * FROM payment_transactions WHERE transaction_id = ?
-    `)
-    return stmt.get(transactionId)
+    `);
+    return stmt.get(transactionId);
   }
 
   private async createRefundTransaction(data: any): Promise<void> {
-    const now = getCurrentTimestamp()
+    const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       INSERT INTO refund_transactions (
         refund_id, payment_transaction_id, amount, reason, status, created_at
       ) VALUES (?, ?, ?, ?, ?, ?)
-    `)
+    `);
 
     stmt.run(
       data.refundId,
@@ -673,17 +705,20 @@ export class PaymentService {
       data.amount,
       data.reason,
       data.status,
-      now
-    )
+      now,
+    );
   }
 
-  private async updateRefundTransaction(refundId: string, updates: any): Promise<void> {
-    const now = getCurrentTimestamp()
+  private async updateRefundTransaction(
+    refundId: string,
+    updates: any,
+  ): Promise<void> {
+    const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       UPDATE refund_transactions
       SET status = ?, provider_refund_id = ?, error_code = ?, error_message = ?, updated_at = ?
       WHERE refund_id = ?
-    `)
+    `);
 
     stmt.run(
       updates.status,
@@ -691,25 +726,29 @@ export class PaymentService {
       updates.error?.code,
       updates.error?.message,
       now,
-      refundId
-    )
+      refundId,
+    );
   }
 
-  private async logWebhookEvent(providerId: string, payload: any, signature?: string): Promise<void> {
-    const now = getCurrentTimestamp()
+  private async logWebhookEvent(
+    providerId: string,
+    payload: any,
+    signature?: string,
+  ): Promise<void> {
+    const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       INSERT INTO webhook_events (
         provider_name, event_type, payload, signature, created_at
       ) VALUES (?, ?, ?, ?, ?)
-    `)
+    `);
 
     stmt.run(
       providerId,
-      payload.type || 'unknown',
+      payload.type || "unknown",
       JSON.stringify(payload),
       signature,
-      now
-    )
+      now,
+    );
   }
 
   // =============================================
@@ -717,15 +756,15 @@ export class PaymentService {
   // =============================================
 
   private generateTransactionId(): string {
-    const timestamp = Date.now().toString(36)
-    const random = Math.random().toString(36).substr(2, 9)
-    return `txn_${timestamp}_${random}`
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 9);
+    return `txn_${timestamp}_${random}`;
   }
 
   private generateRefundId(): string {
-    const timestamp = Date.now().toString(36)
-    const random = Math.random().toString(36).substr(2, 9)
-    return `ref_${timestamp}_${random}`
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 9);
+    return `ref_${timestamp}_${random}`;
   }
 
   // =============================================
@@ -735,7 +774,7 @@ export class PaymentService {
   async getPaymentStatistics(
     startDate: Date,
     endDate: Date,
-    countryCode?: CountryCode
+    countryCode?: CountryCode,
   ): Promise<any> {
     let sql = `
       SELECT 
@@ -748,22 +787,22 @@ export class PaymentService {
         SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as total_amount
       FROM payment_transactions
       WHERE created_at BETWEEN ? AND ?
-    `
+    `;
 
-    const params: any[] = [startDate, endDate]
+    const params: any[] = [startDate, endDate];
 
     if (countryCode) {
-      sql += ' AND country_code = ?'
-      params.push(countryCode)
+      sql += " AND country_code = ?";
+      params.push(countryCode);
     }
 
-    sql += ' GROUP BY country_code, provider_name, payment_method'
+    sql += " GROUP BY country_code, provider_name, payment_method";
 
-    const stmt = this.db.prepare(sql)
-    return stmt.all(...params)
+    const stmt = this.db.prepare(sql);
+    return stmt.all(...params);
   }
 
   getConfigManager(): PaymentConfigManager {
-    return this.configManager
+    return this.configManager;
   }
 }

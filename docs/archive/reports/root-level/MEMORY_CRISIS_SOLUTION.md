@@ -5,12 +5,14 @@
 即使配置了 8GB heap 和 3 個並行進程，全套測試仍然因記憶體耗盡而崩潰。
 
 ### 錯誤訊息
+
 ```
 FATAL ERROR: Ineffective mark-compacts near heap limit
 Allocation failed - JavaScript heap out of memory
 ```
 
 ### 崩潰時記憶體狀態
+
 - 崩潰時使用量: ~4GB (NOT 8GB)
 - 配置的限制: 8GB
 - **結論**: 配置未生效 ❌
@@ -22,6 +24,7 @@ Allocation failed - JavaScript heap out of memory
 ### 當前配置 (無效)
 
 #### package.json
+
 ```json
 {
   "scripts": {
@@ -31,6 +34,7 @@ Allocation failed - JavaScript heap out of memory
 ```
 
 #### vitest.config.ts
+
 ```typescript
 {
   pool: 'forks',
@@ -74,6 +78,7 @@ Allocation failed - JavaScript heap out of memory
 ### 證據
 
 從測試輸出中可以看到：
+
 ```
 [21056:0000013A4A451000] 391013 ms: Scavenge (interleaved)
 4083.9 (4136.7) -> 4080.4 (4136.9) MB
@@ -130,26 +135,26 @@ Allocation failed - JavaScript heap out of memory
 export default defineConfig({
   test: {
     // ✅ 第 1 層: 直接傳遞 Node 參數給 worker
-    pool: 'threads',  // 從 'forks' 改為 'threads'
+    pool: "threads", // 從 'forks' 改為 'threads'
     poolOptions: {
       threads: {
-        maxThreads: 2,  // 從 3 降到 2
+        maxThreads: 2, // 從 3 降到 2
         minThreads: 1,
         singleThread: false,
 
         // 🔥 關鍵: 直接傳遞記憶體參數給 worker
-        execArgv: ['--max-old-space-size=8192']
-      }
+        execArgv: ["--max-old-space-size=8192"],
+      },
     },
 
     // ✅ 第 4 層: 測試隔離
     isolate: true,
 
     // ✅ 超時設定
-    testTimeout: 60000,  // 增加到 60 秒
-    hookTimeout: 60000
-  }
-})
+    testTimeout: 60000, // 增加到 60 秒
+    hookTimeout: 60000,
+  },
+});
 ```
 
 **為什麼這些變更有效？**
@@ -211,6 +216,7 @@ node --max-old-space-size=8192 -e "console.log('Heap limit:', require('v8').getH
 ## 📊 預期效果對比
 
 ### Before (當前狀態)
+
 ```
 策略: forks pool + 3 workers + 4GB default heap
 結果: ❌ 崩潰
@@ -225,6 +231,7 @@ node --max-old-space-size=8192 -e "console.log('Heap limit:', require('v8').getH
 ```
 
 ### After (新配置)
+
 ```
 策略: threads pool + 2 workers + 8GB heap + isolate
 結果: ✅ 穩定
@@ -244,11 +251,13 @@ node --max-old-space-size=8192 -e "console.log('Heap limit:', require('v8').getH
 ### 場景 1: 執行完整測試套件
 
 **不推薦** (可能仍有風險):
+
 ```bash
 pnpm test
 ```
 
 **推薦** (分批執行):
+
 ```bash
 # 分兩批執行
 pnpm test:batch1  # Kitchen + Admin
@@ -299,7 +308,7 @@ poolOptions: {
 #### 選項 B: 增加記憶體限制
 
 ```typescript
-execArgv: ['--max-old-space-size=12288']  // 12GB
+execArgv: ["--max-old-space-size=12288"]; // 12GB
 ```
 
 **注意**: 確保你的系統有足夠的 RAM (建議至少 16GB)
@@ -331,6 +340,7 @@ watch -n 5 'ps aux | grep node | grep -v grep'
 ### 問題 1: 配置後仍然崩潰
 
 **檢查清單**:
+
 - [ ] 確認 vitest.config.ts 有 `execArgv` 配置
 - [ ] 確認使用 `pool: 'threads'` 而非 `'forks'`
 - [ ] 確認 `maxThreads: 2` 或更低
@@ -339,6 +349,7 @@ watch -n 5 'ps aux | grep node | grep -v grep'
 ### 問題 2: 測試執行太慢
 
 **解決方案**:
+
 - 增加 `maxThreads` (但不超過 3)
 - 使用 `--run` 模式而非 watch 模式
 - 只執行變更的測試: `vitest run --changed`
@@ -346,12 +357,14 @@ watch -n 5 'ps aux | grep node | grep -v grep'
 ### 問題 3: 特定測試導致記憶體洩漏
 
 **診斷步驟**:
+
 ```bash
 # 執行單一測試檔案並監控記憶體
 pnpm exec vitest run path/to/test.ts --reporter=verbose
 ```
 
 **常見原因**:
+
 - 未清理的 timers (setTimeout, setInterval)
 - 未關閉的 WebSocket 連接
 - 大量的 mock 資料未釋放
@@ -364,17 +377,20 @@ pnpm exec vitest run path/to/test.ts --reporter=verbose
 配置成功後，你應該看到:
 
 ✅ **記憶體使用穩定**
+
 ```
 Worker 記憶體: 0 → 逐步增長 → 穩定在 6-7GB → GC 回收 → 繼續
 ```
 
 ✅ **無崩潰訊息**
+
 ```
 沒有 "heap out of memory" 錯誤
 沒有 "mark-compacts" 警告
 ```
 
 ✅ **測試完成**
+
 ```
 Test Files  X passed (X)
 Tests  Y passed (Y)

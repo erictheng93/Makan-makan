@@ -234,7 +234,9 @@
           <div class="border-t border-gray-200 pt-4">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <label class="text-sm font-medium text-gray-900">啟用最低消費</label>
+                <label class="text-sm font-medium text-gray-900"
+                  >啟用最低消費</label
+                >
                 <p class="text-sm text-gray-500">設定餐廳最低消費金額限制</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -273,8 +275,18 @@
 
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div class="flex items-start space-x-2">
-                  <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <svg
+                    class="w-5 h-5 text-blue-600 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <div>
                     <p class="text-sm font-medium text-blue-800">提醒</p>
@@ -362,7 +374,9 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">店家 QR Code 設定</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              店家 QR Code 設定
+            </h3>
             <p class="text-sm text-gray-500 mt-1">
               為沒有桌號的攤位（如小吃攤、鷄排攤）提供店家級別 QR Code
             </p>
@@ -373,8 +387,12 @@
         <div class="border-b border-gray-200 pb-4 mb-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900">啟用店家模式</label>
-              <p class="text-sm text-gray-500">啟用後顧客可以掃描店家 QR Code 直接點餐，無需桌號</p>
+              <label class="text-sm font-medium text-gray-900"
+                >啟用店家模式</label
+              >
+              <p class="text-sm text-gray-500">
+                啟用後顧客可以掃描店家 QR Code 直接點餐，無需桌號
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -422,8 +440,12 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900">需要手機驗證</label>
-              <p class="text-sm text-gray-500">要求顧客輸入手機號碼後3位以識別訂單</p>
+              <label class="text-sm font-medium text-gray-900"
+                >需要手機驗證</label
+              >
+              <p class="text-sm text-gray-500">
+                要求顧客輸入手機號碼後3位以識別訂單
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -446,9 +468,25 @@
             >
               <span v-if="!isSavingShopSettings">儲存設定</span>
               <span v-else class="flex items-center">
-                <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  class="animate-spin h-4 w-4 mr-2"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 儲存中...
               </span>
@@ -463,9 +501,21 @@
 
         <!-- 沒有 QR Code 時 -->
         <div v-if="!shopQR.qrCode" class="text-center py-8">
-          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          <div
+            class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-10 h-10 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+              />
             </svg>
           </div>
           <p class="text-gray-600 mb-4">尚未生成店家 QR Code</p>
@@ -476,9 +526,25 @@
           >
             <span v-if="!isGeneratingQR">生成 QR Code</span>
             <span v-else class="flex items-center">
-              <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                class="animate-spin h-4 w-4 mr-2"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               生成中...
             </span>
@@ -491,13 +557,32 @@
           <div class="flex flex-col md:flex-row gap-6">
             <!-- QR Code 圖片 -->
             <div class="flex-shrink-0">
-              <div class="w-64 h-64 bg-white border-2 border-gray-200 rounded-lg p-4 flex items-center justify-center">
-                <div v-if="shopQR.qrCodeImageUrl" class="w-full h-full flex items-center justify-center">
-                  <img :src="shopQR.qrCodeImageUrl" alt="Shop QR Code" class="max-w-full max-h-full" />
+              <div
+                class="w-64 h-64 bg-white border-2 border-gray-200 rounded-lg p-4 flex items-center justify-center"
+              >
+                <div
+                  v-if="shopQR.qrCodeImageUrl"
+                  class="w-full h-full flex items-center justify-center"
+                >
+                  <img
+                    :src="shopQR.qrCodeImageUrl"
+                    alt="Shop QR Code"
+                    class="max-w-full max-h-full"
+                  />
                 </div>
                 <div v-else class="text-center">
-                  <svg class="w-32 h-32 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  <svg
+                    class="w-32 h-32 text-gray-400 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                    />
                   </svg>
                   <p class="text-sm text-gray-500 mt-2">QR Code</p>
                 </div>
@@ -507,9 +592,13 @@
             <!-- QR Code 資訊 -->
             <div class="flex-1 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">QR Code</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >QR Code</label
+                >
                 <div class="flex items-center space-x-2">
-                  <code class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-mono">
+                  <code
+                    class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-mono"
+                  >
                     {{ shopQR.qrCode }}
                   </code>
                   <button
@@ -517,27 +606,50 @@
                     title="複製"
                     @click="copyQRCode"
                   >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
                     </svg>
                   </button>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">版本</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >版本</label
+                >
                 <p class="text-sm text-gray-600">v{{ shopQR.version }}</p>
               </div>
 
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div class="flex items-start space-x-2">
-                  <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <div>
                     <p class="text-sm font-medium text-blue-800">使用說明</p>
                     <p class="text-sm text-blue-700">
-                      顧客掃描此 QR Code 後將進入店家點餐流程，無需選擇桌號。訂單會以手機號碼後3位作為識別。
+                      顧客掃描此 QR Code
+                      後將進入店家點餐流程，無需選擇桌號。訂單會以手機號碼後3位作為識別。
                     </p>
                   </div>
                 </div>
@@ -550,8 +662,18 @@
                   @click="downloadQRCode"
                 >
                   <span class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <svg
+                      class="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
                     </svg>
                     下載 QR Code
                   </span>
@@ -563,15 +685,41 @@
                   @click="regenerateShopQR"
                 >
                   <span v-if="!isRegeneratingQR" class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      class="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     重新生成
                   </span>
                   <span v-else class="flex items-center">
-                    <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      class="animate-spin h-4 w-4 mr-2"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     重新生成中...
                   </span>
@@ -581,13 +729,25 @@
               <!-- 重新生成警告 -->
               <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <div class="flex items-start space-x-2">
-                  <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <svg
+                    class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                   <div>
                     <p class="text-sm font-medium text-yellow-800">注意</p>
                     <p class="text-sm text-yellow-700">
-                      重新生成 QR Code 將更新版本號，舊 QR Code 將繼續有效（除非您停用店家模式）。建議在 QR Code 洩露或安全性顧慮時才重新生成。
+                      重新生成 QR Code 將更新版本號，舊 QR Code
+                      將繼續有效（除非您停用店家模式）。建議在 QR Code
+                      洩露或安全性顧慮時才重新生成。
                     </p>
                   </div>
                 </div>
@@ -989,11 +1149,14 @@ const loadSettings = async () => {
 const loadShopQRInfo = async () => {
   try {
     const restaurantId = 1; // 從用戶 session 獲取
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       },
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -1013,17 +1176,20 @@ const loadShopQRInfo = async () => {
 const handleToggleShopMode = async () => {
   try {
     const restaurantId = 1;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/shop-mode`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/shop-mode`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          enabled: shopQR.enabled,
+          settings: shopQR.settings,
+        }),
       },
-      body: JSON.stringify({
-        enabled: shopQR.enabled,
-        settings: shopQR.settings,
-      }),
-    });
+    );
 
     if (response.ok) {
       alert(shopQR.enabled ? "店家模式已啟用" : "店家模式已停用");
@@ -1043,17 +1209,20 @@ const saveShopSettings = async () => {
   try {
     isSavingShopSettings.value = true;
     const restaurantId = 1;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/shop-mode`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/shop-mode`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          enabled: shopQR.enabled,
+          settings: shopQR.settings,
+        }),
       },
-      body: JSON.stringify({
-        enabled: shopQR.enabled,
-        settings: shopQR.settings,
-      }),
-    });
+    );
 
     if (response.ok) {
       alert("設定已儲存");
@@ -1072,13 +1241,16 @@ const generateShopQR = async () => {
   try {
     isGeneratingQR.value = true;
     const restaurantId = 1;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop/generate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop/generate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       },
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -1105,13 +1277,16 @@ const regenerateShopQR = async () => {
   try {
     isRegeneratingQR.value = true;
     const restaurantId = 1;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop/regenerate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop/regenerate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       },
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();

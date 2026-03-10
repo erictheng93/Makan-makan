@@ -1,6 +1,7 @@
 # Store 方法修復完成報告
 
 ## 執行時間
+
 2025-11-17 18:45 CST
 
 ---
@@ -35,6 +36,7 @@
 **問題**: 測試期望能清空訂單列表但保留其他 store 狀態
 
 **修復內容**:
+
 ```typescript
 /**
  * 清空訂單列表（保留其他 store 狀態）
@@ -56,17 +58,19 @@ const clearOrders = () => {
 **問題**: 測試期望 `updateOrderStatus(orderId, status)` 但方法不存在
 
 **需求分析**:
+
 - 測試調用方式：`store.updateOrderStatus('1', 2)` 或 `store.updateOrderStatus(1, 2)`
 - 需要支持 **string 或 number** 類型的 orderId
 - 13 個測試檔案中有 13 處調用
 
 **修復內容**:
+
 ```typescript
 /**
  * 公開方法：直接更新訂單狀態（支援 number 或 string ID）
  */
 const updateOrderStatus = (orderId: number | string, newStatus: number) => {
-  const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
+  const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
   const orderIndex = orders.value.findIndex((o) => o.id === id);
   if (orderIndex !== -1) {
     orders.value[orderIndex].status = newStatus;
@@ -81,6 +85,7 @@ const updateOrderStatusById = updateOrderStatus;
 ```
 
 **功能**:
+
 - ✅ 支持 number ID: `updateOrderStatus(1, 2)`
 - ✅ 支持 string ID: `updateOrderStatus('ord-1', 2)`
 - ✅ 自動轉換 string → number
@@ -98,11 +103,16 @@ const updateOrderStatusById = updateOrderStatus;
 **問題**: 測試期望 `updateItemStatus(orderId, itemId, status)` 但方法不存在
 
 **修復內容**:
+
 ```typescript
 /**
  * 公開方法：直接更新單個 item 狀態
  */
-const updateItemStatus = (orderId: number, itemId: number, newStatus: string) => {
+const updateItemStatus = (
+  orderId: number,
+  itemId: number,
+  newStatus: string,
+) => {
   const orderIndex = orders.value.findIndex((o) => o.id === orderId);
   if (orderIndex !== -1) {
     const order = orders.value[orderIndex];
@@ -131,6 +141,7 @@ const updateItemStatus = (orderId: number, itemId: number, newStatus: string) =>
 ```
 
 **功能**:
+
 - ✅ 更新單個 item 的狀態
 - ✅ 自動更新時間戳 (startedAt, completedAt)
 - ✅ 自動更新訂單整體狀態
@@ -146,10 +157,12 @@ const updateItemStatus = (orderId: number, itemId: number, newStatus: string) =>
 **檔案**: `apps/kitchen-display/src/stores/orders.ts`
 
 **問題**:
+
 - Store 期望：`{ type: 'NEW_ORDER', payload: { order: {...} } }`
 - 測試發送：`{ type: 'NEW_ORDER', payload: {...} }` (直接是訂單物件)
 
 **修復內容**:
+
 ```typescript
 /**
  * 處理新訂單事件
@@ -162,12 +175,12 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 
   // 支援兩種 payload 格式
   const newOrder: KitchenOrder =
-    event.payload.order ||    // 格式 1: payload.order
-    event.payload as any;     // 格式 2: payload 本身就是 order
+    event.payload.order || // 格式 1: payload.order
+    (event.payload as any); // 格式 2: payload 本身就是 order
 
   // 驗證是否為有效訂單物件
   if (!newOrder || !newOrder.id) {
-    console.warn('Invalid order data in NEW_ORDER event', event);
+    console.warn("Invalid order data in NEW_ORDER event", event);
     return;
   }
 
@@ -176,6 +189,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 ```
 
 **優點**:
+
 - ✅ 向後兼容舊格式
 - ✅ 支持新格式
 - ✅ 添加驗證邏輯
@@ -190,17 +204,33 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 ### Return Statement 對比
 
 #### Before:
+
 ```typescript
 return {
   // State
-  orders, stats, loading, error, lastUpdated,
+  orders,
+  stats,
+  loading,
+  error,
+  lastUpdated,
 
   // Computed
-  pendingOrders, preparingOrders, readyOrders, urgentOrders, totalOrders,
+  pendingOrders,
+  preparingOrders,
+  readyOrders,
+  urgentOrders,
+  totalOrders,
 
   // Actions
-  fetchOrders, handleSSEEvent, startCooking, markReady,
-  startAllItems, markAllReady, getOrderById, clearError, reset,
+  fetchOrders,
+  handleSSEEvent,
+  startCooking,
+  markReady,
+  startAllItems,
+  markAllReady,
+  getOrderById,
+  clearError,
+  reset,
 
   // ❌ 缺少的方法：
   // clearOrders, updateOrderStatus, updateItemStatus
@@ -208,22 +238,37 @@ return {
 ```
 
 #### After:
+
 ```typescript
 return {
   // State
-  orders, stats, loading, error, lastUpdated,
+  orders,
+  stats,
+  loading,
+  error,
+  lastUpdated,
 
   // Computed
-  pendingOrders, preparingOrders, readyOrders, urgentOrders, totalOrders,
+  pendingOrders,
+  preparingOrders,
+  readyOrders,
+  urgentOrders,
+  totalOrders,
 
   // Actions
-  fetchOrders, handleSSEEvent, startCooking, markReady,
-  startAllItems, markAllReady, getOrderById, clearError,
+  fetchOrders,
+  handleSSEEvent,
+  startCooking,
+  markReady,
+  startAllItems,
+  markAllReady,
+  getOrderById,
+  clearError,
 
   // ✅ 新增的方法：
   clearOrders,
   updateOrderStatus,
-  updateOrderStatusById,  // 別名（向後兼容）
+  updateOrderStatusById, // 別名（向後兼容）
   updateItemStatus,
   reset,
 };
@@ -234,21 +279,25 @@ return {
 ## 🎯 影響的測試檔案
 
 ### 使用 updateOrderStatus 的檔案 (13 處調用)
+
 1. `src/stores/__tests__/orders.test.ts` - 1 處
 2. `src/__tests__/integration/multi-order-handling.test.ts` - 7 處
 3. `src/__tests__/integration/order-workflow.test.ts` - 6 處
 
 ### 使用 updateItemStatus 的檔案
+
 1. `src/__tests__/integration/kitchen-display.test.ts`
 2. `src/__tests__/integration/order-item-management.test.ts`
 3. `src/__tests__/integration/realtime-updates.test.ts`
 
 ### 使用 clearOrders 的檔案
+
 1. `src/stores/__tests__/orders.test.ts`
 2. `src/__tests__/integration/order-management.test.ts`
 3. `tests/integration/performance-integration.test.ts`
 
 ### 使用 SSE Events 的檔案
+
 1. `src/stores/__tests__/orders.test.ts`
 2. `src/__tests__/integration/realtime-updates.test.ts`
 3. `tests/integration/notification-system.test.ts`
@@ -261,6 +310,7 @@ return {
 ## ✅ 驗證結果
 
 ### 單元測試
+
 ```bash
 ✅ OrderCard.test.ts: 27 passed / 27 total
 ✅ orderManagement.test.ts: 56 passed / 56 total
@@ -284,6 +334,7 @@ return {
 **教訓**: Store 導出方法名必須與測試期望完全匹配
 
 **最佳實踐**:
+
 ```typescript
 // 如果測試期望 updateOrderStatus，就導出 updateOrderStatus
 // 如果需要不同的內部名稱，使用別名
@@ -295,10 +346,11 @@ const updateOrderStatusById = updateOrderStatus;
 **教訓**: 真實使用場景中，ID 可能是 string 或 number
 
 **最佳實踐**:
+
 ```typescript
 // 支持多種類型
 const updateOrderStatus = (orderId: number | string, status: number) => {
-  const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
+  const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
   // ...
 };
 ```
@@ -308,11 +360,12 @@ const updateOrderStatus = (orderId: number | string, status: number) => {
 **教訓**: 不同來源的事件可能有不同的格式
 
 **最佳實踐**:
+
 ```typescript
 // 支持多種格式，並添加驗證
 const data = event.payload.order || event.payload;
 if (!data || !data.id) {
-  console.warn('Invalid data');
+  console.warn("Invalid data");
   return;
 }
 ```
@@ -322,11 +375,12 @@ if (!data || !data.id) {
 **教訓**: 修改嵌套物件時需要觸發 Vue 響應式更新
 
 **最佳實踐**:
+
 ```typescript
 // 修改後重新賦值以觸發響應
 order.items[index].status = newStatus;
-orders.value[orderIndex] = { ...order };  // 觸發響應式更新
-updateStats();  // 更新統計
+orders.value[orderIndex] = { ...order }; // 觸發響應式更新
+updateStats(); // 更新統計
 ```
 
 ---

@@ -1,5 +1,5 @@
-import { BaseEntity } from './common';
-import { MenuItem } from './menu';
+import { BaseEntity } from "./common";
+import { MenuItem } from "./menu";
 
 // Customer information interface
 export interface CustomerInfo {
@@ -19,7 +19,7 @@ export interface TableInfo {
   qrCode?: string;
 }
 
-// Restaurant information interface  
+// Restaurant information interface
 export interface RestaurantInfo {
   id: number;
   name: string;
@@ -82,16 +82,16 @@ export enum OrderStatus {
   READY = 3,
   DELIVERED = 4,
   PAID = 5,
-  CANCELLED = 6
+  CANCELLED = 6,
 }
 
 export enum OrderPaymentStatus {
   PENDING = 0,
   PAID = 1,
-  FAILED = 2
+  FAILED = 2,
 }
 
-export type OrderPaymentMethod = 'cash' | 'card' | 'online' | 'ewallet';
+export type OrderPaymentMethod = "cash" | "card" | "online" | "ewallet";
 
 export interface OrderItem extends BaseEntity {
   orderId: number;
@@ -109,7 +109,7 @@ export enum OrderItemStatus {
   PENDING = 0,
   PREPARING = 1,
   READY = 2,
-  DELIVERED = 3
+  DELIVERED = 3,
 }
 
 export interface SelectedCustomizations {
@@ -120,9 +120,9 @@ export interface SelectedCustomizations {
   };
   options?: {
     id: string;
-    optionName: string;    // option category name (e.g., "spice level")
+    optionName: string; // option category name (e.g., "spice level")
     choiceId: string;
-    choiceName: string;    // selected choice name (e.g., "medium spicy")
+    choiceName: string; // selected choice name (e.g., "medium spicy")
     priceAdjustment?: number;
   }[];
   addOns?: {
@@ -220,7 +220,7 @@ export interface CustomizationOption {
 export interface CustomizationGroup {
   id: string;
   name: string;
-  type: 'single' | 'multiple';
+  type: "single" | "multiple";
   required?: boolean;
   multiple?: boolean;
   options: CustomizationOption[];

@@ -7,24 +7,24 @@
 // Connection Types
 // ============================================================================
 
-export type RoomType = 'customer' | 'kitchen' | 'admin' | 'restaurant'
+export type RoomType = "customer" | "kitchen" | "admin" | "restaurant";
 
 export interface ConnectionInfo {
-  id: string
-  type: RoomType
-  role?: 'customer' | 'staff' | 'admin'
-  connectedAt: string
-  lastActivity: string
-  lastEventId?: string
+  id: string;
+  type: RoomType;
+  role?: "customer" | "staff" | "admin";
+  connectedAt: string;
+  lastActivity: string;
+  lastEventId?: string;
 }
 
 export interface RoomStats {
-  roomType: RoomType
-  connectionCount: number
-  connections?: ConnectionInfo[]
-  eventHistorySize?: number
-  status: 'active' | 'inactive' | 'error'
-  uptime?: number
+  roomType: RoomType;
+  connectionCount: number;
+  connections?: ConnectionInfo[];
+  eventHistorySize?: number;
+  status: "active" | "inactive" | "error";
+  uptime?: number;
 }
 
 // ============================================================================
@@ -32,17 +32,17 @@ export interface RoomStats {
 // ============================================================================
 
 export interface RealtimeOverview {
-  restaurantId: string
-  timestamp: string
-  totalConnections: number
-  roomStats: RoomStats[]
-  health: RealtimeHealthStatus
+  restaurantId: string;
+  timestamp: string;
+  totalConnections: number;
+  roomStats: RoomStats[];
+  health: RealtimeHealthStatus;
 }
 
 export interface RealtimeHealthStatus {
-  status: 'healthy' | 'idle' | 'degraded' | 'unhealthy'
-  lastChecked: string
-  realtimeService?: 'up' | 'down' | 'unreachable'
+  status: "healthy" | "idle" | "degraded" | "unhealthy";
+  lastChecked: string;
+  realtimeService?: "up" | "down" | "unreachable";
 }
 
 // ============================================================================
@@ -50,28 +50,28 @@ export interface RealtimeHealthStatus {
 // ============================================================================
 
 export interface RealtimeMetrics {
-  timestamp: number
+  timestamp: number;
   connections: {
-    total: number
-    byType: Record<RoomType, number>
-    peak: number
-    peakTime: string
-  }
+    total: number;
+    byType: Record<RoomType, number>;
+    peak: number;
+    peakTime: string;
+  };
   messages: {
-    sent: number
-    received: number
-    perSecond: number
-  }
+    sent: number;
+    received: number;
+    perSecond: number;
+  };
   latency: {
-    average: number
-    p95: number
-    p99: number
-  }
+    average: number;
+    p95: number;
+    p99: number;
+  };
   errors: {
-    connectionErrors: number
-    messageErrors: number
-    authErrors: number
-  }
+    connectionErrors: number;
+    messageErrors: number;
+    authErrors: number;
+  };
 }
 
 // ============================================================================
@@ -79,18 +79,18 @@ export interface RealtimeMetrics {
 // ============================================================================
 
 export interface RealtimeEvent {
-  type: string
-  eventId: string
-  timestamp: number
-  restaurantId: string
-  data: Record<string, unknown>
+  type: string;
+  eventId: string;
+  timestamp: number;
+  restaurantId: string;
+  data: Record<string, unknown>;
 }
 
 export interface EventHistoryParams {
-  roomType: RoomType
-  roomId: string
-  sinceEventId?: string
-  limit?: number
+  roomType: RoomType;
+  roomId: string;
+  sinceEventId?: string;
+  limit?: number;
 }
 
 // ============================================================================
@@ -98,25 +98,25 @@ export interface EventHistoryParams {
 // ============================================================================
 
 export interface RealtimeStatsResponse {
-  success: boolean
-  data?: RoomStats
-  error?: string
+  success: boolean;
+  data?: RoomStats;
+  error?: string;
 }
 
 export interface RealtimeOverviewResponse {
-  success: boolean
-  data?: RealtimeOverview
-  error?: string
+  success: boolean;
+  data?: RealtimeOverview;
+  error?: string;
 }
 
 export interface RealtimeHealthResponse {
-  success: boolean
+  success: boolean;
   data?: {
-    status: string
-    realtimeService: string
-    version?: string
-    environment?: string
-    timestamp: string
-  }
-  error?: string
+    status: string;
+    realtimeService: string;
+    version?: string;
+    environment?: string;
+    timestamp: string;
+  };
+  error?: string;
 }

@@ -13,55 +13,55 @@ MakanMakan 提供以下語言的完整用戶手冊：
 
 #### 顧客指南 / Customer Guide
 
-| 語言 / Language | 文件 / Document | 狀態 / Status |
-|----------------|----------------|--------------|
-| 🇹🇼 繁體中文 | [customer-guide.md](./zh-TW/customer-guide.md) | ✅ 完整 |
-| 🇬🇧 English | [customer-guide.md](./en-US/customer-guide.md) | ✅ Complete |
-| 🇻🇳 Tiếng Việt | [customer-guide.md](./vi-VN/customer-guide.md) | ✅ Hoàn thành |
-| 🇮🇩 Bahasa Indonesia | [customer-guide.md](./id-ID/customer-guide.md) | ✅ Lengkap |
-| 🇵🇭 Filipino | [customer-guide.md](./fil-PH/customer-guide.md) | ✅ Kumpleto |
-| 🇯🇵 日本語 | [customer-guide.md](./ja-JP/customer-guide.md) | ✅ 完了 |
+| 語言 / Language     | 文件 / Document                                 | 狀態 / Status |
+| ------------------- | ----------------------------------------------- | ------------- |
+| 🇹🇼 繁體中文         | [customer-guide.md](./zh-TW/customer-guide.md)  | ✅ 完整       |
+| 🇬🇧 English          | [customer-guide.md](./en-US/customer-guide.md)  | ✅ Complete   |
+| 🇻🇳 Tiếng Việt       | [customer-guide.md](./vi-VN/customer-guide.md)  | ✅ Hoàn thành |
+| 🇮🇩 Bahasa Indonesia | [customer-guide.md](./id-ID/customer-guide.md)  | ✅ Lengkap    |
+| 🇵🇭 Filipino         | [customer-guide.md](./fil-PH/customer-guide.md) | ✅ Kumpleto   |
+| 🇯🇵 日本語           | [customer-guide.md](./ja-JP/customer-guide.md)  | ✅ 完了       |
 
 #### 店主操作手冊 / Shop Owner Manual
 
-| 語言 / Language | 文件 / Document | 狀態 / Status |
-|----------------|----------------|--------------|
-| 🇹🇼 繁體中文 | [shop-owner-guide.md](./zh-TW/shop-owner-guide.md) | ✅ 完整 |
-| 🇻🇳 Tiếng Việt | [shop-owner-guide.md](./vi-VN/shop-owner-guide.md) | ✅ Hoàn thành |
-| 🇯🇵 日本語 | [shop-owner-guide.md](./ja-JP/shop-owner-guide.md) | ✅ 完了 |
+| 語言 / Language | 文件 / Document                                    | 狀態 / Status |
+| --------------- | -------------------------------------------------- | ------------- |
+| 🇹🇼 繁體中文     | [shop-owner-guide.md](./zh-TW/shop-owner-guide.md) | ✅ 完整       |
+| 🇻🇳 Tiếng Việt   | [shop-owner-guide.md](./vi-VN/shop-owner-guide.md) | ✅ Hoàn thành |
+| 🇯🇵 日本語       | [shop-owner-guide.md](./ja-JP/shop-owner-guide.md) | ✅ 完了       |
 
 #### 廚師操作手冊 / Chef Manual
 
-| 語言 / Language | 文件 / Document | 狀態 / Status |
-|----------------|----------------|--------------|
-| 🇹🇼 繁體中文 | [chef-guide.md](./zh-TW/chef-guide.md) | ✅ 完整 |
-| 🇬🇧 English | [chef-guide.md](./en-US/chef-guide.md) | ✅ Complete |
-| 🇻🇳 Tiếng Việt | [chef-guide.md](./vi-VN/chef-guide.md) | ✅ Hoàn thành |
-| 🇮🇩 Bahasa Indonesia | [chef-guide.md](./id-ID/chef-guide.md) | ✅ Lengkap |
-| 🇵🇭 Filipino | [chef-guide.md](./fil-PH/chef-guide.md) | ✅ Kumpleto |
-| 🇯🇵 日本語 | [chef-guide.md](./ja-JP/chef-guide.md) | ✅ 完了 |
+| 語言 / Language     | 文件 / Document                         | 狀態 / Status |
+| ------------------- | --------------------------------------- | ------------- |
+| 🇹🇼 繁體中文         | [chef-guide.md](./zh-TW/chef-guide.md)  | ✅ 完整       |
+| 🇬🇧 English          | [chef-guide.md](./en-US/chef-guide.md)  | ✅ Complete   |
+| 🇻🇳 Tiếng Việt       | [chef-guide.md](./vi-VN/chef-guide.md)  | ✅ Hoàn thành |
+| 🇮🇩 Bahasa Indonesia | [chef-guide.md](./id-ID/chef-guide.md)  | ✅ Lengkap    |
+| 🇵🇭 Filipino         | [chef-guide.md](./fil-PH/chef-guide.md) | ✅ Kumpleto   |
+| 🇯🇵 日本語           | [chef-guide.md](./ja-JP/chef-guide.md)  | ✅ 完了       |
 
 #### 服務員操作手冊 / Service Crew Manual
 
-| 語言 / Language | 文件 / Document | 狀態 / Status |
-|----------------|----------------|--------------|
-| 🇹🇼 繁體中文 | [service-crew-guide.md](./zh-TW/service-crew-guide.md) | ✅ 完整 |
-| 🇬🇧 English | [service-crew-guide.md](./en-US/service-crew-guide.md) | ✅ Complete |
-| 🇻🇳 Tiếng Việt | [service-crew-guide.md](./vi-VN/service-crew-guide.md) | ✅ Hoàn thành |
-| 🇮🇩 Bahasa Indonesia | [service-crew-guide.md](./id-ID/service-crew-guide.md) | ✅ Lengkap |
-| 🇵🇭 Filipino | [service-crew-guide.md](./fil-PH/service-crew-guide.md) | ✅ Kumpleto |
-| 🇯🇵 日本語 | [service-crew-guide.md](./ja-JP/service-crew-guide.md) | ✅ 完了 |
+| 語言 / Language     | 文件 / Document                                         | 狀態 / Status |
+| ------------------- | ------------------------------------------------------- | ------------- |
+| 🇹🇼 繁體中文         | [service-crew-guide.md](./zh-TW/service-crew-guide.md)  | ✅ 完整       |
+| 🇬🇧 English          | [service-crew-guide.md](./en-US/service-crew-guide.md)  | ✅ Complete   |
+| 🇻🇳 Tiếng Việt       | [service-crew-guide.md](./vi-VN/service-crew-guide.md)  | ✅ Hoàn thành |
+| 🇮🇩 Bahasa Indonesia | [service-crew-guide.md](./id-ID/service-crew-guide.md)  | ✅ Lengkap    |
+| 🇵🇭 Filipino         | [service-crew-guide.md](./fil-PH/service-crew-guide.md) | ✅ Kumpleto   |
+| 🇯🇵 日本語           | [service-crew-guide.md](./ja-JP/service-crew-guide.md)  | ✅ 完了       |
 
 #### 收銀員操作手冊 / Cashier Manual
 
-| 語言 / Language | 文件 / Document | 狀態 / Status |
-|----------------|----------------|--------------|
-| 🇹🇼 繁體中文 | [cashier-guide.md](./zh-TW/cashier-guide.md) | ✅ 完整 |
-| 🇬🇧 English | [cashier-guide.md](./en-US/cashier-guide.md) | ✅ Complete |
-| 🇻🇳 Tiếng Việt | [cashier-guide.md](./vi-VN/cashier-guide.md) | ✅ Hoàn thành |
-| 🇮🇩 Bahasa Indonesia | [cashier-guide.md](./id-ID/cashier-guide.md) | ✅ Lengkap |
-| 🇵🇭 Filipino | [cashier-guide.md](./fil-PH/cashier-guide.md) | ✅ Kumpleto |
-| 🇯🇵 日本語 | [cashier-guide.md](./ja-JP/cashier-guide.md) | ✅ 完了 |
+| 語言 / Language     | 文件 / Document                               | 狀態 / Status |
+| ------------------- | --------------------------------------------- | ------------- |
+| 🇹🇼 繁體中文         | [cashier-guide.md](./zh-TW/cashier-guide.md)  | ✅ 完整       |
+| 🇬🇧 English          | [cashier-guide.md](./en-US/cashier-guide.md)  | ✅ Complete   |
+| 🇻🇳 Tiếng Việt       | [cashier-guide.md](./vi-VN/cashier-guide.md)  | ✅ Hoàn thành |
+| 🇮🇩 Bahasa Indonesia | [cashier-guide.md](./id-ID/cashier-guide.md)  | ✅ Lengkap    |
+| 🇵🇭 Filipino         | [cashier-guide.md](./fil-PH/cashier-guide.md) | ✅ Kumpleto   |
+| 🇯🇵 日本語           | [cashier-guide.md](./ja-JP/cashier-guide.md)  | ✅ 完了       |
 
 ---
 
@@ -211,15 +211,15 @@ user-manuals/
 
 ### 版本記錄 / Version History
 
-| 版本 / Version | 日期 / Date | 更新內容 / Changes |
-|---------------|------------|-------------------|
-| 2.0 | 2025-10-26 | ✅ 初版完成 - 顧客指南 (5 語言) / Initial release - Customer Guide (5 languages) |
-| 2.1 | 2025-10-26 | ✅ 廚師操作手冊 (5 語言) / Chef Manual (5 languages) |
-| 2.2 | 2025-10-26 | ✅ 服務員操作手冊 (5 語言) / Service Crew Manual (5 languages) |
-| 2.3 | 2025-10-26 | ✅ 收銀員操作手冊 (5 語言) / Cashier Manual (5 languages) |
-| 2.4 | 2025-10-27 | ✅ 日語版本完整發佈 - 全部 5 份操作手冊 / Japanese version complete - All 5 manuals |
-| 3.0 | 2025-11-06 | 🆕 員工管理手冊 - 排班系統 (1,000+ 行) & 請假管理 (1,800+ 行) / Employee Management Manuals - Scheduling (1,000+ lines) & Leave (1,800+ lines) |
-| 3.1 | 2025-11-06 | 🆕 AI 智能分析手冊 - 完整操作指南 (2,700+ 行, 12 章節) / AI Analytics Manual - Complete User Guide (2,700+ lines, 12 chapters) |
+| 版本 / Version | 日期 / Date | 更新內容 / Changes                                                                                                                             |
+| -------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2.0            | 2025-10-26  | ✅ 初版完成 - 顧客指南 (5 語言) / Initial release - Customer Guide (5 languages)                                                               |
+| 2.1            | 2025-10-26  | ✅ 廚師操作手冊 (5 語言) / Chef Manual (5 languages)                                                                                           |
+| 2.2            | 2025-10-26  | ✅ 服務員操作手冊 (5 語言) / Service Crew Manual (5 languages)                                                                                 |
+| 2.3            | 2025-10-26  | ✅ 收銀員操作手冊 (5 語言) / Cashier Manual (5 languages)                                                                                      |
+| 2.4            | 2025-10-27  | ✅ 日語版本完整發佈 - 全部 5 份操作手冊 / Japanese version complete - All 5 manuals                                                            |
+| 3.0            | 2025-11-06  | 🆕 員工管理手冊 - 排班系統 (1,000+ 行) & 請假管理 (1,800+ 行) / Employee Management Manuals - Scheduling (1,000+ lines) & Leave (1,800+ lines) |
+| 3.1            | 2025-11-06  | 🆕 AI 智能分析手冊 - 完整操作指南 (2,700+ 行, 12 章節) / AI Analytics Manual - Complete User Guide (2,700+ lines, 12 chapters)                 |
 
 ---
 
@@ -232,6 +232,7 @@ user-manuals/
 **Email**: support@makanmakan.com
 
 **請提供 / Please Provide**:
+
 - 手冊語言版本 / Manual language version
 - 問題頁面或章節 / Problem page or section
 - 詳細說明 / Detailed description

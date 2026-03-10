@@ -47,6 +47,7 @@
 ### Checklist sa Pagbubukas ng Araw
 
 ✅ **Bago Magbukas ang Negosyo**
+
 - [ ] Mag-login sa cashier system
 - [ ] I-verify ang halaga ng cash drawer float
 - [ ] Suriin ang supply ng papel ng resibo
@@ -54,12 +55,14 @@
 - [ ] Repasuhin ang arawang target sa benta
 
 ✅ **Habang Bukas ang Negosyo**
+
 - [ ] Bantayan ang mga naghihintay na bayaran
 - [ ] Panatilihing organisado ang cash drawer
 - [ ] Regular na i-verify ang functionality ng POS
 - [ ] Bantayan ang mga kakaibang alerto sa transaksyon
 
 ✅ **Pagkatapos ng Oras ng Negosyo**
+
 - [ ] Isagawa ang arawang reconciliation
 - [ ] Bilangin ang cash at ihambing sa mga talaan
 - [ ] I-print ang arawang settlement report
@@ -147,15 +150,15 @@
 
 ### Paglalarawan ng Function Button
 
-| Button | Function | Paglalarawan |
-|--------|----------|--------------|
-| 🔍 **Mabilis na Hanap** | Maghanap ng Orders | Maghanap gamit ang mesa, order number, o phone |
-| 📋 **Detalye ng Order** | Tingnan ang Detalye | Ipakita ang kumpletong nilalaman ng order |
-| 💳 **Checkout** | Magproseso ng Bayad | Pumasok sa daloy ng pagbabayad |
-| 🧾 **Muling I-print ang Resibo** | Muling I-print | Muling i-print ang nawala o nasirang resibo |
-| 🔄 **Refund** | Magproseso ng Refund | Mag-apply para sa refund ng order |
-| 📊 **Mga Ulat** | Mag-query ng Ulat | Tingnan ang data ng negosyo |
-| 🔐 **Settlement** | Arawang Settlement | Isagawa ang end-of-day reconciliation |
+| Button                           | Function             | Paglalarawan                                   |
+| -------------------------------- | -------------------- | ---------------------------------------------- |
+| 🔍 **Mabilis na Hanap**          | Maghanap ng Orders   | Maghanap gamit ang mesa, order number, o phone |
+| 📋 **Detalye ng Order**          | Tingnan ang Detalye  | Ipakita ang kumpletong nilalaman ng order      |
+| 💳 **Checkout**                  | Magproseso ng Bayad  | Pumasok sa daloy ng pagbabayad                 |
+| 🧾 **Muling I-print ang Resibo** | Muling I-print       | Muling i-print ang nawala o nasirang resibo    |
+| 🔄 **Refund**                    | Magproseso ng Refund | Mag-apply para sa refund ng order              |
+| 📊 **Mga Ulat**                  | Mag-query ng Ulat    | Tingnan ang data ng negosyo                    |
+| 🔐 **Settlement**                | Arawang Settlement   | Isagawa ang end-of-day reconciliation          |
 
 ---
 
@@ -223,6 +226,7 @@
 ```
 
 **Mga Punto na Susuriin:**
+
 - ✅ I-verify na tama ang dami ng mga item
 - ✅ I-verify na tama ang pagkakalkula ng presyo
 - ✅ I-verify na naka-apply ang mga espesyal na diskwento
@@ -418,11 +422,11 @@
 
 **Mga Punto na Susuriin:**
 
-| Bill | Paraan ng Pag-verify |
-|------|---------------------|
+| Bill         | Paraan ng Pag-verify                                    |
+| ------------ | ------------------------------------------------------- |
 | 💵 **$1000** | Color-shifting foil, intaglio printing, security thread |
-| 💵 **$500** | Nakatagong "500", plum blossom watermark |
-| 💵 **$100** | Color-shifting ink, braille dots |
+| 💵 **$500**  | Nakatagong "500", plum blossom watermark                |
+| 💵 **$100**  | Color-shifting ink, braille dots                        |
 
 **Paghawak ng Kahina-hinalang Bill:**
 
@@ -467,13 +471,13 @@
 
 #### Paghawak ng Nabigong Transaksyon
 
-| Mensahe ng Error | Sanhi | Solusyon |
-|------------------|-------|----------|
-| ❌ **Insufficient Funds** | Lumagpas sa credit limit | Tanungin ang customer na gumamit ng ibang card o paraan ng bayad |
-| ❌ **Card Expired** | Lampas na ang petsa ng card | Gumamit ng valid na card |
-| ❌ **Transaction Declined** | Tumanggi ang bangko | Magrekomenda na kontakin ang nagbigay na bangko o ibang paraan |
-| ❌ **Connection Failed** | May problema sa network | Ulitin ang card o gumamit ng cash |
-| ❌ **Card Read Error** | Sira ang magnetic strip/chip | Linisin ang card at ulitin o gumamit ng ibang card |
+| Mensahe ng Error            | Sanhi                        | Solusyon                                                         |
+| --------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| ❌ **Insufficient Funds**   | Lumagpas sa credit limit     | Tanungin ang customer na gumamit ng ibang card o paraan ng bayad |
+| ❌ **Card Expired**         | Lampas na ang petsa ng card  | Gumamit ng valid na card                                         |
+| ❌ **Transaction Declined** | Tumanggi ang bangko          | Magrekomenda na kontakin ang nagbigay na bangko o ibang paraan   |
+| ❌ **Connection Failed**    | May problema sa network      | Ulitin ang card o gumamit ng cash                                |
+| ❌ **Card Read Error**      | Sira ang magnetic strip/chip | Linisin ang card at ulitin o gumamit ng ibang card               |
 
 ---
 
@@ -614,6 +618,7 @@ Opsyon C: I-print ang papel
 ### Muling Pag-print ng Invoice
 
 **Kailan kailangan ang muling pag-print?**
+
 - Nag-jam ang papel ng invoice machine
 - Hindi malinaw ang print ng invoice
 - Nawala ang invoice ng customer
@@ -632,6 +637,7 @@ Opsyon C: I-print ang papel
 ```
 
 ⚠️ **Mga Tala:**
+
 - Ang parehong invoice ay maaaring muling i-print ng maximum na 3 beses
 - Ang muling na-print na invoice ay dapat markahan ng "REPRINT"
 - I-record ang oras at dahilan ng muling pag-print
@@ -642,6 +648,7 @@ Opsyon C: I-print ang papel
 ### Pag-void ng Invoice
 
 **Kailan mag-void ng invoice?**
+
 - Kinansela ang order
 - Mali ang impormasyon sa invoice (Tax ID, pangalan)
 - Mali ang halagang na-issue
@@ -1419,6 +1426,7 @@ Mga Hakbang:
 ### Pagbilang ng Cash
 
 **Mga Oras ng Pagbilang:**
+
 - Bago magsimula ang arawang negosyo
 - Sa panahon ng pagpapalit ng shift
 - Pagkatapos ng arawang negosyo
@@ -1934,12 +1942,14 @@ Kung talagang may emergency na bagay:
 ### A. Standard na Mga Parirala ng Cashier
 
 **Bati:**
+
 ```
 "Kumusta, maligayang pagdating!"
 "Kumusta, dine-in o takeout?"
 ```
 
 **Sa Panahon ng Checkout:**
+
 ```
 "Kumusta, handa na ba kayong magbayad?"
 "Ang kabuuan ay $XXX"
@@ -1949,6 +1959,7 @@ Kung talagang may emergency na bagay:
 ```
 
 **Pag-issue ng Invoice:**
+
 ```
 "Kailangan ba ninyo ng Tax ID?"
 "Ano ang pangalan ng kumpanya?"
@@ -1956,12 +1967,14 @@ Kung talagang may emergency na bagay:
 ```
 
 **Pagbibigay ng Invoice:**
+
 ```
 "Narito ang inyong invoice, pakiingatan po"
 "Salamat sa pagkain, bumalik kayo!"
 ```
 
 **Nakatagpo ng Mga Problema:**
+
 ```
 "Pasensya na po, sandali lang po"
 "Pasensya na po sa paghihintay"
@@ -1972,17 +1985,17 @@ Kung talagang may emergency na bagay:
 
 ### B. Mga Keyboard Shortcut
 
-| Function | Shortcut |
-|----------|---------|
-| Mabilis na Hanap | F1 |
-| Checkout | F2 |
-| Kanselahin | ESC |
-| I-print ang Invoice | Ctrl+P |
-| Muling I-print | Ctrl+R |
-| Refund | Ctrl+Alt+R |
-| I-lock ang Screen | Ctrl+L |
-| Mag-logout | Ctrl+Q |
-| Tulong | F12 |
+| Function            | Shortcut   |
+| ------------------- | ---------- |
+| Mabilis na Hanap    | F1         |
+| Checkout            | F2         |
+| Kanselahin          | ESC        |
+| I-print ang Invoice | Ctrl+P     |
+| Muling I-print      | Ctrl+R     |
+| Refund              | Ctrl+Alt+R |
+| I-lock ang Screen   | Ctrl+L     |
+| Mag-logout          | Ctrl+Q     |
+| Tulong              | F12        |
 
 ---
 
@@ -2048,10 +2061,10 @@ Mga Kailangang Pagpapahusay sa Kasanayan:
 
 ## 📝 Kasaysayan ng Bersyon
 
-| Bersyon | Petsa | Mga Update |
-|---------|-------|------------|
-| 2.0 | 2025-10-26 | Unang labas |
-| - | - | Ina-update |
+| Bersyon | Petsa      | Mga Update  |
+| ------- | ---------- | ----------- |
+| 2.0     | 2025-10-26 | Unang labas |
+| -       | -          | Ina-update  |
 
 ---
 
@@ -2062,6 +2075,7 @@ Salamat sa pagpili na maging cashier ng MakanMakan!
 Ang trabaho ng cashier ay mukhang simple pero may malaking responsibilidad. Kayo ang huling punto ng pakikipag-ugnayan ng mga customer sa tindahan, at ang pangunahing tao na nag-iiwan ng huling impresyon.
 
 **Mangyaring Tandaan:**
+
 - 💰 **Katumpakan** ang pangunahing prinsipyo ng trabaho ng cashier
 - 😊 **Kagalangan** ang basic na kinakailangan ng de-kalidad na serbisyo
 - 🔒 **Integridad** ang pangunahing halaga ng propesyonal na etika

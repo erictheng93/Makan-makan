@@ -3,9 +3,9 @@
  * 客戶管理 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define Customer schema first to avoid circular reference
 const Customer = z.object({
@@ -37,9 +37,12 @@ export const CustomersSchemas = {
 
   // Customer Registration Request (Shop QR Mode)
   CustomerRegistrationRequest: z.object({
-    name: z.string().min(1, 'Name is required'),
-    phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone format').optional(),
-    email: z.string().email('Invalid email format').optional(),
+    name: z.string().min(1, "Name is required"),
+    phone: z
+      .string()
+      .regex(/^\+?[\d\s-()]+$/, "Invalid phone format")
+      .optional(),
+    email: z.string().email("Invalid email format").optional(),
     preferences: z
       .object({
         dietary: z.array(z.string()).optional(),
@@ -52,10 +55,12 @@ export const CustomersSchemas = {
   GetCustomersRequest: z.object({
     restaurantId: z.string().uuid(),
     search: z.string().optional(),
-    orderBy: z.enum(['name', 'totalSpent', 'totalOrders', 'lastVisit']).optional(),
-    sortOrder: z.enum(['asc', 'desc']).default('desc'),
-    page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+    orderBy: z
+      .enum(["name", "totalSpent", "totalOrders", "lastVisit"])
+      .optional(),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
   }),
 
   // Get Customers Response
@@ -87,11 +92,13 @@ export const CustomersSchemas = {
   // Customer Order History Request
   GetCustomerOrdersRequest: z.object({
     customerId: z.string().uuid(),
-    status: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled']).optional(),
+    status: z
+      .enum(["pending", "preparing", "ready", "completed", "cancelled"])
+      .optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default('10'),
+    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).default("10"),
   }),
 
   // Loyalty Points Transaction
@@ -99,7 +106,7 @@ export const CustomersSchemas = {
     id: z.string().uuid(),
     customerId: z.string().uuid(),
     points: z.number().int(),
-    type: z.enum(['earn', 'redeem', 'expire', 'adjust']),
+    type: z.enum(["earn", "redeem", "expire", "adjust"]),
     reason: z.string(),
     orderId: z.string().uuid().optional(),
     createdAt: z.string().datetime(),
@@ -107,14 +114,14 @@ export const CustomersSchemas = {
 
   // Add Loyalty Points Request
   AddLoyaltyPointsRequest: z.object({
-    points: z.number().int().positive('Points must be positive'),
-    reason: z.string().min(1, 'Reason is required'),
+    points: z.number().int().positive("Points must be positive"),
+    reason: z.string().min(1, "Reason is required"),
     orderId: z.string().uuid().optional(),
   }),
 
   // Redeem Loyalty Points Request
   RedeemLoyaltyPointsRequest: z.object({
-    points: z.number().int().positive('Points must be positive'),
+    points: z.number().int().positive("Points must be positive"),
     orderId: z.string().uuid().optional(),
   }),
 };
@@ -125,15 +132,15 @@ export const CustomersSchemas = {
 
 // Register Customer (Shop QR Mode)
 export const registerCustomerRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/customers/register',
-  tags: ['customers'],
-  summary: '客戶註冊',
-  description: '在 Shop QR 模式下註冊新客戶（無需認證）',
+  method: "post",
+  path: "/api/v1/customers/register",
+  tags: ["customers"],
+  summary: "客戶註冊",
+  description: "在 Shop QR 模式下註冊新客戶（無需認證）",
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: CustomersSchemas.CustomerRegistrationRequest,
         },
       },
@@ -141,9 +148,9 @@ export const registerCustomerRoute = createRoute({
   },
   responses: {
     201: {
-      description: '註冊成功',
+      description: "註冊成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: CustomersSchemas.Customer,
@@ -158,11 +165,11 @@ export const registerCustomerRoute = createRoute({
 
 // Get Customers
 export const getCustomersRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/customers/:restaurantId',
-  tags: ['customers'],
-  summary: '獲取客戶列表',
-  description: '獲取餐廳的所有客戶，支持搜索和排序',
+  method: "get",
+  path: "/api/v1/customers/:restaurantId",
+  tags: ["customers"],
+  summary: "獲取客戶列表",
+  description: "獲取餐廳的所有客戶，支持搜索和排序",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -170,17 +177,19 @@ export const getCustomersRoute = createRoute({
     }),
     query: z.object({
       search: z.string().optional(),
-      orderBy: z.enum(['name', 'totalSpent', 'totalOrders', 'lastVisit']).optional(),
-      sortOrder: z.enum(['asc', 'desc']).default('desc'),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      orderBy: z
+        .enum(["name", "totalSpent", "totalOrders", "lastVisit"])
+        .optional(),
+      sortOrder: z.enum(["asc", "desc"]).default("desc"),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取客戶列表',
+      description: "成功獲取客戶列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: CustomersSchemas.GetCustomersResponse,
         },
       },
@@ -191,11 +200,11 @@ export const getCustomersRoute = createRoute({
 
 // Get Customer by ID
 export const getCustomerRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/customers/detail/:customerId',
-  tags: ['customers'],
-  summary: '獲取客戶詳情',
-  description: '獲取指定客戶的詳細信息',
+  method: "get",
+  path: "/api/v1/customers/detail/:customerId",
+  tags: ["customers"],
+  summary: "獲取客戶詳情",
+  description: "獲取指定客戶的詳細信息",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -204,9 +213,9 @@ export const getCustomerRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取客戶詳情',
+      description: "成功獲取客戶詳情",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: CustomersSchemas.Customer,
@@ -220,11 +229,11 @@ export const getCustomerRoute = createRoute({
 
 // Update Customer
 export const updateCustomerRoute = createRoute({
-  method: 'put',
-  path: '/api/v1/customers/:customerId',
-  tags: ['customers'],
-  summary: '更新客戶信息',
-  description: '更新客戶的個人資料和偏好設置',
+  method: "put",
+  path: "/api/v1/customers/:customerId",
+  tags: ["customers"],
+  summary: "更新客戶信息",
+  description: "更新客戶的個人資料和偏好設置",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -232,7 +241,7 @@ export const updateCustomerRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: CustomersSchemas.UpdateCustomerRequest,
         },
       },
@@ -240,9 +249,9 @@ export const updateCustomerRoute = createRoute({
   },
   responses: {
     200: {
-      description: '更新成功',
+      description: "更新成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: CustomersSchemas.Customer,
@@ -256,29 +265,31 @@ export const updateCustomerRoute = createRoute({
 
 // Get Customer Order History
 export const getCustomerOrdersRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/customers/:customerId/orders',
-  tags: ['customers'],
-  summary: '獲取客戶訂單歷史',
-  description: '獲取客戶的所有訂單記錄',
+  method: "get",
+  path: "/api/v1/customers/:customerId/orders",
+  tags: ["customers"],
+  summary: "獲取客戶訂單歷史",
+  description: "獲取客戶的所有訂單記錄",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
       customerId: z.string().uuid(),
     }),
     query: z.object({
-      status: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled']).optional(),
+      status: z
+        .enum(["pending", "preparing", "ready", "completed", "cancelled"])
+        .optional(),
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('10'),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("10"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取訂單歷史',
+      description: "成功獲取訂單歷史",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(z.any()), // Order schema
@@ -298,11 +309,11 @@ export const getCustomerOrdersRoute = createRoute({
 
 // Add Loyalty Points
 export const addLoyaltyPointsRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/customers/:customerId/loyalty/add',
-  tags: ['customers'],
-  summary: '增加忠誠積分',
-  description: '為客戶增加忠誠積分',
+  method: "post",
+  path: "/api/v1/customers/:customerId/loyalty/add",
+  tags: ["customers"],
+  summary: "增加忠誠積分",
+  description: "為客戶增加忠誠積分",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -310,7 +321,7 @@ export const addLoyaltyPointsRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: CustomersSchemas.AddLoyaltyPointsRequest,
         },
       },
@@ -318,9 +329,9 @@ export const addLoyaltyPointsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '積分增加成功',
+      description: "積分增加成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: CustomersSchemas.LoyaltyPointsTransaction,
@@ -334,11 +345,11 @@ export const addLoyaltyPointsRoute = createRoute({
 
 // Redeem Loyalty Points
 export const redeemLoyaltyPointsRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/customers/:customerId/loyalty/redeem',
-  tags: ['customers'],
-  summary: '兌換忠誠積分',
-  description: '客戶使用積分進行兌換',
+  method: "post",
+  path: "/api/v1/customers/:customerId/loyalty/redeem",
+  tags: ["customers"],
+  summary: "兌換忠誠積分",
+  description: "客戶使用積分進行兌換",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -346,7 +357,7 @@ export const redeemLoyaltyPointsRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: CustomersSchemas.RedeemLoyaltyPointsRequest,
         },
       },
@@ -354,9 +365,9 @@ export const redeemLoyaltyPointsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '積分兌換成功',
+      description: "積分兌換成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: CustomersSchemas.LoyaltyPointsTransaction,
@@ -370,27 +381,27 @@ export const redeemLoyaltyPointsRoute = createRoute({
 
 // Get Loyalty Points History
 export const getLoyaltyPointsHistoryRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/customers/:customerId/loyalty/history',
-  tags: ['customers'],
-  summary: '獲取積分歷史',
-  description: '獲取客戶的積分交易記錄',
+  method: "get",
+  path: "/api/v1/customers/:customerId/loyalty/history",
+  tags: ["customers"],
+  summary: "獲取積分歷史",
+  description: "獲取客戶的積分交易記錄",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
       customerId: z.string().uuid(),
     }),
     query: z.object({
-      type: z.enum(['earn', 'redeem', 'expire', 'adjust']).optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      type: z.enum(["earn", "redeem", "expire", "adjust"]).optional(),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取積分歷史',
+      description: "成功獲取積分歷史",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(CustomersSchemas.LoyaltyPointsTransaction),

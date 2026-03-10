@@ -2,4 +2,4 @@
  * Performance Module Exports
  */
 
-export * from './queue-cache'
+export * from "./queue-cache";

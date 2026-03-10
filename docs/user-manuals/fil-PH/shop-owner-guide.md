@@ -48,26 +48,31 @@
 ### Unang Pag-login Checklist
 
 ✅ **Hakbang 1: Kumpletuhin ang Profile ng Restaurant**
+
 - Pangalan ng restaurant, address, contact
 - I-setup ang oras ng operasyon
 - Mag-upload ng larawan ng restaurant
 
 ✅ **Hakbang 2: Buuin ang Istruktura ng Menu**
+
 - Magdagdag ng kategorya ng menu
 - Mag-upload ng impormasyon ng pagkain
 - Itakda ang presyo at larawan
 
 ✅ **Hakbang 3: I-setup ang mga Mesa**
+
 - Lumikha ng impormasyon ng mesa
 - Gumawa ng QR code
 - Mag-print at mag-display
 
 ✅ **Hakbang 4: Magdagdag ng Staff Account**
+
 - Lumikha ng rekord ng empleyado
 - Mag-assign ng mga karapatan
 - Magpadala ng login credentials
 
 ✅ **Hakbang 5: Simulan ang Operasyon**
+
 - Subukan ang ordering flow
 - Kumpirmahin ang pagtanggap ng order
 - Bantayan ang operasyon
@@ -121,6 +126,7 @@
 ```
 
 **Paliwanag**:
+
 - **May-ari**: Kumpletong karapatan, makikita lahat ng data
 - **Chef**: Tumanggap ng order, i-update ang status ng pagluluto
 - **Server**: Kumpirmahin ang delivery, i-update ang progress
@@ -137,13 +143,13 @@ Pumunta sa: **Dashboard → Restaurant Settings → Basic Info**
 
 #### Kinakailangang Impormasyon
 
-| Field | Deskripsyon | Halimbawa |
-|-------|-------------|-----------|
-| Pangalan ng Restaurant | Pangalan na makikita ng customer | Masarap na Seafood Restaurant |
-| Address | Kumpletong address kasama postal code | 123 EDSA, Makati City, Metro Manila |
-| Telepono | Customer service o reservation line | 02-1234-5678 |
-| Oras ng Operasyon | Araw-araw na oras ng pagbubukas | 11:00-14:00, 17:00-21:00 |
-| Deskripsyon | Maikling pakilala, espesyalidad | Sariwang seafood at tradisyonal na lutuin |
+| Field                  | Deskripsyon                           | Halimbawa                                 |
+| ---------------------- | ------------------------------------- | ----------------------------------------- |
+| Pangalan ng Restaurant | Pangalan na makikita ng customer      | Masarap na Seafood Restaurant             |
+| Address                | Kumpletong address kasama postal code | 123 EDSA, Makati City, Metro Manila       |
+| Telepono               | Customer service o reservation line   | 02-1234-5678                              |
+| Oras ng Operasyon      | Araw-araw na oras ng pagbubukas       | 11:00-14:00, 17:00-21:00                  |
+| Deskripsyon            | Maikling pakilala, espesyalidad       | Sariwang seafood at tradisyonal na lutuin |
 
 #### Konpigurasyon ng Oras ng Operasyon
 
@@ -171,6 +177,7 @@ Inirerekomendang laki: 1920x1080 pixels
 Laki ng file: Maximum 5MB
 
 **Mga Hakbang sa Pag-upload**:
+
 1. I-click ang "Upload Photo"
 2. Pumili ng larawan ng labas o signature dish
 3. Awtomatikong i-compress at gumawa ng iba't ibang laki
@@ -206,12 +213,12 @@ Pumunta sa: **Pamamahala ng Menu → Pamamahala ng Kategorya → Magdagdag ng Ka
 
 #### Mga Setting ng Kategorya
 
-| Setting | Deskripsyon | Halimbawa |
-|---------|-------------|-----------|
-| Pangalan ng Kategorya | Titulo na makikita sa menu | Mga Pagkaing-dagat |
-| Icon | Simbolo ng icon (opsyonal) | 🦐 |
-| Pagkakasunod-sunod | Pagkakasunod-sunod ng pagpapakita | 1, 2, 3... |
-| Status | Ipakita sa menu | Aktibo/Hindi Aktibo |
+| Setting               | Deskripsyon                       | Halimbawa           |
+| --------------------- | --------------------------------- | ------------------- |
+| Pangalan ng Kategorya | Titulo na makikita sa menu        | Mga Pagkaing-dagat  |
+| Icon                  | Simbolo ng icon (opsyonal)        | 🦐                  |
+| Pagkakasunod-sunod    | Pagkakasunod-sunod ng pagpapakita | 1, 2, 3...          |
+| Status                | Ipakita sa menu                   | Aktibo/Hindi Aktibo |
 
 #### Best Practice sa Pamamahala ng Kategorya
 
@@ -265,12 +272,12 @@ Pumunta sa: **Pamamahala ng Menu → Listahan ng Item → Magdagdag ng Item**
 
 #### Mga Kinakailangan sa Larawan
 
-| Item | Kinakailangan |
-|------|---------------|
-| Format | JPG, PNG, WebP |
-| Inirerekomendang Laki | 800x600 pixels |
-| Laki ng File | Maximum 3MB |
-| Tips sa Pagkuha | Maliwanag na ilaw, malinaw na focus, magandang presentation |
+| Item                  | Kinakailangan                                               |
+| --------------------- | ----------------------------------------------------------- |
+| Format                | JPG, PNG, WebP                                              |
+| Inirerekomendang Laki | 800x600 pixels                                              |
+| Laki ng File          | Maximum 3MB                                                 |
+| Tips sa Pagkuha       | Maliwanag na ilaw, malinaw na focus, magandang presentation |
 
 **Proseso ng Pag-optimize ng Larawan**:
 
@@ -296,11 +303,13 @@ Mabilis na Global Delivery (CDN)
 Pumunta sa: **Pamamahala ng Menu → Batch Operations → Pag-adjust ng Presyo**
 
 Mga kaso ng paggamit:
+
 - Seasonal price adjustment
 - Pag-adjust dahil sa pagtaas ng gastos
 - Pag-set ng promo pricing
 
 **Mga Hakbang**:
+
 1. Pumili ng mga item na ia-adjust (multi-select)
 2. I-set ang paraan ng pag-adjust:
    - Fixed amount (hal: +₱10)
@@ -311,6 +320,7 @@ Mga kaso ng paggamit:
 #### Batch Enable/Disable
 
 Mabilis na aksyon:
+
 - ✅ I-enable ang mga napiling item sa isang click
 - ⏸️ I-pause ang mga napiling item sa isang click
 - ❌ I-disable ang mga napiling item sa isang click
@@ -427,13 +437,13 @@ Sinusuportahan ng MakanMakan ang dalawang mode ng pamamahala ng upuan:
 
 #### Gabay sa Pagpili ng Mode
 
-| Uri ng Negosyo | Inirerekomendang Mode | Dahilan |
-|----------------|----------------------|---------|
-| Tradisyonal na Restaurant | Table-level | Karaniwan ay grupo ang kumakain |
-| Hotpot Restaurant | Table-level | Shared pot, group ordering |
-| Fast Food | Seat-level | Individual order, mabilis na turnover |
-| Food Court | Seat-level | Hindi magkakilalang nagshare ng mesa, hiwalay bayad |
-| Café | Mixed | Malalaking mesa ay table-level, indibidwal na upuan ay seat-level |
+| Uri ng Negosyo            | Inirerekomendang Mode | Dahilan                                                           |
+| ------------------------- | --------------------- | ----------------------------------------------------------------- |
+| Tradisyonal na Restaurant | Table-level           | Karaniwan ay grupo ang kumakain                                   |
+| Hotpot Restaurant         | Table-level           | Shared pot, group ordering                                        |
+| Fast Food                 | Seat-level            | Individual order, mabilis na turnover                             |
+| Food Court                | Seat-level            | Hindi magkakilalang nagshare ng mesa, hiwalay bayad               |
+| Café                      | Mixed                 | Malalaking mesa ay table-level, indibidwal na upuan ay seat-level |
 
 ---
 
@@ -472,6 +482,7 @@ Nag-aalok ang MakanMakan ng tatlong mode ng QR code para sa iba't ibang sitwasyo
 ### Mode 1: Shop-Level QR
 
 **Mga Sitwasyon ng Paggamit**:
+
 - ✅ Takeout/delivery shop
 - ✅ Walang upuan (nakatayo habang kumakain, roadside stall)
 - ✅ Mobile food truck
@@ -520,6 +531,7 @@ Hintayin ang pickup notification
 ### Mode 2: Table-Level QR
 
 **Mga Sitwasyon ng Paggamit**:
+
 - ✅ Tradisyonal na dine-in restaurant
 - ✅ Isang mesa, sama-samang order
 - ✅ Pamilya, barkada na kumakain
@@ -579,6 +591,7 @@ Umupo → Mag-scan ng QR sa mesa
 ### Mode 3: Seat-Level QR
 
 **Mga Sitwasyon ng Paggamit**:
+
 - ✅ Fast food, food court
 - ✅ Business lunch
 - ✅ Hindi magkakilalang magkatabi sa mesa
@@ -643,12 +656,12 @@ Umupo sa upuan → Mag-scan ng QR ng upuan
 
 #### Mga Rekomendasyon sa Laki ng QR Code
 
-| Lugar ng Paglalagay | Inirerekomendang Laki | Distansya ng Pag-scan |
-|---------------------|----------------------|---------------------|
-| Standing sign sa mesa | 5cm x 5cm | 20-30cm |
-| Sticker sa mesa | 3cm x 3cm | 10-20cm |
-| Poster sa dingding | 15cm x 15cm | 50-100cm |
-| Electronic screen | Variable | 20-50cm |
+| Lugar ng Paglalagay   | Inirerekomendang Laki | Distansya ng Pag-scan |
+| --------------------- | --------------------- | --------------------- |
+| Standing sign sa mesa | 5cm x 5cm             | 20-30cm               |
+| Sticker sa mesa       | 3cm x 3cm             | 10-20cm               |
+| Poster sa dingding    | 15cm x 15cm           | 50-100cm              |
+| Electronic screen     | Variable              | 20-50cm               |
 
 #### Mga Template ng Disenyo ng QR Code
 
@@ -679,11 +692,13 @@ Pumunta sa: **Pamamahala ng QR Code → Design Template → Pumili ng Template**
 #### Mga Suhestiyon sa Pag-print
 
 **Mga Materyales**:
+
 - 🏆 **Recommended**: Waterproof sticker, PVC material
 - ✅ **Pwedeng gamitin**: Glossy paper, photo paper
 - ❌ **Hindi inirerekomenda**: Ordinary copy paper (madaling masira)
 
 **Mga Opsyon sa Laminating**:
+
 - Paggamit sa mesa: Inirerekomenda ang laminating o acrylic standing
 - Outdoor use: Kailangan ng waterproof treatment
 - Pansamantalang gamit: Pwedeng gumamit ng transparent tape para protektahan
@@ -716,11 +731,13 @@ Pumunta sa: **Pamamahala ng QR Code → Usage Statistics**
 #### Mabilis na QR Code Reset
 
 **Mga Sitwasyon ng Paggamit**:
+
 - Nasira ang QR code kailangan i-print ulit
 - Security consideration kailangan palitan
 - Reconfiguration ng table layout
 
 **Mga Hakbang sa Operation**:
+
 1. Pumunta sa: **Pamamahala ng QR Code → Pumili ng Target QR Code**
 2. I-click ang "Generate Ulit"
 3. I-download ang bagong QR Code
@@ -919,6 +936,7 @@ Kumpletong Order #1234
 ```
 
 **Paraan ng Pagpapakita**:
+
 - May label na "Bago" ang bagong item
 - Pagkakaiba ng kulay: Orihinal order (puti), dagdag (dilaw)
 - May timeline na nagpapakita ng oras ng bawat item
@@ -1008,18 +1026,18 @@ Pumunta sa: **Pamamahala ng Staff → Listahan ng Staff → Magdagdag ng Staff**
 
 ### Permission Matrix ng Staff
 
-| Function | May-ari | Chef | Server | Cashier |
-|----------|---------|------|--------|---------|
-| Tingnan orders | ✅ | ✅ | ✅ | ✅ |
-| I-update order status | ✅ | ✅ | ✅ | ✅ |
-| Pamahalaan menu | ✅ | ❌ | ❌ | ❌ |
-| Pamahalaan mesa | ✅ | ❌ | ❌ | ❌ |
-| Tingnan kita | ✅ | ❌ | ❌ | ✅ |
-| Tingnan gastos | ✅ | ❌ | ❌ | ❌ |
-| Pamahalaan staff | ✅ | ❌ | ❌ | ❌ |
-| Handle payment | ✅ | ❌ | ❌ | ✅ |
-| Refund/Discount | ✅ | ❌ | ❌ | ✅ |
-| Tingnan analytics | ✅ | ❌ | ❌ | ❌ |
+| Function              | May-ari | Chef | Server | Cashier |
+| --------------------- | ------- | ---- | ------ | ------- |
+| Tingnan orders        | ✅      | ✅   | ✅     | ✅      |
+| I-update order status | ✅      | ✅   | ✅     | ✅      |
+| Pamahalaan menu       | ✅      | ❌   | ❌     | ❌      |
+| Pamahalaan mesa       | ✅      | ❌   | ❌     | ❌      |
+| Tingnan kita          | ✅      | ❌   | ❌     | ✅      |
+| Tingnan gastos        | ✅      | ❌   | ❌     | ❌      |
+| Pamahalaan staff      | ✅      | ❌   | ❌     | ❌      |
+| Handle payment        | ✅      | ❌   | ❌     | ✅      |
+| Refund/Discount       | ✅      | ❌   | ❌     | ✅      |
+| Tingnan analytics     | ✅      | ❌   | ❌     | ❌      |
 
 ### Pamamahala ng Schedule ng Staff
 
@@ -2004,6 +2022,7 @@ Note: Luma na QR code ay automatic na invalid
 **Q: Pwede bang customize ang appearance ng QR code?**
 
 A: Oo. Pumunta sa **QR Code Management → Design Templates**, pwedeng piliin:
+
 - Plain QR code (black & white)
 - Branded style (with Logo and colors)
 - Instructional style (with usage instructions text)
@@ -2011,11 +2030,13 @@ A: Oo. Pumunta sa **QR Code Management → Design Templates**, pwedeng piliin:
 **Q: Customer scanned QR code pero may error message?**
 
 Possible reasons:
+
 1. QR code ay na-regenerate na (old code invalid)
 2. Restaurant ay temporarily closed
 3. Table ay disabled na
 
 Solution:
+
 - Confirm na QR code status ay "Active"
 - Check restaurant operating status
 - Regenerate at post new QR code
@@ -2047,6 +2068,7 @@ Sistema ay automatic na mag-notify sa customer
 **Q: Maraming orders, hindi makapag-process, ano gagawin?**
 
 Recommended handling:
+
 1. **Pause orders**: Pumunta sa **Restaurant Settings → Pause Orders**, temporary close online ordering
 2. **Extend prep time**: Sa order page adjust estimated completion time, para aware customers na kailangan maghintay
 3. **Add staff**: Temporary call additional chef or server
@@ -2072,6 +2094,7 @@ Method 2: Employee self-reset
 **Q: Employee resigned, paano i-handle ang account?**
 
 Recommended approach:
+
 1. Pumunta sa **Employee Management → Select employee → Disable account** (hindi recommended na delete, para retain historical records)
 2. Sistema ay mag-keep ng employee work records (orders, schedules, etc.)
 3. Employee ay hindi na makakapag-login sa system
@@ -2113,6 +2136,7 @@ Complete checkout
 **Q: Pwede bang mag-offer ng discount?**
 
 A: Oo, pwede. Sa checkout page:
+
 1. I-click ang "Apply Discount"
 2. Select discount type:
    - Percentage discount (e.g., 10% off)
@@ -2146,6 +2170,7 @@ A: Oo, pwede. Sa checkout page:
 A: Hindi. MakanMakan ay web-based system, kailangan lang ng browser at internet connection.
 
 Recommended browsers:
+
 - Google Chrome (recommended)
 - Microsoft Edge
 - Safari
@@ -2191,6 +2216,7 @@ Report includes:
 **Q: Pwede bang makita ang cost at profit per dish?**
 
 A: Oo. Pumunta sa **Menu Management → Menu List → Cost Analysis**, pwedeng makita:
+
 - Ingredient cost
 - Selling price
 - Gross profit margin
@@ -2297,17 +2323,20 @@ Pag familiar ka na sa basic operations, pwede mong i-explore ang advanced featur
 ## 📝 Version Update Log
 
 ### 2.0.0 (2025-10-26)
+
 - ✨ Brand new shop owner interface
 - ✨ AI intelligent analysis live
 - ✨ Scheduling system architecture complete
 - 🔧 Performance optimization at bug fixes
 
 ### 1.5.0 (2025-10-12)
+
 - ✨ Multi-language support (6 languages)
 - ✨ Seat-level QR code feature
 - 🔧 Enhanced password security
 
 ### 1.0.0 (2025-09-01)
+
 - 🎉 MakanMakan official launch
 - ✨ Basic restaurant management features
 - ✨ QR code ordering system
@@ -2340,4 +2369,4 @@ Handa ka na bang gumamit ng MakanMakan? 🚀
 
 ---
 
-*Patuloy na ina-update ang gabay na ito. Para sa mga mungkahi, mangyaring makipag-ugnayan sa amin.*
+_Patuloy na ina-update ang gabay na ito. Para sa mga mungkahi, mangyaring makipag-ugnayan sa amin._

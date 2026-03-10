@@ -13,11 +13,11 @@
 
 ### 1.1 資料類型不一致
 
-| 問題 | 影響範圍 | 嚴重度 |
-|------|---------|--------|
-| `restaurant_id` INTEGER vs TEXT | 全系統 | 🔴 Critical |
-| Timestamp DATETIME vs INTEGER | 20+ 表 | 🔴 Critical |
-| 外鍵約束缺失/不一致 | 15+ 表 | 🟡 High |
+| 問題                            | 影響範圍 | 嚴重度      |
+| ------------------------------- | -------- | ----------- |
+| `restaurant_id` INTEGER vs TEXT | 全系統   | 🔴 Critical |
+| Timestamp DATETIME vs INTEGER   | 20+ 表   | 🔴 Critical |
+| 外鍵約束缺失/不一致             | 15+ 表   | 🟡 High     |
 
 ### 1.2 Migration 混亂
 
@@ -546,13 +546,13 @@ npm run test:migrations:layer56
 ```typescript
 // scripts/migrate-data-to-v2.ts
 
-import { migrateRestaurants } from './migrations/restaurants';
-import { migrateUsers } from './migrations/users';
-import { migrateOrders } from './migrations/orders';
+import { migrateRestaurants } from "./migrations/restaurants";
+import { migrateUsers } from "./migrations/users";
+import { migrateOrders } from "./migrations/orders";
 // ... 其他遷移
 
 async function main() {
-  console.log('開始資料遷移...');
+  console.log("開始資料遷移...");
 
   // 按依賴順序遷移
   await migrateRestaurants();
@@ -561,7 +561,7 @@ async function main() {
   await migrateOrders();
   // ...
 
-  console.log('資料遷移完成!');
+  console.log("資料遷移完成!");
 }
 ```
 
@@ -641,12 +641,12 @@ npm run maintenance:off
 
 ### 6.1 風險識別
 
-| 風險 | 可能性 | 影響 | 緩解措施 |
-|------|-------|------|---------|
-| 資料遷移失敗 | 中 | 高 | 完整備份+回滾方案 |
-| 停機時間過長 | 低 | 高 | 分階段遷移 |
-| 外鍵約束錯誤 | 中 | 中 | 完整測試環境 |
-| 效能下降 | 低 | 中 | 效能測試+索引優化 |
+| 風險         | 可能性 | 影響 | 緩解措施          |
+| ------------ | ------ | ---- | ----------------- |
+| 資料遷移失敗 | 中     | 高   | 完整備份+回滾方案 |
+| 停機時間過長 | 低     | 高   | 分階段遷移        |
+| 外鍵約束錯誤 | 中     | 中   | 完整測試環境      |
+| 效能下降     | 低     | 中   | 效能測試+索引優化 |
 
 ### 6.2 回滾計劃
 

@@ -1,5 +1,5 @@
 // Realtime - Connection Pool Management 測試
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
  * Connection Pool Management 測試
@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 interface ConnectionInfo {
   id: string;
-  type: 'customer' | 'admin' | 'kitchen';
+  type: "customer" | "admin" | "kitchen";
   roomId: string;
   connectedAt: number;
   lastActivity: number;
@@ -21,7 +21,7 @@ interface ConnectionInfo {
   metadata?: Record<string, any>;
 }
 
-describe('Connection Pool Management', () => {
+describe("Connection Pool Management", () => {
   let mockWebSocket: any;
   let connections: Map<WebSocket, ConnectionInfo>;
 
@@ -34,12 +34,12 @@ describe('Connection Pool Management', () => {
     };
   });
 
-  describe('連接添加', () => {
-    it('應該成功添加新連接', () => {
+  describe("連接添加", () => {
+    it("應該成功添加新連接", () => {
       const connInfo: ConnectionInfo = {
-        id: 'conn-123',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-123",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       };
@@ -50,7 +50,7 @@ describe('Connection Pool Management', () => {
       expect(connections.get(mockWebSocket)).toEqual(connInfo);
     });
 
-    it('應該為每個連接分配唯一 ID', () => {
+    it("應該為每個連接分配唯一 ID", () => {
       const generateConnectionId = () => {
         return `conn-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       };
@@ -63,13 +63,13 @@ describe('Connection Pool Management', () => {
       expect(ids.size).toBe(100);
     });
 
-    it('應該記錄連接建立時間', () => {
+    it("應該記錄連接建立時間", () => {
       const beforeCreate = Date.now();
 
       const connInfo: ConnectionInfo = {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       };
@@ -80,22 +80,22 @@ describe('Connection Pool Management', () => {
       expect(connInfo.connectedAt).toBeLessThanOrEqual(afterCreate);
     });
 
-    it('應該支持同一 room 的多個連接', () => {
+    it("應該支持同一 room 的多個連接", () => {
       const ws1 = { ...mockWebSocket };
       const ws2 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-2",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
@@ -103,15 +103,15 @@ describe('Connection Pool Management', () => {
       expect(connections.size).toBe(2);
     });
 
-    it('應該儲存連接的認證信息', () => {
+    it("應該儲存連接的認證信息", () => {
       const connInfo: ConnectionInfo = {
-        id: 'conn-1',
-        type: 'admin',
-        roomId: 'dashboard-1',
+        id: "conn-1",
+        type: "admin",
+        roomId: "dashboard-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
         auth: {
-          userId: 'user-123',
+          userId: "user-123",
           role: 0, // Admin
         },
       };
@@ -119,23 +119,23 @@ describe('Connection Pool Management', () => {
       connections.set(mockWebSocket, connInfo);
 
       const stored = connections.get(mockWebSocket);
-      expect(stored?.auth?.userId).toBe('user-123');
+      expect(stored?.auth?.userId).toBe("user-123");
       expect(stored?.auth?.role).toBe(0);
     });
   });
 
-  describe('連接移除', () => {
+  describe("連接移除", () => {
     beforeEach(() => {
       connections.set(mockWebSocket, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
     });
 
-    it('應該成功移除連接', () => {
+    it("應該成功移除連接", () => {
       expect(connections.size).toBe(1);
 
       connections.delete(mockWebSocket);
@@ -144,7 +144,7 @@ describe('Connection Pool Management', () => {
       expect(connections.get(mockWebSocket)).toBeUndefined();
     });
 
-    it('應該在連接關閉時清理資源', () => {
+    it("應該在連接關閉時清理資源", () => {
       const connInfo = connections.get(mockWebSocket)!;
 
       const cleanup = () => {
@@ -158,7 +158,7 @@ describe('Connection Pool Management', () => {
       expect(connections.size).toBe(0);
     });
 
-    it('移除不存在的連接應該不會拋出錯誤', () => {
+    it("移除不存在的連接應該不會拋出錯誤", () => {
       const fakeWebSocket = { ...mockWebSocket };
 
       expect(() => {
@@ -166,22 +166,22 @@ describe('Connection Pool Management', () => {
       }).not.toThrow();
     });
 
-    it('應該移除特定 room 的所有連接', () => {
+    it("應該移除特定 room 的所有連接", () => {
       const ws2 = { ...mockWebSocket };
       const ws3 = { ...mockWebSocket };
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-2",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws3, {
-        id: 'conn-3',
-        type: 'customer',
-        roomId: 'table-2', // Different room
+        id: "conn-3",
+        type: "customer",
+        roomId: "table-2", // Different room
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
@@ -194,19 +194,19 @@ describe('Connection Pool Management', () => {
             toRemove.push(ws);
           }
         });
-        toRemove.forEach(ws => connections.delete(ws));
+        toRemove.forEach((ws) => connections.delete(ws));
         return toRemove.length;
       };
 
-      const removed = removeRoomConnections('table-1');
+      const removed = removeRoomConnections("table-1");
 
       expect(removed).toBe(2);
       expect(connections.size).toBe(1);
     });
   });
 
-  describe('連接池容量管理', () => {
-    it('應該限制最大連接數', () => {
+  describe("連接池容量管理", () => {
+    it("應該限制最大連接數", () => {
       const MAX_CONNECTIONS = 1000;
 
       const canAddConnection = () => {
@@ -219,7 +219,7 @@ describe('Connection Pool Management', () => {
           const ws = { ...mockWebSocket };
           connections.set(ws, {
             id: `conn-${i}`,
-            type: 'customer',
+            type: "customer",
             roomId: `room-${i}`,
             connectedAt: Date.now(),
             lastActivity: Date.now(),
@@ -231,31 +231,31 @@ describe('Connection Pool Management', () => {
       expect(canAddConnection()).toBe(false);
     });
 
-    it('應該統計每個 room 的連接數', () => {
+    it("應該統計每個 room 的連接數", () => {
       const ws1 = { ...mockWebSocket };
       const ws2 = { ...mockWebSocket };
       const ws3 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-2",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws3, {
-        id: 'conn-3',
-        type: 'customer',
-        roomId: 'table-2',
+        id: "conn-3",
+        type: "customer",
+        roomId: "table-2",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
@@ -270,11 +270,11 @@ describe('Connection Pool Management', () => {
 
       const roomCounts = countByRoom();
 
-      expect(roomCounts.get('table-1')).toBe(2);
-      expect(roomCounts.get('table-2')).toBe(1);
+      expect(roomCounts.get("table-1")).toBe(2);
+      expect(roomCounts.get("table-2")).toBe(1);
     });
 
-    it('應該限制單個 room 的最大連接數', () => {
+    it("應該限制單個 room 的最大連接數", () => {
       const MAX_CONNECTIONS_PER_ROOM = 10;
 
       const getRoomConnectionCount = (roomId: string) => {
@@ -294,52 +294,52 @@ describe('Connection Pool Management', () => {
         const ws = { ...mockWebSocket };
         connections.set(ws, {
           id: `conn-${i}`,
-          type: 'customer',
-          roomId: 'room-1',
+          type: "customer",
+          roomId: "room-1",
           connectedAt: Date.now(),
           lastActivity: Date.now(),
         });
       }
 
-      expect(getRoomConnectionCount('room-1')).toBe(10);
-      expect(canAddToRoom('room-1')).toBe(false);
-      expect(canAddToRoom('room-2')).toBe(true);
+      expect(getRoomConnectionCount("room-1")).toBe(10);
+      expect(canAddToRoom("room-1")).toBe(false);
+      expect(canAddToRoom("room-2")).toBe(true);
     });
   });
 
-  describe('連接查詢', () => {
+  describe("連接查詢", () => {
     beforeEach(() => {
       const ws1 = { ...mockWebSocket };
       const ws2 = { ...mockWebSocket };
       const ws3 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'admin',
-        roomId: 'dashboard-1',
+        id: "conn-2",
+        type: "admin",
+        roomId: "dashboard-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws3, {
-        id: 'conn-3',
-        type: 'kitchen',
-        roomId: 'kitchen-1',
+        id: "conn-3",
+        type: "kitchen",
+        roomId: "kitchen-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
     });
 
-    it('應該按類型過濾連接', () => {
-      const getConnectionsByType = (type: ConnectionInfo['type']) => {
+    it("應該按類型過濾連接", () => {
+      const getConnectionsByType = (type: ConnectionInfo["type"]) => {
         const result: ConnectionInfo[] = [];
         connections.forEach((info) => {
           if (info.type === type) {
@@ -349,16 +349,16 @@ describe('Connection Pool Management', () => {
         return result;
       };
 
-      const customerConns = getConnectionsByType('customer');
-      const adminConns = getConnectionsByType('admin');
-      const kitchenConns = getConnectionsByType('kitchen');
+      const customerConns = getConnectionsByType("customer");
+      const adminConns = getConnectionsByType("admin");
+      const kitchenConns = getConnectionsByType("kitchen");
 
       expect(customerConns.length).toBe(1);
       expect(adminConns.length).toBe(1);
       expect(kitchenConns.length).toBe(1);
     });
 
-    it('應該按 roomId 過濾連接', () => {
+    it("應該按 roomId 過濾連接", () => {
       const getConnectionsByRoom = (roomId: string) => {
         const result: ConnectionInfo[] = [];
         connections.forEach((info) => {
@@ -369,15 +369,15 @@ describe('Connection Pool Management', () => {
         return result;
       };
 
-      const table1Conns = getConnectionsByRoom('table-1');
-      const dashboardConns = getConnectionsByRoom('dashboard-1');
+      const table1Conns = getConnectionsByRoom("table-1");
+      const dashboardConns = getConnectionsByRoom("dashboard-1");
 
       expect(table1Conns.length).toBe(1);
       expect(dashboardConns.length).toBe(1);
-      expect(dashboardConns[0].type).toBe('admin');
+      expect(dashboardConns[0].type).toBe("admin");
     });
 
-    it('應該根據 connection ID 查找連接', () => {
+    it("應該根據 connection ID 查找連接", () => {
       const findConnectionById = (id: string): ConnectionInfo | undefined => {
         for (const info of connections.values()) {
           if (info.id === id) {
@@ -387,14 +387,14 @@ describe('Connection Pool Management', () => {
         return undefined;
       };
 
-      const conn = findConnectionById('conn-2');
+      const conn = findConnectionById("conn-2");
 
       expect(conn).toBeDefined();
-      expect(conn?.type).toBe('admin');
-      expect(conn?.roomId).toBe('dashboard-1');
+      expect(conn?.type).toBe("admin");
+      expect(conn?.roomId).toBe("dashboard-1");
     });
 
-    it('應該返回所有活躍連接', () => {
+    it("應該返回所有活躍連接", () => {
       const getAllConnections = () => {
         return Array.from(connections.values());
       };
@@ -405,12 +405,12 @@ describe('Connection Pool Management', () => {
     });
   });
 
-  describe('連接狀態追蹤', () => {
-    it('應該更新最後活動時間', () => {
+  describe("連接狀態追蹤", () => {
+    it("應該更新最後活動時間", () => {
       const connInfo: ConnectionInfo = {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 10000,
       };
@@ -431,12 +431,12 @@ describe('Connection Pool Management', () => {
       expect(newActivity).toBeGreaterThan(oldActivity);
     });
 
-    it('應該計算連接持續時間', () => {
+    it("應該計算連接持續時間", () => {
       const connectedTime = Date.now() - 60000; // 1 minute ago
       const connInfo: ConnectionInfo = {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: connectedTime,
         lastActivity: Date.now(),
       };
@@ -454,24 +454,24 @@ describe('Connection Pool Management', () => {
       expect(duration).toBeGreaterThanOrEqual(60000);
     });
 
-    it('應該識別閒置連接', () => {
+    it("應該識別閒置連接", () => {
       const IDLE_THRESHOLD = 300000; // 5 minutes
 
       const ws1 = { ...mockWebSocket };
       const ws2 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 600000, // 10 minutes ago - idle
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'customer',
-        roomId: 'table-2',
+        id: "conn-2",
+        type: "customer",
+        roomId: "table-2",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 60000, // 1 minute ago - active
       });
@@ -489,17 +489,17 @@ describe('Connection Pool Management', () => {
       const idleConns = getIdleConnections();
 
       expect(idleConns.length).toBe(1);
-      expect(idleConns[0].id).toBe('conn-1');
+      expect(idleConns[0].id).toBe("conn-1");
     });
   });
 
-  describe('記憶體清理', () => {
-    it('應該清理所有連接', () => {
+  describe("記憶體清理", () => {
+    it("應該清理所有連接", () => {
       for (let i = 0; i < 5; i++) {
         const ws = { ...mockWebSocket };
         connections.set(ws, {
           id: `conn-${i}`,
-          type: 'customer',
+          type: "customer",
           roomId: `table-${i}`,
           connectedAt: Date.now(),
           lastActivity: Date.now(),
@@ -520,7 +520,7 @@ describe('Connection Pool Management', () => {
       expect(connections.size).toBe(0);
     });
 
-    it('應該清理閒置連接', () => {
+    it("應該清理閒置連接", () => {
       const IDLE_THRESHOLD = 300000;
 
       const ws1 = { ...mockWebSocket };
@@ -528,25 +528,25 @@ describe('Connection Pool Management', () => {
       const ws3 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 600000, // Idle
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'customer',
-        roomId: 'table-2',
+        id: "conn-2",
+        type: "customer",
+        roomId: "table-2",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 60000, // Active
       });
 
       connections.set(ws3, {
-        id: 'conn-3',
-        type: 'customer',
-        roomId: 'table-3',
+        id: "conn-3",
+        type: "customer",
+        roomId: "table-3",
         connectedAt: Date.now(),
         lastActivity: Date.now() - 400000, // Idle
       });
@@ -555,11 +555,11 @@ describe('Connection Pool Management', () => {
         const toRemove: WebSocket[] = [];
         connections.forEach((info, ws) => {
           if (Date.now() - info.lastActivity > IDLE_THRESHOLD) {
-            ws.close(1000, 'Idle timeout');
+            ws.close(1000, "Idle timeout");
             toRemove.push(ws);
           }
         });
-        toRemove.forEach(ws => connections.delete(ws));
+        toRemove.forEach((ws) => connections.delete(ws));
         return toRemove.length;
       };
 
@@ -569,31 +569,31 @@ describe('Connection Pool Management', () => {
       expect(connections.size).toBe(1);
     });
 
-    it('應該生成連接池統計信息', () => {
+    it("應該生成連接池統計信息", () => {
       const ws1 = { ...mockWebSocket };
       const ws2 = { ...mockWebSocket };
       const ws3 = { ...mockWebSocket };
 
       connections.set(ws1, {
-        id: 'conn-1',
-        type: 'customer',
-        roomId: 'table-1',
+        id: "conn-1",
+        type: "customer",
+        roomId: "table-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws2, {
-        id: 'conn-2',
-        type: 'admin',
-        roomId: 'dashboard-1',
+        id: "conn-2",
+        type: "admin",
+        roomId: "dashboard-1",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
 
       connections.set(ws3, {
-        id: 'conn-3',
-        type: 'customer',
-        roomId: 'table-2',
+        id: "conn-3",
+        type: "customer",
+        roomId: "table-2",
         connectedAt: Date.now(),
         lastActivity: Date.now(),
       });
@@ -607,7 +607,10 @@ describe('Connection Pool Management', () => {
 
         connections.forEach((info) => {
           stats.byType.set(info.type, (stats.byType.get(info.type) || 0) + 1);
-          stats.byRoom.set(info.roomId, (stats.byRoom.get(info.roomId) || 0) + 1);
+          stats.byRoom.set(
+            info.roomId,
+            (stats.byRoom.get(info.roomId) || 0) + 1,
+          );
         });
 
         return stats;
@@ -616,9 +619,9 @@ describe('Connection Pool Management', () => {
       const stats = getStats();
 
       expect(stats.total).toBe(3);
-      expect(stats.byType.get('customer')).toBe(2);
-      expect(stats.byType.get('admin')).toBe(1);
-      expect(stats.byRoom.get('table-1')).toBe(1);
+      expect(stats.byType.get("customer")).toBe(2);
+      expect(stats.byType.get("admin")).toBe(1);
+      expect(stats.byRoom.get("table-1")).toBe(1);
     });
   });
 });

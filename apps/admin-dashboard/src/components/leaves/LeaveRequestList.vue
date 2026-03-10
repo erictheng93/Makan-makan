@@ -3,15 +3,15 @@
     <!-- 過濾器 -->
     <div class="filters">
       <select v-model="statusFilter" class="filter-select">
-        <option value="">{{ $t('leaves.list.allStatus') }}</option>
-        <option value="pending">{{ $t('leaves.status.pending') }}</option>
-        <option value="approved">{{ $t('leaves.status.approved') }}</option>
-        <option value="rejected">{{ $t('leaves.status.rejected') }}</option>
-        <option value="cancelled">{{ $t('leaves.status.cancelled') }}</option>
+        <option value="">{{ $t("leaves.list.allStatus") }}</option>
+        <option value="pending">{{ $t("leaves.status.pending") }}</option>
+        <option value="approved">{{ $t("leaves.status.approved") }}</option>
+        <option value="rejected">{{ $t("leaves.status.rejected") }}</option>
+        <option value="cancelled">{{ $t("leaves.status.cancelled") }}</option>
       </select>
 
       <select v-model="typeFilter" class="filter-select">
-        <option value="">{{ $t('leaves.list.allTypes') }}</option>
+        <option value="">{{ $t("leaves.list.allTypes") }}</option>
         <option v-for="type in leaveTypes" :key="type.id" :value="type.id">
           {{ type.name }}
         </option>
@@ -37,8 +37,9 @@
           <div class="request-info">
             <h3 class="leave-type">{{ request.leaveType?.name }}</h3>
             <span class="request-date">
-              {{ formatDate(request.startDate) }} - {{ formatDate(request.endDate) }}
-              ({{ request.daysCount }} {{ $t('leaves.balance.days') }})
+              {{ formatDate(request.startDate) }} -
+              {{ formatDate(request.endDate) }} ({{ request.daysCount }}
+              {{ $t("leaves.balance.days") }})
             </span>
           </div>
           <span :class="`status-badge status-${request.status}`">
@@ -49,8 +50,15 @@
         <div class="card-content">
           <p class="reason">{{ request.reason }}</p>
 
-          <div v-if="request.approvalChain && request.approvalChain.length > 0" class="approval-chain">
-            <div v-for="(approval, index) in request.approvalChain" :key="index" class="approval-step">
+          <div
+            v-if="request.approvalChain && request.approvalChain.length > 0"
+            class="approval-chain"
+          >
+            <div
+              v-for="(approval, index) in request.approvalChain"
+              :key="index"
+              class="approval-step"
+            >
               <span class="approver">{{ approval.approverName }}</span>
               <span :class="`approval-status ${approval.status}`">
                 {{ $t(`leaves.approval.${approval.status}`) }}
@@ -65,10 +73,13 @@
             class="btn-cancel"
             @click="$emit('cancel', request.id)"
           >
-            {{ $t('common.cancel') }}
+            {{ $t("common.cancel") }}
           </button>
-          <button class="btn-details" @click="$emit('view-details', request.id)">
-            {{ $t('common.viewDetails') }}
+          <button
+            class="btn-details"
+            @click="$emit('view-details', request.id)"
+          >
+            {{ $t("common.viewDetails") }}
           </button>
         </div>
       </div>
@@ -77,57 +88,63 @@
     <!-- 空狀態 -->
     <div v-else class="empty-state">
       <svg class="empty-icon" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
+        <path
+          fill-rule="evenodd"
+          d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
+          clip-rule="evenodd"
+        />
       </svg>
-      <p>{{ $t('leaves.list.noRequests') }}</p>
+      <p>{{ $t("leaves.list.noRequests") }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { LeaveRequest, LeaveType } from '@makanmakan/shared-types'
+import { ref, computed } from "vue";
+import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
 
 interface Props {
-  requests: LeaveRequest[]
-  leaveTypes: LeaveType[]
-  canCancel?: boolean
+  requests: LeaveRequest[];
+  leaveTypes: LeaveType[];
+  canCancel?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  canCancel: true
-})
+  canCancel: true,
+});
 
 defineEmits<{
-  cancel: [requestId: number]
-  'view-details': [requestId: number]
-}>()
+  cancel: [requestId: number];
+  "view-details": [requestId: number];
+}>();
 
-const statusFilter = ref('')
-const typeFilter = ref<number | string>('')
-const searchQuery = ref('')
+const statusFilter = ref("");
+const typeFilter = ref<number | string>("");
+const searchQuery = ref("");
 
 const filteredRequests = computed(() => {
-  return props.requests.filter(request => {
-    if (statusFilter.value && request.status !== statusFilter.value) return false
-    if (typeFilter.value && request.leaveTypeId !== typeFilter.value) return false
+  return props.requests.filter((request) => {
+    if (statusFilter.value && request.status !== statusFilter.value)
+      return false;
+    if (typeFilter.value && request.leaveTypeId !== typeFilter.value)
+      return false;
     if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase()
+      const query = searchQuery.value.toLowerCase();
       return (
         request.reason.toLowerCase().includes(query) ||
         request.leaveType?.name.toLowerCase().includes(query)
-      )
+      );
     }
-    return true
-  })
-})
+    return true;
+  });
+});
 
 const formatDate = (date: string): string => {
-  return new Date(date).toLocaleDateString('zh-TW', {
-    month: '2-digit',
-    day: '2-digit'
-  })
-}
+  return new Date(date).toLocaleDateString("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
 </script>
 
 <style scoped>
@@ -145,7 +162,7 @@ const formatDate = (date: string): string => {
 .filter-select,
 .search-input {
   padding: 10px 12px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
   background: white;
@@ -193,13 +210,13 @@ const formatDate = (date: string): string => {
 .leave-type {
   font-size: 16px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin: 0 0 4px 0;
 }
 
 .request-date {
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .status-badge {
@@ -210,18 +227,18 @@ const formatDate = (date: string): string => {
 }
 
 .status-badge.status-pending {
-  background: #FEF3C7;
-  color: #92400E;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .status-badge.status-approved {
-  background: #D1FAE5;
-  color: #065F46;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .status-badge.status-rejected {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .card-content {
@@ -230,7 +247,7 @@ const formatDate = (date: string): string => {
 
 .reason {
   font-size: 14px;
-  color: #4B5563;
+  color: #4b5563;
   margin-bottom: 12px;
 }
 
@@ -245,7 +262,7 @@ const formatDate = (date: string): string => {
   justify-content: space-between;
   font-size: 13px;
   padding: 8px;
-  background: #F9FAFB;
+  background: #f9fafb;
   border-radius: 6px;
 }
 
@@ -267,13 +284,13 @@ const formatDate = (date: string): string => {
 }
 
 .btn-cancel {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .btn-details {
-  background: #DBEAFE;
-  color: #1E40AF;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .empty-state {
@@ -284,13 +301,13 @@ const formatDate = (date: string): string => {
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #D1D5DB;
+  color: #d1d5db;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
   font-size: 16px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 @media (max-width: 640px) {

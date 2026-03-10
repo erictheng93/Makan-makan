@@ -1,0 +1,31 @@
+# Build outputs
+dist/
+.output/
+coverage/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Generated files
+packages/database/migrations_fresh/
+packages/database/drizzle/
+pnpm-lock.yaml
+
+# Cloudflare
+.wrangler/
+.dev.vars
+
+# Claude Code config
+.claude/
+
+# Legacy/archived code
+legacy/
+Backup/
+
+# Storybook build
+storybook-static/
+
+# Test artifacts
+test-results/
+playwright-report/

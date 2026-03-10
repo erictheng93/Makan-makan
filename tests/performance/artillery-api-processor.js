@@ -3,25 +3,25 @@
  * 提供自定義函式用於認證、數據生成和測試邏輯
  */
 
-const API_BASE_URL = process.env.API_URL || 'http://localhost:8787';
+const API_BASE_URL = process.env.API_URL || "http://localhost:8787";
 
 /**
  * 認證用戶（一般用戶）
  */
 async function authenticateUser(context, events, done) {
-  const username = context.vars.testUsername || 'testuser';
-  const password = context.vars.testPassword || 'testpass123';
+  const username = context.vars.testUsername || "testuser";
+  const password = context.vars.testPassword || "testpass123";
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         username,
-        password
-      })
+        password,
+      }),
     });
 
     const data = await response.json();
@@ -31,14 +31,17 @@ async function authenticateUser(context, events, done) {
       context.vars.restaurantId = data.data.user.restaurantId;
       context.vars.userId = data.data.user.id;
 
-      events.emit('counter', 'auth.user.success', 1);
+      events.emit("counter", "auth.user.success", 1);
     } else {
-      events.emit('counter', 'auth.user.failed', 1);
-      console.error('Failed to authenticate user:', data.error || response.statusText);
+      events.emit("counter", "auth.user.failed", 1);
+      console.error(
+        "Failed to authenticate user:",
+        data.error || response.statusText,
+      );
     }
   } catch (error) {
-    events.emit('counter', 'auth.user.error', 1);
-    console.error('Error authenticating user:', error.message);
+    events.emit("counter", "auth.user.error", 1);
+    console.error("Error authenticating user:", error.message);
   }
 
   return done();
@@ -48,19 +51,19 @@ async function authenticateUser(context, events, done) {
  * 認證管理員
  */
 async function authenticateAdmin(context, events, done) {
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const username = process.env.ADMIN_USERNAME || "admin";
+  const password = process.env.ADMIN_PASSWORD || "admin123";
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         username,
-        password
-      })
+        password,
+      }),
     });
 
     const data = await response.json();
@@ -71,14 +74,17 @@ async function authenticateAdmin(context, events, done) {
       context.vars.userId = data.data.user.id;
       context.vars.userRole = data.data.user.role;
 
-      events.emit('counter', 'auth.admin.success', 1);
+      events.emit("counter", "auth.admin.success", 1);
     } else {
-      events.emit('counter', 'auth.admin.failed', 1);
-      console.error('Failed to authenticate admin:', data.error || response.statusText);
+      events.emit("counter", "auth.admin.failed", 1);
+      console.error(
+        "Failed to authenticate admin:",
+        data.error || response.statusText,
+      );
     }
   } catch (error) {
-    events.emit('counter', 'auth.admin.error', 1);
-    console.error('Error authenticating admin:', error.message);
+    events.emit("counter", "auth.admin.error", 1);
+    console.error("Error authenticating admin:", error.message);
   }
 
   return done();
@@ -88,19 +94,19 @@ async function authenticateAdmin(context, events, done) {
  * 認證廚師
  */
 async function authenticateChef(context, events, done) {
-  const username = process.env.CHEF_USERNAME || 'chef1';
-  const password = process.env.CHEF_PASSWORD || 'chef123';
+  const username = process.env.CHEF_USERNAME || "chef1";
+  const password = process.env.CHEF_PASSWORD || "chef123";
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         username,
-        password
-      })
+        password,
+      }),
     });
 
     const data = await response.json();
@@ -110,13 +116,13 @@ async function authenticateChef(context, events, done) {
       context.vars.restaurantId = data.data.user.restaurantId;
       context.vars.userId = data.data.user.id;
 
-      events.emit('counter', 'auth.chef.success', 1);
+      events.emit("counter", "auth.chef.success", 1);
     } else {
-      events.emit('counter', 'auth.chef.failed', 1);
+      events.emit("counter", "auth.chef.failed", 1);
     }
   } catch (error) {
-    events.emit('counter', 'auth.chef.error', 1);
-    console.error('Error authenticating chef:', error.message);
+    events.emit("counter", "auth.chef.error", 1);
+    console.error("Error authenticating chef:", error.message);
   }
 
   return done();
@@ -126,13 +132,17 @@ async function authenticateChef(context, events, done) {
  * 生成隨機訂單數據
  */
 function generateOrderData(context, events, done) {
-  const restaurantId = context.vars.restaurantId || '1';
+  const restaurantId = context.vars.restaurantId || "1";
   const tableId = Math.floor(Math.random() * 20) + 1;
 
   const menuItems = [
-    { menuItemId: 1, quantity: Math.floor(Math.random() * 3) + 1, notes: '少辣' },
-    { menuItemId: 2, quantity: Math.floor(Math.random() * 2) + 1, notes: '' },
-    { menuItemId: 3, quantity: 1, notes: '不要香菜' }
+    {
+      menuItemId: 1,
+      quantity: Math.floor(Math.random() * 3) + 1,
+      notes: "少辣",
+    },
+    { menuItemId: 2, quantity: Math.floor(Math.random() * 2) + 1, notes: "" },
+    { menuItemId: 3, quantity: 1, notes: "不要香菜" },
   ];
 
   // 隨機選擇 1-3 個菜品
@@ -142,10 +152,10 @@ function generateOrderData(context, events, done) {
   context.vars.orderData = {
     restaurantId,
     tableId,
-    items: selectedItems
+    items: selectedItems,
   };
 
-  events.emit('counter', 'data.order.generated', 1);
+  events.emit("counter", "data.order.generated", 1);
   return done();
 }
 
@@ -164,10 +174,10 @@ function generateMenuItemData(context, events, done) {
     price: (Math.random() * 100 + 50).toFixed(2),
     isAvailable: true,
     prepTime: Math.floor(Math.random() * 20) + 5,
-    spicyLevel: Math.floor(Math.random() * 4)
+    spicyLevel: Math.floor(Math.random() * 4),
   };
 
-  events.emit('counter', 'data.menu_item.generated', 1);
+  events.emit("counter", "data.menu_item.generated", 1);
   return done();
 }
 
@@ -180,15 +190,15 @@ function generateUserData(context, events, done) {
 
   context.vars.userData = {
     username: `testuser_${timestamp}_${random}`,
-    password: 'testpass123',
+    password: "testpass123",
     name: `測試用戶 ${random}`,
     email: `test_${timestamp}_${random}@example.com`,
     role: Math.floor(Math.random() * 3) + 2, // 角色 2-4
-    restaurantId: context.vars.restaurantId || '1',
-    isActive: true
+    restaurantId: context.vars.restaurantId || "1",
+    isActive: true,
   };
 
-  events.emit('counter', 'data.user.generated', 1);
+  events.emit("counter", "data.user.generated", 1);
   return done();
 }
 
@@ -202,16 +212,16 @@ function validateResponseTime(context, events, done) {
     const responseTime = endTime - startTime;
 
     // 記錄回應時間
-    events.emit('histogram', 'custom.response_time', responseTime);
+    events.emit("histogram", "custom.response_time", responseTime);
 
     // 記錄慢請求
     if (responseTime > 1000) {
-      events.emit('counter', 'slow_requests', 1);
+      events.emit("counter", "slow_requests", 1);
     }
 
     // 記錄超時請求
     if (responseTime > 10000) {
-      events.emit('counter', 'timeout_requests', 1);
+      events.emit("counter", "timeout_requests", 1);
     }
   }
 
@@ -222,7 +232,7 @@ function validateResponseTime(context, events, done) {
  * 記錄成功的請求
  */
 function logSuccessRequest(context, events, done) {
-  events.emit('counter', 'requests.success', 1);
+  events.emit("counter", "requests.success", 1);
   return done();
 }
 
@@ -230,7 +240,7 @@ function logSuccessRequest(context, events, done) {
  * 記錄失敗的請求
  */
 function logFailedRequest(context, events, done) {
-  events.emit('counter', 'requests.failed', 1);
+  events.emit("counter", "requests.failed", 1);
   return done();
 }
 
@@ -245,8 +255,9 @@ function randomNumber() {
  * 生成隨機字串
  */
 function randomString(length = 10) {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
+  const chars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -265,12 +276,16 @@ function setRequestStartTime(context, events, done) {
  * 記錄 API 端點指標
  */
 function logEndpointMetrics(endpoint) {
-  return function(context, events, done) {
+  return function (context, events, done) {
     const startTime = context.vars.requestStartTime;
     if (startTime) {
       const responseTime = Date.now() - startTime;
-      events.emit('histogram', `endpoint.${endpoint}.response_time`, responseTime);
-      events.emit('counter', `endpoint.${endpoint}.requests`, 1);
+      events.emit(
+        "histogram",
+        `endpoint.${endpoint}.response_time`,
+        responseTime,
+      );
+      events.emit("counter", `endpoint.${endpoint}.requests`, 1);
     }
     return done();
   };
@@ -280,10 +295,10 @@ function logEndpointMetrics(endpoint) {
  * 模擬思考時間（用戶行為模擬）
  */
 function thinkTime(min = 1000, max = 3000) {
-  return function(context, events, done) {
+  return function (context, events, done) {
     const delay = Math.floor(Math.random() * (max - min + 1)) + min;
     setTimeout(() => {
-      events.emit('counter', 'think_time.executed', 1);
+      events.emit("counter", "think_time.executed", 1);
       done();
     }, delay);
   };
@@ -298,14 +313,14 @@ function validateJsonResponse(context, events, done) {
       const body = JSON.parse(context.vars.$response.body);
 
       // 驗證是否有 success 欄位
-      if (typeof body.success !== 'undefined') {
-        events.emit('counter', 'response.valid_format', 1);
+      if (typeof body.success !== "undefined") {
+        events.emit("counter", "response.valid_format", 1);
       } else {
-        events.emit('counter', 'response.invalid_format', 1);
+        events.emit("counter", "response.invalid_format", 1);
       }
     }
   } catch (error) {
-    events.emit('counter', 'response.parse_error', 1);
+    events.emit("counter", "response.parse_error", 1);
   }
 
   return done();
@@ -318,8 +333,15 @@ async function cleanupTestData(context, events, done) {
   // 這裡可以添加清理邏輯，例如刪除測試創建的數據
   // 注意：需要管理員權限
 
-  if (context.vars.createdResourceIds && context.vars.createdResourceIds.length > 0) {
-    events.emit('counter', 'cleanup.resources_to_clean', context.vars.createdResourceIds.length);
+  if (
+    context.vars.createdResourceIds &&
+    context.vars.createdResourceIds.length > 0
+  ) {
+    events.emit(
+      "counter",
+      "cleanup.resources_to_clean",
+      context.vars.createdResourceIds.length,
+    );
   }
 
   return done();
@@ -329,8 +351,8 @@ async function cleanupTestData(context, events, done) {
  * 記錄測試執行階段
  */
 function logPhase(phaseName) {
-  return function(context, events, done) {
-    events.emit('counter', `phase.${phaseName}`, 1);
+  return function (context, events, done) {
+    events.emit("counter", `phase.${phaseName}`, 1);
     console.log(`Entering phase: ${phaseName}`);
     return done();
   };
@@ -363,7 +385,7 @@ module.exports = {
   thinkTime,
   validateJsonResponse,
   cleanupTestData,
-  logPhase
+  logPhase,
 };
 
 // 為模板字串提供工具函式

@@ -16,11 +16,13 @@ Standardized pagination implementation across all API endpoints for consistent d
 **Best for**: Traditional pagination with page numbers, data tables, admin interfaces
 
 **Pros**:
+
 - Easy to implement
 - User-friendly (jump to specific page)
 - Good for static data
 
 **Cons**:
+
 - Performance degrades with high offsets
 - Inconsistent with real-time data (items shift between pages)
 
@@ -31,11 +33,13 @@ Standardized pagination implementation across all API endpoints for consistent d
 **Best for**: Real-time feeds, infinite scroll, mobile apps
 
 **Pros**:
+
 - Consistent results (no duplicates/missing items)
 - Better performance at scale
 - Works well with real-time data
 
 **Cons**:
+
 - Can't jump to specific page
 - More complex to implement
 
@@ -46,11 +50,13 @@ Standardized pagination implementation across all API endpoints for consistent d
 **Best for**: Mobile apps, content discovery, continuous browsing
 
 **Pros**:
+
 - Seamless user experience
 - Mobile-optimized
 - Natural content discovery
 
 **Cons**:
+
 - Harder to find specific items
 - Memory usage grows over time
 
@@ -65,37 +71,38 @@ Standardized pagination implementation across all API endpoints for consistent d
 #### Example 1: Basic Pagination
 
 ```typescript
-import { paginateQuery } from '@makanmakan/database/utils/pagination-helpers'
+import { paginateQuery } from "@makanmakan/database/utils/pagination-helpers";
 
-app.get('/orders', async (c) => {
-  const db = c.env.DB
-  const restaurantId = c.get('restaurantId')
+app.get("/orders", async (c) => {
+  const db = c.env.DB;
+  const restaurantId = c.get("restaurantId");
 
   const params = {
-    page: Number(c.req.query('page')) || 1,
-    pageSize: Number(c.req.query('pageSize')) || 20,
-    sortBy: c.req.query('sortBy') || 'createdAt',
-    sortOrder: c.req.query('sortOrder') || 'desc'
-  }
+    page: Number(c.req.query("page")) || 1,
+    pageSize: Number(c.req.query("pageSize")) || 20,
+    sortBy: c.req.query("sortBy") || "createdAt",
+    sortOrder: c.req.query("sortOrder") || "desc",
+  };
 
   const response = await paginateQuery(
     db,
     db.select().from(orders),
     orders,
     params,
-    eq(orders.restaurantId, restaurantId)
-  )
+    eq(orders.restaurantId, restaurantId),
+  );
 
-  return c.json(response)
-})
+  return c.json(response);
+});
 ```
 
 **Response Format**:
+
 ```json
 {
   "data": [
-    { "id": 1, "totalAmount": 50.00, "status": "completed" },
-    { "id": 2, "totalAmount": 35.50, "status": "pending" }
+    { "id": 1, "totalAmount": 50.0, "status": "completed" },
+    { "id": 2, "totalAmount": 35.5, "status": "pending" }
   ],
   "pagination": {
     "currentPage": 1,
@@ -114,52 +121,51 @@ app.get('/orders', async (c) => {
 #### Example 2: Search with Pagination
 
 ```typescript
-import { searchWithPagination } from '@makanmakan/database/utils/pagination-helpers'
+import { searchWithPagination } from "@makanmakan/database/utils/pagination-helpers";
 
-app.get('/menu/search', async (c) => {
-  const db = c.env.DB
-  const searchQuery = c.req.query('q') || ''
+app.get("/menu/search", async (c) => {
+  const db = c.env.DB;
+  const searchQuery = c.req.query("q") || "";
 
   const response = await searchWithPagination(
     db,
     menuItems,
-    ['name', 'description'], // Search fields
+    ["name", "description"], // Search fields
     searchQuery,
     { page: 1, pageSize: 10 },
-    eq(menuItems.restaurantId, restaurantId)
-  )
+    eq(menuItems.restaurantId, restaurantId),
+  );
 
-  return c.json(response)
-})
+  return c.json(response);
+});
 ```
 
 #### Example 3: Cursor-Based Pagination
 
 ```typescript
-import { paginateWithCursor } from '@makanmakan/database/utils/pagination-helpers'
+import { paginateWithCursor } from "@makanmakan/database/utils/pagination-helpers";
 
-app.get('/messages', async (c) => {
-  const cursor = c.req.query('cursor')
-  const limit = Number(c.req.query('limit')) || 20
+app.get("/messages", async (c) => {
+  const cursor = c.req.query("cursor");
+  const limit = Number(c.req.query("limit")) || 20;
 
   const response = await paginateWithCursor(
     db,
     messages,
     { cursor, limit },
-    'id',      // Cursor field
-    'createdAt' // Sort field
-  )
+    "id", // Cursor field
+    "createdAt", // Sort field
+  );
 
-  return c.json(response)
-})
+  return c.json(response);
+});
 ```
 
 **Response Format**:
+
 ```json
 {
-  "data": [
-    { "id": 123, "text": "Hello", "createdAt": "2025-10-02T12:00:00Z" }
-  ],
+  "data": [{ "id": 123, "text": "Hello", "createdAt": "2025-10-02T12:00:00Z" }],
   "pagination": {
     "count": 20,
     "nextCursor": "eyJpZCI6MTQzfQ==",
@@ -175,8 +181,8 @@ app.get('/messages', async (c) => {
 
 ```vue
 <script setup lang="ts">
-import { usePagination } from '@/composables/usePagination'
-import api from '@/services/api'
+import { usePagination } from "@/composables/usePagination";
+import api from "@/services/api";
 
 const {
   data: orders,
@@ -186,14 +192,14 @@ const {
   nextPage,
   previousPage,
   changePageSize,
-  search
+  search,
 } = usePagination(
-  (params) => api.get('/orders', { params }).then(r => r.data),
-  { pageSize: 20, sortBy: 'createdAt', sortOrder: 'desc' }
-)
+  (params) => api.get("/orders", { params }).then((r) => r.data),
+  { pageSize: 20, sortBy: "createdAt", sortOrder: "desc" },
+);
 
 // Load first page on mount
-onMounted(() => loadPage(1))
+onMounted(() => loadPage(1));
 </script>
 
 <template>
@@ -220,7 +226,9 @@ onMounted(() => loadPage(1))
     <!-- Pagination Controls -->
     <div class="pagination">
       <button @click="previousPage" :disabled="isFirstPage">Previous</button>
-      <span>Page {{ pagination.currentPage }} of {{ pagination.totalPages }}</span>
+      <span
+        >Page {{ pagination.currentPage }} of {{ pagination.totalPages }}</span
+      >
       <button @click="nextPage" :disabled="isLastPage">Next</button>
     </div>
 
@@ -238,8 +246,8 @@ onMounted(() => loadPage(1))
 
 ```vue
 <script setup lang="ts">
-import { useInfiniteScroll } from '@/composables/usePagination'
-import api from '@/services/api'
+import { useInfiniteScroll } from "@/composables/usePagination";
+import api from "@/services/api";
 
 const {
   items: menuItems,
@@ -247,11 +255,11 @@ const {
   hasMore,
   loadMore,
   containerRef,
-  sentinelRef
+  sentinelRef,
 } = useInfiniteScroll(
-  (params) => api.get('/menu', { params }).then(r => r.data),
-  { pageSize: 10, autoLoad: true }
-)
+  (params) => api.get("/menu", { params }).then((r) => r.data),
+  { pageSize: 10, autoLoad: true },
+);
 </script>
 
 <template>
@@ -269,9 +277,7 @@ const {
     </div>
 
     <!-- End of List -->
-    <div v-if="!hasMore && !isLoading" class="end-message">
-      No more items
-    </div>
+    <div v-if="!hasMore && !isLoading" class="end-message">No more items</div>
 
     <!-- Manual Load More Button (if needed) -->
     <button
@@ -289,17 +295,20 @@ const {
 
 ```vue
 <script setup lang="ts">
-import { useInfiniteScroll, usePullToRefresh } from '@/composables/usePagination'
+import {
+  useInfiniteScroll,
+  usePullToRefresh,
+} from "@/composables/usePagination";
 
-const { items, refresh } = useInfiniteScroll(fetchData)
+const { items, refresh } = useInfiniteScroll(fetchData);
 
 const {
   isRefreshing,
   pullDistance,
   handleTouchStart,
   handleTouchMove,
-  handleTouchEnd
-} = usePullToRefresh(refresh)
+  handleTouchEnd,
+} = usePullToRefresh(refresh);
 </script>
 
 <template>
@@ -310,7 +319,11 @@ const {
     @touchend="handleTouchEnd"
   >
     <!-- Pull-to-Refresh Indicator -->
-    <div v-if="pullDistance > 0" class="pull-indicator" :style="{ height: pullDistance + 'px' }">
+    <div
+      v-if="pullDistance > 0"
+      class="pull-indicator"
+      :style="{ height: pullDistance + 'px' }"
+    >
       <div v-if="isRefreshing" class="spinner">Refreshing...</div>
       <div v-else>Pull to refresh</div>
     </div>
@@ -334,21 +347,21 @@ const DEFAULT_PAGINATION_CONFIG = {
   defaultPageSize: 20,
   maxPageSize: 100,
   minPageSize: 1,
-  defaultSortOrder: 'desc'
-}
+  defaultSortOrder: "desc",
+};
 ```
 
 ### Customization Per Endpoint
 
 ```typescript
 // Small page size for mobile
-const MOBILE_PAGE_SIZE = 10
+const MOBILE_PAGE_SIZE = 10;
 
 // Large page size for exports
-const EXPORT_PAGE_SIZE = 1000
+const EXPORT_PAGE_SIZE = 1000;
 
 // Real-time feed limit
-const FEED_LIMIT = 50
+const FEED_LIMIT = 50;
 ```
 
 ---
@@ -370,18 +383,21 @@ CREATE INDEX idx_menu_items_name ON menu_items(name);
 
 ```typescript
 // BAD: N+1 query problem
-const orders = await db.select().from(orders).limit(20)
+const orders = await db.select().from(orders).limit(20);
 for (const order of orders) {
-  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id))
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id));
 }
 
 // GOOD: Use eager loading
 const orders = await db.query.orders.findMany({
   limit: 20,
   with: {
-    orderItems: true
-  }
-})
+    orderItems: true,
+  },
+});
 ```
 
 ### 3. Caching
@@ -403,7 +419,7 @@ await kv.put(cacheKey, response, { expirationTtl: 60 }) // 1 minute
 // ✅ Good: id, createdAt (indexed)
 // ❌ Bad: name, email (not sequential)
 
-await paginateWithCursor(db, table, options, 'id', 'createdAt')
+await paginateWithCursor(db, table, options, "id", "createdAt");
 ```
 
 ---
@@ -471,55 +487,60 @@ if (data.length === 0) {
 ### Unit Tests
 
 ```typescript
-import { describe, it, expect } from 'vitest'
-import { calculatePaginationMeta, validatePaginationParams } from '@makanmakan/shared-types'
+import { describe, it, expect } from "vitest";
+import {
+  calculatePaginationMeta,
+  validatePaginationParams,
+} from "@makanmakan/shared-types";
 
-describe('Pagination', () => {
-  it('should calculate correct pagination metadata', () => {
-    const meta = calculatePaginationMeta(2, 20, 156)
+describe("Pagination", () => {
+  it("should calculate correct pagination metadata", () => {
+    const meta = calculatePaginationMeta(2, 20, 156);
 
-    expect(meta.currentPage).toBe(2)
-    expect(meta.totalPages).toBe(8)
-    expect(meta.hasNextPage).toBe(true)
-    expect(meta.hasPreviousPage).toBe(true)
-    expect(meta.startIndex).toBe(20)
-    expect(meta.endIndex).toBe(39)
-  })
+    expect(meta.currentPage).toBe(2);
+    expect(meta.totalPages).toBe(8);
+    expect(meta.hasNextPage).toBe(true);
+    expect(meta.hasPreviousPage).toBe(true);
+    expect(meta.startIndex).toBe(20);
+    expect(meta.endIndex).toBe(39);
+  });
 
-  it('should validate pagination params', () => {
+  it("should validate pagination params", () => {
     const { valid, errors } = validatePaginationParams({
       page: 0,
-      pageSize: 1000
-    })
+      pageSize: 1000,
+    });
 
-    expect(valid).toBe(false)
-    expect(errors).toContain('Page number must be >= 1')
-    expect(errors).toContain('Page size must be <= 100')
-  })
-})
+    expect(valid).toBe(false);
+    expect(errors).toContain("Page number must be >= 1");
+    expect(errors).toContain("Page size must be <= 100");
+  });
+});
 ```
 
 ### Integration Tests
 
 ```typescript
-describe('GET /orders', () => {
-  it('should return paginated orders', async () => {
-    const response = await api.get('/orders?page=1&pageSize=10')
+describe("GET /orders", () => {
+  it("should return paginated orders", async () => {
+    const response = await api.get("/orders?page=1&pageSize=10");
 
-    expect(response.status).toBe(200)
-    expect(response.data.data).toHaveLength(10)
-    expect(response.data.pagination.currentPage).toBe(1)
-    expect(response.data.pagination.pageSize).toBe(10)
-    expect(response.data.pagination.totalItems).toBeGreaterThan(0)
-  })
+    expect(response.status).toBe(200);
+    expect(response.data.data).toHaveLength(10);
+    expect(response.data.pagination.currentPage).toBe(1);
+    expect(response.data.pagination.pageSize).toBe(10);
+    expect(response.data.pagination.totalItems).toBeGreaterThan(0);
+  });
 
-  it('should handle search with pagination', async () => {
-    const response = await api.get('/menu/search?q=pizza&page=1')
+  it("should handle search with pagination", async () => {
+    const response = await api.get("/menu/search?q=pizza&page=1");
 
-    expect(response.status).toBe(200)
-    expect(response.data.data.every(item => item.name.includes('pizza'))).toBe(true)
-  })
-})
+    expect(response.status).toBe(200);
+    expect(
+      response.data.data.every((item) => item.name.includes("pizza")),
+    ).toBe(true);
+  });
+});
 ```
 
 ---
@@ -529,27 +550,35 @@ describe('GET /orders', () => {
 ### Migrating Existing Endpoints
 
 **Before** (no pagination):
+
 ```typescript
-app.get('/orders', async (c) => {
-  const orders = await db.select().from(orders)
-  return c.json(orders)
-})
+app.get("/orders", async (c) => {
+  const orders = await db.select().from(orders);
+  return c.json(orders);
+});
 ```
 
 **After** (with pagination):
-```typescript
-app.get('/orders', async (c) => {
-  const params = {
-    page: Number(c.req.query('page')) || 1,
-    pageSize: Number(c.req.query('pageSize')) || 20
-  }
 
-  const response = await paginateQuery(db, db.select().from(orders), orders, params)
-  return c.json(response)
-})
+```typescript
+app.get("/orders", async (c) => {
+  const params = {
+    page: Number(c.req.query("page")) || 1,
+    pageSize: Number(c.req.query("pageSize")) || 20,
+  };
+
+  const response = await paginateQuery(
+    db,
+    db.select().from(orders),
+    orders,
+    params,
+  );
+  return c.json(response);
+});
 ```
 
 **Backward Compatibility**:
+
 ```typescript
 // Support old clients that don't send pagination params
 const page = c.req.query('page')

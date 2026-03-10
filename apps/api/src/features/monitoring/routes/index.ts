@@ -3,10 +3,13 @@
  * All monitoring and alerting related API endpoints
  */
 
-import { Hono } from 'hono'
-import { authMiddleware, requireRole } from '../../../middleware/auth'
-import { validateBody, validateQuery } from '../../../middleware/validation'
-import { createMonitoringService, DEFAULT_ALERT_RULES } from '../services/MonitoringService'
+import { Hono } from "hono";
+import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { validateBody, validateQuery } from "../../../middleware/validation";
+import {
+  createMonitoringService,
+  DEFAULT_ALERT_RULES,
+} from "../services/MonitoringService";
 import {
   alertRuleSchema,
   recordErrorSchema,
@@ -14,156 +17,178 @@ import {
   performanceReportQuerySchema,
   testAlertSchema,
   updateAlertRuleSchema,
-  paginationSchema
-} from '../schemas/validation'
-import type { Env } from '../../../types/env'
-import type { MonitoringOverview, PerformanceReport } from '../types'
+  paginationSchema,
+} from "../schemas/validation";
+import type { Env } from "../../../types/env";
+import type { MonitoringOverview, PerformanceReport } from "../types";
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<{ Bindings: Env }>();
 
 // Health check endpoint (public)
-app.get('/health', async (c) => {
+app.get("/health", async (c) => {
   try {
-    const monitoringService = createMonitoringService(c.env.CACHE_KV)
-    const healthStatus = await monitoringService.getHealthStatus()
+    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const healthStatus = await monitoringService.getHealthStatus();
 
     // Set appropriate status code based on health
-    let statusCode = 200
-    if (healthStatus.overall === 'critical' || healthStatus.overall === 'down') {
-      statusCode = 503
-    } else if (healthStatus.overall === 'warning') {
-      statusCode = 200 // Warning state is still serviceable
+    let statusCode = 200;
+    if (
+      healthStatus.overall === "critical" ||
+      healthStatus.overall === "down"
+    ) {
+      statusCode = 503;
+    } else if (healthStatus.overall === "warning") {
+      statusCode = 200; // Warning state is still serviceable
     }
 
-    return c.json(healthStatus, statusCode as any)
+    return c.json(healthStatus, statusCode as any);
   } catch (error) {
-    console.error('Health check error:', error)
-    return c.json({
-      overall: 'down',
-      error: error instanceof Error ? error.message : 'Health check failed',
-      timestamp: Date.now()
-    }, 503)
+    console.error("Health check error:", error);
+    return c.json(
+      {
+        overall: "down",
+        error: error instanceof Error ? error.message : "Health check failed",
+        timestamp: Date.now(),
+      },
+      503,
+    );
   }
-})
+});
 
 // Get system metrics (admin only)
-app.get('/metrics',
+app.get(
+  "/metrics",
   authMiddleware,
   requireRole([0]), // Admin only
   validateQuery(metricsQuerySchema),
   async (c) => {
     try {
-      const { period, granularity } = c.get('validatedQuery')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
-      const metrics = await monitoringService.getMetrics()
+      const { period, granularity } = c.get("validatedQuery");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
+      const metrics = await monitoringService.getMetrics();
 
       const enhancedMetrics = {
         ...metrics,
         query: {
           period,
           granularity,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         },
         summary: {
           totalRequestsLastHour: metrics.apiMetrics.totalRequests,
           errorRatePercentage: (metrics.apiMetrics.errorRate * 100).toFixed(2),
-          averageResponseTimeMs: metrics.apiMetrics.averageResponseTime.toFixed(2),
-          cacheHitRatePercentage: (metrics.cacheMetrics.hitRate * 100).toFixed(2),
-          totalErrorsLastHour: metrics.errorMetrics.totalErrors
-        }
-      }
+          averageResponseTimeMs:
+            metrics.apiMetrics.averageResponseTime.toFixed(2),
+          cacheHitRatePercentage: (metrics.cacheMetrics.hitRate * 100).toFixed(
+            2,
+          ),
+          totalErrorsLastHour: metrics.errorMetrics.totalErrors,
+        },
+      };
 
       return c.json({
         success: true,
-        data: enhancedMetrics
-      })
+        data: enhancedMetrics,
+      });
     } catch (error) {
-      console.error('Get metrics error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to retrieve metrics'
-      }, 500)
+      console.error("Get metrics error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to retrieve metrics",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Reset system metrics (admin only)
-app.delete('/metrics',
-  authMiddleware,
-  requireRole([0]),
-  async (c) => {
-    try {
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
-      await monitoringService.resetMetrics()
+app.delete("/metrics", authMiddleware, requireRole([0]), async (c) => {
+  try {
+    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    await monitoringService.resetMetrics();
 
-      console.log('System metrics reset by admin')
+    console.log("System metrics reset by admin");
 
-      return c.json({
-        success: true,
-        message: 'System metrics reset successfully',
-        timestamp: Date.now()
-      })
-    } catch (error) {
-      console.error('Reset metrics error:', error)
-      return c.json({
+    return c.json({
+      success: true,
+      message: "System metrics reset successfully",
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("Reset metrics error:", error);
+    return c.json(
+      {
         success: false,
-        error: 'Failed to reset metrics'
-      }, 500)
-    }
+        error: "Failed to reset metrics",
+      },
+      500,
+    );
   }
-)
+});
 
 // Record error manually (admin only)
-app.post('/errors',
+app.post(
+  "/errors",
   authMiddleware,
   requireRole([0]),
   validateBody(recordErrorSchema),
   async (c) => {
     try {
-      const { type, message, severity, metadata } = c.get('validatedBody')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
+      const { type, message, severity, metadata } = c.get("validatedBody");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
-      await monitoringService.recordError(type, message, severity)
+      await monitoringService.recordError(type, message, severity);
 
-      console.log(`Manual error recorded: [${severity.toUpperCase()}] ${type}: ${message}`)
+      console.log(
+        `Manual error recorded: [${severity.toUpperCase()}] ${type}: ${message}`,
+      );
 
-      return c.json({
-        success: true,
-        data: {
-          type,
-          message,
-          severity,
-          metadata,
-          timestamp: Date.now()
-        }
-      }, 201)
+      return c.json(
+        {
+          success: true,
+          data: {
+            type,
+            message,
+            severity,
+            metadata,
+            timestamp: Date.now(),
+          },
+        },
+        201,
+      );
     } catch (error) {
-      console.error('Record error failed:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to record error'
-      }, 500)
+      console.error("Record error failed:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to record error",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Alert rules management
 
 // Get all alert rules
-app.get('/alerts/rules',
+app.get(
+  "/alerts/rules",
   authMiddleware,
   requireRole([0]),
   validateQuery(paginationSchema),
   async (c) => {
     try {
-      const { page, limit } = c.get('validatedQuery')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
-      const allRules = await monitoringService.getAlertRules()
+      const { page, limit } = c.get("validatedQuery");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
+      const allRules = await monitoringService.getAlertRules();
 
       // Paginate results
-      const startIndex = (page - 1) * limit
-      const endIndex = startIndex + limit
-      const paginatedRules = allRules.slice(startIndex, endIndex)
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedRules = allRules.slice(startIndex, endIndex);
 
       return c.json({
         success: true,
@@ -173,273 +198,299 @@ app.get('/alerts/rules',
             page,
             limit,
             total: allRules.length,
-            totalPages: Math.ceil(allRules.length / limit)
-          }
-        }
-      })
+            totalPages: Math.ceil(allRules.length / limit),
+          },
+        },
+      });
     } catch (error) {
-      console.error('Get alert rules error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to retrieve alert rules'
-      }, 500)
+      console.error("Get alert rules error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to retrieve alert rules",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Create alert rule
-app.post('/alerts/rules',
+app.post(
+  "/alerts/rules",
   authMiddleware,
   requireRole([0]),
   validateBody(alertRuleSchema),
   async (c) => {
     try {
-      const ruleData = c.get('validatedBody')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
+      const ruleData = c.get("validatedBody");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
-      const ruleId = await monitoringService.createAlertRule(ruleData)
+      const ruleId = await monitoringService.createAlertRule(ruleData);
 
-      console.log(`Alert rule created: ${ruleData.name} (${ruleId})`)
+      console.log(`Alert rule created: ${ruleData.name} (${ruleId})`);
 
-      return c.json({
-        success: true,
-        data: {
-          id: ruleId,
-          ...ruleData,
-          created: Date.now()
-        }
-      }, 201)
+      return c.json(
+        {
+          success: true,
+          data: {
+            id: ruleId,
+            ...ruleData,
+            created: Date.now(),
+          },
+        },
+        201,
+      );
     } catch (error) {
-      console.error('Create alert rule error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to create alert rule'
-      }, 500)
+      console.error("Create alert rule error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to create alert rule",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Update alert rule
-app.put('/alerts/rules/:id',
+app.put(
+  "/alerts/rules/:id",
   authMiddleware,
   requireRole([0]),
   validateBody(updateAlertRuleSchema),
   async (c) => {
     try {
-      const ruleId = c.req.param('id')
-      const updates = c.get('validatedBody')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
+      const ruleId = c.req.param("id");
+      const updates = c.get("validatedBody");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
-      const success = await monitoringService.updateAlertRule(ruleId, updates)
+      const success = await monitoringService.updateAlertRule(ruleId, updates);
 
       if (!success) {
-        return c.json({
-          success: false,
-          error: 'Alert rule not found'
-        }, 404)
+        return c.json(
+          {
+            success: false,
+            error: "Alert rule not found",
+          },
+          404,
+        );
       }
 
       return c.json({
         success: true,
         data: {
           id: ruleId,
-          updated: Date.now()
-        }
-      })
+          updated: Date.now(),
+        },
+      });
     } catch (error) {
-      console.error('Update alert rule error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to update alert rule'
-      }, 500)
+      console.error("Update alert rule error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to update alert rule",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Delete alert rule
-app.delete('/alerts/rules/:id',
-  authMiddleware,
-  requireRole([0]),
-  async (c) => {
-    try {
-      const ruleId = c.req.param('id')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
+app.delete("/alerts/rules/:id", authMiddleware, requireRole([0]), async (c) => {
+  try {
+    const ruleId = c.req.param("id");
+    const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
-      const success = await monitoringService.deleteAlertRule(ruleId)
+    const success = await monitoringService.deleteAlertRule(ruleId);
 
-      if (!success) {
-        return c.json({
+    if (!success) {
+      return c.json(
+        {
           success: false,
-          error: 'Alert rule not found'
-        }, 404)
-      }
-
-      return c.json({
-        success: true,
-        message: 'Alert rule deleted successfully'
-      })
-    } catch (error) {
-      console.error('Delete alert rule error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to delete alert rule'
-      }, 500)
+          error: "Alert rule not found",
+        },
+        404,
+      );
     }
+
+    return c.json({
+      success: true,
+      message: "Alert rule deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete alert rule error:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to delete alert rule",
+      },
+      500,
+    );
   }
-)
+});
 
 // Get default alert rules
-app.get('/alerts/defaults',
-  authMiddleware,
-  requireRole([0]),
-  async (c) => {
-    try {
-      return c.json({
-        success: true,
-        data: {
-          rules: DEFAULT_ALERT_RULES,
-          count: DEFAULT_ALERT_RULES.length,
-          description: 'Default alert rules for system monitoring'
-        }
-      })
-    } catch (error) {
-      console.error('Get default alert rules error:', error)
-      return c.json({
+app.get("/alerts/defaults", authMiddleware, requireRole([0]), async (c) => {
+  try {
+    return c.json({
+      success: true,
+      data: {
+        rules: DEFAULT_ALERT_RULES,
+        count: DEFAULT_ALERT_RULES.length,
+        description: "Default alert rules for system monitoring",
+      },
+    });
+  } catch (error) {
+    console.error("Get default alert rules error:", error);
+    return c.json(
+      {
         success: false,
-        error: 'Failed to retrieve default alert rules'
-      }, 500)
-    }
+        error: "Failed to retrieve default alert rules",
+      },
+      500,
+    );
   }
-)
+});
 
 // Test alert system
-app.post('/alerts/test',
+app.post(
+  "/alerts/test",
   authMiddleware,
   requireRole([0]),
   validateBody(testAlertSchema),
   async (c) => {
     try {
-      const { type, severity, webhookUrl } = c.get('validatedBody')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
+      const { type, severity, webhookUrl } = c.get("validatedBody");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
       // Create test alert rule
       await monitoringService.createAlertRule({
-        name: 'Test Alert',
-        condition: 'manual_test',
-        metric: 'test.value',
-        operator: '>',
+        name: "Test Alert",
+        condition: "manual_test",
+        metric: "test.value",
+        operator: ">",
         threshold: 0,
         duration: 0,
         config: {
           type,
           severity,
           enabled: true,
-          webhookUrl: webhookUrl || c.env.SLACK_WEBHOOK_URL
-        }
-      })
+          webhookUrl: webhookUrl || c.env.SLACK_WEBHOOK_URL,
+        },
+      });
 
       // Trigger test error
       await monitoringService.recordError(
-        'test_alert',
+        "test_alert",
         `Test alert triggered - ${type} notification with ${severity} severity`,
-        severity
-      )
+        severity,
+      );
 
       return c.json({
         success: true,
         data: {
-          message: 'Test alert sent successfully',
+          message: "Test alert sent successfully",
           type,
           severity,
-          timestamp: Date.now()
-        }
-      })
+          timestamp: Date.now(),
+        },
+      });
     } catch (error) {
-      console.error('Test alert error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to send test alert'
-      }, 500)
+      console.error("Test alert error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to send test alert",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // System overview (admin only)
-app.get('/overview',
-  authMiddleware,
-  requireRole([0]),
-  async (c) => {
-    try {
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
-      const [healthStatus, metrics] = await Promise.all([
-        monitoringService.getHealthStatus(),
-        monitoringService.getMetrics()
-      ])
+app.get("/overview", authMiddleware, requireRole([0]), async (c) => {
+  try {
+    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const [healthStatus, metrics] = await Promise.all([
+      monitoringService.getHealthStatus(),
+      monitoringService.getMetrics(),
+    ]);
 
-      const overview: MonitoringOverview = {
-        status: healthStatus.overall,
-        uptime: healthStatus.uptime,
-        version: healthStatus.version,
-        timestamp: Date.now(),
+    const overview: MonitoringOverview = {
+      status: healthStatus.overall,
+      uptime: healthStatus.uptime,
+      version: healthStatus.version,
+      timestamp: Date.now(),
 
-        keyMetrics: {
-          requestsPerMinute: Math.round(metrics.apiMetrics.requestsPerSecond * 60),
-          errorRate: `${(metrics.apiMetrics.errorRate * 100).toFixed(2)}%`,
-          averageResponseTime: `${metrics.apiMetrics.averageResponseTime.toFixed(0)}ms`,
-          cacheHitRate: `${(metrics.cacheMetrics.hitRate * 100).toFixed(1)}%`,
-          activeErrors: metrics.errorMetrics.totalErrors
-        },
+      keyMetrics: {
+        requestsPerMinute: Math.round(
+          metrics.apiMetrics.requestsPerSecond * 60,
+        ),
+        errorRate: `${(metrics.apiMetrics.errorRate * 100).toFixed(2)}%`,
+        averageResponseTime: `${metrics.apiMetrics.averageResponseTime.toFixed(0)}ms`,
+        cacheHitRate: `${(metrics.cacheMetrics.hitRate * 100).toFixed(1)}%`,
+        activeErrors: metrics.errorMetrics.totalErrors,
+      },
 
-        components: Object.entries(healthStatus.components).map(([name, component]) => ({
+      components: Object.entries(healthStatus.components).map(
+        ([name, component]) => ({
           name,
           status: component.status,
           latency: component.latency,
           issues: component.issues.length,
-          lastCheck: component.lastCheck
-        })),
+          lastCheck: component.lastCheck,
+        }),
+      ),
 
-        topErrors: Object.entries(metrics.errorMetrics.errorsByType)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 5)
-          .map(([type, count]) => ({ type, count })),
+      topErrors: Object.entries(metrics.errorMetrics.errorsByType)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([type, count]) => ({ type, count })),
 
-        trends: {
-          responseTime: {
-            current: metrics.apiMetrics.averageResponseTime,
-            p95: metrics.apiMetrics.p95ResponseTime,
-            p99: metrics.apiMetrics.p99ResponseTime
-          },
-          throughput: {
-            requestsPerSecond: metrics.apiMetrics.requestsPerSecond,
-            totalRequests: metrics.apiMetrics.totalRequests
-          }
-        }
-      }
+      trends: {
+        responseTime: {
+          current: metrics.apiMetrics.averageResponseTime,
+          p95: metrics.apiMetrics.p95ResponseTime,
+          p99: metrics.apiMetrics.p99ResponseTime,
+        },
+        throughput: {
+          requestsPerSecond: metrics.apiMetrics.requestsPerSecond,
+          totalRequests: metrics.apiMetrics.totalRequests,
+        },
+      },
+    };
 
-      return c.json({
-        success: true,
-        data: overview
-      })
-    } catch (error) {
-      console.error('Get monitoring overview error:', error)
-      return c.json({
+    return c.json({
+      success: true,
+      data: overview,
+    });
+  } catch (error) {
+    console.error("Get monitoring overview error:", error);
+    return c.json(
+      {
         success: false,
-        error: 'Failed to retrieve monitoring overview'
-      }, 500)
-    }
+        error: "Failed to retrieve monitoring overview",
+      },
+      500,
+    );
   }
-)
+});
 
 // Performance report
-app.get('/reports/performance',
+app.get(
+  "/reports/performance",
   authMiddleware,
   requireRole([0]),
   validateQuery(performanceReportQuerySchema),
   async (c) => {
     try {
-      const { days } = c.get('validatedQuery')
-      const monitoringService = createMonitoringService(c.env.CACHE_KV)
-      const metrics = await monitoringService.getMetrics()
+      const { days } = c.get("validatedQuery");
+      const monitoringService = createMonitoringService(c.env.CACHE_KV);
+      const metrics = await monitoringService.getMetrics();
 
       const report: PerformanceReport = {
         period: `${days} days`,
@@ -450,22 +501,27 @@ app.get('/reports/performance',
           averageResponseTime: metrics.apiMetrics.averageResponseTime,
           p95ResponseTime: metrics.apiMetrics.p95ResponseTime,
           p99ResponseTime: metrics.apiMetrics.p99ResponseTime,
-          errorRate: (metrics.apiMetrics.errorRate * 100).toFixed(2) + '%',
-          slowRequests: metrics.apiMetrics.slowRequestCount
+          errorRate: (metrics.apiMetrics.errorRate * 100).toFixed(2) + "%",
+          slowRequests: metrics.apiMetrics.slowRequestCount,
         },
 
         databasePerformance: {
           totalQueries: metrics.databaseMetrics.queryCount,
           averageQueryTime: metrics.databaseMetrics.averageQueryTime,
           slowQueries: metrics.databaseMetrics.slowQueryCount,
-          queryErrorRate: (metrics.databaseMetrics.errorCount / Math.max(metrics.databaseMetrics.queryCount, 1) * 100).toFixed(2) + '%'
+          queryErrorRate:
+            (
+              (metrics.databaseMetrics.errorCount /
+                Math.max(metrics.databaseMetrics.queryCount, 1)) *
+              100
+            ).toFixed(2) + "%",
         },
 
         cachePerformance: {
-          hitRate: (metrics.cacheMetrics.hitRate * 100).toFixed(2) + '%',
+          hitRate: (metrics.cacheMetrics.hitRate * 100).toFixed(2) + "%",
           totalKeys: metrics.cacheMetrics.totalKeys,
           totalSize: `${(metrics.cacheMetrics.totalSize / 1024 / 1024).toFixed(2)} MB`,
-          expiringKeys: metrics.cacheMetrics.expiringKeysCount
+          expiringKeys: metrics.cacheMetrics.expiringKeysCount,
         },
 
         errorAnalysis: {
@@ -473,69 +529,94 @@ app.get('/reports/performance',
           criticalErrors: metrics.errorMetrics.criticalErrors,
           warningsCount: metrics.errorMetrics.warningCount,
           errorsByType: Object.entries(metrics.errorMetrics.errorsByType)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 10)
             .map(([type, count]) => ({
               type,
               count,
-              percentage: ((count / metrics.errorMetrics.totalErrors) * 100).toFixed(1) + '%'
-            }))
+              percentage:
+                ((count / metrics.errorMetrics.totalErrors) * 100).toFixed(1) +
+                "%",
+            })),
         },
 
-        recommendations: generateRecommendations(metrics)
-      }
+        recommendations: generateRecommendations(metrics),
+      };
 
       return c.json({
         success: true,
-        data: report
-      })
+        data: report,
+      });
     } catch (error) {
-      console.error('Generate performance report error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to generate performance report'
-      }, 500)
+      console.error("Generate performance report error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to generate performance report",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Helper function to generate recommendations
 function generateRecommendations(metrics: any): string[] {
-  const recommendations: string[] = []
+  const recommendations: string[] = [];
 
   if (metrics.apiMetrics.averageResponseTime > 1000) {
-    recommendations.push('Consider optimizing API response time - current average is high')
+    recommendations.push(
+      "Consider optimizing API response time - current average is high",
+    );
   }
 
   if (metrics.apiMetrics.errorRate > 0.05) {
-    recommendations.push('API error rate is high - check error logs and fix common issues')
+    recommendations.push(
+      "API error rate is high - check error logs and fix common issues",
+    );
   }
 
   if (metrics.databaseMetrics.averageQueryTime > 500) {
-    recommendations.push('Database query time is slow - optimize slow queries or add indexes')
+    recommendations.push(
+      "Database query time is slow - optimize slow queries or add indexes",
+    );
   }
 
-  if (metrics.databaseMetrics.slowQueryCount > metrics.databaseMetrics.queryCount * 0.1) {
-    recommendations.push('High percentage of slow queries - review and optimize database queries')
+  if (
+    metrics.databaseMetrics.slowQueryCount >
+    metrics.databaseMetrics.queryCount * 0.1
+  ) {
+    recommendations.push(
+      "High percentage of slow queries - review and optimize database queries",
+    );
   }
 
   if (metrics.cacheMetrics.hitRate < 0.6) {
-    recommendations.push('Cache hit rate is low - review cache strategy and TTL settings')
+    recommendations.push(
+      "Cache hit rate is low - review cache strategy and TTL settings",
+    );
   }
 
-  if (metrics.cacheMetrics.totalSize > 100 * 1024 * 1024) { // 100MB
-    recommendations.push('Cache size is large - implement cache cleanup strategy')
+  if (metrics.cacheMetrics.totalSize > 100 * 1024 * 1024) {
+    // 100MB
+    recommendations.push(
+      "Cache size is large - implement cache cleanup strategy",
+    );
   }
 
   if (metrics.errorMetrics.criticalErrors > 0) {
-    recommendations.push('Critical errors present - prioritize fixing and set up monitoring alerts')
+    recommendations.push(
+      "Critical errors present - prioritize fixing and set up monitoring alerts",
+    );
   }
 
   if (recommendations.length === 0) {
-    recommendations.push('System is performing well - continue current monitoring and maintenance practices')
+    recommendations.push(
+      "System is performing well - continue current monitoring and maintenance practices",
+    );
   }
 
-  return recommendations
+  return recommendations;
 }
 
-export default app
+export default app;

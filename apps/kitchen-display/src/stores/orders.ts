@@ -1,7 +1,13 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { kitchenApi } from "@/services/kitchenApi";
-import type { KitchenOrder, KitchenStats, KitchenSSEEvent, OrderStatus, ItemStatus } from "@/types";
+import type {
+  KitchenOrder,
+  KitchenStats,
+  KitchenSSEEvent,
+  OrderStatus,
+  ItemStatus,
+} from "@/types";
 
 export const useOrdersStore = defineStore("orders", () => {
   // State
@@ -110,11 +116,11 @@ export const useOrdersStore = defineStore("orders", () => {
     // 支援兩種 payload 格式
     const newOrder: KitchenOrder =
       event.payload.order || // 格式 1: payload.order
-      event.payload as any;  // 格式 2: payload 本身就是 order
+      (event.payload as any); // 格式 2: payload 本身就是 order
 
     // 驗證是否為有效訂單物件
     if (!newOrder || !newOrder.id) {
-      console.warn('Invalid order data in NEW_ORDER event', event);
+      console.warn("Invalid order data in NEW_ORDER event", event);
       return;
     }
 
@@ -448,8 +454,11 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 公開方法：直接更新訂單狀態（支援 number 或 string ID）
    */
-  const updateOrderStatus = (orderId: number | string, newStatus: number | OrderStatus) => {
-    const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
+  const updateOrderStatus = (
+    orderId: number | string,
+    newStatus: number | OrderStatus,
+  ) => {
+    const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
     const orderIndex = orders.value.findIndex((o) => o.id === id);
     if (orderIndex !== -1) {
       orders.value[orderIndex].status = newStatus as OrderStatus;
@@ -465,7 +474,11 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 公開方法：直接更新單個 item 狀態
    */
-  const updateItemStatus = (orderId: number, itemId: number, newStatus: string | ItemStatus) => {
+  const updateItemStatus = (
+    orderId: number,
+    itemId: number,
+    newStatus: string | ItemStatus,
+  ) => {
     const orderIndex = orders.value.findIndex((o) => o.id === orderId);
     if (orderIndex !== -1) {
       const order = orders.value[orderIndex];
@@ -478,7 +491,10 @@ export const useOrdersStore = defineStore("orders", () => {
         const now = new Date().toISOString();
         if (newStatus === "preparing" && !order.items[itemIndex].startedAt) {
           order.items[itemIndex].startedAt = now;
-        } else if (newStatus === "ready" && !order.items[itemIndex].completedAt) {
+        } else if (
+          newStatus === "ready" &&
+          !order.items[itemIndex].completedAt
+        ) {
           order.items[itemIndex].completedAt = now;
         }
 

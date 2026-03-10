@@ -30,6 +30,7 @@ apps/admin-dashboard/src/
 #### A. SchedulingView.vue（主視圖）✅
 
 **功能特點：**
+
 - ✅ Tab 導航系統（5個分頁）
   - 日曆視圖
   - 清單視圖
@@ -42,6 +43,7 @@ apps/admin-dashboard/src/
 - ✅ 事件處理系統（Create, Edit, Delete）
 
 **Tab 分頁：**
+
 1. **日曆視圖** - 月曆顯示排班
 2. **清單視圖** - 表格列表顯示
 3. **班別模板** - 管理排班模板
@@ -51,6 +53,7 @@ apps/admin-dashboard/src/
 #### B. SchedulingCalendar.vue（日曆視圖）✅
 
 **功能特點：**
+
 - ✅ 完整月曆實施
 - ✅ 月份導航（上一月/下一月）
 - ✅ 當日高亮顯示
@@ -60,6 +63,7 @@ apps/admin-dashboard/src/
 - ✅ 響應式網格布局（7列）
 
 **數據綁定：**
+
 - 綁定 `schedules` prop
 - 自動計算每日排班數量
 - 支援點擊日期事件
@@ -67,6 +71,7 @@ apps/admin-dashboard/src/
 #### C. SchedulingList.vue（清單視圖）✅
 
 **功能特點：**
+
 - ✅ 響應式表格佈局
 - ✅ 搜尋功能（員工姓名）
 - ✅ 狀態篩選器
@@ -76,6 +81,7 @@ apps/admin-dashboard/src/
 - ✅ 編輯/刪除操作按鈕
 
 **表格欄位：**
+
 1. 日期（含星期）
 2. 員工姓名
 3. 班別（彩色 badge）
@@ -85,6 +91,7 @@ apps/admin-dashboard/src/
 7. 操作按鈕
 
 **狀態標籤：**
+
 - `scheduled` - 已排班（藍色）
 - `confirmed` - 已確認（綠色）
 - `completed` - 已完成（紫色）
@@ -94,6 +101,7 @@ apps/admin-dashboard/src/
 #### D. ScheduleFormModal.vue（表單模態框）✅
 
 **功能特點：**
+
 - ✅ 響應式模態框布局
 - ✅ 關閉按鈕和背景點擊關閉
 - ✅ 頁首/內容/頁尾分區
@@ -101,6 +109,7 @@ apps/admin-dashboard/src/
 - ✅ 佔位符提示（開發中）
 
 **未來擴展：**
+
 - 員工選擇下拉選單
 - 日期選擇器
 - 班別模板選擇
@@ -116,6 +125,7 @@ apps/admin-dashboard/src/
 ### 3. 路由配置 ✅
 
 **新增路由：**
+
 ```typescript
 {
   path: "scheduling",
@@ -129,6 +139,7 @@ apps/admin-dashboard/src/
 ```
 
 **訪問路徑：**
+
 - URL: `/dashboard/scheduling`
 - 權限：僅 Admin 和 Owner 可訪問
 - 導航：需在側邊欄添加連結
@@ -137,14 +148,15 @@ apps/admin-dashboard/src/
 
 ## 📊 元件統計
 
-| 元件類型 | 數量 | 狀態 |
-|---------|------|------|
-| 視圖 (Views) | 1 | ✅ 完成 |
-| 核心元件 | 3 | ✅ 完成 |
-| 骨架元件 | 3 | ✅ 完成 |
-| 總計 | 7 | ✅ 100% |
+| 元件類型     | 數量 | 狀態    |
+| ------------ | ---- | ------- |
+| 視圖 (Views) | 1    | ✅ 完成 |
+| 核心元件     | 3    | ✅ 完成 |
+| 骨架元件     | 3    | ✅ 完成 |
+| 總計         | 7    | ✅ 100% |
 
 **代碼統計：**
+
 - 總行數：~1,200 行
 - Vue 文件：7 個
 - TypeScript：完全類型化
@@ -155,18 +167,21 @@ apps/admin-dashboard/src/
 ## 🎨 UI/UX 設計特點
 
 ### 1. 一致的設計語言
+
 - ✅ 統一的顏色系統
 - ✅ 標準化的按鈕樣式
 - ✅ 一致的間距和圓角
 - ✅ 響應式動畫效果
 
 ### 2. 狀態視覺反饋
+
 - ✅ 載入動畫（spinner）
 - ✅ 空狀態提示
 - ✅ Hover 效果
 - ✅ 彩色狀態 badges
 
 ### 3. 使用者體驗
+
 - ✅ 直觀的 Tab 導航
 - ✅ 快速搜尋和篩選
 - ✅ 一鍵操作按鈕
@@ -177,6 +192,7 @@ apps/admin-dashboard/src/
 ## ⚠️ 待實施功能
 
 ### Part 3: Scheduling Calendar View（下一步）
+
 - [ ] 完善日曆視圖
   - [ ] 拖放排班功能
   - [ ] 週視圖/日視圖切換
@@ -184,6 +200,7 @@ apps/admin-dashboard/src/
   - [ ] 多員工同時顯示
 
 ### Part 4: Schedule Management Forms
+
 - [ ] 完整排班表單
   - [ ] 員工選擇（整合 available employees API）
   - [ ] 日期選擇器
@@ -193,6 +210,7 @@ apps/admin-dashboard/src/
   - [ ] 表單驗證
 
 ### Part 5: Employee My Schedule View
+
 - [ ] 員工個人排班視圖
   - [ ] 我的排班列表
   - [ ] 打卡功能（Clock In/Out）
@@ -200,6 +218,7 @@ apps/admin-dashboard/src/
   - [ ] 個人工時統計
 
 ### Part 6: API Integration
+
 - [ ] 連接後端 API
   - [ ] 排班 CRUD 操作
   - [ ] 可用員工查詢
@@ -214,6 +233,7 @@ apps/admin-dashboard/src/
 ### 需要對接的 API Endpoints
 
 #### 1. 排班管理
+
 ```
 GET    /api/v1/scheduling/:restaurantId/schedules
 POST   /api/v1/scheduling/:restaurantId/schedules
@@ -223,6 +243,7 @@ POST   /api/v1/scheduling/:restaurantId/schedules/bulk
 ```
 
 #### 2. 班別模板
+
 ```
 GET    /api/v1/scheduling/:restaurantId/templates
 POST   /api/v1/scheduling/:restaurantId/templates
@@ -231,6 +252,7 @@ DELETE /api/v1/scheduling/templates/:id
 ```
 
 #### 3. 可用員工（Leave Integration）⭐
+
 ```
 GET    /api/v1/scheduling/:restaurantId/available-employees
   ?date=YYYY-MM-DD
@@ -238,12 +260,14 @@ GET    /api/v1/scheduling/:restaurantId/available-employees
 ```
 
 #### 4. 衝突管理
+
 ```
 GET    /api/v1/scheduling/conflicts
 POST   /api/v1/scheduling/conflicts/:id/resolve
 ```
 
 #### 5. 換班申請
+
 ```
 GET    /api/v1/scheduling/swap-requests
 POST   /api/v1/scheduling/:restaurantId/swap-requests
@@ -251,6 +275,7 @@ POST   /api/v1/scheduling/swap-requests/:id/approve
 ```
 
 #### 6. 打卡功能
+
 ```
 POST   /api/v1/scheduling/schedules/:id/clock-in
 POST   /api/v1/scheduling/schedules/:id/clock-out
@@ -259,14 +284,18 @@ POST   /api/v1/scheduling/schedules/:id/clock-out
 ### API 服務層（待創建）
 
 需要創建 `apps/admin-dashboard/src/services/schedulingService.ts`：
+
 ```typescript
 // 範例結構
 export class SchedulingService {
-  async getSchedules(restaurantId: number, filters: any): Promise<Schedule[]>
-  async createSchedule(data: CreateScheduleData): Promise<Schedule>
-  async updateSchedule(id: number, data: UpdateScheduleData): Promise<Schedule>
-  async deleteSchedule(id: number): Promise<void>
-  async getAvailableEmployees(restaurantId: number, date: string): Promise<Employee[]>
+  async getSchedules(restaurantId: number, filters: any): Promise<Schedule[]>;
+  async createSchedule(data: CreateScheduleData): Promise<Schedule>;
+  async updateSchedule(id: number, data: UpdateScheduleData): Promise<Schedule>;
+  async deleteSchedule(id: number): Promise<void>;
+  async getAvailableEmployees(
+    restaurantId: number,
+    date: string,
+  ): Promise<Employee[]>;
   // ... more methods
 }
 ```
@@ -346,6 +375,7 @@ test('Create a new schedule', () => {
    - 路徑: `/dashboard/scheduling`
 
 2. **測試路由訪問**
+
    ```bash
    # 啟動 Admin Dashboard
    cd apps/admin-dashboard
@@ -376,6 +406,7 @@ test('Create a new schedule', () => {
 ### 1. TypeScript 編譯
 
 目前所有元件都使用 TypeScript，但部分類型定義不完整（使用 `any`）。未來需要：
+
 - 定義完整的 `Schedule` interface
 - 定義完整的 `ShiftTemplate` interface
 - 定義完整的 `Conflict` interface
@@ -384,6 +415,7 @@ test('Create a new schedule', () => {
 ### 2. API 整合
 
 目前所有 API 呼叫都是 placeholder（`// TODO: Implement API call`）。實施 Part 6 時需要：
+
 - 創建 `schedulingService.ts`
 - 實作所有 API 方法
 - 處理錯誤和載入狀態
@@ -392,6 +424,7 @@ test('Create a new schedule', () => {
 ### 3. 樣式一致性
 
 目前使用 scoped CSS，未來可考慮：
+
 - 提取共用樣式到 global CSS
 - 使用 CSS 變數統一顏色系統
 - 建立 Design System
@@ -403,11 +436,13 @@ test('Create a new schedule', () => {
 **Part 2: Frontend UI - Vue Components Setup 已完成！**
 
 📦 已創建：
+
 - 1 個主視圖
 - 6 個子元件
 - 1 個路由配置
 
 🎨 實施功能：
+
 - Tab 導航系統
 - 日曆視圖
 - 清單視圖（含搜尋和篩選）
@@ -415,6 +450,7 @@ test('Create a new schedule', () => {
 - 骨架元件
 
 🚀 準備就緒：
+
 - 可以啟動 Admin Dashboard 並訪問 `/dashboard/scheduling`
 - 基礎 UI 框架已搭建完成
 - 可以繼續實施 Part 3-6 功能

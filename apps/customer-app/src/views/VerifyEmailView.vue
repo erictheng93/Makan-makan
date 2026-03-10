@@ -42,10 +42,7 @@
       </div>
 
       <!-- 驗證成功 -->
-      <div
-        v-else-if="success"
-        class="bg-white rounded-2xl shadow-xl p-8"
-      >
+      <div v-else-if="success" class="bg-white rounded-2xl shadow-xl p-8">
         <div class="text-center">
           <div
             class="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4"
@@ -67,7 +64,9 @@
           <h3 class="text-2xl font-bold text-gray-900">Email 驗證成功！</h3>
           <p class="mt-3 text-gray-600">{{ successMessage }}</p>
 
-          <div class="mt-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-lg text-left">
+          <div
+            class="mt-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-lg text-left"
+          >
             <p class="text-sm text-green-800 font-medium">您現在可以：</p>
             <ul class="mt-2 text-sm text-green-700 space-y-1">
               <li>✅ 使用完整的訂餐功能</li>
@@ -95,10 +94,7 @@
       </div>
 
       <!-- 驗證失敗 -->
-      <div
-        v-else
-        class="bg-white rounded-2xl shadow-xl p-8"
-      >
+      <div v-else class="bg-white rounded-2xl shadow-xl p-8">
         <div class="text-center">
           <div
             class="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4"
@@ -120,7 +116,9 @@
           <h3 class="text-xl font-bold text-gray-900">驗證失敗</h3>
           <p class="mt-3 text-gray-600">{{ errorMessage }}</p>
 
-          <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg text-left">
+          <div
+            class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg text-left"
+          >
             <p class="text-sm text-yellow-800 font-medium">可能的原因：</p>
             <ul class="mt-2 text-sm text-yellow-700 space-y-1">
               <li>• 驗證連結已過期（有效期 24 小時）</li>
@@ -136,7 +134,7 @@
               :class="{ 'opacity-50 cursor-not-allowed': resending }"
               @click="resendVerification"
             >
-              {{ resending ? '發送中...' : '重新發送驗證郵件' }}
+              {{ resending ? "發送中..." : "重新發送驗證郵件" }}
             </button>
             <button
               class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
@@ -152,97 +150,97 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { ref, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
 
-const verifying = ref(true)
-const success = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
-const resending = ref(false)
+const verifying = ref(true);
+const success = ref(false);
+const successMessage = ref("");
+const errorMessage = ref("");
+const resending = ref(false);
 
 const verifyEmail = async (token: string) => {
   try {
-    const response = await fetch(`/api/v1/auth/verify-email?token=${token}`)
-    const data = await response.json()
+    const response = await fetch(`/api/v1/auth/verify-email?token=${token}`);
+    const data = await response.json();
 
     if (data.success) {
-      success.value = true
-      successMessage.value = data.message || 'Email 驗證成功！'
+      success.value = true;
+      successMessage.value = data.message || "Email 驗證成功！";
 
       // If user is logged in, refresh their profile
       if (authStore.isAuthenticated) {
-        await authStore.fetchUserProfile()
+        await authStore.fetchUserProfile();
       }
     } else {
-      errorMessage.value = data.error || 'Email 驗證失敗'
+      errorMessage.value = data.error || "Email 驗證失敗";
     }
   } catch (err) {
-    console.error('Verify email error:', err)
-    errorMessage.value = '驗證過程中發生錯誤，請稍後再試'
+    console.error("Verify email error:", err);
+    errorMessage.value = "驗證過程中發生錯誤，請稍後再試";
   } finally {
-    verifying.value = false
+    verifying.value = false;
   }
-}
+};
 
 const resendVerification = async () => {
   if (!authStore.isAuthenticated || !authStore.user?.email) {
-    router.push('/login')
-    return
+    router.push("/login");
+    return;
   }
 
-  resending.value = true
+  resending.value = true;
 
   try {
-    const response = await fetch('/api/v1/auth/verify-email/send', {
-      method: 'POST',
+    const response = await fetch("/api/v1/auth/verify-email/send", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${authStore.token}`,
       },
       body: JSON.stringify({
         email: authStore.user.email,
       }),
-    })
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
     if (data.success) {
-      alert('驗證郵件已重新發送，請檢查您的郵箱')
+      alert("驗證郵件已重新發送，請檢查您的郵箱");
     } else {
-      alert(data.error || '發送失敗，請稍後再試')
+      alert(data.error || "發送失敗，請稍後再試");
     }
   } catch (err) {
-    console.error('Resend verification error:', err)
-    alert('發送失敗，請檢查網路連線')
+    console.error("Resend verification error:", err);
+    alert("發送失敗，請檢查網路連線");
   } finally {
-    resending.value = false
+    resending.value = false;
   }
-}
+};
 
 const handleContinue = () => {
   // If user is logged in, go to orders page, otherwise go to login
   if (authStore.isAuthenticated) {
-    router.push('/orders')
+    router.push("/orders");
   } else {
-    router.push('/login')
+    router.push("/login");
   }
-}
+};
 
 onMounted(() => {
-  const token = route.query.token as string
+  const token = route.query.token as string;
 
   if (!token) {
-    errorMessage.value = '缺少驗證 Token'
-    verifying.value = false
-    return
+    errorMessage.value = "缺少驗證 Token";
+    verifying.value = false;
+    return;
   }
 
-  verifyEmail(token)
-})
+  verifyEmail(token);
+});
 </script>

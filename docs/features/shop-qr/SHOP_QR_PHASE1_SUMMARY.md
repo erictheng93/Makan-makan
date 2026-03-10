@@ -17,6 +17,7 @@
 #### ✅ Migration 文件: `0033_shop_level_qr.sql`
 
 **新增字段到 `restaurants` 表:**
+
 ```sql
 shop_qr_code TEXT UNIQUE                    -- 店家 QR Code (格式: SHOP-{id}-{timestamp})
 shop_qr_code_image_url TEXT                 -- QR Code 图片 URL
@@ -26,11 +27,13 @@ shop_qr_version INTEGER NOT NULL DEFAULT 1  -- QR Code 版本号
 ```
 
 **新增字段到 `orders` 表:**
+
 ```sql
 order_type TEXT DEFAULT 'table'             -- 订单类型: shop | table | seat
 ```
 
 **向后兼容方案:**
+
 - 为每个餐厅创建虚拟表 `SHOP-VIRTUAL`
 - 满足 `orders.table_id NOT NULL` 约束
 - 保持数据完整性
@@ -44,6 +47,7 @@ order_type TEXT DEFAULT 'table'             -- 订单类型: shop | table | seat
 #### ✅ Restaurants Schema (`packages/database/src/schema/restaurants.ts`)
 
 **新增字段 (行 42-51):**
+
 ```typescript
 shopQrCode: text('shop_qr_code').unique(),
 shopQrCodeImageUrl: text('shop_qr_code_image_url'),
@@ -59,6 +63,7 @@ shopQrVersion: integer('shop_qr_version').notNull().default(1),
 #### ✅ Orders Schema (`packages/database/src/schema/orders.ts`)
 
 **新增字段 (行 44, 54-62):**
+
 ```typescript
 orderType: text('order_type').$type<'shop' | 'table' | 'seat'>().default('table'),
 
@@ -76,6 +81,7 @@ customerInfo: text('customer_info', { mode: 'json' }).$type<{
 #### ✅ Shared Types (`packages/shared-types/src/restaurant.ts`)
 
 **新增接口 (行 27-39):**
+
 ```typescript
 export interface Restaurant extends BaseEntity {
   // ... 现有字段
@@ -103,6 +109,7 @@ export interface ShopQrSettings {
 #### ✅ 新增 7 个方法
 
 ##### 1. `generateShopQrCode(restaurantId)`
+
 ```typescript
 // 生成店家 QR Code
 // 格式: SHOP-{restaurantId}-{timestamp}
@@ -110,6 +117,7 @@ export interface ShopQrSettings {
 ```
 
 ##### 2. `regenerateShopQrCode(restaurantId)`
+
 ```typescript
 // 重新生成 QR Code（用于安全泄露场景）
 // 版本号自动递增
@@ -117,6 +125,7 @@ export interface ShopQrSettings {
 ```
 
 ##### 3. `verifyShopQrCode(qrCode)`
+
 ```typescript
 // 验证 QR Code 有效性
 // 检查格式和数据库记录
@@ -124,12 +133,14 @@ export interface ShopQrSettings {
 ```
 
 ##### 4. `getRestaurantByShopQrCode(qrCode)`
+
 ```typescript
 // 通过 QR Code 获取餐厅信息
 // 返回: Restaurant | null
 ```
 
 ##### 5. `updateShopMode(restaurantId, enabled, settings?)`
+
 ```typescript
 // 启用/禁用店家模式
 // 自动生成 QR Code（如果需要）
@@ -137,12 +148,14 @@ export interface ShopQrSettings {
 ```
 
 ##### 6. `getShopQrCodeInfo(restaurantId)`
+
 ```typescript
 // 获取完整的店家 QR 信息
 // 返回: { enabled, qrCode, qrCodeImageUrl, version, settings }
 ```
 
 ##### 7. `updateShopQrCodeImage(restaurantId, imageUrl)`
+
 ```typescript
 // 更新 QR Code 图片 URL
 // 返回: void
@@ -157,26 +170,31 @@ export interface ShopQrSettings {
 **文件:** `apps/api/src/features/restaurants/routes/index.ts` (行 322-537)
 
 ##### 1. POST `/api/v1/restaurants/:id/qr/shop/generate`
+
 - **认证:** Admin, Shop Owner
 - **功能:** 生成店家 QR Code
 - **响应:** `{ qrCode, qrCodeImageUrl, version }`
 
 ##### 2. POST `/api/v1/restaurants/:id/qr/shop/regenerate`
+
 - **认证:** Admin, Shop Owner
 - **功能:** 重新生成 QR Code
 - **响应:** `{ qrCode, qrCodeImageUrl, version }`
 
 ##### 3. GET `/api/v1/restaurants/:id/qr/shop`
+
 - **认证:** Admin, Shop Owner
 - **功能:** 获取 QR Code 信息
 - **响应:** `{ enabled, qrCode, qrCodeImageUrl, version, settings }`
 
 ##### 4. POST `/api/v1/restaurants/:id/qr/shop/upload-image`
+
 - **认证:** Admin, Shop Owner
 - **请求体:** `{ imageUrl: string }`
 - **功能:** 上传 QR Code 图片
 
 ##### 5. PUT `/api/v1/restaurants/:id/shop-mode`
+
 - **认证:** Admin, Shop Owner
 - **请求体:** `{ enabled: boolean, settings?: ShopQrSettings }`
 - **功能:** 启用/禁用店家模式
@@ -186,6 +204,7 @@ export interface ShopQrSettings {
 **文件:** `apps/api/src/features/qr-codes/routes/index.ts` (行 317-359)
 
 ##### 6. GET `/api/v1/qr-codes/verify/shop/:qrCode`
+
 - **认证:** 无（公开端点）
 - **功能:** 验证店家 QR Code
 - **响应:** `{ valid, restaurantId, restaurant }`
@@ -197,32 +216,34 @@ export interface ShopQrSettings {
 #### ✅ Restaurants Validation (`apps/api/src/features/restaurants/schemas/validation.ts`)
 
 **新增 schemas (行 140-167):**
+
 ```typescript
-shopQrSettingsSchema    // 店家设置验证
-updateShopModeSchema    // 店家模式更新验证
-uploadQrImageSchema     // 图片上传验证
-qrCodeParam            // QR Code 参数验证
+shopQrSettingsSchema; // 店家设置验证
+updateShopModeSchema; // 店家模式更新验证
+uploadQrImageSchema; // 图片上传验证
+qrCodeParam; // QR Code 参数验证
 ```
 
 #### ✅ QR Codes Validation (`apps/api/src/features/qr-codes/schemas/validation.ts`)
 
 **新增 schema (行 54-58):**
+
 ```typescript
-shopQrCodeParam        // Shop QR Code 格式验证: /^SHOP-\d+-\d+$/
+shopQrCodeParam; // Shop QR Code 格式验证: /^SHOP-\d+-\d+$/
 ```
 
 ---
 
 ## 📊 代码统计
 
-| 类别 | 文件数 | 新增行数 | 备注 |
-|------|--------|----------|------|
-| Database Migrations | 1 | ~80 | 包含向后兼容方案 |
-| TypeScript Schemas | 3 | ~60 | restaurants, orders, shared-types |
-| Service Layer | 1 | ~237 | 7个新方法 + 文档 |
-| API Routes | 2 | ~250 | 5个认证端点 + 1个公开端点 |
-| Validation Schemas | 2 | ~40 | Zod 验证规则 |
-| **总计** | **9** | **~667** | **纯业务逻辑代码** |
+| 类别                | 文件数 | 新增行数 | 备注                              |
+| ------------------- | ------ | -------- | --------------------------------- |
+| Database Migrations | 1      | ~80      | 包含向后兼容方案                  |
+| TypeScript Schemas  | 3      | ~60      | restaurants, orders, shared-types |
+| Service Layer       | 1      | ~237     | 7个新方法 + 文档                  |
+| API Routes          | 2      | ~250     | 5个认证端点 + 1个公开端点         |
+| Validation Schemas  | 2      | ~40      | Zod 验证规则                      |
+| **总计**            | **9**  | **~667** | **纯业务逻辑代码**                |
 
 ---
 
@@ -255,21 +276,25 @@ shopQrCodeParam        // Shop QR Code 格式验证: /^SHOP-\d+-\d+$/
 ## 🎨 设计亮点
 
 ### 1. 向后兼容性 ✨
+
 - 创建虚拟表 `SHOP-VIRTUAL` 满足 NOT NULL 约束
 - 无需修改现有订单逻辑
 - 平滑迁移路径
 
 ### 2. 灵活的设置系统 ⚙️
+
 - JSON 存储的 `shopQrSettings`
 - 支持未来扩展
 - 餐厅级别自定义
 
 ### 3. 版本追踪 📌
+
 - `shopQrVersion` 字段
 - 支持 QR Code 更新历史
 - 便于故障排查
 
 ### 4. 手机验证方案 📱
+
 - `phoneLastDigits` 字段（手机后3位）
 - 简单有效的客户验证
 - 无需登录系统
@@ -279,6 +304,7 @@ shopQrCodeParam        // Shop QR Code 格式验证: /^SHOP-\d+-\d+$/
 ## 🧪 测试建议
 
 ### API 测试脚本已创建
+
 - **文件:** `test-shop-qr-endpoints.sh`
 - **测试内容:**
   - 登录认证
@@ -290,6 +316,7 @@ shopQrCodeParam        // Shop QR Code 格式验证: /^SHOP-\d+-\d+$/
   - 重新生成 QR Code
 
 ### 手动测试步骤
+
 ```bash
 # 1. 登录获取 token
 curl -X POST http://localhost:8787/api/v1/auth/login \
@@ -322,6 +349,7 @@ curl -X PUT http://localhost:8787/api/v1/restaurants/1/shop-mode \
 ## 📝 使用场景
 
 ### 🍗 场景 1: 鸡排摊老板
+
 ```
 1. 老板登录 Admin Dashboard
 2. 启用店家模式
@@ -332,6 +360,7 @@ curl -X PUT http://localhost:8787/api/v1/restaurants/1/shop-mode \
 ```
 
 ### 🥤 场景 2: 饮料店
+
 ```
 1. 店家设置展示名称和说明
 2. 生成专属 QR Code
@@ -341,6 +370,7 @@ curl -X PUT http://localhost:8787/api/v1/restaurants/1/shop-mode \
 ```
 
 ### 🛡️ 场景 3: QR Code 泄露
+
 ```
 1. 发现 QR Code 被滥用
 2. 点击"重新生成"按钮
@@ -375,16 +405,16 @@ curl -X PUT http://localhost:8787/api/v1/restaurants/1/shop-mode \
 
 ## ✅ Phase 1 验收标准
 
-| 验收项 | 状态 | 备注 |
-|--------|------|------|
-| 数据库 Migration 完成 | ✅ | 0033_shop_level_qr.sql |
-| TypeScript Schemas 更新 | ✅ | 3个文件已更新 |
-| RestaurantService 新增方法 | ✅ | 7个方法已实现 |
-| API Endpoints 创建 | ✅ | 6个端点已添加 |
-| Validation Schemas 完成 | ✅ | Zod 验证已添加 |
-| 代码无 TypeScript 错误 | ✅ | 0 compilation errors |
-| API 服务器正常运行 | ✅ | localhost:8787 |
-| 测试脚本已创建 | ✅ | test-shop-qr-endpoints.sh |
+| 验收项                     | 状态 | 备注                      |
+| -------------------------- | ---- | ------------------------- |
+| 数据库 Migration 完成      | ✅   | 0033_shop_level_qr.sql    |
+| TypeScript Schemas 更新    | ✅   | 3个文件已更新             |
+| RestaurantService 新增方法 | ✅   | 7个方法已实现             |
+| API Endpoints 创建         | ✅   | 6个端点已添加             |
+| Validation Schemas 完成    | ✅   | Zod 验证已添加            |
+| 代码无 TypeScript 错误     | ✅   | 0 compilation errors      |
+| API 服务器正常运行         | ✅   | localhost:8787            |
+| 测试脚本已创建             | ✅   | test-shop-qr-endpoints.sh |
 
 ---
 

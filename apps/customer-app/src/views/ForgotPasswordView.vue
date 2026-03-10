@@ -36,7 +36,9 @@
             />
           </svg>
           <div>
-            <p class="text-sm font-medium text-green-800">{{ successMessage }}</p>
+            <p class="text-sm font-medium text-green-800">
+              {{ successMessage }}
+            </p>
             <p class="text-xs text-green-700 mt-1">
               請檢查您的郵箱，連結有效期限為 15 分鐘
             </p>
@@ -127,7 +129,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>{{ isLoading ? '發送中...' : '發送重設連結' }}</span>
+              <span>{{ isLoading ? "發送中..." : "發送重設連結" }}</span>
             </button>
           </div>
 
@@ -157,75 +159,75 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
 
-const _router = useRouter()
+const _router = useRouter();
 
 const form = reactive({
-  email: '',
-})
+  email: "",
+});
 
 const errors = reactive({
-  email: '',
-})
+  email: "",
+});
 
-const error = ref('')
-const success = ref(false)
-const successMessage = ref('')
-const isLoading = ref(false)
+const error = ref("");
+const success = ref(false);
+const successMessage = ref("");
+const isLoading = ref(false);
 
 const validateForm = () => {
-  errors.email = ''
-  let isValid = true
+  errors.email = "";
+  let isValid = true;
 
   // Email 驗證
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!form.email) {
-    errors.email = '請輸入 Email 地址'
-    isValid = false
+    errors.email = "請輸入 Email 地址";
+    isValid = false;
   } else if (!emailRegex.test(form.email)) {
-    errors.email = '請輸入有效的 Email 地址'
-    isValid = false
+    errors.email = "請輸入有效的 Email 地址";
+    isValid = false;
   }
 
-  return isValid
-}
+  return isValid;
+};
 
 const handleSubmit = async () => {
-  error.value = ''
+  error.value = "";
 
   if (!validateForm()) {
-    return
+    return;
   }
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
-    const response = await fetch('/api/v1/auth/forgot-password', {
-      method: 'POST',
+    const response = await fetch("/api/v1/auth/forgot-password", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         identifier: form.email,
-        method: 'email',
+        method: "email",
       }),
-    })
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
     if (data.success) {
-      success.value = true
-      successMessage.value = data.message || '重設連結已發送至您的 Email'
+      success.value = true;
+      successMessage.value = data.message || "重設連結已發送至您的 Email";
     } else {
-      error.value = data.error || '發送重設連結失敗，請稍後再試'
+      error.value = data.error || "發送重設連結失敗，請稍後再試";
     }
   } catch (err) {
-    console.error('Forgot password error:', err)
-    error.value = '網路錯誤，請檢查您的網路連線'
+    console.error("Forgot password error:", err);
+    error.value = "網路錯誤，請檢查您的網路連線";
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 </script>

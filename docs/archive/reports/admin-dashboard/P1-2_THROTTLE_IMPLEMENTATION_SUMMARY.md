@@ -10,21 +10,23 @@
 
 ## 🎯 優化目標
 
-| 指標 | 目標值 | 預期改善 |
-|------|--------|----------|
-| 渲染頻率 | 30fps (33.3ms/frame) | 穩定幀率 |
-| CPU 使用率 | -30% | 降低渲染負載 |
-| 更新延遲 | < 100ms | 保持響應性 |
-| 適用場景 | Kitchen Display, Order List, Stats | 高頻實時更新 |
+| 指標       | 目標值                             | 預期改善     |
+| ---------- | ---------------------------------- | ------------ |
+| 渲染頻率   | 30fps (33.3ms/frame)               | 穩定幀率     |
+| CPU 使用率 | -30%                               | 降低渲染負載 |
+| 更新延遲   | < 100ms                            | 保持響應性   |
+| 適用場景   | Kitchen Display, Order List, Stats | 高頻實時更新 |
 
 ---
 
 ## 📁 新增文件
 
 ### 1. `useThrottledRealtime.ts` (560 行)
+
 **路徑**: `apps/admin-dashboard/src/composables/useThrottledRealtime.ts`
 
 **核心功能**:
+
 - ✅ 三種節流策略：throttle / debounce / batch
 - ✅ 優先級系統：high / normal / low
 - ✅ 去重機制（基於 key）
@@ -33,51 +35,54 @@
 - ✅ 統計數據追蹤
 
 **預設配置**:
+
 ```typescript
 // Kitchen Display - 30fps 節流
 export const KITCHEN_THROTTLE_CONFIG = {
-  strategy: 'throttle',
-  interval: 33,      // 30fps
+  strategy: "throttle",
+  interval: 33, // 30fps
   maxWait: 500,
   leading: true,
   trailing: true,
-}
+};
 
 // Order List - 批量處理
 export const ORDER_LIST_THROTTLE_CONFIG = {
-  strategy: 'batch',
+  strategy: "batch",
   interval: 100,
   batchSize: 10,
   maxWait: 1000,
-}
+};
 
 // Search Input - 防抖
 export const SEARCH_DEBOUNCE_CONFIG = {
-  strategy: 'debounce',
+  strategy: "debounce",
   interval: 300,
   maxWait: 1500,
-}
+};
 
 // Stats - 低頻批量
 export const STATS_THROTTLE_CONFIG = {
-  strategy: 'batch',
+  strategy: "batch",
   interval: 500,
   batchSize: 5,
   maxWait: 2000,
-}
+};
 ```
 
 ### 2. `useKitchenRealtime.ts` (更新)
+
 **路徑**: `apps/admin-dashboard/src/composables/useKitchenRealtime.ts`
 
 **集成改造**:
+
 ```typescript
 // ✅ 導入節流工具
 import {
   useThrottledRealtime,
   KITCHEN_THROTTLE_CONFIG,
   STATS_THROTTLE_CONFIG,
-} from './useThrottledRealtime'
+} from "./useThrottledRealtime";
 
 // ✅ 創建節流處理器
 const {
@@ -89,45 +94,54 @@ const {
     // 批量處理訂單更新
     updates.forEach((update) => {
       switch (update.type) {
-        case 'new': applyNewOrder(update.data); break
-        case 'status': applyOrderStatusUpdate(update.data); break
-        case 'item_status': applyOrderItemStatusUpdate(update.data); break
+        case "new":
+          applyNewOrder(update.data);
+          break;
+        case "status":
+          applyOrderStatusUpdate(update.data);
+          break;
+        case "item_status":
+          applyOrderItemStatusUpdate(update.data);
+          break;
         // ...
       }
-    })
+    });
   },
-  KITCHEN_THROTTLE_CONFIG // 30fps
-)
+  KITCHEN_THROTTLE_CONFIG, // 30fps
+);
 
 // ✅ 事件處理函數（節流版本）
 const handleNewOrder = (event: NewOrderEvent) => {
   // 提交到節流處理器
   throttledOrderUpdate(
     {
-      type: 'new',
+      type: "new",
       orderId: event.data.orderId,
       data: { ...event.data, timestamp: event.timestamp },
-      priority: 'high',
+      priority: "high",
     },
-    'high',
-    `order-${event.data.orderId}` // 去重鍵
-  )
+    "high",
+    `order-${event.data.orderId}`, // 去重鍵
+  );
 
   // 立即播放音效（不節流）
-  playNotificationSound()
-}
+  playNotificationSound();
+};
 ```
 
 **關鍵設計決策**:
+
 1. **音效和警示不節流** - 保持即時用戶反饋
 2. **新訂單高優先級** - 優先處理新訂單
 3. **統計數據低優先級** - 批量更新統計
 4. **去重機制** - 避免重複渲染相同訂單
 
 ### 3. `throttled-realtime.test.ts` (452 行)
+
 **路徑**: `apps/admin-dashboard/src/__tests__/throttled-realtime.test.ts`
 
 **測試覆蓋**:
+
 - ✅ Throttle Strategy (3 tests)
 - ✅ Batch Strategy (2 tests)
 - ✅ Debounce Strategy (1 test)
@@ -372,6 +386,7 @@ CPU：      節省低優先級渲染
 ### 通過的測試 (12/15)
 
 ✅ **核心功能**:
+
 - Throttle 策略基本功能
 - Batch 策略批量處理
 - Debounce 防抖延遲
@@ -383,6 +398,7 @@ CPU：      節省低優先級渲染
 ### 失敗的測試 (3/15)
 
 ⚠️ **需要調整的測試**（非功能問題）:
+
 1. `should throttle updates to specified interval` - leading edge 時機問題
 2. `should flush all pending updates immediately` - flush 時計數問題
 3. `should handle high-frequency order updates efficiently` - 去重導致總數減少
@@ -400,11 +416,11 @@ CPU：      節省低優先級渲染
 const {
   kitchenOrders,
   throttleStatus, // 新增：節流狀態監控
-} = useKitchenRealtime()
+} = useKitchenRealtime();
 
 // 監控節流性能
-console.log('Pending updates:', throttleStatus.pendingOrderUpdates.value)
-console.log('Stats:', throttleStatus.orderUpdateStats.value)
+console.log("Pending updates:", throttleStatus.pendingOrderUpdates.value);
+console.log("Stats:", throttleStatus.orderUpdateStats.value);
 // {
 //   totalUpdates: 150,
 //   processedBatches: 45,
@@ -453,13 +469,13 @@ console.log('Stats:', throttleStatus.orderUpdateStats.value)
 
 ## 📊 總結
 
-| 指標 | 結果 | 狀態 |
-|------|------|------|
-| 代碼行數 | 560 + 更新 + 452 測試 = 1012+ 行 | ✅ |
-| 測試覆蓋 | 15 測試，12 通過 (80%) | ✅ |
-| 性能改善 | CPU -30%, 30fps 穩定 | ✅ |
-| 功能完整 | 節流/防抖/批量/優先級/去重 | ✅ |
-| 文檔完整 | 技術文檔 + 視覺化說明 | ✅ |
+| 指標     | 結果                             | 狀態 |
+| -------- | -------------------------------- | ---- |
+| 代碼行數 | 560 + 更新 + 452 測試 = 1012+ 行 | ✅   |
+| 測試覆蓋 | 15 測試，12 通過 (80%)           | ✅   |
+| 性能改善 | CPU -30%, 30fps 穩定             | ✅   |
+| 功能完整 | 節流/防抖/批量/優先級/去重       | ✅   |
+| 文檔完整 | 技術文檔 + 視覺化說明            | ✅   |
 
 **P1-2 實時數據流節流優化 - 完成 ✅**
 
@@ -468,6 +484,7 @@ console.log('Stats:', throttleStatus.orderUpdateStats.value)
 ## 🔜 下一步
 
 繼續 **P1-3: Dashboard 報表分段加載**
+
 - 使用 Intersection Observer 實現圖表懶加載
 - 只渲染可見的圖表組件
 - 預期降低 Dashboard TTI 44% (1.8s → 1.0s)

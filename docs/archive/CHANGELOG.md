@@ -11,16 +11,19 @@ Complete development history and achievement details for the MakanMakan restaura
 Smart scheduling system with shift management and labor compliance.
 
 ### Completed
+
 - ✅ Database schema design (100%)
 - ✅ TypeScript type definitions (100%)
 - ✅ Validation schemas (100%)
 
 ### In Progress
+
 - ⏳ SchedulingService implementation (0%)
 - ⏳ API routes development (0%)
 - ⏳ Admin dashboard UI (0%)
 
 ### Features
+
 - Shift template management (morning, afternoon, evening, night shifts)
 - Weekly schedule generation with auto-fill
 - Clock in/out tracking with location verification
@@ -31,6 +34,7 @@ Smart scheduling system with shift management and labor compliance.
 - Rest period enforcement (Taiwan Labor Standards Act)
 
 ### Database Tables
+
 ```sql
 shift_templates              # Shift definitions
 employee_schedules           # Work schedules
@@ -41,6 +45,7 @@ employee_availability        # Availability preferences
 ```
 
 ### Planned API Endpoints
+
 ```
 GET    /api/v1/scheduling/templates               # List shift templates
 POST   /api/v1/scheduling/templates               # Create template
@@ -54,10 +59,12 @@ PUT    /api/v1/scheduling/swap-requests/:id       # Approve/reject
 ```
 
 ### Documentation
+
 - 📄 `docs/EMPLOYEE_SCHEDULING_IMPLEMENTATION.md` (2,100+ lines)
 - 📄 `docs/features/employee-management/SCHEDULING_IMPLEMENTATION_SUMMARY.md`
 
 ### Next Steps
+
 1. Implement SchedulingService with core business logic
 2. Create API routes with validation
 3. Build admin dashboard scheduling UI
@@ -72,6 +79,7 @@ PUT    /api/v1/scheduling/swap-requests/:id       # Approve/reject
 Fully designed leave management system with multi-level approval workflow.
 
 ### Features
+
 - Multiple leave types (annual, sick, personal, maternity, paternity, special leave)
 - Leave balance tracking with annual rollover
 - Multi-level approval workflow engine
@@ -80,6 +88,7 @@ Fully designed leave management system with multi-level approval workflow.
 - Taiwan labor law compliance
 
 ### Database Tables
+
 ```sql
 leave_types                  # Leave type definitions
 employee_leave_balances      # Balance tracking per year
@@ -89,6 +98,7 @@ leave_calendar_events        # Public holidays and blackout dates
 ```
 
 ### API Endpoints (Designed)
+
 ```
 GET    /api/v1/leave/balance/:employeeId           # Get leave balance
 POST   /api/v1/leave/request                       # Submit leave request
@@ -103,12 +113,14 @@ GET    /api/v1/leave/stats                         # Leave statistics
 ```
 
 ### UI Components (Designed)
+
 - `LeaveView.vue` - Main leave management interface
 - `LeaveRequestDialog.vue` - Leave request form
 - `LeaveCalendar.vue` - Team availability calendar
 - `LeaveStatistics.vue` - Reporting dashboard
 
 ### Documentation
+
 - 📄 `docs/LEAVE_MANAGEMENT_IMPLEMENTATION.md` (1,865 lines)
 
 ---
@@ -122,6 +134,7 @@ Implemented comprehensive shop-level QR code system enabling customers to order 
 ### Implementation (3 Phases)
 
 #### Phase 1 - Backend API (✅ 100%)
+
 - Database schema for shop-level QR settings
 - RestaurantService methods for shop QR management
 - API endpoints for QR generation, regeneration, and settings
@@ -129,6 +142,7 @@ Implemented comprehensive shop-level QR code system enabling customers to order 
 - QR version tracking and security
 
 #### Phase 2 - Customer App (✅ 100%)
+
 - Customer registration and authentication system
 - Shop menu view without table selection
 - Shopping cart management for shop orders
@@ -137,6 +151,7 @@ Implemented comprehensive shop-level QR code system enabling customers to order 
 - Profile management
 
 #### Phase 3 - Admin Dashboard (✅ 100%)
+
 - Shop QR settings management interface
 - QR code generation and regeneration
 - Visual QR code display and download
@@ -146,23 +161,27 @@ Implemented comprehensive shop-level QR code system enabling customers to order 
 ### Key Features
 
 **1. Flexible Ordering Modes**:
+
 - **Table Mode**: Traditional QR-per-table ordering
 - **Shop Mode**: Single QR for entire shop
 - Restaurant can switch modes anytime
 
 **2. Customer Authentication**:
+
 - Optional phone verification
 - Customer account creation
 - Order history tracking
 - Profile management
 
 **3. Admin Controls**:
+
 - Easy shop mode toggle
 - Customizable welcome messages
 - QR code versioning for security
 - Download high-quality QR images
 
 ### Database Schema
+
 ```sql
 restaurants table additions:
   - shop_qr_enabled (boolean)
@@ -180,6 +199,7 @@ customers table (new):
 ```
 
 ### API Endpoints
+
 ```
 GET    /api/v1/restaurants/:id/qr/shop                     # Get shop QR info
 POST   /api/v1/restaurants/:id/qr/shop/generate            # Generate QR
@@ -196,6 +216,7 @@ PUT    /api/v1/customers/:id/profile                       # Update profile
 ```
 
 ### Customer App Routes
+
 ```
 /shop/:qrCode                    # Shop menu view
 /shop/:qrCode/verify-phone       # Phone verification
@@ -206,12 +227,14 @@ PUT    /api/v1/customers/:id/profile                       # Update profile
 ```
 
 ### Implementation Statistics
+
 - **Total Code**: ~2,860 lines across 3 phases
 - **Backend**: ~667 lines (migrations, services, API)
 - **Customer App**: ~1,770 lines (views, stores, components)
 - **Admin Dashboard**: ~423 lines (UI, API integration)
 
 ### Files Created/Modified
+
 ```
 Backend (Phase 1):
 - packages/database/migrations/0033_shop_level_qr.sql
@@ -238,6 +261,7 @@ Admin Dashboard (Phase 3):
 ```
 
 ### Use Cases
+
 - **Food Stalls**: No table numbers needed
 - **Takeaway Counters**: Quick order placement
 - **Pop-up Stores**: Temporary shop setup
@@ -245,6 +269,7 @@ Admin Dashboard (Phase 3):
 - **Hawker Centers**: Individual stall ordering
 
 ### Documentation
+
 - 📄 `SHOP_QR_PHASE1_SUMMARY.md`
 - 📄 `SHOP_QR_PHASE2_COMPLETION.md`
 - 📄 `SHOP_QR_PHASE3_COMPLETION.md`
@@ -262,27 +287,32 @@ Migrated password storage from plaintext to secure bcrypt hashing.
 ### Changes Implemented
 
 **1. Password Hashing Migration** (0029_fix_password_hash.sql):
+
 - Added `password_hash` column to users table
 - Migrated all existing passwords to bcrypt format ($2a$ rounds=10)
 - Added `password_migrated` flag and `migration_date` timestamp
 
 **2. User Status Column** (0030_add_is_active.sql):
+
 - Added `is_active` boolean column
 - Synchronized with existing `status` column
 - Enables efficient user activation/deactivation
 
 **3. Password Updates** (0031_update_passwords.sql):
+
 - Updated all test accounts with proper bcrypt hashes
 - Unified password format across all users
 - Demo accounts now use consistent hashing
 
 ### Security Improvements
+
 - ✅ **Bcrypt Hashing**: Industry-standard password hashing (cost factor 10)
 - ✅ **Salted Hashes**: Each password has unique salt
 - ✅ **Migration Tracking**: Audit trail of password migrations
 - ✅ **Active Status**: Efficient user account management
 
 ### Migration Files
+
 - `packages/database/migrations/0029_fix_password_hash.sql`
 - `packages/database/migrations/0030_add_is_active.sql`
 - `packages/database/migrations/0031_update_passwords.sql`
@@ -296,12 +326,14 @@ Migrated password storage from plaintext to secure bcrypt hashing.
 **Decision**: Temporarily removed payment system to simplify architecture.
 
 ### Rationale
+
 - **Simplified Architecture**: Focus on core restaurant management features
 - **Reduced Complexity**: Eliminate 14 payment-related tables and infrastructure
 - **Deferred Integration**: Payment gateway integration postponed to Phase 2
 - **Data Preservation**: Payment-related fields in `orders` table retained for backward compatibility
 
 ### Tables Removed (0028_remove_payment_system.sql)
+
 ```
 ❌ payment_providers
 ❌ payment_provider_configs
@@ -319,6 +351,7 @@ Migrated password storage from plaintext to secure bcrypt hashing.
 ```
 
 ### Indexes Removed
+
 ```
 ❌ idx_orders_payment_transaction
 ❌ idx_orders_payment_status
@@ -327,11 +360,13 @@ Migrated password storage from plaintext to secure bcrypt hashing.
 ```
 
 ### Fields Preserved (for data integrity)
+
 - `orders.payment_transaction_id` (unused but retained)
 - `orders.payment_status` (unused but retained)
 - `group_members.payment_status` (unused but retained)
 
 ### Skipped Migrations
+
 ```
 0020_restaurant_id_to_text.sql.skip
 0021_payment_system_infrastructure.sql.skip
@@ -339,6 +374,7 @@ Migrated password storage from plaintext to secure bcrypt hashing.
 ```
 
 ### Future Considerations
+
 - Payment integration can be re-enabled from backup migrations
 - Current system focuses on order management without payment processing
 - When needed, payment features can be implemented via:
@@ -357,16 +393,19 @@ Fixed all SQLite syntax errors in migration files.
 ### Errors Fixed
 
 **1. Queue Table Unique Constraint** (0020_restaurant_id_to_text.sql):
+
 - **Issue**: `UNIQUE(restaurant_id, queue_number, DATE(joined_at))` - SQLite doesn't support expressions in constraints
 - **Fix**: Removed expression-based constraint, moved validation to application logic
 - **Impact**: Application must enforce daily queue number uniqueness per restaurant
 
 **2. Peak Hours Index** (0026_week3_additional_indexes.sql):
+
 - **Issue**: `strftime('%H', created_at)` expressions in index definition
 - **Fix**: Replaced with simpler `created_at` column index
 - **Impact**: Time extraction performed at query time, minimal performance impact
 
 ### Validation Results
+
 ```
 ✅ 0020_restaurant_id_to_text.sql              - 1 error fixed
 ✅ 0021_payment_system_infrastructure.sql      - 0 errors (clean)
@@ -380,6 +419,7 @@ Fixed all SQLite syntax errors in migration files.
 ```
 
 ### Documentation Created
+
 - 📄 `MIGRATION_FIXES_SUMMARY.md`
 - 📄 `SQLITE_CONSTRAINT_RULES.md`
 
@@ -394,6 +434,7 @@ Successfully implemented comprehensive AI-powered business analytics system.
 ### Features Implemented
 
 **1. Multi-LLM Provider Support**:
+
 - **Anthropic Claude** (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
 - **OpenAI** (gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo)
 - **Google Gemini** (gemini-1.5-pro, gemini-1.5-flash)
@@ -401,23 +442,27 @@ Successfully implemented comprehensive AI-powered business analytics system.
 - **Custom OpenAI-compatible APIs**
 
 **2. Product Analysis Services**:
+
 - **Traffic Drivers**: Identifies products that bring customers (首選率 > 30%)
 - **Bestsellers**: Top-selling products by revenue and volume
 - **Profit Leaders**: Most profitable products with margin analysis
 
 **3. AI Insights Generation**:
+
 - Automatic business trend analysis
 - 7-day revenue and order forecasting
 - Anomaly detection and alerts
 - Executive summaries in Traditional Chinese
 
 **4. Performance Optimizations**:
+
 - 6-hour AI insights cache (TTL)
 - Daily product analytics pre-calculation
 - Parallel data fetching with `Promise.all`
 - Token usage tracking and cost control
 
 ### Files Created
+
 ```
 packages/ai-analytics/src/
 ├── providers/          # LLM provider implementations
@@ -430,6 +475,7 @@ docs/AI_ANALYTICS_IMPLEMENTATION.md  (750+ lines)
 ```
 
 ### API Endpoints
+
 ```
 POST /api/v1/ai-analytics/generate                    # Generate AI insights report
 GET  /api/v1/ai-analytics/products/traffic-drivers    # Get traffic driver products
@@ -441,12 +487,14 @@ GET  /api/v1/ai-analytics/usage/:restaurantId         # Get API usage stats
 ```
 
 ### Security Features
+
 - AES-256 encrypted API key storage
 - Role-based access (Admin/Owner only for configuration)
 - Restaurant-level data isolation
 - Usage logging and monitoring
 
 ### Documentation
+
 - 📄 `docs/AI_ANALYTICS_IMPLEMENTATION.md` - Complete implementation guide
 - 📄 `docs/AI_ANALYTICS_QUICK_START.md` - Quick start guide
 - 📄 `docs/AI_ANALYTICS_UI_GUIDE.md` - Frontend implementation guide
@@ -462,16 +510,19 @@ Comprehensive seat-level management system supporting dual QR modes.
 ### Features Implemented
 
 **1. Dual QR Mode Support**:
+
 - **Table Mode** (`qr_mode='table'`): Traditional one QR per table
 - **Seat Mode** (`qr_mode='seat'`): Individual QR code per seat
 
 **2. Seat Management**:
+
 - Batch seat creation with customizable numbering (numeric, alphabetic, custom)
 - Individual seat tracking (occupied status, usage statistics)
 - Seat-level order association
 - QR code regeneration for individual seats or entire tables
 
 **3. Admin Dashboard Components**:
+
 - `SeatGrid.vue` - Visual seat layout management
 - `QRModeSelector.vue` - Switch between table/seat modes
 - `SeatManagement.vue` - Comprehensive seat CRUD operations
@@ -479,6 +530,7 @@ Comprehensive seat-level management system supporting dual QR modes.
 - `TableDetailView.vue` - Detailed table and seat information
 
 **4. Database Schema**:
+
 ```sql
 tables:
   - qr_mode (table/seat)
@@ -500,6 +552,7 @@ Views:
 ```
 
 ### API Endpoints
+
 ```
 GET    /api/v1/seats                     # List seats by table
 GET    /api/v1/seats/:id                 # Get seat details
@@ -516,12 +569,14 @@ DELETE /api/v1/seats/table/:tableId      # Delete all seats (mode switch)
 ```
 
 ### Use Cases
+
 - **Fine Dining**: Individual seat tracking for VIP service
 - **Food Courts**: Shared table with individual seat orders
 - **Flexible Seating**: Dynamic switching between modes
 - **Usage Analytics**: Seat-level usage tracking and heatmaps
 
 ### Files
+
 - Migration: `packages/database/migrations/0027_seat_management_system.sql`
 - Schema: `packages/database/src/schema/seats.ts`
 - Service: `packages/database/src/services/seat.ts`
@@ -570,6 +625,7 @@ Successfully deployed comprehensive PWA performance optimizations.
    - Automated optimization cycles every 30 minutes
 
 ### Performance Improvements Achieved
+
 - **⚡ Load Time**: Reduced by 30-50%
 - **📈 Cache Hit Rate**: Improved to 85%+
 - **💾 Storage Efficiency**: Increased by 25%
@@ -577,6 +633,7 @@ Successfully deployed comprehensive PWA performance optimizations.
 - **📱 Offline Experience**: 60% improvement in response times
 
 ### Testing and Verification
+
 - **Automated Testing**: `pwa-optimization-verification.js` with 7 comprehensive test modules
 - **Performance Scoring**: Automatic scoring system with recommendations
 - **Real-world Validation**: Continuous monitoring and alerting system
@@ -602,12 +659,14 @@ Successfully achieved perfect TypeScript compliance across the entire codebase.
    - Resolved 4 TypeScript errors in template binding expressions
 
 ### Technical Impact
+
 - **Perfect Compilation**: 100% TypeScript error-free compilation across all applications
 - **Type Safety**: Enhanced type safety in virtual scrolling and keyboard shortcut systems
 - **Developer Experience**: Zero compilation warnings across the entire monorepo
 - **Production Readiness**: Complete type safety assurance for deployment
 
 ### Verification Results
+
 ```bash
 apps/api                 ✅ 0 errors
 apps/admin-dashboard     ✅ 0 errors
@@ -626,12 +685,14 @@ packages/shared-types   ✅ 0 errors
 Successfully achieved perfect ESLint compliance across the entire codebase.
 
 ### Key Accomplishments
+
 1. **Kitchen Display ESLint Resolution**: Fixed all 71 ESLint violations
 2. **Code Quality Enhancement**: Improved code consistency and maintainability
 3. **Cross-Application Standards**: Unified coding standards across all apps
 4. **Zero ESLint Warnings**: Achieved 0 errors, 0 warnings across the entire codebase
 
 ### Technical Impact
+
 - **Code Consistency**: Uniform code style across all applications
 - **Maintainability**: Enhanced code readability and structure
 - **Development Experience**: Improved developer workflow with consistent linting
@@ -668,6 +729,7 @@ Successfully resolved all remaining TypeScript compilation errors across the API
    - Updated `apps/api/src/routes/system.ts`
 
 ### Technical Impact
+
 - **Code Quality**: 100% TypeScript compliance across all API routes
 - **Developer Experience**: Zero compilation warnings, improved IDE support
 - **Maintainability**: Consistent type safety and error-free builds
@@ -680,6 +742,7 @@ Successfully resolved all remaining TypeScript compilation errors across the API
 **Status**: ✅ Complete
 
 ### Added Comprehensive Security Documentation
+
 - `docs/deployment/SECURITY_AUDIT_REPORT.md`: Security audit findings and recommendations
 - `SQL/migrate_passwords_security.sql`: Database security migration
 - Enhanced error handling and audit logging across all services
@@ -692,12 +755,14 @@ Successfully resolved all remaining TypeScript compilation errors across the API
 **Status**: ✅ Complete
 
 ### Comprehensive Test Suites Added
+
 - **Admin Dashboard**: Component tests, setup configuration
 - **API Services**: Route testing, SSE testing, authentication tests
 - **Customer App**: Component tests for cart, error boundary, order items
 - **End-to-End**: Admin login and core workflow testing
 
 ### Test Coverage
+
 ```bash
 apps/admin-dashboard/src/__tests__/     # Vue component tests
 apps/api/src/__tests__/                 # API route tests

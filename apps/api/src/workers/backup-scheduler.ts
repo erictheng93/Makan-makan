@@ -3,353 +3,421 @@
  * Handles automated backup scheduling and monitoring via Cloudflare Cron Triggers
  */
 
-import { BackupService } from '../services/BackupService'
-import type { BackupConfiguration } from '@makanmakan/shared-types'
+import { BackupService } from "../services/BackupService";
+import type { BackupConfiguration } from "@makanmakan/shared-types";
 import type {
   D1Database,
   R2Bucket,
   KVNamespace,
   ScheduledEvent,
   ExecutionContext,
-  AnalyticsEngineDataset
-} from '@cloudflare/workers-types'
+  AnalyticsEngineDataset,
+} from "@cloudflare/workers-types";
 
 interface Env {
-  DB: D1Database
-  BACKUP_STORAGE: R2Bucket
-  BACKUP_KV: KVNamespace
-  ANALYTICS: AnalyticsEngineDataset
+  DB: D1Database;
+  BACKUP_STORAGE: R2Bucket;
+  BACKUP_KV: KVNamespace;
+  ANALYTICS: AnalyticsEngineDataset;
 }
 
 export default {
-  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    const trigger = event.cron
-    console.log(`Backup scheduler triggered: ${trigger}`)
+  async scheduled(
+    event: ScheduledEvent,
+    env: Env,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    const trigger = event.cron;
+    console.log(`Backup scheduler triggered: ${trigger}`);
 
     try {
-      const backupService = new BackupService(env.DB, env.BACKUP_STORAGE, env.BACKUP_KV)
+      const backupService = new BackupService(
+        env.DB,
+        env.BACKUP_STORAGE,
+        env.BACKUP_KV,
+      );
 
       switch (trigger) {
-        case '*/5 * * * *': // Every 5 minutes - Check running backups and system health
-          await handleHealthCheck(backupService, env, env.ANALYTICS)
-          break
+        case "*/5 * * * *": // Every 5 minutes - Check running backups and system health
+          await handleHealthCheck(backupService, env, env.ANALYTICS);
+          break;
 
-        case '0 */6 * * *': // Every 6 hours - Process scheduled backups
-          await handleScheduledBackups(backupService, env, env.ANALYTICS)
-          break
+        case "0 */6 * * *": // Every 6 hours - Process scheduled backups
+          await handleScheduledBackups(backupService, env, env.ANALYTICS);
+          break;
 
-        case '0 2 * * *': // Daily at 2 AM - Cleanup and maintenance
-          await handleDailyMaintenance(backupService, env, env.ANALYTICS)
-          break
+        case "0 2 * * *": // Daily at 2 AM - Cleanup and maintenance
+          await handleDailyMaintenance(backupService, env, env.ANALYTICS);
+          break;
 
-        case '0 0 * * 0': // Weekly on Sunday - Generate reports and alerts
-          await handleWeeklyReports(backupService, env, env.ANALYTICS)
-          break
+        case "0 0 * * 0": // Weekly on Sunday - Generate reports and alerts
+          await handleWeeklyReports(backupService, env, env.ANALYTICS);
+          break;
 
         default:
-          console.log(`Unknown cron trigger: ${trigger}`)
+          console.log(`Unknown cron trigger: ${trigger}`);
       }
     } catch (error: unknown) {
-      console.error('Backup scheduler error:', error)
+      console.error("Backup scheduler error:", error);
 
       // Track error in analytics
       env.ANALYTICS?.writeDataPoint({
         blobs: [
-          'backup_scheduler_error',
-          error instanceof Error ? error.message : String(error) || 'Unknown error'
+          "backup_scheduler_error",
+          error instanceof Error
+            ? error.message
+            : String(error) || "Unknown error",
         ],
         doubles: [Date.now()],
-        indexes: ['error']
-      })
+        indexes: ["error"],
+      });
 
-      throw error
+      throw error;
     }
-  }
-}
+  },
+};
 
 /**
  * Health Check - Monitor system health and running backups
  */
-async function handleHealthCheck(backupService: BackupService, env: Env, analytics?: AnalyticsEngineDataset): Promise<void> {
+async function handleHealthCheck(
+  backupService: BackupService,
+  env: Env,
+  analytics?: AnalyticsEngineDataset,
+): Promise<void> {
   try {
-    console.log('Running backup system health check...')
+    console.log("Running backup system health check...");
 
     // Get system health
-    const health = await backupService.getSystemHealth()
+    const health = await backupService.getSystemHealth();
 
     // Check for critical issues
-    const criticalIssues = health.alerts_summary.critical + health.failed_backups_24h
-    const warningIssues = health.alerts_summary.high + health.alerts_summary.medium
+    const criticalIssues =
+      health.alerts_summary.critical + health.failed_backups_24h;
+    const warningIssues =
+      health.alerts_summary.high + health.alerts_summary.medium;
 
     // Log health metrics
     analytics?.writeDataPoint({
-      blobs: [
-        'backup_health_check',
-        health.overall_status
-      ],
+      blobs: ["backup_health_check", health.overall_status],
       doubles: [
         Date.now(),
         health.running_backups,
         health.failed_backups_24h,
         criticalIssues,
-        warningIssues
+        warningIssues,
       ],
-      indexes: ['health', health.overall_status]
-    })
+      indexes: ["health", health.overall_status],
+    });
 
     // Create alerts for critical issues
     if (criticalIssues > 5) {
       await createSystemAlert(backupService, {
-        severity: 'critical',
-        title: 'High Number of Backup Failures',
+        severity: "critical",
+        title: "High Number of Backup Failures",
         message: `System has ${health.failed_backups_24h} failed backups in the last 24 hours`,
-        alert_type: 'backup_failed'
-      })
+        alert_type: "backup_failed",
+      });
     }
 
-    console.log(`Health check completed - Status: ${health.overall_status}, Running: ${health.running_backups}, Failed 24h: ${health.failed_backups_24h}`)
-
+    console.log(
+      `Health check completed - Status: ${health.overall_status}, Running: ${health.running_backups}, Failed 24h: ${health.failed_backups_24h}`,
+    );
   } catch (error: unknown) {
-    console.error('Health check failed:', error)
-    throw error
+    console.error("Health check failed:", error);
+    throw error;
   }
 }
 
 /**
  * Process Scheduled Backups - Execute automated backups based on configurations
  */
-async function handleScheduledBackups(backupService: BackupService, env: Env, analytics?: AnalyticsEngineDataset): Promise<void> {
+async function handleScheduledBackups(
+  backupService: BackupService,
+  env: Env,
+  analytics?: AnalyticsEngineDataset,
+): Promise<void> {
   try {
-    console.log('Processing scheduled backups...')
+    console.log("Processing scheduled backups...");
 
-    const now = new Date()
-    let processedCount = 0
-    let errorCount = 0
+    const now = new Date();
+    let processedCount = 0;
+    let errorCount = 0;
 
     // Get all restaurants with scheduled backup configurations
-    const scheduledConfigs = await getScheduledConfigurations(env.DB)
+    const scheduledConfigs = await getScheduledConfigurations(env.DB);
 
     for (const config of scheduledConfigs) {
       try {
         // Check if backup should run now
         if (shouldRunBackup(config, now)) {
-          console.log(`Starting scheduled backup for restaurant ${config.restaurant_id}, config: ${config.name}`)
+          console.log(
+            `Starting scheduled backup for restaurant ${config.restaurant_id}, config: ${config.name}`,
+          );
 
           const backupRequest = {
             restaurant_id: config.restaurant_id,
             configuration_id: config.id,
-            name: `Scheduled_${config.name}_${now.toISOString().split('T')[0]}`,
+            name: `Scheduled_${config.name}_${now.toISOString().split("T")[0]}`,
             description: `Automated backup created by scheduler`,
             backup_type: config.backup_type,
             include_tables: config.include_tables,
             exclude_tables: config.exclude_tables,
-            force_immediate: false
-          }
+            force_immediate: false,
+          };
 
-          const response = await backupService.createBackup(backupRequest, 'system')
+          const response = await backupService.createBackup(
+            backupRequest,
+            "system",
+          );
 
           // Update schedule's last run time
-          await updateScheduleLastRun(env.DB, config.id, now)
+          await updateScheduleLastRun(env.DB, config.id, now);
 
-          processedCount++
+          processedCount++;
 
           // Track successful scheduling
           analytics?.writeDataPoint({
             blobs: [
-              'scheduled_backup_created',
+              "scheduled_backup_created",
               config.restaurant_id,
-              response.backup_id
+              response.backup_id,
             ],
             doubles: [Date.now()],
-            indexes: ['scheduled_backup']
-          })
-
+            indexes: ["scheduled_backup"],
+          });
         }
       } catch (error: unknown) {
-        errorCount++
-        console.error(`Failed to process scheduled backup for ${config.restaurant_id}:`, error)
+        errorCount++;
+        console.error(
+          `Failed to process scheduled backup for ${config.restaurant_id}:`,
+          error,
+        );
 
         // Create alert for failed scheduled backup
         await createRestaurantAlert(backupService, config.restaurant_id, {
-          severity: 'high',
-          title: 'Scheduled Backup Failed',
+          severity: "high",
+          title: "Scheduled Backup Failed",
           message: `Failed to start scheduled backup "${config.name}": ${error instanceof Error ? error.message : String(error)}`,
-          alert_type: 'schedule_missed'
-        })
+          alert_type: "schedule_missed",
+        });
 
         // Update consecutive failures count
-        await updateConsecutiveFailures(env.DB, config.id)
+        await updateConsecutiveFailures(env.DB, config.id);
       }
     }
 
-    console.log(`Scheduled backups processed: ${processedCount} successful, ${errorCount} failed`)
-
+    console.log(
+      `Scheduled backups processed: ${processedCount} successful, ${errorCount} failed`,
+    );
   } catch (error: unknown) {
-    console.error('Failed to process scheduled backups:', error)
-    throw error
+    console.error("Failed to process scheduled backups:", error);
+    throw error;
   }
 }
 
 /**
  * Daily Maintenance - Cleanup expired backups and update metrics
  */
-async function handleDailyMaintenance(backupService: BackupService, env: Env, analytics?: AnalyticsEngineDataset): Promise<void> {
+async function handleDailyMaintenance(
+  backupService: BackupService,
+  env: Env,
+  analytics?: AnalyticsEngineDataset,
+): Promise<void> {
   try {
-    console.log('Running daily maintenance...')
+    console.log("Running daily maintenance...");
 
-    let cleanupCount = 0
+    let cleanupCount = 0;
 
     // Clean up expired backups
-    const expiredBackups = await getExpiredBackups(env.DB)
+    const expiredBackups = await getExpiredBackups(env.DB);
 
     for (const backup of expiredBackups) {
       try {
-        await backupService.deleteBackup(backup.id, 'system')
-        cleanupCount++
+        await backupService.deleteBackup(backup.id, "system");
+        cleanupCount++;
 
-        console.log(`Cleaned up expired backup: ${backup.name} (${backup.id})`)
+        console.log(`Cleaned up expired backup: ${backup.name} (${backup.id})`);
       } catch (error: unknown) {
-        console.error(`Failed to cleanup backup ${backup.id}:`, error)
+        console.error(`Failed to cleanup backup ${backup.id}:`, error);
       }
     }
 
     // Aggregate daily metrics for all restaurants
-    await aggregateDailyMetrics(env.DB)
+    await aggregateDailyMetrics(env.DB);
 
     // Clean up old audit logs (older than 90 days)
-    const auditCleanupCount = await cleanupOldAuditLogs(env.DB)
+    const auditCleanupCount = await cleanupOldAuditLogs(env.DB);
 
     // Clean up resolved alerts (older than 30 days)
-    const alertCleanupCount = await cleanupOldAlerts(env.DB)
+    const alertCleanupCount = await cleanupOldAlerts(env.DB);
 
     // Track maintenance metrics
     analytics?.writeDataPoint({
-      blobs: ['daily_maintenance_completed'],
-      doubles: [
-        Date.now(),
-        cleanupCount,
-        auditCleanupCount,
-        alertCleanupCount
-      ],
-      indexes: ['maintenance']
-    })
+      blobs: ["daily_maintenance_completed"],
+      doubles: [Date.now(), cleanupCount, auditCleanupCount, alertCleanupCount],
+      indexes: ["maintenance"],
+    });
 
-    console.log(`Daily maintenance completed: ${cleanupCount} backups cleaned, ${auditCleanupCount} audit logs cleaned, ${alertCleanupCount} alerts cleaned`)
-
+    console.log(
+      `Daily maintenance completed: ${cleanupCount} backups cleaned, ${auditCleanupCount} audit logs cleaned, ${alertCleanupCount} alerts cleaned`,
+    );
   } catch (error: unknown) {
-    console.error('Daily maintenance failed:', error)
-    throw error
+    console.error("Daily maintenance failed:", error);
+    throw error;
   }
 }
 
 /**
  * Weekly Reports - Generate summary reports and performance analysis
  */
-async function handleWeeklyReports(backupService: BackupService, env: Env, analytics?: AnalyticsEngineDataset): Promise<void> {
+async function handleWeeklyReports(
+  backupService: BackupService,
+  env: Env,
+  analytics?: AnalyticsEngineDataset,
+): Promise<void> {
   try {
-    console.log('Generating weekly reports...')
+    console.log("Generating weekly reports...");
 
     // Get weekly statistics for all restaurants
-    const weeklyStats = await getWeeklyStatistics(env.DB)
+    const weeklyStats = await getWeeklyStatistics(env.DB);
 
     // Check for restaurants with concerning backup patterns
     for (const stat of weeklyStats) {
-      const successRate = (stat.successful_backups / Math.max(stat.total_backups, 1)) * 100
+      const successRate =
+        (stat.successful_backups / Math.max(stat.total_backups, 1)) * 100;
 
       if (successRate < 80 && stat.total_backups > 0) {
         // Create alert for poor backup performance
         await createRestaurantAlert(backupService, stat.restaurant_id, {
-          severity: 'medium',
-          title: 'Poor Backup Performance',
+          severity: "medium",
+          title: "Poor Backup Performance",
           message: `Backup success rate this week: ${successRate.toFixed(1)}% (${stat.successful_backups}/${stat.total_backups})`,
-          alert_type: 'performance_degraded'
-        })
+          alert_type: "performance_degraded",
+        });
       }
     }
 
     // Track weekly report generation
     analytics?.writeDataPoint({
-      blobs: ['weekly_report_generated'],
+      blobs: ["weekly_report_generated"],
       doubles: [Date.now(), weeklyStats.length],
-      indexes: ['weekly_report']
-    })
+      indexes: ["weekly_report"],
+    });
 
-    console.log(`Weekly reports generated for ${weeklyStats.length} restaurants`)
-
+    console.log(
+      `Weekly reports generated for ${weeklyStats.length} restaurants`,
+    );
   } catch (error: unknown) {
-    console.error('Weekly report generation failed:', error)
-    throw error
+    console.error("Weekly report generation failed:", error);
+    throw error;
   }
 }
 
 // Helper Functions
 
 async function getScheduledConfigurations(db: D1Database) {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     SELECT bc.*, bs.last_run_at, bs.consecutive_failures
     FROM backup_configurations bc
     LEFT JOIN backup_schedules bs ON bc.id = bs.configuration_id
     WHERE bc.schedule_enabled = true AND bc.schedule_cron IS NOT NULL
-  `).all<BackupConfiguration & { last_run_at?: string; consecutive_failures?: number }>()
+  `,
+    )
+    .all<
+      BackupConfiguration & {
+        last_run_at?: string;
+        consecutive_failures?: number;
+      }
+    >();
 
-  return result.results || []
+  return result.results || [];
 }
 
-function shouldRunBackup(config: BackupConfiguration & { last_run_at?: string; consecutive_failures?: number }, now: Date): boolean {
-  if (!config.schedule_cron) return false
+function shouldRunBackup(
+  config: BackupConfiguration & {
+    last_run_at?: string;
+    consecutive_failures?: number;
+  },
+  now: Date,
+): boolean {
+  if (!config.schedule_cron) return false;
 
   // Simple cron parsing - in production, use a proper cron parser
-  const cronParts = config.schedule_cron.split(' ')
-  if (cronParts.length !== 5) return false
+  const cronParts = config.schedule_cron.split(" ");
+  if (cronParts.length !== 5) return false;
 
-  const [minute, hour] = cronParts
+  const [minute, hour] = cronParts;
 
   // For this example, only handle simple daily backups (0 2 * * *)
-  if (hour === '2' && minute === '0') {
-    const lastRun = config.last_run_at ? new Date(config.last_run_at) : null
+  if (hour === "2" && minute === "0") {
+    const lastRun = config.last_run_at ? new Date(config.last_run_at) : null;
 
-    if (!lastRun) return true // Never run before
+    if (!lastRun) return true; // Never run before
 
     // Check if it's been at least 23 hours since last run
-    const hoursSinceLastRun = (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60)
-    return hoursSinceLastRun >= 23 && now.getHours() === 2
+    const hoursSinceLastRun =
+      (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
+    return hoursSinceLastRun >= 23 && now.getHours() === 2;
   }
 
-  return false
+  return false;
 }
 
-async function updateScheduleLastRun(db: D1Database, configId: string, timestamp: Date) {
-  await db.prepare(`
+async function updateScheduleLastRun(
+  db: D1Database,
+  configId: string,
+  timestamp: Date,
+) {
+  await db
+    .prepare(
+      `
     UPDATE backup_schedules
     SET last_run_at = ?, consecutive_failures = 0
     WHERE configuration_id = ?
-  `).bind(timestamp.toISOString(), configId).run()
+  `,
+    )
+    .bind(timestamp.toISOString(), configId)
+    .run();
 }
 
 async function updateConsecutiveFailures(db: D1Database, configId: string) {
-  await db.prepare(`
+  await db
+    .prepare(
+      `
     UPDATE backup_schedules
     SET consecutive_failures = consecutive_failures + 1
     WHERE configuration_id = ?
-  `).bind(configId).run()
+  `,
+    )
+    .bind(configId)
+    .run();
 }
 
 async function getExpiredBackups(db: D1Database) {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     SELECT id, name FROM backup_records
     WHERE expires_at IS NOT NULL AND expires_at < datetime('now')
     AND status = 'completed'
-  `).all<{ id: string; name: string }>()
+  `,
+    )
+    .all<{ id: string; name: string }>();
 
-  return result.results || []
+  return result.results || [];
 }
 
 async function aggregateDailyMetrics(db: D1Database) {
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const dateStr = yesterday.toISOString().split('T')[0]
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateStr = yesterday.toISOString().split("T")[0];
 
-  await db.prepare(`
+  await db
+    .prepare(
+      `
     INSERT OR REPLACE INTO backup_metrics_daily (
       id, restaurant_id, date, total_backups, successful_backups, failed_backups,
       total_size_bytes, average_duration_seconds, computed_at
@@ -369,29 +437,42 @@ async function aggregateDailyMetrics(db: D1Database) {
     FROM backup_records
     WHERE date(started_at) = ?
     GROUP BY restaurant_id
-  `).bind(dateStr, dateStr, dateStr).run()
+  `,
+    )
+    .bind(dateStr, dateStr, dateStr)
+    .run();
 }
 
 async function cleanupOldAuditLogs(db: D1Database): Promise<number> {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     DELETE FROM backup_audit_logs
     WHERE timestamp < datetime('now', '-90 days')
-  `).run()
+  `,
+    )
+    .run();
 
-  return result.meta.changes || 0
+  return result.meta.changes || 0;
 }
 
 async function cleanupOldAlerts(db: D1Database): Promise<number> {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     DELETE FROM backup_alerts
     WHERE resolved = true AND resolved_at < datetime('now', '-30 days')
-  `).run()
+  `,
+    )
+    .run();
 
-  return result.meta.changes || 0
+  return result.meta.changes || 0;
 }
 
 async function getWeeklyStatistics(db: D1Database) {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     SELECT
       restaurant_id,
       COUNT(*) as total_backups,
@@ -401,34 +482,59 @@ async function getWeeklyStatistics(db: D1Database) {
     FROM backup_records
     WHERE started_at >= datetime('now', '-7 days')
     GROUP BY restaurant_id
-  `).all<{
-    restaurant_id: string;
-    total_backups: number;
-    successful_backups: number;
-    failed_backups: number;
-    avg_size: number;
-  }>()
+  `,
+    )
+    .all<{
+      restaurant_id: string;
+      total_backups: number;
+      successful_backups: number;
+      failed_backups: number;
+      avg_size: number;
+    }>();
 
-  return result.results || []
+  return result.results || [];
 }
 
-async function createSystemAlert(backupService: BackupService, alert: {
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-}) {
+async function createSystemAlert(
+  backupService: BackupService,
+  alert: {
+    alert_type:
+      | "backup_failed"
+      | "storage_quota_exceeded"
+      | "schedule_missed"
+      | "restoration_completed"
+      | "performance_degraded";
+    severity: "low" | "medium" | "high" | "critical";
+    title: string;
+    message: string;
+    related_backup_id?: string;
+  },
+) {
   // Create system-wide alert (restaurant_id = 'system')
-  await backupService.createAlertPublicPublic({ ...alert, restaurant_id: "system" })
+  await backupService.createAlertPublicPublic({
+    ...alert,
+    restaurant_id: "system",
+  });
 }
 
-async function createRestaurantAlert(backupService: BackupService, restaurantId: string, alert: {
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-}) {
-  await backupService.createAlertPublicPublic({ ...alert, restaurant_id: restaurantId })
+async function createRestaurantAlert(
+  backupService: BackupService,
+  restaurantId: string,
+  alert: {
+    alert_type:
+      | "backup_failed"
+      | "storage_quota_exceeded"
+      | "schedule_missed"
+      | "restoration_completed"
+      | "performance_degraded";
+    severity: "low" | "medium" | "high" | "critical";
+    title: string;
+    message: string;
+    related_backup_id?: string;
+  },
+) {
+  await backupService.createAlertPublicPublic({
+    ...alert,
+    restaurant_id: restaurantId,
+  });
 }

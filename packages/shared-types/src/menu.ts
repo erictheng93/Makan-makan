@@ -1,4 +1,10 @@
-import { BaseEntity, Status, DietaryInfo, SpiceLevel, ImageVariants } from './common';
+import {
+  BaseEntity,
+  Status,
+  DietaryInfo,
+  SpiceLevel,
+  ImageVariants,
+} from "./common";
 
 export interface Category extends BaseEntity {
   restaurantId: string;
@@ -45,7 +51,7 @@ export interface MenuItemOptions {
   customizations?: {
     id: string;
     name: string;
-    type: 'single' | 'multiple';
+    type: "single" | "multiple";
     choices: {
       id: string;
       name: string;

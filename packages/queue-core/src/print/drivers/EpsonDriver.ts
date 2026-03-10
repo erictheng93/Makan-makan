@@ -7,32 +7,32 @@ import type {
   PrinterDevice,
   PrintContent,
   PrintResponse,
-  PrinterStatus
-} from '@makanmakan/shared-types'
-import { PrinterDriver } from './PrinterDriver'
-import { CommandBuilder } from '../commands/CommandBuilder'
+  PrinterStatus,
+} from "@makanmakan/shared-types";
+import { PrinterDriver } from "./PrinterDriver";
+import { CommandBuilder } from "../commands/CommandBuilder";
 
 export interface EpsonDriverOptions {
-  baudRate?: number
-  dataBits?: number
-  stopBits?: number
-  parity?: 'none' | 'even' | 'odd'
-  encoding?: string
+  baudRate?: number;
+  dataBits?: number;
+  stopBits?: number;
+  parity?: "none" | "even" | "odd";
+  encoding?: string;
 }
 
 export class EpsonDriver extends PrinterDriver {
-  private options: EpsonDriverOptions
+  private options: EpsonDriverOptions;
 
   constructor(device: PrinterDevice, options: EpsonDriverOptions = {}) {
-    super(device)
+    super(device);
     this.options = {
       baudRate: 9600,
       dataBits: 8,
       stopBits: 1,
-      parity: 'none',
-      encoding: 'utf8',
-      ...options
-    }
+      parity: "none",
+      encoding: "utf8",
+      ...options,
+    };
   }
 
   async connect(): Promise<boolean> {
@@ -42,30 +42,30 @@ export class EpsonDriver extends PrinterDriver {
       // via USB, network, or serial port
 
       // For now, simulate successful connection
-      this.connected = true
-      this.device.status = 'online'
-      this.device.lastSeen = new Date()
+      this.connected = true;
+      this.device.status = "online";
+      this.device.lastSeen = new Date();
 
-      return true
+      return true;
     } catch (error) {
-      this.connected = false
-      this.device.status = 'error'
-      return false
+      this.connected = false;
+      this.device.status = "error";
+      return false;
     }
   }
 
   async disconnect(): Promise<void> {
-    this.connected = false
-    this.device.status = 'offline'
+    this.connected = false;
+    this.device.status = "offline";
   }
 
   getOptions(): EpsonDriverOptions {
-    return this.options
+    return this.options;
   }
 
   async getStatus(): Promise<PrinterStatus> {
     if (!this.connected) {
-      return 'offline'
+      return "offline";
     }
 
     try {
@@ -74,9 +74,9 @@ export class EpsonDriver extends PrinterDriver {
       // and parse the response
 
       // For now, simulate status check
-      return 'online'
+      return "online";
     } catch {
-      return 'error'
+      return "error";
     }
   }
 
@@ -85,33 +85,33 @@ export class EpsonDriver extends PrinterDriver {
       return {
         success: false,
         error: {
-          code: 'PRINTER_OFFLINE',
-          message: 'Printer is not connected'
-        }
-      }
+          code: "PRINTER_OFFLINE",
+          message: "Printer is not connected",
+        },
+      };
     }
 
     try {
       // Build ESC/POS commands for the content
-      const commandBuilder = CommandBuilder.fromPrintContent(content)
-      const commands = commandBuilder.buildESCPOS()
+      const commandBuilder = CommandBuilder.fromPrintContent(content);
+      const commands = commandBuilder.buildESCPOS();
 
       // Send commands to printer
-      await this.sendCommands(commands)
+      await this.sendCommands(commands);
 
       return {
         success: true,
         jobId: `epson_${Date.now()}`,
-        message: 'Print job completed successfully'
-      }
+        message: "Print job completed successfully",
+      };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'PRINT_FAILED',
-          message: error instanceof Error ? error.message : 'Print job failed'
-        }
-      }
+          code: "PRINT_FAILED",
+          message: error instanceof Error ? error.message : "Print job failed",
+        },
+      };
     }
   }
 
@@ -120,24 +120,24 @@ export class EpsonDriver extends PrinterDriver {
     // This would typically write the command string to the printer connection
 
     // For now, simulate command sending (commands would be sent to printer)
-    await new Promise(resolve => setTimeout(resolve, commands.length * 2)) // Simulate processing time based on command length
+    await new Promise((resolve) => setTimeout(resolve, commands.length * 2)); // Simulate processing time based on command length
 
     // Update device status
-    this.device.lastSeen = new Date()
+    this.device.lastSeen = new Date();
   }
 
   /**
    * Epson-specific calibration
    */
   async calibrate(): Promise<boolean> {
-    if (!this.connected) return false
+    if (!this.connected) return false;
 
     try {
       // Send Epson calibration commands
-      await this.sendCommands('\x1B@') // Initialize printer
-      return true
+      await this.sendCommands("\x1B@"); // Initialize printer
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 
@@ -145,14 +145,14 @@ export class EpsonDriver extends PrinterDriver {
    * Open cash drawer (if connected)
    */
   async openDrawer(): Promise<boolean> {
-    if (!this.connected) return false
+    if (!this.connected) return false;
 
     try {
       // Send Epson drawer open command
-      await this.sendCommands('\x1Bp\x00\x19\x19')
-      return true
+      await this.sendCommands("\x1Bp\x00\x19\x19");
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 }

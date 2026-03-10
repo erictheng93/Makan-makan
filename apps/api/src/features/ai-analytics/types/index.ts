@@ -4,7 +4,7 @@
  */
 
 export interface TimeRange {
-  range: '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+  range: "7d" | "14d" | "30d" | "90d" | "180d" | "1y" | "custom";
   startDate?: string;
   endDate?: string;
 }
@@ -17,7 +17,12 @@ export interface AIConfigInput {
   customBaseUrl?: string;
 }
 
-export type AIProvider = 'anthropic' | 'openai' | 'google' | 'deepseek' | 'custom';
+export type AIProvider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "deepseek"
+  | "custom";
 
 export interface TestProviderInput {
   provider: AIProvider;
@@ -93,11 +98,39 @@ export interface AnalyticsReport {
 export interface IAIAnalyticsService {
   getConfig(restaurantId: string): Promise<AIConfiguration | null>;
   saveConfig(input: AIConfigInput): Promise<void>;
-  testProvider(input: TestProviderInput): Promise<{ success: boolean; latencyMs?: number; model?: string; error?: string }>;
-  generateReport(restaurantId: string, timeRange: TimeRange, options?: { includeForecasting?: boolean; refreshCache?: boolean }): Promise<AnalyticsReport>;
-  getTrafficDrivers(restaurantId: string, timeRange: TimeRange, limit?: number): Promise<ProductAnalysis[]>;
-  getBestsellers(restaurantId: string, timeRange: TimeRange, limit?: number): Promise<ProductAnalysis[]>;
-  getProfitLeaders(restaurantId: string, timeRange: TimeRange, limit?: number): Promise<ProductAnalysis[]>;
-  analyzeProducts(restaurantId: string, timeRange: TimeRange): Promise<ProductAnalysis[]>;
-  getUsageStats(restaurantId: string, startDate?: string, endDate?: string): Promise<AIUsageStats[]>;
+  testProvider(input: TestProviderInput): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    model?: string;
+    error?: string;
+  }>;
+  generateReport(
+    restaurantId: string,
+    timeRange: TimeRange,
+    options?: { includeForecasting?: boolean; refreshCache?: boolean },
+  ): Promise<AnalyticsReport>;
+  getTrafficDrivers(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit?: number,
+  ): Promise<ProductAnalysis[]>;
+  getBestsellers(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit?: number,
+  ): Promise<ProductAnalysis[]>;
+  getProfitLeaders(
+    restaurantId: string,
+    timeRange: TimeRange,
+    limit?: number,
+  ): Promise<ProductAnalysis[]>;
+  analyzeProducts(
+    restaurantId: string,
+    timeRange: TimeRange,
+  ): Promise<ProductAnalysis[]>;
+  getUsageStats(
+    restaurantId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<AIUsageStats[]>;
 }

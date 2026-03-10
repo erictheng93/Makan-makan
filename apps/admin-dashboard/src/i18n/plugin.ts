@@ -1,4 +1,4 @@
-import { initI18n } from './index'
+import { initI18n } from "./index";
 
 /**
  * Vue plugin for i18n
@@ -6,6 +6,6 @@ import { initI18n } from './index'
  */
 export default {
   install: async () => {
-    await initI18n()
-  }
-}
+    await initI18n();
+  },
+};

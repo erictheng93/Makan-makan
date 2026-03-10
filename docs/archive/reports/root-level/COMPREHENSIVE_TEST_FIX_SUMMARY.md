@@ -1,6 +1,7 @@
 # Kitchen Display 測試修復綜合總結
 
 ## 執行時間
+
 2025-11-17 18:50 CST
 
 ---
@@ -32,11 +33,13 @@
 **問題**: `useOrderManagement is not a function`
 
 **影響檔案**: 3 個測試檔案
+
 - workflow-integration.test.ts
 - end-to-end.test.ts
 - keyboard-shortcuts-integration.test.ts
 
 **修復內容**:
+
 ```typescript
 // Before
 import { useOrderManagement } from "@/stores/orderManagement";
@@ -56,15 +59,16 @@ import { useOrderManagementStore } from "@/stores/orderManagement";
 **修復檔案**: `apps/kitchen-display/tests/setup.ts`
 
 **修復內容**:
+
 ```typescript
 // Before (條件判斷可能失效)
 if (!global.URL.createObjectURL) {
-  global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 }
 
 // After (總是覆寫)
-global.URL.createObjectURL = vi.fn(() =>
-  'blob:mock-url-' + Math.random().toString(36).substring(7)
+global.URL.createObjectURL = vi.fn(
+  () => "blob:mock-url-" + Math.random().toString(36).substring(7),
 );
 global.URL.revokeObjectURL = vi.fn();
 ```
@@ -80,6 +84,7 @@ global.URL.revokeObjectURL = vi.fn();
 **修復檔案**: `apps/kitchen-display/tests/setup.ts`
 
 **修復內容**:
+
 ```typescript
 // Before (過於簡單)
 const localStorageMock = {
@@ -93,10 +98,18 @@ const createStorageMock = () => {
   const store: Record<string, string> = {};
   return {
     getItem: vi.fn((key) => store[key] || null),
-    setItem: vi.fn((key, value) => { store[key] = String(value); }),
-    removeItem: vi.fn((key) => { delete store[key]; }),
-    clear: vi.fn(() => { /* 清空 store */ }),
-    get length() { return Object.keys(store).length; },
+    setItem: vi.fn((key, value) => {
+      store[key] = String(value);
+    }),
+    removeItem: vi.fn((key) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      /* 清空 store */
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
     key: vi.fn((index) => Object.keys(store)[index] || null),
   };
 };
@@ -113,10 +126,12 @@ const createStorageMock = () => {
 **根本原因**: Vitest fork workers 不繼承 package.json 中的 NODE_OPTIONS
 
 **修復檔案**:
+
 - `vitest.config.ts`
 - `package.json`
 
 **修復內容**:
+
 ```typescript
 // vitest.config.ts
 pool: 'threads',  // 從 'forks' 改為 'threads'
@@ -131,6 +146,7 @@ testTimeout: 60000
 ```
 
 **結果**:
+
 - ✅ 記憶體崩潰率: 100% → 0%
 - ✅ 測試套件可穩定執行完成
 - ✅ 組件測試 94/94 全部通過
@@ -144,6 +160,7 @@ testTimeout: 60000
 **問題**: 測試期望能清空訂單列表但方法不存在
 
 **修復內容**:
+
 ```typescript
 const clearOrders = () => {
   orders.value = [];
@@ -160,10 +177,12 @@ const clearOrders = () => {
 **問題**: 測試期望 `updateOrderStatus(orderId, status)` 但方法不存在
 
 **關鍵挑戰**:
+
 - ❌ 原有內部方法同名，造成符號衝突
 - ✅ 重命名內部方法為 `updateOrderStatusFromOrder`
 
 **修復內容**:
+
 ```typescript
 // 內部方法（重命名）
 const updateOrderStatusFromOrder = (order: KitchenOrder) => {
@@ -172,7 +191,7 @@ const updateOrderStatusFromOrder = (order: KitchenOrder) => {
 
 // 公開方法（新增）
 const updateOrderStatus = (orderId: number | string, newStatus: number) => {
-  const id = typeof orderId === 'string' ? parseInt(orderId, 10) : orderId;
+  const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
   const orderIndex = orders.value.findIndex((o) => o.id === id);
   if (orderIndex !== -1) {
     orders.value[orderIndex].status = newStatus;
@@ -182,6 +201,7 @@ const updateOrderStatus = (orderId: number | string, newStatus: number) => {
 ```
 
 **功能**:
+
 - ✅ 支持 number ID
 - ✅ 支持 string ID
 - ✅ 自動轉換類型
@@ -196,8 +216,13 @@ const updateOrderStatus = (orderId: number | string, newStatus: number) => {
 **問題**: 測試期望 `updateItemStatus(orderId, itemId, status)` 但方法不存在
 
 **修復內容**:
+
 ```typescript
-const updateItemStatus = (orderId: number, itemId: number, newStatus: string) => {
+const updateItemStatus = (
+  orderId: number,
+  itemId: number,
+  newStatus: string,
+) => {
   const orderIndex = orders.value.findIndex((o) => o.id === orderId);
   if (orderIndex !== -1) {
     const order = orders.value[orderIndex];
@@ -232,18 +257,19 @@ const updateItemStatus = (orderId: number, itemId: number, newStatus: string) =>
 **問題**: Store 期望嵌套格式，測試發送扁平格式
 
 **修復內容**:
+
 ```typescript
 const handleNewOrder = (event: KitchenSSEEvent) => {
   if (!event.payload) return;
 
   // 支援兩種 payload 格式
   const newOrder: KitchenOrder =
-    event.payload.order ||    // 格式 1: { payload: { order: {...} } }
-    event.payload as any;     // 格式 2: { payload: {...} }
+    event.payload.order || // 格式 1: { payload: { order: {...} } }
+    (event.payload as any); // 格式 2: { payload: {...} }
 
   // 驗證
   if (!newOrder || !newOrder.id) {
-    console.warn('Invalid order data in NEW_ORDER event', event);
+    console.warn("Invalid order data in NEW_ORDER event", event);
     return;
   }
 
@@ -279,6 +305,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 ### 測試通過統計
 
 **100% 通過的測試檔案**:
+
 ```
 ✅ OrderCard.test.ts: 27/27 passed
 ✅ orderManagement.test.ts: 56/56 passed
@@ -302,6 +329,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 **影響檔案**: workflow-integration.test.ts (14 failures)
 
 **問題**:
+
 - `workflowComponent.assignOrderToChef is not a function`
 - `workflowComponent.scheduleAutoProgression is not a function`
 
@@ -314,6 +342,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 **影響檔案**: audio-integration.test.ts (15 failures)
 
 **問題**:
+
 - `Cannot read properties of undefined (reading 'enabled')`
 - Audio service 初始化問題
 
@@ -324,6 +353,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 **影響檔案**: offline-sync-integration.test.ts (12 failures)
 
 **問題**:
+
 - 離線狀態檢測邏輯錯誤
 - 同步邏輯問題
 - 性能測試超時
@@ -335,6 +365,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 **影響檔案**: multi-order-handling.test.ts (5 failures)
 
 **問題**:
+
 - Spy 調用次數不符（測試期望與實際行為不同）
 - 訂單過濾邏輯問題
 - 狀態更新時機問題
@@ -405,15 +436,18 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
 **教訓**: Store 導出名稱必須與測試期望完全匹配
 
 **模式**:
+
 ```typescript
 // Store 檔案
-export const useOrdersStore = defineStore('orders', () => {
+export const useOrdersStore = defineStore("orders", () => {
   // ...
-  return { /* methods */ };
+  return {
+    /* methods */
+  };
 });
 
 // 測試檔案
-import { useOrdersStore } from '@/stores/orders';
+import { useOrdersStore } from "@/stores/orders";
 const store = useOrdersStore();
 ```
 
@@ -424,11 +458,12 @@ const store = useOrdersStore();
 **教訓**: NODE_OPTIONS 不會自動傳遞給 worker processes
 
 **模式**:
+
 ```typescript
 // vitest.config.ts
 poolOptions: {
   threads: {
-    execArgv: ['--max-old-space-size=8192']  // 直接傳遞給 workers
+    execArgv: ["--max-old-space-size=8192"]; // 直接傳遞給 workers
   }
 }
 ```
@@ -440,12 +475,17 @@ poolOptions: {
 **教訓**: 內部和公開方法不能同名
 
 **模式**:
+
 ```typescript
 // 內部方法：加 Internal/From 等後綴
-const updateOrderStatusFromOrder = (order: Order) => { /* ... */ };
+const updateOrderStatusFromOrder = (order: Order) => {
+  /* ... */
+};
 
 // 公開方法：清晰的簽名
-const updateOrderStatus = (orderId: number, status: number) => { /* ... */ };
+const updateOrderStatus = (orderId: number, status: number) => {
+  /* ... */
+};
 ```
 
 ---
@@ -455,6 +495,7 @@ const updateOrderStatus = (orderId: number, status: number) => { /* ... */ };
 **教訓**: 真實場景中，ID 可能是 string 或 number
 
 **模式**:
+
 ```typescript
 const method = (id: number | string, ...) => {
   const numId = typeof id === 'string' ? parseInt(id, 10) : id;
@@ -469,10 +510,11 @@ const method = (id: number | string, ...) => {
 **教訓**: 支持多種格式增強兼容性
 
 **模式**:
+
 ```typescript
 const data = event.payload.data || event.payload;
 if (!data || !data.id) {
-  console.warn('Invalid data');
+  console.warn("Invalid data");
   return;
 }
 ```
@@ -525,6 +567,7 @@ pnpm test:kitchen
 ### 優先級 2: 業務邏輯修復
 
 根據測試結果，依次處理：
+
 1. Workflow Component 方法實現
 2. Audio Service 初始化修復
 3. Offline Sync 邏輯優化

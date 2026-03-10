@@ -3,14 +3,16 @@
     <!-- 頁面標題 -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">{{ $t('leaves.title') }}</h1>
-        <p class="page-subtitle">{{ $t('leaves.subtitle') }}</p>
+        <h1 class="page-title">{{ $t("leaves.title") }}</h1>
+        <p class="page-subtitle">{{ $t("leaves.subtitle") }}</p>
       </div>
       <button class="btn-request-leave" @click="openRequestDialog">
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/>
+          <path
+            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+          />
         </svg>
-        {{ $t('leaves.request.new') }}
+        {{ $t("leaves.request.new") }}
       </button>
     </div>
 
@@ -20,7 +22,7 @@
         v-for="tab in tabs"
         :key="tab.value"
         class="tab"
-        :class="{ 'active': currentTab === tab.value }"
+        :class="{ active: currentTab === tab.value }"
         @click="currentTab = tab.value"
       >
         {{ $t(tab.label) }}
@@ -34,7 +36,7 @@
       <div v-show="currentTab === 'my-leaves'">
         <!-- 餘額卡片 -->
         <div class="balances-section">
-          <h3 class="section-title">{{ $t('leaves.balance.title') }}</h3>
+          <h3 class="section-title">{{ $t("leaves.balance.title") }}</h3>
           <div class="balance-grid">
             <LeaveBalanceCard
               v-for="balance in balances"
@@ -47,7 +49,7 @@
 
         <!-- 請假記錄 -->
         <div class="requests-section">
-          <h3 class="section-title">{{ $t('leaves.request.myRequests') }}</h3>
+          <h3 class="section-title">{{ $t("leaves.request.myRequests") }}</h3>
           <LeaveRequestList
             :requests="myRequests"
             :leave-types="leaveTypes"
@@ -93,249 +95,257 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import LeaveBalanceCard from '@/components/leaves/LeaveBalanceCard.vue'
-import LeaveRequestDialog from '@/components/leaves/LeaveRequestDialog.vue'
-import LeaveRequestList from '@/components/leaves/LeaveRequestList.vue'
-import LeaveApprovalList from '@/components/leaves/LeaveApprovalList.vue'
-import LeaveCalendar from '@/components/leaves/LeaveCalendar.vue'
-import type { LeaveBalance, LeaveType, LeaveRequest } from '@makanmakan/shared-types'
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import LeaveBalanceCard from "@/components/leaves/LeaveBalanceCard.vue";
+import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
+import LeaveRequestList from "@/components/leaves/LeaveRequestList.vue";
+import LeaveApprovalList from "@/components/leaves/LeaveApprovalList.vue";
+import LeaveCalendar from "@/components/leaves/LeaveCalendar.vue";
+import type {
+  LeaveBalance,
+  LeaveType,
+  LeaveRequest,
+} from "@makanmakan/shared-types";
 
-const route = useRoute()
-const router = useRouter()
+const route = useRoute();
+const router = useRouter();
 
 // 狀態
-const isLoading = ref(false)
-const currentTab = ref('my-leaves')
-const isRequestDialogOpen = ref(false)
-const preselectedTypeId = ref<number | undefined>()
+const isLoading = ref(false);
+const currentTab = ref("my-leaves");
+const isRequestDialogOpen = ref(false);
+const preselectedTypeId = ref<number | undefined>();
 
 // 資料
-const balances = ref<LeaveBalance[]>([])
-const leaveTypes = ref<LeaveType[]>([])
-const myRequests = ref<LeaveRequest[]>([])
-const allRequests = ref<LeaveRequest[]>([])
+const balances = ref<LeaveBalance[]>([]);
+const leaveTypes = ref<LeaveType[]>([]);
+const myRequests = ref<LeaveRequest[]>([]);
+const allRequests = ref<LeaveRequest[]>([]);
 
 // 標籤頁配置
 const tabs = computed(() => [
   {
-    value: 'my-leaves',
-    label: 'leaves.tabs.myLeaves',
-    count: null
+    value: "my-leaves",
+    label: "leaves.tabs.myLeaves",
+    count: null,
   },
   {
-    value: 'approvals',
-    label: 'leaves.tabs.approvals',
-    count: allRequests.value.filter((r: LeaveRequest) => r.status === 'pending').length
+    value: "approvals",
+    label: "leaves.tabs.approvals",
+    count: allRequests.value.filter((r: LeaveRequest) => r.status === "pending")
+      .length,
   },
   {
-    value: 'calendar',
-    label: 'leaves.tabs.calendar',
-    count: null
-  }
-])
+    value: "calendar",
+    label: "leaves.tabs.calendar",
+    count: null,
+  },
+]);
 
 // 載入資料
 const loadData = async () => {
-  isLoading.value = true
+  isLoading.value = true;
   try {
-    const restaurantId = route.params.restaurantId || 1
+    const restaurantId = route.params.restaurantId || 1;
 
     // 載入請假類型
     const typesResponse = await fetch(`/api/v1/leaves/${restaurantId}/types`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
     if (typesResponse.ok) {
-      const data = await typesResponse.json()
-      leaveTypes.value = data.data
+      const data = await typesResponse.json();
+      leaveTypes.value = data.data;
     }
 
     // 載入我的餘額
-    const userId = localStorage.getItem('userId')
+    const userId = localStorage.getItem("userId");
     if (userId) {
       const balancesResponse = await fetch(
         `/api/v1/leaves/${restaurantId}/balances/${userId}?year=${new Date().getFullYear()}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      )
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
       if (balancesResponse.ok) {
-        const data = await balancesResponse.json()
-        balances.value = data.data
+        const data = await balancesResponse.json();
+        balances.value = data.data;
       }
     }
 
     // 載入我的請假申請
-    const myRequestsResponse = await fetch(`/api/v1/leaves/${restaurantId}/requests`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    const myRequestsResponse = await fetch(
+      `/api/v1/leaves/${restaurantId}/requests`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      },
+    );
     if (myRequestsResponse.ok) {
-      const data = await myRequestsResponse.json()
-      myRequests.value = data.data
+      const data = await myRequestsResponse.json();
+      myRequests.value = data.data;
     }
 
     // 如果是管理者，載入所有申請
-    const role = localStorage.getItem('role')
-    if (role === '0' || role === '1') {
-      allRequests.value = myRequests.value // 簡化版：實際應該有獨立API
+    const role = localStorage.getItem("role");
+    if (role === "0" || role === "1") {
+      allRequests.value = myRequests.value; // 簡化版：實際應該有獨立API
     }
   } catch (error) {
-    console.error('Failed to load leave data:', error)
+    console.error("Failed to load leave data:", error);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 // 開啟請假申請對話框
 const openRequestDialog = () => {
-  preselectedTypeId.value = undefined
-  isRequestDialogOpen.value = true
-}
+  preselectedTypeId.value = undefined;
+  isRequestDialogOpen.value = true;
+};
 
 // 關閉請假申請對話框
 const closeRequestDialog = () => {
-  isRequestDialogOpen.value = false
-  preselectedTypeId.value = undefined
-}
+  isRequestDialogOpen.value = false;
+  preselectedTypeId.value = undefined;
+};
 
 // 處理請假申請
 const handleRequestLeave = (leaveType: LeaveType | undefined) => {
-  if (!leaveType) return
-  preselectedTypeId.value = leaveType.id
-  isRequestDialogOpen.value = true
-}
+  if (!leaveType) return;
+  preselectedTypeId.value = leaveType.id;
+  isRequestDialogOpen.value = true;
+};
 
 // 提交請假申請
 const handleSubmitRequest = async (formData: any) => {
   try {
-    const restaurantId = route.params.restaurantId || 1
+    const restaurantId = route.params.restaurantId || 1;
     const response = await fetch(`/api/v1/leaves/${restaurantId}/requests`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify(formData)
-    })
+      body: JSON.stringify(formData),
+    });
 
     if (response.ok) {
-      await loadData()
-      closeRequestDialog()
+      await loadData();
+      closeRequestDialog();
       // 顯示成功訊息
-      alert('請假申請提交成功！')
+      alert("請假申請提交成功！");
     } else {
       // 顯示錯誤訊息
-      alert('請假申請提交失敗')
+      alert("請假申請提交失敗");
     }
   } catch (error) {
-    console.error('Failed to submit leave request:', error)
-    alert('請假申請提交失敗')
+    console.error("Failed to submit leave request:", error);
+    alert("請假申請提交失敗");
   }
-}
+};
 
 // 取消請假申請
 const handleCancelRequest = async (requestId: number) => {
-  if (!confirm('確定要取消此請假申請嗎？')) return
+  if (!confirm("確定要取消此請假申請嗎？")) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1
+    const restaurantId = route.params.restaurantId || 1;
     const response = await fetch(
       `/api/v1/leaves/${restaurantId}/requests/${requestId}/cancel`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      }
-    )
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      },
+    );
 
     if (response.ok) {
-      await loadData()
-      alert('已取消請假申請')
+      await loadData();
+      alert("已取消請假申請");
     } else {
-      alert('取消失敗')
+      alert("取消失敗");
     }
   } catch (error) {
-    console.error('Failed to cancel request:', error)
-    alert('取消失敗')
+    console.error("Failed to cancel request:", error);
+    alert("取消失敗");
   }
-}
+};
 
 // 批准請假申請
 const handleApproveRequest = async (requestId: number) => {
-  if (!confirm('確定要批准此請假申請嗎？')) return
+  if (!confirm("確定要批准此請假申請嗎？")) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1
+    const restaurantId = route.params.restaurantId || 1;
     const response = await fetch(
       `/api/v1/leaves/${restaurantId}/requests/${requestId}/approve`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      }
-    )
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      },
+    );
 
     if (response.ok) {
-      await loadData()
-      alert('已批准請假申請')
+      await loadData();
+      alert("已批准請假申請");
     } else {
-      alert('批准失敗')
+      alert("批准失敗");
     }
   } catch (error) {
-    console.error('Failed to approve request:', error)
-    alert('批准失敗')
+    console.error("Failed to approve request:", error);
+    alert("批准失敗");
   }
-}
+};
 
 // 拒絕請假申請
 const handleRejectRequest = async (requestId: number) => {
-  const reason = prompt('請輸入拒絕原因：')
-  if (!reason) return
+  const reason = prompt("請輸入拒絕原因：");
+  if (!reason) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1
+    const restaurantId = route.params.restaurantId || 1;
     const response = await fetch(
       `/api/v1/leaves/${restaurantId}/requests/${requestId}/reject`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ reason })
-      }
-    )
+        body: JSON.stringify({ reason }),
+      },
+    );
 
     if (response.ok) {
-      await loadData()
-      alert('已拒絕請假申請')
+      await loadData();
+      alert("已拒絕請假申請");
     } else {
-      alert('拒絕失敗')
+      alert("拒絕失敗");
     }
   } catch (error) {
-    console.error('Failed to reject request:', error)
-    alert('拒絕失敗')
+    console.error("Failed to reject request:", error);
+    alert("拒絕失敗");
   }
-}
+};
 
 // 查看詳情
 const handleViewDetails = (requestId: number) => {
-  router.push(`/leaves/${requestId}`)
-}
+  router.push(`/leaves/${requestId}`);
+};
 
 // 初始化
 onMounted(() => {
-  loadData()
-})
+  loadData();
+});
 </script>
 
 <style scoped>
@@ -355,19 +365,19 @@ onMounted(() => {
 .page-title {
   font-size: 32px;
   font-weight: 700;
-  color: #1F2937;
+  color: #1f2937;
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #6B7280;
+  color: #6b7280;
   margin: 0;
 }
 
 .btn-request-leave {
   padding: 12px 24px;
-  background: #3B82F6;
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 8px;
@@ -381,7 +391,7 @@ onMounted(() => {
 }
 
 .btn-request-leave:hover {
-  background: #2563EB;
+  background: #2563eb;
 }
 
 .btn-request-leave .icon {
@@ -393,7 +403,7 @@ onMounted(() => {
   display: flex;
   gap: 4px;
   margin-bottom: 24px;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .tab {
@@ -403,7 +413,7 @@ onMounted(() => {
   border-bottom: 3px solid transparent;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -413,17 +423,17 @@ onMounted(() => {
 }
 
 .tab:hover {
-  color: #3B82F6;
+  color: #3b82f6;
 }
 
 .tab.active {
-  color: #3B82F6;
-  border-bottom-color: #3B82F6;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 
 .tab-count {
   padding: 2px 8px;
-  background: #EF4444;
+  background: #ef4444;
   color: white;
   border-radius: 12px;
   font-size: 12px;
@@ -444,7 +454,7 @@ onMounted(() => {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin: 0 0 20px 0;
 }
 
@@ -470,14 +480,16 @@ onMounted(() => {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #E5E7EB;
-  border-top-color: #3B82F6;
+  border: 4px solid #e5e7eb;
+  border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {

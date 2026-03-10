@@ -5,11 +5,13 @@
 ### ✅ Critical Security Tasks (MUST COMPLETE)
 
 #### 1. Environment Variables & Secrets
+
 - [ ] **JWT_SECRET is set and secure (minimum 32 characters)**
+
   ```bash
   # Generate new secret for each environment
   openssl rand -base64 48
-  
+
   # Set via Wrangler (NOT in wrangler.toml)
   wrangler secret put JWT_SECRET --env production
   wrangler secret put JWT_SECRET --env staging
@@ -27,11 +29,13 @@
   - [ ] All environment-specific IDs updated in wrangler.toml
 
 #### 2. Password Security Migration
+
 - [ ] **Database migration completed**
+
   ```bash
   # Run migration script
   sqlite3 makanmakan.db < SQL/migrate_passwords_security.sql
-  
+
   # Or for D1
   npx wrangler d1 execute makanmakan-prod --file=packages/database/migrations/002_password_security_migration.sql
   ```
@@ -47,6 +51,7 @@
   - [ ] Support team informed
 
 #### 3. Authentication & Authorization
+
 - [ ] **JWT configuration verified**
   - [ ] Token blacklisting working (logout invalidates tokens)
   - [ ] Token expiration warnings implemented
@@ -59,13 +64,15 @@
   - [ ] Restaurant access isolation confirmed
 
 #### 4. CORS & Security Headers
+
 - [ ] **CORS configuration verified**
+
   ```bash
   # Test with curl
   curl -H "Origin: https://malicious-site.com" https://api.yourdomain.com/health
   # Should be blocked
-  
-  curl -H "Origin: https://admin.makanmakan.app" https://api.yourdomain.com/health  
+
+  curl -H "Origin: https://admin.makanmakan.app" https://api.yourdomain.com/health
   # Should be allowed
   ```
 
@@ -78,6 +85,7 @@
 ### 🔧 Deployment Commands
 
 #### Development Setup
+
 ```bash
 # 1. Install dependencies
 npm install
@@ -94,6 +102,7 @@ npm run dev
 ```
 
 #### Staging Deployment
+
 ```bash
 # 1. Set secrets
 wrangler secret put JWT_SECRET --env staging
@@ -107,7 +116,7 @@ wrangler deploy --env staging
 cd ../admin-dashboard
 wrangler pages deploy --env staging
 
-cd ../customer-app  
+cd ../customer-app
 wrangler pages deploy --env staging
 
 cd ../kitchen-display
@@ -115,6 +124,7 @@ wrangler pages deploy --env staging
 ```
 
 #### Production Deployment
+
 ```bash
 # 1. Run database migration
 npx wrangler d1 execute makanmakan-prod --file=packages/database/migrations/002_password_security_migration.sql
@@ -131,19 +141,22 @@ npm run deploy:prod
 ### 🧪 Security Testing Checklist
 
 #### Authentication Testing
+
 - [ ] **Login with bcrypt hashed password works**
 - [ ] **Login with old plaintext password fails**
 - [ ] **JWT token validation working**
 - [ ] **Token blacklisting on logout functional**
 - [ ] **Expired token properly rejected**
 
-#### Authorization Testing  
+#### Authorization Testing
+
 - [ ] **Admin can access all restaurants**
 - [ ] **Shop owner limited to their restaurant**
 - [ ] **Staff cannot access admin functions**
 - [ ] **Cross-restaurant access blocked**
 
 #### Security Headers Testing
+
 ```bash
 # Test security headers
 curl -I https://api.yourdomain.com/health
@@ -155,6 +168,7 @@ curl -I https://api.yourdomain.com/health
 ```
 
 #### CORS Testing
+
 ```bash
 # Test CORS restrictions
 curl -H "Origin: https://unauthorized-site.com" \
@@ -164,25 +178,28 @@ curl -H "Origin: https://unauthorized-site.com" \
 
 curl -H "Origin: https://admin.makanmakan.app" \
      -H "Access-Control-Request-Method: POST" \
-     -X OPTIONS https://api.yourdomain.com/auth/login  
+     -X OPTIONS https://api.yourdomain.com/auth/login
 # Should be allowed
 ```
 
 ### 📊 Post-Deployment Monitoring
 
 #### Immediate Monitoring (First 24 Hours)
+
 - [ ] **API response times normal**
 - [ ] **Authentication working across all apps**
 - [ ] **Error rates within acceptable limits**
 - [ ] **No security-related errors in logs**
 
 #### Weekly Monitoring
+
 - [ ] **Review audit_logs for suspicious activity**
 - [ ] **Check failed authentication attempts**
 - [ ] **Monitor JWT token blacklist size**
 - [ ] **Verify password reset functionality**
 
 #### Monthly Security Review
+
 - [ ] **Rotate JWT secrets**
 - [ ] **Update dependencies with security patches**
 - [ ] **Review user account status**
@@ -191,11 +208,13 @@ curl -H "Origin: https://admin.makanmakan.app" \
 ### 🚨 Emergency Procedures
 
 #### Security Incident Response
+
 1. **If JWT secret is compromised:**
+
    ```bash
    # Generate new secret
    NEW_SECRET=$(openssl rand -base64 48)
-   
+
    # Update immediately
    wrangler secret put JWT_SECRET --env production
    echo $NEW_SECRET
@@ -216,13 +235,15 @@ curl -H "Origin: https://admin.makanmakan.app" \
 ### 📋 Final Verification
 
 #### Before Going Live
+
 - [ ] **All secrets properly configured**
-- [ ] **Database migration completed successfully** 
+- [ ] **Database migration completed successfully**
 - [ ] **All security tests passing**
 - [ ] **Monitoring and alerting configured**
 - [ ] **Team trained on new security procedures**
 
 #### User Communication
+
 - [ ] **Password reset instructions sent**
 - [ ] **Documentation updated**
 - [ ] **Support team briefed**
@@ -231,6 +252,7 @@ curl -H "Origin: https://admin.makanmakan.app" \
 ### 🔄 Rollback Plan
 
 If critical issues arise:
+
 ```bash
 # Emergency rollback for API
 wrangler rollback --name makanmakan-api-prod
@@ -241,10 +263,10 @@ wrangler rollback --name makanmakan-api-prod
 
 ---
 
-**Security Officer Sign-off**: [ ] _________________ Date: _________
+**Security Officer Sign-off**: [ ] **\*\*\*\***\_**\*\*\*\*** Date: \***\*\_\*\***
 
-**Technical Lead Sign-off**: [ ] _________________ Date: _________
+**Technical Lead Sign-off**: [ ] **\*\*\*\***\_**\*\*\*\*** Date: \***\*\_\*\***
 
-**Deployment Date**: _____________
+**Deployment Date**: **\*\***\_**\*\***
 
-**Next Security Review**: _____________
+**Next Security Review**: **\*\***\_**\*\***

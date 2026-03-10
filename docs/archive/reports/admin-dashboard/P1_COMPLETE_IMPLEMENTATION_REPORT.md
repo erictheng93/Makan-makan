@@ -6,13 +6,13 @@
 
 ### 整體成果
 
-| 指標 | 優化前 | 優化後 | 改善 |
-|------|--------|--------|------|
-| Dashboard TTI | 1.8s | 1.0s | **-44%** ⭐ |
-| CPU 使用率 (Realtime) | 100% | 70% | **-30%** ⭐ |
-| Bundle 大小 | 850KB | 722.5KB | **-15%** ⭐ |
-| 圖片大小 | 100KB | 40-70KB | **-30-60%** ⭐ |
-| 初始渲染項目數 | 1000+ | 20-30 | **-97%** ⭐ |
+| 指標                  | 優化前 | 優化後  | 改善           |
+| --------------------- | ------ | ------- | -------------- |
+| Dashboard TTI         | 1.8s   | 1.0s    | **-44%** ⭐    |
+| CPU 使用率 (Realtime) | 100%   | 70%     | **-30%** ⭐    |
+| Bundle 大小           | 850KB  | 722.5KB | **-15%** ⭐    |
+| 圖片大小              | 100KB  | 40-70KB | **-30-60%** ⭐ |
+| 初始渲染項目數        | 1000+  | 20-30   | **-97%** ⭐    |
 
 ### 完成狀態
 
@@ -34,12 +34,12 @@
 #### 1. `useAsyncModals.ts` Composable (202 行)
 
 ```typescript
-import { defineAsyncComponent, type Component } from 'vue'
+import { defineAsyncComponent, type Component } from "vue";
 
 function createAsyncModal(
   loader: () => Promise<any>,
   delay = 200,
-  timeout = 30000
+  timeout = 30000,
 ): Component {
   return defineAsyncComponent({
     loader,
@@ -47,15 +47,19 @@ function createAsyncModal(
     timeout,
     errorComponent: ErrorModal,
     loadingComponent: LoadingSkeleton,
-  })
+  });
 }
 
 export function useAsyncModals() {
   return {
-    CouponFormModal: createAsyncModal(() => import('@/components/coupons/CouponFormModal.vue')),
-    CouponStatsModal: createAsyncModal(() => import('@/components/coupons/CouponStatsModal.vue')),
+    CouponFormModal: createAsyncModal(
+      () => import("@/components/coupons/CouponFormModal.vue"),
+    ),
+    CouponStatsModal: createAsyncModal(
+      () => import("@/components/coupons/CouponStatsModal.vue"),
+    ),
     // ... 更多 modals
-  }
+  };
 }
 ```
 
@@ -63,9 +67,9 @@ export function useAsyncModals() {
 
 ```vue
 <script setup>
-import { useAsyncModals } from '@/composables/useAsyncModals'
+import { useAsyncModals } from "@/composables/useAsyncModals";
 
-const { CouponFormModal, CouponStatsModal } = useAsyncModals()
+const { CouponFormModal, CouponStatsModal } = useAsyncModals();
 </script>
 
 <template>
@@ -80,11 +84,11 @@ const { CouponFormModal, CouponStatsModal } = useAsyncModals()
 
 ### 性能改善
 
-| 指標 | 改善 |
-|------|------|
+| 指標           | 改善                |
+| -------------- | ------------------- |
 | Initial Bundle | **-127.5KB (-15%)** |
-| Modal TTI | **200ms → 50ms** |
-| Memory Usage | **-12MB** |
+| Modal TTI      | **200ms → 50ms**    |
+| Memory Usage   | **-12MB**           |
 
 ### 測試覆蓋
 
@@ -108,37 +112,37 @@ const { CouponFormModal, CouponStatsModal } = useAsyncModals()
 ```typescript
 export function useThrottledRealtime<T>(
   updateFn: (updates: T[]) => void,
-  config: ThrottleConfig = {}
+  config: ThrottleConfig = {},
 ) {
   const {
-    strategy = 'throttle',
+    strategy = "throttle",
     interval = 33, // 30fps
     maxWait = 1000,
     batchSize = 10,
-  } = config
+  } = config;
 
   const priorityQueues = {
     high: [] as UpdateItem<T>[],
     normal: [] as UpdateItem<T>[],
     low: [] as UpdateItem<T>[],
-  }
+  };
 
-  const throttledUpdate = (data: T, priority: UpdatePriority = 'normal') => {
-    priorityQueues[priority].push({ data, timestamp: Date.now() })
-    scheduleFlush()
-  }
+  const throttledUpdate = (data: T, priority: UpdatePriority = "normal") => {
+    priorityQueues[priority].push({ data, timestamp: Date.now() });
+    scheduleFlush();
+  };
 
   const flush = () => {
     const updates = [
       ...priorityQueues.high,
       ...priorityQueues.normal.slice(0, batchSize),
       ...priorityQueues.low.slice(0, batchSize / 2),
-    ]
-    updateFn(updates.map(item => item.data))
-    clearQueues()
-  }
+    ];
+    updateFn(updates.map((item) => item.data));
+    clearQueues();
+  };
 
-  return { throttledUpdate, flush, stats }
+  return { throttledUpdate, flush, stats };
 }
 ```
 
@@ -147,15 +151,15 @@ export function useThrottledRealtime<T>(
 ```typescript
 const { throttledUpdate } = useThrottledRealtime<OrderUpdate>(
   (updates) => {
-    updates.forEach((update) => applyUpdate(update))
+    updates.forEach((update) => applyUpdate(update));
   },
-  KITCHEN_THROTTLE_CONFIG // 30fps
-)
+  KITCHEN_THROTTLE_CONFIG, // 30fps
+);
 
 const handleNewOrder = (event: NewOrderEvent) => {
-  throttledUpdate(event.data, 'high')
-  playNotificationSound() // 不節流
-}
+  throttledUpdate(event.data, "high");
+  playNotificationSound(); // 不節流
+};
 ```
 
 ### 節流策略
@@ -182,12 +186,12 @@ const handleNewOrder = (event: NewOrderEvent) => {
 
 ### 性能改善
 
-| 指標 | 改善 |
-|------|------|
-| CPU Usage | **-30%** (100% → 70%) |
-| Frame Rate | **穩定 30fps** |
-| Update Delay | **< 33ms** |
-| Memory Leak | **完全解決** |
+| 指標         | 改善                  |
+| ------------ | --------------------- |
+| CPU Usage    | **-30%** (100% → 70%) |
+| Frame Rate   | **穩定 30fps**        |
+| Update Delay | **< 33ms**            |
+| Memory Leak  | **完全解決**          |
 
 ### 測試結果
 
@@ -209,24 +213,27 @@ const handleNewOrder = (event: NewOrderEvent) => {
 ```typescript
 export function useLazyComponent(
   target: Ref<Element | null>,
-  options: LazyComponentOptions = {}
+  options: LazyComponentOptions = {},
 ) {
   const {
-    rootMargin = '200px', // 預載 200px
+    rootMargin = "200px", // 預載 200px
     threshold = 0.1,
     once = true,
-  } = options
+  } = options;
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        triggerLoad()
-        if (once) observer.disconnect()
-      }
-    })
-  }, { rootMargin, threshold })
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          triggerLoad();
+          if (once) observer.disconnect();
+        }
+      });
+    },
+    { rootMargin, threshold },
+  );
 
-  return { isIntersecting, shouldLoad, load }
+  return { isIntersecting, shouldLoad, load };
 }
 ```
 
@@ -246,10 +253,10 @@ export function useLazyComponent(
 
 <script setup>
 const { state } = useLazyComponent(containerRef, {
-  rootMargin: '200px',
+  rootMargin: "200px",
   threshold: 0.1,
   once: true,
-})
+});
 </script>
 ```
 
@@ -300,12 +307,12 @@ const { state } = useLazyComponent(containerRef, {
 
 ### 性能改善
 
-| 指標 | 改善 |
-|------|------|
-| Initial TTI | **-44%** (1.8s → 1.0s) |
-| Initial Components | **8 → 2** (-75%) |
-| First Paint | **-500ms** |
-| Scroll Performance | **60fps 穩定** |
+| 指標               | 改善                   |
+| ------------------ | ---------------------- |
+| Initial TTI        | **-44%** (1.8s → 1.0s) |
+| Initial Components | **8 → 2** (-75%)       |
+| First Paint        | **-500ms**             |
+| Scroll Performance | **60fps 穩定**         |
 
 ---
 
@@ -328,29 +335,29 @@ async function detectFormatSupport(): Promise<FormatSupport> {
     webp: false,
     jpeg: true,
     png: true,
-  }
+  };
 
   // 使用 base64 測試圖片檢測 AVIF 支援
-  const avifImage = new Image()
-  avifImage.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAA...'
+  const avifImage = new Image();
+  avifImage.src = "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAA...";
   support.avif = await new Promise((resolve) => {
-    avifImage.onload = () => resolve(true)
-    avifImage.onerror = () => resolve(false)
-  })
+    avifImage.onload = () => resolve(true);
+    avifImage.onerror = () => resolve(false);
+  });
 
   // 檢測 WebP 支援
-  const webpImage = new Image()
-  webpImage.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4...'
+  const webpImage = new Image();
+  webpImage.src = "data:image/webp;base64,UklGRjoAAABXRUJQVlA4...";
   support.webp = await new Promise((resolve) => {
-    webpImage.onload = () => resolve(true)
-    webpImage.onerror = () => resolve(false)
-  })
+    webpImage.onload = () => resolve(true);
+    webpImage.onerror = () => resolve(false);
+  });
 
-  return support
+  return support;
 }
 
 // 緩存檢測結果
-let formatSupportCache: FormatSupport | null = null
+let formatSupportCache: FormatSupport | null = null;
 ```
 
 ##### Cloudflare Images 整合
@@ -360,9 +367,9 @@ function buildCloudflareImageURL(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
-  const base = `https://imagedelivery.net/${accountHash}/${imageId}`
+  const base = `https://imagedelivery.net/${accountHash}/${imageId}`;
   const params = [
     `w=${width}`,
     `h=${height}`,
@@ -370,8 +377,8 @@ function buildCloudflareImageURL(
     `format=${format}`,
     `quality=${calculateOptimalQuality(format, width, height)}`,
     `dpr=${dpr}`,
-  ]
-  return `${base}/${params.join(',')}`
+  ];
+  return `${base}/${params.join(",")}`;
 }
 ```
 
@@ -381,23 +388,23 @@ function buildCloudflareImageURL(
 function calculateOptimalQuality(
   format: ImageFormat,
   width?: number,
-  height?: number
+  height?: number,
 ): number {
-  const pixels = (width || 800) * (height || 600)
+  const pixels = (width || 800) * (height || 600);
 
-  if (format === 'avif') {
-    if (pixels > 1000000) return 75 // 大圖更激進壓縮
-    if (pixels > 400000) return 80
-    return 85
+  if (format === "avif") {
+    if (pixels > 1000000) return 75; // 大圖更激進壓縮
+    if (pixels > 400000) return 80;
+    return 85;
   }
 
-  if (format === 'webp') {
-    if (pixels > 1000000) return 80
-    if (pixels > 400000) return 85
-    return 90
+  if (format === "webp") {
+    if (pixels > 1000000) return 80;
+    if (pixels > 400000) return 85;
+    return 90;
   }
 
-  return 85 // JPEG 默認
+  return 85; // JPEG 默認
 }
 ```
 
@@ -408,15 +415,15 @@ function generateSrcset(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
-  const baseWidth = options.width || 800
+  const baseWidth = options.width || 800;
   const widths = [
-    Math.round(baseWidth * 0.5),  // 0.5x
-    baseWidth,                     // 1x
-    Math.round(baseWidth * 1.5),  // 1.5x
-    Math.round(baseWidth * 2),    // 2x Retina
-  ]
+    Math.round(baseWidth * 0.5), // 0.5x
+    baseWidth, // 1x
+    Math.round(baseWidth * 1.5), // 1.5x
+    Math.round(baseWidth * 2), // 2x Retina
+  ];
 
   return widths
     .map((width) => {
@@ -424,11 +431,11 @@ function generateSrcset(
         accountHash,
         imageId,
         { ...options, width },
-        format
-      )
-      return `${url} ${width}w`
+        format,
+      );
+      return `${url} ${width}w`;
     })
-    .join(', ')
+    .join(", ");
 }
 ```
 
@@ -450,7 +457,7 @@ function generateSrcset(
         'animate-pulse': isLoading && showLoadingState,
         'opacity-0': isLoading && fadeIn,
         'opacity-100 transition-opacity duration-300': !isLoading && fadeIn,
-      }
+      },
     ]"
     @load="handleLoad"
     @error="handleError"
@@ -464,23 +471,17 @@ function generateSrcset(
 </template>
 
 <script setup lang="ts">
-import { useOptimizedImage } from '@/composables/useOptimizedImage'
+import { useOptimizedImage } from "@/composables/useOptimizedImage";
 
-const {
-  imageUrl,
-  srcset,
-  sizes,
-  detectedFormat,
-  isLoading,
-  error,
-} = useOptimizedImage({
-  accountHash: props.accountHash,
-  imageId: props.imageId,
-  width: props.width,
-  height: props.height,
-  format: props.format, // 'auto' by default
-  generateSrcset: props.generateSrcset,
-})
+const { imageUrl, srcset, sizes, detectedFormat, isLoading, error } =
+  useOptimizedImage({
+    accountHash: props.accountHash,
+    imageId: props.imageId,
+    width: props.width,
+    height: props.height,
+    format: props.format, // 'auto' by default
+    generateSrcset: props.generateSrcset,
+  });
 </script>
 ```
 
@@ -538,11 +539,11 @@ const {
 
 ### 性能改善
 
-| 圖片格式 | 大小 | 壓縮率 | 質量 |
-|---------|------|--------|------|
-| JPEG (原始) | 100 KB | 0% | 85 |
-| WebP | 70 KB | **-30%** | 85 |
-| AVIF | 40 KB | **-60%** | 85 |
+| 圖片格式    | 大小   | 壓縮率   | 質量 |
+| ----------- | ------ | -------- | ---- |
+| JPEG (原始) | 100 KB | 0%       | 85   |
+| WebP        | 70 KB  | **-30%** | 85   |
+| AVIF        | 40 KB  | **-60%** | 85   |
 
 ### 預設配置
 
@@ -551,43 +552,43 @@ const {
 export const MENU_IMAGE_CONFIG = {
   width: 600,
   height: 400,
-  format: 'auto',
-  fit: 'cover',
+  format: "auto",
+  fit: "cover",
   quality: 85,
   generateSrcset: true,
-}
+};
 
 // 縮圖配置
 export const THUMBNAIL_IMAGE_CONFIG = {
   width: 150,
   height: 150,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 80,
   generateSrcset: false,
-}
+};
 
 // 頭像配置
 export const AVATAR_IMAGE_CONFIG = {
   width: 200,
   height: 200,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 85,
   generateSrcset: true,
-}
+};
 
 // Hero 圖片配置
 export const HERO_IMAGE_CONFIG = {
   width: 1920,
   height: 1080,
-  format: 'auto',
-  fit: 'cover',
+  format: "auto",
+  fit: "cover",
   quality: 90,
   generateSrcset: true,
-}
+};
 ```
 
 ### 測試結果
@@ -626,29 +627,29 @@ export const HERO_IMAGE_CONFIG = {
 
 ### Bundle 大小優化
 
-| 項目 | 原始 | 優化後 | 減少 |
-|------|------|--------|------|
-| Main Bundle | 850 KB | 722.5 KB | **-127.5 KB** |
-| Modal Chunk | - | 45 KB (lazy) | **Lazy loaded** |
-| Images (avg) | 100 KB | 40-70 KB | **-30-60%** |
-| **Total** | **950 KB** | **767.5 KB** | **-19.2%** |
+| 項目         | 原始       | 優化後       | 減少            |
+| ------------ | ---------- | ------------ | --------------- |
+| Main Bundle  | 850 KB     | 722.5 KB     | **-127.5 KB**   |
+| Modal Chunk  | -          | 45 KB (lazy) | **Lazy loaded** |
+| Images (avg) | 100 KB     | 40-70 KB     | **-30-60%**     |
+| **Total**    | **950 KB** | **767.5 KB** | **-19.2%**      |
 
 ### CPU 使用率
 
-| 場景 | 優化前 | 優化後 | 改善 |
-|------|--------|--------|------|
-| Dashboard 初始化 | 85% | 50% | **-41%** |
-| Realtime 更新 | 100% | 70% | **-30%** |
-| 虛擬滾動 | 60% | 45% | **-25%** |
-| 圖片加載 | 40% | 25% | **-38%** |
+| 場景             | 優化前 | 優化後 | 改善     |
+| ---------------- | ------ | ------ | -------- |
+| Dashboard 初始化 | 85%    | 50%    | **-41%** |
+| Realtime 更新    | 100%   | 70%    | **-30%** |
+| 虛擬滾動         | 60%    | 45%    | **-25%** |
+| 圖片加載         | 40%    | 25%    | **-38%** |
 
 ### 記憶體使用
 
-| 項目 | 優化前 | 優化後 | 減少 |
-|------|--------|--------|------|
-| Initial Heap | 45 MB | 33 MB | **-27%** |
-| Modal Loading | 12 MB | 0 MB (lazy) | **-100%** |
-| Image Cache | 20 MB | 8 MB | **-60%** |
+| 項目          | 優化前 | 優化後      | 減少      |
+| ------------- | ------ | ----------- | --------- |
+| Initial Heap  | 45 MB  | 33 MB       | **-27%**  |
+| Modal Loading | 12 MB  | 0 MB (lazy) | **-100%** |
+| Image Cache   | 20 MB  | 8 MB        | **-60%**  |
 
 ---
 
@@ -656,12 +657,12 @@ export const HERO_IMAGE_CONFIG = {
 
 ### 整體測試統計
 
-| 測試套件 | 總數 | 通過 | 失敗 | 通過率 |
-|---------|------|------|------|--------|
-| P0 Virtual Scroll | 11 | 9 | 2 | **81.8%** |
-| P1-2 Throttling | 15 | 12 | 3 | **80.0%** |
-| P1-4 Image Optimization | 27 | 25 | 2 | **92.6%** |
-| **總計** | **53** | **46** | **7** | **86.8%** ⭐ |
+| 測試套件                | 總數   | 通過   | 失敗  | 通過率       |
+| ----------------------- | ------ | ------ | ----- | ------------ |
+| P0 Virtual Scroll       | 11     | 9      | 2     | **81.8%**    |
+| P1-2 Throttling         | 15     | 12     | 3     | **80.0%**    |
+| P1-4 Image Optimization | 27     | 25     | 2     | **92.6%**    |
+| **總計**                | **53** | **46** | **7** | **86.8%** ⭐ |
 
 ### 已知問題
 
@@ -684,15 +685,15 @@ export const HERO_IMAGE_CONFIG = {
 
 ### 代碼統計
 
-| 項目 | 新增代碼行數 |
-|------|-------------|
-| P1-1: Modal 異步加載 | 202 行 |
-| P1-2: 數據流節流 | 560 行 |
-| P1-3: 報表懶加載 | 514 行 (367 + 147) |
-| P1-4: 圖片優化 | 876 行 (669 + 207) |
-| 測試代碼 | 2,750+ 行 |
-| 文檔 | ~8,000 行 |
-| **總計** | **~12,900+ 行** |
+| 項目                 | 新增代碼行數       |
+| -------------------- | ------------------ |
+| P1-1: Modal 異步加載 | 202 行             |
+| P1-2: 數據流節流     | 560 行             |
+| P1-3: 報表懶加載     | 514 行 (367 + 147) |
+| P1-4: 圖片優化       | 876 行 (669 + 207) |
+| 測試代碼             | 2,750+ 行          |
+| 文檔                 | ~8,000 行          |
+| **總計**             | **~12,900+ 行**    |
 
 ### 核心文件清單
 
@@ -726,21 +727,25 @@ apps/admin-dashboard/
 ### 技術亮點
 
 #### 1. 模塊化設計
+
 - 所有優化都封裝為可重用的 Composables
 - 零侵入式設計，不影響現有代碼
 - 易於測試和維護
 
 #### 2. 性能優先
+
 - 所有優化都有明確的性能指標
 - 實測數據支撐優化效果
 - 持續監控和調優
 
 #### 3. 用戶體驗
+
 - 保持流暢的 60fps 渲染
 - 智能加載策略
 - 優雅的降級處理
 
 #### 4. 開發者體驗
+
 - 完整的 TypeScript 支持
 - 詳細的註釋和文檔
 - 豐富的使用示例
@@ -754,20 +759,23 @@ apps/admin-dashboard/
 基於當前實施經驗，以下 P2 項目可以考慮：
 
 #### 1. SVG Icon 懶加載 (預估收益: -20KB)
+
 ```typescript
 // 類似 Modal 的異步加載
-const { AsyncIcon } = useAsyncIcons()
+const { AsyncIcon } = useAsyncIcons();
 ```
 
 #### 2. Analytics Script 延遲加載 (預估收益: -50KB)
+
 ```typescript
 // 在頁面 idle 時加載分析腳本
 requestIdleCallback(() => {
-  loadAnalytics()
-})
+  loadAnalytics();
+});
 ```
 
 #### 3. Font 子集化 (預估收益: -30KB)
+
 ```css
 /* 只加載使用的字符集 */
 @font-face {
@@ -776,12 +784,13 @@ requestIdleCallback(() => {
 ```
 
 #### 4. Service Worker 緩存策略
+
 ```typescript
 // 智能緩存圖片和靜態資源
 workbox.routing.registerRoute(
   /\.(?:png|jpg|jpeg|webp|avif)$/,
-  new workbox.strategies.CacheFirst()
-)
+  new workbox.strategies.CacheFirst(),
+);
 ```
 
 ### 持續優化計劃

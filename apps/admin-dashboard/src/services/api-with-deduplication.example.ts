@@ -4,30 +4,35 @@
  * This file demonstrates how to integrate request deduplication into your API service
  */
 
-import axios from 'axios'
-import { installAxiosDeduplication, skipDedup, withDedupTTL, combineConfigs } from '@makanmakan/utils'
+import axios from "axios";
+import {
+  installAxiosDeduplication,
+  skipDedup,
+  withDedupTTL,
+  combineConfigs,
+} from "@makanmakan/utils";
 
 // Create Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
-  }
-})
+    "Content-Type": "application/json",
+  },
+});
 
 // Install request deduplication interceptor
 const cleanupDeduplication = installAxiosDeduplication(api, {
   cacheDuration: 5000, // 5 seconds default cache
   maxCacheSize: 100,
-  debug: import.meta.env.DEV
-})
+  debug: import.meta.env.DEV,
+});
 
 // Example 1: Basic usage - automatic deduplication
 export async function getRestaurant(id: number) {
   // Multiple simultaneous calls will be deduplicated automatically
-  const response = await api.get(`/restaurants/${id}`)
-  return response.data
+  const response = await api.get(`/restaurants/${id}`);
+  return response.data;
 }
 
 // Example 2: Custom cache duration
@@ -35,9 +40,9 @@ export async function getMenu(restaurantId: number) {
   // Cache menu data for 30 seconds (longer than default)
   const response = await api.get(
     `/restaurants/${restaurantId}/menu`,
-    withDedupTTL(30000)
-  )
-  return response.data
+    withDedupTTL(30000),
+  );
+  return response.data;
 }
 
 // Example 3: Skip deduplication for specific requests
@@ -46,9 +51,9 @@ export async function createOrder(restaurantId: number, orderData: any) {
   const response = await api.post(
     `/restaurants/${restaurantId}/orders`,
     orderData,
-    skipDedup()
-  )
-  return response.data
+    skipDedup(),
+  );
+  return response.data;
 }
 
 // Example 4: Combine options
@@ -59,33 +64,33 @@ export async function getAnalytics(restaurantId: number, period: string) {
       withDedupTTL(60000), // Cache for 1 minute
       {
         params: { period },
-        headers: { 'X-Analytics-Version': 'v2' }
-      }
-    )
-  )
-  return response.data
+        headers: { "X-Analytics-Version": "v2" },
+      },
+    ),
+  );
+  return response.data;
 }
 
 // Example 5: Using with composables
 export function useRestaurantAPI() {
   // Multiple components calling this will share the same request
   const fetchRestaurant = async (id: number) => {
-    return getRestaurant(id)
-  }
+    return getRestaurant(id);
+  };
 
   const fetchMenu = async (restaurantId: number) => {
-    return getMenu(restaurantId)
-  }
+    return getMenu(restaurantId);
+  };
 
   return {
     fetchRestaurant,
-    fetchMenu
-  }
+    fetchMenu,
+  };
 }
 
 // Cleanup function (call when app unmounts)
 export function cleanupAPI() {
-  cleanupDeduplication()
+  cleanupDeduplication();
 }
 
 /**
@@ -102,10 +107,10 @@ export async function loadDashboard(restaurantId: number) {
   const [restaurant, menu, analytics] = await Promise.all([
     getRestaurant(restaurantId),
     getMenu(restaurantId),
-    getAnalytics(restaurantId, 'today')
-  ])
+    getAnalytics(restaurantId, "today"),
+  ]);
 
-  return { restaurant, menu, analytics }
+  return { restaurant, menu, analytics };
 }
 
 /**
@@ -117,8 +122,8 @@ export async function loadDashboard(restaurantId: number) {
 export async function refreshOrders(restaurantId: number) {
   // Even if user clicks refresh 10 times in 5 seconds,
   // only ONE request will be made (cached for 5s by default)
-  const response = await api.get(`/restaurants/${restaurantId}/orders`)
-  return response.data
+  const response = await api.get(`/restaurants/${restaurantId}/orders`);
+  return response.data;
 }
 
-export default api
+export default api;

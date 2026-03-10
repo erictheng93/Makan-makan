@@ -3,21 +3,21 @@
  * AI 分析 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define enums first to avoid circular reference
-const LLMProvider = z.enum(['openai', 'anthropic', 'gemini', 'local']);
+const LLMProvider = z.enum(["openai", "anthropic", "gemini", "local"]);
 const InsightType = z.enum([
-  'sales_trend',
-  'customer_behavior',
-  'menu_optimization',
-  'inventory_forecast',
-  'staffing_recommendation',
-  'revenue_prediction',
+  "sales_trend",
+  "customer_behavior",
+  "menu_optimization",
+  "inventory_forecast",
+  "staffing_recommendation",
+  "revenue_prediction",
 ]);
-const InsightPriority = z.enum(['low', 'medium', 'high', 'critical']);
+const InsightPriority = z.enum(["low", "medium", "high", "critical"]);
 
 /**
  * AI Analytics API Schemas
@@ -52,8 +52,8 @@ export const AIAnalyticsSchemas = {
   // Create/Update AI Configuration Request
   ConfigureAIRequest: z.object({
     provider: LLMProvider,
-    model: z.string().min(1, 'Model is required'),
-    apiKey: z.string().min(1, 'API key is required'),
+    model: z.string().min(1, "Model is required"),
+    apiKey: z.string().min(1, "API key is required"),
     enabled: z.boolean().default(true),
     settings: z
       .object({
@@ -81,7 +81,7 @@ export const AIAnalyticsSchemas = {
       potentialSavings: z.number().optional(),
       impactScore: z.number().min(0).max(100).optional(),
     }),
-    status: z.enum(['new', 'acknowledged', 'actioned', 'dismissed']),
+    status: z.enum(["new", "acknowledged", "actioned", "dismissed"]),
     createdAt: z.string().datetime(),
     expiresAt: z.string().datetime().optional(),
   }),
@@ -109,7 +109,7 @@ export const AIAnalyticsSchemas = {
 
   // Ask AI Question Request
   AskAIRequest: z.object({
-    question: z.string().min(1, 'Question is required'),
+    question: z.string().min(1, "Question is required"),
     context: z
       .object({
         timeRange: z
@@ -139,7 +139,12 @@ export const AIAnalyticsSchemas = {
     id: z.string().uuid(),
     restaurantId: z.string().uuid(),
     provider: LLMProvider,
-    requestType: z.enum(['insight_generation', 'question_answer', 'prediction', 'analysis']),
+    requestType: z.enum([
+      "insight_generation",
+      "question_answer",
+      "prediction",
+      "analysis",
+    ]),
     tokensUsed: z.number().int(),
     cost: z.number().nonnegative(),
     responseTime: z.number(), // milliseconds
@@ -164,7 +169,7 @@ export const AIAnalyticsSchemas = {
         sales: z.number().int(),
         revenue: z.number(),
         growth: z.number(),
-      })
+      }),
     ),
     insights: z.array(z.string()),
   }),
@@ -176,11 +181,11 @@ export const AIAnalyticsSchemas = {
 
 // Get AI Configuration
 export const getAIConfigRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/ai-analytics/:restaurantId/config',
-  tags: ['ai-analytics'],
-  summary: '獲取 AI 配置',
-  description: '獲取餐廳的 AI 分析配置（不包含 API keys）',
+  method: "get",
+  path: "/api/v1/ai-analytics/:restaurantId/config",
+  tags: ["ai-analytics"],
+  summary: "獲取 AI 配置",
+  description: "獲取餐廳的 AI 分析配置（不包含 API keys）",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -189,9 +194,9 @@ export const getAIConfigRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取 AI 配置',
+      description: "成功獲取 AI 配置",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AIAnalyticsSchemas.AIConfiguration.omit({ apiKey: true }),
@@ -205,11 +210,11 @@ export const getAIConfigRoute = createRoute({
 
 // Configure AI
 export const configureAIRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/ai-analytics/:restaurantId/config',
-  tags: ['ai-analytics'],
-  summary: '配置 AI 設置',
-  description: '配置或更新 AI 分析的 LLM 提供商和設置',
+  method: "post",
+  path: "/api/v1/ai-analytics/:restaurantId/config",
+  tags: ["ai-analytics"],
+  summary: "配置 AI 設置",
+  description: "配置或更新 AI 分析的 LLM 提供商和設置",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -217,7 +222,7 @@ export const configureAIRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AIAnalyticsSchemas.ConfigureAIRequest,
         },
       },
@@ -225,9 +230,9 @@ export const configureAIRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'AI 配置成功',
+      description: "AI 配置成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AIAnalyticsSchemas.AIConfiguration.omit({ apiKey: true }),
@@ -241,11 +246,11 @@ export const configureAIRoute = createRoute({
 
 // Generate AI Insights
 export const generateInsightsRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/ai-analytics/:restaurantId/insights/generate',
-  tags: ['ai-analytics'],
-  summary: '生成 AI 洞察',
-  description: '使用 AI 分析歷史數據並生成業務洞察和建議',
+  method: "post",
+  path: "/api/v1/ai-analytics/:restaurantId/insights/generate",
+  tags: ["ai-analytics"],
+  summary: "生成 AI 洞察",
+  description: "使用 AI 分析歷史數據並生成業務洞察和建議",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -253,7 +258,7 @@ export const generateInsightsRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AIAnalyticsSchemas.GenerateInsightsRequest,
         },
       },
@@ -261,9 +266,9 @@ export const generateInsightsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '洞察生成成功',
+      description: "洞察生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: AIAnalyticsSchemas.GenerateInsightsResponse,
         },
       },
@@ -274,11 +279,11 @@ export const generateInsightsRoute = createRoute({
 
 // Get AI Insights
 export const getInsightsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/ai-analytics/:restaurantId/insights',
-  tags: ['ai-analytics'],
-  summary: '獲取 AI 洞察列表',
-  description: '獲取餐廳的 AI 生成洞察，支持過濾和排序',
+  method: "get",
+  path: "/api/v1/ai-analytics/:restaurantId/insights",
+  tags: ["ai-analytics"],
+  summary: "獲取 AI 洞察列表",
+  description: "獲取餐廳的 AI 生成洞察，支持過濾和排序",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -287,17 +292,19 @@ export const getInsightsRoute = createRoute({
     query: z.object({
       type: AIAnalyticsSchemas.InsightType.optional(),
       priority: AIAnalyticsSchemas.InsightPriority.optional(),
-      status: z.enum(['new', 'acknowledged', 'actioned', 'dismissed']).optional(),
+      status: z
+        .enum(["new", "acknowledged", "actioned", "dismissed"])
+        .optional(),
       minConfidence: z.string().transform(Number).optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取洞察列表',
+      description: "成功獲取洞察列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(AIAnalyticsSchemas.AIInsight),
@@ -317,11 +324,11 @@ export const getInsightsRoute = createRoute({
 
 // Update Insight Status
 export const updateInsightStatusRoute = createRoute({
-  method: 'patch',
-  path: '/api/v1/ai-analytics/insights/:insightId/status',
-  tags: ['ai-analytics'],
-  summary: '更新洞察狀態',
-  description: '更新 AI 洞察的處理狀態',
+  method: "patch",
+  path: "/api/v1/ai-analytics/insights/:insightId/status",
+  tags: ["ai-analytics"],
+  summary: "更新洞察狀態",
+  description: "更新 AI 洞察的處理狀態",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -329,9 +336,9 @@ export const updateInsightStatusRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
-            status: z.enum(['new', 'acknowledged', 'actioned', 'dismissed']),
+            status: z.enum(["new", "acknowledged", "actioned", "dismissed"]),
           }),
         },
       },
@@ -339,9 +346,9 @@ export const updateInsightStatusRoute = createRoute({
   },
   responses: {
     200: {
-      description: '狀態更新成功',
+      description: "狀態更新成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AIAnalyticsSchemas.AIInsight,
@@ -355,11 +362,11 @@ export const updateInsightStatusRoute = createRoute({
 
 // Ask AI Question
 export const askAIRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/ai-analytics/:restaurantId/ask',
-  tags: ['ai-analytics'],
-  summary: '詢問 AI',
-  description: '向 AI 詢問關於餐廳數據的問題',
+  method: "post",
+  path: "/api/v1/ai-analytics/:restaurantId/ask",
+  tags: ["ai-analytics"],
+  summary: "詢問 AI",
+  description: "向 AI 詢問關於餐廳數據的問題",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -367,7 +374,7 @@ export const askAIRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AIAnalyticsSchemas.AskAIRequest,
         },
       },
@@ -375,9 +382,9 @@ export const askAIRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'AI 回答成功',
+      description: "AI 回答成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: AIAnalyticsSchemas.AskAIResponse,
         },
       },
@@ -388,11 +395,11 @@ export const askAIRoute = createRoute({
 
 // Get AI Usage
 export const getAIUsageRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/ai-analytics/:restaurantId/usage',
-  tags: ['ai-analytics'],
-  summary: '獲取 AI 使用記錄',
-  description: '獲取 AI 服務的使用統計和成本',
+  method: "get",
+  path: "/api/v1/ai-analytics/:restaurantId/usage",
+  tags: ["ai-analytics"],
+  summary: "獲取 AI 使用記錄",
+  description: "獲取 AI 服務的使用統計和成本",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -406,9 +413,9 @@ export const getAIUsageRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取使用記錄',
+      description: "成功獲取使用記錄",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(AIAnalyticsSchemas.AIUsageLog),
@@ -429,11 +436,11 @@ export const getAIUsageRoute = createRoute({
 
 // Get Product Analytics
 export const getProductAnalyticsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/ai-analytics/:restaurantId/products/:itemId',
-  tags: ['ai-analytics'],
-  summary: '獲取產品 AI 分析',
-  description: '獲取特定菜品的 AI 深度分析和建議',
+  method: "get",
+  path: "/api/v1/ai-analytics/:restaurantId/products/:itemId",
+  tags: ["ai-analytics"],
+  summary: "獲取產品 AI 分析",
+  description: "獲取特定菜品的 AI 深度分析和建議",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -447,9 +454,9 @@ export const getProductAnalyticsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取產品分析',
+      description: "成功獲取產品分析",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: AIAnalyticsSchemas.ProductAnalytics,

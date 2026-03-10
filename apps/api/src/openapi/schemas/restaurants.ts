@@ -3,9 +3,9 @@
  * 餐廳管理 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define schemas first to avoid circular reference
 const OperatingHours = z.object({
@@ -24,8 +24,8 @@ const RestaurantSettings = z.object({
   enableLoyaltyProgram: z.boolean().default(false),
   taxRate: z.number().min(0).max(1).default(0),
   serviceCharge: z.number().min(0).max(1).default(0),
-  currency: z.string().default('TWD'),
-  timezone: z.string().default('Asia/Taipei'),
+  currency: z.string().default("TWD"),
+  timezone: z.string().default("Asia/Taipei"),
 });
 
 /**
@@ -58,11 +58,14 @@ export const RestaurantsSchemas = {
 
   // Create Restaurant Request
   CreateRestaurantRequest: z.object({
-    name: z.string().min(1, 'Restaurant name is required'),
+    name: z.string().min(1, "Restaurant name is required"),
     description: z.string().optional(),
     address: z.string().optional(),
-    phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone format').optional(),
-    email: z.string().email('Invalid email format').optional(),
+    phone: z
+      .string()
+      .regex(/^\+?[\d\s-()]+$/, "Invalid phone format")
+      .optional(),
+    email: z.string().email("Invalid email format").optional(),
     operatingHours: z.array(OperatingHours).optional(),
     settings: RestaurantSettings.optional(),
   }),
@@ -92,13 +95,13 @@ export const RestaurantsSchemas = {
         itemName: z.string(),
         orderCount: z.number().int(),
         revenue: z.number(),
-      })
+      }),
     ),
     peakHours: z.array(
       z.object({
         hour: z.number().int().min(0).max(23),
         orderCount: z.number().int(),
-      })
+      }),
     ),
     period: z.object({
       startDate: z.string().datetime(),
@@ -119,7 +122,7 @@ export const RestaurantsSchemas = {
 
   // Generate Shop QR Request
   GenerateShopQRRequest: z.object({
-    template: z.enum(['basic', 'branded', 'custom']).default('basic'),
+    template: z.enum(["basic", "branded", "custom"]).default("basic"),
     size: z.number().int().min(100).max(1000).default(512),
     expiresIn: z.number().int().min(0).optional(), // seconds, 0 = never expires
   }),
@@ -131,25 +134,28 @@ export const RestaurantsSchemas = {
 
 // Get Restaurants
 export const getRestaurantsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/restaurants',
-  tags: ['restaurants'],
-  summary: '獲取餐廳列表',
-  description: '獲取當前用戶有權限訪問的所有餐廳',
+  method: "get",
+  path: "/api/v1/restaurants",
+  tags: ["restaurants"],
+  summary: "獲取餐廳列表",
+  description: "獲取當前用戶有權限訪問的所有餐廳",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      isActive: z.string().transform((val) => val === 'true').optional(),
+      isActive: z
+        .string()
+        .transform((val) => val === "true")
+        .optional(),
       search: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取餐廳列表',
+      description: "成功獲取餐廳列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(RestaurantsSchemas.Restaurant),
@@ -169,11 +175,11 @@ export const getRestaurantsRoute = createRoute({
 
 // Get Restaurant by ID
 export const getRestaurantRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/restaurants/:restaurantId',
-  tags: ['restaurants'],
-  summary: '獲取餐廳詳情',
-  description: '獲取指定餐廳的詳細信息',
+  method: "get",
+  path: "/api/v1/restaurants/:restaurantId",
+  tags: ["restaurants"],
+  summary: "獲取餐廳詳情",
+  description: "獲取指定餐廳的詳細信息",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -182,9 +188,9 @@ export const getRestaurantRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取餐廳詳情',
+      description: "成功獲取餐廳詳情",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.Restaurant,
@@ -198,16 +204,16 @@ export const getRestaurantRoute = createRoute({
 
 // Create Restaurant
 export const createRestaurantRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/restaurants',
-  tags: ['restaurants'],
-  summary: '創建新餐廳',
-  description: '創建新的餐廳（需要 Admin 權限）',
+  method: "post",
+  path: "/api/v1/restaurants",
+  tags: ["restaurants"],
+  summary: "創建新餐廳",
+  description: "創建新的餐廳（需要 Admin 權限）",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RestaurantsSchemas.CreateRestaurantRequest,
         },
       },
@@ -215,9 +221,9 @@ export const createRestaurantRoute = createRoute({
   },
   responses: {
     201: {
-      description: '餐廳創建成功',
+      description: "餐廳創建成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.Restaurant,
@@ -231,11 +237,11 @@ export const createRestaurantRoute = createRoute({
 
 // Update Restaurant
 export const updateRestaurantRoute = createRoute({
-  method: 'put',
-  path: '/api/v1/restaurants/:restaurantId',
-  tags: ['restaurants'],
-  summary: '更新餐廳信息',
-  description: '更新餐廳的基本信息和設置',
+  method: "put",
+  path: "/api/v1/restaurants/:restaurantId",
+  tags: ["restaurants"],
+  summary: "更新餐廳信息",
+  description: "更新餐廳的基本信息和設置",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -243,7 +249,7 @@ export const updateRestaurantRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RestaurantsSchemas.UpdateRestaurantRequest,
         },
       },
@@ -251,9 +257,9 @@ export const updateRestaurantRoute = createRoute({
   },
   responses: {
     200: {
-      description: '更新成功',
+      description: "更新成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.Restaurant,
@@ -268,11 +274,11 @@ export const updateRestaurantRoute = createRoute({
 
 // Get Restaurant Statistics
 export const getRestaurantStatsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/restaurants/:restaurantId/statistics',
-  tags: ['restaurants'],
-  summary: '獲取餐廳統計數據',
-  description: '獲取餐廳的業務統計和分析數據',
+  method: "get",
+  path: "/api/v1/restaurants/:restaurantId/statistics",
+  tags: ["restaurants"],
+  summary: "獲取餐廳統計數據",
+  description: "獲取餐廳的業務統計和分析數據",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -281,15 +287,21 @@ export const getRestaurantStatsRoute = createRoute({
     query: z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      includePopularItems: z.string().transform((val) => val === 'true').default('true'),
-      includePeakHours: z.string().transform((val) => val === 'true').default('true'),
+      includePopularItems: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
+      includePeakHours: z
+        .string()
+        .transform((val) => val === "true")
+        .default("true"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取統計數據',
+      description: "成功獲取統計數據",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.RestaurantStatistics,
@@ -303,11 +315,11 @@ export const getRestaurantStatsRoute = createRoute({
 
 // Generate Shop QR Code
 export const generateShopQRRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/restaurants/:restaurantId/qr/shop/generate',
-  tags: ['restaurants'],
-  summary: '生成 Shop QR Code',
-  description: '為餐廳生成全店通用的 QR Code（無桌號模式）',
+  method: "post",
+  path: "/api/v1/restaurants/:restaurantId/qr/shop/generate",
+  tags: ["restaurants"],
+  summary: "生成 Shop QR Code",
+  description: "為餐廳生成全店通用的 QR Code（無桌號模式）",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -315,7 +327,7 @@ export const generateShopQRRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RestaurantsSchemas.GenerateShopQRRequest,
         },
       },
@@ -323,9 +335,9 @@ export const generateShopQRRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Shop QR Code 生成成功',
+      description: "Shop QR Code 生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.ShopQRCode,
@@ -340,11 +352,11 @@ export const generateShopQRRoute = createRoute({
 
 // Get Shop QR Code
 export const getShopQRRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/restaurants/:restaurantId/qr/shop',
-  tags: ['restaurants'],
-  summary: '獲取 Shop QR Code',
-  description: '獲取餐廳的 Shop QR Code',
+  method: "get",
+  path: "/api/v1/restaurants/:restaurantId/qr/shop",
+  tags: ["restaurants"],
+  summary: "獲取 Shop QR Code",
+  description: "獲取餐廳的 Shop QR Code",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -353,9 +365,9 @@ export const getShopQRRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取 Shop QR Code',
+      description: "成功獲取 Shop QR Code",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.ShopQRCode,
@@ -369,11 +381,11 @@ export const getShopQRRoute = createRoute({
 
 // Update Restaurant Settings
 export const updateRestaurantSettingsRoute = createRoute({
-  method: 'patch',
-  path: '/api/v1/restaurants/:restaurantId/settings',
-  tags: ['restaurants'],
-  summary: '更新餐廳設置',
-  description: '更新餐廳的運營設置',
+  method: "patch",
+  path: "/api/v1/restaurants/:restaurantId/settings",
+  tags: ["restaurants"],
+  summary: "更新餐廳設置",
+  description: "更新餐廳的運營設置",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -381,7 +393,7 @@ export const updateRestaurantSettingsRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RestaurantsSchemas.RestaurantSettings.partial(),
         },
       },
@@ -389,9 +401,9 @@ export const updateRestaurantSettingsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '設置更新成功',
+      description: "設置更新成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RestaurantsSchemas.RestaurantSettings,

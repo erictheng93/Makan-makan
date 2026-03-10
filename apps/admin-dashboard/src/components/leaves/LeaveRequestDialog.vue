@@ -5,11 +5,15 @@
         <!-- 對話框標題 -->
         <div class="dialog-header">
           <h2 class="dialog-title">
-            {{ $t('leaves.request.title') }}
+            {{ $t("leaves.request.title") }}
           </h2>
           <button class="btn-close" @click="handleClose">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              <path
+                fill-rule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
         </div>
@@ -19,21 +23,24 @@
           <!-- 請假類型選擇 -->
           <div class="form-group">
             <label class="form-label required">
-              {{ $t('leaves.request.leaveType') }}
+              {{ $t("leaves.request.leaveType") }}
             </label>
             <select
               v-model="formData.leaveTypeId"
               class="form-select"
-              :class="{ 'error': errors.leaveTypeId }"
+              :class="{ error: errors.leaveTypeId }"
               required
             >
-              <option value="">{{ $t('leaves.request.selectLeaveType') }}</option>
+              <option value="">
+                {{ $t("leaves.request.selectLeaveType") }}
+              </option>
               <option
                 v-for="type in leaveTypes"
                 :key="type.id"
                 :value="type.id"
               >
-                {{ type.name }} ({{ $t('leaves.balance.remaining') }}: {{ getTypeBalance(type.id) }} {{ $t('leaves.balance.days') }})
+                {{ type.name }} ({{ $t("leaves.balance.remaining") }}:
+                {{ getTypeBalance(type.id) }} {{ $t("leaves.balance.days") }})
               </option>
             </select>
             <span v-if="errors.leaveTypeId" class="error-message">
@@ -45,13 +52,13 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label required">
-                {{ $t('leaves.request.startDate') }}
+                {{ $t("leaves.request.startDate") }}
               </label>
               <input
                 v-model="formData.startDate"
                 type="date"
                 class="form-input"
-                :class="{ 'error': errors.startDate }"
+                :class="{ error: errors.startDate }"
                 :min="minDate"
                 required
                 @change="calculateDuration"
@@ -63,7 +70,7 @@
 
             <div class="form-group">
               <label class="form-label">
-                {{ $t('leaves.request.startPeriod') }}
+                {{ $t("leaves.request.startPeriod") }}
               </label>
               <select
                 v-model="formData.startPeriod"
@@ -71,9 +78,9 @@
                 :disabled="!selectedLeaveType?.allowHalfDay"
                 @change="calculateDuration"
               >
-                <option value="full">{{ $t('leaves.request.fullDay') }}</option>
-                <option value="am">{{ $t('leaves.request.morning') }}</option>
-                <option value="pm">{{ $t('leaves.request.afternoon') }}</option>
+                <option value="full">{{ $t("leaves.request.fullDay") }}</option>
+                <option value="am">{{ $t("leaves.request.morning") }}</option>
+                <option value="pm">{{ $t("leaves.request.afternoon") }}</option>
               </select>
             </div>
           </div>
@@ -82,13 +89,13 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label required">
-                {{ $t('leaves.request.endDate') }}
+                {{ $t("leaves.request.endDate") }}
               </label>
               <input
                 v-model="formData.endDate"
                 type="date"
                 class="form-input"
-                :class="{ 'error': errors.endDate }"
+                :class="{ error: errors.endDate }"
                 :min="formData.startDate || minDate"
                 required
                 @change="calculateDuration"
@@ -100,17 +107,20 @@
 
             <div class="form-group">
               <label class="form-label">
-                {{ $t('leaves.request.endPeriod') }}
+                {{ $t("leaves.request.endPeriod") }}
               </label>
               <select
                 v-model="formData.endPeriod"
                 class="form-select"
-                :disabled="!selectedLeaveType?.allowHalfDay || formData.startDate === formData.endDate"
+                :disabled="
+                  !selectedLeaveType?.allowHalfDay ||
+                  formData.startDate === formData.endDate
+                "
                 @change="calculateDuration"
               >
-                <option value="full">{{ $t('leaves.request.fullDay') }}</option>
-                <option value="am">{{ $t('leaves.request.morning') }}</option>
-                <option value="pm">{{ $t('leaves.request.afternoon') }}</option>
+                <option value="full">{{ $t("leaves.request.fullDay") }}</option>
+                <option value="am">{{ $t("leaves.request.morning") }}</option>
+                <option value="pm">{{ $t("leaves.request.afternoon") }}</option>
               </select>
             </div>
           </div>
@@ -118,23 +128,28 @@
           <!-- 計算的天數 -->
           <div v-if="calculatedDays > 0" class="duration-display">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clip-rule="evenodd"
+              />
             </svg>
             <span>
-              {{ $t('leaves.request.totalDuration') }}:
-              <strong>{{ calculatedDays }}</strong> {{ $t('leaves.balance.days') }}
+              {{ $t("leaves.request.totalDuration") }}:
+              <strong>{{ calculatedDays }}</strong>
+              {{ $t("leaves.balance.days") }}
             </span>
           </div>
 
           <!-- 請假原因 -->
           <div class="form-group">
             <label class="form-label required">
-              {{ $t('leaves.request.reason') }}
+              {{ $t("leaves.request.reason") }}
             </label>
             <textarea
               v-model="formData.reason"
               class="form-textarea"
-              :class="{ 'error': errors.reason }"
+              :class="{ error: errors.reason }"
               :placeholder="$t('leaves.request.reasonPlaceholder')"
               rows="4"
               required
@@ -151,11 +166,14 @@
           </div>
 
           <!-- 附件上傳 (如需要證明文件) -->
-          <div v-if="selectedLeaveType?.requiresDocumentation" class="form-group">
+          <div
+            v-if="selectedLeaveType?.requiresDocumentation"
+            class="form-group"
+          >
             <label class="form-label">
-              {{ $t('leaves.request.attachments') }}
+              {{ $t("leaves.request.attachments") }}
               <span class="label-note">
-                ({{ $t('leaves.request.required') }})
+                ({{ $t("leaves.request.required") }})
               </span>
             </label>
             <div class="file-upload-area">
@@ -168,11 +186,19 @@
                 @change="handleFileSelect"
               />
               <div class="file-upload-prompt">
-                <svg class="icon-upload" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.413V13H5.5z"/>
+                <svg
+                  class="icon-upload"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.413V13H5.5z"
+                  />
                 </svg>
-                <p>{{ $t('leaves.request.uploadPrompt') }}</p>
-                <p class="file-format-note">{{ $t('leaves.request.formatNote') }}</p>
+                <p>{{ $t("leaves.request.uploadPrompt") }}</p>
+                <p class="file-format-note">
+                  {{ $t("leaves.request.formatNote") }}
+                </p>
               </div>
             </div>
             <div v-if="formData.attachments.length > 0" class="file-list">
@@ -188,7 +214,11 @@
                   @click="removeFile(index)"
                 >
                   <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    <path
+                      fill-rule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                 </button>
               </div>
@@ -203,7 +233,11 @@
               class="warning-item"
             >
               <svg class="icon-warning" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                <path
+                  fill-rule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
               </svg>
               <span>{{ warning }}</span>
             </div>
@@ -211,12 +245,8 @@
 
           <!-- 操作按鈕 -->
           <div class="dialog-actions">
-            <button
-              type="button"
-              class="btn-cancel"
-              @click="handleClose"
-            >
-              {{ $t('common.cancel') }}
+            <button type="button" class="btn-cancel" @click="handleClose">
+              {{ $t("common.cancel") }}
             </button>
             <button
               type="submit"
@@ -224,13 +254,21 @@
               :disabled="isSubmitting || !isFormValid"
             >
               <span v-if="!isSubmitting">
-                {{ $t('leaves.request.submit') }}
+                {{ $t("leaves.request.submit") }}
               </span>
               <span v-else class="loading-spinner">
                 <svg class="spinner" viewBox="0 0 24 24">
-                  <circle class="spinner-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+                  <circle
+                    class="spinner-circle"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    fill="none"
+                  />
                 </svg>
-                {{ $t('common.submitting') }}
+                {{ $t("common.submitting") }}
               </span>
             </button>
           </div>
@@ -241,62 +279,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { LeaveType, LeaveBalance } from '@makanmakan/shared-types'
+import { ref, computed, watch } from "vue";
+import type { LeaveType, LeaveBalance } from "@makanmakan/shared-types";
 
 interface Props {
-  isOpen: boolean
-  leaveTypes: LeaveType[]
-  balances: LeaveBalance[]
-  preselectedTypeId?: number
+  isOpen: boolean;
+  leaveTypes: LeaveType[];
+  balances: LeaveBalance[];
+  preselectedTypeId?: number;
 }
 
 interface LeaveRequestFormData {
-  leaveTypeId: number | string
-  startDate: string
-  startPeriod: 'full' | 'am' | 'pm'
-  endDate: string
-  endPeriod: 'full' | 'am' | 'pm'
-  reason: string
-  attachments: File[]
+  leaveTypeId: number | string;
+  startDate: string;
+  startPeriod: "full" | "am" | "pm";
+  endDate: string;
+  endPeriod: "full" | "am" | "pm";
+  reason: string;
+  attachments: File[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 const emit = defineEmits<{
-  close: []
-  submit: [data: LeaveRequestFormData]
-}>()
+  close: [];
+  submit: [data: LeaveRequestFormData];
+}>();
 
 // 表單資料
 const formData = ref<LeaveRequestFormData>({
-  leaveTypeId: '',
-  startDate: '',
-  startPeriod: 'full',
-  endDate: '',
-  endPeriod: 'full',
-  reason: '',
-  attachments: []
-})
+  leaveTypeId: "",
+  startDate: "",
+  startPeriod: "full",
+  endDate: "",
+  endPeriod: "full",
+  reason: "",
+  attachments: [],
+});
 
 // 錯誤訊息
-const errors = ref<Record<string, string>>({})
+const errors = ref<Record<string, string>>({});
 
 // 警告訊息
-const warnings = ref<string[]>([])
+const warnings = ref<string[]>([]);
 
 // 狀態
-const isSubmitting = ref(false)
-const calculatedDays = ref(0)
+const isSubmitting = ref(false);
+const calculatedDays = ref(0);
 
 // 最小日期（今天）
 const minDate = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
+  return new Date().toISOString().split("T")[0];
+});
 
 // 選中的請假類型
 const selectedLeaveType = computed(() => {
-  return props.leaveTypes.find(t => t.id === formData.value.leaveTypeId)
-})
+  return props.leaveTypes.find((t) => t.id === formData.value.leaveTypeId);
+});
 
 // 表單驗證
 const isFormValid = computed(() => {
@@ -306,162 +344,181 @@ const isFormValid = computed(() => {
     formData.value.endDate &&
     formData.value.reason.trim().length >= 10 &&
     calculatedDays.value > 0 &&
-    (!selectedLeaveType.value?.requiresDocumentation || formData.value.attachments.length > 0)
-  )
-})
+    (!selectedLeaveType.value?.requiresDocumentation ||
+      formData.value.attachments.length > 0)
+  );
+});
 
 // 獲取某個請假類型的剩餘天數
 const getTypeBalance = (typeId: number): string => {
-  const balance = props.balances.find(b => b.leaveTypeId === typeId)
-  return balance ? balance.remainingDays.toString() : '0'
-}
+  const balance = props.balances.find((b) => b.leaveTypeId === typeId);
+  return balance ? balance.remainingDays.toString() : "0";
+};
 
 // 計算請假天數
 const calculateDuration = () => {
   if (!formData.value.startDate || !formData.value.endDate) {
-    calculatedDays.value = 0
-    return
+    calculatedDays.value = 0;
+    return;
   }
 
-  const start = new Date(formData.value.startDate)
-  const end = new Date(formData.value.endDate)
+  const start = new Date(formData.value.startDate);
+  const end = new Date(formData.value.endDate);
 
   if (end < start) {
-    errors.value.endDate = '結束日期不能早於開始日期'
-    calculatedDays.value = 0
-    return
+    errors.value.endDate = "結束日期不能早於開始日期";
+    calculatedDays.value = 0;
+    return;
   }
 
   // 計算天數（簡化版，實際應考慮工作日、假日等）
-  let days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  let days =
+    Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   // 考慮半天
-  if (formData.value.startPeriod !== 'full') days -= 0.5
-  if (formData.value.endPeriod !== 'full') days -= 0.5
+  if (formData.value.startPeriod !== "full") days -= 0.5;
+  if (formData.value.endPeriod !== "full") days -= 0.5;
 
-  calculatedDays.value = days
+  calculatedDays.value = days;
 
   // 檢查是否超過餘額
-  checkBalance()
+  checkBalance();
   // 檢查是否超過通知期限
-  checkNoticeRequirement()
-}
+  checkNoticeRequirement();
+};
 
 // 檢查餘額
 const checkBalance = () => {
-  if (!selectedLeaveType.value) return
+  if (!selectedLeaveType.value) return;
 
-  const balance = props.balances.find(b => b.leaveTypeId === selectedLeaveType.value!.id)
+  const balance = props.balances.find(
+    (b) => b.leaveTypeId === selectedLeaveType.value!.id,
+  );
   if (balance && calculatedDays.value > balance.remainingDays) {
     warnings.value.push(
-      `剩餘天數不足！您還有 ${balance.remainingDays} 天，但申請了 ${calculatedDays.value} 天`
-    )
+      `剩餘天數不足！您還有 ${balance.remainingDays} 天，但申請了 ${calculatedDays.value} 天`,
+    );
   } else {
-    warnings.value = warnings.value.filter(w => !w.includes('剩餘天數不足'))
+    warnings.value = warnings.value.filter((w) => !w.includes("剩餘天數不足"));
   }
-}
+};
 
 // 檢查通知期限
 const checkNoticeRequirement = () => {
-  if (!selectedLeaveType.value?.minNoticeDays) return
+  if (!selectedLeaveType.value?.minNoticeDays) return;
 
-  const start = new Date(formData.value.startDate)
-  const today = new Date()
-  const noticeDays = Math.ceil((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const start = new Date(formData.value.startDate);
+  const today = new Date();
+  const noticeDays = Math.ceil(
+    (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
 
   if (noticeDays < selectedLeaveType.value.minNoticeDays) {
     warnings.value.push(
-      `此假別需要提前 ${selectedLeaveType.value.minNoticeDays} 天申請，但您只提前了 ${noticeDays} 天`
-    )
+      `此假別需要提前 ${selectedLeaveType.value.minNoticeDays} 天申請，但您只提前了 ${noticeDays} 天`,
+    );
   } else {
-    warnings.value = warnings.value.filter(w => !w.includes('提前'))
+    warnings.value = warnings.value.filter((w) => !w.includes("提前"));
   }
-}
+};
 
 // 處理檔案選擇
 const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement
+  const target = event.target as HTMLInputElement;
   if (target.files) {
-    formData.value.attachments = [...formData.value.attachments, ...Array.from(target.files)]
+    formData.value.attachments = [
+      ...formData.value.attachments,
+      ...Array.from(target.files),
+    ];
   }
-}
+};
 
 // 移除檔案
 const removeFile = (index: number) => {
-  formData.value.attachments.splice(index, 1)
-}
+  formData.value.attachments.splice(index, 1);
+};
 
 // 處理提交
 const handleSubmit = async () => {
   // 驗證表單
-  errors.value = {}
+  errors.value = {};
 
   if (!formData.value.leaveTypeId) {
-    errors.value.leaveTypeId = '請選擇請假類型'
+    errors.value.leaveTypeId = "請選擇請假類型";
   }
 
   if (!formData.value.startDate) {
-    errors.value.startDate = '請選擇開始日期'
+    errors.value.startDate = "請選擇開始日期";
   }
 
   if (!formData.value.endDate) {
-    errors.value.endDate = '請選擇結束日期'
+    errors.value.endDate = "請選擇結束日期";
   }
 
   if (formData.value.reason.trim().length < 10) {
-    errors.value.reason = '請假原因至少需要 10 個字元'
+    errors.value.reason = "請假原因至少需要 10 個字元";
   }
 
   if (Object.keys(errors.value).length > 0) {
-    return
+    return;
   }
 
-  isSubmitting.value = true
+  isSubmitting.value = true;
 
   try {
-    emit('submit', { ...formData.value, leaveTypeId: Number(formData.value.leaveTypeId) })
+    emit("submit", {
+      ...formData.value,
+      leaveTypeId: Number(formData.value.leaveTypeId),
+    });
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 // 處理關閉
 const handleClose = () => {
   if (!isSubmitting.value) {
-    emit('close')
-    resetForm()
+    emit("close");
+    resetForm();
   }
-}
+};
 
 // 重置表單
 const resetForm = () => {
   formData.value = {
-    leaveTypeId: '',
-    startDate: '',
-    startPeriod: 'full',
-    endDate: '',
-    endPeriod: 'full',
-    reason: '',
-    attachments: []
-  }
-  errors.value = {}
-  warnings.value = []
-  calculatedDays.value = 0
-}
+    leaveTypeId: "",
+    startDate: "",
+    startPeriod: "full",
+    endDate: "",
+    endPeriod: "full",
+    reason: "",
+    attachments: [],
+  };
+  errors.value = {};
+  warnings.value = [];
+  calculatedDays.value = 0;
+};
 
 // 監聽預選類型
-watch(() => props.preselectedTypeId, (newVal) => {
-  if (newVal) {
-    formData.value.leaveTypeId = newVal
-  }
-}, { immediate: true })
+watch(
+  () => props.preselectedTypeId,
+  (newVal) => {
+    if (newVal) {
+      formData.value.leaveTypeId = newVal;
+    }
+  },
+  { immediate: true },
+);
 
 // 監聽對話框開啟
-watch(() => props.isOpen, (newVal) => {
-  if (!newVal) {
-    resetForm()
-  }
-})
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (!newVal) {
+      resetForm();
+    }
+  },
+);
 </script>
 
 <style scoped>
@@ -508,7 +565,9 @@ watch(() => props.isOpen, (newVal) => {
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* 對話框標題 */
@@ -517,13 +576,13 @@ watch(() => props.isOpen, (newVal) => {
   justify-content: space-between;
   align-items: center;
   padding: 24px 24px 16px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .dialog-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin: 0;
 }
 
@@ -534,20 +593,20 @@ watch(() => props.isOpen, (newVal) => {
   align-items: center;
   justify-content: center;
   border: none;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .btn-close:hover {
-  background: #E5E7EB;
+  background: #e5e7eb;
 }
 
 .btn-close .icon {
   width: 20px;
   height: 20px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 /* 對話框內容 */
@@ -569,14 +628,14 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .form-label.required::after {
-  content: ' *';
-  color: #EF4444;
+  content: " *";
+  color: #ef4444;
 }
 
 .label-note {
   font-size: 12px;
   font-weight: 400;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .form-input,
@@ -584,25 +643,27 @@ watch(() => props.isOpen, (newVal) => {
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
-  color: #1F2937;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #1f2937;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-input.error,
 .form-select.error,
 .form-textarea.error {
-  border-color: #EF4444;
+  border-color: #ef4444;
 }
 
 .form-textarea {
@@ -619,7 +680,7 @@ watch(() => props.isOpen, (newVal) => {
 
 .char-count {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 /* 表單行 */
@@ -633,7 +694,7 @@ watch(() => props.isOpen, (newVal) => {
 .error-message {
   display: block;
   font-size: 12px;
-  color: #EF4444;
+  color: #ef4444;
   margin-top: 4px;
 }
 
@@ -643,11 +704,11 @@ watch(() => props.isOpen, (newVal) => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #EFF6FF;
+  background: #eff6ff;
   border-radius: 8px;
   margin-bottom: 20px;
   font-size: 14px;
-  color: #1E40AF;
+  color: #1e40af;
 }
 
 .duration-display .icon {
@@ -659,17 +720,19 @@ watch(() => props.isOpen, (newVal) => {
 /* 檔案上傳 */
 .file-upload-area {
   position: relative;
-  border: 2px dashed #D1D5DB;
+  border: 2px dashed #d1d5db;
   border-radius: 8px;
   padding: 24px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
 }
 
 .file-upload-area:hover {
-  border-color: #3B82F6;
-  background: #F9FAFB;
+  border-color: #3b82f6;
+  background: #f9fafb;
 }
 
 .file-input {
@@ -689,19 +752,19 @@ watch(() => props.isOpen, (newVal) => {
 .icon-upload {
   width: 40px;
   height: 40px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin: 0 auto 8px;
 }
 
 .file-upload-prompt p {
   margin: 4px 0;
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .file-format-note {
   font-size: 12px !important;
-  color: #9CA3AF !important;
+  color: #9ca3af !important;
 }
 
 /* 檔案列表 */
@@ -714,7 +777,7 @@ watch(() => props.isOpen, (newVal) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-radius: 6px;
   margin-bottom: 8px;
 }
@@ -736,12 +799,12 @@ watch(() => props.isOpen, (newVal) => {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #EF4444;
+  color: #ef4444;
   flex-shrink: 0;
 }
 
 .btn-remove-file:hover {
-  background: #FEE2E2;
+  background: #fee2e2;
   border-radius: 4px;
 }
 
@@ -760,19 +823,19 @@ watch(() => props.isOpen, (newVal) => {
   align-items: flex-start;
   gap: 8px;
   padding: 12px;
-  background: #FEF3C7;
-  border-left: 4px solid #F59E0B;
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
   border-radius: 8px;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #92400E;
+  color: #92400e;
 }
 
 .icon-warning {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: #F59E0B;
+  color: #f59e0b;
 }
 
 /* 對話框操作 */
@@ -781,7 +844,7 @@ watch(() => props.isOpen, (newVal) => {
   gap: 12px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid #e5e7eb;
 }
 
 .btn-cancel,
@@ -801,25 +864,25 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .btn-cancel {
-  background: #F3F4F6;
-  color: #4B5563;
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .btn-cancel:hover {
-  background: #E5E7EB;
+  background: #e5e7eb;
 }
 
 .btn-submit {
-  background: #3B82F6;
+  background: #3b82f6;
   color: white;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #2563EB;
+  background: #2563eb;
 }
 
 .btn-submit:disabled {
-  background: #9CA3AF;
+  background: #9ca3af;
   cursor: not-allowed;
 }
 
@@ -843,13 +906,21 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes dash {
-  0% { stroke-dashoffset: 60; }
-  50% { stroke-dashoffset: 15; }
-  100% { stroke-dashoffset: 60; }
+  0% {
+    stroke-dashoffset: 60;
+  }
+  50% {
+    stroke-dashoffset: 15;
+  }
+  100% {
+    stroke-dashoffset: 60;
+  }
 }
 
 /* 響應式設計 */

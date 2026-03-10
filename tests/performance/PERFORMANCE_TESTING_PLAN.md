@@ -31,6 +31,7 @@
 ### ⚠️ 發現的問題
 
 從 `baseline.json` 分析：
+
 - **19,500 測試全部失敗**
 - **37,488 個 404 錯誤**
 - **1,512 個連線被拒絕錯誤**
@@ -139,6 +140,7 @@ SELECT 'Tables created' as status, COUNT(*) as count FROM tables WHERE restauran
 ```
 
 執行命令:
+
 ```bash
 # Local D1 database
 npx wrangler d1 execute makanmakan-staging --local --file=./tests/performance/seed-realtime-test.sql
@@ -149,6 +151,7 @@ npx wrangler d1 execute makanmakan-staging --local --file=./tests/performance/se
 ### 步驟 2: 啟動服務
 
 **終端 1 - API 服務**:
+
 ```bash
 cd apps/api
 pnpm dev
@@ -156,6 +159,7 @@ pnpm dev
 ```
 
 **終端 2 - Realtime 服務**:
+
 ```bash
 cd apps/realtime
 pnpm dev
@@ -163,6 +167,7 @@ pnpm dev
 ```
 
 **驗證服務**:
+
 ```bash
 # 測試 API 健康檢查
 curl http://localhost:8787/api/v1/health
@@ -181,6 +186,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 ### 步驟 3: 執行基準測試
 
 **終端 3 - Performance Test**:
+
 ```bash
 cd tests/performance
 
@@ -214,6 +220,7 @@ start reports/baseline-YYYYMMDD-HHMMSS.html
 ### 關鍵性能指標 (KPIs)
 
 **連線指標**:
+
 ```
 ws.connection_success_rate    目標: > 99%
 ws.connection_time.p95        目標: < 500ms
@@ -222,6 +229,7 @@ ws.connection_time.p99        目標: < 1000ms
 ```
 
 **訊息指標**:
+
 ```
 ws.response_time.p95          目標: < 200ms
 ws.response_time.p99          目標: < 500ms
@@ -231,6 +239,7 @@ ws.messages_received          目標: ≈ messages_sent
 ```
 
 **自定義指標**:
+
 ```
 tokens.kitchen.success        應 > 0
 tokens.admin.success          應 > 0
@@ -241,16 +250,19 @@ connections.established       應接近 scenarios launched
 ### 成功標準
 
 **綠色指標** (優秀):
+
 - 連線成功率 > 99%
 - P95 延遲 < 200ms
 - 錯誤率 < 1%
 
 **黃色指標** (可接受):
+
 - 連線成功率 95-99%
 - P95 延遲 200-500ms
 - 錯誤率 1-5%
 
 **紅色指標** (需優化):
+
 - 連線成功率 < 95%
 - P95 延遲 > 500ms
 - 錯誤率 > 5%
@@ -264,6 +276,7 @@ connections.established       應接近 scenarios launched
 **症狀**: `tokens.kitchen.failed` 或類似指標很高
 
 **檢查步驟**:
+
 ```bash
 # 1. 檢查 API 服務狀態
 curl http://localhost:8787/api/v1/health
@@ -282,6 +295,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 **症狀**: 大量 `ECONNREFUSED` 或 404 錯誤
 
 **檢查步驟**:
+
 ```bash
 # 1. 檢查 Realtime 服務狀態
 curl http://localhost:8788/health
@@ -300,6 +314,7 @@ netstat -ano | findstr :8788
 **原因**: 沒有有效的 table 數據
 
 **解決方案**:
+
 ```bash
 # 確認測試數據已創建
 # 重新執行步驟 1 的 SQL 腳本
@@ -310,15 +325,17 @@ netstat -ano | findstr :8788
 **症狀**: Artillery 突然停止
 
 **可能原因**:
+
 - 服務記憶體不足
 - 負載太高導致服務崩潰
 
 **解決方案**:
+
 ```yaml
 # 降低負載 - 修改 artillery-websocket.yml
 phases:
   - duration: 60
-    arrivalRate: 2  # 降低到 2 (原本 5)
+    arrivalRate: 2 # 降低到 2 (原本 5)
   # ... 其他階段也相應降低
 ```
 
@@ -329,6 +346,7 @@ phases:
 ### 1. 性能基準建立
 
 創建 `tests/performance/baselines/` 目錄並保存：
+
 - `baseline-YYYYMMDD.json` - 原始數據
 - `baseline-YYYYMMDD.html` - 可視化報告
 - `baseline-summary.md` - 關鍵指標摘要
@@ -336,6 +354,7 @@ phases:
 ### 2. 識別瓶頸
 
 分析以下指標：
+
 - **高延遲**: 查看 p95, p99 延遲
 - **低成功率**: 查看錯誤類型和分布
 - **資源使用**: 監控 CPU, 記憶體使用
@@ -343,6 +362,7 @@ phases:
 ### 3. 優化建議
 
 基於測試結果，可能的優化方向：
+
 - WebSocket 連線池優化
 - 訊息批次處理
 - Durable Objects 實例數調整

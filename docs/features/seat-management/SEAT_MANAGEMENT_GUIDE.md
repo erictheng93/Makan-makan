@@ -28,6 +28,7 @@ The Seat Management System extends MakanMakan's table management capabilities to
 #### Tables
 
 **`tables` (Extended)**
+
 ```sql
 ALTER TABLE tables ADD COLUMN qr_mode TEXT DEFAULT 'table'
     CHECK (qr_mode IN ('table', 'seat'));
@@ -39,6 +40,7 @@ ALTER TABLE tables ADD COLUMN seat_numbering_style TEXT DEFAULT 'numeric'
 ```
 
 **`seats` (New Table)**
+
 ```sql
 CREATE TABLE seats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +74,7 @@ CREATE TABLE seats (
 ```
 
 **`orders` (Extended)**
+
 ```sql
 ALTER TABLE orders ADD COLUMN seat_id INTEGER;
 ALTER TABLE orders ADD COLUMN order_source TEXT DEFAULT 'table'
@@ -81,6 +84,7 @@ ALTER TABLE orders ADD COLUMN order_source TEXT DEFAULT 'table'
 #### Views
 
 **`seat_usage_stats`** - Real-time seat usage statistics
+
 ```sql
 CREATE VIEW seat_usage_stats AS
 SELECT
@@ -102,6 +106,7 @@ WHERE s.is_active = 1;
 ```
 
 **`table_seat_summary`** - Table-level seat summary
+
 ```sql
 CREATE VIEW table_seat_summary AS
 SELECT
@@ -124,6 +129,7 @@ GROUP BY t.id;
 ## API Reference
 
 ### Base URL
+
 ```
 /api/v1/seats
 ```
@@ -131,6 +137,7 @@ GROUP BY t.id;
 ### Endpoints
 
 #### 1. List Seats by Table
+
 ```http
 GET /api/v1/seats?tableId={tableId}&page=1&limit=50
 
@@ -172,6 +179,7 @@ Response:
 ```
 
 #### 2. Get Seat Details
+
 ```http
 GET /api/v1/seats/:id
 
@@ -197,6 +205,7 @@ Response:
 ```
 
 #### 3. Batch Create Seats
+
 ```http
 POST /api/v1/seats/batch-create
 
@@ -222,6 +231,7 @@ Response:
 ```
 
 #### 4. Update Seat
+
 ```http
 PUT /api/v1/seats/:id
 
@@ -242,6 +252,7 @@ Response:
 ```
 
 #### 5. Delete Seat (Soft Delete)
+
 ```http
 DELETE /api/v1/seats/:id
 
@@ -253,6 +264,7 @@ Response:
 ```
 
 #### 6. Occupy Seat
+
 ```http
 POST /api/v1/seats/:id/occupy
 
@@ -270,6 +282,7 @@ Response:
 ```
 
 #### 7. Release Seat
+
 ```http
 POST /api/v1/seats/:id/release
 
@@ -281,6 +294,7 @@ Response:
 ```
 
 #### 8. Regenerate Seat QR Code
+
 ```http
 POST /api/v1/seats/:id/regenerate-qr
 
@@ -295,6 +309,7 @@ Response:
 ```
 
 #### 9. Batch Regenerate QR Codes
+
 ```http
 POST /api/v1/seats/batch-regenerate-qr
 
@@ -315,6 +330,7 @@ Response:
 ```
 
 #### 10. Get Seat Statistics
+
 ```http
 GET /api/v1/seats/stats?tableId=10
 
@@ -332,6 +348,7 @@ Response:
 ```
 
 #### 11. Get Seat by QR Code (Public)
+
 ```http
 GET /api/v1/seats/qr/:qrCode
 
@@ -354,6 +371,7 @@ Response:
 ```
 
 #### 12. Delete All Seats for Table (Hard Delete)
+
 ```http
 DELETE /api/v1/seats/table/:tableId
 
@@ -371,38 +389,42 @@ Response:
 ### Admin Dashboard Components
 
 #### 1. **SeatGrid.vue** - Visual Seat Layout
+
 ```vue
 <template>
   <div class="seat-grid">
     <div
       v-for="seat in seats"
       :key="seat.id"
-      :class="['seat-card', { occupied: seat.isOccupied, inactive: !seat.isActive }]"
+      :class="[
+        'seat-card',
+        { occupied: seat.isOccupied, inactive: !seat.isActive },
+      ]"
       @click="selectSeat(seat)"
     >
       <div class="seat-number">{{ seat.seatNumber }}</div>
       <div class="seat-status">
-        {{ seat.isOccupied ? '已佔用' : '可用' }}
+        {{ seat.isOccupied ? "已佔用" : "可用" }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import type { Seat } from '@makanmakan/shared-types'
+import { ref, onMounted } from "vue";
+import type { Seat } from "@makanmakan/shared-types";
 
 const props = defineProps<{
-  tableId: number
-}>()
+  tableId: number;
+}>();
 
-const seats = ref<Seat[]>([])
+const seats = ref<Seat[]>([]);
 
 onMounted(async () => {
-  const response = await fetch(`/api/v1/seats?tableId=${props.tableId}`)
-  const result = await response.json()
-  seats.value = result.data
-})
+  const response = await fetch(`/api/v1/seats?tableId=${props.tableId}`);
+  const result = await response.json();
+  seats.value = result.data;
+});
 
 function selectSeat(seat: Seat) {
   // Handle seat selection
@@ -411,6 +433,7 @@ function selectSeat(seat: Seat) {
 ```
 
 #### 2. **QRModeSelector.vue** - Mode Switching
+
 ```vue
 <template>
   <div class="qr-mode-selector">
@@ -427,39 +450,40 @@ function selectSeat(seat: Seat) {
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { QRMode } from '@makanmakan/shared-types'
+import { ref } from "vue";
+import type { QRMode } from "@makanmakan/shared-types";
 
 const props = defineProps<{
-  tableId: number
-  currentMode: QRMode
-}>()
+  tableId: number;
+  currentMode: QRMode;
+}>();
 
 const emit = defineEmits<{
-  modeChanged: [mode: QRMode]
-}>()
+  modeChanged: [mode: QRMode];
+}>();
 
-const selectedMode = ref<QRMode>(props.currentMode)
+const selectedMode = ref<QRMode>(props.currentMode);
 
 async function switchMode(newMode: QRMode) {
   // Confirm mode switch with user
   const confirmed = await ElMessageBox.confirm(
-    `確定要切換到${newMode === 'seat' ? '座位' : '桌子'}模式嗎？`,
-    '切換 QR 模式',
-    { type: 'warning' }
-  )
+    `確定要切換到${newMode === "seat" ? "座位" : "桌子"}模式嗎？`,
+    "切換 QR 模式",
+    { type: "warning" },
+  );
 
   if (confirmed) {
     // Switch mode via API
-    emit('modeChanged', newMode)
+    emit("modeChanged", newMode);
   } else {
-    selectedMode.value = props.currentMode
+    selectedMode.value = props.currentMode;
   }
 }
 </script>
 ```
 
 #### 3. **SeatManagement.vue** - Full Management Interface
+
 ```vue
 <template>
   <div class="seat-management">
@@ -523,57 +547,57 @@ async function switchMode(newMode: QRMode) {
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import SeatGrid from './SeatGrid.vue'
-import type { SeatStats } from '@makanmakan/shared-types'
+import { ref, onMounted } from "vue";
+import SeatGrid from "./SeatGrid.vue";
+import type { SeatStats } from "@makanmakan/shared-types";
 
 const props = defineProps<{
-  tableId: number
-}>()
+  tableId: number;
+}>();
 
 const stats = ref<SeatStats>({
   totalSeats: 0,
   occupiedSeats: 0,
   availableSeats: 0,
   inactiveSeats: 0,
-  averageOccupancyRate: 0
-})
+  averageOccupancyRate: 0,
+});
 
-const createDialogVisible = ref(false)
+const createDialogVisible = ref(false);
 const createForm = ref({
   seatCount: 4,
-  numberingStyle: 'numeric' as 'numeric' | 'alphabetic' | 'custom',
-  prefix: ''
-})
+  numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+  prefix: "",
+});
 
 onMounted(async () => {
-  await loadStats()
-})
+  await loadStats();
+});
 
 async function loadStats() {
-  const response = await fetch(`/api/v1/seats/stats?tableId=${props.tableId}`)
-  const result = await response.json()
-  stats.value = result.data
+  const response = await fetch(`/api/v1/seats/stats?tableId=${props.tableId}`);
+  const result = await response.json();
+  stats.value = result.data;
 }
 
 function showCreateDialog() {
-  createDialogVisible.value = true
+  createDialogVisible.value = true;
 }
 
 async function createSeats() {
-  const response = await fetch('/api/v1/seats/batch-create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch("/api/v1/seats/batch-create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       tableId: props.tableId,
-      ...createForm.value
-    })
-  })
+      ...createForm.value,
+    }),
+  });
 
   if (response.ok) {
-    ElMessage.success('座位創建成功')
-    createDialogVisible.value = false
-    await loadStats()
+    ElMessage.success("座位創建成功");
+    createDialogVisible.value = false;
+    await loadStats();
   }
 }
 
@@ -592,26 +616,27 @@ function handleSeatSelect(seat: Seat) {
 **Scenario**: High-end restaurant wants to track individual seat orders for personalized service.
 
 **Implementation**:
+
 ```typescript
 // Switch table to seat mode
-await tableService.updateTable(tableId, { qrMode: 'seat' })
+await tableService.updateTable(tableId, { qrMode: "seat" });
 
 // Create 4 seats with alphabetic numbering
 await seatService.createSeatsForTable(tableId, 4, {
-  numberingStyle: 'alphabetic',
-  prefix: 'VIP-'
-})
+  numberingStyle: "alphabetic",
+  prefix: "VIP-",
+});
 // Creates: VIP-A, VIP-B, VIP-C, VIP-D
 
 // When customer scans QR
-const seat = await seatService.getSeatByQRCode(qrCode)
+const seat = await seatService.getSeatByQRCode(qrCode);
 // Track order to specific seat
 await orderService.create({
   restaurantId,
   tableId: seat.tableId,
   seatId: seat.id,
-  orderSource: 'seat'
-})
+  orderSource: "seat",
+});
 ```
 
 ### 2. Food Court with Shared Tables
@@ -619,11 +644,12 @@ await orderService.create({
 **Scenario**: Food court needs to track individual seat orders on shared 8-seat tables.
 
 **Implementation**:
+
 ```typescript
 // Create 8 seats with numeric numbering
 await seatService.createSeatsForTable(tableId, 8, {
-  numberingStyle: 'numeric'
-})
+  numberingStyle: "numeric",
+});
 // Creates: 01, 02, 03, 04, 05, 06, 07, 08
 
 // Each customer scans their seat's QR code
@@ -635,19 +661,20 @@ await seatService.createSeatsForTable(tableId, 8, {
 **Scenario**: Restaurant wants to dynamically switch between table and seat modes based on time of day.
 
 **Implementation**:
+
 ```typescript
 // Lunch: High volume, use table mode
 if (isLunchTime) {
-  await tableService.updateTable(tableId, { qrMode: 'table' })
-  await seatService.deleteSeatsForTable(tableId)
+  await tableService.updateTable(tableId, { qrMode: "table" });
+  await seatService.deleteSeatsForTable(tableId);
 }
 
 // Dinner: Intimate dining, use seat mode
 if (isDinnerTime) {
-  await tableService.updateTable(tableId, { qrMode: 'seat' })
+  await tableService.updateTable(tableId, { qrMode: "seat" });
   await seatService.createSeatsForTable(tableId, 4, {
-    numberingStyle: 'numeric'
-  })
+    numberingStyle: "numeric",
+  });
 }
 ```
 
@@ -658,17 +685,20 @@ if (isDinnerTime) {
 ### 1. QR Code Management
 
 **Regenerate QR codes when**:
+
 - Security concern (QR code compromised)
 - Switching between modes
 - Changing restaurant configuration
 
 **Don't regenerate QR codes**:
+
 - During active orders
 - Without proper user notification
 
 ### 2. Seat Numbering
 
 **Recommended Patterns**:
+
 ```typescript
 // Fine dining: Alphabetic
 { numberingStyle: 'alphabetic', prefix: '' }  // A, B, C, D
@@ -683,42 +713,44 @@ if (isDinnerTime) {
 ### 3. Performance Optimization
 
 **For large restaurants** (50+ tables, 200+ seats):
+
 ```typescript
 // Use pagination
 const { seats, total, pagination } = await seatService.getSeatsByTableId(
   tableId,
-  { page: 1, limit: 20, isActive: true }
-)
+  { page: 1, limit: 20, isActive: true },
+);
 
 // Cache seat statistics
-const stats = await redis.get(`seat:stats:${tableId}`)
+const stats = await redis.get(`seat:stats:${tableId}`);
 if (!stats) {
-  stats = await seatService.getSeatStats(tableId)
-  await redis.set(`seat:stats:${tableId}`, stats, 'EX', 60) // 1 minute cache
+  stats = await seatService.getSeatStats(tableId);
+  await redis.set(`seat:stats:${tableId}`, stats, "EX", 60); // 1 minute cache
 }
 ```
 
 ### 4. Error Handling
 
 **Common Issues**:
+
 ```typescript
 // Handle seat occupied errors
 try {
-  await seatService.occupySeat(seatId, orderId)
+  await seatService.occupySeat(seatId, orderId);
 } catch (error) {
-  if (error.message.includes('already occupied')) {
+  if (error.message.includes("already occupied")) {
     // Show user alternative seats
     const availableSeats = await seatService.getSeatsByTableId(tableId, {
       isOccupied: false,
-      isActive: true
-    })
+      isActive: true,
+    });
   }
 }
 
 // Handle mode switch with active orders
-const activeOrders = await orderService.getActiveOrdersForTable(tableId)
+const activeOrders = await orderService.getActiveOrdersForTable(tableId);
 if (activeOrders.length > 0) {
-  throw new Error('Cannot switch mode with active orders')
+  throw new Error("Cannot switch mode with active orders");
 }
 ```
 
@@ -730,52 +762,52 @@ if (activeOrders.length > 0) {
 
 ```typescript
 // Test seat creation
-describe('SeatService.createSeatsForTable', () => {
-  it('should create seats with numeric numbering', async () => {
+describe("SeatService.createSeatsForTable", () => {
+  it("should create seats with numeric numbering", async () => {
     const seats = await seatService.createSeatsForTable(tableId, 4, {
-      numberingStyle: 'numeric'
-    })
+      numberingStyle: "numeric",
+    });
 
-    expect(seats).toHaveLength(4)
-    expect(seats[0].seatNumber).toBe('01')
-    expect(seats[3].seatNumber).toBe('04')
-  })
+    expect(seats).toHaveLength(4);
+    expect(seats[0].seatNumber).toBe("01");
+    expect(seats[3].seatNumber).toBe("04");
+  });
 
-  it('should create seats with alphabetic numbering', async () => {
+  it("should create seats with alphabetic numbering", async () => {
     const seats = await seatService.createSeatsForTable(tableId, 3, {
-      numberingStyle: 'alphabetic'
-    })
+      numberingStyle: "alphabetic",
+    });
 
-    expect(seats[0].seatNumber).toBe('A')
-    expect(seats[2].seatNumber).toBe('C')
-  })
-})
+    expect(seats[0].seatNumber).toBe("A");
+    expect(seats[2].seatNumber).toBe("C");
+  });
+});
 ```
 
 ### Integration Tests
 
 ```typescript
 // Test complete seat workflow
-describe('Seat Management Workflow', () => {
-  it('should complete full seat lifecycle', async () => {
+describe("Seat Management Workflow", () => {
+  it("should complete full seat lifecycle", async () => {
     // 1. Create seats
-    const seats = await seatService.createSeatsForTable(tableId, 2)
+    const seats = await seatService.createSeatsForTable(tableId, 2);
 
     // 2. Occupy seat
-    await seatService.occupySeat(seats[0].id, orderId, 'Customer A')
+    await seatService.occupySeat(seats[0].id, orderId, "Customer A");
 
     // 3. Verify occupancy
-    const seat = await seatService.getSeatById(seats[0].id)
-    expect(seat.isOccupied).toBe(true)
+    const seat = await seatService.getSeatById(seats[0].id);
+    expect(seat.isOccupied).toBe(true);
 
     // 4. Release seat
-    await seatService.releaseSeat(seats[0].id)
+    await seatService.releaseSeat(seats[0].id);
 
     // 5. Verify usage incremented
-    const updatedSeat = await seatService.getSeatById(seats[0].id)
-    expect(updatedSeat.totalUsage).toBe(1)
-  })
-})
+    const updatedSeat = await seatService.getSeatById(seats[0].id);
+    expect(updatedSeat.totalUsage).toBe(1);
+  });
+});
 ```
 
 ---
@@ -787,26 +819,26 @@ describe('Seat Management Workflow', () => {
 ```typescript
 async function migrateToSeatMode(tableId: number, seatCount: number) {
   // 1. Check for active orders
-  const activeOrders = await orderService.getActiveOrdersForTable(tableId)
+  const activeOrders = await orderService.getActiveOrdersForTable(tableId);
   if (activeOrders.length > 0) {
-    throw new Error('Complete or cancel active orders before migrating')
+    throw new Error("Complete or cancel active orders before migrating");
   }
 
   // 2. Update table mode
   await tableService.updateTable(tableId, {
-    qrMode: 'seat',
-    seatCount
-  })
+    qrMode: "seat",
+    seatCount,
+  });
 
   // 3. Create seats
   const seats = await seatService.createSeatsForTable(tableId, seatCount, {
-    numberingStyle: 'numeric'
-  })
+    numberingStyle: "numeric",
+  });
 
   // 4. Generate QR codes
-  await seatService.batchGenerateSeatQRCodes(tableId)
+  await seatService.batchGenerateSeatQRCodes(tableId);
 
-  return seats
+  return seats;
 }
 ```
 
@@ -815,22 +847,22 @@ async function migrateToSeatMode(tableId: number, seatCount: number) {
 ```typescript
 async function migrateToTableMode(tableId: number) {
   // 1. Check for active orders
-  const activeOrders = await orderService.getActiveOrdersForTable(tableId)
+  const activeOrders = await orderService.getActiveOrdersForTable(tableId);
   if (activeOrders.length > 0) {
-    throw new Error('Complete or cancel active orders before migrating')
+    throw new Error("Complete or cancel active orders before migrating");
   }
 
   // 2. Delete all seats
-  await seatService.deleteSeatsForTable(tableId)
+  await seatService.deleteSeatsForTable(tableId);
 
   // 3. Update table mode
   await tableService.updateTable(tableId, {
-    qrMode: 'table',
-    seatCount: 0
-  })
+    qrMode: "table",
+    seatCount: 0,
+  });
 
   // 4. Regenerate table QR code
-  await qrService.regenerateTableQRCode(tableId)
+  await qrService.regenerateTableQRCode(tableId);
 }
 ```
 
@@ -844,7 +876,7 @@ async function migrateToTableMode(tableId: number) {
 **Solution**: Switch table to 'seat' mode first
 
 ```typescript
-await tableService.updateTable(tableId, { qrMode: 'seat' })
+await tableService.updateTable(tableId, { qrMode: "seat" });
 ```
 
 ### Issue: QR code scan not working
@@ -870,7 +902,7 @@ await tableService.updateTable(tableId, { qrMode: 'seat' })
 **Solution**: Manually release seat
 
 ```typescript
-await seatService.releaseSeat(seatId)
+await seatService.releaseSeat(seatId);
 ```
 
 ---
@@ -888,9 +920,9 @@ await seatService.releaseSeat(seatId)
 
 ```typescript
 // Track seat operations
-await metrics.track('seat.created', { tableId, seatCount })
-await metrics.track('seat.occupied', { seatId, duration })
-await metrics.track('qr.regenerated', { count })
+await metrics.track("seat.created", { tableId, seatCount });
+await metrics.track("seat.occupied", { seatId, duration });
+await metrics.track("qr.regenerated", { count });
 ```
 
 ---

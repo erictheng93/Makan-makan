@@ -16,6 +16,7 @@
 **文件**: `apps/admin-dashboard/src/services/websocketService.ts`
 
 **功能特性**:
+
 - ✅ WebSocket 連接管理（自動重連，最多 5 次）
 - ✅ JWT Token 自動獲取和刷新
 - ✅ 心跳檢測（30 秒間隔，10 秒超時）
@@ -26,6 +27,7 @@
 - ✅ 單例模式設計
 
 **核心方法**:
+
 ```typescript
 // 連接管理
 connect(restaurantId: string): Promise<void>
@@ -40,6 +42,7 @@ send(data: any): void
 ```
 
 **連接狀態**:
+
 - `disconnected` - 未連接
 - `connecting` - 連接中
 - `connected` - 已連接
@@ -57,28 +60,33 @@ send(data: any): void
 **功能模組**:
 
 **訂單通知系統**:
+
 - 新訂單實時推送
 - 訂單狀態變更追蹤
 - 未讀計數管理
 - 通知音效播放
 
 **廚房統計儀表板**:
+
 - 待處理項目數量
 - 烹飪中項目數量
 - 已完成項目數量
 - 平均等待時間
 
 **菜單警示系統**:
+
 - 菜單項目售罄警示
 - 庫存不足通知
 - 可用性狀態更新
 
 **系統通知中心**:
+
 - 多級別通知（info, warning, error, success）
 - 桌台呼叫服務
 - 餐廳狀態更新
 
 **API**:
+
 ```typescript
 return {
   // 連接狀態
@@ -110,7 +118,7 @@ return {
   // 連接管理
   connect,
   disconnect,
-}
+};
 ```
 
 #### 2.2 RealtimeNotificationPanel 組件（719 行）
@@ -120,6 +128,7 @@ return {
 **UI 功能**:
 
 **連接狀態指示器**:
+
 - 實時連接狀態顯示
 - 動態顏色指示（綠色=已連接，橙色=連接中，紅色=錯誤）
 - 脈衝動畫效果
@@ -150,6 +159,7 @@ return {
    - 未讀標記
 
 **交互功能**:
+
 - 點擊通知標記已讀
 - 批量清除功能
 - 音效開關切換
@@ -160,6 +170,7 @@ return {
 **修改文件**: `apps/admin-dashboard/src/views/DashboardView.vue`
 
 **整合位置**:
+
 ```vue
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -188,31 +199,35 @@ return {
 **專為廚房設計的功能**:
 
 **訂單隊列管理**:
+
 - 待處理訂單（pending, confirmed）
 - 烹飪中訂單（preparing）
 - 已完成訂單（ready）
 - 訂單自動分類
 
 **訂單項目追蹤**:
+
 - 單項狀態更新（pending → cooking → ready → served）
 - 優先級標記（normal, high, urgent）
 - 等待時間計算
 - 特殊備註顯示
 
 **廚房隊列統計**:
+
 ```typescript
 interface KitchenQueueStats {
-  pendingCount: number      // 待處理數量
-  cookingCount: number      // 烹飪中數量
-  readyCount: number        // 已完成數量
-  totalItems: number        // 總項目數
-  averageWaitTime: number   // 平均等待時間（分鐘）
-  oldestItemTime: number    // 最久等待時間
-  lastUpdated: number       // 最後更新時間
+  pendingCount: number; // 待處理數量
+  cookingCount: number; // 烹飪中數量
+  readyCount: number; // 已完成數量
+  totalItems: number; // 總項目數
+  averageWaitTime: number; // 平均等待時間（分鐘）
+  oldestItemTime: number; // 最久等待時間
+  lastUpdated: number; // 最後更新時間
 }
 ```
 
 **訂單操作 API**:
+
 ```typescript
 // 確認訂單（pending → confirmed）
 confirmOrder(orderId: number): Promise<void>
@@ -229,12 +244,14 @@ completeOrder(orderId: number): Promise<void>
 ```
 
 **智能警示系統**:
+
 - 新訂單音效通知
 - 緊急訂單警示音（優先級 urgent）
 - 超時訂單警告（等待超過 30 分鐘）
 - 可自定義音效文件
 
 **工具方法**:
+
 ```typescript
 // 計算等待時間
 getOrderWaitingTime(createdAt: number): number
@@ -247,6 +264,7 @@ getOverdueOrders(): KitchenOrder[]
 ```
 
 **返回 API**:
+
 ```typescript
 return {
   // 連接狀態
@@ -279,7 +297,7 @@ return {
   getOrderWaitingTime,
   getHighPriorityOrders,
   getOverdueOrders,
-}
+};
 ```
 
 ---
@@ -291,6 +309,7 @@ return {
 **文件**: `apps/realtime/src/__tests__/websocket-integration.test.ts`
 
 **測試覆蓋**:
+
 - ✅ WebSocket 連接建立流程
 - ✅ 連接確認事件（CONNECTION_ACK）
 - ✅ 連接失敗錯誤處理
@@ -305,6 +324,7 @@ return {
 - ✅ 訂閱/取消訂閱機制
 
 **Mock 實現**:
+
 ```typescript
 class MockWebSocket {
   public readyState: number
@@ -323,6 +343,7 @@ class MockWebSocket {
 **文件**: `apps/api/src/services/__tests__/broadcast-integration.test.ts`
 
 **測試場景**:
+
 - ✅ 新訂單廣播（NEW_ORDER）
 - ✅ 訂單狀態更新廣播
 - ✅ 廚房項目狀態廣播
@@ -334,11 +355,12 @@ class MockWebSocket {
 - ✅ 網絡錯誤處理
 
 **Mock Durable Object**:
+
 ```typescript
 class MockDurableObjectStub {
-  async fetch(url: string | Request, init?: RequestInit): Promise<Response>
-  getBroadcastHistory(): any[]
-  clearHistory(): void
+  async fetch(url: string | Request, init?: RequestInit): Promise<Response>;
+  getBroadcastHistory(): any[];
+  clearHistory(): void;
 }
 ```
 
@@ -347,6 +369,7 @@ class MockDurableObjectStub {
 **文件**: `apps/realtime/src/__tests__/offline-reconnection.test.ts`
 
 **測試功能**:
+
 - ✅ 事件歷史記錄（最多 100 個事件）
 - ✅ 事件查詢（getEventsSince）
 - ✅ 重連機制（最多 5 次嘗試）
@@ -360,16 +383,17 @@ class MockDurableObjectStub {
 - ✅ 立即重連處理
 
 **Event History Store**:
+
 ```typescript
 class EventHistoryStore {
-  private events: RealtimeEvent[] = []
-  private readonly MAX_EVENTS = 100
+  private events: RealtimeEvent[] = [];
+  private readonly MAX_EVENTS = 100;
 
-  addEvent(event: RealtimeEvent): void
-  getEventsSince(sinceEventId: string): RealtimeEvent[]
-  getAllEvents(): RealtimeEvent[]
-  clear(): void
-  getEventCount(): number
+  addEvent(event: RealtimeEvent): void;
+  getEventsSince(sinceEventId: string): RealtimeEvent[];
+  getAllEvents(): RealtimeEvent[];
+  clear(): void;
+  getEventCount(): number;
 }
 ```
 
@@ -378,6 +402,7 @@ class EventHistoryStore {
 **文件**: `apps/realtime/src/__tests__/message-routing.test.ts`
 
 **路由規則測試**:
+
 - ✅ 餐廳 ID 隔離（只發送給相同餐廳）
 - ✅ NEW_ORDER 事件（發送給所有角色）
 - ✅ ORDER_STATUS_UPDATE（顧客、員工、管理員）
@@ -419,6 +444,7 @@ apps/api/src/services/__tests__/
 ### Admin Dashboard 功能
 
 ✅ **實時訂單通知**
+
 - 新訂單即時推送
 - 桌號和訂單號顯示
 - 訂單金額實時更新
@@ -426,24 +452,28 @@ apps/api/src/services/__tests__/
 - 點擊查看訂單詳情
 
 ✅ **廚房狀態監控**
+
 - 待處理項目統計
 - 烹飪中項目追蹤
 - 已完成項目計數
 - 平均等待時間顯示
 
 ✅ **菜單警示管理**
+
 - 售罄菜單項目列表
 - 庫存不足警告
 - 可用性狀態變更
 - 恢復供應通知
 
 ✅ **系統通知中心**
+
 - 多級別通知（4 種級別）
 - 桌台呼叫服務
 - 餐廳狀態更新
 - 未讀通知標記
 
 ✅ **連接狀態管理**
+
 - 實時連接狀態顯示
 - 自動重連機制
 - 離線事件恢復
@@ -452,30 +482,35 @@ apps/api/src/services/__tests__/
 ### Kitchen Display 功能
 
 ✅ **訂單隊列管理**
+
 - 待處理訂單列表
 - 烹飪中訂單追蹤
 - 已完成訂單顯示
 - 自動分類排序
 
 ✅ **訂單項目操作**
+
 - 確認訂單
 - 更新項目狀態
 - 完成訂單
 - 批量操作
 
 ✅ **優先級管理**
+
 - 普通訂單（normal）
 - 高優先級（high）
 - 緊急訂單（urgent）
 - 視覺標識區分
 
 ✅ **智能警示**
+
 - 新訂單音效
 - 緊急訂單警示
 - 超時訂單提醒
 - 音效開關控制
 
 ✅ **統計儀表板**
+
 - 隊列統計實時更新
 - 平均等待時間
 - 最久等待項目
@@ -485,31 +520,34 @@ apps/api/src/services/__tests__/
 
 ## 🧪 測試覆蓋率
 
-| 測試類型 | 覆蓋率 | 測試文件數 | 測試用例數 |
-|---------|--------|-----------|-----------|
-| WebSocket 連接 | 95% | 1 | 18 |
-| 訊息廣播 | 90% | 1 | 15 |
-| 離線重連 | 95% | 1 | 12 |
-| 訊息路由 | 100% | 1 | 9 |
-| **總計** | **95%** | **4** | **54** |
+| 測試類型       | 覆蓋率  | 測試文件數 | 測試用例數 |
+| -------------- | ------- | ---------- | ---------- |
+| WebSocket 連接 | 95%     | 1          | 18         |
+| 訊息廣播       | 90%     | 1          | 15         |
+| 離線重連       | 95%     | 1          | 12         |
+| 訊息路由       | 100%    | 1          | 9          |
+| **總計**       | **95%** | **4**      | **54**     |
 
 ---
 
 ## 🚀 性能指標
 
 ### 連接性能
+
 - 初次連接時間：< 500ms
 - 重連時間：< 3s
 - 心跳間隔：30s
 - 心跳超時：10s
 
 ### 消息延遲
+
 - 新訂單通知：< 100ms
 - 狀態更新：< 50ms
 - 廣播延遲：< 20ms
 - UI 更新響應：< 30ms
 
 ### 資源使用
+
 - 內存佔用：< 10MB（單個連接）
 - CPU 使用：< 1%（空閒時）
 - 事件緩存：最多 100 個事件
@@ -523,32 +561,33 @@ apps/api/src/services/__tests__/
 
 ```typescript
 useWebSocketService({
-  maxReconnectAttempts: 5,    // 最大重連次數
-  reconnectDelay: 3000,       // 重連延遲（毫秒）
-  heartbeatInterval: 30000,   // 心跳間隔（毫秒）
-  heartbeatTimeout: 10000,    // 心跳超時（毫秒）
-})
+  maxReconnectAttempts: 5, // 最大重連次數
+  reconnectDelay: 3000, // 重連延遲（毫秒）
+  heartbeatInterval: 30000, // 心跳間隔（毫秒）
+  heartbeatTimeout: 10000, // 心跳超時（毫秒）
+});
 ```
 
 ### Admin Dashboard 配置
 
 ```typescript
 // 本地存儲 key
-localStorage.setItem('admin_sound_enabled', 'true')
-
-// 音效文件路徑
-/sounds/notification.mp3
+localStorage.setItem("admin_sound_enabled", "true") /
+  // 音效文件路徑
+  sounds /
+  notification.mp3;
 ```
 
 ### Kitchen Display 配置
 
 ```typescript
 // 本地存儲 key
-localStorage.setItem('kitchen_sound_enabled', 'true')
-
-// 音效文件路徑
-/sounds/kitchen-notification.mp3
-/sounds/kitchen-urgent.mp3
+localStorage.setItem("kitchen_sound_enabled", "true") /
+  // 音效文件路徑
+  sounds /
+  kitchen -
+  notification.mp3 / sounds / kitchen -
+  urgent.mp3;
 ```
 
 ---
@@ -559,7 +598,7 @@ localStorage.setItem('kitchen_sound_enabled', 'true')
 
 ```vue
 <script setup lang="ts">
-import { useAdminRealtime } from '@/composables/useAdminRealtime'
+import { useAdminRealtime } from "@/composables/useAdminRealtime";
 
 const {
   isConnected,
@@ -568,21 +607,19 @@ const {
   kitchenStats,
   soundEnabled,
   toggleSound,
-} = useAdminRealtime()
+} = useAdminRealtime();
 </script>
 
 <template>
   <div class="admin-dashboard">
     <!-- 連接狀態 -->
-    <div v-if="isConnected" class="status-connected">
-      已連接
-    </div>
+    <div v-if="isConnected" class="status-connected">已連接</div>
 
     <!-- 訂單通知 -->
     <div class="notifications">
       <span class="badge">{{ unreadOrderCount }}</span>
       <button @click="toggleSound">
-        {{ soundEnabled ? '🔔' : '🔕' }}
+        {{ soundEnabled ? "🔔" : "🔕" }}
       </button>
     </div>
 
@@ -600,7 +637,7 @@ const {
 
 ```vue
 <script setup lang="ts">
-import { useKitchenRealtime } from '@/composables/useKitchenRealtime'
+import { useKitchenRealtime } from "@/composables/useKitchenRealtime";
 
 const {
   isConnected,
@@ -610,15 +647,15 @@ const {
   queueStats,
   confirmOrder,
   completeOrder,
-} = useKitchenRealtime()
+} = useKitchenRealtime();
 
 const handleConfirm = async (orderId: number) => {
-  await confirmOrder(orderId)
-}
+  await confirmOrder(orderId);
+};
 
 const handleComplete = async (orderId: number) => {
-  await completeOrder(orderId)
-}
+  await completeOrder(orderId);
+};
 </script>
 
 <template>
@@ -639,9 +676,7 @@ const handleComplete = async (orderId: number) => {
         class="order-card"
       >
         <h3>{{ order.orderNumber }}</h3>
-        <button @click="handleConfirm(order.orderId)">
-          確認訂單
-        </button>
+        <button @click="handleConfirm(order.orderId)">確認訂單</button>
       </div>
     </div>
 
@@ -653,9 +688,7 @@ const handleComplete = async (orderId: number) => {
         class="order-card"
       >
         <h3>{{ order.orderNumber }}</h3>
-        <button @click="handleComplete(order.orderId)">
-          完成訂單
-        </button>
+        <button @click="handleComplete(order.orderId)">完成訂單</button>
       </div>
     </div>
   </div>
@@ -703,36 +736,40 @@ VITE_API_URL=https://api.makanmakan.com
 
 **問題**: WebSocket 無法建立連接
 **原因**:
+
 - API URL 配置錯誤
 - JWT Token 無效或過期
 - 網絡連接問題
 
 **解決方案**:
+
 ```typescript
 // 檢查 API URL
-console.log(import.meta.env.VITE_API_URL)
+console.log(import.meta.env.VITE_API_URL);
 
 // 檢查 JWT Token
-const token = localStorage.getItem('auth_token')
-console.log('Token:', token ? 'exists' : 'missing')
+const token = localStorage.getItem("auth_token");
+console.log("Token:", token ? "exists" : "missing");
 
 // 查看詳細錯誤
-wsService.status.value // 查看連接狀態
+wsService.status.value; // 查看連接狀態
 ```
 
 ### 音效無法播放
 
 **問題**: 通知音效不播放
 **原因**:
+
 - 音效文件不存在
 - 瀏覽器自動播放被阻止
 - 音效設置已關閉
 
 **解決方案**:
+
 ```typescript
 // 檢查音效設置
-const soundEnabled = localStorage.getItem('admin_sound_enabled')
-console.log('Sound enabled:', soundEnabled)
+const soundEnabled = localStorage.getItem("admin_sound_enabled");
+console.log("Sound enabled:", soundEnabled);
 
 // 檢查音效文件
 // 訪問 /sounds/notification.mp3 確認文件存在
@@ -745,17 +782,19 @@ console.log('Sound enabled:', soundEnabled)
 
 **問題**: WebSocket 連接正常但未接收事件
 **原因**:
+
 - 事件類型訂閱錯誤
 - 餐廳 ID 不匹配
 - 消息路由過濾
 
 **解決方案**:
+
 ```typescript
 // 檢查訂閱狀態
-console.log('Subscription IDs:', subscriptionIds.value)
+console.log("Subscription IDs:", subscriptionIds.value);
 
 // 檢查餐廳 ID
-console.log('Restaurant ID:', authStore.user?.restaurantId)
+console.log("Restaurant ID:", authStore.user?.restaurantId);
 
 // 查看 WebSocket 消息（開發者工具 Network → WS）
 // 確認消息格式和內容

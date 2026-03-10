@@ -14,6 +14,7 @@
 資料庫架構設計與優化文檔
 
 **主要文檔**:
+
 - `schema-overview.md` - 資料庫 Schema 概覽（待創建）
 - `DATABASE_ARCHITECTURE_COMPARISON.md` - 架構比較分析
 - `database-optimization-analysis.md` - 優化分析報告
@@ -22,6 +23,7 @@
 - `DATABASE_REFACTORING_EXECUTIVE_SUMMARY.md` - 重構執行摘要
 
 **涵蓋內容**:
+
 - Cloudflare D1 (SQLite) 架構
 - 表結構設計
 - 索引優化
@@ -33,12 +35,14 @@
 系統設計與模組架構文檔
 
 **主要文檔**:
+
 - `MODULAR_ARCHITECTURE_GUIDE.md` - 模組化架構指南
 - `QUEUE_MODULAR_API.md` - 佇列模組化 API
 - `NOTIFICATION_SYSTEM.md` - 通知系統設計
 - `VERIFICATION_SYSTEM.md` - 驗證系統設計
 
 **涵蓋內容**:
+
 - 微服務架構
 - 模組化設計
 - API 設計模式
@@ -49,14 +53,17 @@
 ## 🎯 文檔用途
 
 ### Technical Documentation
+
 > **最重要的架構文檔** - 包含完整的技術規格、系統設計和實施細節
 
 **適合閱讀者**:
+
 - 新加入的開發者
 - 架構師
 - 技術決策者
 
 **內容涵蓋**:
+
 - 系統架構概覽
 - 技術棧選擇
 - 資料庫設計
@@ -65,28 +72,34 @@
 - 部署架構
 
 ### Database Architecture
+
 > 資料庫層面的設計與優化
 
 **適合閱讀者**:
+
 - 資料庫管理員
 - 後端開發者
 - 性能優化工程師
 
 **內容涵蓋**:
+
 - Schema 設計
 - 索引策略
 - 查詢優化
 - 資料遷移
 
 ### System Design
+
 > 系統層面的設計模式與架構決策
 
 **適合閱讀者**:
+
 - 系統架構師
 - 資深開發者
 - 模組負責人
 
 **內容涵蓋**:
+
 - 模組化設計
 - 服務間通訊
 - 佇列系統
@@ -99,18 +112,23 @@
 ### 我想了解...
 
 #### 整體架構
+
 → 閱讀 `technical-documentation.md`
 
 #### 資料庫設計
+
 → 查看 `database/` 文件夾
 
 #### 特定子系統設計
+
 → 查看 `system-design/` 文件夾
 
 #### 模組化架構
+
 → 閱讀 `system-design/MODULAR_ARCHITECTURE_GUIDE.md`
 
 #### 資料庫優化
+
 → 閱讀 `database/database-optimization-analysis.md`
 
 ---
@@ -169,6 +187,7 @@
 未來可以在此處添加架構決策記錄（Architecture Decision Records），記錄重要的技術決策及其理由。
 
 **建議格式**:
+
 - 決策背景
 - 考慮的方案
 - 選擇的方案及理由

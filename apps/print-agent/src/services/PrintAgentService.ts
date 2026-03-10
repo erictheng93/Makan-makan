@@ -5,39 +5,40 @@
 
 import {
   PrinterService,
-  PrinterDriverFactory
-} from '@makanmakan/queue-core/print'
+  PrinterDriverFactory,
+} from "@makanmakan/queue-core/print";
 import type {
   PrintRequest,
   PrintResponse,
   PrintJob,
   PrinterDevice,
-  PrintServiceConfig
-} from '@makanmakan/shared-types'
-import { LocalPrintServiceConfig } from '../LocalPrintService'
+  PrintServiceConfig,
+} from "@makanmakan/shared-types";
+import { LocalPrintServiceConfig } from "../LocalPrintService";
 
 export class PrintAgentService {
-  private printerService: PrinterService
-  private driverFactory: PrinterDriverFactory
-  private config: LocalPrintServiceConfig
-  private isInitialized = false
+  private printerService: PrinterService;
+  private driverFactory: PrinterDriverFactory;
+  private config: LocalPrintServiceConfig;
+  private isInitialized = false;
 
   constructor(config: LocalPrintServiceConfig) {
-    this.config = config
+    this.config = config;
 
     // Create print service configuration from local config
-    const printServiceConfig: PrintServiceConfig = this.createPrintServiceConfig(config)
+    const printServiceConfig: PrintServiceConfig =
+      this.createPrintServiceConfig(config);
 
     // Initialize core services from queue-core
-    this.printerService = new PrinterService(printServiceConfig)
+    this.printerService = new PrinterService(printServiceConfig);
     this.driverFactory = new PrinterDriverFactory({
       connectionTimeout: 10000,
       commandTimeout: 5000,
       retryAttempts: config.maxRetries,
-      enableAutoDetection: config.autoDiscovery
-    })
+      enableAutoDetection: config.autoDiscovery,
+    });
 
-    this.setupEventHandlers()
+    this.setupEventHandlers();
   }
 
   // =============================================
@@ -46,46 +47,44 @@ export class PrintAgentService {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      return
+      return;
     }
 
     try {
-      console.log('🔧 Initializing Print Agent Service...')
+      console.log("🔧 Initializing Print Agent Service...");
 
       // Initialize printer service
-      await this.printerService.initialize()
+      await this.printerService.initialize();
 
       // Auto-discover printers if enabled
       if (this.config.autoDiscovery) {
-        await this.discoverPrinters()
+        await this.discoverPrinters();
       }
 
-      this.isInitialized = true
-      console.log('✅ Print Agent Service initialized successfully')
-
+      this.isInitialized = true;
+      console.log("✅ Print Agent Service initialized successfully");
     } catch (error) {
-      console.error('❌ Failed to initialize Print Agent Service:', error)
-      throw error
+      console.error("❌ Failed to initialize Print Agent Service:", error);
+      throw error;
     }
   }
 
   async shutdown(): Promise<void> {
     if (!this.isInitialized) {
-      return
+      return;
     }
 
     try {
-      console.log('🛑 Shutting down Print Agent Service...')
+      console.log("🛑 Shutting down Print Agent Service...");
 
       // Disconnect all printers
-      await this.printerService.shutdown()
+      await this.printerService.shutdown();
 
-      this.isInitialized = false
-      console.log('✅ Print Agent Service shut down successfully')
-
+      this.isInitialized = false;
+      console.log("✅ Print Agent Service shut down successfully");
     } catch (error) {
-      console.error('❌ Error during Print Agent Service shutdown:', error)
-      throw error
+      console.error("❌ Error during Print Agent Service shutdown:", error);
+      throw error;
     }
   }
 
@@ -95,40 +94,39 @@ export class PrintAgentService {
 
   async createPrintJob(request: PrintRequest): Promise<PrintResponse> {
     if (!this.isInitialized) {
-      await this.initialize()
+      await this.initialize();
     }
 
     try {
       // Validate print request
-      this.validatePrintRequest(request)
+      this.validatePrintRequest(request);
 
       // Send to printer service (which handles job creation and queueing)
-      const response = await this.printerService.print(request)
+      const response = await this.printerService.print(request);
 
-      return response
-
+      return response;
     } catch (error) {
-      console.error('Print job creation failed:', error)
+      console.error("Print job creation failed:", error);
       return {
         success: false,
         error: {
-          code: 'JOB_CREATION_FAILED',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        }
-      }
+          code: "JOB_CREATION_FAILED",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+      };
     }
   }
 
   async getJobStatus(jobId: string): Promise<PrintJob | null> {
-    return await this.printerService.getJobStatus(jobId)
+    return await this.printerService.getJobStatus(jobId);
   }
 
   async cancelJob(jobId: string): Promise<boolean> {
     try {
-      return await this.printerService.cancelJob(jobId)
+      return await this.printerService.cancelJob(jobId);
     } catch (error) {
-      console.error('Job cancellation failed:', error)
-      return false
+      console.error("Job cancellation failed:", error);
+      return false;
     }
   }
 
@@ -138,34 +136,35 @@ export class PrintAgentService {
 
   async discoverPrinters(): Promise<PrinterDevice[]> {
     try {
-      console.log('🔍 Discovering printers...')
+      console.log("🔍 Discovering printers...");
 
       const devices = await this.driverFactory.scanForPrinters([
-        'usb', 'network', 'bluetooth'
-      ])
+        "usb",
+        "network",
+        "bluetooth",
+      ]);
 
-      console.log(`Found ${devices.length} printer(s)`)
+      console.log(`Found ${devices.length} printer(s)`);
 
       // Auto-register discovered printers
       for (const device of devices) {
-        await this.registerPrinter(device)
+        await this.registerPrinter(device);
       }
 
-      return devices
-
+      return devices;
     } catch (error) {
-      console.error('Printer discovery failed:', error)
-      return []
+      console.error("Printer discovery failed:", error);
+      return [];
     }
   }
 
   async registerPrinter(device: PrinterDevice): Promise<boolean> {
     try {
       // Check if device is already registered
-      const existing = this.printerService.getDevice(device.id)
+      const existing = this.printerService.getDevice(device.id);
       if (existing) {
-        console.log(`Printer ${device.name} already registered`)
-        return true
+        console.log(`Printer ${device.name} already registered`);
+        return true;
       }
 
       // Register with printer service using the correct API
@@ -176,36 +175,34 @@ export class PrintAgentService {
         connectionType: device.connection,
         connectionParams: { address: device.address },
         capabilities: device.capabilities,
-        isDefault: false
-      })
+        isDefault: false,
+      });
 
-      console.log(`✅ Registered printer: ${device.name} (${device.brand})`)
-      return true
-
+      console.log(`✅ Registered printer: ${device.name} (${device.brand})`);
+      return true;
     } catch (error) {
-      console.error(`❌ Failed to register printer ${device.name}:`, error)
-      return false
+      console.error(`❌ Failed to register printer ${device.name}:`, error);
+      return false;
     }
   }
 
   async unregisterPrinter(deviceId: string): Promise<boolean> {
     try {
-      await this.printerService.unregisterPrinter(deviceId)
-      console.log(`🗑️  Unregistered printer: ${deviceId}`)
-      return true
-
+      await this.printerService.unregisterPrinter(deviceId);
+      console.log(`🗑️  Unregistered printer: ${deviceId}`);
+      return true;
     } catch (error) {
-      console.error(`❌ Failed to unregister printer ${deviceId}:`, error)
-      return false
+      console.error(`❌ Failed to unregister printer ${deviceId}:`, error);
+      return false;
     }
   }
 
   getDevices(): PrinterDevice[] {
-    return this.printerService.getDevices()
+    return this.printerService.getDevices();
   }
 
   getDevice(deviceId: string): PrinterDevice | null {
-    return this.printerService.getDevice(deviceId)
+    return this.printerService.getDevice(deviceId);
   }
 
   // =============================================
@@ -213,21 +210,21 @@ export class PrintAgentService {
   // =============================================
 
   async healthCheck(): Promise<{
-    status: 'healthy' | 'degraded' | 'unhealthy'
-    services: Record<string, boolean>
-    devices: { total: number; online: number; errors: number }
-    queue: { pending: number; processing: number; failed: number }
+    status: "healthy" | "degraded" | "unhealthy";
+    services: Record<string, boolean>;
+    devices: { total: number; online: number; errors: number };
+    queue: { pending: number; processing: number; failed: number };
   }> {
-    const health = await this.printerService.healthCheck()
-    const devices = this.getDevices()
+    const health = await this.printerService.healthCheck();
+    const devices = this.getDevices();
 
-    const onlineDevices = devices.filter(d => d.status === 'online').length
-    const deviceErrors = devices.filter(d => d.status === 'error').length
+    const onlineDevices = devices.filter((d) => d.status === "online").length;
+    const deviceErrors = devices.filter((d) => d.status === "error").length;
 
     const services = {
       printerService: this.isInitialized,
-      initialized: this.isInitialized
-    }
+      initialized: this.isInitialized,
+    };
 
     return {
       status: health.service,
@@ -235,18 +232,18 @@ export class PrintAgentService {
       devices: {
         total: devices.length,
         online: onlineDevices,
-        errors: deviceErrors
+        errors: deviceErrors,
       },
-      queue: health.queue
-    }
+      queue: health.queue,
+    };
   }
 
   getStatistics() {
     return {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      printing: this.printerService.getStatistics()
-    }
+      printing: this.printerService.getStatistics(),
+    };
   }
 
   // =============================================
@@ -255,43 +252,43 @@ export class PrintAgentService {
 
   private setupEventHandlers(): void {
     // Printer service events
-    this.printerService.on('device_registered', (data: any) => {
-      this.emit('device_connected', data)
-    })
+    this.printerService.on("device_registered", (data: any) => {
+      this.emit("device_connected", data);
+    });
 
-    this.printerService.on('device_unregistered', (data: any) => {
-      this.emit('device_disconnected', data)
-    })
+    this.printerService.on("device_unregistered", (data: any) => {
+      this.emit("device_disconnected", data);
+    });
 
-    this.printerService.on('job_completed', (data: any) => {
-      this.emit('job_completed', data)
-    })
+    this.printerService.on("job_completed", (data: any) => {
+      this.emit("job_completed", data);
+    });
 
-    this.printerService.on('job_failed', (data: any) => {
-      this.emit('job_failed', data)
-    })
+    this.printerService.on("job_failed", (data: any) => {
+      this.emit("job_failed", data);
+    });
   }
 
   // Event emitter methods (simple implementation)
-  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map()
+  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
 
   on(event: string, listener: (...args: any[]) => void): void {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, [])
+      this.listeners.set(event, []);
     }
-    this.listeners.get(event)!.push(listener)
+    this.listeners.get(event)!.push(listener);
   }
 
   emit(event: string, data?: any): void {
-    const eventListeners = this.listeners.get(event)
+    const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.forEach(listener => {
+      eventListeners.forEach((listener) => {
         try {
-          listener(data)
+          listener(data);
         } catch (error) {
-          console.error(`Error in event listener for ${event}:`, error)
+          console.error(`Error in event listener for ${event}:`, error);
         }
-      })
+      });
     }
   }
 
@@ -299,47 +296,54 @@ export class PrintAgentService {
   // Private Methods
   // =============================================
 
-  private createPrintServiceConfig(config: LocalPrintServiceConfig): PrintServiceConfig {
+  private createPrintServiceConfig(
+    config: LocalPrintServiceConfig,
+  ): PrintServiceConfig {
     return {
       queue: {
         maxConcurrentJobs: 5,
         maxQueueSize: config.maxQueueSize,
         maxRetries: config.maxRetries,
         retryDelay: config.retryDelay,
-        jobTimeout: 30000
+        jobTimeout: 30000,
       },
       drivers: {
         connectionTimeout: 10000,
         commandTimeout: 5000,
         heartbeatInterval: config.heartbeatInterval,
-        retryAttempts: config.maxRetries
+        retryAttempts: config.maxRetries,
       },
       regions: {
-        default: 'TW',
-        supported: ['TW', 'MY', 'VN']
-      }
-    }
+        default: "TW",
+        supported: ["TW", "MY", "VN"],
+      },
+    };
   }
 
   private validatePrintRequest(request: PrintRequest): void {
     if (!request.country) {
-      throw new Error('Missing required field: country')
+      throw new Error("Missing required field: country");
     }
 
-    if (request.restaurantId && request.restaurantId !== this.config.restaurantId) {
-      throw new Error(`Invalid restaurant ID: expected ${this.config.restaurantId}, got ${request.restaurantId}`)
+    if (
+      request.restaurantId &&
+      request.restaurantId !== this.config.restaurantId
+    ) {
+      throw new Error(
+        `Invalid restaurant ID: expected ${this.config.restaurantId}, got ${request.restaurantId}`,
+      );
     }
 
     if (!request.type) {
-      throw new Error('Missing required field: type')
+      throw new Error("Missing required field: type");
     }
 
     if (!request.data) {
-      throw new Error('Missing required field: data')
+      throw new Error("Missing required field: data");
     }
 
     if (!request.data.order) {
-      throw new Error('Missing required field: data.order')
+      throw new Error("Missing required field: data.order");
     }
   }
 
@@ -348,10 +352,10 @@ export class PrintAgentService {
   // =============================================
 
   get initialized(): boolean {
-    return this.isInitialized
+    return this.isInitialized;
   }
 
   get configuration(): LocalPrintServiceConfig {
-    return { ...this.config }
+    return { ...this.config };
   }
 }

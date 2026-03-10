@@ -79,7 +79,7 @@ describe("Auth Routes", () => {
         id: 1,
         username: "testuser",
         role: 1,
-        restaurantId: 'test-restaurant-1',
+        restaurantId: "test-restaurant-1",
       };
 
       // Mock AuthService.login to return success

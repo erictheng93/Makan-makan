@@ -5,6 +5,7 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Image Upload & Storage** - Secure upload with validation and preprocessing
 - **Automatic Optimization** - Smart compression and format conversion
 - **Multiple Variants** - Generate thumbnails, responsive sizes, and custom variants
@@ -14,6 +15,7 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 - **Security Scanning** - Malicious content detection and validation
 
 ### Technical Highlights
+
 - **Serverless Architecture** - Built on Cloudflare Workers for global edge deployment
 - **Cloudflare Images Integration** - Leverages Cloudflare's image optimization platform
 - **SQLite Database** - Metadata storage with Cloudflare D1
@@ -40,6 +42,7 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 ## 📋 API Endpoints
 
 ### Image Management
+
 - `POST /images/upload` - Upload new image
 - `GET /images/:id` - Get image metadata
 - `PUT /images/:id` - Update image metadata
@@ -48,11 +51,13 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 - `GET /images/:id/view` - Optimized image delivery
 
 ### Image Processing
+
 - `POST /images/:id/process` - Transform image
 - `GET /images/jobs/:jobId` - Check processing status
 - `POST /images/bulk` - Bulk operations
 
 ### Analytics
+
 - `GET /analytics/dashboard` - Usage overview
 - `GET /analytics/storage` - Storage statistics
 - `GET /analytics/usage` - View analytics
@@ -60,12 +65,14 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 - `GET /analytics/export` - Export data
 
 ### System
+
 - `GET /health` - Service health check
 - `GET /info` - Service information
 
 ## 🛠️ Setup & Deployment
 
 ### Prerequisites
+
 - Node.js 20+
 - Cloudflare account with Images enabled
 - Wrangler CLI: `npm install -g wrangler`
@@ -73,12 +80,14 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 ### Environment Setup
 
 1. **Clone and install dependencies**
+
 ```bash
 cd apps/image-processor
 npm install
 ```
 
 2. **Configure environment variables in wrangler.toml**
+
 ```toml
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "your_account_id"
@@ -89,6 +98,7 @@ ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
 ```
 
 3. **Set up Cloudflare resources**
+
 ```bash
 # Create KV namespace for caching
 wrangler kv:namespace create IMAGE_CACHE
@@ -106,11 +116,13 @@ wrangler d1 execute makanmakan-images-db --file=schema.sql
 4. **Update wrangler.toml with resource IDs**
 
 ### Development
+
 ```bash
 npm run dev
 ```
 
 ### Deployment
+
 ```bash
 # Deploy to staging
 npm run deploy:staging
@@ -122,84 +134,96 @@ npm run deploy:prod
 ## 🎯 Usage Examples
 
 ### Upload Image
+
 ```typescript
-const formData = new FormData()
-formData.append('file', imageFile)
+const formData = new FormData();
+formData.append("file", imageFile);
 
-const response = await fetch('/images/upload?category=menu&tags=food,noodles', {
-  method: 'POST',
+const response = await fetch("/images/upload?category=menu&tags=food,noodles", {
+  method: "POST",
   headers: {
-    'Authorization': 'Bearer your_jwt_token'
+    Authorization: "Bearer your_jwt_token",
   },
-  body: formData
-})
+  body: formData,
+});
 
-const result = await response.json()
+const result = await response.json();
 // Returns: { success: true, data: { id, variants, ... } }
 ```
 
 ### Get Optimized Image
+
 ```html
 <!-- Automatic format optimization based on browser support -->
-<img src="/images/abc123/view?width=600&height=400&fit=cover&format=webp" 
-     alt="Delicious noodles" />
+<img
+  src="/images/abc123/view?width=600&height=400&fit=cover&format=webp"
+  alt="Delicious noodles"
+/>
 
 <!-- Predefined variants -->
 <img src="/images/abc123/view?variant=thumbnail" alt="Thumbnail" />
 ```
 
 ### Transform Image
+
 ```typescript
 const transformation = {
   transformations: [
     {
-      type: 'resize',
+      type: "resize",
       width: 800,
       height: 600,
-      fit: 'cover'
+      fit: "cover",
     },
     {
-      type: 'blur',
-      radius: 5
-    }
-  ]
-}
+      type: "blur",
+      radius: 5,
+    },
+  ],
+};
 
-const response = await fetch('/images/abc123/process', {
-  method: 'POST',
+const response = await fetch("/images/abc123/process", {
+  method: "POST",
   headers: {
-    'Authorization': 'Bearer your_jwt_token',
-    'Content-Type': 'application/json'
+    Authorization: "Bearer your_jwt_token",
+    "Content-Type": "application/json",
   },
-  body: JSON.stringify(transformation)
-})
+  body: JSON.stringify(transformation),
+});
 
 // Returns: { success: true, data: { jobId, status: 'pending' } }
 ```
 
 ### Get Analytics
-```typescript
-const response = await fetch('/analytics/dashboard?restaurantId=123&dateFrom=2024-01-01', {
-  headers: {
-    'Authorization': 'Bearer your_jwt_token'
-  }
-})
 
-const analytics = await response.json()
+```typescript
+const response = await fetch(
+  "/analytics/dashboard?restaurantId=123&dateFrom=2024-01-01",
+  {
+    headers: {
+      Authorization: "Bearer your_jwt_token",
+    },
+  },
+);
+
+const analytics = await response.json();
 // Returns usage stats, storage info, performance metrics
 ```
 
 ## 🔧 Configuration Options
 
 ### Image Variants
+
 Default variants are automatically generated:
+
 - `thumbnail`: 150x150px
-- `small`: 300x300px  
+- `small`: 300x300px
 - `medium`: 600x600px
 - `large`: 1200x1200px
 - `original`: Original size
 
 ### Transformation Options
+
 - **Resize**: `width`, `height`, `fit` (scale-down, contain, cover, crop, pad)
 - **Crop**: Custom crop with gravity control
 - **Rotate**: Any angle rotation
@@ -208,6 +232,7 @@ Default variants are automatically generated:
 - **Sharpen**: Image sharpening
 
 ### Security Features
+
 - File type validation
 - Magic number verification
 - Size limits enforcement
@@ -218,6 +243,7 @@ Default variants are automatically generated:
 ## 📊 Performance & Monitoring
 
 ### Metrics Tracked
+
 - Upload success/failure rates
 - Processing times
 - Cache hit ratios
@@ -226,14 +252,18 @@ Default variants are automatically generated:
 - Error rates and types
 
 ### Health Monitoring
+
 The service includes comprehensive health checks:
+
 - Database connectivity
 - KV store operations
 - R2 bucket access
 - Processing queue status
 
 ### Alerting
+
 Automatic notifications via Slack webhook for:
+
 - Service errors
 - Performance degradation
 - High failure rates
@@ -242,17 +272,20 @@ Automatic notifications via Slack webhook for:
 ## 🔐 Security & Access Control
 
 ### Authentication
+
 - JWT-based authentication
 - API key support for service-to-service
 - Role-based permissions (Admin, Owner, Chef, etc.)
 
 ### Access Control
+
 - Restaurant-level isolation
 - User-based permissions
 - Public/private image support
 - Secure signed URLs
 
 ### Validation
+
 - File type verification
 - Size limits
 - Content scanning
@@ -261,34 +294,39 @@ Automatic notifications via Slack webhook for:
 ## 🚀 Advanced Features
 
 ### Batch Processing
+
 ```typescript
 const bulkOperation = {
-  imageIds: ['img1', 'img2', 'img3'],
-  operation: 'update_category',
-  data: { category: 'menu' }
-}
+  imageIds: ["img1", "img2", "img3"],
+  operation: "update_category",
+  data: { category: "menu" },
+};
 
-await fetch('/images/bulk', {
-  method: 'POST',
-  headers: { 'Authorization': 'Bearer token' },
-  body: JSON.stringify(bulkOperation)
-})
+await fetch("/images/bulk", {
+  method: "POST",
+  headers: { Authorization: "Bearer token" },
+  body: JSON.stringify(bulkOperation),
+});
 ```
 
 ### Custom Transformations
+
 ```typescript
 const customTransform = {
   transformations: [
-    { type: 'resize', width: 400, height: 300 },
-    { type: 'rotate', angle: 90 },
-    { type: 'blur', radius: 2 }
-  ]
-}
+    { type: "resize", width: 400, height: 300 },
+    { type: "rotate", angle: 90 },
+    { type: "blur", radius: 2 },
+  ],
+};
 ```
 
 ### Analytics Export
+
 ```typescript
-const exportData = await fetch('/analytics/export?type=usage&format=csv&dateFrom=2024-01-01')
+const exportData = await fetch(
+  "/analytics/export?type=usage&format=csv&dateFrom=2024-01-01",
+);
 // Returns downloadable CSV/JSON with usage data
 ```
 
@@ -308,6 +346,7 @@ npm run test:integration
 ## 📝 Database Schema
 
 The service uses SQLite (Cloudflare D1) with these main tables:
+
 - `images` - Image metadata and variants
 - `image_processing_jobs` - Async processing queue
 - `image_views` - Usage analytics tracking
@@ -317,14 +356,18 @@ See `schema.sql` for complete database structure.
 ## 🤝 Integration
 
 ### With Main API
+
 The image processor integrates seamlessly with the main MakanMakan API:
+
 - Menu item images
 - Restaurant photos
 - User avatars
 - QR code images
 
 ### Webhook Events
+
 Configure webhooks to receive notifications for:
+
 - Upload completion
 - Processing finished
 - Error events
@@ -333,17 +376,20 @@ Configure webhooks to receive notifications for:
 ## 📈 Scaling & Performance
 
 ### Global Edge Deployment
+
 - Deployed to 100+ Cloudflare locations
 - Sub-100ms response times globally
 - Automatic failover and redundancy
 
 ### Optimization
+
 - Intelligent caching strategies
 - Format optimization (WebP, AVIF)
 - Size optimization per device
 - Lazy loading support
 
 ### Cost Management
+
 - Pay-per-use pricing
 - Efficient storage with R2
 - Automatic cleanup of unused images
@@ -352,17 +398,20 @@ Configure webhooks to receive notifications for:
 ## 🆘 Troubleshooting
 
 ### Common Issues
+
 1. **Upload Failures**: Check file size/type limits
 2. **Processing Stuck**: Monitor job queue status
 3. **Authentication Errors**: Verify JWT token validity
 4. **Rate Limits**: Check per-user/IP limits
 
 ### Debug Endpoints
+
 - `/health` - Service status
 - `/info` - Configuration details
 - `/analytics/performance` - Processing metrics
 
 ### Logs & Monitoring
+
 - Cloudflare Workers logs
 - Slack error notifications
 - Performance dashboards

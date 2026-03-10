@@ -118,8 +118,9 @@ class EnhancedAudioNotificationService {
   private async initializeWebAudio(): Promise<void> {
     try {
       // Create audio context
-      this.audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      this.audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
 
       // Create main gain node
       this.gainNode = this.audioContext.createGain();

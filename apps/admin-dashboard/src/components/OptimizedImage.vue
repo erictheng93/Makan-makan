@@ -13,7 +13,7 @@
         'animate-pulse': isLoading && showLoadingState,
         'opacity-0': isLoading && fadeIn,
         'opacity-100 transition-opacity duration-300': !isLoading && fadeIn,
-      }
+      },
     ]"
     :style="imageStyle"
     @load="handleLoad"
@@ -24,12 +24,27 @@
   <div
     v-else
     :class="['optimized-image-error', errorClass]"
-    :style="{ width: width ? `${width}px` : '100%', height: height ? `${height}px` : 'auto' }"
+    :style="{
+      width: width ? `${width}px` : '100%',
+      height: height ? `${height}px` : 'auto',
+    }"
   >
     <slot name="error">
-      <div class="flex items-center justify-center h-full bg-gray-100 text-gray-400">
-        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <div
+        class="flex items-center justify-center h-full bg-gray-100 text-gray-400"
+      >
+        <svg
+          class="w-12 h-12"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
         </svg>
       </div>
     </slot>
@@ -37,8 +52,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useOptimizedImage, type ImageOptimizationOptions, type ImageFormat, type ImageFit, type ImageGravity } from '@/composables/useOptimizedImage'
+import { computed, ref } from "vue";
+import {
+  useOptimizedImage,
+  type ImageOptimizationOptions,
+  type ImageFormat,
+  type ImageFit,
+  type ImageGravity,
+} from "@/composables/useOptimizedImage";
 
 // ============================================================================
 // Props
@@ -53,97 +74,97 @@ interface Props {
    */
 
   /** Cloudflare Account Hash */
-  accountHash?: string
+  accountHash?: string;
 
   /** Cloudflare Image ID */
-  imageId?: string
+  imageId?: string;
 
   /** 直接 URL 或本地路徑 */
-  src?: string
+  src?: string;
 
   /** Alt text */
-  alt: string
+  alt: string;
 
   /** 目標寬度 */
-  width?: number
+  width?: number;
 
   /** 目標高度 */
-  height?: number
+  height?: number;
 
   /** 圖片質量 (0-100) */
-  quality?: number
+  quality?: number;
 
   /** 圖片格式 ('auto' 自動檢測最佳格式) */
-  format?: ImageFormat
+  format?: ImageFormat;
 
   /** 適應模式 */
-  fit?: ImageFit
+  fit?: ImageFit;
 
   /** 裁切重力 */
-  gravity?: ImageGravity
+  gravity?: ImageGravity;
 
   /** DPR (Device Pixel Ratio) */
-  dpr?: number
+  dpr?: number;
 
   /** 是否生成 srcset (響應式圖片) */
-  generateSrcset?: boolean
+  generateSrcset?: boolean;
 
   /** 背景顏色（用於 pad 模式） */
-  background?: string
+  background?: string;
 
   /** 是否啟用銳化 */
-  sharpen?: number
+  sharpen?: number;
 
   /** 是否懶加載 */
-  lazy?: boolean
+  lazy?: boolean;
 
   /** 是否淡入效果 */
-  fadeIn?: boolean
+  fadeIn?: boolean;
 
   /** 是否顯示加載狀態 */
-  showLoadingState?: boolean
+  showLoadingState?: boolean;
 
   /** 圖片類名 */
-  imageClass?: string
+  imageClass?: string;
 
   /** 錯誤狀態類名 */
-  errorClass?: string
+  errorClass?: string;
 
   /** 自定義樣式 */
-  imageStyle?: Record<string, any>
+  imageStyle?: Record<string, any>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  format: 'auto',
-  fit: 'scale-down',
-  gravity: 'auto',
+  format: "auto",
+  fit: "scale-down",
+  gravity: "auto",
   dpr: 1,
   generateSrcset: true,
   lazy: true,
   fadeIn: true,
   showLoadingState: false,
-  imageClass: '',
-  errorClass: '',
+  imageClass: "",
+  errorClass: "",
   imageStyle: () => ({}),
-})
+});
 
 // ============================================================================
 // 發射事件
 // ============================================================================
 
 const emit = defineEmits<{
-  load: [event: Event]
-  error: [event: Event]
-  formatDetected: [format: ImageFormat]
-}>()
+  load: [event: Event];
+  error: [event: Event];
+  formatDetected: [format: ImageFormat];
+}>();
 
 // ============================================================================
 // 圖片優化
 // ============================================================================
 
 const isLocalImage = computed(() => {
-  return !props.accountHash || !props.imageId
-})
+  return !props.accountHash || !props.imageId;
+});
 
 // 使用優化 composable（僅用於 Cloudflare Images）
 const cloudflareOptions = computed<ImageOptimizationOptions>(() => ({
@@ -160,7 +181,7 @@ const cloudflareOptions = computed<ImageOptimizationOptions>(() => ({
   generateSrcset: props.generateSrcset,
   background: props.background,
   sharpen: props.sharpen,
-}))
+}));
 
 const {
   imageUrl: cloudflareImageUrl,
@@ -169,22 +190,22 @@ const {
   detectedFormat,
   isLoading: cloudflareIsLoading,
   error: cloudflareError,
-} = useOptimizedImage(cloudflareOptions.value)
+} = useOptimizedImage(cloudflareOptions.value);
 
 // ========================================
 // 狀態管理
 // ========================================
 
-const localIsLoading = ref(true)
-const localError = ref(false)
+const localIsLoading = ref(true);
+const localError = ref(false);
 
 const isLoading = computed(() => {
-  return isLocalImage.value ? localIsLoading.value : cloudflareIsLoading.value
-})
+  return isLocalImage.value ? localIsLoading.value : cloudflareIsLoading.value;
+});
 
 const error = computed(() => {
-  return isLocalImage.value ? localError.value : !!cloudflareError.value
-})
+  return isLocalImage.value ? localError.value : !!cloudflareError.value;
+});
 
 // ========================================
 // 計算屬性
@@ -195,51 +216,51 @@ const error = computed(() => {
  */
 const computedImageUrl = computed(() => {
   if (isLocalImage.value) {
-    return props.src || ''
+    return props.src || "";
   }
-  return cloudflareImageUrl.value
-})
+  return cloudflareImageUrl.value;
+});
 
 /**
  * 最終 srcset
  */
 const computedSrcset = computed(() => {
   if (isLocalImage.value || !props.generateSrcset) {
-    return undefined
+    return undefined;
   }
-  return cloudflareSrcset.value
-})
+  return cloudflareSrcset.value;
+});
 
 /**
  * 最終 sizes
  */
 const computedSizes = computed(() => {
   if (isLocalImage.value || !props.generateSrcset) {
-    return undefined
+    return undefined;
   }
-  return cloudflareSizes.value
-})
+  return cloudflareSizes.value;
+});
 
 // ========================================
 // 事件處理
 // ========================================
 
 const handleLoad = (event: Event) => {
-  localIsLoading.value = false
-  emit('load', event)
+  localIsLoading.value = false;
+  emit("load", event);
 
   // 發射檢測到的格式
   if (!isLocalImage.value && detectedFormat.value) {
-    emit('formatDetected', detectedFormat.value)
+    emit("formatDetected", detectedFormat.value);
   }
-}
+};
 
 const handleError = (event: Event) => {
-  localIsLoading.value = false
-  localError.value = true
-  emit('error', event)
-  console.error('Image failed to load:', computedImageUrl.value)
-}
+  localIsLoading.value = false;
+  localError.value = true;
+  emit("error", event);
+  console.error("Image failed to load:", computedImageUrl.value);
+};
 </script>
 
 <style scoped>

@@ -26,13 +26,7 @@
     }
   },
   "files": [],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "legacy",
-    ".wrangler",
-    "**/*.d.ts"
-  ],
+  "exclude": ["node_modules", "dist", "legacy", ".wrangler", "**/*.d.ts"],
   "references": [
     {
       "path": "./apps/customer-app"

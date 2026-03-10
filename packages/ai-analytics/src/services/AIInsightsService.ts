@@ -3,9 +3,9 @@
  * Generates business insights using LLM providers
  */
 
-import { createProvider } from '../providers';
-import { ProductAnalysisService } from './ProductAnalysisService';
-import { getCurrentTimestamp } from '@makanmakan/database';
+import { createProvider } from "../providers";
+import { ProductAnalysisService } from "./ProductAnalysisService";
+import { getCurrentTimestamp } from "@makanmakan/database";
 import type {
   LLMConfig,
   BusinessMetrics,
@@ -13,7 +13,7 @@ import type {
   AIAnalyticsReport,
   TimeRangeParams,
   ProductAnalysis,
-} from '../types';
+} from "../types";
 
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
@@ -63,7 +63,7 @@ export class AIInsightsService {
     options: {
       includeForecasting?: boolean;
       refreshCache?: boolean;
-    } = {}
+    } = {},
   ): Promise<AIAnalyticsReport> {
     const startTime = Date.now();
 
@@ -78,10 +78,18 @@ export class AIInsightsService {
 
     // 3. Generate AI insights
     const llmProvider = createProvider(llmConfig);
-    const insights = await this.generateInsights(metrics, llmProvider, llmConfig);
+    const insights = await this.generateInsights(
+      metrics,
+      llmProvider,
+      llmConfig,
+    );
 
     // 4. Generate executive summary
-    const executiveSummary = await this.generateExecutiveSummary(metrics, insights, llmProvider);
+    const executiveSummary = await this.generateExecutiveSummary(
+      metrics,
+      insights,
+      llmProvider,
+    );
 
     // 5. Optional: Generate forecast
     let forecast;
@@ -118,7 +126,7 @@ export class AIInsightsService {
    */
   private async gatherBusinessMetrics(
     restaurantId: string,
-    timeRange: TimeRangeParams
+    timeRange: TimeRangeParams,
   ): Promise<BusinessMetrics> {
     const { startDate, endDate } = this.getDateRange(timeRange);
 
@@ -205,25 +213,47 @@ export class AIInsightsService {
       .all<DailyMetricData>();
 
     // Get product analyses
-    const topProducts = await this.productAnalysis.getBestsellers(restaurantId, timeRange, 10);
-    const trafficDrivers = await this.productAnalysis.getTrafficDrivers(restaurantId, timeRange, 10);
-    const profitLeaders = await this.productAnalysis.getProfitLeaders(restaurantId, timeRange, 10);
-    const underperformers = await this.productAnalysis.getUnderperformers(restaurantId, timeRange, 5);
+    const topProducts = await this.productAnalysis.getBestsellers(
+      restaurantId,
+      timeRange,
+      10,
+    );
+    const trafficDrivers = await this.productAnalysis.getTrafficDrivers(
+      restaurantId,
+      timeRange,
+      10,
+    );
+    const profitLeaders = await this.productAnalysis.getProfitLeaders(
+      restaurantId,
+      timeRange,
+      10,
+    );
+    const underperformers = await this.productAnalysis.getUnderperformers(
+      restaurantId,
+      timeRange,
+      5,
+    );
 
     // Calculate growth (compare to previous period)
     const previousPeriodMetrics = await this.getPreviousPeriodMetrics(
       restaurantId,
       startDate,
-      endDate
+      endDate,
     );
 
-    const revenueGrowth = previousPeriodMetrics.revenue > 0
-      ? ((overall!.total_revenue - previousPeriodMetrics.revenue) / previousPeriodMetrics.revenue) * 100
-      : 0;
+    const revenueGrowth =
+      previousPeriodMetrics.revenue > 0
+        ? ((overall!.total_revenue - previousPeriodMetrics.revenue) /
+            previousPeriodMetrics.revenue) *
+          100
+        : 0;
 
-    const orderGrowth = previousPeriodMetrics.orders > 0
-      ? ((overall!.total_orders - previousPeriodMetrics.orders) / previousPeriodMetrics.orders) * 100
-      : 0;
+    const orderGrowth =
+      previousPeriodMetrics.orders > 0
+        ? ((overall!.total_orders - previousPeriodMetrics.orders) /
+            previousPeriodMetrics.orders) *
+          100
+        : 0;
 
     return {
       restaurantId,
@@ -255,7 +285,7 @@ export class AIInsightsService {
   private async generateInsights(
     metrics: BusinessMetrics,
     llmProvider: any,
-    llmConfig: LLMConfig
+    llmConfig: LLMConfig,
   ): Promise<AIInsight[]> {
     const prompt = this.buildInsightsPrompt(metrics);
 
@@ -277,7 +307,7 @@ export class AIInsightsService {
       prompt,
       maxTokens: 2048,
       temperature: 0.7,
-      responseFormat: 'json',
+      responseFormat: "json",
     });
 
     try {
@@ -289,7 +319,7 @@ export class AIInsightsService {
           }))
         : [];
     } catch (error) {
-      console.error('Failed to parse AI insights:', error);
+      console.error("Failed to parse AI insights:", error);
       return [];
     }
   }
@@ -300,20 +330,26 @@ export class AIInsightsService {
   private async generateExecutiveSummary(
     metrics: BusinessMetrics,
     insights: AIInsight[],
-    llmProvider: any
+    llmProvider: any,
   ): Promise<string> {
     const prompt = `
 基於以下業務數據和洞察，生成一份簡潔的執行摘要（200-300字）：
 
 業務指標：
-- 總營收：$${metrics.totalRevenue.toFixed(2)}（${metrics.revenueGrowth > 0 ? '+' : ''}${metrics.revenueGrowth.toFixed(1)}%）
-- 總訂單：${metrics.totalOrders}（${metrics.orderGrowth > 0 ? '+' : ''}${metrics.orderGrowth.toFixed(1)}%）
+- 總營收：$${metrics.totalRevenue.toFixed(2)}（${metrics.revenueGrowth > 0 ? "+" : ""}${metrics.revenueGrowth.toFixed(1)}%）
+- 總訂單：${metrics.totalOrders}（${metrics.orderGrowth > 0 ? "+" : ""}${metrics.orderGrowth.toFixed(1)}%）
 - 平均客單價：$${metrics.averageOrderValue.toFixed(2)}
 
-熱銷產品：${metrics.topProducts.slice(0, 3).map(p => p.menuItemName).join('、')}
+熱銷產品：${metrics.topProducts
+      .slice(0, 3)
+      .map((p) => p.menuItemName)
+      .join("、")}
 
 關鍵洞察：
-${insights.slice(0, 3).map(i => `- ${i.title}: ${i.description}`).join('\n')}
+${insights
+  .slice(0, 3)
+  .map((i) => `- ${i.title}: ${i.description}`)
+  .join("\n")}
 
 請用專業但易懂的語言總結：
 1. 整體業務表現
@@ -336,11 +372,16 @@ ${insights.slice(0, 3).map(i => `- ${i.title}: ${i.description}`).join('\n')}
   /**
    * Generate forecast
    */
-  private async generateForecast(metrics: BusinessMetrics, llmProvider: any): Promise<any> {
+  private async generateForecast(
+    metrics: BusinessMetrics,
+    llmProvider: any,
+  ): Promise<any> {
     // Simple forecasting based on recent trends
     const recentDays = metrics.dailyMetrics.slice(-7);
-    const avgDailyRevenue = recentDays.reduce((sum, d) => sum + d.revenue, 0) / recentDays.length;
-    const avgDailyOrders = recentDays.reduce((sum, d) => sum + d.orders, 0) / recentDays.length;
+    const avgDailyRevenue =
+      recentDays.reduce((sum, d) => sum + d.revenue, 0) / recentDays.length;
+    const avgDailyOrders =
+      recentDays.reduce((sum, d) => sum + d.orders, 0) / recentDays.length;
 
     // Apply growth trend
     const growthFactor = 1 + metrics.revenueGrowth / 100;
@@ -368,9 +409,9 @@ ${insights.slice(0, 3).map(i => `- ${i.title}: ${i.description}`).join('\n')}
 
 ## 總體表現
 - 總營收：$${metrics.totalRevenue.toFixed(2)}
-- 營收增長：${metrics.revenueGrowth > 0 ? '+' : ''}${metrics.revenueGrowth.toFixed(1)}%
+- 營收增長：${metrics.revenueGrowth > 0 ? "+" : ""}${metrics.revenueGrowth.toFixed(1)}%
 - 總訂單：${metrics.totalOrders}
-- 訂單增長：${metrics.orderGrowth > 0 ? '+' : ''}${metrics.orderGrowth.toFixed(1)}%
+- 訂單增長：${metrics.orderGrowth > 0 ? "+" : ""}${metrics.orderGrowth.toFixed(1)}%
 - 平均客單價：$${metrics.averageOrderValue.toFixed(2)}
 
 ## 客戶數據
@@ -382,42 +423,48 @@ ${metrics.topProducts
   .slice(0, 5)
   .map(
     (p, i) =>
-      `${i + 1}. ${p.menuItemName}：${p.totalOrders}單，$${p.totalRevenue.toFixed(2)}`
+      `${i + 1}. ${p.menuItemName}：${p.totalOrders}單，$${p.totalRevenue.toFixed(2)}`,
   )
-  .join('\n')}
+  .join("\n")}
 
 ## 引流產品（Top 3）
 ${metrics.trafficDrivers
   .slice(0, 3)
   .map(
     (p, i) =>
-      `${i + 1}. ${p.menuItemName}：${p.firstItemInOrderCount}次作為首選，轉換率${(p.conversionRate * 100).toFixed(1)}%`
+      `${i + 1}. ${p.menuItemName}：${p.firstItemInOrderCount}次作為首選，轉換率${(p.conversionRate * 100).toFixed(1)}%`,
   )
-  .join('\n')}
+  .join("\n")}
 
 ## 利潤領先產品（Top 3）
 ${metrics.profitLeaders
   .slice(0, 3)
   .map(
     (p, i) =>
-      `${i + 1}. ${p.menuItemName}：利潤$${(p.totalProfit || 0).toFixed(2)}，利潤率${((p.profitMargin || 0) * 100).toFixed(1)}%`
+      `${i + 1}. ${p.menuItemName}：利潤$${(p.totalProfit || 0).toFixed(2)}，利潤率${((p.profitMargin || 0) * 100).toFixed(1)}%`,
   )
-  .join('\n')}
+  .join("\n")}
 
 ## 營業高峰
 - 高峰時段：${metrics.peakHours[0]?.hour}:00（${metrics.peakHours[0]?.orderCount}單）
-- 高峰日：星期${['日', '一', '二', '三', '四', '五', '六'][metrics.peakDays[0]?.dayOfWeek || 0]}（${metrics.peakDays[0]?.orderCount}單）
+- 高峰日：星期${["日", "一", "二", "三", "四", "五", "六"][metrics.peakDays[0]?.dayOfWeek || 0]}（${metrics.peakDays[0]?.orderCount}單）
 
 請生成 JSON 格式的洞察數組。
     `;
   }
 
   // Helper methods
-  private getDateRange(timeRange: TimeRangeParams): { startDate: string; endDate: string } {
+  private getDateRange(timeRange: TimeRangeParams): {
+    startDate: string;
+    endDate: string;
+  } {
     const now = new Date();
-    let startDate: Date;
 
-    if (timeRange.range === 'custom' && timeRange.startDate && timeRange.endDate) {
+    if (
+      timeRange.range === "custom" &&
+      timeRange.startDate &&
+      timeRange.endDate
+    ) {
       return {
         startDate: timeRange.startDate,
         endDate: timeRange.endDate,
@@ -425,33 +472,37 @@ ${metrics.profitLeaders
     }
 
     const daysMap: Record<string, number> = {
-      '7d': 7,
-      '14d': 14,
-      '30d': 30,
-      '90d': 90,
-      '180d': 180,
-      '1y': 365,
+      "7d": 7,
+      "14d": 14,
+      "30d": 30,
+      "90d": 90,
+      "180d": 180,
+      "1y": 365,
     };
 
     const days = daysMap[timeRange.range] || 30;
-    startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: now.toISOString().split('T')[0],
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: now.toISOString().split("T")[0],
     };
   }
 
   private async getPreviousPeriodMetrics(
     restaurantId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<{ revenue: number; orders: number }> {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const periodDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const periodDays = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
-    const previousStart = new Date(start.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const previousStart = new Date(
+      start.getTime() - periodDays * 24 * 60 * 60 * 1000,
+    );
     const previousEnd = start;
 
     const query = `
@@ -468,8 +519,8 @@ ${metrics.profitLeaders
       .prepare(query)
       .bind(
         restaurantId,
-        previousStart.toISOString().split('T')[0],
-        previousEnd.toISOString().split('T')[0]
+        previousStart.toISOString().split("T")[0],
+        previousEnd.toISOString().split("T")[0],
       )
       .first<{ revenue: number; orders: number }>();
 
@@ -478,7 +529,7 @@ ${metrics.profitLeaders
 
   private async getCachedReport(
     restaurantId: string,
-    timeRange: TimeRangeParams
+    timeRange: TimeRangeParams,
   ): Promise<AIAnalyticsReport | null> {
     const now = getCurrentTimestamp();
     const query = `
@@ -533,12 +584,12 @@ ${metrics.profitLeaders
       .prepare(query)
       .bind(
         report.restaurantId,
-        'full_report',
+        "full_report",
         report.timeRange.range,
         JSON.stringify(report),
         0.85,
         now,
-        expiresAt.toISOString()
+        expiresAt.toISOString(),
       )
       .run();
   }

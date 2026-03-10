@@ -39,7 +39,7 @@ vi.mock("../../../shared/middleware", () => ({
     c.set("user", {
       id: mockUserId,
       role: mockUserRole,
-      restaurantId: '1',
+      restaurantId: "1",
       username: "testuser",
     });
     return next();
@@ -116,7 +116,7 @@ describe("Leaves Edge Cases Tests", () => {
       const { createLeaveRequestSchema } =
         await import("../schemas/validation");
       const result = createLeaveRequestSchema.safeParse({
-        restaurantId: '1',
+        restaurantId: "1",
         employeeId: 1,
         leaveTypeId: 1,
         startDate: "2025-01-20",
@@ -130,7 +130,7 @@ describe("Leaves Edge Cases Tests", () => {
       const { createLeaveRequestSchema } =
         await import("../schemas/validation");
       const result = createLeaveRequestSchema.safeParse({
-        restaurantId: '1',
+        restaurantId: "1",
         employeeId: 1,
         leaveTypeId: 1,
         startDate: "2025-01-20",
@@ -144,7 +144,7 @@ describe("Leaves Edge Cases Tests", () => {
       const { createLeaveRequestSchema } =
         await import("../schemas/validation");
       const result = createLeaveRequestSchema.safeParse({
-        restaurantId: '1',
+        restaurantId: "1",
         employeeId: 1,
         leaveTypeId: 1,
         startDate: "20-01-2025",
@@ -158,7 +158,7 @@ describe("Leaves Edge Cases Tests", () => {
       const { createLeaveRequestSchema } =
         await import("../schemas/validation");
       const result = createLeaveRequestSchema.safeParse({
-        restaurantId: '1',
+        restaurantId: "1",
         employeeId: 1,
         leaveTypeId: 1,
         startDate: "2025-01-20",

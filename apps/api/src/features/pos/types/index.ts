@@ -3,148 +3,158 @@
  */
 
 export interface CashRegister {
-  id: string
-  name: string
-  location?: string
-  restaurantId: string
-  isActive: boolean
-  currentShiftId?: string
-  hardwareConfig: Record<string, any>
-  peripherals: Record<string, any>
-  settings: Record<string, any>
-  lastMaintenanceAt?: Date
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  name: string;
+  location?: string;
+  restaurantId: string;
+  isActive: boolean;
+  currentShiftId?: string;
+  hardwareConfig: Record<string, any>;
+  peripherals: Record<string, any>;
+  settings: Record<string, any>;
+  lastMaintenanceAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CashShift {
-  id: string
-  registerId: string
-  operatorId: number
-  startAmount: number
-  endAmount?: number
-  expectedAmount: number
-  actualAmount?: number
-  differenceAmount: number
-  totalSales: number
-  totalRefunds: number
-  cashSales: number
-  cardSales: number
-  digitalSales: number
-  totalTransactions: number
-  startedAt: Date
-  endedAt?: Date
-  status: 'active' | 'closed' | 'suspended'
-  notes?: string
-  closingNotes?: string
+  id: string;
+  registerId: string;
+  operatorId: number;
+  startAmount: number;
+  endAmount?: number;
+  expectedAmount: number;
+  actualAmount?: number;
+  differenceAmount: number;
+  totalSales: number;
+  totalRefunds: number;
+  cashSales: number;
+  cardSales: number;
+  digitalSales: number;
+  totalTransactions: number;
+  startedAt: Date;
+  endedAt?: Date;
+  status: "active" | "closed" | "suspended";
+  notes?: string;
+  closingNotes?: string;
 }
 
 export interface CashMovement {
-  id: string
-  shiftId: string
-  registerId: string
-  type: 'sale' | 'refund' | 'cash_in' | 'cash_out' | 'count' | 'opening' | 'closing' | 'adjustment' | 'payout' | 'deposit'
-  amount: number
-  description?: string
-  referenceId?: number
-  referenceType?: string
-  paymentMethod?: string
-  denominationBreakdown: Record<string, number>
-  recordedBy: number
-  approvedBy?: number
-  approvalStatus: 'pending' | 'approved' | 'rejected'
-  receiptNumber?: string
-  metadata: Record<string, any>
-  createdAt: Date
+  id: string;
+  shiftId: string;
+  registerId: string;
+  type:
+    | "sale"
+    | "refund"
+    | "cash_in"
+    | "cash_out"
+    | "count"
+    | "opening"
+    | "closing"
+    | "adjustment"
+    | "payout"
+    | "deposit";
+  amount: number;
+  description?: string;
+  referenceId?: number;
+  referenceType?: string;
+  paymentMethod?: string;
+  denominationBreakdown: Record<string, number>;
+  recordedBy: number;
+  approvedBy?: number;
+  approvalStatus: "pending" | "approved" | "rejected";
+  receiptNumber?: string;
+  metadata: Record<string, any>;
+  createdAt: Date;
 }
 
 export interface Receipt {
-  id: string
-  orderId: number
-  registerId: string
-  shiftId?: string
-  receiptNumber: string
-  receiptType: 'customer' | 'kitchen' | 'merchant' | 'duplicate'
-  templateName: string
-  content: string
-  rawContent?: string
-  printStatus: 'pending' | 'printing' | 'printed' | 'failed' | 'cancelled'
-  printAttempts: number
-  printerName?: string
-  printerResponse?: string
-  printedAt?: Date
-  reprintedCount: number
-  lastReprintAt?: Date
-  createdAt: Date
+  id: string;
+  orderId: number;
+  registerId: string;
+  shiftId?: string;
+  receiptNumber: string;
+  receiptType: "customer" | "kitchen" | "merchant" | "duplicate";
+  templateName: string;
+  content: string;
+  rawContent?: string;
+  printStatus: "pending" | "printing" | "printed" | "failed" | "cancelled";
+  printAttempts: number;
+  printerName?: string;
+  printerResponse?: string;
+  printedAt?: Date;
+  reprintedCount: number;
+  lastReprintAt?: Date;
+  createdAt: Date;
 }
 
 export interface Refund {
-  id: string
-  originalOrderId: number
-  registerId: string
-  shiftId?: string
-  refundNumber: string
-  refundType: 'full' | 'partial' | 'item' | 'service'
-  originalAmount: number
-  refundAmount: number
-  refundMethod: string
-  reasonCode: string
-  reasonDescription?: string
-  itemsRefunded: any[]
-  processedBy: number
-  approvedBy?: number
-  customerSignature?: string
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-  processedAt?: Date
-  completedAt?: Date
-  metadata: Record<string, any>
+  id: string;
+  originalOrderId: number;
+  registerId: string;
+  shiftId?: string;
+  refundNumber: string;
+  refundType: "full" | "partial" | "item" | "service";
+  originalAmount: number;
+  refundAmount: number;
+  refundMethod: string;
+  reasonCode: string;
+  reasonDescription?: string;
+  itemsRefunded: any[];
+  processedBy: number;
+  approvedBy?: number;
+  customerSignature?: string;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+  processedAt?: Date;
+  completedAt?: Date;
+  metadata: Record<string, any>;
 }
 
 // Request/Response 類型
 export interface CreateRegisterRequest {
-  name: string
-  location?: string
-  restaurantId: string
-  hardwareConfig?: Record<string, any>
-  peripherals?: Record<string, any>
-  settings?: Record<string, any>
+  name: string;
+  location?: string;
+  restaurantId: string;
+  hardwareConfig?: Record<string, any>;
+  peripherals?: Record<string, any>;
+  settings?: Record<string, any>;
 }
 
 export interface StartShiftRequest {
-  registerId: string
-  operatorId: number
-  startAmount: number
-  notes?: string
+  registerId: string;
+  operatorId: number;
+  startAmount: number;
+  notes?: string;
 }
 
 export interface EndShiftRequest {
-  actualAmount: number
-  closingNotes?: string
+  actualAmount: number;
+  closingNotes?: string;
 }
 
 export interface CashMovementRequest {
-  type: 'cash_in' | 'cash_out' | 'count' | 'adjustment' | 'payout' | 'deposit'
-  amount: number
-  description: string
-  denominationBreakdown?: Record<string, number>
-  referenceId?: number
-  referenceType?: string
+  type: "cash_in" | "cash_out" | "count" | "adjustment" | "payout" | "deposit";
+  amount: number;
+  description: string;
+  denominationBreakdown?: Record<string, number>;
+  referenceId?: number;
+  referenceType?: string;
 }
 
 export interface PrintReceiptRequest {
-  orderId: number
-  templateName?: string
-  receiptType?: 'customer' | 'kitchen' | 'merchant'
-  copies?: number
+  orderId: number;
+  templateName?: string;
+  receiptType?: "customer" | "kitchen" | "merchant";
+  copies?: number;
 }
 
 export interface ProcessRefundRequest {
-  originalOrderId: number
-  refundType: 'full' | 'partial' | 'item' | 'service'
-  refundAmount: number
-  refundMethod: string
-  reasonCode: string
-  reasonDescription?: string
-  itemsRefunded?: any[]
-  customerSignature?: string
+  originalOrderId: number;
+  refundType: "full" | "partial" | "item" | "service";
+  refundAmount: number;
+  refundMethod: string;
+  reasonCode: string;
+  reasonDescription?: string;
+  itemsRefunded?: any[];
+  customerSignature?: string;
 }

@@ -135,6 +135,7 @@ curl https://api-staging.makanmakan.com/api/v1/health
 ```
 
 預期回應：
+
 ```json
 {
   "status": "healthy",
@@ -150,6 +151,7 @@ curl https://api-staging.makanmakan.com/api/v1/realtime/health
 ```
 
 預期回應：
+
 ```json
 {
   "success": true,
@@ -233,15 +235,19 @@ npx wrangler rollback --env staging
 ## 常見問題
 
 ### Q: 部署失敗提示「Database ID not found」
+
 A: 確認 wrangler.toml 中的 database_id 已更新為實際的 D1 ID
 
 ### Q: WebSocket 連接失敗
+
 A: 檢查 Durable Objects 遷移是否正確執行
 
 ### Q: Token 驗證失敗
+
 A: 確認 JWT_SECRET 已通過 `wrangler secret put` 設置
 
 ### Q: KV 操作失敗
+
 A: 確認 KV namespace ID 正確，且已授權給 Worker
 
 ## 部署清單

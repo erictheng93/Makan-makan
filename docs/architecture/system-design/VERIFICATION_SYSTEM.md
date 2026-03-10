@@ -28,6 +28,7 @@
 ### ✅ 已實現功能
 
 #### 1. 密碼重設 (Password Reset)
+
 - 支援 Email 和 SMS 兩種方式
 - UUID v4 token（Email，15 分鐘有效期）
 - 6 位數字 OTP（SMS，15 分鐘有效期）
@@ -36,18 +37,21 @@
 - 完成後發送成功通知
 
 #### 2. Email 驗證 (Email Verification)
+
 - 24 小時有效期驗證連結
 - 自動更新 `emailVerifiedAt` 時間戳
 - 支持重新發送驗證郵件
 - 驗證成功頁面
 
 #### 3. 手機驗證 (Phone Verification)
+
 - 6 位數字 OTP（5 分鐘有效期）
 - 3 次嘗試限制
 - 嘗試計數器追蹤
 - 自動更新 `phoneVerifiedAt` 時間戳
 
 #### 4. 安全功能
+
 - bcrypt 密碼加密（cost factor 10）
 - Token 過期管理
 - IP 地址記錄
@@ -74,6 +78,7 @@ ORM: Drizzle ORM
 #### 表格
 
 **1. password_reset_tokens**
+
 ```sql
 - id: INTEGER PRIMARY KEY
 - user_id: INTEGER (關聯 users.id)
@@ -88,6 +93,7 @@ ORM: Drizzle ORM
 ```
 
 **2. email_verification_tokens**
+
 ```sql
 - id: INTEGER PRIMARY KEY
 - user_id: INTEGER
@@ -100,6 +106,7 @@ ORM: Drizzle ORM
 ```
 
 **3. phone_verification_tokens**
+
 ```sql
 - id: INTEGER PRIMARY KEY
 - user_id: INTEGER
@@ -113,6 +120,7 @@ ORM: Drizzle ORM
 ```
 
 **4. password_change_logs**
+
 ```sql
 - id: INTEGER PRIMARY KEY
 - user_id: INTEGER
@@ -125,6 +133,7 @@ ORM: Drizzle ORM
 ```
 
 **5. users (新增欄位)**
+
 ```sql
 - email_verified_at: INTEGER
 - phone_verified_at: INTEGER
@@ -141,6 +150,7 @@ ORM: Drizzle ORM
 MailChannels 是 Cloudflare 官方推薦的郵件服務，**無需 API Key**！
 
 **apps/api/wrangler.toml**:
+
 ```toml
 # Email Provider (MailChannels - Cloudflare Official)
 NOTIFICATION_FROM_EMAIL = "noreply@yourdomain.com"
@@ -174,6 +184,7 @@ wrangler secret put TWILIO_AUTH_TOKEN
 ```
 
 **wrangler.toml**:
+
 ```toml
 TWILIO_PHONE_NUMBER = "+1234567890"  # 你的 Twilio 號碼
 ```
@@ -227,14 +238,16 @@ Local: http://localhost:8787/api/v1/auth
 發送密碼重設連結（Email）或 OTP（SMS）。
 
 **Request Body**:
+
 ```json
 {
-  "identifier": "user@example.com",  // Email, 手機號碼或用戶名
-  "method": "email"                  // 'email' | 'sms'
+  "identifier": "user@example.com", // Email, 手機號碼或用戶名
+  "method": "email" // 'email' | 'sms'
 }
 ```
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -243,6 +256,7 @@ Local: http://localhost:8787/api/v1/auth
 ```
 
 **Error** (400 Bad Request):
+
 ```json
 {
   "success": false,
@@ -260,18 +274,21 @@ Local: http://localhost:8787/api/v1/auth
 驗證密碼重設 token 是否有效。
 
 **Query Parameters**:
+
 - `token` (required): UUID v4 token
 
 **Response** (200 OK):
+
 ```json
 {
   "valid": true,
   "userId": 1,
-  "email": "us***@example.com"  // 遮罩顯示
+  "email": "us***@example.com" // 遮罩顯示
 }
 ```
 
 **Invalid Token**:
+
 ```json
 {
   "valid": false,
@@ -288,6 +305,7 @@ Local: http://localhost:8787/api/v1/auth
 使用 token 重設密碼。
 
 **Request Body**:
+
 ```json
 {
   "token": "12345678-1234-1234-1234-123456789abc",
@@ -297,11 +315,13 @@ Local: http://localhost:8787/api/v1/auth
 ```
 
 **Validation**:
+
 - 密碼長度 ≥ 6 字符
 - `newPassword` === `confirmPassword`
 - Token 未過期且未使用
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -318,11 +338,13 @@ Local: http://localhost:8787/api/v1/auth
 發送 Email 驗證連結。
 
 **Headers**:
+
 ```
 Authorization: Bearer {jwt_token}
 ```
 
 **Request Body**:
+
 ```json
 {
   "userId": 1,
@@ -331,6 +353,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -347,9 +370,11 @@ Authorization: Bearer {jwt_token}
 驗證 Email 地址。
 
 **Query Parameters**:
+
 - `token` (required): Email 驗證 token
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -366,11 +391,13 @@ Authorization: Bearer {jwt_token}
 發送 6 位數字 OTP 到手機。
 
 **Headers**:
+
 ```
 Authorization: Bearer {jwt_token}
 ```
 
 **Request Body**:
+
 ```json
 {
   "userId": 1,
@@ -379,6 +406,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -395,11 +423,13 @@ Authorization: Bearer {jwt_token}
 驗證手機 OTP。
 
 **Headers**:
+
 ```
 Authorization: Bearer {jwt_token}
 ```
 
 **Request Body**:
+
 ```json
 {
   "userId": 1,
@@ -409,6 +439,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -417,6 +448,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Error** (400 Bad Request):
+
 ```json
 {
   "success": false,
@@ -425,6 +457,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Locked** (400 Bad Request):
+
 ```json
 {
   "success": false,
@@ -466,12 +499,14 @@ Authorization: Bearer {jwt_token}
 #### 組件
 
 **1. ForgotPasswordView.vue** (244 lines)
+
 - Email 輸入表單
 - 成功/錯誤狀態顯示
 - 表單驗證
 - 返回登入連結
 
 **2. ResetPasswordView.vue** (586 lines)
+
 - Token 自動驗證
 - 新密碼 + 確認密碼輸入
 - 密碼可見性切換
@@ -484,6 +519,7 @@ Authorization: Bearer {jwt_token}
 - 密碼要求清單（checkmark/X 圖示）
 
 **3. VerifyEmailView.vue** (253 lines)
+
 - 自動驗證 Email
 - 成功頁面與好處列表
 - 錯誤處理
@@ -513,11 +549,13 @@ Authorization: Bearer {jwt_token}
 #### 組件
 
 **1. ForgotPasswordView.vue** (245 lines)
+
 - 管理後台樣式（bg-primary-600）
 - Email 輸入
 - 成功確認頁面
 
 **2. ResetPasswordView.vue** (589 lines)
+
 - 管理後台樣式
 - 密碼強度指標
 - Token 驗證
@@ -537,6 +575,7 @@ pnpm test VerificationService.test.ts
 ```
 
 **測試覆蓋**:
+
 - ✅ requestPasswordReset (3 tests)
 - ✅ verifyResetToken (3 tests)
 - ✅ resetPassword (2 tests)
@@ -555,6 +594,7 @@ pnpm test verification.test.ts
 ```
 
 **測試端點**:
+
 - ✅ POST /auth/forgot-password (3 tests)
 - ✅ GET /auth/reset-password/verify (3 tests)
 - ✅ POST /auth/reset-password (3 tests)
@@ -599,6 +639,7 @@ pnpm test:e2e forgot-password.spec.ts
    - ✅ 錯誤時顯示重新發送選項
 
 **執行測試**:
+
 ```bash
 # 執行所有 E2E 測試
 pnpm test:e2e
@@ -649,6 +690,7 @@ curl -X POST http://localhost:8787/api/v1/auth/reset-password \
 **問題**: 用戶沒有收到密碼重設郵件
 
 **解決方案**:
+
 ```bash
 # 1. 檢查 MailChannels 配置
 wrangler tail makanmakan-api --env staging
@@ -675,6 +717,7 @@ curl -X POST https://api.mailchannels.net/tx/v1/send \
 **問題**: Token expired error
 
 **解決方案**:
+
 - 密碼重設 token 有效期：15 分鐘
 - Email 驗證 token 有效期：24 小時
 - 手機 OTP 有效期：5 分鐘
@@ -685,6 +728,7 @@ curl -X POST https://api.mailchannels.net/tx/v1/send \
 **問題**: Twilio SMS 發送失敗
 
 **解決方案**:
+
 ```bash
 # 1. 驗證 Twilio 憑證
 wrangler secret list --env staging
@@ -704,6 +748,7 @@ wrangler tail makanmakan-api --env staging
 **問題**: OTP 驗證失敗 3 次後鎖定
 
 **解決方案**:
+
 ```sql
 -- 手動重置嘗試計數（僅用於開發/調試）
 UPDATE phone_verification_tokens
@@ -755,6 +800,7 @@ WHERE user_id = 1 AND phone = '+60123456789';
 系統已配置 Cloudflare Workers Cron Triggers 自動清理過期數據：
 
 **配置文件**: `apps/api/wrangler.toml`
+
 ```toml
 [triggers]
 crons = [
@@ -764,29 +810,31 @@ crons = [
 ```
 
 **實現代碼**: `apps/api/src/scheduled/cleanup-tokens.ts`
+
 ```typescript
 export async function cleanupExpiredTokens(env: CloudflareEnv) {
-  const verificationService = new VerificationService(env.DB, env)
-  await verificationService.cleanupExpiredTokens()
+  const verificationService = new VerificationService(env.DB, env);
+  await verificationService.cleanupExpiredTokens();
 
   // 獲取清理統計
-  const stats = await getCleanupStats(env.DB)
+  const stats = await getCleanupStats(env.DB);
 
   // 發送通知
-  const alertService = new AlertService(env)
+  const alertService = new AlertService(env);
   await alertService.sendAlert({
-    title: 'Token Cleanup Completed',
-    severity: 'info',
+    title: "Token Cleanup Completed",
+    severity: "info",
     metadata: {
-      'Password Reset Tokens': stats.passwordReset,
-      'Email Verification Tokens': stats.emailVerification,
-      'Phone Verification Tokens': stats.phoneVerification,
+      "Password Reset Tokens": stats.passwordReset,
+      "Email Verification Tokens": stats.emailVerification,
+      "Phone Verification Tokens": stats.phoneVerification,
     },
-  })
+  });
 }
 ```
 
 **清理範圍**:
+
 - ✅ 過期的密碼重設 token（15 分鐘後）
 - ✅ 過期的 Email 驗證 token（24 小時後）
 - ✅ 過期的手機驗證 token（5 分鐘後）
@@ -823,35 +871,45 @@ export async function cleanupExpiredTokens(env: CloudflareEnv) {
 
 ### 預設配置
 
-| 端點 | 窗口時間 | 最大請求數 | 鍵前綴 |
-|------|----------|-----------|--------|
-| 密碼重設 | 1 小時 | 5 | `pwd_reset` |
-| Email 驗證 | 10 分鐘 | 3 | `email_verify` |
-| SMS OTP | 1 小時 | 3 | `sms_otp` |
+| 端點       | 窗口時間 | 最大請求數 | 鍵前綴         |
+| ---------- | -------- | ---------- | -------------- |
+| 密碼重設   | 1 小時   | 5          | `pwd_reset`    |
+| Email 驗證 | 10 分鐘  | 3          | `email_verify` |
+| SMS OTP    | 1 小時   | 3          | `sms_otp`      |
 
 ### 使用方式
 
 ```typescript
-import { rateLimitMiddleware, RateLimitPresets } from '../middleware/rateLimiter'
+import {
+  rateLimitMiddleware,
+  RateLimitPresets,
+} from "../middleware/rateLimiter";
 
 // 應用到路由
-app.post('/auth/forgot-password',
+app.post(
+  "/auth/forgot-password",
   rateLimitMiddleware(RateLimitPresets.passwordReset),
-  async (c) => { /* handler */ }
-)
+  async (c) => {
+    /* handler */
+  },
+);
 ```
 
 ### 響應格式
 
 **成功時** (Status 200):
+
 ```json
 {
   "success": true,
-  "data": { /* response data */ }
+  "data": {
+    /* response data */
+  }
 }
 ```
 
 **速率限制超出時** (Status 429):
+
 ```json
 {
   "success": false,
@@ -879,6 +937,7 @@ app.post('/auth/forgot-password',
 ### 配置
 
 **環境變量**:
+
 ```env
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ALERT_EMAIL=security@makanmakan.com
@@ -895,26 +954,26 @@ ALERT_EMAIL=security@makanmakan.com
 ### 使用方式
 
 ```typescript
-import { AlertService } from '../services/AlertService'
+import { AlertService } from "../services/AlertService";
 
-const alertService = new AlertService(env)
+const alertService = new AlertService(env);
 
 // 速率限制超出
-await alertService.rateLimitExceeded(ipAddress, '/auth/forgot-password', 5)
+await alertService.rateLimitExceeded(ipAddress, "/auth/forgot-password", 5);
 
 // 密碼重設失敗
-await alertService.passwordResetAttempt(email, ipAddress, false)
+await alertService.passwordResetAttempt(email, ipAddress, false);
 
 // 系統錯誤
-await alertService.systemError(error, 'Token Cleanup')
+await alertService.systemError(error, "Token Cleanup");
 
 // 自定義警報
 await alertService.sendAlert({
-  title: 'Custom Alert',
-  message: 'Something happened',
-  severity: 'warning',
-  metadata: { key: 'value' }
-})
+  title: "Custom Alert",
+  message: "Something happened",
+  severity: "warning",
+  metadata: { key: "value" },
+});
 ```
 
 ### Slack 通知格式
@@ -942,6 +1001,7 @@ MakanMakan Security System
 ### v1.1.0 (2025-11-23) - 生產增強版
 
 **安全增強**:
+
 - ✅ 分布式速率限制（基於 Cloudflare KV）
   - 密碼重設: 5 requests/hour per IP
   - Email 驗證: 3 requests/10min per IP
@@ -956,24 +1016,28 @@ MakanMakan Security System
   - Cloudflare Workers Cron Triggers
 
 **測試覆蓋**:
+
 - ✅ E2E 測試（18 tests, 294 lines）
   - Forgot Password Flow (8 tests)
   - Reset Password Flow (7 tests)
   - Email Verification Flow (3 tests)
 
 **文件更新**:
+
 - ✅ 速率限制文檔
 - ✅ 異常通知設置指南
 - ✅ Cron Jobs 配置說明
 - ✅ E2E 測試指南
 
 **新增文件**:
+
 - `apps/api/src/middleware/rateLimiter.ts` (262 lines)
 - `apps/api/src/services/AlertService.ts` (292 lines)
 - `apps/api/src/scheduled/cleanup-tokens.ts` (120 lines)
 - `apps/customer-app/tests/e2e/forgot-password.spec.ts` (294 lines)
 
 ### v1.0.0 (2025-11-23)
+
 - ✅ 初始發布
 - ✅ 密碼重設（Email/SMS）
 - ✅ Email 驗證
@@ -989,6 +1053,7 @@ MakanMakan Security System
 ## 支援
 
 如有問題或需要協助，請聯絡：
+
 - 技術支援: tech@makanmakan.com
 - 文檔: https://github.com/yourusername/makanmakan/docs
 

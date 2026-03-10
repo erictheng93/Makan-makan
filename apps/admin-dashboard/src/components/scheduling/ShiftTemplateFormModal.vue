@@ -7,7 +7,7 @@
           <div class="modal-header">
             <h2 class="modal-title">
               <span class="title-icon">🏷️</span>
-              <span>{{ isEditing ? '編輯班別模板' : '新增班別模板' }}</span>
+              <span>{{ isEditing ? "編輯班別模板" : "新增班別模板" }}</span>
             </h2>
             <button class="close-btn" @click="closeModal">✕</button>
           </div>
@@ -117,7 +117,9 @@
 
                 <div class="info-box">
                   <span class="info-icon">ℹ️</span>
-                  <span>預計工時: <strong>{{ calculatedHours }}</strong> 小時</span>
+                  <span
+                    >預計工時: <strong>{{ calculatedHours }}</strong> 小時</span
+                  >
                 </div>
               </div>
 
@@ -192,7 +194,10 @@
 
                   <div class="form-group">
                     <label class="form-label">加班倍數</label>
-                    <select v-model.number="form.overtimeMultiplier" class="form-select">
+                    <select
+                      v-model.number="form.overtimeMultiplier"
+                      class="form-select"
+                    >
                       <option :value="1">1.0x (正常)</option>
                       <option :value="1.34">1.34x (平日加班)</option>
                       <option :value="1.67">1.67x (休息日加班)</option>
@@ -216,7 +221,10 @@
                         class="color-input"
                       />
                       <span class="color-value">{{ form.colorCode }}</span>
-                      <div class="color-preview" :style="{ backgroundColor: form.colorCode }"></div>
+                      <div
+                        class="color-preview"
+                        :style="{ backgroundColor: form.colorCode }"
+                      ></div>
                     </div>
                   </div>
 
@@ -239,11 +247,11 @@
                     :style="{
                       backgroundColor: form.colorCode + '20',
                       color: form.colorCode,
-                      borderColor: form.colorCode
+                      borderColor: form.colorCode,
                     }"
                   >
                     <span v-if="form.icon">{{ form.icon }}</span>
-                    <span>{{ form.name || '班別名稱' }}</span>
+                    <span>{{ form.name || "班別名稱" }}</span>
                   </div>
                 </div>
               </div>
@@ -274,12 +282,22 @@
 
           <!-- Modal Footer -->
           <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" :disabled="loading" @click="closeModal">
+            <button
+              type="button"
+              class="btn btn-cancel"
+              :disabled="loading"
+              @click="closeModal"
+            >
               取消
             </button>
-            <button type="button" class="btn btn-submit" :disabled="loading || !isFormValid" @click="handleSubmit">
+            <button
+              type="button"
+              class="btn btn-submit"
+              :disabled="loading || !isFormValid"
+              @click="handleSubmit"
+            >
               <span v-if="loading" class="btn-spinner"></span>
-              <span>{{ isEditing ? '儲存' : '新增' }}</span>
+              <span>{{ isEditing ? "儲存" : "新增" }}</span>
             </button>
           </div>
         </div>
@@ -289,77 +307,78 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { ShiftTemplate } from '@/types/scheduling'
+import { ref, computed, watch } from "vue";
+import type { ShiftTemplate } from "@/types/scheduling";
 
 interface Props {
-  modelValue: boolean
-  template?: ShiftTemplate | null
-  restaurantId: string
+  modelValue: boolean;
+  template?: ShiftTemplate | null;
+  restaurantId: string;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  save: [data: any]
-}>()
+  "update:modelValue": [value: boolean];
+  save: [data: any];
+}>();
 
 // State
-const loading = ref(false)
-const error = ref<string | null>(null)
-const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+const loading = ref(false);
+const error = ref<string | null>(null);
+const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
 
 // Form data
 const defaultForm = () => ({
-  name: '',
-  description: '',
-  shiftType: 'regular' as 'regular' | 'split' | 'overnight',
-  startTime: '09:00',
-  endTime: '18:00',
+  name: "",
+  description: "",
+  shiftType: "regular" as "regular" | "split" | "overnight",
+  startTime: "09:00",
+  endTime: "18:00",
   isSplitShift: false,
-  breakStartTime: '',
-  breakEndTime: '',
+  breakStartTime: "",
+  breakEndTime: "",
   minEmployees: 1,
   maxEmployees: 5,
   hourlyRate: null as number | null,
   overtimeMultiplier: 1.5,
-  colorCode: '#3B82F6',
-  icon: '',
+  colorCode: "#3B82F6",
+  icon: "",
   isActive: true,
-})
+});
 
-const form = ref(defaultForm())
-const applicableDaysArray = ref<number[]>([1, 2, 3, 4, 5]) // Mon-Fri by default
+const form = ref(defaultForm());
+const applicableDaysArray = ref<number[]>([1, 2, 3, 4, 5]); // Mon-Fri by default
 
 // Computed
-const isEditing = computed(() => !!props.template)
+const isEditing = computed(() => !!props.template);
 
 const calculatedHours = computed(() => {
-  const { startTime, endTime, isSplitShift, breakStartTime, breakEndTime } = form.value
+  const { startTime, endTime, isSplitShift, breakStartTime, breakEndTime } =
+    form.value;
 
-  if (!startTime || !endTime) return '0.0'
+  if (!startTime || !endTime) return "0.0";
 
-  const start = timeToMinutes(startTime)
-  let end = timeToMinutes(endTime)
+  const start = timeToMinutes(startTime);
+  let end = timeToMinutes(endTime);
 
   // Handle overnight shifts
   if (end <= start) {
-    end += 24 * 60
+    end += 24 * 60;
   }
 
-  let totalMinutes = end - start
+  let totalMinutes = end - start;
 
   // Subtract break time if applicable
   if (isSplitShift && breakStartTime && breakEndTime) {
-    const breakStart = timeToMinutes(breakStartTime)
-    const breakEnd = timeToMinutes(breakEndTime)
-    const breakMinutes = breakEnd > breakStart ? breakEnd - breakStart : 0
-    totalMinutes -= breakMinutes
+    const breakStart = timeToMinutes(breakStartTime);
+    const breakEnd = timeToMinutes(breakEndTime);
+    const breakMinutes = breakEnd > breakStart ? breakEnd - breakStart : 0;
+    totalMinutes -= breakMinutes;
   }
 
-  return (totalMinutes / 60).toFixed(1)
-})
+  return (totalMinutes / 60).toFixed(1);
+});
 
 const isFormValid = computed(() => {
   return (
@@ -369,101 +388,111 @@ const isFormValid = computed(() => {
     form.value.minEmployees > 0 &&
     form.value.maxEmployees >= form.value.minEmployees &&
     applicableDaysArray.value.length > 0
-  )
-})
+  );
+});
 
 // Methods
 const timeToMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
-}
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
 
 const closeModal = () => {
-  emit('update:modelValue', false)
-  error.value = null
-}
+  emit("update:modelValue", false);
+  error.value = null;
+};
 
 const resetForm = () => {
   if (props.template) {
     // Load existing template data
     form.value = {
       name: props.template.name,
-      description: props.template.description || '',
+      description: props.template.description || "",
       shiftType: props.template.shiftType as any,
       startTime: props.template.startTime,
       endTime: props.template.endTime,
       isSplitShift: props.template.isSplitShift,
-      breakStartTime: props.template.breakStartTime || '',
-      breakEndTime: props.template.breakEndTime || '',
+      breakStartTime: props.template.breakStartTime || "",
+      breakEndTime: props.template.breakEndTime || "",
       minEmployees: props.template.minEmployees,
       maxEmployees: props.template.maxEmployees,
       hourlyRate: props.template.hourlyRate,
       overtimeMultiplier: props.template.overtimeMultiplier,
       colorCode: props.template.colorCode,
-      icon: props.template.icon || '',
+      icon: props.template.icon || "",
       isActive: props.template.isActive,
-    }
+    };
 
     // Parse applicable days
     try {
-      const days = JSON.parse(props.template.applicableDays || '[]')
-      applicableDaysArray.value = Array.isArray(days) ? days : []
+      const days = JSON.parse(props.template.applicableDays || "[]");
+      applicableDaysArray.value = Array.isArray(days) ? days : [];
     } catch {
-      applicableDaysArray.value = [1, 2, 3, 4, 5]
+      applicableDaysArray.value = [1, 2, 3, 4, 5];
     }
   } else {
-    form.value = defaultForm()
-    applicableDaysArray.value = [1, 2, 3, 4, 5]
+    form.value = defaultForm();
+    applicableDaysArray.value = [1, 2, 3, 4, 5];
   }
-}
+};
 
 const handleSubmit = async () => {
-  error.value = null
+  error.value = null;
 
   if (!isFormValid.value) {
-    error.value = '請填寫所有必填欄位'
-    return
+    error.value = "請填寫所有必填欄位";
+    return;
   }
 
   if (form.value.minEmployees > form.value.maxEmployees) {
-    error.value = '最少人數不能大於最多人數'
-    return
+    error.value = "最少人數不能大於最多人數";
+    return;
   }
 
   if (applicableDaysArray.value.length === 0) {
-    error.value = '請至少選擇一個適用日期'
-    return
+    error.value = "請至少選擇一個適用日期";
+    return;
   }
 
   try {
-    loading.value = true
+    loading.value = true;
 
     const submitData = {
       restaurantId: props.restaurantId,
       ...form.value,
       durationMinutes: Math.round(parseFloat(calculatedHours.value) * 60),
-      breakDurationMinutes: form.value.isSplitShift && form.value.breakStartTime && form.value.breakEndTime
-        ? Math.abs(timeToMinutes(form.value.breakEndTime) - timeToMinutes(form.value.breakStartTime))
-        : 0,
+      breakDurationMinutes:
+        form.value.isSplitShift &&
+        form.value.breakStartTime &&
+        form.value.breakEndTime
+          ? Math.abs(
+              timeToMinutes(form.value.breakEndTime) -
+                timeToMinutes(form.value.breakStartTime),
+            )
+          : 0,
       applicableDays: JSON.stringify(applicableDaysArray.value.sort()),
       sortOrder: 0,
-    }
+    };
 
-    emit('save', submitData)
-    closeModal()
+    emit("save", submitData);
+    closeModal();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '儲存失敗，請稍後再試'
+    error.value = err instanceof Error ? err.message : "儲存失敗，請稍後再試";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Watch for modal open/close
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    resetForm()
-  }
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      resetForm();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -491,7 +520,9 @@ watch(() => props.modelValue, (newValue) => {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Header */
@@ -582,7 +613,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .form-label.required::after {
-  content: '*';
+  content: "*";
   color: #ef4444;
 }
 
@@ -675,7 +706,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .color-value {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 13px;
   font-weight: 600;
   color: #6b7280;
@@ -838,7 +869,9 @@ watch(() => props.modelValue, (newValue) => {
 /* Fade Animation */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .fade-enter-from,

@@ -3,25 +3,37 @@
  * Zod schemas for cache feature request validation
  */
 
-import { z } from 'zod'
+import { z } from "zod";
 
 export const invalidateTagsSchema = z.object({
   tags: z.array(z.string()).min(1).max(10),
-  reason: z.string().max(200).optional()
-})
+  reason: z.string().max(200).optional(),
+});
 
 export const warmupSchema = z.object({
-  keys: z.array(z.object({
-    key: z.string(),
-    strategy: z.enum(['MENU', 'RESTAURANT', 'ANALYTICS', 'SESSION', 'TABLE', 'QR_CODE'])
-  })).min(1).max(50)
-})
+  keys: z
+    .array(
+      z.object({
+        key: z.string(),
+        strategy: z.enum([
+          "MENU",
+          "RESTAURANT",
+          "ANALYTICS",
+          "SESSION",
+          "TABLE",
+          "QR_CODE",
+        ]),
+      }),
+    )
+    .min(1)
+    .max(50),
+});
 
 export const cleanupSchema = z.object({
   maxAge: z.number().int().positive().max(86400).optional().default(3600), // 1小時默認
-  dryRun: z.boolean().optional().default(false)
-})
+  dryRun: z.boolean().optional().default(false),
+});
 
-export type InvalidateTagsRequest = z.infer<typeof invalidateTagsSchema>
-export type WarmupRequest = z.infer<typeof warmupSchema>
-export type CleanupRequest = z.infer<typeof cleanupSchema>
+export type InvalidateTagsRequest = z.infer<typeof invalidateTagsSchema>;
+export type WarmupRequest = z.infer<typeof warmupSchema>;
+export type CleanupRequest = z.infer<typeof cleanupSchema>;

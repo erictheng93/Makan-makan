@@ -151,6 +151,7 @@ $ pnpm test:kitchen
 ```
 
 **失敗原因** (測試質量問題，非記憶體):
+
 - Import errors: `useOrderManagement is not a function`
 - Browser APIs: `URL.createObjectURL is not a function`
 - Storage: `QuotaExceededError`
@@ -291,6 +292,7 @@ poolOptions: {
 ### ✅ 問題已完全解決
 
 **證據**:
+
 1. ✅ **組件測試**: 94/94 passing, 0 crashes
 2. ✅ **執行穩定**: 完整測試套件可執行完成
 3. ✅ **記憶體安全**: 使用量 < 8GB limit
@@ -330,6 +332,7 @@ poolOptions: {
 **重點已從「記憶體問題」轉移到「測試質量改善」**
 
 後續工作:
+
 1. 修復 81 個失敗測試（非記憶體問題）
 2. 改善 browser API mocking
 3. 完善 test helpers 和工具

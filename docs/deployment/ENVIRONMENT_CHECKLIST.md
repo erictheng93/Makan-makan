@@ -73,6 +73,7 @@
   - 版本: `□ >= 8.0.0` (運行 `pnpm --version`)
 
 - [ ] 🔧 專案依賴已安裝
+
   ```bash
   pnpm install  # 無錯誤完成 □
   ```
@@ -100,6 +101,7 @@
     ```
 
 - [ ] 🔸 可選服務 API Keys
+
   ```bash
   RESEND_API_KEY=re_xxxxxxxxxxxx              □
   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx       □
@@ -115,11 +117,13 @@
 ### 本地數據庫
 
 - [ ] ✅ 本地 D1 數據庫已初始化
+
   ```bash
   wrangler d1 migrations apply makanmakan-local --local  □
   ```
 
 - [ ] 🔸 測試數據已填充
+
   ```bash
   pnpm run db:seed:local  □
   ```
@@ -132,12 +136,14 @@
 ### 本地服務啟動
 
 - [ ] ✅ API Service 可以啟動
+
   ```bash
   cd apps/api && pnpm run dev
   # 訪問 http://localhost:8787/api/v1/health  □
   ```
 
 - [ ] ✅ Realtime Service 可以啟動
+
   ```bash
   cd apps/realtime && pnpm run dev
   # 訪問 http://localhost:8788/health  □
@@ -173,9 +179,11 @@
 ### D1 數據庫 (Staging)
 
 - [ ] ✅ Staging 數據庫已創建
+
   ```bash
   wrangler d1 create makanmakan-staging
   ```
+
   - Database Name: `makanmakan-staging`
   - Database ID: `_____________________________`
 
@@ -185,6 +193,7 @@
   - [ ] `apps/backup-scheduler/wrangler.toml` - `env.staging.d1_databases`
 
 - [ ] ✅ 數據庫遷移已應用
+
   ```bash
   wrangler d1 migrations apply makanmakan-staging --env staging  □
   ```
@@ -197,29 +206,39 @@
 ### KV Namespaces (Staging)
 
 - [ ] ✅ API Service KV Namespaces
+
   ```bash
   wrangler kv:namespace create "CACHE_KV" --env staging
   ```
+
   - CACHE_KV ID: `_____________________________`
+
   ```bash
   wrangler kv:namespace create "RATE_LIMIT_KV" --env staging
   ```
+
   - RATE_LIMIT_KV ID: `_____________________________`
+
   ```bash
   wrangler kv:namespace create "BACKUP_KV" --env staging
   ```
+
   - BACKUP_KV ID: `_____________________________`
 
 - [ ] ✅ Realtime Service KV Namespace
+
   ```bash
   wrangler kv:namespace create "REALTIME_CACHE" --env staging
   ```
+
   - REALTIME_CACHE ID: `_____________________________`
 
 - [ ] ✅ Image Processor KV Namespace
+
   ```bash
   wrangler kv:namespace create "IMAGE_CACHE" --env staging
   ```
+
   - IMAGE_CACHE ID: `_____________________________`
 
 - [ ] ✅ KV IDs 已更新到 wrangler.toml
@@ -230,11 +249,13 @@
 ### R2 Buckets (Staging)
 
 - [ ] ✅ Backup Storage Bucket 已創建
+
   ```bash
   wrangler r2 bucket create makanmakan-backups-staging  □
   ```
 
 - [ ] 🔸 Image Storage Bucket 已創建
+
   ```bash
   wrangler r2 bucket create makanmakan-images-staging  □
   ```
@@ -246,12 +267,14 @@
 ### Secrets (Staging)
 
 - [ ] ⚠️ JWT_SECRET 已設置
+
   ```bash
   openssl rand -hex 32 > staging-jwt-secret.txt  # 安全存儲
   wrangler secret put JWT_SECRET --env staging  □
   ```
 
 - [ ] 🔸 可選服務 Secrets
+
   ```bash
   wrangler secret put RESEND_API_KEY --env staging           □
   wrangler secret put TWILIO_ACCOUNT_SID --env staging       □
@@ -278,10 +301,13 @@
 ### 部署 (Staging)
 
 - [ ] ✅ Backend Services 已部署
+
   ```bash
   pnpm run deploy:staging  □
   ```
+
   或分別部署：
+
   ```bash
   cd apps/api && wrangler deploy --env staging              □
   cd apps/realtime && wrangler deploy --env staging         □
@@ -299,6 +325,7 @@
 ### 驗證測試 (Staging)
 
 - [ ] ✅ Health Checks 通過
+
   ```bash
   curl https://api-staging.makanmakan.com/api/v1/health        □
   curl https://realtime-staging.makanmakan.com/health          □
@@ -335,9 +362,11 @@
 ### D1 數據庫 (Production)
 
 - [ ] ✅ Production 數據庫已創建
+
   ```bash
   wrangler d1 create makanmakan-prod
   ```
+
   - Database Name: `makanmakan-prod`
   - Database ID: `_____________________________`
 
@@ -347,6 +376,7 @@
   - [ ] `apps/backup-scheduler/wrangler.toml` - `env.production.d1_databases`
 
 - [ ] ✅ 數據庫遷移已應用
+
   ```bash
   wrangler d1 migrations apply makanmakan-prod --env production  □
   ```
@@ -359,29 +389,39 @@
 ### KV Namespaces (Production)
 
 - [ ] ✅ API Service KV Namespaces
+
   ```bash
   wrangler kv:namespace create "CACHE_KV" --env production
   ```
+
   - CACHE_KV ID: `_____________________________`
+
   ```bash
   wrangler kv:namespace create "RATE_LIMIT_KV" --env production
   ```
+
   - RATE_LIMIT_KV ID: `_____________________________`
+
   ```bash
   wrangler kv:namespace create "BACKUP_KV" --env production
   ```
+
   - BACKUP_KV ID: `_____________________________`
 
 - [ ] ✅ Realtime Service KV Namespace
+
   ```bash
   wrangler kv:namespace create "REALTIME_CACHE" --env production
   ```
+
   - REALTIME_CACHE ID: `_____________________________`
 
 - [ ] ✅ Image Processor KV Namespace
+
   ```bash
   wrangler kv:namespace create "IMAGE_CACHE" --env production
   ```
+
   - IMAGE_CACHE ID: `_____________________________`
 
 - [ ] ✅ KV IDs 已更新到 wrangler.toml
@@ -392,11 +432,13 @@
 ### R2 Buckets (Production)
 
 - [ ] ✅ Backup Storage Bucket 已創建
+
   ```bash
   wrangler r2 bucket create makanmakan-backups-prod  □
   ```
 
 - [ ] 🚀 Image Storage Bucket 已創建
+
   ```bash
   wrangler r2 bucket create makanmakan-images-prod  □
   ```
@@ -409,17 +451,20 @@
 ### Secrets (Production)
 
 - [ ] ⚠️ JWT_SECRET 已設置（與 Staging 不同）
+
   ```bash
   openssl rand -hex 32 > prod-jwt-secret.txt  # 安全存儲於密碼管理器
   wrangler secret put JWT_SECRET --env production  □
   ```
 
 - [ ] ⚠️ CLOUDFLARE_API_TOKEN 已設置
+
   ```bash
   wrangler secret put CLOUDFLARE_API_TOKEN --env production  □
   ```
 
 - [ ] 🚀 通知服務 Secrets
+
   ```bash
   wrangler secret put RESEND_API_KEY --env production           □
   wrangler secret put TWILIO_ACCOUNT_SID --env production       □
@@ -428,6 +473,7 @@
   ```
 
 - [ ] 🚀 圖片處理 Secrets
+
   ```bash
   wrangler secret put CLOUDFLARE_IMAGES_KEY --env production       □
   wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production □
@@ -441,10 +487,12 @@
 ### Analytics Engine (Production)
 
 - [ ] 🚀 Analytics Dataset 已創建
+
   ```bash
   # 注意：需要手動在 Cloudflare Dashboard 創建
   # Dashboard → Analytics → Analytics Engine → Create Dataset
   ```
+
   - Dataset Name: `makanmakan-metrics-prod`
   - 已添加到 `apps/api/wrangler.toml`: `□`
 
@@ -532,10 +580,13 @@
   - [ ] 回滾計劃已準備
 
 - [ ] ✅ Backend Services 部署
+
   ```bash
   pnpm run deploy:prod  □
   ```
+
   或分別部署：
+
   ```bash
   cd apps/api && wrangler deploy --env production              □
   cd apps/realtime && wrangler deploy --env production         □
@@ -553,6 +604,7 @@
 ### 部署後驗證 (Production)
 
 - [ ] ✅ Health Checks 通過
+
   ```bash
   curl https://api.makanmakan.com/api/v1/health        # 應返回 200 □
   curl https://realtime.makanmakan.com/health          # 應返回 200 □
@@ -613,6 +665,7 @@
 ### 代碼安全
 
 - [ ] ⚠️ 沒有硬編碼的秘密或密鑰
+
   ```bash
   grep -r "JWT_SECRET.*=" apps/  # 不應找到硬編碼值 □
   grep -r "API_KEY.*=" apps/     # 不應找到硬編碼值 □

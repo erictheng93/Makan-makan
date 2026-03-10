@@ -1,4 +1,5 @@
 # Testing Infrastructure & API Documentation - Progress Update
+
 # 測試基礎設施與 API 文檔化 - 進度更新
 
 **Date**: 2025-11-15
@@ -30,10 +31,12 @@ Total Completion: 48% → 75% (+56% increase)
 #### Composables Tests (3 files, 1,980 lines)
 
 **✅ useOrders.test.ts** (280 lines, 28 tests)
+
 - 訂單狀態管理測試
 - 訂單過濾和排序邏輯
 - 訂單操作（確認、完成、更新）
 - 響應式數據更新驗證
+
 ```
 Test Coverage:
 - 初始狀態 (3 tests)
@@ -48,11 +51,13 @@ Test Coverage:
 ```
 
 **✅ useWebSocket.test.ts** (450 lines, 32 tests)
+
 - WebSocket 連接生命週期管理
 - 自動重連機制（指數退避策略）
 - 消息接收、發送、解析
 - 連接狀態追蹤（connecting, connected, disconnected, error）
 - 錯誤處理和異常恢復
+
 ```
 Test Coverage:
 - 初始狀態 (4 tests)
@@ -66,11 +71,13 @@ Test Coverage:
 ```
 
 **✅ useNotifications.test.ts** (430 lines, 36 tests)
+
 - 通知管理（添加、刪除、標記已讀）
 - 音效播放控制
 - 優先級處理和排序
 - 通知過濾和查詢
 - 響應式狀態更新
+
 ```
 Test Coverage:
 - 初始狀態 (3 tests)
@@ -88,11 +95,13 @@ Test Coverage:
 #### Component Tests (2 files, 980 lines)
 
 **✅ OrderQueue.test.ts** (480 lines, 24 tests)
+
 - 訂單列表渲染和顯示
 - 拖放排序功能
 - 過濾和搜索邏輯
 - 狀態更新和樣式變化
 - 優先級視覺化
+
 ```
 Test Coverage:
 - 渲染 (5 tests)
@@ -106,11 +115,13 @@ Test Coverage:
 ```
 
 **✅ KitchenStats.test.ts** (500 lines, 28 tests)
+
 - 統計數據顯示和格式化
 - 實時數據更新
 - 性能指標視覺化
 - 趨勢指示器
 - 動態樣式類別（效率、等待時間）
+
 ```
 Test Coverage:
 - 渲染 (4 tests)
@@ -127,11 +138,13 @@ Test Coverage:
 ### 2. Realtime Tests (新增 1 個整合測試)
 
 **✅ message-dispatcher.test.ts** (450 lines, 18 tests)
+
 - 訊息路由到正確 room
 - Room 分發邏輯
 - 訊息過濾和驗證
 - 廣播機制（全局、類型、排除發送者）
 - 錯誤處理和清理
+
 ```
 Test Coverage:
 - 訊息路由 (3 tests)
@@ -145,24 +158,28 @@ Test Coverage:
 ### 3. API Schema Documentation (新增 6 個 Schema 檔案)
 
 **✅ integration.ts** (250 lines) - **Updated**
+
 - Swagger UI 整合配置
 - Auth Schemas (Login, Register, Refresh)
 - Menu Schemas (Items, Categories, CRUD)
 - Orders Schemas (Create, Update, Status)
 
 **✅ tables.ts** (195 lines)
+
 - Tables CRUD 操作
 - Table 狀態管理（available, occupied, reserved, cleaning）
 - QR Code 生成（basic, branded, custom）
 - 4 API routes with full schemas
 
 **✅ users.ts** (220 lines)
+
 - Users 管理（CRUD）
 - 角色權限系統（Admin, Shop Owner, Chef, Service Crew, Cashier）
 - 密碼修改
 - 5 API routes with full schemas
 
 **✅ customers.ts** (330 lines) - **New**
+
 - 客戶註冊（Shop QR Mode）
 - 客戶檔案管理
 - 訂單歷史查詢
@@ -170,6 +187,7 @@ Test Coverage:
 - 8 API routes with full schemas
 
 **✅ restaurants.ts** (320 lines) - **New**
+
 - 餐廳 CRUD 操作
 - 營業時間設定
 - Shop QR Code 生成和管理
@@ -178,6 +196,7 @@ Test Coverage:
 - 8 API routes with full schemas
 
 **✅ analytics.ts** (350 lines) - **New**
+
 - 分析數據查詢
 - 銷售報告（revenue, orders, AOV, top items）
 - 客戶分析（retention, lifetime value, segmentation）
@@ -193,33 +212,34 @@ Test Coverage:
 
 ### Test Files Created (本次會話)
 
-| Category | File | Lines | Tests | Status |
-|----------|------|-------|-------|--------|
-| Kitchen Composables | useOrders.test.ts | 280 | 28 | ✅ |
-| Kitchen Composables | useWebSocket.test.ts | 450 | 32 | ✅ |
-| Kitchen Composables | useNotifications.test.ts | 430 | 36 | ✅ |
-| Kitchen Components | OrderQueue.test.ts | 480 | 24 | ✅ |
-| Kitchen Components | KitchenStats.test.ts | 500 | 28 | ✅ |
-| Realtime Integration | message-dispatcher.test.ts | 450 | 18 | ✅ |
-| **Total** | **6 files** | **2,590 lines** | **166 tests** | ✅ |
+| Category             | File                       | Lines           | Tests         | Status |
+| -------------------- | -------------------------- | --------------- | ------------- | ------ |
+| Kitchen Composables  | useOrders.test.ts          | 280             | 28            | ✅     |
+| Kitchen Composables  | useWebSocket.test.ts       | 450             | 32            | ✅     |
+| Kitchen Composables  | useNotifications.test.ts   | 430             | 36            | ✅     |
+| Kitchen Components   | OrderQueue.test.ts         | 480             | 24            | ✅     |
+| Kitchen Components   | KitchenStats.test.ts       | 500             | 28            | ✅     |
+| Realtime Integration | message-dispatcher.test.ts | 450             | 18            | ✅     |
+| **Total**            | **6 files**                | **2,590 lines** | **166 tests** | ✅     |
 
 ### API Schema Files Created (本次會話)
 
-| API Group | File | Lines | Routes | Status |
-|-----------|------|-------|--------|--------|
-| Integration | integration.ts | 250 | 3 groups | ✅ Updated |
-| Tables | tables.ts | 195 | 4 routes | ✅ |
-| Users | users.ts | 220 | 5 routes | ✅ |
-| Customers | customers.ts | 330 | 8 routes | ✅ New |
-| Restaurants | restaurants.ts | 320 | 8 routes | ✅ New |
-| Analytics | analytics.ts | 350 | 7 routes | ✅ New |
-| **Total** | **6 files** | **1,665 lines** | **35 routes** | ✅ |
+| API Group   | File           | Lines           | Routes        | Status     |
+| ----------- | -------------- | --------------- | ------------- | ---------- |
+| Integration | integration.ts | 250             | 3 groups      | ✅ Updated |
+| Tables      | tables.ts      | 195             | 4 routes      | ✅         |
+| Users       | users.ts       | 220             | 5 routes      | ✅         |
+| Customers   | customers.ts   | 330             | 8 routes      | ✅ New     |
+| Restaurants | restaurants.ts | 320             | 8 routes      | ✅ New     |
+| Analytics   | analytics.ts   | 350             | 7 routes      | ✅ New     |
+| **Total**   | **6 files**    | **1,665 lines** | **35 routes** | ✅         |
 
 ### Cumulative Progress (All Sessions)
 
 #### Phase 2: Test Files Progress
 
 **Realtime Services Tests** (13/20 files, 65%)
+
 ```
 Unit Tests (9/15):
 ✅ auth/token-verification.test.ts (290 lines, 22 tests)
@@ -241,6 +261,7 @@ Integration Tests (4/5):
 ```
 
 **Kitchen Display Tests** (8/25 files, 32%)
+
 ```
 Components (3/10):
 ✅ OrderCard.test.ts (302 lines, 25 tests)
@@ -326,6 +347,7 @@ Integration (0/5):
 ### 3. Code Quality | 代碼質量
 
 All files follow best practices:
+
 - ✅ TypeScript strict mode compliant
 - ✅ Comprehensive test scenarios (happy path + edge cases)
 - ✅ Clear documentation and comments
@@ -350,6 +372,7 @@ All files follow best practices:
 ### Remaining Test Files (32 files)
 
 **Priority 1: Realtime Services** (7 files remaining)
+
 ```
 - routing/room-management.test.ts
 - routing/broadcast-logic.test.ts
@@ -361,6 +384,7 @@ All files follow best practices:
 ```
 
 **Priority 2: Kitchen Display** (17 files remaining)
+
 ```
 Components (7):
 - TimerDisplay, StatusFilter, OrderDetails
@@ -381,6 +405,7 @@ Integration (5):
 ```
 
 **Priority 3: Admin Dashboard** (8 files for balanced coverage)
+
 ```
 - Critical business logic tests
 - Store tests (dashboard, menu, orders)
@@ -390,6 +415,7 @@ Integration (5):
 ### Remaining API Documentation (5 groups)
 
 **Priority 1: Core Real-time** (1 group)
+
 ```
 ✅ Realtime - 即時通訊
   - WebSocket token authentication
@@ -398,6 +424,7 @@ Integration (5):
 ```
 
 **Priority 2: Advanced Features** (2 groups)
+
 ```
 ✅ AI Analytics - AI 分析
   - Insights generation
@@ -411,6 +438,7 @@ Integration (5):
 ```
 
 **Priority 3: Support Systems** (2 groups)
+
 ```
 ✅ Leaves - 請假管理
   - Leave requests
@@ -469,6 +497,7 @@ Integration (5):
 ## 📊 Metrics Summary | 指標總結
 
 ### This Session
+
 - **Files Created**: 12 (6 tests + 6 API schemas)
 - **Lines of Code**: 4,255 lines
 - **Test Cases**: 166 new tests
@@ -477,6 +506,7 @@ Integration (5):
 - **Quality**: Production-ready, fully typed, comprehensive
 
 ### Cumulative (All Sessions)
+
 - **Total Test Files**: 13/45 (29%)
 - **Total Test Lines**: 4,776 lines
 - **Total Test Cases**: 280+ tests

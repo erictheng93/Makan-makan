@@ -47,6 +47,7 @@
 ### Daftar Periksa Pembukaan Harian
 
 ✅ **Sebelum Jam Operasional**
+
 - [ ] Login ke sistem kasir
 - [ ] Verifikasi jumlah uang awal laci kas
 - [ ] Periksa persediaan kertas struk
@@ -54,12 +55,14 @@
 - [ ] Tinjau target penjualan harian
 
 ✅ **Selama Jam Operasional**
+
 - [ ] Pantau pesanan yang menunggu pembayaran
 - [ ] Jaga laci kas tetap teratur
 - [ ] Verifikasi fungsi POS secara berkala
 - [ ] Perhatikan peringatan transaksi yang tidak biasa
 
 ✅ **Setelah Jam Operasional**
+
 - [ ] Lakukan rekonsiliasi harian
 - [ ] Hitung kas dan bandingkan dengan catatan
 - [ ] Cetak laporan penutupan harian
@@ -147,15 +150,15 @@
 
 ### Deskripsi Tombol Fungsi
 
-| Tombol | Fungsi | Deskripsi |
-|--------|--------|-----------|
-| 🔍 **Cari Cepat** | Cari Pesanan | Cari berdasarkan meja, nomor pesanan, atau telepon |
-| 📋 **Detail Pesanan** | Lihat Detail | Tampilkan konten pesanan lengkap |
-| 💳 **Bayar** | Proses Pembayaran | Masuk ke alur pembayaran |
-| 🧾 **Cetak Ulang Faktur** | Cetak Ulang | Cetak ulang faktur yang hilang atau rusak |
-| 🔄 **Pengembalian Dana** | Proses Pengembalian | Ajukan pengembalian dana pesanan |
-| 📊 **Laporan** | Query Laporan | Lihat data bisnis |
-| 🔐 **Penutupan** | Penutupan Harian | Lakukan rekonsiliasi akhir hari |
+| Tombol                    | Fungsi              | Deskripsi                                          |
+| ------------------------- | ------------------- | -------------------------------------------------- |
+| 🔍 **Cari Cepat**         | Cari Pesanan        | Cari berdasarkan meja, nomor pesanan, atau telepon |
+| 📋 **Detail Pesanan**     | Lihat Detail        | Tampilkan konten pesanan lengkap                   |
+| 💳 **Bayar**              | Proses Pembayaran   | Masuk ke alur pembayaran                           |
+| 🧾 **Cetak Ulang Faktur** | Cetak Ulang         | Cetak ulang faktur yang hilang atau rusak          |
+| 🔄 **Pengembalian Dana**  | Proses Pengembalian | Ajukan pengembalian dana pesanan                   |
+| 📊 **Laporan**            | Query Laporan       | Lihat data bisnis                                  |
+| 🔐 **Penutupan**          | Penutupan Harian    | Lakukan rekonsiliasi akhir hari                    |
 
 ---
 
@@ -223,6 +226,7 @@
 ```
 
 **Poin Pemeriksaan:**
+
 - ✅ Verifikasi jumlah item benar
 - ✅ Verifikasi harga dihitung dengan benar
 - ✅ Verifikasi diskon khusus diterapkan
@@ -418,11 +422,11 @@
 
 **Poin Pemeriksaan:**
 
-| Uang | Metode Verifikasi |
-|------|-------------------|
+| Uang         | Metode Verifikasi                                        |
+| ------------ | -------------------------------------------------------- |
 | 💵 **$1000** | Foil yang berubah warna, cetak intaglio, benang keamanan |
-| 💵 **$500** | Angka "500" tersembunyi, tanda air bunga plum |
-| 💵 **$100** | Tinta yang berubah warna, titik braille |
+| 💵 **$500**  | Angka "500" tersembunyi, tanda air bunga plum            |
+| 💵 **$100**  | Tinta yang berubah warna, titik braille                  |
 
 **Penanganan Uang Mencurigakan:**
 
@@ -467,13 +471,13 @@
 
 #### Penanganan Kegagalan Transaksi
 
-| Pesan Error | Penyebab | Solusi |
-|-------------|----------|--------|
-| ❌ **Dana Tidak Cukup** | Limit kredit terlampaui | Minta pelanggan gunakan kartu lain atau metode pembayaran lain |
-| ❌ **Kartu Kedaluwarsa** | Kartu melewati tanggal kadaluwarsa | Gunakan kartu yang valid |
-| ❌ **Transaksi Ditolak** | Bank menolak otorisasi | Sarankan hubungi bank penerbit atau metode alternatif |
-| ❌ **Koneksi Gagal** | Masalah jaringan | Coba lagi kartu atau gunakan tunai |
-| ❌ **Error Baca Kartu** | Strip magnetik/chip rusak | Bersihkan kartu dan coba lagi atau gunakan kartu berbeda |
+| Pesan Error              | Penyebab                           | Solusi                                                         |
+| ------------------------ | ---------------------------------- | -------------------------------------------------------------- |
+| ❌ **Dana Tidak Cukup**  | Limit kredit terlampaui            | Minta pelanggan gunakan kartu lain atau metode pembayaran lain |
+| ❌ **Kartu Kedaluwarsa** | Kartu melewati tanggal kadaluwarsa | Gunakan kartu yang valid                                       |
+| ❌ **Transaksi Ditolak** | Bank menolak otorisasi             | Sarankan hubungi bank penerbit atau metode alternatif          |
+| ❌ **Koneksi Gagal**     | Masalah jaringan                   | Coba lagi kartu atau gunakan tunai                             |
+| ❌ **Error Baca Kartu**  | Strip magnetik/chip rusak          | Bersihkan kartu dan coba lagi atau gunakan kartu berbeda       |
 
 ---
 
@@ -613,6 +617,7 @@ Opsi C: Cetak kertas
 ### Cetak Ulang Faktur
 
 **Kapan perlu cetak ulang?**
+
 - Mesin faktur macet kertas
 - Cetakan faktur tidak jelas
 - Pelanggan kehilangan faktur
@@ -631,6 +636,7 @@ Opsi C: Cetak kertas
 ```
 
 ⚠️ **Catatan:**
+
 - Faktur yang sama dapat dicetak ulang maksimal 3 kali
 - Faktur cetak ulang harus mencatat "CETAK ULANG"
 - Catat waktu dan alasan cetak ulang
@@ -641,6 +647,7 @@ Opsi C: Cetak kertas
 ### Pembatalan Faktur
 
 **Kapan membatalkan faktur?**
+
 - Pesanan dibatalkan
 - Informasi faktur salah (NPWP, nama)
 - Jumlah yang diterbitkan salah
@@ -1414,6 +1421,7 @@ Langkah:
 ### Perhitungan Kas
 
 **Waktu Perhitungan:**
+
 - Sebelum operasional harian dimulai
 - Selama pergantian shift
 - Setelah operasional harian berakhir
@@ -1928,12 +1936,14 @@ Jika benar-benar ada urusan mendesak:
 ### A. Frasa Kasir Standar
 
 **Salam:**
+
 ```
 "Halo, selamat datang!"
 "Halo, makan di tempat atau bawa pulang?"
 ```
 
 **Selama Pembayaran:**
+
 ```
 "Halo, siap untuk bayar?"
 "Totalnya adalah $XXX"
@@ -1943,6 +1953,7 @@ Jika benar-benar ada urusan mendesak:
 ```
 
 **Penerbitan Faktur:**
+
 ```
 "Apakah perlu NPWP?"
 "Apa nama perusahaannya?"
@@ -1950,12 +1961,14 @@ Jika benar-benar ada urusan mendesak:
 ```
 
 **Menyerahkan Faktur:**
+
 ```
 "Ini faktur Anda, mohon disimpan"
 "Terima kasih telah makan, sampai jumpa lagi!"
 ```
 
 **Menghadapi Masalah:**
+
 ```
 "Permisi, mohon tunggu sebentar"
 "Maaf atas penantiannya"
@@ -1966,17 +1979,17 @@ Jika benar-benar ada urusan mendesak:
 
 ### B. Pintasan Keyboard
 
-| Fungsi | Pintasan |
-|--------|----------|
-| Cari Cepat | F1 |
-| Bayar | F2 |
-| Batal | ESC |
-| Cetak Faktur | Ctrl+P |
-| Cetak Ulang | Ctrl+R |
+| Fungsi            | Pintasan   |
+| ----------------- | ---------- |
+| Cari Cepat        | F1         |
+| Bayar             | F2         |
+| Batal             | ESC        |
+| Cetak Faktur      | Ctrl+P     |
+| Cetak Ulang       | Ctrl+R     |
 | Pengembalian Dana | Ctrl+Alt+R |
-| Kunci Layar | Ctrl+L |
-| Logout | Ctrl+Q |
-| Bantuan | F12 |
+| Kunci Layar       | Ctrl+L     |
+| Logout            | Ctrl+Q     |
+| Bantuan           | F12        |
 
 ---
 
@@ -2042,10 +2055,10 @@ Peningkatan Keterampilan yang Diperlukan:
 
 ## 📝 Riwayat Versi
 
-| Versi | Tanggal | Pembaruan |
-|-------|---------|-----------|
-| 2.0 | 2025-10-26 | Rilis awal |
-| - | - | Akan diperbarui |
+| Versi | Tanggal    | Pembaruan       |
+| ----- | ---------- | --------------- |
+| 2.0   | 2025-10-26 | Rilis awal      |
+| -     | -          | Akan diperbarui |
 
 ---
 
@@ -2056,6 +2069,7 @@ Terima kasih telah memilih menjadi kasir MakanMakan!
 Pekerjaan kasir tampak sederhana tetapi membawa tanggung jawab besar. Anda adalah titik kontak terakhir yang dimiliki pelanggan di toko, dan orang kunci yang meninggalkan kesan akhir.
 
 **Harap Ingat:**
+
 - 💰 **Akurasi** adalah prinsip utama pekerjaan kasir
 - 😊 **Kesopanan** adalah persyaratan dasar layanan berkualitas
 - 🔒 **Integritas** adalah nilai inti etika profesional

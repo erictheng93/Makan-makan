@@ -88,6 +88,7 @@ import notificationsRoutes from "./features/notifications/routes";
 import verificationFeature from "./features/verification";
 // Partnership system feature
 import partnershipsRoutes from "./features/partnerships/routes";
+import guestOrdersRoutes from "./features/guest-orders";
 import {
   ErrorSanitizer,
   createSafeErrorResponse,
@@ -135,6 +136,12 @@ app.use(
         windowSeconds: 60,
         burstMultiplier: 2.0,
         blockDuration: 120,
+      },
+      "/api/v1/guest-orders": {
+        requests: 5,
+        windowSeconds: 900,
+        burstMultiplier: 1.0,
+        blockDuration: 300,
       },
       "/api/v1/payments": {
         requests: 10,
@@ -325,6 +332,7 @@ app.get("/info", (c) => {
       realtime: "/api/v1/realtime",
       notifications: "/api/v1/notifications",
       partnerships: "/api/v1/partnerships",
+      guestOrders: "/api/v1/guest-orders",
       health: "/health",
       docs: "/docs",
     },
@@ -348,6 +356,7 @@ apiV1.route("/reservations", reservationsFeature); // 訂位系統 (public + pro
 apiV1.route("/waiting-list", waitingListFeature); // 候位系統 (public + protected endpoints)
 apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
 apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
+apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
 
 // 受保護的路由（需要認證）
 apiV1.use("/restaurants/*", authMiddleware);
@@ -388,6 +397,7 @@ apiV1.use(
       "/api/v1/coupons/validate", // Public coupon validation
       "/api/v1/partnerships/members/verify", // Public member verification application
       "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
+      "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
       // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
     ],
   }),

@@ -205,7 +205,11 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
+      const result = await service.createErrorReport(
+        request,
+        1,
+        "test-restaurant-1",
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(1);
@@ -236,7 +240,11 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
+      const result = await service.createErrorReport(
+        request,
+        1,
+        "test-restaurant-1",
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(3);
@@ -260,7 +268,11 @@ describe("SystemService", () => {
         ],
       };
 
-      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
+      const result = await service.createErrorReport(
+        request,
+        1,
+        "test-restaurant-1",
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.significant_errors).toBe(1);
@@ -304,9 +316,9 @@ describe("SystemService", () => {
         ],
       };
 
-      await expect(service.createErrorReport(request, 1, "test-restaurant-1")).rejects.toThrow(
-        "Failed to submit error report",
-      );
+      await expect(
+        service.createErrorReport(request, 1, "test-restaurant-1"),
+      ).rejects.toThrow("Failed to submit error report");
     });
   });
 
@@ -722,7 +734,11 @@ describe("SystemService", () => {
         errors: [],
       };
 
-      const result = await service.createErrorReport(request, 1, "test-restaurant-1");
+      const result = await service.createErrorReport(
+        request,
+        1,
+        "test-restaurant-1",
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.total_errors).toBe(0);
@@ -747,7 +763,11 @@ describe("SystemService", () => {
         ],
       };
 
-      const createResult = await service.createErrorReport(request, 1, "test-restaurant-1");
+      const createResult = await service.createErrorReport(
+        request,
+        1,
+        "test-restaurant-1",
+      );
       expect(createResult.success).toBe(true);
 
       // 2. Get statistics
@@ -774,7 +794,9 @@ describe("SystemService", () => {
             },
           ],
         };
-        promises.push(service.createErrorReport(request, i, "test-restaurant-1"));
+        promises.push(
+          service.createErrorReport(request, i, "test-restaurant-1"),
+        );
       }
 
       const results = await Promise.all(promises);

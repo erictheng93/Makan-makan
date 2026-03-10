@@ -1,58 +1,65 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { RouterLink } from "vue-router";
 import {
   CloudIcon,
   ShieldCheckIcon,
   CubeIcon,
-  RocketLaunchIcon
-} from '@heroicons/vue/24/outline'
+  RocketLaunchIcon,
+} from "@heroicons/vue/24/outline";
 
 const features = [
   {
     icon: CloudIcon,
-    title: '獨立環境',
-    description: '完全隔離的雲端環境，數據 100% 歸您所有'
+    title: "獨立環境",
+    description: "完全隔離的雲端環境，數據 100% 歸您所有",
   },
   {
     icon: ShieldCheckIcon,
-    title: '安全可靠',
-    description: '基於 Cloudflare 全球邊緣網絡，企業級安全防護'
+    title: "安全可靠",
+    description: "基於 Cloudflare 全球邊緣網絡，企業級安全防護",
   },
   {
     icon: CubeIcon,
-    title: '完整功能',
-    description: '點餐、菜單管理、桌位管理、員工排班等完整功能'
+    title: "完整功能",
+    description: "點餐、菜單管理、桌位管理、員工排班等完整功能",
   },
   {
     icon: RocketLaunchIcon,
-    title: '快速部署',
-    description: '自動化部署流程，最快 24 小時內完成上線'
-  }
-]
+    title: "快速部署",
+    description: "自動化部署流程，最快 24 小時內完成上線",
+  },
+];
 
 const plans = [
   {
-    name: '標準版',
-    price: '$149',
-    period: '/月',
-    features: ['1 間餐廳', '基本功能', '獨立環境', '資料備份', 'Email 支援'],
-    recommended: false
+    name: "標準版",
+    price: "$149",
+    period: "/月",
+    features: ["1 間餐廳", "基本功能", "獨立環境", "資料備份", "Email 支援"],
+    recommended: false,
   },
   {
-    name: '專業版',
-    price: '$299',
-    period: '/月',
-    features: ['最多 3 間餐廳', '完整功能', 'AI 分析', '員工排班', '請假管理', '優先支援'],
-    recommended: true
+    name: "專業版",
+    price: "$299",
+    period: "/月",
+    features: [
+      "最多 3 間餐廳",
+      "完整功能",
+      "AI 分析",
+      "員工排班",
+      "請假管理",
+      "優先支援",
+    ],
+    recommended: true,
   },
   {
-    name: '企業版',
-    price: '議價',
-    period: '',
-    features: ['無限餐廳', '客製化功能', '專屬客服', 'SLA 保證', 'API 整合'],
-    recommended: false
-  }
-]
+    name: "企業版",
+    price: "議價",
+    period: "",
+    features: ["無限餐廳", "客製化功能", "專屬客服", "SLA 保證", "API 整合"],
+    recommended: false,
+  },
+];
 </script>
 
 <template>
@@ -93,7 +100,9 @@ const plans = [
           <component :is="feature.icon" class="h-6 w-6 text-primary-600" />
         </div>
         <div class="ml-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ feature.title }}</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ feature.title }}
+          </h3>
           <p class="mt-1 text-gray-600">{{ feature.description }}</p>
         </div>
       </div>
@@ -101,7 +110,9 @@ const plans = [
 
     <!-- Pricing -->
     <div>
-      <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">選擇適合的方案</h2>
+      <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">
+        選擇適合的方案
+      </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div
           v-for="plan in plans"
@@ -118,7 +129,9 @@ const plans = [
           <div class="text-center">
             <h3 class="text-lg font-semibold text-gray-900">{{ plan.name }}</h3>
             <div class="mt-4">
-              <span class="text-4xl font-bold text-gray-900">{{ plan.price }}</span>
+              <span class="text-4xl font-bold text-gray-900">{{
+                plan.price
+              }}</span>
               <span class="text-gray-500">{{ plan.period }}</span>
             </div>
             <ul class="mt-6 space-y-3 text-left">
@@ -127,8 +140,16 @@ const plans = [
                 :key="feature"
                 class="flex items-center text-gray-600"
               >
-                <svg class="h-5 w-5 text-primary-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                <svg
+                  class="h-5 w-5 text-primary-500 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 {{ feature }}
               </li>
@@ -151,7 +172,10 @@ const plans = [
       <p class="mt-2 text-primary-100">
         填寫申請表單，我們將在 24 小時內與您聯繫
       </p>
-      <RouterLink to="/apply" class="mt-6 btn bg-white text-primary-600 hover:bg-gray-100">
+      <RouterLink
+        to="/apply"
+        class="mt-6 btn bg-white text-primary-600 hover:bg-gray-100"
+      >
         開始申請
       </RouterLink>
     </div>

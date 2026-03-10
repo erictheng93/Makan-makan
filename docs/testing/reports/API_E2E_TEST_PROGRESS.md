@@ -1,4 +1,5 @@
 # API 端到端測試進度報告
+
 # API End-to-End Testing Progress Report
 
 **日期**: 2025-11-13
@@ -87,6 +88,7 @@ Execution Time:  3.91s
 ### ❌ 失敗的測試 (2)
 
 1. **Menu and Order Integration**
+
    ```
    ✗ should create menu items and process orders end-to-end
    Error: Cannot read properties of undefined (reading 'length')
@@ -101,6 +103,7 @@ Execution Time:  3.91s
    ```
 
 **錯誤分析**:
+
 - 相同的錯誤類型: `Cannot read properties of undefined (reading 'length')`
 - 可能原因: API 響應缺少預期的數組字段
 - 影響: 菜單和訂單相關的測試失敗
@@ -112,6 +115,7 @@ Execution Time:  3.91s
 ### 已測試的端點 (依據現有測試文件)
 
 #### 1. Authentication (身份驗證)
+
 ```
 ✅ POST   /api/v1/auth/register
 ✅ POST   /api/v1/auth/login
@@ -120,6 +124,7 @@ Execution Time:  3.91s
 ```
 
 #### 2. Restaurants (餐廳管理)
+
 ```
 ✅ GET    /api/v1/restaurants
 ✅ POST   /api/v1/restaurants
@@ -129,6 +134,7 @@ Execution Time:  3.91s
 ```
 
 #### 3. Menu (菜單管理)
+
 ```
 ✅ GET    /api/v1/menu/:restaurantId
 ✅ POST   /api/v1/menu/:restaurantId/items
@@ -138,6 +144,7 @@ Execution Time:  3.91s
 ```
 
 #### 4. Orders (訂單管理)
+
 ```
 ✅ GET    /api/v1/orders/:restaurantId
 ✅ POST   /api/v1/orders
@@ -147,6 +154,7 @@ Execution Time:  3.91s
 ```
 
 #### 5. Kitchen (廚房管理)
+
 ```
 ✅ GET    /api/v1/kitchen/:restaurantId/orders
 ✅ PUT    /api/v1/kitchen/:restaurantId/orders/:orderId/status
@@ -154,6 +162,7 @@ Execution Time:  3.91s
 ```
 
 #### 6. Queue (排隊系統)
+
 ```
 ✅ POST   /api/v1/queue/:restaurantId/join
 ✅ GET    /api/v1/queue/:restaurantId
@@ -162,6 +171,7 @@ Execution Time:  3.91s
 ```
 
 #### 7. Tables (桌位管理)
+
 ```
 ✅ GET    /api/v1/tables/:restaurantId
 ✅ POST   /api/v1/tables/:restaurantId
@@ -170,6 +180,7 @@ Execution Time:  3.91s
 ```
 
 #### 8. Users (用戶管理)
+
 ```
 ✅ GET    /api/v1/users/:restaurantId
 ✅ POST   /api/v1/users/:restaurantId
@@ -180,58 +191,71 @@ Execution Time:  3.91s
 ### 部分測試的功能
 
 #### 9. Group Orders (群組訂單)
+
 ```
 ⚠️ POST   /api/v1/group-orders
 ⚠️ GET    /api/v1/group-orders/:shareCode
 ⚠️ POST   /api/v1/group-orders/:groupOrderId/join
 ⚠️ POST   /api/v1/group-orders/:groupOrderId/cart
 ```
+
 **狀態**: 有單元測試,缺少端到端測試
 
 #### 10. Realtime (即時通訊)
+
 ```
 ⚠️ POST   /api/v1/realtime/auth/token
 ⚠️ POST   /api/v1/realtime/auth/verify
 ```
+
 **狀態**: 有單元測試,缺少端到端測試
 
 ### 未測試或缺少的功能
 
 #### 11. Leaves (請假管理) ⚠️
+
 ```
 ❌ GET    /api/v1/leaves/:restaurantId
 ❌ POST   /api/v1/leaves/:restaurantId/requests
 ❌ PUT    /api/v1/leaves/:restaurantId/requests/:id
 ❌ GET    /api/v1/leaves/:restaurantId/balance/:userId
 ```
+
 **狀態**: 完整實現,缺少測試
 
 #### 12. Scheduling (排班管理) ⚠️
+
 ```
 ❌ GET    /api/v1/scheduling/:restaurantId
 ❌ POST   /api/v1/scheduling/:restaurantId/shifts
 ❌ PUT    /api/v1/scheduling/:restaurantId/shifts/:id
 ❌ POST   /api/v1/scheduling/:restaurantId/swap-requests
 ```
+
 **狀態**: 完整實現,缺少測試
 
 #### 13. Analytics (分析報表) ⚠️
+
 ```
 ⚠️ GET    /api/v1/analytics/:restaurantId/dashboard
 ⚠️ GET    /api/v1/analytics/:restaurantId/sales
 ⚠️ GET    /api/v1/analytics/:restaurantId/orders
 ```
+
 **狀態**: 部分測試,需要擴展
 
 #### 14. AI Analytics (AI 分析) ❌
+
 ```
 ❌ POST   /api/v1/ai-analytics/analyze
 ❌ GET    /api/v1/ai-analytics/:restaurantId/insights
 ❌ POST   /api/v1/ai-analytics/chat
 ```
+
 **狀態**: 未測試
 
 #### 15. POS (收銀系統) ❌
+
 ```
 ❌ GET    /api/v1/pos/:restaurantId/registers
 ❌ POST   /api/v1/pos/:restaurantId/registers
@@ -239,15 +263,18 @@ Execution Time:  3.91s
 ❌ POST   /api/v1/pos/:restaurantId/shifts/end
 ❌ POST   /api/v1/pos/:restaurantId/transactions
 ```
+
 **狀態**: 未測試
 
 #### 16. Customers (顧客管理) ❌
+
 ```
 ❌ GET    /api/v1/customers/:restaurantId
 ❌ POST   /api/v1/customers
 ❌ GET    /api/v1/customers/:id
 ❌ PUT    /api/v1/customers/:id
 ```
+
 **狀態**: 未測試
 
 ---
@@ -363,124 +390,138 @@ Total                 65       43        66%  ⚠️
 ### 1. 測試類型
 
 #### 端到端測試 (E2E Tests)
+
 ```typescript
-describe('Feature E2E Tests', () => {
+describe("Feature E2E Tests", () => {
   // 完整的用戶流程測試
-  it('should complete full workflow from start to finish', async () => {
+  it("should complete full workflow from start to finish", async () => {
     // 1. 創建資源
     // 2. 執行操作
     // 3. 驗證結果
     // 4. 清理資源
-  })
-})
+  });
+});
 ```
 
 #### 集成測試 (Integration Tests)
+
 ```typescript
-describe('Module Integration Tests', () => {
+describe("Module Integration Tests", () => {
   // 跨模塊交互測試
-  it('should integrate module A with module B', async () => {
+  it("should integrate module A with module B", async () => {
     // 測試模塊間的數據流和協作
-  })
-})
+  });
+});
 ```
 
 #### API 契約測試 (Contract Tests)
+
 ```typescript
-describe('API Contract Tests', () => {
+describe("API Contract Tests", () => {
   // 驗證 API 響應結構
-  it('should return expected response schema', async () => {
+  it("should return expected response schema", async () => {
     // 使用 Zod 或 JSON Schema 驗證
-  })
-})
+  });
+});
 ```
 
 ### 2. 測試模式
 
 #### AAA 模式 (Arrange-Act-Assert)
+
 ```typescript
-it('should create order successfully', async () => {
+it("should create order successfully", async () => {
   // Arrange: 準備測試數據
-  const restaurant = await createTestRestaurant()
-  const menu = await createTestMenu(restaurant.id)
+  const restaurant = await createTestRestaurant();
+  const menu = await createTestMenu(restaurant.id);
 
   // Act: 執行操作
-  const response = await app.request('/api/v1/orders', {
-    method: 'POST',
-    body: JSON.stringify({ /* order data */ })
-  })
+  const response = await app.request("/api/v1/orders", {
+    method: "POST",
+    body: JSON.stringify({
+      /* order data */
+    }),
+  });
 
   // Assert: 驗證結果
-  expect(response.status).toBe(201)
-  expect(response.body).toMatchObject({ /* expected shape */ })
-})
+  expect(response.status).toBe(201);
+  expect(response.body).toMatchObject({
+    /* expected shape */
+  });
+});
 ```
 
 #### 測試數據隔離
+
 ```typescript
 beforeEach(async () => {
   // 清理數據庫
-  await cleanupTestDB(db)
+  await cleanupTestDB(db);
   // 創建必需的基礎數據
-  await seedTestData(db)
-})
+  await seedTestData(db);
+});
 
 afterEach(async () => {
   // 清理測試產生的數據
-  await cleanupTestData(db)
-})
+  await cleanupTestData(db);
+});
 ```
 
 #### Mock 外部依賴
+
 ```typescript
 // Mock realtime broadcast
-vi.mock('../../services/RealtimeBroadcastService', () => ({
-  broadcastOrderUpdate: vi.fn().mockResolvedValue({ success: true })
-}))
+vi.mock("../../services/RealtimeBroadcastService", () => ({
+  broadcastOrderUpdate: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 // Mock payment gateway
-vi.mock('../../services/PaymentService', () => ({
-  processPayment: vi.fn().mockResolvedValue({ success: true, txId: 'mock-tx-123' })
-}))
+vi.mock("../../services/PaymentService", () => ({
+  processPayment: vi
+    .fn()
+    .mockResolvedValue({ success: true, txId: "mock-tx-123" }),
+}));
 ```
 
 ### 3. 測試數據管理
 
 #### 測試工廠 (Test Factories)
+
 ```typescript
 export const createTestRestaurant = async (db: D1Database, overrides = {}) => {
   const restaurant = {
-    name: 'Test Restaurant',
-    type: 'Casual Dining',
-    address: 'Test Address',
-    ...overrides
-  }
+    name: "Test Restaurant",
+    type: "Casual Dining",
+    address: "Test Address",
+    ...overrides,
+  };
 
-  const result = await db.prepare(`INSERT INTO restaurants ...`).run()
-  return { id: result.meta.last_row_id, ...restaurant }
-}
+  const result = await db.prepare(`INSERT INTO restaurants ...`).run();
+  return { id: result.meta.last_row_id, ...restaurant };
+};
 ```
 
 #### 測試 Fixtures
+
 ```typescript
 export const testFixtures = {
   restaurant: {
     id: 1,
-    name: 'Test Restaurant',
-    type: 'Casual Dining'
+    name: "Test Restaurant",
+    type: "Casual Dining",
   },
   user: {
     id: 1,
-    username: 'testuser',
-    role: 0 // Admin
+    username: "testuser",
+    role: 0, // Admin
   },
   menu: {
     items: [
-      { name: 'Test Item 1', price: 100 },
-      { name: 'Test Item 2', price: 200 }
-    ]
-  }
-}
+      { name: "Test Item 1", price: 100 },
+      { name: "Test Item 2", price: 200 },
+    ],
+  },
+};
 ```
 
 ---
@@ -488,12 +529,14 @@ export const testFixtures = {
 ## 🚀 實施計劃 | Implementation Plan
 
 ### Phase 1: 修復現有問題 (1 小時)
+
 1. ✅ 分析失敗的測試
 2. ⏳ 修復 "Menu and Order Integration"
 3. ⏳ 修復 "Data Consistency Integration"
 4. ⏳ 驗證所有現有測試通過
 
 ### Phase 2: 高優先級測試 (6-8 小時)
+
 1. ⏳ Group Orders 端到端測試 (2-3 小時)
    - 創建群組訂單
    - 加入群組
@@ -513,11 +556,13 @@ export const testFixtures = {
    - 通知發送
 
 ### Phase 3: 中優先級測試 (4-6 小時)
+
 1. ⏳ POS System 測試 (2-3 小時)
 2. ⏳ Customers 測試 (1-2 小時)
 3. ⏳ Analytics 擴展 (1 小時)
 
 ### Phase 4: 低優先級測試 (3 小時)
+
 1. ⏳ AI Analytics 測試 (2 小時)
 2. ⏳ Realtime 增強 (1 小時)
 
@@ -559,48 +604,52 @@ Stretch:  100% (65/65 endpoints)
 ## 🎓 最佳實踐 | Best Practices
 
 ### 1. 測試命名
+
 ```typescript
 // ✅ Good: 清晰描述測試意圖
-it('should create order and update inventory when payment succeeds', async () => {})
+it("should create order and update inventory when payment succeeds", async () => {});
 
 // ❌ Bad: 不清楚的命名
-it('test order', async () => {})
+it("test order", async () => {});
 ```
 
 ### 2. 測試獨立性
+
 ```typescript
 // ✅ Good: 每個測試獨立
 beforeEach(async () => {
-  await cleanupTestDB()
-  await seedTestData()
-})
+  await cleanupTestDB();
+  await seedTestData();
+});
 
 // ❌ Bad: 測試間有依賴
-let orderId: number // 跨測試共享狀態
+let orderId: number; // 跨測試共享狀態
 ```
 
 ### 3. 斷言清晰
+
 ```typescript
 // ✅ Good: 明確的斷言
-expect(response.status).toBe(200)
-expect(response.body.data).toHaveLength(2)
+expect(response.status).toBe(200);
+expect(response.body.data).toHaveLength(2);
 expect(response.body.data[0]).toMatchObject({
   id: expect.any(Number),
-  name: 'Test Item'
-})
+  name: "Test Item",
+});
 
 // ❌ Bad: 模糊的斷言
-expect(response).toBeTruthy()
+expect(response).toBeTruthy();
 ```
 
 ### 4. 錯誤測試
+
 ```typescript
 // ✅ Good: 測試錯誤情況
-it('should return 404 when order not found', async () => {
-  const response = await app.request('/api/v1/orders/999')
-  expect(response.status).toBe(404)
-  expect(response.body.error).toBe('Order not found')
-})
+it("should return 404 when order not found", async () => {
+  const response = await app.request("/api/v1/orders/999");
+  expect(response.status).toBe(404);
+  expect(response.body.error).toBe("Order not found");
+});
 ```
 
 ---
@@ -608,16 +657,19 @@ it('should return 404 when order not found', async () => {
 ## 📚 參考資源 | References
 
 ### 內部文檔
+
 - `TEST_ENHANCEMENT_ROADMAP.md` - 測試增強路線圖
 - `TEST_ENHANCEMENT_PROGRESS_REPORT.md` - 整體進度報告
 - `MOCK_DB_OPTIMIZATION_REPORT.md` - Mock 優化報告
 
 ### 測試工具
+
 - Vitest - 測試框架
 - sql.js - SQLite 內存數據庫
 - Hono - Web 框架測試
 
 ### API 文檔
+
 - `docs/api/` - API 端點文檔
 - `CLAUDE.md` - 項目概覽
 
@@ -626,17 +678,20 @@ it('should return 404 when order not found', async () => {
 ## 🎯 當前任務 | Current Tasks
 
 ### 立即行動:
+
 1. ✅ 分析現有 API 測試結構
 2. ✅ 識別測試覆蓋gaps
 3. ⏳ 修復 2 個失敗的集成測試
 4. ⏳ 創建 Group Orders 端到端測試
 
 ### 本週目標:
+
 - 修復所有失敗測試
 - 完成高優先級測試 (Group Orders, Leaves, Scheduling)
 - 測試覆蓋率提升至 80%+
 
 ### 長期目標:
+
 - 達成 90%+ 測試覆蓋率
 - 建立 CI/CD 自動化測試
 - 完善測試文檔
@@ -645,4 +700,4 @@ it('should return 404 when order not found', async () => {
 
 **報告結束** | End of Report
 
-*最後更新: 2025-11-13 22:30 UTC+8*
+_最後更新: 2025-11-13 22:30 UTC+8_

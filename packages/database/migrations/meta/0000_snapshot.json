@@ -215,9 +215,7 @@
       "indexes": {
         "restaurants_shop_qr_code_unique": {
           "name": "restaurants_shop_qr_code_unique",
-          "columns": [
-            "shop_qr_code"
-          ],
+          "columns": ["shop_qr_code"],
           "isUnique": true
         }
       },
@@ -385,9 +383,7 @@
       "indexes": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "columns": [
-            "username"
-          ],
+          "columns": ["username"],
           "isUnique": true
         }
       },
@@ -396,12 +392,8 @@
           "name": "users_restaurant_id_restaurants_id_fk",
           "tableFrom": "users",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -512,18 +504,12 @@
       "indexes": {
         "categories_restaurant_sort_idx": {
           "name": "categories_restaurant_sort_idx",
-          "columns": [
-            "restaurant_id",
-            "sort_order"
-          ],
+          "columns": ["restaurant_id", "sort_order"],
           "isUnique": false
         },
         "categories_restaurant_active_idx": {
           "name": "categories_restaurant_active_idx",
-          "columns": [
-            "restaurant_id",
-            "is_active"
-          ],
+          "columns": ["restaurant_id", "is_active"],
           "isUnique": false
         }
       },
@@ -532,12 +518,8 @@
           "name": "categories_restaurant_id_restaurants_id_fk",
           "tableFrom": "categories",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -788,45 +770,27 @@
       "indexes": {
         "menu_items_restaurant_category_idx": {
           "name": "menu_items_restaurant_category_idx",
-          "columns": [
-            "restaurant_id",
-            "category_id",
-            "is_available"
-          ],
+          "columns": ["restaurant_id", "category_id", "is_available"],
           "isUnique": false
         },
         "menu_items_restaurant_featured_idx": {
           "name": "menu_items_restaurant_featured_idx",
-          "columns": [
-            "restaurant_id",
-            "is_featured",
-            "is_available"
-          ],
+          "columns": ["restaurant_id", "is_featured", "is_available"],
           "isUnique": false
         },
         "menu_items_restaurant_popular_idx": {
           "name": "menu_items_restaurant_popular_idx",
-          "columns": [
-            "restaurant_id",
-            "is_popular",
-            "order_count"
-          ],
+          "columns": ["restaurant_id", "is_popular", "order_count"],
           "isUnique": false
         },
         "menu_items_price_range_idx": {
           "name": "menu_items_price_range_idx",
-          "columns": [
-            "restaurant_id",
-            "price"
-          ],
+          "columns": ["restaurant_id", "price"],
           "isUnique": false
         },
         "menu_items_availability_idx": {
           "name": "menu_items_availability_idx",
-          "columns": [
-            "is_available",
-            "inventory_count"
-          ],
+          "columns": ["is_available", "inventory_count"],
           "isUnique": false
         }
       },
@@ -835,12 +799,8 @@
           "name": "menu_items_restaurant_id_restaurants_id_fk",
           "tableFrom": "menu_items",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -848,12 +808,8 @@
           "name": "menu_items_category_id_categories_id_fk",
           "tableFrom": "menu_items",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1083,33 +1039,22 @@
       "indexes": {
         "tables_qr_code_unique": {
           "name": "tables_qr_code_unique",
-          "columns": [
-            "qr_code"
-          ],
+          "columns": ["qr_code"],
           "isUnique": true
         },
         "tables_restaurant_number_idx": {
           "name": "tables_restaurant_number_idx",
-          "columns": [
-            "restaurant_id",
-            "number"
-          ],
+          "columns": ["restaurant_id", "number"],
           "isUnique": false
         },
         "tables_restaurant_status_idx": {
           "name": "tables_restaurant_status_idx",
-          "columns": [
-            "restaurant_id",
-            "is_occupied",
-            "is_active"
-          ],
+          "columns": ["restaurant_id", "is_occupied", "is_active"],
           "isUnique": false
         },
         "tables_qr_code_idx": {
           "name": "tables_qr_code_idx",
-          "columns": [
-            "qr_code"
-          ],
+          "columns": ["qr_code"],
           "isUnique": false
         }
       },
@@ -1118,12 +1063,8 @@
           "name": "tables_restaurant_id_restaurants_id_fk",
           "tableFrom": "tables",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1255,45 +1196,32 @@
       "indexes": {
         "seats_qr_code_unique": {
           "name": "seats_qr_code_unique",
-          "columns": [
-            "qr_code"
-          ],
+          "columns": ["qr_code"],
           "isUnique": true
         },
         "seats_table_id_idx": {
           "name": "seats_table_id_idx",
-          "columns": [
-            "table_id"
-          ],
+          "columns": ["table_id"],
           "isUnique": false
         },
         "seats_qr_code_idx": {
           "name": "seats_qr_code_idx",
-          "columns": [
-            "qr_code"
-          ],
+          "columns": ["qr_code"],
           "isUnique": false
         },
         "seats_table_seat_number_idx": {
           "name": "seats_table_seat_number_idx",
-          "columns": [
-            "table_id",
-            "seat_number"
-          ],
+          "columns": ["table_id", "seat_number"],
           "isUnique": false
         },
         "seats_is_occupied_idx": {
           "name": "seats_is_occupied_idx",
-          "columns": [
-            "is_occupied"
-          ],
+          "columns": ["is_occupied"],
           "isUnique": false
         },
         "seats_is_active_idx": {
           "name": "seats_is_active_idx",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         }
       },
@@ -1302,12 +1230,8 @@
           "name": "seats_table_id_tables_id_fk",
           "tableFrom": "seats",
           "tableTo": "tables",
-          "columnsFrom": [
-            "table_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["table_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1581,58 +1505,37 @@
       "indexes": {
         "orders_order_number_unique": {
           "name": "orders_order_number_unique",
-          "columns": [
-            "order_number"
-          ],
+          "columns": ["order_number"],
           "isUnique": true
         },
         "orders_restaurant_status_idx": {
           "name": "orders_restaurant_status_idx",
-          "columns": [
-            "restaurant_id",
-            "status",
-            "created_at"
-          ],
+          "columns": ["restaurant_id", "status", "created_at"],
           "isUnique": false
         },
         "orders_restaurant_table_idx": {
           "name": "orders_restaurant_table_idx",
-          "columns": [
-            "restaurant_id",
-            "table_id",
-            "status"
-          ],
+          "columns": ["restaurant_id", "table_id", "status"],
           "isUnique": false
         },
         "orders_order_number_idx": {
           "name": "orders_order_number_idx",
-          "columns": [
-            "order_number"
-          ],
+          "columns": ["order_number"],
           "isUnique": false
         },
         "orders_customer_idx": {
           "name": "orders_customer_idx",
-          "columns": [
-            "customer_id",
-            "created_at"
-          ],
+          "columns": ["customer_id", "created_at"],
           "isUnique": false
         },
         "orders_status_time_idx": {
           "name": "orders_status_time_idx",
-          "columns": [
-            "status",
-            "created_at"
-          ],
+          "columns": ["status", "created_at"],
           "isUnique": false
         },
         "orders_payment_status_idx": {
           "name": "orders_payment_status_idx",
-          "columns": [
-            "payment_status",
-            "paid_at"
-          ],
+          "columns": ["payment_status", "paid_at"],
           "isUnique": false
         }
       },
@@ -1641,12 +1544,8 @@
           "name": "orders_restaurant_id_restaurants_id_fk",
           "tableFrom": "orders",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1654,12 +1553,8 @@
           "name": "orders_table_id_tables_id_fk",
           "tableFrom": "orders",
           "tableTo": "tables",
-          "columnsFrom": [
-            "table_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["table_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1667,12 +1562,8 @@
           "name": "orders_customer_id_users_id_fk",
           "tableFrom": "orders",
           "tableTo": "users",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1808,18 +1699,12 @@
       "indexes": {
         "order_items_order_status_idx": {
           "name": "order_items_order_status_idx",
-          "columns": [
-            "order_id",
-            "status"
-          ],
+          "columns": ["order_id", "status"],
           "isUnique": false
         },
         "order_items_menu_item_idx": {
           "name": "order_items_menu_item_idx",
-          "columns": [
-            "menu_item_id",
-            "created_at"
-          ],
+          "columns": ["menu_item_id", "created_at"],
           "isUnique": false
         }
       },
@@ -1828,12 +1713,8 @@
           "name": "order_items_order_id_orders_id_fk",
           "tableFrom": "order_items",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1841,12 +1722,8 @@
           "name": "order_items_menu_item_id_menu_items_id_fk",
           "tableFrom": "order_items",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1954,38 +1831,27 @@
       "indexes": {
         "sessions_token_unique": {
           "name": "sessions_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "sessions_refresh_token_unique": {
           "name": "sessions_refresh_token_unique",
-          "columns": [
-            "refresh_token"
-          ],
+          "columns": ["refresh_token"],
           "isUnique": true
         },
         "sessions_user_active_idx": {
           "name": "sessions_user_active_idx",
-          "columns": [
-            "user_id",
-            "is_active"
-          ],
+          "columns": ["user_id", "is_active"],
           "isUnique": false
         },
         "sessions_token_idx": {
           "name": "sessions_token_idx",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": false
         },
         "sessions_expires_idx": {
           "name": "sessions_expires_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -1994,12 +1860,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2114,36 +1976,22 @@
       "indexes": {
         "audit_logs_user_action_idx": {
           "name": "audit_logs_user_action_idx",
-          "columns": [
-            "user_id",
-            "action",
-            "created_at"
-          ],
+          "columns": ["user_id", "action", "created_at"],
           "isUnique": false
         },
         "audit_logs_restaurant_action_idx": {
           "name": "audit_logs_restaurant_action_idx",
-          "columns": [
-            "restaurant_id",
-            "action",
-            "created_at"
-          ],
+          "columns": ["restaurant_id", "action", "created_at"],
           "isUnique": false
         },
         "audit_logs_resource_idx": {
           "name": "audit_logs_resource_idx",
-          "columns": [
-            "resource",
-            "resource_id",
-            "created_at"
-          ],
+          "columns": ["resource", "resource_id", "created_at"],
           "isUnique": false
         },
         "audit_logs_time_idx": {
           "name": "audit_logs_time_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -2152,12 +2000,8 @@
           "name": "audit_logs_user_id_users_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2165,12 +2009,8 @@
           "name": "audit_logs_restaurant_id_restaurants_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2298,60 +2138,42 @@
       "indexes": {
         "idx_error_reports_user_id": {
           "name": "idx_error_reports_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_error_reports_restaurant_id": {
           "name": "idx_error_reports_restaurant_id",
-          "columns": [
-            "restaurant_id"
-          ],
+          "columns": ["restaurant_id"],
           "isUnique": false
         },
         "idx_error_reports_error_type": {
           "name": "idx_error_reports_error_type",
-          "columns": [
-            "error_type"
-          ],
+          "columns": ["error_type"],
           "isUnique": false
         },
         "idx_error_reports_severity": {
           "name": "idx_error_reports_severity",
-          "columns": [
-            "severity"
-          ],
+          "columns": ["severity"],
           "isUnique": false
         },
         "idx_error_reports_timestamp": {
           "name": "idx_error_reports_timestamp",
-          "columns": [
-            "timestamp"
-          ],
+          "columns": ["timestamp"],
           "isUnique": false
         },
         "idx_error_reports_created_at": {
           "name": "idx_error_reports_created_at",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "idx_error_reports_type_severity": {
           "name": "idx_error_reports_type_severity",
-          "columns": [
-            "error_type",
-            "severity"
-          ],
+          "columns": ["error_type", "severity"],
           "isUnique": false
         },
         "idx_error_reports_restaurant_timestamp": {
           "name": "idx_error_reports_restaurant_timestamp",
-          "columns": [
-            "restaurant_id",
-            "timestamp"
-          ],
+          "columns": ["restaurant_id", "timestamp"],
           "isUnique": false
         }
       },
@@ -2452,23 +2274,17 @@
       "indexes": {
         "idx_system_alerts_severity": {
           "name": "idx_system_alerts_severity",
-          "columns": [
-            "severity"
-          ],
+          "columns": ["severity"],
           "isUnique": false
         },
         "idx_system_alerts_restaurant_id": {
           "name": "idx_system_alerts_restaurant_id",
-          "columns": [
-            "restaurant_id"
-          ],
+          "columns": ["restaurant_id"],
           "isUnique": false
         },
         "idx_system_alerts_created_at": {
           "name": "idx_system_alerts_created_at",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -2549,9 +2365,7 @@
       "indexes": {
         "qr_batches_batch_id_unique": {
           "name": "qr_batches_batch_id_unique",
-          "columns": [
-            "batch_id"
-          ],
+          "columns": ["batch_id"],
           "isUnique": true
         }
       },
@@ -3129,23 +2943,17 @@
       "indexes": {
         "idx_coupon_distributions_coupon_id": {
           "name": "idx_coupon_distributions_coupon_id",
-          "columns": [
-            "coupon_id"
-          ],
+          "columns": ["coupon_id"],
           "isUnique": false
         },
         "idx_coupon_distributions_type": {
           "name": "idx_coupon_distributions_type",
-          "columns": [
-            "distribution_type"
-          ],
+          "columns": ["distribution_type"],
           "isUnique": false
         },
         "idx_coupon_distributions_distributed_at": {
           "name": "idx_coupon_distributions_distributed_at",
-          "columns": [
-            "distributed_at"
-          ],
+          "columns": ["distributed_at"],
           "isUnique": false
         }
       },
@@ -3154,12 +2962,8 @@
           "name": "coupon_distributions_coupon_id_coupons_id_fk",
           "tableFrom": "coupon_distributions",
           "tableTo": "coupons",
-          "columnsFrom": [
-            "coupon_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["coupon_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3167,12 +2971,8 @@
           "name": "coupon_distributions_created_by_users_id_fk",
           "tableFrom": "coupon_distributions",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3270,23 +3070,17 @@
       "indexes": {
         "idx_coupon_templates_restaurant_id": {
           "name": "idx_coupon_templates_restaurant_id",
-          "columns": [
-            "restaurant_id"
-          ],
+          "columns": ["restaurant_id"],
           "isUnique": false
         },
         "idx_coupon_templates_active": {
           "name": "idx_coupon_templates_active",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         },
         "idx_coupon_templates_system": {
           "name": "idx_coupon_templates_system",
-          "columns": [
-            "is_system_template"
-          ],
+          "columns": ["is_system_template"],
           "isUnique": false
         }
       },
@@ -3295,12 +3089,8 @@
           "name": "coupon_templates_restaurant_id_restaurants_id_fk",
           "tableFrom": "coupon_templates",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3308,12 +3098,8 @@
           "name": "coupon_templates_created_by_users_id_fk",
           "tableFrom": "coupon_templates",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3410,45 +3196,32 @@
       "indexes": {
         "idx_coupon_usage_coupon_id": {
           "name": "idx_coupon_usage_coupon_id",
-          "columns": [
-            "coupon_id"
-          ],
+          "columns": ["coupon_id"],
           "isUnique": false
         },
         "idx_coupon_usage_order_id": {
           "name": "idx_coupon_usage_order_id",
-          "columns": [
-            "order_id"
-          ],
+          "columns": ["order_id"],
           "isUnique": false
         },
         "idx_coupon_usage_user_id": {
           "name": "idx_coupon_usage_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_coupon_usage_used_at": {
           "name": "idx_coupon_usage_used_at",
-          "columns": [
-            "used_at"
-          ],
+          "columns": ["used_at"],
           "isUnique": false
         },
         "idx_coupon_usage_status": {
           "name": "idx_coupon_usage_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "idx_coupon_usage_unique": {
           "name": "idx_coupon_usage_unique",
-          "columns": [
-            "coupon_id",
-            "order_id"
-          ],
+          "columns": ["coupon_id", "order_id"],
           "isUnique": false
         }
       },
@@ -3457,12 +3230,8 @@
           "name": "coupon_usage_coupon_id_coupons_id_fk",
           "tableFrom": "coupon_usage",
           "tableTo": "coupons",
-          "columnsFrom": [
-            "coupon_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["coupon_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3470,12 +3239,8 @@
           "name": "coupon_usage_order_id_orders_id_fk",
           "tableFrom": "coupon_usage",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3483,12 +3248,8 @@
           "name": "coupon_usage_user_id_users_id_fk",
           "tableFrom": "coupon_usage",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3657,46 +3418,32 @@
       "indexes": {
         "coupons_code_unique": {
           "name": "coupons_code_unique",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         },
         "idx_coupons_code": {
           "name": "idx_coupons_code",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": false
         },
         "idx_coupons_restaurant_id": {
           "name": "idx_coupons_restaurant_id",
-          "columns": [
-            "restaurant_id"
-          ],
+          "columns": ["restaurant_id"],
           "isUnique": false
         },
         "idx_coupons_valid_period": {
           "name": "idx_coupons_valid_period",
-          "columns": [
-            "valid_from",
-            "valid_to"
-          ],
+          "columns": ["valid_from", "valid_to"],
           "isUnique": false
         },
         "idx_coupons_status": {
           "name": "idx_coupons_status",
-          "columns": [
-            "is_active",
-            "is_visible"
-          ],
+          "columns": ["is_active", "is_visible"],
           "isUnique": false
         },
         "idx_coupons_discount_type": {
           "name": "idx_coupons_discount_type",
-          "columns": [
-            "discount_type"
-          ],
+          "columns": ["discount_type"],
           "isUnique": false
         }
       },
@@ -3705,12 +3452,8 @@
           "name": "coupons_restaurant_id_restaurants_id_fk",
           "tableFrom": "coupons",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3718,12 +3461,8 @@
           "name": "coupons_created_by_users_id_fk",
           "tableFrom": "coupons",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3874,12 +3613,8 @@
           "name": "employee_leave_balances_employee_id_users_id_fk",
           "tableFrom": "employee_leave_balances",
           "tableTo": "users",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3887,12 +3622,8 @@
           "name": "employee_leave_balances_leave_type_id_leave_types_id_fk",
           "tableFrom": "employee_leave_balances",
           "tableTo": "leave_types",
-          "columnsFrom": [
-            "leave_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["leave_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3900,12 +3631,8 @@
           "name": "employee_leave_balances_restaurant_id_restaurants_id_fk",
           "tableFrom": "employee_leave_balances",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3913,12 +3640,8 @@
           "name": "employee_leave_balances_adjusted_by_users_id_fk",
           "tableFrom": "employee_leave_balances",
           "tableTo": "users",
-          "columnsFrom": [
-            "adjusted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["adjusted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3926,12 +3649,8 @@
           "name": "employee_leave_balances_last_updated_by_users_id_fk",
           "tableFrom": "employee_leave_balances",
           "tableTo": "users",
-          "columnsFrom": [
-            "last_updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["last_updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4094,12 +3813,8 @@
           "name": "leave_approval_rules_restaurant_id_restaurants_id_fk",
           "tableFrom": "leave_approval_rules",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4107,12 +3822,8 @@
           "name": "leave_approval_rules_leave_type_id_leave_types_id_fk",
           "tableFrom": "leave_approval_rules",
           "tableTo": "leave_types",
-          "columnsFrom": [
-            "leave_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["leave_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4120,12 +3831,8 @@
           "name": "leave_approval_rules_escalation_to_user_id_users_id_fk",
           "tableFrom": "leave_approval_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "escalation_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["escalation_to_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4133,12 +3840,8 @@
           "name": "leave_approval_rules_created_by_users_id_fk",
           "tableFrom": "leave_approval_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4146,12 +3849,8 @@
           "name": "leave_approval_rules_updated_by_users_id_fk",
           "tableFrom": "leave_approval_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4277,12 +3976,8 @@
           "name": "leave_calendar_events_restaurant_id_restaurants_id_fk",
           "tableFrom": "leave_calendar_events",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4290,12 +3985,8 @@
           "name": "leave_calendar_events_created_by_users_id_fk",
           "tableFrom": "leave_calendar_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4515,12 +4206,8 @@
           "name": "leave_requests_restaurant_id_restaurants_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4528,12 +4215,8 @@
           "name": "leave_requests_employee_id_users_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4541,12 +4224,8 @@
           "name": "leave_requests_leave_type_id_leave_types_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "leave_types",
-          "columnsFrom": [
-            "leave_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["leave_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4554,12 +4233,8 @@
           "name": "leave_requests_final_approver_id_users_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "final_approver_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["final_approver_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4567,12 +4242,8 @@
           "name": "leave_requests_rejected_by_users_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "rejected_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rejected_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4580,12 +4251,8 @@
           "name": "leave_requests_cancelled_by_users_id_fk",
           "tableFrom": "leave_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "cancelled_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cancelled_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4842,12 +4509,8 @@
           "name": "leave_types_restaurant_id_restaurants_id_fk",
           "tableFrom": "leave_types",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4855,12 +4518,8 @@
           "name": "leave_types_created_by_users_id_fk",
           "tableFrom": "leave_types",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4868,12 +4527,8 @@
           "name": "leave_types_updated_by_users_id_fk",
           "tableFrom": "leave_types",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4999,12 +4654,8 @@
           "name": "employee_availability_restaurant_id_restaurants_id_fk",
           "tableFrom": "employee_availability",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5012,12 +4663,8 @@
           "name": "employee_availability_employee_id_users_id_fk",
           "tableFrom": "employee_availability",
           "tableTo": "users",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5194,12 +4841,8 @@
           "name": "employee_schedules_restaurant_id_restaurants_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5207,12 +4850,8 @@
           "name": "employee_schedules_employee_id_users_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "users",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5220,12 +4859,8 @@
           "name": "employee_schedules_shift_template_id_shift_templates_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "shift_templates",
-          "columnsFrom": [
-            "shift_template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_template_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5233,12 +4868,8 @@
           "name": "employee_schedules_confirmed_by_users_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "users",
-          "columnsFrom": [
-            "confirmed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["confirmed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5246,12 +4877,8 @@
           "name": "employee_schedules_created_by_users_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5259,12 +4886,8 @@
           "name": "employee_schedules_updated_by_users_id_fk",
           "tableFrom": "employee_schedules",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5433,12 +5056,8 @@
           "name": "schedule_swap_requests_restaurant_id_restaurants_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5446,12 +5065,8 @@
           "name": "schedule_swap_requests_requester_employee_id_users_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "requester_employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5459,12 +5074,8 @@
           "name": "schedule_swap_requests_requester_schedule_id_employee_schedules_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "employee_schedules",
-          "columnsFrom": [
-            "requester_schedule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_schedule_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5472,12 +5083,8 @@
           "name": "schedule_swap_requests_target_employee_id_users_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "target_employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5485,12 +5092,8 @@
           "name": "schedule_swap_requests_target_schedule_id_employee_schedules_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "employee_schedules",
-          "columnsFrom": [
-            "target_schedule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_schedule_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5498,12 +5101,8 @@
           "name": "schedule_swap_requests_accepted_by_users_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "accepted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["accepted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5511,12 +5110,8 @@
           "name": "schedule_swap_requests_approved_by_users_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5524,12 +5119,8 @@
           "name": "schedule_swap_requests_rejected_by_users_id_fk",
           "tableFrom": "schedule_swap_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "rejected_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rejected_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5661,12 +5252,8 @@
           "name": "scheduling_conflicts_restaurant_id_restaurants_id_fk",
           "tableFrom": "scheduling_conflicts",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5674,12 +5261,8 @@
           "name": "scheduling_conflicts_rule_id_scheduling_rules_id_fk",
           "tableFrom": "scheduling_conflicts",
           "tableTo": "scheduling_rules",
-          "columnsFrom": [
-            "rule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rule_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5687,12 +5270,8 @@
           "name": "scheduling_conflicts_resolved_by_users_id_fk",
           "tableFrom": "scheduling_conflicts",
           "tableTo": "users",
-          "columnsFrom": [
-            "resolved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5827,12 +5406,8 @@
           "name": "scheduling_rules_restaurant_id_restaurants_id_fk",
           "tableFrom": "scheduling_rules",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5840,12 +5415,8 @@
           "name": "scheduling_rules_created_by_users_id_fk",
           "tableFrom": "scheduling_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5853,12 +5424,8 @@
           "name": "scheduling_rules_updated_by_users_id_fk",
           "tableFrom": "scheduling_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6062,12 +5629,8 @@
           "name": "shift_templates_restaurant_id_restaurants_id_fk",
           "tableFrom": "shift_templates",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6075,12 +5638,8 @@
           "name": "shift_templates_created_by_users_id_fk",
           "tableFrom": "shift_templates",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6088,12 +5647,8 @@
           "name": "shift_templates_updated_by_users_id_fk",
           "tableFrom": "shift_templates",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6227,12 +5782,8 @@
           "name": "cash_movements_shift_id_cash_shifts_id_fk",
           "tableFrom": "cash_movements",
           "tableTo": "cash_shifts",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6240,12 +5791,8 @@
           "name": "cash_movements_register_id_cash_registers_id_fk",
           "tableFrom": "cash_movements",
           "tableTo": "cash_registers",
-          "columnsFrom": [
-            "register_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["register_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6253,12 +5800,8 @@
           "name": "cash_movements_recorded_by_users_id_fk",
           "tableFrom": "cash_movements",
           "tableTo": "users",
-          "columnsFrom": [
-            "recorded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recorded_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6266,12 +5809,8 @@
           "name": "cash_movements_approved_by_users_id_fk",
           "tableFrom": "cash_movements",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6378,12 +5917,8 @@
           "name": "cash_registers_restaurant_id_restaurants_id_fk",
           "tableFrom": "cash_registers",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6543,12 +6078,8 @@
           "name": "cash_shifts_register_id_cash_registers_id_fk",
           "tableFrom": "cash_shifts",
           "tableTo": "cash_registers",
-          "columnsFrom": [
-            "register_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["register_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6556,12 +6087,8 @@
           "name": "cash_shifts_operator_id_users_id_fk",
           "tableFrom": "cash_shifts",
           "tableTo": "users",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6700,9 +6227,7 @@
       "indexes": {
         "receipts_receipt_number_unique": {
           "name": "receipts_receipt_number_unique",
-          "columns": [
-            "receipt_number"
-          ],
+          "columns": ["receipt_number"],
           "isUnique": true
         }
       },
@@ -6711,12 +6236,8 @@
           "name": "receipts_order_id_orders_id_fk",
           "tableFrom": "receipts",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6724,12 +6245,8 @@
           "name": "receipts_register_id_cash_registers_id_fk",
           "tableFrom": "receipts",
           "tableTo": "cash_registers",
-          "columnsFrom": [
-            "register_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["register_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6737,12 +6254,8 @@
           "name": "receipts_shift_id_cash_shifts_id_fk",
           "tableFrom": "receipts",
           "tableTo": "cash_shifts",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6894,9 +6407,7 @@
       "indexes": {
         "refunds_refund_number_unique": {
           "name": "refunds_refund_number_unique",
-          "columns": [
-            "refund_number"
-          ],
+          "columns": ["refund_number"],
           "isUnique": true
         }
       },
@@ -6905,12 +6416,8 @@
           "name": "refunds_original_order_id_orders_id_fk",
           "tableFrom": "refunds",
           "tableTo": "orders",
-          "columnsFrom": [
-            "original_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["original_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6918,12 +6425,8 @@
           "name": "refunds_register_id_cash_registers_id_fk",
           "tableFrom": "refunds",
           "tableTo": "cash_registers",
-          "columnsFrom": [
-            "register_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["register_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6931,12 +6434,8 @@
           "name": "refunds_shift_id_cash_shifts_id_fk",
           "tableFrom": "refunds",
           "tableTo": "cash_shifts",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6944,12 +6443,8 @@
           "name": "refunds_processed_by_users_id_fk",
           "tableFrom": "refunds",
           "tableTo": "users",
-          "columnsFrom": [
-            "processed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6957,12 +6452,8 @@
           "name": "refunds_approved_by_users_id_fk",
           "tableFrom": "refunds",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7030,12 +6521,8 @@
           "name": "shift_reports_shift_id_cash_shifts_id_fk",
           "tableFrom": "shift_reports",
           "tableTo": "cash_shifts",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7043,12 +6530,8 @@
           "name": "shift_reports_register_id_cash_registers_id_fk",
           "tableFrom": "shift_reports",
           "tableTo": "cash_registers",
-          "columnsFrom": [
-            "register_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["register_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7056,12 +6539,8 @@
           "name": "shift_reports_operator_id_users_id_fk",
           "tableFrom": "shift_reports",
           "tableTo": "users",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7130,12 +6609,8 @@
           "name": "group_activity_logs_group_order_id_group_orders_id_fk",
           "tableFrom": "group_activity_logs",
           "tableTo": "group_orders",
-          "columnsFrom": [
-            "group_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7143,12 +6618,8 @@
           "name": "group_activity_logs_member_id_group_members_id_fk",
           "tableFrom": "group_activity_logs",
           "tableTo": "group_members",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7253,12 +6724,8 @@
           "name": "group_cart_items_group_order_id_group_orders_id_fk",
           "tableFrom": "group_cart_items",
           "tableTo": "group_orders",
-          "columnsFrom": [
-            "group_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7266,12 +6733,8 @@
           "name": "group_cart_items_member_id_group_members_id_fk",
           "tableFrom": "group_cart_items",
           "tableTo": "group_members",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7279,12 +6742,8 @@
           "name": "group_cart_items_menu_item_id_menu_items_id_fk",
           "tableFrom": "group_cart_items",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7404,12 +6863,8 @@
           "name": "group_members_group_order_id_group_orders_id_fk",
           "tableFrom": "group_members",
           "tableTo": "group_orders",
-          "columnsFrom": [
-            "group_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7417,12 +6872,8 @@
           "name": "group_members_user_id_users_id_fk",
           "tableFrom": "group_members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7578,9 +7029,7 @@
       "indexes": {
         "group_orders_share_code_unique": {
           "name": "group_orders_share_code_unique",
-          "columns": [
-            "share_code"
-          ],
+          "columns": ["share_code"],
           "isUnique": true
         }
       },
@@ -7589,12 +7038,8 @@
           "name": "group_orders_created_by_users_id_fk",
           "tableFrom": "group_orders",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7602,12 +7047,8 @@
           "name": "group_orders_restaurant_id_restaurants_id_fk",
           "tableFrom": "group_orders",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7615,12 +7056,8 @@
           "name": "group_orders_table_id_tables_id_fk",
           "tableFrom": "group_orders",
           "tableTo": "tables",
-          "columnsFrom": [
-            "table_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["table_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7716,9 +7153,7 @@
       "indexes": {
         "share_codes_code_unique": {
           "name": "share_codes_code_unique",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         }
       },
@@ -7727,12 +7162,8 @@
           "name": "share_codes_created_by_users_id_fk",
           "tableFrom": "share_codes",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7869,12 +7300,8 @@
           "name": "split_bills_group_order_id_group_orders_id_fk",
           "tableFrom": "split_bills",
           "tableTo": "group_orders",
-          "columnsFrom": [
-            "group_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7882,12 +7309,8 @@
           "name": "split_bills_member_id_group_members_id_fk",
           "tableFrom": "split_bills",
           "tableTo": "group_members",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

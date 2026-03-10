@@ -3,12 +3,12 @@
  * 即時通訊 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define enums first to avoid circular reference
-const RoomType = z.enum(['customer', 'admin', 'kitchen']);
+const RoomType = z.enum(["customer", "admin", "kitchen"]);
 
 /**
  * Realtime API Schemas
@@ -31,7 +31,7 @@ export const RealtimeSchemas = {
   // Generate WebSocket Token Request
   GenerateTokenRequest: z.object({
     roomType: RoomType,
-    roomId: z.string().min(1, 'Room ID is required'),
+    roomId: z.string().min(1, "Room ID is required"),
     restaurantId: z.string().uuid(),
     userId: z.string().uuid().optional(),
     expiresIn: z.number().int().min(60).max(86400).default(3600), // 1 min to 24 hours
@@ -47,22 +47,24 @@ export const RealtimeSchemas = {
 
   // Verify Token Request
   VerifyTokenRequest: z.object({
-    token: z.string().min(1, 'Token is required'),
+    token: z.string().min(1, "Token is required"),
   }),
 
   // Verify Token Response
   VerifyTokenResponse: z.object({
     success: z.boolean(),
     valid: z.boolean(),
-    payload: z.object({
-      roomType: RoomType,
-      roomId: z.string(),
-      restaurantId: z.string().uuid(),
-      userId: z.string().uuid().optional(),
-      role: z.number().int().min(0).max(4).optional(),
-      exp: z.number().int(),
-      iat: z.number().int(),
-    }).optional(),
+    payload: z
+      .object({
+        roomType: RoomType,
+        roomId: z.string(),
+        restaurantId: z.string().uuid(),
+        userId: z.string().uuid().optional(),
+        role: z.number().int().min(0).max(4).optional(),
+        exp: z.number().int(),
+        iat: z.number().int(),
+      })
+      .optional(),
     error: z.string().optional(),
   }),
 
@@ -96,7 +98,7 @@ export const RealtimeSchemas = {
         userId: z.string().optional(),
         connectedAt: z.string().datetime(),
         lastActivity: z.string().datetime(),
-      })
+      }),
     ),
   }),
 
@@ -112,7 +114,7 @@ export const RealtimeSchemas = {
 
   // Connection Health
   ConnectionHealth: z.object({
-    status: z.enum(['healthy', 'degraded', 'unhealthy']),
+    status: z.enum(["healthy", "degraded", "unhealthy"]),
     uptime: z.number().int(), // seconds
     totalMessages: z.number().int(),
     messagesPerSecond: z.number(),
@@ -129,16 +131,16 @@ export const RealtimeSchemas = {
 
 // Generate WebSocket Token
 export const generateWebSocketTokenRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/realtime/auth/token',
-  tags: ['realtime'],
-  summary: '生成 WebSocket Token',
-  description: '為 WebSocket 連接生成 JWT 認證 token',
+  method: "post",
+  path: "/api/v1/realtime/auth/token",
+  tags: ["realtime"],
+  summary: "生成 WebSocket Token",
+  description: "為 WebSocket 連接生成 JWT 認證 token",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RealtimeSchemas.GenerateTokenRequest,
         },
       },
@@ -146,9 +148,9 @@ export const generateWebSocketTokenRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Token 生成成功',
+      description: "Token 生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: RealtimeSchemas.GenerateTokenResponse,
         },
       },
@@ -159,15 +161,15 @@ export const generateWebSocketTokenRoute = createRoute({
 
 // Verify WebSocket Token
 export const verifyWebSocketTokenRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/realtime/auth/verify',
-  tags: ['realtime'],
-  summary: '驗證 WebSocket Token',
-  description: '驗證 WebSocket token 的有效性',
+  method: "post",
+  path: "/api/v1/realtime/auth/verify",
+  tags: ["realtime"],
+  summary: "驗證 WebSocket Token",
+  description: "驗證 WebSocket token 的有效性",
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: RealtimeSchemas.VerifyTokenRequest,
         },
       },
@@ -175,9 +177,9 @@ export const verifyWebSocketTokenRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Token 驗證結果',
+      description: "Token 驗證結果",
       content: {
-        'application/json': {
+        "application/json": {
           schema: RealtimeSchemas.VerifyTokenResponse,
         },
       },
@@ -188,11 +190,11 @@ export const verifyWebSocketTokenRoute = createRoute({
 
 // Broadcast Message
 export const broadcastMessageRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/realtime/broadcast/:roomType/:roomId',
-  tags: ['realtime'],
-  summary: '廣播訊息',
-  description: '向指定 room 的所有連接廣播訊息',
+  method: "post",
+  path: "/api/v1/realtime/broadcast/:roomType/:roomId",
+  tags: ["realtime"],
+  summary: "廣播訊息",
+  description: "向指定 room 的所有連接廣播訊息",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -201,7 +203,7 @@ export const broadcastMessageRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             messageType: z.string(),
             payload: z.record(z.any()),
@@ -214,9 +216,9 @@ export const broadcastMessageRoute = createRoute({
   },
   responses: {
     200: {
-      description: '訊息廣播成功',
+      description: "訊息廣播成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: RealtimeSchemas.BroadcastMessageResponse,
         },
       },
@@ -227,11 +229,11 @@ export const broadcastMessageRoute = createRoute({
 
 // Get Connection Statistics
 export const getConnectionStatsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/realtime/stats/:roomType/:roomId',
-  tags: ['realtime'],
-  summary: '獲取連接統計',
-  description: '獲取指定 room 的連接統計信息',
+  method: "get",
+  path: "/api/v1/realtime/stats/:roomType/:roomId",
+  tags: ["realtime"],
+  summary: "獲取連接統計",
+  description: "獲取指定 room 的連接統計信息",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -241,9 +243,9 @@ export const getConnectionStatsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取連接統計',
+      description: "成功獲取連接統計",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RealtimeSchemas.ConnectionStatistics,
@@ -257,17 +259,17 @@ export const getConnectionStatsRoute = createRoute({
 
 // Get Connection Health
 export const getConnectionHealthRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/realtime/health',
-  tags: ['realtime'],
-  summary: '獲取連接健康狀態',
-  description: '獲取整體 WebSocket 連接系統的健康狀態和性能指標',
+  method: "get",
+  path: "/api/v1/realtime/health",
+  tags: ["realtime"],
+  summary: "獲取連接健康狀態",
+  description: "獲取整體 WebSocket 連接系統的健康狀態和性能指標",
   security: [{ bearerAuth: [] }],
   responses: {
     200: {
-      description: '成功獲取健康狀態',
+      description: "成功獲取健康狀態",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: RealtimeSchemas.ConnectionHealth,
@@ -281,11 +283,11 @@ export const getConnectionHealthRoute = createRoute({
 
 // Disconnect User
 export const disconnectUserRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/realtime/disconnect/:connectionId',
-  tags: ['realtime'],
-  summary: '斷開用戶連接',
-  description: '強制斷開指定的 WebSocket 連接',
+  method: "post",
+  path: "/api/v1/realtime/disconnect/:connectionId",
+  tags: ["realtime"],
+  summary: "斷開用戶連接",
+  description: "強制斷開指定的 WebSocket 連接",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -293,7 +295,7 @@ export const disconnectUserRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             reason: z.string().optional(),
           }),
@@ -303,9 +305,9 @@ export const disconnectUserRoute = createRoute({
   },
   responses: {
     200: {
-      description: '連接已斷開',
+      description: "連接已斷開",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             message: z.string(),
@@ -319,11 +321,11 @@ export const disconnectUserRoute = createRoute({
 
 // Get Active Rooms
 export const getActiveRoomsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/realtime/rooms',
-  tags: ['realtime'],
-  summary: '獲取活躍 Rooms',
-  description: '獲取所有活躍的 WebSocket rooms 列表',
+  method: "get",
+  path: "/api/v1/realtime/rooms",
+  tags: ["realtime"],
+  summary: "獲取活躍 Rooms",
+  description: "獲取所有活躍的 WebSocket rooms 列表",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -333,9 +335,9 @@ export const getActiveRoomsRoute = createRoute({
   },
   responses: {
     200: {
-      description: '成功獲取 rooms 列表',
+      description: "成功獲取 rooms 列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(
@@ -344,7 +346,7 @@ export const getActiveRoomsRoute = createRoute({
                 roomId: z.string(),
                 connectionCount: z.number().int(),
                 createdAt: z.string().datetime(),
-              })
+              }),
             ),
           }),
         },

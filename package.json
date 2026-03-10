@@ -90,8 +90,10 @@
     "**/*.test.ts": [
       "node scripts/check-factory-usage.cjs"
     ],
-    "**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
+    "{apps,packages}/**/*.{ts,tsx,js,jsx}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx,js,jsx,json,md,vue}": [
       "prettier --write"
     ]
   },

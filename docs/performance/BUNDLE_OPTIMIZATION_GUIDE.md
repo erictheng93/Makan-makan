@@ -12,6 +12,7 @@ This guide documents the bundle size optimization strategies implemented in Maka
 ## Summary of Optimizations
 
 ### Admin Dashboard
+
 - **Code Splitting**: Granular chunking of Vue ecosystem, UI libraries, charting libraries
 - **Lazy Loading**: All routes use `() => import()` pattern
 - **Bundle Analyzer**: Integrated `rollup-plugin-visualizer`
@@ -19,6 +20,7 @@ This guide documents the bundle size optimization strategies implemented in Maka
 - **Tree Shaking**: Excludes heavy libraries from pre-bundling
 
 ### Customer App (PWA)
+
 - **Advanced Chunking**: Separate chunks for PWA components (workbox, idb)
 - **QR Library Optimization**: Lazy load @zxing/library (large bundle)
 - **PWA-Aware Loading**: Network-adaptive and offline-aware component loading
@@ -36,35 +38,36 @@ This guide documents the bundle size optimization strategies implemented in Maka
 ```typescript
 manualChunks: (id) => {
   // Vue core ecosystem (shared across all pages)
-  if (id.includes('vue/') || id.includes('@vue/')) return 'vue-core'
-  if (id.includes('vue-router/')) return 'vue-router'
-  if (id.includes('pinia/')) return 'pinia'
+  if (id.includes("vue/") || id.includes("@vue/")) return "vue-core";
+  if (id.includes("vue-router/")) return "vue-router";
+  if (id.includes("pinia/")) return "pinia";
 
   // UI libraries (used in many components)
-  if (id.includes('@headlessui/vue')) return 'headlessui'
-  if (id.includes('@heroicons/vue')) return 'heroicons'
-  if (id.includes('lucide-vue-next')) return 'lucide'
-  if (id.includes('vue-toastification')) return 'toastification'
+  if (id.includes("@headlessui/vue")) return "headlessui";
+  if (id.includes("@heroicons/vue")) return "heroicons";
+  if (id.includes("lucide-vue-next")) return "lucide";
+  if (id.includes("vue-toastification")) return "toastification";
 
   // Heavy charting libraries (lazy load)
-  if (id.includes('chart.js')) return 'chartjs'
-  if (id.includes('vue-chartjs')) return 'vue-chartjs'
+  if (id.includes("chart.js")) return "chartjs";
+  if (id.includes("vue-chartjs")) return "vue-chartjs";
 
   // i18n
-  if (id.includes('vue-i18n')) return 'i18n'
+  if (id.includes("vue-i18n")) return "i18n";
 
   // Utils
-  if (id.includes('axios')) return 'axios'
-  if (id.includes('lodash-es')) return 'lodash'
-  if (id.includes('date-fns')) return 'date-fns'
-  if (id.includes('@vueuse/core')) return 'vueuse'
+  if (id.includes("axios")) return "axios";
+  if (id.includes("lodash-es")) return "lodash";
+  if (id.includes("date-fns")) return "date-fns";
+  if (id.includes("@vueuse/core")) return "vueuse";
 
   // Remaining vendor code
-  if (id.includes('node_modules/')) return 'vendor'
-}
+  if (id.includes("node_modules/")) return "vendor";
+};
 ```
 
 **Expected Benefits**:
+
 - **Initial Load**: 30-40% reduction in initial bundle size
 - **Caching**: Better long-term caching (vendor chunks rarely change)
 - **Parallel Loading**: Browser can download multiple chunks simultaneously
@@ -74,38 +77,39 @@ manualChunks: (id) => {
 ```typescript
 manualChunks: (id) => {
   // Vue core
-  if (id.includes('vue/') || id.includes('@vue/')) return 'vue-core'
-  if (id.includes('vue-router/')) return 'vue-router'
-  if (id.includes('pinia/')) return 'pinia'
+  if (id.includes("vue/") || id.includes("@vue/")) return "vue-core";
+  if (id.includes("vue-router/")) return "vue-router";
+  if (id.includes("pinia/")) return "pinia";
 
   // UI libraries
-  if (id.includes('@headlessui/vue')) return 'headlessui'
-  if (id.includes('@heroicons/vue')) return 'heroicons'
+  if (id.includes("@headlessui/vue")) return "headlessui";
+  if (id.includes("@heroicons/vue")) return "heroicons";
 
   // Utils
-  if (id.includes('axios')) return 'axios'
-  if (id.includes('dayjs')) return 'dayjs'
+  if (id.includes("axios")) return "axios";
+  if (id.includes("dayjs")) return "dayjs";
 
   // QR code libraries (heavy - lazy load)
-  if (id.includes('@zxing/library')) return 'zxing-qr'
-  if (id.includes('qrcode-reader')) return 'qrcode-reader'
+  if (id.includes("@zxing/library")) return "zxing-qr";
+  if (id.includes("qrcode-reader")) return "qrcode-reader";
 
   // PWA-specific chunks
-  if (id.includes('workbox-')) return 'workbox'
-  if (id.includes('idb')) return 'idb'
+  if (id.includes("workbox-")) return "workbox";
+  if (id.includes("idb")) return "idb";
 
   // VueUse composables
-  if (id.includes('@vueuse/core')) return 'vueuse'
+  if (id.includes("@vueuse/core")) return "vueuse";
 
   // TanStack Query
-  if (id.includes('@tanstack/vue-query')) return 'tanstack-query'
+  if (id.includes("@tanstack/vue-query")) return "tanstack-query";
 
   // Remaining vendor code
-  if (id.includes('node_modules/')) return 'vendor'
-}
+  if (id.includes("node_modules/")) return "vendor";
+};
 ```
 
 **Expected Benefits**:
+
 - **PWA Performance**: Faster subsequent loads with cached chunks
 - **Mobile Optimization**: Reduced bandwidth usage on 3G/4G
 - **Offline Support**: Service Worker can cache individual chunks
@@ -119,73 +123,81 @@ Created `useDynamicComponents.ts` composable for both apps with advanced feature
 #### Features
 
 **1. Basic Lazy Loading**
+
 ```typescript
 const HeavyChart = useLazyComponent(
-  () => import('@/components/charts/HeavyChart.vue'),
+  () => import("@/components/charts/HeavyChart.vue"),
   {
     delay: 200,
-    timeout: 10000
-  }
-)
+    timeout: 10000,
+  },
+);
 ```
 
 **2. Component Preloading**
+
 ```typescript
 // Preload analytics components when dashboard is mounted
 onMounted(() => {
-  preloadComponent(() => import('@/views/AnalyticsView.vue'))
-})
+  preloadComponent(() => import("@/views/AnalyticsView.vue"));
+});
 ```
 
 **3. Visibility-Based Loading (Intersection Observer)**
+
 ```typescript
 const HeavyTable = useVisibilityComponent(
   elementRef,
-  () => import('@/components/HeavyTable.vue')
-)
+  () => import("@/components/HeavyTable.vue"),
+);
 ```
 
 **4. Batch Component Loading**
+
 ```typescript
 const chartComponents = useBatchLoader({
-  LineChart: () => import('@/components/charts/LineChart.vue'),
-  BarChart: () => import('@/components/charts/BarChart.vue'),
-  PieChart: () => import('@/components/charts/PieChart.vue')
-})
+  LineChart: () => import("@/components/charts/LineChart.vue"),
+  BarChart: () => import("@/components/charts/BarChart.vue"),
+  PieChart: () => import("@/components/charts/PieChart.vue"),
+});
 ```
 
 **5. Performance Metrics**
+
 ```typescript
 const HeavyComponent = useLazyComponentWithMetrics(
-  'HeavyComponent',
-  () => import('@/components/Heavy.vue')
-)
+  "HeavyComponent",
+  () => import("@/components/Heavy.vue"),
+);
 // Automatically logs: "[ComponentMetrics] HeavyComponent loaded in 123.45ms"
 ```
 
 #### Customer App PWA-Specific Features
 
 **1. Offline-Aware Loading**
+
 ```typescript
 // Automatically retries when device comes back online
 const Component = useLazyComponent(
-  () => import('@/components/MyComponent.vue')
-)
+  () => import("@/components/MyComponent.vue"),
+);
 ```
 
 **2. Network-Adaptive Loading**
+
 ```typescript
 // Loads light version on slow 2G/3G connections
 const AdaptiveComponent = useAdaptiveComponent(
-  () => import('@/components/LightVersion.vue'),
-  () => import('@/components/HeavyVersion.vue')
-)
+  () => import("@/components/LightVersion.vue"),
+  () => import("@/components/HeavyVersion.vue"),
+);
 ```
 
 **3. Service Worker Integration**
+
 ```typescript
 // Uses Service Worker cache if available
-preloadComponent(() => import('@/views/MenuView.vue'))
+preloadComponent(() => import("@/views/MenuView.vue"));
 ```
 
 ---
@@ -195,6 +207,7 @@ preloadComponent(() => import('@/views/MenuView.vue'))
 #### Usage
 
 **Admin Dashboard**:
+
 ```bash
 cd apps/admin-dashboard
 npm run build:analyze
@@ -202,6 +215,7 @@ npm run build:analyze
 ```
 
 **Customer App**:
+
 ```bash
 cd apps/customer-app
 npm run build:analyze
@@ -259,24 +273,22 @@ Largest chunks:
 
 ```vue
 <script setup lang="ts">
-import { useLazyComponent } from '@/composables/useDynamicComponents'
+import { useLazyComponent } from "@/composables/useDynamicComponents";
 
 // Lazy load heavy chart component only when needed
 const AnalyticsChart = useLazyComponent(
-  () => import('@/components/charts/AnalyticsChart.vue'),
-  { delay: 200 }
-)
+  () => import("@/components/charts/AnalyticsChart.vue"),
+  { delay: 200 },
+);
 
 // Preload on hover for instant display on click
 const handleMouseEnter = () => {
-  preloadComponent(() => import('@/components/charts/AnalyticsChart.vue'))
-}
+  preloadComponent(() => import("@/components/charts/AnalyticsChart.vue"));
+};
 </script>
 
 <template>
-  <button @mouseenter="handleMouseEnter">
-    Show Analytics
-  </button>
+  <button @mouseenter="handleMouseEnter">Show Analytics</button>
   <Suspense>
     <AnalyticsChart v-if="showChart" />
   </Suspense>
@@ -286,6 +298,7 @@ const handleMouseEnter = () => {
 #### Library-Specific Optimizations
 
 **Chart.js Optimization**:
+
 ```typescript
 // Import only needed components instead of entire library
 import {
@@ -296,8 +309,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
-} from 'chart.js'
+  Legend,
+} from "chart.js";
 
 ChartJS.register(
   CategoryScale,
@@ -306,32 +319,34 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
-)
+  Legend,
+);
 ```
 
 **Lodash Optimization**:
+
 ```typescript
 // ❌ Bad: Imports entire lodash library
-import _ from 'lodash'
+import _ from "lodash";
 
 // ✅ Good: Import only what you need
-import debounce from 'lodash-es/debounce'
-import throttle from 'lodash-es/throttle'
+import debounce from "lodash-es/debounce";
+import throttle from "lodash-es/throttle";
 ```
 
 **Date Library Optimization**:
+
 ```typescript
 // ❌ Bad: Import entire dayjs with all locales
-import dayjs from 'dayjs'
+import dayjs from "dayjs";
 
 // ✅ Good: Import only needed plugins
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import utc from 'dayjs/plugin/utc'
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
 
-dayjs.extend(relativeTime)
-dayjs.extend(utc)
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
 ```
 
 ---
@@ -340,21 +355,21 @@ dayjs.extend(utc)
 
 ### Admin Dashboard
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| Initial Bundle Size | < 300 KB | TBD | 🟡 In Progress |
-| Time to Interactive | < 3s | TBD | 🟡 In Progress |
-| First Contentful Paint | < 1.5s | TBD | 🟡 In Progress |
-| Largest Chunk | < 150 KB | TBD | 🟡 In Progress |
+| Metric                 | Target   | Current | Status         |
+| ---------------------- | -------- | ------- | -------------- |
+| Initial Bundle Size    | < 300 KB | TBD     | 🟡 In Progress |
+| Time to Interactive    | < 3s     | TBD     | 🟡 In Progress |
+| First Contentful Paint | < 1.5s   | TBD     | 🟡 In Progress |
+| Largest Chunk          | < 150 KB | TBD     | 🟡 In Progress |
 
 ### Customer App (PWA)
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| Initial Bundle Size | < 200 KB | TBD | 🟡 In Progress |
-| Time to Interactive | < 2s | TBD | 🟡 In Progress |
-| First Contentful Paint | < 1s | TBD | 🟡 In Progress |
-| Lighthouse Score | > 90 | 95 | ✅ Complete |
+| Metric                 | Target   | Current | Status         |
+| ---------------------- | -------- | ------- | -------------- |
+| Initial Bundle Size    | < 200 KB | TBD     | 🟡 In Progress |
+| Time to Interactive    | < 2s     | TBD     | 🟡 In Progress |
+| First Contentful Paint | < 1s     | TBD     | 🟡 In Progress |
+| Lighthouse Score       | > 90     | 95      | ✅ Complete    |
 
 ---
 
@@ -363,6 +378,7 @@ dayjs.extend(utc)
 ### Bundle Size Monitoring
 
 **CI/CD Integration**:
+
 ```yaml
 # .github/workflows/bundle-size.yml
 name: Bundle Size Check
@@ -387,18 +403,19 @@ jobs:
 ### Performance Monitoring
 
 **Real User Monitoring (RUM)**:
+
 ```typescript
 // Track component load times in production
 if (import.meta.env.PROD) {
-  const metrics = useComponentMetrics('HeavyComponent')
+  const metrics = useComponentMetrics("HeavyComponent");
 
   // Send to analytics
-  const { loadTime, success } = metrics.getMetrics()[0]
-  analytics.track('component_load', {
-    component: 'HeavyComponent',
+  const { loadTime, success } = metrics.getMetrics()[0];
+  analytics.track("component_load", {
+    component: "HeavyComponent",
     loadTime,
-    success
-  })
+    success,
+  });
 }
 ```
 
@@ -419,6 +436,7 @@ npm run build:analyze
 ```
 
 **Expected Output**:
+
 - Bundle visualization opens in browser
 - Verify chunks are properly split
 - Check for duplicate dependencies
@@ -453,6 +471,7 @@ npm run preview
 ```
 
 **Target Scores**:
+
 - Performance: > 90
 - Best Practices: > 95
 - Accessibility: > 90
@@ -468,15 +487,16 @@ npm run preview
 **Cause**: Heavy dependencies not properly split
 
 **Solution**:
+
 ```typescript
 // In vite.config.ts
 optimizeDeps: {
-  exclude: ['heavy-library']
+  exclude: ["heavy-library"];
 }
 
 // Create dedicated chunk
-if (id.includes('heavy-library')) {
-  return 'heavy-library-chunk'
+if (id.includes("heavy-library")) {
+  return "heavy-library-chunk";
 }
 ```
 
@@ -485,6 +505,7 @@ if (id.includes('heavy-library')) {
 **Cause**: Shared dependencies not extracted to common chunk
 
 **Solution**:
+
 ```typescript
 // In vite.config.ts
 build: {
@@ -492,10 +513,10 @@ build: {
     output: {
       manualChunks: (id) => {
         // Extract shared utilities
-        if (id.includes('/utils/') && id.includes('node_modules')) {
-          return 'shared-utils'
+        if (id.includes("/utils/") && id.includes("node_modules")) {
+          return "shared-utils";
         }
-      }
+      };
     }
   }
 }
@@ -506,14 +527,13 @@ build: {
 **Cause**: Component eagerly imported elsewhere
 
 **Solution**:
+
 ```typescript
 // ❌ Bad: Eager import defeats lazy loading
-import HeavyComponent from '@/components/Heavy.vue'
+import HeavyComponent from "@/components/Heavy.vue";
 
 // ✅ Good: Use dynamic import everywhere
-const HeavyComponent = useLazyComponent(
-  () => import('@/components/Heavy.vue')
-)
+const HeavyComponent = useLazyComponent(() => import("@/components/Heavy.vue"));
 ```
 
 ---
@@ -539,16 +559,19 @@ const HeavyComponent = useLazyComponent(
 ## Resources
 
 ### Documentation
+
 - [Vite Code Splitting](https://vitejs.dev/guide/build.html#chunking-strategy)
 - [Vue 3 Async Components](https://vuejs.org/guide/components/async.html)
 - [Rollup Manual Chunks](https://rollupjs.org/configuration-options/#output-manualchunks)
 
 ### Tools
+
 - [Rollup Plugin Visualizer](https://github.com/btd/rollup-plugin-visualizer)
 - [Webpack Bundle Analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
 - [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci)
 
 ### Related Guides
+
 - `PERFORMANCE_OPTIMIZATION_GUIDE.md` - Overall performance strategies
 - `PWA-TESTING-REPORT.md` - PWA-specific optimizations
 

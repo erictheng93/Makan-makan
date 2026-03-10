@@ -9,10 +9,10 @@
  * - Seat statistics and status
  */
 
-import routes from './routes';
+import routes from "./routes";
 export { routes };
-export { default as seatsRoutes } from './routes';
-export * from './types';
+export { default as seatsRoutes } from "./routes";
+export * from "./types";
 // Note: schemas re-export types with same names, using explicit exports to avoid conflicts
 export {
   batchCreateSeatsSchema,
@@ -24,8 +24,8 @@ export {
   qrCodeParamSchema,
   tableIdQuerySchema,
   batchRegenerateQRSchema,
-} from './schemas/validation';
+} from "./schemas/validation";
 
 export default {
-  routes
+  routes,
 };

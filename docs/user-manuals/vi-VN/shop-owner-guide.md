@@ -48,26 +48,31 @@
 ### Danh Sách Kiểm Tra Lần Đầu
 
 ✅ **Bước 1: Hoàn Thành Thông Tin Nhà Hàng**
+
 - Tên nhà hàng, địa chỉ, thông tin liên hệ
 - Cài đặt giờ làm việc
 - Tải ảnh nhà hàng
 
 ✅ **Bước 2: Xây Dựng Thực Đơn**
+
 - Thêm danh mục món ăn
 - Tải thông tin món ăn
 - Đặt giá và hình ảnh
 
 ✅ **Bước 3: Thiết Lập Bàn**
+
 - Tạo thông tin bàn
 - Tạo mã QR
 - In và dán mã QR
 
 ✅ **Bước 4: Thêm Tài Khoản Nhân Viên**
+
 - Tạo hồ sơ nhân viên
 - Phân quyền vai trò
 - Gửi thông tin đăng nhập
 
 ✅ **Bước 5: Bắt Đầu Hoạt Động**
+
 - Kiểm tra quy trình đặt hàng
 - Xác nhận nhận đơn hàng
 - Giám sát hoạt động
@@ -121,6 +126,7 @@
 ```
 
 **Giải thích**:
+
 - **Chủ**: Quyền quản lý đầy đủ, xem tất cả dữ liệu
 - **Đầu bếp**: Nhận đơn, cập nhật trạng thái nấu
 - **Phục vụ**: Xác nhận giao món, cập nhật tiến độ
@@ -137,13 +143,13 @@
 
 #### Thông Tin Bắt Buộc
 
-| Trường | Mô Tả | Ví Dụ |
-|--------|-------|-------|
-| Tên Nhà Hàng | Tên hiển thị cho khách | Nhà Hàng Hải Sản Ngon |
-| Địa Chỉ | Địa chỉ đầy đủ với mã bưu điện | 123 Đường Nguyễn Huệ, Quận 1, TP.HCM |
-| Điện Thoại | Đường dây dịch vụ khách hàng | 028-1234-5678 |
-| Giờ Làm Việc | Giờ hoạt động hàng ngày | 11:00-14:00, 17:00-21:00 |
-| Mô Tả | Giới thiệu, đặc điểm | Hải sản tươi và món truyền thống |
+| Trường       | Mô Tả                          | Ví Dụ                                |
+| ------------ | ------------------------------ | ------------------------------------ |
+| Tên Nhà Hàng | Tên hiển thị cho khách         | Nhà Hàng Hải Sản Ngon                |
+| Địa Chỉ      | Địa chỉ đầy đủ với mã bưu điện | 123 Đường Nguyễn Huệ, Quận 1, TP.HCM |
+| Điện Thoại   | Đường dây dịch vụ khách hàng   | 028-1234-5678                        |
+| Giờ Làm Việc | Giờ hoạt động hàng ngày        | 11:00-14:00, 17:00-21:00             |
+| Mô Tả        | Giới thiệu, đặc điểm           | Hải sản tươi và món truyền thống     |
 
 #### Cấu Hình Giờ Làm Việc
 
@@ -171,6 +177,7 @@ Kích thước đề xuất: 1920x1080 pixels
 Kích thước file: Tối đa 5MB
 
 **Các Bước Tải Lên**:
+
 1. Nhấp "Tải Ảnh Lên"
 2. Chọn ảnh ngoại thất hoặc món ăn đặc trưng
 3. Hệ thống tự động nén và tạo nhiều kích thước
@@ -206,12 +213,12 @@ Thực Đơn Nhà Hàng
 
 #### Cài Đặt Danh Mục
 
-| Cài Đặt | Mô Tả | Ví Dụ |
-|---------|-------|-------|
-| Tên Danh Mục | Tiêu đề hiển thị trên thực đơn | Món Hải Sản |
-| Biểu Tượng | Ký hiệu biểu tượng (tùy chọn) | 🦐 |
-| Thứ Tự | Thứ tự hiển thị | 1, 2, 3... |
-| Trạng Thái | Hiển thị trên thực đơn | Hoạt động/Tắt |
+| Cài Đặt      | Mô Tả                          | Ví Dụ         |
+| ------------ | ------------------------------ | ------------- |
+| Tên Danh Mục | Tiêu đề hiển thị trên thực đơn | Món Hải Sản   |
+| Biểu Tượng   | Ký hiệu biểu tượng (tùy chọn)  | 🦐            |
+| Thứ Tự       | Thứ tự hiển thị                | 1, 2, 3...    |
+| Trạng Thái   | Hiển thị trên thực đơn         | Hoạt động/Tắt |
 
 #### Thực Hành Tốt Nhất Quản Lý Danh Mục
 
@@ -265,12 +272,12 @@ Thực Đơn Nhà Hàng
 
 #### Yêu Cầu Hình Ảnh
 
-| Mục | Yêu Cầu |
-|-----|---------|
-| Định Dạng | JPG, PNG, WebP |
-| Kích Thước Đề Xuất | 800x600 pixels |
-| Kích Thước File | Tối đa 3MB |
-| Gợi Ý Chụp | Ánh sáng tốt, lấy nét rõ, bày trí đẹp |
+| Mục                | Yêu Cầu                               |
+| ------------------ | ------------------------------------- |
+| Định Dạng          | JPG, PNG, WebP                        |
+| Kích Thước Đề Xuất | 800x600 pixels                        |
+| Kích Thước File    | Tối đa 3MB                            |
+| Gợi Ý Chụp         | Ánh sáng tốt, lấy nét rõ, bày trí đẹp |
 
 **Quy Trình Tối Ưu Hóa Ảnh**:
 
@@ -296,11 +303,13 @@ Phân Phối Toàn Cầu Nhanh (CDN)
 Đi tới: **Quản Lý Thực Đơn → Thao Tác Hàng Loạt → Điều Chỉnh Giá**
 
 Trường hợp sử dụng:
+
 - Điều chỉnh giá theo mùa
 - Điều chỉnh tăng chi phí
 - Đặt giá khuyến mãi
 
 **Các Bước**:
+
 1. Chọn món cần điều chỉnh (chọn nhiều)
 2. Đặt phương pháp điều chỉnh:
    - Số tiền cố định (ví dụ: +$10)
@@ -311,6 +320,7 @@ Trường hợp sử dụng:
 #### Kích Hoạt/Vô Hiệu Hóa Hàng Loạt
 
 Thao tác nhanh:
+
 - ✅ Kích hoạt món đã chọn
 - ⏸️ Tạm dừng món đã chọn
 - ❌ Vô hiệu hóa món đã chọn
@@ -427,13 +437,13 @@ MakanMakan hỗ trợ hai chế độ quản lý ghế:
 
 #### Hướng Dẫn Chọn Chế Độ
 
-| Loại Hình Kinh Doanh | Chế Độ Đề Xuất | Lý Do |
-|----------------------|----------------|-------|
-| Nhà Hàng Truyền Thống | Cấp bàn | Thường ăn nhóm |
-| Nhà Hàng Lẩu | Cấp bàn | Nồi chung, đặt món chung |
-| Đồ Ăn Nhanh | Cấp ghế | Đặt món riêng, xoay bàn nhanh |
-| Khu Ẩm Thực | Cấp ghế | Người lạ ngồi chung, tính riêng |
-| Quán Cà Phê | Hỗn hợp | Bàn lớn dùng cấp bàn, ghế đơn dùng cấp ghế |
+| Loại Hình Kinh Doanh  | Chế Độ Đề Xuất | Lý Do                                      |
+| --------------------- | -------------- | ------------------------------------------ |
+| Nhà Hàng Truyền Thống | Cấp bàn        | Thường ăn nhóm                             |
+| Nhà Hàng Lẩu          | Cấp bàn        | Nồi chung, đặt món chung                   |
+| Đồ Ăn Nhanh           | Cấp ghế        | Đặt món riêng, xoay bàn nhanh              |
+| Khu Ẩm Thực           | Cấp ghế        | Người lạ ngồi chung, tính riêng            |
+| Quán Cà Phê           | Hỗn hợp        | Bàn lớn dùng cấp bàn, ghế đơn dùng cấp ghế |
 
 ### Tạo Ghế
 
@@ -486,6 +496,7 @@ MakanMakan cung cấp ba chế độ mã QR cho các tình huống kinh doanh kh
 ### Chế Độ 1: Mã QR Cấp Cửa Hàng
 
 **Trường Hợp Sử Dụng**:
+
 - ✅ Cửa hàng mang đi/giao hàng
 - ✅ Không có chỗ ngồi (đứng ăn, xe đẩy)
 - ✅ Xe ăn di động
@@ -533,6 +544,7 @@ Chờ Thông Báo
 ### Chế Độ 2: Mã QR Cấp Bàn
 
 **Trường Hợp Sử Dụng**:
+
 - ✅ Nhà hàng ăn tại chỗ truyền thống
 - ✅ Đặt món nhóm
 - ✅ Bữa ăn gia đình, bạn bè
@@ -592,6 +604,7 @@ Ngồi Xuống → Quét QR Trên Bàn
 ### Chế Độ 3: Mã QR Cấp Ghế
 
 **Trường Hợp Sử Dụng**:
+
 - ✅ Đồ ăn nhanh, khu ẩm thực
 - ✅ Bữa trưa công sở
 - ✅ Người lạ ngồi chung bàn
@@ -637,12 +650,12 @@ Ngồi Xuống → Quét QR Trên Bàn
 
 #### Đề Xuất Kích Thước QR
 
-| Vị Trí Hiển Thị | Kích Thước Đề Xuất | Khoảng Cách Quét |
-|-----------------|-------------------|------------------|
-| Giá Để Bàn | 5cm x 5cm | 20-30cm |
-| Nhãn Dán Bàn | 3cm x 3cm | 10-20cm |
-| Poster Tường | 15cm x 15cm | 50-100cm |
-| Màn Hình Điện Tử | Thay đổi | 20-50cm |
+| Vị Trí Hiển Thị  | Kích Thước Đề Xuất | Khoảng Cách Quét |
+| ---------------- | ------------------ | ---------------- |
+| Giá Để Bàn       | 5cm x 5cm          | 20-30cm          |
+| Nhãn Dán Bàn     | 3cm x 3cm          | 10-20cm          |
+| Poster Tường     | 15cm x 15cm        | 50-100cm         |
+| Màn Hình Điện Tử | Thay đổi           | 20-50cm          |
 
 #### Mẫu Thiết Kế QR
 
@@ -673,11 +686,13 @@ Ngồi Xuống → Quét QR Trên Bàn
 #### Đề Xuất In Ấn
 
 **Vật Liệu Giấy**:
+
 - 🏆 **Đề Xuất**: Nhãn dán chống nước, PVC
 - ✅ **Có Thể Dùng**: Giấy phủ, giấy ảnh
 - ❌ **Không Đề Xuất**: Giấy photocopy thông thường (dễ hỏng)
 
 **Tùy Chọn Ép Plastic**:
+
 - Sử dụng trên bàn: Đề xuất ép plastic hoặc giá acrylic
 - Sử dụng ngoài trời: Phải xử lý chống nước
 - Sử dụng tạm thời: Có thể dùng băng dính trong bảo vệ
@@ -710,11 +725,13 @@ Ngồi Xuống → Quét QR Trên Bàn
 #### Đặt Lại QR Nhanh
 
 **Trường Hợp Sử Dụng**:
+
 - QR bị hỏng, cần in lại
 - Cân nhắc bảo mật, cần thay thế
 - Cấu hình lại bàn
 
 **Các Bước**:
+
 1. Đi tới: **Quản Lý QR → Chọn QR Mục Tiêu**
 2. Nhấp "Tạo Lại"
 3. Tải QR mới
@@ -873,6 +890,7 @@ Hệ Thống Tự Động Gộp
 ```
 
 **Cách Hiển Thị**:
+
 - Món mới đánh dấu "MỚI"
 - Mã màu: Gốc (trắng), Thêm (vàng)
 - Dòng thời gian hiển thị thời gian gửi từng món
@@ -1007,18 +1025,18 @@ Hệ Thống Tự Động Gộp
 
 ### Ma Trận Quyền Nhân Viên
 
-| Chức năng | Chủ | Đầu bếp | Phục vụ | Thu ngân |
-|-----------|-----|---------|---------|----------|
-| Xem đơn hàng | ✅ | ✅ | ✅ | ✅ |
-| Cập nhật trạng thái đơn | ✅ | ✅ | ✅ | ✅ |
-| Quản lý thực đơn | ✅ | ❌ | ❌ | ❌ |
-| Quản lý bàn | ✅ | ❌ | ❌ | ❌ |
-| Xem doanh thu | ✅ | ❌ | ❌ | ✅ |
-| Xem chi phí | ✅ | ❌ | ❌ | ❌ |
-| Quản lý nhân viên | ✅ | ❌ | ❌ | ❌ |
-| Xử lý thanh toán | ✅ | ❌ | ❌ | ✅ |
-| Hoàn đơn/Giảm giá | ✅ | ❌ | ❌ | ✅ |
-| Xem báo cáo phân tích | ✅ | ❌ | ❌ | ❌ |
+| Chức năng               | Chủ | Đầu bếp | Phục vụ | Thu ngân |
+| ----------------------- | --- | ------- | ------- | -------- |
+| Xem đơn hàng            | ✅  | ✅      | ✅      | ✅       |
+| Cập nhật trạng thái đơn | ✅  | ✅      | ✅      | ✅       |
+| Quản lý thực đơn        | ✅  | ❌      | ❌      | ❌       |
+| Quản lý bàn             | ✅  | ❌      | ❌      | ❌       |
+| Xem doanh thu           | ✅  | ❌      | ❌      | ✅       |
+| Xem chi phí             | ✅  | ❌      | ❌      | ❌       |
+| Quản lý nhân viên       | ✅  | ❌      | ❌      | ❌       |
+| Xử lý thanh toán        | ✅  | ❌      | ❌      | ✅       |
+| Hoàn đơn/Giảm giá       | ✅  | ❌      | ❌      | ✅       |
+| Xem báo cáo phân tích   | ✅  | ❌      | ❌      | ❌       |
 
 ### Quản Lý Lịch Làm Việc Nhân Viên
 
@@ -1993,6 +2011,7 @@ Lưu ý: QR Code cũ sẽ tự động vô hiệu
 **Q: Có thể tùy chỉnh ngoại hình QR Code không?**
 
 A: Được. Đi tới **Quản Lý QR Code → Thiết Kế Mẫu**, có thể chọn:
+
 - QR thuần túy (đen trắng)
 - Mẫu thương hiệu (có Logo và màu sắc)
 - Mẫu hướng dẫn (có văn bản hướng dẫn sử dụng)
@@ -2000,11 +2019,13 @@ A: Được. Đi tới **Quản Lý QR Code → Thiết Kế Mẫu**, có thể 
 **Q: Khách quét QR Code thấy thông báo lỗi?**
 
 Có thể nguyên nhân:
+
 1. QR Code đã được tạo lại (mã cũ vô hiệu)
 2. Nhà hàng tạm ngưng hoạt động
 3. Bàn đó đã bị vô hiệu
 
 Giải pháp:
+
 - Xác nhận trạng thái QR Code là "Đang Kích Hoạt"
 - Kiểm tra trạng thái hoạt động nhà hàng
 - Tạo lại và dán QR Code mới
@@ -2036,6 +2057,7 @@ Hệ thống tự động thông báo khách
 **Q: Đơn quá nhiều, không kịp xử lý thì làm sao?**
 
 Đề xuất xử lý:
+
 1. **Tạm Ngừng Nhận Đơn**: Đi tới **Cài Đặt Nhà Hàng → Tạm Ngừng Nhận Đơn**, tạm thời đóng đặt món online
 2. **Kéo Dài Thời Gian Ra Món**: Điều chỉnh thời gian hoàn thành dự kiến tại trang đơn hàng, cho khách biết cần chờ
 3. **Tăng Nhân Lực**: Tạm thời điều thêm đầu bếp hoặc phục vụ
@@ -2061,6 +2083,7 @@ Cách 2: Nhân viên tự đặt lại
 **Q: Nhân viên nghỉ việc thì xử lý tài khoản như thế nào?**
 
 Cách làm đề xuất:
+
 1. Đi tới **Quản Lý Nhân Viên → Chọn nhân viên → Vô Hiệu Tài Khoản** (không khuyến nghị xóa, giữ lại hồ sơ lịch sử)
 2. Hệ thống sẽ giữ lại hồ sơ công việc nhân viên đó (đơn hàng, lịch làm v.v.)
 3. Nhân viên đó sẽ không thể đăng nhập hệ thống nữa
@@ -2102,6 +2125,7 @@ Hoàn thành thanh toán
 **Q: Có thể giảm giá không?**
 
 A: Được. Tại trang thanh toán:
+
 1. Nhấp "Áp Dụng Giảm Giá"
 2. Chọn loại giảm giá:
    - Giảm theo phần trăm (như: 10%, 20% off)
@@ -2135,6 +2159,7 @@ A: Được. Tại trang thanh toán:
 A: Không cần. MakanMakan là hệ thống web, chỉ cần có trình duyệt và mạng là có thể sử dụng.
 
 Trình duyệt khuyến nghị:
+
 - Google Chrome (khuyến nghị)
 - Microsoft Edge
 - Safari
@@ -2180,6 +2205,7 @@ Báo cáo bao gồm:
 **Q: Có thể xem chi phí và lợi nhuận từng món không?**
 
 A: Được. Đi tới **Quản Lý Thực Đơn → Danh Sách Món → Phân Tích Chi Phí**, có thể xem:
+
 - Chi phí nguyên liệu
 - Giá bán
 - Tỷ lệ lợi nhuận gộp
@@ -2286,17 +2312,20 @@ Khi bạn đã quen với thao tác cơ bản, có thể khám phá các chức 
 ## 📝 Nhật Ký Cập Nhật
 
 ### 2.0.0 (2025-10-26)
+
 - ✨ Giao diện vận hành chủ hoàn toàn mới
 - ✨ Phân tích thông minh AI ra mắt
 - ✨ Kiến trúc hệ thống lịch hoàn thành
 - 🔧 Tối ưu hiệu suất và sửa lỗi
 
 ### 1.5.0 (2025-10-12)
+
 - ✨ Hỗ trợ đa ngôn ngữ (6 ngôn ngữ)
 - ✨ Chức năng QR Code cấp chỗ ngồi
 - 🔧 Nâng cao bảo mật mật khẩu
 
 ### 1.0.0 (2025-09-01)
+
 - 🎉 MakanMakan chính thức ra mắt
 - ✨ Chức năng quản lý nhà hàng cơ bản
 - ✨ Hệ thống đặt món QR Code
@@ -2329,4 +2358,4 @@ Sẵn sàng bắt đầu sử dụng MakanMakan chưa? 🚀
 
 ---
 
-*Hướng dẫn này được cập nhật liên tục. Mọi đóng góp xin liên hệ chúng tôi.*
+_Hướng dẫn này được cập nhật liên tục. Mọi đóng góp xin liên hệ chúng tôi._

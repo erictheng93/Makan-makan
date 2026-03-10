@@ -10,11 +10,13 @@
 ## 📋 執行摘要
 
 本文檔提供完整的實施計劃，用於：
+
 1. ✅ 補充 45+ 個測試檔案（Realtime & Kitchen Display）
 2. ✅ 建立 OpenAPI 3.x 規範文檔覆蓋所有 API
 3. ✅ 配置測試覆蓋率門檻到 CI/CD
 
 **目標**:
+
 - 測試分布均衡度：30% → 85%
 - API 文檔化程度：0% → 100%
 - 測試覆蓋率：達到 85-90%
@@ -26,6 +28,7 @@
 ### ✅ 已完成項目
 
 1. **OpenAPI 工具安裝**
+
    ```bash
    # 已安裝
    @hono/swagger-ui ^0.5.2
@@ -84,11 +87,11 @@ apps/realtime/src/__tests__/
 
 ```typescript
 // apps/realtime/src/__tests__/unit/connection/connection-manager.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ConnectionManager } from '@/services/ConnectionManager';
-import type { WebSocket } from '@cloudflare/workers-types';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ConnectionManager } from "@/services/ConnectionManager";
+import type { WebSocket } from "@cloudflare/workers-types";
 
-describe('ConnectionManager', () => {
+describe("ConnectionManager", () => {
   let connectionManager: ConnectionManager;
   let mockWebSocket: WebSocket;
 
@@ -102,25 +105,25 @@ describe('ConnectionManager', () => {
     } as unknown as WebSocket;
   });
 
-  describe('addConnection', () => {
-    it('應該成功添加新連接', () => {
-      const clientId = 'client-123';
+  describe("addConnection", () => {
+    it("應該成功添加新連接", () => {
+      const clientId = "client-123";
       connectionManager.addConnection(clientId, mockWebSocket);
 
       expect(connectionManager.hasConnection(clientId)).toBe(true);
       expect(connectionManager.getConnectionCount()).toBe(1);
     });
 
-    it('應該拒絕重複的 clientId', () => {
-      const clientId = 'client-123';
+    it("應該拒絕重複的 clientId", () => {
+      const clientId = "client-123";
       connectionManager.addConnection(clientId, mockWebSocket);
 
       expect(() => {
         connectionManager.addConnection(clientId, mockWebSocket);
-      }).toThrow('Connection already exists');
+      }).toThrow("Connection already exists");
     });
 
-    it('應該正確處理多個並發連接', () => {
+    it("應該正確處理多個並發連接", () => {
       for (let i = 0; i < 100; i++) {
         connectionManager.addConnection(`client-${i}`, mockWebSocket);
       }
@@ -129,34 +132,34 @@ describe('ConnectionManager', () => {
     });
   });
 
-  describe('removeConnection', () => {
-    it('應該成功移除存在的連接', () => {
-      const clientId = 'client-123';
+  describe("removeConnection", () => {
+    it("應該成功移除存在的連接", () => {
+      const clientId = "client-123";
       connectionManager.addConnection(clientId, mockWebSocket);
       connectionManager.removeConnection(clientId);
 
       expect(connectionManager.hasConnection(clientId)).toBe(false);
     });
 
-    it('移除不存在的連接時不應拋出錯誤', () => {
+    it("移除不存在的連接時不應拋出錯誤", () => {
       expect(() => {
-        connectionManager.removeConnection('non-existent');
+        connectionManager.removeConnection("non-existent");
       }).not.toThrow();
     });
   });
 
-  describe('broadcast', () => {
-    it('應該向所有連接廣播訊息', () => {
-      const clients = ['client-1', 'client-2', 'client-3'];
+  describe("broadcast", () => {
+    it("應該向所有連接廣播訊息", () => {
+      const clients = ["client-1", "client-2", "client-3"];
       const mockWs = {
         send: vi.fn(),
       } as unknown as WebSocket;
 
-      clients.forEach(id => {
+      clients.forEach((id) => {
         connectionManager.addConnection(id, mockWs);
       });
 
-      const message = { type: 'test', data: 'hello' };
+      const message = { type: "test", data: "hello" };
       connectionManager.broadcast(message);
 
       expect(mockWs.send).toHaveBeenCalledTimes(3);
@@ -170,23 +173,23 @@ describe('ConnectionManager', () => {
 
 ```typescript
 // apps/realtime/src/__tests__/unit/auth/jwt-validator.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { JWTValidator } from '@/auth/JWTValidator';
-import { sign } from 'jsonwebtoken';
+import { describe, it, expect, beforeEach } from "vitest";
+import { JWTValidator } from "@/auth/JWTValidator";
+import { sign } from "jsonwebtoken";
 
-describe('JWTValidator', () => {
+describe("JWTValidator", () => {
   let validator: JWTValidator;
-  const SECRET = 'test-secret';
+  const SECRET = "test-secret";
 
   beforeEach(() => {
     validator = new JWTValidator(SECRET);
   });
 
-  describe('validate', () => {
-    it('應該驗證有效的 JWT token', async () => {
+  describe("validate", () => {
+    it("應該驗證有效的 JWT token", async () => {
       const payload = {
-        userId: 'user-123',
-        role: 'admin',
+        userId: "user-123",
+        role: "admin",
         exp: Math.floor(Date.now() / 1000) + 3600,
       };
       const token = sign(payload, SECRET);
@@ -195,14 +198,14 @@ describe('JWTValidator', () => {
 
       expect(result.valid).toBe(true);
       expect(result.payload).toMatchObject({
-        userId: 'user-123',
-        role: 'admin',
+        userId: "user-123",
+        role: "admin",
       });
     });
 
-    it('應該拒絕過期的 token', async () => {
+    it("應該拒絕過期的 token", async () => {
       const payload = {
-        userId: 'user-123',
+        userId: "user-123",
         exp: Math.floor(Date.now() / 1000) - 3600, // 1 小時前過期
       };
       const token = sign(payload, SECRET);
@@ -210,34 +213,34 @@ describe('JWTValidator', () => {
       const result = await validator.validate(token);
 
       expect(result.valid).toBe(false);
-      expect(result.error).toBe('Token expired');
+      expect(result.error).toBe("Token expired");
     });
 
-    it('應該拒絕簽名不正確的 token', async () => {
-      const payload = { userId: 'user-123' };
-      const token = sign(payload, 'wrong-secret');
+    it("應該拒絕簽名不正確的 token", async () => {
+      const payload = { userId: "user-123" };
+      const token = sign(payload, "wrong-secret");
 
       const result = await validator.validate(token);
 
       expect(result.valid).toBe(false);
-      expect(result.error).toBe('Invalid signature');
+      expect(result.error).toBe("Invalid signature");
     });
 
-    it('應該處理格式錯誤的 token', async () => {
-      const invalidToken = 'not.a.valid.jwt';
+    it("應該處理格式錯誤的 token", async () => {
+      const invalidToken = "not.a.valid.jwt";
 
       const result = await validator.validate(invalidToken);
 
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('Invalid token format');
+      expect(result.error).toContain("Invalid token format");
     });
   });
 
-  describe('refresh', () => {
-    it('應該生成新的 token 並保留 userId', async () => {
+  describe("refresh", () => {
+    it("應該生成新的 token 並保留 userId", async () => {
       const originalPayload = {
-        userId: 'user-123',
-        role: 'user',
+        userId: "user-123",
+        role: "user",
       };
       const originalToken = sign(originalPayload, SECRET);
 
@@ -245,7 +248,7 @@ describe('JWTValidator', () => {
       const validation = await validator.validate(newToken);
 
       expect(validation.valid).toBe(true);
-      expect(validation.payload?.userId).toBe('user-123');
+      expect(validation.payload?.userId).toBe("user-123");
     });
   });
 });
@@ -300,24 +303,24 @@ apps/kitchen-display/src/__tests__/
 
 ```typescript
 // apps/kitchen-display/src/__tests__/unit/components/OrderCard.test.ts
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { createPinia } from 'pinia';
-import OrderCard from '@/components/OrderCard.vue';
-import type { Order } from '@makanmakan/shared-types';
+import { describe, it, expect, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import { createPinia } from "pinia";
+import OrderCard from "@/components/OrderCard.vue";
+import type { Order } from "@makanmakan/shared-types";
 
-describe('OrderCard.vue', () => {
+describe("OrderCard.vue", () => {
   const createWrapper = (order: Partial<Order> = {}) => {
     const mockOrder: Order = {
       id: 1,
-      order_number: 'ORD-001',
-      table_number: '5',
-      status: 'pending',
+      order_number: "ORD-001",
+      table_number: "5",
+      status: "pending",
       items: [
-        { id: 1, name: '牛肉麵', quantity: 2, notes: '少辣' },
-        { id: 2, name: '珍珠奶茶', quantity: 1, notes: '' },
+        { id: 1, name: "牛肉麵", quantity: 2, notes: "少辣" },
+        { id: 2, name: "珍珠奶茶", quantity: 1, notes: "" },
       ],
-      created_at: new Date('2025-11-13T10:00:00').toISOString(),
+      created_at: new Date("2025-11-13T10:00:00").toISOString(),
       ...order,
     };
 
@@ -329,95 +332,111 @@ describe('OrderCard.vue', () => {
     });
   };
 
-  describe('顯示訂單資訊', () => {
-    it('應該顯示訂單編號', () => {
+  describe("顯示訂單資訊", () => {
+    it("應該顯示訂單編號", () => {
       const wrapper = createWrapper();
 
-      expect(wrapper.find('[data-testid="order-number"]').text()).toBe('ORD-001');
+      expect(wrapper.find('[data-testid="order-number"]').text()).toBe(
+        "ORD-001",
+      );
     });
 
-    it('應該顯示桌號', () => {
+    it("應該顯示桌號", () => {
       const wrapper = createWrapper();
 
-      expect(wrapper.find('[data-testid="table-number"]').text()).toContain('5');
+      expect(wrapper.find('[data-testid="table-number"]').text()).toContain(
+        "5",
+      );
     });
 
-    it('應該顯示所有訂單項目', () => {
+    it("應該顯示所有訂單項目", () => {
       const wrapper = createWrapper();
       const items = wrapper.findAll('[data-testid="order-item"]');
 
       expect(items).toHaveLength(2);
-      expect(items[0].text()).toContain('牛肉麵');
-      expect(items[0].text()).toContain('x2');
-      expect(items[1].text()).toContain('珍珠奶茶');
+      expect(items[0].text()).toContain("牛肉麵");
+      expect(items[0].text()).toContain("x2");
+      expect(items[1].text()).toContain("珍珠奶茶");
     });
 
-    it('應該顯示特殊備註', () => {
+    it("應該顯示特殊備註", () => {
       const wrapper = createWrapper();
 
-      expect(wrapper.find('[data-testid="order-notes"]').text()).toContain('少辣');
+      expect(wrapper.find('[data-testid="order-notes"]').text()).toContain(
+        "少辣",
+      );
     });
   });
 
-  describe('狀態管理', () => {
-    it('pending 狀態應該顯示「待處理」樣式', () => {
-      const wrapper = createWrapper({ status: 'pending' });
+  describe("狀態管理", () => {
+    it("pending 狀態應該顯示「待處理」樣式", () => {
+      const wrapper = createWrapper({ status: "pending" });
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-pending');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-pending",
+      );
     });
 
-    it('preparing 狀態應該顯示「製作中」樣式', () => {
-      const wrapper = createWrapper({ status: 'preparing' });
+    it("preparing 狀態應該顯示「製作中」樣式", () => {
+      const wrapper = createWrapper({ status: "preparing" });
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-preparing');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-preparing",
+      );
     });
 
-    it('ready 狀態應該顯示「已完成」樣式', () => {
-      const wrapper = createWrapper({ status: 'ready' });
+    it("ready 狀態應該顯示「已完成」樣式", () => {
+      const wrapper = createWrapper({ status: "ready" });
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-ready');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-ready",
+      );
     });
   });
 
-  describe('用戶互動', () => {
-    it('點擊確認按鈕應該觸發 confirm 事件', async () => {
+  describe("用戶互動", () => {
+    it("點擊確認按鈕應該觸發 confirm 事件", async () => {
       const wrapper = createWrapper();
 
-      await wrapper.find('[data-testid="confirm-btn"]').trigger('click');
+      await wrapper.find('[data-testid="confirm-btn"]').trigger("click");
 
-      expect(wrapper.emitted('confirm')).toBeTruthy();
-      expect(wrapper.emitted('confirm')?.[0]).toEqual([1]); // order id
+      expect(wrapper.emitted("confirm")).toBeTruthy();
+      expect(wrapper.emitted("confirm")?.[0]).toEqual([1]); // order id
     });
 
-    it('點擊完成按鈕應該觸發 complete 事件', async () => {
-      const wrapper = createWrapper({ status: 'preparing' });
+    it("點擊完成按鈕應該觸發 complete 事件", async () => {
+      const wrapper = createWrapper({ status: "preparing" });
 
-      await wrapper.find('[data-testid="complete-btn"]').trigger('click');
+      await wrapper.find('[data-testid="complete-btn"]').trigger("click");
 
-      expect(wrapper.emitted('complete')).toBeTruthy();
+      expect(wrapper.emitted("complete")).toBeTruthy();
     });
 
-    it('pending 狀態不應顯示完成按鈕', () => {
-      const wrapper = createWrapper({ status: 'pending' });
+    it("pending 狀態不應顯示完成按鈕", () => {
+      const wrapper = createWrapper({ status: "pending" });
 
       expect(wrapper.find('[data-testid="complete-btn"]').exists()).toBe(false);
     });
   });
 
-  describe('時間顯示', () => {
-    it('應該顯示訂單經過時間', async () => {
+  describe("時間顯示", () => {
+    it("應該顯示訂單經過時間", async () => {
       // 模擬 5 分鐘前的訂單
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const wrapper = createWrapper({ created_at: fiveMinutesAgo });
 
-      expect(wrapper.find('[data-testid="elapsed-time"]').text()).toContain('5');
+      expect(wrapper.find('[data-testid="elapsed-time"]').text()).toContain(
+        "5",
+      );
     });
 
-    it('超過 15 分鐘應該顯示警告樣式', () => {
+    it("超過 15 分鐘應該顯示警告樣式", () => {
       const longAgo = new Date(Date.now() - 16 * 60 * 1000).toISOString();
       const wrapper = createWrapper({ created_at: longAgo });
 
-      expect(wrapper.find('[data-testid="elapsed-time"]').classes()).toContain('warning');
+      expect(wrapper.find('[data-testid="elapsed-time"]').classes()).toContain(
+        "warning",
+      );
     });
   });
 });
@@ -427,28 +446,28 @@ describe('OrderCard.vue', () => {
 
 ```typescript
 // apps/kitchen-display/src/__tests__/unit/stores/ordersStore.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setActivePinia, createPinia } from 'pinia';
-import { useOrdersStore } from '@/stores/orders';
-import type { Order } from '@makanmakan/shared-types';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { setActivePinia, createPinia } from "pinia";
+import { useOrdersStore } from "@/stores/orders";
+import type { Order } from "@makanmakan/shared-types";
 
-describe('Orders Store', () => {
+describe("Orders Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
 
   const mockOrder: Order = {
     id: 1,
-    order_number: 'ORD-001',
-    table_number: '5',
-    status: 'pending',
+    order_number: "ORD-001",
+    table_number: "5",
+    status: "pending",
     items: [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
-  describe('初始狀態', () => {
-    it('應該初始化為空訂單列表', () => {
+  describe("初始狀態", () => {
+    it("應該初始化為空訂單列表", () => {
       const store = useOrdersStore();
 
       expect(store.orders).toEqual([]);
@@ -457,8 +476,8 @@ describe('Orders Store', () => {
     });
   });
 
-  describe('addOrder', () => {
-    it('應該成功添加新訂單', () => {
+  describe("addOrder", () => {
+    it("應該成功添加新訂單", () => {
       const store = useOrdersStore();
       store.addOrder(mockOrder);
 
@@ -467,7 +486,7 @@ describe('Orders Store', () => {
       expect(store.pendingCount).toBe(1);
     });
 
-    it('應該將新訂單添加到列表開頭', () => {
+    it("應該將新訂單添加到列表開頭", () => {
       const store = useOrdersStore();
       const order1 = { ...mockOrder, id: 1 };
       const order2 = { ...mockOrder, id: 2 };
@@ -480,29 +499,29 @@ describe('Orders Store', () => {
     });
   });
 
-  describe('updateOrderStatus', () => {
-    it('應該成功更新訂單狀態', () => {
+  describe("updateOrderStatus", () => {
+    it("應該成功更新訂單狀態", () => {
       const store = useOrdersStore();
       store.addOrder(mockOrder);
 
-      store.updateOrderStatus(1, 'preparing');
+      store.updateOrderStatus(1, "preparing");
 
-      expect(store.orders[0].status).toBe('preparing');
+      expect(store.orders[0].status).toBe("preparing");
       expect(store.preparingCount).toBe(1);
       expect(store.pendingCount).toBe(0);
     });
 
-    it('更新不存在的訂單時不應拋出錯誤', () => {
+    it("更新不存在的訂單時不應拋出錯誤", () => {
       const store = useOrdersStore();
 
       expect(() => {
-        store.updateOrderStatus(999, 'preparing');
+        store.updateOrderStatus(999, "preparing");
       }).not.toThrow();
     });
   });
 
-  describe('removeOrder', () => {
-    it('應該成功移除訂單', () => {
+  describe("removeOrder", () => {
+    it("應該成功移除訂單", () => {
       const store = useOrdersStore();
       store.addOrder(mockOrder);
 
@@ -512,27 +531,29 @@ describe('Orders Store', () => {
     });
   });
 
-  describe('getters', () => {
-    it('pendingOrders 應該只返回待處理訂單', () => {
+  describe("getters", () => {
+    it("pendingOrders 應該只返回待處理訂單", () => {
       const store = useOrdersStore();
-      store.addOrder({ ...mockOrder, id: 1, status: 'pending' });
-      store.addOrder({ ...mockOrder, id: 2, status: 'preparing' });
-      store.addOrder({ ...mockOrder, id: 3, status: 'pending' });
+      store.addOrder({ ...mockOrder, id: 1, status: "pending" });
+      store.addOrder({ ...mockOrder, id: 2, status: "preparing" });
+      store.addOrder({ ...mockOrder, id: 3, status: "pending" });
 
       expect(store.pendingOrders).toHaveLength(2);
-      expect(store.pendingOrders.every(o => o.status === 'pending')).toBe(true);
+      expect(store.pendingOrders.every((o) => o.status === "pending")).toBe(
+        true,
+      );
     });
 
-    it('preparingOrders 應該只返回製作中訂單', () => {
+    it("preparingOrders 應該只返回製作中訂單", () => {
       const store = useOrdersStore();
-      store.addOrder({ ...mockOrder, id: 1, status: 'preparing' });
-      store.addOrder({ ...mockOrder, id: 2, status: 'ready' });
+      store.addOrder({ ...mockOrder, id: 1, status: "preparing" });
+      store.addOrder({ ...mockOrder, id: 2, status: "ready" });
 
       expect(store.preparingOrders).toHaveLength(1);
-      expect(store.preparingOrders[0].status).toBe('preparing');
+      expect(store.preparingOrders[0].status).toBe("preparing");
     });
 
-    it('urgentOrders 應該返回超過 15 分鐘的訂單', () => {
+    it("urgentOrders 應該返回超過 15 分鐘的訂單", () => {
       const store = useOrdersStore();
       const oldOrder = {
         ...mockOrder,
@@ -563,56 +584,57 @@ describe('Orders Store', () => {
 
 ```typescript
 // apps/api/src/openapi/config.ts
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 export const createOpenAPIApp = () => {
   const app = new OpenAPIHono();
 
   // OpenAPI 基礎配置
-  app.doc('/openapi.json', {
-    openapi: '3.1.0',
+  app.doc("/openapi.json", {
+    openapi: "3.1.0",
     info: {
-      title: 'MakanMakan API',
-      version: '2.0.0',
-      description: 'Modern restaurant management system API built on Cloudflare Workers',
+      title: "MakanMakan API",
+      version: "2.0.0",
+      description:
+        "Modern restaurant management system API built on Cloudflare Workers",
       contact: {
-        name: 'MakanMakan Team',
-        url: 'https://github.com/makanmakan/platform',
+        name: "MakanMakan Team",
+        url: "https://github.com/makanmakan/platform",
       },
       license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT',
+        name: "MIT",
+        url: "https://opensource.org/licenses/MIT",
       },
     },
     servers: [
       {
-        url: 'https://api.makanmakan.com',
-        description: 'Production',
+        url: "https://api.makanmakan.com",
+        description: "Production",
       },
       {
-        url: 'https://api-staging.makanmakan.com',
-        description: 'Staging',
+        url: "https://api-staging.makanmakan.com",
+        description: "Staging",
       },
       {
-        url: 'http://localhost:8787',
-        description: 'Local Development',
+        url: "http://localhost:8787",
+        description: "Local Development",
       },
     ],
     tags: [
-      { name: 'auth', description: 'Authentication endpoints' },
-      { name: 'menu', description: 'Menu management' },
-      { name: 'orders', description: 'Order management' },
-      { name: 'tables', description: 'Table management' },
-      { name: 'users', description: 'User management' },
-      { name: 'realtime', description: 'WebSocket real-time' },
-      { name: 'analytics', description: 'Analytics & insights' },
+      { name: "auth", description: "Authentication endpoints" },
+      { name: "menu", description: "Menu management" },
+      { name: "orders", description: "Order management" },
+      { name: "tables", description: "Table management" },
+      { name: "users", description: "User management" },
+      { name: "realtime", description: "WebSocket real-time" },
+      { name: "analytics", description: "Analytics & insights" },
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
         },
       },
     },
@@ -626,12 +648,12 @@ export const createOpenAPIApp = () => {
 
 ```typescript
 // apps/api/src/routes/auth.openapi.ts
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute, z } from "@hono/zod-openapi";
 
 // Schema 定義
 const LoginRequestSchema = z.object({
-  email: z.string().email().openapi({ example: 'user@example.com' }),
-  password: z.string().min(6).openapi({ example: 'password123' }),
+  email: z.string().email().openapi({ example: "user@example.com" }),
+  password: z.string().min(6).openapi({ example: "password123" }),
 });
 
 const LoginResponseSchema = z.object({
@@ -640,7 +662,7 @@ const LoginResponseSchema = z.object({
   user: z.object({
     id: z.number(),
     email: z.string().email(),
-    role: z.enum(['admin', 'owner', 'chef', 'service', 'cashier']),
+    role: z.enum(["admin", "owner", "chef", "service", "cashier"]),
     name: z.string(),
   }),
 });
@@ -653,15 +675,15 @@ const ErrorResponseSchema = z.object({
 
 // 路由定義
 export const loginRoute = createRoute({
-  method: 'post',
-  path: '/auth/login',
-  tags: ['auth'],
-  summary: 'User login',
-  description: 'Authenticate user and return JWT token',
+  method: "post",
+  path: "/auth/login",
+  tags: ["auth"],
+  summary: "User login",
+  description: "Authenticate user and return JWT token",
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: LoginRequestSchema,
         },
       },
@@ -669,25 +691,25 @@ export const loginRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Login successful',
+      description: "Login successful",
       content: {
-        'application/json': {
+        "application/json": {
           schema: LoginResponseSchema,
         },
       },
     },
     401: {
-      description: 'Invalid credentials',
+      description: "Invalid credentials",
       content: {
-        'application/json': {
+        "application/json": {
           schema: ErrorResponseSchema,
         },
       },
     },
     500: {
-      description: 'Server error',
+      description: "Server error",
       content: {
-        'application/json': {
+        "application/json": {
           schema: ErrorResponseSchema,
         },
       },
@@ -696,15 +718,15 @@ export const loginRoute = createRoute({
 });
 
 export const registerRoute = createRoute({
-  method: 'post',
-  path: '/auth/register',
-  tags: ['auth'],
-  summary: 'User registration',
-  description: 'Register a new customer account',
+  method: "post",
+  path: "/auth/register",
+  tags: ["auth"],
+  summary: "User registration",
+  description: "Register a new customer account",
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             email: z.string().email(),
             password: z.string().min(6),
@@ -717,9 +739,9 @@ export const registerRoute = createRoute({
   },
   responses: {
     201: {
-      description: 'Registration successful',
+      description: "Registration successful",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             message: z.string(),
@@ -729,9 +751,9 @@ export const registerRoute = createRoute({
       },
     },
     400: {
-      description: 'Validation error',
+      description: "Validation error",
       content: {
-        'application/json': {
+        "application/json": {
           schema: ErrorResponseSchema,
         },
       },
@@ -744,19 +766,17 @@ export const registerRoute = createRoute({
 
 ```typescript
 // apps/api/src/index.ts
-import { swaggerUI } from '@hono/swagger-ui';
-import { createOpenAPIApp } from './openapi/config';
+import { swaggerUI } from "@hono/swagger-ui";
+import { createOpenAPIApp } from "./openapi/config";
 
 const app = createOpenAPIApp();
 
 // Swagger UI
-app.get('/docs', swaggerUI({ url: '/openapi.json' }));
+app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 
 // ReDoc (備選)
-app.get(
-  '/redoc',
-  (c) => {
-    return c.html(`
+app.get("/redoc", (c) => {
+  return c.html(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -774,8 +794,7 @@ app.get(
         </body>
       </html>
     `);
-  }
-);
+});
 
 export default app;
 ```
@@ -788,15 +807,15 @@ export default app;
 
 ```typescript
 // vitest.config.ts (根目錄)
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: "node",
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
 
       // 覆蓋率門檻
       thresholds: {
@@ -807,13 +826,13 @@ export default defineConfig({
           statements: 85,
         },
         // 關鍵模組要求更高覆蓋率
-        'apps/api/src/features/**/*.ts': {
+        "apps/api/src/features/**/*.ts": {
           branches: 90,
           functions: 90,
           lines: 90,
           statements: 90,
         },
-        'apps/realtime/src/**/*.ts': {
+        "apps/realtime/src/**/*.ts": {
           branches: 85,
           functions: 85,
           lines: 85,
@@ -823,20 +842,17 @@ export default defineConfig({
 
       // 排除不需要覆蓋的文件
       exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.d.ts',
-        '**/*.config.ts',
-        '**/tests/**',
-        '**/__tests__/**',
-        '**/coverage/**',
+        "node_modules/",
+        "dist/",
+        "**/*.d.ts",
+        "**/*.config.ts",
+        "**/tests/**",
+        "**/__tests__/**",
+        "**/coverage/**",
       ],
 
       // 包含的文件
-      include: [
-        'apps/*/src/**/*.{ts,tsx}',
-        'packages/*/src/**/*.{ts,tsx}',
-      ],
+      include: ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
     },
   },
 });
@@ -884,6 +900,7 @@ jobs:
 - [ ] Day 6-7: 離線重連邊界測試 (5 個) + 整合測試 (2 個)
 
 **交付物**:
+
 - 20 個 Realtime 測試檔案
 - 測試覆蓋率配置完成
 
@@ -899,6 +916,7 @@ jobs:
 - [ ] Day 7: E2E 工作流程測試 (5 個)
 
 **交付物**:
+
 - 25 個 Kitchen Display 測試檔案
 - 測試通過率達 100%
 
@@ -915,6 +933,7 @@ jobs:
 - [ ] Day 10: 驗證、測試、文檔更新
 
 **交付物**:
+
 - 完整的 OpenAPI 3.x 規範
 - Swagger UI 可訪問
 - 更新的 CLAUDE.md
@@ -964,6 +983,7 @@ jobs:
 ### 對於團隊協作
 
 建議分工：
+
 - **開發者 A**: Realtime Services 單元測試 (15 個)
 - **開發者 B**: Realtime Services 整合測試 (5 個)
 - **開發者 C**: Kitchen Display 組件測試 (10 個)
@@ -978,6 +998,7 @@ jobs:
 ### 問題回報
 
 遇到問題請在以下頻道尋求協助：
+
 - GitHub Issues: 技術問題
 - Team Slack: 即時討論
 

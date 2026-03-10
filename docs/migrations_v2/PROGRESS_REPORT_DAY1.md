@@ -32,6 +32,7 @@
 ### 1. 專案基礎設施 ✅
 
 **創建的目錄結構**:
+
 ```
 ✅ packages/database/migrations_v2/  - 新 migrations
 ✅ scripts/migration-v2/              - 遷移和備份腳本
@@ -39,6 +40,7 @@
 ```
 
 **創建的關鍵文件**:
+
 - ✅ `EXECUTION_LOG.md` - 詳細執行日誌
 - ✅ `backup-database.sh` - 完整備份腳本
 - ✅ `README.md` - Migration 索引和說明
@@ -50,10 +52,12 @@
 #### 01_tenants_and_settings.sql ✅
 
 **表結構**:
+
 - ✅ `restaurants` - 餐廳主表
 - ✅ `restaurant_settings` - 餐廳詳細設定
 
 **關鍵特性**:
+
 ```
 • UUID 主鍵
 • 完整的業務資訊
@@ -66,6 +70,7 @@
 ```
 
 **統計**:
+
 - 表: 2 個
 - 索引: 12 個
 - 視圖: 2 個
@@ -77,12 +82,14 @@
 #### 02_authentication.sql ✅
 
 **表結構**:
+
 - ✅ `users` - 統一用戶表（員工+顧客）
 - ✅ `sessions` - JWT 會話管理
 - ✅ `password_reset_tokens` - 密碼重置
 - ✅ `email_verification_tokens` - Email 驗證
 
 **關鍵特性**:
+
 ```
 • 多角色支持（admin/owner/chef/server/cashier/customer）
 • bcrypt 密碼哈希
@@ -95,6 +102,7 @@
 ```
 
 **統計**:
+
 - 表: 4 個
 - 索引: 20 個
 - 視圖: 3 個
@@ -106,11 +114,13 @@
 #### 03_audit_system.sql ✅
 
 **表結構**:
+
 - ✅ `audit_logs` - 審計日誌
 - ✅ `error_reports` - 錯誤報告
 - ✅ `change_history` - 變更歷史
 
 **關鍵特性**:
+
 ```
 • 完整的操作記錄
 • 錯誤追蹤和分類
@@ -122,6 +132,7 @@
 ```
 
 **統計**:
+
 - 表: 3 個
 - 索引: 25 個
 - 視圖: 3 個

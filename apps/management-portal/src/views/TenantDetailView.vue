@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useTenantsStore } from '@/stores/tenants'
-import { useToast } from 'vue-toastification'
+import { ref, onMounted, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useTenantsStore } from "@/stores/tenants";
+import { useToast } from "vue-toastification";
 import {
   ArrowLeftIcon,
   CloudIcon,
@@ -12,17 +12,24 @@ import {
   PlayIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon
-} from '@heroicons/vue/24/outline'
-import type { TenantStatus, ResourceType, DeploymentStatus, HealthStatus } from '@/types'
+  CheckCircleIcon,
+} from "@heroicons/vue/24/outline";
+import type {
+  TenantStatus,
+  ResourceType,
+  DeploymentStatus,
+  HealthStatus,
+} from "@/types";
 
-const route = useRoute()
-const router = useRouter()
-const tenantsStore = useTenantsStore()
-const toast = useToast()
+const route = useRoute();
+const router = useRouter();
+const tenantsStore = useTenantsStore();
+const toast = useToast();
 
-const tenantId = computed(() => route.params.id as string)
-const activeTab = ref<'overview' | 'resources' | 'deployments' | 'health' | 'license'>('overview')
+const tenantId = computed(() => route.params.id as string);
+const activeTab = ref<
+  "overview" | "resources" | "deployments" | "health" | "license"
+>("overview");
 
 // 載入資料
 onMounted(async () => {
@@ -32,138 +39,138 @@ onMounted(async () => {
       tenantsStore.fetchTenantResources(tenantId.value),
       tenantsStore.fetchTenantDeployments(tenantId.value),
       tenantsStore.fetchTenantHealthChecks(tenantId.value),
-      tenantsStore.fetchTenantLicenses(tenantId.value)
-    ])
+      tenantsStore.fetchTenantLicenses(tenantId.value),
+    ]);
   } catch (e) {
-    toast.error('載入租戶資料失敗')
-    router.push('/tenants')
+    toast.error("載入租戶資料失敗");
+    router.push("/tenants");
   }
-})
+});
 
 // 便捷存取
-const tenant = computed(() => tenantsStore.currentTenant)
-const resources = computed(() => tenantsStore.currentResources)
-const deployments = computed(() => tenantsStore.currentDeployments)
-const healthChecks = computed(() => tenantsStore.currentHealthChecks)
-const licenses = computed(() => tenantsStore.currentLicenses)
+const tenant = computed(() => tenantsStore.currentTenant);
+const resources = computed(() => tenantsStore.currentResources);
+const deployments = computed(() => tenantsStore.currentDeployments);
+const healthChecks = computed(() => tenantsStore.currentHealthChecks);
+const licenses = computed(() => tenantsStore.currentLicenses);
 
 // 狀態標籤
 const getStatusLabel = (status: TenantStatus) => {
   const labels: Record<TenantStatus, string> = {
-    pending: '待處理',
-    provisioning: '配置中',
-    active: '運行中',
-    suspended: '已暫停',
-    terminated: '已終止'
-  }
-  return labels[status] || status
-}
+    pending: "待處理",
+    provisioning: "配置中",
+    active: "運行中",
+    suspended: "已暫停",
+    terminated: "已終止",
+  };
+  return labels[status] || status;
+};
 
 const getStatusClass = (status: TenantStatus) => {
   const classes: Record<TenantStatus, string> = {
-    pending: 'badge-warning',
-    provisioning: 'badge-info',
-    active: 'badge-success',
-    suspended: 'badge-danger',
-    terminated: 'badge-gray'
-  }
-  return classes[status] || 'badge-gray'
-}
+    pending: "badge-warning",
+    provisioning: "badge-info",
+    active: "badge-success",
+    suspended: "badge-danger",
+    terminated: "badge-gray",
+  };
+  return classes[status] || "badge-gray";
+};
 
 // 資源類型標籤
 const getResourceTypeLabel = (type: ResourceType) => {
   const labels: Record<ResourceType, string> = {
-    d1: 'D1 資料庫',
-    kv: 'KV 儲存',
-    r2: 'R2 物件儲存',
-    worker: 'Worker',
-    pages: 'Pages'
-  }
-  return labels[type] || type
-}
+    d1: "D1 資料庫",
+    kv: "KV 儲存",
+    r2: "R2 物件儲存",
+    worker: "Worker",
+    pages: "Pages",
+  };
+  return labels[type] || type;
+};
 
 // 部署狀態標籤
 const getDeploymentStatusLabel = (status: DeploymentStatus) => {
   const labels: Record<DeploymentStatus, string> = {
-    pending: '待執行',
-    in_progress: '執行中',
-    completed: '已完成',
-    failed: '失敗',
-    rolled_back: '已回滾'
-  }
-  return labels[status] || status
-}
+    pending: "待執行",
+    in_progress: "執行中",
+    completed: "已完成",
+    failed: "失敗",
+    rolled_back: "已回滾",
+  };
+  return labels[status] || status;
+};
 
 const getDeploymentStatusClass = (status: DeploymentStatus) => {
   const classes: Record<DeploymentStatus, string> = {
-    pending: 'badge-warning',
-    in_progress: 'badge-info',
-    completed: 'badge-success',
-    failed: 'badge-danger',
-    rolled_back: 'badge-gray'
-  }
-  return classes[status] || 'badge-gray'
-}
+    pending: "badge-warning",
+    in_progress: "badge-info",
+    completed: "badge-success",
+    failed: "badge-danger",
+    rolled_back: "badge-gray",
+  };
+  return classes[status] || "badge-gray";
+};
 
 // 健康狀態標籤
 const getHealthStatusLabel = (status: HealthStatus) => {
   const labels: Record<HealthStatus, string> = {
-    healthy: '正常',
-    degraded: '降級',
-    down: '離線',
-    unknown: '未知'
-  }
-  return labels[status] || status
-}
+    healthy: "正常",
+    degraded: "降級",
+    down: "離線",
+    unknown: "未知",
+  };
+  return labels[status] || status;
+};
 
 const getHealthStatusClass = (status: HealthStatus) => {
   const classes: Record<HealthStatus, string> = {
-    healthy: 'badge-success',
-    degraded: 'badge-warning',
-    down: 'badge-danger',
-    unknown: 'badge-gray'
-  }
-  return classes[status] || 'badge-gray'
-}
+    healthy: "badge-success",
+    degraded: "badge-warning",
+    down: "badge-danger",
+    unknown: "badge-gray",
+  };
+  return classes[status] || "badge-gray";
+};
 
 // 配置資源
-const provisioning = ref(false)
+const provisioning = ref(false);
 const handleProvision = async () => {
-  provisioning.value = true
+  provisioning.value = true;
   try {
-    await tenantsStore.provisionTenant(tenantId.value)
-    toast.success('資源配置成功')
-    await tenantsStore.fetchTenant(tenantId.value)
+    await tenantsStore.provisionTenant(tenantId.value);
+    toast.success("資源配置成功");
+    await tenantsStore.fetchTenant(tenantId.value);
   } catch (e) {
-    toast.error('資源配置失敗')
+    toast.error("資源配置失敗");
   } finally {
-    provisioning.value = false
+    provisioning.value = false;
   }
-}
+};
 
 // 部署
-const deploying = ref(false)
+const deploying = ref(false);
 const handleDeploy = async () => {
-  deploying.value = true
+  deploying.value = true;
   try {
-    await tenantsStore.deployTenant(tenantId.value)
-    toast.success('部署已開始')
-    await tenantsStore.fetchTenant(tenantId.value)
+    await tenantsStore.deployTenant(tenantId.value);
+    toast.success("部署已開始");
+    await tenantsStore.fetchTenant(tenantId.value);
   } catch (e) {
-    toast.error('部署失敗')
+    toast.error("部署失敗");
   } finally {
-    deploying.value = false
+    deploying.value = false;
   }
-}
+};
 
 // 標籤頁
 const tabs = [
-  { id: 'overview', name: '概覽', icon: ServerStackIcon },
-  { id: 'resources', name: '資源', icon: CloudIcon },
-  { id: 'deployments', name: '部署', icon: PlayIcon },
-  { id: 'health', name: '健康', icon: HeartIcon },
-  { id: 'license', name: '授權', icon: KeyIcon }
-]
+  { id: "overview", name: "概覽", icon: ServerStackIcon },
+  { id: "resources", name: "資源", icon: CloudIcon },
+  { id: "deployments", name: "部署", icon: PlayIcon },
+  { id: "health", name: "健康", icon: HeartIcon },
+  { id: "license", name: "授權", icon: KeyIcon },
+];
 </script>
 
 <template>
@@ -188,7 +195,9 @@ const tabs = [
     <template v-else-if="tenant">
       <!-- 標題區域 -->
       <div class="card">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        >
           <div class="flex items-center">
             <div
               class="flex-shrink-0 h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center"
@@ -198,7 +207,9 @@ const tabs = [
               </span>
             </div>
             <div class="ml-4">
-              <h1 class="text-2xl font-bold text-gray-900">{{ tenant.businessName }}</h1>
+              <h1 class="text-2xl font-bold text-gray-900">
+                {{ tenant.businessName }}
+              </h1>
               <div class="flex items-center gap-3 mt-1">
                 <span class="badge" :class="getStatusClass(tenant.status)">
                   {{ getStatusLabel(tenant.status) }}
@@ -220,7 +231,7 @@ const tabs = [
               @click="handleProvision"
             >
               <CloudIcon class="h-5 w-5 mr-2" />
-              {{ provisioning ? '配置中...' : '配置資源' }}
+              {{ provisioning ? "配置中..." : "配置資源" }}
             </button>
             <button
               v-if="tenant.status === 'active' || resources.length > 0"
@@ -230,7 +241,7 @@ const tabs = [
               @click="handleDeploy"
             >
               <ArrowPathIcon class="h-5 w-5 mr-2" />
-              {{ deploying ? '部署中...' : '重新部署' }}
+              {{ deploying ? "部署中..." : "重新部署" }}
             </button>
           </div>
         </div>
@@ -246,7 +257,8 @@ const tabs = [
             class="flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors"
             :class="{
               'border-primary-500 text-primary-600': activeTab === tab.id,
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== tab.id
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300':
+                activeTab !== tab.id,
             }"
             @click="activeTab = tab.id as typeof activeTab"
           >
@@ -257,32 +269,45 @@ const tabs = [
       </div>
 
       <!-- 概覽標籤 -->
-      <div v-if="activeTab === 'overview'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div
+        v-if="activeTab === 'overview'"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
         <!-- 基本資訊 -->
         <div class="card">
           <h3 class="card-header">基本資訊</h3>
           <dl class="space-y-4">
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">商家名稱</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ tenant.businessName }}</dd>
+              <dd class="text-sm font-medium text-gray-900">
+                {{ tenant.businessName }}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">聯絡 Email</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ tenant.contactEmail }}</dd>
+              <dd class="text-sm font-medium text-gray-900">
+                {{ tenant.contactEmail }}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">聯絡電話</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ tenant.contactPhone || '-' }}</dd>
+              <dd class="text-sm font-medium text-gray-900">
+                {{ tenant.contactPhone || "-" }}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">子域名</dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ tenant.subdomain ? `${tenant.subdomain}.makanmakan.app` : '-' }}
+                {{
+                  tenant.subdomain ? `${tenant.subdomain}.makanmakan.app` : "-"
+                }}
               </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">自訂域名</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ tenant.customDomain || '-' }}</dd>
+              <dd class="text-sm font-medium text-gray-900">
+                {{ tenant.customDomain || "-" }}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">建立時間</dt>
@@ -300,23 +325,33 @@ const tabs = [
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">當前版本</dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ tenant.deployedVersion ? `v${tenant.deployedVersion}` : '未部署' }}
+                {{
+                  tenant.deployedVersion
+                    ? `v${tenant.deployedVersion}`
+                    : "未部署"
+                }}
               </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">Cloudflare 帳號</dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ tenant.cfAccountId ? '已連接' : '未連接' }}
+                {{ tenant.cfAccountId ? "已連接" : "未連接" }}
               </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">資源數量</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ resources.length }} 個</dd>
+              <dd class="text-sm font-medium text-gray-900">
+                {{ resources.length }} 個
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">最近部署</dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ deployments[0] ? new Date(deployments[0].startedAt).toLocaleString() : '-' }}
+                {{
+                  deployments[0]
+                    ? new Date(deployments[0].startedAt).toLocaleString()
+                    : "-"
+                }}
               </dd>
             </div>
           </dl>
@@ -344,18 +379,25 @@ const tabs = [
             <tr v-for="resource in resources" :key="resource.id">
               <td>{{ getResourceTypeLabel(resource.resourceType) }}</td>
               <td class="font-mono text-sm">{{ resource.resourceName }}</td>
-              <td class="font-mono text-sm">{{ resource.resourceId || '-' }}</td>
+              <td class="font-mono text-sm">
+                {{ resource.resourceId || "-" }}
+              </td>
               <td>
                 <span
                   class="badge"
                   :class="{
                     'badge-success': resource.status === 'provisioned',
                     'badge-warning': resource.status === 'pending',
-                    'badge-danger': resource.status === 'failed'
+                    'badge-danger': resource.status === 'failed',
                   }"
                 >
-                  {{ resource.status === 'provisioned' ? '已配置' :
-                     resource.status === 'pending' ? '待配置' : '失敗' }}
+                  {{
+                    resource.status === "provisioned"
+                      ? "已配置"
+                      : resource.status === "pending"
+                        ? "待配置"
+                        : "失敗"
+                  }}
                 </span>
               </td>
               <td>{{ new Date(resource.createdAt).toLocaleString() }}</td>
@@ -393,16 +435,28 @@ const tabs = [
                 />
                 <div>
                   <p class="font-medium text-gray-900">
-                    {{ deployment.deploymentType === 'initial' ? '初始部署' :
-                       deployment.deploymentType === 'update' ? '版本更新' : '版本回滾' }}
+                    {{
+                      deployment.deploymentType === "initial"
+                        ? "初始部署"
+                        : deployment.deploymentType === "update"
+                          ? "版本更新"
+                          : "版本回滾"
+                    }}
                   </p>
                   <p class="text-sm text-gray-500">
-                    {{ deployment.fromVersion ? `v${deployment.fromVersion} → ` : '' }}v{{ deployment.toVersion }}
+                    {{
+                      deployment.fromVersion
+                        ? `v${deployment.fromVersion} → `
+                        : ""
+                    }}v{{ deployment.toVersion }}
                   </p>
                 </div>
               </div>
               <div class="text-right">
-                <span class="badge" :class="getDeploymentStatusClass(deployment.status)">
+                <span
+                  class="badge"
+                  :class="getDeploymentStatusClass(deployment.status)"
+                >
                   {{ getDeploymentStatusLabel(deployment.status) }}
                 </span>
                 <p class="text-sm text-gray-500 mt-1">
@@ -440,10 +494,20 @@ const tabs = [
                 {{ new Date(check.checkedAt).toLocaleString() }}
               </span>
             </div>
-            <div v-if="check.details" class="mt-3 grid grid-cols-4 gap-4 text-sm">
-              <div v-for="(status, key) in check.details" :key="key" class="text-center">
+            <div
+              v-if="check.details"
+              class="mt-3 grid grid-cols-4 gap-4 text-sm"
+            >
+              <div
+                v-for="(status, key) in check.details"
+                :key="key"
+                class="text-center"
+              >
                 <div class="text-gray-500 capitalize">{{ key }}</div>
-                <span class="badge" :class="getHealthStatusClass(status as HealthStatus)">
+                <span
+                  class="badge"
+                  :class="getHealthStatusClass(status as HealthStatus)"
+                >
                   {{ getHealthStatusLabel(status as HealthStatus) }}
                 </span>
               </div>
@@ -472,18 +536,26 @@ const tabs = [
                 </p>
                 <div class="flex items-center gap-3 mt-2">
                   <span class="badge badge-info">
-                    {{ license.tier === 'standard' ? '標準版' :
-                       license.tier === 'professional' ? '專業版' : '企業版' }}
+                    {{
+                      license.tier === "standard"
+                        ? "標準版"
+                        : license.tier === "professional"
+                          ? "專業版"
+                          : "企業版"
+                    }}
                   </span>
                   <span v-if="license.expiresAt" class="text-sm text-gray-500">
-                    有效期至 {{ new Date(license.expiresAt).toLocaleDateString() }}
+                    有效期至
+                    {{ new Date(license.expiresAt).toLocaleDateString() }}
                   </span>
                   <span v-else class="text-sm text-gray-500">永久有效</span>
                 </div>
               </div>
               <div v-if="license.revokedAt" class="text-right">
                 <span class="badge badge-danger">已撤銷</span>
-                <p class="text-sm text-gray-500 mt-1">{{ license.revokeReason }}</p>
+                <p class="text-sm text-gray-500 mt-1">
+                  {{ license.revokeReason }}
+                </p>
               </div>
             </div>
           </div>

@@ -4,15 +4,15 @@
  * Global decorators and parameters for visual testing
  */
 
-import { setup } from '@storybook/vue3'
-import { createPinia } from 'pinia'
-import '../apps/admin-dashboard/src/assets/styles/main.css' // Import global styles
+import { setup } from "@storybook/vue3";
+import { createPinia } from "pinia";
+import "../apps/admin-dashboard/src/assets/styles/main.css"; // Import global styles
 
 // Setup Vue 3 plugins
-const pinia = createPinia()
+const pinia = createPinia();
 setup((app) => {
-  app.use(pinia)
-})
+  app.use(pinia);
+});
 
 // Global parameters for all stories
 export const parameters = {
@@ -20,26 +20,26 @@ export const parameters = {
   viewport: {
     viewports: {
       mobile: {
-        name: 'Mobile',
-        styles: { width: '375px', height: '667px' },
+        name: "Mobile",
+        styles: { width: "375px", height: "667px" },
       },
       tablet: {
-        name: 'Tablet',
-        styles: { width: '768px', height: '1024px' },
+        name: "Tablet",
+        styles: { width: "768px", height: "1024px" },
       },
       desktop: {
-        name: 'Desktop',
-        styles: { width: '1440px', height: '900px' },
+        name: "Desktop",
+        styles: { width: "1440px", height: "900px" },
       },
       wide: {
-        name: 'Wide Desktop',
-        styles: { width: '1920px', height: '1080px' },
+        name: "Wide Desktop",
+        styles: { width: "1920px", height: "1080px" },
       },
     },
   },
 
   // Configure actions addon
-  actions: { argTypesRegex: '^on[A-Z].*' },
+  actions: { argTypesRegex: "^on[A-Z].*" },
 
   // Configure controls addon
   controls: {
@@ -66,23 +66,23 @@ export const parameters = {
 
   // Backgrounds addon
   backgrounds: {
-    default: 'light',
+    default: "light",
     values: [
       {
-        name: 'light',
-        value: '#ffffff',
+        name: "light",
+        value: "#ffffff",
       },
       {
-        name: 'dark',
-        value: '#1a202c',
+        name: "dark",
+        value: "#1a202c",
       },
       {
-        name: 'gray',
-        value: '#f7fafc',
+        name: "gray",
+        value: "#f7fafc",
       },
     ],
   },
-}
+};
 
 // Global decorators
 export const decorators = [
@@ -90,4 +90,4 @@ export const decorators = [
     components: { story },
     template: '<div style="padding: 1rem;"><story /></div>',
   }),
-]
+];

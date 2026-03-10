@@ -8,7 +8,9 @@
     >
       <div class="flex items-center justify-center h-full">
         <div class="text-center">
-          <div class="inline-block w-12 h-12 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2"></div>
+          <div
+            class="inline-block w-12 h-12 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2"
+          ></div>
           <p class="text-sm text-gray-500">{{ loadingText }}</p>
         </div>
       </div>
@@ -23,7 +25,9 @@
           class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg"
         >
           <div class="text-center">
-            <div class="inline-block w-8 h-8 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-1"></div>
+            <div
+              class="inline-block w-8 h-8 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-1"
+            ></div>
             <p class="text-xs text-gray-500">{{ loadingText }}</p>
           </div>
         </div>
@@ -40,8 +44,18 @@
       :style="{ minHeight: minHeight }"
     >
       <div class="text-red-600 mb-2">
-        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          class="w-12 h-12 mx-auto"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       </div>
       <h4 class="text-sm font-semibold text-red-800 mb-1">載入失敗</h4>
@@ -67,8 +81,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useLazyComponent, CHART_LAZY_CONFIG, type LazyComponentOptions } from '@/composables/useLazyComponent'
+import { ref } from "vue";
+import {
+  useLazyComponent,
+  CHART_LAZY_CONFIG,
+  type LazyComponentOptions,
+} from "@/composables/useLazyComponent";
 
 // ============================================================================
 // Props
@@ -79,55 +97,55 @@ interface Props {
    * 最小高度（用於占位符）
    * 默認：'300px'
    */
-  minHeight?: string
+  minHeight?: string;
 
   /**
    * 載入文字
    * 默認：'載入中...'
    */
-  loadingText?: string
+  loadingText?: string;
 
   /**
    * 是否顯示加載覆蓋層
    * 默認：false
    */
-  showLoadingOverlay?: boolean
+  showLoadingOverlay?: boolean;
 
   /**
    * 懶加載配置（覆蓋默認配置）
    */
-  lazyConfig?: Partial<LazyComponentOptions>
+  lazyConfig?: Partial<LazyComponentOptions>;
 
   /**
    * 是否啟用調試模式
    * 默認：false
    */
-  debug?: boolean
+  debug?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  minHeight: '300px',
-  loadingText: '載入中...',
+  minHeight: "300px",
+  loadingText: "載入中...",
   showLoadingOverlay: false,
   lazyConfig: () => ({}),
   debug: false,
-})
+});
 
 // ============================================================================
 // 懶加載邏輯
 // ============================================================================
 
-const containerRef = ref<HTMLElement | null>(null)
+const containerRef = ref<HTMLElement | null>(null);
 
 // 合併配置
 const config: LazyComponentOptions = {
   ...CHART_LAZY_CONFIG,
   ...props.lazyConfig,
   debug: props.debug,
-}
+};
 
 // 使用懶加載 composable
-const { state, load, reset } = useLazyComponent(containerRef, config)
+const { state, load, reset } = useLazyComponent(containerRef, config);
 
 // ============================================================================
 // 對外暴露 API
@@ -137,7 +155,7 @@ defineExpose({
   load,
   reset,
   state,
-})
+});
 </script>
 
 <style scoped>

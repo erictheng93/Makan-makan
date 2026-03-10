@@ -6,13 +6,13 @@
  * 訂位狀態
  */
 export enum ReservationStatus {
-  PENDING = 'pending',           // 待確認
-  CONFIRMED = 'confirmed',       // 已確認
-  ARRIVED = 'arrived',           // 已到店
-  SEATED = 'seated',             // 已入座
-  COMPLETED = 'completed',       // 已完成
-  CANCELLED = 'cancelled',       // 已取消
-  NO_SHOW = 'no_show'           // 未到店
+  PENDING = "pending", // 待確認
+  CONFIRMED = "confirmed", // 已確認
+  ARRIVED = "arrived", // 已到店
+  SEATED = "seated", // 已入座
+  COMPLETED = "completed", // 已完成
+  CANCELLED = "cancelled", // 已取消
+  NO_SHOW = "no_show", // 未到店
 }
 
 /**
@@ -26,8 +26,8 @@ export interface Reservation {
   customerPhone: string;
   customerEmail?: string;
   partySize: number;
-  reservationDate: string;        // YYYY-MM-DD
-  reservationTime: string;        // HH:MM
+  reservationDate: string; // YYYY-MM-DD
+  reservationTime: string; // HH:MM
   durationMinutes: number;
   tableId?: number;
   specialRequests?: string;
@@ -92,8 +92,8 @@ export interface ReservationFilters {
   confirmationCode?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'reservationDate' | 'reservationTime';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "createdAt" | "reservationDate" | "reservationTime";
+  sortOrder?: "asc" | "desc";
 }
 
 /**
@@ -119,21 +119,21 @@ export interface ReservationResponse extends Reservation {
  */
 export interface AvailabilityRequest {
   restaurantId: string;
-  date: string;              // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   partySize: number;
-  duration?: number;         // 用餐時長（分鐘）
+  duration?: number; // 用餐時長（分鐘）
 }
 
 /**
  * 時段可用性回應
  */
 export interface TimeSlotAvailability {
-  time: string;              // HH:MM
+  time: string; // HH:MM
   available: boolean;
   remainingCapacity: number;
   remainingTables: number;
-  occupancyRate: number;     // 0-1
-  reason?: string;           // 不可用原因
+  occupancyRate: number; // 0-1
+  reason?: string; // 不可用原因
 }
 
 /**
@@ -153,13 +153,13 @@ export interface AvailabilityResponse {
  * 候位狀態
  */
 export enum WaitingStatus {
-  WAITING = 'waiting',         // 等待中
-  CALLED = 'called',           // 已叫號
-  CONFIRMED = 'confirmed',     // 已確認
-  SEATED = 'seated',           // 已入座
-  CANCELLED = 'cancelled',     // 已取消
-  EXPIRED = 'expired',         // 已過號
-  NO_SHOW = 'no_show'         // 未到
+  WAITING = "waiting", // 等待中
+  CALLED = "called", // 已叫號
+  CONFIRMED = "confirmed", // 已確認
+  SEATED = "seated", // 已入座
+  CANCELLED = "cancelled", // 已取消
+  EXPIRED = "expired", // 已過號
+  NO_SHOW = "no_show", // 未到
 }
 
 /**
@@ -200,7 +200,7 @@ export interface JoinWaitingListRequest {
   customerName: string;
   customerPhone: string;
   partySize: number;
-  preferredTableType?: '2-person' | '4-person' | '6-person+';
+  preferredTableType?: "2-person" | "4-person" | "6-person+";
   notes?: string;
 }
 
@@ -211,7 +211,7 @@ export interface WaitingListFilters {
   restaurantId?: string;
   status?: WaitingStatus | WaitingStatus[];
   customerPhone?: string;
-  date?: string;              // YYYY-MM-DD
+  date?: string; // YYYY-MM-DD
   page?: number;
   limit?: number;
 }
@@ -220,8 +220,8 @@ export interface WaitingListFilters {
  * 候位回應（含位置資訊）
  */
 export interface WaitingListResponse extends WaitingListEntry {
-  queueDisplay: string;       // 如 "A005"
-  partiesAhead: number;       // 前方還有幾組
+  queueDisplay: string; // 如 "A005"
+  partiesAhead: number; // 前方還有幾組
   table?: {
     id: number;
     number: string;
@@ -233,7 +233,7 @@ export interface WaitingListResponse extends WaitingListEntry {
  * 叫號請求
  */
 export interface CallWaitingRequest {
-  tableId: number;            // 分配的桌位
+  tableId: number; // 分配的桌位
 }
 
 /**
@@ -261,8 +261,8 @@ export interface QueueStatus {
 export interface ReservationSlot {
   id: string;
   restaurantId: string;
-  date: string;               // YYYY-MM-DD
-  timeSlot: string;           // HH:MM
+  date: string; // YYYY-MM-DD
+  timeSlot: string; // HH:MM
   maxCapacity: number;
   maxTables: number;
   currentReservations: number;
@@ -300,9 +300,9 @@ export interface UpdateSlotRequest {
  */
 export interface BatchCreateSlotsRequest {
   restaurantId: string;
-  startDate: string;          // YYYY-MM-DD
-  endDate: string;            // YYYY-MM-DD
-  timeSlots: string[];        // ["11:00", "11:30", ...]
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  timeSlots: string[]; // ["11:00", "11:30", ...]
   maxCapacity: number;
   maxTables: number;
 }
@@ -323,7 +323,7 @@ export interface ReservationStats {
   noShowCount: number;
   cancelledCount: number;
   totalGuests: number;
-  noShowRate: number;         // 百分比
+  noShowRate: number; // 百分比
   averagePartySize: number;
 }
 
@@ -338,7 +338,7 @@ export interface WaitingStats {
   expiredCount: number;
   cancelledCount: number;
   avgWaitMinutes: number;
-  expireRate: number;         // 百分比
+  expireRate: number; // 百分比
 }
 
 /**
@@ -351,7 +351,7 @@ export interface TableUtilization {
   occupiedTables: number;
   reservedTables: number;
   cleaningTables: number;
-  occupancyRate: number;      // 百分比
+  occupancyRate: number; // 百分比
 }
 
 // ==========================================
@@ -362,13 +362,13 @@ export interface TableUtilization {
  * 通知類型
  */
 export enum NotificationType {
-  RESERVATION_CONFIRMED = 'reservation_confirmed',
-  RESERVATION_REMINDER = 'reservation_reminder',
-  RESERVATION_CANCELLED = 'reservation_cancelled',
-  WAITING_CONFIRMED = 'waiting_confirmed',
-  WAITING_CALLED = 'waiting_called',
-  WAITING_ABOUT_TO_EXPIRE = 'waiting_about_to_expire',
-  WAITING_EXPIRED = 'waiting_expired'
+  RESERVATION_CONFIRMED = "reservation_confirmed",
+  RESERVATION_REMINDER = "reservation_reminder",
+  RESERVATION_CANCELLED = "reservation_cancelled",
+  WAITING_CONFIRMED = "waiting_confirmed",
+  WAITING_CALLED = "waiting_called",
+  WAITING_ABOUT_TO_EXPIRE = "waiting_about_to_expire",
+  WAITING_EXPIRED = "waiting_expired",
 }
 
 /**
@@ -378,7 +378,7 @@ export interface NotificationRequest {
   type: NotificationType;
   recipientPhone: string;
   recipientEmail?: string;
-  data: any;                  // 通知相關數據
+  data: any; // 通知相關數據
 }
 
 // ==========================================
@@ -391,7 +391,7 @@ export interface NotificationRequest {
 export interface TableAssignmentRequest {
   restaurantId: string;
   partySize: number;
-  reservationTime?: string;   // HH:MM (訂位) 或 null (候位)
+  reservationTime?: string; // HH:MM (訂位) 或 null (候位)
   specialRequests?: string;
 }
 
@@ -401,8 +401,8 @@ export interface TableAssignmentRequest {
 export interface TableAssignmentResult {
   tableId: number;
   tableNumber: string;
-  confidence: number;         // 0-1，匹配信心度
-  reason: string;             // 分配原因
+  confidence: number; // 0-1，匹配信心度
+  reason: string; // 分配原因
 }
 
 /**
@@ -411,7 +411,7 @@ export interface TableAssignmentResult {
 export interface WaitTimeEstimateRequest {
   restaurantId: string;
   partySize: number;
-  currentTime?: string;       // HH:MM
+  currentTime?: string; // HH:MM
 }
 
 /**
@@ -421,6 +421,5 @@ export interface WaitTimeEstimateResult {
   estimatedWaitMinutes: number;
   partiesAhead: number;
   availableTables: number;
-  confidence: number;         // 0-1，預估準確度
+  confidence: number; // 0-1，預估準確度
 }
-

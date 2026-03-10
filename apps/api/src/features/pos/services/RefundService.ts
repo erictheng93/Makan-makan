@@ -2,17 +2,14 @@
  * 退款管理服務
  */
 
-import { BaseService } from '../../../shared/services/BaseService'
-import { getCurrentTimestamp } from '@makanmakan/database'
-import type {
-  Refund,
-  ProcessRefundRequest
-} from '../types'
-import { processRefundSchema } from '../schemas'
+import { BaseService } from "../../../shared/services/BaseService";
+import { getCurrentTimestamp } from "@makanmakan/database";
+import type { Refund, ProcessRefundRequest } from "../types";
+import { processRefundSchema } from "../schemas";
 
 export class RefundService extends BaseService {
   constructor(db: any) {
-    super(db)
+    super(db);
   }
 
   /**
@@ -22,107 +19,119 @@ export class RefundService extends BaseService {
     data: ProcessRefundRequest,
     registerId: string,
     processedBy: number,
-    shiftId?: string
+    shiftId?: string,
   ): Promise<{ success: boolean; data?: Refund; error?: string }> {
     try {
-      const validatedData = processRefundSchema.parse(data)
+      const validatedData = processRefundSchema.parse(data);
 
       // 檢查原訂單
-      const originalOrder = await this.d1.prepare(
-        'SELECT * FROM orders WHERE id = ?'
-      ).bind(validatedData.originalOrderId).first() as any
+      const originalOrder = (await this.d1
+        .prepare("SELECT * FROM orders WHERE id = ?")
+        .bind(validatedData.originalOrderId)
+        .first()) as any;
 
       if (!originalOrder) {
         return {
           success: false,
-          error: '原訂單不存在'
-        }
+          error: "原訂單不存在",
+        };
       }
 
       // 檢查退款金額是否合理
       if (validatedData.refundAmount > parseFloat(originalOrder.total_amount)) {
         return {
           success: false,
-          error: '退款金額不能超過原訂單金額'
-        }
+          error: "退款金額不能超過原訂單金額",
+        };
       }
 
       // 檢查是否已有退款記錄
-      const existingRefund = await this.d1.prepare(
-        'SELECT SUM(refund_amount) as total_refunded FROM refunds WHERE original_order_id = ? AND status IN ("completed", "processing")'
-      ).bind(validatedData.originalOrderId).first() as any
+      const existingRefund = (await this.d1
+        .prepare(
+          'SELECT SUM(refund_amount) as total_refunded FROM refunds WHERE original_order_id = ? AND status IN ("completed", "processing")',
+        )
+        .bind(validatedData.originalOrderId)
+        .first()) as any;
 
-      const totalRefunded = parseFloat(existingRefund?.total_refunded || '0')
-      if (totalRefunded + validatedData.refundAmount > parseFloat(originalOrder.total_amount)) {
+      const totalRefunded = parseFloat(existingRefund?.total_refunded || "0");
+      if (
+        totalRefunded + validatedData.refundAmount >
+        parseFloat(originalOrder.total_amount)
+      ) {
         return {
           success: false,
-          error: '退款金額超過可退款額度'
-        }
+          error: "退款金額超過可退款額度",
+        };
       }
 
-      const refundId = crypto.randomUUID()
-      const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`
+      const refundId = crypto.randomUUID();
+      const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
-      const processedAt = getCurrentTimestamp()
-      await this.d1.prepare(`
+      const processedAt = getCurrentTimestamp();
+      await this.d1
+        .prepare(
+          `
         INSERT INTO refunds (
           id, original_order_id, register_id, shift_id, refund_number,
           refund_type, original_amount, refund_amount, refund_method,
           reason_code, reason_description, items_refunded, processed_by,
           customer_signature, status, metadata, processed_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', '{}', ?)
-      `).bind(
-        refundId,
-        validatedData.originalOrderId,
-        registerId,
-        shiftId || null,
-        refundNumber,
-        validatedData.refundType,
-        parseFloat(originalOrder.total_amount),
-        validatedData.refundAmount,
-        validatedData.refundMethod,
-        validatedData.reasonCode,
-        validatedData.reasonDescription || null,
-        JSON.stringify(validatedData.itemsRefunded || []),
-        processedBy,
-        validatedData.customerSignature || null,
-        processedAt
-      ).run()
+      `,
+        )
+        .bind(
+          refundId,
+          validatedData.originalOrderId,
+          registerId,
+          shiftId || null,
+          refundNumber,
+          validatedData.refundType,
+          parseFloat(originalOrder.total_amount),
+          validatedData.refundAmount,
+          validatedData.refundMethod,
+          validatedData.reasonCode,
+          validatedData.reasonDescription || null,
+          JSON.stringify(validatedData.itemsRefunded || []),
+          processedBy,
+          validatedData.customerSignature || null,
+          processedAt,
+        )
+        .run();
 
       // 記錄現金流動（如果是現金退款）
-      if (shiftId && validatedData.refundMethod === 'cash') {
+      if (shiftId && validatedData.refundMethod === "cash") {
         await this.recordCashMovement(shiftId, registerId, {
-          type: 'refund',
+          type: "refund",
           amount: -validatedData.refundAmount, // 負數表示流出
           description: `退款 - ${refundNumber}`,
           recordedBy: processedBy,
           referenceId: validatedData.originalOrderId,
-          referenceType: 'refund'
-        })
+          referenceType: "refund",
+        });
       }
 
       // 模擬退款處理完成
-      this.processRefundCompletion(refundId)
+      this.processRefundCompletion(refundId);
 
-      const refund = await this.d1.prepare(
-        'SELECT * FROM refunds WHERE id = ?'
-      ).bind(refundId).first() as any
+      const refund = (await this.d1
+        .prepare("SELECT * FROM refunds WHERE id = ?")
+        .bind(refundId)
+        .first()) as any;
 
       return {
         success: true,
         data: {
           ...refund,
-          itemsRefunded: JSON.parse(refund.items_refunded || '[]'),
-          metadata: JSON.parse(refund.metadata || '{}')
-        }
-      }
-
+          itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
+          metadata: JSON.parse(refund.metadata || "{}"),
+        },
+      };
     } catch (error) {
-      console.error('處理退款失敗:', error)
+      console.error("處理退款失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '處理退款失敗'
-      }
+        error: error instanceof Error ? error.message : "處理退款失敗",
+      };
     }
   }
 
@@ -132,44 +141,54 @@ export class RefundService extends BaseService {
   async getRefunds(
     registerId: string,
     options?: {
-      startDate?: string
-      endDate?: string
-      status?: string
-      orderId?: number
-      page?: number
-      limit?: number
-    }
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      orderId?: number;
+      page?: number;
+      limit?: number;
+    },
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const { startDate, endDate, status, orderId, page = 1, limit = 20 } = options || {}
-      const offset = (page - 1) * limit
+      const {
+        startDate,
+        endDate,
+        status,
+        orderId,
+        page = 1,
+        limit = 20,
+      } = options || {};
+      const offset = (page - 1) * limit;
 
-      const filters = []
-      const params = [registerId]
+      const filters = [];
+      const params = [registerId];
 
       if (startDate) {
-        filters.push('DATE(r.processed_at) >= ?')
-        params.push(startDate)
+        filters.push("DATE(r.processed_at) >= ?");
+        params.push(startDate);
       }
 
       if (endDate) {
-        filters.push('DATE(r.processed_at) <= ?')
-        params.push(endDate)
+        filters.push("DATE(r.processed_at) <= ?");
+        params.push(endDate);
       }
 
       if (status) {
-        filters.push('r.status = ?')
-        params.push(status)
+        filters.push("r.status = ?");
+        params.push(status);
       }
 
       if (orderId) {
-        filters.push('r.original_order_id = ?')
-        params.push(orderId.toString())
+        filters.push("r.original_order_id = ?");
+        params.push(orderId.toString());
       }
 
-      const whereClause = filters.length > 0 ? ` AND ${filters.join(' AND ')}` : ''
+      const whereClause =
+        filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "";
 
-      const refunds = await this.d1.prepare(`
+      const refunds = await this.d1
+        .prepare(
+          `
         SELECT
           r.*,
           o.order_number,
@@ -183,30 +202,32 @@ export class RefundService extends BaseService {
         WHERE r.register_id = ? ${whereClause}
         ORDER BY r.processed_at DESC
         LIMIT ? OFFSET ?
-      `).bind(...params, limit, offset).all()
+      `,
+        )
+        .bind(...params, limit, offset)
+        .all();
 
       return {
         success: true,
         data: {
           refunds: (refunds.results || []).map((refund: any) => ({
             ...refund,
-            itemsRefunded: JSON.parse(refund.items_refunded || '[]'),
-            metadata: JSON.parse(refund.metadata || '{}')
+            itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
+            metadata: JSON.parse(refund.metadata || "{}"),
           })),
           pagination: {
             page,
             limit,
-            hasMore: (refunds.results || []).length === limit
-          }
-        }
-      }
-
+            hasMore: (refunds.results || []).length === limit,
+          },
+        },
+      };
     } catch (error) {
-      console.error('獲取退款記錄失敗:', error)
+      console.error("獲取退款記錄失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '獲取退款記錄失敗'
-      }
+        error: error instanceof Error ? error.message : "獲取退款記錄失敗",
+      };
     }
   }
 
@@ -214,10 +235,12 @@ export class RefundService extends BaseService {
    * 獲取退款詳情
    */
   async getRefundDetail(
-    refundId: string
+    refundId: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const refund = await this.d1.prepare(`
+      const refund = await this.d1
+        .prepare(
+          `
         SELECT
           r.*,
           o.order_number,
@@ -232,30 +255,32 @@ export class RefundService extends BaseService {
         LEFT JOIN users ua ON r.approved_by = ua.id
         LEFT JOIN cash_registers cr ON r.register_id = cr.id
         WHERE r.id = ?
-      `).bind(refundId).first()
+      `,
+        )
+        .bind(refundId)
+        .first();
 
       if (!refund) {
         return {
           success: false,
-          error: '退款記錄不存在'
-        }
+          error: "退款記錄不存在",
+        };
       }
 
       return {
         success: true,
         data: {
           ...refund,
-          itemsRefunded: JSON.parse(refund.items_refunded || '[]'),
-          metadata: JSON.parse(refund.metadata || '{}')
-        }
-      }
-
+          itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
+          metadata: JSON.parse(refund.metadata || "{}"),
+        },
+      };
     } catch (error) {
-      console.error('獲取退款詳情失敗:', error)
+      console.error("獲取退款詳情失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '獲取退款詳情失敗'
-      }
+        error: error instanceof Error ? error.message : "獲取退款詳情失敗",
+      };
     }
   }
 
@@ -265,27 +290,33 @@ export class RefundService extends BaseService {
   async cancelRefund(
     refundId: string,
     cancelledBy: number,
-    reason?: string
+    reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const metadata = reason ? JSON.stringify({ cancellation_reason: reason }) : '{}'
+      const metadata = reason
+        ? JSON.stringify({ cancellation_reason: reason })
+        : "{}";
 
-      await this.d1.prepare(`
+      await this.d1
+        .prepare(
+          `
         UPDATE refunds
         SET status = 'cancelled',
             metadata = ?,
             approved_by = ?
         WHERE id = ? AND status IN ('pending', 'processing')
-      `).bind(metadata, cancelledBy, refundId).run()
+      `,
+        )
+        .bind(metadata, cancelledBy, refundId)
+        .run();
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('取消退款失敗:', error)
+      console.error("取消退款失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '取消退款失敗'
-      }
+        error: error instanceof Error ? error.message : "取消退款失敗",
+      };
     }
   }
 
@@ -294,26 +325,30 @@ export class RefundService extends BaseService {
    */
   async approveRefund(
     refundId: string,
-    approvedBy: number
+    approvedBy: number,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const completedAt = getCurrentTimestamp()
-      await this.d1.prepare(`
+      const completedAt = getCurrentTimestamp();
+      await this.d1
+        .prepare(
+          `
         UPDATE refunds
         SET status = 'completed',
             approved_by = ?,
             completed_at = ?
         WHERE id = ? AND status = 'processing'
-      `).bind(approvedBy, completedAt, refundId).run()
+      `,
+        )
+        .bind(approvedBy, completedAt, refundId)
+        .run();
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('審核退款失敗:', error)
+      console.error("審核退款失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '審核退款失敗'
-      }
+        error: error instanceof Error ? error.message : "審核退款失敗",
+      };
     }
   }
 
@@ -323,27 +358,33 @@ export class RefundService extends BaseService {
   async rejectRefund(
     refundId: string,
     rejectedBy: number,
-    reason?: string
+    reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const metadata = reason ? JSON.stringify({ rejection_reason: reason }) : '{}'
+      const metadata = reason
+        ? JSON.stringify({ rejection_reason: reason })
+        : "{}";
 
-      await this.d1.prepare(`
+      await this.d1
+        .prepare(
+          `
         UPDATE refunds
         SET status = 'failed',
             approved_by = ?,
             metadata = ?
         WHERE id = ? AND status = 'processing'
-      `).bind(rejectedBy, metadata, refundId).run()
+      `,
+        )
+        .bind(rejectedBy, metadata, refundId)
+        .run();
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('拒絕退款失敗:', error)
+      console.error("拒絕退款失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '拒絕退款失敗'
-      }
+        error: error instanceof Error ? error.message : "拒絕退款失敗",
+      };
     }
   }
 
@@ -354,35 +395,40 @@ export class RefundService extends BaseService {
     shiftId: string,
     registerId: string,
     movement: {
-      type: string
-      amount: number
-      description: string
-      recordedBy: number
-      referenceId?: number
-      referenceType?: string
-    }
+      type: string;
+      amount: number;
+      description: string;
+      recordedBy: number;
+      referenceId?: number;
+      referenceType?: string;
+    },
   ): Promise<void> {
-    const movementId = crypto.randomUUID()
-    const now = getCurrentTimestamp()
+    const movementId = crypto.randomUUID();
+    const now = getCurrentTimestamp();
 
-    await this.d1.prepare(`
+    await this.d1
+      .prepare(
+        `
       INSERT INTO cash_movements (
         id, shift_id, register_id, type, amount, description,
         reference_id, reference_type, denomination_breakdown,
         recorded_by, approval_status, metadata, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, 'approved', '{}', ?)
-    `).bind(
-      movementId,
-      shiftId,
-      registerId,
-      movement.type,
-      movement.amount,
-      movement.description,
-      movement.referenceId || null,
-      movement.referenceType || null,
-      movement.recordedBy,
-      now
-    ).run()
+    `,
+      )
+      .bind(
+        movementId,
+        shiftId,
+        registerId,
+        movement.type,
+        movement.amount,
+        movement.description,
+        movement.referenceId || null,
+        movement.referenceType || null,
+        movement.recordedBy,
+        now,
+      )
+      .run();
   }
 
   /**
@@ -391,24 +437,34 @@ export class RefundService extends BaseService {
   private processRefundCompletion(refundId: string): void {
     setTimeout(async () => {
       try {
-        const completedAt = getCurrentTimestamp()
-        await this.d1.prepare(`
+        const completedAt = getCurrentTimestamp();
+        await this.d1
+          .prepare(
+            `
           UPDATE refunds
           SET status = 'completed', completed_at = ?
           WHERE id = ? AND status = 'processing'
-        `).bind(completedAt, refundId).run()
+        `,
+          )
+          .bind(completedAt, refundId)
+          .run();
       } catch (error) {
-        console.error('更新退款狀態失敗:', error)
+        console.error("更新退款狀態失敗:", error);
         try {
-          await this.d1.prepare(`
+          await this.d1
+            .prepare(
+              `
             UPDATE refunds
             SET status = 'failed'
             WHERE id = ? AND status = 'processing'
-          `).bind(refundId).run()
+          `,
+            )
+            .bind(refundId)
+            .run();
         } catch (updateError) {
-          console.error('更新失敗狀態失敗:', updateError)
+          console.error("更新失敗狀態失敗:", updateError);
         }
       }
-    }, 5000) // 5秒後完成退款處理
+    }, 5000); // 5秒後完成退款處理
   }
 }

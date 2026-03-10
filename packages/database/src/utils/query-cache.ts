@@ -4,19 +4,19 @@
  * Target: 85%+ cache hit rate for read-heavy operations
  */
 
-import type { KVNamespace } from '@cloudflare/workers-types'
+import type { KVNamespace } from "@cloudflare/workers-types";
 
 export interface QueryCacheOptions {
-  ttl: number // Time to live in seconds
-  tags?: string[] // Cache tags for smart invalidation
-  keyPrefix?: string // Namespace for cache keys
+  ttl: number; // Time to live in seconds
+  tags?: string[]; // Cache tags for smart invalidation
+  keyPrefix?: string; // Namespace for cache keys
 }
 
 export interface CachedQuery<T> {
-  data: T
-  cached_at: number
-  expires_at: number
-  hit_count: number
+  data: T;
+  cached_at: number;
+  expires_at: number;
+  hit_count: number;
 }
 
 /**
@@ -31,38 +31,39 @@ export class QueryCache {
   async getOrExecute<T>(
     cacheKey: string,
     queryFn: () => Promise<T>,
-    options: QueryCacheOptions
+    options: QueryCacheOptions,
   ): Promise<T> {
     // If KV not available, execute query directly
     if (!this.kv) {
-      return await queryFn()
+      return await queryFn();
     }
 
     try {
       // Try to get from cache
-      const cached = await this.kv.get<CachedQuery<T>>(cacheKey, { type: 'json' })
+      const cached = await this.kv.get<CachedQuery<T>>(cacheKey, {
+        type: "json",
+      });
 
       if (cached && Date.now() < cached.expires_at) {
         // Cache hit - update hit count asynchronously
-        this.incrementHitCount(cacheKey, cached).catch(err =>
-          console.warn('Failed to increment hit count:', err)
-        )
+        this.incrementHitCount(cacheKey, cached).catch((err) =>
+          console.warn("Failed to increment hit count:", err),
+        );
 
-        return cached.data
+        return cached.data;
       }
 
       // Cache miss - execute query
-      const result = await queryFn()
+      const result = await queryFn();
 
       // Store in cache
-      await this.set(cacheKey, result, options)
+      await this.set(cacheKey, result, options);
 
-      return result
-
+      return result;
     } catch (error) {
-      console.error('Query cache error:', error)
+      console.error("Query cache error:", error);
       // Fallback to direct query execution
-      return await queryFn()
+      return await queryFn();
     }
   }
 
@@ -72,107 +73,118 @@ export class QueryCache {
   private async set<T>(
     cacheKey: string,
     data: T,
-    options: QueryCacheOptions
+    options: QueryCacheOptions,
   ): Promise<void> {
-    if (!this.kv) return
+    if (!this.kv) return;
 
     const cached: CachedQuery<T> = {
       data,
       cached_at: Date.now(),
-      expires_at: Date.now() + (options.ttl * 1000),
-      hit_count: 0
-    }
+      expires_at: Date.now() + options.ttl * 1000,
+      hit_count: 0,
+    };
 
     try {
       await this.kv.put(cacheKey, JSON.stringify(cached), {
         expirationTtl: options.ttl,
         metadata: {
           tags: JSON.stringify(options.tags || []),
-          created_at: Date.now().toString()
-        }
-      })
+          created_at: Date.now().toString(),
+        },
+      });
 
       // Store tag mappings for invalidation
       if (options.tags?.length) {
-        await this.updateTagMappings(cacheKey, options.tags)
+        await this.updateTagMappings(cacheKey, options.tags);
       }
-
     } catch (error) {
-      console.error('Failed to cache query result:', error)
+      console.error("Failed to cache query result:", error);
     }
   }
 
   /**
    * Invalidate cache by key or tags
    */
-  async invalidate(keyOrTags: string | string[], type: 'key' | 'tag' = 'key'): Promise<void> {
-    if (!this.kv) return
+  async invalidate(
+    keyOrTags: string | string[],
+    type: "key" | "tag" = "key",
+  ): Promise<void> {
+    if (!this.kv) return;
 
     try {
-      if (type === 'key') {
-        await this.kv.delete(keyOrTags as string)
+      if (type === "key") {
+        await this.kv.delete(keyOrTags as string);
       } else {
-        const tags = Array.isArray(keyOrTags) ? keyOrTags : [keyOrTags]
+        const tags = Array.isArray(keyOrTags) ? keyOrTags : [keyOrTags];
 
         // Get all keys for these tags
-        const keysToInvalidate = new Set<string>()
+        const keysToInvalidate = new Set<string>();
 
         for (const tag of tags) {
-          const taggedKeys = await this.kv.get<string[]>(`cache:tag:${tag}`, { type: 'json' })
+          const taggedKeys = await this.kv.get<string[]>(`cache:tag:${tag}`, {
+            type: "json",
+          });
           if (taggedKeys) {
-            taggedKeys.forEach((key: string) => keysToInvalidate.add(key))
+            taggedKeys.forEach((key: string) => keysToInvalidate.add(key));
           }
         }
 
         // Delete all tagged keys
         await Promise.allSettled(
-          Array.from(keysToInvalidate).map(key => this.kv!.delete(key))
-        )
+          Array.from(keysToInvalidate).map((key) => this.kv!.delete(key)),
+        );
 
         // Clean up tag mappings
         await Promise.allSettled(
-          tags.map(tag => this.kv!.delete(`cache:tag:${tag}`))
-        )
+          tags.map((tag) => this.kv!.delete(`cache:tag:${tag}`)),
+        );
       }
     } catch (error) {
-      console.error('Cache invalidation error:', error)
+      console.error("Cache invalidation error:", error);
     }
   }
 
   /**
    * Update tag mappings for cache keys
    */
-  private async updateTagMappings(cacheKey: string, tags: string[]): Promise<void> {
-    if (!this.kv) return
+  private async updateTagMappings(
+    cacheKey: string,
+    tags: string[],
+  ): Promise<void> {
+    if (!this.kv) return;
 
     try {
       for (const tag of tags) {
-        const tagKey = `cache:tag:${tag}`
-        const existingKeys = await this.kv.get<string[]>(tagKey, { type: 'json' }) || []
+        const tagKey = `cache:tag:${tag}`;
+        const existingKeys =
+          (await this.kv.get<string[]>(tagKey, { type: "json" })) || [];
 
         if (!existingKeys.includes(cacheKey)) {
-          existingKeys.push(cacheKey)
+          existingKeys.push(cacheKey);
           await this.kv.put(tagKey, JSON.stringify(existingKeys), {
-            expirationTtl: 7 * 24 * 60 * 60 // 7 days
-          })
+            expirationTtl: 7 * 24 * 60 * 60, // 7 days
+          });
         }
       }
     } catch (error) {
-      console.error('Failed to update tag mappings:', error)
+      console.error("Failed to update tag mappings:", error);
     }
   }
 
   /**
    * Increment hit count for cache key
    */
-  private async incrementHitCount<T>(cacheKey: string, cached: CachedQuery<T>): Promise<void> {
-    if (!this.kv) return
+  private async incrementHitCount<T>(
+    cacheKey: string,
+    cached: CachedQuery<T>,
+  ): Promise<void> {
+    if (!this.kv) return;
 
     try {
-      cached.hit_count++
+      cached.hit_count++;
       await this.kv.put(cacheKey, JSON.stringify(cached), {
-        expirationTtl: Math.ceil((cached.expires_at - Date.now()) / 1000)
-      })
+        expirationTtl: Math.ceil((cached.expires_at - Date.now()) / 1000),
+      });
     } catch (error) {
       // Silently fail - hit count is not critical
     }
@@ -182,19 +194,19 @@ export class QueryCache {
    * Get cache statistics
    */
   async getStats(): Promise<{
-    total_keys: number
-    hit_rate: number
-    popular_queries: Array<{ key: string; hits: number }>
+    total_keys: number;
+    hit_rate: number;
+    popular_queries: Array<{ key: string; hits: number }>;
   }> {
     if (!this.kv) {
-      return { total_keys: 0, hit_rate: 0, popular_queries: [] }
+      return { total_keys: 0, hit_rate: 0, popular_queries: [] };
     }
 
     try {
-      const stats = await this.kv.get<any>('cache:stats', { type: 'json' })
-      return stats || { total_keys: 0, hit_rate: 0, popular_queries: [] }
+      const stats = await this.kv.get<any>("cache:stats", { type: "json" });
+      return stats || { total_keys: 0, hit_rate: 0, popular_queries: [] };
     } catch (error) {
-      return { total_keys: 0, hit_rate: 0, popular_queries: [] }
+      return { total_keys: 0, hit_rate: 0, popular_queries: [] };
     }
   }
 }
@@ -205,8 +217,8 @@ export class QueryCache {
 export function buildCacheKey(
   resource: string,
   identifier: string | number,
-  suffix?: string
+  suffix?: string,
 ): string {
-  const key = `query:${resource}:${identifier}`
-  return suffix ? `${key}:${suffix}` : key
+  const key = `query:${resource}:${identifier}`;
+  return suffix ? `${key}:${suffix}` : key;
 }

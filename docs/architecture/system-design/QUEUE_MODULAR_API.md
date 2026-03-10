@@ -30,10 +30,12 @@ interface ApiResponse<T> {
 ### 🏥 健康檢查
 
 #### GET `/health`
+
 檢查排隊系統健康狀態
 
 **權限**: 公開
 **回應**:
+
 ```json
 {
   "success": true,
@@ -54,25 +56,28 @@ interface ApiResponse<T> {
 ### 👥 客戶排隊功能
 
 #### POST `/join`
+
 加入排隊
 
 **權限**: 公開
 **請求體**:
+
 ```typescript
 interface JoinQueueRequest {
-  restaurantId: number;           // 餐廳ID (必填)
-  customerName: string;           // 客戶姓名 (必填)
-  customerPhone: string;          // 客戶電話 (必填)
-  customerEmail?: string;         // 客戶電子郵件 (選填)
-  partySize: number;             // 用餐人數 (必填, 1-20)
-  specialRequests?: string;       // 特殊需求 (選填)
-  queueType?: QueueType;         // 排隊類型 (預設: 'online')
-  tablePreferences?: number[];    // 偏好桌位 (選填)
+  restaurantId: number; // 餐廳ID (必填)
+  customerName: string; // 客戶姓名 (必填)
+  customerPhone: string; // 客戶電話 (必填)
+  customerEmail?: string; // 客戶電子郵件 (選填)
+  partySize: number; // 用餐人數 (必填, 1-20)
+  specialRequests?: string; // 特殊需求 (選填)
+  queueType?: QueueType; // 排隊類型 (預設: 'online')
+  tablePreferences?: number[]; // 偏好桌位 (選填)
   notificationMethods?: NotificationType[]; // 通知方式 (選填)
 }
 ```
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -88,19 +93,23 @@ interface JoinQueueRequest {
 ```
 
 **錯誤回應**:
+
 - `400`: 驗證失敗、排隊已滿、系統未開放
 - `500`: 系統錯誤
 
 ---
 
 #### GET `/{restaurantId}/status`
+
 獲取餐廳排隊狀態
 
 **權限**: 公開
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -133,13 +142,16 @@ interface JoinQueueRequest {
 ---
 
 #### GET `/{queueId}/position`
+
 查詢排隊位置
 
 **權限**: 公開
 **參數**:
+
 - `queueId` (path): 排隊ID
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -158,6 +170,7 @@ interface JoinQueueRequest {
 ```
 
 **錯誤回應**:
+
 - `404`: 找不到排隊記錄
 
 ---
@@ -165,19 +178,22 @@ interface JoinQueueRequest {
 ### 🔧 員工操作功能
 
 #### POST `/call-next`
+
 呼叫下一位客戶
 
 **權限**: 需要認證 (Admin, Owner, Chef, Service)
 **請求體**:
+
 ```typescript
 interface CallNextRequest {
-  restaurantId: number;           // 餐廳ID (必填)
-  tableId?: number;              // 指定桌位 (選填)
-  specificQueueId?: string;      // 指定客戶ID (選填)
+  restaurantId: number; // 餐廳ID (必填)
+  tableId?: number; // 指定桌位 (選填)
+  specificQueueId?: string; // 指定客戶ID (選填)
 }
 ```
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -198,15 +214,18 @@ interface CallNextRequest {
 ---
 
 #### GET `/{restaurantId}/current`
+
 獲取當前排隊列表
 
 **權限**: 需要認證 (Admin, Owner, Chef, Service)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 - `status` (query): 狀態篩選 (選填)
 - `limit` (query): 回傳數量限制 (預設: 50)
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -236,20 +255,24 @@ interface CallNextRequest {
 ---
 
 #### POST `/{queueId}/seat`
+
 安排客戶入座
 
 **權限**: 需要認證 (Admin, Owner, Chef, Service)
 **參數**:
+
 - `queueId` (path): 排隊ID
 
 **請求體**:
+
 ```typescript
 interface SeatCustomerRequest {
-  tableId: number;  // 桌位ID (必填)
+  tableId: number; // 桌位ID (必填)
 }
 ```
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -265,21 +288,25 @@ interface SeatCustomerRequest {
 ---
 
 #### POST `/{queueId}/cancel`
+
 取消排隊
 
 **權限**: 可選認證 (客戶可提供取消代碼)
 **參數**:
+
 - `queueId` (path): 排隊ID
 
 **請求體**:
+
 ```typescript
 interface CancelQueueRequest {
-  reason?: string;        // 取消原因 (選填)
-  checkInCode?: string;   // 取消代碼 (客戶必填)
+  reason?: string; // 取消原因 (選填)
+  checkInCode?: string; // 取消代碼 (客戶必填)
 }
 ```
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -296,13 +323,16 @@ interface CancelQueueRequest {
 ### ⚙️ 設定管理
 
 #### GET `/{restaurantId}/settings`
+
 獲取排隊設定
 
 **權限**: 需要認證 (Admin, Owner)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -328,13 +358,16 @@ interface CancelQueueRequest {
 ---
 
 #### PUT `/{restaurantId}/settings`
+
 更新排隊設定
 
 **權限**: 需要認證 (Admin, Owner)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 
 **請求體**:
+
 ```typescript
 interface UpdateQueueSettingsRequest {
   isEnabled?: boolean;
@@ -354,15 +387,18 @@ interface UpdateQueueSettingsRequest {
 ### 📊 統計與分析
 
 #### GET `/{restaurantId}/stats`
+
 獲取排隊統計
 
 **權限**: 需要認證 (Admin, Owner)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 - `dateFrom` (query): 開始日期 (選填)
 - `dateTo` (query): 結束日期 (選填)
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -395,10 +431,12 @@ interface UpdateQueueSettingsRequest {
 ---
 
 #### GET `/{restaurantId}/history`
+
 獲取排隊歷史
 
 **權限**: 需要認證 (Admin, Owner)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 - `status` (query): 狀態篩選 (選填)
 - `dateFrom` (query): 開始日期 (選填)
@@ -407,6 +445,7 @@ interface UpdateQueueSettingsRequest {
 - `limit` (query): 每頁數量 (預設: 20)
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -441,13 +480,16 @@ interface UpdateQueueSettingsRequest {
 ### 🔧 系統管理
 
 #### POST `/{restaurantId}/optimize`
+
 優化排隊位置
 
 **權限**: 需要認證 (Admin, Owner)
 **參數**:
+
 - `restaurantId` (path): 餐廳ID
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -461,11 +503,13 @@ interface UpdateQueueSettingsRequest {
 ---
 
 #### GET `/performance`
+
 獲取性能指標
 
 **權限**: 需要認證 (Admin)
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -482,11 +526,13 @@ interface UpdateQueueSettingsRequest {
 ---
 
 #### POST `/cleanup/expired`
+
 清理過期記錄
 
 **權限**: 需要認證 (Admin)
 
 **回應**:
+
 ```json
 {
   "success": true,
@@ -501,34 +547,37 @@ interface UpdateQueueSettingsRequest {
 ## 資料類型定義
 
 ### QueueStatus
+
 ```typescript
 enum QueueStatus {
-  WAITING = 'waiting',      // 等待中
-  CALLED = 'called',        // 已呼叫
-  NOTIFIED = 'notified',    // 已通知
-  SEATED = 'seated',        // 已入座
-  CANCELLED = 'cancelled',  // 已取消
-  NO_SHOW = 'no_show'      // 未出現
+  WAITING = "waiting", // 等待中
+  CALLED = "called", // 已呼叫
+  NOTIFIED = "notified", // 已通知
+  SEATED = "seated", // 已入座
+  CANCELLED = "cancelled", // 已取消
+  NO_SHOW = "no_show", // 未出現
 }
 ```
 
 ### QueueType
+
 ```typescript
 enum QueueType {
-  ONLINE = 'online',        // 線上排隊
-  WALKIN = 'walkin',        // 現場排隊
-  PHONE = 'phone',          // 電話排隊
-  RESERVATION = 'reservation' // 預約排隊
+  ONLINE = "online", // 線上排隊
+  WALKIN = "walkin", // 現場排隊
+  PHONE = "phone", // 電話排隊
+  RESERVATION = "reservation", // 預約排隊
 }
 ```
 
 ### NotificationType
+
 ```typescript
 enum NotificationType {
-  SMS = 'sms',              // 簡訊通知
-  EMAIL = 'email',          // 電子郵件
-  APP = 'app',              // App推播
-  CALL = 'call'             // 電話通知
+  SMS = "sms", // 簡訊通知
+  EMAIL = "email", // 電子郵件
+  APP = "app", // App推播
+  CALL = "call", // 電話通知
 }
 ```
 
@@ -537,6 +586,7 @@ enum NotificationType {
 ## 錯誤處理
 
 ### 錯誤格式
+
 ```json
 {
   "success": false,
@@ -547,6 +597,7 @@ enum NotificationType {
 ```
 
 ### 常見錯誤碼
+
 - `QUEUE_DISABLED`: 排隊系統未開放
 - `QUEUE_FULL`: 排隊隊列已滿
 - `INVALID_REQUEST`: 請求資料無效
@@ -561,6 +612,7 @@ enum NotificationType {
 系統支援 Server-Sent Events (SSE) 即時推送排隊狀態更新：
 
 ### 事件類型
+
 - `queue-joined`: 有新客戶加入排隊
 - `queue-called`: 客戶被呼叫
 - `customer-seated`: 客戶已入座
@@ -568,6 +620,7 @@ enum NotificationType {
 - `queue-updated`: 排隊資訊更新
 
 ### 連接端點
+
 ```
 GET /api/v1/sse/queue/{restaurantId}
 Authorization: Bearer {token}
@@ -582,15 +635,15 @@ Authorization: Bearer {token}
 ```typescript
 // 加入排隊
 const joinQueue = async (restaurantId: number, customerData: any) => {
-  const response = await fetch('/api/v1/queue/join', {
-    method: 'POST',
+  const response = await fetch("/api/v1/queue/join", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       restaurantId,
-      ...customerData
-    })
+      ...customerData,
+    }),
   });
 
   return await response.json();
@@ -604,13 +657,13 @@ const getQueuePosition = async (queueId: string) => {
 
 // 呼叫下一位客戶 (需要認證)
 const callNext = async (restaurantId: number, authToken: string) => {
-  const response = await fetch('/api/v1/queue/call-next', {
-    method: 'POST',
+  const response = await fetch("/api/v1/queue/call-next", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ restaurantId })
+    body: JSON.stringify({ restaurantId }),
   });
 
   return await response.json();
@@ -645,6 +698,7 @@ curl -X POST http://localhost:8787/api/v1/queue/call-next \
 ## 版本歷史
 
 ### v2.0.0 (2025-09-28)
+
 - 全新模組化架構
 - 完整的即時更新支援
 - 增強的權限控制
@@ -652,6 +706,7 @@ curl -X POST http://localhost:8787/api/v1/queue/call-next \
 - 完整的測試覆蓋率
 
 ### v1.0.0 (Legacy)
+
 - 基本排隊功能
 - 已棄用，請使用 v2.0.0
 

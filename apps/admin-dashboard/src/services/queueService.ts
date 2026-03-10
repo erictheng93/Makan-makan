@@ -13,8 +13,15 @@ export interface QueueItem {
   tablePreferences?: number[]; // 修改為 number 陣列
   specialRequests: string | null;
   priority: number;
-  queueType: 'walkin' | 'online' | 'phone'; // 新增類型
-  status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
+  queueType: "walkin" | "online" | "phone"; // 新增類型
+  status:
+    | "waiting"
+    | "called"
+    | "notified"
+    | "seated"
+    | "no_show"
+    | "cancelled"
+    | "expired";
   joinedAt: string;
   calledAt: string | null;
   notifiedAt?: string;
@@ -49,7 +56,7 @@ export interface QueueSettings {
   autoCallEnabled: boolean;
   autoCallInterval: number;
   noShowTimeout: number;
-  queueNumberReset: 'daily' | 'weekly' | 'monthly' | 'never';
+  queueNumberReset: "daily" | "weekly" | "monthly" | "never";
   priorityRules: Record<string, any>;
   tableAssignmentRules: Record<string, any>;
   notificationTemplates: Record<string, string>;
@@ -84,25 +91,28 @@ export const queueService = {
       limit?: number;
     },
   ): Promise<QueueItem[]> {
-    const response = await apiClient.get(`/api/v1/queue/${restaurantId}/current`, {
-      params,
-    });
+    const response = await apiClient.get(
+      `/api/v1/queue/${restaurantId}/current`,
+      {
+        params,
+      },
+    );
     return (response.data as any)?.data?.queue || [];
   },
 
-  async getQueueStatus(
-    restaurantId: string
-  ): Promise<{
+  async getQueueStatus(restaurantId: string): Promise<{
     queue: any;
     activity: any;
     settings: QueueSettings;
   }> {
-    const response = await apiClient.get(`/api/v1/queue/${restaurantId}/status`);
+    const response = await apiClient.get(
+      `/api/v1/queue/${restaurantId}/status`,
+    );
     const data = (response.data as any)?.data;
     return {
       queue: data?.queue || {},
       activity: data?.activity || {},
-      settings: data?.settings || {} as QueueSettings
+      settings: data?.settings || ({} as QueueSettings),
     };
   },
 
@@ -113,16 +123,18 @@ export const queueService = {
     customerEmail?: string;
     partySize: number;
     specialRequests?: string;
-    queueType?: 'walkin' | 'online' | 'phone';
+    queueType?: "walkin" | "online" | "phone";
     tablePreferences?: number[];
     notificationMethods?: string[];
-  }): Promise<ApiResponse<{
-    queueId: string;
-    queueNumber: number;
-    estimatedWaitMinutes: number;
-    currentPosition: number;
-    checkInCode: string;
-  }>> {
+  }): Promise<
+    ApiResponse<{
+      queueId: string;
+      queueNumber: number;
+      estimatedWaitMinutes: number;
+      currentPosition: number;
+      checkInCode: string;
+    }>
+  > {
     const response = await apiClient.post<{
       queueId: string;
       queueNumber: number;
@@ -133,14 +145,16 @@ export const queueService = {
     return response.data;
   },
 
-  async getQueuePosition(queueId: string): Promise<ApiResponse<{
-    queueId: string;
-    queueNumber: number;
-    currentPosition: number;
-    estimatedWaitMinutes: number;
-    status: string;
-    canCancel: boolean;
-  }>> {
+  async getQueuePosition(queueId: string): Promise<
+    ApiResponse<{
+      queueId: string;
+      queueNumber: number;
+      currentPosition: number;
+      estimatedWaitMinutes: number;
+      status: string;
+      canCancel: boolean;
+    }>
+  > {
     const response = await apiClient.get(`/api/v1/queue/${queueId}/position`);
     return response.data as any;
   },
@@ -153,7 +167,10 @@ export const queueService = {
       checkInCode?: string;
     },
   ): Promise<ApiResponse<{}>> {
-    const response = await apiClient.post(`/api/v1/queue/${queueId}/cancel`, data);
+    const response = await apiClient.post(
+      `/api/v1/queue/${queueId}/cancel`,
+      data,
+    );
     return response.data as any;
   },
 
@@ -169,13 +186,10 @@ export const queueService = {
     data?: QueueItem;
     error?: string;
   }> {
-    const response = await apiClient.post(
-      "/api/v1/queue/call-next",
-      {
-        restaurantId,
-        ...data
-      }
-    );
+    const response = await apiClient.post("/api/v1/queue/call-next", {
+      restaurantId,
+      ...data,
+    });
     return response.data as any;
   },
 
@@ -186,12 +200,12 @@ export const queueService = {
       tableId: number;
     },
   ): Promise<ApiResponse<{}>> {
-    const response = await apiClient.post(`/api/v1/queue/${queueId}/seat`, data);
+    const response = await apiClient.post(
+      `/api/v1/queue/${queueId}/seat`,
+      data,
+    );
     return response.data as any;
   },
-
-
-
 
   // 設定管理 - 使用新 API
   async getSettings(restaurantId: string): Promise<ApiResponse<QueueSettings>> {
@@ -212,7 +226,6 @@ export const queueService = {
     return response.data as any;
   },
 
-
   // 統計和分析 - 暫時保留舊 API 直到新統計端點實現
   async getDailyStats(
     restaurantId: string,
@@ -226,7 +239,6 @@ export const queueService = {
     );
     return (response.data as any).data || response.data;
   },
-
 
   // 即時狀態 - 使用新 API
   async getRealtimeStatus(restaurantId: string): Promise<{
@@ -259,18 +271,17 @@ export const queueService = {
         max_wait: 0,
         online_count: 0,
         walkin_count: 0,
-        priority_count: 0
+        priority_count: 0,
       },
       activity: data?.activity || {
         seated_today: 0,
         cancelled_today: 0,
         no_show_today: 0,
-        avg_actual_wait: 0
+        avg_actual_wait: 0,
       },
-      settings: data?.settings || {} as QueueSettings
+      settings: data?.settings || ({} as QueueSettings),
     };
   },
-
 
   // 預測和智能功能 - 暫時保留舊端點，等待新實現
   async getWaitTimeEstimate(
@@ -299,14 +310,14 @@ export const queueService = {
         {
           factor: "當前候位人數",
           impact: status.queue?.total_waiting || 0,
-          description: "目前排隊等候的客戶數量"
+          description: "目前排隊等候的客戶數量",
         },
         {
           factor: "聚餐人數",
           impact: partySize,
-          description: "較大聚餐需要更長準備時間"
-        }
-      ]
+          description: "較大聚餐需要更長準備時間",
+        },
+      ],
     };
   },
 
@@ -329,31 +340,37 @@ export const queueService = {
       peakHours: [12, 13, 18, 19, 20],
       recommendations: [
         "建議在用餐尖峰時段增加服務人員",
-        "考慮實施預約制度以平衡客流"
-      ]
+        "考慮實施預約制度以平衡客流",
+      ],
     };
   },
 
   // Performance optimization methods
-  async getPerformanceMetrics(): Promise<ApiResponse<{
-    cacheStats: {
-      totalEntries: number;
-      validEntries: number;
-      expiredEntries: number;
-      hitRate: number;
-      memoryUsage: number;
-    };
-    lastUpdated: string;
-  }>> {
-    const response = await apiClient.get('/api/v1/queue/performance');
+  async getPerformanceMetrics(): Promise<
+    ApiResponse<{
+      cacheStats: {
+        totalEntries: number;
+        validEntries: number;
+        expiredEntries: number;
+        hitRate: number;
+        memoryUsage: number;
+      };
+      lastUpdated: string;
+    }>
+  > {
+    const response = await apiClient.get("/api/v1/queue/performance");
     return response.data as any;
   },
 
-  async optimizeQueue(restaurantId: string): Promise<ApiResponse<{
-    message: string;
-    timestamp: string;
-  }>> {
-    const response = await apiClient.post(`/api/v1/queue/${restaurantId}/optimize`);
+  async optimizeQueue(restaurantId: string): Promise<
+    ApiResponse<{
+      message: string;
+      timestamp: string;
+    }>
+  > {
+    const response = await apiClient.post(
+      `/api/v1/queue/${restaurantId}/optimize`,
+    );
     return response.data as any;
   },
 };

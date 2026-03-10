@@ -10,13 +10,13 @@
  * - Role-based access control
  */
 
-import routes from './routes'
-export { routes }
-export { default as usersRoutes } from './routes'
-export * from './services/UsersService'
-export * from './types'
-export * from './schemas/validation'
+import routes from "./routes";
+export { routes };
+export { default as usersRoutes } from "./routes";
+export * from "./services/UsersService";
+export * from "./types";
+export * from "./schemas/validation";
 
 export default {
-  routes
-}
+  routes,
+};

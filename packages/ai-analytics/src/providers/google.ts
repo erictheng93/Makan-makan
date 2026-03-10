@@ -3,8 +3,8 @@
  * https://ai.google.dev/docs/gemini_api_overview
  */
 
-import { BaseLLMProvider } from './base';
-import type { LLMRequest, LLMResponse } from '../types';
+import { BaseLLMProvider } from "./base";
+import type { LLMRequest, LLMResponse } from "../types";
 
 interface GeminiContent {
   parts: Array<{ text: string }>;
@@ -39,10 +39,10 @@ interface GeminiResponse {
 }
 
 export class GoogleProvider extends BaseLLMProvider {
-  private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  private readonly baseUrl = "https://generativelanguage.googleapis.com/v1beta";
 
   protected getDefaultModel(): string {
-    return 'gemini-1.5-pro';
+    return "gemini-1.5-pro";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
@@ -53,7 +53,7 @@ export class GoogleProvider extends BaseLLMProvider {
         contents: [
           {
             parts: [{ text: request.prompt }],
-            role: 'user',
+            role: "user",
           },
         ],
         generationConfig: {
@@ -72,28 +72,32 @@ export class GoogleProvider extends BaseLLMProvider {
       const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.config.apiKey}`;
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(geminiRequest),
       });
 
       if (!response.ok) {
-        const errorData = await response.json() as { error?: { message?: string } };
-        throw new Error(`Google API error: ${errorData.error?.message || response.statusText}`);
+        const errorData = (await response.json()) as {
+          error?: { message?: string };
+        };
+        throw new Error(
+          `Google API error: ${errorData.error?.message || response.statusText}`,
+        );
       }
 
-      const data = await response.json() as GeminiResponse;
+      const data = (await response.json()) as GeminiResponse;
       const latencyMs = Date.now() - startTime;
 
       const candidate = data.candidates?.[0];
       if (!candidate) {
-        throw new Error('No candidates in Gemini response');
+        throw new Error("No candidates in Gemini response");
       }
 
       return {
-        content: candidate.content.parts[0]?.text || '',
+        content: candidate.content.parts[0]?.text || "",
         usage: data.usageMetadata
           ? {
               promptTokens: data.usageMetadata.promptTokenCount,
@@ -108,11 +112,17 @@ export class GoogleProvider extends BaseLLMProvider {
         },
       };
     } catch (error) {
-      throw new Error(`Google provider error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Google provider error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
-  async test(): Promise<{ success: boolean; latencyMs?: number; error?: string }> {
+  async test(): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -131,7 +141,7 @@ export class GoogleProvider extends BaseLLMProvider {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }

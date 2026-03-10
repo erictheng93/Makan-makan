@@ -184,7 +184,9 @@
                     {{ getStatusText(order.status) }}
                   </span>
                 </div>
-                <div class="text-sm text-gray-500">RM{{ order.totalAmount }}</div>
+                <div class="text-sm text-gray-500">
+                  RM{{ order.totalAmount }}
+                </div>
                 <div class="text-sm text-gray-500">
                   {{ formatDateTime(order.createdAt) }}
                 </div>

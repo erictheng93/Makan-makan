@@ -19,6 +19,7 @@
 #### ✅ 文件: `apps/admin-dashboard/src/views/SettingsView.vue`
 
 **新增 QR Code Tab (第 631 行):**
+
 ```typescript
 const tabs = [
   { id: "general", name: "基本設定" },
@@ -71,6 +72,7 @@ const tabs = [
 **B. QR Code 管理卡片 (第 461-598 行)**
 
 **未生成狀態 (第 465-486 行):**
+
 ```vue
 <div v-if="!shopQR.qrCode" class="text-center py-8">
   <div class="w-20 h-20 bg-gray-100 rounded-full">
@@ -84,6 +86,7 @@ const tabs = [
 ```
 
 **已生成狀態 (第 489-597 行):**
+
 ```vue
 <div v-else class="space-y-6">
   <!-- QR Code 顯示 -->
@@ -150,15 +153,19 @@ const isSavingShopSettings = ref(false);
 #### ✅ API 整合方法 (第 989-1150 行，共 162 行)
 
 **1. 載入 Shop QR 資訊 (第 989-1011 行):**
+
 ```typescript
 const loadShopQRInfo = async () => {
   try {
     const restaurantId = 1; // 從用戶 session 獲取
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       },
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -177,20 +184,24 @@ const loadShopQRInfo = async () => {
 ```
 
 **2. 切換店家模式 (第 1013-1040 行):**
+
 ```typescript
 const handleToggleShopMode = async () => {
   try {
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/shop-mode`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/shop-mode`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          enabled: shopQR.enabled,
+          settings: shopQR.settings,
+        }),
       },
-      body: JSON.stringify({
-        enabled: shopQR.enabled,
-        settings: shopQR.settings,
-      }),
-    });
+    );
 
     if (response.ok) {
       alert(shopQR.enabled ? "店家模式已啟用" : "店家模式已停用");
@@ -208,14 +219,18 @@ const handleToggleShopMode = async () => {
 ```
 
 **3. 儲存店家設定 (第 1042-1069 行):**
+
 ```typescript
 const saveShopSettings = async () => {
   try {
     isSavingShopSettings.value = true;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/shop-mode`, {
-      method: "PUT",
-      // ...
-    });
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/shop-mode`,
+      {
+        method: "PUT",
+        // ...
+      },
+    );
 
     if (response.ok) {
       alert("設定已儲存");
@@ -229,14 +244,18 @@ const saveShopSettings = async () => {
 ```
 
 **4. 生成 QR Code (第 1071-1098 行):**
+
 ```typescript
 const generateShopQR = async () => {
   try {
     isGeneratingQR.value = true;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop/generate`, {
-      method: "POST",
-      // ...
-    });
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop/generate`,
+      {
+        method: "POST",
+        // ...
+      },
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -254,6 +273,7 @@ const generateShopQR = async () => {
 ```
 
 **5. 重新生成 QR Code (第 1100-1131 行):**
+
 ```typescript
 const regenerateShopQR = async () => {
   if (!confirm("確定要重新生成 QR Code 嗎？這將更新版本號。")) {
@@ -262,10 +282,13 @@ const regenerateShopQR = async () => {
 
   try {
     isRegeneratingQR.value = true;
-    const response = await fetch(`/api/v1/restaurants/${restaurantId}/qr/shop/regenerate`, {
-      method: "POST",
-      // ...
-    });
+    const response = await fetch(
+      `/api/v1/restaurants/${restaurantId}/qr/shop/regenerate`,
+      {
+        method: "POST",
+        // ...
+      },
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -283,6 +306,7 @@ const regenerateShopQR = async () => {
 ```
 
 **6. 複製 QR Code (第 1133-1139 行):**
+
 ```typescript
 const copyQRCode = () => {
   if (navigator.clipboard) {
@@ -294,6 +318,7 @@ const copyQRCode = () => {
 ```
 
 **7. 下載 QR Code (第 1141-1150 行):**
+
 ```typescript
 const downloadQRCode = () => {
   if (shopQR.qrCodeImageUrl) {
@@ -308,6 +333,7 @@ const downloadQRCode = () => {
 ```
 
 **8. 初始化 (第 1152-1155 行):**
+
 ```typescript
 onMounted(() => {
   loadSettings();
@@ -319,24 +345,26 @@ onMounted(() => {
 
 ## 📊 Phase 3 代碼統計
 
-| 類別 | 文件數 | 新增/修改行數 | 備註 |
-|------|--------|--------------|------|
-| SettingsView Tab | 1 | ~5 | 添加 QR Code tab |
-| UI 模板 | 1 | ~240 | 完整管理界面 |
-| JavaScript 邏輯 | 1 | ~178 | 8個方法 + 狀態管理 |
-| **總計** | **1** | **~423** | **Phase 3 完整實現** |
+| 類別             | 文件數 | 新增/修改行數 | 備註                 |
+| ---------------- | ------ | ------------- | -------------------- |
+| SettingsView Tab | 1      | ~5            | 添加 QR Code tab     |
+| UI 模板          | 1      | ~240          | 完整管理界面         |
+| JavaScript 邏輯  | 1      | ~178          | 8個方法 + 狀態管理   |
+| **總計**         | **1**  | **~423**      | **Phase 3 完整實現** |
 
 ---
 
 ## 🎨 UI/UX 設計特點
 
 ### 1. 一致性設計
+
 - **完全匹配** Admin Dashboard 現有設計語言
 - 使用相同的 **Tailwind CSS** 樣式類別
 - 統一的 **Toggle Switch** 組件
 - 一致的 **卡片佈局**和間距
 
 ### 2. 視覺層次
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ 店家 QR Code 設定                                   │
@@ -372,18 +400,17 @@ onMounted(() => {
 ```
 
 ### 3. 狀態反饋
+
 - **加載狀態**: 按鈕顯示 Spinner 動畫
 - **禁用狀態**: 按鈕變灰並禁止點擊
 - **成功提示**: 使用 `alert()` 提供即時反饋
 - **錯誤處理**: 捕獲異常並顯示友善訊息
 
 ### 4. 響應式設計
+
 ```css
 /* 桌面版：QR Code 與資訊並排 */
-.flex.flex-col.md:flex-row
-
-/* 手機版：QR Code 與資訊堆疊 */
-.flex-col
+.flex.flex-col.md: flex-row /* 手機版：QR Code 與資訊堆疊 */ .flex-col;
 ```
 
 ---
@@ -392,15 +419,16 @@ onMounted(() => {
 
 ### ✅ Phase 1 API 端點對應
 
-| 功能 | 方法 | API 端點 | 狀態 |
-|------|------|----------|------|
-| 載入 QR 資訊 | `loadShopQRInfo()` | `GET /api/v1/restaurants/:id/qr/shop` | ✅ |
-| 啟用/禁用模式 | `handleToggleShopMode()` | `PUT /api/v1/restaurants/:id/shop-mode` | ✅ |
-| 儲存設定 | `saveShopSettings()` | `PUT /api/v1/restaurants/:id/shop-mode` | ✅ |
-| 生成 QR Code | `generateShopQR()` | `POST /api/v1/restaurants/:id/qr/shop/generate` | ✅ |
-| 重新生成 QR | `regenerateShopQR()` | `POST /api/v1/restaurants/:id/qr/shop/regenerate` | ✅ |
+| 功能          | 方法                     | API 端點                                          | 狀態 |
+| ------------- | ------------------------ | ------------------------------------------------- | ---- |
+| 載入 QR 資訊  | `loadShopQRInfo()`       | `GET /api/v1/restaurants/:id/qr/shop`             | ✅   |
+| 啟用/禁用模式 | `handleToggleShopMode()` | `PUT /api/v1/restaurants/:id/shop-mode`           | ✅   |
+| 儲存設定      | `saveShopSettings()`     | `PUT /api/v1/restaurants/:id/shop-mode`           | ✅   |
+| 生成 QR Code  | `generateShopQR()`       | `POST /api/v1/restaurants/:id/qr/shop/generate`   | ✅   |
+| 重新生成 QR   | `regenerateShopQR()`     | `POST /api/v1/restaurants/:id/qr/shop/regenerate` | ✅   |
 
 **未使用的端點 (可選):**
+
 - `POST /api/v1/restaurants/:id/qr/shop/upload-image` - 圖片上傳（未實現）
 - `GET /api/v1/qr-codes/verify/shop/:qrCode` - 公開驗證（用於 Customer App）
 
@@ -474,19 +502,23 @@ onMounted(() => {
 ### 1. 漸進式揭露 ✨
 
 **未啟用店家模式時:**
+
 - 只顯示啟用開關和說明
 - 簡潔清爽
 
 **啟用後:**
+
 - 顯示完整設定表單
 - 顯示 QR Code 管理卡片
 
 **生成 QR Code 後:**
+
 - 顯示完整的 QR 資訊和操作
 
 ### 2. 防呆設計 🛡️
 
 **確認對話框:**
+
 ```typescript
 if (!confirm("確定要重新生成 QR Code 嗎？這將更新版本號。")) {
   return;
@@ -494,6 +526,7 @@ if (!confirm("確定要重新生成 QR Code 嗎？這將更新版本號。")) {
 ```
 
 **狀態回滾:**
+
 ```typescript
 catch (error) {
   // 恢復原狀態
@@ -502,6 +535,7 @@ catch (error) {
 ```
 
 **按鈕禁用:**
+
 ```vue
 <button :disabled="isGeneratingQR">
   <!-- 防止重複點擊 -->
@@ -511,6 +545,7 @@ catch (error) {
 ### 3. 視覺提示 💡
 
 **藍色資訊卡 (使用說明):**
+
 ```vue
 <div class="bg-blue-50 border border-blue-200">
   <svg class="text-blue-600"><!-- Info Icon --></svg>
@@ -519,6 +554,7 @@ catch (error) {
 ```
 
 **黃色警告卡 (重新生成警告):**
+
 ```vue
 <div class="bg-yellow-50 border border-yellow-200">
   <svg class="text-yellow-600"><!-- Warning Icon --></svg>
@@ -529,6 +565,7 @@ catch (error) {
 ### 4. 實時反饋 ⚡
 
 **加載中狀態:**
+
 ```vue
 <span v-if="!isGeneratingQR">生成 QR Code</span>
 <span v-else class="flex items-center">
@@ -538,6 +575,7 @@ catch (error) {
 ```
 
 **成功/失敗提示:**
+
 ```typescript
 if (response.ok) {
   alert("QR Code 已生成"); // 成功
@@ -553,6 +591,7 @@ if (response.ok) {
 ### API 錯誤處理策略
 
 **1. 網絡錯誤:**
+
 ```typescript
 try {
   const response = await fetch(...);
@@ -563,6 +602,7 @@ try {
 ```
 
 **2. HTTP 錯誤:**
+
 ```typescript
 if (response.ok) {
   // 成功處理
@@ -572,6 +612,7 @@ if (response.ok) {
 ```
 
 **3. 狀態回滾:**
+
 ```typescript
 catch (error) {
   // 恢復 UI 狀態
@@ -583,20 +624,20 @@ catch (error) {
 
 ## ✅ Phase 3 驗收標準
 
-| 驗收項 | 狀態 | 備註 |
-|--------|------|------|
-| QR Code Tab 已添加 | ✅ | 第 5 個 tab |
-| 店家模式開關 | ✅ | Toggle 組件 |
-| 設定表單完整 | ✅ | 3 個欄位 |
-| QR Code 生成 | ✅ | 按鈕 + API 整合 |
-| QR Code 顯示 | ✅ | 圖片 + 資訊展示 |
-| QR Code 重新生成 | ✅ | 確認對話框 + API |
-| QR Code 複製 | ✅ | Clipboard API |
-| QR Code 下載 | ✅ | 動態連結下載 |
-| 加載狀態指示器 | ✅ | Spinner 動畫 |
-| 錯誤處理 | ✅ | Try-catch + 提示 |
-| 響應式設計 | ✅ | Tailwind breakpoints |
-| 設計一致性 | ✅ | 匹配現有風格 |
+| 驗收項             | 狀態 | 備註                 |
+| ------------------ | ---- | -------------------- |
+| QR Code Tab 已添加 | ✅   | 第 5 個 tab          |
+| 店家模式開關       | ✅   | Toggle 組件          |
+| 設定表單完整       | ✅   | 3 個欄位             |
+| QR Code 生成       | ✅   | 按鈕 + API 整合      |
+| QR Code 顯示       | ✅   | 圖片 + 資訊展示      |
+| QR Code 重新生成   | ✅   | 確認對話框 + API     |
+| QR Code 複製       | ✅   | Clipboard API        |
+| QR Code 下載       | ✅   | 動態連結下載         |
+| 加載狀態指示器     | ✅   | Spinner 動畫         |
+| 錯誤處理           | ✅   | Try-catch + 提示     |
+| 響應式設計         | ✅   | Tailwind breakpoints |
+| 設計一致性         | ✅   | 匹配現有風格         |
 
 ---
 
@@ -649,12 +690,14 @@ bash test-shop-qr-endpoints.sh
 ### 1. 硬編碼 Restaurant ID
 
 **問題:**
+
 ```typescript
 const restaurantId = 1; // 硬編碼
 ```
 
 **解決方案:**
 從用戶 session 或 Vuex/Pinia store 獲取：
+
 ```typescript
 const { currentRestaurantId } = useAuthStore();
 const restaurantId = currentRestaurantId;
@@ -664,12 +707,14 @@ const restaurantId = currentRestaurantId;
 
 **問題:**
 使用 `alert()` 顯示訊息：
+
 ```typescript
 alert("QR Code 已生成");
 ```
 
 **改進方案:**
 使用 Toast 通知系統（如 vue-toastification）：
+
 ```typescript
 toast.success("QR Code 已生成");
 ```
@@ -680,6 +725,7 @@ toast.success("QR Code 已生成");
 後端需要實際生成 QR Code 圖片並返回 URL。
 
 **實現建議:**
+
 - 使用 QR Code 生成庫（如 `qrcode` npm package）
 - 存儲到 Cloudflare R2
 - 返回圖片 URL
@@ -691,6 +737,7 @@ toast.success("QR Code 已生成");
 
 **解決方案:**
 使用 Blob 下載：
+
 ```typescript
 const response = await fetch(shopQR.qrCodeImageUrl);
 const blob = await response.blob();
@@ -721,18 +768,21 @@ URL.revokeObjectURL(url);
 ## 🏁 三階段完成總覽
 
 ### Phase 1 (Backend) - ✅ 100%
+
 - 數據庫 Schema 和 Migration
 - RestaurantService 方法
 - API 端點和驗證
 - 總計：~667 行代碼
 
 ### Phase 2 (Customer App) - ✅ 100%
+
 - 路由和 QR Parser 增強
 - View 組件和 Store
 - 購物車和彈窗
 - 總計：~1770 行代碼
 
 ### Phase 3 (Admin Dashboard) - ✅ 100%
+
 - SettingsView 更新
 - Shop QR 管理界面
 - API 整合和測試

@@ -5,6 +5,7 @@
 ### 1. **Environment Variables Setup**
 
 #### Generate Secure JWT Secret
+
 ```bash
 # Generate a secure 64-character JWT secret
 openssl rand -hex 32
@@ -16,6 +17,7 @@ wrangler secret put JWT_SECRET --env production
 ```
 
 #### Set Other Required Secrets
+
 ```bash
 # Set Cloudflare API token (get from CF dashboard)
 wrangler secret put CLOUDFLARE_API_TOKEN --env production
@@ -27,17 +29,19 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 ### 2. **Database Setup**
 
 #### Create D1 Databases
+
 ```bash
 # Create staging database
 wrangler d1 create makanmakan-staging
 
-# Create production database  
+# Create production database
 wrangler d1 create makanmakan-prod
 
 # Copy the database IDs from output and update wrangler.toml files
 ```
 
 #### Apply Database Migrations
+
 ```bash
 # Apply to staging
 wrangler d1 migrations apply makanmakan-staging --env staging
@@ -49,6 +53,7 @@ wrangler d1 migrations apply makanmakan-prod --env production
 ### 3. **KV Namespace Setup**
 
 #### Create KV Namespaces for Each Service
+
 ```bash
 # Image processor KV namespaces
 wrangler kv:namespace create "IMAGE_CACHE" --env staging
@@ -68,11 +73,13 @@ wrangler kv:namespace create "API_CACHE" --env production
 Replace all placeholder IDs in wrangler.toml files with actual Cloudflare resource IDs:
 
 #### Files to Update:
+
 - `apps/api/wrangler.toml`
 - `apps/realtime/wrangler.toml`
 - `apps/image-processor/wrangler.toml`
 
 #### Search and Replace:
+
 ```bash
 # Find all placeholder IDs
 grep -r "TO_BE_REPLACED" apps/*/wrangler.toml
@@ -83,17 +90,20 @@ grep -r "TO_BE_REPLACED" apps/*/wrangler.toml
 ### 5. **Security Verification Checklist**
 
 #### ✅ Secrets Management
+
 - [ ] JWT_SECRET set via wrangler secrets (not in code/config)
 - [ ] All API tokens stored as secrets
 - [ ] No hardcoded credentials in any files
 - [ ] `.env.local` removed from version control
 
 #### ✅ Database Security
+
 - [ ] All database IDs updated to real Cloudflare resource IDs
 - [ ] Migrations applied to all environments
 - [ ] Database access restricted to Workers
 
 #### ✅ Application Security
+
 - [ ] All authentication endpoints secured
 - [ ] CORS configured for production domains only
 - [ ] Rate limiting enabled
@@ -102,12 +112,14 @@ grep -r "TO_BE_REPLACED" apps/*/wrangler.toml
 ### 6. **Deployment Commands**
 
 #### Deploy to Staging
+
 ```bash
 # Build and deploy all services to staging
 npm run deploy:staging
 ```
 
 #### Deploy to Production
+
 ```bash
 # Build and deploy all services to production
 npm run deploy:prod
@@ -116,6 +128,7 @@ npm run deploy:prod
 ### 7. **Post-Deployment Verification**
 
 #### Test Critical Security Functions
+
 ```bash
 # Test JWT secret is working
 curl -X POST https://api.makanmakan.app/api/v1/auth/login \\
@@ -132,6 +145,7 @@ curl -I https://api.makanmakan.app/api/v1/health
 ## 🚨 **CRITICAL SECURITY WARNINGS**
 
 ### ❌ **DO NOT**:
+
 - Commit JWT secrets to version control
 - Use placeholder IDs in production
 - Deploy without setting all required secrets
@@ -139,6 +153,7 @@ curl -I https://api.makanmakan.app/api/v1/health
 - Disable security headers in production
 
 ### ✅ **DO**:
+
 - Generate unique secrets for each environment
 - Use wrangler secrets for all sensitive values
 - Test deployments in staging first
@@ -148,16 +163,19 @@ curl -I https://api.makanmakan.app/api/v1/health
 ## 📋 **Environment-Specific Configuration**
 
 ### Development
+
 - Use `.env.local` with development-only secrets
 - Local D1 database for testing
 - Relaxed CORS for localhost development
 
 ### Staging
+
 - Separate D1 database from production
 - Staging-specific JWT secrets
 - Limited access for testing
 
 ### Production
+
 - Strong JWT secrets (64+ characters)
 - Production D1 database with backups
 - Strict CORS limited to production domains
@@ -166,12 +184,14 @@ curl -I https://api.makanmakan.app/api/v1/health
 ## 🛠️ **Troubleshooting Deployment Issues**
 
 ### Common Issues:
+
 1. **"Database not found"** → Update database_id in wrangler.toml
 2. **"JWT_SECRET not set"** → Run `wrangler secret put JWT_SECRET`
 3. **"KV namespace not found"** → Create KV namespace and update ID
 4. **CORS errors** → Check allowed origins in cors middleware
 
 ### Debug Commands:
+
 ```bash
 # Check deployed secrets
 wrangler secret list --env production

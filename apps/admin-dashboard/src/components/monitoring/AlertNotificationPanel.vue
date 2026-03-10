@@ -47,7 +47,10 @@
             :title="soundEnabled ? '關閉聲音' : '開啟聲音'"
             @click="toggleSound"
           >
-            <component :is="soundEnabled ? SpeakerWaveIcon : SpeakerXMarkIcon" class="w-4 h-4" />
+            <component
+              :is="soundEnabled ? SpeakerWaveIcon : SpeakerXMarkIcon"
+              class="w-4 h-4"
+            />
           </button>
 
           <!-- Clear all -->
@@ -70,15 +73,25 @@
           :key="alert.id"
           :class="[
             'px-4 py-3 border-b border-gray-100 transition-colors cursor-pointer',
-            alert.acknowledged ? 'bg-white opacity-60' : 'bg-white hover:bg-gray-50',
+            alert.acknowledged
+              ? 'bg-white opacity-60'
+              : 'bg-white hover:bg-gray-50',
             getSeverityBorderClass(alert.severity),
           ]"
           @click="acknowledgeAlert(alert.id)"
         >
           <div class="flex items-start">
             <!-- Severity Icon -->
-            <div :class="['flex-shrink-0 mt-0.5', getSeverityTextClass(alert.severity)]">
-              <component :is="getSeverityIcon(alert.severity)" class="w-5 h-5" />
+            <div
+              :class="[
+                'flex-shrink-0 mt-0.5',
+                getSeverityTextClass(alert.severity),
+              ]"
+            >
+              <component
+                :is="getSeverityIcon(alert.severity)"
+                class="w-5 h-5"
+              />
             </div>
 
             <!-- Alert Content -->
@@ -93,13 +106,18 @@
                   </p>
 
                   <!-- Alert Metadata -->
-                  <div class="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                  <div
+                    class="mt-2 flex items-center space-x-4 text-xs text-gray-500"
+                  >
                     <span>{{ formatTimestamp(alert.timestamp) }}</span>
                     <span v-if="alert.ruleName" class="flex items-center">
                       <TagIcon class="w-3 h-3 mr-1" />
                       {{ alert.ruleName }}
                     </span>
-                    <span v-if="alert.currentValue !== undefined" class="flex items-center">
+                    <span
+                      v-if="alert.currentValue !== undefined"
+                      class="flex items-center"
+                    >
                       目前值: {{ alert.currentValue }}
                       <span v-if="alert.threshold !== undefined" class="ml-1">
                         (閾值: {{ alert.threshold }})
@@ -131,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from "vue";
 import {
   BellIcon,
   CheckCircleIcon,
@@ -142,80 +160,83 @@ import {
   SpeakerXMarkIcon,
   WifiIcon,
   ArrowPathIcon,
-} from '@heroicons/vue/24/outline'
-import TagIcon from '@heroicons/vue/24/outline/TagIcon'
-import type { AlertNotification, ConnectionStatus } from '@/services/monitoringWebSocket'
+} from "@heroicons/vue/24/outline";
+import TagIcon from "@heroicons/vue/24/outline/TagIcon";
+import type {
+  AlertNotification,
+  ConnectionStatus,
+} from "@/services/monitoringWebSocket";
 
 interface Props {
-  alerts: AlertNotification[]
-  connectionStatus: ConnectionStatus
-  showConnectionStatus?: boolean
+  alerts: AlertNotification[];
+  connectionStatus: ConnectionStatus;
+  showConnectionStatus?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showConnectionStatus: true,
-})
+});
 
 const emit = defineEmits<{
-  acknowledge: [alertId: string]
-  clearAll: []
-  reconnect: []
-}>()
+  acknowledge: [alertId: string];
+  clearAll: [];
+  reconnect: [];
+}>();
 
-const soundEnabled = ref(true)
+const soundEnabled = ref(true);
 
 // ============================================================================
 // Computed
 // ============================================================================
 
 const unacknowledgedCount = computed(() => {
-  return props.alerts.filter((a) => !a.acknowledged).length
-})
+  return props.alerts.filter((a) => !a.acknowledged).length;
+});
 
 const connectionStatusClass = computed(() => {
   if (props.connectionStatus.connected) {
-    return 'bg-green-50 text-green-800'
+    return "bg-green-50 text-green-800";
   }
   if (props.connectionStatus.reconnecting) {
-    return 'bg-yellow-50 text-yellow-800'
+    return "bg-yellow-50 text-yellow-800";
   }
-  return 'bg-red-50 text-red-800'
-})
+  return "bg-red-50 text-red-800";
+});
 
 const connectionStatusText = computed(() => {
   if (props.connectionStatus.connected) {
-    return '已連接到警報系統'
+    return "已連接到警報系統";
   }
   if (props.connectionStatus.reconnecting) {
-    return `重新連線中 (嘗試 ${props.connectionStatus.reconnectAttempts})`
+    return `重新連線中 (嘗試 ${props.connectionStatus.reconnectAttempts})`;
   }
-  return '未連線'
-})
+  return "未連線";
+});
 
 const connectionStatusIcon = computed(() => {
   if (props.connectionStatus.connected) {
-    return WifiIcon
+    return WifiIcon;
   }
   if (props.connectionStatus.reconnecting) {
-    return ArrowPathIcon
+    return ArrowPathIcon;
   }
-  return XCircleIcon
-})
+  return XCircleIcon;
+});
 
 // ============================================================================
 // Methods
 // ============================================================================
 
 function acknowledgeAlert(alertId: string) {
-  emit('acknowledge', alertId)
+  emit("acknowledge", alertId);
 }
 
 function clearAll() {
-  emit('clearAll')
+  emit("clearAll");
 }
 
 function toggleSound() {
-  soundEnabled.value = !soundEnabled.value
+  soundEnabled.value = !soundEnabled.value;
 }
 
 function getSeverityIcon(severity: string) {
@@ -224,67 +245,70 @@ function getSeverityIcon(severity: string) {
     warning: ExclamationTriangleIcon,
     critical: XCircleIcon,
     fatal: XCircleIcon,
-  }
-  return iconMap[severity] || InformationCircleIcon
+  };
+  return iconMap[severity] || InformationCircleIcon;
 }
 
 function getSeverityTextClass(severity: string) {
   const classMap: Record<string, string> = {
-    info: 'text-blue-500',
-    warning: 'text-yellow-500',
-    critical: 'text-red-500',
-    fatal: 'text-purple-500',
-  }
-  return classMap[severity] || 'text-gray-500'
+    info: "text-blue-500",
+    warning: "text-yellow-500",
+    critical: "text-red-500",
+    fatal: "text-purple-500",
+  };
+  return classMap[severity] || "text-gray-500";
 }
 
 function getSeverityBorderClass(severity: string) {
   const classMap: Record<string, string> = {
-    info: 'border-l-4 border-l-blue-500',
-    warning: 'border-l-4 border-l-yellow-500',
-    critical: 'border-l-4 border-l-red-500',
-    fatal: 'border-l-4 border-l-purple-500',
-  }
-  return classMap[severity] || ''
+    info: "border-l-4 border-l-blue-500",
+    warning: "border-l-4 border-l-yellow-500",
+    critical: "border-l-4 border-l-red-500",
+    fatal: "border-l-4 border-l-purple-500",
+  };
+  return classMap[severity] || "";
 }
 
 function formatTimestamp(timestamp: number): string {
-  const now = Date.now()
-  const diff = now - timestamp
+  const now = Date.now();
+  const diff = now - timestamp;
 
   if (diff < 60000) {
-    return '剛才'
+    return "剛才";
   } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)} 分鐘前`
+    return `${Math.floor(diff / 60000)} 分鐘前`;
   } else if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)} 小時前`
+    return `${Math.floor(diff / 3600000)} 小時前`;
   } else {
-    return new Date(timestamp).toLocaleString('zh-TW')
+    return new Date(timestamp).toLocaleString("zh-TW");
   }
 }
 
 // Play alert sound when new alert arrives
 function playAlertSound() {
-  if (!soundEnabled.value) return
+  if (!soundEnabled.value) return;
 
   try {
-    const audio = new Audio('/alert-sound.mp3')
-    audio.volume = 0.5
-    audio.play().catch((e) => console.warn('Failed to play alert sound:', e))
+    const audio = new Audio("/alert-sound.mp3");
+    audio.volume = 0.5;
+    audio.play().catch((e) => console.warn("Failed to play alert sound:", e));
   } catch (error) {
-    console.warn('Alert sound not available:', error)
+    console.warn("Alert sound not available:", error);
   }
 }
 
 // Watch for new alerts and play sound
-const lastAlertCount = ref(props.alerts.length)
+const lastAlertCount = ref(props.alerts.length);
 // Watch alerts for changes and play sound on new alerts
-watch(() => props.alerts.length, (newCount) => {
-  if (newCount > lastAlertCount.value) {
-    playAlertSound()
-  }
-  lastAlertCount.value = newCount
-})
+watch(
+  () => props.alerts.length,
+  (newCount) => {
+    if (newCount > lastAlertCount.value) {
+      playAlertSound();
+    }
+    lastAlertCount.value = newCount;
+  },
+);
 </script>
 
 <style scoped>
@@ -306,7 +330,9 @@ watch(() => props.alerts.length, (newCount) => {
 .alert-notification-panel {
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 </style>

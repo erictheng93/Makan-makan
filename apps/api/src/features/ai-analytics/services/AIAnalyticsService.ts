@@ -287,9 +287,7 @@ export class AIAnalyticsService {
       .run();
   }
 
-  async testProvider(
-    input: TestProviderInput,
-  ): Promise<{
+  async testProvider(input: TestProviderInput): Promise<{
     success: boolean;
     latencyMs?: number;
     model?: string;

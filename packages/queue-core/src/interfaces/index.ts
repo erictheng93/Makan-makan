@@ -2,7 +2,7 @@
  * Queue Interfaces - Main Export File
  */
 
-export * from './queue-service'
+export * from "./queue-service";
 
 // Re-export commonly used interfaces
 export type {
@@ -17,5 +17,5 @@ export type {
   DateRange,
   NotificationTemplateType,
   NotificationOptions,
-  QueueRealtimeMetrics
-} from './queue-service'
+  QueueRealtimeMetrics,
+} from "./queue-service";

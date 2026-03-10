@@ -9,6 +9,7 @@
 ## ✅ 前置檢查
 
 所有工具已就緒：
+
 - ✅ pnpm 10.18.1
 - ✅ wrangler 4.42.1
 - ✅ Artillery 2.0.26
@@ -27,6 +28,7 @@ npx wrangler d1 execute makanmakan-staging --local \
 ```
 
 **預期輸出**:
+
 ```
 ✅ Restaurant created: 1
 ✅ Tables created: 10
@@ -38,6 +40,7 @@ npx wrangler d1 execute makanmakan-staging --local \
 **開啟 3 個終端視窗**:
 
 **終端 1 - API 服務**:
+
 ```bash
 cd apps/api
 pnpm dev
@@ -45,6 +48,7 @@ pnpm dev
 ```
 
 **終端 2 - Realtime 服務**:
+
 ```bash
 cd apps/realtime
 pnpm dev
@@ -54,6 +58,7 @@ pnpm dev
 **終端 3 - 保持開啟** (稍後用於執行測試)
 
 **驗證服務** (在終端 3 執行):
+
 ```bash
 # 測試 API
 curl http://localhost:8787/api/v1/health
@@ -91,6 +96,7 @@ artillery run artillery-websocket.yml `
 ```
 
 **測試進行中** (約 8 分鐘):
+
 ```
 Phase 1: Warm-up     ████████░░░░░░░░░░░░  1/5 (60s)
 Phase 2: Ramp-up     ░░░░░░░░░░░░░░░░░░░░  0/5 (120s)
@@ -126,6 +132,7 @@ xdg-open reports/baseline-20251115-143000.html
 查看報告中的關鍵指標：
 
 ### ✅ 綠色指標 (優秀)
+
 ```
 ws.connection_success_rate > 99%
 ws.response_time.p95 < 200ms
@@ -133,6 +140,7 @@ ws.response_time.p95 < 200ms
 ```
 
 ### ⚠️ 黃色指標 (可接受)
+
 ```
 ws.connection_success_rate 95-99%
 ws.response_time.p95 200-500ms
@@ -140,6 +148,7 @@ ws.response_time.p95 200-500ms
 ```
 
 ### ❌ 紅色指標 (需優化)
+
 ```
 ws.connection_success_rate < 95%
 ws.response_time.p95 > 500ms

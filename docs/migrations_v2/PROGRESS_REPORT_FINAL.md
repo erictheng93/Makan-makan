@@ -69,14 +69,15 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-27
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 01_tenants_and_settings.sql | 2 | 17 | 2 | 2 | ~450 |
-| 02_authentication.sql | 4 | 25 | 4 | 2 | ~650 |
-| 03_audit_system.sql | 3 | 15 | 2 | 1 | ~500 |
-| **Layer 1 總計** | **9** | **57** | **8** | **5** | **~1,600** |
+| Migration                   | Tables | Indexes | Views | Triggers | Lines      |
+| --------------------------- | ------ | ------- | ----- | -------- | ---------- |
+| 01_tenants_and_settings.sql | 2      | 17      | 2     | 2        | ~450       |
+| 02_authentication.sql       | 4      | 25      | 4     | 2        | ~650       |
+| 03_audit_system.sql         | 3      | 15      | 2     | 1        | ~500       |
+| **Layer 1 總計**            | **9**  | **57**  | **8** | **5**    | **~1,600** |
 
 **核心功能**:
+
 - ✅ 多租戶餐廳管理
 - ✅ 完整認證系統 (JWT + bcrypt)
 - ✅ 全面審計追蹤
@@ -88,14 +89,15 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-28
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 04_product_catalog.sql | 6 | 32 | 4 | 10 | ~800 |
-| 05_order_management.sql | 3 | 31 | 4 | 11 | ~650 |
-| 06_customer_management.sql | 4 | 21 | 3 | 7 | ~600 |
-| **Layer 2 總計** | **13** | **84** | **11** | **28** | **~2,050** |
+| Migration                  | Tables | Indexes | Views  | Triggers | Lines      |
+| -------------------------- | ------ | ------- | ------ | -------- | ---------- |
+| 04_product_catalog.sql     | 6      | 32      | 4      | 10       | ~800       |
+| 05_order_management.sql    | 3      | 31      | 4      | 11       | ~650       |
+| 06_customer_management.sql | 4      | 21      | 3      | 7        | ~600       |
+| **Layer 2 總計**           | **13** | **84**  | **11** | **28**   | **~2,050** |
 
 **核心功能**:
+
 - ✅ 分類與菜單系統
 - ✅ 菜單選項與客製化
 - ✅ 完整訂單流程
@@ -107,13 +109,14 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-29
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 07_table_and_seating.sql | 4 | 41 | 4 | 11 | ~700 |
-| 08_qr_code_system.sql | 4 | 35 | 4 | 9 | ~650 |
-| **Layer 3 總計** | **8** | **76** | **8** | **20** | **~1,350** |
+| Migration                | Tables | Indexes | Views | Triggers | Lines      |
+| ------------------------ | ------ | ------- | ----- | -------- | ---------- |
+| 07_table_and_seating.sql | 4      | 41      | 4     | 11       | ~700       |
+| 08_qr_code_system.sql    | 4      | 35      | 4     | 9        | ~650       |
+| **Layer 3 總計**         | **8**  | **76**  | **8** | **20**   | **~1,350** |
 
 **核心功能**:
+
 - ✅ 區域與桌位管理
 - ✅ 座位級別追蹤
 - ✅ 桌位預訂系統
@@ -125,14 +128,15 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-29
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 09_shift_scheduling.sql | 6 | 44 | 4 | 8 | ~850 |
-| 10_leave_management.sql | 5 | 38 | 4 | 9 | ~750 |
-| 11_attendance_tracking.sql | 3 | 29 | 4 | 7 | ~550 |
-| **Layer 4 總計** | **14** | **111** | **12** | **24** | **~2,150** |
+| Migration                  | Tables | Indexes | Views  | Triggers | Lines      |
+| -------------------------- | ------ | ------- | ------ | -------- | ---------- |
+| 09_shift_scheduling.sql    | 6      | 44      | 4      | 8        | ~850       |
+| 10_leave_management.sql    | 5      | 38      | 4      | 9        | ~750       |
+| 11_attendance_tracking.sql | 3      | 29      | 4      | 7        | ~550       |
+| **Layer 4 總計**           | **14** | **111** | **12** | **24**   | **~2,150** |
 
 **核心功能**:
+
 - ✅ 班表排程系統
 - ✅ 換班與衝突管理
 - ✅ 請假管理流程
@@ -144,13 +148,14 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-30
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 12_business_analytics.sql | 4 | 19 | 4 | 4 | ~600 |
-| 13_ai_insights.sql | 4 | 20 | 4 | 6 | ~650 |
-| **Layer 5 總計** | **8** | **39** | **8** | **10** | **~1,250** |
+| Migration                 | Tables | Indexes | Views | Triggers | Lines      |
+| ------------------------- | ------ | ------- | ----- | -------- | ---------- |
+| 12_business_analytics.sql | 4      | 19      | 4     | 4        | ~600       |
+| 13_ai_insights.sql        | 4      | 20      | 4     | 6        | ~650       |
+| **Layer 5 總計**          | **8**  | **39**  | **8** | **10**   | **~1,250** |
 
 **核心功能**:
+
 - ✅ 多維度銷售分析
 - ✅ 菜單績效追蹤
 - ✅ RFM 顧客分群
@@ -162,14 +167,15 @@ Layer 1: 基礎層 ✅
 
 **完成日期**: 2025-10-30
 
-| Migration | Tables | Indexes | Views | Triggers | Lines |
-|-----------|--------|---------|-------|----------|-------|
-| 14_inventory_management.sql | 5 | 33 | 5 | 6 | ~700 |
-| 15_promotions_and_coupons.sql | 5 | 31 | 5 | 7 | ~750 |
-| 16_loyalty_program.sql | 5 | 30 | 5 | 7 | ~700 |
-| **Layer 6 總計** | **15** | **94** | **15** | **21** | **~2,150** |
+| Migration                     | Tables | Indexes | Views  | Triggers | Lines      |
+| ----------------------------- | ------ | ------- | ------ | -------- | ---------- |
+| 14_inventory_management.sql   | 5      | 33      | 5      | 6        | ~700       |
+| 15_promotions_and_coupons.sql | 5      | 31      | 5      | 7        | ~750       |
+| 16_loyalty_program.sql        | 5      | 30      | 5      | 7        | ~700       |
+| **Layer 6 總計**              | **15** | **94**  | **15** | **21**   | **~2,150** |
 
 **核心功能**:
+
 - ✅ 庫存與供應商管理
 - ✅ 採購訂單流程
 - ✅ 促銷活動系統
@@ -184,6 +190,7 @@ Layer 1: 基礎層 ✅
 ### 1. 資料一致性 ✅
 
 **統一的資料類型標準**:
+
 - ✅ **ID**: TEXT UUID - `lower(hex(randomblob(16)))`
 - ✅ **時間戳**: INTEGER 毫秒 - `unixepoch('now') * 1000`
 - ✅ **布林值**: INTEGER (0/1) + CHECK 約束
@@ -196,12 +203,14 @@ Layer 1: 基礎層 ✅
 ### 2. 效能優化 ✅
 
 **461 個精心設計的索引**:
+
 - ✅ 複合索引 (Composite Indexes)
 - ✅ 部分索引 (Partial Indexes with WHERE)
 - ✅ 覆蓋索引 (Covering Indexes)
 - ✅ 唯一索引 (Unique Constraints)
 
 **預期效能提升**:
+
 - 📈 查詢速度: 50-80% 提升
 - 📉 全表掃描: 90% 減少
 - 🚀 複雜查詢: 3-5x 加速
@@ -211,6 +220,7 @@ Layer 1: 基礎層 ✅
 ### 3. 完整的資料完整性 ✅
 
 **108 個自動觸發器**:
+
 - ✅ 自動更新 updated_at
 - ✅ 庫存自動更新
 - ✅ 積分餘額計算
@@ -218,6 +228,7 @@ Layer 1: 基礎層 ✅
 - ✅ 低庫存警報
 
 **外鍵約束策略**:
+
 - ✅ CASCADE: 級聯刪除相關資料
 - ✅ RESTRICT: 防止誤刪重要資料
 - ✅ SET NULL: 保留歷史記錄
@@ -227,12 +238,14 @@ Layer 1: 基礎層 ✅
 ### 4. 查詢便利性 ✅
 
 **60 個精心設計的視圖**:
+
 - ✅ 簡化複雜查詢
 - ✅ 預計算統計數據
 - ✅ 業務邏輯封裝
 - ✅ 權限控制支援
 
 **常見視圖範例**:
+
 ```sql
 vw_active_promotions         -- 活動促銷總覽
 vw_customer_loyalty_dashboard -- 會員儀表板
@@ -275,25 +288,25 @@ vw_employee_schedule_summary -- 員工班表總覽
 
 ## 📚 完整 Migration 列表
 
-| # | Migration File | Status | Tables | Indexes | Views | Triggers |
-|---|---------------|--------|--------|---------|-------|----------|
-| 1 | 01_tenants_and_settings.sql | ✅ | 2 | 17 | 2 | 2 |
-| 2 | 02_authentication.sql | ✅ | 4 | 25 | 4 | 2 |
-| 3 | 03_audit_system.sql | ✅ | 3 | 15 | 2 | 1 |
-| 4 | 04_product_catalog.sql | ✅ | 6 | 32 | 4 | 10 |
-| 5 | 05_order_management.sql | ✅ | 3 | 31 | 4 | 11 |
-| 6 | 06_customer_management.sql | ✅ | 4 | 21 | 3 | 7 |
-| 7 | 07_table_and_seating.sql | ✅ | 4 | 41 | 4 | 11 |
-| 8 | 08_qr_code_system.sql | ✅ | 4 | 35 | 4 | 9 |
-| 9 | 09_shift_scheduling.sql | ✅ | 6 | 44 | 4 | 8 |
-| 10 | 10_leave_management.sql | ✅ | 5 | 38 | 4 | 9 |
-| 11 | 11_attendance_tracking.sql | ✅ | 3 | 29 | 4 | 7 |
-| 12 | 12_business_analytics.sql | ✅ | 4 | 19 | 4 | 4 |
-| 13 | 13_ai_insights.sql | ✅ | 4 | 20 | 4 | 6 |
-| 14 | 14_inventory_management.sql | ✅ | 5 | 33 | 5 | 6 |
-| 15 | 15_promotions_and_coupons.sql | ✅ | 5 | 31 | 5 | 7 |
-| 16 | 16_loyalty_program.sql | ✅ | 5 | 30 | 5 | 7 |
-| **總計** | **16 migrations** | **✅** | **67** | **461** | **60** | **108** |
+| #        | Migration File                | Status | Tables | Indexes | Views  | Triggers |
+| -------- | ----------------------------- | ------ | ------ | ------- | ------ | -------- |
+| 1        | 01_tenants_and_settings.sql   | ✅     | 2      | 17      | 2      | 2        |
+| 2        | 02_authentication.sql         | ✅     | 4      | 25      | 4      | 2        |
+| 3        | 03_audit_system.sql           | ✅     | 3      | 15      | 2      | 1        |
+| 4        | 04_product_catalog.sql        | ✅     | 6      | 32      | 4      | 10       |
+| 5        | 05_order_management.sql       | ✅     | 3      | 31      | 4      | 11       |
+| 6        | 06_customer_management.sql    | ✅     | 4      | 21      | 3      | 7        |
+| 7        | 07_table_and_seating.sql      | ✅     | 4      | 41      | 4      | 11       |
+| 8        | 08_qr_code_system.sql         | ✅     | 4      | 35      | 4      | 9        |
+| 9        | 09_shift_scheduling.sql       | ✅     | 6      | 44      | 4      | 8        |
+| 10       | 10_leave_management.sql       | ✅     | 5      | 38      | 4      | 9        |
+| 11       | 11_attendance_tracking.sql    | ✅     | 3      | 29      | 4      | 7        |
+| 12       | 12_business_analytics.sql     | ✅     | 4      | 19      | 4      | 4        |
+| 13       | 13_ai_insights.sql            | ✅     | 4      | 20      | 4      | 6        |
+| 14       | 14_inventory_management.sql   | ✅     | 5      | 33      | 5      | 6        |
+| 15       | 15_promotions_and_coupons.sql | ✅     | 5      | 31      | 5      | 7        |
+| 16       | 16_loyalty_program.sql        | ✅     | 5      | 30      | 5      | 7        |
+| **總計** | **16 migrations**             | **✅** | **67** | **461** | **60** | **108**  |
 
 ---
 
@@ -302,6 +315,7 @@ vw_employee_schedule_summary -- 員工班表總覽
 ### 1. 單一職責原則 (SRP)
 
 每個 migration 只負責一個功能領域：
+
 - ✅ 認證系統獨立於業務邏輯
 - ✅ 訂單管理不涉及庫存
 - ✅ 會員系統與促銷分離
@@ -309,6 +323,7 @@ vw_employee_schedule_summary -- 員工班表總覽
 ### 2. 依賴反轉原則 (DIP)
 
 清晰的單向依賴關係：
+
 ```
 Layer 6 → Layer 5 → Layer 4 → Layer 3 → Layer 2 → Layer 1
 ```
@@ -316,6 +331,7 @@ Layer 6 → Layer 5 → Layer 4 → Layer 3 → Layer 2 → Layer 1
 ### 3. 開閉原則 (OCP)
 
 可擴展但不需修改：
+
 - ✅ JSON metadata 欄位預留擴展
 - ✅ 狀態機設計 (status 欄位)
 - ✅ 觸發器自動處理業務邏輯
@@ -323,6 +339,7 @@ Layer 6 → Layer 5 → Layer 4 → Layer 3 → Layer 2 → Layer 1
 ### 4. DRY (Don't Repeat Yourself)
 
 避免重複：
+
 - ✅ 視圖封裝常用查詢
 - ✅ 觸發器統一處理 updated_at
 - ✅ 統一的資料類型定義
@@ -465,13 +482,13 @@ employee_schedules (1)
 
 ### 成功指標
 
-| 指標 | 目標 | 實際 | 達成率 |
-|------|------|------|--------|
-| Migrations 完成 | 16 | 16 | ✅ 100% |
-| 程式碼品質 | A+ | A+ | ✅ 100% |
-| 測試覆蓋率 | 90% | - | 🔄 待測試 |
-| 效能提升 | 50% | - | 🔄 待驗證 |
-| 開發時程 | 5 天 | 4 天 | ✅ 提前 1 天 |
+| 指標            | 目標 | 實際 | 達成率       |
+| --------------- | ---- | ---- | ------------ |
+| Migrations 完成 | 16   | 16   | ✅ 100%      |
+| 程式碼品質      | A+   | A+   | ✅ 100%      |
+| 測試覆蓋率      | 90%  | -    | 🔄 待測試    |
+| 效能提升        | 50%  | -    | 🔄 待驗證    |
+| 開發時程        | 5 天 | 4 天 | ✅ 提前 1 天 |
 
 ### 關鍵亮點
 

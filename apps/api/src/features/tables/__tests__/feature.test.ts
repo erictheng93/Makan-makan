@@ -301,7 +301,11 @@ describe("TablesService", () => {
     it("should validate table access for admin users", () => {
       const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, "test-restaurant-2", true);
+      const result = tablesService.validateTableAccess(
+        table,
+        "test-restaurant-2",
+        true,
+      );
 
       expect(result).toBe(true);
     });
@@ -309,7 +313,11 @@ describe("TablesService", () => {
     it("should validate table access for restaurant owners", () => {
       const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, "test-restaurant-1", false);
+      const result = tablesService.validateTableAccess(
+        table,
+        "test-restaurant-1",
+        false,
+      );
 
       expect(result).toBe(true);
     });
@@ -317,25 +325,41 @@ describe("TablesService", () => {
     it("should deny table access for different restaurant", () => {
       const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
 
-      const result = tablesService.validateTableAccess(table, "test-restaurant-2", false);
+      const result = tablesService.validateTableAccess(
+        table,
+        "test-restaurant-2",
+        false,
+      );
 
       expect(result).toBe(false);
     });
 
     it("should validate restaurant access for admin users", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", true);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-2",
+        true,
+      );
 
       expect(result).toBe(true);
     });
 
     it("should validate restaurant access for same restaurant", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-1", false);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-1",
+        false,
+      );
 
       expect(result).toBe(true);
     });
 
     it("should deny restaurant access for different restaurant", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", false);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-2",
+        false,
+      );
 
       expect(result).toBe(false);
     });

@@ -1,4 +1,5 @@
 # AI 智能分析操作手冊
+
 # AI Analytics User Manual
 
 **Version**: 1.0
@@ -125,6 +126,7 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 ### 技術亮點 Technical Highlights
 
 **後端架構 Backend Architecture**：
+
 - ✅ 完整的 TypeScript 類型安全
 - ✅ Provider 抽象層（BaseLLMProvider）
 - ✅ 工廠模式實現 Provider 切換
@@ -132,6 +134,7 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 - ✅ AES-256 API Key 加密儲存
 
 **前端實現 Frontend Implementation**：
+
 - ✅ Vue 3 + Composition API
 - ✅ Tailwind CSS 現代化設計
 - ✅ Heroicons 圖標系統
@@ -139,12 +142,14 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 - ✅ 智能快取管理
 
 **性能優化 Performance Optimization**：
+
 - ✅ 6 小時報告快取（減少 API 呼叫）
 - ✅ 產品分析每日預計算
 - ✅ 並行數據獲取（Promise.all）
 - ✅ 索引優化查詢（< 100ms）
 
 **安全措施 Security Measures**：
+
 - ✅ API Key AES-256 加密
 - ✅ JWT 身份驗證
 - ✅ 角色權限控制（Admin + Owner）
@@ -157,30 +162,33 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 
 ### 權限矩陣 Permission Matrix
 
-| 功能 Function | Admin | Owner | Chef | Service | Cashier | Customer |
-|--------------|-------|-------|------|---------|---------|----------|
-| 配置 AI Provider | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| 查看 AI 洞察 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| 查看產品分析 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| 查看使用統計 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| 生成報告 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| 刷新快取 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 功能 Function    | Admin | Owner | Chef | Service | Cashier | Customer |
+| ---------------- | ----- | ----- | ---- | ------- | ------- | -------- |
+| 配置 AI Provider | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
+| 查看 AI 洞察     | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
+| 查看產品分析     | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
+| 查看使用統計     | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
+| 生成報告         | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
+| 刷新快取         | ✅    | ✅    | ❌   | ❌      | ❌      | ❌       |
 
 ### 角色說明 Role Descriptions
 
 **管理員 Admin (role=0)**：
+
 - 完整系統管理權限
 - 可配置所有餐廳的 AI 設定
 - 可查看跨餐廳使用統計
 - 可管理 API 使用額度
 
 **店主 Owner (role=1)**：
+
 - 管理自己餐廳的 AI 設定
 - 查看自己餐廳的分析報告
 - 無法訪問其他餐廳數據
 - 建議的主要使用角色
 
 **其他角色**：
+
 - 無法訪問 AI Analytics 功能
 - 側邊欄不顯示「AI 洞察」選項
 - 直接輸入 URL 會被拒絕訪問
@@ -245,12 +253,14 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 ### 前置需求 Prerequisites
 
 **系統需求 System Requirements**：
+
 - ✅ MakanMakan 管理後台帳號
 - ✅ 角色為 Admin (0) 或 Owner (1)
 - ✅ 至少 7 天的營運數據
 - ✅ 至少 20 筆訂單記錄
 
 **AI Provider 需求 AI Provider Requirements**：
+
 - ✅ 申請一個 AI Provider 帳號
 - ✅ 取得 API Key
 - ✅ 確保有足夠的 API 額度
@@ -258,14 +268,15 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 
 **建議的 AI Provider Recommended Providers**：
 
-| Provider | 推薦等級 | 效果 | 成本 | 申請難度 |
-|---------|---------|------|------|---------|
-| Anthropic Claude | ⭐⭐⭐⭐⭐ | 最佳 | 中 | 簡單 |
-| OpenAI GPT-4o | ⭐⭐⭐⭐ | 優秀 | 中偏高 | 簡單 |
-| Google Gemini | ⭐⭐⭐⭐ | 良好 | 低（有免費額度） | 簡單 |
-| DeepSeek | ⭐⭐⭐ | 尚可 | 最低 | 簡單 |
+| Provider         | 推薦等級   | 效果 | 成本             | 申請難度 |
+| ---------------- | ---------- | ---- | ---------------- | -------- |
+| Anthropic Claude | ⭐⭐⭐⭐⭐ | 最佳 | 中               | 簡單     |
+| OpenAI GPT-4o    | ⭐⭐⭐⭐   | 優秀 | 中偏高           | 簡單     |
+| Google Gemini    | ⭐⭐⭐⭐   | 良好 | 低（有免費額度） | 簡單     |
+| DeepSeek         | ⭐⭐⭐     | 尚可 | 最低             | 簡單     |
 
 **我們的建議 Our Recommendation**：
+
 - 🥇 首選：**Anthropic Claude 3.5 Sonnet**
   - 中文理解和生成效果最佳
   - 洞察質量高、建議實用
@@ -492,18 +503,21 @@ DeepSeek:
 ### 配置最佳實踐 Configuration Best Practices
 
 **安全性 Security**：
+
 - ✅ 定期更換 API Key（建議每季度一次）
 - ✅ 記錄 API Key 於密碼管理器（如 1Password, LastPass）
 - ✅ 不要將 API Key 分享給他人
 - ✅ 如 Key 洩露，立即在 Provider 官網撤銷
 
 **成本控制 Cost Control**：
+
 - ✅ 設定 API 使用預算警報
 - ✅ 使用快取機制（避免頻繁重新生成）
 - ✅ 選擇適合的模型（不一定要最貴的）
 - ✅ 定期檢查使用統計
 
 **效果優化 Effectiveness Optimization**：
+
 - ✅ 首選 Anthropic Claude（中文效果最佳）
 - ✅ 確保有足夠的歷史數據（至少 30 天）
 - ✅ 定期查看報告（建議每週一次）
@@ -743,12 +757,14 @@ AI 執行摘要內容結構：
 ### 報告自動化 Report Automation
 
 **快取機制 Caching Mechanism**：
+
 - 報告快取 6 小時
 - 6 小時內重複訪問不重新生成
 - 節省 API 呼叫成本
 - 提升頁面載入速度
 
 **刷新策略 Refresh Strategy**：
+
 ```
 建議刷新頻率：
   • 每天早上一次（查看前一天表現）
@@ -1160,6 +1176,7 @@ WHERE menu_item_id = 'item_001';
 ### 成本維護 Cost Maintenance
 
 **定期更新 Regular Updates**：
+
 ```
 建議每季度更新一次成本數據：
 
@@ -1177,6 +1194,7 @@ WHERE menu_item_id = 'item_001';
 ```
 
 **歷史追蹤 Historical Tracking**：
+
 ```
 系統支援成本歷史記錄：
 

@@ -3,70 +3,70 @@
  * Handles email and SMS notifications for leave and scheduling events
  */
 
-import { BaseService, type CloudflareEnv } from './base'
-import type { D1Database } from '@cloudflare/workers-types'
+import { BaseService, type CloudflareEnv } from "./base";
+import type { D1Database } from "@cloudflare/workers-types";
 
 // ========================================
 // Types
 // ========================================
 
-export type NotificationType = 'email' | 'sms' | 'push'
+export type NotificationType = "email" | "sms" | "push";
 
 export type NotificationCategory =
-  | 'leave_request_submitted'
-  | 'leave_request_approved'
-  | 'leave_request_rejected'
-  | 'leave_request_cancelled'
-  | 'schedule_created'
-  | 'schedule_updated'
-  | 'schedule_cancelled'
-  | 'swap_request_created'
-  | 'swap_request_accepted'
-  | 'swap_request_approved'
-  | 'swap_request_rejected'
-  | 'shift_reminder'
+  | "leave_request_submitted"
+  | "leave_request_approved"
+  | "leave_request_rejected"
+  | "leave_request_cancelled"
+  | "schedule_created"
+  | "schedule_updated"
+  | "schedule_cancelled"
+  | "swap_request_created"
+  | "swap_request_accepted"
+  | "swap_request_approved"
+  | "swap_request_rejected"
+  | "shift_reminder"
   // Verification and authentication
-  | 'password_reset_request'
-  | 'password_reset_success'
-  | 'email_verification'
-  | 'email_verification_success'
-  | 'phone_verification'
-  | 'phone_verification_success'
+  | "password_reset_request"
+  | "password_reset_success"
+  | "email_verification"
+  | "email_verification_success"
+  | "phone_verification"
+  | "phone_verification_success";
 
 export interface NotificationTemplate {
-  category: NotificationCategory
-  type: NotificationType
-  subject?: string // For email
-  body: string
-  variables: string[] // Placeholders like {{employeeName}}, {{startDate}}
+  category: NotificationCategory;
+  type: NotificationType;
+  subject?: string; // For email
+  body: string;
+  variables: string[]; // Placeholders like {{employeeName}}, {{startDate}}
 }
 
 export interface NotificationPayload {
-  recipientId: number
-  recipientEmail?: string
-  recipientPhone?: string
-  category: NotificationCategory
-  type: NotificationType
-  data: Record<string, any> // Variable values
-  priority?: 'low' | 'normal' | 'high'
-  scheduledAt?: Date // For scheduled notifications
+  recipientId: number;
+  recipientEmail?: string;
+  recipientPhone?: string;
+  category: NotificationCategory;
+  type: NotificationType;
+  data: Record<string, any>; // Variable values
+  priority?: "low" | "normal" | "high";
+  scheduledAt?: Date; // For scheduled notifications
 }
 
 export interface NotificationRecord {
-  id: number
-  restaurantId: string
-  recipientId: number
-  category: NotificationCategory
-  type: NotificationType
-  subject: string | null
-  body: string
-  status: 'pending' | 'sent' | 'failed' | 'cancelled'
-  sentAt: number | null
-  failureReason: string | null
-  retryCount: number
-  metadata: string | null
-  createdAt: Date
-  updatedAt: Date
+  id: number;
+  restaurantId: string;
+  recipientId: number;
+  category: NotificationCategory;
+  type: NotificationType;
+  subject: string | null;
+  body: string;
+  status: "pending" | "sent" | "failed" | "cancelled";
+  sentAt: number | null;
+  failureReason: string | null;
+  retryCount: number;
+  metadata: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ========================================
@@ -75,11 +75,11 @@ export interface NotificationRecord {
 
 export interface EmailProvider {
   sendEmail(params: {
-    to: string
-    subject: string
-    html: string
-    text?: string
-  }): Promise<{ success: boolean; messageId?: string; error?: string }>
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<{ success: boolean; messageId?: string; error?: string }>;
 }
 
 // ========================================
@@ -88,9 +88,9 @@ export interface EmailProvider {
 
 export interface SMSProvider {
   sendSMS(params: {
-    to: string
-    body: string
-  }): Promise<{ success: boolean; messageId?: string; error?: string }>
+    to: string;
+    body: string;
+  }): Promise<{ success: boolean; messageId?: string; error?: string }>;
 }
 
 // ========================================
@@ -98,14 +98,22 @@ export interface SMSProvider {
 // ========================================
 
 export class MailChannelsEmailProvider implements EmailProvider {
-  constructor(private fromEmail: string = 'notifications@makanmakan.com', private fromName: string = 'MakanMakan') {}
+  constructor(
+    private fromEmail: string = "notifications@makanmakan.com",
+    private fromName: string = "MakanMakan",
+  ) {}
 
-  async sendEmail(params: { to: string; subject: string; html: string; text?: string }) {
+  async sendEmail(params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }) {
     try {
-      const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-        method: 'POST',
+      const response = await fetch("https://api.mailchannels.net/tx/v1/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           personalizations: [
@@ -120,30 +128,33 @@ export class MailChannelsEmailProvider implements EmailProvider {
           subject: params.subject,
           content: [
             {
-              type: 'text/html',
+              type: "text/html",
               value: params.html,
             },
             ...(params.text
               ? [
                   {
-                    type: 'text/plain',
+                    type: "text/plain",
                     value: params.text,
                   },
                 ]
               : []),
           ],
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorText = await response.text()
-        return { success: false, error: `MailChannels error: ${errorText}` }
+        const errorText = await response.text();
+        return { success: false, error: `MailChannels error: ${errorText}` };
       }
 
       // MailChannels returns 202 Accepted with no body on success
-      return { success: true, messageId: 'mailchannels-sent' }
+      return { success: true, messageId: "mailchannels-sent" };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 }
@@ -153,34 +164,45 @@ export class MailChannelsEmailProvider implements EmailProvider {
 // ========================================
 
 export class ResendEmailProvider implements EmailProvider {
-  constructor(private apiKey: string, private fromEmail: string = 'notifications@makanmakan.com') {}
+  constructor(
+    private apiKey: string,
+    private fromEmail: string = "notifications@makanmakan.com",
+  ) {}
 
-  async sendEmail(params: { to: string; subject: string; html: string; text?: string }) {
+  async sendEmail(params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }) {
     try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           from: this.fromEmail,
           to: params.to,
           subject: params.subject,
           html: params.html,
-          text: params.text || params.html.replace(/<[^>]*>/g, ''),
+          text: params.text || params.html.replace(/<[^>]*>/g, ""),
         }),
-      })
+      });
 
-      const data = await response.json() as { message?: string; id?: string }
+      const data = (await response.json()) as { message?: string; id?: string };
 
       if (!response.ok) {
-        return { success: false, error: data.message || 'Email send failed' }
+        return { success: false, error: data.message || "Email send failed" };
       }
 
-      return { success: true, messageId: data.id }
+      return { success: true, messageId: data.id };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 }
@@ -193,38 +215,44 @@ export class TwilioSMSProvider implements SMSProvider {
   constructor(
     private accountSid: string,
     private authToken: string,
-    private fromPhone: string
+    private fromPhone: string,
   ) {}
 
   async sendSMS(params: { to: string; body: string }) {
     try {
-      const auth = btoa(`${this.accountSid}:${this.authToken}`)
+      const auth = btoa(`${this.accountSid}:${this.authToken}`);
 
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams({
             To: params.to,
             From: this.fromPhone,
             Body: params.body,
           }),
-        }
-      )
+        },
+      );
 
-      const data = await response.json() as { message?: string; sid?: string }
+      const data = (await response.json()) as {
+        message?: string;
+        sid?: string;
+      };
 
       if (!response.ok) {
-        return { success: false, error: data.message || 'SMS send failed' }
+        return { success: false, error: data.message || "SMS send failed" };
       }
 
-      return { success: true, messageId: data.sid }
+      return { success: true, messageId: data.sid };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 }
@@ -233,9 +261,12 @@ export class TwilioSMSProvider implements SMSProvider {
 // Notification Templates
 // ========================================
 
-export const notificationTemplates: Record<NotificationCategory, Partial<NotificationTemplate>> = {
+export const notificationTemplates: Record<
+  NotificationCategory,
+  Partial<NotificationTemplate>
+> = {
   leave_request_submitted: {
-    subject: 'Leave Request Submitted - {{leaveType}}',
+    subject: "Leave Request Submitted - {{leaveType}}",
     body: `
       <h2>Leave Request Submitted</h2>
       <p>Dear {{employeeName}},</p>
@@ -248,10 +279,16 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
       </ul>
       <p>You will be notified once your request is reviewed.</p>
     `,
-    variables: ['employeeName', 'leaveType', 'startDate', 'endDate', 'totalDays'],
+    variables: [
+      "employeeName",
+      "leaveType",
+      "startDate",
+      "endDate",
+      "totalDays",
+    ],
   },
   leave_request_approved: {
-    subject: 'Leave Request Approved - {{leaveType}}',
+    subject: "Leave Request Approved - {{leaveType}}",
     body: `
       <h2>Leave Request Approved ✅</h2>
       <p>Dear {{employeeName}},</p>
@@ -267,10 +304,18 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
       </ul>
       <p>Enjoy your time off!</p>
     `,
-    variables: ['employeeName', 'leaveType', 'startDate', 'endDate', 'totalDays', 'approverName', 'approverNotes'],
+    variables: [
+      "employeeName",
+      "leaveType",
+      "startDate",
+      "endDate",
+      "totalDays",
+      "approverName",
+      "approverNotes",
+    ],
   },
   leave_request_rejected: {
-    subject: 'Leave Request Not Approved - {{leaveType}}',
+    subject: "Leave Request Not Approved - {{leaveType}}",
     body: `
       <h2>Leave Request Update</h2>
       <p>Dear {{employeeName}},</p>
@@ -282,10 +327,16 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
       </ul>
       <p>Please contact your manager if you have any questions.</p>
     `,
-    variables: ['employeeName', 'leaveType', 'startDate', 'endDate', 'rejectionReason'],
+    variables: [
+      "employeeName",
+      "leaveType",
+      "startDate",
+      "endDate",
+      "rejectionReason",
+    ],
   },
   leave_request_cancelled: {
-    subject: 'Leave Request Cancelled - {{leaveType}}',
+    subject: "Leave Request Cancelled - {{leaveType}}",
     body: `
       <h2>Leave Request Cancelled</h2>
       <p>Dear {{employeeName}},</p>
@@ -295,10 +346,10 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         <li><strong>Period:</strong> {{startDate}} to {{endDate}}</li>
       </ul>
     `,
-    variables: ['employeeName', 'leaveType', 'startDate', 'endDate'],
+    variables: ["employeeName", "leaveType", "startDate", "endDate"],
   },
   schedule_created: {
-    subject: 'New Schedule Assignment - {{shiftName}}',
+    subject: "New Schedule Assignment - {{shiftName}}",
     body: `
       <h2>New Shift Assigned</h2>
       <p>Dear {{employeeName}},</p>
@@ -312,10 +363,17 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         {{/if}}
       </ul>
     `,
-    variables: ['employeeName', 'scheduleDate', 'shiftName', 'startTime', 'endTime', 'notes'],
+    variables: [
+      "employeeName",
+      "scheduleDate",
+      "shiftName",
+      "startTime",
+      "endTime",
+      "notes",
+    ],
   },
   schedule_updated: {
-    subject: 'Schedule Updated - {{shiftName}}',
+    subject: "Schedule Updated - {{shiftName}}",
     body: `
       <h2>Shift Schedule Updated</h2>
       <p>Dear {{employeeName}},</p>
@@ -326,10 +384,16 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         <li><strong>Time:</strong> {{startTime}} - {{endTime}}</li>
       </ul>
     `,
-    variables: ['employeeName', 'scheduleDate', 'shiftName', 'startTime', 'endTime'],
+    variables: [
+      "employeeName",
+      "scheduleDate",
+      "shiftName",
+      "startTime",
+      "endTime",
+    ],
   },
   schedule_cancelled: {
-    subject: 'Schedule Cancelled - {{shiftName}}',
+    subject: "Schedule Cancelled - {{shiftName}}",
     body: `
       <h2>Shift Cancelled</h2>
       <p>Dear {{employeeName}},</p>
@@ -342,10 +406,10 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         {{/if}}
       </ul>
     `,
-    variables: ['employeeName', 'scheduleDate', 'shiftName', 'reason'],
+    variables: ["employeeName", "scheduleDate", "shiftName", "reason"],
   },
   swap_request_created: {
-    subject: 'Swap Request Received - {{shiftName}}',
+    subject: "Swap Request Received - {{shiftName}}",
     body: `
       <h2>Shift Swap Request</h2>
       <p>Dear {{employeeName}},</p>
@@ -357,20 +421,26 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
       </ul>
       <p>Please review and respond to this request in the system.</p>
     `,
-    variables: ['employeeName', 'requesterName', 'scheduleDate', 'shiftName', 'reason'],
+    variables: [
+      "employeeName",
+      "requesterName",
+      "scheduleDate",
+      "shiftName",
+      "reason",
+    ],
   },
   swap_request_accepted: {
-    subject: 'Swap Request Accepted - {{shiftName}}',
+    subject: "Swap Request Accepted - {{shiftName}}",
     body: `
       <h2>Swap Request Accepted</h2>
       <p>Dear {{employeeName}},</p>
       <p>{{accepterName}} has accepted your shift swap request.</p>
       <p>The swap is now pending manager approval.</p>
     `,
-    variables: ['employeeName', 'accepterName', 'shiftName'],
+    variables: ["employeeName", "accepterName", "shiftName"],
   },
   swap_request_approved: {
-    subject: 'Swap Request Approved - {{shiftName}}',
+    subject: "Swap Request Approved - {{shiftName}}",
     body: `
       <h2>Swap Request Approved ✅</h2>
       <p>Dear {{employeeName}},</p>
@@ -380,10 +450,10 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         <li><strong>Swapped with:</strong> {{otherEmployeeName}}</li>
       </ul>
     `,
-    variables: ['employeeName', 'scheduleDate', 'otherEmployeeName'],
+    variables: ["employeeName", "scheduleDate", "otherEmployeeName"],
   },
   swap_request_rejected: {
-    subject: 'Swap Request Not Approved - {{shiftName}}',
+    subject: "Swap Request Not Approved - {{shiftName}}",
     body: `
       <h2>Swap Request Update</h2>
       <p>Dear {{employeeName}},</p>
@@ -392,10 +462,10 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         <li><strong>Reason:</strong> {{rejectionReason}}</li>
       </ul>
     `,
-    variables: ['employeeName', 'rejectionReason'],
+    variables: ["employeeName", "rejectionReason"],
   },
   shift_reminder: {
-    subject: 'Shift Reminder - {{shiftName}} Tomorrow',
+    subject: "Shift Reminder - {{shiftName}} Tomorrow",
     body: `
       <h2>Shift Reminder</h2>
       <p>Dear {{employeeName}},</p>
@@ -407,7 +477,13 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
       </ul>
       <p>See you tomorrow!</p>
     `,
-    variables: ['employeeName', 'scheduleDate', 'shiftName', 'startTime', 'endTime'],
+    variables: [
+      "employeeName",
+      "scheduleDate",
+      "shiftName",
+      "startTime",
+      "endTime",
+    ],
   },
 
   // ============================================
@@ -415,7 +491,7 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
   // ============================================
 
   password_reset_request: {
-    subject: 'MakanMakan - 密碼重設請求',
+    subject: "MakanMakan - 密碼重設請求",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -465,11 +541,11 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         </div>
       </div>
     `,
-    variables: ['userName', 'resetLink', 'ipAddress', 'requestTime'],
+    variables: ["userName", "resetLink", "ipAddress", "requestTime"],
   },
 
   password_reset_success: {
-    subject: 'MakanMakan - 密碼已成功變更',
+    subject: "MakanMakan - 密碼已成功變更",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -511,11 +587,11 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         </div>
       </div>
     `,
-    variables: ['userName', 'changeTime', 'changeMethod', 'ipAddress'],
+    variables: ["userName", "changeTime", "changeMethod", "ipAddress"],
   },
 
   email_verification: {
-    subject: '🎉 歡迎加入 MakanMakan - 請驗證您的 Email',
+    subject: "🎉 歡迎加入 MakanMakan - 請驗證您的 Email",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -563,11 +639,11 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         </div>
       </div>
     `,
-    variables: ['userName', 'verificationLink'],
+    variables: ["userName", "verificationLink"],
   },
 
   email_verification_success: {
-    subject: '✅ Email 驗證成功 - MakanMakan',
+    subject: "✅ Email 驗證成功 - MakanMakan",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -601,120 +677,129 @@ export const notificationTemplates: Record<NotificationCategory, Partial<Notific
         </div>
       </div>
     `,
-    variables: ['userName', 'appLink'],
+    variables: ["userName", "appLink"],
   },
 
   phone_verification: {
-    subject: 'MakanMakan - 手機驗證碼',
+    subject: "MakanMakan - 手機驗證碼",
     body: `【MakanMakan】您的驗證碼：{{otpCode}}。有效期限 5 分鐘。請勿將驗證碼分享給任何人。`,
-    variables: ['otpCode'],
+    variables: ["otpCode"],
   },
 
   phone_verification_success: {
-    subject: 'MakanMakan - 手機驗證成功',
+    subject: "MakanMakan - 手機驗證成功",
     body: `【MakanMakan】您的手機號碼 {{phone}} 已成功驗證！感謝您使用 MakanMakan。`,
-    variables: ['phone'],
+    variables: ["phone"],
   },
-}
+};
 
 // ========================================
 // Notification Service
 // ========================================
 
 export class NotificationService extends BaseService {
-  private emailProvider: EmailProvider | null = null
-  private smsProvider: SMSProvider | null = null
+  private emailProvider: EmailProvider | null = null;
+  private smsProvider: SMSProvider | null = null;
 
   constructor(d1: D1Database, env: CloudflareEnv) {
-    super(d1, env)
-    this.initializeProviders(env)
+    super(d1, env);
+    this.initializeProviders(env);
   }
 
   private initializeProviders(env: CloudflareEnv) {
     // Initialize email provider
     // Priority: MailChannels (Cloudflare official) > Resend (alternative)
-    if (env.USE_MAILCHANNELS !== 'false') {
+    if (env.USE_MAILCHANNELS !== "false") {
       // MailChannels is enabled by default (no API key needed!)
       this.emailProvider = new MailChannelsEmailProvider(
-        env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com',
-        'MakanMakan'
-      )
+        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmakan.com",
+        "MakanMakan",
+      );
     } else if (env.RESEND_API_KEY) {
       // Fallback to Resend if explicitly disabled MailChannels
       this.emailProvider = new ResendEmailProvider(
         env.RESEND_API_KEY,
-        env.NOTIFICATION_FROM_EMAIL || 'notifications@makanmakan.com'
-      )
+        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmakan.com",
+      );
     }
 
     // Initialize SMS provider (Twilio)
-    if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_PHONE_NUMBER) {
+    if (
+      env.TWILIO_ACCOUNT_SID &&
+      env.TWILIO_AUTH_TOKEN &&
+      env.TWILIO_PHONE_NUMBER
+    ) {
       this.smsProvider = new TwilioSMSProvider(
         env.TWILIO_ACCOUNT_SID,
         env.TWILIO_AUTH_TOKEN,
-        env.TWILIO_PHONE_NUMBER
-      )
+        env.TWILIO_PHONE_NUMBER,
+      );
     }
   }
 
   /**
    * Send notification (email, SMS, or both)
    */
-  async sendNotification(payload: NotificationPayload): Promise<{ success: boolean; errors: string[] }> {
-    const errors: string[] = []
+  async sendNotification(
+    payload: NotificationPayload,
+  ): Promise<{ success: boolean; errors: string[] }> {
+    const errors: string[] = [];
 
     try {
       // Get template
-      const template = notificationTemplates[payload.category]
+      const template = notificationTemplates[payload.category];
       if (!template) {
-        return { success: false, errors: [`Template not found for category: ${payload.category}`] }
+        return {
+          success: false,
+          errors: [`Template not found for category: ${payload.category}`],
+        };
       }
 
       // Render content
-      const subject = this.renderTemplate(template.subject || '', payload.data)
-      const body = this.renderTemplate(template.body || '', payload.data)
+      const subject = this.renderTemplate(template.subject || "", payload.data);
+      const body = this.renderTemplate(template.body || "", payload.data);
 
       // Send based on type
-      if (payload.type === 'email' && payload.recipientEmail) {
+      if (payload.type === "email" && payload.recipientEmail) {
         if (!this.emailProvider) {
-          errors.push('Email provider not configured')
+          errors.push("Email provider not configured");
         } else {
           const result = await this.emailProvider.sendEmail({
             to: payload.recipientEmail,
             subject,
             html: body,
-          })
+          });
 
           if (!result.success) {
-            errors.push(`Email failed: ${result.error}`)
+            errors.push(`Email failed: ${result.error}`);
           }
         }
       }
 
-      if (payload.type === 'sms' && payload.recipientPhone) {
+      if (payload.type === "sms" && payload.recipientPhone) {
         if (!this.smsProvider) {
-          errors.push('SMS provider not configured')
+          errors.push("SMS provider not configured");
         } else {
           // Strip HTML for SMS
-          const smsBody = body.replace(/<[^>]*>/g, '').trim()
+          const smsBody = body.replace(/<[^>]*>/g, "").trim();
           const result = await this.smsProvider.sendSMS({
             to: payload.recipientPhone,
             body: smsBody,
-          })
+          });
 
           if (!result.success) {
-            errors.push(`SMS failed: ${result.error}`)
+            errors.push(`SMS failed: ${result.error}`);
           }
         }
       }
 
-      return { success: errors.length === 0, errors }
+      return { success: errors.length === 0, errors };
     } catch (error) {
-      console.error('Notification send error:', error)
+      console.error("Notification send error:", error);
       return {
         success: false,
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
-      }
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
     }
   }
 
@@ -722,50 +807,53 @@ export class NotificationService extends BaseService {
    * Simple template renderer (replaces {{variable}} with values)
    */
   private renderTemplate(template: string, data: Record<string, any>): string {
-    let result = template
+    let result = template;
 
     // Replace {{variable}} placeholders
     for (const [key, value] of Object.entries(data)) {
-      const placeholder = new RegExp(`{{${key}}}`, 'g')
-      result = result.replace(placeholder, String(value || ''))
+      const placeholder = new RegExp(`{{${key}}}`, "g");
+      result = result.replace(placeholder, String(value || ""));
     }
 
     // Handle {{#if variable}} conditionals (simple implementation)
-    result = result.replace(/{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g, (match, key, content) => {
-      return data[key] ? content : ''
-    })
+    result = result.replace(
+      /{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g,
+      (match, key, content) => {
+        return data[key] ? content : "";
+      },
+    );
 
     // Clean up any remaining unresolved placeholders (missing variables)
-    result = result.replace(/{{(\w+)}}/g, '')
+    result = result.replace(/{{(\w+)}}/g, "");
 
-    return result.trim()
+    return result.trim();
   }
 
   /**
    * Send bulk notifications (for batch operations)
    */
   async sendBulkNotifications(payloads: NotificationPayload[]): Promise<{
-    successCount: number
-    failureCount: number
-    errors: Array<{ payload: NotificationPayload; errors: string[] }>
+    successCount: number;
+    failureCount: number;
+    errors: Array<{ payload: NotificationPayload; errors: string[] }>;
   }> {
     const results = {
       successCount: 0,
       failureCount: 0,
       errors: [] as Array<{ payload: NotificationPayload; errors: string[] }>,
-    }
+    };
 
     for (const payload of payloads) {
-      const result = await this.sendNotification(payload)
+      const result = await this.sendNotification(payload);
       if (result.success) {
-        results.successCount++
+        results.successCount++;
       } else {
-        results.failureCount++
-        results.errors.push({ payload, errors: result.errors })
+        results.failureCount++;
+        results.errors.push({ payload, errors: result.errors });
       }
     }
 
-    return results
+    return results;
   }
 
   /**
@@ -773,36 +861,36 @@ export class NotificationService extends BaseService {
    */
   async sendTestNotification(
     type: NotificationType,
-    recipient: string
+    recipient: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      if (type === 'email') {
+      if (type === "email") {
         if (!this.emailProvider) {
-          return { success: false, error: 'Email provider not configured' }
+          return { success: false, error: "Email provider not configured" };
         }
         return await this.emailProvider.sendEmail({
           to: recipient,
-          subject: 'Test Notification from MakanMakan',
-          html: '<h2>Test Email</h2><p>Your notification system is working correctly!</p>',
-        })
+          subject: "Test Notification from MakanMakan",
+          html: "<h2>Test Email</h2><p>Your notification system is working correctly!</p>",
+        });
       }
 
-      if (type === 'sms') {
+      if (type === "sms") {
         if (!this.smsProvider) {
-          return { success: false, error: 'SMS provider not configured' }
+          return { success: false, error: "SMS provider not configured" };
         }
         return await this.smsProvider.sendSMS({
           to: recipient,
-          body: 'Test SMS from MakanMakan. Your notification system is working!',
-        })
+          body: "Test SMS from MakanMakan. Your notification system is working!",
+        });
       }
 
-      return { success: false, error: 'Invalid notification type' }
+      return { success: false, error: "Invalid notification type" };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 }

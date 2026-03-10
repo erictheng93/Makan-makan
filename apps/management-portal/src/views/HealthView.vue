@@ -1,42 +1,42 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useHealthStore } from '@/stores/health'
-import { useTenantsStore } from '@/stores/tenants'
-import { RouterLink } from 'vue-router'
+import { onMounted, ref } from "vue";
+import { useHealthStore } from "@/stores/health";
+import { useTenantsStore } from "@/stores/tenants";
+import { RouterLink } from "vue-router";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  XCircleIcon
-} from '@heroicons/vue/24/outline'
+  XCircleIcon,
+} from "@heroicons/vue/24/outline";
 
-const healthStore = useHealthStore()
-const tenantsStore = useTenantsStore()
-const refreshing = ref(false)
+const healthStore = useHealthStore();
+const tenantsStore = useTenantsStore();
+const refreshing = ref(false);
 
 // 載入資料
 onMounted(async () => {
   await Promise.all([
     healthStore.fetchAllHealthChecks(),
-    tenantsStore.fetchTenants()
-  ])
-})
+    tenantsStore.fetchTenants(),
+  ]);
+});
 
 // 刷新資料
 const handleRefresh = async () => {
-  refreshing.value = true
+  refreshing.value = true;
   try {
-    await healthStore.fetchAllHealthChecks()
+    await healthStore.fetchAllHealthChecks();
   } finally {
-    refreshing.value = false
+    refreshing.value = false;
   }
-}
+};
 
 // 獲取租戶名稱
 const getTenantName = (tenantId: string) => {
-  const tenant = tenantsStore.tenants.find(t => t.id === tenantId)
-  return tenant?.businessName || tenantId
-}
+  const tenant = tenantsStore.tenants.find((t) => t.id === tenantId);
+  return tenant?.businessName || tenantId;
+};
 </script>
 
 <template>
@@ -45,9 +45,7 @@ const getTenantName = (tenantId: string) => {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">健康監控</h1>
-        <p class="mt-1 text-sm text-gray-500">
-          監控所有租戶的運行狀態
-        </p>
+        <p class="mt-1 text-sm text-gray-500">監控所有租戶的運行狀態</p>
       </div>
       <button
         type="button"
@@ -55,8 +53,11 @@ const getTenantName = (tenantId: string) => {
         :disabled="refreshing"
         @click="handleRefresh"
       >
-        <ArrowPathIcon class="h-5 w-5 mr-2" :class="{ 'animate-spin': refreshing }" />
-        {{ refreshing ? '刷新中...' : '刷新' }}
+        <ArrowPathIcon
+          class="h-5 w-5 mr-2"
+          :class="{ 'animate-spin': refreshing }"
+        />
+        {{ refreshing ? "刷新中..." : "刷新" }}
       </button>
     </div>
 
@@ -71,7 +72,7 @@ const getTenantName = (tenantId: string) => {
               'bg-green-100': healthStore.overallStatus === 'healthy',
               'bg-yellow-100': healthStore.overallStatus === 'degraded',
               'bg-red-100': healthStore.overallStatus === 'down',
-              'bg-gray-100': healthStore.overallStatus === 'unknown'
+              'bg-gray-100': healthStore.overallStatus === 'unknown',
             }"
           >
             <CheckCircleIcon
@@ -87,7 +88,7 @@ const getTenantName = (tenantId: string) => {
               class="h-6 w-6"
               :class="{
                 'text-red-600': healthStore.overallStatus === 'down',
-                'text-gray-600': healthStore.overallStatus === 'unknown'
+                'text-gray-600': healthStore.overallStatus === 'unknown',
               }"
             />
           </div>
@@ -108,7 +109,9 @@ const getTenantName = (tenantId: string) => {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">正常</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ healthStore.healthyCount }}</p>
+            <p class="text-2xl font-semibold text-gray-900">
+              {{ healthStore.healthyCount }}
+            </p>
           </div>
         </div>
       </div>
@@ -121,7 +124,9 @@ const getTenantName = (tenantId: string) => {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">降級</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ healthStore.degradedCount }}</p>
+            <p class="text-2xl font-semibold text-gray-900">
+              {{ healthStore.degradedCount }}
+            </p>
           </div>
         </div>
       </div>
@@ -134,7 +139,9 @@ const getTenantName = (tenantId: string) => {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">離線</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ healthStore.downCount }}</p>
+            <p class="text-2xl font-semibold text-gray-900">
+              {{ healthStore.downCount }}
+            </p>
           </div>
         </div>
       </div>
@@ -146,7 +153,8 @@ const getTenantName = (tenantId: string) => {
         <div>
           <h3 class="text-lg font-semibold text-gray-900">平均回應時間</h3>
           <p class="text-3xl font-bold text-gray-900 mt-2">
-            {{ healthStore.averageResponseTime }} <span class="text-lg font-normal text-gray-500">ms</span>
+            {{ healthStore.averageResponseTime }}
+            <span class="text-lg font-normal text-gray-500">ms</span>
           </p>
         </div>
         <div v-if="healthStore.lastUpdated" class="text-sm text-gray-500">
@@ -156,7 +164,10 @@ const getTenantName = (tenantId: string) => {
     </div>
 
     <!-- 問題租戶列表 -->
-    <div v-if="healthStore.downCount > 0 || healthStore.degradedCount > 0" class="card">
+    <div
+      v-if="healthStore.downCount > 0 || healthStore.degradedCount > 0"
+      class="card"
+    >
       <h3 class="card-header text-red-600">需要注意</h3>
       <div class="space-y-3">
         <!-- 離線 -->
@@ -168,7 +179,9 @@ const getTenantName = (tenantId: string) => {
           <div class="flex items-center">
             <XCircleIcon class="h-6 w-6 text-red-500" />
             <div class="ml-3">
-              <p class="font-medium text-gray-900">{{ getTenantName(check.tenantId) }}</p>
+              <p class="font-medium text-gray-900">
+                {{ getTenantName(check.tenantId) }}
+              </p>
               <p class="text-sm text-gray-500">服務離線</p>
             </div>
           </div>
@@ -189,7 +202,9 @@ const getTenantName = (tenantId: string) => {
           <div class="flex items-center">
             <ExclamationTriangleIcon class="h-6 w-6 text-yellow-500" />
             <div class="ml-3">
-              <p class="font-medium text-gray-900">{{ getTenantName(check.tenantId) }}</p>
+              <p class="font-medium text-gray-900">
+                {{ getTenantName(check.tenantId) }}
+              </p>
               <p class="text-sm text-gray-500">
                 服務降級
                 <span v-if="check.responseTimeMs" class="ml-2">
@@ -216,7 +231,10 @@ const getTenantName = (tenantId: string) => {
         <p class="mt-2 text-sm text-gray-500">載入中...</p>
       </div>
 
-      <div v-else-if="healthStore.healthChecks.length === 0" class="text-center py-8">
+      <div
+        v-else-if="healthStore.healthChecks.length === 0"
+        class="text-center py-8"
+      >
         <p class="text-sm text-gray-500">暫無健康檢查資料</p>
       </div>
 
@@ -250,14 +268,14 @@ const getTenantName = (tenantId: string) => {
                   'badge-success': check.status === 'healthy',
                   'badge-warning': check.status === 'degraded',
                   'badge-danger': check.status === 'down',
-                  'badge-gray': check.status === 'unknown'
+                  'badge-gray': check.status === 'unknown',
                 }"
               >
                 {{ healthStore.getStatusLabel(check.status) }}
               </span>
             </td>
             <td>
-              {{ check.responseTimeMs ? `${check.responseTimeMs}ms` : '-' }}
+              {{ check.responseTimeMs ? `${check.responseTimeMs}ms` : "-" }}
             </td>
             <td>
               <span
@@ -266,7 +284,7 @@ const getTenantName = (tenantId: string) => {
                 :class="{
                   'badge-success': check.details.api === 'healthy',
                   'badge-warning': check.details.api === 'degraded',
-                  'badge-danger': check.details.api === 'down'
+                  'badge-danger': check.details.api === 'down',
                 }"
               >
                 {{ healthStore.getStatusLabel(check.details.api) }}
@@ -280,7 +298,7 @@ const getTenantName = (tenantId: string) => {
                 :class="{
                   'badge-success': check.details.database === 'healthy',
                   'badge-warning': check.details.database === 'degraded',
-                  'badge-danger': check.details.database === 'down'
+                  'badge-danger': check.details.database === 'down',
                 }"
               >
                 {{ healthStore.getStatusLabel(check.details.database) }}
@@ -294,7 +312,7 @@ const getTenantName = (tenantId: string) => {
                 :class="{
                   'badge-success': check.details.cache === 'healthy',
                   'badge-warning': check.details.cache === 'degraded',
-                  'badge-danger': check.details.cache === 'down'
+                  'badge-danger': check.details.cache === 'down',
                 }"
               >
                 {{ healthStore.getStatusLabel(check.details.cache) }}
@@ -308,7 +326,7 @@ const getTenantName = (tenantId: string) => {
                 :class="{
                   'badge-success': check.details.storage === 'healthy',
                   'badge-warning': check.details.storage === 'degraded',
-                  'badge-danger': check.details.storage === 'down'
+                  'badge-danger': check.details.storage === 'down',
                 }"
               >
                 {{ healthStore.getStatusLabel(check.details.storage) }}

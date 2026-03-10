@@ -24,6 +24,7 @@
 ## 🏗️ 部署架構總覽
 
 ### 系統組件
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │                   Cloudflare Edge                      │
@@ -51,17 +52,18 @@
 
 ### 部署環境對應
 
-| 環境 | 用途 | 域名範例 | 資料庫 | 說明 |
-|------|------|---------|--------|------|
-| **Development** | 本地開發 | localhost:* | Local SQLite | 開發測試用 |
-| **Staging** | 預生產測試 | staging.makanmakan.com | D1 Staging | 功能驗證 |
-| **Production** | 正式環境 | makanmakan.com | D1 Production | 線上服務 |
+| 環境            | 用途       | 域名範例               | 資料庫        | 說明       |
+| --------------- | ---------- | ---------------------- | ------------- | ---------- |
+| **Development** | 本地開發   | localhost:\*           | Local SQLite  | 開發測試用 |
+| **Staging**     | 預生產測試 | staging.makanmakan.com | D1 Staging    | 功能驗證   |
+| **Production**  | 正式環境   | makanmakan.com         | D1 Production | 線上服務   |
 
 ---
 
 ## 📋 前置需求
 
 ### 1. 開發環境
+
 - **Node.js**: >= 20.0.0
 - **pnpm**: >= 8.0.0
 - **Git**: 版本控制工具
@@ -75,6 +77,7 @@ git --version     # 任意版本
 ```
 
 ### 2. Cloudflare 帳號
+
 - ✅ **Cloudflare 帳號** (免費或付費計畫)
 - ✅ **Workers Paid Plan** (必需，用於 D1、R2、Durable Objects)
 - ✅ **域名** (可在 Cloudflare 註冊或轉移)
@@ -233,6 +236,7 @@ wrangler d1 create makanmakan-prod
 複製輸出中的 `database_id`，更新以下文件：
 
 **apps/api/wrangler.toml**:
+
 ```toml
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -246,6 +250,7 @@ database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"  # 替換這裡
 ```
 
 同樣更新：
+
 - `apps/realtime/wrangler.toml`
 - `apps/backup-scheduler/wrangler.toml`
 
@@ -294,6 +299,7 @@ wrangler kv:namespace create "IMAGE_CACHE" --env production
 #### 記錄 Namespace IDs
 
 每次創建會輸出：
+
 ```
 ✅ Success! Created KV namespace "CACHE_KV"
 id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -302,6 +308,7 @@ id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #### 更新 Wrangler 配置
 
 **apps/api/wrangler.toml**:
+
 ```toml
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
@@ -335,6 +342,7 @@ wrangler r2 bucket create makanmakan-images-prod
 #### 更新 Wrangler 配置
 
 **apps/api/wrangler.toml**:
+
 ```toml
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
@@ -353,6 +361,7 @@ wrangler analytics-engine create makanmakan-metrics-prod
 ```
 
 **apps/api/wrangler.toml** (production only):
+
 ```toml
 [[env.production.analytics_engine_datasets]]
 binding = "ANALYTICS"
@@ -483,12 +492,12 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 在 Cloudflare Dashboard → DNS → Records 添加：
 
-| Type | Name | Target | Proxy |
-|------|------|--------|-------|
-| CNAME | api | makanmakan-api-prod.workers.dev | ✅ Proxied |
-| CNAME | realtime | makanmakan-realtime-prod.workers.dev | ✅ Proxied |
-| CNAME | images | makanmakan-image-processor-prod.workers.dev | ✅ Proxied |
-| CNAME | api-staging | makanmakan-api-staging.workers.dev | ✅ Proxied |
+| Type  | Name        | Target                                      | Proxy      |
+| ----- | ----------- | ------------------------------------------- | ---------- |
+| CNAME | api         | makanmakan-api-prod.workers.dev             | ✅ Proxied |
+| CNAME | realtime    | makanmakan-realtime-prod.workers.dev        | ✅ Proxied |
+| CNAME | images      | makanmakan-image-processor-prod.workers.dev | ✅ Proxied |
+| CNAME | api-staging | makanmakan-api-staging.workers.dev          | ✅ Proxied |
 
 #### Pages 域名
 
@@ -556,9 +565,9 @@ wrangler d1 execute makanmakan-prod --command "SELECT COUNT(*) as count FROM use
 使用瀏覽器開發者工具或 WebSocket 客戶端：
 
 ```javascript
-const ws = new WebSocket('wss://realtime.makanmakan.com/customer/table-123');
-ws.onopen = () => console.log('Connected');
-ws.onmessage = (msg) => console.log('Message:', msg.data);
+const ws = new WebSocket("wss://realtime.makanmakan.com/customer/table-123");
+ws.onopen = () => console.log("Connected");
+ws.onmessage = (msg) => console.log("Message:", msg.data);
 ```
 
 ### 3. 性能測試
@@ -686,6 +695,7 @@ wrangler d1 execute makanmakan-restore --file restore.sql
 ### 4. 災難恢復計劃
 
 #### RTO (Recovery Time Objective): 4 hours
+
 #### RPO (Recovery Point Objective): 24 hours
 
 **恢復步驟**：
@@ -733,7 +743,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -819,9 +829,9 @@ curl https://api-green.makanmakan.com/api/v1/health
 const shouldUseCanary = Math.random() < 0.1; // 10% 流量
 
 if (shouldUseCanary) {
-  return fetch('https://api-canary.makanmakan.com' + url);
+  return fetch("https://api-canary.makanmakan.com" + url);
 } else {
-  return fetch('https://api.makanmakan.com' + url);
+  return fetch("https://api.makanmakan.com" + url);
 }
 ```
 

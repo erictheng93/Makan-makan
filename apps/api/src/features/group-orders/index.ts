@@ -3,16 +3,16 @@
  * Entry point for the group orders feature
  */
 
-import routes from './routes'
-import { GroupOrdersService } from './services/GroupOrdersService'
-import { groupOrderSchemas } from './schemas/validation'
+import routes from "./routes";
+import { GroupOrdersService } from "./services/GroupOrdersService";
+import { groupOrderSchemas } from "./schemas/validation";
 
 // Export the feature module
 export const groupOrdersFeature = {
   routes,
   service: GroupOrdersService,
-  schemas: groupOrderSchemas
-}
+  schemas: groupOrderSchemas,
+};
 
 // Export types for external use
 export type {
@@ -34,14 +34,14 @@ export type {
   PaymentStatus,
   ActivityType,
   IGroupOrderService,
-  GroupOrderEvent
-} from './types'
+  GroupOrderEvent,
+} from "./types";
 
 // Export schemas for external use
-export { groupOrderSchemas } from './schemas/validation'
+export { groupOrderSchemas } from "./schemas/validation";
 
 // Export service for external use
-export { GroupOrdersService } from './services/GroupOrdersService'
+export { GroupOrdersService } from "./services/GroupOrdersService";
 
 // Default export for easy import
-export default groupOrdersFeature
+export default groupOrdersFeature;

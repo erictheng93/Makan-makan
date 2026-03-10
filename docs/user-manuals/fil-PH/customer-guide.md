@@ -77,6 +77,7 @@ Ang MakanMakan ay nag-aalok ng dalawang paraan ng pag-order, depende sa setup ng
    - Bawat mesa ay may sariling unique na QR code
 
 2. **I-scan ang QR Code**
+
    ```
    Opsyon 1: Gumamit ng phone camera
    └─ Buksan ang camera at itutok sa QR code
@@ -114,6 +115,7 @@ Ang MakanMakan ay nag-aalok ng dalawang paraan ng pag-order, depende sa setup ng
 2. **Kailangan ng Phone Verification (Una)**
 
    **Hakbang 1: Ilagay ang Phone Number**
+
    ```
    ┌──────────────────────────┐
    │  Ilagay ang phone number │
@@ -124,6 +126,7 @@ Ang MakanMakan ay nag-aalok ng dalawang paraan ng pag-order, depende sa setup ng
    │  [Kumpirmahin]           │
    └──────────────────────────┘
    ```
+
    - Ilagay ang phone number kasama ang country code
    - Halimbawa: Pilipinas +63, Malaysia +60
 
@@ -163,6 +166,7 @@ Mag-register para makaenjoy ng mas maraming features!
    - O i-click ang "Mag-register Na" sa login page
 
 2. **Punan ang Registration Form**
+
    ```
    ┌────────────────────────────────┐
    │  Member Registration           │
@@ -216,6 +220,7 @@ Mag-register para makaenjoy ng mas maraming features!
    - I-click ang "Login" sa homepage
 
 2. **Ilagay ang Credentials**
+
    ```
    ┌────────────────────────────────┐
    │  Member Login                  │
@@ -324,12 +329,12 @@ Bawat order ay nagpapakita ng:
 
 #### 🔍 Paliwanag ng Status
 
-| Status | Paliwanag |
-|--------|-----------|
-| 🟡 Naghihintay | Na-submit na ang order, naghihintay ng confirmation |
-| 🔵 Ipinaghahanda | Tinanggap ng restaurant, ipinaghahanda |
-| 🟢 Tapos na | Nakumpleto ang order |
-| 🔴 Kinansela | Kinansela ang order |
+| Status           | Paliwanag                                           |
+| ---------------- | --------------------------------------------------- |
+| 🟡 Naghihintay   | Na-submit na ang order, naghihintay ng confirmation |
+| 🔵 Ipinaghahanda | Tinanggap ng restaurant, ipinaghahanda              |
+| 🟢 Tapos na      | Nakumpleto ang order                                |
+| 🔴 Kinansela     | Kinansela ang order                                 |
 
 ---
 
@@ -375,6 +380,7 @@ Bawat order ay nagpapakita ng:
 3. Lalabas agad ang resulta
 
 **Halimbawa**:
+
 - Maghanap ng "manok" → Lalabas "Tinolang Manok", "Adobong Manok", etc.
 - Maghanap ng "vegetarian" → Lalabas lahat ng vegetarian options
 
@@ -393,6 +399,7 @@ Bawat order ay nagpapakita ng:
    - Makikita ang detailed info ng item
 
 2. **Tingnan ang Menu Details**
+
    ```
    ┌────────────────────────────────┐
    │  Sisig                         │
@@ -537,6 +544,7 @@ Bawat order ay nagpapakita ng:
    - Kokumpirmahin ng system ang info
 
 4. **Kumpirmahin ang Pagsusumite**
+
    ```
    ┌────────────────────────────────┐
    │  ⚠️ Kumpirmahin ang Order?     │
@@ -636,6 +644,7 @@ Magpapadala ang system ng notifications kapag:
 - 🔔 Handa na ang pagkain
 
 **Paano makatanggap ng notifications**:
+
 - Panatilihing bukas ang browser
 - Payagan ang site notifications (tatanungin sa unang gamit)
 
@@ -653,6 +662,7 @@ A: Hindi naman. Pwedeng mag-order sa table nang walang registration. Pero mag-re
 
 **Q3: Hindi nakatanggap ng verification code?**
 A: Tingnan:
+
 - Tama ba ang phone number
 - Hindi ba na-block bilang spam ang SMS
 - Stable ba ang internet connection
@@ -673,6 +683,7 @@ A: Nakaimbak ng 24 oras, maaaring mabura pagkatapos ng timeout.
 
 **Q7: Bakit hindi pwedeng idagdag ang ilang menu items?**
 A: Maaaring dahil sa:
+
 - Ubos na pansamantala ang item
 - Hindi kasama sa serving hours
 - System maintenance
@@ -696,6 +707,7 @@ A: Depende sa patakaran ng restaurant, tanungin ang staff para makumpirma.
 
 **Q11: Bakit mabagal ang pag-load?**
 A: Maaaring dahil sa:
+
 - Mahinang internet signal
 - Kulang ang memory ng phone
 - Subukang i-refresh ang page
@@ -705,6 +717,7 @@ A: Pwedeng tingnan ang na-load na menu, pero kailangan ng internet para mag-subm
 
 **Q13: Aling browsers ang sinusuportahan?**
 A: Inirerekomenda:
+
 - Safari (iOS)
 - Chrome (Android)
 - Iba pang modern browsers
@@ -784,11 +797,13 @@ Kapag may problema, subukan ang mga solusyon na ito:
 Kung may kakaibang pagpapakita ang page, subukang i-clear ang cache:
 
 **iOS Safari:**
+
 1. Pumunta sa "Settings" → "Safari"
 2. I-tap ang "Clear History and Website Data"
 3. Kumpirmahin ang pag-clear
 
 **Android Chrome:**
+
 1. I-tap ang menu sa taas na kanan (tatlong tuldok)
 2. Pumunta sa "Settings" → "Privacy"
 3. I-tap ang "Clear browsing data"
@@ -823,6 +838,7 @@ Kung hindi nakatulong ang gabay na ito, makipag-ugnayan sa:
 Nakakita ng bug o may mga mungkahi? Malugod naming tinatanggap ang iyong feedback!
 
 **Kapag nag-report, magbigay ng:**
+
 - Oras ng nangyari ang problema
 - Phone model at browser na ginamit
 - Detalyadong paglalarawan ng problema
@@ -839,12 +855,14 @@ Enjoy your meal! 😋
 ---
 
 **Impormasyon ng Dokumento**
+
 - Bersyon: 2.0
 - Huling Na-update: 2025-10-26
 - Wika: Filipino (fil-PH)
 - Susunod na Update: 2025-11-26
 
 **Kaugnay na Dokumento**
+
 - [繁體中文](../zh-TW/customer-guide.md)
 - [English](../en-US/customer-guide.md)
 - [Tiếng Việt](../vi-VN/customer-guide.md)

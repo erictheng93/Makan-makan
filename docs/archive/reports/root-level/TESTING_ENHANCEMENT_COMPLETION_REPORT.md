@@ -422,28 +422,28 @@ pnpm test:security:full           # 執行所有安全測試
 
 ### 4.1 新增檔案
 
-| 檔案路徑 | 行數 | 說明 |
-|---------|------|------|
-| `.storybook/main.js` | 68 | Storybook 主配置 |
-| `.storybook/preview.js` | 85 | 全域裝飾器和參數 |
-| `chromatic.config.json` | 10 | Chromatic 專案設定 |
-| `apps/admin-dashboard/src/components/Button.stories.ts` | 120 | 範例組件 Story |
-| `.percy.yml` | 99 | Percy 配置 |
-| `tests/visual/percy-snapshots.test.ts` | 318 | Percy 測試腳本 |
-| `.snyk` | 143 | Snyk 配置 |
-| `tests/security/zap-config.yml` | 191 | OWASP ZAP 配置 |
-| `tests/security/run-zap-scan.sh` | 226 | ZAP 自動化腳本 |
-| `docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md` | 1,200+ | 完整使用文檔 |
-| **總計** | **2,460+** | **10 個新檔案** |
+| 檔案路徑                                                       | 行數       | 說明               |
+| -------------------------------------------------------------- | ---------- | ------------------ |
+| `.storybook/main.js`                                           | 68         | Storybook 主配置   |
+| `.storybook/preview.js`                                        | 85         | 全域裝飾器和參數   |
+| `chromatic.config.json`                                        | 10         | Chromatic 專案設定 |
+| `apps/admin-dashboard/src/components/Button.stories.ts`        | 120        | 範例組件 Story     |
+| `.percy.yml`                                                   | 99         | Percy 配置         |
+| `tests/visual/percy-snapshots.test.ts`                         | 318        | Percy 測試腳本     |
+| `.snyk`                                                        | 143        | Snyk 配置          |
+| `tests/security/zap-config.yml`                                | 191        | OWASP ZAP 配置     |
+| `tests/security/run-zap-scan.sh`                               | 226        | ZAP 自動化腳本     |
+| `docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md` | 1,200+     | 完整使用文檔       |
+| **總計**                                                       | **2,460+** | **10 個新檔案**    |
 
 ### 4.2 修改檔案
 
-| 檔案路徑 | 變更 | 說明 |
-|---------|------|------|
-| `.github/workflows/test.yml` | +262 行 | 新增視覺測試 + 增強安全測試 |
-| `package.json` | +7 行 | 新增測試腳本 |
-| `apps/admin-dashboard/package.json` | +3 行 | 新增 Storybook 腳本 |
-| **總計** | **+272 行** | **3 個檔案更新** |
+| 檔案路徑                            | 變更        | 說明                        |
+| ----------------------------------- | ----------- | --------------------------- |
+| `.github/workflows/test.yml`        | +262 行     | 新增視覺測試 + 增強安全測試 |
+| `package.json`                      | +7 行       | 新增測試腳本                |
+| `apps/admin-dashboard/package.json` | +3 行       | 新增 Storybook 腳本         |
+| **總計**                            | **+272 行** | **3 個檔案更新**            |
 
 ### 4.3 程式碼統計
 
@@ -664,11 +664,11 @@ git push origin feature-branch
 
 ### 7.3 文檔位置
 
-| 文檔 | 路徑 | 內容 |
-|------|------|------|
-| **完整指南** | `docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md` | 1,200+ 行完整教學 |
-| **本報告** | `TESTING_ENHANCEMENT_COMPLETION_REPORT.md` | 優化成果總結 |
-| **CI/CD 配置** | `.github/workflows/test.yml` | GitHub Actions 工作流程 |
+| 文檔           | 路徑                                                           | 內容                    |
+| -------------- | -------------------------------------------------------------- | ----------------------- |
+| **完整指南**   | `docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md` | 1,200+ 行完整教學       |
+| **本報告**     | `TESTING_ENHANCEMENT_COMPLETION_REPORT.md`                     | 優化成果總結            |
+| **CI/CD 配置** | `.github/workflows/test.yml`                                   | GitHub Actions 工作流程 |
 
 ---
 
@@ -810,14 +810,14 @@ Pull Request 工作流程
 
 ### 10.1 量化指標
 
-| 指標 | 優化前 | 優化後 | 改善 |
-|------|--------|--------|------|
-| **測試完善度** | 85/100 | 95/100 | +11.8% |
-| **自動化覆蓋率** | 75% | 95% | +26.7% |
-| **視覺測試場景** | 0 | 30+ | +∞ |
-| **安全檢測項目** | ~20 | 50+ | +150% |
-| **CI/CD 管道階段** | 7 | 9 | +28.6% |
-| **測試報告類型** | 3 | 7 | +133% |
+| 指標               | 優化前 | 優化後 | 改善   |
+| ------------------ | ------ | ------ | ------ |
+| **測試完善度**     | 85/100 | 95/100 | +11.8% |
+| **自動化覆蓋率**   | 75%    | 95%    | +26.7% |
+| **視覺測試場景**   | 0      | 30+    | +∞     |
+| **安全檢測項目**   | ~20    | 50+    | +150%  |
+| **CI/CD 管道階段** | 7      | 9      | +28.6% |
+| **測試報告類型**   | 3      | 7      | +133%  |
 
 ### 10.2 質化提升
 
@@ -923,16 +923,19 @@ Pull Request 工作流程
 ## 📞 支援與聯絡
 
 **文檔位置**:
+
 - 完整指南: `docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md`
 - 本報告: `TESTING_ENHANCEMENT_COMPLETION_REPORT.md`
 
 **相關資源**:
+
 - Chromatic: https://www.chromatic.com/docs/
 - Percy: https://docs.percy.io/
 - Snyk: https://docs.snyk.io/
 - OWASP ZAP: https://www.zaproxy.org/docs/
 
 **問題回報**:
+
 - GitHub Issues: [專案 Issues 頁面]
 - Email: devops@makanmakan.com
 

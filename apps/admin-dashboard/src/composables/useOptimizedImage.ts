@@ -15,7 +15,7 @@
  * - 響應式加載適當尺寸
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from "vue";
 
 // ============================================================================
 // 類型定義
@@ -24,17 +24,23 @@ import { ref, computed, onMounted } from 'vue'
 /**
  * 支援的圖片格式
  */
-export type ImageFormat = 'avif' | 'webp' | 'jpeg' | 'png' | 'auto'
+export type ImageFormat = "avif" | "webp" | "jpeg" | "png" | "auto";
 
 /**
  * 圖片適應模式
  */
-export type ImageFit = 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad'
+export type ImageFit = "scale-down" | "contain" | "cover" | "crop" | "pad";
 
 /**
  * 圖片重力（裁切焦點）
  */
-export type ImageGravity = 'auto' | 'left' | 'right' | 'top' | 'bottom' | 'center'
+export type ImageGravity =
+  | "auto"
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "center";
 
 /**
  * 圖片優化選項
@@ -44,89 +50,89 @@ export interface ImageOptimizationOptions {
    * Cloudflare Images Account Hash
    * 從環境變量或配置中獲取
    */
-  accountHash?: string
+  accountHash?: string;
 
   /**
    * 圖片 ID（Cloudflare Images）
    */
-  imageId?: string
+  imageId?: string;
 
   /**
    * 原始 URL（非 Cloudflare Images）
    */
-  src?: string
+  src?: string;
 
   /**
    * 目標寬度
    */
-  width?: number
+  width?: number;
 
   /**
    * 目標高度
    */
-  height?: number
+  height?: number;
 
   /**
    * 圖片質量 (0-100)
    * 默認根據格式和尺寸自動調整
    */
-  quality?: number
+  quality?: number;
 
   /**
    * 目標格式
    * 'auto' 會自動檢測最佳格式
    */
-  format?: ImageFormat
+  format?: ImageFormat;
 
   /**
    * 適應模式
    * 默認 'scale-down'
    */
-  fit?: ImageFit
+  fit?: ImageFit;
 
   /**
    * 裁切重力
    * 默認 'auto'
    */
-  gravity?: ImageGravity
+  gravity?: ImageGravity;
 
   /**
    * DPR (Device Pixel Ratio)
    * 默認 1，可設置 2 用於 Retina 顯示
    */
-  dpr?: number
+  dpr?: number;
 
   /**
    * 是否生成 srcset (響應式圖片)
    * 默認 true
    */
-  generateSrcset?: boolean
+  generateSrcset?: boolean;
 
   /**
    * 背景顏色（用於 pad 模式）
    */
-  background?: string
+  background?: string;
 
   /**
    * 是否啟用銳化
    * 默認根據縮放比例自動判斷
    */
-  sharpen?: number
+  sharpen?: number;
 
   /**
    * 元數據（保留在 URL 中）
    */
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>;
 }
 
 /**
  * 瀏覽器格式支援檢測結果
  */
 interface FormatSupport {
-  avif: boolean
-  webp: boolean
-  jpeg: boolean
-  png: boolean
+  avif: boolean;
+  webp: boolean;
+  jpeg: boolean;
+  png: boolean;
 }
 
 // ============================================================================
@@ -141,59 +147,61 @@ async function detectFormatSupport(): Promise<FormatSupport> {
     avif: false,
     webp: false,
     jpeg: true, // JPEG always supported
-    png: true,  // PNG always supported
-  }
+    png: true, // PNG always supported
+  };
 
   // Check AVIF support
-  const avifImage = new Image()
+  const avifImage = new Image();
   avifImage.src =
-    'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A='
+    "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A=";
   support.avif = await new Promise((resolve) => {
-    avifImage.onload = () => resolve(true)
-    avifImage.onerror = () => resolve(false)
-  })
+    avifImage.onload = () => resolve(true);
+    avifImage.onerror = () => resolve(false);
+  });
 
   // Check WebP support
-  const webpImage = new Image()
+  const webpImage = new Image();
   webpImage.src =
-    'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA'
+    "data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA";
   support.webp = await new Promise((resolve) => {
-    webpImage.onload = () => resolve(true)
-    webpImage.onerror = () => resolve(false)
-  })
+    webpImage.onload = () => resolve(true);
+    webpImage.onerror = () => resolve(false);
+  });
 
-  return support
+  return support;
 }
 
 // Cached format support result
-let formatSupportCache: FormatSupport | null = null
+let formatSupportCache: FormatSupport | null = null;
 
 /**
  * 獲取瀏覽器支援的格式（帶緩存）
  */
 async function getFormatSupport(): Promise<FormatSupport> {
   if (formatSupportCache) {
-    return formatSupportCache
+    return formatSupportCache;
   }
 
-  formatSupportCache = await detectFormatSupport()
-  return formatSupportCache
+  formatSupportCache = await detectFormatSupport();
+  return formatSupportCache;
 }
 
 /**
  * 獲取最佳圖片格式
  */
-async function getBestFormat(preferredFormat?: ImageFormat): Promise<ImageFormat> {
-  if (preferredFormat && preferredFormat !== 'auto') {
-    return preferredFormat
+async function getBestFormat(
+  preferredFormat?: ImageFormat,
+): Promise<ImageFormat> {
+  if (preferredFormat && preferredFormat !== "auto") {
+    return preferredFormat;
   }
 
-  const support = await getFormatSupport()
+  const support = await getFormatSupport();
 
   // Priority: AVIF > WebP > JPEG
-  if (support.avif) return 'avif'
-  if (support.webp) return 'webp'
-  return 'jpeg'
+  if (support.avif) return "avif";
+  if (support.webp) return "webp";
+  return "jpeg";
 }
 
 // ============================================================================
@@ -207,61 +215,63 @@ function buildCloudflareImageURL(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
-  const base = `https://imagedelivery.net/${accountHash}/${imageId}`
-  const params: string[] = []
+  const base = `https://imagedelivery.net/${accountHash}/${imageId}`;
+  const params: string[] = [];
 
   // Width
   if (options.width) {
-    params.push(`w=${options.width}`)
+    params.push(`w=${options.width}`);
   }
 
   // Height
   if (options.height) {
-    params.push(`h=${options.height}`)
+    params.push(`h=${options.height}`);
   }
 
   // Fit mode
   if (options.fit) {
-    params.push(`fit=${options.fit}`)
+    params.push(`fit=${options.fit}`);
   }
 
   // Gravity
-  if (options.gravity && options.fit === 'crop') {
-    params.push(`gravity=${options.gravity}`)
+  if (options.gravity && options.fit === "crop") {
+    params.push(`gravity=${options.gravity}`);
   }
 
   // Format
-  if (format && format !== 'auto') {
-    params.push(`format=${format}`)
+  if (format && format !== "auto") {
+    params.push(`format=${format}`);
   }
 
   // Quality (auto-calculate if not specified)
-  const quality = options.quality || calculateOptimalQuality(format, options.width, options.height)
+  const quality =
+    options.quality ||
+    calculateOptimalQuality(format, options.width, options.height);
   if (quality) {
-    params.push(`quality=${quality}`)
+    params.push(`quality=${quality}`);
   }
 
   // DPR
   if (options.dpr && options.dpr > 1) {
-    params.push(`dpr=${options.dpr}`)
+    params.push(`dpr=${options.dpr}`);
   }
 
   // Sharpen (auto or manual)
   if (options.sharpen !== undefined) {
-    params.push(`sharpen=${options.sharpen}`)
+    params.push(`sharpen=${options.sharpen}`);
   } else if (options.width && options.width < 400) {
     // Auto-sharpen for small images
-    params.push('sharpen=1')
+    params.push("sharpen=1");
   }
 
   // Background (for pad mode)
-  if (options.background && options.fit === 'pad') {
-    params.push(`background=${options.background.replace('#', '')}`)
+  if (options.background && options.fit === "pad") {
+    params.push(`background=${options.background.replace("#", "")}`);
   }
 
-  return params.length > 0 ? `${base}/${params.join(',')}` : `${base}/public`
+  return params.length > 0 ? `${base}/${params.join(",")}` : `${base}/public`;
 }
 
 /**
@@ -270,31 +280,31 @@ function buildCloudflareImageURL(
 function calculateOptimalQuality(
   format: ImageFormat,
   width: number | undefined,
-  height: number | undefined
+  height: number | undefined,
 ): number {
-  if (!width || !height) return 85
+  if (!width || !height) return 85;
 
-  const pixels = width * height
+  const pixels = width * height;
 
-  if (format === 'avif') {
-    if (pixels > 1000000) return 75 // Large: more aggressive compression
-    if (pixels > 400000) return 80  // Medium
-    return 85 // Small
+  if (format === "avif") {
+    if (pixels > 1000000) return 75; // Large: more aggressive compression
+    if (pixels > 400000) return 80; // Medium
+    return 85; // Small
   }
 
-  if (format === 'webp') {
-    if (pixels > 1000000) return 80
-    if (pixels > 400000) return 85
-    return 90
+  if (format === "webp") {
+    if (pixels > 1000000) return 80;
+    if (pixels > 400000) return 85;
+    return 90;
   }
 
-  if (format === 'jpeg' || format === 'png') {
-    if (pixels > 1000000) return 75
-    if (pixels > 400000) return 80
-    return 85
+  if (format === "jpeg" || format === "png") {
+    if (pixels > 1000000) return 75;
+    if (pixels > 400000) return 80;
+    return 85;
   }
 
-  return 85
+  return 85;
 }
 
 /**
@@ -304,15 +314,15 @@ function generateSrcset(
   accountHash: string,
   imageId: string,
   options: ImageOptimizationOptions,
-  format: ImageFormat
+  format: ImageFormat,
 ): string {
-  const baseWidth = options.width || 800
+  const baseWidth = options.width || 800;
   const widths = [
-    Math.round(baseWidth * 0.5),  // 0.5x
-    baseWidth,                     // 1x
-    Math.round(baseWidth * 1.5),  // 1.5x
-    Math.round(baseWidth * 2),    // 2x (Retina)
-  ]
+    Math.round(baseWidth * 0.5), // 0.5x
+    baseWidth, // 1x
+    Math.round(baseWidth * 1.5), // 1.5x
+    Math.round(baseWidth * 2), // 2x (Retina)
+  ];
 
   return widths
     .map((width) => {
@@ -320,11 +330,11 @@ function generateSrcset(
         accountHash,
         imageId,
         { ...options, width },
-        format
-      )
-      return `${url} ${width}w`
+        format,
+      );
+      return `${url} ${width}w`;
     })
-    .join(', ')
+    .join(", ");
 }
 
 // ============================================================================
@@ -360,9 +370,9 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
   // 響應式狀態
   // ========================================
 
-  const isLoading = ref(true)
-  const error = ref<Error | null>(null)
-  const detectedFormat = ref<ImageFormat>('jpeg')
+  const isLoading = ref(true);
+  const error = ref<Error | null>(null);
+  const detectedFormat = ref<ImageFormat>("jpeg");
 
   // ========================================
   // 計算屬性
@@ -373,46 +383,48 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
    */
   const imageUrl = computed(() => {
     if (!options.accountHash || !options.imageId) {
-      return options.src || ''
+      return options.src || "";
     }
 
     return buildCloudflareImageURL(
       options.accountHash,
       options.imageId,
       options,
-      detectedFormat.value
-    )
-  })
+      detectedFormat.value,
+    );
+  });
 
   /**
    * 響應式 srcset
    */
   const srcset = computed(() => {
     if (!options.generateSrcset || !options.accountHash || !options.imageId) {
-      return undefined
+      return undefined;
     }
 
     return generateSrcset(
       options.accountHash,
       options.imageId,
       options,
-      detectedFormat.value
-    )
-  })
+      detectedFormat.value,
+    );
+  });
 
   /**
    * HTML sizes 屬性
    * 根據視口寬度自動調整
    */
   const sizes = computed(() => {
-    if (!options.generateSrcset) return undefined
+    if (!options.generateSrcset) return undefined;
 
-    const width = options.width || 800
+    const width = options.width || 800;
 
-    return `(max-width: 640px) ${Math.round(width * 0.9)}px, ` +
-           `(max-width: 1024px) ${Math.round(width * 0.8)}px, ` +
-           `${width}px`
-  })
+    return (
+      `(max-width: 640px) ${Math.round(width * 0.9)}px, ` +
+      `(max-width: 1024px) ${Math.round(width * 0.8)}px, ` +
+      `${width}px`
+    );
+  });
 
   // ========================================
   // 生命週期
@@ -421,16 +433,16 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
   onMounted(async () => {
     try {
       // 檢測最佳格式
-      const bestFormat = await getBestFormat(options.format)
-      detectedFormat.value = bestFormat
+      const bestFormat = await getBestFormat(options.format);
+      detectedFormat.value = bestFormat;
 
-      isLoading.value = false
+      isLoading.value = false;
     } catch (err) {
-      error.value = err instanceof Error ? err : new Error('Unknown error')
-      isLoading.value = false
-      console.error('Error detecting image format:', err)
+      error.value = err instanceof Error ? err : new Error("Unknown error");
+      isLoading.value = false;
+      console.error("Error detecting image format:", err);
     }
-  })
+  });
 
   // ========================================
   // 返回 API
@@ -443,7 +455,7 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
     detectedFormat: computed(() => detectedFormat.value),
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
-  }
+  };
 }
 
 // ============================================================================
@@ -456,7 +468,7 @@ export {
   buildCloudflareImageURL,
   calculateOptimalQuality,
   generateSrcset,
-}
+};
 
 // ============================================================================
 // 預設配置導出
@@ -468,12 +480,12 @@ export {
 export const MENU_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
   width: 600,
   height: 400,
-  format: 'auto',
-  fit: 'cover',
-  gravity: 'auto',
+  format: "auto",
+  fit: "cover",
+  gravity: "auto",
   quality: 85,
   generateSrcset: true,
-}
+};
 
 /**
  * 縮圖配置
@@ -481,12 +493,12 @@ export const MENU_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
 export const THUMBNAIL_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
   width: 150,
   height: 150,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 80,
   generateSrcset: false,
-}
+};
 
 /**
  * 頭像配置
@@ -494,12 +506,12 @@ export const THUMBNAIL_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
 export const AVATAR_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
   width: 200,
   height: 200,
-  format: 'auto',
-  fit: 'crop',
-  gravity: 'center',
+  format: "auto",
+  fit: "crop",
+  gravity: "center",
   quality: 85,
   generateSrcset: true,
-}
+};
 
 /**
  * Hero 圖片配置
@@ -507,9 +519,9 @@ export const AVATAR_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
 export const HERO_IMAGE_CONFIG: Partial<ImageOptimizationOptions> = {
   width: 1920,
   height: 1080,
-  format: 'auto',
-  fit: 'cover',
-  gravity: 'center',
+  format: "auto",
+  fit: "cover",
+  gravity: "center",
   quality: 90,
   generateSrcset: true,
-}
+};

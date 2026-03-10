@@ -8,9 +8,11 @@
 ## ✅ Completed Components
 
 ### 1. Database Schema (100%) ✅
+
 **File**: `packages/database/src/schema/scheduling.ts`
 
 **Tables Created**:
+
 - `shift_templates` - 班別模板
 - `employee_schedules` - 員工排班
 - `scheduling_rules` - 排班規則引擎
@@ -21,9 +23,11 @@
 **Relations**: Complete Drizzle ORM relations defined
 
 ### 2. TypeScript Types (100%) ✅
+
 **File**: `apps/api/src/features/scheduling/types/index.ts`
 
 **Comprehensive Types**:
+
 - Core entities with relations
 - Create/Update data types
 - Filter and query types
@@ -34,9 +38,11 @@
 **Total**: 30+ type definitions
 
 ### 3. Validation Schemas (100%) ✅
+
 **File**: `apps/api/src/features/scheduling/schemas/validation.ts`
 
 **Zod Schemas Created**:
+
 - Shift Template schemas (create, update)
 - Employee Schedule schemas (create, update, bulk)
 - Clock In/Out schemas
@@ -48,6 +54,7 @@
 - Parameter validation schemas
 
 **Helper Functions**:
+
 - `calculateScheduledHours()` - 計算工作時數
 - `validateTaiwanLaborLaw` - Taiwan勞基法常數
 
@@ -64,6 +71,7 @@
 **Required Methods** (Estimated 1200+ lines):
 
 #### Shift Template Management:
+
 ```typescript
 - getShiftTemplates(restaurantId: number): Promise<ShiftTemplate[]>
 - getShiftTemplate(id: number): Promise<ShiftTemplate | null>
@@ -73,6 +81,7 @@
 ```
 
 #### Employee Schedule Management:
+
 ```typescript
 - getSchedules(filters: ScheduleFilters): Promise<{items, total}>
 - getSchedule(id: number): Promise<EmployeeScheduleWithRelations | null>
@@ -83,6 +92,7 @@
 ```
 
 #### Clock In/Out:
+
 ```typescript
 - clockIn(data: ClockInData): Promise<EmployeeSchedule>
 - clockOut(data: ClockOutData): Promise<EmployeeSchedule>
@@ -90,6 +100,7 @@
 ```
 
 #### **Conflict Detection Engine** (Most Complex):
+
 ```typescript
 - checkConflicts(schedules: CreateEmployeeScheduleData[]): Promise<ConflictCheckResult>
 - detectOverlappingShifts(employeeId, date): Promise<Conflict[]>
@@ -101,6 +112,7 @@
 ```
 
 #### Conflict Management:
+
 ```typescript
 - getConflicts(filters: ConflictFilters): Promise<{items, total}>
 - resolveConflict(conflictId, userId, notes): Promise<SchedulingConflict>
@@ -108,6 +120,7 @@
 ```
 
 #### Swap Request Workflow:
+
 ```typescript
 - getSwapRequests(filters): Promise<{items, total}>
 - createSwapRequest(data): Promise<ScheduleSwapRequest>
@@ -118,6 +131,7 @@
 ```
 
 #### Availability Management:
+
 ```typescript
 - getEmployeeAvailability(employeeId): Promise<EmployeeAvailability[]>
 - setEmployeeAvailability(data): Promise<EmployeeAvailability>
@@ -125,6 +139,7 @@
 ```
 
 #### Statistics & Reporting:
+
 ```typescript
 - getScheduleStats(restaurantId, date): Promise<ScheduleStats>
 - getWeeklySummary(restaurantId, weekStart): Promise<WeeklyScheduleSummary>
@@ -132,6 +147,7 @@
 ```
 
 #### Taiwan Labor Law Compliance:
+
 ```typescript
 - validateLaborLawCompliance(schedules): Promise<LaborLawCheckResult>
 - checkMaxDailyHours(employeeId, date): 12 hours max
@@ -147,6 +163,7 @@
 **Required Endpoints** (~25 endpoints, 800+ lines):
 
 #### Shift Templates (5 endpoints):
+
 ```
 GET    /:restaurantId/templates
 GET    /templates/:id
@@ -156,6 +173,7 @@ DELETE /templates/:id
 ```
 
 #### Employee Schedules (8 endpoints):
+
 ```
 GET    /:restaurantId/schedules
 GET    /schedules/:id
@@ -168,6 +186,7 @@ POST   /schedules/:id/clock-out
 ```
 
 #### Conflicts (3 endpoints):
+
 ```
 GET    /:restaurantId/conflicts
 POST   /conflicts/check
@@ -175,6 +194,7 @@ POST   /conflicts/:id/resolve
 ```
 
 #### Swap Requests (6 endpoints):
+
 ```
 GET    /:restaurantId/swap-requests
 GET    /swap-requests/:id
@@ -185,6 +205,7 @@ POST   /swap-requests/:id/reject
 ```
 
 #### Availability (3 endpoints):
+
 ```
 GET    /availability/:employeeId
 POST   /availability
@@ -192,6 +213,7 @@ DELETE /availability/:id
 ```
 
 #### Statistics (2 endpoints):
+
 ```
 GET    /:restaurantId/stats?date=YYYY-MM-DD
 GET    /:restaurantId/weekly-summary?weekStartDate=YYYY-MM-DD
@@ -202,6 +224,7 @@ GET    /:restaurantId/weekly-summary?weekStartDate=YYYY-MM-DD
 **Target File**: `apps/api/src/features/scheduling/index.ts`
 
 **Required**:
+
 - Feature module wrapper
 - Health check endpoint
 - Performance monitoring middleware
@@ -213,6 +236,7 @@ GET    /:restaurantId/weekly-summary?weekStartDate=YYYY-MM-DD
 **Target File**: `apps/api/src/index.ts`
 
 **Required Changes**:
+
 ```typescript
 import schedulingFeature from './features/scheduling'
 
@@ -234,16 +258,19 @@ apiV1.route('/scheduling', schedulingFeature.routes)
 Due to the large scope, here's the recommended implementation order:
 
 ### Phase A: Core Functionality (NEXT)
+
 1. ✅ **SchedulingService** - Basic CRUD for templates and schedules
 2. ✅ **API Routes** - Core endpoints for templates and schedules
 3. ✅ **Integration** - Register in main API
 
 ### Phase B: Advanced Features
+
 4. 🔄 **Conflict Detection** - Implement Taiwan Labor Law checks
 5. 🔄 **Swap Requests** - Implement workflow
 6. 🔄 **Statistics** - Implement reporting
 
 ### Phase C: Integration
+
 7. 🔄 **Leave-Schedule Integration** - Auto-cancel on leave approval
 8. 🔄 **Frontend Components** - Admin UI
 
@@ -270,6 +297,7 @@ Total                             🚧          43%
 ## 🚀 Quick Start Guide (After Completion)
 
 ### Running Migrations
+
 ```bash
 # Apply scheduling system migration
 npx wrangler d1 migrations apply makanmakan-staging --env staging
@@ -280,6 +308,7 @@ npx wrangler d1 execute makanmakan-staging --local \
 ```
 
 ### Testing Endpoints
+
 ```bash
 # Create a shift template
 curl -X POST http://localhost:8787/api/v1/scheduling/:restaurantId/templates \

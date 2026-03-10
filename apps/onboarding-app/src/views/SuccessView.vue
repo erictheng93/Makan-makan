@@ -1,47 +1,47 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useOnboardingStore } from '@/stores/onboarding'
+import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useOnboardingStore } from "@/stores/onboarding";
 import {
   CheckCircleIcon,
   EnvelopeIcon,
   ClockIcon,
   RocketLaunchIcon,
-  DocumentDuplicateIcon
-} from '@heroicons/vue/24/outline'
-import { useToast } from 'vue-toastification'
+  DocumentDuplicateIcon,
+} from "@heroicons/vue/24/outline";
+import { useToast } from "vue-toastification";
 
-const router = useRouter()
-const toast = useToast()
-const store = useOnboardingStore()
+const router = useRouter();
+const toast = useToast();
+const store = useOnboardingStore();
 
 // Redirect if no completion data
 onMounted(() => {
   if (!store.completionResult) {
-    router.push('/apply')
+    router.push("/apply");
   }
-})
+});
 
 const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text)
-  toast.success('已複製到剪貼簿')
-}
+  navigator.clipboard.writeText(text);
+  toast.success("已複製到剪貼簿");
+};
 
 const getPlanLabel = (planId: string) => {
   switch (planId) {
-    case 'professional':
-      return '專業版'
-    case 'enterprise':
-      return '企業版'
+    case "professional":
+      return "專業版";
+    case "enterprise":
+      return "企業版";
     default:
-      return '標準版'
+      return "標準版";
   }
-}
+};
 
 const handleStartNew = () => {
-  store.reset()
-  router.push('/')
-}
+  store.reset();
+  router.push("/");
+};
 </script>
 
 <template>
@@ -49,15 +49,21 @@ const handleStartNew = () => {
     <!-- Progress -->
     <div class="flex items-center justify-center mb-8">
       <div class="flex items-center">
-        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium">
+        <div
+          class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium"
+        >
           ✓
         </div>
         <div class="w-24 h-1 bg-primary-600" />
-        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium">
+        <div
+          class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium"
+        >
           ✓
         </div>
         <div class="w-24 h-1 bg-primary-600" />
-        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium">
+        <div
+          class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium"
+        >
           ✓
         </div>
       </div>
@@ -65,7 +71,9 @@ const handleStartNew = () => {
 
     <!-- Success Message -->
     <div class="card">
-      <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+      <div
+        class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6"
+      >
         <CheckCircleIcon class="h-10 w-10 text-green-600" />
       </div>
 
@@ -82,7 +90,7 @@ const handleStartNew = () => {
           <div class="flex justify-between items-center">
             <dt class="text-gray-500">申請編號</dt>
             <dd class="text-gray-900 font-mono text-xs flex items-center">
-              {{ store.applicationId || '-' }}
+              {{ store.applicationId || "-" }}
               <button
                 v-if="store.applicationId"
                 type="button"
@@ -96,7 +104,7 @@ const handleStartNew = () => {
           <div class="flex justify-between items-center">
             <dt class="text-gray-500">租戶編號</dt>
             <dd class="text-gray-900 font-mono text-xs flex items-center">
-              {{ store.completionResult?.tenantId || '-' }}
+              {{ store.completionResult?.tenantId || "-" }}
               <button
                 v-if="store.completionResult?.tenantId"
                 type="button"
@@ -109,16 +117,20 @@ const handleStartNew = () => {
           </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">餐廳名稱</dt>
-            <dd class="text-gray-900 font-medium">{{ store.application?.businessName || '-' }}</dd>
+            <dd class="text-gray-900 font-medium">
+              {{ store.application?.businessName || "-" }}
+            </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">聯絡 Email</dt>
-            <dd class="text-gray-900">{{ store.application?.contactEmail || '-' }}</dd>
+            <dd class="text-gray-900">
+              {{ store.application?.contactEmail || "-" }}
+            </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">選擇方案</dt>
             <dd class="text-gray-900">
-              {{ getPlanLabel(store.application?.planId || 'standard') }}
+              {{ getPlanLabel(store.application?.planId || "standard") }}
             </dd>
           </div>
           <div class="flex justify-between items-center">
@@ -129,13 +141,21 @@ const handleStartNew = () => {
                 target="_blank"
                 class="hover:underline"
               >
-                {{ store.completionResult?.subdomain || store.assignedSubdomain }}.makanmakan.app
+                {{
+                  store.completionResult?.subdomain || store.assignedSubdomain
+                }}.makanmakan.app
               </a>
               <button
-                v-if="store.completionResult?.subdomain || store.assignedSubdomain"
+                v-if="
+                  store.completionResult?.subdomain || store.assignedSubdomain
+                "
                 type="button"
                 class="ml-2 text-gray-400 hover:text-gray-600"
-                @click="copyToClipboard(`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`)"
+                @click="
+                  copyToClipboard(
+                    `https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`,
+                  )
+                "
               >
                 <DocumentDuplicateIcon class="h-4 w-4" />
               </button>
@@ -143,9 +163,7 @@ const handleStartNew = () => {
           </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">Cloudflare 帳號</dt>
-            <dd class="text-green-600 font-medium">
-              已連接 ✓
-            </dd>
+            <dd class="text-green-600 font-medium">已連接 ✓</dd>
           </div>
         </dl>
       </div>
@@ -161,7 +179,11 @@ const handleStartNew = () => {
             <div class="ml-4">
               <p class="font-medium text-gray-900">確認郵件</p>
               <p class="text-sm text-gray-500">
-                我們已發送確認郵件至 <span class="font-medium">{{ store.application?.contactEmail }}</span>，請查收。
+                我們已發送確認郵件至
+                <span class="font-medium">{{
+                  store.application?.contactEmail
+                }}</span
+                >，請查收。
               </p>
             </div>
           </div>
@@ -199,11 +221,7 @@ const handleStartNew = () => {
         >
           前往管理後台
         </a>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="handleStartNew"
-        >
+        <button type="button" class="btn btn-secondary" @click="handleStartNew">
           返回首頁
         </button>
       </div>
@@ -212,7 +230,10 @@ const handleStartNew = () => {
     <!-- 聯絡資訊 -->
     <div class="mt-6 text-sm text-gray-500">
       有任何問題？請聯繫
-      <a href="mailto:support@makanmakan.app" class="text-primary-600 hover:underline">
+      <a
+        href="mailto:support@makanmakan.app"
+        class="text-primary-600 hover:underline"
+      >
         support@makanmakan.app
       </a>
     </div>

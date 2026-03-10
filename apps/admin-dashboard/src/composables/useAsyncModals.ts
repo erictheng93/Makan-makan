@@ -1,4 +1,4 @@
-import { defineAsyncComponent, Component } from 'vue'
+import { defineAsyncComponent, Component } from "vue";
 
 /**
  * 異步 Modal/Dialog 組件加載 Composable
@@ -25,21 +25,21 @@ import { defineAsyncComponent, Component } from 'vue'
 
 interface AsyncModalComponents {
   // Coupon Modals
-  CouponFormModal: Component
-  CouponStatsModal: Component
+  CouponFormModal: Component;
+  CouponStatsModal: Component;
 
   // Backup Modals
-  CreateBackupModal: Component
+  CreateBackupModal: Component;
 
   // Scheduling Modals
-  ScheduleFormModal: Component
-  ShiftTemplateFormModal: Component
+  ScheduleFormModal: Component;
+  ShiftTemplateFormModal: Component;
 
   // Monitoring Modals
-  ExportReportModal: Component
+  ExportReportModal: Component;
 
   // Leave Management Dialogs
-  LeaveRequestDialog: Component
+  LeaveRequestDialog: Component;
 }
 
 /**
@@ -51,7 +51,7 @@ interface AsyncModalComponents {
 function createAsyncModal(
   loader: () => Promise<any>,
   delay = 200,
-  timeout = 30000
+  timeout = 30000,
 ): Component {
   return defineAsyncComponent({
     loader,
@@ -75,7 +75,7 @@ function createAsyncModal(
         </div>
       `,
     },
-  })
+  });
 }
 
 /**
@@ -85,35 +85,35 @@ export function useAsyncModals(): AsyncModalComponents {
   return {
     // Coupon Modals
     CouponFormModal: createAsyncModal(
-      () => import('@/components/coupons/CouponFormModal.vue')
+      () => import("@/components/coupons/CouponFormModal.vue"),
     ),
     CouponStatsModal: createAsyncModal(
-      () => import('@/components/coupons/CouponStatsModal.vue')
+      () => import("@/components/coupons/CouponStatsModal.vue"),
     ),
 
     // Backup Modals
     CreateBackupModal: createAsyncModal(
-      () => import('@/components/backup/CreateBackupModal.vue')
+      () => import("@/components/backup/CreateBackupModal.vue"),
     ),
 
     // Scheduling Modals
     ScheduleFormModal: createAsyncModal(
-      () => import('@/components/scheduling/ScheduleFormModal.vue')
+      () => import("@/components/scheduling/ScheduleFormModal.vue"),
     ),
     ShiftTemplateFormModal: createAsyncModal(
-      () => import('@/components/scheduling/ShiftTemplateFormModal.vue')
+      () => import("@/components/scheduling/ShiftTemplateFormModal.vue"),
     ),
 
     // Monitoring Modals
     ExportReportModal: createAsyncModal(
-      () => import('@/components/monitoring/ExportReportModal.vue')
+      () => import("@/components/monitoring/ExportReportModal.vue"),
     ),
 
     // Leave Management Dialogs
     LeaveRequestDialog: createAsyncModal(
-      () => import('@/components/leaves/LeaveRequestDialog.vue')
+      () => import("@/components/leaves/LeaveRequestDialog.vue"),
     ),
-  }
+  };
 }
 
 /**
@@ -126,7 +126,7 @@ export function useAsyncModals(): AsyncModalComponents {
  * )
  * ```
  */
-export { createAsyncModal }
+export { createAsyncModal };
 
 /**
  * 預加載 Modal 組件
@@ -140,20 +140,20 @@ export { createAsyncModal }
  */
 export function preloadModal(loader: () => Promise<any>): void {
   // 使用 requestIdleCallback 在瀏覽器空閒時預加載
-  if ('requestIdleCallback' in window) {
+  if ("requestIdleCallback" in window) {
     requestIdleCallback(() => {
       loader().catch(() => {
         // 預加載失敗不影響主流程
-        console.warn('Modal preload failed, will load on demand')
-      })
-    })
+        console.warn("Modal preload failed, will load on demand");
+      });
+    });
   } else {
     // Fallback: 使用 setTimeout
     setTimeout(() => {
       loader().catch(() => {
-        console.warn('Modal preload failed, will load on demand')
-      })
-    }, 1000)
+        console.warn("Modal preload failed, will load on demand");
+      });
+    }, 1000);
   }
 }
 
@@ -172,10 +172,10 @@ export function preloadModals(loaders: Array<() => Promise<any>>): void {
   loaders.forEach((loader, index) => {
     // 錯開加載時間，避免同時請求
     setTimeout(() => {
-      preloadModal(loader)
-    }, index * 500)
-  })
+      preloadModal(loader);
+    }, index * 500);
+  });
 }
 
 // 默認導出
-export default useAsyncModals
+export default useAsyncModals;

@@ -6,7 +6,11 @@
  * - 利潤最大產品 (Profit Leaders): Most profitable products
  */
 
-import type { ProductAnalysis, ProductCategory, TimeRangeParams } from '../types';
+import type {
+  ProductAnalysis,
+  ProductCategory,
+  TimeRangeParams,
+} from "../types";
 
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
@@ -45,12 +49,16 @@ export class ProductAnalysisService {
    */
   async analyzeProducts(
     restaurantId: string,
-    timeRange: TimeRangeParams
+    timeRange: TimeRangeParams,
   ): Promise<ProductAnalysis[]> {
     const { startDate, endDate } = this.getDateRange(timeRange);
 
     // 1. Fetch raw metrics
-    const rawMetrics = await this.fetchRawMetrics(restaurantId, startDate, endDate);
+    const rawMetrics = await this.fetchRawMetrics(
+      restaurantId,
+      startDate,
+      endDate,
+    );
 
     if (rawMetrics.length === 0) {
       return [];
@@ -59,7 +67,11 @@ export class ProductAnalysisService {
     // 2. Calculate derived metrics
     const productsWithMetrics = await Promise.all(
       rawMetrics.map(async (raw) => {
-        const dailyData = await this.fetchDailyData(raw.menu_item_id, startDate, endDate);
+        const dailyData = await this.fetchDailyData(
+          raw.menu_item_id,
+          startDate,
+          endDate,
+        );
         const trendScore = this.calculateTrendScore(dailyData);
         const growthRate = this.calculateGrowthRate(dailyData);
 
@@ -69,7 +81,7 @@ export class ProductAnalysisService {
           trendScore,
           growthRate,
         };
-      })
+      }),
     );
 
     // 3. Calculate rankings
@@ -91,12 +103,12 @@ export class ProductAnalysisService {
   async getTrafficDrivers(
     restaurantId: string,
     timeRange: TimeRangeParams,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ProductAnalysis[]> {
     const allProducts = await this.analyzeProducts(restaurantId, timeRange);
 
     return allProducts
-      .filter((p) => p.categories.includes('traffic-driver'))
+      .filter((p) => p.categories.includes("traffic-driver"))
       .sort((a, b) => b.firstItemInOrderCount - a.firstItemInOrderCount)
       .slice(0, limit);
   }
@@ -107,7 +119,7 @@ export class ProductAnalysisService {
   async getBestsellers(
     restaurantId: string,
     timeRange: TimeRangeParams,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ProductAnalysis[]> {
     const allProducts = await this.analyzeProducts(restaurantId, timeRange);
 
@@ -122,7 +134,7 @@ export class ProductAnalysisService {
   async getProfitLeaders(
     restaurantId: string,
     timeRange: TimeRangeParams,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ProductAnalysis[]> {
     const allProducts = await this.analyzeProducts(restaurantId, timeRange);
 
@@ -138,12 +150,12 @@ export class ProductAnalysisService {
   async getUnderperformers(
     restaurantId: string,
     timeRange: TimeRangeParams,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ProductAnalysis[]> {
     const allProducts = await this.analyzeProducts(restaurantId, timeRange);
 
     return allProducts
-      .filter((p) => p.categories.includes('underperformer'))
+      .filter((p) => p.categories.includes("underperformer"))
       .sort((a, b) => a.trendScore - b.trendScore) // Most negative trend first
       .slice(0, limit);
   }
@@ -152,11 +164,18 @@ export class ProductAnalysisService {
   // Private Helper Methods
   // ============================================
 
-  private getDateRange(timeRange: TimeRangeParams): { startDate: string; endDate: string } {
+  private getDateRange(timeRange: TimeRangeParams): {
+    startDate: string;
+    endDate: string;
+  } {
     const now = new Date();
     let startDate: Date;
 
-    if (timeRange.range === 'custom' && timeRange.startDate && timeRange.endDate) {
+    if (
+      timeRange.range === "custom" &&
+      timeRange.startDate &&
+      timeRange.endDate
+    ) {
       return {
         startDate: timeRange.startDate,
         endDate: timeRange.endDate,
@@ -164,22 +183,22 @@ export class ProductAnalysisService {
     }
 
     switch (timeRange.range) {
-      case '7d':
+      case "7d":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
-      case '14d':
+      case "14d":
         startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
         break;
-      case '30d':
+      case "30d":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
-      case '90d':
+      case "90d":
         startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         break;
-      case '180d':
+      case "180d":
         startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
         break;
-      case '1y':
+      case "1y":
         startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         break;
       default:
@@ -187,15 +206,15 @@ export class ProductAnalysisService {
     }
 
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: now.toISOString().split('T')[0],
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: now.toISOString().split("T")[0],
     };
   }
 
   private async fetchRawMetrics(
     restaurantId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<RawProductMetrics[]> {
     const query = `
       WITH order_stats AS (
@@ -252,7 +271,7 @@ export class ProductAnalysisService {
   private async fetchDailyData(
     menuItemId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<DailyMetric[]> {
     const query = `
       SELECT
@@ -268,7 +287,10 @@ export class ProductAnalysisService {
       ORDER BY date ASC
     `;
 
-    const result = await this.db.prepare(query).bind(menuItemId, startDate, endDate).all<DailyMetric>();
+    const result = await this.db
+      .prepare(query)
+      .bind(menuItemId, startDate, endDate)
+      .all<DailyMetric>();
 
     return result.results || [];
   }
@@ -312,16 +334,32 @@ export class ProductAnalysisService {
     return ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100;
   }
 
-  private calculateRankings<T extends { menu_item_id: string; total_orders: number; total_revenue: number; unit_cost: number | null; unit_price: number }>(
-    products: T[]
+  private calculateRankings<
+    T extends {
+      menu_item_id: string;
+      total_orders: number;
+      total_revenue: number;
+      unit_cost: number | null;
+      unit_price: number;
+    },
+  >(
+    products: T[],
   ): (T & { salesRank: number; revenueRank: number; profitRank?: number })[] {
     // Sort by orders
-    const byOrders = [...products].sort((a, b) => b.total_orders - a.total_orders);
-    const orderRankMap = new Map(byOrders.map((p, i) => [p.menu_item_id, i + 1]));
+    const byOrders = [...products].sort(
+      (a, b) => b.total_orders - a.total_orders,
+    );
+    const orderRankMap = new Map(
+      byOrders.map((p, i) => [p.menu_item_id, i + 1]),
+    );
 
     // Sort by revenue
-    const byRevenue = [...products].sort((a, b) => b.total_revenue - a.total_revenue);
-    const revenueRankMap = new Map(byRevenue.map((p, i) => [p.menu_item_id, i + 1]));
+    const byRevenue = [...products].sort(
+      (a, b) => b.total_revenue - a.total_revenue,
+    );
+    const revenueRankMap = new Map(
+      byRevenue.map((p, i) => [p.menu_item_id, i + 1]),
+    );
 
     // Sort by profit (if cost data available)
     const productsWithCost = products.filter((p) => p.unit_cost !== null);
@@ -331,7 +369,9 @@ export class ProductAnalysisService {
         totalProfit: (p.unit_price - (p.unit_cost || 0)) * p.total_orders,
       }))
       .sort((a, b) => b.totalProfit - a.totalProfit);
-    const profitRankMap = new Map(byProfit.map((p, i) => [p.menu_item_id, i + 1]));
+    const profitRankMap = new Map(
+      byProfit.map((p, i) => [p.menu_item_id, i + 1]),
+    );
 
     return products.map((p) => ({
       ...p,
@@ -357,25 +397,29 @@ export class ProductAnalysisService {
     const trafficDriverScore =
       product.first_item_count / Math.max(product.total_orders, 1);
     if (trafficDriverScore > 0.3 && product.first_item_count >= 5) {
-      categories.push('traffic-driver');
+      categories.push("traffic-driver");
     }
 
     // Bestseller: Top 20% in sales rank
     if (product.salesRank <= Math.ceil(product.salesRank * 0.2)) {
-      categories.push('bestseller');
+      categories.push("bestseller");
     }
 
     // Profit leader: High profit margin and significant volume
     if (product.unit_cost !== null) {
-      const profitMargin = (product.unit_price - product.unit_cost) / product.unit_price;
+      const profitMargin =
+        (product.unit_price - product.unit_cost) / product.unit_price;
       if (profitMargin > 0.5 && product.total_orders >= 10) {
-        categories.push('profit-leader');
+        categories.push("profit-leader");
       }
     }
 
     // Underperformer: Negative trend and low sales
-    if (product.trendScore < -0.3 || (product.total_orders < 5 && product.trendScore < 0)) {
-      categories.push('underperformer');
+    if (
+      product.trendScore < -0.3 ||
+      (product.total_orders < 5 && product.trendScore < 0)
+    ) {
+      categories.push("underperformer");
     }
 
     return categories;
@@ -398,7 +442,9 @@ export class ProductAnalysisService {
         : 0;
 
     const cartAdditionRate =
-      product.view_count > 0 ? product.cart_addition_count / product.view_count : 0;
+      product.view_count > 0
+        ? product.cart_addition_count / product.view_count
+        : 0;
 
     return {
       menuItemId: product.menu_item_id,
@@ -406,7 +452,10 @@ export class ProductAnalysisService {
       category: product.category,
       totalOrders: product.total_orders,
       totalRevenue: product.total_revenue,
-      averageOrderValue: product.total_orders > 0 ? product.total_revenue / product.total_orders : 0,
+      averageOrderValue:
+        product.total_orders > 0
+          ? product.total_revenue / product.total_orders
+          : 0,
       unitCost: product.unit_cost ?? undefined,
       unitPrice: product.unit_price,
       profitMargin,

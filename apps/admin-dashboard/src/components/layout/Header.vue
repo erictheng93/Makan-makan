@@ -39,7 +39,11 @@
             class="w-2 h-2 rounded-full"
             :class="isConnected ? 'bg-green-500' : 'bg-red-500'"
           />
-          <span>{{ isConnected ? t('header.realtime.connected') : t('header.realtime.disconnected') }}</span>
+          <span>{{
+            isConnected
+              ? t("header.realtime.connected")
+              : t("header.realtime.disconnected")
+          }}</span>
         </div>
 
         <!-- Language Switcher -->
@@ -79,7 +83,7 @@
               >
                 <div class="flex items-center space-x-2">
                   <LogOut class="w-4 h-4" />
-                  <span>{{ t('header.userMenu.logout') }}</span>
+                  <span>{{ t("header.userMenu.logout") }}</span>
                 </div>
               </button>
             </div>
@@ -145,22 +149,22 @@ const user = computed(() => authStore.user);
 const unreadNotifications = computed(() => notificationStore.unreadCount);
 
 const pageTitle = computed(() => {
-  return (route.meta.title as string) || t('header.title');
+  return (route.meta.title as string) || t("header.title");
 });
 
 const breadcrumbs = computed(() => {
   const crumbs = [];
   const pathSegments = route.path.split("/").filter(Boolean);
 
-  crumbs.push({ label: t('header.breadcrumb.home'), path: "/dashboard" });
+  crumbs.push({ label: t("header.breadcrumb.home"), path: "/dashboard" });
 
   if (pathSegments.length > 1) {
     const routeMapping: Record<string, string> = {
-      orders: t('header.breadcrumb.orders'),
-      menu: t('header.breadcrumb.menu'),
-      tables: t('header.breadcrumb.tables'),
-      users: t('header.breadcrumb.users'),
-      analytics: t('header.breadcrumb.analytics'),
+      orders: t("header.breadcrumb.orders"),
+      menu: t("header.breadcrumb.menu"),
+      tables: t("header.breadcrumb.tables"),
+      users: t("header.breadcrumb.users"),
+      analytics: t("header.breadcrumb.analytics"),
     };
 
     pathSegments.slice(1).forEach((segment, index) => {
@@ -188,11 +192,11 @@ const handleLogout = async () => {
 
 const getRoleLabel = (role?: UserRole) => {
   const roleLabels = {
-    [UserRole.ADMIN]: t('header.roles.admin'),
-    [UserRole.OWNER]: t('header.roles.owner'),
-    [UserRole.CHEF]: t('header.roles.chef'),
-    [UserRole.SERVICE]: t('header.roles.service'),
-    [UserRole.CASHIER]: t('header.roles.cashier'),
+    [UserRole.ADMIN]: t("header.roles.admin"),
+    [UserRole.OWNER]: t("header.roles.owner"),
+    [UserRole.CHEF]: t("header.roles.chef"),
+    [UserRole.SERVICE]: t("header.roles.service"),
+    [UserRole.CASHIER]: t("header.roles.cashier"),
   };
   return role !== undefined ? roleLabels[role] : "";
 };

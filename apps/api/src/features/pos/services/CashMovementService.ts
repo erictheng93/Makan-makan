@@ -2,17 +2,17 @@
  * 現金操作管理服務
  */
 
-import { BaseService } from '../../../shared/services/BaseService'
-import { getCurrentTimestamp } from '@makanmakan/database'
+import { BaseService } from "../../../shared/services/BaseService";
+import { getCurrentTimestamp } from "@makanmakan/database";
 import type {
   CashMovement as _CashMovement,
-  CashMovementRequest
-} from '../types'
-import { cashMovementSchema } from '../schemas'
+  CashMovementRequest,
+} from "../types";
+import { cashMovementSchema } from "../schemas";
 
 export class CashMovementService extends BaseService {
   constructor(db: any) {
-    super(db)
+    super(db);
   }
 
   /**
@@ -21,21 +21,22 @@ export class CashMovementService extends BaseService {
   async processCashMovement(
     shiftId: string,
     data: CashMovementRequest,
-    operatorId: number
+    operatorId: number,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const validatedData = cashMovementSchema.parse(data)
+      const validatedData = cashMovementSchema.parse(data);
 
       // 檢查班次狀態
-      const shift = await this.d1.prepare(
-        'SELECT status, register_id FROM cash_shifts WHERE id = ?'
-      ).bind(shiftId).first() as any
+      const shift = (await this.d1
+        .prepare("SELECT status, register_id FROM cash_shifts WHERE id = ?")
+        .bind(shiftId)
+        .first()) as any;
 
-      if (!shift || shift.status !== 'active') {
+      if (!shift || shift.status !== "active") {
         return {
           success: false,
-          error: '班次不存在或已結束'
-        }
+          error: "班次不存在或已結束",
+        };
       }
 
       await this.recordCashMovement(shiftId, shift.register_id, {
@@ -45,17 +46,16 @@ export class CashMovementService extends BaseService {
         recordedBy: operatorId,
         referenceId: validatedData.referenceId,
         referenceType: validatedData.referenceType,
-        denominationBreakdown: validatedData.denominationBreakdown
-      })
+        denominationBreakdown: validatedData.denominationBreakdown,
+      });
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('現金操作記錄失敗:', error)
+      console.error("現金操作記錄失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '現金操作記錄失敗'
-      }
+        error: error instanceof Error ? error.message : "現金操作記錄失敗",
+      };
     }
   }
 
@@ -65,24 +65,26 @@ export class CashMovementService extends BaseService {
   async getCashMovements(
     shiftId: string,
     options?: {
-      type?: string
-      page?: number
-      limit?: number
-    }
+      type?: string;
+      page?: number;
+      limit?: number;
+    },
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const { type, page = 1, limit = 20 } = options || {}
-      const offset = (page - 1) * limit
+      const { type, page = 1, limit = 20 } = options || {};
+      const offset = (page - 1) * limit;
 
-      let typeFilter = ''
-      const params = [shiftId]
+      let typeFilter = "";
+      const params = [shiftId];
 
       if (type) {
-        typeFilter = ' AND type = ?'
-        params.push(type)
+        typeFilter = " AND type = ?";
+        params.push(type);
       }
 
-      const movements = await this.d1.prepare(`
+      const movements = await this.d1
+        .prepare(
+          `
         SELECT
           cm.*,
           u.full_name as recorded_by_name,
@@ -93,30 +95,34 @@ export class CashMovementService extends BaseService {
         WHERE cm.shift_id = ? ${typeFilter}
         ORDER BY cm.created_at DESC
         LIMIT ? OFFSET ?
-      `).bind(...params, limit, offset).all()
+      `,
+        )
+        .bind(...params, limit, offset)
+        .all();
 
       return {
         success: true,
         data: {
           movements: (movements.results || []).map((movement: any) => ({
             ...movement,
-            denominationBreakdown: JSON.parse(movement.denomination_breakdown || '{}'),
-            metadata: JSON.parse(movement.metadata || '{}')
+            denominationBreakdown: JSON.parse(
+              movement.denomination_breakdown || "{}",
+            ),
+            metadata: JSON.parse(movement.metadata || "{}"),
           })),
           pagination: {
             page,
             limit,
-            hasMore: (movements.results || []).length === limit
-          }
-        }
-      }
-
+            hasMore: (movements.results || []).length === limit,
+          },
+        },
+      };
     } catch (error) {
-      console.error('獲取現金流動記錄失敗:', error)
+      console.error("獲取現金流動記錄失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '獲取現金流動記錄失敗'
-      }
+        error: error instanceof Error ? error.message : "獲取現金流動記錄失敗",
+      };
     }
   }
 
@@ -125,18 +131,20 @@ export class CashMovementService extends BaseService {
    */
   async getCashCount(
     registerId: string,
-    date?: string
+    date?: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      let dateFilter = ''
-      const params = [registerId, 'count']
+      let dateFilter = "";
+      const params = [registerId, "count"];
 
       if (date) {
-        dateFilter = ' AND DATE(cm.created_at) = ?'
-        params.push(date)
+        dateFilter = " AND DATE(cm.created_at) = ?";
+        params.push(date);
       }
 
-      const counts = await this.d1.prepare(`
+      const counts = await this.d1
+        .prepare(
+          `
         SELECT
           cm.*,
           u.full_name as recorded_by_name,
@@ -147,23 +155,27 @@ export class CashMovementService extends BaseService {
         LEFT JOIN cash_shifts cs ON cm.shift_id = cs.id
         WHERE cm.register_id = ? AND cm.type = ? ${dateFilter}
         ORDER BY cm.created_at DESC
-      `).bind(...params).all()
+      `,
+        )
+        .bind(...params)
+        .all();
 
       return {
         success: true,
         data: (counts.results || []).map((count: any) => ({
           ...count,
-          denominationBreakdown: JSON.parse(count.denomination_breakdown || '{}'),
-          metadata: JSON.parse(count.metadata || '{}')
-        }))
-      }
-
+          denominationBreakdown: JSON.parse(
+            count.denomination_breakdown || "{}",
+          ),
+          metadata: JSON.parse(count.metadata || "{}"),
+        })),
+      };
     } catch (error) {
-      console.error('獲取現金盤點記錄失敗:', error)
+      console.error("獲取現金盤點記錄失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '獲取現金盤點記錄失敗'
-      }
+        error: error instanceof Error ? error.message : "獲取現金盤點記錄失敗",
+      };
     }
   }
 
@@ -174,39 +186,44 @@ export class CashMovementService extends BaseService {
     shiftId: string,
     registerId: string,
     movement: {
-      type: string
-      amount: number
-      description: string
-      recordedBy: number
-      referenceId?: number
-      referenceType?: string
-      denominationBreakdown?: Record<string, number>
-    }
+      type: string;
+      amount: number;
+      description: string;
+      recordedBy: number;
+      referenceId?: number;
+      referenceType?: string;
+      denominationBreakdown?: Record<string, number>;
+    },
   ): Promise<string> {
-    const movementId = crypto.randomUUID()
-    const now = getCurrentTimestamp()
+    const movementId = crypto.randomUUID();
+    const now = getCurrentTimestamp();
 
-    await this.d1.prepare(`
+    await this.d1
+      .prepare(
+        `
       INSERT INTO cash_movements (
         id, shift_id, register_id, type, amount, description,
         reference_id, reference_type, denomination_breakdown,
         recorded_by, approval_status, metadata, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', ?)
-    `).bind(
-      movementId,
-      shiftId,
-      registerId,
-      movement.type,
-      movement.amount,
-      movement.description,
-      movement.referenceId || null,
-      movement.referenceType || null,
-      JSON.stringify(movement.denominationBreakdown || {}),
-      movement.recordedBy,
-      now
-    ).run()
+    `,
+      )
+      .bind(
+        movementId,
+        shiftId,
+        registerId,
+        movement.type,
+        movement.amount,
+        movement.description,
+        movement.referenceId || null,
+        movement.referenceType || null,
+        JSON.stringify(movement.denominationBreakdown || {}),
+        movement.recordedBy,
+        now,
+      )
+      .run();
 
-    return movementId
+    return movementId;
   }
 
   /**
@@ -214,24 +231,28 @@ export class CashMovementService extends BaseService {
    */
   async approveCashMovement(
     movementId: string,
-    approvedBy: number
+    approvedBy: number,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.d1.prepare(`
+      await this.d1
+        .prepare(
+          `
         UPDATE cash_movements
         SET approval_status = 'approved',
             approved_by = ?
         WHERE id = ? AND approval_status = 'pending'
-      `).bind(approvedBy, movementId).run()
+      `,
+        )
+        .bind(approvedBy, movementId)
+        .run();
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('審核現金操作失敗:', error)
+      console.error("審核現金操作失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '審核現金操作失敗'
-      }
+        error: error instanceof Error ? error.message : "審核現金操作失敗",
+      };
     }
   }
 
@@ -241,27 +262,33 @@ export class CashMovementService extends BaseService {
   async rejectCashMovement(
     movementId: string,
     approvedBy: number,
-    reason?: string
+    reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const metadata = reason ? JSON.stringify({ rejection_reason: reason }) : '{}'
+      const metadata = reason
+        ? JSON.stringify({ rejection_reason: reason })
+        : "{}";
 
-      await this.d1.prepare(`
+      await this.d1
+        .prepare(
+          `
         UPDATE cash_movements
         SET approval_status = 'rejected',
             approved_by = ?,
             metadata = ?
         WHERE id = ? AND approval_status = 'pending'
-      `).bind(approvedBy, metadata, movementId).run()
+      `,
+        )
+        .bind(approvedBy, metadata, movementId)
+        .run();
 
-      return { success: true }
-
+      return { success: true };
     } catch (error) {
-      console.error('拒絕現金操作失敗:', error)
+      console.error("拒絕現金操作失敗:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '拒絕現金操作失敗'
-      }
+        error: error instanceof Error ? error.message : "拒絕現金操作失敗",
+      };
     }
   }
 }

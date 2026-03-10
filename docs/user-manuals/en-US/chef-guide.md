@@ -51,21 +51,25 @@
 ### First-Time Setup Checklist
 
 ✅ **Step 1: Confirm Account & Equipment**
+
 - Verify chef account credentials
 - Test login to kitchen display system
 - Ensure display screen functions properly
 
 ✅ **Step 2: Familiarize with Interface**
+
 - Understand order card layout
 - Practice status update operations
 - Test sound notifications
 
 ✅ **Step 3: Learn the Process**
+
 - New order notification methods
 - Status update procedures
 - Order completion workflow
 
 ✅ **Step 4: Preparation**
+
 - Confirm kitchen equipment ready
 - Check ingredient preparation
 - Start receiving orders
@@ -109,6 +113,7 @@ Confirm Delivery  Real-time Track
 ```
 
 **Explanation**:
+
 - **Customer**: Orders via QR Code
 - **Kitchen System**: Receives and displays orders in real-time
 - **Chef (You)**: Process orders and update status
@@ -269,6 +274,7 @@ Select Your Workstation:
 ### Post-Login Checklist
 
 ✅ **System Status Verification**
+
 ```
 ┌─────────────────────────────┐
 │ System Checklist            │

@@ -16,12 +16,12 @@
 
 經過全面驗證，項目在 4 個關鍵改進目標上的達成情況：
 
-| 目標 | 初始狀態 | 達成率 | 備註 |
-|-----|---------|-------|------|
-| **1. 均衡測試分布** | ❌ 嚴重不均 | 30% | Realtime (4 tests), Kitchen (6 tests) vs API (61 tests) |
-| **2. 性能與安全測試** | ✅ 優秀 | 95% | 完整的性能測試、安全測試、E2E 測試基礎設施 |
-| **3. 測試覆蓋率 85-90%** | ⏳ 驗證中 | 待確認 | 1,292 個測試文件，覆蓋率統計運行中 |
-| **4. OpenAPI 規範化** | ❌ 完全缺失 | 0% | 無 OpenAPI 配置、無 Swagger UI |
+| 目標                     | 初始狀態    | 達成率 | 備註                                                    |
+| ------------------------ | ----------- | ------ | ------------------------------------------------------- |
+| **1. 均衡測試分布**      | ❌ 嚴重不均 | 30%    | Realtime (4 tests), Kitchen (6 tests) vs API (61 tests) |
+| **2. 性能與安全測試**    | ✅ 優秀     | 95%    | 完整的性能測試、安全測試、E2E 測試基礎設施              |
+| **3. 測試覆蓋率 85-90%** | ⏳ 驗證中   | 待確認 | 1,292 個測試文件，覆蓋率統計運行中                      |
+| **4. OpenAPI 規範化**    | ❌ 完全缺失 | 0%     | 無 OpenAPI 配置、無 Swagger UI                          |
 
 ### Phase 1 執行結果
 
@@ -116,6 +116,7 @@ apps/kitchen-display/src/__tests__/
 ```
 
 **創建狀態**：
+
 - ✅ 所有目錄結構已創建
 - ✅ 2 個高質量範例測試文件已創建
 - 📁 43 個測試文件位置準備就緒（等待團隊實施）
@@ -175,6 +176,7 @@ coverage: {
 ```
 
 **配置亮點**：
+
 - ✅ 全局 85% 覆蓋率門檻（branches, functions, lines, statements）
 - ✅ 關鍵 API 模組要求 90% 覆蓋率
 - ✅ 完整的排除和包含規則
@@ -190,14 +192,15 @@ coverage: {
 // apps/api/package.json
 {
   "dependencies": {
-    "@hono/swagger-ui": "^0.5.2",      // ✅ 新增
-    "@hono/zod-openapi": "^1.1.4",     // ✅ 新增
-    "zod": "^3.25.76"                   // ✅ 升級（解決 peer dependency）
+    "@hono/swagger-ui": "^0.5.2", // ✅ 新增
+    "@hono/zod-openapi": "^1.1.4", // ✅ 新增
+    "zod": "^3.25.76" // ✅ 升級（解決 peer dependency）
   }
 }
 ```
 
 **安裝狀態**：
+
 - ✅ @hono/swagger-ui 0.5.2 安裝成功
 - ✅ @hono/zod-openapi 1.1.4 安裝成功
 - ✅ Zod 升級至 3.25.76（解決 peer dependency 警告）
@@ -210,24 +213,25 @@ coverage: {
 **功能**:
 
 1. **基礎配置**
+
    ```typescript
    export const createOpenAPIApp = () => {
      const app = new OpenAPIHono();
 
-     app.doc('/openapi.json', {
-       openapi: '3.1.0',
+     app.doc("/openapi.json", {
+       openapi: "3.1.0",
        info: {
-         title: 'MakanMakan API',
-         version: '2.0.0',
-         description: '智慧雲端點餐平台 REST API',
+         title: "MakanMakan API",
+         version: "2.0.0",
+         description: "智慧雲端點餐平台 REST API",
          contact: {
-           name: 'MakanMakan Development Team',
-           email: 'api@makanmakan.com',
-           url: 'https://github.com/makanmakan/platform',
+           name: "MakanMakan Development Team",
+           email: "api@makanmakan.com",
+           url: "https://github.com/makanmakan/platform",
          },
          license: {
-           name: 'MIT License',
-           url: 'https://opensource.org/licenses/MIT',
+           name: "MIT License",
+           url: "https://opensource.org/licenses/MIT",
          },
        },
        // ... 更多配置
@@ -236,6 +240,7 @@ coverage: {
    ```
 
 2. **服務器環境**
+
    ```typescript
    servers: [
      { url: 'https://api.makanmakan.com', description: 'Production Server' },
@@ -261,6 +266,7 @@ coverage: {
    - health - 系統健康
 
 4. **安全方案**
+
    ```typescript
    components: {
      securitySchemes: {
@@ -286,6 +292,7 @@ coverage: {
    - 500 - 服務器內部錯誤
 
 **配置亮點**：
+
 - ✅ 完整的 OpenAPI 3.1 規範
 - ✅ 包含詳細的 API 文檔說明（Markdown 格式）
 - ✅ 標準化的錯誤處理模式
@@ -299,6 +306,7 @@ coverage: {
 **文件**: `apps/realtime/src/__tests__/unit/connection-lifecycle.test.ts` (186 行)
 
 **測試範圍**：
+
 - ✅ 連接建立（connection establishment）
 - ✅ Heartbeat 機制（ping/pong）
 - ✅ 連接關閉（graceful shutdown）
@@ -307,7 +315,7 @@ coverage: {
 **關鍵測試案例**：
 
 ```typescript
-describe('WebSocket Connection Lifecycle', () => {
+describe("WebSocket Connection Lifecycle", () => {
   let mockWebSocket: any;
 
   beforeEach(() => {
@@ -320,20 +328,20 @@ describe('WebSocket Connection Lifecycle', () => {
     };
   });
 
-  describe('連接建立', () => {
-    it('應該成功建立 WebSocket 連接', () => {
+  describe("連接建立", () => {
+    it("應該成功建立 WebSocket 連接", () => {
       const connection = {
-        id: 'conn-123',
+        id: "conn-123",
         ws: mockWebSocket,
         createdAt: Date.now(),
         lastHeartbeat: Date.now(),
       };
 
       expect(connection.ws.readyState).toBe(1);
-      expect(connection.id).toBe('conn-123');
+      expect(connection.id).toBe("conn-123");
     });
 
-    it('應該為連接分配唯一 ID', () => {
+    it("應該為連接分配唯一 ID", () => {
       const ids = new Set();
       for (let i = 0; i < 100; i++) {
         const id = `conn-${Date.now()}-${Math.random()}`;
@@ -343,10 +351,12 @@ describe('WebSocket Connection Lifecycle', () => {
     });
   });
 
-  describe('Heartbeat 機制', () => {
-    it('應該定期發送 ping 訊息', async () => {
+  describe("Heartbeat 機制", () => {
+    it("應該定期發送 ping 訊息", async () => {
       const sendPing = () => {
-        mockWebSocket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+        mockWebSocket.send(
+          JSON.stringify({ type: "ping", timestamp: Date.now() }),
+        );
       };
 
       sendPing();
@@ -355,7 +365,7 @@ describe('WebSocket Connection Lifecycle', () => {
 
       expect(mockWebSocket.send).toHaveBeenCalledTimes(3);
       expect(mockWebSocket.send).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"ping"')
+        expect.stringContaining('"type":"ping"'),
       );
     });
   });
@@ -363,6 +373,7 @@ describe('WebSocket Connection Lifecycle', () => {
 ```
 
 **範例特色**：
+
 - ✅ 完整的 Mock 設置
 - ✅ 清晰的測試結構（describe/it）
 - ✅ 實用的測試案例
@@ -374,6 +385,7 @@ describe('WebSocket Connection Lifecycle', () => {
 **文件**: `apps/kitchen-display/src/__tests__/unit/components/OrderStatusBadge.test.ts` (158 行)
 
 **測試範圍**：
+
 - ✅ 狀態顯示（4 種狀態）
 - ✅ CSS 類別驗證
 - ✅ Props 驗證
@@ -382,45 +394,47 @@ describe('WebSocket Connection Lifecycle', () => {
 **關鍵測試案例**：
 
 ```typescript
-describe('OrderStatusBadge.vue', () => {
+describe("OrderStatusBadge.vue", () => {
   const createWrapper = (status: string) => {
     return mount(OrderStatusBadge, {
       props: { status },
     });
   };
 
-  describe('狀態顯示', () => {
-    it('應該顯示「待處理」狀態', () => {
-      const wrapper = createWrapper('pending');
-      expect(wrapper.text()).toBe('待處理');
+  describe("狀態顯示", () => {
+    it("應該顯示「待處理」狀態", () => {
+      const wrapper = createWrapper("pending");
+      expect(wrapper.text()).toBe("待處理");
     });
 
-    it('應該顯示「製作中」狀態', () => {
-      const wrapper = createWrapper('preparing');
-      expect(wrapper.text()).toBe('製作中');
+    it("應該顯示「製作中」狀態", () => {
+      const wrapper = createWrapper("preparing");
+      expect(wrapper.text()).toBe("製作中");
     });
   });
 
-  describe('CSS 類別', () => {
-    it('pending 狀態應該有 status-pending 類別', () => {
-      const wrapper = createWrapper('pending');
-      expect(wrapper.find('[data-testid="status-badge"]').classes())
-        .toContain('status-pending');
+  describe("CSS 類別", () => {
+    it("pending 狀態應該有 status-pending 類別", () => {
+      const wrapper = createWrapper("pending");
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-pending",
+      );
     });
 
-    it('所有狀態都應該有 status-badge 基礎類別', () => {
-      const statuses = ['pending', 'preparing', 'ready', 'completed'];
+    it("所有狀態都應該有 status-badge 基礎類別", () => {
+      const statuses = ["pending", "preparing", "ready", "completed"];
       statuses.forEach((status) => {
         const wrapper = createWrapper(status);
-        expect(wrapper.find('[data-testid="status-badge"]').classes())
-          .toContain('status-badge');
+        expect(
+          wrapper.find('[data-testid="status-badge"]').classes(),
+        ).toContain("status-badge");
       });
     });
   });
 
-  describe('快照測試', () => {
-    it('pending 狀態快照應該匹配', () => {
-      const wrapper = createWrapper('pending');
+  describe("快照測試", () => {
+    it("pending 狀態快照應該匹配", () => {
+      const wrapper = createWrapper("pending");
       expect(wrapper.html()).toMatchSnapshot();
     });
   });
@@ -428,6 +442,7 @@ describe('OrderStatusBadge.vue', () => {
 ```
 
 **範例特色**：
+
 - ✅ Vue Test Utils 最佳實踐
 - ✅ 包含測試組件實現（方便學習）
 - ✅ data-testid 最佳實踐
@@ -442,42 +457,50 @@ describe('OrderStatusBadge.vue', () => {
 
 ```markdown
 ## 📋 執行摘要
+
 - 3 大任務分解
 - 17 個子任務清單
 - 3 周實施時間表
 
 ## 📊 當前狀態評估
+
 - 4 個改進目標的詳細分析
 - 視覺化圖表
 
 ## 🎯 任務 1：補充 45+ 測試檔案
+
 - Realtime Services：20 個測試（單元 15 + 整合 5）
 - Kitchen Display：25 個測試（單元 20 + 整合 5）
 - 完整的測試範例代碼
 - 測試策略和最佳實踐
 
 ## 📝 任務 2：建立 OpenAPI 3.x 規範
+
 - 所有 14 個 API 端點組的文檔化
 - Zod Schema 定義範例
 - Swagger UI 集成步驟
 
 ## ⚙️ 任務 3：配置測試覆蓋率門檻
+
 - vitest.config.ts 配置詳解
 - CI/CD 集成指南
 - 覆蓋率報告設置
 
 ## 📅 實施時間表
+
 - Week 1：Realtime 測試 + OpenAPI 基礎
 - Week 2：Kitchen 測試 + API 文檔完善
 - Week 3：整合測試 + 覆蓋率優化
 
 ## ✅ 驗收標準
+
 - 所有 45+ 測試通過
 - OpenAPI 文檔完整可訪問
 - 測試覆蓋率達到 85-90%
 ```
 
 **文檔特色**：
+
 - ✅ 1000+ 行詳細指南
 - ✅ 包含 40+ 個完整代碼範例
 - ✅ 視覺化流程圖和架構圖
@@ -490,31 +513,31 @@ describe('OrderStatusBadge.vue', () => {
 
 ### 文件創建統計
 
-| 類別 | 創建數量 | 說明 |
-|-----|---------|------|
-| **測試目錄** | 11 個 | Realtime (5 dirs) + Kitchen (6 dirs) |
-| **測試範例文件** | 2 個 | connection-lifecycle.test.ts, OrderStatusBadge.test.ts |
-| **配置文件更新** | 1 個 | vitest.config.ts |
-| **OpenAPI 配置** | 1 個 | apps/api/src/openapi/config.ts |
-| **實施指南文檔** | 1 個 | TESTING_AND_API_DOCS_IMPLEMENTATION_PLAN.md |
-| **完成報告** | 1 個 | 本文件 |
-| **代碼行數** | 1,639+ | 範例測試 (344) + OpenAPI (295) + 文檔 (1000+) |
+| 類別             | 創建數量 | 說明                                                   |
+| ---------------- | -------- | ------------------------------------------------------ |
+| **測試目錄**     | 11 個    | Realtime (5 dirs) + Kitchen (6 dirs)                   |
+| **測試範例文件** | 2 個     | connection-lifecycle.test.ts, OrderStatusBadge.test.ts |
+| **配置文件更新** | 1 個     | vitest.config.ts                                       |
+| **OpenAPI 配置** | 1 個     | apps/api/src/openapi/config.ts                         |
+| **實施指南文檔** | 1 個     | TESTING_AND_API_DOCS_IMPLEMENTATION_PLAN.md            |
+| **完成報告**     | 1 個     | 本文件                                                 |
+| **代碼行數**     | 1,639+   | 範例測試 (344) + OpenAPI (295) + 文檔 (1000+)          |
 
 ### 依賴項安裝統計
 
-| 依賴項 | 版本 | 狀態 |
-|-------|------|------|
-| @hono/swagger-ui | 0.5.2 | ✅ 已安裝 |
-| @hono/zod-openapi | 1.1.4 | ✅ 已安裝 |
-| zod | 3.25.76 | ✅ 已升級 |
+| 依賴項            | 版本    | 狀態      |
+| ----------------- | ------- | --------- |
+| @hono/swagger-ui  | 0.5.2   | ✅ 已安裝 |
+| @hono/zod-openapi | 1.1.4   | ✅ 已安裝 |
+| zod               | 3.25.76 | ✅ 已升級 |
 
 ### 測試文件準備統計
 
-| 模組 | 測試檔案位置 | 範例文件 | 待實施 |
-|-----|------------|---------|--------|
-| Realtime Services | 20 個 | 1 個 (5%) | 19 個 (95%) |
-| Kitchen Display | 25 個 | 1 個 (4%) | 24 個 (96%) |
-| **總計** | **45 個** | **2 個 (4.4%)** | **43 個 (95.6%)** |
+| 模組              | 測試檔案位置 | 範例文件        | 待實施            |
+| ----------------- | ------------ | --------------- | ----------------- |
+| Realtime Services | 20 個        | 1 個 (5%)       | 19 個 (95%)       |
+| Kitchen Display   | 25 個        | 1 個 (4%)       | 24 個 (96%)       |
+| **總計**          | **45 個**    | **2 個 (4.4%)** | **43 個 (95.6%)** |
 
 ---
 
@@ -642,27 +665,32 @@ pnpm test:coverage --reporter=text
 **任務清單**：
 
 1. **整合 OpenAPI 配置到 Hono 應用**
+
    ```typescript
    // apps/api/src/index.ts
-   import { createOpenAPIApp } from './openapi/config';
+   import { createOpenAPIApp } from "./openapi/config";
 
    const app = createOpenAPIApp();
 
    // 添加 Swagger UI
-   app.get('/docs', swaggerUI({
-     url: '/openapi.json'
-   }));
+   app.get(
+     "/docs",
+     swaggerUI({
+       url: "/openapi.json",
+     }),
+   );
    ```
 
 2. **為每個端點添加 OpenAPI 裝飾器**
+
    ```typescript
    // 範例：apps/api/src/features/menu/routes/index.ts
-   import { createRoute, z } from '@hono/zod-openapi';
+   import { createRoute, z } from "@hono/zod-openapi";
 
    const getMenuItemsRoute = createRoute({
-     method: 'get',
-     path: '/menu/{restaurantId}/items',
-     tags: ['menu'],
+     method: "get",
+     path: "/menu/{restaurantId}/items",
+     tags: ["menu"],
      security: [{ bearerAuth: [] }],
      request: {
        params: z.object({
@@ -671,9 +699,9 @@ pnpm test:coverage --reporter=text
      },
      responses: {
        200: {
-         description: '成功獲取菜單項目',
+         description: "成功獲取菜單項目",
          content: {
-           'application/json': {
+           "application/json": {
              schema: MenuItemsResponseSchema,
            },
          },
@@ -687,6 +715,7 @@ pnpm test:coverage --reporter=text
 3. **定義 Zod Schema 模型**（參考實施指南文檔）
 
 4. **驗證 Swagger UI 可訪問**
+
    ```bash
    # 啟動開發服務器
    pnpm dev
@@ -787,6 +816,7 @@ pnpm test:coverage --reporter=text
 ### 成就
 
 ✅ **17 個任務 100% 完成**
+
 - 安裝了所有必要的 OpenAPI 工具
 - 創建了完整的測試目錄結構（45 個測試位置）
 - 提供了 2 個高質量測試範例文件
@@ -795,12 +825,14 @@ pnpm test:coverage --reporter=text
 - 生成了 1000+ 行的詳細實施指南
 
 ✅ **高質量交付**
+
 - 所有範例代碼經過驗證
 - 配置文件符合最佳實踐
 - 文檔詳盡且易於理解
 - 可直接用於團隊執行
 
 ✅ **為 Phase 2-3 做好準備**
+
 - 清晰的目錄結構
 - 可複用的範例模板
 - 詳細的實施步驟
@@ -809,21 +841,25 @@ pnpm test:coverage --reporter=text
 ### 下一步行動
 
 **立即行動**：
+
 1. 將本報告分享給開發團隊
 2. 分配 Phase 2 測試實施任務
 3. 設置每週進度檢查會議
 
 **Week 1-2**：
+
 - 執行 Phase 2（45 個測試實施）
 - 每日運行測試套件
 - 監控測試覆蓋率增長
 
 **Week 3**：
+
 - 執行 Phase 3（API 文檔化）
 - 整合 Swagger UI
 - 完成所有端點文檔
 
 **最終驗收**：
+
 - 運行完整測試套件
 - 驗證覆蓋率達標
 - 訪問 Swagger UI 確認 API 文檔完整

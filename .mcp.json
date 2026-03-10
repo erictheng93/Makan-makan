@@ -2,7 +2,7 @@
   "mcpServers": {
     "chrome-devtools": {
       "type": "stdio",
-      "command": "/Users/eric/.npm/_npx/15c61037b1978c83/node_modules/.bin/chrome-devtools-mcp",
+      "command": "/Users/eric/.npm/_npx/8125ebe10bdf1a44/node_modules/.bin/chrome-devtools-mcp",
       "args": [
         "--isolated"
       ]

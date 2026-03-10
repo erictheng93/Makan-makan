@@ -9,12 +9,14 @@
 ### 最終統計（完整測試套件）
 
 **完成後：**
+
 - **Total Tests**: **726**
 - **Passed**: **579 (79.8%)**
 - **Failed**: 147 (20.2%)
 - **Test Files**: 18 passed, 12 failed (30 total)
 
 **Phase 2 開始時：**
+
 - Total Tests: 619
 - Passed: 538 (86.9%)
 - Failed: 81 (13.1%)
@@ -63,10 +65,12 @@
 ### 6. audio-integration.test.ts ✅
 
 **問題**:
+
 1. Vitest module hoisting error - `mockHowl`
 2. `URL.createObjectURL is not a function`
 
 **修復**:
+
 1. 內聯 Howl mock 定義
 2. 在 `tests/setup.ts` 添加 URL API polyfills
 
@@ -85,32 +89,34 @@
 ### Vitest Module Hoisting Fix Pattern
 
 #### ❌ 錯誤做法
+
 ```typescript
 const mockService = {
-  method: vi.fn()
-}
+  method: vi.fn(),
+};
 
-vi.mock('@/services/service', () => ({
-  service: mockService  // ReferenceError!
-}))
+vi.mock("@/services/service", () => ({
+  service: mockService, // ReferenceError!
+}));
 ```
 
 #### ✅ 正確做法
+
 ```typescript
 // 1. 內聯 mock 定義
-vi.mock('@/services/service', () => ({
+vi.mock("@/services/service", () => ({
   service: {
-    method: vi.fn()
-  }
-}))
+    method: vi.fn(),
+  },
+}));
 
 // 2. 在 beforeEach 中訪問
-let mockService: any
+let mockService: any;
 
 beforeEach(async () => {
-  const { service } = await import('@/services/service')
-  mockService = service
-})
+  const { service } = await import("@/services/service");
+  mockService = service;
+});
 ```
 
 ### Web API Polyfills
@@ -120,7 +126,7 @@ beforeEach(async () => {
 ```typescript
 // Mock URL.createObjectURL and URL.revokeObjectURL for audio tests
 if (!global.URL.createObjectURL) {
-  global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 }
 if (!global.URL.revokeObjectURL) {
   global.URL.revokeObjectURL = vi.fn();
@@ -172,6 +178,7 @@ Priority 2 完成: 79.8% (579/726 tests) 🎯
 ### 1. Vitest Hoisting Mechanism
 
 `vi.mock()` 會被自動提升到文件頂部執行，此時：
+
 - 頂層變量尚未初始化
 - 只能使用字面量或 `vi.fn()` 直接調用
 - 需要在測試中通過 dynamic import 訪問 mocked module
@@ -179,6 +186,7 @@ Priority 2 完成: 79.8% (579/726 tests) 🎯
 ### 2. Web API Polyfills in jsdom
 
 jsdom 不提供所有 Web API 實現，需要手動添加：
+
 - `URL.createObjectURL` / `URL.revokeObjectURL`
 - `AudioContext`（已在 setup.ts 中）
 - `ResizeObserver`（已在 setup.ts 中）
@@ -187,6 +195,7 @@ jsdom 不提供所有 Web API 實現，需要手動添加：
 ### 3. Test Setup File Importance
 
 `tests/setup.ts` 是全局測試配置的關鍵：
+
 - 所有測試共享的 mocks
 - Web API polyfills
 - Vue Test Utils 全局配置
@@ -223,12 +232,12 @@ jsdom 不提供所有 Web API 實現，需要手動添加：
 
 ### 累計修復統計
 
-| 階段 | 修復測試數 | 解鎖測試數 | 總通過測試 |
-|------|-----------|-----------|-----------|
-| Phase 1 | 40 | 0 | 484 |
-| Priority 1 | 5 | 0 | 489 |
-| Priority 2 | 41 | **107** | **579** |
-| **總計** | **86** | **107** | **579** |
+| 階段       | 修復測試數 | 解鎖測試數 | 總通過測試 |
+| ---------- | ---------- | ---------- | ---------- |
+| Phase 1    | 40         | 0          | 484        |
+| Priority 1 | 5          | 0          | 489        |
+| Priority 2 | 41         | **107**    | **579**    |
+| **總計**   | **86**     | **107**    | **579**    |
 
 ### 文件修復統計
 
@@ -263,6 +272,7 @@ jsdom 不提供所有 Web API 實現，需要手動添加：
 - **Total Phase 2**: ~3.5 小時
 
 **效率**:
+
 - Phase 2 平均修復效率: ~31 tests/hour（包含解鎖的測試）
 - 實際編碼時間: ~1.5 小時
 - 調試和驗證時間: ~2 小時
@@ -300,8 +310,8 @@ jsdom 不提供所有 Web API 實現，需要手動添加：
 
 ---
 
-*報告生成時間: 2025-11-17 17:25*
-*Phase 2 累計時間: ~3.5 小時*
-*總測試通過率: 79.8% (579/726 tests)*
-*解鎖測試數: 107 個*
-*修復文件數: 6 個（module hoisting）+ 1 個（Web API polyfills）*
+_報告生成時間: 2025-11-17 17:25_
+_Phase 2 累計時間: ~3.5 小時_
+_總測試通過率: 79.8% (579/726 tests)_
+_解鎖測試數: 107 個_
+_修復文件數: 6 個（module hoisting）+ 1 個（Web API polyfills）_

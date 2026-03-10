@@ -21,9 +21,7 @@
       "@makanmakan/queue-service": ["../../packages/queue-service/src"]
     }
   },
-  "include": [
-    "src/routes/queue-modular.ts"
-  ],
+  "include": ["src/routes/queue-modular.ts"],
   "exclude": [
     "node_modules",
     "dist",

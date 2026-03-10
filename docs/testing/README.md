@@ -5,6 +5,7 @@
 ## 📂 文件夾結構
 
 ### 📚 Guides (`guides/`)
+
 測試指南與最佳實踐
 
 - `TESTING_GUIDE.md` - 測試指南總覽
@@ -14,6 +15,7 @@
 - `VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md` - 視覺回歸與安全測試
 
 ### 🏭 Factory Pattern (`factory-pattern/`)
+
 測試數據工廠模式
 
 - `FACTORY_BEST_PRACTICES.md` - 最佳實踐
@@ -24,6 +26,7 @@
 - `examples/` - 範例代碼
 
 ### 📊 Reports (`reports/`)
+
 測試執行報告
 
 - E2E 測試進度
@@ -33,6 +36,7 @@
 - 基礎設施完成報告
 
 ### 🗺️ Roadmaps (`roadmaps/`)
+
 測試增強路線圖
 
 ---
@@ -55,11 +59,11 @@
 
 ### 測試類型
 
-| 類型 | 工具 | 覆蓋率目標 | 位置 |
-|------|------|-----------|------|
-| **Unit** | Vitest | 85%+ | `**/*.test.ts` |
-| **Integration** | Vitest + Mock DB | 70%+ | `**/__tests__/*.test.ts` |
-| **E2E** | Playwright | 關鍵流程 | `tests/e2e/` |
+| 類型            | 工具             | 覆蓋率目標 | 位置                     |
+| --------------- | ---------------- | ---------- | ------------------------ |
+| **Unit**        | Vitest           | 85%+       | `**/*.test.ts`           |
+| **Integration** | Vitest + Mock DB | 70%+       | `**/__tests__/*.test.ts` |
+| **E2E**         | Playwright       | 關鍵流程   | `tests/e2e/`             |
 
 ---
 
@@ -87,13 +91,13 @@ npm run test:coverage
 ### 使用 Factory Pattern
 
 ```typescript
-import { createTestRestaurant, createTestUser } from '@/test/factories'
+import { createTestRestaurant, createTestUser } from "@/test/factories";
 
-const restaurant = await createTestRestaurant(db)
+const restaurant = await createTestRestaurant(db);
 const user = await createTestUser(db, {
   restaurant_id: restaurant.id,
-  role: 1 // Shop Owner
-})
+  role: 1, // Shop Owner
+});
 ```
 
 ---
@@ -110,17 +114,17 @@ const user = await createTestUser(db, {
 ### 測試命名規範
 
 ```typescript
-describe('PartnershipService', () => {
-  describe('createPartnership', () => {
-    it('should create partnership with valid data', async () => {
+describe("PartnershipService", () => {
+  describe("createPartnership", () => {
+    it("should create partnership with valid data", async () => {
       // Test implementation
-    })
+    });
 
-    it('should reject invalid email domain', async () => {
+    it("should reject invalid email domain", async () => {
       // Test implementation
-    })
-  })
-})
+    });
+  });
+});
 ```
 
 ---

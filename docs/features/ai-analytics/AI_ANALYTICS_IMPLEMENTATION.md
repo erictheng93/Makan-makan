@@ -14,6 +14,7 @@
 ### 1. 多 LLM Provider 支持
 
 #### 支持的 AI 提供商
+
 - **Anthropic Claude** (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
 - **OpenAI** (gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo)
 - **Google Gemini** (gemini-1.5-pro, gemini-1.5-flash)
@@ -21,6 +22,7 @@
 - **自定義 Provider** (OpenAI-compatible API)
 
 #### 實現位置
+
 ```
 packages/ai-analytics/
 ├── src/
@@ -34,6 +36,7 @@ packages/ai-analytics/
 ```
 
 #### 特性
+
 - ✅ 統一的 API 接口
 - ✅ 自動錯誤處理和重試
 - ✅ API 密鑰加密存儲
@@ -45,39 +48,58 @@ packages/ai-analytics/
 #### 核心分析功能
 
 ##### 📊 引流產品分析 (Traffic Drivers)
+
 識別帶來客戶的產品：
+
 - **首選率分析**：計算產品作為購物車第一項的次數
 - **轉換率追蹤**：瀏覽 → 加入購物車 → 完成訂單
 - **引流分數**：`首選次數 / 總訂單數 > 30%` 且 `首選次數 ≥ 5`
 
 ```typescript
 // 使用範例
-const trafficDrivers = await productAnalysis.getTrafficDrivers(restaurantId, { range: '30d' }, 10);
+const trafficDrivers = await productAnalysis.getTrafficDrivers(
+  restaurantId,
+  { range: "30d" },
+  10,
+);
 ```
 
 ##### 🔥 熱銷產品排名 (Bestsellers)
+
 按銷量排名的產品：
+
 - **訂單數量排名**
 - **營收排名**
 - **平均客單價**
 - **銷售趨勢分數** (-1 到 1)
 
 ```typescript
-const bestsellers = await productAnalysis.getBestsellers(restaurantId, { range: '30d' }, 10);
+const bestsellers = await productAnalysis.getBestsellers(
+  restaurantId,
+  { range: "30d" },
+  10,
+);
 ```
 
 ##### 💰 利潤最大產品 (Profit Leaders)
+
 最賺錢的產品分析：
+
 - **利潤率計算**：`(售價 - 成本) / 售價`
 - **總利潤**：`(售價 - 成本) × 銷量`
 - **利潤排名**
 - **成本效益分析**
 
 ```typescript
-const profitLeaders = await productAnalysis.getProfitLeaders(restaurantId, { range: '30d' }, 10);
+const profitLeaders = await productAnalysis.getProfitLeaders(
+  restaurantId,
+  { range: "30d" },
+  10,
+);
 ```
 
 #### 實現位置
+
 ```
 packages/ai-analytics/src/services/ProductAnalysisService.ts
 ```
@@ -85,29 +107,33 @@ packages/ai-analytics/src/services/ProductAnalysisService.ts
 ### 3. AI 洞察生成服務 (AIInsightsService)
 
 #### 功能
+
 - **自動業務分析**：使用 LLM 生成業務洞察
 - **趨勢預測**：基於歷史數據預測未來 7 天
 - **異常檢測**：自動發現業務異常
 - **執行摘要**：自動生成中文業務報告
 
 #### 生成的洞察類型
+
 1. **Observation** (觀察)：描述性發現
 2. **Recommendation** (建議)：可執行的改進建議
 3. **Warning** (警告)：需要注意的問題
 4. **Opportunity** (機會)：潛在商業機會
 
 #### 使用範例
+
 ```typescript
 const service = new AIInsightsService(db);
 const report = await service.generateReport(
   restaurantId,
   llmConfig,
-  { range: '30d' },
-  { includeForecasting: true }
+  { range: "30d" },
+  { includeForecasting: true },
 );
 ```
 
 #### 報告內容
+
 ```typescript
 interface AIAnalyticsReport {
   metrics: {
@@ -119,11 +145,12 @@ interface AIAnalyticsReport {
     profitLeaders: ProductAnalysis[];
     // ... 更多指標
   };
-  insights: AIInsight[];           // AI 生成的洞察
-  executiveSummary: string;        // 中文執行摘要
-  forecast?: {                     // 可選預測
-    nextWeekRevenue: { predicted, lower, upper };
-    nextWeekOrders: { predicted, lower, upper };
+  insights: AIInsight[]; // AI 生成的洞察
+  executiveSummary: string; // 中文執行摘要
+  forecast?: {
+    // 可選預測
+    nextWeekRevenue: { predicted; lower; upper };
+    nextWeekOrders: { predicted; lower; upper };
   };
 }
 ```
@@ -133,7 +160,9 @@ interface AIAnalyticsReport {
 #### 新增的表
 
 ##### `ai_configurations`
+
 儲存每個餐廳的 AI Provider 配置：
+
 ```sql
 - id: 配置 ID
 - restaurant_id: 餐廳 ID
@@ -145,7 +174,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `ai_insights_cache`
+
 緩存 AI 生成的分析結果（6 小時 TTL）：
+
 ```sql
 - id: 緩存 ID
 - restaurant_id: 餐廳 ID
@@ -157,7 +188,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `product_analytics`
+
 每日產品表現指標（預計算）：
+
 ```sql
 - menu_item_id: 產品 ID
 - date: 日期
@@ -172,7 +205,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `order_item_analytics`
+
 訂單項目詳細追蹤：
+
 ```sql
 - order_id: 訂單 ID
 - menu_item_id: 產品 ID
@@ -182,7 +217,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `daily_business_metrics`
+
 每日業務指標聚合：
+
 ```sql
 - restaurant_id: 餐廳 ID
 - date: 日期
@@ -194,7 +231,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `menu_item_costs`
+
 菜品成本數據：
+
 ```sql
 - menu_item_id: 產品 ID
 - ingredient_cost: 食材成本
@@ -205,7 +244,9 @@ interface AIAnalyticsReport {
 ```
 
 ##### `ai_usage_logs`
+
 AI API 使用記錄：
+
 ```sql
 - restaurant_id: 餐廳 ID
 - provider: AI 提供商
@@ -217,6 +258,7 @@ AI API 使用記錄：
 ```
 
 #### 遷移文件
+
 ```
 packages/database/migrations/0010_ai_analytics_system.sql
 ```
@@ -226,6 +268,7 @@ packages/database/migrations/0010_ai_analytics_system.sql
 基礎路徑：`/api/v1/ai-analytics`
 
 #### 配置管理
+
 ```
 GET    /config/:restaurantId          # 獲取 AI 配置
 POST   /config                         # 保存/更新 AI 配置
@@ -234,11 +277,13 @@ GET    /models/:provider               # 獲取可用模型列表
 ```
 
 #### 分析生成
+
 ```
 POST   /generate                       # 生成完整 AI 分析報告
 ```
 
 請求示例：
+
 ```json
 {
   "restaurantId": "rest_123",
@@ -251,6 +296,7 @@ POST   /generate                       # 生成完整 AI 分析報告
 ```
 
 #### 產品分析
+
 ```
 GET    /products/traffic-drivers/:restaurantId     # 獲取引流產品
 GET    /products/bestsellers/:restaurantId         # 獲取熱銷產品
@@ -259,15 +305,18 @@ GET    /products/analysis/:restaurantId            # 獲取完整產品分析
 ```
 
 查詢參數：
+
 - `timeRange`: '7d' | '14d' | '30d' | '90d' | '180d' | '1y'
 - `limit`: 返回結果數量（默認 10）
 
 #### 使用統計
+
 ```
 GET    /usage/:restaurantId            # 獲取 AI API 使用統計
 ```
 
 #### 實現文件
+
 ```
 apps/api/src/routes/ai-analytics.ts
 apps/api/src/index.ts  (路由註冊)
@@ -278,16 +327,19 @@ apps/api/src/index.ts  (路由註冊)
 ## 🔐 安全實現
 
 ### API 密鑰加密
+
 - 使用 AES-256 加密存儲
 - 僅在需要時解密
 - 從不在 API 響應中返回明文密鑰
 
 ### 訪問控制
+
 - 僅 Admin (role=0) 和 Owner (role=1) 可配置 AI
 - 所有端點需要身份驗證
 - Restaurant ID 權限驗證
 
 ### 數據隱私
+
 - AI 分析結果按餐廳隔離
 - 緩存數據自動過期
 - 使用量日誌追蹤
@@ -297,16 +349,19 @@ apps/api/src/index.ts  (路由註冊)
 ## 📊 性能優化
 
 ### 緩存策略
+
 1. **AI 洞察緩存**：6 小時 TTL
 2. **產品分析預計算**：每日凌晨更新
 3. **業務指標聚合**：日級別預計算
 
 ### 數據庫優化
+
 - 複合索引：`(restaurant_id, date)`
 - 生成列：自動計算總成本
 - 視圖：常用查詢預定義
 
 ### API 優化
+
 - 並行查詢：`Promise.all` 獲取多維度數據
 - 條件查詢：僅在有成本數據時計算利潤
 - 分頁支持：限制返回結果數量
@@ -318,6 +373,7 @@ apps/api/src/index.ts  (路由註冊)
 ### Admin Dashboard UI Components (待實現)
 
 #### 1. AI 配置頁面 (`AIProviderConfig.vue`)
+
 ```
 apps/admin-dashboard/src/views/ai-analytics/
 ├── AIProviderConfig.vue       # AI Provider 配置頁面
@@ -326,6 +382,7 @@ apps/admin-dashboard/src/views/ai-analytics/
 ```
 
 **功能需求**：
+
 - Provider 選擇下拉框 (Anthropic, OpenAI, Google, DeepSeek, Custom)
 - API Key 輸入框（加密顯示）
 - 模型選擇（自動加載可用模型）
@@ -333,6 +390,7 @@ apps/admin-dashboard/src/views/ai-analytics/
 - 保存配置
 
 **UI 參考**：
+
 ```vue
 <template>
   <div class="ai-config-panel">
@@ -389,6 +447,7 @@ apps/admin-dashboard/src/views/ai-analytics/
 #### 2. AI 洞察儀表板 (`AIInsightsDashboard.vue`)
 
 **功能需求**：
+
 - 時間範圍選擇器 (7天/30天/90天)
 - 執行摘要顯示卡片
 - 洞察列表（觀察/建議/警告/機會）
@@ -396,19 +455,20 @@ apps/admin-dashboard/src/views/ai-analytics/
 - 刷新按鈕（清除緩存重新生成）
 
 **關鍵 API 調用**：
+
 ```typescript
 // composables/useAIAnalytics.ts
 export function useAIAnalytics() {
   const generateReport = async (restaurantId: string, timeRange: string) => {
-    const response = await fetch('/api/v1/ai-analytics/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/v1/ai-analytics/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         restaurantId,
         timeRange: { range: timeRange },
         includeForecasting: true,
-        refreshCache: false
-      })
+        refreshCache: false,
+      }),
     });
     return response.json();
   };
@@ -420,6 +480,7 @@ export function useAIAnalytics() {
 #### 3. 產品分析頁面 (`ProductAnalytics.vue`)
 
 **功能需求**：
+
 - 三個 Tab：引流產品 / 熱銷產品 / 利潤最大產品
 - 產品卡片網格佈局
 - 關鍵指標徽章：
@@ -430,6 +491,7 @@ export function useAIAnalytics() {
 - 導出為 CSV 功能
 
 **示例佈局**：
+
 ```vue
 <template>
   <div class="product-analytics">
@@ -451,7 +513,9 @@ export function useAIAnalytics() {
               </div>
               <div class="metric">
                 <span class="label">轉換率</span>
-                <span class="value">{{ (product.conversionRate * 100).toFixed(1) }}%</span>
+                <span class="value"
+                  >{{ (product.conversionRate * 100).toFixed(1) }}%</span
+                >
               </div>
               <div class="metric">
                 <span class="label">總訂單</span>
@@ -481,6 +545,7 @@ export function useAIAnalytics() {
 ### 完整流程
 
 #### 1. 配置 AI Provider（店長操作）
+
 ```bash
 POST /api/v1/ai-analytics/config
 {
@@ -492,6 +557,7 @@ POST /api/v1/ai-analytics/config
 ```
 
 #### 2. 生成 AI 分析報告
+
 ```bash
 POST /api/v1/ai-analytics/generate
 {
@@ -502,14 +568,15 @@ POST /api/v1/ai-analytics/generate
 ```
 
 **響應示例**：
+
 ```json
 {
   "success": true,
   "report": {
     "metrics": {
-      "totalRevenue": 85420.50,
+      "totalRevenue": 85420.5,
       "totalOrders": 1247,
-      "averageOrderValue": 68.50,
+      "averageOrderValue": 68.5,
       "revenueGrowth": 15.3,
       "orderGrowth": 12.8
     },
@@ -540,11 +607,13 @@ POST /api/v1/ai-analytics/generate
 ```
 
 #### 3. 獲取引流產品
+
 ```bash
 GET /api/v1/ai-analytics/products/traffic-drivers/rest_123?timeRange=30d&limit=10
 ```
 
 **響應示例**：
+
 ```json
 {
   "success": true,
@@ -570,22 +639,26 @@ GET /api/v1/ai-analytics/products/traffic-drivers/rest_123?timeRange=30d&limit=1
 ### 本地開發
 
 #### 1. 安裝依賴
+
 ```bash
 pnpm install
 ```
 
 #### 2. 運行數據庫遷移
+
 ```bash
 npx wrangler d1 migrations apply makanmakan-local --local
 ```
 
 #### 3. 構建 AI Analytics Package
+
 ```bash
 cd packages/ai-analytics
 pnpm run build
 ```
 
 #### 4. 啟動 API 服務
+
 ```bash
 cd apps/api
 pnpm run dev
@@ -594,12 +667,14 @@ pnpm run dev
 ### 測試
 
 #### 單元測試
+
 ```bash
 cd packages/ai-analytics
 pnpm test
 ```
 
 #### API 測試
+
 ```bash
 # 使用 curl 或 Postman 測試端點
 curl -X POST http://localhost:8787/api/v1/ai-analytics/test-provider \
@@ -613,6 +688,7 @@ curl -X POST http://localhost:8787/api/v1/ai-analytics/test-provider \
 ### 部署
 
 #### Staging 環境
+
 ```bash
 # 1. 運行數據庫遷移
 npx wrangler d1 migrations apply makanmakan-staging --env staging
@@ -623,6 +699,7 @@ pnpm run deploy:staging
 ```
 
 #### Production 環境
+
 ```bash
 # 1. 運行數據庫遷移
 npx wrangler d1 migrations apply makanmakan-prod --env production
@@ -637,6 +714,7 @@ pnpm run deploy:prod
 ## 📈 監控和維護
 
 ### 監控指標
+
 - AI API 調用成功率
 - 平均響應延遲
 - Token 使用量
@@ -644,6 +722,7 @@ pnpm run deploy:prod
 - 錯誤率
 
 ### 日誌查看
+
 ```bash
 # 查看 API 日誌
 npx wrangler tail makanmakan-api-prod
@@ -656,6 +735,7 @@ LIMIT 100;
 ```
 
 ### 成本控制
+
 - 設置每月 Token 配額
 - 監控異常高頻調用
 - 緩存策略優化
@@ -666,21 +746,25 @@ LIMIT 100;
 ## 🎓 技術架構亮點
 
 ### 1. 設計模式
+
 - **工廠模式**：Provider 創建 (`createProvider`)
 - **策略模式**：不同 LLM Provider 統一接口
 - **模板方法**：`BaseLLMProvider` 抽象類
 
 ### 2. 可擴展性
+
 - 新增 LLM Provider 只需實現 `BaseLLMProvider`
 - 產品分類邏輯可插拔式擴展
 - 數據庫 Schema 支持未來功能擴展
 
 ### 3. 性能考量
+
 - 多層緩存（API 緩存 + 預計算表）
 - 並行數據獲取
 - 索引優化
 
 ### 4. 安全性
+
 - API 密鑰加密
 - 錯誤消息脫敏
 - SQL 注入防護（Prepared Statements）
@@ -690,6 +774,7 @@ LIMIT 100;
 ## ❓ 常見問題 (FAQ)
 
 ### Q1: 如何添加新的 LLM Provider？
+
 ```typescript
 // 1. 創建新的 Provider 類
 export class NewProvider extends BaseLLMProvider {
@@ -717,15 +802,19 @@ export function createProvider(config: LLMConfig): BaseLLMProvider {
 ```
 
 ### Q2: 如何自定義產品分類邏輯？
+
 編輯 `ProductAnalysisService.categorizeProduct()` 方法調整閾值和規則。
 
 ### Q3: 如何調整緩存時間？
+
 在 `AIInsightsService.cacheReport()` 中修改 TTL：
+
 ```typescript
 const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
 ```
 
 ### Q4: 支援哪些語言？
+
 目前生成的洞察和報告為**繁體中文**。可在 Prompt 中調整語言。
 
 ---

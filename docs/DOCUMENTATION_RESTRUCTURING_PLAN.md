@@ -264,11 +264,13 @@ mkdir -p docs/locales/zh-CN
 ### Phase 2: 移動文件
 
 #### 2.1 AI Analytics 文檔
+
 ```bash
 mv docs/AI_ANALYTICS_*.md docs/features/ai-analytics/
 ```
 
 #### 2.2 Realtime Services 文檔
+
 ```bash
 mv docs/REALTIME_*.md docs/features/realtime-services/
 mv docs/features/realtime-services/REALTIME_PHASE*.md docs/features/realtime-services/phases/
@@ -276,12 +278,14 @@ mv docs/features/realtime-services/REALTIME_TEST_RESULTS.md docs/features/realti
 ```
 
 #### 2.3 Partnership System 文檔
+
 ```bash
 mv docs/PARTNERSHIP_SYSTEM_IMPLEMENTATION.md docs/features/partnership-system/
 mv docs/CORPORATE_PARTNERSHIP_IMPLEMENTATION_PLAN.md docs/features/partnership-system/
 ```
 
 #### 2.4 Employee Management 文檔
+
 ```bash
 mv docs/EMPLOYEE_SCHEDULING_IMPLEMENTATION.md docs/features/employee-management/scheduling/
 mv docs/LEAVE_MANAGEMENT_IMPLEMENTATION.md docs/features/employee-management/leave-management/
@@ -290,12 +294,14 @@ mv docs/features/employee-management/SCHEDULING_*.md docs/features/employee-mana
 ```
 
 #### 2.5 Database 文檔
+
 ```bash
 mv docs/DATABASE_*.md docs/architecture/database/
 mv docs/database-optimization-analysis.md docs/architecture/database/
 ```
 
 #### 2.6 Architecture 文檔
+
 ```bash
 mv docs/project-architecture.md docs/architecture/
 mv docs/MODULAR_ARCHITECTURE_GUIDE.md docs/architecture/system-design/
@@ -305,6 +311,7 @@ mv docs/VERIFICATION_SYSTEM.md docs/architecture/system-design/
 ```
 
 #### 2.7 Testing 文檔
+
 ```bash
 mv docs/TESTING_AND_API_DOCS_IMPLEMENTATION_PLAN.md docs/implementation/testing/
 mv docs/TESTING_INFRASTRUCTURE_*.md docs/implementation/testing/
@@ -312,12 +319,14 @@ mv docs/TESTING_API_*.md docs/archive/reports/
 ```
 
 #### 2.8 API 文檔
+
 ```bash
 mv docs/API_DOCUMENTATION_COMPLETION_REPORT.md docs/archive/reports/
 mv docs/API_TEST_*.md docs/archive/reports/
 ```
 
 #### 2.9 Implementation 文檔
+
 ```bash
 mv docs/IMPLEMENTATION_SUMMARY.md docs/implementation/summaries/IMPLEMENTATION_SUMMARY_ROOT.md
 mv docs/implementation/IMPLEMENTATION_SUMMARY.md docs/implementation/summaries/
@@ -327,6 +336,7 @@ mv docs/new-features-implementation.md docs/implementation/roadmaps/
 ```
 
 #### 2.10 Security 文檔
+
 ```bash
 mv docs/PASSWORD_SECURITY_MIGRATION.md docs/features/security/
 mv docs/SECURITY_FIXES_2025-10-11.md docs/archive/bug-fixes/
@@ -334,6 +344,7 @@ mv docs/BUG_FIXES_2025-10-11.md docs/archive/bug-fixes/
 ```
 
 #### 2.11 Development Guides
+
 ```bash
 mv docs/development/* docs/guides/development/
 mv docs/gemini.md docs/guides/development/
@@ -341,6 +352,7 @@ mv docs/restructuring-challenges.md docs/guides/development/
 ```
 
 #### 2.12 Testing Factory Pattern
+
 ```bash
 mkdir -p docs/testing/factory-pattern/examples
 mv docs/testing/FACTORY_*.md docs/testing/factory-pattern/
@@ -349,6 +361,7 @@ mv docs/testing/examples/* docs/testing/factory-pattern/examples/
 ```
 
 #### 2.13 Testing Guides
+
 ```bash
 mv docs/testing/TESTING_GUIDE.md docs/testing/guides/
 mv docs/testing/AUTOMATION_TOOLS_GUIDE.md docs/testing/guides/
@@ -358,6 +371,7 @@ mv docs/testing/VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md docs/testing/gui
 ```
 
 #### 2.14 Testing Reports
+
 ```bash
 mv docs/testing/*_REPORT.md docs/testing/reports/
 mv docs/testing/*_SUMMARY.md docs/testing/reports/
@@ -365,12 +379,14 @@ mv docs/testing/WEEK1_INFRASTRUCTURE_SUMMARY.md docs/testing/reports/
 ```
 
 #### 2.15 中文文檔
+
 ```bash
 # 需要先修復文件名亂碼問題
 mv docs/zh-cn/* docs/locales/zh-CN/
 ```
 
 #### 2.16 歸檔文件
+
 ```bash
 # 移動到 archive（已在上面的步驟中完成）
 ```
@@ -385,6 +401,7 @@ mv docs/zh-cn/* docs/locales/zh-CN/
 ## 📝 各文件夾的 README.md 內容
 
 每個主要文件夾都應該有一個 README.md 文件，說明：
+
 - 該文件夾的用途
 - 包含的文檔類型
 - 如何使用這些文檔
@@ -393,6 +410,7 @@ mv docs/zh-cn/* docs/locales/zh-CN/
 ## ✅ 驗證清單
 
 重組完成後需要檢查：
+
 - [ ] 所有文件都已正確移動
 - [ ] 沒有文件遺失
 - [ ] 所有文件夾都有 README.md
@@ -404,6 +422,7 @@ mv docs/zh-cn/* docs/locales/zh-CN/
 ## 🔗 文檔導航更新
 
 更新以下文件：
+
 1. **docs/README.md** - 主要文檔導航
 2. **docs/INDEX.md** - 詳細文檔索引
 3. **CLAUDE.md** - 更新文檔路徑引用
@@ -421,6 +440,7 @@ mv docs/zh-cn/* docs/locales/zh-CN/
 ## 🎯 預期效果
 
 重組後：
+
 - ✅ 文檔按功能/用途清晰分類
 - ✅ 開發者能快速找到所需文檔
 - ✅ 新文檔有明確的歸屬位置

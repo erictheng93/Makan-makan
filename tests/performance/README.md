@@ -70,42 +70,50 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 ### REST API 測試場景
 
 #### 場景 1: 認證流程測試 (20% 流量)
+
 - 用戶登入
 - Token 驗證
 - 獲取用戶資訊
 
 #### 場景 2: 菜單管理流程 (25% 流量)
+
 - 查看分類列表
 - 查看菜單列表
 - 查看菜品詳情
 - 搜尋菜品
 
 #### 場景 3: 訂單管理流程 (30% 流量)
+
 - 查看訂單列表
 - 創建新訂單
 - 更新訂單狀態
 - 查看訂單統計
 
 #### 場景 4: 桌台管理流程 (15% 流量)
+
 - 查看桌台列表
 - 更新桌台狀態
 - 生成 QR 碼
 
 #### 場景 5: 用戶管理流程 (10% 流量)
+
 - 查看用戶列表
 - 創建新用戶
 - 更新用戶資訊
 
 #### 場景 6: 混合讀取操作 (50% 流量)
+
 - 並發執行多個讀取請求
 - 測試高並發讀取性能
 
 #### 場景 7: 分析和報表 (5% 流量)
+
 - 銷售分析
 - 菜品分析
 - 導出報表
 
 #### 場景 8: 錯誤情境測試 (5% 流量)
+
 - 未授權訪問
 - 無效 Token
 - 資源不存在
@@ -116,6 +124,7 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 #### 場景 1: Kitchen WebSocket 連線 (30% 流量)
 
 模擬廚房員工的連線行為：
+
 - 獲取 kitchen token
 - 建立 WebSocket 連線
 - 訂閱訂單事件
@@ -125,6 +134,7 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 ### 場景 2: Admin WebSocket 連線 (30% 流量)
 
 模擬管理員的連線行為：
+
 - 獲取 admin token
 - 建立 WebSocket 連線
 - 較短的連線時間
@@ -133,6 +143,7 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 ### 場景 3: Customer WebSocket 連線 (40% 流量)
 
 模擬顧客的連線行為：
+
 - 獲取 customer token（需要有效 table ID）
 - 建立 WebSocket 連線
 - 較長的連線時間（60 秒）
@@ -141,6 +152,7 @@ API_URL=http://localhost:8787 artillery run tests/performance/artillery-websocke
 ### 場景 4: 訊息洪流測試 (10% 流量)
 
 壓力測試場景：
+
 - 快速發送 100 個 ping 訊息
 - 測試系統的訊息處理能力
 
@@ -234,10 +246,10 @@ Custom metrics:
 
 ```yaml
 phases:
-  - duration: 60      # 持續時間（秒）
-    arrivalRate: 10   # 每秒新連線數
-    rampTo: 50        # 逐步增加到此數值（可選）
-    name: "My Phase"  # 階段名稱
+  - duration: 60 # 持續時間（秒）
+    arrivalRate: 10 # 每秒新連線數
+    rampTo: 50 # 逐步增加到此數值（可選）
+    name: "My Phase" # 階段名稱
 ```
 
 ### 修改性能目標
@@ -247,9 +259,9 @@ phases:
 ```yaml
 ensure:
   - ws.connection_success_rate:
-      min: 99.5  # 最低連線成功率
+      min: 99.5 # 最低連線成功率
   - ws.response_time.p95:
-      max: 150   # P95 延遲上限（ms）
+      max: 150 # P95 延遲上限（ms）
 ```
 
 ### 添加自定義指標
@@ -257,8 +269,8 @@ ensure:
 在 `artillery-processor.js` 中使用 `events.emit()`:
 
 ```javascript
-events.emit('counter', 'my.custom.metric', 1);
-events.emit('histogram', 'my.response.time', duration);
+events.emit("counter", "my.custom.metric", 1);
+events.emit("histogram", "my.response.time", duration);
 ```
 
 ## 📝 測試前準備
@@ -286,14 +298,15 @@ export TEST_TABLE_ID=1
 ```typescript
 // 臨時提高速率限制（僅用於測試環境）
 const RATE_LIMIT_TEST = {
-  windowMs: 60 * 1000,     // 1 分鐘
-  max: 10000,              // 允許 10,000 次請求
-}
+  windowMs: 60 * 1000, // 1 分鐘
+  max: 10000, // 允許 10,000 次請求
+};
 ```
 
 ### 3. 監控資源使用
 
 在測試期間監控：
+
 - CPU 使用率
 - 記憶體使用
 - WebSocket 連線數
@@ -341,6 +354,7 @@ artillery compare baseline.json optimized.json
 **原因**: 服務崩潰或記憶體不足
 
 **解決方案**:
+
 - 降低 `arrivalRate`
 - 縮短測試持續時間
 - 增加服務器資源
@@ -350,6 +364,7 @@ artillery compare baseline.json optimized.json
 **原因**: API 服務未運行或速率限制
 
 **解決方案**:
+
 ```bash
 # 檢查 API 服務狀態
 curl http://localhost:8787/api/v1/health
@@ -362,6 +377,7 @@ curl http://localhost:8787/api/v1/health
 **原因**: Realtime 服務未運行或埠被佔用
 
 **解決方案**:
+
 ```bash
 # 檢查服務狀態
 curl http://localhost:8788/health
@@ -375,6 +391,7 @@ lsof -i :8788
 **原因**: 測試數據庫中沒有有效的 table
 
 **解決方案**:
+
 ```bash
 # 創建測試數據
 npx wrangler d1 execute makanmakan-local --local --file=./scripts/seed-realtime-test.sql
@@ -417,7 +434,7 @@ phases:
 
 ```yaml
 phases:
-  - duration: 3600  # 1 小時
+  - duration: 3600 # 1 小時
     arrivalRate: 50
     name: "Endurance"
 ```

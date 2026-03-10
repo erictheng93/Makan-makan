@@ -153,12 +153,15 @@
 **狀態**: 待修復
 
 #### 問題描述
+
 測試執行時發生 JavaScript heap out of memory 錯誤：
+
 ```
 FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
 ```
 
 #### 根本原因
+
 - 測試檔案數量龐大 (32 files, 1,300+ tests)
 - Node.js 預設堆疊大小不足
 - 可能存在記憶體洩漏
@@ -166,6 +169,7 @@ FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaS
 #### 解決方案
 
 **方案 1: 增加 Node.js 堆疊大小 (立即實施)**
+
 ```json
 // package.json
 {
@@ -177,6 +181,7 @@ FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaS
 ```
 
 **方案 2: 分批執行測試**
+
 ```bash
 # 分別執行各個 package 的測試
 pnpm test --filter @makanmakan/database
@@ -185,21 +190,22 @@ pnpm test --filter makanmakan-kitchen-display
 ```
 
 **方案 3: 配置 Vitest 執行選項**
+
 ```typescript
 // vitest.config.ts
 export default defineConfig({
   test: {
-    pool: 'forks',  // 使用 fork 而非 threads
+    pool: "forks", // 使用 fork 而非 threads
     poolOptions: {
       forks: {
-        singleFork: true  // 單一 fork 減少記憶體使用
-      }
+        singleFork: true, // 單一 fork 減少記憶體使用
+      },
     },
     sequence: {
-      concurrent: false  // 避免並行執行
-    }
-  }
-})
+      concurrent: false, // 避免並行執行
+    },
+  },
+});
 ```
 
 ---
@@ -215,15 +221,16 @@ export default defineConfig({
 **錯誤訊息**: `No "FireIcon" export is defined on the "@heroicons/vue/24/outline" mock`
 
 **修復方案**:
+
 ```typescript
 // apps/kitchen-display/src/components/orders/__tests__/OrderCard.test.ts
-vi.mock('@heroicons/vue/24/outline', () => ({
-  ClockIcon: { name: 'ClockIcon', template: '<svg />' },
-  CheckCircleIcon: { name: 'CheckCircleIcon', template: '<svg />' },
-  XCircleIcon: { name: 'XCircleIcon', template: '<svg />' },
-  FireIcon: { name: 'FireIcon', template: '<svg />' },  // 新增
-  BellAlertIcon: { name: 'BellAlertIcon', template: '<svg />' }
-}))
+vi.mock("@heroicons/vue/24/outline", () => ({
+  ClockIcon: { name: "ClockIcon", template: "<svg />" },
+  CheckCircleIcon: { name: "CheckCircleIcon", template: "<svg />" },
+  XCircleIcon: { name: "XCircleIcon", template: "<svg />" },
+  FireIcon: { name: "FireIcon", template: "<svg />" }, // 新增
+  BellAlertIcon: { name: "BellAlertIcon", template: "<svg />" },
+}));
 ```
 
 #### 2.2 offline-mode.test.ts - localStorage Mock 問題
@@ -232,23 +239,24 @@ vi.mock('@heroicons/vue/24/outline', () => ({
 **錯誤訊息**: `"undefined" is not valid JSON`
 
 **修復方案**:
+
 ```typescript
 // apps/kitchen-display/src/__tests__/integration/offline-mode.test.ts
 beforeEach(() => {
-  const storage: Record<string, string> = {}
+  const storage: Record<string, string> = {};
 
-  vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-    return storage[key] || null  // 返回 null 而非 undefined
-  })
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+    return storage[key] || null; // 返回 null 而非 undefined
+  });
 
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
-    storage[key] = value
-  })
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+    storage[key] = value;
+  });
 
-  vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
-    delete storage[key]
-  })
-})
+  vi.spyOn(Storage.prototype, "removeItem").mockImplementation((key) => {
+    delete storage[key];
+  });
+});
 ```
 
 #### 2.3 OrderStats.test.ts - Loading 動畫檢測
@@ -298,25 +306,28 @@ beforeEach(() => {
 #### 建議改進
 
 **1. 增加記憶體限制設定**
+
 ```yaml
 - name: 🧪 執行單元測試
   run: NODE_OPTIONS='--max-old-space-size=4096' pnpm run test:unit
   env:
-    NODE_OPTIONS: '--max-old-space-size=4096'
+    NODE_OPTIONS: "--max-old-space-size=4096"
 ```
 
 **2. 新增測試失敗通知**
+
 ```yaml
 - name: 📧 測試失敗通知
   if: failure()
   uses: 8398a7/action-slack@v3
   with:
     status: ${{ job.status }}
-    text: '測試失敗！請檢查 GitHub Actions 日誌'
+    text: "測試失敗！請檢查 GitHub Actions 日誌"
     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
 ```
 
 **3. 新增測試報告註解 (PR)**
+
 ```yaml
 - name: 📊 測試報告 PR 註解
   if: github.event_name == 'pull_request'
@@ -324,8 +335,8 @@ beforeEach(() => {
   with:
     artifact: test-results
     name: Vitest Tests
-    path: 'coverage/junit.xml'
-    reporter: 'jest-junit'
+    path: "coverage/junit.xml"
+    reporter: "jest-junit"
 ```
 
 ---
@@ -355,12 +366,12 @@ beforeEach(() => {
 
 基於實施的測試檔案數量和範圍，預估測試覆蓋率：
 
-| 模組 | 預估覆蓋率 | 測試檔案數 |
-|------|-----------|-----------|
-| Realtime Services | 85%+ | 7 |
-| Kitchen Display | 90%+ | 17 |
-| Admin Dashboard | 85%+ | 8 |
-| **整體** | **~87%+** | **32** |
+| 模組              | 預估覆蓋率 | 測試檔案數 |
+| ----------------- | ---------- | ---------- |
+| Realtime Services | 85%+       | 7          |
+| Kitchen Display   | 90%+       | 17         |
+| Admin Dashboard   | 85%+       | 8          |
+| **整體**          | **~87%+**  | **32**     |
 
 **注意**: 實際覆蓋率需運行 `pnpm test:coverage` 確認
 
@@ -457,6 +468,7 @@ beforeEach(() => {
 ## 📞 聯絡資訊
 
 如有問題或需要協助，請聯絡：
+
 - **技術負責人**: Development Team
 - **文檔**: `docs/testing/`
 - **問題追蹤**: GitHub Issues
@@ -466,4 +478,3 @@ beforeEach(() => {
 **最後更新**: 2025-11-17
 **報告版本**: v1.0
 **狀態**: ✅ 測試實施完成 | ⚠️ 待修復問題
-

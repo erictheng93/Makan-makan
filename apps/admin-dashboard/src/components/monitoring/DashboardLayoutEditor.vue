@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch } from "vue";
 // import { VueDraggable } from 'vue-draggable-plus' // Reserved for drag-and-drop functionality
 import {
   PlusIcon,
@@ -8,90 +8,94 @@ import {
   ArrowsPointingOutIcon,
   LockClosedIcon,
   LockOpenIcon,
-} from '@heroicons/vue/24/outline'
+} from "@heroicons/vue/24/outline";
 import type {
   DashboardLayout,
   Widget,
   WidgetType,
   LayoutPreset,
-} from '@/types/monitoring-layout'
+} from "@/types/monitoring-layout";
 import {
   WIDGET_TYPES,
   LAYOUT_PRESETS,
   generateWidgetId,
   WIDGET_SIZE_PRESETS,
   findNextAvailablePosition,
-} from '@/types/monitoring-layout'
+} from "@/types/monitoring-layout";
 
 // Props
 interface Props {
-  modelValue: DashboardLayout
-  editMode?: boolean
+  modelValue: DashboardLayout;
+  editMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   editMode: false,
-})
+});
 
 // Emits
 const emit = defineEmits<{
-  'update:modelValue': [layout: DashboardLayout]
-  'add-widget': [type: WidgetType]
-  'remove-widget': [widgetId: string]
-  'configure-widget': [widgetId: string]
-  save: [layout: DashboardLayout]
-  cancel: []
-}>()
+  "update:modelValue": [layout: DashboardLayout];
+  "add-widget": [type: WidgetType];
+  "remove-widget": [widgetId: string];
+  "configure-widget": [widgetId: string];
+  save: [layout: DashboardLayout];
+  cancel: [];
+}>();
 
 // State
-const localLayout = ref<DashboardLayout>({ ...props.modelValue })
-const showWidgetPicker = ref(false)
-const showPresetPicker = ref(false)
-const selectedWidget = ref<string | null>(null)
+const localLayout = ref<DashboardLayout>({ ...props.modelValue });
+const showWidgetPicker = ref(false);
+const showPresetPicker = ref(false);
+const selectedWidget = ref<string | null>(null);
 
 // Computed
 const gridStyle = computed(() => ({
-  display: 'grid',
+  display: "grid",
   gridTemplateColumns: `repeat(${localLayout.value.gridColumns}, 1fr)`,
-  gap: '16px',
-  minHeight: '600px',
-}))
+  gap: "16px",
+  minHeight: "600px",
+}));
 
 const widgetsByCategory = computed(() => {
-  const categories: Record<string, typeof WIDGET_TYPES> = {}
-  WIDGET_TYPES.forEach(widget => {
+  const categories: Record<string, typeof WIDGET_TYPES> = {};
+  WIDGET_TYPES.forEach((widget) => {
     if (!categories[widget.category]) {
-      categories[widget.category] = []
+      categories[widget.category] = [];
     }
-    categories[widget.category].push(widget)
-  })
-  return categories
-})
+    categories[widget.category].push(widget);
+  });
+  return categories;
+});
 
 const categoryLabels: Record<string, string> = {
-  overview: '總覽',
-  performance: '性能',
-  alerts: '警報',
-  metrics: '指標',
-  charts: '圖表',
-}
+  overview: "總覽",
+  performance: "性能",
+  alerts: "警報",
+  metrics: "指標",
+  charts: "圖表",
+};
 
 // Watch
-watch(() => props.modelValue, (newValue) => {
-  localLayout.value = { ...newValue }
-}, { deep: true })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    localLayout.value = { ...newValue };
+  },
+  { deep: true },
+);
 
 // Methods
 function addWidget(type: WidgetType) {
-  const widgetMeta = WIDGET_TYPES.find(w => w.type === type)
-  if (!widgetMeta) return
+  const widgetMeta = WIDGET_TYPES.find((w) => w.type === type);
+  if (!widgetMeta) return;
 
-  const dimensions = WIDGET_SIZE_PRESETS[widgetMeta.defaultSize]
+  const dimensions = WIDGET_SIZE_PRESETS[widgetMeta.defaultSize];
   const position = findNextAvailablePosition(
     localLayout.value.widgets,
     dimensions,
-    localLayout.value.gridColumns
-  )
+    localLayout.value.gridColumns,
+  );
 
   const newWidget: Widget = {
     id: generateWidgetId(),
@@ -102,64 +106,67 @@ function addWidget(type: WidgetType) {
     config: widgetMeta.defaultConfig,
     visible: true,
     locked: false,
-  }
+  };
 
-  localLayout.value.widgets.push(newWidget)
-  showWidgetPicker.value = false
-  emit('update:modelValue', localLayout.value)
-  emit('add-widget', type)
+  localLayout.value.widgets.push(newWidget);
+  showWidgetPicker.value = false;
+  emit("update:modelValue", localLayout.value);
+  emit("add-widget", type);
 }
 
 function removeWidget(widgetId: string) {
-  const index = localLayout.value.widgets.findIndex(w => w.id === widgetId)
+  const index = localLayout.value.widgets.findIndex((w) => w.id === widgetId);
   if (index > -1) {
-    localLayout.value.widgets.splice(index, 1)
-    emit('update:modelValue', localLayout.value)
-    emit('remove-widget', widgetId)
+    localLayout.value.widgets.splice(index, 1);
+    emit("update:modelValue", localLayout.value);
+    emit("remove-widget", widgetId);
   }
 }
 
 function toggleWidgetLock(widgetId: string) {
-  const widget = localLayout.value.widgets.find(w => w.id === widgetId)
+  const widget = localLayout.value.widgets.find((w) => w.id === widgetId);
   if (widget) {
-    widget.locked = !widget.locked
-    emit('update:modelValue', localLayout.value)
+    widget.locked = !widget.locked;
+    emit("update:modelValue", localLayout.value);
   }
 }
 
 function configureWidget(widgetId: string) {
-  emit('configure-widget', widgetId)
+  emit("configure-widget", widgetId);
 }
 
 function applyPreset(preset: LayoutPreset) {
   localLayout.value = {
     ...localLayout.value,
     widgets: [...preset.layout.widgets],
-  }
-  showPresetPicker.value = false
-  emit('update:modelValue', localLayout.value)
+  };
+  showPresetPicker.value = false;
+  emit("update:modelValue", localLayout.value);
 }
 
 function getWidgetStyle(widget: Widget) {
   return {
     gridColumn: `span ${widget.dimensions.width}`,
     gridRow: `span ${widget.dimensions.height}`,
-  }
+  };
 }
 
 function handleSave() {
-  emit('save', localLayout.value)
+  emit("save", localLayout.value);
 }
 
 function handleCancel() {
-  emit('cancel')
+  emit("cancel");
 }
 </script>
 
 <template>
   <div class="dashboard-layout-editor">
     <!-- 工具欄 -->
-    <div v-if="editMode" class="toolbar bg-white border-b border-gray-200 p-4 mb-4">
+    <div
+      v-if="editMode"
+      class="toolbar bg-white border-b border-gray-200 p-4 mb-4"
+    >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <button
@@ -208,7 +215,9 @@ function handleCancel() {
         @click="selectedWidget = widget.id"
       >
         <!-- Widget 標題欄 -->
-        <div class="widget-header flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+        <div
+          class="widget-header flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200"
+        >
           <h3 class="text-sm font-medium text-gray-900">{{ widget.title }}</h3>
           <div v-if="editMode" class="flex items-center gap-1">
             <button
@@ -269,8 +278,12 @@ function handleCancel() {
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         @click.self="showWidgetPicker = false"
       >
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div
+          class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto"
+        >
+          <div
+            class="flex items-center justify-between p-6 border-b border-gray-200"
+          >
             <h2 class="text-xl font-semibold text-gray-900">選擇小部件</h2>
             <button
               class="text-gray-400 hover:text-gray-600"
@@ -318,7 +331,9 @@ function handleCancel() {
         @click.self="showPresetPicker = false"
       >
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+          <div
+            class="flex items-center justify-between p-6 border-b border-gray-200"
+          >
             <h2 class="text-xl font-semibold text-gray-900">選擇預設佈局</h2>
             <button
               class="text-gray-400 hover:text-gray-600"

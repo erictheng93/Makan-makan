@@ -1,137 +1,137 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useAIAnalytics } from '@/composables/useAIAnalytics'
-import type { LLMProvider } from '@makanmakan/ai-analytics'
+import { ref, computed, onMounted } from "vue";
+import { useAIAnalytics } from "@/composables/useAIAnalytics";
+import type { LLMProvider } from "@makanmakan/ai-analytics";
 
 // Icons (using heroicons)
 import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowPathIcon,
-  SparklesIcon
-} from '@heroicons/vue/24/outline'
-import ShieldCheckIcon from '@heroicons/vue/24/outline/ShieldCheckIcon'
+  SparklesIcon,
+} from "@heroicons/vue/24/outline";
+import ShieldCheckIcon from "@heroicons/vue/24/outline/ShieldCheckIcon";
 
-const {
-  getConfig,
-  saveConfig,
-  testProvider,
-  getAvailableModels
-} = useAIAnalytics()
+const { getConfig, saveConfig, testProvider, getAvailableModels } =
+  useAIAnalytics();
 
 // Form state
 const form = ref({
-  provider: 'anthropic' as LLMProvider,
-  apiKey: '',
-  model: '',
-  customBaseUrl: '',
-})
+  provider: "anthropic" as LLMProvider,
+  apiKey: "",
+  model: "",
+  customBaseUrl: "",
+});
 
-const availableModels = ref<string[]>([])
-const testResult = ref<{ success: boolean; latency?: number; error?: string } | null>(null)
-const isTesting = ref(false)
-const isSaving = ref(false)
-const saveSuccess = ref(false)
-const saveError = ref<string | null>(null)
+const availableModels = ref<string[]>([]);
+const testResult = ref<{
+  success: boolean;
+  latency?: number;
+  error?: string;
+} | null>(null);
+const isTesting = ref(false);
+const isSaving = ref(false);
+const saveSuccess = ref(false);
+const saveError = ref<string | null>(null);
 
 // Mock restaurant ID (should come from store/context)
-const restaurantId = ref('rest_123')
+const restaurantId = ref("rest_123");
 
 // Provider options with descriptions
 const providers = [
   {
-    value: 'anthropic',
-    label: 'Anthropic Claude',
-    description: '強大的推理能力，適合深度分析',
-    icon: '🤖',
+    value: "anthropic",
+    label: "Anthropic Claude",
+    description: "強大的推理能力，適合深度分析",
+    icon: "🤖",
   },
   {
-    value: 'openai',
-    label: 'OpenAI GPT',
-    description: '通用性強，生態完善',
-    icon: '✨',
+    value: "openai",
+    label: "OpenAI GPT",
+    description: "通用性強，生態完善",
+    icon: "✨",
   },
   {
-    value: 'google',
-    label: 'Google Gemini',
-    description: '多模態支持，快速響應',
-    icon: '🔮',
+    value: "google",
+    label: "Google Gemini",
+    description: "多模態支持，快速響應",
+    icon: "🔮",
   },
   {
-    value: 'deepseek',
-    label: 'DeepSeek',
-    description: '成本效益高，中文友好',
-    icon: '🚀',
+    value: "deepseek",
+    label: "DeepSeek",
+    description: "成本效益高，中文友好",
+    icon: "🚀",
   },
   {
-    value: 'custom',
-    label: '自定義 Provider',
-    description: 'OpenAI 兼容的自定義服務',
-    icon: '⚙️',
+    value: "custom",
+    label: "自定義 Provider",
+    description: "OpenAI 兼容的自定義服務",
+    icon: "⚙️",
   },
-]
+];
 
 const selectedProvider = computed(() =>
-  providers.find(p => p.value === form.value.provider)
-)
+  providers.find((p) => p.value === form.value.provider),
+);
 
 // Load configuration on mount
 onMounted(async () => {
-  const config = await getConfig(restaurantId.value)
+  const config = await getConfig(restaurantId.value);
   if (config?.config) {
-    form.value.provider = config.config.provider
-    form.value.model = config.config.model || ''
-    form.value.customBaseUrl = config.config.custom_base_url || ''
+    form.value.provider = config.config.provider;
+    form.value.model = config.config.model || "";
+    form.value.customBaseUrl = config.config.custom_base_url || "";
     // Don't load API key for security
   }
-  await loadAvailableModels()
-})
+  await loadAvailableModels();
+});
 
 // Load available models when provider changes
 const onProviderChange = async () => {
-  form.value.model = ''
-  await loadAvailableModels()
-}
+  form.value.model = "";
+  await loadAvailableModels();
+};
 
 const loadAvailableModels = async () => {
-  const models = await getAvailableModels(form.value.provider)
-  availableModels.value = models
+  const models = await getAvailableModels(form.value.provider);
+  availableModels.value = models;
   if (models.length > 0 && !form.value.model) {
-    form.value.model = models[0]
+    form.value.model = models[0];
   }
-}
+};
 
 // Test connection
 const handleTestConnection = async () => {
   if (!form.value.apiKey) {
-    testResult.value = { success: false, error: '請輸入 API Key' }
-    return
+    testResult.value = { success: false, error: "請輸入 API Key" };
+    return;
   }
 
-  isTesting.value = true
-  testResult.value = null
+  isTesting.value = true;
+  testResult.value = null;
 
   const result = await testProvider({
     provider: form.value.provider,
     apiKey: form.value.apiKey,
     model: form.value.model || undefined,
     baseUrl: form.value.customBaseUrl || undefined,
-  })
+  });
 
-  testResult.value = result
-  isTesting.value = false
-}
+  testResult.value = result;
+  isTesting.value = false;
+};
 
 // Save configuration
 const handleSaveConfig = async () => {
   if (!form.value.apiKey) {
-    saveError.value = '請輸入 API Key'
-    return
+    saveError.value = "請輸入 API Key";
+    return;
   }
 
-  isSaving.value = true
-  saveSuccess.value = false
-  saveError.value = null
+  isSaving.value = true;
+  saveSuccess.value = false;
+  saveError.value = null;
 
   try {
     const result = await saveConfig({
@@ -140,23 +140,23 @@ const handleSaveConfig = async () => {
       apiKey: form.value.apiKey,
       model: form.value.model || undefined,
       customBaseUrl: form.value.customBaseUrl || undefined,
-    })
+    });
 
     if (result.success) {
-      saveSuccess.value = true
+      saveSuccess.value = true;
       setTimeout(() => {
-        saveSuccess.value = false
-      }, 3000)
+        saveSuccess.value = false;
+      }, 3000);
     } else {
-      saveError.value = result.message || '保存配置失敗'
+      saveError.value = result.message || "保存配置失敗";
     }
   } catch (err) {
-    console.error('Save config error:', err)
-    saveError.value = err instanceof Error ? err.message : '保存配置時發生錯誤'
+    console.error("Save config error:", err);
+    saveError.value = err instanceof Error ? err.message : "保存配置時發生錯誤";
   } finally {
-    isSaving.value = false
+    isSaving.value = false;
   }
-}
+};
 </script>
 
 <template>
@@ -168,12 +168,12 @@ const handleSaveConfig = async () => {
           <SparklesIcon class="w-8 h-8 text-indigo-600" />
           <h1 class="text-3xl font-bold text-gray-900">AI 分析配置</h1>
         </div>
-        <p class="text-gray-600 mb-4">
-          配置您的 AI Provider，開啟智能業務分析
-        </p>
+        <p class="text-gray-600 mb-4">配置您的 AI Provider，開啟智能業務分析</p>
 
         <!-- Quick Navigation -->
-        <div class="flex items-center space-x-2 bg-white rounded-xl p-2 border border-gray-100 w-fit">
+        <div
+          class="flex items-center space-x-2 bg-white rounded-xl p-2 border border-gray-100 w-fit"
+        >
           <router-link
             to="/dashboard/ai-analytics/insights"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
@@ -196,7 +196,9 @@ const handleSaveConfig = async () => {
       </div>
 
       <!-- Main Config Card -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+      >
         <!-- Provider Selection -->
         <div class="p-8 border-b border-gray-100">
           <label class="block text-sm font-semibold text-gray-900 mb-4">
@@ -208,15 +210,24 @@ const handleSaveConfig = async () => {
               :key="provider.value"
               type="button"
               class="relative flex items-start p-4 border-2 rounded-xl transition-all duration-200 hover:border-indigo-300 hover:shadow-sm"
-              :class="form.provider === provider.value
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-gray-200 bg-white'"
-              @click="form.provider = provider.value as LLMProvider; onProviderChange()"
+              :class="
+                form.provider === provider.value
+                  ? 'border-indigo-600 bg-indigo-50'
+                  : 'border-gray-200 bg-white'
+              "
+              @click="
+                form.provider = provider.value as LLMProvider;
+                onProviderChange();
+              "
             >
               <div class="flex-shrink-0 text-2xl mr-3">{{ provider.icon }}</div>
               <div class="flex-1 text-left">
-                <div class="font-semibold text-gray-900">{{ provider.label }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ provider.description }}</div>
+                <div class="font-semibold text-gray-900">
+                  {{ provider.label }}
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ provider.description }}
+                </div>
               </div>
               <CheckCircleIcon
                 v-if="form.provider === provider.value"
@@ -229,11 +240,17 @@ const handleSaveConfig = async () => {
         <!-- Configuration Form -->
         <div class="p-8 space-y-6">
           <!-- Selected Provider Info -->
-          <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 flex items-center space-x-3">
+          <div
+            class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 flex items-center space-x-3"
+          >
             <div class="text-2xl">{{ selectedProvider?.icon }}</div>
             <div>
-              <div class="font-semibold text-gray-900">{{ selectedProvider?.label }}</div>
-              <div class="text-sm text-gray-600">{{ selectedProvider?.description }}</div>
+              <div class="font-semibold text-gray-900">
+                {{ selectedProvider?.label }}
+              </div>
+              <div class="text-sm text-gray-600">
+                {{ selectedProvider?.description }}
+              </div>
             </div>
           </div>
 
@@ -243,7 +260,9 @@ const handleSaveConfig = async () => {
               API Key
             </label>
             <div class="relative">
-              <ShieldCheckIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <ShieldCheckIcon
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              />
               <input
                 v-model="form.apiKey"
                 type="password"
@@ -265,7 +284,11 @@ const handleSaveConfig = async () => {
               v-model="form.model"
               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
             >
-              <option v-for="model in availableModels" :key="model" :value="model">
+              <option
+                v-for="model in availableModels"
+                :key="model"
+                :value="model"
+              >
                 {{ model }}
               </option>
             </select>
@@ -285,30 +308,54 @@ const handleSaveConfig = async () => {
           </div>
 
           <!-- Test Result -->
-          <div v-if="testResult" class="rounded-xl p-4 flex items-center space-x-3 transition-all"
-               :class="testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
-            <CheckCircleIcon v-if="testResult.success" class="w-6 h-6 text-green-600" />
+          <div
+            v-if="testResult"
+            class="rounded-xl p-4 flex items-center space-x-3 transition-all"
+            :class="
+              testResult.success
+                ? 'bg-green-50 border border-green-200'
+                : 'bg-red-50 border border-red-200'
+            "
+          >
+            <CheckCircleIcon
+              v-if="testResult.success"
+              class="w-6 h-6 text-green-600"
+            />
             <XCircleIcon v-else class="w-6 h-6 text-red-600" />
             <div class="flex-1">
-              <div class="font-semibold" :class="testResult.success ? 'text-green-900' : 'text-red-900'">
-                {{ testResult.success ? '連接成功' : '連接失敗' }}
+              <div
+                class="font-semibold"
+                :class="testResult.success ? 'text-green-900' : 'text-red-900'"
+              >
+                {{ testResult.success ? "連接成功" : "連接失敗" }}
               </div>
-              <div class="text-sm" :class="testResult.success ? 'text-green-700' : 'text-red-700'">
-                {{ testResult.success
-                  ? `響應延遲: ${testResult.latency}ms`
-                  : testResult.error || '請檢查 API Key 和網絡連接' }}
+              <div
+                class="text-sm"
+                :class="testResult.success ? 'text-green-700' : 'text-red-700'"
+              >
+                {{
+                  testResult.success
+                    ? `響應延遲: ${testResult.latency}ms`
+                    : testResult.error || "請檢查 API Key 和網絡連接"
+                }}
               </div>
             </div>
           </div>
 
           <!-- Save Success Message -->
-          <div v-if="saveSuccess" class="rounded-xl p-4 bg-green-50 border border-green-200 flex items-center space-x-3 animate-fade-in">
+          <div
+            v-if="saveSuccess"
+            class="rounded-xl p-4 bg-green-50 border border-green-200 flex items-center space-x-3 animate-fade-in"
+          >
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
             <div class="text-green-900 font-semibold">配置已成功保存</div>
           </div>
 
           <!-- Save Error Message -->
-          <div v-if="saveError" class="rounded-xl p-4 bg-red-50 border border-red-200 flex items-center space-x-3 animate-fade-in">
+          <div
+            v-if="saveError"
+            class="rounded-xl p-4 bg-red-50 border border-red-200 flex items-center space-x-3 animate-fade-in"
+          >
             <XCircleIcon class="w-6 h-6 text-red-600" />
             <div class="flex-1">
               <div class="text-red-900 font-semibold mb-1">保存失敗</div>
@@ -327,7 +374,7 @@ const handleSaveConfig = async () => {
                 class="w-5 h-5 inline mr-2"
                 :class="{ 'animate-spin': isTesting }"
               />
-              {{ isTesting ? '測試中...' : '測試連接' }}
+              {{ isTesting ? "測試中..." : "測試連接" }}
             </button>
 
             <button
@@ -335,7 +382,7 @@ const handleSaveConfig = async () => {
               class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/30"
               @click="handleSaveConfig"
             >
-              {{ isSaving ? '保存中...' : '保存配置' }}
+              {{ isSaving ? "保存中..." : "保存配置" }}
             </button>
           </div>
         </div>
@@ -344,15 +391,21 @@ const handleSaveConfig = async () => {
       <!-- Info Cards -->
       <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <div class="text-sm font-semibold text-gray-900 mb-1">🔒 安全加密</div>
+          <div class="text-sm font-semibold text-gray-900 mb-1">
+            🔒 安全加密
+          </div>
           <div class="text-xs text-gray-600">API Key 使用 AES-256 加密存儲</div>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <div class="text-sm font-semibold text-gray-900 mb-1">📊 使用追蹤</div>
+          <div class="text-sm font-semibold text-gray-900 mb-1">
+            📊 使用追蹤
+          </div>
           <div class="text-xs text-gray-600">自動記錄 Token 使用量和成本</div>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <div class="text-sm font-semibold text-gray-900 mb-1">⚡ 智能緩存</div>
+          <div class="text-sm font-semibold text-gray-900 mb-1">
+            ⚡ 智能緩存
+          </div>
           <div class="text-xs text-gray-600">6 小時緩存減少 API 調用</div>
         </div>
       </div>

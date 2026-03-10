@@ -1,42 +1,42 @@
-import { eq, and, desc, asc, like, or, count, inArray } from 'drizzle-orm'
-import { BaseService } from './base'
-import { seats, tables, restaurants } from '../schema'
+import { eq, and, desc, asc, like, or, count, inArray } from "drizzle-orm";
+import { BaseService } from "./base";
+import { seats, tables, restaurants } from "../schema";
 
 export interface CreateSeatData {
-  tableId: number
-  seatNumber: string
-  seatName?: string
-  position?: string
+  tableId: number;
+  seatNumber: string;
+  seatName?: string;
+  position?: string;
 }
 
 export interface UpdateSeatData {
-  seatNumber?: string
-  seatName?: string
-  position?: string
-  isActive?: boolean
+  seatNumber?: string;
+  seatName?: string;
+  position?: string;
+  isActive?: boolean;
 }
 
 export interface SeatFilters {
-  tableId?: number
-  isOccupied?: boolean
-  isActive?: boolean
-  seatNumbers?: string[]
-  page?: number
-  limit?: number
+  tableId?: number;
+  isOccupied?: boolean;
+  isActive?: boolean;
+  seatNumbers?: string[];
+  page?: number;
+  limit?: number;
 }
 
 export interface SeatNumberingOptions {
-  numberingStyle?: 'numeric' | 'alphabetic' | 'custom'
-  customNumbers?: string[]
-  prefix?: string
+  numberingStyle?: "numeric" | "alphabetic" | "custom";
+  customNumbers?: string[];
+  prefix?: string;
 }
 
 export interface SeatStats {
-  totalSeats: number
-  occupiedSeats: number
-  availableSeats: number
-  inactiveSeats: number
-  averageOccupancyRate: number
+  totalSeats: number;
+  occupiedSeats: number;
+  availableSeats: number;
+  inactiveSeats: number;
+  averageOccupancyRate: number;
 }
 
 /**
@@ -44,34 +44,41 @@ export interface SeatStats {
  * 負責座位的創建、管理和操作
  */
 export class SeatService extends BaseService {
-
   /**
    * 為桌子批量創建座位
    */
   async createSeatsForTable(
     tableId: number,
     seatCount: number,
-    options: SeatNumberingOptions = {}
+    options: SeatNumberingOptions = {},
   ): Promise<any[]> {
     try {
       // 驗證桌子是否存在
       const table = await this.db
-        .select({ id: tables.id, restaurantId: tables.restaurantId, number: tables.number })
+        .select({
+          id: tables.id,
+          restaurantId: tables.restaurantId,
+          number: tables.number,
+        })
         .from(tables)
         .where(eq(tables.id, tableId))
-        .get()
+        .get();
 
       if (!table) {
-        throw new Error('Table not found')
+        throw new Error("Table not found");
       }
 
       // 生成座位編號
-      const seatNumbers = this.generateSeatNumbers(seatCount, options)
+      const seatNumbers = this.generateSeatNumbers(seatCount, options);
 
       // 批量創建座位
-      const createdSeats = []
+      const createdSeats = [];
       for (const seatNumber of seatNumbers) {
-        const qrCode = this.generateSeatQRCode(table.restaurantId, tableId, seatNumber)
+        const qrCode = this.generateSeatQRCode(
+          table.restaurantId,
+          tableId,
+          seatNumber,
+        );
 
         const [newSeat] = await this.db
           .insert(seats)
@@ -82,16 +89,16 @@ export class SeatService extends BaseService {
             qrCodeVersion: 1,
             isOccupied: false,
             isActive: true,
-            totalUsage: 0
+            totalUsage: 0,
           })
-          .returning()
+          .returning();
 
-        createdSeats.push(newSeat)
+        createdSeats.push(newSeat);
       }
 
-      return createdSeats
+      return createdSeats;
     } catch (error) {
-      this.handleError(error, 'createSeatsForTable')
+      this.handleError(error, "createSeatsForTable");
     }
   }
 
@@ -122,17 +129,17 @@ export class SeatService extends BaseService {
           tableNumber: tables.number,
           restaurantId: tables.restaurantId,
           // 餐廳資訊
-          restaurantName: restaurants.name
+          restaurantName: restaurants.name,
         })
         .from(seats)
         .leftJoin(tables, eq(seats.tableId, tables.id))
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
         .where(eq(seats.id, seatId))
-        .get()
+        .get();
 
-      return seat
+      return seat;
     } catch (error) {
-      this.handleError(error, 'getSeatById')
+      this.handleError(error, "getSeatById");
     }
   }
 
@@ -157,45 +164,54 @@ export class SeatService extends BaseService {
           capacity: tables.capacity,
           restaurantId: tables.restaurantId,
           // 餐廳資訊
-          restaurantName: restaurants.name
+          restaurantName: restaurants.name,
         })
         .from(seats)
         .leftJoin(tables, eq(seats.tableId, tables.id))
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
         .where(eq(seats.qrCode, qrCode))
-        .get()
+        .get();
 
-      return seat
+      return seat;
     } catch (error) {
-      this.handleError(error, 'getSeatByQRCode')
+      this.handleError(error, "getSeatByQRCode");
     }
   }
 
   /**
    * 獲取桌子的所有座位
    */
-  async getSeatsByTableId(tableId: number, filters: Omit<SeatFilters, 'tableId'> = {}): Promise<{
-    seats: any[]
-    total: number
-    pagination?: { page: number; limit: number; totalPages: number }
+  async getSeatsByTableId(
+    tableId: number,
+    filters: Omit<SeatFilters, "tableId"> = {},
+  ): Promise<{
+    seats: any[];
+    total: number;
+    pagination?: { page: number; limit: number; totalPages: number };
   }> {
     try {
-      const { page = 1, limit = 50, isOccupied, isActive, seatNumbers } = filters
-      const { offset } = this.createPagination(page, limit)
+      const {
+        page = 1,
+        limit = 50,
+        isOccupied,
+        isActive,
+        seatNumbers,
+      } = filters;
+      const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = [eq(seats.tableId, tableId)]
+      const conditions = [eq(seats.tableId, tableId)];
 
       if (isOccupied !== undefined) {
-        conditions.push(eq(seats.isOccupied, isOccupied))
+        conditions.push(eq(seats.isOccupied, isOccupied));
       }
 
       if (isActive !== undefined) {
-        conditions.push(eq(seats.isActive, isActive))
+        conditions.push(eq(seats.isActive, isActive));
       }
 
       if (seatNumbers && seatNumbers.length > 0) {
-        conditions.push(inArray(seats.seatNumber, seatNumbers))
+        conditions.push(inArray(seats.seatNumber, seatNumbers));
       }
 
       // 查詢座位列表
@@ -215,29 +231,29 @@ export class SeatService extends BaseService {
           occupiedAt: seats.occupiedAt,
           occupiedBy: seats.occupiedBy,
           totalUsage: seats.totalUsage,
-          createdAt: seats.createdAt
+          createdAt: seats.createdAt,
         })
         .from(seats)
         .where(and(...conditions))
         .orderBy(asc(seats.seatNumber))
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
       // 計算總數
       const [{ total }] = await this.db
         .select({ total: count() })
         .from(seats)
-        .where(and(...conditions))
+        .where(and(...conditions));
 
-      const totalPages = Math.ceil(total / limit)
+      const totalPages = Math.ceil(total / limit);
 
       return {
         seats: seatsList,
         total,
-        pagination: { page, limit, totalPages }
-      }
+        pagination: { page, limit, totalPages },
+      };
     } catch (error) {
-      this.handleError(error, 'getSeatsByTableId')
+      this.handleError(error, "getSeatsByTableId");
     }
   }
 
@@ -250,14 +266,14 @@ export class SeatService extends BaseService {
         .update(seats)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(seats.id, seatId))
-        .returning()
+        .returning();
 
-      return updatedSeat
+      return updatedSeat;
     } catch (error) {
-      this.handleError(error, 'updateSeat')
+      this.handleError(error, "updateSeat");
     }
   }
 
@@ -270,13 +286,13 @@ export class SeatService extends BaseService {
         .update(seats)
         .set({
           isActive: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(eq(seats.id, seatId));
 
-      return true
+      return true;
     } catch (error) {
-      this.handleError(error, 'deleteSeat')
+      this.handleError(error, "deleteSeat");
     }
   }
 
@@ -285,20 +301,22 @@ export class SeatService extends BaseService {
    */
   async deleteSeatsForTable(tableId: number): Promise<boolean> {
     try {
-      await this.db
-        .delete(seats)
-        .where(eq(seats.tableId, tableId))
+      await this.db.delete(seats).where(eq(seats.tableId, tableId));
 
-      return true
+      return true;
     } catch (error) {
-      this.handleError(error, 'deleteSeatsForTable')
+      this.handleError(error, "deleteSeatsForTable");
     }
   }
 
   /**
    * 佔用座位
    */
-  async occupySeat(seatId: number, orderId: number, occupiedBy?: string): Promise<boolean> {
+  async occupySeat(
+    seatId: number,
+    orderId: number,
+    occupiedBy?: string,
+  ): Promise<boolean> {
     try {
       await this.db
         .update(seats)
@@ -307,16 +325,16 @@ export class SeatService extends BaseService {
           currentOrderId: orderId,
           occupiedAt: new Date(),
           occupiedBy,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(eq(seats.id, seatId));
 
       // 更新使用統計
-      await this.updateSeatUsageStats(seatId)
+      await this.updateSeatUsageStats(seatId);
 
-      return true
+      return true;
     } catch (error) {
-      this.handleError(error, 'occupySeat')
+      this.handleError(error, "occupySeat");
     }
   }
 
@@ -328,11 +346,11 @@ export class SeatService extends BaseService {
       const seat = await this.db
         .select({
           occupiedAt: seats.occupiedAt,
-          totalUsage: seats.totalUsage
+          totalUsage: seats.totalUsage,
         })
         .from(seats)
         .where(eq(seats.id, seatId))
-        .get()
+        .get();
 
       await this.db
         .update(seats)
@@ -342,60 +360,66 @@ export class SeatService extends BaseService {
           occupiedAt: null,
           occupiedBy: null,
           totalUsage: (seat?.totalUsage || 0) + 1,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(eq(seats.id, seatId));
 
-      return true
+      return true;
     } catch (error) {
-      this.handleError(error, 'releaseSeat')
+      this.handleError(error, "releaseSeat");
     }
   }
 
   /**
    * 重新生成座位 QR Code
    */
-  async regenerateSeatQRCode(seatId: number): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+  async regenerateSeatQRCode(
+    seatId: number,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
     try {
       const seat = await this.db
         .select({
           tableId: seats.tableId,
           seatNumber: seats.seatNumber,
-          qrCodeVersion: seats.qrCodeVersion
+          qrCodeVersion: seats.qrCodeVersion,
         })
         .from(seats)
         .where(eq(seats.id, seatId))
-        .get()
+        .get();
 
       if (!seat) {
-        return { success: false, error: 'Seat not found' }
+        return { success: false, error: "Seat not found" };
       }
 
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
         .where(eq(tables.id, seat.tableId))
-        .get()
+        .get();
 
       if (!table) {
-        return { success: false, error: 'Table not found' }
+        return { success: false, error: "Table not found" };
       }
 
-      const newQRCode = this.generateSeatQRCode(table.restaurantId, seat.tableId, seat.seatNumber)
-      const newVersion = (seat.qrCodeVersion || 0) + 1
+      const newQRCode = this.generateSeatQRCode(
+        table.restaurantId,
+        seat.tableId,
+        seat.seatNumber,
+      );
+      const newVersion = (seat.qrCodeVersion || 0) + 1;
 
       await this.db
         .update(seats)
         .set({
           qrCode: newQRCode,
           qrCodeVersion: newVersion,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(eq(seats.id, seatId));
 
-      return { success: true, qrCode: newQRCode }
+      return { success: true, qrCode: newQRCode };
     } catch (error) {
-      return { success: false, error: 'Failed to regenerate QR code' }
+      return { success: false, error: "Failed to regenerate QR code" };
     }
   }
 
@@ -403,55 +427,59 @@ export class SeatService extends BaseService {
    * 批量生成座位 QR Codes
    */
   async batchGenerateSeatQRCodes(tableId: number): Promise<{
-    success: boolean
-    qrCodes?: Array<{ seatId: number; qrCode: string; seatNumber: string }>
-    error?: string
+    success: boolean;
+    qrCodes?: Array<{ seatId: number; qrCode: string; seatNumber: string }>;
+    error?: string;
   }> {
     try {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
         .where(eq(tables.id, tableId))
-        .get()
+        .get();
 
       if (!table) {
-        return { success: false, error: 'Table not found' }
+        return { success: false, error: "Table not found" };
       }
 
       const seatsList = await this.db
         .select({
           id: seats.id,
           seatNumber: seats.seatNumber,
-          qrCodeVersion: seats.qrCodeVersion
+          qrCodeVersion: seats.qrCodeVersion,
         })
         .from(seats)
-        .where(eq(seats.tableId, tableId))
+        .where(eq(seats.tableId, tableId));
 
-      const qrCodes = []
+      const qrCodes = [];
 
       for (const seat of seatsList) {
-        const newQRCode = this.generateSeatQRCode(table.restaurantId, tableId, seat.seatNumber)
-        const newVersion = (seat.qrCodeVersion || 0) + 1
+        const newQRCode = this.generateSeatQRCode(
+          table.restaurantId,
+          tableId,
+          seat.seatNumber,
+        );
+        const newVersion = (seat.qrCodeVersion || 0) + 1;
 
         await this.db
           .update(seats)
           .set({
             qrCode: newQRCode,
             qrCodeVersion: newVersion,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
-          .where(eq(seats.id, seat.id))
+          .where(eq(seats.id, seat.id));
 
         qrCodes.push({
           seatId: seat.id,
           seatNumber: seat.seatNumber,
-          qrCode: newQRCode
-        })
+          qrCode: newQRCode,
+        });
       }
 
-      return { success: true, qrCodes }
+      return { success: true, qrCodes };
     } catch (error) {
-      return { success: false, error: 'Failed to generate QR codes' }
+      return { success: false, error: "Failed to generate QR codes" };
     }
   }
 
@@ -464,7 +492,7 @@ export class SeatService extends BaseService {
       const [{ totalSeats }] = await this.db
         .select({ totalSeats: count() })
         .from(seats)
-        .where(eq(seats.tableId, tableId))
+        .where(eq(seats.tableId, tableId));
 
       // 被佔用的座位數
       const [{ occupiedSeats }] = await this.db
@@ -474,9 +502,9 @@ export class SeatService extends BaseService {
           and(
             eq(seats.tableId, tableId),
             eq(seats.isOccupied, true),
-            eq(seats.isActive, true)
-          )
-        )
+            eq(seats.isActive, true),
+          ),
+        );
 
       // 可用座位數
       const [{ availableSeats }] = await this.db
@@ -486,33 +514,29 @@ export class SeatService extends BaseService {
           and(
             eq(seats.tableId, tableId),
             eq(seats.isOccupied, false),
-            eq(seats.isActive, true)
-          )
-        )
+            eq(seats.isActive, true),
+          ),
+        );
 
       // 不活躍座位數
       const [{ inactiveSeats }] = await this.db
         .select({ inactiveSeats: count() })
         .from(seats)
-        .where(
-          and(
-            eq(seats.tableId, tableId),
-            eq(seats.isActive, false)
-          )
-        )
+        .where(and(eq(seats.tableId, tableId), eq(seats.isActive, false)));
 
       // 計算平均佔用率
-      const averageOccupancyRate = totalSeats > 0 ? (occupiedSeats / totalSeats) * 100 : 0
+      const averageOccupancyRate =
+        totalSeats > 0 ? (occupiedSeats / totalSeats) * 100 : 0;
 
       return {
         totalSeats,
         occupiedSeats,
         availableSeats,
         inactiveSeats,
-        averageOccupancyRate: Math.round(averageOccupancyRate * 100) / 100
-      }
+        averageOccupancyRate: Math.round(averageOccupancyRate * 100) / 100,
+      };
     } catch (error) {
-      this.handleError(error, 'getSeatStats')
+      this.handleError(error, "getSeatStats");
     }
   }
 
@@ -523,18 +547,22 @@ export class SeatService extends BaseService {
   /**
    * 生成座位 QR Code 內容
    */
-  private generateSeatQRCode(restaurantId: string, tableId: number, seatNumber: string): string {
-    const baseUrl = this.env.CLIENT_BASE_URL || 'https://makanmakan.com'
+  private generateSeatQRCode(
+    restaurantId: string,
+    tableId: number,
+    seatNumber: string,
+  ): string {
+    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
     const qrData = {
-      type: 'seat',
+      type: "seat",
       restaurantId,
       tableId,
       seatNumber,
       timestamp: Date.now(),
-      version: '2.0'
-    }
+      version: "2.0",
+    };
 
-    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
+    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString("base64")}`;
   }
 
   /**
@@ -542,31 +570,31 @@ export class SeatService extends BaseService {
    */
   private generateSeatNumbers(
     count: number,
-    options: SeatNumberingOptions = {}
+    options: SeatNumberingOptions = {},
   ): string[] {
-    const { numberingStyle = 'numeric', customNumbers, prefix = '' } = options
+    const { numberingStyle = "numeric", customNumbers, prefix = "" } = options;
 
     if (customNumbers && customNumbers.length === count) {
-      return customNumbers
+      return customNumbers;
     }
 
-    const numbers: string[] = []
+    const numbers: string[] = [];
 
-    if (numberingStyle === 'numeric') {
+    if (numberingStyle === "numeric") {
       // 數字編號：01, 02, 03...
       for (let i = 1; i <= count; i++) {
-        numbers.push(`${prefix}${String(i).padStart(2, '0')}`)
+        numbers.push(`${prefix}${String(i).padStart(2, "0")}`);
       }
-    } else if (numberingStyle === 'alphabetic') {
+    } else if (numberingStyle === "alphabetic") {
       // 字母編號：A, B, C...
       for (let i = 0; i < count; i++) {
-        const letter = String.fromCharCode(65 + (i % 26)) // A-Z
-        const repeat = Math.floor(i / 26) + 1
-        numbers.push(`${prefix}${letter.repeat(repeat)}`)
+        const letter = String.fromCharCode(65 + (i % 26)); // A-Z
+        const repeat = Math.floor(i / 26) + 1;
+        numbers.push(`${prefix}${letter.repeat(repeat)}`);
       }
     }
 
-    return numbers
+    return numbers;
   }
 
   /**
@@ -578,15 +606,15 @@ export class SeatService extends BaseService {
         .select({ totalUsage: seats.totalUsage })
         .from(seats)
         .where(eq(seats.id, seatId))
-        .get()
+        .get();
 
       await this.db
         .update(seats)
         .set({
           totalUsage: (seat?.totalUsage || 0) + 1,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(eq(seats.id, seatId));
     } catch (error) {
       // Silent failure for usage stats update - non-critical operation
       // Error will be logged by the parent method's handleError

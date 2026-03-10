@@ -4,8 +4,11 @@
  * Prevents duplicate API requests in Vue components
  */
 
-import { ref, onUnmounted } from 'vue'
-import { RequestDeduplicator, type RequestDeduplicationOptions } from '@makanmakan/utils'
+import { ref, onUnmounted } from "vue";
+import {
+  RequestDeduplicator,
+  type RequestDeduplicationOptions,
+} from "@makanmakan/utils";
 
 /**
  * Create a request deduplicator for a component
@@ -18,63 +21,68 @@ import { RequestDeduplicator, type RequestDeduplicationOptions } from '@makanmak
  * }
  */
 export function useRequestDeduplication(options?: RequestDeduplicationOptions) {
-  const deduplicator = new RequestDeduplicator(options)
-  const stats = ref(deduplicator.getStats())
+  const deduplicator = new RequestDeduplicator(options);
+  const stats = ref(deduplicator.getStats());
 
   // Update stats periodically
   const statsInterval = setInterval(() => {
-    stats.value = deduplicator.getStats()
-  }, 5000)
+    stats.value = deduplicator.getStats();
+  }, 5000);
 
   // Cleanup on unmount
   onUnmounted(() => {
-    clearInterval(statsInterval)
-    deduplicator.clear()
-  })
+    clearInterval(statsInterval);
+    deduplicator.clear();
+  });
 
   return {
     /**
      * Deduplicate a request
      */
-    dedupe: <T>(key: string, requestFn: () => Promise<T>, options?: { ttl?: number }) =>
-      deduplicator.dedupe(key, requestFn, options),
+    dedupe: <T>(
+      key: string,
+      requestFn: () => Promise<T>,
+      options?: { ttl?: number },
+    ) => deduplicator.dedupe(key, requestFn, options),
 
     /**
      * Deduplicate with auto-generated key from arguments
      */
-    dedupeByArgs: <T>(requestFn: (...args: any[]) => Promise<T>, ...args: any[]) =>
-      deduplicator.dedupeByArgs(requestFn, ...args),
+    dedupeByArgs: <T>(
+      requestFn: (...args: any[]) => Promise<T>,
+      ...args: any[]
+    ) => deduplicator.dedupeByArgs(requestFn, ...args),
 
     /**
      * Invalidate specific cache entry
      */
     invalidate: (key: string) => {
-      deduplicator.invalidate(key)
-      stats.value = deduplicator.getStats()
+      deduplicator.invalidate(key);
+      stats.value = deduplicator.getStats();
     },
 
     /**
      * Invalidate entries matching pattern
      */
     invalidatePattern: (pattern: RegExp) => {
-      const count = deduplicator.invalidatePattern(pattern)
-      stats.value = deduplicator.getStats()
-      return count
+      const count = deduplicator.invalidatePattern(pattern);
+      stats.value = deduplicator.getStats();
+      return count;
     },
 
     /**
      * Clear all cache
      */
     clear: () => {
-      deduplicator.clear()
-      stats.value = deduplicator.getStats()
+      deduplicator.clear();
+      stats.value = deduplicator.getStats();
     },
 
     /**
      * Cache statistics (reactive)
      */
-    stats
-  }
+    stats,
+  };
 }
 
 /**
@@ -95,14 +103,14 @@ export function useRequestDeduplication(options?: RequestDeduplicationOptions) {
 export function useDeduplicated<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   keyGenerator: (...args: Parameters<T>) => string,
-  options?: RequestDeduplicationOptions
+  options?: RequestDeduplicationOptions,
 ): T {
-  const deduplicator = new RequestDeduplicator(options)
+  const deduplicator = new RequestDeduplicator(options);
 
   return ((...args: Parameters<T>) => {
-    const key = keyGenerator(...args)
-    return deduplicator.dedupe(key, () => fn(...args))
-  }) as T
+    const key = keyGenerator(...args);
+    return deduplicator.dedupe(key, () => fn(...args));
+  }) as T;
 }
 
 /**
@@ -118,48 +126,48 @@ export function useDeduplicated<T extends (...args: any[]) => Promise<any>>(
  * const { user, posts } = await execute()
  */
 export function useRequestBatch() {
-  const requests = new Map<string, () => Promise<any>>()
-  const deduplicator = new RequestDeduplicator()
+  const requests = new Map<string, () => Promise<any>>();
+  const deduplicator = new RequestDeduplicator();
 
   return {
     /**
      * Add a request to the batch
      */
     add: <T>(key: string, requestFn: () => Promise<T>) => {
-      requests.set(key, requestFn)
+      requests.set(key, requestFn);
     },
 
     /**
      * Execute all batched requests (deduplicated)
      */
     execute: async () => {
-      const results: Record<string, any> = {}
+      const results: Record<string, any> = {};
 
       await Promise.all(
         Array.from(requests.entries()).map(async ([key, requestFn]) => {
           try {
-            results[key] = await deduplicator.dedupe(key, requestFn)
+            results[key] = await deduplicator.dedupe(key, requestFn);
           } catch (error) {
-            console.error(`[RequestBatch] Failed to execute ${key}:`, error)
-            results[key] = { error }
+            console.error(`[RequestBatch] Failed to execute ${key}:`, error);
+            results[key] = { error };
           }
-        })
-      )
+        }),
+      );
 
-      return results
+      return results;
     },
 
     /**
      * Clear all batched requests
      */
     clear: () => {
-      requests.clear()
-      deduplicator.clear()
+      requests.clear();
+      deduplicator.clear();
     },
 
     /**
      * Get number of batched requests
      */
-    size: () => requests.size
-  }
+    size: () => requests.size,
+  };
 }

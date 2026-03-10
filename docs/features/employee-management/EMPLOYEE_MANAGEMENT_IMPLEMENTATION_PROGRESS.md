@@ -59,6 +59,7 @@ leaves/
 **API Endpoints** (16 total):
 
 **Leave Types** (5 endpoints):
+
 - `GET /:restaurantId/types` - List all leave types
 - `GET /types/:id` - Get leave type details
 - `POST /:restaurantId/types` - Create leave type
@@ -66,11 +67,13 @@ leaves/
 - `DELETE /types/:id` - Delete leave type (soft)
 
 **Leave Balances** (3 endpoints):
+
 - `GET /balances` - Get employee balances
 - `POST /balances/adjust` - Manual adjustment
 - `POST /:restaurantId/balances/accrue` - Batch accrual
 
 **Leave Requests** (6 endpoints):
+
 - `GET /:restaurantId/requests` - List requests (with filters)
 - `GET /requests/:id` - Get request details
 - `POST /:restaurantId/requests` - Submit request
@@ -79,12 +82,14 @@ leaves/
 - `POST /requests/:id/cancel` - Cancel request
 
 **Holidays** (2 endpoints):
+
 - `GET /:restaurantId/holidays` - Get holidays for year
 - `GET /:restaurantId/working-day/:date` - Check working day
 
 ##### 3. **Validation & Types** ✅
 
 **Zod Schemas**:
+
 - ✅ Request validation for all endpoints
 - ✅ Taiwan Labor Law compliance checks
 - ✅ Date range validation
@@ -92,6 +97,7 @@ leaves/
 - ✅ Half-day calculation support
 
 **TypeScript Types**:
+
 - ✅ Complete interface definitions
 - ✅ Service interface specifications
 - ✅ Relational types (WithRelations)
@@ -107,6 +113,7 @@ leaves/
 ##### 5. **Taiwan Labor Law Compliance** ✅
 
 **Pre-configured Leave Types** (10 types):
+
 - ✅ 年假 (Annual Leave) - Seniority-based, max 30 days
 - ✅ 病假 (Sick Leave) - 30 days/year, half pay after 30 days
 - ✅ 事假 (Personal Leave) - Max 14 days/year, unpaid
@@ -119,6 +126,7 @@ leaves/
 - ✅ 生理假 (Menstrual Leave) - 12 days/year, half pay
 
 **Taiwan Public Holidays 2025** (19 days):
+
 - ✅ Pre-loaded in migration `0035_leave_management_system.sql`
 - ✅ Includes adjusted holidays and compensatory work days
 
@@ -186,6 +194,7 @@ apps/api/src/features/scheduling/
 **Location**: `packages/database/src/services/SchedulingService.ts` (NOT YET CREATED)
 
 **Planned Methods**:
+
 - Shift Template Management (CRUD)
 - Employee Schedule Management
 - Conflict Detection Engine
@@ -202,25 +211,30 @@ apps/api/src/features/scheduling/
 **Planned Endpoints** (~20 endpoints):
 
 **Shift Templates**:
+
 - GET/POST/PUT/DELETE for shift templates
 
 **Schedules**:
+
 - GET/POST/PUT/DELETE for schedules
 - POST /schedules/bulk - Bulk schedule creation
 - POST /schedules/:id/clock-in - Clock in
 - POST /schedules/:id/clock-out - Clock out
 
 **Conflicts**:
+
 - GET /conflicts - List conflicts
 - POST /conflicts/:id/resolve - Resolve conflict
 
 **Swap Requests**:
+
 - GET/POST /swap-requests
 - POST /swap-requests/:id/accept
 - POST /swap-requests/:id/approve
 - POST /swap-requests/:id/reject
 
 **Availability**:
+
 - GET/POST/PUT/DELETE for availability preferences
 
 ##### 3. **Validation Schemas** ❌
@@ -228,6 +242,7 @@ apps/api/src/features/scheduling/
 **Location**: `apps/api/src/features/scheduling/schemas/validation.ts` (NOT YET CREATED)
 
 **Planned Schemas**:
+
 - Shift template validation
 - Schedule validation with time conflicts
 - Taiwan Labor Law rules
@@ -248,6 +263,7 @@ apps/api/src/features/scheduling/
 ## 📊 Overall Progress Summary
 
 ### Completed (Phase 1):
+
 - ✅ Leave Management System - **100%**
   - Database Schema ✅
   - Service Layer ✅
@@ -257,6 +273,7 @@ apps/api/src/features/scheduling/
   - Documentation ✅
 
 ### In Progress (Phase 2):
+
 - 🚧 Employee Scheduling System - **40%**
   - Database Schema ✅ (100%)
   - Module Structure ✅ (100%)
@@ -356,21 +373,25 @@ makanmakan/
 ## 🔧 Technical Specifications
 
 ### Database:
+
 - **Platform**: Cloudflare D1 (SQLite)
 - **ORM**: Drizzle ORM
 - **Migrations**: SQL migration files
 
 ### API:
+
 - **Framework**: Hono.js
 - **Runtime**: Cloudflare Workers
 - **Validation**: Zod schemas
 - **Authentication**: JWT-based
 
 ### TypeScript:
+
 - **Compliance**: 100% for Leave Management
 - **Compilation Errors**: 0
 
 ### Code Quality:
+
 - **Modular Architecture**: Feature-based modules
 - **Separation of Concerns**: Database/API/Validation layers
 - **Type Safety**: Complete TypeScript coverage
@@ -390,12 +411,14 @@ makanmakan/
 ## 🚀 Deployment Readiness
 
 ### Leave Management:
+
 - **Status**: ✅ **PRODUCTION READY**
 - **Migration**: Ready to apply
 - **API**: Fully functional
 - **Testing**: Manual testing required
 
 ### Employee Scheduling:
+
 - **Status**: 🚧 **DEVELOPMENT IN PROGRESS**
 - **Migration**: Ready to apply (database schema)
 - **API**: Not yet implemented

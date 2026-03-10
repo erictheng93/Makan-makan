@@ -81,6 +81,7 @@ Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa nhà hàn
 ```
 
 **Giải Thích Vai Trò**:
+
 - **Đầu Bếp**: Chuẩn bị món → Thông báo lấy món
 - **Bạn (Phục Vụ)**: Lấy món → Giao món → Cập nhật trạng thái
 - **Thu Ngân**: Xử lý thanh toán → Hoàn tất đơn
@@ -135,24 +136,27 @@ Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa nhà hàn
 
 ### Thông Tin Đăng Nhập
 
-| Mục | Mô Tả | Ví Dụ |
-|-----|-------|-------|
-| Tài khoản | Tài khoản nhân viên do chủ tạo | crew001 hoặc email@example.com |
-| Mật khẩu ban đầu | Mật khẩu tạm từ chủ nhà hàng | Temp123456 |
-| Yêu cầu mật khẩu mới | Ít nhất 8 ký tự, có chữ và số | MyPass2025! |
+| Mục                  | Mô Tả                          | Ví Dụ                          |
+| -------------------- | ------------------------------ | ------------------------------ |
+| Tài khoản            | Tài khoản nhân viên do chủ tạo | crew001 hoặc email@example.com |
+| Mật khẩu ban đầu     | Mật khẩu tạm từ chủ nhà hàng   | Temp123456                     |
+| Yêu cầu mật khẩu mới | Ít nhất 8 ký tự, có chữ và số  | MyPass2025!                    |
 
 ### Danh Sách Việc Cần Làm Lần Đầu
 
 ✅ **Đổi Mật Khẩu Mặc Định**
+
 - Đặt mật khẩu an toàn và dễ nhớ
 - Không chia sẻ với người khác
 
 ✅ **Hoàn Thành Hồ Sơ**
+
 - Tải ảnh đại diện (tùy chọn)
 - Điền số điện thoại liên lạc
 - Xác nhận người liên hệ khẩn cấp
 
 ✅ **Làm Quen Giao Diện**
+
 - Duyệt các khu vực chức năng
 - Thử xem đơn hàng
 - Hiểu cách cập nhật trạng thái
@@ -220,13 +224,13 @@ Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa nhà hàn
 
 ### Hướng Dẫn Thông Tin Đơn
 
-| Biểu Tượng | Ý Nghĩa | Hành Động Của Bạn |
-|-----------|---------|------------------|
-| 🔴 Đơn Mới | Vừa đặt | Theo dõi tiến độ bếp |
-| 🟡 Đang Nấu | Bếp đang chuẩn bị | Chờ thông báo lấy món |
-| 🟢 Sẵn Sàng | Món đã xong | **Lấy món ngay** |
-| 🔵 Đang Giao | Bạn đang giao | Giao càng nhanh càng tốt |
-| ✅ Đã Giao | Đã giao món | Hoàn thành nhiệm vụ |
+| Biểu Tượng   | Ý Nghĩa           | Hành Động Của Bạn        |
+| ------------ | ----------------- | ------------------------ |
+| 🔴 Đơn Mới   | Vừa đặt           | Theo dõi tiến độ bếp     |
+| 🟡 Đang Nấu  | Bếp đang chuẩn bị | Chờ thông báo lấy món    |
+| 🟢 Sẵn Sàng  | Món đã xong       | **Lấy món ngay**         |
+| 🔵 Đang Giao | Bạn đang giao     | Giao càng nhanh càng tốt |
+| ✅ Đã Giao   | Đã giao món       | Hoàn thành nhiệm vụ      |
 
 ### Chức Năng Lọc Đơn
 
@@ -291,13 +295,13 @@ Tùy Chọn Lọc:
 
 Khi lấy món từ bếp, hãy xác minh:
 
-| Mục Kiểm Tra | Nội Dung Xác Nhận |
-|-------------|------------------|
-| ✅ Số Đơn | Khớp với hệ thống |
-| ✅ Món Ăn | Xác minh tên và số lượng |
-| ✅ Đầy Đủ | Món phụ, nước sốt, đồ dùng |
-| ✅ Tình Trạng | Món nóng đủ nóng, đồ lạnh đủ lạnh |
-| ✅ Ngoại Hình | Bày biện gọn, không đổ |
+| Mục Kiểm Tra        | Nội Dung Xác Nhận                         |
+| ------------------- | ----------------------------------------- |
+| ✅ Số Đơn           | Khớp với hệ thống                         |
+| ✅ Món Ăn           | Xác minh tên và số lượng                  |
+| ✅ Đầy Đủ           | Món phụ, nước sốt, đồ dùng                |
+| ✅ Tình Trạng       | Món nóng đủ nóng, đồ lạnh đủ lạnh         |
+| ✅ Ngoại Hình       | Bày biện gọn, không đổ                    |
 | ✅ Yêu Cầu Đặc Biệt | Kiểm tra ghi chú (ví dụ: không cay, chay) |
 
 ### Phép Lịch Sự Khi Giao Món
@@ -402,10 +406,10 @@ Tình huống: 3 đơn chờ
 
 ### Thời Điểm Cập Nhật
 
-| Trạng Thái Hiện Tại | Cập Nhật Thành | Khi Nào |
-|-------------------|---------------|---------|
-| 🟢 Sẵn Sàng | 🚶 Đang Giao | **Sau khi lấy, trước khi đi** |
-| 🚶 Đang Giao | ✅ Đã Giao | **Sau khi đặt món lên bàn** |
+| Trạng Thái Hiện Tại | Cập Nhật Thành | Khi Nào                       |
+| ------------------- | -------------- | ----------------------------- |
+| 🟢 Sẵn Sàng         | 🚶 Đang Giao   | **Sau khi lấy, trước khi đi** |
+| 🚶 Đang Giao        | ✅ Đã Giao     | **Sau khi đặt món lên bàn**   |
 
 ### Tầm Quan Trọng Của Cập Nhật
 
@@ -567,12 +571,12 @@ Danh Sách Giao Món
 
 ### Chỉ Số Hiệu Suất
 
-| Chỉ Số | Mô Tả | Mục Tiêu |
-|--------|-------|----------|
-| Thời Gian Giao TB | Từ lấy đến giao | < 5 phút |
-| Đơn Hoàn Thành | Giao thành công mỗi ngày | Tùy ca làm |
-| Đánh Giá Khách | Dựa trên đánh giá | ≥ 4.5 / 5.0 |
-| Tỷ Lệ Đúng Giờ | Giao trong thời gian ước tính | ≥ 95% |
+| Chỉ Số            | Mô Tả                         | Mục Tiêu    |
+| ----------------- | ----------------------------- | ----------- |
+| Thời Gian Giao TB | Từ lấy đến giao               | < 5 phút    |
+| Đơn Hoàn Thành    | Giao thành công mỗi ngày      | Tùy ca làm  |
+| Đánh Giá Khách    | Dựa trên đánh giá             | ≥ 4.5 / 5.0 |
+| Tỷ Lệ Đúng Giờ    | Giao trong thời gian ước tính | ≥ 95%       |
 
 ---
 
@@ -985,6 +989,7 @@ Cảm ơn bạn đã chọn trở thành thành viên của đội ngũ MakanMak
 Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa bếp và khách hàng. Mỗi nụ cười, mỗi lần giao đúng giờ của bạn đều tạo nên trải nghiệm ăn uống tuyệt vời.
 
 Hãy nhớ:
+
 - ✨ **Thái độ quyết định tất cả** - Giữ tích cực và nhiệt tình
 - 🚀 **Hiệu quả tạo giá trị** - Nhanh nhưng vững chắc
 - 🤝 **Phục vụ từ trái tim** - Đối xử chân thành với mọi khách

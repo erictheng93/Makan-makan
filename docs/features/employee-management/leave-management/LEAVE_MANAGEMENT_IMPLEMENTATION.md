@@ -26,6 +26,7 @@ The Leave Management System provides comprehensive time-off management for resta
 **From**: HR Management Requirements & Labor Law Compliance
 
 **Stakeholders**:
+
 - Employees (Submit requests, view balances)
 - Managers (Approve/reject requests, view team calendar)
 - HR/Owners (Configure leave policies, generate reports)
@@ -96,6 +97,7 @@ CREATE TABLE leave_types (
 ```
 
 **Default Leave Types**:
+
 ```sql
 -- Annual Leave (年假)
 INSERT INTO leave_types (code, name, default_days_per_year, accrual_type, allow_carryover, max_carryover_days, color_code, is_system_defined)
@@ -306,6 +308,7 @@ CREATE TABLE leave_approval_rules (
 ```
 
 **Example Rules**:
+
 ```sql
 -- Level 1: Direct Manager Approval (for 1-3 days)
 INSERT INTO leave_approval_rules (restaurant_id, rule_name, approval_level, approver_role, max_days)
@@ -370,6 +373,7 @@ CREATE TABLE leave_calendar_events (
 ```
 
 **Taiwan Public Holidays (2025)**:
+
 ```sql
 INSERT INTO leave_calendar_events (event_type, name, event_date, is_recurring)
 VALUES
@@ -550,12 +554,15 @@ GROUP BY lr.restaurant_id, leave_date;
 ## API Reference
 
 ### Base URL
+
 ```
 /api/v1/leave
 ```
 
 ### Authentication
+
 All endpoints require JWT authentication. Permissions:
+
 - **Employees**: Can view own leave data, submit requests
 - **Managers/Owners**: Can approve requests, view team leave
 - **Admin**: Full access
@@ -565,6 +572,7 @@ All endpoints require JWT authentication. Permissions:
 ### Endpoints
 
 #### 1. Get Employee Leave Balance
+
 ```http
 GET /api/v1/leave/balance/:employeeId?year=2025
 
@@ -599,6 +607,7 @@ Response:
 ```
 
 #### 2. Submit Leave Request
+
 ```http
 POST /api/v1/leave/request
 
@@ -636,6 +645,7 @@ Response:
 ```
 
 #### 3. Get Leave Requests (Employee View)
+
 ```http
 GET /api/v1/leave/requests?employeeId=42&status=pending&year=2025
 
@@ -673,6 +683,7 @@ Response:
 ```
 
 #### 4. Get Pending Approvals (Manager View)
+
 ```http
 GET /api/v1/leave/approvals/pending?restaurantId=1
 
@@ -707,6 +718,7 @@ Response:
 ```
 
 #### 5. Approve Leave Request
+
 ```http
 POST /api/v1/leave/requests/:id/approve
 
@@ -733,6 +745,7 @@ Response:
 ```
 
 #### 6. Reject Leave Request
+
 ```http
 POST /api/v1/leave/requests/:id/reject
 
@@ -756,6 +769,7 @@ Response:
 ```
 
 #### 7. Cancel Leave Request
+
 ```http
 POST /api/v1/leave/requests/:id/cancel
 
@@ -777,6 +791,7 @@ Response:
 ```
 
 #### 8. Get Team Leave Calendar
+
 ```http
 GET /api/v1/leave/calendar?restaurantId=1&from=2025-10-01&to=2025-10-31
 
@@ -815,6 +830,7 @@ Response:
 ```
 
 #### 9. Adjust Leave Balance (Manual)
+
 ```http
 POST /api/v1/leave/balance/adjust
 
@@ -849,6 +865,7 @@ Response:
 ```
 
 #### 10. Get Leave Statistics
+
 ```http
 GET /api/v1/leave/stats?restaurantId=1&year=2025
 
@@ -911,7 +928,11 @@ POST   /api/v1/leave/balance/rollover                # Year-end rollover (Cron j
       <el-tab-pane label="我的假期" name="my-leave" v-if="isEmployee">
         <el-row :gutter="20">
           <!-- Leave Balance Cards -->
-          <el-col :span="6" v-for="balance in myBalances" :key="balance.leaveTypeId">
+          <el-col
+            :span="6"
+            v-for="balance in myBalances"
+            :key="balance.leaveTypeId"
+          >
             <el-card class="balance-card">
               <template #header>
                 <div class="balance-header">
@@ -1061,108 +1082,114 @@ POST   /api/v1/leave/balance/rollover                # Year-end rollover (Cron j
     </el-tabs>
 
     <!-- Request Dialog -->
-    <LeaveRequestDialog
-      v-model="showRequestDialog"
-      @submit="submitRequest"
-    />
+    <LeaveRequestDialog v-model="showRequestDialog" @submit="submitRequest" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useUserStore } from '@/stores/user'
-import type { LeaveBalance, LeaveRequest } from '@makanmakan/shared-types'
+import { ref, computed, onMounted } from "vue";
+import { useUserStore } from "@/stores/user";
+import type { LeaveBalance, LeaveRequest } from "@makanmakan/shared-types";
 
-const userStore = useUserStore()
-const activeTab = ref('my-leave')
+const userStore = useUserStore();
+const activeTab = ref("my-leave");
 
-const isEmployee = computed(() => userStore.role >= 2)
-const isManager = computed(() => userStore.role <= 1)
+const isEmployee = computed(() => userStore.role >= 2);
+const isManager = computed(() => userStore.role <= 1);
 
-const myBalances = ref<LeaveBalance[]>([])
-const myRequests = ref<LeaveRequest[]>([])
-const pendingApprovals = ref<LeaveRequest[]>([])
-const pendingCount = computed(() => pendingApprovals.value.length)
+const myBalances = ref<LeaveBalance[]>([]);
+const myRequests = ref<LeaveRequest[]>([]);
+const pendingApprovals = ref<LeaveRequest[]>([]);
+const pendingCount = computed(() => pendingApprovals.value.length);
 
-const showRequestDialog = ref(false)
-const restaurantId = computed(() => userStore.restaurantId)
-const currentYear = ref(new Date().getFullYear())
-const currentMonth = ref(new Date())
+const showRequestDialog = ref(false);
+const restaurantId = computed(() => userStore.restaurantId);
+const currentYear = ref(new Date().getFullYear());
+const currentMonth = ref(new Date());
 
 onMounted(async () => {
-  await loadMyBalances()
-  await loadMyRequests()
+  await loadMyBalances();
+  await loadMyRequests();
   if (isManager.value) {
-    await loadPendingApprovals()
+    await loadPendingApprovals();
   }
-})
+});
 
 async function loadMyBalances() {
-  const response = await fetch(`/api/v1/leave/balance/${userStore.id}?year=${currentYear.value}`)
-  const result = await response.json()
-  myBalances.value = result.data.balances
+  const response = await fetch(
+    `/api/v1/leave/balance/${userStore.id}?year=${currentYear.value}`,
+  );
+  const result = await response.json();
+  myBalances.value = result.data.balances;
 }
 
 async function loadMyRequests() {
-  const response = await fetch(`/api/v1/leave/requests?employeeId=${userStore.id}&year=${currentYear.value}`)
-  const result = await response.json()
-  myRequests.value = result.data.requests
+  const response = await fetch(
+    `/api/v1/leave/requests?employeeId=${userStore.id}&year=${currentYear.value}`,
+  );
+  const result = await response.json();
+  myRequests.value = result.data.requests;
 }
 
 async function loadPendingApprovals() {
-  const response = await fetch(`/api/v1/leave/approvals/pending?restaurantId=${restaurantId.value}`)
-  const result = await response.json()
-  pendingApprovals.value = result.data.pendingApprovals
+  const response = await fetch(
+    `/api/v1/leave/approvals/pending?restaurantId=${restaurantId.value}`,
+  );
+  const result = await response.json();
+  pendingApprovals.value = result.data.pendingApprovals;
 }
 
 function calculateUsagePercentage(balance: LeaveBalance): number {
-  if (balance.totalDays === 0) return 0
-  return (balance.usedDays / balance.totalDays) * 100
+  if (balance.totalDays === 0) return 0;
+  return (balance.usedDays / balance.totalDays) * 100;
 }
 
 function getProgressColor(balance: LeaveBalance): string {
-  const percentage = calculateUsagePercentage(balance)
-  if (percentage >= 90) return '#F56C6C'
-  if (percentage >= 70) return '#E6A23C'
-  return '#67C23A'
+  const percentage = calculateUsagePercentage(balance);
+  if (percentage >= 90) return "#F56C6C";
+  if (percentage >= 70) return "#E6A23C";
+  return "#67C23A";
 }
 
 async function approveRequest(requestId: number) {
   const confirmed = await ElMessageBox.confirm(
-    '確定要批准此請假申請嗎？',
-    '批准請假',
-    { type: 'info' }
-  )
+    "確定要批准此請假申請嗎？",
+    "批准請假",
+    { type: "info" },
+  );
 
   if (confirmed) {
-    const response = await fetch(`/api/v1/leave/requests/${requestId}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment: '已批准' })
-    })
+    const response = await fetch(
+      `/api/v1/leave/requests/${requestId}/approve`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: "已批准" }),
+      },
+    );
 
     if (response.ok) {
-      ElMessage.success('請假申請已批准')
-      await loadPendingApprovals()
+      ElMessage.success("請假申請已批准");
+      await loadPendingApprovals();
     }
   }
 }
 
 async function rejectRequest(requestId: number) {
-  const reason = await ElMessageBox.prompt('請輸入拒絕原因', '拒絕請假', {
-    inputType: 'textarea'
-  })
+  const reason = await ElMessageBox.prompt("請輸入拒絕原因", "拒絕請假", {
+    inputType: "textarea",
+  });
 
   if (reason) {
     const response = await fetch(`/api/v1/leave/requests/${requestId}/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: reason.value })
-    })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason.value }),
+    });
 
     if (response.ok) {
-      ElMessage.success('請假申請已拒絕')
-      await loadPendingApprovals()
+      ElMessage.success("請假申請已拒絕");
+      await loadPendingApprovals();
     }
   }
 }
@@ -1199,7 +1226,12 @@ async function rejectRequest(requestId: number) {
       </el-form-item>
 
       <el-form-item label="請假天數">
-        <el-input-number v-model="form.daysCount" :min="0.5" :max="365" :step="0.5" />
+        <el-input-number
+          v-model="form.daysCount"
+          :min="0.5"
+          :max="365"
+          :step="0.5"
+        />
         <span style="margin-left: 10px; color: #909399">
           (可使用半天 0.5)
         </span>
@@ -1275,70 +1307,70 @@ async function rejectRequest(requestId: number) {
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { LeaveType } from '@makanmakan/shared-types'
+import { ref, computed, watch } from "vue";
+import type { LeaveType } from "@makanmakan/shared-types";
 
-const visible = defineModel<boolean>({ required: true })
+const visible = defineModel<boolean>({ required: true });
 const emit = defineEmits<{
-  submit: [request: LeaveRequestForm]
-}>()
+  submit: [request: LeaveRequestForm];
+}>();
 
 interface LeaveRequestForm {
-  leaveTypeId: number
-  dateRange: [Date, Date]
-  daysCount: number
-  halfDayType?: 'morning' | 'afternoon'
-  reason: string
-  description?: string
-  isEmergency: boolean
-  attachments?: string[]
+  leaveTypeId: number;
+  dateRange: [Date, Date];
+  daysCount: number;
+  halfDayType?: "morning" | "afternoon";
+  reason: string;
+  description?: string;
+  isEmergency: boolean;
+  attachments?: string[];
 }
 
-const leaveTypes = ref<LeaveType[]>([])
-const balances = ref<Record<number, number>>({})
-const conflicts = ref([])
-const submitting = ref(false)
-const fileList = ref([])
+const leaveTypes = ref<LeaveType[]>([]);
+const balances = ref<Record<number, number>>({});
+const conflicts = ref([]);
+const submitting = ref(false);
+const fileList = ref([]);
 
 const form = ref<LeaveRequestForm>({
   leaveTypeId: 0,
   dateRange: [new Date(), new Date()],
   daysCount: 1,
-  reason: '',
-  isEmergency: false
-})
+  reason: "",
+  isEmergency: false,
+});
 
 const rules = {
-  leaveTypeId: [{ required: true, message: '請選擇假期類型' }],
-  dateRange: [{ required: true, message: '請選擇日期範圍' }],
-  reason: [{ required: true, message: '請輸入請假原因' }]
-}
+  leaveTypeId: [{ required: true, message: "請選擇假期類型" }],
+  dateRange: [{ required: true, message: "請選擇日期範圍" }],
+  reason: [{ required: true, message: "請輸入請假原因" }],
+};
 
 const requiresDocumentation = computed(() => {
-  const type = leaveTypes.value.find(t => t.id === form.value.leaveTypeId)
-  return type?.requiresDocumentation || false
-})
+  const type = leaveTypes.value.find((t) => t.id === form.value.leaveTypeId);
+  return type?.requiresDocumentation || false;
+});
 
 function getBalance(leaveTypeId: number): number {
-  return balances.value[leaveTypeId] || 0
+  return balances.value[leaveTypeId] || 0;
 }
 
 function calculateDays() {
   if (form.value.dateRange && form.value.dateRange.length === 2) {
-    const [start, end] = form.value.dateRange
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    form.value.daysCount = diffDays
+    const [start, end] = form.value.dateRange;
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    form.value.daysCount = diffDays;
   }
 }
 
 async function submit() {
-  submitting.value = true
+  submitting.value = true;
   try {
-    emit('submit', form.value)
-    visible.value = false
+    emit("submit", form.value);
+    visible.value = false;
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 </script>
@@ -1356,7 +1388,7 @@ async function submit() {
           :class="{ 'has-leave': hasLeave(data.day) }"
           @click="$emit('date-click', data.day)"
         >
-          <div class="day-number">{{ data.day.split('-')[2] }}</div>
+          <div class="day-number">{{ data.day.split("-")[2] }}</div>
           <div v-if="hasLeave(data.day)" class="leave-indicators">
             <el-tag
               v-for="leave in getLeavesByDate(data.day)"
@@ -1375,52 +1407,60 @@ async function submit() {
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import type { LeaveCalendarEvent } from '@makanmakan/shared-types'
+import { ref, onMounted } from "vue";
+import type { LeaveCalendarEvent } from "@makanmakan/shared-types";
 
 const props = defineProps<{
-  restaurantId: number
-  month: Date
-}>()
+  restaurantId: number;
+  month: Date;
+}>();
 
 const emit = defineEmits<{
-  dateClick: [date: string]
-}>()
+  dateClick: [date: string];
+}>();
 
-const currentDate = ref(props.month)
-const leaveData = ref<Record<string, LeaveCalendarEvent[]>>({})
+const currentDate = ref(props.month);
+const leaveData = ref<Record<string, LeaveCalendarEvent[]>>({});
 
 onMounted(async () => {
-  await loadLeaveCalendar()
-})
+  await loadLeaveCalendar();
+});
 
 async function loadLeaveCalendar() {
-  const firstDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1)
-  const lastDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 0)
+  const firstDay = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth(),
+    1,
+  );
+  const lastDay = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth() + 1,
+    0,
+  );
 
   const response = await fetch(
-    `/api/v1/leave/calendar?restaurantId=${props.restaurantId}&from=${formatDate(firstDay)}&to=${formatDate(lastDay)}`
-  )
-  const result = await response.json()
+    `/api/v1/leave/calendar?restaurantId=${props.restaurantId}&from=${formatDate(firstDay)}&to=${formatDate(lastDay)}`,
+  );
+  const result = await response.json();
 
   // Group by date
   leaveData.value = result.data.calendar.reduce((acc, item) => {
-    if (!acc[item.date]) acc[item.date] = []
-    acc[item.date].push(...item.employees)
-    return acc
-  }, {})
+    if (!acc[item.date]) acc[item.date] = [];
+    acc[item.date].push(...item.employees);
+    return acc;
+  }, {});
 }
 
 function hasLeave(date: string): boolean {
-  return !!leaveData.value[date]
+  return !!leaveData.value[date];
 }
 
 function getLeavesByDate(date: string): LeaveCalendarEvent[] {
-  return leaveData.value[date] || []
+  return leaveData.value[date] || [];
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0]
+  return date.toISOString().split("T")[0];
 }
 </script>
 
@@ -1462,97 +1502,100 @@ function formatDate(date: Date): string {
 ```typescript
 // services/LeaveApprovalService.ts
 export class LeaveApprovalService {
-
   async processApproval(
     requestId: number,
     approverId: number,
-    action: 'approve' | 'reject',
-    comment?: string
+    action: "approve" | "reject",
+    comment?: string,
   ): Promise<ApprovalResult> {
-
-    const request = await this.getLeaveRequest(requestId)
-    const rules = await this.getApprovalRules(request.restaurantId, request)
+    const request = await this.getLeaveRequest(requestId);
+    const rules = await this.getApprovalRules(request.restaurantId, request);
 
     // Get current approval level
-    const currentLevel = request.currentApprovalLevel
+    const currentLevel = request.currentApprovalLevel;
 
     // Update approval chain
-    const approvalChain = JSON.parse(request.approvalChain || '[]')
+    const approvalChain = JSON.parse(request.approvalChain || "[]");
     approvalChain.push({
       level: currentLevel,
       approverId,
       approverName: await this.getUserName(approverId),
       status: action,
       comment,
-      timestamp: Date.now()
-    })
+      timestamp: Date.now(),
+    });
 
-    if (action === 'approve') {
+    if (action === "approve") {
       // Check if more levels needed
       if (currentLevel < request.requiredApprovalLevels) {
         // Move to next level
         await this.updateRequest(requestId, {
           currentApprovalLevel: currentLevel + 1,
           approvalChain: JSON.stringify(approvalChain),
-          status: 'pending'
-        })
+          status: "pending",
+        });
 
         // Notify next approver
-        await this.notifyNextApprover(request, currentLevel + 1)
+        await this.notifyNextApprover(request, currentLevel + 1);
 
         return {
           success: true,
-          status: 'pending_next_level',
-          nextLevel: currentLevel + 1
-        }
+          status: "pending_next_level",
+          nextLevel: currentLevel + 1,
+        };
       } else {
         // Final approval
-        await this.finalizeApproval(requestId, approverId, approvalChain)
+        await this.finalizeApproval(requestId, approverId, approvalChain);
         return {
           success: true,
-          status: 'approved',
-          final: true
-        }
+          status: "approved",
+          final: true,
+        };
       }
     } else {
       // Reject
-      await this.finalizeRejection(requestId, approverId, comment, approvalChain)
+      await this.finalizeRejection(
+        requestId,
+        approverId,
+        comment,
+        approvalChain,
+      );
       return {
         success: true,
-        status: 'rejected',
-        final: true
-      }
+        status: "rejected",
+        final: true,
+      };
     }
   }
 
   private async finalizeApproval(
     requestId: number,
     approverId: number,
-    approvalChain: any[]
+    approvalChain: any[],
   ): Promise<void> {
-    const request = await this.getLeaveRequest(requestId)
+    const request = await this.getLeaveRequest(requestId);
 
     // Update request status
     await this.updateRequest(requestId, {
-      status: 'approved',
+      status: "approved",
       finalApprovedBy: approverId,
       finalApprovedAt: Date.now(),
-      approvalChain: JSON.stringify(approvalChain)
-    })
+      approvalChain: JSON.stringify(approvalChain),
+    });
 
     // Update leave balance
     await this.updateLeaveBalance(
       request.employeeId,
       request.leaveTypeId,
       request.year,
-      request.daysCount
-    )
+      request.daysCount,
+    );
 
     // Handle schedule conflicts
-    await this.handleScheduleConflicts(request)
+    await this.handleScheduleConflicts(request);
 
     // Send notifications
-    await this.notifyEmployee(request, 'approved')
+    await this.notifyEmployee(request, "approved");
   }
 
   private async handleScheduleConflicts(request: LeaveRequest): Promise<void> {
@@ -1560,25 +1603,25 @@ export class LeaveApprovalService {
     const conflicts = await this.findScheduleConflicts(
       request.employeeId,
       request.startDate,
-      request.endDate
-    )
+      request.endDate,
+    );
 
     if (conflicts.length > 0) {
       // Cancel schedules
       for (const schedule of conflicts) {
         await scheduleService.updateSchedule(schedule.id, {
-          status: 'cancelled',
-          notes: `Cancelled due to approved leave request #${request.id}`
-        })
+          status: "cancelled",
+          notes: `Cancelled due to approved leave request #${request.id}`,
+        });
       }
 
       // Notify manager about replacement needed
       await notificationService.create({
-        type: 'replacement_needed',
+        type: "replacement_needed",
         requestId: request.id,
-        scheduleIds: conflicts.map(s => s.id),
-        message: `${request.employeeName} 的請假已批准，需要安排替代人員`
-      })
+        scheduleIds: conflicts.map((s) => s.id),
+        message: `${request.employeeName} 的請假已批准，需要安排替代人員`,
+      });
     }
   }
 }
@@ -1592,55 +1635,62 @@ export class LeaveApprovalService {
 
 ```typescript
 // When submitting leave request
-async function validateLeaveRequest(request: LeaveRequestInput): Promise<ValidationResult> {
+async function validateLeaveRequest(
+  request: LeaveRequestInput,
+): Promise<ValidationResult> {
   // Check leave balance
   const balance = await getLeaveBalance(
     request.employeeId,
     request.leaveTypeId,
-    new Date(request.startDate).getFullYear()
-  )
+    new Date(request.startDate).getFullYear(),
+  );
 
   if (balance.remainingDays < request.daysCount) {
     return {
       valid: false,
-      error: 'INSUFFICIENT_BALANCE',
-      message: `假期餘額不足（剩餘 ${balance.remainingDays} 天）`
-    }
+      error: "INSUFFICIENT_BALANCE",
+      message: `假期餘額不足（剩餘 ${balance.remainingDays} 天）`,
+    };
   }
 
   // Check for scheduled shifts
-  const scheduleConflicts = await scheduleService.findSchedulesByEmployeeAndDate(
-    request.employeeId,
-    request.startDate,
-    request.endDate
-  )
+  const scheduleConflicts =
+    await scheduleService.findSchedulesByEmployeeAndDate(
+      request.employeeId,
+      request.startDate,
+      request.endDate,
+    );
 
   // Check team coverage
   const teamLeave = await getTeamLeaveForPeriod(
     request.restaurantId,
     request.startDate,
-    request.endDate
-  )
+    request.endDate,
+  );
 
   const criticalRoleUncovered = checkCriticalRoleCoverage(
     teamLeave,
-    request.employeeRole
-  )
+    request.employeeRole,
+  );
 
   return {
     valid: true,
     warnings: [
-      ...scheduleConflicts.map(s => ({
-        type: 'schedule_conflict',
+      ...scheduleConflicts.map((s) => ({
+        type: "schedule_conflict",
         message: `已排班於 ${s.workDate}`,
-        scheduleId: s.id
+        scheduleId: s.id,
       })),
-      ...(criticalRoleUncovered ? [{
-        type: 'coverage_issue',
-        message: '此期間該角色人手不足'
-      }] : [])
-    ]
-  }
+      ...(criticalRoleUncovered
+        ? [
+            {
+              type: "coverage_issue",
+              message: "此期間該角色人手不足",
+            },
+          ]
+        : []),
+    ],
+  };
 }
 ```
 
@@ -1651,28 +1701,32 @@ async function validateLeaveRequest(request: LeaveRequestInput): Promise<Validat
 ### 1. Leave Balance Management
 
 **Annual Rollover**:
+
 ```typescript
 // Cron job: Run on January 1st
 async function annualLeaveRollover() {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
 
   // Get all employees
-  const employees = await userService.getAllEmployees()
+  const employees = await userService.getAllEmployees();
 
   for (const employee of employees) {
     // Get previous year balances
-    const prevBalances = await getEmployeeBalances(employee.id, currentYear - 1)
+    const prevBalances = await getEmployeeBalances(
+      employee.id,
+      currentYear - 1,
+    );
 
     for (const prevBalance of prevBalances) {
-      const leaveType = await getLeaveType(prevBalance.leaveTypeId)
+      const leaveType = await getLeaveType(prevBalance.leaveTypeId);
 
       // Calculate carryover
-      let carryoverDays = 0
+      let carryoverDays = 0;
       if (leaveType.allowCarryover) {
         carryoverDays = Math.min(
           prevBalance.remainingDays,
-          leaveType.maxCarryoverDays
-        )
+          leaveType.maxCarryoverDays,
+        );
       }
 
       // Create new year balance
@@ -1684,8 +1738,8 @@ async function annualLeaveRollover() {
         carryoverDays,
         carryoverExpiresAt: leaveType.carryoverExpiresMonths
           ? addMonths(new Date(), leaveType.carryoverExpiresMonths)
-          : null
-      })
+          : null,
+      });
     }
   }
 }
@@ -1694,6 +1748,7 @@ async function annualLeaveRollover() {
 ### 2. Approval Escalation
 
 **Auto-Escalate Stale Requests**:
+
 ```typescript
 // Cron job: Run every 6 hours
 async function escalateStaleApprovals() {
@@ -1701,19 +1756,19 @@ async function escalateStaleApprovals() {
     SELECT * FROM leave_requests
     WHERE status = 'pending'
       AND (strftime('%s', 'now') - submitted_at) > 172800  -- 48 hours
-  `)
+  `);
 
   for (const request of staleRequests) {
-    const rule = await getApprovalRule(request, request.currentApprovalLevel)
+    const rule = await getApprovalRule(request, request.currentApprovalLevel);
 
     if (rule.escalateToUserId) {
       // Escalate to designated user
       await notificationService.create({
-        type: 'escalated_approval',
+        type: "escalated_approval",
         userId: rule.escalateToUserId,
         requestId: request.id,
-        message: `Leave request #${request.id} has been escalated to you`
-      })
+        message: `Leave request #${request.id} has been escalated to you`,
+      });
     }
   }
 }
@@ -1722,25 +1777,29 @@ async function escalateStaleApprovals() {
 ### 3. Leave Balance Audit
 
 **Monthly Reconciliation**:
+
 ```typescript
 async function reconcileLeaveBalances(year: number, month: number) {
-  const employees = await userService.getAllEmployees()
+  const employees = await userService.getAllEmployees();
 
   for (const employee of employees) {
-    const balances = await getEmployeeBalances(employee.id, year)
+    const balances = await getEmployeeBalances(employee.id, year);
 
     for (const balance of balances) {
       // Recalculate from approved requests
-      const approvedRequests = await db.query(`
+      const approvedRequests = await db.query(
+        `
         SELECT SUM(days_count) as total
         FROM leave_requests
         WHERE employee_id = ?
           AND leave_type_id = ?
           AND status = 'approved'
           AND strftime('%Y', start_date) = ?
-      `, [employee.id, balance.leaveTypeId, year.toString()])
+      `,
+        [employee.id, balance.leaveTypeId, year.toString()],
+      );
 
-      const actualUsedDays = approvedRequests[0].total || 0
+      const actualUsedDays = approvedRequests[0].total || 0;
 
       if (actualUsedDays !== balance.usedDays) {
         // Discrepancy detected, log and fix
@@ -1750,13 +1809,13 @@ async function reconcileLeaveBalances(year: number, month: number) {
           year,
           expected: actualUsedDays,
           actual: balance.usedDays,
-          difference: actualUsedDays - balance.usedDays
-        })
+          difference: actualUsedDays - balance.usedDays,
+        });
 
         // Fix balance
         await updateLeaveBalance(balance.id, {
-          usedDays: actualUsedDays
-        })
+          usedDays: actualUsedDays,
+        });
       }
     }
   }
@@ -1770,47 +1829,47 @@ async function reconcileLeaveBalances(year: number, month: number) {
 ### Unit Tests
 
 ```typescript
-describe('LeaveApprovalService', () => {
-  it('should approve single-level request', async () => {
+describe("LeaveApprovalService", () => {
+  it("should approve single-level request", async () => {
     const request = await createTestLeaveRequest({
-      requiredApprovalLevels: 1
-    })
+      requiredApprovalLevels: 1,
+    });
 
     const result = await approvalService.processApproval(
       request.id,
       managerId,
-      'approve'
-    )
+      "approve",
+    );
 
-    expect(result.status).toBe('approved')
-    expect(result.final).toBe(true)
-  })
+    expect(result.status).toBe("approved");
+    expect(result.final).toBe(true);
+  });
 
-  it('should move to next level for multi-level approval', async () => {
+  it("should move to next level for multi-level approval", async () => {
     const request = await createTestLeaveRequest({
-      requiredApprovalLevels: 2
-    })
+      requiredApprovalLevels: 2,
+    });
 
     const result = await approvalService.processApproval(
       request.id,
       managerId,
-      'approve'
-    )
+      "approve",
+    );
 
-    expect(result.status).toBe('pending_next_level')
-    expect(result.nextLevel).toBe(2)
-  })
+    expect(result.status).toBe("pending_next_level");
+    expect(result.nextLevel).toBe(2);
+  });
 
-  it('should deduct leave balance on approval', async () => {
-    const balanceBefore = await getLeaveBalance(employeeId, leaveTypeId, 2025)
+  it("should deduct leave balance on approval", async () => {
+    const balanceBefore = await getLeaveBalance(employeeId, leaveTypeId, 2025);
 
-    await approvalService.processApproval(requestId, managerId, 'approve')
+    await approvalService.processApproval(requestId, managerId, "approve");
 
-    const balanceAfter = await getLeaveBalance(employeeId, leaveTypeId, 2025)
+    const balanceAfter = await getLeaveBalance(employeeId, leaveTypeId, 2025);
 
-    expect(balanceAfter.usedDays).toBe(balanceBefore.usedDays + 3)
-  })
-})
+    expect(balanceAfter.usedDays).toBe(balanceBefore.usedDays + 3);
+  });
+});
 ```
 
 ---

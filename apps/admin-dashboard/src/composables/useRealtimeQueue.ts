@@ -11,7 +11,14 @@ export interface RealtimeQueueUpdate {
   queueNumber: number;
   customerName?: string;
   partySize: number;
-  status: "waiting" | "called" | "notified" | "seated" | "no_show" | "cancelled" | "expired";
+  status:
+    | "waiting"
+    | "called"
+    | "notified"
+    | "seated"
+    | "no_show"
+    | "cancelled"
+    | "expired";
   waitTime?: number;
   tableNumber?: string;
   timestamp: string;
@@ -58,8 +65,11 @@ export function useRealtimeQueue() {
       status: message.data.status || "waiting",
       waitTime: message.data.waitTime || message.data.actualWaitMinutes,
       tableNumber: message.data.tableNumber || message.data.table_number,
-      estimatedWaitMinutes: message.data.estimatedWaitMinutes || message.data.estimated_wait_minutes,
-      actualWaitMinutes: message.data.actualWaitMinutes || message.data.actual_wait_minutes,
+      estimatedWaitMinutes:
+        message.data.estimatedWaitMinutes ||
+        message.data.estimated_wait_minutes,
+      actualWaitMinutes:
+        message.data.actualWaitMinutes || message.data.actual_wait_minutes,
       timestamp: message.timestamp,
       type: message.type.includes("joined")
         ? "joined"
@@ -90,17 +100,17 @@ export function useRealtimeQueue() {
     if (update.type === "joined") {
       showQueueNotification(
         `新顧客加入排隊: ${update.customerName || `排號 ${update.queueNumber}`} (${update.partySize}人)`,
-        "info"
+        "info",
       );
     } else if (update.type === "called") {
       showQueueNotification(
         `叫號: ${update.customerName || `排號 ${update.queueNumber}`}`,
-        "success"
+        "success",
       );
     } else if (update.type === "seated") {
       showQueueNotification(
         `入座完成: ${update.customerName || `排號 ${update.queueNumber}`}`,
-        "success"
+        "success",
       );
     } else if (update.type === "no_show") {
       showQueueNotification(
@@ -110,7 +120,7 @@ export function useRealtimeQueue() {
     } else if (update.type === "cancelled") {
       showQueueNotification(
         `已取消: ${update.customerName || `排號 ${update.queueNumber}`}`,
-        "info"
+        "info",
       );
     }
   };
@@ -303,20 +313,21 @@ export function useRealtimeQueue() {
 
   // 獲取特定狀態的候位更新數量
   const getUpdateCountByStatus = (status: string) => {
-    return queueUpdates.value.filter((update) => update.status === status).length;
+    return queueUpdates.value.filter((update) => update.status === status)
+      .length;
   };
 
   // 獲取平均等待時間
   const getAverageWaitTime = () => {
     const seatedUpdates = queueUpdates.value.filter(
-      (update) => update.type === "seated" && update.actualWaitMinutes
+      (update) => update.type === "seated" && update.actualWaitMinutes,
     );
 
     if (seatedUpdates.length === 0) return 0;
 
     const totalWait = seatedUpdates.reduce(
       (sum, update) => sum + (update.actualWaitMinutes || 0),
-      0
+      0,
     );
 
     return Math.round(totalWait / seatedUpdates.length);

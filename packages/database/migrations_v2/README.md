@@ -63,11 +63,11 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 1: 基礎層 (Foundation) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `01_tenants_and_settings.sql` | ✅ | 2 | 餐廳管理、多租戶、訂閱 |
-| `02_authentication.sql` | ✅ | 4 | 用戶、會話、認證、權限 |
-| `03_audit_system.sql` | ✅ | 3 | 審計日誌、錯誤報告、變更歷史 |
+| Migration                     | 狀態 | 表數 | 說明                         |
+| ----------------------------- | ---- | ---- | ---------------------------- |
+| `01_tenants_and_settings.sql` | ✅   | 2    | 餐廳管理、多租戶、訂閱       |
+| `02_authentication.sql`       | ✅   | 4    | 用戶、會話、認證、權限       |
+| `03_audit_system.sql`         | ✅   | 3    | 審計日誌、錯誤報告、變更歷史 |
 
 **總計**: 9 個表，57 個索引，8 個視圖，5 個觸發器
 
@@ -75,11 +75,11 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 2: 核心業務層 (Core Business) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `04_product_catalog.sql` | ✅ | 6 | 分類、菜單、選項、標籤 |
-| `05_order_management.sql` | ✅ | 3 | 訂單、訂單項目、付款 |
-| `06_customer_management.sql` | ✅ | 4 | 顧客資料、地址、偏好、最愛 |
+| Migration                    | 狀態 | 表數 | 說明                       |
+| ---------------------------- | ---- | ---- | -------------------------- |
+| `04_product_catalog.sql`     | ✅   | 6    | 分類、菜單、選項、標籤     |
+| `05_order_management.sql`    | ✅   | 3    | 訂單、訂單項目、付款       |
+| `06_customer_management.sql` | ✅   | 4    | 顧客資料、地址、偏好、最愛 |
 
 **總計**: 13 個表，84 個索引，11 個視圖，28 個觸發器
 
@@ -87,10 +87,10 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 3: 空間管理層 (Space Management) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `07_table_and_seating.sql` | ✅ | 4 | 區域、桌位、座位、預訂 |
-| `08_qr_code_system.sql` | ✅ | 4 | QR 模板、QR 碼、批次、掃描 |
+| Migration                  | 狀態 | 表數 | 說明                       |
+| -------------------------- | ---- | ---- | -------------------------- |
+| `07_table_and_seating.sql` | ✅   | 4    | 區域、桌位、座位、預訂     |
+| `08_qr_code_system.sql`    | ✅   | 4    | QR 模板、QR 碼、批次、掃描 |
 
 **總計**: 8 個表，76 個索引，8 個視圖，20 個觸發器
 
@@ -98,11 +98,11 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 4: 員工管理層 (Employee Management) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `09_shift_scheduling.sql` | ✅ | 6 | 排班、班別、換班、規則、衝突 |
-| `10_leave_management.sql` | ✅ | 5 | 請假、假別、審批、餘額、日曆 |
-| `11_attendance_tracking.sql` | ✅ | 3 | 打卡、考勤、加班、工時統計 |
+| Migration                    | 狀態 | 表數 | 說明                         |
+| ---------------------------- | ---- | ---- | ---------------------------- |
+| `09_shift_scheduling.sql`    | ✅   | 6    | 排班、班別、換班、規則、衝突 |
+| `10_leave_management.sql`    | ✅   | 5    | 請假、假別、審批、餘額、日曆 |
+| `11_attendance_tracking.sql` | ✅   | 3    | 打卡、考勤、加班、工時統計   |
 
 **總計**: 14 個表，111 個索引，12 個視圖，24 個觸發器
 
@@ -110,10 +110,10 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 5: 分析層 (Analytics) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `12_business_analytics.sql` | ✅ | 4 | 業務指標、報表、KPI |
-| `13_ai_insights.sql` | ✅ | 4 | AI 配置、洞察、預測 |
+| Migration                   | 狀態 | 表數 | 說明                |
+| --------------------------- | ---- | ---- | ------------------- |
+| `12_business_analytics.sql` | ✅   | 4    | 業務指標、報表、KPI |
+| `13_ai_insights.sql`        | ✅   | 4    | AI 配置、洞察、預測 |
 
 **總計**: 8 個表，39 個索引，8 個視圖，10 個觸發器
 
@@ -121,11 +121,11 @@ Layer 1 (基礎層) - 3 個 migrations ✅ COMPLETED
 
 ### ✅ Layer 6: 進階功能層 (Advanced Features) - COMPLETED
 
-| Migration | 狀態 | 表數 | 說明 |
-|-----------|------|------|------|
-| `14_inventory_management.sql` | ✅ | 5 | 庫存、供應商、採購 |
-| `15_promotions_and_coupons.sql` | ✅ | 5 | 促銷、優惠券、活動 |
-| `16_loyalty_program.sql` | ✅ | 5 | 會員、積分、獎勵 |
+| Migration                       | 狀態 | 表數 | 說明               |
+| ------------------------------- | ---- | ---- | ------------------ |
+| `14_inventory_management.sql`   | ✅   | 5    | 庫存、供應商、採購 |
+| `15_promotions_and_coupons.sql` | ✅   | 5    | 促銷、優惠券、活動 |
+| `16_loyalty_program.sql`        | ✅   | 5    | 會員、積分、獎勵   |
 
 **總計**: 15 個表，94 個索引，15 個視圖，21 個觸發器
 
@@ -318,6 +318,7 @@ Layer 6: ████████████████████ 100% (3/3)
 ⚠️ **不要修改已部署的 migrations**
 
 如果需要修改：
+
 1. 創建新的 migration
 2. 說明變更原因
 3. 提供回滾方案
@@ -347,15 +348,15 @@ Layer 6: ████████████████████ 100% (3/3)
 
 ### 各層統計
 
-| Layer | Tables | Indexes | Views | Triggers | Status |
-|-------|--------|---------|-------|----------|--------|
-| Layer 1: 基礎層 | 9 | 57 | 8 | 5 | ✅ |
-| Layer 2: 核心業務 | 13 | 84 | 11 | 28 | ✅ |
-| Layer 3: 空間管理 | 8 | 76 | 8 | 20 | ✅ |
-| Layer 4: 員工管理 | 14 | 111 | 12 | 24 | ✅ |
-| Layer 5: 分析層 | 8 | 39 | 8 | 10 | ✅ |
-| Layer 6: 進階功能 | 15 | 94 | 15 | 21 | ✅ |
-| **總計** | **67** | **461** | **60** | **108** | ✅ |
+| Layer             | Tables | Indexes | Views  | Triggers | Status |
+| ----------------- | ------ | ------- | ------ | -------- | ------ |
+| Layer 1: 基礎層   | 9      | 57      | 8      | 5        | ✅     |
+| Layer 2: 核心業務 | 13     | 84      | 11     | 28       | ✅     |
+| Layer 3: 空間管理 | 8      | 76      | 8      | 20       | ✅     |
+| Layer 4: 員工管理 | 14     | 111     | 12     | 24       | ✅     |
+| Layer 5: 分析層   | 8      | 39      | 8      | 10       | ✅     |
+| Layer 6: 進階功能 | 15     | 94      | 15     | 21       | ✅     |
+| **總計**          | **67** | **461** | **60** | **108**  | ✅     |
 
 ---
 

@@ -1,26 +1,50 @@
 <template>
   <div class="skeleton-loader" :class="{ animated: animated }">
     <!-- Text Skeleton -->
-    <div v-if="type === 'text'" class="skeleton skeleton-text" :style="textStyle"></div>
+    <div
+      v-if="type === 'text'"
+      class="skeleton skeleton-text"
+      :style="textStyle"
+    ></div>
 
     <!-- Circle Skeleton -->
-    <div v-else-if="type === 'circle'" class="skeleton skeleton-circle" :style="circleStyle"></div>
+    <div
+      v-else-if="type === 'circle'"
+      class="skeleton skeleton-circle"
+      :style="circleStyle"
+    ></div>
 
     <!-- Rectangle Skeleton -->
-    <div v-else-if="type === 'rect'" class="skeleton skeleton-rect" :style="rectStyle"></div>
+    <div
+      v-else-if="type === 'rect'"
+      class="skeleton skeleton-rect"
+      :style="rectStyle"
+    ></div>
 
     <!-- Avatar Skeleton -->
     <div v-else-if="type === 'avatar'" class="skeleton-avatar">
-      <div class="skeleton skeleton-circle" :style="{ width: size + 'px', height: size + 'px' }"></div>
+      <div
+        class="skeleton skeleton-circle"
+        :style="{ width: size + 'px', height: size + 'px' }"
+      ></div>
     </div>
 
     <!-- Card Skeleton -->
     <div v-else-if="type === 'card'" class="skeleton-card">
       <div class="skeleton skeleton-rect card-image"></div>
       <div class="card-content">
-        <div class="skeleton skeleton-text" style="width: 80%; height: 20px"></div>
-        <div class="skeleton skeleton-text" style="width: 60%; height: 16px; margin-top: 8px"></div>
-        <div class="skeleton skeleton-text" style="width: 90%; height: 14px; margin-top: 12px"></div>
+        <div
+          class="skeleton skeleton-text"
+          style="width: 80%; height: 20px"
+        ></div>
+        <div
+          class="skeleton skeleton-text"
+          style="width: 60%; height: 16px; margin-top: 8px"
+        ></div>
+        <div
+          class="skeleton skeleton-text"
+          style="width: 90%; height: 14px; margin-top: 12px"
+        ></div>
       </div>
     </div>
 
@@ -36,10 +60,19 @@
 
     <!-- List Item Skeleton -->
     <div v-else-if="type === 'list-item'" class="skeleton-list-item">
-      <div class="skeleton skeleton-circle" style="width: 40px; height: 40px"></div>
+      <div
+        class="skeleton skeleton-circle"
+        style="width: 40px; height: 40px"
+      ></div>
       <div class="item-content">
-        <div class="skeleton skeleton-text" style="width: 70%; height: 16px"></div>
-        <div class="skeleton skeleton-text" style="width: 50%; height: 14px; margin-top: 6px"></div>
+        <div
+          class="skeleton skeleton-text"
+          style="width: 70%; height: 16px"
+        ></div>
+        <div
+          class="skeleton skeleton-text"
+          style="width: 50%; height: 14px; margin-top: 6px"
+        ></div>
       </div>
     </div>
 
@@ -49,40 +82,48 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface Props {
-  type?: 'text' | 'circle' | 'rect' | 'avatar' | 'card' | 'table-row' | 'list-item' | 'custom'
-  width?: string | number
-  height?: string | number
-  size?: number
-  animated?: boolean
-  columns?: Array<{ width?: string }>
+  type?:
+    | "text"
+    | "circle"
+    | "rect"
+    | "avatar"
+    | "card"
+    | "table-row"
+    | "list-item"
+    | "custom";
+  width?: string | number;
+  height?: string | number;
+  size?: number;
+  animated?: boolean;
+  columns?: Array<{ width?: string }>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: 'text',
-  width: '100%',
+  type: "text",
+  width: "100%",
   height: 16,
   size: 40,
   animated: true,
-  columns: () => []
-})
+  columns: () => [],
+});
 
 const textStyle = computed(() => ({
-  width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-  height: typeof props.height === 'number' ? `${props.height}px` : props.height
-}))
+  width: typeof props.width === "number" ? `${props.width}px` : props.width,
+  height: typeof props.height === "number" ? `${props.height}px` : props.height,
+}));
 
 const circleStyle = computed(() => ({
   width: `${props.size}px`,
-  height: `${props.size}px`
-}))
+  height: `${props.size}px`,
+}));
 
 const rectStyle = computed(() => ({
-  width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-  height: typeof props.height === 'number' ? `${props.height}px` : props.height
-}))
+  width: typeof props.width === "number" ? `${props.width}px` : props.width,
+  height: typeof props.height === "number" ? `${props.height}px` : props.height,
+}));
 </script>
 
 <style scoped>

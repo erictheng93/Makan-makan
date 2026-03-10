@@ -1012,9 +1012,7 @@ app.get(
       const ordersService = new OrdersService(c.env);
 
       const restaurantId =
-        user.role === 0
-          ? c.req.query("restaurantId") || ''
-          : user.restaurantId;
+        user.role === 0 ? c.req.query("restaurantId") || "" : user.restaurantId;
 
       if (!restaurantId) {
         return c.json(

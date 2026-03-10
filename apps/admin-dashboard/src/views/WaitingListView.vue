@@ -30,12 +30,17 @@
     </div>
 
     <!-- Stats Cards -->
-    <div v-if="queueStatus" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div
+      v-if="queueStatus"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+    >
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600">等待中</p>
-            <p class="text-3xl font-bold text-orange-600 mt-2">{{ queueStatus.totalWaiting }}</p>
+            <p class="text-3xl font-bold text-orange-600 mt-2">
+              {{ queueStatus.totalWaiting }}
+            </p>
           </div>
           <div class="p-3 bg-orange-100 rounded-full">
             <Clock class="w-6 h-6 text-orange-600" />
@@ -47,7 +52,10 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600">平均等待</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">{{ queueStatus.averageWaitMinutes }}<span class="text-lg">min</span></p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">
+              {{ queueStatus.averageWaitMinutes
+              }}<span class="text-lg">min</span>
+            </p>
           </div>
           <div class="p-3 bg-blue-100 rounded-full">
             <Timer class="w-6 h-6 text-blue-600" />
@@ -59,7 +67,9 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600">可用桌位</p>
-            <p class="text-3xl font-bold text-green-600 mt-2">{{ queueStatus.availableTables }}</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">
+              {{ queueStatus.availableTables }}
+            </p>
           </div>
           <div class="p-3 bg-green-100 rounded-full">
             <TableIcon class="w-6 h-6 text-green-600" />
@@ -71,7 +81,9 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600">今日總數</p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">{{ estimatedTodayTotal }}</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">
+              {{ estimatedTodayTotal }}
+            </p>
           </div>
           <div class="p-3 bg-purple-100 rounded-full">
             <Users class="w-6 h-6 text-purple-600" />
@@ -84,8 +96,14 @@
     <div class="card p-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">狀態</label>
-          <select v-model="filters.status" class="form-input" @change="loadWaitingList">
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >狀態</label
+          >
+          <select
+            v-model="filters.status"
+            class="form-input"
+            @change="loadWaitingList"
+          >
             <option value="">全部狀態</option>
             <option value="waiting">等待中</option>
             <option value="called">已叫號</option>
@@ -97,7 +115,9 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">電話號碼</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >電話號碼</label
+          >
           <input
             v-model="filters.phone"
             type="tel"
@@ -126,7 +146,9 @@
 
     <!-- Waiting Queue -->
     <div class="card">
-      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <div
+        class="px-6 py-4 border-b border-gray-200 flex items-center justify-between"
+      >
         <h2 class="text-lg font-medium text-gray-900">候位隊列</h2>
         <div class="flex rounded-lg shadow-sm">
           <button
@@ -134,7 +156,7 @@
               viewMode === 'card'
                 ? 'bg-primary-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50',
-              'px-4 py-2 text-sm font-medium rounded-l-md border border-gray-300'
+              'px-4 py-2 text-sm font-medium rounded-l-md border border-gray-300',
             ]"
             @click="viewMode = 'card'"
           >
@@ -145,7 +167,7 @@
               viewMode === 'table'
                 ? 'bg-primary-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50',
-              'px-4 py-2 text-sm font-medium rounded-r-md border border-l-0 border-gray-300'
+              'px-4 py-2 text-sm font-medium rounded-r-md border border-l-0 border-gray-300',
             ]"
             @click="viewMode = 'table'"
           >
@@ -156,7 +178,10 @@
 
       <!-- Card View -->
       <div v-if="viewMode === 'card'" class="p-6">
-        <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          v-if="loading"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           <div v-for="i in 6" :key="i" class="animate-pulse">
             <div class="card p-4 space-y-3">
               <div class="h-8 bg-gray-200 rounded w-20"></div>
@@ -166,26 +191,40 @@
             </div>
           </div>
         </div>
-        <div v-else-if="waitingList.length === 0" class="py-12 text-center text-gray-500">
+        <div
+          v-else-if="waitingList.length === 0"
+          class="py-12 text-center text-gray-500"
+        >
           <Users class="w-12 h-12 mx-auto mb-3 text-gray-400" />
           <p>暫無候位隊列</p>
         </div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          v-else
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           <div
             v-for="entry in waitingList"
             :key="entry.id"
             :class="[
               'card p-4 border-l-4',
-              entry.status === 'waiting' ? 'border-l-orange-500' :
-              entry.status === 'called' ? 'border-l-blue-500' :
-              entry.status === 'confirmed' ? 'border-l-green-500' :
-              'border-l-gray-300'
+              entry.status === 'waiting'
+                ? 'border-l-orange-500'
+                : entry.status === 'called'
+                  ? 'border-l-blue-500'
+                  : entry.status === 'confirmed'
+                    ? 'border-l-green-500'
+                    : 'border-l-gray-300',
             ]"
           >
             <div class="flex items-start justify-between mb-3">
               <div>
-                <div class="text-2xl font-bold text-gray-900">{{ formatQueueNumber(entry) }}</div>
-                <span :class="getStatusBadgeClass(entry.status)" class="mt-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                <div class="text-2xl font-bold text-gray-900">
+                  {{ formatQueueNumber(entry) }}
+                </div>
+                <span
+                  :class="getStatusBadgeClass(entry.status)"
+                  class="mt-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                >
                   {{ getStatusText(entry.status) }}
                 </span>
               </div>
@@ -197,7 +236,9 @@
             <div class="space-y-2 mb-4">
               <div class="flex items-center text-sm">
                 <User class="w-4 h-4 mr-2 text-gray-400" />
-                <span class="font-medium text-gray-900">{{ entry.customerName }}</span>
+                <span class="font-medium text-gray-900">{{
+                  entry.customerName
+                }}</span>
               </div>
               <div class="flex items-center text-sm text-gray-600">
                 <Phone class="w-4 h-4 mr-2 text-gray-400" />
@@ -207,7 +248,10 @@
                 <Users class="w-4 h-4 mr-2 text-gray-400" />
                 <span>{{ entry.partySize }} 人</span>
               </div>
-              <div v-if="entry.estimatedWaitMinutes" class="flex items-center text-sm text-gray-600">
+              <div
+                v-if="entry.estimatedWaitMinutes"
+                class="flex items-center text-sm text-gray-600"
+              >
                 <Clock class="w-4 h-4 mr-2 text-gray-400" />
                 <span>預估等待 {{ entry.estimatedWaitMinutes }} 分鐘</span>
               </div>
@@ -255,25 +299,67 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">號碼</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客戶資訊</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">人數</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等待時間</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">加入時間</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                號碼
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                客戶資訊
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                人數
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                等待時間
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                狀態
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                加入時間
+              </th>
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                操作
+              </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <template v-if="loading">
               <tr v-for="i in 5" :key="i" class="animate-pulse">
-                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-16"></div></td>
-                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
-                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
-                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-20"></div></td>
-                <td class="px-6 py-4"><div class="h-6 bg-gray-200 rounded w-16"></div></td>
-                <td class="px-6 py-4"><div class="h-4 bg-gray-200 rounded w-32"></div></td>
-                <td class="px-6 py-4"><div class="h-8 bg-gray-200 rounded w-32 ml-auto"></div></td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded w-16"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded w-32"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded w-12"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded w-20"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-6 bg-gray-200 rounded w-16"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded w-32"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-8 bg-gray-200 rounded w-32 ml-auto"></div>
+                </td>
               </tr>
             </template>
             <tr v-else-if="waitingList.length === 0">
@@ -282,13 +368,21 @@
                 <p>暫無候位隊列</p>
               </td>
             </tr>
-            <tr v-for="entry in waitingList" :key="entry.id" class="hover:bg-gray-50">
+            <tr
+              v-for="entry in waitingList"
+              :key="entry.id"
+              class="hover:bg-gray-50"
+            >
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-lg font-bold text-gray-900">{{ formatQueueNumber(entry) }}</span>
+                <span class="text-lg font-bold text-gray-900">{{
+                  formatQueueNumber(entry)
+                }}</span>
               </td>
               <td class="px-6 py-4">
                 <div class="text-sm">
-                  <div class="font-medium text-gray-900">{{ entry.customerName }}</div>
+                  <div class="font-medium text-gray-900">
+                    {{ entry.customerName }}
+                  </div>
                   <div class="text-gray-500">{{ entry.customerPhone }}</div>
                 </div>
               </td>
@@ -296,27 +390,54 @@
                 {{ entry.partySize }} 人
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ entry.estimatedWaitMinutes || '--' }} 分鐘
+                {{ entry.estimatedWaitMinutes || "--" }} 分鐘
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusBadgeClass(entry.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                <span
+                  :class="getStatusBadgeClass(entry.status)"
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                >
                   {{ getStatusText(entry.status) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatTime(entry.createdAt) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button v-if="entry.status === 'waiting'" class="text-blue-600 hover:text-blue-900" title="叫號" @click="callCustomer(entry)">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"
+              >
+                <button
+                  v-if="entry.status === 'waiting'"
+                  class="text-blue-600 hover:text-blue-900"
+                  title="叫號"
+                  @click="callCustomer(entry)"
+                >
                   <Bell class="w-5 h-5" />
                 </button>
-                <button v-if="entry.status === 'called' || entry.status === 'confirmed'" class="text-green-600 hover:text-green-900" title="入座" @click="markSeated(entry.id)">
+                <button
+                  v-if="
+                    entry.status === 'called' || entry.status === 'confirmed'
+                  "
+                  class="text-green-600 hover:text-green-900"
+                  title="入座"
+                  @click="markSeated(entry.id)"
+                >
                   <CheckCircle class="w-5 h-5" />
                 </button>
-                <button v-if="entry.status === 'called'" class="text-red-600 hover:text-red-900" title="過號" @click="markExpired(entry.id)">
+                <button
+                  v-if="entry.status === 'called'"
+                  class="text-red-600 hover:text-red-900"
+                  title="過號"
+                  @click="markExpired(entry.id)"
+                >
                   <XCircle class="w-5 h-5" />
                 </button>
-                <button v-if="['waiting', 'called'].includes(entry.status)" class="text-gray-600 hover:text-gray-900" title="取消" @click="cancelEntry(entry)">
+                <button
+                  v-if="['waiting', 'called'].includes(entry.status)"
+                  class="text-gray-600 hover:text-gray-900"
+                  title="取消"
+                  @click="cancelEntry(entry)"
+                >
                   <Trash2 class="w-5 h-5" />
                 </button>
               </td>
@@ -325,24 +446,38 @@
         </table>
 
         <!-- Pagination -->
-        <div v-if="pagination.total > 0 && viewMode === 'table'" class="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+        <div
+          v-if="pagination.total > 0 && viewMode === 'table'"
+          class="px-6 py-4 flex items-center justify-between border-t border-gray-200"
+        >
           <div class="text-sm text-gray-700">
             顯示第 {{ (pagination.page - 1) * pagination.limit + 1 }} 到
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} 筆，共 {{ pagination.total }} 筆結果
+            {{ Math.min(pagination.page * pagination.limit, pagination.total) }}
+            筆，共 {{ pagination.total }} 筆結果
           </div>
           <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            <nav
+              class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+            >
               <button
                 :disabled="pagination.page === 1"
                 class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                @click="pagination.page--; loadWaitingList()"
+                @click="
+                  pagination.page--;
+                  loadWaitingList();
+                "
               >
                 <ChevronLeft class="h-5 w-5" />
               </button>
               <button
-                :disabled="pagination.page * pagination.limit >= pagination.total"
+                :disabled="
+                  pagination.page * pagination.limit >= pagination.total
+                "
                 class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                @click="pagination.page++; loadWaitingList()"
+                @click="
+                  pagination.page++;
+                  loadWaitingList();
+                "
               >
                 <ChevronRight class="h-5 w-5" />
               </button>
@@ -364,11 +499,15 @@
           leave-from="opacity-100"
           leave-to="opacity-0"
         >
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          />
         </TransitionChild>
 
         <div class="fixed inset-0 z-10 overflow-y-auto">
-          <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div
+            class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"
+          >
             <TransitionChild
               as="template"
               enter="ease-out duration-300"
@@ -378,41 +517,91 @@
               leave-from="opacity-100 translate-y-0 sm:scale-100"
               leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <DialogPanel class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+              <DialogPanel
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+              >
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 mb-4">
+                  <DialogTitle
+                    as="h3"
+                    class="text-lg font-medium leading-6 text-gray-900 mb-4"
+                  >
                     新增候位
                   </DialogTitle>
                   <div class="space-y-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">客戶姓名 *</label>
-                      <input v-model="form.customerName" type="text" class="form-input" />
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                        >客戶姓名 *</label
+                      >
+                      <input
+                        v-model="form.customerName"
+                        type="text"
+                        class="form-input"
+                      />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">電話號碼 *</label>
-                      <input v-model="form.customerPhone" type="tel" class="form-input" />
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                        >電話號碼 *</label
+                      >
+                      <input
+                        v-model="form.customerPhone"
+                        type="tel"
+                        class="form-input"
+                      />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">用餐人數 *</label>
-                      <input v-model.number="form.partySize" type="number" min="1" max="20" class="form-input" />
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                        >用餐人數 *</label
+                      >
+                      <input
+                        v-model.number="form.partySize"
+                        type="number"
+                        min="1"
+                        max="20"
+                        class="form-input"
+                      />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
-                      <textarea v-model="form.notes" rows="3" class="form-input" placeholder="特殊需求或備註"></textarea>
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                        >備註</label
+                      >
+                      <textarea
+                        v-model="form.notes"
+                        rows="3"
+                        class="form-input"
+                        placeholder="特殊需求或備註"
+                      ></textarea>
                     </div>
-                    <div v-if="estimatedWait" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div
+                      v-if="estimatedWait"
+                      class="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                    >
                       <div class="flex items-start">
                         <Info class="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
                         <div class="text-sm">
-                          <p class="font-medium text-blue-900 mb-1">預估等待時間：{{ estimatedWait.estimatedWaitMinutes }} 分鐘</p>
-                          <p class="text-blue-700">前方還有 {{ estimatedWait.partiesAhead }} 組</p>
-                          <p class="text-blue-700">可用桌位：{{ estimatedWait.availableTables }} 個</p>
+                          <p class="font-medium text-blue-900 mb-1">
+                            預估等待時間：{{
+                              estimatedWait.estimatedWaitMinutes
+                            }}
+                            分鐘
+                          </p>
+                          <p class="text-blue-700">
+                            前方還有 {{ estimatedWait.partiesAhead }} 組
+                          </p>
+                          <p class="text-blue-700">
+                            可用桌位：{{ estimatedWait.availableTables }} 個
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <div
+                  class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"
+                >
                   <button
                     :disabled="submitting"
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
@@ -450,11 +639,15 @@
           leave-from="opacity-100"
           leave-to="opacity-0"
         >
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          />
         </TransitionChild>
 
         <div class="fixed inset-0 z-10 overflow-y-auto">
-          <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div
+            class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"
+          >
             <TransitionChild
               as="template"
               enter="ease-out duration-300"
@@ -464,51 +657,97 @@
               leave-from="opacity-100 translate-y-0 sm:scale-100"
               leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <DialogPanel class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+              <DialogPanel
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+              >
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 mb-4">
+                  <DialogTitle
+                    as="h3"
+                    class="text-lg font-medium leading-6 text-gray-900 mb-4"
+                  >
                     叫號
                   </DialogTitle>
                   <div v-if="selectedEntry" class="space-y-4">
                     <div class="bg-gray-50 rounded-lg p-4">
-                      <div class="text-3xl font-bold text-center text-gray-900 mb-2">
+                      <div
+                        class="text-3xl font-bold text-center text-gray-900 mb-2"
+                      >
                         {{ formatQueueNumber(selectedEntry) }}
                       </div>
                       <div class="text-center">
-                        <p class="text-lg font-medium text-gray-900">{{ selectedEntry.customerName }}</p>
-                        <p class="text-sm text-gray-600">{{ selectedEntry.customerPhone }}</p>
-                        <p class="text-sm text-gray-600">{{ selectedEntry.partySize }} 人</p>
+                        <p class="text-lg font-medium text-gray-900">
+                          {{ selectedEntry.customerName }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                          {{ selectedEntry.customerPhone }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                          {{ selectedEntry.partySize }} 人
+                        </p>
                       </div>
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">指定桌位 *</label>
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                        >指定桌位 *</label
+                      >
                       <select v-model="callForm.tableId" class="form-input">
                         <option :value="null">請選擇桌位</option>
-                        <option v-for="table in availableTables" :key="table.id" :value="table.id">
+                        <option
+                          v-for="table in availableTables"
+                          :key="table.id"
+                          :value="table.id"
+                        >
                           {{ table.number }} ({{ table.capacity }}人)
                         </option>
                       </select>
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">通知方式</label>
+                      <label
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                        >通知方式</label
+                      >
                       <div class="space-y-2">
                         <label class="flex items-center">
-                          <input v-model="callForm.notificationMethod" type="radio" value="sms" class="form-radio" />
-                          <span class="ml-2 text-sm text-gray-700">簡訊通知</span>
+                          <input
+                            v-model="callForm.notificationMethod"
+                            type="radio"
+                            value="sms"
+                            class="form-radio"
+                          />
+                          <span class="ml-2 text-sm text-gray-700"
+                            >簡訊通知</span
+                          >
                         </label>
                         <label class="flex items-center">
-                          <input v-model="callForm.notificationMethod" type="radio" value="display" class="form-radio" />
-                          <span class="ml-2 text-sm text-gray-700">顯示螢幕</span>
+                          <input
+                            v-model="callForm.notificationMethod"
+                            type="radio"
+                            value="display"
+                            class="form-radio"
+                          />
+                          <span class="ml-2 text-sm text-gray-700"
+                            >顯示螢幕</span
+                          >
                         </label>
                         <label class="flex items-center">
-                          <input v-model="callForm.notificationMethod" type="radio" value="both" class="form-radio" />
-                          <span class="ml-2 text-sm text-gray-700">兩者皆是</span>
+                          <input
+                            v-model="callForm.notificationMethod"
+                            type="radio"
+                            value="both"
+                            class="form-radio"
+                          />
+                          <span class="ml-2 text-sm text-gray-700"
+                            >兩者皆是</span
+                          >
                         </label>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <div
+                  class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"
+                >
                   <button
                     :disabled="calling"
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
@@ -538,8 +777,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
-import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue';
+import { ref, reactive, onMounted, computed } from "vue";
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  TransitionChild,
+  TransitionRoot,
+} from "@headlessui/vue";
 import {
   Plus,
   Bell,
@@ -561,17 +806,17 @@ import {
   ChevronRight,
   Loader2,
   Info,
-} from 'lucide-vue-next';
-import { useToast } from 'vue-toastification';
-import { useAuthStore } from '@/stores/auth';
-import { WaitingListService } from '@/services/waitingListService';
-import { format } from 'date-fns';
+} from "lucide-vue-next";
+import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/auth";
+import { WaitingListService } from "@/services/waitingListService";
+import { format } from "date-fns";
 import type {
   WaitingListEntry,
   JoinWaitingListRequest,
   QueueStatus,
   WaitTimeEstimateResult,
-} from '@makanmakan/shared-types';
+} from "@makanmakan/shared-types";
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -583,7 +828,7 @@ const calling = ref(false);
 const batchCalling = ref(false);
 const showAddDialog = ref(false);
 const showCallDialog = ref(false);
-const viewMode = ref<'card' | 'table'>('card');
+const viewMode = ref<"card" | "table">("card");
 const waitingList = ref<WaitingListEntry[]>([]);
 const queueStatus = ref<QueueStatus | null>(null);
 const selectedEntry = ref<WaitingListEntry | null>(null);
@@ -592,36 +837,40 @@ const availableTables = ref<any[]>([]);
 
 // Filters
 const filters = reactive({
-  status: '',
-  phone: ''
+  status: "",
+  phone: "",
 });
 
 // Pagination
 const pagination = reactive({
   page: 1,
   limit: 50,
-  total: 0
+  total: 0,
 });
 
 // Form
 const form = reactive<Partial<JoinWaitingListRequest>>({
-  customerName: '',
-  customerPhone: '',
+  customerName: "",
+  customerPhone: "",
   partySize: 2,
-  notes: ''
+  notes: "",
 });
 
 // Call form
 const callForm = reactive({
   tableId: null as number | null,
-  notificationMethod: 'both' as 'sms' | 'display' | 'both'
+  notificationMethod: "both" as "sms" | "display" | "both",
 });
 
 // Restaurant ID
-const restaurantId = computed(() => authStore.user?.restaurantId?.toString() || '');
+const restaurantId = computed(
+  () => authStore.user?.restaurantId?.toString() || "",
+);
 
 // Estimated today total (placeholder)
-const estimatedTodayTotal = computed(() => queueStatus.value ? queueStatus.value.totalWaiting : 0);
+const estimatedTodayTotal = computed(() =>
+  queueStatus.value ? queueStatus.value.totalWaiting : 0,
+);
 
 /**
  * Load waiting list
@@ -634,15 +883,15 @@ async function loadWaitingList() {
       status: (filters.status as any) || undefined,
       customerPhone: filters.phone || undefined,
       page: pagination.page,
-      limit: pagination.limit
+      limit: pagination.limit,
     });
 
     // Handle response as array (API returns array of waiting list entries)
     waitingList.value = Array.isArray(response) ? response : [];
     pagination.total = waitingList.value.length;
   } catch (error) {
-    console.error('Load waiting list error:', error);
-    toast.error('載入候位列表失敗');
+    console.error("Load waiting list error:", error);
+    toast.error("載入候位列表失敗");
   } finally {
     loading.value = false;
   }
@@ -653,9 +902,11 @@ async function loadWaitingList() {
  */
 async function loadQueueStatus() {
   try {
-    queueStatus.value = await WaitingListService.getQueueStatus(restaurantId.value);
+    queueStatus.value = await WaitingListService.getQueueStatus(
+      restaurantId.value,
+    );
   } catch (error) {
-    console.error('Load queue status error:', error);
+    console.error("Load queue status error:", error);
   }
 }
 
@@ -664,7 +915,7 @@ async function loadQueueStatus() {
  */
 async function addToQueue() {
   if (!form.customerName || !form.customerPhone || !form.partySize) {
-    toast.warning('請填寫必填欄位');
+    toast.warning("請填寫必填欄位");
     return;
   }
 
@@ -675,18 +926,18 @@ async function addToQueue() {
       customerName: form.customerName,
       customerPhone: form.customerPhone,
       partySize: form.partySize,
-      notes: form.notes
+      notes: form.notes,
     };
 
     await WaitingListService.joinWaitingList(request);
-    toast.success('加入候位成功');
+    toast.success("加入候位成功");
     showAddDialog.value = false;
     resetForm();
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Add to queue error:', error);
-    toast.error(error.response?.data?.error || '加入候位失敗');
+    console.error("Add to queue error:", error);
+    toast.error(error.response?.data?.error || "加入候位失敗");
   } finally {
     submitting.value = false;
   }
@@ -708,7 +959,7 @@ function callCustomer(entry: WaitingListEntry) {
  */
 async function confirmCall() {
   if (!callForm.tableId) {
-    toast.warning('請選擇桌位');
+    toast.warning("請選擇桌位");
     return;
   }
 
@@ -718,13 +969,13 @@ async function confirmCall() {
       tableId: callForm.tableId,
     });
 
-    toast.success('叫號成功');
+    toast.success("叫號成功");
     showCallDialog.value = false;
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Call waiting error:', error);
-    toast.error(error.response?.data?.error || '叫號失敗');
+    console.error("Call waiting error:", error);
+    toast.error(error.response?.data?.error || "叫號失敗");
   } finally {
     calling.value = false;
   }
@@ -737,12 +988,12 @@ async function batchCallNext() {
   batchCalling.value = true;
   try {
     await WaitingListService.batchCall(restaurantId.value, 1);
-    toast.success('叫號成功');
+    toast.success("叫號成功");
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Batch call error:', error);
-    toast.error(error.response?.data?.error || '叫號失敗');
+    console.error("Batch call error:", error);
+    toast.error(error.response?.data?.error || "叫號失敗");
   } finally {
     batchCalling.value = false;
   }
@@ -754,12 +1005,12 @@ async function batchCallNext() {
 async function markSeated(id: string) {
   try {
     await WaitingListService.markSeated(id);
-    toast.success('標記入座成功');
+    toast.success("標記入座成功");
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Mark seated error:', error);
-    toast.error(error.response?.data?.error || '標記入座失敗');
+    console.error("Mark seated error:", error);
+    toast.error(error.response?.data?.error || "標記入座失敗");
   }
 }
 
@@ -767,16 +1018,16 @@ async function markSeated(id: string) {
  * Mark expired
  */
 async function markExpired(id: string) {
-  if (!confirm('確定要標記為過號嗎？')) return;
+  if (!confirm("確定要標記為過號嗎？")) return;
 
   try {
     await WaitingListService.expireWaiting(id);
-    toast.success('標記過號成功');
+    toast.success("標記過號成功");
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Mark expired error:', error);
-    toast.error(error.response?.data?.error || '標記過號失敗');
+    console.error("Mark expired error:", error);
+    toast.error(error.response?.data?.error || "標記過號失敗");
   }
 }
 
@@ -784,16 +1035,16 @@ async function markExpired(id: string) {
  * Cancel entry
  */
 async function cancelEntry(entry: WaitingListEntry) {
-  if (!confirm('確定要取消此候位嗎？')) return;
+  if (!confirm("確定要取消此候位嗎？")) return;
 
   try {
     await WaitingListService.cancelWaiting(entry.id, entry.customerPhone);
-    toast.success('取消候位成功');
+    toast.success("取消候位成功");
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
-    console.error('Cancel entry error:', error);
-    toast.error(error.response?.data?.error || '取消候位失敗');
+    console.error("Cancel entry error:", error);
+    toast.error(error.response?.data?.error || "取消候位失敗");
   }
 }
 
@@ -801,8 +1052,8 @@ async function cancelEntry(entry: WaitingListEntry) {
  * Reset filters
  */
 function resetFilters() {
-  filters.status = '';
-  filters.phone = '';
+  filters.status = "";
+  filters.phone = "";
   pagination.page = 1;
   loadWaitingList();
 }
@@ -811,24 +1062,26 @@ function resetFilters() {
  * Reset form
  */
 function resetForm() {
-  form.customerName = '';
-  form.customerPhone = '';
+  form.customerName = "";
+  form.customerPhone = "";
   form.partySize = 2;
-  form.notes = '';
+  form.notes = "";
 }
 
 /**
  * Format queue number
  */
 function formatQueueNumber(entry: WaitingListEntry): string {
-  return entry.queueNumber ? `#${entry.queueNumber}` : `#${entry.id.slice(0, 6)}`;
+  return entry.queueNumber
+    ? `#${entry.queueNumber}`
+    : `#${entry.id.slice(0, 6)}`;
 }
 
 /**
  * Format time
  */
 function formatTime(date: string | Date | number): string {
-  return format(new Date(date), 'HH:mm');
+  return format(new Date(date), "HH:mm");
 }
 
 /**
@@ -836,12 +1089,12 @@ function formatTime(date: string | Date | number): string {
  */
 function getStatusText(status: string): string {
   const statusMap: Record<string, string> = {
-    waiting: '等待中',
-    called: '已叫號',
-    confirmed: '已確認',
-    seated: '已入座',
-    cancelled: '已取消',
-    expired: '已過號'
+    waiting: "等待中",
+    called: "已叫號",
+    confirmed: "已確認",
+    seated: "已入座",
+    cancelled: "已取消",
+    expired: "已過號",
   };
   return statusMap[status] || status;
 }
@@ -851,14 +1104,14 @@ function getStatusText(status: string): string {
  */
 function getStatusBadgeClass(status: string): string {
   const classMap: Record<string, string> = {
-    waiting: 'bg-orange-100 text-orange-800',
-    called: 'bg-blue-100 text-blue-800',
-    confirmed: 'bg-green-100 text-green-800',
-    seated: 'bg-purple-100 text-purple-800',
-    cancelled: 'bg-gray-100 text-gray-800',
-    expired: 'bg-red-100 text-red-800'
+    waiting: "bg-orange-100 text-orange-800",
+    called: "bg-blue-100 text-blue-800",
+    confirmed: "bg-green-100 text-green-800",
+    seated: "bg-purple-100 text-purple-800",
+    cancelled: "bg-gray-100 text-gray-800",
+    expired: "bg-red-100 text-red-800",
   };
-  return classMap[status] || 'bg-gray-100 text-gray-800';
+  return classMap[status] || "bg-gray-100 text-gray-800";
 }
 
 // Initialize

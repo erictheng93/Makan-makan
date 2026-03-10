@@ -59,6 +59,7 @@ RESTAURANT_ID=1
 All scheduling endpoints (except public QR scanning) require authentication.
 
 **Headers Required**:
+
 - `Authorization: Bearer <token>`
 - `Content-Type: application/json`
 
@@ -75,6 +76,7 @@ curl -X GET "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/templates" \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "success": true,
@@ -116,6 +118,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/templates" 
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -185,6 +188,7 @@ curl -X GET "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules?pa
 ```
 
 **Expected Response**:
+
 ```json
 {
   "success": true,
@@ -236,6 +240,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 ```
 
 **Response** (with conflict warnings if any):
+
 ```json
 {
   "success": true,
@@ -269,10 +274,12 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules/b
 ```
 
 **Parameters**:
+
 - `daysOfWeek`: Array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
 - This will create schedules only for weekdays (Mon-Fri) in the date range
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -306,6 +313,7 @@ curl -X DELETE "http://localhost:8787/api/v1/scheduling/schedules/$SCHEDULE_ID" 
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -333,6 +341,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/schedules/$SCHEDULE_ID/clo
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -346,6 +355,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/schedules/$SCHEDULE_ID/clo
 ```
 
 **Important Notes**:
+
 - Employees can only clock in for their own schedules (unless they are Admin/Owner)
 - Cannot clock in if already clocked in
 - Clock in time is recorded as the current server time
@@ -363,6 +373,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/schedules/$SCHEDULE_ID/clo
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -378,10 +389,12 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/schedules/$SCHEDULE_ID/clo
 ```
 
 **Automatic Calculations**:
+
 - `actualHours`: Calculated from clock in/out times
 - `overtimeHours`: Hours beyond `scheduledHours`
 
 **Error Cases**:
+
 - `"Must clock in first"` - Cannot clock out without clocking in
 - `"Already clocked out"` - Cannot clock out twice
 
@@ -406,17 +419,20 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/swap-reques
 ```
 
 **Request Types**:
+
 - `swap`: Exchange shifts with another employee
 - `cover`: Request someone to cover (no exchange)
 - `drop`: Request to drop shift without replacement
 
 **Urgency Levels**:
+
 - `low`: 可以等待
 - `normal`: 一般請求
 - `high`: 較緊急
 - `urgent`: 非常緊急
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -445,6 +461,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/swap-requests/$REQUEST_ID/
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -601,7 +618,9 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 {
   "success": true,
   "message": "Operation successful",
-  "data": { /* resource data */ }
+  "data": {
+    /* resource data */
+  }
 }
 ```
 
@@ -629,15 +648,18 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 ## Conflict Types and Severity
 
 ### Error Severity (Prevents Creation)
+
 - `overlapping_shifts`: Employee already has a shift at this time
 - `insufficient_rest`: Less than 11 hours rest between shifts
 - `leave_conflict`: Employee has approved leave on this date
 
 ### Warning Severity (Allows Creation)
+
 - `max_hours_exceeded`: Daily hours > 12 or weekly hours > 46
 - `consecutive_days_exceeded`: More than 6 consecutive work days
 
 ### Info Severity (Informational)
+
 - `skill_mismatch`: Employee lacks required skills (future feature)
 - `availability_conflict`: Outside employee's preferred times (future feature)
 
@@ -646,6 +668,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 ## Testing Checklist
 
 ### Shift Templates
+
 - [ ] Create shift template with all fields
 - [ ] Create shift template with minimal fields
 - [ ] List all templates for a restaurant
@@ -655,6 +678,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 - [ ] Verify deleted templates don't appear in list
 
 ### Employee Schedules
+
 - [ ] Create single schedule
 - [ ] Create bulk schedules (multiple employees, multiple days)
 - [ ] List schedules with filters (employee, date range, status)
@@ -663,6 +687,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 - [ ] Verify pagination works correctly
 
 ### Clock In/Out
+
 - [ ] Clock in to scheduled shift
 - [ ] Verify cannot clock in twice
 - [ ] Clock out from shift
@@ -671,11 +696,13 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 - [ ] Verify employees can only clock in/out for their own shifts
 
 ### Swap Requests
+
 - [ ] Create swap request
 - [ ] Approve swap request as manager
 - [ ] Verify non-managers cannot approve
 
 ### Conflict Detection
+
 - [ ] Test overlapping shifts detection
 - [ ] Test rest period validation (11 hours)
 - [ ] Test daily hours limit (12 hours)
@@ -684,6 +711,7 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 - [ ] Test leave conflict detection
 
 ### Authorization
+
 - [ ] Verify Admin can access all endpoints
 - [ ] Verify Shop Owner can manage their restaurant's schedules
 - [ ] Verify employees can only view/manage their own schedules
@@ -757,5 +785,6 @@ npx wrangler d1 execute makanmakan-staging --local \
 **Status**: Ready for Testing
 
 For issues or questions, please refer to:
+
 - API Documentation: `docs/architecture/technical-documentation.md`
 - Implementation Summary: `SCHEDULING_IMPLEMENTATION_SUMMARY.md`

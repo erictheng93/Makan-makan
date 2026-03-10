@@ -1,4 +1,5 @@
 # 測試增強路線圖
+
 ## MakanMakan Testing Enhancement Roadmap
 
 > **當前狀態**: Phase 1 已啟動 - POSService 測試套件已完成
@@ -27,6 +28,7 @@
 ## 🎯 Phase 1: 關鍵業務邏輯測試 (已啟動)
 
 ### ✅ 已完成
+
 - **POSService 測試套件** (1,000+ 行, 40+ 測試用例)
   - ✓ 收銀機管理 (4 tests)
   - ✓ 班次管理 (8 tests)
@@ -39,11 +41,13 @@
   - ✓ 數據完整性 (2 tests)
 
 ### 🔄 進行中
+
 - **GroupOrderService 測試套件** (待實施)
 
 ### 📝 待完成
 
 #### 1.2 GroupOrderService Tests (預計 800+ 行)
+
 **文件**: `packages/database/src/services/__tests__/GroupOrderService.test.ts`
 
 ```typescript
@@ -57,14 +61,13 @@
  * - 群組活動日誌
  */
 
-describe('GroupOrderService', () => {
+describe("GroupOrderService", () => {
   // 1. 群組訂單創建 (5 tests)
   //    - 成功創建群組訂單
   //    - 生成唯一分享碼
   //    - 設置過期時間
   //    - 創建群組創建者記錄
   //    - 驗證權限設置
-
   // 2. 成員管理 (8 tests)
   //    - 成功加入群組
   //    - 拒絕加入已滿群組
@@ -74,7 +77,6 @@ describe('GroupOrderService', () => {
   //    - 更新成員活躍狀態
   //    - 驗證成員權限
   //    - 處理匿名成員
-
   // 3. 購物車管理 (10 tests)
   //    - 添加菜品到購物車
   //    - 更新購物車項目
@@ -86,7 +88,6 @@ describe('GroupOrderService', () => {
   //    - 批量操作
   //    - 鎖定購物車
   //    - 清空購物車
-
   // 4. 帳單分攤 (12 tests)
   //    - 平均分攤 (equal split)
   //    - 按比例分攤 (proportional split)
@@ -100,7 +101,6 @@ describe('GroupOrderService', () => {
   //    - 處理部分支付
   //    - 退款處理
   //    - 生成分攤明細
-
   // 5. 分享功能 (6 tests)
   //    - 生成分享碼
   //    - 驗證分享碼
@@ -108,28 +108,26 @@ describe('GroupOrderService', () => {
   //    - 生成 QR 碼
   //    - 處理過期分享碼
   //    - 記錄分享統計
-
   // 6. 群組狀態管理 (5 tests)
   //    - 更新群組狀態
   //    - 鎖定群組訂單
   //    - 完成群組訂單
   //    - 取消群組訂單
   //    - 處理超時
-
   // 7. 併發和競態條件 (3 tests)
   //    - 同時加入群組
   //    - 同時添加購物車項目
   //    - 同時更新訂單
-
   // 8. 錯誤處理 (4 tests)
   //    - 處理無效分享碼
   //    - 處理數據庫錯誤
   //    - 處理無效輸入
   //    - 處理權限錯誤
-})
+});
 ```
 
 #### 1.3 NotificationService Tests (預計 500+ 行)
+
 **文件**: `packages/database/src/services/__tests__/NotificationService.test.ts`
 
 ```typescript
@@ -143,7 +141,7 @@ describe('GroupOrderService', () => {
  * - 重試機制
  */
 
-describe('NotificationService', () => {
+describe("NotificationService", () => {
   // 1. Email 通知 (6 tests)
   // 2. SMS 通知 (5 tests)
   // 3. Push 通知 (4 tests)
@@ -151,13 +149,15 @@ describe('NotificationService', () => {
   // 5. 批量通知 (3 tests)
   // 6. 重試機制 (4 tests)
   // 7. 錯誤處理 (3 tests)
-})
+});
 ```
 
 #### 1.4 ExportService Tests (預計 400+ 行)
+
 **文件**: `packages/database/src/services/__tests__/ExportService.test.ts`
 
 #### 1.5 LeaveAnalyticsService Tests (預計 450+ 行)
+
 **文件**: `packages/database/src/services/__tests__/LeaveAnalyticsService.test.ts`
 
 ---
@@ -165,50 +165,48 @@ describe('NotificationService', () => {
 ## 🎯 Phase 2: API 層端到端測試
 
 ### 2.1 POS API Tests (預計 800+ 行)
+
 **文件**: `apps/api/src/features/pos/__tests__/api.test.ts`
 
 ```typescript
-describe('POS API', () => {
+describe("POS API", () => {
   // 1. 收銀機 API (8 tests)
   //    - POST /api/v1/pos/registers
   //    - GET /api/v1/pos/registers
   //    - GET /api/v1/pos/registers/:id
   //    - PUT /api/v1/pos/registers/:id
   //    - DELETE /api/v1/pos/registers/:id
-
   // 2. 班次管理 API (10 tests)
   //    - POST /api/v1/pos/shifts/start
   //    - POST /api/v1/pos/shifts/:id/end
   //    - GET /api/v1/pos/shifts
   //    - GET /api/v1/pos/shifts/:id
-
   // 3. 現金操作 API (6 tests)
   //    - POST /api/v1/pos/cash-movements
   //    - GET /api/v1/pos/cash-movements
-
   // 4. 收據 API (8 tests)
   //    - POST /api/v1/pos/receipts/print
   //    - POST /api/v1/pos/receipts/:id/reprint
   //    - GET /api/v1/pos/receipts
-
   // 5. 退款 API (8 tests)
   //    - POST /api/v1/pos/refunds
   //    - GET /api/v1/pos/refunds
   //    - PUT /api/v1/pos/refunds/:id/approve
-
   // 6. 報表 API (6 tests)
   //    - GET /api/v1/pos/reports/shift/:id
   //    - GET /api/v1/pos/reports/daily
   //    - GET /api/v1/pos/stats
-
   // 7. 認證和權限 (8 tests)
   // 8. 錯誤處理 (6 tests)
-})
+});
 ```
 
 ### 2.2 Group Orders API Tests (預計 700+ 行)
+
 ### 2.3 Scheduling API Tests (預計 600+ 行)
+
 ### 2.4 Leaves API Tests (預計 500+ 行)
+
 ### 2.5 Reservations API Tests (預計 400+ 行)
 
 ---
@@ -218,10 +216,11 @@ describe('POS API', () => {
 ### 3.1 核心 Realtime Composables
 
 #### useAdminRealtime Tests (預計 600+ 行)
+
 **文件**: `apps/admin-dashboard/src/composables/__tests__/useAdminRealtime.test.ts`
 
 ```typescript
-describe('useAdminRealtime', () => {
+describe("useAdminRealtime", () => {
   // 1. 連接管理 (8 tests)
   //    - 建立 WebSocket 連接
   //    - 自動重連
@@ -231,7 +230,6 @@ describe('useAdminRealtime', () => {
   //    - 多次連接防護
   //    - 連接超時
   //    - 清理資源
-
   // 2. 訂單通知 (10 tests)
   //    - 接收新訂單事件
   //    - 接收訂單狀態更新
@@ -243,7 +241,6 @@ describe('useAdminRealtime', () => {
   //    - 通知清除
   //    - 通知搜索
   //    - 批量操作
-
   // 3. 廚房統計 (6 tests)
   //    - 實時廚房隊列
   //    - 待處理項目計數
@@ -251,38 +248,41 @@ describe('useAdminRealtime', () => {
   //    - 準備完成項目計數
   //    - 平均等待時間
   //    - 統計刷新
-
   // 4. 菜單警報 (5 tests)
   //    - 庫存不足警報
   //    - 菜品下架警報
   //    - 警報過濾
   //    - 警報確認
   //    - 警報歷史
-
   // 5. 系統通知 (4 tests)
   //    - 系統警報接收
   //    - 通知級別處理
   //    - 通知持久化
   //    - 通知配置
-
   // 6. 錯誤處理 (4 tests)
   //    - 連接錯誤
   //    - 訊息格式錯誤
   //    - 事件處理錯誤
   //    - 重試機制
-})
+});
 ```
 
 #### useKitchenRealtime Tests (預計 650+ 行)
+
 #### useRealtimeOrders Tests (預計 450+ 行)
+
 #### useRealtimePOS Tests (預計 400+ 行)
+
 #### useRealtimeQueue Tests (預計 380+ 行)
 
 ### 3.2 工具類 Composables
 
 #### useErrorTracking Tests (預計 300+ 行)
+
 #### usePerformanceMonitor Tests (預計 350+ 行)
+
 #### useRequestDeduplication Tests (預計 280+ 行)
+
 #### usePagination Tests (預計 250+ 行)
 
 ---
@@ -292,10 +292,11 @@ describe('useAdminRealtime', () => {
 ### 4.1 關鍵業務流程集成測試
 
 #### POS Complete Workflow (預計 500+ 行)
+
 ```typescript
-describe('POS Complete Workflow', () => {
+describe("POS Complete Workflow", () => {
   // 完整流程: 開班 → 銷售 → 退款 → 結班 → 報表
-  it('應該完成完整的 POS 操作流程', async () => {
+  it("應該完成完整的 POS 操作流程", async () => {
     // 1. 創建收銀機
     // 2. 開始班次
     // 3. 處理多筆銷售
@@ -305,15 +306,16 @@ describe('POS Complete Workflow', () => {
     // 7. 結束班次
     // 8. 生成報表
     // 9. 驗證數據一致性
-  })
-})
+  });
+});
 ```
 
 #### Group Ordering Workflow (預計 600+ 行)
+
 ```typescript
-describe('Group Ordering Complete Flow', () => {
+describe("Group Ordering Complete Flow", () => {
   // 完整流程: 創建群組 → 多人加入 → 點餐 → 分攤 → 支付
-  it('應該完成完整的群組點餐流程', async () => {
+  it("應該完成完整的群組點餐流程", async () => {
     // 1. 創建群組訂單
     // 2. 多個成員加入
     // 3. 成員添加菜品
@@ -322,14 +324,16 @@ describe('Group Ordering Complete Flow', () => {
     // 6. 處理支付
     // 7. 完成訂單
     // 8. 驗證數據
-  })
-})
+  });
+});
 ```
 
 ### 4.2 跨模組集成測試
 
 #### Menu → Order → Kitchen Integration (預計 400+ 行)
+
 #### Order → Payment → POS Integration (預計 400+ 行)
+
 #### Realtime → Dashboard Integration (預計 350+ 行)
 
 ---
@@ -375,6 +379,7 @@ Dashboard:    38%  (行業標準: 30-50%)  ✅
 ## 🛠️ 測試工具和最佳實踐
 
 ### 測試框架和工具
+
 ```json
 {
   "framework": "Vitest",
@@ -386,6 +391,7 @@ Dashboard:    38%  (行業標準: 30-50%)  ✅
 ```
 
 ### 測試結構模板
+
 ```typescript
 describe('ServiceName', () => {
   let service: ServiceType
@@ -421,6 +427,7 @@ describe('ServiceName', () => {
 ```
 
 ### 測試命名規範
+
 ```typescript
 // ✅ 好的命名
 it('應該成功創建收銀機', ...)
@@ -434,22 +441,23 @@ it('test 1', ...)
 ```
 
 ### Mock 數據管理
+
 ```typescript
 // 使用工廠函數創建測試數據
 const createTestRegister = (overrides = {}) => ({
-  name: 'POS-001',
-  location: 'Front Counter',
+  name: "POS-001",
+  location: "Front Counter",
   restaurantId: 1,
   isActive: true,
-  ...overrides
-})
+  ...overrides,
+});
 
 // 使用 builders 構建複雜數據
 const registerBuilder = {
   withName: (name) => ({ ...base, name }),
   withLocation: (location) => ({ ...base, location }),
-  build: () => base
-}
+  build: () => base,
+};
 ```
 
 ---
@@ -457,6 +465,7 @@ const registerBuilder = {
 ## 🚀 快速開始指南
 
 ### 運行測試
+
 ```bash
 # 運行所有測試
 pnpm test
@@ -475,6 +484,7 @@ pnpm test:watch
 ```
 
 ### 調試測試
+
 ```bash
 # 使用 --inspect-brk 調試
 node --inspect-brk ./node_modules/vitest/vitest.mjs run POSService.test.ts
@@ -490,6 +500,7 @@ it('test', () => {
 ## 📝 實施檢查清單
 
 ### Phase 1 Checklist
+
 - [x] POSService Tests (1000+ 行, 40+ tests)
 - [ ] GroupOrderService Tests (800+ 行, 50+ tests)
 - [ ] NotificationService Tests (500+ 行, 30+ tests)
@@ -497,6 +508,7 @@ it('test', () => {
 - [ ] LeaveAnalyticsService Tests (450+ 行, 28+ tests)
 
 ### Phase 2 Checklist
+
 - [ ] POS API Tests (800+ 行)
 - [ ] Group Orders API Tests (700+ 行)
 - [ ] Scheduling API Tests (600+ 行)
@@ -504,6 +516,7 @@ it('test', () => {
 - [ ] Reservations API Tests (400+ 行)
 
 ### Phase 3 Checklist
+
 - [ ] useAdminRealtime Tests (600+ 行)
 - [ ] useKitchenRealtime Tests (650+ 行)
 - [ ] useRealtimeOrders Tests (450+ 行)
@@ -511,6 +524,7 @@ it('test', () => {
 - [ ] usePerformanceMonitor Tests (350+ 行)
 
 ### Phase 4 Checklist
+
 - [ ] POS Complete Workflow (500+ 行)
 - [ ] Group Ordering Workflow (600+ 行)
 - [ ] Cross-module Integration (1200+ 行)
@@ -536,7 +550,9 @@ Phase 4: ░░░░░░░░░░░░░░░░░░░░  0% (0/3 �
 ## 🎯 下一步行動
 
 ### 立即執行
+
 1. **運行 POSService 測試**
+
    ```bash
    cd packages/database
    pnpm test POSService.test.ts
@@ -553,6 +569,7 @@ Phase 4: ░░░░░░░░░░░░░░░░░░░░  0% (0/3 �
    - 編寫測試代碼
 
 ### 本週目標
+
 - ✅ 完成 Phase 1.1: POSService Tests
 - 🎯 完成 Phase 1.2: GroupOrderService Tests
 - 🎯 完成 Phase 1.3: NotificationService Tests

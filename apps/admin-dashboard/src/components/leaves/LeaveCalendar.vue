@@ -4,13 +4,21 @@
     <div class="calendar-header">
       <button class="nav-btn" @click="previousMonth">
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+            clip-rule="evenodd"
+          />
         </svg>
       </button>
       <h2 class="month-title">{{ currentMonth }}</h2>
       <button class="nav-btn" @click="nextMonth">
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+            clip-rule="evenodd"
+          />
         </svg>
       </button>
     </div>
@@ -28,8 +36,8 @@
         class="calendar-day"
         :class="{
           'other-month': day.isOtherMonth,
-          'today': day.isToday,
-          'has-leave': day.leaveRequests.length > 0
+          today: day.isToday,
+          'has-leave': day.leaveRequests.length > 0,
         }"
       >
         <div class="day-number">{{ day.number }}</div>
@@ -59,107 +67,116 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { LeaveRequest, LeaveType } from '@makanmakan/shared-types'
+import { ref, computed } from "vue";
+import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
 
 interface CalendarDay {
-  date: string
-  number: number
-  isOtherMonth: boolean
-  isToday: boolean
-  leaveRequests: LeaveRequest[]
+  date: string;
+  number: number;
+  isOtherMonth: boolean;
+  isToday: boolean;
+  leaveRequests: LeaveRequest[];
 }
 
 interface Props {
-  leaveRequests: LeaveRequest[]
-  leaveTypes: LeaveType[]
+  leaveRequests: LeaveRequest[];
+  leaveTypes: LeaveType[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const currentDate = ref(new Date())
+const currentDate = ref(new Date());
 
-const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六']
+const weekdays = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
 const currentMonth = computed(() => {
-  return currentDate.value.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' })
-})
+  return currentDate.value.toLocaleDateString("zh-TW", {
+    year: "numeric",
+    month: "long",
+  });
+});
 
 const calendarDays = computed((): CalendarDay[] => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const prevLastDay = new Date(year, month, 0)
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const prevLastDay = new Date(year, month, 0);
 
-  const days: CalendarDay[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const days: CalendarDay[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // 上個月的日期
-  const firstDayOfWeek = firstDay.getDay()
+  const firstDayOfWeek = firstDay.getDay();
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    const date = new Date(year, month, -i)
+    const date = new Date(year, month, -i);
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       number: prevLastDay.getDate() - i,
       isOtherMonth: true,
       isToday: false,
-      leaveRequests: getLeaveRequestsForDate(date)
-    })
+      leaveRequests: getLeaveRequestsForDate(date),
+    });
   }
 
   // 本月的日期
   for (let i = 1; i <= lastDay.getDate(); i++) {
-    const date = new Date(year, month, i)
+    const date = new Date(year, month, i);
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       number: i,
       isOtherMonth: false,
       isToday: date.getTime() === today.getTime(),
-      leaveRequests: getLeaveRequestsForDate(date)
-    })
+      leaveRequests: getLeaveRequestsForDate(date),
+    });
   }
 
   // 下個月的日期（填滿格子）
-  const remainingDays = 42 - days.length
+  const remainingDays = 42 - days.length;
   for (let i = 1; i <= remainingDays; i++) {
-    const date = new Date(year, month + 1, i)
+    const date = new Date(year, month + 1, i);
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       number: i,
       isOtherMonth: true,
       isToday: false,
-      leaveRequests: getLeaveRequestsForDate(date)
-    })
+      leaveRequests: getLeaveRequestsForDate(date),
+    });
   }
 
-  return days
-})
+  return days;
+});
 
 const activeLeaveTypes = computed(() => {
-  const usedTypeIds = new Set(props.leaveRequests.map(r => r.leaveTypeId))
-  return props.leaveTypes.filter(t => usedTypeIds.has(t.id))
-})
+  const usedTypeIds = new Set(props.leaveRequests.map((r) => r.leaveTypeId));
+  return props.leaveTypes.filter((t) => usedTypeIds.has(t.id));
+});
 
 const getLeaveRequestsForDate = (date: Date): LeaveRequest[] => {
-  return props.leaveRequests.filter(request => {
-    const start = new Date(request.startDate)
-    const end = new Date(request.endDate)
-    start.setHours(0, 0, 0, 0)
-    end.setHours(0, 0, 0, 0)
-    date.setHours(0, 0, 0, 0)
-    return date >= start && date <= end && request.status === 'approved'
-  })
-}
+  return props.leaveRequests.filter((request) => {
+    const start = new Date(request.startDate);
+    const end = new Date(request.endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    return date >= start && date <= end && request.status === "approved";
+  });
+};
 
 const previousMonth = () => {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1)
-}
+  currentDate.value = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth() - 1,
+  );
+};
 
 const nextMonth = () => {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1)
-}
+  currentDate.value = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth() + 1,
+  );
+};
 </script>
 
 <style scoped>
@@ -180,7 +197,7 @@ const nextMonth = () => {
 .month-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin: 0;
 }
 
@@ -191,20 +208,20 @@ const nextMonth = () => {
   align-items: center;
   justify-content: center;
   border: none;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .nav-btn:hover {
-  background: #E5E7EB;
+  background: #e5e7eb;
 }
 
 .nav-btn .icon {
   width: 20px;
   height: 20px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .weekdays {
@@ -218,7 +235,7 @@ const nextMonth = () => {
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: #6B7280;
+  color: #6b7280;
   padding: 8px;
 }
 
@@ -230,7 +247,7 @@ const nextMonth = () => {
 
 .calendar-day {
   aspect-ratio: 1;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 8px;
   display: flex;
@@ -240,8 +257,8 @@ const nextMonth = () => {
 }
 
 .calendar-day:hover {
-  background: #F9FAFB;
-  border-color: #3B82F6;
+  background: #f9fafb;
+  border-color: #3b82f6;
 }
 
 .calendar-day.other-month {
@@ -249,18 +266,18 @@ const nextMonth = () => {
 }
 
 .calendar-day.today {
-  background: #EFF6FF;
-  border-color: #3B82F6;
+  background: #eff6ff;
+  border-color: #3b82f6;
 }
 
 .calendar-day.has-leave {
-  background: #FFFBEB;
+  background: #fffbeb;
 }
 
 .day-number {
   font-size: 14px;
   font-weight: 500;
-  color: #1F2937;
+  color: #1f2937;
 }
 
 .leave-indicators {
@@ -277,7 +294,7 @@ const nextMonth = () => {
 
 .more-indicator {
   font-size: 10px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .calendar-legend {
@@ -286,7 +303,7 @@ const nextMonth = () => {
   gap: 16px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid #e5e7eb;
 }
 
 .legend-item {
@@ -303,7 +320,7 @@ const nextMonth = () => {
 
 .legend-label {
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 @media (max-width: 640px) {

@@ -230,7 +230,9 @@
           class="fixed inset-0 bg-black opacity-30"
           @click="closeTableModal"
         />
-        <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+          class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        >
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
               {{ editingTable ? "編輯桌台" : "新增桌台" }}
@@ -403,7 +405,7 @@ import {
   MapPinIcon,
   DocumentTextIcon,
   TableCellsIcon,
-  WrenchIcon
+  WrenchIcon,
 } from "@heroicons/vue/24/outline";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
 
@@ -480,8 +482,8 @@ const tableForm = ref({
   qrMode: "table" as "table" | "seat",
   seatConfig: {
     count: 10,
-    numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom"
-  }
+    numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+  },
 });
 
 // 計算屬性
@@ -624,8 +626,8 @@ const closeTableModal = () => {
     qrMode: "table",
     seatConfig: {
       count: 10,
-      numberingStyle: "numeric"
-    }
+      numberingStyle: "numeric",
+    },
   };
 };
 

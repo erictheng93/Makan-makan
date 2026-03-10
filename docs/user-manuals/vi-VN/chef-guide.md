@@ -51,21 +51,25 @@
 ### Danh Sách Kiểm Tra Lần Đầu
 
 ✅ **Bước 1: Xác Nhận Tài Khoản & Thiết Bị**
+
 - Xác minh thông tin tài khoản đầu bếp
 - Kiểm tra đăng nhập hệ thống màn hình bếp
 - Đảm bảo màn hình hiển thị hoạt động tốt
 
 ✅ **Bước 2: Làm Quen Giao Diện**
+
 - Hiểu bố cục thẻ đơn hàng
 - Thực hành cập nhật trạng thái
 - Kiểm tra thông báo âm thanh
 
 ✅ **Bước 3: Học Quy Trình**
+
 - Phương thức thông báo đơn mới
 - Thủ tục cập nhật trạng thái
 - Quy trình hoàn thành đơn hàng
 
 ✅ **Bước 4: Chuẩn Bị**
+
 - Xác nhận thiết bị bếp sẵn sàng
 - Kiểm tra nguyên liệu chuẩn bị
 - Bắt đầu nhận đơn
@@ -109,6 +113,7 @@ Phục Vụ       Khách Hàng
 ```
 
 **Giải Thích**:
+
 - **Khách Hàng**: Đặt qua mã QR
 - **Hệ Thống Bếp**: Nhận và hiển thị đơn thời gian thực
 - **Đầu Bếp (Bạn)**: Xử lý đơn và cập nhật trạng thái
@@ -268,6 +273,7 @@ Chọn Trạm Của Bạn:
 ### Danh Sách Kiểm Tra Sau Đăng Nhập
 
 ✅ **Xác Minh Trạng Thái Hệ Thống**
+
 ```
 ┌─────────────────────────────┐
 │ Danh Sách Kiểm Tra          │

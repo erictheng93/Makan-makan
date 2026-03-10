@@ -9,7 +9,9 @@
 ## 📂 文檔結構
 
 ### 🔌 [API Documentation](./api/)
+
 REST API 文檔與使用指南
+
 - API 端點參考
 - 認證與授權
 - 請求/回應格式
@@ -17,7 +19,9 @@ REST API 文檔與使用指南
 - **查看**: [API README](./api/README.md)
 
 ### 🏗️ [Architecture](./architecture/)
+
 系統架構與技術規格
+
 - ⭐ [技術文檔](./architecture/technical-documentation.md) - 完整技術規格（主文檔）
 - [專案架構](./architecture/project-architecture.md) - 架構概覽
 - [資料庫架構](./architecture/database/) - D1 設計與優化
@@ -25,7 +29,9 @@ REST API 文檔與使用指南
 - **查看**: [Architecture README](./architecture/README.md)
 
 ### ✨ [Features](./features/)
+
 各功能模組的實施文檔
+
 - 🤖 [AI Analytics](./features/ai-analytics/) - AI 分析功能
 - 👥 [Employee Management](./features/employee-management/) - 員工管理（排班/請假）
 - 🤝 [Partnership System](./features/partnership-system/) - 合作夥伴系統
@@ -36,44 +42,58 @@ REST API 文檔與使用指南
 - **查看**: [Features README](./features/README.md)
 
 ### 📚 [Guides](./guides/)
+
 開發與部署指南
+
 - [測試指南](./guides/testing-guide.md) - 測試最佳實踐
 - [開發指南](./guides/development/) - 開發最佳實踐
 - [部署指南](./guides/deployment/) - 部署步驟與檢查清單
 
 ### 🚀 [Implementation](./implementation/)
+
 實施計劃與進度報告
+
 - [Roadmaps](./implementation/roadmaps/) - 功能路線圖
 - [Summaries](./implementation/summaries/) - 實施總結
 - [Testing](./implementation/testing/) - 測試基礎設施實施
 
 ### 🔄 [Migration](./migration/)
+
 資料庫遷移與優化指南
+
 - 遷移計劃
 - 優化策略
 - V2 遷移記錄
 
 ### ⚡ [Performance](./performance/)
+
 性能優化指南
+
 - Bundle 優化
 - PWA 性能分析
 - 請求去重
 - 性能監控
 
 ### 🔒 [Security](./security/)
+
 安全文檔與檢查清單
+
 - [安全指南](./security/SECURITY.md)
 - 部署安全檢查清單
 
 ### 🧪 [Testing](./testing/)
+
 測試框架、指南與報告
+
 - [測試指南](./testing/guides/) - 各類測試指南
 - [Factory Pattern](./testing/factory-pattern/) - 測試數據工廠
 - [測試報告](./testing/reports/) - 執行報告
 - **查看**: [Testing README](./testing/README.md)
 
 ### 📱 [User Manuals](./user-manuals/)
+
 使用者手冊（多語言）
+
 - AI Analytics 使用手冊
 - 排班系統手冊
 - 請假管理手冊
@@ -81,10 +101,13 @@ REST API 文檔與使用指南
 - **語言**: 繁中、簡中、英文、日文、越南文、印尼文、菲律賓文
 
 ### 🎓 [Workshops](./workshops/)
+
 工作坊與培訓資料
 
 ### 📦 [Archive](./archive/)
+
 歷史文檔與完成報告
+
 - [變更日誌](./archive/CHANGELOG.md) ⭐
 - 完成報告
 - Bug 修復記錄
@@ -92,7 +115,9 @@ REST API 文檔與使用指南
 - **查看**: [Archive README](./archive/README.md)
 
 ### 🌍 [Locales](./locales/)
+
 多語言文檔
+
 - [簡體中文](./locales/zh-cn/) - CLAUDE 指南、技術文檔
 
 ---
@@ -102,27 +127,34 @@ REST API 文檔與使用指南
 ### 我想...
 
 #### 🆕 開始開發
+
 1. 閱讀 [CLAUDE.md](../CLAUDE.md) - 項目概覽
 2. 設置開發環境
 3. 查看 [架構文檔](./architecture/technical-documentation.md)
 4. 閱讀 [測試指南](./guides/testing-guide.md)
 
 #### 🔍 了解特定功能
+
 → 查看 [Features 文件夾](./features/)
 
 #### 📖 API 使用
+
 → 查看 [API 文檔](./api/)
 
 #### 🏗️ 理解系統架構
+
 → 閱讀 [技術文檔](./architecture/technical-documentation.md)
 
 #### 🧪 編寫測試
+
 → 查看 [Testing 文檔](./testing/)
 
 #### 🚀 部署應用
+
 → 查看 [部署指南](./guides/deployment/)
 
 #### 📊 查看進度
+
 → 查看 [變更日誌](./archive/CHANGELOG.md)
 
 ---
@@ -131,12 +163,12 @@ REST API 文檔與使用指南
 
 ### 必讀文檔
 
-| 文檔 | 描述 | 讀者 |
-|------|------|------|
-| [requirements.md](./requirements.md) | 產品需求文檔 | 所有人 |
-| [CLAUDE.md](../CLAUDE.md) | 項目概覽與開發指南 | 開發者 |
-| [技術文檔](./architecture/technical-documentation.md) | 完整技術規格 | 開發者/架構師 |
-| [INDEX.md](./INDEX.md) | 詳細文檔索引 | 所有人 |
+| 文檔                                                  | 描述               | 讀者          |
+| ----------------------------------------------------- | ------------------ | ------------- |
+| [requirements.md](./requirements.md)                  | 產品需求文檔       | 所有人        |
+| [CLAUDE.md](../CLAUDE.md)                             | 項目概覽與開發指南 | 開發者        |
+| [技術文檔](./architecture/technical-documentation.md) | 完整技術規格       | 開發者/架構師 |
+| [INDEX.md](./INDEX.md)                                | 詳細文檔索引       | 所有人        |
 
 ### 最新更新
 
@@ -152,25 +184,25 @@ REST API 文檔與使用指南
 
 ## 📊 項目狀態
 
-| 指標 | 狀態 |
-|------|------|
-| **架構版本** | 2.0 (Cloudflare Serverless) |
-| **TypeScript** | ✅ 0 errors (100% 合規) |
-| **ESLint** | ✅ 0 errors, 0 warnings |
-| **測試覆蓋率** | 85%+ (核心模組) |
-| **PWA 分數** | 95/100 |
-| **整體完成度** | 98% |
+| 指標           | 狀態                        |
+| -------------- | --------------------------- |
+| **架構版本**   | 2.0 (Cloudflare Serverless) |
+| **TypeScript** | ✅ 0 errors (100% 合規)     |
+| **ESLint**     | ✅ 0 errors, 0 warnings     |
+| **測試覆蓋率** | 85%+ (核心模組)             |
+| **PWA 分數**   | 95/100                      |
+| **整體完成度** | 98%                         |
 
 ### 功能完成度
 
-| 功能 | 狀態 | 文檔 |
-|------|------|------|
-| 核心 API | ✅ 100% | [Architecture](./architecture/) |
-| AI Analytics | ✅ 100% | [AI Analytics](./features/ai-analytics/) |
+| 功能                | 狀態    | 文檔                                             |
+| ------------------- | ------- | ------------------------------------------------ |
+| 核心 API            | ✅ 100% | [Architecture](./architecture/)                  |
+| AI Analytics        | ✅ 100% | [AI Analytics](./features/ai-analytics/)         |
 | Employee Management | ✅ 100% | [Employee Mgmt](./features/employee-management/) |
-| Partnership System | ✅ 100% | [Partnership](./features/partnership-system/) |
-| Realtime Services | 🟡 90% | [Realtime](./features/realtime-services/) |
-| Shop QR System | ✅ 100% | [Shop QR](./features/shop-qr/) |
+| Partnership System  | ✅ 100% | [Partnership](./features/partnership-system/)    |
+| Realtime Services   | 🟡 90%  | [Realtime](./features/realtime-services/)        |
+| Shop QR System      | ✅ 100% | [Shop QR](./features/shop-qr/)                   |
 
 ---
 
@@ -216,6 +248,7 @@ grep -r "WebSocket" docs/features/realtime-services/
 ### 使用 GitHub 搜尋
 
 在 GitHub 儲存庫頁面使用搜尋功能：
+
 ```
 path:docs/ "keyword"
 ```
@@ -321,4 +354,4 @@ path:docs/ "keyword"
 
 ---
 
-*有任何文檔問題或建議，歡迎提出 Issue 或 Pull Request！* 🚀
+_有任何文檔問題或建議，歡迎提出 Issue 或 Pull Request！_ 🚀

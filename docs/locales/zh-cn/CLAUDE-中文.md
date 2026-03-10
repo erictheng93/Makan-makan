@@ -9,6 +9,7 @@ MakanMakan 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺
 ## 架構遷移狀態
 
 **✅ 遷移完成**
+
 - **舊系統**: PHP + MySQL（存檔於 `/legacy/` 資料夾）
 - **新系統**: Cloudflare Workers + D1 + TypeScript（**生產就緒**）
 - **遷移狀態**: 完成無伺服器架構實施，TypeScript 編譯 0 錯誤
@@ -17,6 +18,7 @@ MakanMakan 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺
 ## 新系統架構（Cloudflare 生態系統）
 
 ### 技術堆疊
+
 - **前端**: Vue.js 3 + TypeScript（Cloudflare Pages）
 - **後端**: Cloudflare Workers + TypeScript
 - **資料庫**: Cloudflare D1（相容 SQLite 的無伺服器 SQL）
@@ -27,6 +29,7 @@ MakanMakan 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺
 - **安全**: Cloudflare WAF + Zero Trust
 
 ### 專案結構
+
 ```
 makanmakan/
 ├── apps/
@@ -48,12 +51,15 @@ makanmakan/
 ## 資料庫配置（Cloudflare D1）
 
 ### 資料庫設定
+
 - **生產環境**: `makanmakan-prod`（Cloudflare D1）
 - **測試環境**: `makanmakan-staging`（Cloudflare D1）
 - **本機開發**: 本機 SQLite 資料庫
 
 ### 關鍵資料表（生產架構）
+
 **核心業務資料表:**
+
 - `users`: 多角色用戶帳戶（管理員、店主、廚師、服務員、收銀員）
 - `restaurants`: 餐廳資訊與設定
 - `tables`: 桌台管理與 QR 碼產生
@@ -63,6 +69,7 @@ makanmakan/
 - `categories`: 菜單分類
 
 **系統與安全資料表:**
+
 - `sessions`: 用戶會話（也快取於 KV）
 - `audit_logs`: 完整系統活動記錄
 - `error_reports`: 錯誤追蹤與除錯
@@ -72,10 +79,12 @@ makanmakan/
 - `qr_batches`: 批量 QR 產生追蹤
 
 **媒體與分析資料表:**
+
 - `images`: 圖片元資料與處理
 - `image_variants`: 多種圖片尺寸變體
 
 ### 資料庫操作
+
 ```bash
 # 應用遷移到測試環境
 npx wrangler d1 migrations apply makanmakan-staging --env staging
@@ -90,11 +99,13 @@ npx wrangler d1 execute makanmakan-staging --local --command "SELECT * FROM user
 ## 開發工作流程
 
 ### 先決條件
+
 - Node.js 20+
 - Cloudflare 帳戶（付費方案，用於 D1、R2、Images）
 - Wrangler CLI: `npm install -g wrangler`
 
 ### 本機開發設定
+
 ```bash
 # 1. 安裝依賴項目
 npm install
@@ -118,6 +129,7 @@ npm run dev  # 並行啟動所有應用程式
 ### 環境配置
 
 #### 必需的環境變數
+
 ```env
 # Cloudflare API Token（用於部署）
 CLOUDFLARE_API_TOKEN=your_api_token
@@ -133,7 +145,9 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```
 
 #### Wrangler 配置
+
 每個應用程式都有自己的 `wrangler.toml`，包含環境特定綁定：
+
 - D1 資料庫
 - KV 命名空間
 - R2 儲存桶
@@ -141,7 +155,9 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 - 佇列生產者
 
 ### 多角色存取系統（邏輯未變更）
+
 系統維持相同的角色權限：
+
 - **0: 管理員** - 完整系統存取權限
 - **1: 店主** - 餐廳管理
 - **2: 廚師** - 廚房顯示系統
@@ -149,6 +165,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 - **4: 收銀員** - 付款處理
 
 ### API 端點結構
+
 ```
 /api/v1/
 ├── auth/          # 身份驗證（登入、註冊、刷新）
@@ -167,6 +184,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ## 開發指令
 
 ### 資料庫管理
+
 ```bash
 # 建立並應用遷移
 npm run db:migrate:create <遷移名稱>
@@ -179,6 +197,7 @@ npm run db:seed:staging
 ```
 
 ### 測試
+
 ```bash
 # 單元測試
 npm run test
@@ -202,6 +221,7 @@ cd apps/customer-app && npm run test
 ```
 
 ### 部署
+
 ```bash
 # 部署到測試環境（推送到 develop 分支時自動執行）
 npm run deploy:staging
@@ -214,6 +234,7 @@ npm run build && npm run deploy
 ```
 
 ### 監控和除錯
+
 ```bash
 # 檢視特定 worker 的日誌
 npx wrangler tail makanmakan-api-prod
@@ -228,6 +249,7 @@ npx wrangler kv:key list --binding CACHE_KV
 ## 目前開發狀態
 
 ### 🚀 生產就緒功能（已完成）
+
 - ✅ **核心 API 基礎設施**: 所有端點正常運作，TypeScript 編譯 0 錯誤
 - ✅ **資料庫架構**: 完整 D1 架構與遷移
 - ✅ **身份驗證系統**: 基於 JWT 的多角色身份驗證
@@ -238,12 +260,14 @@ npx wrangler kv:key list --binding CACHE_KV
 - ✅ **CI/CD 管線**: 自動化部署和測試
 
 ### 🔨 開發中功能
+
 - 🔄 **即時功能**: 即時更新的 WebSocket/SSE 實作
 - 🔄 **圖片處理**: 菜單照片的 Cloudflare Images 整合
 - 🔄 **分析儀表板**: 商業智慧和報告功能
 - 🔄 **效能最佳化**: 快取策略和查詢最佳化
 
 ### 📋 下一階段（規劃中）
+
 - ⏳ **付款整合**: 多閘道付款處理
 - ⏳ **行動 PWA**: 離線支援的漸進式網頁應用功能
 - ⏳ **進階分析**: AI 驅動的見解和推薦
@@ -256,6 +280,7 @@ npx wrangler kv:key list --binding CACHE_KV
 **重大成就**: 成功解決整個 API 代碼庫中所有 **13 個剩餘的 TypeScript 編譯錯誤**，實現 **完美的 TypeScript 編譯（0 錯誤）**。
 
 #### 實施的關鍵修復:
+
 1. **D1Database 匯入解決（3 個錯誤）**:
    - 將匯入路徑從 `@cloudflare/workers-types` 修正為 `@makanmakan/database`
    - 更新型別別名和匯出模式
@@ -277,12 +302,14 @@ npx wrangler kv:key list --binding CACHE_KV
    - 更新 `apps/api/src/routes/system.ts`
 
 #### 技術影響:
+
 - **程式碼品質**: 所有 API 路由 100% TypeScript 合規
 - **開發者體驗**: 零編譯警告，改善 IDE 支援
 - **可維護性**: 一致的型別安全和無錯誤建置
 - **部署就緒**: CI/CD 管線中的所有檢查通過
 
 #### 驗證:
+
 ```bash
 # 所有應用程式現在都通過 TypeScript 編譯
 cd apps/api && npx tsc --noEmit  # ✅ 0 錯誤
@@ -293,6 +320,7 @@ cd apps/customer-app && npx tsc --noEmit  # ✅ 清潔
 ### 🔒 安全性增強（完成於: 2025-08-31）
 
 **新增全面的安全文件**:
+
 - `SECURITY.md`: 完整的安全指導原則和協定
 - `DEPLOYMENT_SECURITY_CHECKLIST.md`: 部署前安全驗證
 - `SQL/migrate_passwords_security.sql`: 資料庫安全遷移
@@ -301,12 +329,14 @@ cd apps/customer-app && npx tsc --noEmit  # ✅ 清潔
 ### 🧪 測試基礎設施（完成於: 2025-08-31）
 
 **新增的全面測試套件**:
+
 - **管理儀表板**: 元件測試、設定配置
 - **API 服務**: 路由測試、SSE 測試、身份驗證測試
 - **客戶應用程式**: 購物車、錯誤邊界、訂單項目的元件測試
 - **端到端**: 管理員登入和核心工作流程測試
 
 #### 測試覆蓋:
+
 ```bash
 apps/admin-dashboard/src/__tests__/     # Vue 元件測試
 apps/api/src/__tests__/                 # API 路由測試
@@ -317,6 +347,7 @@ tests/e2e/                              # 端到端測試
 ## 關鍵功能（更新版）
 
 ### 核心功能
+
 - **多餐廳 SaaS 平台**，具有租戶隔離
 - **基於 QR 碼的點餐**，動態 QR 產生
 - **即時訂單追蹤**，使用 WebSockets（Durable Objects）
@@ -325,6 +356,7 @@ tests/e2e/                              # 端到端測試
 - **全球邊緣部署**，全球低延遲
 
 ### 進階功能
+
 - **智慧快取**，多層快取策略
 - **業務分析**，自訂指標追蹤
 - **自動監控**，健康檢查和警報
@@ -335,16 +367,19 @@ tests/e2e/                              # 端到端測試
 ## 常見開發任務
 
 ### 新增新菜單項目
+
 - **API**: POST `/api/v1/menu/{restaurant_id}/items`
 - **前端**: 管理儀表板 → 菜單管理 → 新增項目
 - **圖片**: 自動處理，多種變體（縮圖、中等、大型）
 
 ### 管理用戶角色
+
 - **API**: POST/PUT `/api/v1/users/{restaurant_id}`
 - **權限矩陣**: 定義於 `packages/shared-types/permissions.ts`
 - **角色介面**: 管理儀表板中每個角色的專門 UI
 
 ### QR 碼產生
+
 - **個別 QR**: POST `/api/v1/qr/generate`
 - **批量產生**: POST `/api/v1/qr/bulk`
 - **模板管理**: GET/POST/PUT/DELETE `/api/v1/qr/templates`
@@ -354,11 +389,13 @@ tests/e2e/                              # 端到端測試
 - **客製化**: 進階樣式，包含模板、標誌、顏色、漸層
 
 ### 即時訂單更新
+
 - **WebSocket 連接**: 由 Durable Objects 處理
 - **事件廣播**: 訂單狀態變更觸發通知
 - **基於角色的篩選**: 不同角色接收不同通知類型
 
 ### 分析和報告
+
 - **儀表板資料**: GET `/api/v1/analytics/{restaurant_id}/dashboard`
 - **自訂報告**: 具快取的時間範圍篩選
 - **匯出選項**: JSON、CSV、PDF 格式
@@ -366,12 +403,14 @@ tests/e2e/                              # 端到端測試
 ## 錯誤處理和除錯
 
 ### 常見問題
+
 1. **D1 連接錯誤**: 檢查 wrangler.toml 綁定
 2. **KV 快取遺失**: 驗證命名空間配置
 3. **圖片上傳失敗**: 檢查 R2 儲存桶權限
 4. **WebSocket 中斷**: 監控 Durable Objects 健康狀況
 
 ### 除錯工具
+
 - **Worker 日誌**: `npx wrangler tail`
 - **D1 查詢**: 透過 wrangler 直接資料庫存取
 - **健康端點**: `/api/v1/health` 用於系統狀態
@@ -380,12 +419,14 @@ tests/e2e/                              # 端到端測試
 ## 效能最佳化
 
 ### 快取策略
+
 - **靜態資產**: Cloudflare CDN，長快取時間
 - **API 回應**: KV 快取，智慧無效化
 - **資料庫查詢**: 查詢結果快取，具 TTL
 - **圖片傳遞**: Cloudflare Images，全球分發
 
 ### 監控目標
+
 - **API 回應時間**: P99 < 300ms
 - **資料庫查詢時間**: P95 < 100ms
 - **圖片載入時間**: P90 < 1s
@@ -394,12 +435,14 @@ tests/e2e/                              # 端到端測試
 ## 安全考量
 
 ### 資料保護
+
 - **加密**: 靜態敏感資料使用 AES-256
 - **JWT 令牌**: 具刷新邏輯的安全令牌管理
 - **輸入驗證**: 所有輸入的全面驗證
 - **CORS**: 嚴格的來源驗證
 
 ### 存取控制
+
 - **WAF 規則**: API 保護的自訂規則
 - **速率限制**: 基於 IP 和用戶的速率限制
 - **地理限制**: 管理介面地理阻擋
@@ -408,6 +451,7 @@ tests/e2e/                              # 端到端測試
 ## 從舊系統遷移
 
 ### 資料遷移流程
+
 1. **匯出舊資料**: `/legacy/migration/` 中的自訂 PHP 腳本
 2. **轉換架構**: 將舊結構映射到新 D1 資料表
 3. **匯入到 D1**: 具驗證的批次匯入
@@ -415,6 +459,7 @@ tests/e2e/                              # 端到端測試
 5. **切換規劃**: 藍綠部署策略
 
 ### 向後相容性
+
 - **API 端點**: 過渡期間重定向舊端點
 - **檔案參考**: 圖片 URL 映射到新 R2/Images 結構
 - **用戶會話**: 活動會話的逐步遷移
@@ -423,6 +468,7 @@ tests/e2e/                              # 端到端測試
 ## 未來路線圖
 
 ### 規劃增強（第二階段）
+
 - **進階分析**: AI 驅動的見解和推薦
 - **付款整合**: 多付款閘道支援
 - **庫存管理**: 智慧庫存追蹤與預測
@@ -443,9 +489,10 @@ tests/e2e/                              # 端到端測試
 產品需求請參閱 `docs/requirements_optimized.md`
 
 # 重要指示提醒
+
 按要求行事；不多不少。
 除非絕對必要實現目標，否則永遠不要建立檔案。
 始終優先編輯現有檔案而非建立新檔案。
-除非用戶明確要求，否則永遠不要主動建立文件檔案（*.md）或 README 檔案。僅在明確要求時才建立文件檔案。
+除非用戶明確要求，否則永遠不要主動建立文件檔案（\*.md）或 README 檔案。僅在明確要求時才建立文件檔案。
 
 重要: 此內容可能與您的任務相關或不相關。除非與您的任務高度相關，否則您不應回應此內容。

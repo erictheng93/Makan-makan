@@ -85,6 +85,7 @@ Bilang service crew, ikaw ang mahalagang tulay sa pagitan ng restaurant at mga c
 ```
 
 **Paliwanag ng Papel**:
+
 - **Kusinero**: Naghahanda ng pagkain → Nag-notify ng pickup
 - **Ikaw (Service Crew)**: Kumuha → Maghatid → I-update ang status
 - **Cashier**: Magproseso ng bayad → Kumpletuhin ang order
@@ -145,24 +146,27 @@ Bilang service crew, ikaw ang mahalagang tulay sa pagitan ng restaurant at mga c
 
 ### Halimbawa ng Login Credentials
 
-| Item | Paliwanag | Halimbawa |
-|------|-----------|-----------|
-| Username | Employee account na ginawa ng may-ari | crew001 o your.email@example.com |
-| Initial Password | Pansamantalang password mula sa may-ari | Temp123456 |
-| Kinakailangan sa Bagong Password | Hindi bababa sa 8 character, may letra at numero | MyPass2025! |
+| Item                             | Paliwanag                                        | Halimbawa                        |
+| -------------------------------- | ------------------------------------------------ | -------------------------------- |
+| Username                         | Employee account na ginawa ng may-ari            | crew001 o your.email@example.com |
+| Initial Password                 | Pansamantalang password mula sa may-ari          | Temp123456                       |
+| Kinakailangan sa Bagong Password | Hindi bababa sa 8 character, may letra at numero | MyPass2025!                      |
 
 ### Unang Pag-login Checklist
 
 ✅ **Palitan ang Default Password**
+
 - Magtakda ng secure at madaling tandaan na password
 - Huwag ibahagi sa iba
 
 ✅ **Kumpletuhin ang Personal Profile**
+
 - Mag-upload ng profile photo (opsyonal)
 - Punan ang contact phone
 - Kumpirmahin ang emergency contact
 
 ✅ **Maging Pamilyar sa Interface**
+
 - I-browse ang pangunahing function areas
 - Subukan ang order viewing function
 - Maintindihan ang paraan ng pag-update ng status
@@ -232,13 +236,13 @@ Bilang service crew, ikaw ang mahalagang tulay sa pagitan ng restaurant at mga c
 
 ### Gabay sa Impormasyon ng Order
 
-| Icon/Label | Kahulugan | Ang Iyong Aksyon |
-|-----------|-----------|------------------|
-| 🔴 Bagong Order | Kakaorder lang | Bantayan ang progreso sa kusina |
-| 🟡 Cooking | Naghahanda sa kusina | Maghintay ng pickup notification |
-| 🟢 Handa Na | Tapos na ang pagkain | **Kunin kaagad** |
-| 🔵 Delivering | Ikaw ay naghahatid | Ihatid agad |
-| ✅ Naihatid Na | Naihatid na ang pagkain | Tapos ang task |
+| Icon/Label      | Kahulugan               | Ang Iyong Aksyon                 |
+| --------------- | ----------------------- | -------------------------------- |
+| 🔴 Bagong Order | Kakaorder lang          | Bantayan ang progreso sa kusina  |
+| 🟡 Cooking      | Naghahanda sa kusina    | Maghintay ng pickup notification |
+| 🟢 Handa Na     | Tapos na ang pagkain    | **Kunin kaagad**                 |
+| 🔵 Delivering   | Ikaw ay naghahatid      | Ihatid agad                      |
+| ✅ Naihatid Na  | Naihatid na ang pagkain | Tapos ang task                   |
 
 ### Order Filter Function
 
@@ -308,13 +312,13 @@ Mga Opsyon sa Filter:
 
 Kapag kumukuha mula sa kusina, i-verify ang:
 
-| Check Item | Kumpirmahing Nilalaman |
-|-----------|----------------------|
-| ✅ Order Number | Itugma sa ipinapakita ng sistema |
-| ✅ Mga Item ng Pagkain | I-verify ang pangalan at dami |
-| ✅ Kabuuan | Side dishes, sawsawan, kubyertos |
-| ✅ Kondisyon ng Pagkain | Mainit ang mainit, malamig ang malamig |
-| ✅ Hitsura | Maayos ang pagkakalagay, walang tagas |
+| Check Item                    | Kumpirmahing Nilalaman                                 |
+| ----------------------------- | ------------------------------------------------------ |
+| ✅ Order Number               | Itugma sa ipinapakita ng sistema                       |
+| ✅ Mga Item ng Pagkain        | I-verify ang pangalan at dami                          |
+| ✅ Kabuuan                    | Side dishes, sawsawan, kubyertos                       |
+| ✅ Kondisyon ng Pagkain       | Mainit ang mainit, malamig ang malamig                 |
+| ✅ Hitsura                    | Maayos ang pagkakalagay, walang tagas                  |
 | ✅ Mga Espesyal na Kahilingan | Suriin ang mga tala (hal.: walang anghang, vegetarian) |
 
 ### Etiketa sa Paghahatid ng Serbisyo
@@ -429,10 +433,10 @@ Order #1236 → Mesa B2 → Smoothie (malamig)
 
 ### Panahon ng Pag-update ng Status
 
-| Kasalukuyang Status | I-update sa | Kailan |
-|-------------------|-------------|--------|
-| 🟢 Handa Na | 🚶 Delivering | **Pagkatapos kunin, bago umalis** |
-| 🚶 Delivering | ✅ Naihatid Na | **Pagkatapos ilagay ang pagkain sa mesa** |
+| Kasalukuyang Status | I-update sa    | Kailan                                    |
+| ------------------- | -------------- | ----------------------------------------- |
+| 🟢 Handa Na         | 🚶 Delivering  | **Pagkatapos kunin, bago umalis**         |
+| 🚶 Delivering       | ✅ Naihatid Na | **Pagkatapos ilagay ang pagkain sa mesa** |
 
 ### Kahalagahan ng Pag-update ng Status
 
@@ -608,12 +612,12 @@ Listahan ng Tala ng Delivery
 
 ### Paliwanag ng Performance Metrics
 
-| Metric | Paliwanag | Target |
-|--------|-----------|--------|
-| Average na Oras ng Delivery | Mula sa pagkuha hanggang paghahatid | < 5 minuto |
-| Nakumpletong Order | Araw-araw na matagumpay na delivery | Nakadepende sa shift |
-| Rating ng Customer | Batay sa mga review | ≥ 4.5 / 5.0 |
-| On-time Rate | Naihatid sa loob ng tinantyang oras | ≥ 95% |
+| Metric                      | Paliwanag                           | Target               |
+| --------------------------- | ----------------------------------- | -------------------- |
+| Average na Oras ng Delivery | Mula sa pagkuha hanggang paghahatid | < 5 minuto           |
+| Nakumpletong Order          | Araw-araw na matagumpay na delivery | Nakadepende sa shift |
+| Rating ng Customer          | Batay sa mga review                 | ≥ 4.5 / 5.0          |
+| On-time Rate                | Naihatid sa loob ng tinantyang oras | ≥ 95%                |
 
 ---
 
@@ -1071,6 +1075,7 @@ Salamat sa pagpili mong maging bahagi ng MakanMakan team!
 Bilang service crew, ikaw ang mahalagang tulay na nag-uugnay sa kusina at mga customer. Bawat ngiti, bawat on-time na paghahatid ay lumilikha ng magandang karanasan sa pagkain.
 
 Tandaan:
+
 - ✨ **Ang ugali ay lahat** - Manatiling positibo at masigasig
 - 🚀 **Ang efficiency ay lumilikha ng halaga** - Mabilis pero matatag
 - 🤝 **Ang serbisyo ay mula sa puso** - Tratuhin ang bawat customer nang taos-puso

@@ -180,10 +180,7 @@
             :style="{ height: TABLE_CONTAINER_HEIGHT + 'px' }"
             @scroll="handleScroll"
           >
-            <div
-              class="relative"
-              :style="{ height: totalHeight + 'px' }"
-            >
+            <div class="relative" :style="{ height: totalHeight + 'px' }">
               <div
                 :style="{
                   transform: `translateY(${offsetY}px)`,
@@ -198,88 +195,96 @@
                       class="hover:bg-gray-50"
                       :style="{ height: TABLE_ROW_HEIGHT + 'px' }"
                     >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10">
-                      <div
-                        class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center"
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10">
+                            <div
+                              class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center"
+                            >
+                              <UserIcon class="h-6 w-6 text-gray-600" />
+                            </div>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                              {{ user.fullName || user.username }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                              {{ user.email || "未設定 Email" }}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
                       >
-                        <UserIcon class="h-6 w-6 text-gray-600" />
-                      </div>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">
-                        {{ user.fullName || user.username }}
-                      </div>
-                      <div class="text-sm text-gray-500">
-                        {{ user.email || "未設定 Email" }}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ user.username }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="getRoleBadgeClass(user.role)"
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  >
-                    <component
-                      :is="getRoleIcon(user.role)"
-                      class="w-3 h-3 mr-1"
-                    />
-                    {{ getRoleText(user.role) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="getStatusBadgeClass(user.status)"
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  >
-                    {{ getStatusText(user.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{
-                    user.lastLoginAt
-                      ? formatDateTime(user.lastLoginAt)
-                      : "從未登入"
-                  }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDate(user.createdAt) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex items-center space-x-2">
-                    <button
-                      class="text-indigo-600 hover:text-indigo-900"
-                      @click="editUser(user)"
-                    >
-                      編輯
-                    </button>
-                    <button
-                      class="text-green-600 hover:text-green-900"
-                      @click="resetPassword(user)"
-                    >
-                      重置密碼
-                    </button>
-                    <button
-                      v-if="user.status === 'active'"
-                      class="text-red-600 hover:text-red-900"
-                      @click="toggleUserStatus(user)"
-                    >
-                      停用
-                    </button>
-                    <button
-                      v-else
-                      class="text-green-600 hover:text-green-900"
-                      @click="toggleUserStatus(user)"
-                    >
-                      啟用
-                    </button>
-                  </div>
-                </td>
+                        {{ user.username }}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span
+                          :class="getRoleBadgeClass(user.role)"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        >
+                          <component
+                            :is="getRoleIcon(user.role)"
+                            class="w-3 h-3 mr-1"
+                          />
+                          {{ getRoleText(user.role) }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span
+                          :class="getStatusBadgeClass(user.status)"
+                          class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                        >
+                          {{ getStatusText(user.status) }}
+                        </span>
+                      </td>
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                      >
+                        {{
+                          user.lastLoginAt
+                            ? formatDateTime(user.lastLoginAt)
+                            : "從未登入"
+                        }}
+                      </td>
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                      >
+                        {{ formatDate(user.createdAt) }}
+                      </td>
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                      >
+                        <div class="flex items-center space-x-2">
+                          <button
+                            class="text-indigo-600 hover:text-indigo-900"
+                            @click="editUser(user)"
+                          >
+                            編輯
+                          </button>
+                          <button
+                            class="text-green-600 hover:text-green-900"
+                            @click="resetPassword(user)"
+                          >
+                            重置密碼
+                          </button>
+                          <button
+                            v-if="user.status === 'active'"
+                            class="text-red-600 hover:text-red-900"
+                            @click="toggleUserStatus(user)"
+                          >
+                            停用
+                          </button>
+                          <button
+                            v-else
+                            class="text-green-600 hover:text-green-900"
+                            @click="toggleUserStatus(user)"
+                          >
+                            啟用
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

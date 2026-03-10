@@ -73,7 +73,7 @@ app.get(
       // Permission check: non-admins can only view their own restaurant's tables
       let restaurantId = filters.restaurantId;
       if (currentUser.role !== USER_ROLES.ADMIN) {
-        restaurantId = currentUser.restaurantId || '';
+        restaurantId = currentUser.restaurantId || "";
       }
 
       if (!restaurantId) {
@@ -147,7 +147,7 @@ app.get(
       if (
         !tablesService.validateTableAccess(
           table,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -190,7 +190,7 @@ const createTableHandler = async (c: any) => {
     if (
       !tablesService.validateRestaurantAccess(
         data.restaurantId,
-        currentUser.restaurantId || '',
+        currentUser.restaurantId || "",
         currentUser.role === USER_ROLES.ADMIN,
       )
     ) {
@@ -271,7 +271,7 @@ app.put(
       if (
         !tablesService.validateTableAccess(
           existingTable,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -335,7 +335,7 @@ app.delete(
       if (
         !tablesService.validateTableAccess(
           existingTable,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -416,7 +416,7 @@ app.post(
       if (
         !tablesService.validateTableAccess(
           table,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -510,7 +510,7 @@ app.post(
       if (
         !tablesService.validateTableAccess(
           table,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -586,7 +586,7 @@ app.post(
       if (
         !tablesService.validateTableAccess(
           table,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -664,7 +664,7 @@ app.post(
       if (
         !tablesService.validateTableAccess(
           table,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -735,7 +735,7 @@ app.post(
       if (
         !tablesService.validateRestaurantAccess(
           restaurantId,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -809,7 +809,7 @@ app.get(
       if (
         !tablesService.validateRestaurantAccess(
           restaurantId,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {
@@ -866,7 +866,7 @@ app.get(
       if (
         !tablesService.validateRestaurantAccess(
           restaurantId,
-          currentUser.restaurantId || '',
+          currentUser.restaurantId || "",
           currentUser.role === USER_ROLES.ADMIN,
         )
       ) {

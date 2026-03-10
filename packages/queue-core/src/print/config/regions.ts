@@ -3,38 +3,38 @@
  * 不同國家的稅務、法規和收據格式配置
  */
 
-import type { CountryCode, RegionConfig } from '@makanmakan/shared-types'
+import type { CountryCode, RegionConfig } from "@makanmakan/shared-types";
 
 export const REGION_CONFIGS: Record<CountryCode, RegionConfig> = {
   TW: {
-    country: 'TW',
-    currency: 'TWD',
-    locale: 'zh-TW',
-    timezone: 'Asia/Taipei',
-    dateFormat: 'YYYY/MM/DD',
-    timeFormat: 'HH:mm:ss',
+    country: "TW",
+    currency: "TWD",
+    locale: "zh-TW",
+    timezone: "Asia/Taipei",
+    dateFormat: "YYYY/MM/DD",
+    timeFormat: "HH:mm:ss",
     numberFormat: {
-      decimal: '.',
-      thousand: ',',
+      decimal: ".",
+      thousand: ",",
       currency: {
-        symbol: 'NT$',
-        position: 'before',
-        space: false
-      }
+        symbol: "NT$",
+        position: "before",
+        space: false,
+      },
     },
     tax: {
-      name: 'Tax',
-      nameLocal: '營業稅',
+      name: "Tax",
+      nameLocal: "營業稅",
       rate: 0.05,
       inclusive: false,
-      displayFormat: '營業稅 (5%)'
+      displayFormat: "營業稅 (5%)",
     },
     legal: {
       requiresTaxNumber: true,
       requiresLicense: true,
-      invoiceFormat: 'government',
+      invoiceFormat: "government",
       retentionPeriod: 1825, // 5年
-      electronicInvoice: true
+      electronicInvoice: true,
     },
     receipt: {
       width: 32,
@@ -43,40 +43,40 @@ export const REGION_CONFIGS: Record<CountryCode, RegionConfig> = {
       itemNameMaxLength: 20,
       showItemCodes: false,
       showTaxBreakdown: true,
-      defaultFont: 'normal',
-      paperSize: '80mm'
-    }
+      defaultFont: "normal",
+      paperSize: "80mm",
+    },
   },
 
   MY: {
-    country: 'MY',
-    currency: 'MYR',
-    locale: 'ms-MY',
-    timezone: 'Asia/Kuala_Lumpur',
-    dateFormat: 'DD/MM/YYYY',
-    timeFormat: 'HH:mm:ss',
+    country: "MY",
+    currency: "MYR",
+    locale: "ms-MY",
+    timezone: "Asia/Kuala_Lumpur",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "HH:mm:ss",
     numberFormat: {
-      decimal: '.',
-      thousand: ',',
+      decimal: ".",
+      thousand: ",",
       currency: {
-        symbol: 'RM',
-        position: 'before',
-        space: true
-      }
+        symbol: "RM",
+        position: "before",
+        space: true,
+      },
     },
     tax: {
-      name: 'SST',
-      nameLocal: 'SST',
+      name: "SST",
+      nameLocal: "SST",
       rate: 0.06,
       inclusive: false,
-      displayFormat: 'SST (6%)'
+      displayFormat: "SST (6%)",
     },
     legal: {
       requiresTaxNumber: false,
       requiresLicense: true,
-      invoiceFormat: 'detailed',
+      invoiceFormat: "detailed",
       retentionPeriod: 2555, // 7年
-      electronicInvoice: false
+      electronicInvoice: false,
     },
     receipt: {
       width: 32,
@@ -85,40 +85,40 @@ export const REGION_CONFIGS: Record<CountryCode, RegionConfig> = {
       itemNameMaxLength: 18,
       showItemCodes: true,
       showTaxBreakdown: true,
-      defaultFont: 'normal',
-      paperSize: '80mm'
-    }
+      defaultFont: "normal",
+      paperSize: "80mm",
+    },
   },
 
   VN: {
-    country: 'VN',
-    currency: 'VND',
-    locale: 'vi-VN',
-    timezone: 'Asia/Ho_Chi_Minh',
-    dateFormat: 'DD/MM/YYYY',
-    timeFormat: 'HH:mm:ss',
+    country: "VN",
+    currency: "VND",
+    locale: "vi-VN",
+    timezone: "Asia/Ho_Chi_Minh",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "HH:mm:ss",
     numberFormat: {
-      decimal: ',',
-      thousand: '.',
+      decimal: ",",
+      thousand: ".",
       currency: {
-        symbol: '₫',
-        position: 'after',
-        space: true
-      }
+        symbol: "₫",
+        position: "after",
+        space: true,
+      },
     },
     tax: {
-      name: 'VAT',
-      nameLocal: 'VAT',
-      rate: 0.10,
+      name: "VAT",
+      nameLocal: "VAT",
+      rate: 0.1,
       inclusive: true,
-      displayFormat: 'VAT (10%)'
+      displayFormat: "VAT (10%)",
     },
     legal: {
       requiresTaxNumber: true,
       requiresLicense: true,
-      invoiceFormat: 'government',
+      invoiceFormat: "government",
       retentionPeriod: 1825, // 5年
-      electronicInvoice: true
+      electronicInvoice: true,
     },
     receipt: {
       width: 32,
@@ -127,96 +127,104 @@ export const REGION_CONFIGS: Record<CountryCode, RegionConfig> = {
       itemNameMaxLength: 16,
       showItemCodes: false,
       showTaxBreakdown: true,
-      defaultFont: 'normal',
-      paperSize: '80mm'
-    }
-  }
-}
+      defaultFont: "normal",
+      paperSize: "80mm",
+    },
+  },
+};
 
 // 預設地區
-export const DEFAULT_REGION: CountryCode = 'TW'
+export const DEFAULT_REGION: CountryCode = "TW";
 
 // 支援的地區列表
-export const SUPPORTED_REGIONS: CountryCode[] = Object.keys(REGION_CONFIGS) as CountryCode[]
+export const SUPPORTED_REGIONS: CountryCode[] = Object.keys(
+  REGION_CONFIGS,
+) as CountryCode[];
 
 // 根據地區獲取貨幣配置
 export const getCurrencyConfig = (country: CountryCode) => {
-  const region = REGION_CONFIGS[country]
-  if (!region) return null
+  const region = REGION_CONFIGS[country];
+  if (!region) return null;
 
   return {
     code: region.currency,
     symbol: region.numberFormat.currency.symbol,
     position: region.numberFormat.currency.position,
-    decimals: region.currency === 'VND' ? 0 : 2, // 越南盾無小數
+    decimals: region.currency === "VND" ? 0 : 2, // 越南盾無小數
     thousandSeparator: region.numberFormat.thousand,
-    decimalSeparator: region.numberFormat.decimal
-  }
-}
+    decimalSeparator: region.numberFormat.decimal,
+  };
+};
 
 // 根據地區格式化金額
-export const formatCurrency = (amount: number, country: CountryCode): string => {
-  const region = REGION_CONFIGS[country]
-  if (!region) return amount.toString()
+export const formatCurrency = (
+  amount: number,
+  country: CountryCode,
+): string => {
+  const region = REGION_CONFIGS[country];
+  if (!region) return amount.toString();
 
   const formatter = new Intl.NumberFormat(region.locale, {
-    style: 'currency',
+    style: "currency",
     currency: region.currency,
-    minimumFractionDigits: region.currency === 'VND' ? 0 : 2
-  })
+    minimumFractionDigits: region.currency === "VND" ? 0 : 2,
+  });
 
-  return formatter.format(amount)
-}
+  return formatter.format(amount);
+};
 
 // 根據地區格式化日期時間
 export const formatDateTime = (date: Date, country: CountryCode): string => {
-  const region = REGION_CONFIGS[country]
-  if (!region) return date.toISOString()
+  const region = REGION_CONFIGS[country];
+  if (!region) return date.toISOString();
 
   return new Intl.DateTimeFormat(region.locale, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    timeZone: region.timezone
-  }).format(date)
-}
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: region.timezone,
+  }).format(date);
+};
 
 // 獲取稅率配置
 export const getTaxConfig = (country: CountryCode) => {
-  const region = REGION_CONFIGS[country]
-  return region?.tax || null
-}
+  const region = REGION_CONFIGS[country];
+  return region?.tax || null;
+};
 
 // 計算稅額
-export const calculateTax = (amount: number, country: CountryCode): {
-  taxAmount: number
-  taxableAmount: number
-  totalAmount: number
+export const calculateTax = (
+  amount: number,
+  country: CountryCode,
+): {
+  taxAmount: number;
+  taxableAmount: number;
+  totalAmount: number;
 } => {
-  const taxConfig = getTaxConfig(country)
+  const taxConfig = getTaxConfig(country);
   if (!taxConfig) {
     return {
       taxAmount: 0,
       taxableAmount: amount,
-      totalAmount: amount
-    }
+      totalAmount: amount,
+    };
   }
 
   if (taxConfig.inclusive) {
     // 含稅價格，需要反推稅額
-    const taxableAmount = amount / (1 + taxConfig.rate)
-    const taxAmount = amount - taxableAmount
+    const taxableAmount = amount / (1 + taxConfig.rate);
+    const taxAmount = amount - taxableAmount;
     return {
       taxAmount,
       taxableAmount,
-      totalAmount: amount
-    }
+      totalAmount: amount,
+    };
   } else {
     // 未稅價格，直接計算稅額
-    const taxAmount = amount * taxConfig.rate
+    const taxAmount = amount * taxConfig.rate;
     return {
       taxAmount,
       taxableAmount: amount,
-      totalAmount: amount + taxAmount
-    }
+      totalAmount: amount + taxAmount,
+    };
   }
-}
+};

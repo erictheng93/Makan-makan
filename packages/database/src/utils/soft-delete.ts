@@ -11,16 +11,16 @@
  * @since 2025-12-06
  */
 
-import { sql, isNull, lte, and, eq, type SQL } from 'drizzle-orm'
-import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
-import type { DrizzleD1Database } from 'drizzle-orm/d1'
+import { sql, isNull, lte, and, eq, type SQL } from "drizzle-orm";
+import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 /**
  * 軟刪除配置選項
  */
 export interface SoftDeleteOptions {
   /** 記錄保留天數（過期後可清理） */
-  retentionDays?: number
+  retentionDays?: number;
 }
 
 /**
@@ -36,7 +36,7 @@ export interface SoftDeleteOptions {
  * ```
  */
 export function notDeleted(deletedAtColumn: SQLiteColumn): SQL {
-  return isNull(deletedAtColumn)
+  return isNull(deletedAtColumn);
 }
 
 /**
@@ -52,7 +52,7 @@ export function notDeleted(deletedAtColumn: SQLiteColumn): SQL {
  * ```
  */
 export function isDeleted(deletedAtColumn: SQLiteColumn): SQL {
-  return sql`${deletedAtColumn} IS NOT NULL`
+  return sql`${deletedAtColumn} IS NOT NULL`;
 }
 
 /**
@@ -60,12 +60,12 @@ export function isDeleted(deletedAtColumn: SQLiteColumn): SQL {
  * 提供軟刪除相關的 CRUD 操作
  */
 export class SoftDeleteService {
-  private db: DrizzleD1Database
-  private defaultRetentionDays: number
+  private db: DrizzleD1Database;
+  private defaultRetentionDays: number;
 
   constructor(db: DrizzleD1Database, options: SoftDeleteOptions = {}) {
-    this.db = db
-    this.defaultRetentionDays = options.retentionDays ?? 90
+    this.db = db;
+    this.defaultRetentionDays = options.retentionDays ?? 90;
   }
 
   /**
@@ -81,15 +81,12 @@ export class SoftDeleteService {
    * await softDeleteService.softDelete(users, eq(users.id, userId))
    * ```
    */
-  async softDelete(
-    table: SQLiteTable,
-    condition: SQL
-  ) {
-    const now = Math.floor(Date.now() / 1000)
+  async softDelete(table: SQLiteTable, condition: SQL) {
+    const now = Math.floor(Date.now() / 1000);
     return this.db
       .update(table)
       .set({ deletedAt: now } as Record<string, unknown>)
-      .where(condition)
+      .where(condition);
   }
 
   /**
@@ -105,14 +102,11 @@ export class SoftDeleteService {
    * await softDeleteService.restore(users, eq(users.id, userId))
    * ```
    */
-  async restore(
-    table: SQLiteTable,
-    condition: SQL
-  ) {
+  async restore(table: SQLiteTable, condition: SQL) {
     return this.db
       .update(table)
       .set({ deletedAt: null } as Record<string, unknown>)
-      .where(condition)
+      .where(condition);
   }
 
   /**
@@ -136,17 +130,19 @@ export class SoftDeleteService {
   async purgeExpired(
     table: SQLiteTable,
     deletedAtColumn: SQLiteColumn,
-    retentionDays?: number
+    retentionDays?: number,
   ) {
-    const days = retentionDays ?? this.defaultRetentionDays
-    const cutoffTime = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60)
+    const days = retentionDays ?? this.defaultRetentionDays;
+    const cutoffTime = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
 
     return this.db
       .delete(table)
-      .where(and(
-        sql`${deletedAtColumn} IS NOT NULL`,
-        lte(deletedAtColumn, cutoffTime)
-      ))
+      .where(
+        and(
+          sql`${deletedAtColumn} IS NOT NULL`,
+          lte(deletedAtColumn, cutoffTime),
+        ),
+      );
   }
 
   /**
@@ -160,9 +156,9 @@ export class SoftDeleteService {
     const result = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(table)
-      .where(sql`${deletedAtColumn} IS NOT NULL`)
+      .where(sql`${deletedAtColumn} IS NOT NULL`);
 
-    return result[0]?.count ?? 0
+    return result[0]?.count ?? 0;
   }
 
   /**
@@ -176,20 +172,22 @@ export class SoftDeleteService {
   async countExpired(
     table: SQLiteTable,
     deletedAtColumn: SQLiteColumn,
-    retentionDays?: number
+    retentionDays?: number,
   ) {
-    const days = retentionDays ?? this.defaultRetentionDays
-    const cutoffTime = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60)
+    const days = retentionDays ?? this.defaultRetentionDays;
+    const cutoffTime = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
 
     const result = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(table)
-      .where(and(
-        sql`${deletedAtColumn} IS NOT NULL`,
-        lte(deletedAtColumn, cutoffTime)
-      ))
+      .where(
+        and(
+          sql`${deletedAtColumn} IS NOT NULL`,
+          lte(deletedAtColumn, cutoffTime),
+        ),
+      );
 
-    return result[0]?.count ?? 0
+    return result[0]?.count ?? 0;
   }
 }
 
@@ -216,9 +214,9 @@ export class SoftDeleteService {
  */
 export function createSoftDeleteService(
   db: DrizzleD1Database,
-  options?: SoftDeleteOptions
+  options?: SoftDeleteOptions,
 ) {
-  return new SoftDeleteService(db, options)
+  return new SoftDeleteService(db, options);
 }
 
 /**
@@ -248,5 +246,5 @@ export function withSoftDelete(deletedAtColumn: SQLiteColumn) {
     deleted: (): SQL => sql`${deletedAtColumn} IS NOT NULL`,
     /** 過濾條件：包含所有記錄（不過濾） */
     all: (): SQL => sql`1=1`,
-  }
+  };
 }

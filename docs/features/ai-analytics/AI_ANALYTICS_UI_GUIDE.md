@@ -16,6 +16,7 @@
 **路由**: `/dashboard/ai-analytics/config`
 
 **功能**：
+
 - 🤖 多 LLM Provider 選擇（Anthropic, OpenAI, Google, DeepSeek, Custom）
 - 🔐 API Key 安全輸入（密碼輸入框）
 - 🎯 模型自動加載和選擇
@@ -23,12 +24,14 @@
 - 💾 配置加密保存
 
 **設計亮點**：
+
 - 卡片式 Provider 選擇，直觀清晰
 - 梯度背景突出選中狀態
 - 測試結果實時反饋（成功/失敗狀態）
 - 信息卡片解釋安全特性
 
 **截圖位置**：
+
 ```
 ┌─────────────────────────────────────┐
 │  🤖 AI 分析配置                      │
@@ -52,6 +55,7 @@
 **路由**: `/dashboard/ai-analytics/insights`
 
 **功能**：
+
 - 📊 關鍵業務指標卡片（營收、訂單、客單價、客戶數）
 - ✨ AI 生成的執行摘要（梯度背景突出）
 - 💡 智能洞察卡片（觀察、建議、警告、機會）
@@ -59,6 +63,7 @@
 - 🔄 時間範圍選擇（7天/14天/30天/90天）
 
 **設計亮點**：
+
 - 紫色梯度執行摘要卡片，視覺焦點
 - 洞察卡片按類型分色（藍/綠/黃/紫）
 - 信心分數進度條可視化
@@ -66,6 +71,7 @@
 - 預測卡片梯度背景
 
 **截圖位置**：
+
 ```
 ┌─────────────────────────────────────┐
 │ ✨ AI 業務洞察    [30天▼] [🔄]     │
@@ -91,6 +97,7 @@
 **路由**: `/dashboard/ai-analytics/products`
 
 **功能**：
+
 - 🔥 三個分析維度 Tab（引流/熱銷/利潤）
 - 📊 產品卡片網格展示（Top 10）
 - 🏆 排名徽章（金/銀/銅牌視覺差異）
@@ -98,6 +105,7 @@
 - 💡 底部智能建議卡片
 
 **設計亮點**：
+
 - Tab 切換時背景漸變色變化
 - 排名徽章梯度色（金黃/銀灰/橙銅）
 - 產品卡片 hover 陰影效果
@@ -105,6 +113,7 @@
 - 趨勢箭頭動態顯示（上升/下降）
 
 **截圖位置**：
+
 ```
 ┌─────────────────────────────────────┐
 │ 📊 產品分析      [30天▼] [🔄]      │
@@ -131,21 +140,13 @@
 
 ```css
 /* Primary Colors */
---indigo-600: #4F46E5  /* 主色調 - 按鈕、強調 */
---purple-600: #9333EA  /* 輔助色 - 梯度 */
-
-/* Semantic Colors */
---green-600: #10B981  /* 成功、營收、利潤 */
---blue-600: #3B82F6   /* 信息、訂單 */
---yellow-600: #F59E0B /* 警告 */
---red-600: #EF4444    /* 錯誤、下降 */
---orange-600: #F97316 /* 熱銷 */
-
-/* Neutral Colors */
---gray-50: #F9FAFB    /* 背景 */
---gray-100: #F3F4F6   /* 卡片邊框 */
---gray-600: #4B5563   /* 次要文字 */
---gray-900: #111827   /* 主要文字 */
+--indigo-600: #4f46e5 /* 主色調 - 按鈕、強調 */ --purple-600: #9333ea
+  /* 輔助色 - 梯度 */ /* Semantic Colors */ --green-600: #10b981
+  /* 成功、營收、利潤 */ --blue-600: #3b82f6 /* 信息、訂單 */
+  --yellow-600: #f59e0b /* 警告 */ --red-600: #ef4444 /* 錯誤、下降 */
+  --orange-600: #f97316 /* 熱銷 */ /* Neutral Colors */ --gray-50: #f9fafb
+  /* 背景 */ --gray-100: #f3f4f6 /* 卡片邊框 */ --gray-600: #4b5563
+  /* 次要文字 */ --gray-900: #111827 /* 主要文字 */;
 ```
 
 ### 圓角規範
@@ -184,10 +185,12 @@ p-8: 2rem             /* 大卡片內邊距 */
 ### 1. 訪問頁面
 
 **前提條件**：
+
 - 用戶角色：Admin (0) 或 Owner (1)
 - 已登入系統
 
 **URL**：
+
 ```
 /dashboard/ai-analytics/config    # AI 配置
 /dashboard/ai-analytics/insights  # AI 洞察
@@ -197,6 +200,7 @@ p-8: 2rem             /* 大卡片內邊距 */
 ### 2. 配置 AI Provider
 
 **步驟**：
+
 1. 訪問 `/dashboard/ai-analytics/config`
 2. 選擇 AI Provider（點擊卡片）
 3. 輸入 API Key（密碼輸入框）
@@ -205,6 +209,7 @@ p-8: 2rem             /* 大卡片內邊距 */
 6. 點擊「保存配置」完成設置
 
 **注意事項**：
+
 - API Key 使用 AES-256 加密存儲
 - 測試成功後才能保存
 - 每個餐廳一個配置
@@ -212,6 +217,7 @@ p-8: 2rem             /* 大卡片內邊距 */
 ### 3. 查看 AI 洞察
 
 **步驟**：
+
 1. 確保已配置 AI Provider
 2. 訪問 `/dashboard/ai-analytics/insights`
 3. 選擇時間範圍（7天/14天/30天/90天）
@@ -220,12 +226,14 @@ p-8: 2rem             /* 大卡片內邊距 */
 6. 點擊「刷新」圖標強制重新生成
 
 **緩存機制**：
+
 - 報告緩存 6 小時
 - 點擊刷新圖標清除緩存
 
 ### 4. 分析產品表現
 
 **步驟**：
+
 1. 訪問 `/dashboard/ai-analytics/products`
 2. 選擇分析維度 Tab：
    - **引流產品**：吸引客戶的產品
@@ -237,16 +245,19 @@ p-8: 2rem             /* 大卡片內邊距 */
 **指標說明**：
 
 **引流產品**：
+
 - 首選次數：作為購物車第一項的次數
 - 轉換率：購買 / 加入購物車
 - 加購率：加入購物車 / 瀏覽次數
 
 **熱銷產品**：
+
 - 總訂單：訂單數量
 - 總營收：總銷售額
 - 平均客單價：營收 / 訂單數
 
 **利潤最大**：
+
 - 總利潤：(售價 - 成本) × 銷量
 - 利潤率：(售價 - 成本) / 售價
 - 單價：產品售價
@@ -260,18 +271,18 @@ p-8: 2rem             /* 大卡片內邊距 */
 所有 API 調用通過 `useAIAnalytics` composable 統一管理：
 
 ```typescript
-import { useAIAnalytics } from '@/composables/useAIAnalytics'
+import { useAIAnalytics } from "@/composables/useAIAnalytics";
 
 const {
-  loading,        // 加載狀態
-  error,          // 錯誤信息
-  saveConfig,     // 保存配置
-  testProvider,   // 測試連接
+  loading, // 加載狀態
+  error, // 錯誤信息
+  saveConfig, // 保存配置
+  testProvider, // 測試連接
   generateReport, // 生成報告
-  getTrafficDrivers,  // 獲取引流產品
-  getBestsellers,     // 獲取熱銷產品
-  getProfitLeaders,   // 獲取利潤產品
-} = useAIAnalytics()
+  getTrafficDrivers, // 獲取引流產品
+  getBestsellers, // 獲取熱銷產品
+  getProfitLeaders, // 獲取利潤產品
+} = useAIAnalytics();
 ```
 
 ### 類型安全
@@ -284,18 +295,18 @@ import type {
   ProductAnalysis,
   AIInsight,
   LLMProvider,
-} from '@makanmakan/ai-analytics'
+} from "@makanmakan/ai-analytics";
 ```
 
 ### 錯誤處理
 
 ```typescript
 // 自動錯誤處理
-const { error } = useAIAnalytics()
+const { error } = useAIAnalytics();
 
 // 錯誤信息會自動設置到 error ref
 if (error.value) {
-  console.error('API Error:', error.value)
+  console.error("API Error:", error.value);
 }
 ```
 
@@ -335,12 +346,13 @@ if (error.value) {
 ```
 
 **圖標導入**：
+
 ```typescript
 import {
   SparklesIcon,
   ChartBarIcon,
   ShoppingCartIcon,
-} from '@heroicons/vue/24/outline'
+} from "@heroicons/vue/24/outline";
 ```
 
 ---
@@ -350,22 +362,26 @@ import {
 ### 前端部署
 
 1. **確保依賴安裝**：
+
 ```bash
 cd apps/admin-dashboard
 pnpm install
 ```
 
 2. **TypeScript 編譯檢查**：
+
 ```bash
 pnpm run typecheck
 ```
 
 3. **構建生產版本**：
+
 ```bash
 pnpm run build
 ```
 
 4. **部署到 Cloudflare Pages**：
+
 ```bash
 pnpm run deploy
 ```
@@ -373,11 +389,13 @@ pnpm run deploy
 ### 後端 API 部署
 
 1. **運行數據庫遷移**：
+
 ```bash
 npx wrangler d1 migrations apply makanmakan-prod --env production
 ```
 
 2. **部署 API**：
+
 ```bash
 cd apps/api
 pnpm run deploy:prod
@@ -388,24 +406,31 @@ pnpm run deploy:prod
 ## 🐛 常見問題
 
 ### Q1: 頁面空白，沒有數據？
+
 **A**: 檢查：
+
 1. 是否已配置 AI Provider？
 2. API Key 是否正確？
 3. 是否有足夠的訂單數據？（至少 20 筆訂單）
 
 ### Q2: AI 報告生成失敗？
+
 **A**: 可能原因：
+
 1. API Key 無效或額度不足
 2. 網絡連接問題
 3. 數據不足（需要至少 7 天的歷史數據）
 
 解決：
+
 1. 訪問配置頁測試連接
 2. 檢查 API 額度
 3. 等待累積更多數據
 
 ### Q3: 產品分析沒有利潤數據？
+
 **A**: 需要在數據庫中添加菜品成本：
+
 ```sql
 INSERT INTO menu_item_costs (
   menu_item_id,
@@ -423,7 +448,9 @@ INSERT INTO menu_item_costs (
 ```
 
 ### Q4: 如何更換 AI Provider？
+
 **A**:
+
 1. 訪問 `/dashboard/ai-analytics/config`
 2. 選擇新的 Provider
 3. 輸入新的 API Key
@@ -436,16 +463,19 @@ INSERT INTO menu_item_costs (
 ## 📊 性能優化
 
 ### 緩存策略
+
 - AI 報告緩存：6 小時
 - 產品分析：實時查詢（< 300ms）
 - 圖表數據：前端緩存
 
 ### 加載優化
+
 - 懶加載路由組件
 - 圖片按需加載
 - API 請求並行化
 
 ### 響應式設計
+
 - Mobile: 單列布局
 - Tablet: 2 列網格
 - Desktop: 3-4 列網格
@@ -464,14 +494,14 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#EEF2FF',
+          50: "#EEF2FF",
           // ... 自定義色階
-          600: '#4F46E5',
-        }
-      }
-    }
-  }
-}
+          600: "#4F46E5",
+        },
+      },
+    },
+  },
+};
 ```
 
 ### 添加新的洞察類型
@@ -481,15 +511,15 @@ module.exports = {
 ```typescript
 const insightTypeConfig = {
   // 現有類型...
-  'custom': {
-    label: '自定義',
+  custom: {
+    label: "自定義",
     icon: CustomIcon,
-    bgColor: 'bg-teal-50',
-    borderColor: 'border-teal-200',
-    textColor: 'text-teal-900',
-    iconColor: 'text-teal-600',
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    textColor: "text-teal-900",
+    iconColor: "text-teal-600",
   },
-}
+};
 ```
 
 ### 自定義圖表
@@ -502,15 +532,17 @@ pnpm add chart.js vue-chartjs
 
 ```vue
 <script setup>
-import { Line } from 'vue-chartjs'
+import { Line } from "vue-chartjs";
 
 const chartData = {
-  labels: dailyMetrics.map(d => d.date),
-  datasets: [{
-    label: '營收',
-    data: dailyMetrics.map(d => d.revenue),
-  }]
-}
+  labels: dailyMetrics.map((d) => d.date),
+  datasets: [
+    {
+      label: "營收",
+      data: dailyMetrics.map((d) => d.revenue),
+    },
+  ],
+};
 </script>
 
 <template>
@@ -523,18 +555,21 @@ const chartData = {
 ## 📝 維護建議
 
 ### 定期檢查
+
 - [ ] API 使用量和成本
 - [ ] 緩存命中率
 - [ ] 用戶反饋和使用率
 - [ ] 洞察準確度
 
 ### 優化方向
+
 - 添加更多可視化圖表
 - 導出 PDF/Excel 報告
 - 郵件定時推送洞察
 - 移動端優化
 
 ### 監控指標
+
 - 頁面加載時間（< 2s）
 - API 響應時間（< 500ms）
 - 錯誤率（< 1%）
@@ -554,6 +589,7 @@ const chartData = {
 ✅ **性能優化**
 
 **下一步**：
+
 1. 添加導航鏈接
 2. 測試所有功能
 3. 收集用戶反饋

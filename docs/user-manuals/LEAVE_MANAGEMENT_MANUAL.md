@@ -1,4 +1,5 @@
 # 請假管理操作手冊 / Leave Management Manual
+
 **MakanMakan 餐廳管理系統 / MakanMakan Restaurant Management System**
 
 ---
@@ -28,6 +29,7 @@
 請假管理系統是 MakanMakan 員工管理模組的核心功能之一，提供完整的員工請假申請、審批、餘額追蹤和分析功能。系統支援多種請假類型，自動計算請假天數，並提供智慧化的審批工作流程。
 
 **核心功能：**
+
 - ✅ 多種請假類型（年假、病假、事假、婚假等）
 - ✅ 自動請假餘額追蹤與扣除
 - ✅ 半天請假支援（上午/下午）
@@ -43,6 +45,7 @@
 The Leave Management System is one of the core features of MakanMakan's employee management module, providing complete leave request, approval, balance tracking, and analytics capabilities. The system supports multiple leave types, automatically calculates leave days, and offers intelligent approval workflows.
 
 **Core Features:**
+
 - ✅ Multiple leave types (Annual, Sick, Personal, Marriage, etc.)
 - ✅ Automatic leave balance tracking and deduction
 - ✅ Half-day leave support (Morning/Afternoon)
@@ -89,19 +92,19 @@ The Leave Management System is one of the core features of MakanMakan's employee
 
 ### 權限矩陣 / Permission Matrix
 
-| 功能 / Feature | 員工<br>Employee | 主管<br>Supervisor | 店主<br>Owner | 管理員<br>Admin |
-|----------------|:---------------:|:-----------------:|:-------------:|:---------------:|
-| 查看自己的請假記錄<br>View own leave records | ✅ | ✅ | ✅ | ✅ |
-| 申請請假<br>Submit leave request | ✅ | ✅ | ✅ | ✅ |
-| 取消自己的請假<br>Cancel own leave | ✅ | ✅ | ✅ | ✅ |
-| 查看請假餘額<br>View leave balance | ✅ | ✅ | ✅ | ✅ |
-| 審批請假申請<br>Approve leave requests | ❌ | ✅ | ✅ | ✅ |
-| 查看所有員工請假<br>View all employee leaves | ❌ | ✅ | ✅ | ✅ |
-| 管理請假類型<br>Manage leave types | ❌ | ❌ | ✅ | ✅ |
-| 調整員工餘額<br>Adjust employee balance | ❌ | ❌ | ✅ | ✅ |
-| 匯出報表<br>Export reports | ❌ | ✅ | ✅ | ✅ |
-| 查看分析數據<br>View analytics | ❌ | ✅ | ✅ | ✅ |
-| 系統設定<br>System settings | ❌ | ❌ | ❌ | ✅ |
+| 功能 / Feature                               | 員工<br>Employee | 主管<br>Supervisor | 店主<br>Owner | 管理員<br>Admin |
+| -------------------------------------------- | :--------------: | :----------------: | :-----------: | :-------------: |
+| 查看自己的請假記錄<br>View own leave records |        ✅        |         ✅         |      ✅       |       ✅        |
+| 申請請假<br>Submit leave request             |        ✅        |         ✅         |      ✅       |       ✅        |
+| 取消自己的請假<br>Cancel own leave           |        ✅        |         ✅         |      ✅       |       ✅        |
+| 查看請假餘額<br>View leave balance           |        ✅        |         ✅         |      ✅       |       ✅        |
+| 審批請假申請<br>Approve leave requests       |        ❌        |         ✅         |      ✅       |       ✅        |
+| 查看所有員工請假<br>View all employee leaves |        ❌        |         ✅         |      ✅       |       ✅        |
+| 管理請假類型<br>Manage leave types           |        ❌        |         ❌         |      ✅       |       ✅        |
+| 調整員工餘額<br>Adjust employee balance      |        ❌        |         ❌         |      ✅       |       ✅        |
+| 匯出報表<br>Export reports                   |        ❌        |         ✅         |      ✅       |       ✅        |
+| 查看分析數據<br>View analytics               |        ❌        |         ✅         |      ✅       |       ✅        |
+| 系統設定<br>System settings                  |        ❌        |         ❌         |      ❌       |       ✅        |
 
 ---
 
@@ -177,16 +180,16 @@ The Leave Management System is one of the core features of MakanMakan's employee
 
 ### 系統預設請假類型 / Default Leave Types
 
-| 代碼<br>Code | 名稱<br>Name | 說明<br>Description | 年度額度<br>Annual Quota | 結轉<br>Carryover |
-|-------------|-------------|---------------------|------------------------|------------------|
-| `ANNUAL` | 年假<br>Annual Leave | 法定年假<br>Statutory annual leave | 14 天 / days | ✅ 允許 / Yes |
-| `SICK` | 病假<br>Sick Leave | 因病請假<br>Medical leave | 10 天 / days | ❌ 不允許 / No |
-| `PERSONAL` | 事假<br>Personal Leave | 私人事務<br>Personal matters | 7 天 / days | ❌ 不允許 / No |
-| `MARRIAGE` | 婚假<br>Marriage Leave | 結婚假期<br>Marriage leave | 3 天 / days | ❌ 不允許 / No |
-| `MATERNITY` | 產假<br>Maternity Leave | 產假<br>Maternity leave | 56 天 / days | ❌ 不允許 / No |
-| `PATERNITY` | 陪產假<br>Paternity Leave | 陪產假<br>Paternity leave | 5 天 / days | ❌ 不允許 / No |
-| `BEREAVEMENT` | 喪假<br>Bereavement Leave | 喪假<br>Bereavement leave | 3 天 / days | ❌ 不允許 / No |
-| `UNPAID` | 無薪假<br>Unpaid Leave | 無薪事假<br>Unpaid personal leave | 無限制 / Unlimited | N/A |
+| 代碼<br>Code  | 名稱<br>Name              | 說明<br>Description                | 年度額度<br>Annual Quota | 結轉<br>Carryover |
+| ------------- | ------------------------- | ---------------------------------- | ------------------------ | ----------------- |
+| `ANNUAL`      | 年假<br>Annual Leave      | 法定年假<br>Statutory annual leave | 14 天 / days             | ✅ 允許 / Yes     |
+| `SICK`        | 病假<br>Sick Leave        | 因病請假<br>Medical leave          | 10 天 / days             | ❌ 不允許 / No    |
+| `PERSONAL`    | 事假<br>Personal Leave    | 私人事務<br>Personal matters       | 7 天 / days              | ❌ 不允許 / No    |
+| `MARRIAGE`    | 婚假<br>Marriage Leave    | 結婚假期<br>Marriage leave         | 3 天 / days              | ❌ 不允許 / No    |
+| `MATERNITY`   | 產假<br>Maternity Leave   | 產假<br>Maternity leave            | 56 天 / days             | ❌ 不允許 / No    |
+| `PATERNITY`   | 陪產假<br>Paternity Leave | 陪產假<br>Paternity leave          | 5 天 / days              | ❌ 不允許 / No    |
+| `BEREAVEMENT` | 喪假<br>Bereavement Leave | 喪假<br>Bereavement leave          | 3 天 / days              | ❌ 不允許 / No    |
+| `UNPAID`      | 無薪假<br>Unpaid Leave    | 無薪事假<br>Unpaid personal leave  | 無限制 / Unlimited       | N/A               |
 
 ### 新增請假類型 / Add New Leave Type
 
@@ -199,6 +202,7 @@ The Leave Management System is one of the core features of MakanMakan's employee
 2. **點擊「新增類型」/ Click "Add Type"**
 
 3. **填寫表單 / Fill Form:**
+
    ```yaml
    基本資訊 / Basic Information:
      代碼 (Code): CUSTOM_CODE
@@ -216,8 +220,7 @@ The Leave Management System is one of the core features of MakanMakan's employee
      過期月份 (Expiration Month): 12
      是否扣薪 (Paid): ✅ 帶薪
 
-   說明 / Description:
-     請假類型的詳細說明...
+   說明 / Description: 請假類型的詳細說明...
    ```
 
 4. **設定可用性 / Set Availability:**
@@ -233,6 +236,7 @@ The Leave Management System is one of the core features of MakanMakan's employee
 3. 點擊「儲存」
 
 ⚠️ **注意事項 / Important Notes:**
+
 - 已有請假記錄的類型，代碼不可修改
 - Types with existing records cannot change code
 - 修改額度不會影響已核准的請假
@@ -314,11 +318,13 @@ The Leave Management System is one of the core features of MakanMakan's employee
 #### 步驟 1: 選擇請假類型 / Step 1: Select Leave Type
 
 **操作說明 / Instructions:**
+
 1. 點擊「申請請假」按鈕
 2. 在下拉選單中選擇請假類型
 3. 系統會顯示該類型的剩餘天數
 
 **剩餘天數計算 / Balance Calculation:**
+
 ```
 剩餘天數 = 總天數 - 已使用天數 - 待審批天數
 Remaining = Total - Used - Pending
@@ -333,6 +339,7 @@ Remaining = Total - Used - Pending
 #### 步驟 2: 選擇日期和時段 / Step 2: Select Dates & Period
 
 **日期選擇 / Date Selection:**
+
 - 開始日期 / Start Date
 - 結束日期 / End Date
 - 系統會自動計算工作日天數（排除週末和假日）
@@ -340,13 +347,14 @@ Remaining = Total - Used - Pending
 
 **時段選擇 / Period Selection:**
 
-| 時段 / Period | 天數計算 / Days Count | 說明 / Description |
-|--------------|---------------------|-------------------|
-| 全天 / Full Day | 1.0 天 / day | 整天請假 / Full day off |
-| 上午 / Morning (AM) | 0.5 天 / day | 08:00 - 12:00 |
-| 下午 / Afternoon (PM) | 0.5 天 / day | 13:00 - 17:00 |
+| 時段 / Period         | 天數計算 / Days Count | 說明 / Description      |
+| --------------------- | --------------------- | ----------------------- |
+| 全天 / Full Day       | 1.0 天 / day          | 整天請假 / Full day off |
+| 上午 / Morning (AM)   | 0.5 天 / day          | 08:00 - 12:00           |
+| 下午 / Afternoon (PM) | 0.5 天 / day          | 13:00 - 17:00           |
 
 **半天請假規則 / Half-Day Rules:**
+
 - 單日只能選擇一個時段
 - Only one period per day
 - 連續多日不可使用半天選項
@@ -357,11 +365,13 @@ Remaining = Total - Used - Pending
 #### 步驟 3: 填寫請假原因 / Step 3: Enter Reason
 
 **必填欄位 / Required Field:**
+
 - 最少 10 個字元 / Minimum 10 characters
 - 最多 500 個字元 / Maximum 500 characters
 - 清楚說明請假原因 / Clearly state the reason
 
 **建議格式 / Suggested Format:**
+
 ```
 病假 / Sick Leave:
 "因感冒身體不適，需要在家休息"
@@ -381,6 +391,7 @@ Remaining = Total - Used - Pending
 **自動檢查項目 / Automatic Checks:**
 
 1. **餘額檢查 / Balance Check:**
+
    ```
    ✅ 通過：剩餘天數 >= 申請天數
    ❌ 失敗：剩餘天數不足
@@ -435,6 +446,7 @@ Remaining = Total - Used - Pending
 #### 步驟 5: 提交申請 / Step 5: Submit Request
 
 **提交前確認 / Pre-Submit Confirmation:**
+
 ```
 ┌────────────────────────────────────────┐
 │         請假申請確認                    │
@@ -464,6 +476,7 @@ Remaining = Total - Used - Pending
 ```
 
 **提交後動作 / Post-Submit Actions:**
+
 1. ✅ 建立請假記錄（狀態：待審批）
 2. 📧 發送通知給審批主管
 3. 📊 更新餘額（扣除 pending 天數）
@@ -581,11 +594,13 @@ Employee Submit → Notification  →   Review      →      Notify
 #### 2. 批准請假 / Approve Leave
 
 **操作步驟 / Steps:**
+
 1. 點擊「批准」按鈕
 2. 可選填審批備註
 3. 確認批准
 
 **系統動作 / System Actions:**
+
 ```
 ✅ 批准後系統會自動：
 After approval, system will automatically:
@@ -610,6 +625,7 @@ After approval, system will automatically:
 ```
 
 **批准確認畫面 / Approval Confirmation:**
+
 ```
 ┌────────────────────────────────────────┐
 │         批准請假申請                    │
@@ -633,11 +649,13 @@ After approval, system will automatically:
 #### 3. 拒絕請假 / Reject Leave
 
 **操作步驟 / Steps:**
+
 1. 點擊「拒絕」按鈕
 2. **必須填寫**拒絕原因
 3. 確認拒絕
 
 **系統動作 / System Actions:**
+
 ```
 ❌ 拒絕後系統會自動：
 After rejection, system will automatically:
@@ -659,6 +677,7 @@ After rejection, system will automatically:
 ```
 
 **拒絕原因範例 / Rejection Reason Examples:**
+
 ```
 人力不足 / Insufficient Staff:
 "該時段已有 2 位同事請假，人力安排困難，
@@ -685,18 +704,21 @@ this 3-day request exceeds available balance."
 ### 批量審批 / Batch Approval
 
 **適用場景 / Use Cases:**
+
 - 節日前後大量請假申請
 - Mass leave requests before/after holidays
 - 例行年假申請
 - Routine annual leave requests
 
 **操作步驟 / Steps:**
+
 1. 在待審批列表勾選多個申請
 2. 點擊「批量批准」或「批量拒絕」
 3. 填寫統一備註（可選）
 4. 確認操作
 
 ⚠️ **注意事項 / Important Notes:**
+
 - 批量操作前請仔細檢查每個申請
 - Carefully review each request before batch operation
 - 批量拒絕必須提供原因
@@ -772,13 +794,13 @@ Year End          →    New Year      →      After Carryover
 
 **結轉規則表 / Carryover Rules Table:**
 
-| 請假類型<br>Leave Type | 結轉<br>Carryover | 最大結轉<br>Max Carryover | 過期月份<br>Expiration | 說明<br>Notes |
-|----------------------|-------------------|------------------------|---------------------|--------------|
-| 年假<br>Annual | ✅ 允許 / Yes | 5 天 / days | 3月 / March | 未使用部分可結轉至下年度Q1<br>Unused portion carries to next year Q1 |
-| 病假<br>Sick | ❌ 不允許 / No | 0 | 12月 / Dec | 年度清零，重新分配<br>Resets annually |
-| 事假<br>Personal | ❌ 不允許 / No | 0 | 12月 / Dec | 年度清零<br>Resets annually |
-| 婚假<br>Marriage | ❌ 不允許 / No | 0 | 登記後1年 / 1 year | 一次性使用<br>One-time use |
-| 產假<br>Maternity | N/A | N/A | 分娩後6月 / 6 months | 特殊處理<br>Special handling |
+| 請假類型<br>Leave Type | 結轉<br>Carryover | 最大結轉<br>Max Carryover | 過期月份<br>Expiration | 說明<br>Notes                                                        |
+| ---------------------- | ----------------- | ------------------------- | ---------------------- | -------------------------------------------------------------------- |
+| 年假<br>Annual         | ✅ 允許 / Yes     | 5 天 / days               | 3月 / March            | 未使用部分可結轉至下年度Q1<br>Unused portion carries to next year Q1 |
+| 病假<br>Sick           | ❌ 不允許 / No    | 0                         | 12月 / Dec             | 年度清零，重新分配<br>Resets annually                                |
+| 事假<br>Personal       | ❌ 不允許 / No    | 0                         | 12月 / Dec             | 年度清零<br>Resets annually                                          |
+| 婚假<br>Marriage       | ❌ 不允許 / No    | 0                         | 登記後1年 / 1 year     | 一次性使用<br>One-time use                                           |
+| 產假<br>Maternity      | N/A               | N/A                       | 分娩後6月 / 6 months   | 特殊處理<br>Special handling                                         |
 
 ### 餘額調整 / Balance Adjustment
 
@@ -843,6 +865,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 ```
 
 ⚠️ **重要提醒 / Important Reminders:**
+
 - 所有調整都會記錄在審計日誌中
 - All adjustments are logged in audit trail
 - 需要填寫詳細的調整原因
@@ -908,6 +931,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 1. 使用統計報表 / Usage Statistics Report
 
 **包含數據 / Included Data:**
+
 - 總請假次數 / Total requests
 - 批准/拒絕率 / Approval/rejection rate
 - 平均請假天數 / Average days per request
@@ -915,6 +939,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 - 各狀態數量分布 / Status distribution
 
 **篩選條件 / Filter Options:**
+
 - 日期範圍 / Date range
 - 部門 / Department
 - 請假類型 / Leave type
@@ -923,6 +948,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 2. 類型摘要報表 / Type Summary Report
 
 **包含數據 / Included Data:**
+
 - 各類型請假次數 / Requests by type
 - 各類型總天數 / Total days by type
 - 批准/拒絕數 / Approved/rejected count
@@ -932,6 +958,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 3. 員工統計報表 / Employee Statistics Report
 
 **包含數據 / Included Data:**
+
 - 個人請假記錄 / Individual records
 - 總使用天數 / Total days used
 - 剩餘天數 / Remaining balance
@@ -939,6 +966,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 - 上次請假日期 / Last leave date
 
 **排序選項 / Sort Options:**
+
 - 使用天數最多 / Most days used
 - 剩餘天數最少 / Least remaining
 - 請假次數最多 / Most requests
@@ -946,11 +974,13 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 4. 趨勢分析報表 / Trend Analysis Report
 
 **時間維度 / Time Dimensions:**
+
 - 按月分組 / By month
 - 按週分組 / By week
 - 按季度分組 / By quarter
 
 **顯示指標 / Metrics:**
+
 - 請假次數趨勢 / Request trend
 - 批准率趨勢 / Approval rate trend
 - 使用天數趨勢 / Days used trend
@@ -958,6 +988,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 5. 分布分析報表 / Distribution Analysis Report
 
 **分布維度 / Distribution Dimensions:**
+
 - 按類型分布 / By type
 - 按部門分布 / By department
 - 按角色分布 / By role
@@ -966,6 +997,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 6. 高峰期分析報表 / Peak Period Analysis Report
 
 **分析內容 / Analysis Content:**
+
 - 最多請假月份 / Peak month
 - 最多請假週 / Peak week
 - 最常請假星期 / Most common weekday
@@ -975,6 +1007,7 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 #### 7. 餘額分析報表 / Balance Analytics Report
 
 **包含數據 / Included Data:**
+
 - 平均餘額 / Average balance
 - 中位數餘額 / Median balance
 - 低餘額員工數 / Employees with low balance
@@ -989,23 +1022,25 @@ Owner/Admin → Employees → Select → Leave Balance → Adjust
 
 ### 支援格式 / Supported Formats
 
-| 格式<br>Format | 檔案類型<br>File Type | 適用場景<br>Use Case | 大小<br>Size |
-|---------------|---------------------|---------------------|-------------|
-| CSV | .csv | Excel 分析<br>Excel analysis | 最小<br>Smallest |
-| Excel | .xlsx | 專業報表<br>Professional reports | 中等<br>Medium |
-| PDF | .pdf/.html | 列印存檔<br>Print & archive | 較大<br>Larger |
+| 格式<br>Format | 檔案類型<br>File Type | 適用場景<br>Use Case             | 大小<br>Size     |
+| -------------- | --------------------- | -------------------------------- | ---------------- |
+| CSV            | .csv                  | Excel 分析<br>Excel analysis     | 最小<br>Smallest |
+| Excel          | .xlsx                 | 專業報表<br>Professional reports | 中等<br>Medium   |
+| PDF            | .pdf/.html            | 列印存檔<br>Print & archive      | 較大<br>Larger   |
 
 ### 匯出操作步驟 / Export Steps
 
 #### 1. 匯出請假記錄 / Export Leave Records
 
 **操作路徑 / Path:**
+
 ```
 請假管理 → 匯出 → 請假記錄
 Leave Management → Export → Leave Records
 ```
 
 **匯出設定 / Export Settings:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │              匯出請假記錄                               │
@@ -1046,32 +1081,34 @@ Leave Management → Export → Leave Records
 
 **匯出欄位 / Export Columns:**
 
-| 欄位名稱<br>Column Name | 說明<br>Description | 必選<br>Required |
-|------------------------|-------------------|-----------------|
-| 員工姓名<br>Employee Name | 申請人姓名<br>Requester name | ✅ |
-| 員工郵箱<br>Email | 聯絡信箱<br>Contact email | ☐ |
-| 請假類型<br>Leave Type | 類型名稱<br>Type name | ✅ |
-| 開始日期<br>Start Date | 請假開始日<br>Leave start | ✅ |
-| 結束日期<br>End Date | 請假結束日<br>Leave end | ✅ |
-| 開始時段<br>Start Period | AM/PM/全天<br>AM/PM/Full | ☐ |
-| 結束時段<br>End Period | AM/PM/全天<br>AM/PM/Full | ☐ |
-| 總天數<br>Total Days | 請假天數<br>Leave days | ✅ |
-| 原因<br>Reason | 請假原因<br>Leave reason | ✅ |
-| 狀態<br>Status | 當前狀態<br>Current status | ✅ |
-| 提交時間<br>Created At | 申請時間<br>Request time | ✅ |
-| 審批人<br>Approver | 審批主管<br>Approving manager | ☐ |
-| 審批時間<br>Approved At | 審批日期<br>Approval date | ☐ |
-| 拒絕原因<br>Rejection Reason | 拒絕說明<br>Rejection note | ☐ |
+| 欄位名稱<br>Column Name      | 說明<br>Description           | 必選<br>Required |
+| ---------------------------- | ----------------------------- | ---------------- |
+| 員工姓名<br>Employee Name    | 申請人姓名<br>Requester name  | ✅               |
+| 員工郵箱<br>Email            | 聯絡信箱<br>Contact email     | ☐                |
+| 請假類型<br>Leave Type       | 類型名稱<br>Type name         | ✅               |
+| 開始日期<br>Start Date       | 請假開始日<br>Leave start     | ✅               |
+| 結束日期<br>End Date         | 請假結束日<br>Leave end       | ✅               |
+| 開始時段<br>Start Period     | AM/PM/全天<br>AM/PM/Full      | ☐                |
+| 結束時段<br>End Period       | AM/PM/全天<br>AM/PM/Full      | ☐                |
+| 總天數<br>Total Days         | 請假天數<br>Leave days        | ✅               |
+| 原因<br>Reason               | 請假原因<br>Leave reason      | ✅               |
+| 狀態<br>Status               | 當前狀態<br>Current status    | ✅               |
+| 提交時間<br>Created At       | 申請時間<br>Request time      | ✅               |
+| 審批人<br>Approver           | 審批主管<br>Approving manager | ☐                |
+| 審批時間<br>Approved At      | 審批日期<br>Approval date     | ☐                |
+| 拒絕原因<br>Rejection Reason | 拒絕說明<br>Rejection note    | ☐                |
 
 #### 2. 匯出請假餘額 / Export Leave Balances
 
 **操作路徑 / Path:**
+
 ```
 請假管理 → 匯出 → 請假餘額
 Leave Management → Export → Leave Balances
 ```
 
 **匯出內容 / Export Content:**
+
 - 員工基本資訊 / Employee info
 - 各類型餘額明細 / Balance by type
 - 年度總額 / Annual total
@@ -1083,6 +1120,7 @@ Leave Management → Export → Leave Balances
 #### 3. 匯出統計報表 / Export Analytics Reports
 
 **可匯出報表 / Exportable Reports:**
+
 1. 使用統計摘要 / Usage summary
 2. 類型分布分析 / Type distribution
 3. 部門使用對比 / Department comparison
@@ -1093,6 +1131,7 @@ Leave Management → Export → Leave Balances
 ### 匯出文件範例 / Export File Examples
 
 #### CSV 範例 / CSV Example:
+
 ```csv
 員工姓名,員工郵箱,請假類型,開始日期,結束日期,總天數,狀態,提交時間
 張小明,zhang@example.com,年假,2025-11-10,2025-11-12,3.0,已批准,2025-11-03 14:30
@@ -1101,6 +1140,7 @@ Leave Management → Export → Leave Balances
 ```
 
 #### Excel 範例結構 / Excel Example Structure:
+
 ```
 Sheet 1: 請假記錄 (Leave Records)
 ┌──────┬──────┬────────┬────────┬─────┬──────┐
@@ -1155,14 +1195,17 @@ Sheet 2: 統計摘要 (Summary)
 #### 1. 請假申請通知 / Leave Request Notifications
 
 **觸發時機 / Trigger:**
+
 - 員工提交請假申請時
 - When employee submits leave request
 
 **接收者 / Recipients:**
+
 - 審批主管 / Approving supervisor
 - 部門經理 / Department manager
 
 **通知內容 / Content:**
+
 ```
 主題 / Subject: 新的請假申請待審批
 Title: New Leave Request Pending Approval
@@ -1193,14 +1236,17 @@ Please review and approve this request.
 #### 2. 審批結果通知 / Approval Result Notifications
 
 **觸發時機 / Trigger:**
+
 - 主管批准或拒絕請假申請時
 - When supervisor approves or rejects request
 
 **接收者 / Recipients:**
+
 - 申請員工 / Requesting employee
 - 抄送：HR部門 / CC: HR department
 
 **批准通知範例 / Approval Example:**
+
 ```
 主題 / Subject: 您的請假申請已批准 ✅
 Title: Your Leave Request Approved ✅
@@ -1232,6 +1278,7 @@ Enjoy your time off!
 ```
 
 **拒絕通知範例 / Rejection Example:**
+
 ```
 主題 / Subject: 您的請假申請未獲批准 ❌
 Title: Your Leave Request Not Approved ❌
@@ -1271,15 +1318,18 @@ You can:
 #### 3. 餘額提醒通知 / Balance Alert Notifications
 
 **觸發時機 / Trigger:**
+
 - 餘額低於設定閾值時
 - When balance falls below threshold
 - 年假即將過期時
 - When annual leave about to expire
 
 **接收者 / Recipients:**
+
 - 員工本人 / Employee
 
 **通知內容 / Content:**
+
 ```
 主題 / Subject: 請假餘額提醒 ⚠️
 Title: Leave Balance Alert ⚠️
@@ -1310,20 +1360,24 @@ Leave Balance Alert
 #### 4. 取消請假通知 / Cancellation Notifications
 
 **觸發時機 / Trigger:**
+
 - 員工取消已批准的請假時
 - When employee cancels approved leave
 
 **接收者 / Recipients:**
+
 - 審批主管 / Approving supervisor
 - HR部門 / HR department
 
 #### 5. 即將到期提醒 / Expiration Reminders
 
 **觸發時機 / Trigger:**
+
 - 年假即將過期前30天、15天、7天
 - 30, 15, 7 days before expiration
 
 **接收者 / Recipients:**
+
 - 員工本人 / Employee
 - 抄送：直屬主管 / CC: Direct supervisor
 
@@ -1388,6 +1442,7 @@ Personal Settings → Notification Preferences
 I only need half a day off (morning or afternoon), how do I request it?
 
 **解答 / Answer:**
+
 1. 在申請請假時，選擇**同一天**作為開始和結束日期
 2. 在時段選擇中，選擇「上午 (AM)」或「下午 (PM)」
 3. 系統會自動計算為 0.5 天
@@ -1395,6 +1450,7 @@ I only need half a day off (morning or afternoon), how do I request it?
 5. 提交申請
 
 注意事項：
+
 - 半天假僅適用於單日請假
 - 某些請假類型可能不支援半天（如婚假、產假）
 - Half-day only available for single-day requests
@@ -1416,12 +1472,12 @@ My leave request was rejected by my supervisor, what should I do?
 
 2. **常見拒絕原因及應對 / Common Reasons & Solutions:**
 
-   | 拒絕原因<br>Reason | 建議解決方案<br>Solution |
-   |-------------------|------------------------|
-   | 人力不足<br>Insufficient staff | 調整至其他日期<br>Change to other dates |
-   | 提前通知不足<br>Short notice | 提前規劃下次請假<br>Plan ahead next time |
-   | 餘額不足<br>Insufficient balance | 檢查餘額並調整天數<br>Check balance and adjust days |
-   | 與重要活動衝突<br>Conflict with important events | 協調時間或參與活動<br>Coordinate or attend event |
+   | 拒絕原因<br>Reason                               | 建議解決方案<br>Solution                            |
+   | ------------------------------------------------ | --------------------------------------------------- |
+   | 人力不足<br>Insufficient staff                   | 調整至其他日期<br>Change to other dates             |
+   | 提前通知不足<br>Short notice                     | 提前規劃下次請假<br>Plan ahead next time            |
+   | 餘額不足<br>Insufficient balance                 | 檢查餘額並調整天數<br>Check balance and adjust days |
+   | 與重要活動衝突<br>Conflict with important events | 協調時間或參與活動<br>Coordinate or attend event    |
 
 3. **後續行動 / Next Steps:**
    - 與主管溝通了解具體情況
@@ -1443,30 +1499,34 @@ I've submitted a leave request but want to cancel it, how do I do that?
 
 **取消規則 / Cancellation Rules:**
 
-| 請假狀態<br>Status | 可否取消<br>Can Cancel | 操作方式<br>Method |
-|-------------------|----------------------|-------------------|
-| 待審批<br>Pending | ✅ 可以 / Yes | 直接取消<br>Direct cancel |
-| 已批准<br>Approved | ⚠️ 有條件 / Conditional | 需主管同意<br>Requires approval |
-| 已拒絕<br>Rejected | ❌ 不可 / No | 已結束<br>Already ended |
-| 已取消<br>Cancelled | ❌ 不可 / No | 已結束<br>Already ended |
+| 請假狀態<br>Status  | 可否取消<br>Can Cancel  | 操作方式<br>Method              |
+| ------------------- | ----------------------- | ------------------------------- |
+| 待審批<br>Pending   | ✅ 可以 / Yes           | 直接取消<br>Direct cancel       |
+| 已批准<br>Approved  | ⚠️ 有條件 / Conditional | 需主管同意<br>Requires approval |
+| 已拒絕<br>Rejected  | ❌ 不可 / No            | 已結束<br>Already ended         |
+| 已取消<br>Cancelled | ❌ 不可 / No            | 已結束<br>Already ended         |
 
 **操作步驟 / Steps:**
 
 1. **取消待審批請假 / Cancel Pending:**
+
    ```
    請假管理 → 我的請假 → 找到該記錄 → 點擊「取消」
    Leave Management → My Leaves → Find record → Click "Cancel"
    ```
+
    - 直接取消即可
    - Direct cancellation
    - 餘額會立即恢復
    - Balance restored immediately
 
 2. **取消已批准請假 / Cancel Approved:**
+
    ```
    請假管理 → 我的請假 → 找到該記錄 → 點擊「申請取消」
    Leave Management → My Leaves → Find record → Click "Request Cancel"
    ```
+
    - 需要填寫取消原因
    - Need to provide reason
    - 等待主管批准取消
@@ -1475,6 +1535,7 @@ I've submitted a leave request but want to cancel it, how do I do that?
    - Balance restored after approval
 
 ⚠️ **重要提醒 / Important:**
+
 - 請假開始前24小時內取消可能需要特別審批
 - Cancellation within 24 hours may need special approval
 - 頻繁取消請假可能影響信用記錄
@@ -1493,6 +1554,7 @@ I only have 2 days annual leave left but want to request 3 days, is it possible?
 **解答 / Answer:**
 
 **選項 1: 使用其他類型請假 / Option 1: Use Other Leave Types**
+
 ```
 年假不足時，可以：
 When annual leave insufficient, you can:
@@ -1503,6 +1565,7 @@ When annual leave insufficient, you can:
 ```
 
 **選項 2: 拆分請假申請 / Option 2: Split Request**
+
 ```
 範例 / Example:
 需要請假：3天 (Need: 3 days)
@@ -1514,6 +1577,7 @@ When annual leave insufficient, you can:
 ```
 
 **選項 3: 申請餘額調整 / Option 3: Request Balance Adjustment**
+
 ```
 特殊情況下可以：
 In special cases, you can:
@@ -1527,6 +1591,7 @@ In special cases, you can:
 ```
 
 ⚠️ **注意 / Note:**
+
 - 系統預設會阻止餘額不足的申請
 - System blocks insufficient balance by default
 - 如有特殊需求，請直接聯繫HR或主管
@@ -1543,6 +1608,7 @@ As a supervisor, how do I view team members' leave schedules?
 **解答 / Answer:**
 
 **方法 1: 請假日曆檢視 / Method 1: Leave Calendar View**
+
 ```
 請假管理 → 團隊日曆 → 選擇月份
 Leave Management → Team Calendar → Select Month
@@ -1555,6 +1621,7 @@ Shows:
 ```
 
 **方法 2: 員工請假列表 / Method 2: Employee Leave List**
+
 ```
 請假管理 → 員工請假 → 篩選部門
 Leave Management → Employee Leaves → Filter Department
@@ -1570,6 +1637,7 @@ Can view:
 ```
 
 **方法 3: 統計報表 / Method 3: Statistical Reports**
+
 ```
 請假管理 → 統計分析 → 部門報表
 Leave Management → Analytics → Department Report
@@ -1597,6 +1665,7 @@ I can't use all my annual leave this year, can I carry it over?
 **年假結轉規則 / Annual Leave Carryover Rules:**
 
 ✅ **可以結轉 / Yes, Can Carryover:**
+
 ```
 條件 / Conditions:
 • 最多結轉 5 天 (Maximum 5 days)
@@ -1615,6 +1684,7 @@ I can't use all my annual leave this year, can I carry it over?
 ```
 
 **其他請假類型 / Other Leave Types:**
+
 ```
 ❌ 不可結轉 (Cannot Carryover):
 • 病假 (Sick Leave)
@@ -1628,6 +1698,7 @@ These reset at year-end with new allocation.
 ```
 
 **結轉提醒 / Carryover Reminders:**
+
 - 系統會在11月底發送提醒
 - System sends reminder in late November
 - 建議提前規劃年假使用
@@ -1647,18 +1718,19 @@ Do different leave types affect my salary?
 
 **請假類型與薪資對照表 / Leave Types & Salary Impact:**
 
-| 請假類型<br>Leave Type | 是否扣薪<br>Paid/Unpaid | 說明<br>Description |
-|----------------------|----------------------|-------------------|
-| 年假<br>Annual | ✅ 帶薪<br>Paid | 不影響薪資<br>No impact |
-| 病假<br>Sick | ✅ 帶薪<br>Paid | 前10天帶薪<br>First 10 days paid |
-| 事假<br>Personal | ⚠️ 依規定<br>Varies | 可能扣薪<br>May be unpaid |
-| 婚假<br>Marriage | ✅ 帶薪<br>Paid | 法定帶薪<br>Statutory paid |
-| 產假<br>Maternity | ✅ 帶薪<br>Paid | 法定帶薪<br>Statutory paid |
-| 陪產假<br>Paternity | ✅ 帶薪<br>Paid | 法定帶薪<br>Statutory paid |
-| 喪假<br>Bereavement | ✅ 帶薪<br>Paid | 法定帶薪<br>Statutory paid |
-| 無薪假<br>Unpaid | ❌ 無薪<br>Unpaid | 按天數扣薪<br>Deducted by days |
+| 請假類型<br>Leave Type | 是否扣薪<br>Paid/Unpaid | 說明<br>Description              |
+| ---------------------- | ----------------------- | -------------------------------- |
+| 年假<br>Annual         | ✅ 帶薪<br>Paid         | 不影響薪資<br>No impact          |
+| 病假<br>Sick           | ✅ 帶薪<br>Paid         | 前10天帶薪<br>First 10 days paid |
+| 事假<br>Personal       | ⚠️ 依規定<br>Varies     | 可能扣薪<br>May be unpaid        |
+| 婚假<br>Marriage       | ✅ 帶薪<br>Paid         | 法定帶薪<br>Statutory paid       |
+| 產假<br>Maternity      | ✅ 帶薪<br>Paid         | 法定帶薪<br>Statutory paid       |
+| 陪產假<br>Paternity    | ✅ 帶薪<br>Paid         | 法定帶薪<br>Statutory paid       |
+| 喪假<br>Bereavement    | ✅ 帶薪<br>Paid         | 法定帶薪<br>Statutory paid       |
+| 無薪假<br>Unpaid       | ❌ 無薪<br>Unpaid       | 按天數扣薪<br>Deducted by days   |
 
 **薪資計算範例 / Salary Calculation Example:**
+
 ```
 月薪：$30,000
 工作日：22天
@@ -1674,6 +1746,7 @@ $30,000 - $1,364 - $2,727 = $25,909
 ```
 
 **查詢方式 / How to Check:**
+
 ```
 個人資訊 → 薪資明細 → 本月扣款
 Personal Info → Payroll → Monthly Deductions
@@ -1759,6 +1832,7 @@ Migrating from old system, how to bulk import historical leave records?
 **批量匯入功能 / Bulk Import Feature:**
 
 **操作路徑 / Path:**
+
 ```
 系統設定 → 資料管理 → 批量匯入 → 請假記錄
 System Settings → Data Management → Bulk Import → Leave Records
@@ -1767,6 +1841,7 @@ System Settings → Data Management → Bulk Import → Leave Records
 **匯入步驟 / Import Steps:**
 
 1. **下載匯入範本 / Download Template:**
+
    ```
    點擊「下載Excel範本」
    Click "Download Excel Template"
@@ -1787,6 +1862,7 @@ System Settings → Data Management → Bulk Import → Leave Records
    ```
 
 2. **填寫資料 / Fill Data:**
+
    ```
    範例 / Example:
    ┌────────┬──────────────┬──────┬────────┬────────┬─────┬────┐
@@ -1807,6 +1883,7 @@ System Settings → Data Management → Bulk Import → Leave Records
    - System validates format
 
 4. **驗證結果 / Validation Results:**
+
    ```
    ✅ 驗證成功 / Validation Passed:
    • 總記錄數：150
@@ -1831,6 +1908,7 @@ System Settings → Data Management → Bulk Import → Leave Records
    - Click "Start Import" after confirmation
 
 **注意事項 / Important Notes:**
+
 - 大量資料建議分批匯入（每次不超過500筆）
 - Large datasets: import in batches (max 500 per batch)
 - 匯入前建議先備份現有資料
@@ -1851,6 +1929,7 @@ What if multiple employees request leave at the same time causing insufficient s
 **衝突類型 / Conflict Types:**
 
 1. **人力衝突 / Staffing Conflict:**
+
    ```
    ⚠️ 同時段請假人數過多
    Too many employees on leave at same time
@@ -1864,6 +1943,7 @@ What if multiple employees request leave at the same time causing insufficient s
    ```
 
 2. **排班衝突 / Schedule Conflict:**
+
    ```
    ⚠️ 請假與已排班次重疊
    Leave overlaps with scheduled shifts
@@ -1876,6 +1956,7 @@ What if multiple employees request leave at the same time causing insufficient s
    ```
 
 3. **關鍵時段衝突 / Peak Period Conflict:**
+
    ```
    ⚠️ 節假日或高峰期請假
    Leave during holidays or peak periods
@@ -1890,6 +1971,7 @@ What if multiple employees request leave at the same time causing insufficient s
 **解決方案 / Solutions:**
 
 **方案 1: 調整請假時間 / Adjust Leave Dates**
+
 ```
 建議員工：
 Suggest employee:
@@ -1902,6 +1984,7 @@ Suggest employee:
 ```
 
 **方案 2: 設定請假配額 / Set Leave Quotas**
+
 ```
 系統設定 → 請假管理 → 配額管理
 System Settings → Leave Management → Quota Management
@@ -1917,6 +2000,7 @@ Configure:
 ```
 
 **方案 3: 建立候補機制 / Waitlist Mechanism**
+
 ```
 當人力已滿時：
 When staffing full:
@@ -1929,6 +2013,7 @@ When staffing full:
 ```
 
 **方案 4: 彈性調整班次 / Flexible Shift Adjustment**
+
 ```
 與員工協商：
 Negotiate with employee:
@@ -1941,6 +2026,7 @@ Negotiate with employee:
 ```
 
 **預防措施 / Preventive Measures:**
+
 ```
 提前規劃 / Plan Ahead:
 • 每月初公布高峰期日期
@@ -1965,42 +2051,42 @@ Negotiate with employee:
 
 ### 全局快捷鍵 / Global Shortcuts
 
-| 快捷鍵<br>Shortcut | 功能<br>Function | 說明<br>Description |
-|-------------------|-----------------|-------------------|
-| `Ctrl + N` | 新增請假申請<br>New Leave Request | 快速開啟申請表單<br>Quick open form |
-| `Ctrl + K` | 搜尋請假記錄<br>Search Leaves | 開啟搜尋框<br>Open search box |
-| `Ctrl + E` | 匯出當前頁面<br>Export Current | 匯出當前檢視資料<br>Export current view |
-| `Ctrl + P` | 列印當前頁面<br>Print Current | 列印當前內容<br>Print current content |
-| `Ctrl + R` | 重新整理資料<br>Refresh Data | 更新最新資料<br>Update latest data |
-| `Esc` | 關閉彈窗<br>Close Modal | 關閉當前對話框<br>Close current dialog |
+| 快捷鍵<br>Shortcut | 功能<br>Function                  | 說明<br>Description                     |
+| ------------------ | --------------------------------- | --------------------------------------- |
+| `Ctrl + N`         | 新增請假申請<br>New Leave Request | 快速開啟申請表單<br>Quick open form     |
+| `Ctrl + K`         | 搜尋請假記錄<br>Search Leaves     | 開啟搜尋框<br>Open search box           |
+| `Ctrl + E`         | 匯出當前頁面<br>Export Current    | 匯出當前檢視資料<br>Export current view |
+| `Ctrl + P`         | 列印當前頁面<br>Print Current     | 列印當前內容<br>Print current content   |
+| `Ctrl + R`         | 重新整理資料<br>Refresh Data      | 更新最新資料<br>Update latest data      |
+| `Esc`              | 關閉彈窗<br>Close Modal           | 關閉當前對話框<br>Close current dialog  |
 
 ### 列表操作 / List Operations
 
-| 快捷鍵<br>Shortcut | 功能<br>Function | 說明<br>Description |
-|-------------------|-----------------|-------------------|
-| `↑` / `↓` | 上下移動<br>Move Up/Down | 選擇列表項目<br>Select list item |
-| `Enter` | 開啟詳情<br>Open Details | 查看選中記錄<br>View selected record |
-| `Space` | 勾選/取消<br>Check/Uncheck | 批量操作時使用<br>For batch operations |
-| `Ctrl + A` | 全選<br>Select All | 選擇所有項目<br>Select all items |
-| `Ctrl + D` | 取消全選<br>Deselect All | 取消所有選擇<br>Deselect all items |
+| 快捷鍵<br>Shortcut | 功能<br>Function           | 說明<br>Description                    |
+| ------------------ | -------------------------- | -------------------------------------- |
+| `↑` / `↓`          | 上下移動<br>Move Up/Down   | 選擇列表項目<br>Select list item       |
+| `Enter`            | 開啟詳情<br>Open Details   | 查看選中記錄<br>View selected record   |
+| `Space`            | 勾選/取消<br>Check/Uncheck | 批量操作時使用<br>For batch operations |
+| `Ctrl + A`         | 全選<br>Select All         | 選擇所有項目<br>Select all items       |
+| `Ctrl + D`         | 取消全選<br>Deselect All   | 取消所有選擇<br>Deselect all items     |
 
 ### 審批操作 / Approval Operations
 
-| 快捷鍵<br>Shortcut | 功能<br>Function | 說明<br>Description |
-|-------------------|-----------------|-------------------|
-| `Ctrl + Enter` | 快速批准<br>Quick Approve | 批准選中申請<br>Approve selected |
-| `Ctrl + Shift + R` | 快速拒絕<br>Quick Reject | 拒絕選中申請<br>Reject selected |
-| `Ctrl + M` | 添加備註<br>Add Comment | 快速填寫備註<br>Quick add comment |
+| 快捷鍵<br>Shortcut | 功能<br>Function          | 說明<br>Description               |
+| ------------------ | ------------------------- | --------------------------------- |
+| `Ctrl + Enter`     | 快速批准<br>Quick Approve | 批准選中申請<br>Approve selected  |
+| `Ctrl + Shift + R` | 快速拒絕<br>Quick Reject  | 拒絕選中申請<br>Reject selected   |
+| `Ctrl + M`         | 添加備註<br>Add Comment   | 快速填寫備註<br>Quick add comment |
 
 ### 日曆檢視 / Calendar View
 
-| 快捷鍵<br>Shortcut | 功能<br>Function | 說明<br>Description |
-|-------------------|-----------------|-------------------|
-| `←` / `→` | 上月/下月<br>Prev/Next Month | 切換月份<br>Switch month |
-| `T` | 今天<br>Today | 跳轉到今天<br>Jump to today |
-| `D` | 日檢視<br>Day View | 切換到日檢視<br>Switch to day view |
-| `W` | 週檢視<br>Week View | 切換到週檢視<br>Switch to week view |
-| `M` | 月檢視<br>Month View | 切換到月檢視<br>Switch to month view |
+| 快捷鍵<br>Shortcut | 功能<br>Function             | 說明<br>Description                  |
+| ------------------ | ---------------------------- | ------------------------------------ |
+| `←` / `→`          | 上月/下月<br>Prev/Next Month | 切換月份<br>Switch month             |
+| `T`                | 今天<br>Today                | 跳轉到今天<br>Jump to today          |
+| `D`                | 日檢視<br>Day View           | 切換到日檢視<br>Switch to day view   |
+| `W`                | 週檢視<br>Week View          | 切換到週檢視<br>Switch to week view  |
+| `M`                | 月檢視<br>Month View         | 切換到月檢視<br>Switch to month view |
 
 ---
 
@@ -2009,11 +2095,13 @@ Negotiate with employee:
 ### 聯繫方式 / Contact Information
 
 **技術支援團隊 / Technical Support Team:**
+
 - 📧 Email: support@makanmakan.com
 - 📱 電話 / Phone: +886-2-1234-5678
 - 💬 線上客服 / Live Chat: 週一至週五 09:00-18:00
 
 **支援時間 / Support Hours:**
+
 - 一般支援 / General Support: 週一至週五 09:00-18:00
 - 緊急支援 / Emergency Support: 24/7
 - 回應時間 / Response Time:
@@ -2024,6 +2112,7 @@ Negotiate with employee:
 ### 問題回報 / Issue Reporting
 
 **回報問題時請提供 / When reporting, please provide:**
+
 1. 問題詳細描述 / Detailed description
 2. 重現步驟 / Steps to reproduce
 3. 螢幕截圖或錄影 / Screenshots or recordings
@@ -2034,6 +2123,7 @@ Negotiate with employee:
 ### 文檔資源 / Documentation Resources
 
 **線上文檔 / Online Documentation:**
+
 - 📖 使用手冊 / User Manual: docs.makanmakan.com/manual
 - 🎥 影片教學 / Video Tutorials: docs.makanmakan.com/videos
 - 📚 API文檔 / API Documentation: api.makanmakan.com/docs
@@ -2042,6 +2132,7 @@ Negotiate with employee:
 ### 培訓資源 / Training Resources
 
 **可用培訓 / Available Training:**
+
 - 新用戶入門培訓（線上，1小時）
 - New user onboarding (Online, 1 hour)
 - 進階功能培訓（每月一次）
@@ -2056,12 +2147,14 @@ Negotiate with employee:
 ### 請假政策參考 / Leave Policy Reference
 
 **法定假期 / Statutory Holidays:**
+
 - 參考當地勞動法規
 - Refer to local labor laws
 - 各地區可能有所不同
 - May vary by region
 
 **公司政策 / Company Policy:**
+
 - 請參考公司員工手冊
 - Refer to employee handbook
 - 政策可能定期更新
@@ -2070,6 +2163,7 @@ Negotiate with employee:
 ### 系統更新計劃 / System Update Plan
 
 **即將推出的功能 / Upcoming Features:**
+
 - [ ] 移動端APP / Mobile App
 - [ ] 語音通知 / Voice Notifications
 - [ ] AI智慧建議最佳請假時間 / AI-suggested best leave dates
@@ -2079,6 +2173,7 @@ Negotiate with employee:
 ### 版本歷史 / Version History
 
 **當前版本 / Current Version: 2.0**
+
 - 發布日期 / Release Date: 2025-11-01
 - 主要更新 / Major Updates:
   - ✅ 完整的請假管理功能

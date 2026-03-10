@@ -1,91 +1,92 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useTenantsStore } from '@/stores/tenants'
-import { RouterLink } from 'vue-router'
-import { useToast } from 'vue-toastification'
+import { ref, onMounted, computed } from "vue";
+import { useTenantsStore } from "@/stores/tenants";
+import { RouterLink } from "vue-router";
+import { useToast } from "vue-toastification";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  BuildingStorefrontIcon
-} from '@heroicons/vue/24/outline'
-import CreateTenantModal from '@/components/tenants/CreateTenantModal.vue'
-import type { TenantStatus } from '@/types'
+  BuildingStorefrontIcon,
+} from "@heroicons/vue/24/outline";
+import CreateTenantModal from "@/components/tenants/CreateTenantModal.vue";
+import type { TenantStatus } from "@/types";
 
-const tenantsStore = useTenantsStore()
-const toast = useToast()
+const tenantsStore = useTenantsStore();
+const toast = useToast();
 
 // 狀態
-const showCreateModal = ref(false)
-const searchQuery = ref('')
-const statusFilter = ref<TenantStatus | 'all'>('all')
+const showCreateModal = ref(false);
+const searchQuery = ref("");
+const statusFilter = ref<TenantStatus | "all">("all");
 
 // 載入資料
 onMounted(async () => {
-  await tenantsStore.fetchTenants()
-})
+  await tenantsStore.fetchTenants();
+});
 
 // 過濾後的租戶列表
 const filteredTenants = computed(() => {
-  let result = tenantsStore.tenants
+  let result = tenantsStore.tenants;
 
   // 搜索過濾
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(t =>
-      t.businessName.toLowerCase().includes(query) ||
-      t.contactEmail.toLowerCase().includes(query) ||
-      t.subdomain?.toLowerCase().includes(query)
-    )
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(
+      (t) =>
+        t.businessName.toLowerCase().includes(query) ||
+        t.contactEmail.toLowerCase().includes(query) ||
+        t.subdomain?.toLowerCase().includes(query),
+    );
   }
 
   // 狀態過濾
-  if (statusFilter.value !== 'all') {
-    result = result.filter(t => t.status === statusFilter.value)
+  if (statusFilter.value !== "all") {
+    result = result.filter((t) => t.status === statusFilter.value);
   }
 
-  return result
-})
+  return result;
+});
 
 // 狀態選項
 const statusOptions = [
-  { value: 'all', label: '全部狀態' },
-  { value: 'active', label: '運行中' },
-  { value: 'pending', label: '待處理' },
-  { value: 'provisioning', label: '配置中' },
-  { value: 'suspended', label: '已暫停' },
-  { value: 'terminated', label: '已終止' }
-]
+  { value: "all", label: "全部狀態" },
+  { value: "active", label: "運行中" },
+  { value: "pending", label: "待處理" },
+  { value: "provisioning", label: "配置中" },
+  { value: "suspended", label: "已暫停" },
+  { value: "terminated", label: "已終止" },
+];
 
 // 處理創建成功
 const handleCreateSuccess = () => {
-  showCreateModal.value = false
-  toast.success('租戶創建成功')
-}
+  showCreateModal.value = false;
+  toast.success("租戶創建成功");
+};
 
 // 獲取狀態標籤
 const getStatusLabel = (status: TenantStatus) => {
   const labels: Record<TenantStatus, string> = {
-    pending: '待處理',
-    provisioning: '配置中',
-    active: '運行中',
-    suspended: '已暫停',
-    terminated: '已終止'
-  }
-  return labels[status] || status
-}
+    pending: "待處理",
+    provisioning: "配置中",
+    active: "運行中",
+    suspended: "已暫停",
+    terminated: "已終止",
+  };
+  return labels[status] || status;
+};
 
 // 獲取狀態樣式
 const getStatusClass = (status: TenantStatus) => {
   const classes: Record<TenantStatus, string> = {
-    pending: 'badge-warning',
-    provisioning: 'badge-info',
-    active: 'badge-success',
-    suspended: 'badge-danger',
-    terminated: 'badge-gray'
-  }
-  return classes[status] || 'badge-gray'
-}
+    pending: "badge-warning",
+    provisioning: "badge-info",
+    active: "badge-success",
+    suspended: "badge-danger",
+    terminated: "badge-gray",
+  };
+  return classes[status] || "badge-gray";
+};
 </script>
 
 <template>
@@ -94,9 +95,7 @@ const getStatusClass = (status: TenantStatus) => {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">租戶管理</h1>
-        <p class="mt-1 text-sm text-gray-500">
-          管理所有獨立部署的餐廳租戶
-        </p>
+        <p class="mt-1 text-sm text-gray-500">管理所有獨立部署的餐廳租戶</p>
       </div>
       <button
         type="button"
@@ -152,10 +151,18 @@ const getStatusClass = (status: TenantStatus) => {
       <div v-else-if="filteredTenants.length === 0" class="text-center py-12">
         <BuildingStorefrontIcon class="mx-auto h-12 w-12 text-gray-400" />
         <h3 class="mt-2 text-sm font-medium text-gray-900">
-          {{ searchQuery || statusFilter !== 'all' ? '沒有符合條件的租戶' : '暫無租戶' }}
+          {{
+            searchQuery || statusFilter !== "all"
+              ? "沒有符合條件的租戶"
+              : "暫無租戶"
+          }}
         </h3>
         <p class="mt-1 text-sm text-gray-500">
-          {{ searchQuery || statusFilter !== 'all' ? '嘗試調整搜索條件' : '點擊新增按鈕創建第一個租戶' }}
+          {{
+            searchQuery || statusFilter !== "all"
+              ? "嘗試調整搜索條件"
+              : "點擊新增按鈕創建第一個租戶"
+          }}
         </p>
       </div>
 
@@ -183,7 +190,9 @@ const getStatusClass = (status: TenantStatus) => {
                   </span>
                 </div>
                 <div class="ml-4">
-                  <div class="font-medium text-gray-900">{{ tenant.businessName }}</div>
+                  <div class="font-medium text-gray-900">
+                    {{ tenant.businessName }}
+                  </div>
                   <div v-if="tenant.customDomain" class="text-sm text-gray-500">
                     {{ tenant.customDomain }}
                   </div>
@@ -192,7 +201,10 @@ const getStatusClass = (status: TenantStatus) => {
             </td>
             <td>{{ tenant.contactEmail }}</td>
             <td>
-              <code v-if="tenant.subdomain" class="text-sm bg-gray-100 px-2 py-1 rounded">
+              <code
+                v-if="tenant.subdomain"
+                class="text-sm bg-gray-100 px-2 py-1 rounded"
+              >
                 {{ tenant.subdomain }}.makanmakan.app
               </code>
               <span v-else class="text-gray-400">-</span>

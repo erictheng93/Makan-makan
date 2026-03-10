@@ -9,6 +9,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 ## Architecture Status
 
 **MIGRATION COMPLETED**
+
 - **Legacy System**: PHP + MySQL (archived externally)
 - **New System**: Cloudflare Workers + D1 + TypeScript (**Production Ready**)
 - **TypeScript Status**: ✅ 0 errors (100% Compliance - All 20 packages passing)
@@ -61,11 +62,13 @@ makanmakan/
 ## Database (Cloudflare D1)
 
 ### Environments
+
 - **Production**: `makanmakan-prod`
 - **Staging**: `makanmakan-staging`
 - **Local**: Local SQLite database
 
 ### Core Tables (21 schema files, 69 tables)
+
 **Business**: users, restaurants, tables, seats, orders, order_items, menu_items, categories, customers
 **QR & Media**: qr_codes, qr_templates, qr_batches, qr_downloads, images, image_views, image_processing_jobs
 **System**: sessions, audit_logs, error_reports, system_alerts
@@ -83,6 +86,7 @@ makanmakan/
 **Generated Migrations**: `packages/database/migrations_fresh/`
 
 **ID Strategy** (UUID v7):
+
 - Primary keys: `TEXT` (UUID v7 via `packages/utils/src/uuid.ts`)
 - `restaurant_id`: `TEXT` referencing `restaurants.id` (UUID v7)
 - UUID v7: Time-sortable, globally unique (timestamp in first 48 bits)
@@ -90,6 +94,7 @@ makanmakan/
 - Timestamps: `INTEGER` (Unix milliseconds via `timestamp_ms` mode)
 
 **Commands**:
+
 ```bash
 # Generate new migration from schema changes
 pnpm db:generate
@@ -105,12 +110,14 @@ pnpm db:seed:mock
 ```
 
 **Adding New Tables**:
+
 1. Create schema file in `packages/database/src/schema/new-table.ts`
 2. Export from `packages/database/src/schema/index.ts`
 3. Run `pnpm db:generate` to create migration
 4. Run `pnpm db:migrate:local` to apply
 
 ### Database Commands (Legacy)
+
 ```bash
 # Apply migrations to remote environments
 pnpm db:migrate:staging
@@ -123,12 +130,14 @@ npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM users 
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 20+
 - pnpm 8+ (required - this project uses pnpm workspaces)
 - Cloudflare Account (paid plan for D1, R2, Images)
 - Wrangler CLI: `pnpm add -g wrangler`
 
 ### Quick Start
+
 ```bash
 # 1. Install dependencies (must use pnpm)
 pnpm install
@@ -148,24 +157,28 @@ pnpm dev  # Starts all apps in parallel
 **重要**: 此專案使用 pnpm，請勿使用 npm 或 yarn。
 
 **防護機制**:
+
 - `package.json` 的 `engines` 和 `packageManager` 欄位強制使用 pnpm
 - `.npmrc` 設定 `engine-strict=true` 會阻止錯誤的套件管理器
 
 **Monorepo 結構**:
+
 ```yaml
 # pnpm-workspace.yaml
 packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'packages/shared/src/i18n'  # 特殊：嵌套的 i18n 套件
+  - "apps/*"
+  - "packages/*"
+  - "packages/shared/src/i18n" # 特殊：嵌套的 i18n 套件
 ```
 
 **維護注意事項** (2025-01-24 修復):
+
 - 所有 scripts 必須使用 `pnpm run` 而非 `npm run`
 - CI/CD workflows 必須使用 `pnpm` 命令
 - 子目錄的 `node_modules` 是 pnpm 的符號連結，不是重複安裝
 
 ### Environment Variables
+
 ```env
 CLOUDFLARE_API_TOKEN=your_api_token
 JWT_SECRET=your_jwt_secret
@@ -243,6 +256,7 @@ WebSocket Endpoints (apps/realtime/):
 ## Development Commands
 
 ### Testing
+
 ```bash
 pnpm test                    # Unit tests
 pnpm typecheck              # TypeScript check
@@ -251,12 +265,14 @@ pnpm test:e2e              # End-to-end tests
 ```
 
 ### Deployment
+
 ```bash
 pnpm deploy:staging        # Deploy to staging
 pnpm deploy:prod          # Deploy to production (automatic on push to main)
 ```
 
 ### Monitoring
+
 ```bash
 pnpm wrangler tail makanmakan-api-prod                    # View logs
 pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
@@ -265,6 +281,7 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Current Development Status
 
 ### Production-Ready Features
+
 - Core API infrastructure with 29 endpoint groups
 - JWT-based multi-role authentication with bcrypt password hashing
 - **Verification System**: Password reset, email/phone verification with token management
@@ -295,11 +312,13 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - Complete test coverage and CI/CD pipeline
 
 ### In Development
+
 - **Realtime Services - Final 10%**: Performance testing, monitoring dashboard, staging deployment
 - **POS Frontend**: Admin dashboard integration for POS features
 - **Reservation System**: Completion of reservations and waiting-list frontend
 
 ### Next Phase
+
 - Payment integration (payment gateway)
 - Native mobile apps
 - Advanced analytics dashboards
@@ -307,6 +326,7 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Key Features
 
 ### Core Functionality
+
 - Multi-restaurant SaaS with tenant isolation
 - QR code-based ordering (table, seat, or shop modes)
 - Real-time order tracking (Durable Objects)
@@ -317,6 +337,7 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - Global edge deployment for low latency
 
 ### Advanced Features
+
 - Hybrid multi-tenant deployment (management portal + API)
 - Smart multi-layer caching strategy
 - Business analytics with custom metrics
@@ -329,16 +350,19 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Common Tasks
 
 ### QR Code Generation
+
 - Individual QR: `POST /api/v1/qr/generate`
 - Bulk generation: `POST /api/v1/qr/bulk`
 - Shop QR: `POST /api/v1/restaurants/:id/qr/shop/generate`
 - Seat QR: `POST /api/v1/seats/batch-create`
 
 ### User Role Management
+
 - API: `POST/PUT /api/v1/users/{restaurant_id}`
 - Permission matrix: `packages/shared-types/permissions.ts`
 
 ### Menu Items
+
 - API: `POST /api/v1/menu/{restaurant_id}/items`
 - Frontend: Admin dashboard → Menu Management
 - Images: Auto-processed with multiple variants
@@ -353,12 +377,14 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Security
 
 ### Data Protection
+
 - AES-256 encryption for sensitive data
 - Bcrypt password hashing (cost factor 10)
 - JWT tokens with secure refresh logic
 - Comprehensive input validation
 
 ### Access Control
+
 - WAF rules for API protection
 - Rate limiting (per-IP and per-user)
 - Complete audit trail for all operations
@@ -367,12 +393,14 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Error Handling
 
 ### Common Issues
+
 1. **D1 Connection Errors**: Check wrangler.toml bindings
 2. **KV Cache Misses**: Verify namespace configuration
 3. **Image Upload Failures**: Check R2 bucket permissions
 4. **WebSocket Disconnections**: Monitor Durable Objects health
 
 ### Debug Tools
+
 - Worker logs: `pnpm wrangler tail`
 - Health endpoint: `/api/v1/health`
 - Error tracking: Automatic Slack notifications
@@ -382,6 +410,7 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 **For detailed changelog, see: `docs/archive/CHANGELOG.md`**
 
 ### Latest (2026-02-13)
+
 - **CLAUDE.md Sync with Reality**: Comprehensive documentation update
   - Updated project structure (11 apps, 8 packages + i18n)
   - Documented UUID v7 migration, 69 database tables across 21 schema files
@@ -390,11 +419,13 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
   - Documented 29 API endpoint groups + Management API
 
 ### Previous (2026-02-06)
+
 - **Testing Infrastructure Phase 2 Complete**: 48/45 test files (107% of target)
   - Kitchen Display: 28 test files, Realtime Services: 20 test files
 - **API Documentation Phase 3 Complete**: 16/16 endpoint groups documented (120+ OpenAPI routes)
 
 ### Previous (2025-01-24)
+
 - **Package Manager Cleanup**: Unified pnpm usage, removed legacy npm commands
 - **Partnership System**: Full-stack merchant collaboration (3,163 lines, 83 test cases)
 - **TypeScript Compliance**: 0 errors across all packages
@@ -402,10 +433,12 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 ## Documentation
 
 ### Architecture & Technical
+
 - `docs/architecture/technical-documentation.md` - Technical specifications
 - `docs/requirements.md` - Product requirements
 
 ### Implementation Guides
+
 - `docs/EMPLOYEE_SCHEDULING_IMPLEMENTATION.md` - Scheduling system (2,100+ lines)
 - `docs/LEAVE_MANAGEMENT_IMPLEMENTATION.md` - Leave management (1,865 lines)
 - `docs/AI_ANALYTICS_IMPLEMENTATION.md` - AI analytics (750+ lines)
@@ -414,10 +447,12 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - `docs/TESTING_INFRASTRUCTURE_PHASE1_COMPLETION.md` - Phase 1 completion report
 
 ### User Manuals
+
 - `docs/user-manuals/SCHEDULING_MANUAL.md` - Employee scheduling user manual (1,000+ lines, bilingual)
 - `docs/user-manuals/LEAVE_MANAGEMENT_MANUAL.md` - Leave management user manual (1,800+ lines, bilingual)
 
 ### Additional Resources
+
 - Feature docs: `docs/features/`
 - Performance guides: `docs/performance/`
 - Migration guides: `docs/migration/`
@@ -435,5 +470,5 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 **In Progress**: Realtime Services (90%) | POS Frontend | Reservations
 
 - Always use context7 when I need code generation, setup or configuration steps, or
-library/API documentation. This means you should automatically use the Context7 MCP
-tools to resolve library id and get library docs without me having to explicitly ask.
+  library/API documentation. This means you should automatically use the Context7 MCP
+  tools to resolve library id and get library docs without me having to explicitly ask.

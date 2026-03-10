@@ -3,50 +3,52 @@
  * Complete employee work scheduling and shift management functionality
  */
 
-import { Hono } from 'hono'
-import type { Env, FeatureModule } from '../../shared/types'
-import { ConsoleLogger } from '../../core/monitoring'
+import { Hono } from "hono";
+import type { Env, FeatureModule } from "../../shared/types";
+import { ConsoleLogger } from "../../core/monitoring";
 
 // Import feature routes
-import routes from './routes'
+import routes from "./routes";
 
 // Feature metadata
-const FEATURE_NAME = 'scheduling'
-const FEATURE_VERSION = '1.0.0'
+const FEATURE_NAME = "scheduling";
+const FEATURE_VERSION = "1.0.0";
 
 // Feature module implementation
 class SchedulingModule implements FeatureModule {
-  public readonly name = FEATURE_NAME
-  public readonly version = FEATURE_VERSION
-  public readonly routes: Hono<{ Bindings: Env }>
-  private logger: ConsoleLogger
+  public readonly name = FEATURE_NAME;
+  public readonly version = FEATURE_VERSION;
+  public readonly routes: Hono<{ Bindings: Env }>;
+  private logger: ConsoleLogger;
 
   constructor() {
-    this.logger = new ConsoleLogger(FEATURE_NAME)
-    this.routes = new Hono<{ Bindings: Env }>()
-    this.setupRoutes()
-    this.setupMiddleware()
-    this.logger.info(`${FEATURE_NAME} module initialized`, { version: FEATURE_VERSION })
+    this.logger = new ConsoleLogger(FEATURE_NAME);
+    this.routes = new Hono<{ Bindings: Env }>();
+    this.setupRoutes();
+    this.setupMiddleware();
+    this.logger.info(`${FEATURE_NAME} module initialized`, {
+      version: FEATURE_VERSION,
+    });
   }
 
   private setupRoutes() {
     // Mount feature routes
-    this.routes.route('/', routes)
+    this.routes.route("/", routes);
   }
 
   private setupMiddleware() {
     // Feature-specific middleware for performance monitoring
-    this.routes.use('*', async (c, next) => {
-      const start = Date.now()
-      const method = c.req.method
-      const path = c.req.path
+    this.routes.use("*", async (c, next) => {
+      const start = Date.now();
+      const method = c.req.method;
+      const path = c.req.path;
 
-      this.logger.debug(`${method} ${path} - starting`)
+      this.logger.debug(`${method} ${path} - starting`);
 
       try {
-        await next()
-        const duration = Date.now() - start
-        const status = c.res.status
+        await next();
+        const duration = Date.now() - start;
+        const status = c.res.status;
 
         // Log slow requests (> 1 second)
         if (duration > 1000) {
@@ -54,24 +56,28 @@ class SchedulingModule implements FeatureModule {
             method,
             path,
             duration,
-            status
-          })
+            status,
+          });
         } else {
           this.logger.debug(`${method} ${path} - completed`, {
             duration,
-            status
-          })
+            status,
+          });
         }
       } catch (error) {
-        const duration = Date.now() - start
-        this.logger.error(`${method} ${path} - error`, error instanceof Error ? error : undefined, {
-          duration,
-          method,
-          path
-        })
-        throw error
+        const duration = Date.now() - start;
+        this.logger.error(
+          `${method} ${path} - error`,
+          error instanceof Error ? error : undefined,
+          {
+            duration,
+            method,
+            path,
+          },
+        );
+        throw error;
       }
-    })
+    });
   }
 
   // Health check endpoint with feature-specific status
@@ -79,7 +85,7 @@ class SchedulingModule implements FeatureModule {
     return {
       name: this.name,
       version: this.version,
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       features: {
         shiftTemplateManagement: true,
@@ -101,27 +107,27 @@ class SchedulingModule implements FeatureModule {
       },
       endpoints: {
         shiftTemplates: [
-          'GET /:restaurantId/templates - List shift templates',
-          'GET /templates/:id - Get shift template details',
-          'POST /:restaurantId/templates - Create shift template',
-          'PUT /templates/:id - Update shift template',
-          'DELETE /templates/:id - Delete shift template (soft)',
+          "GET /:restaurantId/templates - List shift templates",
+          "GET /templates/:id - Get shift template details",
+          "POST /:restaurantId/templates - Create shift template",
+          "PUT /templates/:id - Update shift template",
+          "DELETE /templates/:id - Delete shift template (soft)",
         ],
         employeeSchedules: [
-          'GET /:restaurantId/schedules - List employee schedules',
-          'GET /schedules/:id - Get schedule details',
-          'POST /:restaurantId/schedules - Create employee schedule',
-          'POST /:restaurantId/schedules/bulk - Bulk create schedules',
-          'PUT /schedules/:id - Update schedule',
-          'DELETE /schedules/:id - Cancel schedule',
+          "GET /:restaurantId/schedules - List employee schedules",
+          "GET /schedules/:id - Get schedule details",
+          "POST /:restaurantId/schedules - Create employee schedule",
+          "POST /:restaurantId/schedules/bulk - Bulk create schedules",
+          "PUT /schedules/:id - Update schedule",
+          "DELETE /schedules/:id - Cancel schedule",
         ],
         clockInOut: [
-          'POST /schedules/:id/clock-in - Clock in to shift',
-          'POST /schedules/:id/clock-out - Clock out from shift',
+          "POST /schedules/:id/clock-in - Clock in to shift",
+          "POST /schedules/:id/clock-out - Clock out from shift",
         ],
         swapRequests: [
-          'POST /:restaurantId/swap-requests - Create swap request',
-          'POST /swap-requests/:id/approve - Approve swap request',
+          "POST /:restaurantId/swap-requests - Create swap request",
+          "POST /swap-requests/:id/approve - Approve swap request",
         ],
       },
       supportedFeatures: {
@@ -199,13 +205,13 @@ class SchedulingModule implements FeatureModule {
         supportedConflictTypes: 7,
       },
       dependencies: {
-        database: '@makanmakan/database - SchedulingService',
-        validation: 'Zod schemas with Taiwan labor law rules',
-        authentication: 'Shared middleware with role-based access',
-        monitoring: 'ConsoleLogger',
-        leaveIntegration: 'Optional (Phase E)',
+        database: "@makanmakan/database - SchedulingService",
+        validation: "Zod schemas with Taiwan labor law rules",
+        authentication: "Shared middleware with role-based access",
+        monitoring: "ConsoleLogger",
+        leaveIntegration: "Optional (Phase E)",
       },
-    }
+    };
   }
 
   // Get feature statistics (for monitoring and debugging)
@@ -213,7 +219,7 @@ class SchedulingModule implements FeatureModule {
     return {
       name: this.name,
       version: this.version,
-      uptime: process.uptime ? `${Math.floor(process.uptime())}s` : 'unknown',
+      uptime: process.uptime ? `${Math.floor(process.uptime())}s` : "unknown",
       routes: {
         total: 17,
         shiftTemplates: 5,
@@ -223,12 +229,12 @@ class SchedulingModule implements FeatureModule {
         conflicts: 2,
       },
       supportedOperations: {
-        crud: ['create', 'read', 'update', 'delete'],
-        workflow: ['clock-in', 'clock-out', 'swap', 'approve', 'reject'],
-        bulk: ['bulk-create', 'batch-update'],
-        validation: ['conflict-check', 'labor-law-check'],
+        crud: ["create", "read", "update", "delete"],
+        workflow: ["clock-in", "clock-out", "swap", "approve", "reject"],
+        bulk: ["bulk-create", "batch-update"],
+        validation: ["conflict-check", "labor-law-check"],
       },
-    }
+    };
   }
 
   // Feature-specific configuration
@@ -244,23 +250,29 @@ class SchedulingModule implements FeatureModule {
           conflictCheckEnabled: true,
         },
         scheduling: {
-          supportedShiftTypes: ['regular', 'split', 'overnight'],
-          supportedStatuses: ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'],
+          supportedShiftTypes: ["regular", "split", "overnight"],
+          supportedStatuses: [
+            "scheduled",
+            "confirmed",
+            "completed",
+            "cancelled",
+            "no_show",
+          ],
           defaultOvertimeMultiplier: 1.5,
           defaultMinEmployees: 1,
           defaultMaxEmployees: 10,
         },
         conflictDetection: {
-          severityLevels: ['error', 'warning', 'info'],
+          severityLevels: ["error", "warning", "info"],
           realTimeValidation: true,
           conflictTypes: [
-            'overlapping_shifts',
-            'insufficient_rest',
-            'max_hours_exceeded',
-            'consecutive_days_exceeded',
-            'skill_mismatch',
-            'leave_conflict',
-            'availability_conflict',
+            "overlapping_shifts",
+            "insufficient_rest",
+            "max_hours_exceeded",
+            "consecutive_days_exceeded",
+            "skill_mismatch",
+            "leave_conflict",
+            "availability_conflict",
           ],
         },
         clockInOut: {
@@ -272,8 +284,8 @@ class SchedulingModule implements FeatureModule {
           noShowGracePeriodMinutes: 30,
         },
         swapRequests: {
-          supportedTypes: ['swap', 'cover', 'drop'],
-          supportedUrgencyLevels: ['low', 'normal', 'high', 'urgent'],
+          supportedTypes: ["swap", "cover", "drop"],
+          supportedUrgencyLevels: ["low", "normal", "high", "urgent"],
           requireManagerApproval: true,
           defaultExpirationHours: 72,
           openRequestsEnabled: true,
@@ -289,44 +301,44 @@ class SchedulingModule implements FeatureModule {
           holidayOvertimeMultiplier: 2.0,
         },
       },
-    }
+    };
   }
 
   // Cleanup method for graceful shutdown
   async cleanup() {
-    this.logger.info(`${FEATURE_NAME} module cleaning up`)
+    this.logger.info(`${FEATURE_NAME} module cleaning up`);
     // Add any cleanup logic here
   }
 }
 
 // Export the feature module class
-export { SchedulingModule }
+export { SchedulingModule };
 
 // Factory function for lazy initialization
-let schedulingModuleInstance: SchedulingModule | null = null
+let schedulingModuleInstance: SchedulingModule | null = null;
 export function createSchedulingModule(): SchedulingModule {
   if (!schedulingModuleInstance) {
-    schedulingModuleInstance = new SchedulingModule()
+    schedulingModuleInstance = new SchedulingModule();
   }
-  return schedulingModuleInstance
+  return schedulingModuleInstance;
 }
 
 // Export default for backward compatibility
 export default {
   get routes() {
-    return createSchedulingModule().routes
+    return createSchedulingModule().routes;
   },
   getHealthStatus: () => createSchedulingModule().getHealthStatus(),
   getStatistics: () => createSchedulingModule().getStatistics(),
   getConfiguration: () => createSchedulingModule().getConfiguration(),
   cleanup: () => createSchedulingModule().cleanup(),
-}
+};
 
 // Re-export types for external use
-export type * from './types'
+export type * from "./types";
 
 // Re-export service for direct use
-export { SchedulingService } from '@makanmakan/database'
+export { SchedulingService } from "@makanmakan/database";
 
 // Re-export schemas for external validation
-export { schedulingSchemas } from './schemas/validation'
+export { schedulingSchemas } from "./schemas/validation";

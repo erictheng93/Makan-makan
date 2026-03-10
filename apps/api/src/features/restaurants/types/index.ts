@@ -10,98 +10,106 @@ import type {
   RestaurantStats as SharedRestaurantStats,
   BusinessHours as SharedBusinessHours,
   Status,
-  PlanType
-} from '@makanmakan/shared-types'
+  PlanType,
+} from "@makanmakan/shared-types";
 
-export type Restaurant = SharedRestaurant
-export type RestaurantSettings = SharedRestaurantSettings
-export type RestaurantStats = SharedRestaurantStats
-export type BusinessHours = SharedBusinessHours
-export { Status, PlanType }
+export type Restaurant = SharedRestaurant;
+export type RestaurantSettings = SharedRestaurantSettings;
+export type RestaurantStats = SharedRestaurantStats;
+export type BusinessHours = SharedBusinessHours;
+export { Status, PlanType };
 
 // Additional feature-specific types
 export interface CreateRestaurantData {
-  name: string
-  type: string
-  category: string
-  description?: string
-  address: string
-  district: string
-  city?: string
-  phone: string
-  email?: string
-  website?: string
-  businessHours?: BusinessHours
-  logoUrl?: string
-  bannerUrl?: string
+  name: string;
+  type: string;
+  category: string;
+  description?: string;
+  address: string;
+  district: string;
+  city?: string;
+  phone: string;
+  email?: string;
+  website?: string;
+  businessHours?: BusinessHours;
+  logoUrl?: string;
+  bannerUrl?: string;
 }
 
 export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
-  isAvailable?: boolean
-  isActive?: boolean
-  settings?: Partial<RestaurantSettings>
+  isAvailable?: boolean;
+  isActive?: boolean;
+  settings?: Partial<RestaurantSettings>;
 }
 
 // Enhanced restaurant statistics interface
 export interface EnhancedRestaurantStats extends RestaurantStats {
   popularItems: Array<{
-    id: number
-    name: string
-    orderCount: number
-  }>
+    id: number;
+    name: string;
+    orderCount: number;
+  }>;
   ordersByHour: Array<{
-    hour: number
-    count: number
-  }>
+    hour: number;
+    count: number;
+  }>;
   customerRetention: {
-    newCustomers: number
-    returningCustomers: number
-    retentionRate: number
-  }
+    newCustomers: number;
+    returningCustomers: number;
+    retentionRate: number;
+  };
 }
-
 
 // Filter and query types
 export interface RestaurantFilters {
-  page?: number
-  limit?: number
-  type?: string
-  district?: string
-  isAvailable?: boolean
+  page?: number;
+  limit?: number;
+  type?: string;
+  district?: string;
+  isAvailable?: boolean;
 }
 
 export interface NearbySearchParams {
-  district: string
-  limit: number
+  district: string;
+  limit: number;
 }
 
 export interface PopularRestaurantsParams {
-  limit: number
+  limit: number;
 }
 
 // Service interfaces
 export interface IRestaurantService {
   getRestaurants(filters: RestaurantFilters): Promise<{
-    restaurants: Restaurant[]
+    restaurants: Restaurant[];
     pagination: {
-      page: number
-      limit: number
-      total: number
-      totalPages: number
-    }
-  }>
-  getRestaurant(id: string): Promise<Restaurant | null>
-  createRestaurant(data: CreateRestaurantData): Promise<Restaurant>
-  updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null>
-  deactivateRestaurant(id: string): Promise<boolean>
-  getRestaurantStats(id: string): Promise<EnhancedRestaurantStats>
-  searchNearbyRestaurants(district: string, limit: number): Promise<Restaurant[]>
-  getPopularRestaurants(limit: number): Promise<Restaurant[]>
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>;
+  getRestaurant(id: string): Promise<Restaurant | null>;
+  createRestaurant(data: CreateRestaurantData): Promise<Restaurant>;
+  updateRestaurant(
+    id: string,
+    data: UpdateRestaurantData,
+  ): Promise<Restaurant | null>;
+  deactivateRestaurant(id: string): Promise<boolean>;
+  getRestaurantStats(id: string): Promise<EnhancedRestaurantStats>;
+  searchNearbyRestaurants(
+    district: string,
+    limit: number,
+  ): Promise<Restaurant[]>;
+  getPopularRestaurants(limit: number): Promise<Restaurant[]>;
 }
 
 // Event types for restaurant operations
 export type RestaurantEvent =
-  | { type: 'RESTAURANT_CREATED'; payload: Restaurant }
-  | { type: 'RESTAURANT_UPDATED'; payload: Restaurant }
-  | { type: 'RESTAURANT_DEACTIVATED'; payload: { id: string } }
-  | { type: 'RESTAURANT_STATS_UPDATED'; payload: { id: string; stats: RestaurantStats } }
+  | { type: "RESTAURANT_CREATED"; payload: Restaurant }
+  | { type: "RESTAURANT_UPDATED"; payload: Restaurant }
+  | { type: "RESTAURANT_DEACTIVATED"; payload: { id: string } }
+  | {
+      type: "RESTAURANT_STATS_UPDATED";
+      payload: { id: string; stats: RestaurantStats };
+    };

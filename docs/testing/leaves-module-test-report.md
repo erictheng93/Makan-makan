@@ -15,6 +15,7 @@
 **檔案位置**: `packages/database/src/services/__tests__/LeaveService.test.ts`
 
 #### Leave Type Management (8 tests)
+
 - ✅ Get leave types for a restaurant
 - ✅ Get leave types including system-level types
 - ✅ Get a specific leave type by ID
@@ -25,6 +26,7 @@
 - ✅ Prevent deletion of system-defined leave types
 
 #### Leave Balance Management (7 tests)
+
 - ✅ Get employee leave balances for a year
 - ✅ Return empty array when employee has no balances
 - ✅ Correctly calculate remaining days
@@ -34,6 +36,7 @@
 - ✅ Adjust leave balance manually
 
 #### Leave Request Management (11 tests)
+
 - ✅ Get leave requests with filters
 - ✅ Get leave request by ID with relations
 - ✅ Return null when leave request not found
@@ -47,11 +50,13 @@
 - ✅ Fail to cancel already rejected request
 
 #### Working Day Calculation (3 tests)
+
 - ✅ Identify weekday as working day
 - ✅ Identify weekend as non-working day
 - ✅ Identify holiday as non-working day
 
 #### Leave Accrual (1 test)
+
 - ✅ Accrue yearly leave balances for all employees
 
 ---
@@ -61,6 +66,7 @@
 **檔案位置**: `apps/api/src/features/leaves/__tests__/feature.test.ts`
 
 #### Leave Types API (5 tests)
+
 - ✅ GET /:restaurantId/types - 成功獲取餐廳的假別類型列表
 - ✅ GET /:restaurantId/types - 處理獲取假別類型時的錯誤
 - ✅ POST /:restaurantId/types - 成功創建新的假別類型
@@ -68,6 +74,7 @@
 - ✅ DELETE /types/:id - 成功刪除假別類型（軟刪除）
 
 #### Leave Balances API (5 tests)
+
 - ✅ GET /balances - 成功獲取員工假期餘額
 - ✅ GET /balances - 阻止非管理員查看他人餘額
 - ✅ POST /balances/adjust - 成功調整員工假期餘額
@@ -75,6 +82,7 @@
 - ✅ Balance Query Filters - 支援按年份過濾餘額
 
 #### Leave Requests API (7 tests)
+
 - ✅ GET /:restaurantId/requests - 成功獲取請假申請列表
 - ✅ GET /:restaurantId/requests - 支援按狀態過濾請假申請
 - ✅ POST /:restaurantId/requests - 成功創建請假申請
@@ -84,6 +92,7 @@
 - ✅ POST /requests/:id/cancel - 成功取消請假申請
 
 #### Holiday Calendar API (3 tests)
+
 - ✅ GET /:restaurantId/holidays - 成功獲取年度假日列表
 - ✅ GET /:restaurantId/working-day/:date - 正確識別工作日
 - ✅ GET /:restaurantId/working-day/:date - 正確識別非工作日（假日）
@@ -93,6 +102,7 @@
 ## 📈 測試執行結果
 
 ### Unit Tests
+
 ```
 Test Files  1 passed (1)
 Tests       30 passed (30)
@@ -100,6 +110,7 @@ Duration    160ms
 ```
 
 ### Integration Tests
+
 ```
 Test Files  1 passed (1)
 Tests       20 passed (20)
@@ -111,18 +122,21 @@ Duration    206ms
 ## 🔍 測試覆蓋的業務邏輯
 
 ### 1. 假別類型管理
+
 - ✅ CRUD 操作
 - ✅ 系統預設類型保護
 - ✅ 軟刪除機制
 - ✅ 多餐廳支援（包含系統層級類型）
 
 ### 2. 假期餘額管理
+
 - ✅ 餘額查詢與計算
 - ✅ 手動調整餘額
 - ✅ 自動計算年度餘額
 - ✅ 剩餘天數正確計算（總額 - 已用 - 待審）
 
 ### 3. 請假流程
+
 - ✅ 請假申請創建
 - ✅ 多層級審批流程
 - ✅ 核准/拒絕/取消操作
@@ -131,11 +145,13 @@ Duration    206ms
 - ✅ 狀態轉換驗證（防止重複操作）
 
 ### 4. 假日行事曆
+
 - ✅ 假日查詢
 - ✅ 工作日判斷
 - ✅ 補班日處理
 
 ### 5. 權限控制
+
 - ✅ 管理員 vs 員工權限分離
 - ✅ 員工只能查看自己的餘額
 - ✅ 餐廳存取權限驗證
@@ -145,18 +161,21 @@ Duration    206ms
 ## 🛠️ 技術細節
 
 ### 測試框架與工具
+
 - **測試框架**: Vitest 3.2.4
 - **Mock 工具**: vi (Vitest mocking)
 - **HTTP 測試**: Hono test utilities
 - **類型檢查**: TypeScript strict mode
 
 ### Mock 策略
+
 - **Database Mock**: 使用 createMockDatabase 與 createQueryChain 輔助函數
 - **Service Mock**: 完整 mock LeaveService 所有方法
 - **Middleware Mock**: Mock 認證、權限、驗證中介層
 - **環境 Mock**: 模擬 Cloudflare Workers 環境
 
 ### 測試模式
+
 - **單元測試**: 隔離測試每個 service 方法
 - **整合測試**: 測試完整的 HTTP 請求/回應流程
 - **錯誤處理**: 驗證各種錯誤場景
@@ -167,13 +186,16 @@ Duration    206ms
 ## 📝 測試改進與修復
 
 ### 修復的問題
+
 1. **Multi-level approval test 失敗**
    - 問題：缺少 getLeaveType 的 mock
    - 修復：添加第二個 select mock 調用
    - 狀態：✅ 已修復並通過
 
 ### 新增的測試案例
+
 從原本的 12 個測試案例擴充到 30 個：
+
 - 新增 18 個 unit tests
 - 創建 20 個 integration tests
 - 總計增加 38 個測試案例
@@ -194,6 +216,7 @@ Duration    206ms
 ## 🎉 結論
 
 Leaves 模組測試套件已成功建立並通過所有測試。測試覆蓋範圍完整，包括：
+
 - 假別類型管理
 - 假期餘額計算與調整
 - 請假申請與審批流程

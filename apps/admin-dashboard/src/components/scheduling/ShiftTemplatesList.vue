@@ -1,7 +1,9 @@
 <template>
   <div class="w-full">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-6 bg-white rounded-lg shadow">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-6 bg-white rounded-lg shadow"
+    >
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-2">
           <div class="p-2 bg-purple-100 rounded-lg">
@@ -24,12 +26,17 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-20">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
+      ></div>
       <p class="text-gray-600">載入班別模板中...</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="templates.length === 0" class="text-center py-20 bg-white rounded-lg shadow">
+    <div
+      v-else-if="templates.length === 0"
+      class="text-center py-20 bg-white rounded-lg shadow"
+    >
       <div class="flex items-center justify-center mb-6">
         <div class="p-6 bg-gray-100 rounded-full">
           <QueueListIcon class="h-16 w-16 text-gray-400" />
@@ -55,13 +62,15 @@
         :style="{ borderLeftColor: template.colorCode }"
       >
         <!-- Card Header -->
-        <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-gray-50">
+        <div
+          class="flex items-center justify-between p-5 border-b border-gray-200 bg-gray-50"
+        >
           <div
             class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold"
             :style="{
               backgroundColor: template.colorCode + '15',
               color: template.colorCode,
-              borderColor: template.colorCode
+              borderColor: template.colorCode,
             }"
           >
             <div
@@ -76,14 +85,18 @@
               title="編輯模板"
               @click="$emit('edit', template)"
             >
-              <PencilIcon class="h-4 w-4 text-gray-400 group-hover:text-blue-600" />
+              <PencilIcon
+                class="h-4 w-4 text-gray-400 group-hover:text-blue-600"
+              />
             </button>
             <button
               class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
               title="刪除模板"
               @click="handleDelete(template)"
             >
-              <TrashIcon class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
+              <TrashIcon
+                class="h-4 w-4 text-gray-400 group-hover:text-red-600"
+              />
             </button>
           </div>
         </div>
@@ -92,18 +105,32 @@
         <div class="p-5 flex-1 space-y-4">
           <!-- Time Info -->
           <div class="grid grid-cols-2 gap-4">
-            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div
+              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+            >
               <ClockIcon class="h-5 w-5 text-gray-500 flex-shrink-0" />
               <div class="flex flex-col min-w-0">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">開始時間</span>
-                <span class="text-base font-bold text-blue-600 font-mono">{{ template.startTime }}</span>
+                <span
+                  class="text-xs font-semibold text-gray-500 uppercase tracking-wide"
+                  >開始時間</span
+                >
+                <span class="text-base font-bold text-blue-600 font-mono">{{
+                  template.startTime
+                }}</span>
               </div>
             </div>
-            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div
+              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+            >
               <ClockIcon class="h-5 w-5 text-gray-500 flex-shrink-0" />
               <div class="flex flex-col min-w-0">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">結束時間</span>
-                <span class="text-base font-bold text-blue-600 font-mono">{{ template.endTime }}</span>
+                <span
+                  class="text-xs font-semibold text-gray-500 uppercase tracking-wide"
+                  >結束時間</span
+                >
+                <span class="text-base font-bold text-blue-600 font-mono">{{
+                  template.endTime
+                }}</span>
               </div>
             </div>
           </div>
@@ -115,20 +142,34 @@
                 class="h-full rounded-full transition-all duration-300"
                 :style="{
                   width: `${(calculateDuration(template.startTime, template.endTime) / 24) * 100}%`,
-                  backgroundColor: template.colorCode
+                  backgroundColor: template.colorCode,
                 }"
               ></div>
             </div>
-            <div class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+            <div
+              class="flex items-center gap-2 text-sm font-semibold text-gray-600"
+            >
               <PlayIcon class="h-4 w-4 text-gray-500" />
-              <span class="text-gray-900">{{ calculateDuration(template.startTime, template.endTime) }} 小時</span>
+              <span class="text-gray-900"
+                >{{
+                  calculateDuration(template.startTime, template.endTime)
+                }}
+                小時</span
+              >
             </div>
           </div>
 
           <!-- Description -->
-          <div v-if="template.description" class="flex gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <DocumentTextIcon class="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
-            <p class="flex-1 text-sm text-gray-700 leading-relaxed">{{ template.description }}</p>
+          <div
+            v-if="template.description"
+            class="flex gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            <DocumentTextIcon
+              class="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5"
+            />
+            <p class="flex-1 text-sm text-gray-700 leading-relaxed">
+              {{ template.description }}
+            </p>
           </div>
 
           <!-- Metadata -->
@@ -137,7 +178,10 @@
               <ChartBarIcon class="h-4 w-4 text-gray-500" />
               <span>使用中: {{ template.usageCount || 0 }} 次</span>
             </div>
-            <div v-if="template.isDefault" class="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-bold border border-yellow-200">
+            <div
+              v-if="template.isDefault"
+              class="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-bold border border-yellow-200"
+            >
               <StarIcon class="h-3 w-3 fill-current" />
               <span>預設模板</span>
             </div>
@@ -151,7 +195,7 @@
             :style="{
               backgroundColor: template.colorCode + '15',
               color: template.colorCode,
-              borderColor: template.colorCode
+              borderColor: template.colorCode,
             }"
             @click="$emit('use', template)"
           >
@@ -165,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ShiftTemplate } from '@/types/scheduling'
+import type { ShiftTemplate } from "@/types/scheduling";
 import {
   QueueListIcon,
   PlusIcon,
@@ -177,44 +221,44 @@ import {
   CheckIcon,
   PencilIcon,
   TrashIcon,
-} from '@heroicons/vue/24/outline'
+} from "@heroicons/vue/24/outline";
 
 interface Props {
-  templates: ShiftTemplate[]
-  loading?: boolean
+  templates: ShiftTemplate[];
+  loading?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
-  loading: false
-})
+  loading: false,
+});
 
 const emit = defineEmits<{
-  add: []
-  edit: [template: ShiftTemplate]
-  delete: [template: ShiftTemplate]
-  use: [template: ShiftTemplate]
-}>()
+  add: [];
+  edit: [template: ShiftTemplate];
+  delete: [template: ShiftTemplate];
+  use: [template: ShiftTemplate];
+}>();
 
 // Methods
 const calculateDuration = (startTime: string, endTime: string): number => {
-  const [startHour, startMin] = startTime.split(':').map(Number)
-  const [endHour, endMin] = endTime.split(':').map(Number)
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
 
-  const startMinutes = startHour * 60 + startMin
-  let endMinutes = endHour * 60 + endMin
+  const startMinutes = startHour * 60 + startMin;
+  let endMinutes = endHour * 60 + endMin;
 
   // Handle overnight shifts
   if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60
+    endMinutes += 24 * 60;
   }
 
-  const durationMinutes = endMinutes - startMinutes
-  return Math.round((durationMinutes / 60) * 10) / 10 // Round to 1 decimal place
-}
+  const durationMinutes = endMinutes - startMinutes;
+  return Math.round((durationMinutes / 60) * 10) / 10; // Round to 1 decimal place
+};
 
 const handleDelete = (template: ShiftTemplate) => {
   if (confirm(`確定要刪除班別模板「${template.name}」嗎？此操作無法復原。`)) {
-    emit('delete', template)
+    emit("delete", template);
   }
-}
+};
 </script>

@@ -3,7 +3,7 @@
  * Type definitions for password reset, email and phone verification
  */
 
-export type VerificationMethod = 'email' | 'sms';
+export type VerificationMethod = "email" | "sms";
 
 export interface ForgotPasswordInput {
   identifier: string;

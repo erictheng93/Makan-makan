@@ -10,7 +10,12 @@
 /**
  * Supported LLM providers
  */
-export type LLMProvider = 'anthropic' | 'openai' | 'google' | 'deepseek' | 'custom';
+export type LLMProvider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "deepseek"
+  | "custom";
 
 /**
  * LLM provider configuration
@@ -32,7 +37,7 @@ export interface LLMRequest {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
-  responseFormat?: 'text' | 'json';
+  responseFormat?: "text" | "json";
 }
 
 /**
@@ -56,7 +61,7 @@ export interface LLMResponse {
 /**
  * Time range for analytics
  */
-export type TimeRange = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+export type TimeRange = "7d" | "14d" | "30d" | "90d" | "180d" | "1y" | "custom";
 
 /**
  * Time range with custom dates
@@ -64,13 +69,17 @@ export type TimeRange = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
 export interface TimeRangeParams {
   range: TimeRange;
   startDate?: string; // ISO date string
-  endDate?: string;   // ISO date string
+  endDate?: string; // ISO date string
 }
 
 /**
  * Product performance category
  */
-export type ProductCategory = 'traffic-driver' | 'bestseller' | 'profit-leader' | 'underperformer';
+export type ProductCategory =
+  | "traffic-driver"
+  | "bestseller"
+  | "profit-leader"
+  | "underperformer";
 
 /**
  * Product analysis metrics
@@ -88,22 +97,22 @@ export interface ProductAnalysis {
   // 利潤指標
   unitCost?: number;
   unitPrice: number;
-  profitMargin?: number;      // (price - cost) / price
-  totalProfit?: number;        // (price - cost) * orders
+  profitMargin?: number; // (price - cost) / price
+  totalProfit?: number; // (price - cost) * orders
 
   // 引流指標
-  firstItemInOrderCount: number;  // 作為購物車首項的次數
-  cartAdditionRate: number;       // 加入購物車 / 瀏覽次數
-  conversionRate: number;         // 購買 / 加入購物車
+  firstItemInOrderCount: number; // 作為購物車首項的次數
+  cartAdditionRate: number; // 加入購物車 / 瀏覽次數
+  conversionRate: number; // 購買 / 加入購物車
 
   // 趨勢指標
-  trendScore: number;         // -1 to 1, negative means declining
-  growthRate: number;         // % change vs previous period
+  trendScore: number; // -1 to 1, negative means declining
+  growthRate: number; // % change vs previous period
 
   // 排名
-  salesRank: number;          // 銷量排名
-  revenueRank: number;        // 營收排名
-  profitRank?: number;        // 利潤排名
+  salesRank: number; // 銷量排名
+  revenueRank: number; // 營收排名
+  profitRank?: number; // 利潤排名
 
   // 分類標籤
   categories: ProductCategory[];
@@ -132,7 +141,7 @@ export interface BusinessMetrics {
   profitMargin?: number;
 
   // 增長指標
-  revenueGrowth: number;      // % vs previous period
+  revenueGrowth: number; // % vs previous period
   orderGrowth: number;
 
   // 客戶指標
@@ -173,11 +182,11 @@ export interface BusinessMetrics {
  */
 export interface AIInsight {
   id: string;
-  type: 'observation' | 'recommendation' | 'warning' | 'opportunity';
-  category: 'sales' | 'profit' | 'customer' | 'operations' | 'product';
+  type: "observation" | "recommendation" | "warning" | "opportunity";
+  category: "sales" | "profit" | "customer" | "operations" | "product";
   title: string;
   description: string;
-  impact: 'high' | 'medium' | 'low';
+  impact: "high" | "medium" | "low";
   confidence: number; // 0-1
   actionable: boolean;
   suggestedActions?: string[];
@@ -236,7 +245,7 @@ export interface AIConfiguration {
   id: string;
   restaurantId: string;
   provider: LLMProvider;
-  apiKeyEncrypted: string;  // Encrypted API key
+  apiKeyEncrypted: string; // Encrypted API key
   model?: string;
   customBaseUrl?: string;
   enabled: boolean;

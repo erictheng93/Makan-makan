@@ -77,6 +77,7 @@ MakanMakan menyediakan dua cara memesan, tergantung pengaturan restoran:
    - Setiap meja punya QR code unik
 
 2. **Pindai QR Code**
+
    ```
    Opsi 1: Gunakan kamera ponsel
    └─ Buka kamera dan arahkan ke QR code
@@ -114,6 +115,7 @@ MakanMakan menyediakan dua cara memesan, tergantung pengaturan restoran:
 2. **Verifikasi Nomor Telepon (Pertama Kali)**
 
    **Langkah 1: Masukkan Nomor Telepon**
+
    ```
    ┌──────────────────────────┐
    │  Masukkan nomor telepon  │
@@ -124,6 +126,7 @@ MakanMakan menyediakan dua cara memesan, tergantung pengaturan restoran:
    │  [Konfirmasi]            │
    └──────────────────────────┘
    ```
+
    - Masukkan nomor dengan kode negara
    - Contoh: Indonesia +62, Malaysia +60
 
@@ -163,6 +166,7 @@ Daftar untuk nikmati lebih banyak fitur!
    - Atau klik "Daftar Sekarang" di halaman masuk
 
 2. **Isi Form Pendaftaran**
+
    ```
    ┌────────────────────────────────┐
    │  Pendaftaran Member            │
@@ -216,6 +220,7 @@ Daftar untuk nikmati lebih banyak fitur!
    - Klik "Masuk" di halaman utama
 
 2. **Masukkan Kredensial**
+
    ```
    ┌────────────────────────────────┐
    │  Masuk Member                  │
@@ -324,12 +329,12 @@ Setiap pesanan menampilkan:
 
 #### 🔍 Status Pesanan
 
-| Status | Keterangan |
-|--------|------------|
-| 🟡 Menunggu | Pesanan dikirim, tunggu konfirmasi |
-| 🔵 Diproses | Restoran terima, sedang disiapkan |
-| 🟢 Selesai | Pesanan selesai |
-| 🔴 Dibatalkan | Pesanan dibatalkan |
+| Status        | Keterangan                         |
+| ------------- | ---------------------------------- |
+| 🟡 Menunggu   | Pesanan dikirim, tunggu konfirmasi |
+| 🔵 Diproses   | Restoran terima, sedang disiapkan  |
+| 🟢 Selesai    | Pesanan selesai                    |
+| 🔴 Dibatalkan | Pesanan dibatalkan                 |
 
 ---
 
@@ -375,6 +380,7 @@ Setiap pesanan menampilkan:
 3. Hasil muncul langsung
 
 **Contoh**:
+
 - Cari "ayam" → Tampil "Mie Ayam", "Nasi Ayam", dll.
 - Cari "vegetarian" → Tampil semua opsi vegetarian
 
@@ -393,6 +399,7 @@ Setiap pesanan menampilkan:
    - Tampilkan info detail menu
 
 2. **Lihat Detail Menu**
+
    ```
    ┌────────────────────────────────┐
    │  Nasi Goreng                   │
@@ -537,6 +544,7 @@ Setiap pesanan menampilkan:
    - Sistem konfirmasi info
 
 4. **Konfirmasi Kirim**
+
    ```
    ┌────────────────────────────────┐
    │  ⚠️ Konfirmasi Kirim Pesanan?  │
@@ -636,6 +644,7 @@ Sistem kirim notifikasi saat:
 - 🔔 Makanan siap
 
 **Cara terima notifikasi**:
+
 - Biarkan browser terbuka
 - Izinkan notifikasi (akan ditanya pertama kali)
 
@@ -653,6 +662,7 @@ A: Tidak harus. Pesan via meja tidak perlu daftar. Tapi daftar untuk lihat riway
 
 **Q3: Tidak terima kode verifikasi?**
 A: Cek:
+
 - Nomor telepon benar
 - SMS tidak diblokir
 - Koneksi internet stabil
@@ -673,6 +683,7 @@ A: Tersimpan 24 jam, lewat waktu mungkin dihapus.
 
 **Q7: Kenapa beberapa menu tidak bisa ditambah?**
 A: Mungkin karena:
+
 - Menu habis sementara
 - Tidak di jam layanan
 - Sistem maintenance
@@ -696,6 +707,7 @@ A: Tergantung kebijakan restoran, tanya staf untuk konfirmasi.
 
 **Q11: Kenapa loading lambat?**
 A: Mungkin karena:
+
 - Sinyal internet lemah
 - Memori ponsel penuh
 - Coba refresh halaman
@@ -705,6 +717,7 @@ A: Bisa lihat menu yang sudah dimuat, tapi kirim pesanan perlu internet.
 
 **Q13: Browser apa yang didukung?**
 A: Direkomendasikan:
+
 - Safari (iOS)
 - Chrome (Android)
 - Browser modern lainnya
@@ -784,11 +797,13 @@ Saat ada masalah, coba solusi ini:
 Jika halaman error, coba hapus cache:
 
 **iOS Safari:**
+
 1. Ke "Pengaturan" → "Safari"
 2. Tap "Hapus Riwayat dan Data Website"
 3. Konfirmasi hapus
 
 **Android Chrome:**
+
 1. Tap menu kanan atas (tiga titik)
 2. Ke "Pengaturan" → "Privasi"
 3. Tap "Hapus Data Browsing"
@@ -823,6 +838,7 @@ Jika panduan ini tidak membantu, hubungi via:
 Temukan bug atau punya saran? Kami terima feedback Anda!
 
 **Saat lapor, sediakan:**
+
 - Waktu terjadinya masalah
 - Model ponsel dan browser
 - Deskripsi detail masalah
@@ -839,12 +855,14 @@ Selamat menikmati! 😋
 ---
 
 **Informasi Dokumen**
+
 - Versi: 2.0
 - Terakhir Diperbarui: 2025-10-26
 - Bahasa: Bahasa Indonesia (id-ID)
 - Update Berikutnya: 2025-11-26
 
 **Dokumen Terkait**
+
 - [繁體中文](../zh-TW/customer-guide.md)
 - [English](../en-US/customer-guide.md)
 - [Tiếng Việt](../vi-VN/customer-guide.md)

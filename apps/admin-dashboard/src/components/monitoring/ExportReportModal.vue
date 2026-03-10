@@ -1,37 +1,40 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 // import { useI18n } from 'vue-i18n' // Reserved for future translations
 import {
   XMarkIcon,
   DocumentArrowDownIcon,
   TableCellsIcon,
-} from '@heroicons/vue/24/outline'
-import DocumentChartBarIcon from '@heroicons/vue/24/outline/DocumentChartBarIcon'
-import { exportService } from '@/services/exportService'
+} from "@heroicons/vue/24/outline";
+import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon";
+import { exportService } from "@/services/exportService";
 import type {
   ExportOptions,
   ExportFormat,
   ExportDataType,
   ReportTemplate,
-} from '@/types/monitoring-export'
-import { REPORT_TEMPLATES, DEFAULT_EXPORT_OPTIONS } from '@/types/monitoring-export'
+} from "@/types/monitoring-export";
+import {
+  REPORT_TEMPLATES,
+  DEFAULT_EXPORT_OPTIONS,
+} from "@/types/monitoring-export";
 
 // Props
 interface Props {
-  show: boolean
-  data: any[]
-  defaultDataType?: ExportDataType
+  show: boolean;
+  data: any[];
+  defaultDataType?: ExportDataType;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  defaultDataType: 'all',
-})
+  defaultDataType: "all",
+});
 
 // Emits
 const emit = defineEmits<{
-  close: []
-  exported: [filename: string]
-}>()
+  close: [];
+  exported: [filename: string];
+}>();
 
 // I18n - Reserved for future translations
 // const { t: _t } = useI18n()
@@ -40,102 +43,105 @@ const emit = defineEmits<{
 const exportOptions = ref<ExportOptions>({
   ...DEFAULT_EXPORT_OPTIONS,
   dataType: props.defaultDataType,
-})
-const selectedTemplate = ref<string>('')
-const isExporting = ref(false)
-const exportProgress = ref(0)
+});
+const selectedTemplate = ref<string>("");
+const isExporting = ref(false);
+const exportProgress = ref(0);
 
 // Format icons
 const formatIcons: Record<ExportFormat, any> = {
   csv: TableCellsIcon,
   excel: TableCellsIcon,
   pdf: DocumentChartBarIcon,
-}
+};
 
 // Format labels
 const formatLabels: Record<ExportFormat, string> = {
-  csv: 'CSV (逗號分隔值)',
-  excel: 'Excel (xlsx)',
-  pdf: 'PDF (可攜式文件)',
-}
+  csv: "CSV (逗號分隔值)",
+  excel: "Excel (xlsx)",
+  pdf: "PDF (可攜式文件)",
+};
 
 // Data type labels
 const dataTypeLabels: Record<ExportDataType, string> = {
-  alerts: '警報記錄',
-  performance: '性能指標',
-  errors: '錯誤日誌',
-  health: '健康狀態',
-  all: '完整數據',
-}
+  alerts: "警報記錄",
+  performance: "性能指標",
+  errors: "錯誤日誌",
+  health: "健康狀態",
+  all: "完整數據",
+};
 
 // Computed
-const formatOptions: ExportFormat[] = ['csv', 'excel', 'pdf']
+const formatOptions: ExportFormat[] = ["csv", "excel", "pdf"];
 
 const estimatedSize = computed(() => {
   const avgRowSize: Record<ExportFormat, number> = {
     csv: 200,
     excel: 300,
     pdf: 500,
-  }
-  const size = props.data.length * avgRowSize[exportOptions.value.format]
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
-})
+  };
+  const size = props.data.length * avgRowSize[exportOptions.value.format];
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+});
 
 const canExport = computed(() => {
-  return props.data.length > 0 && !isExporting.value
-})
+  return props.data.length > 0 && !isExporting.value;
+});
 
 // Methods
 function selectTemplate(template: ReportTemplate) {
-  selectedTemplate.value = template.id
+  selectedTemplate.value = template.id;
   exportOptions.value = {
     ...DEFAULT_EXPORT_OPTIONS,
     format: template.format,
     dataType: template.dataType,
     ...template.defaultOptions,
-  }
+  };
 }
 
 async function handleExport() {
-  if (!canExport.value) return
+  if (!canExport.value) return;
 
-  isExporting.value = true
-  exportProgress.value = 0
+  isExporting.value = true;
+  exportProgress.value = 0;
 
   try {
     // 模擬進度
     const progressInterval = setInterval(() => {
-      exportProgress.value = Math.min(exportProgress.value + 10, 90)
-    }, 100)
+      exportProgress.value = Math.min(exportProgress.value + 10, 90);
+    }, 100);
 
-    const result = await exportService.exportData(props.data, exportOptions.value)
+    const result = await exportService.exportData(
+      props.data,
+      exportOptions.value,
+    );
 
-    clearInterval(progressInterval)
-    exportProgress.value = 100
+    clearInterval(progressInterval);
+    exportProgress.value = 100;
 
     if (result.success) {
-      emit('exported', result.filename)
+      emit("exported", result.filename);
       setTimeout(() => {
-        emit('close')
-      }, 1000)
+        emit("close");
+      }, 1000);
     } else {
-      console.error('Export failed:', result.error)
-      alert(`導出失敗：${result.error}`)
+      console.error("Export failed:", result.error);
+      alert(`導出失敗：${result.error}`);
     }
   } catch (error) {
-    console.error('Export error:', error)
-    alert('導出時發生錯誤')
+    console.error("Export error:", error);
+    alert("導出時發生錯誤");
   } finally {
-    isExporting.value = false
-    exportProgress.value = 0
+    isExporting.value = false;
+    exportProgress.value = 0;
   }
 }
 
 function handleClose() {
   if (!isExporting.value) {
-    emit('close')
+    emit("close");
   }
 }
 </script>
@@ -147,9 +153,13 @@ function handleClose() {
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       @click.self="handleClose"
     >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <div
+        class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+      >
         <!-- 標題 -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div
+          class="flex items-center justify-between p-6 border-b border-gray-200"
+        >
           <div class="flex items-center gap-3">
             <DocumentArrowDownIcon class="w-6 h-6 text-blue-600" />
             <h2 class="text-xl font-semibold text-gray-900">導出監控報告</h2>
@@ -301,7 +311,10 @@ function handleClose() {
                 />
                 <span class="ml-2 text-sm text-gray-700">
                   包含圖表
-                  <span v-if="exportOptions.format !== 'pdf'" class="text-gray-400">
+                  <span
+                    v-if="exportOptions.format !== 'pdf'"
+                    class="text-gray-400"
+                  >
                     (僅 PDF)
                   </span>
                 </span>
@@ -309,7 +322,10 @@ function handleClose() {
             </div>
 
             <!-- PDF 特定選項 -->
-            <div v-if="exportOptions.format === 'pdf' && exportOptions.pdfOptions" class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div
+              v-if="exportOptions.format === 'pdf' && exportOptions.pdfOptions"
+              class="mt-4 p-4 bg-gray-50 rounded-lg"
+            >
               <h4 class="text-sm font-medium text-gray-900 mb-3">PDF 選項</h4>
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -323,7 +339,9 @@ function handleClose() {
                   </select>
                 </div>
                 <div>
-                  <label class="block text-sm text-gray-700 mb-1">頁面大小</label>
+                  <label class="block text-sm text-gray-700 mb-1"
+                    >頁面大小</label
+                  >
                   <select
                     v-model="exportOptions.pdfOptions.pageSize"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -361,14 +379,18 @@ function handleClose() {
               </div>
               <div>
                 <p class="text-blue-700">格式</p>
-                <p class="font-medium text-blue-900 uppercase">{{ exportOptions.format }}</p>
+                <p class="font-medium text-blue-900 uppercase">
+                  {{ exportOptions.format }}
+                </p>
               </div>
             </div>
           </div>
 
           <!-- 進度條 -->
           <div v-if="isExporting" class="space-y-2">
-            <div class="flex items-center justify-between text-sm text-gray-700">
+            <div
+              class="flex items-center justify-between text-sm text-gray-700"
+            >
               <span>正在導出...</span>
               <span>{{ exportProgress }}%</span>
             </div>
@@ -382,7 +404,9 @@ function handleClose() {
         </div>
 
         <!-- 操作按鈕 -->
-        <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div
+          class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50"
+        >
           <button
             :disabled="isExporting"
             class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
@@ -401,7 +425,7 @@ function handleClose() {
             @click="handleExport"
           >
             <DocumentArrowDownIcon class="w-4 h-4" />
-            {{ isExporting ? '導出中...' : '導出報告' }}
+            {{ isExporting ? "導出中..." : "導出報告" }}
           </button>
         </div>
       </div>

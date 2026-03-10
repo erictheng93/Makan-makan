@@ -3,7 +3,7 @@
  * Type definitions for seat management
  */
 
-export type NumberingStyle = 'numeric' | 'alphabetic' | 'custom';
+export type NumberingStyle = "numeric" | "alphabetic" | "custom";
 
 export interface BatchCreateSeatsInput {
   tableId: number;

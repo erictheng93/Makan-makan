@@ -284,6 +284,7 @@ rm test.db
 ## Need Help?
 
 If you encounter:
+
 - **"expressions prohibited in PRIMARY KEY and UNIQUE constraints"**
   → Remove expressions from constraint, enforce in application code
 
@@ -306,4 +307,4 @@ If you encounter:
 
 ---
 
-*Keep this file handy when writing new migrations!*
+_Keep this file handy when writing new migrations!_

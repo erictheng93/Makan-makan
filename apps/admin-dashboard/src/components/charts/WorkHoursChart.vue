@@ -3,32 +3,42 @@
     <div class="chart-header">
       <h3 class="chart-title">
         <span class="icon">📊</span>
-        {{ t('scheduling.stats.totalHours') }}
+        {{ t("scheduling.stats.totalHours") }}
       </h3>
       <div class="chart-filters">
-        <select v-model="selectedPeriod" class="period-select" @change="updateChart">
-          <option value="week">{{ t('scheduling.stats.thisWeek') }}</option>
-          <option value="month">{{ t('scheduling.stats.thisMonth') }}</option>
-          <option value="custom">{{ t('charts.workHours.customPeriod') }}</option>
+        <select
+          v-model="selectedPeriod"
+          class="period-select"
+          @change="updateChart"
+        >
+          <option value="week">{{ t("scheduling.stats.thisWeek") }}</option>
+          <option value="month">{{ t("scheduling.stats.thisMonth") }}</option>
+          <option value="custom">
+            {{ t("charts.workHours.customPeriod") }}
+          </option>
         </select>
         <select v-model="chartType" class="type-select">
-          <option value="bar">{{ t('charts.workHours.barChart') }}</option>
-          <option value="line">{{ t('charts.workHours.lineChart') }}</option>
+          <option value="bar">{{ t("charts.workHours.barChart") }}</option>
+          <option value="line">{{ t("charts.workHours.lineChart") }}</option>
         </select>
       </div>
     </div>
 
     <div class="stats-summary">
       <div class="stat-card">
-        <div class="stat-label">{{ t('charts.workHours.totalHours') }}</div>
-        <div class="stat-value">{{ totalHours.toFixed(1) }}{{ t('charts.workHours.hoursUnit') }}</div>
+        <div class="stat-label">{{ t("charts.workHours.totalHours") }}</div>
+        <div class="stat-value">
+          {{ totalHours.toFixed(1) }}{{ t("charts.workHours.hoursUnit") }}
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">{{ t('charts.workHours.averageHours') }}</div>
-        <div class="stat-value">{{ averageHours.toFixed(1) }}{{ t('charts.workHours.hoursUnit') }}</div>
+        <div class="stat-label">{{ t("charts.workHours.averageHours") }}</div>
+        <div class="stat-value">
+          {{ averageHours.toFixed(1) }}{{ t("charts.workHours.hoursUnit") }}
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">{{ t('charts.workHours.employeeCount') }}</div>
+        <div class="stat-label">{{ t("charts.workHours.employeeCount") }}</div>
         <div class="stat-value">{{ employeeCount }}</div>
       </div>
     </div>
@@ -44,117 +54,117 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from '@/i18n'
-import BaseChart from './BaseChart.vue'
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
+import BaseChart from "./BaseChart.vue";
 
 interface EmployeeHours {
-  employeeId: string
-  employeeName: string
-  hours: number
+  employeeId: string;
+  employeeName: string;
+  hours: number;
 }
 
 interface Props {
-  data?: EmployeeHours[]
-  autoFetch?: boolean
+  data?: EmployeeHours[];
+  autoFetch?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   data: () => [],
-  autoFetch: false
-})
+  autoFetch: false,
+});
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const selectedPeriod = ref<'week' | 'month' | 'custom'>('week')
-const chartType = ref<'bar' | 'line'>('bar')
-const isLoading = ref(false)
-const error = ref('')
-const workHoursData = ref<EmployeeHours[]>(props.data)
+const selectedPeriod = ref<"week" | "month" | "custom">("week");
+const chartType = ref<"bar" | "line">("bar");
+const isLoading = ref(false);
+const error = ref("");
+const workHoursData = ref<EmployeeHours[]>(props.data);
 
 // 統計數據
 const totalHours = computed(() => {
-  return workHoursData.value.reduce((sum, item) => sum + item.hours, 0)
-})
+  return workHoursData.value.reduce((sum, item) => sum + item.hours, 0);
+});
 
 const averageHours = computed(() => {
-  if (workHoursData.value.length === 0) return 0
-  return totalHours.value / workHoursData.value.length
-})
+  if (workHoursData.value.length === 0) return 0;
+  return totalHours.value / workHoursData.value.length;
+});
 
 const employeeCount = computed(() => {
-  return workHoursData.value.length
-})
+  return workHoursData.value.length;
+});
 
 // 圖表數據
 const chartData = computed(() => {
   // 按工時排序
-  const sortedData = [...workHoursData.value].sort((a, b) => b.hours - a.hours)
+  const sortedData = [...workHoursData.value].sort((a, b) => b.hours - a.hours);
 
   // 只顯示前 10 名
-  const top10 = sortedData.slice(0, 10)
+  const top10 = sortedData.slice(0, 10);
 
   return {
-    labels: top10.map(item => item.employeeName),
+    labels: top10.map((item) => item.employeeName),
     datasets: [
       {
-        label: t('scheduling.columns.hours'),
-        data: top10.map(item => item.hours),
+        label: t("scheduling.columns.hours"),
+        data: top10.map((item) => item.hours),
         backgroundColor: top10.map((_, index) => {
           // 漸變配色
-          const hue = 210 - (index * 15)
-          return `hsl(${hue}, 70%, 60%)`
+          const hue = 210 - index * 15;
+          return `hsl(${hue}, 70%, 60%)`;
         }),
-        borderColor: '#3b82f6',
-        borderWidth: 0
-      }
-    ]
-  }
-})
+        borderColor: "#3b82f6",
+        borderWidth: 0,
+      },
+    ],
+  };
+});
 
 // 獲取數據
 const fetchData = async () => {
-  if (!props.autoFetch) return
+  if (!props.autoFetch) return;
 
-  isLoading.value = true
-  error.value = ''
+  isLoading.value = true;
+  error.value = "";
 
   try {
     // 模擬 API 調用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // 模擬數據
     workHoursData.value = [
-      { employeeId: '1', employeeName: '王小明', hours: 45.5 },
-      { employeeId: '2', employeeName: '李美麗', hours: 42.0 },
-      { employeeId: '3', employeeName: '陳建國', hours: 48.0 },
-      { employeeId: '4', employeeName: '林淑芬', hours: 40.5 },
-      { employeeId: '5', employeeName: '張偉強', hours: 38.0 },
-      { employeeId: '6', employeeName: '劉曉雯', hours: 44.0 },
-      { employeeId: '7', employeeName: '黃志明', hours: 41.5 },
-      { employeeId: '8', employeeName: '吳佩珊', hours: 39.0 },
-      { employeeId: '9', employeeName: '鄭家豪', hours: 46.5 },
-      { employeeId: '10', employeeName: '周雅婷', hours: 43.0 }
-    ]
+      { employeeId: "1", employeeName: "王小明", hours: 45.5 },
+      { employeeId: "2", employeeName: "李美麗", hours: 42.0 },
+      { employeeId: "3", employeeName: "陳建國", hours: 48.0 },
+      { employeeId: "4", employeeName: "林淑芬", hours: 40.5 },
+      { employeeId: "5", employeeName: "張偉強", hours: 38.0 },
+      { employeeId: "6", employeeName: "劉曉雯", hours: 44.0 },
+      { employeeId: "7", employeeName: "黃志明", hours: 41.5 },
+      { employeeId: "8", employeeName: "吳佩珊", hours: 39.0 },
+      { employeeId: "9", employeeName: "鄭家豪", hours: 46.5 },
+      { employeeId: "10", employeeName: "周雅婷", hours: 43.0 },
+    ];
   } catch (err) {
-    error.value = t('charts.workHours.loadFailed')
-    console.error(err)
+    error.value = t("charts.workHours.loadFailed");
+    console.error(err);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const updateChart = () => {
-  fetchData()
-}
+  fetchData();
+};
 
 onMounted(() => {
   if (props.autoFetch) {
-    fetchData()
+    fetchData();
   } else if (props.data.length > 0) {
-    workHoursData.value = props.data
+    workHoursData.value = props.data;
   }
-})
+});
 </script>
 
 <style scoped>

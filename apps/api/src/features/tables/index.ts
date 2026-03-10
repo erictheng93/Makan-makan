@@ -3,54 +3,60 @@
  * Complete table management functionality with QR code generation
  */
 
-import { Hono } from 'hono'
-import type { Env, FeatureModule } from '../../shared/types'
-import { ConsoleLogger } from '../../core/monitoring'
+import { Hono } from "hono";
+import type { Env, FeatureModule } from "../../shared/types";
+import { ConsoleLogger } from "../../core/monitoring";
 
 // Import feature routes
-import routes from './routes'
+import routes from "./routes";
 
 // Feature metadata
-const FEATURE_NAME = 'tables'
-const FEATURE_VERSION = '1.0.0'
+const FEATURE_NAME = "tables";
+const FEATURE_VERSION = "1.0.0";
 
 // Feature module implementation
 class TablesModule implements FeatureModule {
-  public readonly name = FEATURE_NAME
-  public readonly version = FEATURE_VERSION
-  public readonly routes: Hono<{ Bindings: Env }>
-  private logger: ConsoleLogger
+  public readonly name = FEATURE_NAME;
+  public readonly version = FEATURE_VERSION;
+  public readonly routes: Hono<{ Bindings: Env }>;
+  private logger: ConsoleLogger;
 
   constructor() {
-    this.logger = new ConsoleLogger(FEATURE_NAME)
-    this.routes = new Hono<{ Bindings: Env }>()
-    this.setupRoutes()
-    this.logger.info(`${FEATURE_NAME} module initialized`, { version: FEATURE_VERSION })
+    this.logger = new ConsoleLogger(FEATURE_NAME);
+    this.routes = new Hono<{ Bindings: Env }>();
+    this.setupRoutes();
+    this.logger.info(`${FEATURE_NAME} module initialized`, {
+      version: FEATURE_VERSION,
+    });
   }
 
   private setupRoutes() {
     // Feature-specific middleware should be added BEFORE routes
-    this.routes.use('*', async (c, next) => {
+    this.routes.use("*", async (c, next) => {
       console.log(`[TablesModule] Middleware triggered:`, {
         method: c.req.method,
         path: c.req.path,
         url: c.req.url,
-        routePath: c.req.routePath
-      })
-      const start = Date.now()
-      await next()
-      const duration = Date.now() - start
-      this.logger.debug(`${c.req.method} ${c.req.path} - ${duration}ms`)
+        routePath: c.req.routePath,
+      });
+      const start = Date.now();
+      await next();
+      const duration = Date.now() - start;
+      this.logger.debug(`${c.req.method} ${c.req.path} - ${duration}ms`);
       console.log(`[TablesModule] Middleware complete:`, {
         status: c.res.status,
-        hasMatchedRoute: !!c.req.routePath
-      })
-    })
+        hasMatchedRoute: !!c.req.routePath,
+      });
+    });
 
     // Mount feature routes AFTER middleware
-    console.log(`[TablesModule] Mounting routes, routes type:`, typeof routes, routes?.constructor?.name)
-    this.routes.route('/', routes)
-    console.log(`[TablesModule] Routes mounted`)
+    console.log(
+      `[TablesModule] Mounting routes, routes type:`,
+      typeof routes,
+      routes?.constructor?.name,
+    );
+    this.routes.route("/", routes);
+    console.log(`[TablesModule] Routes mounted`);
   }
 
   // Health check endpoint
@@ -58,7 +64,7 @@ class TablesModule implements FeatureModule {
     return {
       name: this.name,
       version: this.version,
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       features: {
         tableManagement: true,
@@ -66,72 +72,73 @@ class TablesModule implements FeatureModule {
         tableOccupancy: true,
         bulkOperations: true,
         tableStatistics: true,
-        cleaningManagement: true
-      }
-    }
+        cleaningManagement: true,
+      },
+    };
   }
 
   // Feature configuration
   getFeatureInfo() {
     return {
-      name: 'tables',
-      version: '1.0.0',
-      description: 'Table management feature with QR code generation and restaurant operations',
+      name: "tables",
+      version: "1.0.0",
+      description:
+        "Table management feature with QR code generation and restaurant operations",
       routes: {
-        base: '/tables',
+        base: "/tables",
         endpoints: [
-          'GET /',
-          'GET /:id',
-          'POST /',
-          'PUT /:id',
-          'DELETE /:id',
-          'POST /:id/occupy',
-          'POST /:id/release',
-          'POST /:id/clean',
-          'POST /:id/regenerate-qr',
-          'POST /bulk-qr',
-          'GET /available',
-          'GET /stats',
-          'GET /qr/:qrCode'
-        ]
+          "GET /",
+          "GET /:id",
+          "POST /",
+          "PUT /:id",
+          "DELETE /:id",
+          "POST /:id/occupy",
+          "POST /:id/release",
+          "POST /:id/clean",
+          "POST /:id/regenerate-qr",
+          "POST /bulk-qr",
+          "GET /available",
+          "GET /stats",
+          "GET /qr/:qrCode",
+        ],
       },
       permissions: {
-        view: ['ADMIN', 'OWNER', 'CHEF', 'SERVICE', 'CASHIER'],
-        create: ['ADMIN', 'OWNER'],
-        update: ['ADMIN', 'OWNER'],
-        delete: ['ADMIN', 'OWNER'],
-        operate: ['ADMIN', 'OWNER', 'SERVICE', 'CASHIER'],
-        clean: ['ADMIN', 'OWNER', 'SERVICE'],
-        qr: ['ADMIN', 'OWNER']
-      }
-    }
+        view: ["ADMIN", "OWNER", "CHEF", "SERVICE", "CASHIER"],
+        create: ["ADMIN", "OWNER"],
+        update: ["ADMIN", "OWNER"],
+        delete: ["ADMIN", "OWNER"],
+        operate: ["ADMIN", "OWNER", "SERVICE", "CASHIER"],
+        clean: ["ADMIN", "OWNER", "SERVICE"],
+        qr: ["ADMIN", "OWNER"],
+      },
+    };
   }
 }
 
 // Export the feature module class
-export { TablesModule }
+export { TablesModule };
 
 // Factory function for lazy initialization
-let tablesModuleInstance: TablesModule | null = null
+let tablesModuleInstance: TablesModule | null = null;
 export function createTablesModule(): TablesModule {
   if (!tablesModuleInstance) {
-    tablesModuleInstance = new TablesModule()
+    tablesModuleInstance = new TablesModule();
   }
-  return tablesModuleInstance
+  return tablesModuleInstance;
 }
 
 // Export default for backward compatibility
 export default {
   routes, // Direct export instead of through module wrapper
   getHealthStatus: () => createTablesModule().getHealthStatus(),
-  getFeatureInfo: () => createTablesModule().getFeatureInfo()
-}
+  getFeatureInfo: () => createTablesModule().getFeatureInfo(),
+};
 
 // Export services
-export { TablesService } from './services/TablesService'
+export { TablesService } from "./services/TablesService";
 
 // Export schemas
-export { tableSchemas } from './schemas/validation'
+export { tableSchemas } from "./schemas/validation";
 export type {
   CreateTableInput,
   UpdateTableInput,
@@ -143,8 +150,8 @@ export type {
   AvailableTablesInput,
   TableStatsInput,
   QRCodeParamInput,
-  IdParamInput
-} from './schemas/validation'
+  IdParamInput,
+} from "./schemas/validation";
 
 // Export types
 export type {
@@ -160,5 +167,5 @@ export type {
   BulkQRResult,
   QRCodeOptions,
   QRCodeResult,
-  PaginationResult
-} from './types'
+  PaginationResult,
+} from "./types";

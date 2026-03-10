@@ -27,6 +27,7 @@ npm run migration:dashboard
 ```
 
 這會創建：
+
 - `reports/migration-status.json` - 遷移狀態數據
 - `reports/factory-usage/usage-report.json` - 使用統計 JSON
 - `reports/factory-usage/usage-report.md` - 使用統計報告
@@ -58,6 +59,7 @@ Factory 總調用次數: 245
 #### 2. 最常用的 Factories
 
 顯示哪些 factory 最受歡迎：
+
 - `userFactory.build`: 45 次
 - `orderFactory.build`: 38 次
 - `buildCompleteRestaurantData`: 12 次
@@ -88,6 +90,7 @@ cat reports/factory-usage/usage-report.md
 ```
 
 **關注指標**：
+
 - 採用率是否增長
 - 是否有新的遷移文件
 - 是否有遺漏 resetAllFactories 的文件
@@ -122,8 +125,8 @@ npm run factory:usage
 ```typescript
 // 在 beforeEach 中添加
 beforeEach(() => {
-  resetAllFactories()
-})
+  resetAllFactories();
+});
 ```
 
 ---
@@ -174,37 +177,40 @@ npm run migration:report
 ```
 
 視覺化進度條：
+
 ```
 整體: ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 25.5%
 ```
 
 #### 2. 各優先級進度
 
-| 優先級 | 進度 | 視覺化 |
-|--------|------|--------|
-| P0 | 15.0% | `███░░░░░░░░░░░░░░░░░` |
-| P1 | 35.5% | `███████░░░░░░░░░░░░░` |
-| P2 | 20.0% | `████░░░░░░░░░░░░░░░░` |
-| P3 | 10.0% | `██░░░░░░░░░░░░░░░░░░` |
+| 優先級 | 進度  | 視覺化                 |
+| ------ | ----- | ---------------------- |
+| P0     | 15.0% | `███░░░░░░░░░░░░░░░░░` |
+| P1     | 35.5% | `███████░░░░░░░░░░░░░` |
+| P2     | 20.0% | `████░░░░░░░░░░░░░░░░` |
+| P3     | 10.0% | `██░░░░░░░░░░░░░░░░░░` |
 
 #### 3. 模組狀態詳情
 
 按優先級分組顯示每個模組的狀態：
+
 - ✅ 已完成
 - 🔄 進行中
 - ⏳ 未開始
 
 #### 4. 里程碑追蹤
 
-| 里程碑 | 目標日期 | 狀態 |
-|--------|----------|------|
-| 試點完成 | 2025/11/22 | ⏳ 進行中 |
+| 里程碑       | 目標日期   | 狀態      |
+| ------------ | ---------- | --------- |
+| 試點完成     | 2025/11/22 | ⏳ 進行中 |
 | 核心模組完成 | 2025/12/06 | ⏳ 進行中 |
-| 80% 採用率 | 2025/12/20 | ⏳ 進行中 |
+| 80% 採用率   | 2025/12/20 | ⏳ 進行中 |
 
 #### 5. 建議行動
 
 基於當前進度提供優先級建議：
+
 - 🔴 HIGH: 整體進度較低，建議加快試點模組遷移
 - 🟡 MEDIUM: 5 個模組正在進行中，建議先完成再開始新的
 
@@ -257,6 +263,7 @@ npm run migration:dashboard
 ```
 
 這個命令會：
+
 1. 生成遷移進度報告
 2. 生成使用統計報告
 3. 將兩份報告整合顯示
@@ -307,6 +314,7 @@ cron: '0 9 * * 1'
 #### 🎯 關鍵指標
 
 **採用率 (Adoption Rate)**
+
 ```
 目標: > 80%
 良好: 60-80%
@@ -314,10 +322,12 @@ cron: '0 9 * * 1'
 ```
 
 **Factory 調用次數**
+
 - 持續增長 = 良好
 - 停滯不前 = 需要推動
 
 **缺少 resetAllFactories 的文件**
+
 - 0 個 = 完美 ✅
 - 1-3 個 = 可接受，盡快修復
 - > 3 個 = 需要立即處理 🔴
@@ -341,6 +351,7 @@ cron: '0 9 * * 1'
 #### 🎯 關鍵指標
 
 **整體完成度**
+
 ```
 > 70% = 接近完成 🎉
 50-70% = 進展良好 ✅
@@ -349,6 +360,7 @@ cron: '0 9 * * 1'
 ```
 
 **優先級平衡**
+
 ```
 理想狀態:
 P0 進度 >= P1 進度 >= P2 進度 >= P3 進度
@@ -358,6 +370,7 @@ P0 進度 >= P1 進度 >= P2 進度 >= P3 進度
 ```
 
 **進行中模組數量**
+
 ```
 1-3 個 = 健康 ✅
 4-5 個 = 可接受 🟡
@@ -417,28 +430,31 @@ modulePriorities: {
 **A**: 可能原因：
 
 1. 還沒有開始使用 factory
+
    ```bash
    # 驗證 factory 是否已安裝
    pnpm list @makanmakan/testing-utils
    ```
 
 2. 掃描路徑配置錯誤
+
    ```javascript
    // 檢查 scripts/factory-usage-tracker.js
    scanDirs: [
-     'apps/api/src/**/__tests__/**/*.test.ts',
+     "apps/api/src/**/__tests__/**/*.test.ts",
      // 確保路徑正確
-   ]
+   ];
    ```
 
 3. 使用了 factory 但沒有導入
+
    ```typescript
    // ❌ 沒有導入
-   const user = userFactory.build()  // 會報錯
+   const user = userFactory.build(); // 會報錯
 
    // ✅ 正確導入
-   import { userFactory } from '@makanmakan/testing-utils'
-   const user = userFactory.build()
+   import { userFactory } from "@makanmakan/testing-utils";
+   const user = userFactory.build();
    ```
 
 ### Q2: 報告說我缺少 resetAllFactories，但我已經加了？
@@ -448,18 +464,18 @@ modulePriorities: {
 ```typescript
 // ❌ 拼寫錯誤
 beforeEach(() => {
-  resetFactories()  // 錯誤：應該是 resetAllFactories
-})
+  resetFactories(); // 錯誤：應該是 resetAllFactories
+});
 
 // ❌ 沒有調用
 beforeEach(() => {
-  resetAllFactories  // 錯誤：缺少 ()
-})
+  resetAllFactories; // 錯誤：缺少 ()
+});
 
 // ✅ 正確
 beforeEach(() => {
-  resetAllFactories()
-})
+  resetAllFactories();
+});
 ```
 
 ### Q3: 遷移進度沒有更新？
@@ -478,6 +494,7 @@ npm run migration:update users completed 100
 ```
 
 有效的狀態值：
+
 - `not-started`
 - `in-progress`
 - `completed`
@@ -509,6 +526,7 @@ npm run migration:dashboard
 - 未使用文件：前 20 個
 
 如需查看完整列表，查看 JSON 報告：
+
 ```bash
 cat reports/factory-usage/usage-report.json | jq
 ```
@@ -523,17 +541,20 @@ cat reports/factory-usage/usage-report.json | jq
 # Factory 使用統計報告
 
 ## 總體統計
+
 總測試文件數: 156
 使用 Factory 的文件: 23
 採用率: 14.74%
 Factory 總調用次數: 487
 
 ## 最常用的 Factories
+
 1. `userFactory.build` - 125 次
 2. `orderFactory.build` - 89 次
 3. `buildCompleteRestaurantData` - 34 次
 
 ## 建議行動
+
 - [ ] 為 5 個文件添加 resetAllFactories()
 - [ ] 遷移 10 個未使用 factory 的文件
 ```
@@ -544,19 +565,22 @@ Factory 總調用次數: 487
 # Factory 遷移進度報告
 
 ## 整體進度
+
 整體完成度: 38.5%
 已完成: 3 個模組
 進行中: 2 個模組
 
 ## P0 模組
+
 - ✅ users - 100%
 - 🔄 orders - 60%
 - ⏳ payment - 0%
 
 ## 里程碑
-| 里程碑 | 狀態 |
-|--------|------|
-| 試點完成 | ✅ 完成 |
+
+| 里程碑       | 狀態      |
+| ------------ | --------- |
+| 試點完成     | ✅ 完成   |
 | 核心模組完成 | ⏳ 進行中 |
 ```
 

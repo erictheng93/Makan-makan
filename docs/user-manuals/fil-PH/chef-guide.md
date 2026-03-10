@@ -53,21 +53,25 @@
 ### Checklist para sa Unang Paggamit
 
 ✅ **Unang Hakbang: Kumpirmahin ang Account at Device**
+
 - Kumpirmahin na nakakuha ng chef account
 - Subukan ang pag-login sa kitchen display system
 - Kumpirmahin na normal ang display screen
 
 ✅ **Ikalawang Hakbang: Maging Pamilyar sa Interface**
+
 - Intindihin ang layout ng order card
 - Magsanay sa pag-update ng status
 - Subukan ang sound notification
 
 ✅ **Ikatlong Hakbang: Intindihin ang Proseso**
+
 - Paraan ng notification ng bagong order
 - Mga hakbang sa pag-update ng status
 - Proseso ng pagkumpleto ng order
 
 ✅ **Ikaapat na Hakbang: Paghahanda sa Trabaho**
+
 - Kumpirmahin na handa ang kagamitan sa kusina
 - Suriin ang prep ng mga sangkap
 - Magsimulang tumanggap ng mga order
@@ -113,6 +117,7 @@
 ```
 
 **Paliwanag**:
+
 - **Customer**: Mag-order gamit ang QR Code
 - **Kitchen System**: Real-time na tumanggap at ipakita ang mga order
 - **Chef (Ikaw)**: Iproseso ang order at i-update ang status
@@ -275,6 +280,7 @@ Pumili ng Iyong Workstation:
 ### Mga Susuriin Pagkatapos ng Login
 
 ✅ **Kumpirmasyon ng Status ng Sistema**
+
 ```
 ┌─────────────────────────────┐
 │ System Checklist            │

@@ -71,14 +71,14 @@ describe("KitchenService", () => {
       it("should register a new connection", () => {
         const connectionId = "test-conn-1";
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         };
 
         service.registerConnection(connectionId, connection);
-        const status = service.getConnectionStatus('test-restaurant-1');
+        const status = service.getConnectionStatus("test-restaurant-1");
 
         expect(status.restaurantConnections).toBe(1);
         expect(status.connections[0].id).toBe(connectionId);
@@ -86,13 +86,13 @@ describe("KitchenService", () => {
 
       it("should handle multiple connections for same restaurant", () => {
         const conn1: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         };
         const conn2: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 101,
           controller: null as any,
           lastHeartbeat: Date.now(),
@@ -101,19 +101,19 @@ describe("KitchenService", () => {
         service.registerConnection("conn-1", conn1);
         service.registerConnection("conn-2", conn2);
 
-        const status = service.getConnectionStatus('test-restaurant-1');
+        const status = service.getConnectionStatus("test-restaurant-1");
         expect(status.restaurantConnections).toBe(2);
       });
 
       it("should handle connections for different restaurants", () => {
         const conn1: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         };
         const conn2: KitchenConnection = {
-          restaurantId: 'test-restaurant-2',
+          restaurantId: "test-restaurant-2",
           userId: 200,
           controller: null as any,
           lastHeartbeat: Date.now(),
@@ -122,25 +122,37 @@ describe("KitchenService", () => {
         service.registerConnection("conn-1", conn1);
         service.registerConnection("conn-2", conn2);
 
-        expect(service.getConnectionStatus('test-restaurant-1').restaurantConnections).toBe(1);
-        expect(service.getConnectionStatus('test-restaurant-2').restaurantConnections).toBe(1);
+        expect(
+          service.getConnectionStatus("test-restaurant-1")
+            .restaurantConnections,
+        ).toBe(1);
+        expect(
+          service.getConnectionStatus("test-restaurant-2")
+            .restaurantConnections,
+        ).toBe(1);
       });
     });
 
     describe("removeConnection", () => {
       it("should remove an existing connection", () => {
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         };
 
         service.registerConnection("conn-1", connection);
-        expect(service.getConnectionStatus('test-restaurant-1').restaurantConnections).toBe(1);
+        expect(
+          service.getConnectionStatus("test-restaurant-1")
+            .restaurantConnections,
+        ).toBe(1);
 
         service.removeConnection("conn-1");
-        expect(service.getConnectionStatus('test-restaurant-1').restaurantConnections).toBe(0);
+        expect(
+          service.getConnectionStatus("test-restaurant-1")
+            .restaurantConnections,
+        ).toBe(0);
       });
 
       it("should handle removing non-existent connection gracefully", () => {
@@ -151,13 +163,13 @@ describe("KitchenService", () => {
     describe("cleanupExpiredConnections", () => {
       it("should remove connections older than 5 minutes", () => {
         const oldConnection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now() - 6 * 60 * 1000, // 6 minutes ago
         };
         const newConnection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 101,
           controller: null as any,
           lastHeartbeat: Date.now(),
@@ -168,14 +180,14 @@ describe("KitchenService", () => {
 
         service.cleanupExpiredConnections();
 
-        const status = service.getConnectionStatus('test-restaurant-1');
+        const status = service.getConnectionStatus("test-restaurant-1");
         expect(status.restaurantConnections).toBe(1);
         expect(status.connections[0].id).toBe("new-conn");
       });
 
       it("should keep connections within timeout", () => {
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now() - 2 * 60 * 1000, // 2 minutes ago
@@ -184,21 +196,24 @@ describe("KitchenService", () => {
         service.registerConnection("conn-1", connection);
         service.cleanupExpiredConnections();
 
-        expect(service.getConnectionStatus('test-restaurant-1').restaurantConnections).toBe(1);
+        expect(
+          service.getConnectionStatus("test-restaurant-1")
+            .restaurantConnections,
+        ).toBe(1);
       });
     });
 
     describe("getConnectionStatus", () => {
       it("should return correct status for restaurant", () => {
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         };
 
         service.registerConnection("conn-1", connection);
-        const status = service.getConnectionStatus('test-restaurant-1');
+        const status = service.getConnectionStatus("test-restaurant-1");
 
         expect(status.totalConnections).toBe(1);
         expect(status.restaurantConnections).toBe(1);
@@ -209,20 +224,20 @@ describe("KitchenService", () => {
 
       it("should mark old connections as disconnected", () => {
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now() - 2 * 60 * 1000, // 2 minutes ago
         };
 
         service.registerConnection("conn-1", connection);
-        const status = service.getConnectionStatus('test-restaurant-1');
+        const status = service.getConnectionStatus("test-restaurant-1");
 
         expect(status.connections[0].connected).toBe(false);
       });
 
       it("should return empty status for restaurant with no connections", () => {
-        const status = service.getConnectionStatus('test-restaurant-999');
+        const status = service.getConnectionStatus("test-restaurant-999");
 
         expect(status.restaurantConnections).toBe(0);
         expect(status.connections).toHaveLength(0);
@@ -235,7 +250,7 @@ describe("KitchenService", () => {
       it("should broadcast event to all restaurant connections", () => {
         const mockWriteSSE = vi.fn();
         const connection: KitchenConnection = {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE } as any,
           lastHeartbeat: Date.now(),
@@ -249,11 +264,14 @@ describe("KitchenService", () => {
           data: {
             type: "NEW_ORDER",
             timestamp: new Date().toISOString(),
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
-        const sentCount = service.broadcastToKitchen('test-restaurant-1', event);
+        const sentCount = service.broadcastToKitchen(
+          "test-restaurant-1",
+          event,
+        );
 
         expect(sentCount).toBe(1);
         expect(mockWriteSSE).toHaveBeenCalled();
@@ -264,13 +282,13 @@ describe("KitchenService", () => {
         const mockWriteSSE2 = vi.fn();
 
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE1 } as any,
           lastHeartbeat: Date.now(),
         });
         service.registerConnection("conn-2", {
-          restaurantId: 'test-restaurant-2',
+          restaurantId: "test-restaurant-2",
           userId: 200,
           controller: { writeSSE: mockWriteSSE2 } as any,
           lastHeartbeat: Date.now(),
@@ -280,11 +298,11 @@ describe("KitchenService", () => {
           data: {
             type: "NEW_ORDER",
             timestamp: new Date().toISOString(),
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
-        service.broadcastToKitchen('test-restaurant-1', event);
+        service.broadcastToKitchen("test-restaurant-1", event);
 
         expect(mockWriteSSE1).toHaveBeenCalled();
         expect(mockWriteSSE2).not.toHaveBeenCalled();
@@ -296,7 +314,7 @@ describe("KitchenService", () => {
         });
 
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE } as any,
           lastHeartbeat: Date.now(),
@@ -306,14 +324,20 @@ describe("KitchenService", () => {
           data: {
             type: "NEW_ORDER",
             timestamp: new Date().toISOString(),
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
-        const sentCount = service.broadcastToKitchen('test-restaurant-1', event);
+        const sentCount = service.broadcastToKitchen(
+          "test-restaurant-1",
+          event,
+        );
 
         expect(sentCount).toBe(0);
-        expect(service.getConnectionStatus('test-restaurant-1').restaurantConnections).toBe(0);
+        expect(
+          service.getConnectionStatus("test-restaurant-1")
+            .restaurantConnections,
+        ).toBe(0);
       });
 
       it("should return 0 when no connections exist", () => {
@@ -321,11 +345,14 @@ describe("KitchenService", () => {
           data: {
             type: "NEW_ORDER",
             timestamp: new Date().toISOString(),
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
-        const sentCount = service.broadcastToKitchen('test-restaurant-1', event);
+        const sentCount = service.broadcastToKitchen(
+          "test-restaurant-1",
+          event,
+        );
         expect(sentCount).toBe(0);
       });
     });
@@ -334,13 +361,13 @@ describe("KitchenService", () => {
       it("should broadcast test event with default type", () => {
         const mockWriteSSE = vi.fn();
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE } as any,
           lastHeartbeat: Date.now(),
         });
 
-        const sentCount = service.broadcastTestEvent('test-restaurant-1', {});
+        const sentCount = service.broadcastTestEvent("test-restaurant-1", {});
 
         expect(sentCount).toBe(1);
         expect(mockWriteSSE).toHaveBeenCalled();
@@ -349,13 +376,13 @@ describe("KitchenService", () => {
       it("should broadcast test event with custom type and payload", () => {
         const mockWriteSSE = vi.fn();
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE } as any,
           lastHeartbeat: Date.now(),
         });
 
-        const sentCount = service.broadcastTestEvent('test-restaurant-1', {
+        const sentCount = service.broadcastTestEvent("test-restaurant-1", {
           type: "ORDER_STATUS_UPDATE",
           payload: { orderId: 123, status: "ready" },
         });
@@ -395,7 +422,10 @@ describe("KitchenService", () => {
 
         // Create new service instance
         const testService = new KitchenService(mockEnv as any);
-        const result = await testService.getKitchenOrders('test-restaurant-1', 100);
+        const result = await testService.getKitchenOrders(
+          "test-restaurant-1",
+          100,
+        );
 
         expect(result).toHaveProperty("pending");
         expect(result).toHaveProperty("preparing");
@@ -414,7 +444,10 @@ describe("KitchenService", () => {
 
         // Create new service instance with empty orders mock
         const emptyService = new KitchenService(mockEnv as any);
-        const result = await emptyService.getKitchenOrders('test-restaurant-1', 100);
+        const result = await emptyService.getKitchenOrders(
+          "test-restaurant-1",
+          100,
+        );
 
         expect(result).toHaveProperty("pending");
         expect(result).toHaveProperty("preparing");
@@ -429,14 +462,14 @@ describe("KitchenService", () => {
       it("should update item status and broadcast", async () => {
         const mockWriteSSE = vi.fn();
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: { writeSSE: mockWriteSSE } as any,
           lastHeartbeat: Date.now(),
         });
 
         const result = await service.updateOrderItemStatus(
-          'test-restaurant-1', // restaurantId
+          "test-restaurant-1", // restaurantId
           100, // orderId
           50, // itemId
           { status: "preparing", notes: "Started cooking" },
@@ -452,7 +485,7 @@ describe("KitchenService", () => {
 
       it("should handle update without active connections", async () => {
         const result = await service.updateOrderItemStatus(
-          'test-restaurant-1',
+          "test-restaurant-1",
           100,
           50,
           { status: "ready", notes: "" },
@@ -485,7 +518,7 @@ describe("KitchenService", () => {
             type: "NEW_ORDER",
             orderId: 100,
             timestamp: "2025-12-08T10:00:00Z",
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
@@ -502,7 +535,7 @@ describe("KitchenService", () => {
           data: {
             type: "HEARTBEAT",
             timestamp: "2025-12-08T10:00:00Z",
-            restaurantId: 'test-restaurant-1',
+            restaurantId: "test-restaurant-1",
           },
         };
 
@@ -516,31 +549,45 @@ describe("KitchenService", () => {
 
     describe("validateChefAccess", () => {
       it("should allow admin (role 0)", () => {
-        expect(service.validateChefAccess(1, 0, 'test-restaurant-1')).toBe(true);
+        expect(service.validateChefAccess(1, 0, "test-restaurant-1")).toBe(
+          true,
+        );
       });
 
       it("should allow owner (role 1)", () => {
-        expect(service.validateChefAccess(1, 1, 'test-restaurant-1')).toBe(true);
+        expect(service.validateChefAccess(1, 1, "test-restaurant-1")).toBe(
+          true,
+        );
       });
 
       it("should allow chef (role 2)", () => {
-        expect(service.validateChefAccess(1, 2, 'test-restaurant-1')).toBe(true);
+        expect(service.validateChefAccess(1, 2, "test-restaurant-1")).toBe(
+          true,
+        );
       });
 
       it("should allow service crew (role 3)", () => {
-        expect(service.validateChefAccess(1, 3, 'test-restaurant-1')).toBe(true);
+        expect(service.validateChefAccess(1, 3, "test-restaurant-1")).toBe(
+          true,
+        );
       });
 
       it("should deny cashier (role 4)", () => {
-        expect(service.validateChefAccess(1, 4, 'test-restaurant-1')).toBe(false);
+        expect(service.validateChefAccess(1, 4, "test-restaurant-1")).toBe(
+          false,
+        );
       });
 
       it("should deny customer (role 5)", () => {
-        expect(service.validateChefAccess(1, 5, 'test-restaurant-1')).toBe(false);
+        expect(service.validateChefAccess(1, 5, "test-restaurant-1")).toBe(
+          false,
+        );
       });
 
       it("should deny unknown roles", () => {
-        expect(service.validateChefAccess(1, 99, 'test-restaurant-1')).toBe(false);
+        expect(service.validateChefAccess(1, 99, "test-restaurant-1")).toBe(
+          false,
+        );
       });
     });
   });
@@ -549,17 +596,21 @@ describe("KitchenService", () => {
     describe("destroy", () => {
       it("should clear all connections", () => {
         service.registerConnection("conn-1", {
-          restaurantId: 'test-restaurant-1',
+          restaurantId: "test-restaurant-1",
           userId: 100,
           controller: null as any,
           lastHeartbeat: Date.now(),
         });
 
-        expect(service.getConnectionStatus('test-restaurant-1').totalConnections).toBe(1);
+        expect(
+          service.getConnectionStatus("test-restaurant-1").totalConnections,
+        ).toBe(1);
 
         service.destroy();
 
-        expect(service.getConnectionStatus('test-restaurant-1').totalConnections).toBe(0);
+        expect(
+          service.getConnectionStatus("test-restaurant-1").totalConnections,
+        ).toBe(0);
       });
     });
   });

@@ -96,374 +96,403 @@ packages/shared-types            🆕 新增類型定義
 #### 📄 文件位置: `packages/database/src/schema/corporate.ts`
 
 ```typescript
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
-import { relations } from 'drizzle-orm'
-import { restaurants } from './restaurants'
-import { users } from './users'
-import { orders } from './orders'
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
+import { restaurants } from "./restaurants";
+import { users } from "./users";
+import { orders } from "./orders";
 
 // ============================================
 // 1. 特約商店主表 (Corporate Partners)
 // ============================================
-export const corporatePartners = sqliteTable('corporate_partners', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const corporatePartners = sqliteTable("corporate_partners", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
 
   // 基本資訊
-  name: text('name').notNull(),
-  displayName: text('display_name'), // 顯示名稱（可不同於正式名稱）
-  description: text('description'),
-  logoUrl: text('logo_url'),
+  name: text("name").notNull(),
+  displayName: text("display_name"), // 顯示名稱（可不同於正式名稱）
+  description: text("description"),
+  logoUrl: text("logo_url"),
 
   // 聯絡資訊
-  contactName: text('contact_name'),
-  contactEmail: text('contact_email').notNull(),
-  contactPhone: text('contact_phone'),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
 
   // 驗證配置
-  allowedEmailDomains: text('allowed_email_domains', { mode: 'json' })
-    .$type<string[]>(), // ['example.com', 'subsidiary.com']
-  requireEmailVerification: integer('require_email_verification', { mode: 'boolean' })
+  allowedEmailDomains: text("allowed_email_domains", { mode: "json" }).$type<
+    string[]
+  >(), // ['example.com', 'subsidiary.com']
+  requireEmailVerification: integer("require_email_verification", {
+    mode: "boolean",
+  })
     .notNull()
     .default(true),
 
   // 企業資訊
-  companyRegistrationNumber: text('company_registration_number'), // 統一編號
-  industry: text('industry'), // 產業類別
-  employeeCount: integer('employee_count'), // 員工數（參考用）
+  companyRegistrationNumber: text("company_registration_number"), // 統一編號
+  industry: text("industry"), // 產業類別
+  employeeCount: integer("employee_count"), // 員工數（參考用）
 
   // 狀態管理
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  status: text('status').notNull().default('pending'),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  status: text("status").notNull().default("pending"),
   // 'pending' | 'active' | 'suspended' | 'terminated'
 
-  suspendReason: text('suspend_reason'), // 暫停原因
-  terminatedReason: text('terminated_reason'), // 終止原因
+  suspendReason: text("suspend_reason"), // 暫停原因
+  terminatedReason: text("terminated_reason"), // 終止原因
 
   // 合約資訊
-  contractStartDate: integer('contract_start_date', { mode: 'timestamp' }),
-  contractEndDate: integer('contract_end_date', { mode: 'timestamp' }),
-  contractDocument: text('contract_document'), // 合約文件 URL
+  contractStartDate: integer("contract_start_date", { mode: "timestamp" }),
+  contractEndDate: integer("contract_end_date", { mode: "timestamp" }),
+  contractDocument: text("contract_document"), // 合約文件 URL
 
   // 備註
-  notes: text('notes'), // 內部備註
+  notes: text("notes"), // 內部備註
 
   // 審計欄位
-  createdBy: integer('created_by').references(() => users.id),
-  updatedBy: integer('updated_by').references(() => users.id),
-  approvedBy: integer('approved_by').references(() => users.id),
-  approvedAt: integer('approved_at', { mode: 'timestamp' }),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedBy: integer("updated_by").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: integer("approved_at", { mode: "timestamp" }),
 
   // 時間戳記
-  createdAt: integer('created_at', { mode: 'timestamp' })
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
+  updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$onUpdate(() => new Date()),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }), // 軟刪除
-})
+  deletedAt: integer("deleted_at", { mode: "timestamp" }), // 軟刪除
+});
 
 // ============================================
 // 2. 折扣規則表 (Corporate Discounts)
 // ============================================
-export const corporateDiscounts = sqliteTable('corporate_discounts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const corporateDiscounts = sqliteTable("corporate_discounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
 
   // 關聯
-  partnerId: integer('partner_id')
+  partnerId: integer("partner_id")
     .notNull()
-    .references(() => corporatePartners.id, { onDelete: 'cascade' }),
-  restaurantId: integer('restaurant_id')
+    .references(() => corporatePartners.id, { onDelete: "cascade" }),
+  restaurantId: integer("restaurant_id")
     .notNull()
-    .references(() => restaurants.id, { onDelete: 'cascade' }),
+    .references(() => restaurants.id, { onDelete: "cascade" }),
 
   // 基本資訊
-  name: text('name').notNull(), // 折扣名稱
-  displayName: text('display_name'), // 前端顯示名稱
-  description: text('description'),
+  name: text("name").notNull(), // 折扣名稱
+  displayName: text("display_name"), // 前端顯示名稱
+  description: text("description"),
 
   // 折扣設定
-  discountType: text('discount_type').notNull(),
+  discountType: text("discount_type").notNull(),
   // 'percentage' | 'fixed_amount' | 'buy_x_get_y'
-  discountValue: real('discount_value').notNull(),
+  discountValue: real("discount_value").notNull(),
   // percentage: 0-100, fixed: 金額（元）
 
   // 進階條件
-  minSpend: real('min_spend'), // 最低消費金額
-  maxDiscount: real('max_discount'), // 最大折扣金額上限
+  minSpend: real("min_spend"), // 最低消費金額
+  maxDiscount: real("max_discount"), // 最大折扣金額上限
 
-  applicableCategories: text('applicable_categories', { mode: 'json' })
-    .$type<number[]>(), // 適用的菜單分類 ID
-  excludedMenuItems: text('excluded_menu_items', { mode: 'json' })
-    .$type<number[]>(), // 排除的菜單項目 ID
+  applicableCategories: text("applicable_categories", { mode: "json" }).$type<
+    number[]
+  >(), // 適用的菜單分類 ID
+  excludedMenuItems: text("excluded_menu_items", { mode: "json" }).$type<
+    number[]
+  >(), // 排除的菜單項目 ID
 
   // 時間限制
-  validFrom: integer('valid_from', { mode: 'timestamp' }),
-  validUntil: integer('valid_until', { mode: 'timestamp' }),
+  validFrom: integer("valid_from", { mode: "timestamp" }),
+  validUntil: integer("valid_until", { mode: "timestamp" }),
 
-  applicableDays: text('applicable_days', { mode: 'json' })
-    .$type<number[]>(), // [0-6] 0=週日, 6=週六
-  applicableTimeStart: text('applicable_time_start'), // HH:mm
-  applicableTimeEnd: text('applicable_time_end'), // HH:mm
+  applicableDays: text("applicable_days", { mode: "json" }).$type<number[]>(), // [0-6] 0=週日, 6=週六
+  applicableTimeStart: text("applicable_time_start"), // HH:mm
+  applicableTimeEnd: text("applicable_time_end"), // HH:mm
 
   // 使用限制
-  totalUsageLimit: integer('total_usage_limit'), // 總使用次數上限
-  perUserLimit: integer('per_user_limit'), // 每人使用次數上限
-  perUserDailyLimit: integer('per_user_daily_limit'), // 每人每日使用次數上限
-  usedCount: integer('used_count').notNull().default(0), // 已使用次數
+  totalUsageLimit: integer("total_usage_limit"), // 總使用次數上限
+  perUserLimit: integer("per_user_limit"), // 每人使用次數上限
+  perUserDailyLimit: integer("per_user_daily_limit"), // 每人每日使用次數上限
+  usedCount: integer("used_count").notNull().default(0), // 已使用次數
 
   // 優先級與組合規則
-  priority: integer('priority').notNull().default(0), // 數字越大優先級越高
-  canCombineWithCoupons: integer('can_combine_with_coupons', { mode: 'boolean' })
+  priority: integer("priority").notNull().default(0), // 數字越大優先級越高
+  canCombineWithCoupons: integer("can_combine_with_coupons", {
+    mode: "boolean",
+  })
     .notNull()
     .default(false),
-  canCombineWithOtherDiscounts: integer('can_combine_with_other_discounts', { mode: 'boolean' })
+  canCombineWithOtherDiscounts: integer("can_combine_with_other_discounts", {
+    mode: "boolean",
+  })
     .notNull()
     .default(false),
 
   // 狀態
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
   // 審計
-  createdBy: integer('created_by').references(() => users.id),
-  updatedBy: integer('updated_by').references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedBy: integer("updated_by").references(() => users.id),
 
   // 時間戳記
-  createdAt: integer('created_at', { mode: 'timestamp' })
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
+  updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$onUpdate(() => new Date()),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
-})
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
 
 // ============================================
 // 3. 用戶企業會員關聯表 (User Corporate Memberships)
 // ============================================
-export const userCorporateMemberships = sqliteTable('user_corporate_memberships', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const userCorporateMemberships = sqliteTable(
+  "user_corporate_memberships",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
 
-  // 關聯
-  userId: integer('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  partnerId: integer('partner_id')
-    .notNull()
-    .references(() => corporatePartners.id, { onDelete: 'cascade' }),
+    // 關聯
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    partnerId: integer("partner_id")
+      .notNull()
+      .references(() => corporatePartners.id, { onDelete: "cascade" }),
 
-  // 驗證資訊
-  verificationMethod: text('verification_method').notNull(),
-  // 'email_domain' | 'promo_code' | 'manual_approval'
-  verificationValue: text('verification_value').notNull(),
-  // 實際的 email 或 code
+    // 驗證資訊
+    verificationMethod: text("verification_method").notNull(),
+    // 'email_domain' | 'promo_code' | 'manual_approval'
+    verificationValue: text("verification_value").notNull(),
+    // 實際的 email 或 code
 
-  // Email 驗證
-  emailVerificationToken: text('email_verification_token'),
-  emailVerificationTokenExpiry: integer('email_verification_token_expiry', { mode: 'timestamp' }),
-  emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
+    // Email 驗證
+    emailVerificationToken: text("email_verification_token"),
+    emailVerificationTokenExpiry: integer("email_verification_token_expiry", {
+      mode: "timestamp",
+    }),
+    emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
 
-  // 審核資訊
-  verifiedAt: integer('verified_at', { mode: 'timestamp' }),
-  verifiedBy: integer('verified_by').references(() => users.id), // 審核者（如果需要人工審核）
+    // 審核資訊
+    verifiedAt: integer("verified_at", { mode: "timestamp" }),
+    verifiedBy: integer("verified_by").references(() => users.id), // 審核者（如果需要人工審核）
 
-  // 狀態管理
-  status: text('status').notNull().default('pending'),
-  // 'pending' | 'active' | 'expired' | 'revoked' | 'rejected'
+    // 狀態管理
+    status: text("status").notNull().default("pending"),
+    // 'pending' | 'active' | 'expired' | 'revoked' | 'rejected'
 
-  // 有效期
-  expiresAt: integer('expires_at', { mode: 'timestamp' }), // 會員資格到期時間
+    // 有效期
+    expiresAt: integer("expires_at", { mode: "timestamp" }), // 會員資格到期時間
 
-  // 撤銷資訊
-  revokedAt: integer('revoked_at', { mode: 'timestamp' }),
-  revokedBy: integer('revoked_by').references(() => users.id),
-  revokeReason: text('revoke_reason'),
+    // 撤銷資訊
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
+    revokedBy: integer("revoked_by").references(() => users.id),
+    revokeReason: text("revoke_reason"),
 
-  // 拒絕資訊（審核不通過）
-  rejectedAt: integer('rejected_at', { mode: 'timestamp' }),
-  rejectedBy: integer('rejected_by').references(() => users.id),
-  rejectReason: text('reject_reason'),
+    // 拒絕資訊（審核不通過）
+    rejectedAt: integer("rejected_at", { mode: "timestamp" }),
+    rejectedBy: integer("rejected_by").references(() => users.id),
+    rejectReason: text("reject_reason"),
 
-  // 備註
-  notes: text('notes'), // 管理員備註
+    // 備註
+    notes: text("notes"), // 管理員備註
 
-  // 時間戳記
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
-    .notNull()
-    .$onUpdate(() => new Date()),
-})
+    // 時間戳記
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+);
 
 // ============================================
 // 4. Promo Code 管理表 (Corporate Promo Codes)
 // ============================================
-export const corporatePromoCodes = sqliteTable('corporate_promo_codes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const corporatePromoCodes = sqliteTable("corporate_promo_codes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
 
   // 關聯
-  partnerId: integer('partner_id')
+  partnerId: integer("partner_id")
     .notNull()
-    .references(() => corporatePartners.id, { onDelete: 'cascade' }),
+    .references(() => corporatePartners.id, { onDelete: "cascade" }),
 
   // Code 資訊
-  code: text('code').notNull().unique(),
-  description: text('description'),
-  codeType: text('code_type').notNull().default('general'),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  codeType: text("code_type").notNull().default("general"),
   // 'general' | 'single_use' | 'employee_specific'
 
   // 使用限制
-  maxUses: integer('max_uses'), // 總使用次數上限（null = 無限制）
-  usedCount: integer('used_count').notNull().default(0),
-  perUserLimit: integer('per_user_limit').notNull().default(1), // 每人使用次數
+  maxUses: integer("max_uses"), // 總使用次數上限（null = 無限制）
+  usedCount: integer("used_count").notNull().default(0),
+  perUserLimit: integer("per_user_limit").notNull().default(1), // 每人使用次數
 
   // 時間限制
-  validFrom: integer('valid_from', { mode: 'timestamp' }),
-  validUntil: integer('valid_until', { mode: 'timestamp' }),
+  validFrom: integer("valid_from", { mode: "timestamp" }),
+  validUntil: integer("valid_until", { mode: "timestamp" }),
 
   // 用戶限制（如果是 employee_specific 類型）
-  allowedUserEmails: text('allowed_user_emails', { mode: 'json' })
-    .$type<string[]>(),
-  allowedUserIds: text('allowed_user_ids', { mode: 'json' })
-    .$type<number[]>(),
+  allowedUserEmails: text("allowed_user_emails", { mode: "json" }).$type<
+    string[]
+  >(),
+  allowedUserIds: text("allowed_user_ids", { mode: "json" }).$type<number[]>(),
 
   // 批次管理（如果是批次產生的 code）
-  batchId: text('batch_id'), // 批次識別碼
-  batchNotes: text('batch_notes'), // 批次備註
+  batchId: text("batch_id"), // 批次識別碼
+  batchNotes: text("batch_notes"), // 批次備註
 
   // 狀態
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
   // 審計
-  createdBy: integer('created_by').references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id),
 
   // 時間戳記
-  createdAt: integer('created_at', { mode: 'timestamp' })
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
+  updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$onUpdate(() => new Date()),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
-})
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
 
 // ============================================
 // 5. 折扣使用記錄表 (Corporate Discount Usages)
 // ============================================
-export const corporateDiscountUsages = sqliteTable('corporate_discount_usages', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const corporateDiscountUsages = sqliteTable(
+  "corporate_discount_usages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
 
-  // 關聯
-  discountId: integer('discount_id')
-    .notNull()
-    .references(() => corporateDiscounts.id),
-  userId: integer('user_id')
-    .notNull()
-    .references(() => users.id),
-  orderId: integer('order_id')
-    .notNull()
-    .references(() => orders.id),
-  membershipId: integer('membership_id')
-    .notNull()
-    .references(() => userCorporateMemberships.id),
-  restaurantId: integer('restaurant_id')
-    .notNull()
-    .references(() => restaurants.id),
+    // 關聯
+    discountId: integer("discount_id")
+      .notNull()
+      .references(() => corporateDiscounts.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    orderId: integer("order_id")
+      .notNull()
+      .references(() => orders.id),
+    membershipId: integer("membership_id")
+      .notNull()
+      .references(() => userCorporateMemberships.id),
+    restaurantId: integer("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id),
 
-  // 折扣詳情
-  discountType: text('discount_type').notNull(), // 保存當時的折扣類型
-  discountValue: real('discount_value').notNull(), // 保存當時的折扣值
+    // 折扣詳情
+    discountType: text("discount_type").notNull(), // 保存當時的折扣類型
+    discountValue: real("discount_value").notNull(), // 保存當時的折扣值
 
-  originalAmount: real('original_amount').notNull(), // 原始金額
-  discountAmount: real('discount_amount').notNull(), // 折扣金額
-  finalAmount: real('final_amount').notNull(), // 最終金額
+    originalAmount: real("original_amount").notNull(), // 原始金額
+    discountAmount: real("discount_amount").notNull(), // 折扣金額
+    finalAmount: real("final_amount").notNull(), // 最終金額
 
-  // 其他優惠組合資訊
-  otherDiscounts: text('other_discounts', { mode: 'json' })
-    .$type<{
-      couponDiscount?: number
-      memberDiscount?: number
-      otherDiscount?: number
+    // 其他優惠組合資訊
+    otherDiscounts: text("other_discounts", { mode: "json" }).$type<{
+      couponDiscount?: number;
+      memberDiscount?: number;
+      otherDiscount?: number;
     }>(),
 
-  // 快照資料（保留當時的折扣規則）
-  discountSnapshot: text('discount_snapshot', { mode: 'json' })
-    .$type<{
-      name: string
-      description?: string
-      conditions?: any
+    // 快照資料（保留當時的折扣規則）
+    discountSnapshot: text("discount_snapshot", { mode: "json" }).$type<{
+      name: string;
+      description?: string;
+      conditions?: any;
     }>(),
 
-  // 時間
-  usedAt: integer('used_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-})
+    // 時間
+    usedAt: integer("used_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+);
 
 // ============================================
 // Relations 定義
 // ============================================
 
-export const corporatePartnersRelations = relations(corporatePartners, ({ many }) => ({
-  discounts: many(corporateDiscounts),
-  promoCodes: many(corporatePromoCodes),
-  memberships: many(userCorporateMemberships),
-}))
+export const corporatePartnersRelations = relations(
+  corporatePartners,
+  ({ many }) => ({
+    discounts: many(corporateDiscounts),
+    promoCodes: many(corporatePromoCodes),
+    memberships: many(userCorporateMemberships),
+  }),
+);
 
-export const corporateDiscountsRelations = relations(corporateDiscounts, ({ one, many }) => ({
-  partner: one(corporatePartners, {
-    fields: [corporateDiscounts.partnerId],
-    references: [corporatePartners.id],
+export const corporateDiscountsRelations = relations(
+  corporateDiscounts,
+  ({ one, many }) => ({
+    partner: one(corporatePartners, {
+      fields: [corporateDiscounts.partnerId],
+      references: [corporatePartners.id],
+    }),
+    restaurant: one(restaurants, {
+      fields: [corporateDiscounts.restaurantId],
+      references: [restaurants.id],
+    }),
+    usages: many(corporateDiscountUsages),
   }),
-  restaurant: one(restaurants, {
-    fields: [corporateDiscounts.restaurantId],
-    references: [restaurants.id],
-  }),
-  usages: many(corporateDiscountUsages),
-}))
+);
 
-export const userCorporateMembershipsRelations = relations(userCorporateMemberships, ({ one, many }) => ({
-  user: one(users, {
-    fields: [userCorporateMemberships.userId],
-    references: [users.id],
+export const userCorporateMembershipsRelations = relations(
+  userCorporateMemberships,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [userCorporateMemberships.userId],
+      references: [users.id],
+    }),
+    partner: one(corporatePartners, {
+      fields: [userCorporateMemberships.partnerId],
+      references: [corporatePartners.id],
+    }),
+    usages: many(corporateDiscountUsages),
   }),
-  partner: one(corporatePartners, {
-    fields: [userCorporateMemberships.partnerId],
-    references: [corporatePartners.id],
-  }),
-  usages: many(corporateDiscountUsages),
-}))
+);
 
-export const corporatePromoCodesRelations = relations(corporatePromoCodes, ({ one }) => ({
-  partner: one(corporatePartners, {
-    fields: [corporatePromoCodes.partnerId],
-    references: [corporatePartners.id],
+export const corporatePromoCodesRelations = relations(
+  corporatePromoCodes,
+  ({ one }) => ({
+    partner: one(corporatePartners, {
+      fields: [corporatePromoCodes.partnerId],
+      references: [corporatePartners.id],
+    }),
   }),
-}))
+);
 
-export const corporateDiscountUsagesRelations = relations(corporateDiscountUsages, ({ one }) => ({
-  discount: one(corporateDiscounts, {
-    fields: [corporateDiscountUsages.discountId],
-    references: [corporateDiscounts.id],
+export const corporateDiscountUsagesRelations = relations(
+  corporateDiscountUsages,
+  ({ one }) => ({
+    discount: one(corporateDiscounts, {
+      fields: [corporateDiscountUsages.discountId],
+      references: [corporateDiscounts.id],
+    }),
+    user: one(users, {
+      fields: [corporateDiscountUsages.userId],
+      references: [users.id],
+    }),
+    order: one(orders, {
+      fields: [corporateDiscountUsages.orderId],
+      references: [orders.id],
+    }),
+    membership: one(userCorporateMemberships, {
+      fields: [corporateDiscountUsages.membershipId],
+      references: [userCorporateMemberships.id],
+    }),
+    restaurant: one(restaurants, {
+      fields: [corporateDiscountUsages.restaurantId],
+      references: [restaurants.id],
+    }),
   }),
-  user: one(users, {
-    fields: [corporateDiscountUsages.userId],
-    references: [users.id],
-  }),
-  order: one(orders, {
-    fields: [corporateDiscountUsages.orderId],
-    references: [orders.id],
-  }),
-  membership: one(userCorporateMemberships, {
-    fields: [corporateDiscountUsages.membershipId],
-    references: [userCorporateMemberships.id],
-  }),
-  restaurant: one(restaurants, {
-    fields: [corporateDiscountUsages.restaurantId],
-    references: [restaurants.id],
-  }),
-}))
+);
 ```
 
 ### 2.4 索引設計
@@ -911,19 +940,19 @@ export class CorporateDiscountCalculatorService {
    * 計算訂單可用的企業折扣
    */
   async calculateDiscount(params: {
-    userId: number
-    restaurantId: number
-    items: OrderItem[]
-    subtotal: number
+    userId: number;
+    restaurantId: number;
+    items: OrderItem[];
+    subtotal: number;
   }): Promise<DiscountResult> {
     // 1. 檢查用戶是否有有效的企業會員資格
     const membership = await this.getActiveMembership(
       params.userId,
-      params.restaurantId
-    )
+      params.restaurantId,
+    );
 
     if (!membership) {
-      return { applicable: false, amount: 0 }
+      return { applicable: false, amount: 0 };
     }
 
     // 2. 取得可用的折扣規則
@@ -932,32 +961,29 @@ export class CorporateDiscountCalculatorService {
       restaurantId: params.restaurantId,
       items: params.items,
       subtotal: params.subtotal,
-    })
+    });
 
     // 3. 根據優先級排序
-    const sortedDiscounts = discounts.sort((a, b) => b.priority - a.priority)
+    const sortedDiscounts = discounts.sort((a, b) => b.priority - a.priority);
 
     // 4. 計算最佳折扣
-    let bestDiscount = null
-    let maxSaving = 0
+    let bestDiscount = null;
+    let maxSaving = 0;
 
     for (const discount of sortedDiscounts) {
-      const saving = this.calculateDiscountAmount(discount, params.subtotal)
+      const saving = this.calculateDiscountAmount(discount, params.subtotal);
       if (saving > maxSaving) {
-        maxSaving = saving
-        bestDiscount = discount
+        maxSaving = saving;
+        bestDiscount = discount;
       }
     }
 
     // 5. 檢查使用限制
     if (bestDiscount) {
-      const canUse = await this.checkUsageLimit(
-        bestDiscount.id,
-        params.userId
-      )
+      const canUse = await this.checkUsageLimit(bestDiscount.id, params.userId);
 
       if (!canUse) {
-        return { applicable: false, amount: 0, reason: 'Usage limit exceeded' }
+        return { applicable: false, amount: 0, reason: "Usage limit exceeded" };
       }
     }
 
@@ -966,35 +992,37 @@ export class CorporateDiscountCalculatorService {
       amount: maxSaving,
       discountId: bestDiscount?.id,
       discountName: bestDiscount?.name,
-    }
+    };
   }
 
   /**
    * 檢查是否在有效時間內
    */
   private isTimeValid(discount: Discount): boolean {
-    const now = new Date()
+    const now = new Date();
 
     // 檢查日期範圍
-    if (discount.validFrom && now < discount.validFrom) return false
-    if (discount.validUntil && now > discount.validUntil) return false
+    if (discount.validFrom && now < discount.validFrom) return false;
+    if (discount.validUntil && now > discount.validUntil) return false;
 
     // 檢查星期幾
     if (discount.applicableDays?.length) {
-      const dayOfWeek = now.getDay()
-      if (!discount.applicableDays.includes(dayOfWeek)) return false
+      const dayOfWeek = now.getDay();
+      if (!discount.applicableDays.includes(dayOfWeek)) return false;
     }
 
     // 檢查時間段
     if (discount.applicableTimeStart && discount.applicableTimeEnd) {
-      const currentTime = now.toTimeString().slice(0, 5) // HH:mm
-      if (currentTime < discount.applicableTimeStart ||
-          currentTime > discount.applicableTimeEnd) {
-        return false
+      const currentTime = now.toTimeString().slice(0, 5); // HH:mm
+      if (
+        currentTime < discount.applicableTimeStart ||
+        currentTime > discount.applicableTimeEnd
+      ) {
+        return false;
       }
     }
 
-    return true
+    return true;
   }
 
   /**
@@ -1002,22 +1030,22 @@ export class CorporateDiscountCalculatorService {
    */
   private calculateDiscountAmount(
     discount: Discount,
-    subtotal: number
+    subtotal: number,
   ): number {
-    let amount = 0
+    let amount = 0;
 
-    if (discount.discountType === 'percentage') {
-      amount = subtotal * (discount.discountValue / 100)
-    } else if (discount.discountType === 'fixed_amount') {
-      amount = discount.discountValue
+    if (discount.discountType === "percentage") {
+      amount = subtotal * (discount.discountValue / 100);
+    } else if (discount.discountType === "fixed_amount") {
+      amount = discount.discountValue;
     }
 
     // 套用最大折扣限制
     if (discount.maxDiscount && amount > discount.maxDiscount) {
-      amount = discount.maxDiscount
+      amount = discount.maxDiscount;
     }
 
-    return Math.round(amount * 100) / 100 // 四捨五入到小數點後兩位
+    return Math.round(amount * 100) / 100; // 四捨五入到小數點後兩位
   }
 }
 ```
@@ -1035,21 +1063,21 @@ export class MembershipVerificationService {
    */
   async sendEmailVerification(email: string): Promise<void> {
     // 1. 檢查 email domain 是否在允許列表中
-    const domain = email.split('@')[1]
-    const partner = await this.findPartnerByDomain(domain)
+    const domain = email.split("@")[1];
+    const partner = await this.findPartnerByDomain(domain);
 
     if (!partner) {
-      throw new Error('此 Email 不屬於任何特約商店')
+      throw new Error("此 Email 不屬於任何特約商店");
     }
 
     if (!partner.requireEmailVerification) {
       // 如果不需要驗證，直接創建 membership
-      return this.createMembershipDirectly(email, partner.id)
+      return this.createMembershipDirectly(email, partner.id);
     }
 
     // 2. 產生 6 位數驗證碼
-    const token = this.generateVerificationToken()
-    const expiry = new Date(Date.now() + 15 * 60 * 1000) // 15分鐘有效
+    const token = this.generateVerificationToken();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15分鐘有效
 
     // 3. 儲存驗證碼（或更新現有記錄）
     await this.saveVerificationToken({
@@ -1057,19 +1085,19 @@ export class MembershipVerificationService {
       partnerId: partner.id,
       token,
       expiry,
-    })
+    });
 
     // 4. 發送 Email
     await this.sendEmail({
       to: email,
       subject: `${partner.displayName || partner.name} - 企業會員驗證碼`,
-      template: 'corporate-verification',
+      template: "corporate-verification",
       data: {
         partnerName: partner.displayName || partner.name,
         token,
         expiryMinutes: 15,
       },
-    })
+    });
   }
 
   /**
@@ -1077,36 +1105,36 @@ export class MembershipVerificationService {
    */
   async verifyEmailToken(email: string, token: string): Promise<Membership> {
     // 1. 查找驗證記錄
-    const record = await this.findVerificationRecord(email, token)
+    const record = await this.findVerificationRecord(email, token);
 
     if (!record) {
-      throw new Error('驗證碼無效')
+      throw new Error("驗證碼無效");
     }
 
     // 2. 檢查是否過期
     if (new Date() > record.expiry) {
-      throw new Error('驗證碼已過期，請重新發送')
+      throw new Error("驗證碼已過期，請重新發送");
     }
 
     // 3. 創建或更新 membership
     const membership = await this.createOrUpdateMembership({
       email,
       partnerId: record.partnerId,
-      verificationMethod: 'email_domain',
-      status: 'active',
-    })
+      verificationMethod: "email_domain",
+      status: "active",
+    });
 
     // 4. 清除驗證記錄
-    await this.clearVerificationRecord(record.id)
+    await this.clearVerificationRecord(record.id);
 
-    return membership
+    return membership;
   }
 
   /**
    * 產生驗證碼
    */
   private generateVerificationToken(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString()
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   /**
@@ -1114,54 +1142,59 @@ export class MembershipVerificationService {
    */
   async verifyPromoCode(code: string, userId: number): Promise<Membership> {
     // 1. 查找 promo code
-    const promoCode = await this.findPromoCode(code)
+    const promoCode = await this.findPromoCode(code);
 
     if (!promoCode || !promoCode.isActive) {
-      throw new Error('Promo Code 無效')
+      throw new Error("Promo Code 無效");
     }
 
     // 2. 檢查有效期
-    const now = new Date()
+    const now = new Date();
     if (promoCode.validFrom && now < promoCode.validFrom) {
-      throw new Error('Promo Code 尚未生效')
+      throw new Error("Promo Code 尚未生效");
     }
     if (promoCode.validUntil && now > promoCode.validUntil) {
-      throw new Error('Promo Code 已過期')
+      throw new Error("Promo Code 已過期");
     }
 
     // 3. 檢查使用次數
     if (promoCode.maxUses && promoCode.usedCount >= promoCode.maxUses) {
-      throw new Error('Promo Code 已達使用上限')
+      throw new Error("Promo Code 已達使用上限");
     }
 
     // 4. 檢查用戶限制
-    if (promoCode.codeType === 'employee_specific') {
-      const user = await this.getUser(userId)
-      if (promoCode.allowedUserEmails?.length &&
-          !promoCode.allowedUserEmails.includes(user.email)) {
-        throw new Error('此 Promo Code 不適用於您的帳號')
+    if (promoCode.codeType === "employee_specific") {
+      const user = await this.getUser(userId);
+      if (
+        promoCode.allowedUserEmails?.length &&
+        !promoCode.allowedUserEmails.includes(user.email)
+      ) {
+        throw new Error("此 Promo Code 不適用於您的帳號");
       }
     }
 
     // 5. 檢查用戶使用次數
-    const userUsageCount = await this.getUserPromoCodeUsageCount(userId, promoCode.id)
+    const userUsageCount = await this.getUserPromoCodeUsageCount(
+      userId,
+      promoCode.id,
+    );
     if (userUsageCount >= promoCode.perUserLimit) {
-      throw new Error('您已達此 Promo Code 的使用上限')
+      throw new Error("您已達此 Promo Code 的使用上限");
     }
 
     // 6. 創建 membership
     const membership = await this.createMembership({
       userId,
       partnerId: promoCode.partnerId,
-      verificationMethod: 'promo_code',
+      verificationMethod: "promo_code",
       verificationValue: code,
-      status: 'active',
-    })
+      status: "active",
+    });
 
     // 7. 更新 promo code 使用次數
-    await this.incrementPromoCodeUsage(promoCode.id)
+    await this.incrementPromoCodeUsage(promoCode.id);
 
-    return membership
+    return membership;
   }
 }
 ```
@@ -1252,39 +1285,39 @@ apps/admin-dashboard/src/
 const menuItems = [
   // ... 現有選單項目
   {
-    id: 'corporate',
-    label: 'i18n.sidebar.corporate',
-    icon: 'mdi-office-building',
+    id: "corporate",
+    label: "i18n.sidebar.corporate",
+    icon: "mdi-office-building",
     role: [USER_ROLES.ADMIN, USER_ROLES.OWNER],
     children: [
       {
-        id: 'corporate-partners',
-        label: 'i18n.sidebar.corporate.partners',
-        to: '/corporate/partners',
+        id: "corporate-partners",
+        label: "i18n.sidebar.corporate.partners",
+        to: "/corporate/partners",
       },
       {
-        id: 'corporate-discounts',
-        label: 'i18n.sidebar.corporate.discounts',
-        to: '/corporate/discounts',
+        id: "corporate-discounts",
+        label: "i18n.sidebar.corporate.discounts",
+        to: "/corporate/discounts",
       },
       {
-        id: 'corporate-promo-codes',
-        label: 'i18n.sidebar.corporate.promoCodes',
-        to: '/corporate/promo-codes',
+        id: "corporate-promo-codes",
+        label: "i18n.sidebar.corporate.promoCodes",
+        to: "/corporate/promo-codes",
       },
       {
-        id: 'corporate-memberships',
-        label: 'i18n.sidebar.corporate.memberships',
-        to: '/corporate/memberships',
+        id: "corporate-memberships",
+        label: "i18n.sidebar.corporate.memberships",
+        to: "/corporate/memberships",
       },
       {
-        id: 'corporate-stats',
-        label: 'i18n.sidebar.corporate.stats',
-        to: '/corporate/stats',
+        id: "corporate-stats",
+        label: "i18n.sidebar.corporate.stats",
+        to: "/corporate/stats",
       },
     ],
   },
-]
+];
 ```
 
 ### 4.2 Customer App (`apps/customer-app`)
@@ -1312,11 +1345,7 @@ apps/customer-app/src/
   <div class="cart-view">
     <!-- 購物車項目 -->
     <div class="cart-items">
-      <CartItem
-        v-for="item in cartItems"
-        :key="item.id"
-        :item="item"
-      />
+      <CartItem v-for="item in cartItems" :key="item.id" :item="item" />
     </div>
 
     <!-- 價格明細 -->
@@ -1367,46 +1396,45 @@ apps/customer-app/src/
       <button @click="goToVerification">立即驗證</button>
     </div>
 
-    <button class="checkout-btn" @click="checkout">
-      結帳
-    </button>
+    <button class="checkout-btn" @click="checkout">結帳</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useCorporateDiscount } from '@/composables/useCorporateDiscount'
-import { useCart } from '@/stores/cart'
+import { computed } from "vue";
+import { useCorporateDiscount } from "@/composables/useCorporateDiscount";
+import { useCart } from "@/stores/cart";
 
-const cart = useCart()
-const {
-  activeMembership,
-  corporateDiscount,
-  calculateDiscount
-} = useCorporateDiscount()
+const cart = useCart();
+const { activeMembership, corporateDiscount, calculateDiscount } =
+  useCorporateDiscount();
 
-const subtotal = computed(() => cart.subtotal)
-const couponDiscount = computed(() => cart.couponDiscount)
+const subtotal = computed(() => cart.subtotal);
+const couponDiscount = computed(() => cart.couponDiscount);
 const totalSavings = computed(() => {
-  let savings = 0
-  if (corporateDiscount.value) savings += corporateDiscount.value.amount
-  if (couponDiscount.value) savings += couponDiscount.value
-  return savings
-})
-const finalTotal = computed(() => subtotal.value - totalSavings.value)
+  let savings = 0;
+  if (corporateDiscount.value) savings += corporateDiscount.value.amount;
+  if (couponDiscount.value) savings += couponDiscount.value;
+  return savings;
+});
+const finalTotal = computed(() => subtotal.value - totalSavings.value);
 
 // 當購物車變化時重新計算折扣
-watch(() => cart.items, async () => {
-  await calculateDiscount(cart.items)
-}, { deep: true })
+watch(
+  () => cart.items,
+  async () => {
+    await calculateDiscount(cart.items);
+  },
+  { deep: true },
+);
 
 const goToVerification = () => {
-  router.push('/corporate/verify')
-}
+  router.push("/corporate/verify");
+};
 
 const checkout = async () => {
   // 結帳邏輯（會自動包含企業折扣）
-}
+};
 </script>
 ```
 
@@ -1416,89 +1444,90 @@ const checkout = async () => {
 // composables/useCorporateDiscount.ts
 
 export function useCorporateDiscount() {
-  const memberships = ref<Membership[]>([])
+  const memberships = ref<Membership[]>([]);
   const corporateDiscount = ref<{
-    discountId: number
-    name: string
-    amount: number
-  } | null>(null)
+    discountId: number;
+    name: string;
+    amount: number;
+  } | null>(null);
 
   // 取得有效的會員資格
   const activeMembership = computed(() => {
-    return memberships.value.find(m => m.status === 'active')
-  })
+    return memberships.value.find((m) => m.status === "active");
+  });
 
   // 載入會員資格
   const loadMemberships = async () => {
     try {
-      const response = await api.get('/api/v1/corporate/my-memberships')
-      memberships.value = response.data.data
+      const response = await api.get("/api/v1/corporate/my-memberships");
+      memberships.value = response.data.data;
     } catch (error) {
-      console.error('Failed to load memberships:', error)
+      console.error("Failed to load memberships:", error);
     }
-  }
+  };
 
   // 計算可用折扣
   const calculateDiscount = async (items: CartItem[]) => {
     if (!activeMembership.value) {
-      corporateDiscount.value = null
-      return
+      corporateDiscount.value = null;
+      return;
     }
 
     try {
-      const response = await api.post('/api/v1/orders/calculate-discount', {
+      const response = await api.post("/api/v1/orders/calculate-discount", {
         restaurantId: items[0]?.restaurantId,
-        items: items.map(i => ({
+        items: items.map((i) => ({
           menuItemId: i.menuItemId,
           quantity: i.quantity,
         })),
-      })
+      });
 
-      const appliedDiscount = response.data.data.appliedDiscounts
-        .find(d => d.type === 'corporate')
+      const appliedDiscount = response.data.data.appliedDiscounts.find(
+        (d) => d.type === "corporate",
+      );
 
       if (appliedDiscount) {
         corporateDiscount.value = {
           discountId: appliedDiscount.id,
           name: appliedDiscount.name,
           amount: appliedDiscount.amount,
-        }
+        };
       } else {
-        corporateDiscount.value = null
+        corporateDiscount.value = null;
       }
     } catch (error) {
-      console.error('Failed to calculate discount:', error)
-      corporateDiscount.value = null
+      console.error("Failed to calculate discount:", error);
+      corporateDiscount.value = null;
     }
-  }
+  };
 
   // Email 驗證
   const sendEmailVerification = async (email: string) => {
-    await api.post('/api/v1/corporate/verify-email', { email })
-  }
+    await api.post("/api/v1/corporate/verify-email", { email });
+  };
 
   const verifyEmailToken = async (email: string, token: string) => {
-    const response = await api.post('/api/v1/corporate/verify-email-token', {
+    const response = await api.post("/api/v1/corporate/verify-email-token", {
       email,
       token,
-    })
-    await loadMemberships()
-    return response.data.data
-  }
+    });
+    await loadMemberships();
+    return response.data.data;
+  };
 
   // Promo Code 驗證
   const verifyPromoCode = async (code: string) => {
-    const response = await api.post('/api/v1/corporate/verify-promo-code', {
+    const response = await api.post("/api/v1/corporate/verify-promo-code", {
       code,
-    })
-    await loadMemberships()
-    return response.data.data
-  }
+    });
+    await loadMemberships();
+    return response.data.data;
+  };
 
   // 初始化時載入
   onMounted(() => {
-    loadMemberships()
-  })
+    loadMemberships();
+  });
 
   return {
     memberships,
@@ -1509,7 +1538,7 @@ export function useCorporateDiscount() {
     sendEmailVerification,
     verifyEmailToken,
     verifyPromoCode,
-  }
+  };
 }
 ```
 
@@ -1522,26 +1551,27 @@ export function useCorporateDiscount() {
 ```typescript
 // apps/api/src/features/corporate/__tests__/discount-calculator.test.ts
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { CorporateDiscountCalculatorService } from '../services/DiscountCalculatorService'
-import { createTestContext } from '@/tests/helpers/test-context'
+import { describe, it, expect, beforeEach } from "vitest";
+import { CorporateDiscountCalculatorService } from "../services/DiscountCalculatorService";
+import { createTestContext } from "@/tests/helpers/test-context";
 
-describe('CorporateDiscountCalculatorService', () => {
-  let service: CorporateDiscountCalculatorService
-  let ctx: TestContext
+describe("CorporateDiscountCalculatorService", () => {
+  let service: CorporateDiscountCalculatorService;
+  let ctx: TestContext;
 
   beforeEach(async () => {
-    ctx = await createTestContext()
-    service = new CorporateDiscountCalculatorService(ctx.db)
-  })
+    ctx = await createTestContext();
+    service = new CorporateDiscountCalculatorService(ctx.db);
+  });
 
-  describe('calculateDiscount', () => {
-    it('應該正確計算百分比折扣', async () => {
+  describe("calculateDiscount", () => {
+    it("應該正確計算百分比折扣", async () => {
       // Arrange
-      const { user, membership, discount } = await ctx.factory.createCorporateSetup({
-        discountType: 'percentage',
-        discountValue: 10, // 10%
-      })
+      const { user, membership, discount } =
+        await ctx.factory.createCorporateSetup({
+          discountType: "percentage",
+          discountValue: 10, // 10%
+        });
 
       // Act
       const result = await service.calculateDiscount({
@@ -1549,123 +1579,123 @@ describe('CorporateDiscountCalculatorService', () => {
         restaurantId: 1,
         items: [],
         subtotal: 1000,
-      })
+      });
 
       // Assert
-      expect(result.applicable).toBe(true)
-      expect(result.amount).toBe(100) // 10% of 1000
-    })
+      expect(result.applicable).toBe(true);
+      expect(result.amount).toBe(100); // 10% of 1000
+    });
 
-    it('應該正確計算固定金額折扣', async () => {
+    it("應該正確計算固定金額折扣", async () => {
       const { user } = await ctx.factory.createCorporateSetup({
-        discountType: 'fixed_amount',
+        discountType: "fixed_amount",
         discountValue: 50,
-      })
+      });
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 1000,
-      })
+      });
 
-      expect(result.applicable).toBe(true)
-      expect(result.amount).toBe(50)
-    })
+      expect(result.applicable).toBe(true);
+      expect(result.amount).toBe(50);
+    });
 
-    it('應該套用最大折扣限制', async () => {
+    it("應該套用最大折扣限制", async () => {
       const { user } = await ctx.factory.createCorporateSetup({
-        discountType: 'percentage',
+        discountType: "percentage",
         discountValue: 20, // 20%
         maxDiscount: 100,
-      })
+      });
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 1000, // 20% = 200, 但上限是 100
-      })
+      });
 
-      expect(result.amount).toBe(100)
-    })
+      expect(result.amount).toBe(100);
+    });
 
-    it('應該檢查最低消費限制', async () => {
+    it("應該檢查最低消費限制", async () => {
       const { user } = await ctx.factory.createCorporateSetup({
-        discountType: 'percentage',
+        discountType: "percentage",
         discountValue: 10,
         minSpend: 500,
-      })
+      });
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 300, // 低於最低消費
-      })
+      });
 
-      expect(result.applicable).toBe(false)
-    })
+      expect(result.applicable).toBe(false);
+    });
 
-    it('應該檢查使用次數限制', async () => {
+    it("應該檢查使用次數限制", async () => {
       const { user, discount } = await ctx.factory.createCorporateSetup({
         perUserLimit: 1,
-      })
+      });
 
       // 先使用一次
       await ctx.factory.createDiscountUsage({
         userId: user.id,
         discountId: discount.id,
-      })
+      });
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 1000,
-      })
+      });
 
-      expect(result.applicable).toBe(false)
-      expect(result.reason).toBe('Usage limit exceeded')
-    })
+      expect(result.applicable).toBe(false);
+      expect(result.reason).toBe("Usage limit exceeded");
+    });
 
-    it('應該檢查有效時間範圍', async () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
+    it("應該檢查有效時間範圍", async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       const { user } = await ctx.factory.createCorporateSetup({
         validFrom: tomorrow,
-      })
+      });
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 1000,
-      })
+      });
 
-      expect(result.applicable).toBe(false)
-    })
+      expect(result.applicable).toBe(false);
+    });
 
-    it('應該檢查適用星期幾', async () => {
+    it("應該檢查適用星期幾", async () => {
       const { user } = await ctx.factory.createCorporateSetup({
         applicableDays: [1, 2, 3, 4, 5], // 週一到週五
-      })
+      });
 
       // Mock current day to Sunday (0)
-      vi.setSystemTime(new Date('2025-01-19')) // Sunday
+      vi.setSystemTime(new Date("2025-01-19")); // Sunday
 
       const result = await service.calculateDiscount({
         userId: user.id,
         restaurantId: 1,
         items: [],
         subtotal: 1000,
-      })
+      });
 
-      expect(result.applicable).toBe(false)
-    })
-  })
-})
+      expect(result.applicable).toBe(false);
+    });
+  });
+});
 ```
 
 ### 5.2 整合測試 (Integration Tests)
@@ -1673,119 +1703,119 @@ describe('CorporateDiscountCalculatorService', () => {
 ```typescript
 // apps/api/src/features/corporate/__tests__/api.integration.test.ts
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createTestApp } from '@/tests/helpers/test-app'
+import { describe, it, expect, beforeEach } from "vitest";
+import { createTestApp } from "@/tests/helpers/test-app";
 
-describe('Corporate API Integration', () => {
-  let app: TestApp
+describe("Corporate API Integration", () => {
+  let app: TestApp;
 
   beforeEach(async () => {
-    app = await createTestApp()
-  })
+    app = await createTestApp();
+  });
 
-  describe('POST /api/v1/corporate/verify-email', () => {
-    it('應該發送驗證碼到有效的企業 Email', async () => {
+  describe("POST /api/v1/corporate/verify-email", () => {
+    it("應該發送驗證碼到有效的企業 Email", async () => {
       // 創建特約商店
       await app.factory.createCorporatePartner({
-        allowedEmailDomains: ['company.com'],
-      })
+        allowedEmailDomains: ["company.com"],
+      });
 
       const response = await app.request
-        .post('/api/v1/corporate/verify-email')
-        .send({ email: 'employee@company.com' })
+        .post("/api/v1/corporate/verify-email")
+        .send({ email: "employee@company.com" });
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // 驗證 Email 已發送
-      expect(app.emailService.sentEmails).toHaveLength(1)
-      expect(app.emailService.sentEmails[0].to).toBe('employee@company.com')
-    })
+      expect(app.emailService.sentEmails).toHaveLength(1);
+      expect(app.emailService.sentEmails[0].to).toBe("employee@company.com");
+    });
 
-    it('應該拒絕非企業 Email', async () => {
+    it("應該拒絕非企業 Email", async () => {
       const response = await app.request
-        .post('/api/v1/corporate/verify-email')
-        .send({ email: 'random@gmail.com' })
+        .post("/api/v1/corporate/verify-email")
+        .send({ email: "random@gmail.com" });
 
-      expect(response.status).toBe(400)
-      expect(response.body.error).toContain('不屬於任何特約商店')
-    })
-  })
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("不屬於任何特約商店");
+    });
+  });
 
-  describe('POST /api/v1/corporate/verify-promo-code', () => {
-    it('應該驗證有效的 Promo Code', async () => {
-      const { partner } = await app.factory.createCorporatePartner()
+  describe("POST /api/v1/corporate/verify-promo-code", () => {
+    it("應該驗證有效的 Promo Code", async () => {
+      const { partner } = await app.factory.createCorporatePartner();
       const { promoCode } = await app.factory.createPromoCode({
         partnerId: partner.id,
-        code: 'TEST123',
-      })
+        code: "TEST123",
+      });
 
-      const user = await app.factory.createUser()
+      const user = await app.factory.createUser();
 
       const response = await app.request
-        .post('/api/v1/corporate/verify-promo-code')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ code: 'TEST123' })
+        .post("/api/v1/corporate/verify-promo-code")
+        .set("Authorization", `Bearer ${user.token}`)
+        .send({ code: "TEST123" });
 
-      expect(response.status).toBe(200)
-      expect(response.body.data.membership.partnerId).toBe(partner.id)
-    })
+      expect(response.status).toBe(200);
+      expect(response.body.data.membership.partnerId).toBe(partner.id);
+    });
 
-    it('應該檢查 Promo Code 使用次數限制', async () => {
+    it("應該檢查 Promo Code 使用次數限制", async () => {
       const { promoCode } = await app.factory.createPromoCode({
         maxUses: 1,
-      })
+      });
 
-      const user1 = await app.factory.createUser()
+      const user1 = await app.factory.createUser();
 
       // 第一次使用成功
       await app.request
-        .post('/api/v1/corporate/verify-promo-code')
-        .set('Authorization', `Bearer ${user1.token}`)
-        .send({ code: promoCode.code })
+        .post("/api/v1/corporate/verify-promo-code")
+        .set("Authorization", `Bearer ${user1.token}`)
+        .send({ code: promoCode.code });
 
-      const user2 = await app.factory.createUser()
+      const user2 = await app.factory.createUser();
 
       // 第二次使用失敗
       const response = await app.request
-        .post('/api/v1/corporate/verify-promo-code')
-        .set('Authorization', `Bearer ${user2.token}`)
-        .send({ code: promoCode.code })
+        .post("/api/v1/corporate/verify-promo-code")
+        .set("Authorization", `Bearer ${user2.token}`)
+        .send({ code: promoCode.code });
 
-      expect(response.status).toBe(400)
-      expect(response.body.error).toContain('使用上限')
-    })
-  })
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("使用上限");
+    });
+  });
 
-  describe('POST /api/v1/orders/calculate-discount', () => {
-    it('應該正確計算訂單折扣', async () => {
+  describe("POST /api/v1/orders/calculate-discount", () => {
+    it("應該正確計算訂單折扣", async () => {
       // 創建完整的測試環境
       const { user, membership, discount, restaurant } =
         await app.factory.createCorporateSetup({
-          discountType: 'percentage',
+          discountType: "percentage",
           discountValue: 10,
-        })
+        });
 
       const menuItem = await app.factory.createMenuItem({
         restaurantId: restaurant.id,
         price: 100,
-      })
+      });
 
       const response = await app.request
-        .post('/api/v1/orders/calculate-discount')
-        .set('Authorization', `Bearer ${user.token}`)
+        .post("/api/v1/orders/calculate-discount")
+        .set("Authorization", `Bearer ${user.token}`)
         .send({
           restaurantId: restaurant.id,
           items: [{ menuItemId: menuItem.id, quantity: 10 }],
-        })
+        });
 
-      expect(response.status).toBe(200)
-      expect(response.body.data.subtotal).toBe(1000)
-      expect(response.body.data.corporateDiscount).toBe(100)
-      expect(response.body.data.finalTotal).toBe(900)
-    })
-  })
-})
+      expect(response.status).toBe(200);
+      expect(response.body.data.subtotal).toBe(1000);
+      expect(response.body.data.corporateDiscount).toBe(100);
+      expect(response.body.data.finalTotal).toBe(900);
+    });
+  });
+});
 ```
 
 ### 5.3 E2E 測試 (End-to-End Tests)
@@ -1793,115 +1823,120 @@ describe('Corporate API Integration', () => {
 ```typescript
 // apps/customer-app/e2e/corporate.spec.ts
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from "@playwright/test";
 
-test.describe('Corporate Partnership - Customer Flow', () => {
-  test('完整的 Email 驗證流程', async ({ page }) => {
+test.describe("Corporate Partnership - Customer Flow", () => {
+  test("完整的 Email 驗證流程", async ({ page }) => {
     // 1. 註冊新用戶
-    await page.goto('/register')
-    await page.fill('[name="email"]', 'test@company.com')
-    await page.fill('[name="password"]', 'password123')
-    await page.click('button[type="submit"]')
+    await page.goto("/register");
+    await page.fill('[name="email"]', "test@company.com");
+    await page.fill('[name="password"]', "password123");
+    await page.click('button[type="submit"]');
 
     // 2. 前往企業驗證頁面
-    await page.goto('/corporate/verify')
+    await page.goto("/corporate/verify");
 
     // 3. 輸入企業 Email
-    await page.fill('[name="email"]', 'employee@company.com')
-    await page.click('button:has-text("發送驗證碼")')
+    await page.fill('[name="email"]', "employee@company.com");
+    await page.click('button:has-text("發送驗證碼")');
 
     // 4. 等待驗證碼輸入框出現
-    await expect(page.locator('[name="token"]')).toBeVisible()
+    await expect(page.locator('[name="token"]')).toBeVisible();
 
     // 5. 輸入驗證碼（在測試環境中可以從資料庫獲取）
     const token = await page.evaluate(() => {
-      return window.testHelpers.getLatestVerificationToken()
-    })
-    await page.fill('[name="token"]', token)
-    await page.click('button:has-text("驗證")')
+      return window.testHelpers.getLatestVerificationToken();
+    });
+    await page.fill('[name="token"]', token);
+    await page.click('button:has-text("驗證")');
 
     // 6. 驗證成功，應該看到會員卡片
-    await expect(page.locator('.membership-card')).toBeVisible()
-    await expect(page.locator('.membership-card')).toContainText('Company Inc')
-  })
+    await expect(page.locator(".membership-card")).toBeVisible();
+    await expect(page.locator(".membership-card")).toContainText("Company Inc");
+  });
 
-  test('完整的購物流程含企業折扣', async ({ page, context }) => {
+  test("完整的購物流程含企業折扣", async ({ page, context }) => {
     // 使用已驗證的企業會員登入
     const user = await context.createAuthenticatedUser({
       hasCorporateMembership: true,
-    })
+    });
 
     // 1. 瀏覽餐廳
-    await page.goto('/restaurants/1')
+    await page.goto("/restaurants/1");
 
     // 2. 加入購物車
-    await page.click('.menu-item:first-child .add-to-cart')
-    await page.click('.menu-item:nth-child(2) .add-to-cart')
+    await page.click(".menu-item:first-child .add-to-cart");
+    await page.click(".menu-item:nth-child(2) .add-to-cart");
 
     // 3. 前往購物車
-    await page.click('[data-testid="cart-button"]')
+    await page.click('[data-testid="cart-button"]');
 
     // 4. 應該看到企業折扣
-    await expect(page.locator('.corporate-discount')).toBeVisible()
-    await expect(page.locator('.corporate-discount .discount-amount'))
-      .toContainText('-$')
+    await expect(page.locator(".corporate-discount")).toBeVisible();
+    await expect(
+      page.locator(".corporate-discount .discount-amount"),
+    ).toContainText("-$");
 
     // 5. 應該看到節省金額提示
-    await expect(page.locator('.savings-badge')).toBeVisible()
+    await expect(page.locator(".savings-badge")).toBeVisible();
 
     // 6. 結帳
-    await page.click('button:has-text("結帳")')
+    await page.click('button:has-text("結帳")');
 
     // 7. 確認訂單摘要包含企業折扣
-    await expect(page.locator('.order-summary .corporate-discount')).toBeVisible()
+    await expect(
+      page.locator(".order-summary .corporate-discount"),
+    ).toBeVisible();
 
     // 8. 完成訂單
-    await page.click('button:has-text("確認訂單")')
+    await page.click('button:has-text("確認訂單")');
 
     // 9. 驗證訂單成功
-    await expect(page.locator('.order-success')).toBeVisible()
-  })
-})
+    await expect(page.locator(".order-success")).toBeVisible();
+  });
+});
 
-test.describe('Corporate Partnership - Admin Flow', () => {
-  test('管理員創建特約商店和折扣規則', async ({ page }) => {
+test.describe("Corporate Partnership - Admin Flow", () => {
+  test("管理員創建特約商店和折扣規則", async ({ page }) => {
     // 以管理員身份登入
-    await page.goto('/login')
-    await page.fill('[name="username"]', 'admin')
-    await page.fill('[name="password"]', 'admin123')
-    await page.click('button[type="submit"]')
+    await page.goto("/login");
+    await page.fill('[name="username"]', "admin");
+    await page.fill('[name="password"]', "admin123");
+    await page.click('button[type="submit"]');
 
     // 1. 前往特約商店管理
-    await page.goto('/corporate/partners')
+    await page.goto("/corporate/partners");
 
     // 2. 點擊新增按鈕
-    await page.click('button:has-text("新增特約商店")')
+    await page.click('button:has-text("新增特約商店")');
 
     // 3. 填寫表單
-    await page.fill('[name="name"]', 'Test Company')
-    await page.fill('[name="contactEmail"]', 'contact@testcompany.com')
-    await page.fill('[name="allowedEmailDomains"]', 'testcompany.com')
-    await page.click('button[type="submit"]')
+    await page.fill('[name="name"]', "Test Company");
+    await page.fill('[name="contactEmail"]', "contact@testcompany.com");
+    await page.fill('[name="allowedEmailDomains"]', "testcompany.com");
+    await page.click('button[type="submit"]');
 
     // 4. 應該看到成功訊息
-    await expect(page.locator('.success-message')).toBeVisible()
+    await expect(page.locator(".success-message")).toBeVisible();
 
     // 5. 前往折扣規則管理
-    await page.goto('/corporate/discounts')
+    await page.goto("/corporate/discounts");
 
     // 6. 新增折扣規則
-    await page.click('button:has-text("新增折扣規則")')
-    await page.selectOption('[name="partnerId"]', { label: 'Test Company' })
-    await page.selectOption('[name="restaurantId"]', { label: '餐廳 A' })
-    await page.fill('[name="name"]', '員工專屬 9折優惠')
-    await page.selectOption('[name="discountType"]', 'percentage')
-    await page.fill('[name="discountValue"]', '10')
-    await page.click('button[type="submit"]')
+    await page.click('button:has-text("新增折扣規則")');
+    await page.selectOption('[name="partnerId"]', { label: "Test Company" });
+    await page.selectOption('[name="restaurantId"]', { label: "餐廳 A" });
+    await page.fill('[name="name"]', "員工專屬 9折優惠");
+    await page.selectOption('[name="discountType"]', "percentage");
+    await page.fill('[name="discountValue"]', "10");
+    await page.click('button[type="submit"]');
 
     // 7. 驗證折扣已創建
-    await expect(page.locator('.discount-card')).toContainText('員工專屬 9折優惠')
-  })
-})
+    await expect(page.locator(".discount-card")).toContainText(
+      "員工專屬 9折優惠",
+    );
+  });
+});
 ```
 
 ---

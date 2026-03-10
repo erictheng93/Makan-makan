@@ -32,24 +32,24 @@
 
 ### 語法檢查
 
-| Migration | 檔案大小 | 語法檢查 | 狀態 |
-|-----------|----------|----------|------|
-| 01_tenants_and_settings.sql | ~ 450 lines | ✅ PASS | Ready |
-| 02_authentication.sql | ~ 650 lines | ✅ PASS | Ready |
-| 03_audit_system.sql | ~ 500 lines | ✅ PASS | Ready |
-| 04_product_catalog.sql | ~ 800 lines | ✅ PASS | Ready |
-| 05_order_management.sql | ~ 650 lines | ✅ PASS | Ready |
-| 06_customer_management.sql | ~ 600 lines | ✅ PASS | Ready |
-| 07_table_and_seating.sql | ~ 700 lines | ✅ PASS | Ready |
-| 08_qr_code_system.sql | ~ 650 lines | ✅ PASS | Ready |
-| 09_shift_scheduling.sql | ~ 850 lines | ✅ PASS | Ready |
-| 10_leave_management.sql | ~ 750 lines | ✅ PASS | Ready |
-| 11_attendance_tracking.sql | ~ 550 lines | ✅ PASS | Ready |
-| 12_business_analytics.sql | ~ 600 lines | ✅ PASS | Ready |
-| 13_ai_insights.sql | ~ 650 lines | ✅ PASS | Ready |
-| 14_inventory_management.sql | ~ 700 lines | ✅ PASS | Ready |
-| 15_promotions_and_coupons.sql | ~ 750 lines | ✅ PASS | Ready |
-| 16_loyalty_program.sql | ~ 700 lines | ✅ PASS | Ready |
+| Migration                     | 檔案大小    | 語法檢查 | 狀態  |
+| ----------------------------- | ----------- | -------- | ----- |
+| 01_tenants_and_settings.sql   | ~ 450 lines | ✅ PASS  | Ready |
+| 02_authentication.sql         | ~ 650 lines | ✅ PASS  | Ready |
+| 03_audit_system.sql           | ~ 500 lines | ✅ PASS  | Ready |
+| 04_product_catalog.sql        | ~ 800 lines | ✅ PASS  | Ready |
+| 05_order_management.sql       | ~ 650 lines | ✅ PASS  | Ready |
+| 06_customer_management.sql    | ~ 600 lines | ✅ PASS  | Ready |
+| 07_table_and_seating.sql      | ~ 700 lines | ✅ PASS  | Ready |
+| 08_qr_code_system.sql         | ~ 650 lines | ✅ PASS  | Ready |
+| 09_shift_scheduling.sql       | ~ 850 lines | ✅ PASS  | Ready |
+| 10_leave_management.sql       | ~ 750 lines | ✅ PASS  | Ready |
+| 11_attendance_tracking.sql    | ~ 550 lines | ✅ PASS  | Ready |
+| 12_business_analytics.sql     | ~ 600 lines | ✅ PASS  | Ready |
+| 13_ai_insights.sql            | ~ 650 lines | ✅ PASS  | Ready |
+| 14_inventory_management.sql   | ~ 700 lines | ✅ PASS  | Ready |
+| 15_promotions_and_coupons.sql | ~ 750 lines | ✅ PASS  | Ready |
+| 16_loyalty_program.sql        | ~ 700 lines | ✅ PASS  | Ready |
 
 **結果**: ✅ 16/16 檔案通過語法檢查
 
@@ -77,14 +77,15 @@
 
 ### 差異分析
 
-| 物件類型 | 實際 | 預期 | 差異 | 說明 |
-|----------|------|------|------|------|
-| Tables | 66 | 67 | -1 | 接近目標，可能計數方式不同 |
-| Indexes | 396 | 461 | -65 | 包含自動索引和 UNIQUE 索引 |
-| Views | 62 | 60 | +2 | 略高於預期 |
-| Triggers | 108 | 108 | 0 | ✅ 完美匹配！ |
+| 物件類型 | 實際 | 預期 | 差異 | 說明                       |
+| -------- | ---- | ---- | ---- | -------------------------- |
+| Tables   | 66   | 67   | -1   | 接近目標，可能計數方式不同 |
+| Indexes  | 396  | 461  | -65  | 包含自動索引和 UNIQUE 索引 |
+| Views    | 62   | 60   | +2   | 略高於預期                 |
+| Triggers | 108  | 108  | 0    | ✅ 完美匹配！              |
 
 **說明**:
+
 - 實際執行後的數量可能與靜態分析略有不同
 - SQLite 會自動創建額外的索引 (如 UNIQUE 約束)
 - 需要實際執行驗證
@@ -95,25 +96,25 @@
 
 ### 1. 主測試腳本 ✅
 
-| 腳本 | 狀態 | 用途 |
-|------|------|------|
-| test-migrations-v2.ps1 | ✅ | Windows 自動化測試 |
-| test-migrations-v2.sh | ✅ | Linux/Mac 自動化測試 |
-| verify-sql.ps1 | ✅ | 快速 SQL 語法驗證 |
+| 腳本                   | 狀態 | 用途                 |
+| ---------------------- | ---- | -------------------- |
+| test-migrations-v2.ps1 | ✅   | Windows 自動化測試   |
+| test-migrations-v2.sh  | ✅   | Linux/Mac 自動化測試 |
+| verify-sql.ps1         | ✅   | 快速 SQL 語法驗證    |
 
 ### 2. 測試 SQL 檔案 ✅
 
-| 檔案 | 狀態 | 用途 |
-|------|------|------|
-| test-data-integrity.sql | ✅ | 資料完整性測試 |
-| test-performance.sql | ✅ | 效能基準測試 |
+| 檔案                    | 狀態 | 用途           |
+| ----------------------- | ---- | -------------- |
+| test-data-integrity.sql | ✅   | 資料完整性測試 |
+| test-performance.sql    | ✅   | 效能基準測試   |
 
 ### 3. 測試文檔 ✅
 
-| 文檔 | 狀態 | 用途 |
-|------|------|------|
-| TESTING_GUIDE.md | ✅ | 完整測試指南 |
-| TEST_STATUS.md | ✅ | 測試狀態報告 (本檔案) |
+| 文檔             | 狀態 | 用途                  |
+| ---------------- | ---- | --------------------- |
+| TESTING_GUIDE.md | ✅   | 完整測試指南          |
+| TEST_STATUS.md   | ✅   | 測試狀態報告 (本檔案) |
 
 ---
 
@@ -133,6 +134,7 @@
 ### 執行指令
 
 **Windows**:
+
 ```powershell
 # Option 1: 快速驗證 (已完成)
 .\scripts\verify-sql.ps1
@@ -152,6 +154,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 ```
 
 **Linux/Mac**:
+
 ```bash
 # Option 1: 快速驗證 (已完成)
 # (Windows only)

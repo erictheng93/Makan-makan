@@ -48,26 +48,31 @@
 ### Checklist Login Pertama
 
 ✅ **Langkah 1: Lengkapi Profil Restoran**
+
 - Nama restoran, alamat, kontak
 - Pengaturan jam operasional
 - Upload foto restoran
 
 ✅ **Langkah 2: Bangun Struktur Menu**
+
 - Tambah kategori menu
 - Upload informasi menu
 - Atur harga dan gambar
 
 ✅ **Langkah 3: Setup Meja**
+
 - Buat informasi meja
 - Generate kode QR
 - Cetak dan pasang
 
 ✅ **Langkah 4: Tambah Akun Staf**
+
 - Buat data karyawan
 - Assign hak akses peran
 - Kirim info login
 
 ✅ **Langkah 5: Mulai Operasional**
+
 - Test alur pemesanan
 - Konfirmasi penerimaan order
 - Monitor operasional
@@ -121,6 +126,7 @@
 ```
 
 **Penjelasan**:
+
 - **Pemilik**: Izin penuh, lihat semua data
 - **Chef**: Terima pesanan, update status masak
 - **Server**: Konfirmasi pengiriman, update progress
@@ -137,13 +143,13 @@ Navigasi: **Dashboard → Pengaturan Restoran → Info Dasar**
 
 #### Informasi Wajib
 
-| Field | Deskripsi | Contoh |
-|-------|-----------|--------|
-| Nama Restoran | Nama ditampilkan ke pelanggan | Restoran Seafood Lezat |
-| Alamat | Alamat lengkap dengan kode pos | Jl. Sudirman No. 123, Jakarta |
-| Telepon | Layanan pelanggan atau reservasi | 021-1234-5678 |
-| Jam Operasional | Jam operasi harian | 11:00-14:00, 17:00-21:00 |
-| Deskripsi | Pengenalan singkat, kekhasan | Seafood segar dan masakan tradisional |
+| Field           | Deskripsi                        | Contoh                                |
+| --------------- | -------------------------------- | ------------------------------------- |
+| Nama Restoran   | Nama ditampilkan ke pelanggan    | Restoran Seafood Lezat                |
+| Alamat          | Alamat lengkap dengan kode pos   | Jl. Sudirman No. 123, Jakarta         |
+| Telepon         | Layanan pelanggan atau reservasi | 021-1234-5678                         |
+| Jam Operasional | Jam operasi harian               | 11:00-14:00, 17:00-21:00              |
+| Deskripsi       | Pengenalan singkat, kekhasan     | Seafood segar dan masakan tradisional |
 
 #### Konfigurasi Jam Operasional
 
@@ -171,6 +177,7 @@ Ukuran disarankan: 1920x1080 pixels
 Ukuran file: Maksimal 5MB
 
 **Langkah Upload**:
+
 1. Klik "Upload Foto"
 2. Pilih foto eksterior atau menu andalan
 3. Sistem otomatis compress dan buat berbagai ukuran
@@ -206,12 +213,12 @@ Navigasi: **Manajemen Menu → Manajemen Kategori → Tambah Kategori**
 
 #### Pengaturan Kategori
 
-| Pengaturan | Deskripsi | Contoh |
-|-----------|-----------|--------|
-| Nama Kategori | Judul ditampilkan di menu | Menu Seafood |
-| Ikon | Simbol ikon (opsional) | 🦐 |
-| Urutan | Urutan tampilan | 1, 2, 3... |
-| Status | Tampil di menu | Aktif/Nonaktif |
+| Pengaturan    | Deskripsi                 | Contoh         |
+| ------------- | ------------------------- | -------------- |
+| Nama Kategori | Judul ditampilkan di menu | Menu Seafood   |
+| Ikon          | Simbol ikon (opsional)    | 🦐             |
+| Urutan        | Urutan tampilan           | 1, 2, 3...     |
+| Status        | Tampil di menu            | Aktif/Nonaktif |
 
 #### Best Practice Manajemen Kategori
 
@@ -265,12 +272,12 @@ Navigasi: **Manajemen Menu → Daftar Item → Tambah Item**
 
 #### Persyaratan Gambar
 
-| Item | Persyaratan |
-|------|-------------|
-| Format | JPG, PNG, WebP |
-| Ukuran Disarankan | 800x600 pixels |
-| Ukuran File | Maksimal 3MB |
-| Tips Foto | Pencahayaan bagus, fokus tajam, plating menarik |
+| Item              | Persyaratan                                     |
+| ----------------- | ----------------------------------------------- |
+| Format            | JPG, PNG, WebP                                  |
+| Ukuran Disarankan | 800x600 pixels                                  |
+| Ukuran File       | Maksimal 3MB                                    |
+| Tips Foto         | Pencahayaan bagus, fokus tajam, plating menarik |
 
 **Proses Optimasi Gambar**:
 
@@ -296,11 +303,13 @@ Distribusi Global Cepat (CDN)
 Navigasi: **Manajemen Menu → Operasi Batch → Penyesuaian Harga**
 
 Kasus penggunaan:
+
 - Penyesuaian harga musiman
 - Penyesuaian kenaikan biaya
 - Pengaturan harga promo
 
 **Langkah**:
+
 1. Pilih item yang akan disesuaikan (multi-pilih)
 2. Atur metode penyesuaian:
    - Jumlah tetap (mis: +Rp 10.000)
@@ -311,6 +320,7 @@ Kasus penggunaan:
 #### Aktifkan/Nonaktifkan Batch
 
 Aksi cepat:
+
 - ✅ Aktifkan item terpilih sekali klik
 - ⏸️ Jeda item terpilih sekali klik
 - ❌ Nonaktifkan item terpilih sekali klik
@@ -427,13 +437,13 @@ MakanMakan mendukung dua mode manajemen kursi:
 
 #### Panduan Pemilihan Mode
 
-| Tipe Bisnis | Mode Disarankan | Alasan |
-|-------------|-----------------|--------|
-| Restoran Tradisional | Level meja | Biasanya makan kelompok |
-| Restoran Hotpot | Level meja | Panci bersama, pesan grup |
-| Fast Food | Level kursi | Pesan individu, turnover cepat |
-| Food Court | Level kursi | Orang asing duduk bersama, bayar terpisah |
-| Café | Campuran | Meja besar pakai level meja, kursi individu pakai level kursi |
+| Tipe Bisnis          | Mode Disarankan | Alasan                                                        |
+| -------------------- | --------------- | ------------------------------------------------------------- |
+| Restoran Tradisional | Level meja      | Biasanya makan kelompok                                       |
+| Restoran Hotpot      | Level meja      | Panci bersama, pesan grup                                     |
+| Fast Food            | Level kursi     | Pesan individu, turnover cepat                                |
+| Food Court           | Level kursi     | Orang asing duduk bersama, bayar terpisah                     |
+| Café                 | Campuran        | Meja besar pakai level meja, kursi individu pakai level kursi |
 
 ### Buat Kursi
 
@@ -486,6 +496,7 @@ MakanMakan menyediakan tiga mode QR code untuk skenario bisnis berbeda:
 ### Mode 1: QR Level Toko
 
 **Skenario Penggunaan**:
+
 - ✅ Toko takeaway/delivery
 - ✅ Tanpa kursi (makan berdiri, warung pinggir jalan)
 - ✅ Food truck mobile
@@ -534,6 +545,7 @@ Tunggu notif ambil pesanan
 ### Mode 2: QR Level Meja
 
 **Skenario Penggunaan**:
+
 - ✅ Restoran tradisional dine-in
 - ✅ Satu meja pesan bareng
 - ✅ Makan keluarga, teman
@@ -593,6 +605,7 @@ Duduk → Scan QR meja
 ### Mode 3: QR Level Kursi
 
 **Skenario Penggunaan**:
+
 - ✅ Fast food, food court
 - ✅ Makan siang bisnis
 - ✅ Orang asing duduk bareng
@@ -657,12 +670,12 @@ Duduk di kursi → Scan QR Code kursi
 
 #### Rekomendasi Ukuran QR Code
 
-| Lokasi Tempel | Ukuran Recommended | Jarak Scan |
-|---------------|-------------------|------------|
-| Standing sign meja | 5cm x 5cm | 20-30cm |
-| Sticker meja | 3cm x 3cm | 10-20cm |
-| Poster dinding | 15cm x 15cm | 50-100cm |
-| Layar elektronik | Variabel | 20-50cm |
+| Lokasi Tempel      | Ukuran Recommended | Jarak Scan |
+| ------------------ | ------------------ | ---------- |
+| Standing sign meja | 5cm x 5cm          | 20-30cm    |
+| Sticker meja       | 3cm x 3cm          | 10-20cm    |
+| Poster dinding     | 15cm x 15cm        | 50-100cm   |
+| Layar elektronik   | Variabel           | 20-50cm    |
 
 #### Template Desain QR Code
 
@@ -693,11 +706,13 @@ Navigasi: **Manajemen QR Code → Desain Template → Pilih Template**
 #### Saran Pencetakan
 
 **Material Kertas**:
+
 - 🏆 **Recommended**: Sticker waterproof, material PVC
 - ✅ **Dapat digunakan**: Kertas glossy, photo paper
 - ❌ **Tidak disarankan**: Kertas copy biasa (mudah rusak)
 
 **Opsi Laminating**:
+
 - Penggunaan meja: Disarankan laminating atau acrylic standing
 - Penggunaan outdoor: Harus waterproof treatment
 - Penggunaan sementara: Bisa pakai selotip transparan untuk proteksi
@@ -730,11 +745,13 @@ Navigasi: **Manajemen QR Code → Statistik Penggunaan**
 #### Reset QR Code Cepat
 
 **Skenario Penggunaan**:
+
 - QR Code rusak perlu print ulang
 - Pertimbangan keamanan perlu ganti
 - Rekonfigurasi tata letak meja
 
 **Langkah Operasi**:
+
 1. Ke: **Manajemen QR Code → Pilih QR Code Target**
 2. Klik "Generate Ulang"
 3. Download QR Code baru
@@ -933,6 +950,7 @@ Order Lengkap #1234
 ```
 
 **Cara Tampil**:
+
 - Item baru ada label "Baru"
 - Bedakan warna: Order asli (putih), tambahan (kuning)
 - Timeline tampilkan waktu kirim tiap item
@@ -1022,18 +1040,18 @@ Navigasi: **Manajemen Staf → Daftar Staf → Tambah Staf**
 
 ### Matriks Izin Staf
 
-| Fungsi | Pemilik | Koki | Server | Kasir |
-|--------|---------|------|--------|-------|
-| Lihat pesanan | ✅ | ✅ | ✅ | ✅ |
-| Update status pesanan | ✅ | ✅ | ✅ | ✅ |
-| Kelola menu | ✅ | ❌ | ❌ | ❌ |
-| Kelola meja | ✅ | ❌ | ❌ | ❌ |
-| Lihat revenue | ✅ | ❌ | ❌ | ✅ |
-| Lihat biaya | ✅ | ❌ | ❌ | ❌ |
-| Kelola staf | ✅ | ❌ | ❌ | ❌ |
-| Handle pembayaran | ✅ | ❌ | ❌ | ✅ |
-| Refund/Diskon | ✅ | ❌ | ❌ | ✅ |
-| Lihat analitik | ✅ | ❌ | ❌ | ❌ |
+| Fungsi                | Pemilik | Koki | Server | Kasir |
+| --------------------- | ------- | ---- | ------ | ----- |
+| Lihat pesanan         | ✅      | ✅   | ✅     | ✅    |
+| Update status pesanan | ✅      | ✅   | ✅     | ✅    |
+| Kelola menu           | ✅      | ❌   | ❌     | ❌    |
+| Kelola meja           | ✅      | ❌   | ❌     | ❌    |
+| Lihat revenue         | ✅      | ❌   | ❌     | ✅    |
+| Lihat biaya           | ✅      | ❌   | ❌     | ❌    |
+| Kelola staf           | ✅      | ❌   | ❌     | ❌    |
+| Handle pembayaran     | ✅      | ❌   | ❌     | ✅    |
+| Refund/Diskon         | ✅      | ❌   | ❌     | ✅    |
+| Lihat analitik        | ✅      | ❌   | ❌     | ❌    |
 
 ### Manajemen Jadwal Staf
 
@@ -2015,6 +2033,7 @@ Catatan: QR Code lama otomatis invalid
 **Q: Bisa custom tampilan QR Code?**
 
 A: Bisa. Ke **Manajemen QR Code → Desain Template**, bisa pilih:
+
 - QR murni (hitam putih)
 - Template brand (dengan Logo dan warna)
 - Template panduan (dengan teks instruksi penggunaan)
@@ -2022,11 +2041,13 @@ A: Bisa. Ke **Manajemen QR Code → Desain Template**, bisa pilih:
 **Q: Pelanggan scan QR Code muncul pesan error?**
 
 Kemungkinan penyebab:
+
 1. QR Code sudah di-generate ulang (kode lama invalid)
 2. Restoran sedang ditutup sementara
 3. Meja tersebut sudah dinonaktifkan
 
 Solusi:
+
 - Pastikan status QR Code adalah "Aktif"
 - Cek status operasi restoran
 - Generate ulang dan tempel QR Code baru
@@ -2058,6 +2079,7 @@ Sistem otomatis notifikasi pelanggan
 **Q: Order terlalu banyak, tidak sempat handle bagaimana?**
 
 Cara handle yang disarankan:
+
 1. **Pause order**: Ke **Pengaturan Restoran → Pause Penerimaan Order**, sementara tutup order online
 2. **Perpanjang waktu serving**: Di halaman order sesuaikan estimasi waktu selesai, beri tahu pelanggan perlu tunggu
 3. **Tambah SDM**: Sementara tambah chef atau server
@@ -2099,6 +2121,7 @@ Selesai pembayaran
 **Q: Bisa kasih diskon?**
 
 A: Bisa. Di halaman checkout:
+
 1. Klik "Terapkan Diskon"
 2. Pilih tipe diskon:
    - Diskon persen (contoh: 10% off)
@@ -2123,6 +2146,7 @@ Cara 2: Staf reset sendiri
 **Q: Staf resign bagaimana handle akun?**
 
 Cara yang disarankan:
+
 1. Ke **Manajemen Staf → Pilih staf → Nonaktifkan Akun** (tidak disarankan delete, pertahankan riwayat)
 2. Sistem akan pertahankan work record staf tersebut (order, jadwal dll)
 3. Staf tersebut tidak bisa login sistem lagi
@@ -2157,6 +2181,7 @@ A: Saat ini belum support fitur ini, tapi bisa lewat "Manajemen Jadwal" dan "Cat
 A: Tidak perlu. MakanMakan adalah sistem web, cukup ada browser dan internet bisa digunakan.
 
 Browser yang disarankan:
+
 - Google Chrome (Recommended)
 - Microsoft Edge
 - Safari
@@ -2202,6 +2227,7 @@ Laporan berisi:
 **Q: Bisa lihat cost dan profit tiap menu?**
 
 A: Bisa. Ke **Manajemen Menu → Daftar Menu → Analisis Cost**, bisa lihat:
+
 - Cost bahan baku
 - Harga jual
 - Margin laba
@@ -2308,17 +2334,20 @@ Setelah Anda familiar dengan operasi dasar, bisa eksplorasi fitur advanced ini:
 ## 📝 Log Update
 
 ### 2.0.0 (2025-10-26)
+
 - ✨ Interface operasi pemilik baru
 - ✨ Analitik AI cerdas online
 - ✨ Arsitektur sistem jadwal selesai
 - 🔧 Optimasi performa dan perbaikan bug
 
 ### 1.5.0 (2025-10-12)
+
 - ✨ Dukungan multi-bahasa (6 bahasa)
 - ✨ Fitur QR Code level kursi
 - 🔧 Peningkatan keamanan password
 
 ### 1.0.0 (2025-09-01)
+
 - 🎉 MakanMakan resmi launch
 - ✨ Fitur manajemen restoran dasar
 - ✨ Sistem pesan QR Code
@@ -2351,4 +2380,4 @@ Siap mulai gunakan MakanMakan? 🚀
 
 ---
 
-*Panduan ini terus diperbarui. Untuk saran, silakan hubungi kami.*
+_Panduan ini terus diperbarui. Untuk saran, silakan hubungi kami._

@@ -122,11 +122,13 @@ echo "=== Health Check Complete ==="
 ### 問題 1: "Database not found" 錯誤
 
 **症狀**:
+
 ```
 Error: D1_ERROR: Database not found: database_id 'xxxxxxxx'
 ```
 
 **原因**:
+
 - `wrangler.toml` 中的 `database_id` 不正確
 - 數據庫尚未創建
 - 環境配置錯誤
@@ -156,11 +158,13 @@ wrangler deploy --env production
 ### 問題 2: "JWT_SECRET not set" 錯誤
 
 **症狀**:
+
 ```
 Error: JWT_SECRET environment variable is required
 ```
 
 **原因**:
+
 - JWT secret 未設置
 - Secret 名稱拼寫錯誤
 - 環境配置錯誤
@@ -186,6 +190,7 @@ wrangler deploy --env production
 **本地開發**:
 
 創建 `.dev.vars` 文件：
+
 ```bash
 # apps/api/.dev.vars
 JWT_SECRET=your-local-development-secret-at-least-32-chars
@@ -196,6 +201,7 @@ JWT_SECRET=your-local-development-secret-at-least-32-chars
 ### 問題 3: KV Namespace 錯誤
 
 **症狀**:
+
 ```
 Error: KV namespace not found: namespace_id 'xxxxxxxx'
 ```
@@ -224,6 +230,7 @@ wrangler deploy --env production
 ### 問題 4: 部署卡住或超時
 
 **症狀**:
+
 - 部署命令長時間無響應
 - 超時錯誤
 
@@ -257,6 +264,7 @@ cd apps/realtime && wrangler deploy --env production
 ### 問題 5: 遷移失敗
 
 **症狀**:
+
 ```
 Error: Migration failed: table 'users' already exists
 ```
@@ -288,6 +296,7 @@ wrangler d1 migrations apply makanmakan-prod
 ### 問題 6: 500 Internal Server Error
 
 **症狀**:
+
 - API 返回 500 錯誤
 - 用戶無法完成操作
 
@@ -325,7 +334,7 @@ try {
   console.error("Database error:", error);
   return new Response(JSON.stringify({ error: "Database error" }), {
     status: 500,
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 }
 ```
@@ -344,15 +353,18 @@ export default {
       // 發送錯誤到 Slack
       await notifySlack(error, env.SLACK_WEBHOOK_URL);
 
-      return new Response(JSON.stringify({
-        error: "Internal server error",
-        requestId: crypto.randomUUID()
-      }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Internal server error",
+          requestId: crypto.randomUUID(),
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
-  }
+  },
 };
 ```
 
@@ -361,6 +373,7 @@ export default {
 ### 問題 7: 401 Unauthorized 錯誤
 
 **症狀**:
+
 - 用戶無法登入
 - API 請求被拒絕
 
@@ -401,7 +414,7 @@ const TOKEN_EXPIRY = 24 * 60 * 60; // 24 小時
 const payload = {
   userId: user.id,
   role: user.role,
-  exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY
+  exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY,
 };
 ```
 
@@ -410,14 +423,14 @@ const payload = {
 ```javascript
 // 確保 CORS headers 正確設置
 const corsHeaders = {
-  'Access-Control-Allow-Origin': env.CORS_ORIGIN || '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
+  "Access-Control-Allow-Origin": env.CORS_ORIGIN || "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
 };
 
 // OPTIONS 請求處理
-if (request.method === 'OPTIONS') {
+if (request.method === "OPTIONS") {
   return new Response(null, { headers: corsHeaders });
 }
 ```
@@ -427,6 +440,7 @@ if (request.method === 'OPTIONS') {
 ### 問題 8: WebSocket 連接失敗
 
 **症狀**:
+
 - 無法建立 WebSocket 連接
 - 連接立即斷開
 - 實時更新不工作
@@ -435,11 +449,12 @@ if (request.method === 'OPTIONS') {
 
 ```javascript
 // 在瀏覽器控制台測試
-const ws = new WebSocket('wss://realtime.makanmakan.com/customer/table-123');
+const ws = new WebSocket("wss://realtime.makanmakan.com/customer/table-123");
 
-ws.onopen = () => console.log('✅ Connected');
-ws.onerror = (error) => console.error('❌ Error:', error);
-ws.onclose = (event) => console.log('Connection closed:', event.code, event.reason);
+ws.onopen = () => console.log("✅ Connected");
+ws.onerror = (error) => console.error("❌ Error:", error);
+ws.onclose = (event) =>
+  console.log("Connection closed:", event.code, event.reason);
 ```
 
 **解決方案**:
@@ -488,17 +503,17 @@ async fetch(request) {
 ```javascript
 // 在 WebSocket 連接時驗證 token
 const url = new URL(request.url);
-const token = url.searchParams.get('token');
+const token = url.searchParams.get("token");
 
 if (!token) {
-  return new Response('Missing authentication token', { status: 401 });
+  return new Response("Missing authentication token", { status: 401 });
 }
 
 try {
   const payload = await verifyJWT(token, env.JWT_SECRET);
   // 繼續處理連接
 } catch (error) {
-  return new Response('Invalid token', { status: 401 });
+  return new Response("Invalid token", { status: 401 });
 }
 ```
 
@@ -509,11 +524,13 @@ try {
 ### 問題 9: "Database locked" 錯誤
 
 **症狀**:
+
 ```
 Error: SQLITE_BUSY: database is locked
 ```
 
 **原因**:
+
 - 同時有太多寫入操作
 - 長時間運行的事務
 - D1 並發限制
@@ -525,11 +542,16 @@ Error: SQLITE_BUSY: database is locked
 async function queryWithRetry(db, sql, params, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      return await db.prepare(sql).bind(...params).all();
+      return await db
+        .prepare(sql)
+        .bind(...params)
+        .all();
     } catch (error) {
-      if (error.message.includes('SQLITE_BUSY') && i < maxRetries - 1) {
+      if (error.message.includes("SQLITE_BUSY") && i < maxRetries - 1) {
         // 指數退避
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 100));
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, i) * 100),
+        );
         continue;
       }
       throw error;
@@ -539,8 +561,12 @@ async function queryWithRetry(db, sql, params, maxRetries = 3) {
 
 // 2. 使用批處理減少寫入次數
 const batch = [
-  db.prepare("INSERT INTO orders (id, restaurant_id) VALUES (?, ?)").bind(1, 100),
-  db.prepare("INSERT INTO order_items (order_id, item_id) VALUES (?, ?)").bind(1, 200),
+  db
+    .prepare("INSERT INTO orders (id, restaurant_id) VALUES (?, ?)")
+    .bind(1, 100),
+  db
+    .prepare("INSERT INTO order_items (order_id, item_id) VALUES (?, ?)")
+    .bind(1, 200),
 ];
 await db.batch(batch);
 
@@ -563,6 +589,7 @@ try {
 ### 問題 10: 查詢性能慢
 
 **症狀**:
+
 - 查詢耗時超過 1 秒
 - 用戶體驗卡頓
 
@@ -604,17 +631,23 @@ const query = `
   ORDER BY created_at DESC
   LIMIT ? OFFSET ?
 `;
-const result = await db.prepare(query).bind(restaurantId, PAGE_SIZE, offset).all();
+const result = await db
+  .prepare(query)
+  .bind(restaurantId, PAGE_SIZE, offset)
+  .all();
 
 // 5. 使用 KV 緩存頻繁查詢的數據
 const cacheKey = `restaurant:${restaurantId}:menu`;
-let menu = await env.CACHE_KV.get(cacheKey, 'json');
+let menu = await env.CACHE_KV.get(cacheKey, "json");
 
 if (!menu) {
-  menu = await db.prepare("SELECT * FROM menu_items WHERE restaurant_id = ?")
+  menu = await db
+    .prepare("SELECT * FROM menu_items WHERE restaurant_id = ?")
     .bind(restaurantId)
     .all();
-  await env.CACHE_KV.put(cacheKey, JSON.stringify(menu), { expirationTtl: 300 });
+  await env.CACHE_KV.put(cacheKey, JSON.stringify(menu), {
+    expirationTtl: 300,
+  });
 }
 ```
 
@@ -623,6 +656,7 @@ if (!menu) {
 ### 問題 11: 數據遺失或不一致
 
 **症狀**:
+
 - 訂單數據不完整
 - 庫存不準確
 - 數據出現重複
@@ -704,6 +738,7 @@ async function checkDataIntegrity(db) {
 ### 問題 12: CORS 錯誤
 
 **症狀**:
+
 ```
 Access to fetch at 'https://api.makanmakan.com' from origin 'https://makanmakan.com'
 has been blocked by CORS policy
@@ -714,43 +749,51 @@ has been blocked by CORS policy
 ```javascript
 // 1. 在 Worker 中正確配置 CORS
 function handleCORS(request, response) {
-  const origin = request.headers.get('Origin');
+  const origin = request.headers.get("Origin");
   const allowedOrigins = [
-    'https://makanmakan.com',
-    'https://admin.makanmakan.com',
-    'https://kitchen.makanmakan.com',
+    "https://makanmakan.com",
+    "https://admin.makanmakan.com",
+    "https://kitchen.makanmakan.com",
   ];
 
   if (allowedOrigins.includes(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set("Access-Control-Allow-Origin", origin);
   }
 
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  response.headers.set('Access-Control-Max-Age', '86400');
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization",
+  );
+  response.headers.set("Access-Control-Max-Age", "86400");
 
   return response;
 }
 
 // 2. 處理 OPTIONS preflight 請求
-if (request.method === 'OPTIONS') {
+if (request.method === "OPTIONS") {
   return new Response(null, {
     headers: {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    }
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+    },
   });
 }
 ```
 
 **Development 環境**:
+
 ```javascript
 // 在開發環境允許所有來源
-const corsHeaders = env.NODE_ENV === 'development'
-  ? { 'Access-Control-Allow-Origin': '*' }
-  : { 'Access-Control-Allow-Origin': 'https://makanmakan.com' };
+const corsHeaders =
+  env.NODE_ENV === "development"
+    ? { "Access-Control-Allow-Origin": "*" }
+    : { "Access-Control-Allow-Origin": "https://makanmakan.com" };
 ```
 
 ---
@@ -758,6 +801,7 @@ const corsHeaders = env.NODE_ENV === 'development'
 ### 問題 13: Rate Limiting 過於嚴格
 
 **症狀**:
+
 - 正常用戶被限流
 - 返回 429 Too Many Requests
 
@@ -790,14 +834,16 @@ async function checkRateLimit(ip, env) {
   }
 
   const newCount = count ? parseInt(count) + 1 : 1;
-  await env.RATE_LIMIT_KV.put(key, newCount.toString(), { expirationTtl: window });
+  await env.RATE_LIMIT_KV.put(key, newCount.toString(), {
+    expirationTtl: window,
+  });
 
   return { allowed: true, remaining: limit - newCount };
 }
 
 // 2. 為認證用戶提供更高限制
 async function getRateLimit(request, env) {
-  const token = request.headers.get('Authorization');
+  const token = request.headers.get("Authorization");
 
   if (token) {
     // 認證用戶：1000 requests/min
@@ -809,7 +855,7 @@ async function getRateLimit(request, env) {
 }
 
 // 3. 白名單特定 IP
-const WHITELIST_IPS = ['1.2.3.4', '5.6.7.8'];
+const WHITELIST_IPS = ["1.2.3.4", "5.6.7.8"];
 if (WHITELIST_IPS.includes(clientIP)) {
   // 跳過 rate limiting
   return await handleRequest(request);
@@ -821,11 +867,13 @@ if (WHITELIST_IPS.includes(clientIP)) {
 ### 問題 14: 超時錯誤
 
 **症狀**:
+
 ```
 Error: The script took too much time
 ```
 
 **原因**:
+
 - Cloudflare Workers CPU 時間限制（10ms 免費版，50ms 付費版）
 - 複雜計算或大量數據處理
 
@@ -838,12 +886,10 @@ export default {
     const response = await handleRequest(request, env);
 
     // 不阻塞響應的後台任務
-    ctx.waitUntil(
-      sendAnalytics(request, env)
-    );
+    ctx.waitUntil(sendAnalytics(request, env));
 
     return response;
-  }
+  },
 };
 
 // 2. 將大任務分解為多個小任務
@@ -856,14 +902,14 @@ async function processLargeDataset(data, env) {
 
     // 給其他請求讓路
     if (i % 500 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 }
 
 // 3. 使用 Durable Objects 處理長時間運行的任務
 // 將複雜任務委託給 Durable Object
-const id = env.TASK_PROCESSOR.idFromName('long-task');
+const id = env.TASK_PROCESSOR.idFromName("long-task");
 const stub = env.TASK_PROCESSOR.get(id);
 await stub.fetch(request);
 ```
@@ -875,6 +921,7 @@ await stub.fetch(request);
 ### 問題 15: 響應時間過長
 
 **症狀**:
+
 - API 響應時間 > 1 秒
 - 用戶體驗卡頓
 
@@ -905,7 +952,7 @@ async function trackPerformance(request, handler) {
     }
 
     // 添加性能 header
-    response.headers.set('X-Response-Time', `${duration}ms`);
+    response.headers.set("X-Response-Time", `${duration}ms`);
 
     return response;
   } catch (error) {
@@ -928,19 +975,22 @@ async function getMenu(restaurantId, env) {
 
   // L2: KV 緩存 (全局)
   const cacheKey = `menu:${restaurantId}`;
-  const cached = await env.CACHE_KV.get(cacheKey, 'json');
+  const cached = await env.CACHE_KV.get(cacheKey, "json");
   if (cached) {
     memoryCache.set(restaurantId, cached);
     return cached;
   }
 
   // L3: 數據庫
-  const menu = await db.prepare("SELECT * FROM menu_items WHERE restaurant_id = ?")
+  const menu = await db
+    .prepare("SELECT * FROM menu_items WHERE restaurant_id = ?")
     .bind(restaurantId)
     .all();
 
   // 更新緩存
-  await env.CACHE_KV.put(cacheKey, JSON.stringify(menu), { expirationTtl: 300 });
+  await env.CACHE_KV.put(cacheKey, JSON.stringify(menu), {
+    expirationTtl: 300,
+  });
   memoryCache.set(restaurantId, menu);
 
   return menu;
@@ -951,7 +1001,7 @@ async function getDashboardData(restaurantId, env, db) {
   const [orders, menu, stats] = await Promise.all([
     getOrders(restaurantId, db),
     getMenu(restaurantId, env, db),
-    getStatistics(restaurantId, db)
+    getStatistics(restaurantId, db),
   ]);
 
   return { orders, menu, stats };
@@ -962,9 +1012,9 @@ async function getDashboardData(restaurantId, env, db) {
 const orders = await db.prepare("SELECT * FROM orders").all();
 
 // ✅ 好：只查詢需要的列
-const orders = await db.prepare(
-  "SELECT id, restaurant_id, total, created_at FROM orders"
-).all();
+const orders = await db
+  .prepare("SELECT id, restaurant_id, total, created_at FROM orders")
+  .all();
 ```
 
 ---
@@ -972,6 +1022,7 @@ const orders = await db.prepare(
 ### 問題 16: 內存超限
 
 **症狀**:
+
 ```
 Error: Worker exceeded memory limit
 ```
@@ -1000,9 +1051,10 @@ async function exportOrders(restaurantId, db) {
   let offset = 0;
 
   while (true) {
-    const batch = await db.prepare(
-      "SELECT * FROM orders WHERE restaurant_id = ? LIMIT ? OFFSET ?"
-    ).bind(restaurantId, BATCH_SIZE, offset).all();
+    const batch = await db
+      .prepare("SELECT * FROM orders WHERE restaurant_id = ? LIMIT ? OFFSET ?")
+      .bind(restaurantId, BATCH_SIZE, offset)
+      .all();
 
     if (batch.results.length === 0) break;
 
@@ -1028,6 +1080,7 @@ return processedData;
 ### 問題 17: SQL 注入風險
 
 **症狀**:
+
 - 用戶輸入未經過濾直接用於 SQL 查詢
 
 **預防**:
@@ -1040,20 +1093,22 @@ const user = await db.prepare(query).first();
 
 // ✅ 安全：使用參數化查詢
 const userId = request.params.id;
-const user = await db.prepare("SELECT * FROM users WHERE id = ?")
+const user = await db
+  .prepare("SELECT * FROM users WHERE id = ?")
   .bind(userId)
   .first();
 
 // ✅ 安全：輸入驗證
 function validateUserId(id) {
-  if (typeof id !== 'number' || id <= 0 || !Number.isInteger(id)) {
-    throw new Error('Invalid user ID');
+  if (typeof id !== "number" || id <= 0 || !Number.isInteger(id)) {
+    throw new Error("Invalid user ID");
   }
   return id;
 }
 
 const userId = validateUserId(parseInt(request.params.id));
-const user = await db.prepare("SELECT * FROM users WHERE id = ?")
+const user = await db
+  .prepare("SELECT * FROM users WHERE id = ?")
   .bind(userId)
   .first();
 ```
@@ -1066,34 +1121,35 @@ const user = await db.prepare("SELECT * FROM users WHERE id = ?")
 
 ```javascript
 // 1. 淨化用戶輸入
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from "isomorphic-dompurify";
 
 function sanitizeInput(input) {
   return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong'],
-    ALLOWED_ATTR: []
+    ALLOWED_TAGS: ["b", "i", "em", "strong"],
+    ALLOWED_ATTR: [],
   });
 }
 
 // 2. 設置安全 headers
 const securityHeaders = {
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'",
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin'
+  "Content-Security-Policy":
+    "default-src 'self'; script-src 'self' 'unsafe-inline'",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
 };
 
 // 3. 在前端 escaping
 function escapeHtml(text) {
   const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
   };
-  return text.replace(/[&<>"']/g, m => map[m]);
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 ```
 
@@ -1104,6 +1160,7 @@ function escapeHtml(text) {
 ### 問題 19: pnpm install 失敗
 
 **症狀**:
+
 ```
 ERR_PNPM_PEER_DEP_ISSUES  Unmet peer dependencies
 ```
@@ -1132,6 +1189,7 @@ npm install -g pnpm@latest
 ### 問題 20: TypeScript 編譯錯誤
 
 **症狀**:
+
 ```
 error TS2307: Cannot find module '@makanmakan/shared-types'
 ```
@@ -1158,6 +1216,7 @@ pnpm run typecheck
 ### 問題 21: 本地開發端口衝突
 
 **症狀**:
+
 ```
 Error: listen EADDRINUSE: address already in use :::8787
 ```
@@ -1342,20 +1401,25 @@ echo "=== Troubleshooting Complete ==="
 
 ```markdown
 ## 問題描述
+
 簡要描述遇到的問題
 
 ## 複現步驟
+
 1.
 2.
 3.
 
 ## 預期行為
+
 描述應該發生什麼
 
 ## 實際行為
+
 描述實際發生什麼
 
 ## 環境信息
+
 - Environment: Production / Staging / Development
 - Browser (if applicable):
 - Worker version:
@@ -1363,7 +1427,9 @@ echo "=== Troubleshooting Complete ==="
 
 ## 日誌輸出
 ```
+
 粘貼相關日誌
+
 ```
 
 ## 已嘗試的解決方案

@@ -3,6 +3,7 @@
 ## 測試目標
 
 驗證請假排班雙向整合功能：
+
 1. ✅ 請假核准後自動取消排班
 2. ✅ 建立排班時過濾已請假員工
 
@@ -65,6 +66,7 @@ $AVAILABLE_EMP | ConvertTo-Json -Depth 5
 ```
 
 **預期結果：**
+
 - ✅ API 回傳 `success: true`
 - ✅ `data` 陣列包含可用員工清單
 - ✅ 每個員工包含 `id`, `fullName`, `role`, `availability`
@@ -142,6 +144,7 @@ Write-Host "Initial Status: $($SCHEDULE.data.status)"
 ```
 
 **預期結果：**
+
 - ✅ 排班創建成功
 - ✅ `status = "scheduled"`
 
@@ -186,6 +189,7 @@ Write-Host "Leave Request Status: $($LEAVE_REQUEST.data.status)"
 ```
 
 **預期結果：**
+
 - ✅ 請假申請創建成功
 - ✅ `status = "pending"`
 
@@ -208,6 +212,7 @@ $APPROVE_RESPONSE | ConvertTo-Json -Depth 5
 ```
 
 **預期結果：**
+
 - ✅ 請假核准成功
 - ✅ `status = "approved"`
 - ✅ `affectedScheduleIds` 包含被取消的排班 ID（JSON 字串）
@@ -228,6 +233,7 @@ Write-Host "  Manager Notes: $($SCHEDULE_CHECK.data.managerNotes)"
 ```
 
 **預期結果：**
+
 - ✅ `status = "cancelled"` ⭐ 核心驗證點
 - ✅ `managerNotes` 包含 "請假核准" 文字
 - ✅ 取消原因記錄完整
@@ -256,6 +262,7 @@ if ($IS_EXCLUDED) {
 ```
 
 **預期結果：**
+
 - ✅ 請假的員工 **不在** 可用員工清單中
 - ✅ 其他員工正常顯示在清單中
 
@@ -340,6 +347,7 @@ Leave approved - Auto-cancelled 1 schedules {
 ## Next Steps
 
 完成測試後：
+
 1. ✅ 確認所有測試通過
 2. 📝 記錄測試結果
 3. 🚀 繼續實施 Part 2 - Frontend UI

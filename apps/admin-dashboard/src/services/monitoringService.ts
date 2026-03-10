@@ -3,7 +3,7 @@
  * Frontend service layer for system monitoring and alerting
  */
 
-import { api } from './api'
+import { api } from "./api";
 import type {
   HealthStatus,
   SystemMetrics,
@@ -18,14 +18,14 @@ import type {
   PerformanceReportParams,
   AlertRulesPagination,
   PaginatedAlertRulesResponse,
-} from '@/types/monitoring'
+} from "@/types/monitoring";
 
 /**
  * Monitoring Service Class
  * Handles all monitoring and alerting related API calls
  */
 class MonitoringService {
-  private readonly baseUrl = '/monitoring'
+  private readonly baseUrl = "/monitoring";
 
   // ============================================================================
   // Health & Status
@@ -37,11 +37,11 @@ class MonitoringService {
    */
   async getHealthStatus(): Promise<HealthStatus> {
     try {
-      const response = await api.get<HealthStatus>(`${this.baseUrl}/health`)
-      return response.data.data!
+      const response = await api.get<HealthStatus>(`${this.baseUrl}/health`);
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get health status:', error)
-      throw error
+      console.error("Failed to get health status:", error);
+      throw error;
     }
   }
 
@@ -51,11 +51,13 @@ class MonitoringService {
    */
   async getOverview(): Promise<MonitoringOverview> {
     try {
-      const response = await api.get<MonitoringOverview>(`${this.baseUrl}/overview`)
-      return response.data.data!
+      const response = await api.get<MonitoringOverview>(
+        `${this.baseUrl}/overview`,
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get monitoring overview:', error)
-      throw error
+      console.error("Failed to get monitoring overview:", error);
+      throw error;
     }
   }
 
@@ -70,14 +72,13 @@ class MonitoringService {
    */
   async getMetrics(params?: MetricsQueryParams): Promise<SystemMetrics> {
     try {
-      const response = await api.get<{ query: any; summary: any } & SystemMetrics>(
-        `${this.baseUrl}/metrics`,
-        params,
-      )
-      return response.data.data!
+      const response = await api.get<
+        { query: any; summary: any } & SystemMetrics
+      >(`${this.baseUrl}/metrics`, params);
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get metrics:', error)
-      throw error
+      console.error("Failed to get metrics:", error);
+      throw error;
     }
   }
 
@@ -89,11 +90,11 @@ class MonitoringService {
     try {
       const response = await api.delete<{ message: string; timestamp: number }>(
         `${this.baseUrl}/metrics`,
-      )
-      return response.data.data!
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to reset metrics:', error)
-      throw error
+      console.error("Failed to reset metrics:", error);
+      throw error;
     }
   }
 
@@ -106,16 +107,18 @@ class MonitoringService {
    * @param params Pagination parameters
    * @returns Paginated list of alert rules
    */
-  async getAlertRules(params?: AlertRulesPagination): Promise<PaginatedAlertRulesResponse> {
+  async getAlertRules(
+    params?: AlertRulesPagination,
+  ): Promise<PaginatedAlertRulesResponse> {
     try {
       const response = await api.get<PaginatedAlertRulesResponse>(
         `${this.baseUrl}/alerts/rules`,
         params || { page: 1, limit: 20 },
-      )
-      return response.data.data!
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get alert rules:', error)
-      throw error
+      console.error("Failed to get alert rules:", error);
+      throw error;
     }
   }
 
@@ -129,11 +132,11 @@ class MonitoringService {
       const response = await api.post<AlertRule & { created: number }>(
         `${this.baseUrl}/alerts/rules`,
         rule,
-      )
-      return response.data.data! as AlertRule
+      );
+      return response.data.data! as AlertRule;
     } catch (error) {
-      console.error('Failed to create alert rule:', error)
-      throw error
+      console.error("Failed to create alert rule:", error);
+      throw error;
     }
   }
 
@@ -151,11 +154,11 @@ class MonitoringService {
       const response = await api.put<{ id: string; updated: number }>(
         `${this.baseUrl}/alerts/rules/${id}`,
         updates,
-      )
-      return response.data.data!
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to update alert rule:', error)
-      throw error
+      console.error("Failed to update alert rule:", error);
+      throw error;
     }
   }
 
@@ -168,11 +171,11 @@ class MonitoringService {
     try {
       const response = await api.delete<{ message: string }>(
         `${this.baseUrl}/alerts/rules/${id}`,
-      )
-      return response.data.data!
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to delete alert rule:', error)
-      throw error
+      console.error("Failed to delete alert rule:", error);
+      throw error;
     }
   }
 
@@ -181,20 +184,20 @@ class MonitoringService {
    * @returns List of default alert rules
    */
   async getDefaultAlertRules(): Promise<{
-    rules: readonly any[]
-    count: number
-    description: string
+    rules: readonly any[];
+    count: number;
+    description: string;
   }> {
     try {
       const response = await api.get<{
-        rules: readonly any[]
-        count: number
-        description: string
-      }>(`${this.baseUrl}/alerts/defaults`)
-      return response.data.data!
+        rules: readonly any[];
+        count: number;
+        description: string;
+      }>(`${this.baseUrl}/alerts/defaults`);
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get default alert rules:', error)
-      throw error
+      console.error("Failed to get default alert rules:", error);
+      throw error;
     }
   }
 
@@ -204,22 +207,22 @@ class MonitoringService {
    * @returns Test result confirmation
    */
   async testAlert(request: TestAlertRequest): Promise<{
-    message: string
-    type: string
-    severity: string
-    timestamp: number
+    message: string;
+    type: string;
+    severity: string;
+    timestamp: number;
   }> {
     try {
       const response = await api.post<{
-        message: string
-        type: string
-        severity: string
-        timestamp: number
-      }>(`${this.baseUrl}/alerts/test`, request)
-      return response.data.data!
+        message: string;
+        type: string;
+        severity: string;
+        timestamp: number;
+      }>(`${this.baseUrl}/alerts/test`, request);
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to test alert:', error)
-      throw error
+      console.error("Failed to test alert:", error);
+      throw error;
     }
   }
 
@@ -232,16 +235,17 @@ class MonitoringService {
    * @param error Error details
    * @returns Recorded error confirmation
    */
-  async recordError(error: RecordErrorRequest): Promise<RecordErrorRequest & { timestamp: number }> {
+  async recordError(
+    error: RecordErrorRequest,
+  ): Promise<RecordErrorRequest & { timestamp: number }> {
     try {
-      const response = await api.post<RecordErrorRequest & { timestamp: number }>(
-        `${this.baseUrl}/errors`,
-        error,
-      )
-      return response.data.data!
+      const response = await api.post<
+        RecordErrorRequest & { timestamp: number }
+      >(`${this.baseUrl}/errors`, error);
+      return response.data.data!;
     } catch (err) {
-      console.error('Failed to record error:', err)
-      throw err
+      console.error("Failed to record error:", err);
+      throw err;
     }
   }
 
@@ -254,16 +258,18 @@ class MonitoringService {
    * @param params Report parameters (e.g., time period)
    * @returns Comprehensive performance report
    */
-  async getPerformanceReport(params?: PerformanceReportParams): Promise<PerformanceReport> {
+  async getPerformanceReport(
+    params?: PerformanceReportParams,
+  ): Promise<PerformanceReport> {
     try {
       const response = await api.get<PerformanceReport>(
         `${this.baseUrl}/reports/performance`,
         params || { days: 7 },
-      )
-      return response.data.data!
+      );
+      return response.data.data!;
     } catch (error) {
-      console.error('Failed to get performance report:', error)
-      throw error
+      console.error("Failed to get performance report:", error);
+      throw error;
     }
   }
 
@@ -276,8 +282,8 @@ class MonitoringService {
    * @param status Component health status
    * @returns True if component is healthy
    */
-  isComponentHealthy(status: HealthStatus['overall']): boolean {
-    return status === 'healthy'
+  isComponentHealthy(status: HealthStatus["overall"]): boolean {
+    return status === "healthy";
   }
 
   /**
@@ -285,14 +291,14 @@ class MonitoringService {
    * @param status Health status
    * @returns Tailwind color class
    */
-  getHealthStatusColor(status: HealthStatus['overall']): string {
-    const colorMap: Record<HealthStatus['overall'], string> = {
-      healthy: 'green',
-      warning: 'yellow',
-      critical: 'red',
-      down: 'gray',
-    }
-    return colorMap[status] || 'gray'
+  getHealthStatusColor(status: HealthStatus["overall"]): string {
+    const colorMap: Record<HealthStatus["overall"], string> = {
+      healthy: "green",
+      warning: "yellow",
+      critical: "red",
+      down: "gray",
+    };
+    return colorMap[status] || "gray";
   }
 
   /**
@@ -301,15 +307,15 @@ class MonitoringService {
    * @returns Tailwind color class
    */
   getAlertSeverityColor(
-    severity: 'info' | 'warning' | 'critical' | 'fatal',
+    severity: "info" | "warning" | "critical" | "fatal",
   ): string {
     const colorMap = {
-      info: 'blue',
-      warning: 'yellow',
-      critical: 'red',
-      fatal: 'purple',
-    }
-    return colorMap[severity] || 'gray'
+      info: "blue",
+      warning: "yellow",
+      critical: "red",
+      fatal: "purple",
+    };
+    return colorMap[severity] || "gray";
   }
 
   /**
@@ -318,16 +324,16 @@ class MonitoringService {
    * @returns Formatted uptime string
    */
   formatUptime(seconds: number): string {
-    const days = Math.floor(seconds / 86400)
-    const hours = Math.floor((seconds % 86400) / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
 
     if (days > 0) {
-      return `${days}天 ${hours}小時`
+      return `${days}天 ${hours}小時`;
     } else if (hours > 0) {
-      return `${hours}小時 ${minutes}分鐘`
+      return `${hours}小時 ${minutes}分鐘`;
     } else {
-      return `${minutes}分鐘`
+      return `${minutes}分鐘`;
     }
   }
 
@@ -337,17 +343,17 @@ class MonitoringService {
    * @returns Relative time string (e.g., "5分鐘前")
    */
   formatRelativeTime(timestamp: number): string {
-    const now = Date.now()
-    const diff = now - timestamp
+    const now = Date.now();
+    const diff = now - timestamp;
 
     if (diff < 60000) {
-      return '剛才'
+      return "剛才";
     } else if (diff < 3600000) {
-      return `${Math.floor(diff / 60000)}分鐘前`
+      return `${Math.floor(diff / 60000)}分鐘前`;
     } else if (diff < 86400000) {
-      return `${Math.floor(diff / 3600000)}小時前`
+      return `${Math.floor(diff / 3600000)}小時前`;
     } else {
-      return `${Math.floor(diff / 86400000)}天前`
+      return `${Math.floor(diff / 86400000)}天前`;
     }
   }
 
@@ -357,42 +363,42 @@ class MonitoringService {
    * @returns Health score (0-100)
    */
   calculateHealthScore(metrics: SystemMetrics): number {
-    let score = 100
+    let score = 100;
 
     // API performance impact (max -30 points)
     if (metrics.apiMetrics.averageResponseTime > 1000) {
-      score -= 30
+      score -= 30;
     } else if (metrics.apiMetrics.averageResponseTime > 500) {
-      score -= 15
+      score -= 15;
     }
 
     // Error rate impact (max -25 points)
     if (metrics.apiMetrics.errorRate > 0.1) {
-      score -= 25
+      score -= 25;
     } else if (metrics.apiMetrics.errorRate > 0.05) {
-      score -= 15
+      score -= 15;
     }
 
     // Database performance impact (max -20 points)
     if (metrics.databaseMetrics.averageQueryTime > 500) {
-      score -= 20
+      score -= 20;
     } else if (metrics.databaseMetrics.averageQueryTime > 100) {
-      score -= 10
+      score -= 10;
     }
 
     // Cache performance impact (max -15 points)
     if (metrics.cacheMetrics.hitRate < 0.3) {
-      score -= 15
+      score -= 15;
     } else if (metrics.cacheMetrics.hitRate < 0.6) {
-      score -= 8
+      score -= 8;
     }
 
     // Critical errors impact (max -10 points)
     if (metrics.errorMetrics.criticalErrors > 0) {
-      score -= Math.min(10, metrics.errorMetrics.criticalErrors * 2)
+      score -= Math.min(10, metrics.errorMetrics.criticalErrors * 2);
     }
 
-    return Math.max(0, Math.min(100, score))
+    return Math.max(0, Math.min(100, score));
   }
 
   /**
@@ -401,34 +407,34 @@ class MonitoringService {
    * @returns List of threshold violations
    */
   checkThresholds(metrics: SystemMetrics): string[] {
-    const violations: string[] = []
+    const violations: string[] = [];
 
     if (metrics.apiMetrics.averageResponseTime > 1000) {
-      violations.push('API響應時間超過臨界值')
+      violations.push("API響應時間超過臨界值");
     }
 
     if (metrics.apiMetrics.errorRate > 0.1) {
-      violations.push('API錯誤率過高')
+      violations.push("API錯誤率過高");
     }
 
     if (metrics.databaseMetrics.averageQueryTime > 500) {
-      violations.push('資料庫查詢時間過長')
+      violations.push("資料庫查詢時間過長");
     }
 
     if (metrics.cacheMetrics.hitRate < 0.3) {
-      violations.push('快取命中率過低')
+      violations.push("快取命中率過低");
     }
 
     if (metrics.errorMetrics.criticalErrors > 0) {
-      violations.push(`存在${metrics.errorMetrics.criticalErrors}個嚴重錯誤`)
+      violations.push(`存在${metrics.errorMetrics.criticalErrors}個嚴重錯誤`);
     }
 
-    return violations
+    return violations;
   }
 }
 
 // Export singleton instance
-export const monitoringService = new MonitoringService()
+export const monitoringService = new MonitoringService();
 
 // Export class for testing
-export default MonitoringService
+export default MonitoringService;

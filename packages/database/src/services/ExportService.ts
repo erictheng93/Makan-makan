@@ -3,22 +3,22 @@
  * Handles exporting leave and scheduling data to various formats
  */
 
-import type { D1Database } from '@cloudflare/workers-types'
+import type { D1Database } from "@cloudflare/workers-types";
 
 export interface ExportOptions {
-  format: 'csv' | 'excel' | 'pdf'
-  startDate?: string
-  endDate?: string
-  employeeIds?: number[]
-  leaveTypeIds?: number[]
+  format: "csv" | "excel" | "pdf";
+  startDate?: string;
+  endDate?: string;
+  employeeIds?: number[];
+  leaveTypeIds?: number[];
 }
 
 export interface ExportResult {
-  success: boolean
-  data?: string | ArrayBuffer
-  filename: string
-  mimeType: string
-  error?: string
+  success: boolean;
+  data?: string | ArrayBuffer;
+  filename: string;
+  mimeType: string;
+  error?: string;
 }
 
 export class ExportService {
@@ -29,7 +29,7 @@ export class ExportService {
    */
   async exportLeaveRequests(
     restaurantId: string,
-    options: ExportOptions
+    options: ExportOptions,
   ): Promise<ExportResult> {
     try {
       // Build query
@@ -55,52 +55,59 @@ export class ExportService {
         JOIN leave_types lt ON lr.leave_type_id = lt.id
         LEFT JOIN users approver ON lr.approved_by = approver.id
         WHERE lr.restaurant_id = ?
-      `
-      const params: any[] = [restaurantId]
+      `;
+      const params: any[] = [restaurantId];
 
       if (options.startDate) {
-        query += ' AND lr.start_date >= ?'
-        params.push(options.startDate)
+        query += " AND lr.start_date >= ?";
+        params.push(options.startDate);
       }
 
       if (options.endDate) {
-        query += ' AND lr.end_date <= ?'
-        params.push(options.endDate)
+        query += " AND lr.end_date <= ?";
+        params.push(options.endDate);
       }
 
       if (options.employeeIds && options.employeeIds.length > 0) {
-        query += ` AND lr.employee_id IN (${options.employeeIds.map(() => '?').join(',')})`
-        params.push(...options.employeeIds)
+        query += ` AND lr.employee_id IN (${options.employeeIds.map(() => "?").join(",")})`;
+        params.push(...options.employeeIds);
       }
 
       if (options.leaveTypeIds && options.leaveTypeIds.length > 0) {
-        query += ` AND lr.leave_type_id IN (${options.leaveTypeIds.map(() => '?').join(',')})`
-        params.push(...options.leaveTypeIds)
+        query += ` AND lr.leave_type_id IN (${options.leaveTypeIds.map(() => "?").join(",")})`;
+        params.push(...options.leaveTypeIds);
       }
 
-      query += ' ORDER BY lr.created_at DESC'
+      query += " ORDER BY lr.created_at DESC";
 
-      const results = await this.db.prepare(query).bind(...params).all<any>()
-      const records = results.results || []
+      const results = await this.db
+        .prepare(query)
+        .bind(...params)
+        .all<any>();
+      const records = results.results || [];
 
       // Generate export based on format
       switch (options.format) {
-        case 'csv':
-          return this.generateCSV(records, 'leave_requests')
-        case 'excel':
-          return this.generateExcel(records, 'leave_requests')
-        case 'pdf':
-          return this.generatePDF(records, 'leave_requests', 'Leave Requests Report')
+        case "csv":
+          return this.generateCSV(records, "leave_requests");
+        case "excel":
+          return this.generateExcel(records, "leave_requests");
+        case "pdf":
+          return this.generatePDF(
+            records,
+            "leave_requests",
+            "Leave Requests Report",
+          );
         default:
-          throw new Error(`Unsupported format: ${options.format}`)
+          throw new Error(`Unsupported format: ${options.format}`);
       }
     } catch (error) {
       return {
         success: false,
-        filename: '',
-        mimeType: '',
-        error: error instanceof Error ? error.message : 'Export failed'
-      }
+        filename: "",
+        mimeType: "",
+        error: error instanceof Error ? error.message : "Export failed",
+      };
     }
   }
 
@@ -110,7 +117,7 @@ export class ExportService {
   async exportLeaveBalances(
     restaurantId: string,
     year: number,
-    options: Partial<ExportOptions> = {}
+    options: Partial<ExportOptions> = {},
   ): Promise<ExportResult> {
     try {
       let query = `
@@ -129,36 +136,43 @@ export class ExportService {
         JOIN users u ON lb.employee_id = u.id
         JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE u.restaurant_id = ? AND lb.year = ?
-      `
-      const params: any[] = [restaurantId, year]
+      `;
+      const params: any[] = [restaurantId, year];
 
       if (options.employeeIds && options.employeeIds.length > 0) {
-        query += ` AND lb.employee_id IN (${options.employeeIds.map(() => '?').join(',')})`
-        params.push(...options.employeeIds)
+        query += ` AND lb.employee_id IN (${options.employeeIds.map(() => "?").join(",")})`;
+        params.push(...options.employeeIds);
       }
 
-      query += ' ORDER BY u.full_name, lt.name'
+      query += " ORDER BY u.full_name, lt.name";
 
-      const results = await this.db.prepare(query).bind(...params).all<any>()
-      const records = results.results || []
+      const results = await this.db
+        .prepare(query)
+        .bind(...params)
+        .all<any>();
+      const records = results.results || [];
 
-      switch (options.format || 'csv') {
-        case 'csv':
-          return this.generateCSV(records, 'leave_balances')
-        case 'excel':
-          return this.generateExcel(records, 'leave_balances')
-        case 'pdf':
-          return this.generatePDF(records, 'leave_balances', `Leave Balances ${year}`)
+      switch (options.format || "csv") {
+        case "csv":
+          return this.generateCSV(records, "leave_balances");
+        case "excel":
+          return this.generateExcel(records, "leave_balances");
+        case "pdf":
+          return this.generatePDF(
+            records,
+            "leave_balances",
+            `Leave Balances ${year}`,
+          );
         default:
-          throw new Error(`Unsupported format: ${options.format}`)
+          throw new Error(`Unsupported format: ${options.format}`);
       }
     } catch (error) {
       return {
         success: false,
-        filename: '',
-        mimeType: '',
-        error: error instanceof Error ? error.message : 'Export failed'
-      }
+        filename: "",
+        mimeType: "",
+        error: error instanceof Error ? error.message : "Export failed",
+      };
     }
   }
 
@@ -167,7 +181,7 @@ export class ExportService {
    */
   async exportSchedules(
     restaurantId: string,
-    options: ExportOptions
+    options: ExportOptions,
   ): Promise<ExportResult> {
     try {
       let query = `
@@ -189,46 +203,49 @@ export class ExportService {
         JOIN users u ON es.employee_id = u.id
         LEFT JOIN shift_templates st ON es.shift_template_id = st.id
         WHERE es.restaurant_id = ?
-      `
-      const params: any[] = [restaurantId]
+      `;
+      const params: any[] = [restaurantId];
 
       if (options.startDate) {
-        query += ' AND es.work_date >= ?'
-        params.push(options.startDate)
+        query += " AND es.work_date >= ?";
+        params.push(options.startDate);
       }
 
       if (options.endDate) {
-        query += ' AND es.work_date <= ?'
-        params.push(options.endDate)
+        query += " AND es.work_date <= ?";
+        params.push(options.endDate);
       }
 
       if (options.employeeIds && options.employeeIds.length > 0) {
-        query += ` AND es.employee_id IN (${options.employeeIds.map(() => '?').join(',')})`
-        params.push(...options.employeeIds)
+        query += ` AND es.employee_id IN (${options.employeeIds.map(() => "?").join(",")})`;
+        params.push(...options.employeeIds);
       }
 
-      query += ' ORDER BY es.work_date DESC, u.full_name'
+      query += " ORDER BY es.work_date DESC, u.full_name";
 
-      const results = await this.db.prepare(query).bind(...params).all<any>()
-      const records = results.results || []
+      const results = await this.db
+        .prepare(query)
+        .bind(...params)
+        .all<any>();
+      const records = results.results || [];
 
       switch (options.format) {
-        case 'csv':
-          return this.generateCSV(records, 'schedules')
-        case 'excel':
-          return this.generateExcel(records, 'schedules')
-        case 'pdf':
-          return this.generatePDF(records, 'schedules', 'Employee Schedules')
+        case "csv":
+          return this.generateCSV(records, "schedules");
+        case "excel":
+          return this.generateExcel(records, "schedules");
+        case "pdf":
+          return this.generatePDF(records, "schedules", "Employee Schedules");
         default:
-          throw new Error(`Unsupported format: ${options.format}`)
+          throw new Error(`Unsupported format: ${options.format}`);
       }
     } catch (error) {
       return {
         success: false,
-        filename: '',
-        mimeType: '',
-        error: error instanceof Error ? error.message : 'Export failed'
-      }
+        filename: "",
+        mimeType: "",
+        error: error instanceof Error ? error.message : "Export failed",
+      };
     }
   }
 
@@ -239,42 +256,48 @@ export class ExportService {
     if (records.length === 0) {
       return {
         success: false,
-        filename: '',
-        mimeType: '',
-        error: 'No data to export'
-      }
+        filename: "",
+        mimeType: "",
+        error: "No data to export",
+      };
     }
 
     // Get headers from first record
-    const headers = Object.keys(records[0])
-    const csvHeaders = headers.join(',')
+    const headers = Object.keys(records[0]);
+    const csvHeaders = headers.join(",");
 
     // Convert records to CSV rows
-    const csvRows = records.map(record => {
-      return headers.map(header => {
-        const value = record[header]
-        // Escape commas and quotes
-        if (value === null || value === undefined) return ''
-        const stringValue = String(value)
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`
-        }
-        return stringValue
-      }).join(',')
-    })
+    const csvRows = records.map((record) => {
+      return headers
+        .map((header) => {
+          const value = record[header];
+          // Escape commas and quotes
+          if (value === null || value === undefined) return "";
+          const stringValue = String(value);
+          if (
+            stringValue.includes(",") ||
+            stringValue.includes('"') ||
+            stringValue.includes("\n")
+          ) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(",");
+    });
 
-    const csv = [csvHeaders, ...csvRows].join('\n')
+    const csv = [csvHeaders, ...csvRows].join("\n");
 
     // Add BOM for Excel UTF-8 compatibility
-    const bom = '\uFEFF'
-    const data = bom + csv
+    const bom = "\uFEFF";
+    const data = bom + csv;
 
     return {
       success: true,
       data,
-      filename: `${filename}_${new Date().toISOString().split('T')[0]}.csv`,
-      mimeType: 'text/csv;charset=utf-8'
-    }
+      filename: `${filename}_${new Date().toISOString().split("T")[0]}.csv`,
+      mimeType: "text/csv;charset=utf-8",
+    };
   }
 
   /**
@@ -283,28 +306,33 @@ export class ExportService {
   private generateExcel(records: any[], filename: string): ExportResult {
     // For now, use CSV format which Excel can open
     // TODO: Integrate with xlsx library for proper .xlsx format
-    const result = this.generateCSV(records, filename)
+    const result = this.generateCSV(records, filename);
     if (result.success) {
-      result.filename = result.filename.replace('.csv', '.xlsx')
-      result.mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      result.filename = result.filename.replace(".csv", ".xlsx");
+      result.mimeType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
-    return result
+    return result;
   }
 
   /**
    * Generate PDF format (simple HTML table for now)
    */
-  private generatePDF(records: any[], filename: string, title: string): ExportResult {
+  private generatePDF(
+    records: any[],
+    filename: string,
+    title: string,
+  ): ExportResult {
     if (records.length === 0) {
       return {
         success: false,
-        filename: '',
-        mimeType: '',
-        error: 'No data to export'
-      }
+        filename: "",
+        mimeType: "",
+        error: "No data to export",
+      };
     }
 
-    const headers = Object.keys(records[0])
+    const headers = Object.keys(records[0]);
 
     // Generate HTML table
     const html = `
@@ -361,15 +389,19 @@ export class ExportService {
   <table>
     <thead>
       <tr>
-        ${headers.map(h => `<th>${this.formatHeader(h)}</th>`).join('')}
+        ${headers.map((h) => `<th>${this.formatHeader(h)}</th>`).join("")}
       </tr>
     </thead>
     <tbody>
-      ${records.map(record => `
+      ${records
+        .map(
+          (record) => `
         <tr>
-          ${headers.map(h => `<td>${this.formatValue(record[h])}</td>`).join('')}
+          ${headers.map((h) => `<td>${this.formatValue(record[h])}</td>`).join("")}
         </tr>
-      `).join('')}
+      `,
+        )
+        .join("")}
     </tbody>
   </table>
 
@@ -379,14 +411,14 @@ export class ExportService {
   </div>
 </body>
 </html>
-    `.trim()
+    `.trim();
 
     return {
       success: true,
       data: html,
-      filename: `${filename}_${new Date().toISOString().split('T')[0]}.html`,
-      mimeType: 'text/html;charset=utf-8'
-    }
+      filename: `${filename}_${new Date().toISOString().split("T")[0]}.html`,
+      mimeType: "text/html;charset=utf-8",
+    };
   }
 
   /**
@@ -394,19 +426,19 @@ export class ExportService {
    */
   private formatHeader(header: string): string {
     return header
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
 
   /**
    * Format value for display
    */
   private formatValue(value: any): string {
-    if (value === null || value === undefined) return '-'
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-    if (typeof value === 'number') return value.toLocaleString()
-    return String(value)
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "number") return value.toLocaleString();
+    return String(value);
   }
 }
 
@@ -418,23 +450,28 @@ export class ExportService {
 export function downloadExportedFile(
   data: string | ArrayBuffer,
   filename: string,
-  mimeType: string
+  mimeType: string,
 ): void {
   // Type assertion for browser environment check
-  const global = globalThis as any
+  const global = globalThis as any;
 
   // Check if we're in a browser environment
-  if (typeof global.window === 'undefined' || typeof global.document === 'undefined') {
-    throw new Error('downloadExportedFile is only available in browser environments')
+  if (
+    typeof global.window === "undefined" ||
+    typeof global.document === "undefined"
+  ) {
+    throw new Error(
+      "downloadExportedFile is only available in browser environments",
+    );
   }
 
-  const blob = new Blob([data], { type: mimeType })
-  const url = global.window.URL.createObjectURL(blob)
-  const link = global.document.createElement('a')
-  link.href = url
-  link.download = filename
-  global.document.body.appendChild(link)
-  link.click()
-  global.document.body.removeChild(link)
-  global.window.URL.revokeObjectURL(url)
+  const blob = new Blob([data], { type: mimeType });
+  const url = global.window.URL.createObjectURL(blob);
+  const link = global.document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  global.document.body.appendChild(link);
+  link.click();
+  global.document.body.removeChild(link);
+  global.window.URL.revokeObjectURL(url);
 }

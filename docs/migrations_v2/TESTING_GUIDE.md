@@ -85,12 +85,14 @@ npx wrangler login
 ### 🎯 快速開始 (全自動測試)
 
 **Windows (PowerShell)**:
+
 ```powershell
 # 執行完整測試套件
 .\scripts\test-migrations-v2.ps1
 ```
 
 **Linux/Mac (Bash)**:
+
 ```bash
 # 賦予執行權限
 chmod +x scripts/test-migrations-v2.sh
@@ -100,6 +102,7 @@ chmod +x scripts/test-migrations-v2.sh
 ```
 
 這個腳本會自動執行:
+
 1. ✅ 創建測試資料庫
 2. ✅ 執行所有 16 個 migrations
 3. ✅ 驗證資料庫結構
@@ -179,6 +182,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 **用途**: 自動化測試主腳本
 
 **功能**:
+
 - ✅ 環境檢查 (Node.js, Wrangler)
 - ✅ 創建測試資料庫
 - ✅ 循序執行所有 16 個 migrations
@@ -186,6 +190,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 - ✅ 生成測試報告
 
 **輸出**:
+
 - 終端機即時輸出
 - 日誌檔案: `logs/migration-test-YYYYMMDD-HHMMSS.log`
 - 測試報告: `docs/migrations_v2/TEST_REPORT_YYYYMMDD-HHMMSS.md`
@@ -199,6 +204,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 **用途**: 資料完整性與約束測試
 
 **測試項目**:
+
 ```
 ✅ Test 1: 基礎資料插入
 ✅ Test 2: 外鍵約束 (FOREIGN KEY)
@@ -213,6 +219,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 ```
 
 **特點**:
+
 - 自動創建測試資料
 - 執行完畢自動清理
 - 驗證級聯刪除
@@ -226,6 +233,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 **用途**: 效能基準測試與索引驗證
 
 **測試項目**:
+
 ```
 ✅ Test 1: 基礎單表查詢
 ✅ Test 2: JOIN 查詢
@@ -236,6 +244,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 ```
 
 **特點**:
+
 - 使用 EXPLAIN QUERY PLAN 分析查詢
 - 驗證索引是否被使用
 - 識別全表掃描問題
@@ -302,6 +311,7 @@ Error: table "xxx" already exists
 **原因**: 資料庫已存在舊資料
 
 **解決方案**:
+
 ```bash
 # 刪除測試資料庫重新開始
 npx wrangler d1 delete makanmakan-test-v2
@@ -322,6 +332,7 @@ npx wrangler d1 create makanmakan-test-v2-new
 **原因**: 部分 migrations 未執行成功
 
 **解決方案**:
+
 1. 檢查日誌檔案找出失敗的 migration
 2. 手動執行失敗的 migration
 3. 查看詳細錯誤訊息
@@ -343,6 +354,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 **原因**: SQLite 觸發器需要特定條件
 
 **檢查方式**:
+
 ```sql
 -- 列出所有觸發器
 SELECT name, tbl_name FROM sqlite_master
@@ -365,6 +377,7 @@ EXPLAIN QUERY PLAN: SCAN TABLE users
 **原因**: 索引未被使用或不存在
 
 **檢查方式**:
+
 ```sql
 -- 檢查表的索引
 SELECT name FROM sqlite_master
@@ -382,6 +395,7 @@ WHERE type = 'index' AND name = 'idx_users_restaurant';
 ### Debug 模式
 
 **啟用詳細日誌**:
+
 ```bash
 # 設定環境變數
 export DEBUG=1  # Linux/Mac
@@ -394,6 +408,7 @@ $env:DEBUG=1    # Windows PowerShell
 ### 查看 SQLite 資料庫
 
 **使用 SQLite CLI**:
+
 ```bash
 # 找到 .wrangler/state/v3/d1 資料庫檔案
 sqlite3 .wrangler/state/v3/d1/<database-id>.sqlite
@@ -407,6 +422,7 @@ sqlite3 .wrangler/state/v3/d1/<database-id>.sqlite
 ### 重置測試環境
 
 **完全清理**:
+
 ```bash
 # 1. 刪除測試資料庫
 npx wrangler d1 delete makanmakan-test-v2
@@ -433,13 +449,13 @@ Remove-Item -Recurse -Force .wrangler\state  # Windows
 
 ## 測試結果總覽
 
-| 項目 | 預期 | 實際 | 狀態 |
-|------|------|------|------|
-| Migrations 執行 | 16 | 16 | ✅ |
-| 資料表數量 | 67 | 67 | ✅ |
-| 索引數量 | 461 | 461 | ✅ |
-| 視圖數量 | 60 | 60 | ✅ |
-| 觸發器數量 | 108 | 108 | ✅ |
+| 項目            | 預期 | 實際 | 狀態 |
+| --------------- | ---- | ---- | ---- |
+| Migrations 執行 | 16   | 16   | ✅   |
+| 資料表數量      | 67   | 67   | ✅   |
+| 索引數量        | 461  | 461  | ✅   |
+| 視圖數量        | 60   | 60   | ✅   |
+| 觸發器數量      | 108  | 108  | ✅   |
 ```
 
 ### 狀態圖示說明
@@ -455,12 +471,14 @@ Remove-Item -Recurse -Force .wrangler\state  # Windows
 測試通過後，可以進行:
 
 1. **Staging 環境部署**
+
    ```bash
    # 執行到 staging 環境
    ./scripts/deploy-staging.sh
    ```
 
 2. **資料遷移準備**
+
    ```bash
    # 開發資料遷移腳本
    # 見: docs/migrations_v2/DATA_MIGRATION_PLAN.md

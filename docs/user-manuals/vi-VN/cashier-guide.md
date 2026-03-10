@@ -47,6 +47,7 @@
 ### Danh Sách Kiểm Tra Mở Cửa Hàng Ngày
 
 ✅ **Trước Giờ Kinh Doanh**
+
 - [ ] Đăng nhập vào hệ thống thu ngân
 - [ ] Kiểm tra số tiền dự trữ trong ngăn kéo tiền
 - [ ] Kiểm tra giấy in hóa đơn
@@ -54,12 +55,14 @@
 - [ ] Xem lại mục tiêu doanh số hàng ngày
 
 ✅ **Trong Giờ Kinh Doanh**
+
 - [ ] Theo dõi đơn hàng chờ thanh toán
 - [ ] Giữ ngăn kéo tiền ngăn nắp
 - [ ] Thường xuyên kiểm tra chức năng POS
 - [ ] Chú ý cảnh báo giao dịch bất thường
 
 ✅ **Sau Giờ Kinh Doanh**
+
 - [ ] Thực hiện đối soát hàng ngày
 - [ ] Đếm tiền và so sánh với sổ sách
 - [ ] In báo cáo thanh toán hàng ngày
@@ -147,15 +150,15 @@
 
 ### Mô Tả Nút Chức Năng
 
-| Nút | Chức Năng | Mô Tả |
-|--------|----------|-------------|
-| 🔍 **Tìm Nhanh** | Tìm Đơn Hàng | Tìm theo bàn, số đơn hoặc số điện thoại |
-| 📋 **Chi Tiết Đơn** | Xem Chi Tiết | Hiển thị nội dung đơn hàng đầy đủ |
-| 💳 **Thanh Toán** | Xử Lý Thanh Toán | Vào quy trình thanh toán |
-| 🧾 **In Lại HĐ** | In Lại | In lại hóa đơn bị mất hoặc hỏng |
-| 🔄 **Hoàn Tiền** | Xử Lý Hoàn Tiền | Đăng ký hoàn tiền đơn hàng |
-| 📊 **Báo Cáo** | Truy Vấn Báo Cáo | Xem dữ liệu kinh doanh |
-| 🔐 **Thanh Toán** | Thanh Toán Hàng Ngày | Thực hiện đối soát cuối ngày |
+| Nút                 | Chức Năng            | Mô Tả                                   |
+| ------------------- | -------------------- | --------------------------------------- |
+| 🔍 **Tìm Nhanh**    | Tìm Đơn Hàng         | Tìm theo bàn, số đơn hoặc số điện thoại |
+| 📋 **Chi Tiết Đơn** | Xem Chi Tiết         | Hiển thị nội dung đơn hàng đầy đủ       |
+| 💳 **Thanh Toán**   | Xử Lý Thanh Toán     | Vào quy trình thanh toán                |
+| 🧾 **In Lại HĐ**    | In Lại               | In lại hóa đơn bị mất hoặc hỏng         |
+| 🔄 **Hoàn Tiền**    | Xử Lý Hoàn Tiền      | Đăng ký hoàn tiền đơn hàng              |
+| 📊 **Báo Cáo**      | Truy Vấn Báo Cáo     | Xem dữ liệu kinh doanh                  |
+| 🔐 **Thanh Toán**   | Thanh Toán Hàng Ngày | Thực hiện đối soát cuối ngày            |
 
 ---
 
@@ -223,6 +226,7 @@
 ```
 
 **Điểm Kiểm Tra:**
+
 - ✅ Xác minh số lượng món ăn chính xác
 - ✅ Xác minh giá tính toán đúng
 - ✅ Xác minh giảm giá đặc biệt được áp dụng
@@ -420,11 +424,11 @@
 
 **Điểm Kiểm Tra:**
 
-| Tờ Tiền | Phương Pháp Xác Minh |
-|------|---------------------|
+| Tờ Tiền      | Phương Pháp Xác Minh             |
+| ------------ | -------------------------------- |
 | 💵 **$1000** | Lá đổi màu, in chìm, sợi bảo mật |
-| 💵 **$500** | Số "500" ẩn, hình mờ hoa mận |
-| 💵 **$100** | Mực đổi màu, chấm chữ nổi |
+| 💵 **$500**  | Số "500" ẩn, hình mờ hoa mận     |
+| 💵 **$100**  | Mực đổi màu, chấm chữ nổi        |
 
 **Xử Lý Tiền Nghi Ngờ:**
 
@@ -469,13 +473,13 @@
 
 #### Xử Lý Giao Dịch Thất Bại
 
-| Thông Báo Lỗi | Nguyên Nhân | Giải Pháp |
-|--------------|-------|----------|
-| ❌ **Không Đủ Tiền** | Vượt hạn mức tín dụng | Yêu cầu khách dùng thẻ khác hoặc phương thức khác |
-| ❌ **Thẻ Hết Hạn** | Thẻ quá hạn sử dụng | Sử dụng thẻ còn hiệu lực |
+| Thông Báo Lỗi               | Nguyên Nhân                | Giải Pháp                                                 |
+| --------------------------- | -------------------------- | --------------------------------------------------------- |
+| ❌ **Không Đủ Tiền**        | Vượt hạn mức tín dụng      | Yêu cầu khách dùng thẻ khác hoặc phương thức khác         |
+| ❌ **Thẻ Hết Hạn**          | Thẻ quá hạn sử dụng        | Sử dụng thẻ còn hiệu lực                                  |
 | ❌ **Giao Dịch Bị Từ Chối** | Ngân hàng từ chối xác thực | Đề nghị liên hệ ngân hàng phát hành hoặc phương thức khác |
-| ❌ **Kết Nối Thất Bại** | Vấn đề mạng | Thử lại thẻ hoặc dùng tiền mặt |
-| ❌ **Lỗi Đọc Thẻ** | Vạch từ/chip hỏng | Lau thẻ và thử lại hoặc dùng thẻ khác |
+| ❌ **Kết Nối Thất Bại**     | Vấn đề mạng                | Thử lại thẻ hoặc dùng tiền mặt                            |
+| ❌ **Lỗi Đọc Thẻ**          | Vạch từ/chip hỏng          | Lau thẻ và thử lại hoặc dùng thẻ khác                     |
 
 ---
 
@@ -615,6 +619,7 @@ Tùy Chọn C: In giấy
 ### In Lại Hóa Đơn
 
 **Khi nào cần in lại?**
+
 - Máy in hóa đơn kẹt giấy
 - Hóa đơn in không rõ
 - Khách mất hóa đơn
@@ -633,6 +638,7 @@ Tùy Chọn C: In giấy
 ```
 
 ⚠️ **Lưu Ý:**
+
 - Cùng một hóa đơn có thể in lại tối đa 3 lần
 - Hóa đơn in lại phải ghi chú "BẢN SAO"
 - Ghi lại thời gian và lý do in lại
@@ -643,6 +649,7 @@ Tùy Chọn C: In giấy
 ### Hủy Hóa Đơn
 
 **Khi nào hủy hóa đơn?**
+
 - Đơn hàng bị hủy
 - Thông tin hóa đơn sai (MST, tên)
 - Số tiền phát hành sai
@@ -1416,6 +1423,7 @@ Các bước:
 ### Đếm Tiền
 
 **Thời Điểm Đếm:**
+
 - Trước khi bắt đầu kinh doanh hàng ngày
 - Trong ca thay đổi
 - Sau khi kết thúc kinh doanh hàng ngày
@@ -1930,12 +1938,14 @@ Nếu thật sự có việc gấp:
 ### A. Cụm Từ Chuẩn Thu Ngân
 
 **Chào Hỏi:**
+
 ```
 "Xin chào, chào mừng quý khách!"
 "Xin chào, ăn tại chỗ hay mang đi?"
 ```
 
 **Trong Lúc Thanh Toán:**
+
 ```
 "Xin chào, quý khách sẵn sàng thanh toán chưa?"
 "Tổng cộng là $XXX"
@@ -1945,6 +1955,7 @@ Nếu thật sự có việc gấp:
 ```
 
 **Phát Hành Hóa Đơn:**
+
 ```
 "Quý khách có cần Mã Số Thuế không?"
 "Tên công ty là gì?"
@@ -1952,12 +1963,14 @@ Nếu thật sự có việc gấp:
 ```
 
 **Đưa Hóa Đơn:**
+
 ```
 "Đây là hóa đơn của quý khách, vui lòng giữ"
 "Cảm ơn đã dùng bữa, hẹn gặp lại!"
 ```
 
 **Gặp Vấn Đề:**
+
 ```
 "Xin lỗi, vui lòng đợi một chút"
 "Xin lỗi đã để quý khách đợi"
@@ -1968,17 +1981,17 @@ Nếu thật sự có việc gấp:
 
 ### B. Phím Tắt
 
-| Chức Năng | Phím Tắt |
-|----------|---------|
-| Tìm Nhanh | F1 |
-| Thanh Toán | F2 |
-| Hủy | ESC |
-| In Hóa Đơn | Ctrl+P |
-| In Lại | Ctrl+R |
-| Hoàn Tiền | Ctrl+Alt+R |
-| Khóa Màn Hình | Ctrl+L |
-| Đăng Xuất | Ctrl+Q |
-| Trợ Giúp | F12 |
+| Chức Năng     | Phím Tắt   |
+| ------------- | ---------- |
+| Tìm Nhanh     | F1         |
+| Thanh Toán    | F2         |
+| Hủy           | ESC        |
+| In Hóa Đơn    | Ctrl+P     |
+| In Lại        | Ctrl+R     |
+| Hoàn Tiền     | Ctrl+Alt+R |
+| Khóa Màn Hình | Ctrl+L     |
+| Đăng Xuất     | Ctrl+Q     |
+| Trợ Giúp      | F12        |
 
 ---
 
@@ -2044,10 +2057,10 @@ Kỹ Năng Cần Nâng Cao:
 
 ## 📝 Lịch Sử Phiên Bản
 
-| Phiên Bản | Ngày | Cập Nhật |
-|---------|------|---------|
-| 2.0 | 2025-10-26 | Phát hành ban đầu |
-| - | - | Sẽ cập nhật |
+| Phiên Bản | Ngày       | Cập Nhật          |
+| --------- | ---------- | ----------------- |
+| 2.0       | 2025-10-26 | Phát hành ban đầu |
+| -         | -          | Sẽ cập nhật       |
 
 ---
 
@@ -2058,6 +2071,7 @@ Cảm ơn bạn đã chọn trở thành thu ngân MakanMakan!
 Công việc thu ngân có vẻ đơn giản nhưng mang trách nhiệm lớn. Bạn là điểm tiếp xúc cuối cùng khách hàng có ở cửa hàng, và là người chính để lại ấn tượng cuối cùng.
 
 **Vui Lòng Nhớ:**
+
 - 💰 **Chính xác** là nguyên tắc đầu tiên của công việc thu ngân
 - 😊 **Lịch sự** là yêu cầu cơ bản của dịch vụ chất lượng
 - 🔒 **Trung thực** là giá trị cốt lõi của đạo đức nghề nghiệp

@@ -68,28 +68,35 @@
 ## 🔧 修復的問題
 
 ### 1. ✅ Validation 中間件錯誤響應缺少 `success` 字段
+
 **問題**: 所有驗證錯誤返回的響應缺少 `success: false` 字段
 **解決方案**: 在 `validation.ts` 中為所有錯誤響應添加 `success: false`
 
 ### 2. ✅ SQL 查詢使用錯誤的列名
+
 **問題**: 數據庫查詢使用 snake_case (`restaurant_id`) 而不是 camelCase (`restaurantId`)
 **解決方案**: 修正所有 SQL 查詢使用正確的列名
 
 ### 3. ✅ Get Group Details cartItems 查詢失敗
+
 **問題**: 查詢使用 `image_url` 而不是 `imageUrl`
 **解決方案**: 修正列名為 `imageUrl`
 
 ### 4. ✅ Add Cart Item itemId undefined 錯誤
+
 **問題**: 插入後的查詢失敗導致返回 undefined
 **解決方案**: 添加 fallback 機制,從插入數據構造響應
 
 ### 5. ✅ 測試使用無效 UUID 格式導致驗證失敗
+
 **問題**: 測試使用字符串如 'invalid-id' 而不是有效的 UUID 格式
 **解決方案**: 更新測試使用有效的 UUID 格式 (例如 '00000000-0000-0000-0000-000000000000')
 
 ### 6. ✅ Statistics 端點 Schema 驗證問題
+
 **問題**: Query parameter schema 在處理空值和可選參數時失敗
 **解決方案**: 修復 `statisticsQuerySchema` 以正確處理:
+
 - `timeRange`: 使用 `.default('month')` 提供默認值
 - `restaurantId`: 使用 `.optional()` 並正確轉換空字符串為 undefined
 - `startDate`/`endDate`: 使用 `.or(z.literal(''))` 處理空字符串

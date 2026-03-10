@@ -1,5 +1,5 @@
-import { DurableObject } from 'cloudflare:workers'
-import type { Env } from './types'
+import { DurableObject } from "cloudflare:workers";
+import type { Env } from "./types";
 
 /**
  * Advanced Durable Object with Enterprise-Grade Features:
@@ -12,135 +12,136 @@ import type { Env } from './types'
  */
 
 interface ConnectionInfo {
-  id: string
-  socket: WebSocket
-  userId: number
-  restaurantId: number
-  role: number
-  lastActivity: number
-  subscriptions: Set<string>
+  id: string;
+  socket: WebSocket;
+  userId: number;
+  restaurantId: number;
+  role: number;
+  lastActivity: number;
+  subscriptions: Set<string>;
   metadata: {
-    country: string
-    city: string
-    deviceType: string
-    sessionId: string
-  }
+    country: string;
+    city: string;
+    deviceType: string;
+    sessionId: string;
+  };
 }
 
 interface OrderState {
-  id: string
-  currentState: OrderLifecycleState
-  previousState?: OrderLifecycleState
-  restaurantId: number
+  id: string;
+  currentState: OrderLifecycleState;
+  previousState?: OrderLifecycleState;
+  restaurantId: number;
   transitions: Array<{
-    from: OrderLifecycleState
-    to: OrderLifecycleState
-    timestamp: number
-    triggeredBy: number
-    metadata?: any
-  }>
+    from: OrderLifecycleState;
+    to: OrderLifecycleState;
+    timestamp: number;
+    triggeredBy: number;
+    metadata?: any;
+  }>;
   estimatedTimes: {
-    preparation: number
-    ready: number
-    completion: number
-  }
-  priority: 'low' | 'normal' | 'high' | 'critical'
-  metadata: any
+    preparation: number;
+    ready: number;
+    completion: number;
+  };
+  priority: "low" | "normal" | "high" | "critical";
+  metadata: any;
 }
 
 interface GroupOrderState {
-  id: string
-  shareCode: string
-  status: 'active' | 'ordering' | 'checkout' | 'completed' | 'cancelled'
-  restaurantId: number
-  members: Map<string, GroupMember>
-  cart: Map<string, CartItem>
-  splitBills: Map<string, SplitBill>
-  host: GroupMember
+  id: string;
+  shareCode: string;
+  status: "active" | "ordering" | "checkout" | "completed" | "cancelled";
+  restaurantId: number;
+  members: Map<string, GroupMember>;
+  cart: Map<string, CartItem>;
+  splitBills: Map<string, SplitBill>;
+  host: GroupMember;
   settings: {
-    maxMembers: number
-    allowEditOthers: boolean
-    splitType: 'equal' | 'proportional' | 'individual' | 'custom'
-  }
-  totalAmount: number
-  lastActivity: number
-  createdAt: number
-  expiresAt: number
+    maxMembers: number;
+    allowEditOthers: boolean;
+    splitType: "equal" | "proportional" | "individual" | "custom";
+  };
+  totalAmount: number;
+  lastActivity: number;
+  createdAt: number;
+  expiresAt: number;
 }
 
 interface GroupMember {
-  id: string
-  sessionId: string
-  name: string
-  phone?: string
-  role: 'creator' | 'admin' | 'member'
-  joinedAt: number
-  lastActiveAt: number
-  isOnline: boolean
-  totalAmount: number
-  itemCount: number
-  paymentStatus: 'unpaid' | 'pending' | 'paid'
+  id: string;
+  sessionId: string;
+  name: string;
+  phone?: string;
+  role: "creator" | "admin" | "member";
+  joinedAt: number;
+  lastActiveAt: number;
+  isOnline: boolean;
+  totalAmount: number;
+  itemCount: number;
+  paymentStatus: "unpaid" | "pending" | "paid";
 }
 
 interface CartItem {
-  id: string
-  memberId: string
-  menuItemId: number
-  menuItemName: string
-  quantity: number
-  unitPrice: number
-  totalPrice: number
-  customizations: Record<string, any>
-  specialInstructions?: string
-  addedAt: number
-  updatedAt: number
-  version: number
+  id: string;
+  memberId: string;
+  menuItemId: number;
+  menuItemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  customizations: Record<string, any>;
+  specialInstructions?: string;
+  addedAt: number;
+  updatedAt: number;
+  version: number;
 }
 
 interface SplitBill {
-  id: string
-  memberId: string
-  subtotal: number
-  taxAmount: number
-  serviceCharge: number
-  totalAmount: number
-  items: string[]
-  paymentStatus: 'pending' | 'processing' | 'paid' | 'failed'
-  paymentMethod?: string
-  paidAt?: number
+  id: string;
+  memberId: string;
+  subtotal: number;
+  taxAmount: number;
+  serviceCharge: number;
+  totalAmount: number;
+  items: string[];
+  paymentStatus: "pending" | "processing" | "paid" | "failed";
+  paymentMethod?: string;
+  paidAt?: number;
 }
 
 enum OrderLifecycleState {
-  PENDING = 'pending',
-  CONFIRMED = 'confirmed',
-  PREPARING = 'preparing',
-  READY = 'ready',
-  SERVING = 'serving',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  PENDING = "pending",
+  CONFIRMED = "confirmed",
+  PREPARING = "preparing",
+  READY = "ready",
+  SERVING = "serving",
+  COMPLETED = "completed",
+  CANCELLED = "cancelled",
 }
 
 interface SessionState {
-  activeConnections: Map<string, ConnectionInfo>
-  orderStates: Map<string, OrderState>
-  groupOrderStates: Map<string, GroupOrderState>
-  restaurantMetrics: Map<number, any>
-  lastActivity: number
-  hibernated: boolean
-  totalMessages: number
-  errors: Array<{ timestamp: number; error: string; context: any }>
+  activeConnections: Map<string, ConnectionInfo>;
+  orderStates: Map<string, OrderState>;
+  groupOrderStates: Map<string, GroupOrderState>;
+  restaurantMetrics: Map<number, any>;
+  lastActivity: number;
+  hibernated: boolean;
+  totalMessages: number;
+  errors: Array<{ timestamp: number; error: string; context: any }>;
 }
 
 export class AdvancedRealtimeSession extends DurableObject {
-  private sessionState: SessionState
-  private stateTransitions: Map<OrderLifecycleState, OrderLifecycleState[]> = new Map()
-  private hibernationTimer?: number
-  private metricsTimer?: number
-  private cleanupTimer?: number
+  private sessionState: SessionState;
+  private stateTransitions: Map<OrderLifecycleState, OrderLifecycleState[]> =
+    new Map();
+  private hibernationTimer?: number;
+  private metricsTimer?: number;
+  private cleanupTimer?: number;
 
   constructor(state: DurableObjectState, env: Env) {
-    super(state, env)
-    
+    super(state, env);
+
     // Initialize session state
     this.sessionState = {
       activeConnections: new Map(),
@@ -150,25 +151,37 @@ export class AdvancedRealtimeSession extends DurableObject {
       lastActivity: Date.now(),
       hibernated: false,
       totalMessages: 0,
-      errors: []
-    }
+      errors: [],
+    };
 
     // Define valid state transitions for order lifecycle
     this.stateTransitions = new Map([
-      [OrderLifecycleState.PENDING, [OrderLifecycleState.CONFIRMED, OrderLifecycleState.CANCELLED]],
-      [OrderLifecycleState.CONFIRMED, [OrderLifecycleState.PREPARING, OrderLifecycleState.CANCELLED]],
-      [OrderLifecycleState.PREPARING, [OrderLifecycleState.READY, OrderLifecycleState.CANCELLED]],
-      [OrderLifecycleState.READY, [OrderLifecycleState.SERVING, OrderLifecycleState.CANCELLED]],
+      [
+        OrderLifecycleState.PENDING,
+        [OrderLifecycleState.CONFIRMED, OrderLifecycleState.CANCELLED],
+      ],
+      [
+        OrderLifecycleState.CONFIRMED,
+        [OrderLifecycleState.PREPARING, OrderLifecycleState.CANCELLED],
+      ],
+      [
+        OrderLifecycleState.PREPARING,
+        [OrderLifecycleState.READY, OrderLifecycleState.CANCELLED],
+      ],
+      [
+        OrderLifecycleState.READY,
+        [OrderLifecycleState.SERVING, OrderLifecycleState.CANCELLED],
+      ],
       [OrderLifecycleState.SERVING, [OrderLifecycleState.COMPLETED]],
       [OrderLifecycleState.COMPLETED, []],
-      [OrderLifecycleState.CANCELLED, []]
-    ])
+      [OrderLifecycleState.CANCELLED, []],
+    ]);
 
     // Initialize persistent state
     state.blockConcurrencyWhile(async () => {
-      await this.loadPersistedState()
-      this.startBackgroundTasks()
-    })
+      await this.loadPersistedState();
+      this.startBackgroundTasks();
+    });
   }
 
   /**
@@ -177,27 +190,26 @@ export class AdvancedRealtimeSession extends DurableObject {
   async fetch(request: Request): Promise<Response> {
     try {
       // Handle different endpoint types
-      const url = new URL(request.url)
-      const path = url.pathname
+      const url = new URL(request.url);
+      const path = url.pathname;
 
-      if (path === '/websocket') {
-        return this.handleWebSocketUpgrade(request)
-      } else if (path === '/broadcast') {
-        return this.handleCrossObjectBroadcast(request)
-      } else if (path === '/state') {
-        return this.handleStateQuery(request)
-      } else if (path === '/health') {
-        return this.handleHealthCheck(request)
-      } else if (path === '/hibernate') {
-        return this.handleHibernation(request)
+      if (path === "/websocket") {
+        return this.handleWebSocketUpgrade(request);
+      } else if (path === "/broadcast") {
+        return this.handleCrossObjectBroadcast(request);
+      } else if (path === "/state") {
+        return this.handleStateQuery(request);
+      } else if (path === "/health") {
+        return this.handleHealthCheck(request);
+      } else if (path === "/hibernate") {
+        return this.handleHibernation(request);
       }
 
-      return new Response('Not Found', { status: 404 })
-
+      return new Response("Not Found", { status: 404 });
     } catch (error) {
-      console.error('AdvancedRealtimeSession error:', error)
-      this.recordError(error, { path: new URL(request.url).pathname })
-      return new Response('Internal Server Error', { status: 500 })
+      console.error("AdvancedRealtimeSession error:", error);
+      this.recordError(error, { path: new URL(request.url).pathname });
+      return new Response("Internal Server Error", { status: 500 });
     }
   }
 
@@ -205,23 +217,23 @@ export class AdvancedRealtimeSession extends DurableObject {
    * Handle WebSocket upgrade with enhanced connection management
    */
   private async handleWebSocketUpgrade(request: Request): Promise<Response> {
-    const upgradeHeader = request.headers.get('Upgrade')
-    if (!upgradeHeader || upgradeHeader !== 'websocket') {
-      return new Response('Expected Upgrade: websocket', { status: 426 })
+    const upgradeHeader = request.headers.get("Upgrade");
+    if (!upgradeHeader || upgradeHeader !== "websocket") {
+      return new Response("Expected Upgrade: websocket", { status: 426 });
     }
 
     // Extract connection metadata
-    const url = new URL(request.url)
-    const userId = parseInt(url.searchParams.get('userId') || '0')
-    const restaurantId = parseInt(url.searchParams.get('restaurantId') || '0')
-    const role = parseInt(url.searchParams.get('role') || '0')
-    const sessionId = url.searchParams.get('sessionId') || crypto.randomUUID()
+    const url = new URL(request.url);
+    const userId = parseInt(url.searchParams.get("userId") || "0");
+    const restaurantId = parseInt(url.searchParams.get("restaurantId") || "0");
+    const role = parseInt(url.searchParams.get("role") || "0");
+    const sessionId = url.searchParams.get("sessionId") || crypto.randomUUID();
 
     // Create WebSocket pair
-    const [client, server] = Object.values(new WebSocketPair())
+    const [client, server] = Object.values(new WebSocketPair());
 
     // Accept WebSocket connection
-    server.accept()
+    server.accept();
 
     // Create connection info
     const connectionInfo: ConnectionInfo = {
@@ -233,147 +245,151 @@ export class AdvancedRealtimeSession extends DurableObject {
       lastActivity: Date.now(),
       subscriptions: new Set(),
       metadata: {
-        country: request.headers.get('CF-IPCountry') || 'unknown',
-        city: request.headers.get('CF-IPCity') || 'unknown',
-        deviceType: this.detectDeviceType(request.headers.get('User-Agent') || ''),
-        sessionId
-      }
-    }
+        country: request.headers.get("CF-IPCountry") || "unknown",
+        city: request.headers.get("CF-IPCity") || "unknown",
+        deviceType: this.detectDeviceType(
+          request.headers.get("User-Agent") || "",
+        ),
+        sessionId,
+      },
+    };
 
     // Store connection
-    this.sessionState.activeConnections.set(connectionInfo.id, connectionInfo)
-    this.sessionState.lastActivity = Date.now()
+    this.sessionState.activeConnections.set(connectionInfo.id, connectionInfo);
+    this.sessionState.lastActivity = Date.now();
 
     // Set up message handlers
-    this.setupWebSocketHandlers(connectionInfo)
+    this.setupWebSocketHandlers(connectionInfo);
 
     // Send welcome message with state synchronization
-    await this.sendConnectionWelcome(connectionInfo)
+    await this.sendConnectionWelcome(connectionInfo);
 
     // Persist connection state
-    await this.persistConnectionState()
+    await this.persistConnectionState();
 
     // Record analytics
-    this.recordConnectionAnalytics('connect', connectionInfo)
+    this.recordConnectionAnalytics("connect", connectionInfo);
 
-    return new Response(null, { status: 101, webSocket: client })
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   /**
    * Set up WebSocket message handlers with advanced features
    */
   private setupWebSocketHandlers(connectionInfo: ConnectionInfo): void {
-    const { socket } = connectionInfo
+    const { socket } = connectionInfo;
 
-    socket.addEventListener('message', async (event) => {
+    socket.addEventListener("message", async (event) => {
       try {
-        connectionInfo.lastActivity = Date.now()
-        this.sessionState.lastActivity = Date.now()
-        this.sessionState.totalMessages++
+        connectionInfo.lastActivity = Date.now();
+        this.sessionState.lastActivity = Date.now();
+        this.sessionState.totalMessages++;
 
-        const message = JSON.parse(event.data as string)
-        
+        const message = JSON.parse(event.data as string);
+
         // Handle different message types
         switch (message.type) {
-          case 'subscribe':
-            await this.handleSubscription(connectionInfo, message.data)
-            break
-          
-          case 'order_state_change':
-            await this.handleOrderStateChange(connectionInfo, message.data)
-            break
-          
-          case 'broadcast':
-            await this.handleBroadcastMessage(connectionInfo, message.data)
-            break
-          
-          case 'heartbeat':
-            await this.handleHeartbeat(connectionInfo)
-            break
-          
-          case 'request_state_sync':
-            await this.handleStateSyncRequest(connectionInfo, message.data)
-            break
+          case "subscribe":
+            await this.handleSubscription(connectionInfo, message.data);
+            break;
+
+          case "order_state_change":
+            await this.handleOrderStateChange(connectionInfo, message.data);
+            break;
+
+          case "broadcast":
+            await this.handleBroadcastMessage(connectionInfo, message.data);
+            break;
+
+          case "heartbeat":
+            await this.handleHeartbeat(connectionInfo);
+            break;
+
+          case "request_state_sync":
+            await this.handleStateSyncRequest(connectionInfo, message.data);
+            break;
 
           // Group order specific messages
-          case 'join_group_order':
-            await this.handleJoinGroupOrder(connectionInfo, message.data)
-            break
+          case "join_group_order":
+            await this.handleJoinGroupOrder(connectionInfo, message.data);
+            break;
 
-          case 'leave_group_order':
-            await this.handleLeaveGroupOrder(connectionInfo, message.data)
-            break
+          case "leave_group_order":
+            await this.handleLeaveGroupOrder(connectionInfo, message.data);
+            break;
 
-          case 'add_cart_item':
-            await this.handleAddCartItem(connectionInfo, message.data)
-            break
+          case "add_cart_item":
+            await this.handleAddCartItem(connectionInfo, message.data);
+            break;
 
-          case 'update_cart_item':
-            await this.handleUpdateCartItem(connectionInfo, message.data)
-            break
+          case "update_cart_item":
+            await this.handleUpdateCartItem(connectionInfo, message.data);
+            break;
 
-          case 'remove_cart_item':
-            await this.handleRemoveCartItem(connectionInfo, message.data)
-            break
+          case "remove_cart_item":
+            await this.handleRemoveCartItem(connectionInfo, message.data);
+            break;
 
-          case 'initiate_split_bill':
-            await this.handleInitiateSplitBill(connectionInfo, message.data)
-            break
+          case "initiate_split_bill":
+            await this.handleInitiateSplitBill(connectionInfo, message.data);
+            break;
 
-          case 'process_payment':
-            await this.handleProcessPayment(connectionInfo, message.data)
-            break
-          
+          case "process_payment":
+            await this.handleProcessPayment(connectionInfo, message.data);
+            break;
+
           default:
             await this.sendMessage(connectionInfo, {
-              type: 'error',
-              error: 'Unknown message type',
-              originalMessage: message
-            })
+              type: "error",
+              error: "Unknown message type",
+              originalMessage: message,
+            });
         }
 
         // Record message analytics
-        this.recordMessageAnalytics(connectionInfo, message)
-
+        this.recordMessageAnalytics(connectionInfo, message);
       } catch (error) {
-        console.error('Message handling error:', error)
-        this.recordError(error, { connectionId: connectionInfo.id, message: event.data })
-        
+        console.error("Message handling error:", error);
+        this.recordError(error, {
+          connectionId: connectionInfo.id,
+          message: event.data,
+        });
+
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Message processing failed',
-          timestamp: Date.now()
-        })
+          type: "error",
+          error: "Message processing failed",
+          timestamp: Date.now(),
+        });
       }
-    })
+    });
 
-    socket.addEventListener('close', async () => {
-      await this.handleConnectionClose(connectionInfo)
-    })
+    socket.addEventListener("close", async () => {
+      await this.handleConnectionClose(connectionInfo);
+    });
 
-    socket.addEventListener('error', async (error) => {
-      console.error('WebSocket error:', error)
-      this.recordError(error, { connectionId: connectionInfo.id })
-      await this.handleConnectionClose(connectionInfo)
-    })
+    socket.addEventListener("error", async (error) => {
+      console.error("WebSocket error:", error);
+      this.recordError(error, { connectionId: connectionInfo.id });
+      await this.handleConnectionClose(connectionInfo);
+    });
   }
 
   /**
    * Advanced order state machine with validation and persistence
    */
   async handleOrderStateChange(
-    connectionInfo: ConnectionInfo, 
+    connectionInfo: ConnectionInfo,
     data: {
-      orderId: string
-      newState: OrderLifecycleState
-      metadata?: any
-      estimatedTimes?: any
-    }
+      orderId: string;
+      newState: OrderLifecycleState;
+      metadata?: any;
+      estimatedTimes?: any;
+    },
   ): Promise<void> {
-    const { orderId, newState, metadata, estimatedTimes } = data
+    const { orderId, newState, metadata, estimatedTimes } = data;
 
     // Get current order state
-    let orderState = this.sessionState.orderStates.get(orderId)
+    let orderState = this.sessionState.orderStates.get(orderId);
 
     if (!orderState) {
       // Create new order state
@@ -382,22 +398,27 @@ export class AdvancedRealtimeSession extends DurableObject {
         currentState: OrderLifecycleState.PENDING,
         restaurantId: connectionInfo.restaurantId,
         transitions: [],
-        estimatedTimes: estimatedTimes || { preparation: 0, ready: 0, completion: 0 },
-        priority: 'normal',
-        metadata: metadata || {}
-      }
+        estimatedTimes: estimatedTimes || {
+          preparation: 0,
+          ready: 0,
+          completion: 0,
+        },
+        priority: "normal",
+        metadata: metadata || {},
+      };
     }
 
     // Validate state transition
-    const validTransitions = this.stateTransitions.get(orderState.currentState) || []
+    const validTransitions =
+      this.stateTransitions.get(orderState.currentState) || [];
     if (!validTransitions.includes(newState)) {
       await this.sendMessage(connectionInfo, {
-        type: 'error',
+        type: "error",
         error: `Invalid state transition from ${orderState.currentState} to ${newState}`,
         orderId,
-        validTransitions
-      })
-      return
+        validTransitions,
+      });
+      return;
     }
 
     // Record transition
@@ -406,76 +427,90 @@ export class AdvancedRealtimeSession extends DurableObject {
       to: newState,
       timestamp: Date.now(),
       triggeredBy: connectionInfo.userId,
-      metadata
-    }
+      metadata,
+    };
 
-    orderState.transitions.push(transition)
-    orderState.previousState = orderState.currentState
-    orderState.currentState = newState
+    orderState.transitions.push(transition);
+    orderState.previousState = orderState.currentState;
+    orderState.currentState = newState;
 
     if (estimatedTimes) {
-      orderState.estimatedTimes = { ...orderState.estimatedTimes, ...estimatedTimes }
+      orderState.estimatedTimes = {
+        ...orderState.estimatedTimes,
+        ...estimatedTimes,
+      };
     }
 
     // Store updated state
-    this.sessionState.orderStates.set(orderId, orderState)
+    this.sessionState.orderStates.set(orderId, orderState);
 
     // Persist to durable storage
-    await this.ctx.storage.put(`order:${orderId}`, orderState)
+    await this.ctx.storage.put(`order:${orderId}`, orderState);
 
     // Broadcast to relevant subscribers
-    await this.broadcastOrderStateChange(orderState, transition)
+    await this.broadcastOrderStateChange(orderState, transition);
 
     // Cross-object notification for distributed coordination
-    await this.notifyOtherRestaurantSessions(orderState, transition)
+    await this.notifyOtherRestaurantSessions(orderState, transition);
 
     // Record analytics
-    this.recordOrderStateAnalytics(orderState, transition, connectionInfo)
+    this.recordOrderStateAnalytics(orderState, transition, connectionInfo);
 
     // Update restaurant metrics
-    await this.updateRestaurantMetrics(connectionInfo.restaurantId, orderState, transition)
+    await this.updateRestaurantMetrics(
+      connectionInfo.restaurantId,
+      orderState,
+      transition,
+    );
   }
 
   /**
    * Cross-object communication for distributed coordination
    */
   async notifyOtherRestaurantSessions(
-    orderState: OrderState, 
-    transition: any
+    orderState: OrderState,
+    transition: any,
   ): Promise<void> {
     try {
       // Get other restaurant sessions that need to be notified
-      const relatedSessions = [`admin:${orderState.restaurantId}`, `kitchen:${orderState.restaurantId}`]
+      const relatedSessions = [
+        `admin:${orderState.restaurantId}`,
+        `kitchen:${orderState.restaurantId}`,
+      ];
 
       const promises = relatedSessions.map(async (sessionName) => {
         try {
-          const id = (this.env as any).REALTIME_SESSION.idFromName(sessionName)
-          const obj = (this.env as any).REALTIME_SESSION.get(id)
+          const id = (this.env as any).REALTIME_SESSION.idFromName(sessionName);
+          const obj = (this.env as any).REALTIME_SESSION.get(id);
 
-          const response = await obj.fetch(new Request('http://localhost/broadcast', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'order_state_change',
-              orderId: orderState.id,
-              orderState,
-              transition,
-              source: 'cross_object_notification'
-            })
-          }))
+          const response = await obj.fetch(
+            new Request("http://localhost/broadcast", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "order_state_change",
+                orderId: orderState.id,
+                orderState,
+                transition,
+                source: "cross_object_notification",
+              }),
+            }),
+          );
 
           if (!response.ok) {
-            throw new Error(`Cross-object notification failed: ${response.status}`)
+            throw new Error(
+              `Cross-object notification failed: ${response.status}`,
+            );
           }
         } catch (error) {
-          console.error(`Failed to notify session ${sessionName}:`, error)
+          console.error(`Failed to notify session ${sessionName}:`, error);
         }
-      })
+      });
 
-      await Promise.allSettled(promises)
+      await Promise.allSettled(promises);
     } catch (error) {
-      console.error('Cross-object notification error:', error)
-      this.recordError(error, { orderId: orderState.id })
+      console.error("Cross-object notification error:", error);
+      this.recordError(error, { orderId: orderState.id });
     }
   }
 
@@ -484,32 +519,35 @@ export class AdvancedRealtimeSession extends DurableObject {
    */
   async handleHibernation(request: Request): Promise<Response> {
     try {
-      if (request.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 })
+      if (request.method !== "POST") {
+        return new Response("Method not allowed", { status: 405 });
       }
 
-      const inactiveThreshold = 30 * 60 * 1000 // 30 minutes
-      const now = Date.now()
+      const inactiveThreshold = 30 * 60 * 1000; // 30 minutes
+      const now = Date.now();
 
       // Check if we should hibernate
-      const shouldHibernate = 
+      const shouldHibernate =
         this.sessionState.activeConnections.size === 0 ||
-        (now - this.sessionState.lastActivity) > inactiveThreshold
+        now - this.sessionState.lastActivity > inactiveThreshold;
 
       if (shouldHibernate) {
-        await this.hibernateSession()
-        return new Response(JSON.stringify({ hibernated: true, timestamp: now }))
+        await this.hibernateSession();
+        return new Response(
+          JSON.stringify({ hibernated: true, timestamp: now }),
+        );
       }
 
-      return new Response(JSON.stringify({ 
-        hibernated: false, 
-        activeConnections: this.sessionState.activeConnections.size,
-        lastActivity: this.sessionState.lastActivity
-      }))
-
+      return new Response(
+        JSON.stringify({
+          hibernated: false,
+          activeConnections: this.sessionState.activeConnections.size,
+          lastActivity: this.sessionState.lastActivity,
+        }),
+      );
     } catch (error) {
-      console.error('Hibernation error:', error)
-      return new Response('Hibernation failed', { status: 500 })
+      console.error("Hibernation error:", error);
+      return new Response("Hibernation failed", { status: 500 });
     }
   }
 
@@ -522,38 +560,38 @@ export class AdvancedRealtimeSession extends DurableObject {
       for (const [_id, conn] of this.sessionState.activeConnections) {
         try {
           await this.sendMessage(conn, {
-            type: 'hibernating',
-            message: 'Session hibernating due to inactivity',
-            reconnect_after: 1000
-          })
-          
-          conn.socket.close(1000, 'Session hibernating')
+            type: "hibernating",
+            message: "Session hibernating due to inactivity",
+            reconnect_after: 1000,
+          });
+
+          conn.socket.close(1000, "Session hibernating");
         } catch (error) {
-          console.error(`Failed to close connection ${_id}:`, error)
+          console.error(`Failed to close connection ${_id}:`, error);
         }
       }
 
       // Persist hibernation state
-      await this.ctx.storage.put('hibernation_state', {
+      await this.ctx.storage.put("hibernation_state", {
         hibernatedAt: Date.now(),
         activeConnectionsCount: this.sessionState.activeConnections.size,
         orderStatesCount: this.sessionState.orderStates.size,
-        totalMessages: this.sessionState.totalMessages
-      })
+        totalMessages: this.sessionState.totalMessages,
+      });
 
       // Clear in-memory state
-      this.sessionState.activeConnections.clear()
-      this.sessionState.hibernated = true
+      this.sessionState.activeConnections.clear();
+      this.sessionState.hibernated = true;
 
       // Clear timers
-      if (this.hibernationTimer) clearInterval(this.hibernationTimer)
-      if (this.metricsTimer) clearInterval(this.metricsTimer)
-      if (this.cleanupTimer) clearInterval(this.cleanupTimer)
+      if (this.hibernationTimer) clearInterval(this.hibernationTimer);
+      if (this.metricsTimer) clearInterval(this.metricsTimer);
+      if (this.cleanupTimer) clearInterval(this.cleanupTimer);
 
-      console.log('Session hibernated successfully')
+      console.log("Session hibernated successfully");
     } catch (error) {
-      console.error('Hibernation failed:', error)
-      this.recordError(error, { operation: 'hibernation' })
+      console.error("Hibernation failed:", error);
+      this.recordError(error, { operation: "hibernation" });
     }
   }
 
@@ -563,51 +601,61 @@ export class AdvancedRealtimeSession extends DurableObject {
   private async loadPersistedState(): Promise<void> {
     try {
       // Load order states
-      const orderStates = await this.ctx.storage.list<OrderState>({ prefix: 'order:' })
+      const orderStates = await this.ctx.storage.list<OrderState>({
+        prefix: "order:",
+      });
       for (const [key, orderState] of orderStates) {
-        const orderId = key.replace('order:', '')
-        this.sessionState.orderStates.set(orderId, orderState)
+        const orderId = key.replace("order:", "");
+        this.sessionState.orderStates.set(orderId, orderState);
       }
 
       // Load group order states
-      const groupOrderStates = await this.ctx.storage.list({ prefix: 'group_order:' })
+      const groupOrderStates = await this.ctx.storage.list({
+        prefix: "group_order:",
+      });
       for (const [key, groupOrderData] of groupOrderStates) {
-        const groupOrderId = key.replace('group_order:', '')
-        
+        const groupOrderId = key.replace("group_order:", "");
+
         // Deserialize group order
         const groupOrder: GroupOrderState = {
-          ...groupOrderData as any,
-          members: new Map(Object.entries((groupOrderData as any).members || {})),
+          ...(groupOrderData as any),
+          members: new Map(
+            Object.entries((groupOrderData as any).members || {}),
+          ),
           cart: new Map(Object.entries((groupOrderData as any).cart || {})),
-          splitBills: new Map(Object.entries((groupOrderData as any).splitBills || {}))
-        }
-        
+          splitBills: new Map(
+            Object.entries((groupOrderData as any).splitBills || {}),
+          ),
+        };
+
         // Only load non-expired group orders
         if (groupOrder.expiresAt > Date.now()) {
-          this.sessionState.groupOrderStates.set(groupOrderId, groupOrder)
+          this.sessionState.groupOrderStates.set(groupOrderId, groupOrder);
         } else {
           // Clean up expired group order
-          await this.ctx.storage.delete(key)
+          await this.ctx.storage.delete(key);
         }
       }
 
       // Load restaurant metrics
-      const metrics = await this.ctx.storage.list({ prefix: 'metrics:' })
+      const metrics = await this.ctx.storage.list({ prefix: "metrics:" });
       for (const [key, metric] of metrics) {
-        const restaurantId = parseInt(key.replace('metrics:', ''))
-        this.sessionState.restaurantMetrics.set(restaurantId, metric)
+        const restaurantId = parseInt(key.replace("metrics:", ""));
+        this.sessionState.restaurantMetrics.set(restaurantId, metric);
       }
 
       // Load hibernation state if exists
-      const hibernationState = await this.ctx.storage.get('hibernation_state')
+      const hibernationState = await this.ctx.storage.get("hibernation_state");
       if (hibernationState) {
-        console.log('Restored from hibernation:', hibernationState)
+        console.log("Restored from hibernation:", hibernationState);
       }
 
-      console.log(`Loaded ${this.sessionState.orderStates.size} order states, ${this.sessionState.groupOrderStates.size} group order states, and ${this.sessionState.restaurantMetrics.size} restaurant metrics`)
+      console.log(
+        `Loaded ${this.sessionState.orderStates.size} order states, ${this.sessionState.groupOrderStates.size} group order states, and ${this.sessionState.restaurantMetrics.size} restaurant metrics`,
+      );
     } catch (error) {
-      console.error('Failed to load persisted state:', error)
-      this.recordError(error, { operation: 'load_state' })
+      console.error("Failed to load persisted state:", error);
+      this.recordError(error, { operation: "load_state" });
     }
   }
 
@@ -616,31 +664,42 @@ export class AdvancedRealtimeSession extends DurableObject {
    */
   private startBackgroundTasks(): void {
     // Hibernation check every 5 minutes
-    this.hibernationTimer = setInterval(async () => {
-      const inactiveThreshold = 30 * 60 * 1000 // 30 minutes
-      const now = Date.now()
+    this.hibernationTimer = setInterval(
+      async () => {
+        const inactiveThreshold = 30 * 60 * 1000; // 30 minutes
+        const now = Date.now();
 
-      if (this.sessionState.activeConnections.size === 0 && 
-          (now - this.sessionState.lastActivity) > inactiveThreshold) {
-        await this.hibernateSession()
-      }
-    }, 5 * 60 * 1000) as any
+        if (
+          this.sessionState.activeConnections.size === 0 &&
+          now - this.sessionState.lastActivity > inactiveThreshold
+        ) {
+          await this.hibernateSession();
+        }
+      },
+      5 * 60 * 1000,
+    ) as any;
 
     // Metrics collection every minute
     this.metricsTimer = setInterval(async () => {
-      await this.collectAndSendMetrics()
-    }, 60 * 1000) as any
+      await this.collectAndSendMetrics();
+    }, 60 * 1000) as any;
 
     // Cleanup old data every hour
-    this.cleanupTimer = setInterval(async () => {
-      await this.cleanupOldData()
-    }, 60 * 60 * 1000) as any
+    this.cleanupTimer = setInterval(
+      async () => {
+        await this.cleanupOldData();
+      },
+      60 * 60 * 1000,
+    ) as any;
   }
 
   /**
    * Send comprehensive analytics to Workers Analytics
    */
-  private recordConnectionAnalytics(event: string, connectionInfo: ConnectionInfo): void {
+  private recordConnectionAnalytics(
+    event: string,
+    connectionInfo: ConnectionInfo,
+  ): void {
     if ((this.env as any).ANALYTICS_ENGINE) {
       (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
         blobs: [
@@ -650,52 +709,55 @@ export class AdvancedRealtimeSession extends DurableObject {
           connectionInfo.metadata.country,
           connectionInfo.metadata.city,
           connectionInfo.metadata.deviceType,
-          connectionInfo.metadata.sessionId
+          connectionInfo.metadata.sessionId,
         ],
         doubles: [Date.now(), connectionInfo.role],
-        indexes: [connectionInfo.restaurantId, connectionInfo.userId]
-      }).catch((error: any) => console.error('Analytics error:', error))
+        indexes: [connectionInfo.restaurantId, connectionInfo.userId],
+      }).catch((error: any) => console.error("Analytics error:", error));
     }
   }
 
   private recordOrderStateAnalytics(
-    orderState: OrderState, 
-    transition: any, 
-    connectionInfo: ConnectionInfo
+    orderState: OrderState,
+    transition: any,
+    connectionInfo: ConnectionInfo,
   ): void {
     if ((this.env as any).ANALYTICS_ENGINE) {
       (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
         blobs: [
-          'order_state_transition',
+          "order_state_transition",
           orderState.id,
           transition.from,
           transition.to,
           orderState.priority,
-          connectionInfo.userId.toString()
+          connectionInfo.userId.toString(),
         ],
         doubles: [
           transition.timestamp,
           orderState.estimatedTimes.preparation,
           orderState.estimatedTimes.ready,
-          orderState.estimatedTimes.completion
+          orderState.estimatedTimes.completion,
         ],
-        indexes: [orderState.restaurantId, connectionInfo.userId]
-      }).catch((error: any) => console.error('Analytics error:', error))
+        indexes: [orderState.restaurantId, connectionInfo.userId],
+      }).catch((error: any) => console.error("Analytics error:", error));
     }
   }
 
-  private recordMessageAnalytics(connectionInfo: ConnectionInfo, message: any): void {
+  private recordMessageAnalytics(
+    connectionInfo: ConnectionInfo,
+    message: any,
+  ): void {
     if ((this.env as any).ANALYTICS_ENGINE) {
       (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
         blobs: [
-          'websocket_message',
-          message.type || 'unknown',
+          "websocket_message",
+          message.type || "unknown",
           connectionInfo.metadata.deviceType,
-          connectionInfo.metadata.country
+          connectionInfo.metadata.country,
         ],
         doubles: [Date.now(), JSON.stringify(message).length],
-        indexes: [connectionInfo.restaurantId, connectionInfo.userId]
-      }).catch((error: any) => console.error('Analytics error:', error))
+        indexes: [connectionInfo.restaurantId, connectionInfo.userId],
+      }).catch((error: any) => console.error("Analytics error:", error));
     }
   }
 
@@ -703,100 +765,132 @@ export class AdvancedRealtimeSession extends DurableObject {
     this.sessionState.errors.push({
       timestamp: Date.now(),
       error: error instanceof Error ? error.message : String(error),
-      context
-    })
+      context,
+    });
 
     // Keep only last 100 errors
     if (this.sessionState.errors.length > 100) {
-      this.sessionState.errors = this.sessionState.errors.slice(-100)
+      this.sessionState.errors = this.sessionState.errors.slice(-100);
     }
   }
 
   // Helper methods
   private detectDeviceType(userAgent: string): string {
-    if (/Mobile|Android|iPhone|iPad/.test(userAgent)) return 'mobile'
-    if (/Tablet/.test(userAgent)) return 'tablet'
-    return 'desktop'
+    if (/Mobile|Android|iPhone|iPad/.test(userAgent)) return "mobile";
+    if (/Tablet/.test(userAgent)) return "tablet";
+    return "desktop";
   }
 
-  private async sendMessage(connectionInfo: ConnectionInfo, message: any): Promise<void> {
+  private async sendMessage(
+    connectionInfo: ConnectionInfo,
+    message: any,
+  ): Promise<void> {
     try {
       if (connectionInfo.socket.readyState === WebSocket.OPEN) {
-        connectionInfo.socket.send(JSON.stringify({
-          ...message,
-          timestamp: Date.now(),
-          connectionId: connectionInfo.id
-        }))
+        connectionInfo.socket.send(
+          JSON.stringify({
+            ...message,
+            timestamp: Date.now(),
+            connectionId: connectionInfo.id,
+          }),
+        );
       }
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error("Failed to send message:", error);
     }
   }
 
-  private async broadcastOrderStateChange(orderState: OrderState, transition: any): Promise<void> {
+  private async broadcastOrderStateChange(
+    orderState: OrderState,
+    transition: any,
+  ): Promise<void> {
     const message = {
-      type: 'order_state_changed',
+      type: "order_state_changed",
       orderId: orderState.id,
       currentState: orderState.currentState,
       previousState: orderState.previousState,
       transition,
-      estimatedTimes: orderState.estimatedTimes
-    }
+      estimatedTimes: orderState.estimatedTimes,
+    };
 
     // Broadcast to relevant connections
     for (const [_id, conn] of this.sessionState.activeConnections) {
-      if (conn.restaurantId === orderState.restaurantId && 
-          conn.subscriptions.has(`order:${orderState.id}`)) {
-        await this.sendMessage(conn, message)
+      if (
+        conn.restaurantId === orderState.restaurantId &&
+        conn.subscriptions.has(`order:${orderState.id}`)
+      ) {
+        await this.sendMessage(conn, message);
       }
     }
   }
 
   // Additional helper methods would continue here...
-  private async handleSubscription(_connectionInfo: ConnectionInfo, _data: any): Promise<void> {
+  private async handleSubscription(
+    _connectionInfo: ConnectionInfo,
+    _data: any,
+  ): Promise<void> {
     // Implementation for handling subscriptions
   }
 
-  private async handleBroadcastMessage(_connectionInfo: ConnectionInfo, _data: any): Promise<void> {
+  private async handleBroadcastMessage(
+    _connectionInfo: ConnectionInfo,
+    _data: any,
+  ): Promise<void> {
     // Implementation for handling broadcast messages
   }
 
   private async handleHeartbeat(connectionInfo: ConnectionInfo): Promise<void> {
-    await this.sendMessage(connectionInfo, { type: 'heartbeat_ack', timestamp: Date.now() })
+    await this.sendMessage(connectionInfo, {
+      type: "heartbeat_ack",
+      timestamp: Date.now(),
+    });
   }
 
-  private async handleStateSyncRequest(_connectionInfo: ConnectionInfo, _data: any): Promise<void> {
+  private async handleStateSyncRequest(
+    _connectionInfo: ConnectionInfo,
+    _data: any,
+  ): Promise<void> {
     // Implementation for state synchronization
   }
 
-  private async handleConnectionClose(connectionInfo: ConnectionInfo): Promise<void> {
-    this.sessionState.activeConnections.delete(connectionInfo.id)
-    this.recordConnectionAnalytics('disconnect', connectionInfo)
+  private async handleConnectionClose(
+    connectionInfo: ConnectionInfo,
+  ): Promise<void> {
+    this.sessionState.activeConnections.delete(connectionInfo.id);
+    this.recordConnectionAnalytics("disconnect", connectionInfo);
   }
 
-  private async handleCrossObjectBroadcast(_request: Request): Promise<Response> {
+  private async handleCrossObjectBroadcast(
+    _request: Request,
+  ): Promise<Response> {
     // Implementation for cross-object communication
-    return new Response('OK')
+    return new Response("OK");
   }
 
   private async handleStateQuery(_request: Request): Promise<Response> {
-    return new Response(JSON.stringify({
-      activeConnections: this.sessionState.activeConnections.size,
-      orderStates: this.sessionState.orderStates.size,
-      lastActivity: this.sessionState.lastActivity
-    }))
+    return new Response(
+      JSON.stringify({
+        activeConnections: this.sessionState.activeConnections.size,
+        orderStates: this.sessionState.orderStates.size,
+        lastActivity: this.sessionState.lastActivity,
+      }),
+    );
   }
 
   private async handleHealthCheck(_request: Request): Promise<Response> {
-    return new Response(JSON.stringify({
-      healthy: true,
-      connections: this.sessionState.activeConnections.size,
-      orders: this.sessionState.orderStates.size,
-      uptime: Date.now() - this.sessionState.lastActivity
-    }))
+    return new Response(
+      JSON.stringify({
+        healthy: true,
+        connections: this.sessionState.activeConnections.size,
+        orders: this.sessionState.orderStates.size,
+        uptime: Date.now() - this.sessionState.lastActivity,
+      }),
+    );
   }
 
-  private async sendConnectionWelcome(_connectionInfo: ConnectionInfo): Promise<void> {
+  private async sendConnectionWelcome(
+    _connectionInfo: ConnectionInfo,
+  ): Promise<void> {
     // Implementation for welcome message
   }
 
@@ -804,7 +898,11 @@ export class AdvancedRealtimeSession extends DurableObject {
     // Implementation for persisting connection state
   }
 
-  private async updateRestaurantMetrics(_restaurantId: number, _orderState: OrderState, _transition: any): Promise<void> {
+  private async updateRestaurantMetrics(
+    _restaurantId: number,
+    _orderState: OrderState,
+    _transition: any,
+  ): Promise<void> {
     // Implementation for updating restaurant metrics
   }
 
@@ -818,195 +916,204 @@ export class AdvancedRealtimeSession extends DurableObject {
   async handleJoinGroupOrder(
     connectionInfo: ConnectionInfo,
     data: {
-      shareCode: string
-      memberName: string
-      phone?: string
-    }
+      shareCode: string;
+      memberName: string;
+      phone?: string;
+    },
   ): Promise<void> {
     try {
-      const { shareCode, memberName, phone } = data
-      const groupOrder = this.findGroupOrderByShareCode(shareCode)
+      const { shareCode, memberName, phone } = data;
+      const groupOrder = this.findGroupOrderByShareCode(shareCode);
 
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found or expired',
-          shareCode
-        })
-        return
+          type: "error",
+          error: "Group order not found or expired",
+          shareCode,
+        });
+        return;
       }
 
       // Check if group is still accepting members
-      if (groupOrder.status !== 'active' || groupOrder.members.size >= groupOrder.settings.maxMembers) {
+      if (
+        groupOrder.status !== "active" ||
+        groupOrder.members.size >= groupOrder.settings.maxMembers
+      ) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order is not accepting new members',
-          shareCode
-        })
-        return
+          type: "error",
+          error: "Group order is not accepting new members",
+          shareCode,
+        });
+        return;
       }
 
       // Create new member
-      const memberId = crypto.randomUUID()
+      const memberId = crypto.randomUUID();
       const member: GroupMember = {
         id: memberId,
         sessionId: connectionInfo.id,
         name: memberName,
         phone,
-        role: 'member',
+        role: "member",
         joinedAt: Date.now(),
         lastActiveAt: Date.now(),
         isOnline: true,
         totalAmount: 0,
         itemCount: 0,
-        paymentStatus: 'unpaid'
-      }
+        paymentStatus: "unpaid",
+      };
 
-      groupOrder.members.set(memberId, member)
-      groupOrder.lastActivity = Date.now()
+      groupOrder.members.set(memberId, member);
+      groupOrder.lastActivity = Date.now();
 
       // Add subscription for this member
-      connectionInfo.subscriptions.add(`group_order:${groupOrder.id}`)
+      connectionInfo.subscriptions.add(`group_order:${groupOrder.id}`);
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${groupOrder.id}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${groupOrder.id}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast member joined event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'member_joined',
+        type: "member_joined",
         member,
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       // Send success response
       await this.sendMessage(connectionInfo, {
-        type: 'group_order_joined',
+        type: "group_order_joined",
         groupOrder: this.serializeGroupOrderForClient(groupOrder),
         memberId,
-        success: true
-      })
-
+        success: true,
+      });
     } catch (error) {
-      console.error('Join group order error:', error)
+      console.error("Join group order error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to join group order'
-      })
+        type: "error",
+        error: "Failed to join group order",
+      });
     }
   }
 
   async handleLeaveGroupOrder(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      memberId: string
-    }
+      groupOrderId: string;
+      memberId: string;
+    },
   ): Promise<void> {
     try {
-      const { groupOrderId, memberId } = data
-      const groupOrder = this.sessionState.groupOrderStates.get(groupOrderId)
+      const { groupOrderId, memberId } = data;
+      const groupOrder = this.sessionState.groupOrderStates.get(groupOrderId);
 
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
-      const member = groupOrder.members.get(memberId)
+      const member = groupOrder.members.get(memberId);
       if (!member) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Member not found in group order'
-        })
-        return
+          type: "error",
+          error: "Member not found in group order",
+        });
+        return;
       }
 
       // Remove member's cart items
       for (const [itemId, item] of groupOrder.cart) {
         if (item.memberId === memberId) {
-          groupOrder.cart.delete(itemId)
+          groupOrder.cart.delete(itemId);
         }
       }
 
       // Remove member
-      groupOrder.members.delete(memberId)
-      groupOrder.lastActivity = Date.now()
+      groupOrder.members.delete(memberId);
+      groupOrder.lastActivity = Date.now();
 
       // Recalculate totals
-      this.recalculateGroupOrderTotals(groupOrder)
+      this.recalculateGroupOrderTotals(groupOrder);
 
       // Remove subscription
-      connectionInfo.subscriptions.delete(`group_order:${groupOrderId}`)
+      connectionInfo.subscriptions.delete(`group_order:${groupOrderId}`);
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast member left event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'member_left',
+        type: "member_left",
         memberId,
         memberName: member.name,
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'group_order_left',
-        success: true
-      })
-
+        type: "group_order_left",
+        success: true,
+      });
     } catch (error) {
-      console.error('Leave group order error:', error)
+      console.error("Leave group order error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to leave group order'
-      })
+        type: "error",
+        error: "Failed to leave group order",
+      });
     }
   }
 
   async handleAddCartItem(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      memberId: string
-      menuItemId: number
-      menuItemName: string
-      quantity: number
-      unitPrice: number
-      customizations?: Record<string, any>
-      specialInstructions?: string
-    }
+      groupOrderId: string;
+      memberId: string;
+      menuItemId: number;
+      menuItemName: string;
+      quantity: number;
+      unitPrice: number;
+      customizations?: Record<string, any>;
+      specialInstructions?: string;
+    },
   ): Promise<void> {
     try {
-      const groupOrder = this.sessionState.groupOrderStates.get(data.groupOrderId)
+      const groupOrder = this.sessionState.groupOrderStates.get(
+        data.groupOrderId,
+      );
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
-      if (groupOrder.status !== 'active') {
+      if (groupOrder.status !== "active") {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order is not accepting new items'
-        })
-        return
+          type: "error",
+          error: "Group order is not accepting new items",
+        });
+        return;
       }
 
-      const member = groupOrder.members.get(data.memberId)
+      const member = groupOrder.members.get(data.memberId);
       if (!member) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Member not found in group order'
-        })
-        return
+          type: "error",
+          error: "Member not found in group order",
+        });
+        return;
       }
 
       // Create cart item
-      const cartItemId = crypto.randomUUID()
+      const cartItemId = crypto.randomUUID();
       const cartItem: CartItem = {
         id: cartItemId,
         memberId: data.memberId,
@@ -1019,413 +1126,447 @@ export class AdvancedRealtimeSession extends DurableObject {
         specialInstructions: data.specialInstructions,
         addedAt: Date.now(),
         updatedAt: Date.now(),
-        version: 1
-      }
+        version: 1,
+      };
 
       // Add to cart
-      groupOrder.cart.set(cartItemId, cartItem)
-      groupOrder.lastActivity = Date.now()
+      groupOrder.cart.set(cartItemId, cartItem);
+      groupOrder.lastActivity = Date.now();
 
       // Update member stats
-      member.itemCount++
-      member.totalAmount += cartItem.totalPrice
-      member.lastActiveAt = Date.now()
+      member.itemCount++;
+      member.totalAmount += cartItem.totalPrice;
+      member.lastActiveAt = Date.now();
 
       // Recalculate totals
-      this.recalculateGroupOrderTotals(groupOrder)
+      this.recalculateGroupOrderTotals(groupOrder);
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${data.groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${data.groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast cart updated event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'cart_item_added',
+        type: "cart_item_added",
         item: cartItem,
         member: {
           id: member.id,
-          name: member.name
+          name: member.name,
         },
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'cart_item_added',
+        type: "cart_item_added",
         item: cartItem,
-        success: true
-      })
-
+        success: true,
+      });
     } catch (error) {
-      console.error('Add cart item error:', error)
+      console.error("Add cart item error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to add item to cart'
-      })
+        type: "error",
+        error: "Failed to add item to cart",
+      });
     }
   }
 
   async handleUpdateCartItem(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      itemId: string
-      quantity?: number
-      customizations?: Record<string, any>
-      specialInstructions?: string
-    }
+      groupOrderId: string;
+      itemId: string;
+      quantity?: number;
+      customizations?: Record<string, any>;
+      specialInstructions?: string;
+    },
   ): Promise<void> {
     try {
-      const groupOrder = this.sessionState.groupOrderStates.get(data.groupOrderId)
+      const groupOrder = this.sessionState.groupOrderStates.get(
+        data.groupOrderId,
+      );
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
-      const cartItem = groupOrder.cart.get(data.itemId)
+      const cartItem = groupOrder.cart.get(data.itemId);
       if (!cartItem) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Cart item not found'
-        })
-        return
+          type: "error",
+          error: "Cart item not found",
+        });
+        return;
       }
 
-      const member = groupOrder.members.get(cartItem.memberId)
+      const member = groupOrder.members.get(cartItem.memberId);
       if (!member) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Member not found'
-        })
-        return
+          type: "error",
+          error: "Member not found",
+        });
+        return;
       }
 
       // Check permissions - members can only edit their own items unless allowed
-      if (cartItem.memberId !== connectionInfo.userId.toString() && 
-          !groupOrder.settings.allowEditOthers) {
+      if (
+        cartItem.memberId !== connectionInfo.userId.toString() &&
+        !groupOrder.settings.allowEditOthers
+      ) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Permission denied to edit this item'
-        })
-        return
+          type: "error",
+          error: "Permission denied to edit this item",
+        });
+        return;
       }
 
       // Update item with optimistic concurrency control
-      const oldTotalPrice = cartItem.totalPrice
-      
+      const oldTotalPrice = cartItem.totalPrice;
+
       if (data.quantity !== undefined) {
-        cartItem.quantity = data.quantity
-        cartItem.totalPrice = cartItem.unitPrice * data.quantity
-      }
-      
-      if (data.customizations !== undefined) {
-        cartItem.customizations = data.customizations
-      }
-      
-      if (data.specialInstructions !== undefined) {
-        cartItem.specialInstructions = data.specialInstructions
+        cartItem.quantity = data.quantity;
+        cartItem.totalPrice = cartItem.unitPrice * data.quantity;
       }
 
-      cartItem.updatedAt = Date.now()
-      cartItem.version++
+      if (data.customizations !== undefined) {
+        cartItem.customizations = data.customizations;
+      }
+
+      if (data.specialInstructions !== undefined) {
+        cartItem.specialInstructions = data.specialInstructions;
+      }
+
+      cartItem.updatedAt = Date.now();
+      cartItem.version++;
 
       // Update member stats
-      member.totalAmount += (cartItem.totalPrice - oldTotalPrice)
-      member.lastActiveAt = Date.now()
+      member.totalAmount += cartItem.totalPrice - oldTotalPrice;
+      member.lastActiveAt = Date.now();
 
-      groupOrder.lastActivity = Date.now()
+      groupOrder.lastActivity = Date.now();
 
       // Recalculate totals
-      this.recalculateGroupOrderTotals(groupOrder)
+      this.recalculateGroupOrderTotals(groupOrder);
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${data.groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${data.groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast update event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'cart_item_updated',
+        type: "cart_item_updated",
         item: cartItem,
         member: {
           id: member.id,
-          name: member.name
+          name: member.name,
         },
         changes: data,
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'cart_item_updated',
+        type: "cart_item_updated",
         item: cartItem,
-        success: true
-      })
-
+        success: true,
+      });
     } catch (error) {
-      console.error('Update cart item error:', error)
+      console.error("Update cart item error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to update cart item'
-      })
+        type: "error",
+        error: "Failed to update cart item",
+      });
     }
   }
 
   async handleRemoveCartItem(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      itemId: string
-    }
+      groupOrderId: string;
+      itemId: string;
+    },
   ): Promise<void> {
     try {
-      const groupOrder = this.sessionState.groupOrderStates.get(data.groupOrderId)
+      const groupOrder = this.sessionState.groupOrderStates.get(
+        data.groupOrderId,
+      );
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
-      const cartItem = groupOrder.cart.get(data.itemId)
+      const cartItem = groupOrder.cart.get(data.itemId);
       if (!cartItem) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Cart item not found'
-        })
-        return
+          type: "error",
+          error: "Cart item not found",
+        });
+        return;
       }
 
-      const member = groupOrder.members.get(cartItem.memberId)
+      const member = groupOrder.members.get(cartItem.memberId);
       if (!member) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Member not found'
-        })
-        return
+          type: "error",
+          error: "Member not found",
+        });
+        return;
       }
 
       // Check permissions
-      if (cartItem.memberId !== connectionInfo.userId.toString() && 
-          !groupOrder.settings.allowEditOthers) {
+      if (
+        cartItem.memberId !== connectionInfo.userId.toString() &&
+        !groupOrder.settings.allowEditOthers
+      ) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Permission denied to remove this item'
-        })
-        return
+          type: "error",
+          error: "Permission denied to remove this item",
+        });
+        return;
       }
 
       // Remove from cart
-      groupOrder.cart.delete(data.itemId)
-      
-      // Update member stats
-      member.itemCount--
-      member.totalAmount -= cartItem.totalPrice
-      member.lastActiveAt = Date.now()
+      groupOrder.cart.delete(data.itemId);
 
-      groupOrder.lastActivity = Date.now()
+      // Update member stats
+      member.itemCount--;
+      member.totalAmount -= cartItem.totalPrice;
+      member.lastActiveAt = Date.now();
+
+      groupOrder.lastActivity = Date.now();
 
       // Recalculate totals
-      this.recalculateGroupOrderTotals(groupOrder)
+      this.recalculateGroupOrderTotals(groupOrder);
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${data.groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${data.groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast remove event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'cart_item_removed',
+        type: "cart_item_removed",
         itemId: data.itemId,
         item: cartItem,
         member: {
           id: member.id,
-          name: member.name
+          name: member.name,
         },
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'cart_item_removed',
-        success: true
-      })
-
+        type: "cart_item_removed",
+        success: true,
+      });
     } catch (error) {
-      console.error('Remove cart item error:', error)
+      console.error("Remove cart item error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to remove cart item'
-      })
+        type: "error",
+        error: "Failed to remove cart item",
+      });
     }
   }
 
   async handleInitiateSplitBill(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      splitType: 'equal' | 'proportional' | 'individual' | 'custom'
-      customSplits?: Array<{ memberId: string; amount: number; items: string[] }>
-    }
+      groupOrderId: string;
+      splitType: "equal" | "proportional" | "individual" | "custom";
+      customSplits?: Array<{
+        memberId: string;
+        amount: number;
+        items: string[];
+      }>;
+    },
   ): Promise<void> {
     try {
-      const groupOrder = this.sessionState.groupOrderStates.get(data.groupOrderId)
+      const groupOrder = this.sessionState.groupOrderStates.get(
+        data.groupOrderId,
+      );
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
       // Only host or admin can initiate split bill
-      const member = Array.from(groupOrder.members.values()).find(m => m.sessionId === connectionInfo.id)
-      if (!member || (member.role !== 'creator' && member.role !== 'admin')) {
+      const member = Array.from(groupOrder.members.values()).find(
+        (m) => m.sessionId === connectionInfo.id,
+      );
+      if (!member || (member.role !== "creator" && member.role !== "admin")) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Permission denied to initiate split bill'
-        })
-        return
+          type: "error",
+          error: "Permission denied to initiate split bill",
+        });
+        return;
       }
 
-      if (groupOrder.status !== 'active') {
+      if (groupOrder.status !== "active") {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order is not in active state'
-        })
-        return
+          type: "error",
+          error: "Group order is not in active state",
+        });
+        return;
       }
 
       // Calculate split bills
-      const splitBills = this.calculateSplitBills(groupOrder, data.splitType, data.customSplits)
-      
+      const splitBills = this.calculateSplitBills(
+        groupOrder,
+        data.splitType,
+        data.customSplits,
+      );
+
       // Store split bills
-      splitBills.forEach(splitBill => {
-        groupOrder.splitBills.set(splitBill.id, splitBill)
-      })
+      splitBills.forEach((splitBill) => {
+        groupOrder.splitBills.set(splitBill.id, splitBill);
+      });
 
       // Update group order status
-      groupOrder.status = 'checkout'
-      groupOrder.settings.splitType = data.splitType
-      groupOrder.lastActivity = Date.now()
+      groupOrder.status = "checkout";
+      groupOrder.settings.splitType = data.splitType;
+      groupOrder.lastActivity = Date.now();
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${data.groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${data.groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast split initiated event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'split_bill_initiated',
+        type: "split_bill_initiated",
         splitType: data.splitType,
         splitBills: Array.from(splitBills),
         initiatedBy: {
           id: member.id,
-          name: member.name
+          name: member.name,
         },
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'split_bill_initiated',
+        type: "split_bill_initiated",
         splitBills: Array.from(splitBills),
-        success: true
-      })
-
+        success: true,
+      });
     } catch (error) {
-      console.error('Initiate split bill error:', error)
+      console.error("Initiate split bill error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to initiate split bill'
-      })
+        type: "error",
+        error: "Failed to initiate split bill",
+      });
     }
   }
 
   async handleProcessPayment(
     connectionInfo: ConnectionInfo,
     data: {
-      groupOrderId: string
-      memberId: string
-      paymentMethod: string
-      amount: number
-      transactionId?: string
-    }
+      groupOrderId: string;
+      memberId: string;
+      paymentMethod: string;
+      amount: number;
+      transactionId?: string;
+    },
   ): Promise<void> {
     try {
-      const groupOrder = this.sessionState.groupOrderStates.get(data.groupOrderId)
+      const groupOrder = this.sessionState.groupOrderStates.get(
+        data.groupOrderId,
+      );
       if (!groupOrder) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Group order not found'
-        })
-        return
+          type: "error",
+          error: "Group order not found",
+        });
+        return;
       }
 
-      const member = groupOrder.members.get(data.memberId)
+      const member = groupOrder.members.get(data.memberId);
       if (!member) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Member not found'
-        })
-        return
+          type: "error",
+          error: "Member not found",
+        });
+        return;
       }
 
-      const splitBill = groupOrder.splitBills.get(data.memberId)
+      const splitBill = groupOrder.splitBills.get(data.memberId);
       if (!splitBill) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Split bill not found for member'
-        })
-        return
+          type: "error",
+          error: "Split bill not found for member",
+        });
+        return;
       }
 
       // Validate payment amount
       if (Math.abs(data.amount - splitBill.totalAmount) > 0.01) {
         await this.sendMessage(connectionInfo, {
-          type: 'error',
-          error: 'Payment amount does not match split bill amount'
-        })
-        return
+          type: "error",
+          error: "Payment amount does not match split bill amount",
+        });
+        return;
       }
 
       // Update payment status
-      splitBill.paymentStatus = 'paid'
-      splitBill.paymentMethod = data.paymentMethod
-      splitBill.paidAt = Date.now()
+      splitBill.paymentStatus = "paid";
+      splitBill.paymentMethod = data.paymentMethod;
+      splitBill.paidAt = Date.now();
 
-      member.paymentStatus = 'paid'
-      member.lastActiveAt = Date.now()
+      member.paymentStatus = "paid";
+      member.lastActiveAt = Date.now();
 
-      groupOrder.lastActivity = Date.now()
+      groupOrder.lastActivity = Date.now();
 
       // Check if all members have paid
-      const allPaid = Array.from(groupOrder.members.values()).every(m => m.paymentStatus === 'paid')
+      const allPaid = Array.from(groupOrder.members.values()).every(
+        (m) => m.paymentStatus === "paid",
+      );
       if (allPaid) {
-        groupOrder.status = 'completed'
+        groupOrder.status = "completed";
       }
 
       // Persist changes
-      await this.ctx.storage.put(`group_order:${data.groupOrderId}`, this.serializeGroupOrder(groupOrder))
+      await this.ctx.storage.put(
+        `group_order:${data.groupOrderId}`,
+        this.serializeGroupOrder(groupOrder),
+      );
 
       // Broadcast payment completed event
       await this.broadcastGroupOrderEvent(groupOrder, {
-        type: 'payment_completed',
+        type: "payment_completed",
         member: {
           id: member.id,
-          name: member.name
+          name: member.name,
         },
         amount: data.amount,
         paymentMethod: data.paymentMethod,
         allPaid,
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+      });
 
       await this.sendMessage(connectionInfo, {
-        type: 'payment_processed',
+        type: "payment_processed",
         success: true,
-        allPaid
-      })
-
+        allPaid,
+      });
     } catch (error) {
-      console.error('Process payment error:', error)
+      console.error("Process payment error:", error);
       await this.sendMessage(connectionInfo, {
-        type: 'error',
-        error: 'Failed to process payment'
-      })
+        type: "error",
+        error: "Failed to process payment",
+      });
     }
   }
 
@@ -1434,50 +1575,60 @@ export class AdvancedRealtimeSession extends DurableObject {
    */
   private findGroupOrderByShareCode(shareCode: string): GroupOrderState | null {
     for (const groupOrder of this.sessionState.groupOrderStates.values()) {
-      if (groupOrder.shareCode === shareCode && groupOrder.expiresAt > Date.now()) {
-        return groupOrder
+      if (
+        groupOrder.shareCode === shareCode &&
+        groupOrder.expiresAt > Date.now()
+      ) {
+        return groupOrder;
       }
     }
-    return null
+    return null;
   }
 
   private recalculateGroupOrderTotals(groupOrder: GroupOrderState): void {
-    let totalAmount = 0
-    const memberTotals = new Map<string, number>()
-    const memberCounts = new Map<string, number>()
+    let totalAmount = 0;
+    const memberTotals = new Map<string, number>();
+    const memberCounts = new Map<string, number>();
 
     // Calculate from cart items
     for (const item of groupOrder.cart.values()) {
-      totalAmount += item.totalPrice
-      memberTotals.set(item.memberId, (memberTotals.get(item.memberId) || 0) + item.totalPrice)
-      memberCounts.set(item.memberId, (memberCounts.get(item.memberId) || 0) + 1)
+      totalAmount += item.totalPrice;
+      memberTotals.set(
+        item.memberId,
+        (memberTotals.get(item.memberId) || 0) + item.totalPrice,
+      );
+      memberCounts.set(
+        item.memberId,
+        (memberCounts.get(item.memberId) || 0) + 1,
+      );
     }
 
     // Update group order total
-    groupOrder.totalAmount = totalAmount
+    groupOrder.totalAmount = totalAmount;
 
     // Update member totals and counts
     for (const [memberId, member] of groupOrder.members) {
-      member.totalAmount = memberTotals.get(memberId) || 0
-      member.itemCount = memberCounts.get(memberId) || 0
+      member.totalAmount = memberTotals.get(memberId) || 0;
+      member.itemCount = memberCounts.get(memberId) || 0;
     }
   }
 
   private calculateSplitBills(
-    groupOrder: GroupOrderState, 
-    splitType: string, 
-    customSplits?: Array<{ memberId: string; amount: number; items: string[] }>
+    groupOrder: GroupOrderState,
+    splitType: string,
+    customSplits?: Array<{ memberId: string; amount: number; items: string[] }>,
   ): SplitBill[] {
-    const splitBills: SplitBill[] = []
-    const serviceChargeRate = 0.1 // 10% service charge
-    const taxRate = 0.06 // 6% tax
+    const splitBills: SplitBill[] = [];
+    const serviceChargeRate = 0.1; // 10% service charge
+    const taxRate = 0.06; // 6% tax
 
-    if (splitType === 'equal') {
-      const memberCount = groupOrder.members.size
-      const subtotalPerMember = groupOrder.totalAmount / memberCount
-      const serviceChargePerMember = subtotalPerMember * serviceChargeRate
-      const taxPerMember = subtotalPerMember * taxRate
-      const totalPerMember = subtotalPerMember + serviceChargePerMember + taxPerMember
+    if (splitType === "equal") {
+      const memberCount = groupOrder.members.size;
+      const subtotalPerMember = groupOrder.totalAmount / memberCount;
+      const serviceChargePerMember = subtotalPerMember * serviceChargeRate;
+      const taxPerMember = subtotalPerMember * taxRate;
+      const totalPerMember =
+        subtotalPerMember + serviceChargePerMember + taxPerMember;
 
       for (const [memberId] of groupOrder.members) {
         splitBills.push({
@@ -1488,19 +1639,19 @@ export class AdvancedRealtimeSession extends DurableObject {
           serviceCharge: serviceChargePerMember,
           totalAmount: totalPerMember,
           items: [],
-          paymentStatus: 'pending'
-        })
+          paymentStatus: "pending",
+        });
       }
-    } else if (splitType === 'proportional') {
+    } else if (splitType === "proportional") {
       for (const [memberId, member] of groupOrder.members) {
-        const memberSubtotal = member.totalAmount
-        const serviceCharge = memberSubtotal * serviceChargeRate
-        const taxAmount = memberSubtotal * taxRate
-        const totalAmount = memberSubtotal + serviceCharge + taxAmount
+        const memberSubtotal = member.totalAmount;
+        const serviceCharge = memberSubtotal * serviceChargeRate;
+        const taxAmount = memberSubtotal * taxRate;
+        const totalAmount = memberSubtotal + serviceCharge + taxAmount;
 
         const memberItems = Array.from(groupOrder.cart.values())
-          .filter(item => item.memberId === memberId)
-          .map(item => item.id)
+          .filter((item) => item.memberId === memberId)
+          .map((item) => item.id);
 
         splitBills.push({
           id: crypto.randomUUID(),
@@ -1510,14 +1661,14 @@ export class AdvancedRealtimeSession extends DurableObject {
           serviceCharge,
           totalAmount,
           items: memberItems,
-          paymentStatus: 'pending'
-        })
+          paymentStatus: "pending",
+        });
       }
-    } else if (splitType === 'custom' && customSplits) {
+    } else if (splitType === "custom" && customSplits) {
       for (const customSplit of customSplits) {
-        const serviceCharge = customSplit.amount * serviceChargeRate
-        const taxAmount = customSplit.amount * taxRate
-        const totalAmount = customSplit.amount + serviceCharge + taxAmount
+        const serviceCharge = customSplit.amount * serviceChargeRate;
+        const taxAmount = customSplit.amount * taxRate;
+        const totalAmount = customSplit.amount + serviceCharge + taxAmount;
 
         splitBills.push({
           id: crypto.randomUUID(),
@@ -1527,26 +1678,29 @@ export class AdvancedRealtimeSession extends DurableObject {
           serviceCharge,
           totalAmount,
           items: customSplit.items,
-          paymentStatus: 'pending'
-        })
+          paymentStatus: "pending",
+        });
       }
     }
 
-    return splitBills
+    return splitBills;
   }
 
-  private async broadcastGroupOrderEvent(groupOrder: GroupOrderState, event: any): Promise<void> {
+  private async broadcastGroupOrderEvent(
+    groupOrder: GroupOrderState,
+    event: any,
+  ): Promise<void> {
     const message = {
-      type: 'group_order_event',
+      type: "group_order_event",
       groupOrderId: groupOrder.id,
       event,
-      groupOrder: this.serializeGroupOrderForClient(groupOrder)
-    }
+      groupOrder: this.serializeGroupOrderForClient(groupOrder),
+    };
 
     // Broadcast to all members
     for (const [_id, conn] of this.sessionState.activeConnections) {
       if (conn.subscriptions.has(`group_order:${groupOrder.id}`)) {
-        await this.sendMessage(conn, message)
+        await this.sendMessage(conn, message);
       }
     }
   }
@@ -1556,8 +1710,8 @@ export class AdvancedRealtimeSession extends DurableObject {
       ...groupOrder,
       members: Object.fromEntries(groupOrder.members),
       cart: Object.fromEntries(groupOrder.cart),
-      splitBills: Object.fromEntries(groupOrder.splitBills)
-    }
+      splitBills: Object.fromEntries(groupOrder.splitBills),
+    };
   }
 
   private serializeGroupOrderForClient(groupOrder: GroupOrderState): any {
@@ -1573,30 +1727,34 @@ export class AdvancedRealtimeSession extends DurableObject {
       settings: groupOrder.settings,
       lastActivity: groupOrder.lastActivity,
       createdAt: groupOrder.createdAt,
-      expiresAt: groupOrder.expiresAt
-    }
+      expiresAt: groupOrder.expiresAt,
+    };
   }
 
   private async cleanupOldData(): Promise<void> {
-    const now = Date.now()
-    const expiredThreshold = 24 * 60 * 60 * 1000 // 24 hours
+    const now = Date.now();
+    const expiredThreshold = 24 * 60 * 60 * 1000; // 24 hours
 
     // Cleanup expired group orders
     for (const [id, groupOrder] of this.sessionState.groupOrderStates) {
-      if (groupOrder.expiresAt < now || (now - groupOrder.lastActivity) > expiredThreshold) {
-        this.sessionState.groupOrderStates.delete(id)
-        await this.ctx.storage.delete(`group_order:${id}`)
-        console.log(`Cleaned up expired group order: ${id}`)
+      if (
+        groupOrder.expiresAt < now ||
+        now - groupOrder.lastActivity > expiredThreshold
+      ) {
+        this.sessionState.groupOrderStates.delete(id);
+        await this.ctx.storage.delete(`group_order:${id}`);
+        console.log(`Cleaned up expired group order: ${id}`);
       }
     }
 
     // Cleanup old order states
     for (const [id, orderState] of this.sessionState.orderStates) {
-      const lastTransition = orderState.transitions[orderState.transitions.length - 1]
-      if (lastTransition && (now - lastTransition.timestamp) > expiredThreshold) {
-        this.sessionState.orderStates.delete(id)
-        await this.ctx.storage.delete(`order:${id}`)
-        console.log(`Cleaned up old order state: ${id}`)
+      const lastTransition =
+        orderState.transitions[orderState.transitions.length - 1];
+      if (lastTransition && now - lastTransition.timestamp > expiredThreshold) {
+        this.sessionState.orderStates.delete(id);
+        await this.ctx.storage.delete(`order:${id}`);
+        console.log(`Cleaned up old order state: ${id}`);
       }
     }
   }

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
   CheckIcon,
-} from '@heroicons/vue/24/outline'
-import BookmarkIcon from '@heroicons/vue/24/outline/BookmarkIcon'
+} from "@heroicons/vue/24/outline";
+import BookmarkIcon from "@heroicons/vue/24/outline/BookmarkIcon";
 import type {
   MonitoringFilter,
   SavedFilter,
@@ -15,142 +15,162 @@ import type {
   ComponentType,
   SeverityLevel,
   AlertStatus,
-} from '@/types/monitoring-filters'
+} from "@/types/monitoring-filters";
 import {
   DEFAULT_FILTER,
   FILTER_PRESETS,
   validateFilter,
-} from '@/types/monitoring-filters'
+} from "@/types/monitoring-filters";
 
 // Props
 interface Props {
-  modelValue: MonitoringFilter
-  savedFilters?: SavedFilter[]
+  modelValue: MonitoringFilter;
+  savedFilters?: SavedFilter[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   savedFilters: () => [],
-})
+});
 
 // Emits
 const emit = defineEmits<{
-  'update:modelValue': [filter: MonitoringFilter]
-  apply: [filter: MonitoringFilter]
-  reset: []
-  save: [name: string, filter: MonitoringFilter]
-  load: [filterId: string]
-  delete: [filterId: string]
-}>()
+  "update:modelValue": [filter: MonitoringFilter];
+  apply: [filter: MonitoringFilter];
+  reset: [];
+  save: [name: string, filter: MonitoringFilter];
+  load: [filterId: string];
+  delete: [filterId: string];
+}>();
 
 // I18n
-const { t } = useI18n()
+const { t } = useI18n();
 
 // Local state
-const localFilter = ref<MonitoringFilter>({ ...props.modelValue })
-const showAdvanced = ref(false)
-const showSaveDialog = ref(false)
-const filterName = ref('')
-const filterDescription = ref('')
-const selectedPreset = ref<string>('')
+const localFilter = ref<MonitoringFilter>({ ...props.modelValue });
+const showAdvanced = ref(false);
+const showSaveDialog = ref(false);
+const filterName = ref("");
+const filterDescription = ref("");
+const selectedPreset = ref<string>("");
 
 // Computed
 const isFilterModified = computed(() => {
-  return JSON.stringify(localFilter.value) !== JSON.stringify(DEFAULT_FILTER)
-})
+  return JSON.stringify(localFilter.value) !== JSON.stringify(DEFAULT_FILTER);
+});
 
 const isValidFilter = computed(() => {
-  return validateFilter(localFilter.value)
-})
+  return validateFilter(localFilter.value);
+});
 
 const activeFiltersCount = computed(() => {
-  let count = 0
-  if (localFilter.value.timeRange !== 'last24hours') count++
-  if (localFilter.value.components.some(c => c !== 'all')) count++
-  if (localFilter.value.severity.some(s => s !== 'all')) count++
-  if (localFilter.value.status.some(s => s !== 'all')) count++
-  if (localFilter.value.searchKeyword) count++
-  return count
-})
+  let count = 0;
+  if (localFilter.value.timeRange !== "last24hours") count++;
+  if (localFilter.value.components.some((c) => c !== "all")) count++;
+  if (localFilter.value.severity.some((s) => s !== "all")) count++;
+  if (localFilter.value.status.some((s) => s !== "all")) count++;
+  if (localFilter.value.searchKeyword) count++;
+  return count;
+});
 
 // Time range options
 const timeRangeOptions: Array<{ value: TimeRange; label: string }> = [
-  { value: 'last15minutes', label: t('monitoring.performance.last15Minutes') },
-  { value: 'last1hour', label: t('monitoring.performance.lastHour') },
-  { value: 'last6hours', label: '最近 6 小時' },
-  { value: 'last24hours', label: t('monitoring.performance.last24Hours') },
-  { value: 'last7days', label: t('monitoring.performance.last7Days') },
-  { value: 'last30days', label: '最近 30 天' },
-  { value: 'custom', label: t('monitoring.performance.custom') },
-]
+  { value: "last15minutes", label: t("monitoring.performance.last15Minutes") },
+  { value: "last1hour", label: t("monitoring.performance.lastHour") },
+  { value: "last6hours", label: "最近 6 小時" },
+  { value: "last24hours", label: t("monitoring.performance.last24Hours") },
+  { value: "last7days", label: t("monitoring.performance.last7Days") },
+  { value: "last30days", label: "最近 30 天" },
+  { value: "custom", label: t("monitoring.performance.custom") },
+];
 
 // Component type options
 const componentOptions: Array<{ value: ComponentType; label: string }> = [
-  { value: 'all', label: '全部組件' },
-  { value: 'api', label: t('monitoring.components.api') },
-  { value: 'database', label: t('monitoring.components.database') },
-  { value: 'cache', label: t('monitoring.components.cache') },
-  { value: 'storage', label: t('monitoring.components.storage') },
-  { value: 'websocket', label: t('monitoring.components.websocket') },
-  { value: 'queue', label: t('monitoring.components.queue') },
-  { value: 'external', label: t('monitoring.components.external') },
-]
+  { value: "all", label: "全部組件" },
+  { value: "api", label: t("monitoring.components.api") },
+  { value: "database", label: t("monitoring.components.database") },
+  { value: "cache", label: t("monitoring.components.cache") },
+  { value: "storage", label: t("monitoring.components.storage") },
+  { value: "websocket", label: t("monitoring.components.websocket") },
+  { value: "queue", label: t("monitoring.components.queue") },
+  { value: "external", label: t("monitoring.components.external") },
+];
 
 // Severity options
-const severityOptions: Array<{ value: SeverityLevel; label: string; color: string }> = [
-  { value: 'all', label: '全部級別', color: 'gray' },
-  { value: 'info', label: t('monitoring.alerts.severity.info'), color: 'blue' },
-  { value: 'warning', label: t('monitoring.alerts.severity.warning'), color: 'yellow' },
-  { value: 'critical', label: t('monitoring.alerts.severity.critical'), color: 'red' },
-  { value: 'fatal', label: t('monitoring.alerts.severity.fatal'), color: 'purple' },
-]
+const severityOptions: Array<{
+  value: SeverityLevel;
+  label: string;
+  color: string;
+}> = [
+  { value: "all", label: "全部級別", color: "gray" },
+  { value: "info", label: t("monitoring.alerts.severity.info"), color: "blue" },
+  {
+    value: "warning",
+    label: t("monitoring.alerts.severity.warning"),
+    color: "yellow",
+  },
+  {
+    value: "critical",
+    label: t("monitoring.alerts.severity.critical"),
+    color: "red",
+  },
+  {
+    value: "fatal",
+    label: t("monitoring.alerts.severity.fatal"),
+    color: "purple",
+  },
+];
 
 // Status options
 const statusOptions: Array<{ value: AlertStatus; label: string }> = [
-  { value: 'all', label: '全部狀態' },
-  { value: 'active', label: t('monitoring.alerts.status.active') },
-  { value: 'acknowledged', label: t('monitoring.alerts.status.acknowledged') },
-  { value: 'resolved', label: t('monitoring.alerts.status.resolved') },
-  { value: 'muted', label: t('monitoring.alerts.status.muted') },
-]
+  { value: "all", label: "全部狀態" },
+  { value: "active", label: t("monitoring.alerts.status.active") },
+  { value: "acknowledged", label: t("monitoring.alerts.status.acknowledged") },
+  { value: "resolved", label: t("monitoring.alerts.status.resolved") },
+  { value: "muted", label: t("monitoring.alerts.status.muted") },
+];
 
 // Watch for prop changes
-watch(() => props.modelValue, (newValue) => {
-  localFilter.value = { ...newValue }
-}, { deep: true })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    localFilter.value = { ...newValue };
+  },
+  { deep: true },
+);
 
 // Methods
 function handleApply() {
   if (!isValidFilter.value) {
-    return
+    return;
   }
-  emit('update:modelValue', localFilter.value)
-  emit('apply', localFilter.value)
+  emit("update:modelValue", localFilter.value);
+  emit("apply", localFilter.value);
 }
 
 function handleReset() {
-  localFilter.value = { ...DEFAULT_FILTER }
-  selectedPreset.value = ''
-  emit('reset')
-  handleApply()
+  localFilter.value = { ...DEFAULT_FILTER };
+  selectedPreset.value = "";
+  emit("reset");
+  handleApply();
 }
 
 function applyPreset(preset: FilterPreset) {
-  selectedPreset.value = preset.id
+  selectedPreset.value = preset.id;
   localFilter.value = {
     ...DEFAULT_FILTER,
     ...preset.filter,
-  }
-  handleApply()
+  };
+  handleApply();
 }
 
 function handleSave() {
   if (!filterName.value.trim()) {
-    return
+    return;
   }
-  emit('save', filterName.value, localFilter.value)
-  showSaveDialog.value = false
-  filterName.value = ''
-  filterDescription.value = ''
+  emit("save", filterName.value, localFilter.value);
+  showSaveDialog.value = false;
+  filterName.value = "";
+  filterDescription.value = "";
 }
 
 // Reserved for future use: load a saved filter configuration
@@ -160,61 +180,63 @@ function handleSave() {
 // }
 
 function toggleComponent(component: ComponentType) {
-  const index = localFilter.value.components.indexOf(component)
+  const index = localFilter.value.components.indexOf(component);
   if (index > -1) {
-    localFilter.value.components.splice(index, 1)
+    localFilter.value.components.splice(index, 1);
   } else {
-    localFilter.value.components.push(component)
+    localFilter.value.components.push(component);
   }
   // 如果選擇了 'all'，清除其他選項
-  if (component === 'all') {
-    localFilter.value.components = ['all']
+  if (component === "all") {
+    localFilter.value.components = ["all"];
   } else {
     // 如果選擇了其他選項，移除 'all'
-    const allIndex = localFilter.value.components.indexOf('all')
+    const allIndex = localFilter.value.components.indexOf("all");
     if (allIndex > -1) {
-      localFilter.value.components.splice(allIndex, 1)
+      localFilter.value.components.splice(allIndex, 1);
     }
   }
 }
 
 function toggleSeverity(severity: SeverityLevel) {
-  const index = localFilter.value.severity.indexOf(severity)
+  const index = localFilter.value.severity.indexOf(severity);
   if (index > -1) {
-    localFilter.value.severity.splice(index, 1)
+    localFilter.value.severity.splice(index, 1);
   } else {
-    localFilter.value.severity.push(severity)
+    localFilter.value.severity.push(severity);
   }
-  if (severity === 'all') {
-    localFilter.value.severity = ['all']
+  if (severity === "all") {
+    localFilter.value.severity = ["all"];
   } else {
-    const allIndex = localFilter.value.severity.indexOf('all')
+    const allIndex = localFilter.value.severity.indexOf("all");
     if (allIndex > -1) {
-      localFilter.value.severity.splice(allIndex, 1)
+      localFilter.value.severity.splice(allIndex, 1);
     }
   }
 }
 
 function toggleStatus(status: AlertStatus) {
-  const index = localFilter.value.status.indexOf(status)
+  const index = localFilter.value.status.indexOf(status);
   if (index > -1) {
-    localFilter.value.status.splice(index, 1)
+    localFilter.value.status.splice(index, 1);
   } else {
-    localFilter.value.status.push(status)
+    localFilter.value.status.push(status);
   }
-  if (status === 'all') {
-    localFilter.value.status = ['all']
+  if (status === "all") {
+    localFilter.value.status = ["all"];
   } else {
-    const allIndex = localFilter.value.status.indexOf('all')
+    const allIndex = localFilter.value.status.indexOf("all");
     if (allIndex > -1) {
-      localFilter.value.status.splice(allIndex, 1)
+      localFilter.value.status.splice(allIndex, 1);
     }
   }
 }
 </script>
 
 <template>
-  <div class="advanced-filter-panel bg-white rounded-lg shadow-sm border border-gray-200">
+  <div
+    class="advanced-filter-panel bg-white rounded-lg shadow-sm border border-gray-200"
+  >
     <!-- 快速篩選器 -->
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between mb-3">
@@ -390,7 +412,7 @@ function toggleStatus(status: AlertStatus) {
         class="text-sm text-blue-600 hover:text-blue-800"
         @click="showAdvanced = !showAdvanced"
       >
-        {{ showAdvanced ? '隱藏' : '顯示' }}高級選項
+        {{ showAdvanced ? "隱藏" : "顯示" }}高級選項
       </button>
 
       <!-- 高級選項 -->
@@ -448,7 +470,9 @@ function toggleStatus(status: AlertStatus) {
     </div>
 
     <!-- 操作按鈕 -->
-    <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+    <div
+      class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between"
+    >
       <button
         class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
         @click="showSaveDialog = true"

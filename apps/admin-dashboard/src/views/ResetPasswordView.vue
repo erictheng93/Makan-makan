@@ -94,7 +94,10 @@
       <!-- Reset Password Form -->
       <form v-else class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <!-- User Info -->
-        <div v-if="maskedEmail" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div
+          v-if="maskedEmail"
+          class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+        >
           <div class="flex items-center">
             <div
               class="flex-shrink-0 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center"

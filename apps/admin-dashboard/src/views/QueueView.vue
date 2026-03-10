@@ -191,7 +191,9 @@
                       <ClockIcon class="w-4 h-4 mr-1" />
                       <span>等待 {{ getWaitTime(queueItem.joinedAt) }}分</span>
 
-                      <span v-if="queueItem.tablePreferences?.length" class="mx-2"
+                      <span
+                        v-if="queueItem.tablePreferences?.length"
+                        class="mx-2"
                         >·</span
                       >
                       <BuildingStorefrontIcon
@@ -199,7 +201,7 @@
                         class="w-4 h-4 mr-1"
                       />
                       <span v-if="queueItem.tablePreferences?.length">{{
-                        queueItem.tablePreferences.join(', ')
+                        queueItem.tablePreferences.join(", ")
                       }}</span>
                     </div>
                   </div>
@@ -604,7 +606,7 @@
                 </p>
                 <p v-if="selectedQueueItem.tablePreferences?.length">
                   <span class="text-gray-600">偏好:</span>
-                  {{ selectedQueueItem.tablePreferences.join(', ') }}
+                  {{ selectedQueueItem.tablePreferences.join(", ") }}
                 </p>
                 <p>
                   <span class="text-gray-600">等待時間:</span>
@@ -746,10 +748,10 @@ const todayServed = computed(() => {
 });
 const overdueQueue = computed(() => {
   // 計算超過預估等待時間的候位
-  return queueItems.value.filter(item => {
-    if (item.status !== 'waiting') return false;
+  return queueItems.value.filter((item) => {
+    if (item.status !== "waiting") return false;
     const waitTime = getWaitTime(item.joinedAt);
-    return waitTime > (item.estimatedWaitMinutes + 10); // 超過預估加10分鐘
+    return waitTime > item.estimatedWaitMinutes + 10; // 超過預估加10分鐘
   }).length;
 });
 
@@ -761,8 +763,8 @@ const newQueueItem = ref({
   partySize: 2,
   tablePreferences: [] as number[],
   specialRequests: "",
-  queueType: 'walkin' as 'walkin' | 'online' | 'phone',
-  notificationMethods: ['sms'] as string[],
+  queueType: "walkin" as "walkin" | "online" | "phone",
+  notificationMethods: ["sms"] as string[],
   isVIP: false,
 });
 
@@ -912,9 +914,11 @@ const recommendedTables = computed(() => {
 });
 
 const canAddToQueue = computed(() => {
-  return !!(newQueueItem.value.customerName &&
-         (newQueueItem.value.customerPhone || newQueueItem.value.customerEmail) &&
-         newQueueItem.value.partySize > 0);
+  return !!(
+    newQueueItem.value.customerName &&
+    (newQueueItem.value.customerPhone || newQueueItem.value.customerEmail) &&
+    newQueueItem.value.partySize > 0
+  );
 });
 
 // 工具函數
@@ -1033,14 +1037,14 @@ const refreshQueue = async () => {
   try {
     const [queueData, statusData] = await Promise.all([
       queueService.getQueue(authStore.user.restaurantId),
-      queueService.getQueueStatus(authStore.user.restaurantId)
+      queueService.getQueueStatus(authStore.user.restaurantId),
     ]);
 
     queueItems.value = queueData;
     queueStatus.value = statusData;
   } catch (err) {
-    error.value = '刷新候位失敗';
-    console.error('Failed to refresh queue:', err);
+    error.value = "刷新候位失敗";
+    console.error("Failed to refresh queue:", err);
   } finally {
     loading.value = false;
   }
@@ -1056,17 +1060,21 @@ const callNextCustomer = async () => {
 
     if (result.success && result.data) {
       // 更新本地候位
-      const index = queueItems.value.findIndex(item => item.id === result.data!.id);
+      const index = queueItems.value.findIndex(
+        (item) => item.id === result.data!.id,
+      );
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(`已呼叫 ${result.data.customerName || `號碼 ${result.data.queueNumber}`}`);
+      alert(
+        `已呼叫 ${result.data.customerName || `號碼 ${result.data.queueNumber}`}`,
+      );
     } else {
-      alert(result.error || '呼叫失敗');
+      alert(result.error || "呼叫失敗");
     }
   } catch (err) {
-    alert('呼叫顧客失敗，請重試');
-    console.error('Failed to call next customer:', err);
+    alert("呼叫顧客失敗，請重試");
+    console.error("Failed to call next customer:", err);
   }
 };
 
@@ -1075,22 +1083,26 @@ const callCustomer = async (queueItem: QueueItem) => {
 
   try {
     const result = await queueService.callNext(authStore.user.restaurantId, {
-      specificQueueId: queueItem.id
+      specificQueueId: queueItem.id,
     });
 
     if (result.success && result.data) {
       // 更新本地候位
-      const index = queueItems.value.findIndex(item => item.id === queueItem.id);
+      const index = queueItems.value.findIndex(
+        (item) => item.id === queueItem.id,
+      );
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(`已呼叫 ${queueItem.customerName || `號碼 ${queueItem.queueNumber}`}`);
+      alert(
+        `已呼叫 ${queueItem.customerName || `號碼 ${queueItem.queueNumber}`}`,
+      );
     } else {
-      alert(result.error || '呼叫失敗');
+      alert(result.error || "呼叫失敗");
     }
   } catch (_error) {
     alert("呼叫失敗，請重試");
-    console.error('Failed to call customer:', error);
+    console.error("Failed to call customer:", error);
   }
 };
 
@@ -1109,8 +1121,8 @@ const addToQueue = () => {
     partySize: 2,
     tablePreferences: [],
     specialRequests: "",
-    queueType: 'walkin',
-    notificationMethods: ['sms'],
+    queueType: "walkin",
+    notificationMethods: ["sms"],
     isVIP: false,
   };
 };
@@ -1141,16 +1153,18 @@ const submitAddToQueue = async () => {
 
     if (result.success && result.data) {
       closeAddDialog();
-      alert(`已新增至候位：${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`);
+      alert(
+        `已新增至候位：${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`,
+      );
 
       // 刷新候位列表
       await refreshQueue();
     } else {
-      alert(result.error || '加入候位失敗');
+      alert(result.error || "加入候位失敗");
     }
   } catch (_error) {
     alert("加入候位失敗，請重試");
-    console.error('Failed to add to queue:', error);
+    console.error("Failed to add to queue:", error);
   } finally {
     loading.value = false;
   }
@@ -1166,20 +1180,26 @@ const confirmSeatAssignment = async () => {
 
   try {
     const result = await queueService.seatCustomer(selectedQueueItem.value.id, {
-      tableId: Number(seatAssignment.value.tableId)
+      tableId: Number(seatAssignment.value.tableId),
     });
 
     if (result.success) {
       // 更新本地候位
-      const index = queueItems.value.findIndex(item => item.id === selectedQueueItem.value!.id);
+      const index = queueItems.value.findIndex(
+        (item) => item.id === selectedQueueItem.value!.id,
+      );
       if (index !== -1) {
         queueItems.value[index].status = "seated";
         queueItems.value[index].seatedAt = new Date().toISOString();
-        queueItems.value[index].assignedTableId = Number(seatAssignment.value.tableId);
+        queueItems.value[index].assignedTableId = Number(
+          seatAssignment.value.tableId,
+        );
       }
 
       // 更新桌位狀態(等待桌位 API 整合)
-      const table = tables.value.find(t => t.id === seatAssignment.value.tableId.toString());
+      const table = tables.value.find(
+        (t) => t.id === seatAssignment.value.tableId.toString(),
+      );
       if (table) {
         table.status = "occupied";
         table.occupiedSince = new Date().toISOString();
@@ -1188,11 +1208,11 @@ const confirmSeatAssignment = async () => {
       closeSeatDialog();
       alert("座位安排完成");
     } else {
-      alert(result.error || '座位安排失敗');
+      alert(result.error || "座位安排失敗");
     }
   } catch (_error) {
     alert("座位安排失敗，請重試");
-    console.error('Failed to seat customer:', error);
+    console.error("Failed to seat customer:", error);
   }
 };
 

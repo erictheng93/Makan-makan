@@ -3,22 +3,26 @@
 ## 📋 已完成的功能模塊
 
 ### 1. 類型定義（Types）✅
+
 - `src/types/monitoring-filters.ts` - 高級過濾系統類型
 - `src/types/monitoring-export.ts` - 導出功能類型
 - `src/types/monitoring-layout.ts` - 自定義佈局類型
 
 ### 2. 服務層（Services）✅
+
 - `src/services/exportService.ts` - CSV/Excel/PDF 導出服務
 - `src/services/monitoringStorage.ts` - 本地存儲服務（篩選器/佈局）
 - `src/services/monitoringWebSocket.ts` - WebSocket 即時警報（已存在）
 
 ### 3. 組件（Components）✅
+
 - `src/components/monitoring/AdvancedFilterPanel.vue` - 高級過濾面板
 - `src/components/monitoring/ExportReportModal.vue` - 導出報告對話框
 - `src/components/monitoring/DashboardLayoutEditor.vue` - 佈局編輯器
 - `src/components/monitoring/AlertNotificationPanel.vue` - 即時警報面板（已存在）
 
 ### 4. 依賴包（Dependencies）✅
+
 ```json
 {
   "jspdf": "^3.0.3",
@@ -36,26 +40,26 @@
 
 ```typescript
 // 導入新組件
-import AdvancedFilterPanel from '@/components/monitoring/AdvancedFilterPanel.vue'
-import ExportReportModal from '@/components/monitoring/ExportReportModal.vue'
-import DashboardLayoutEditor from '@/components/monitoring/DashboardLayoutEditor.vue'
+import AdvancedFilterPanel from "@/components/monitoring/AdvancedFilterPanel.vue";
+import ExportReportModal from "@/components/monitoring/ExportReportModal.vue";
+import DashboardLayoutEditor from "@/components/monitoring/DashboardLayoutEditor.vue";
 
 // 導入服務
-import { monitoringStorage } from '@/services/monitoringStorage'
-import { exportService } from '@/services/exportService'
+import { monitoringStorage } from "@/services/monitoringStorage";
+import { exportService } from "@/services/exportService";
 
 // 導入類型
-import type { MonitoringFilter } from '@/types/monitoring-filters'
-import type { DashboardLayout } from '@/types/monitoring-layout'
-import { DEFAULT_FILTER } from '@/types/monitoring-filters'
-import { DEFAULT_LAYOUT } from '@/types/monitoring-layout'
+import type { MonitoringFilter } from "@/types/monitoring-filters";
+import type { DashboardLayout } from "@/types/monitoring-layout";
+import { DEFAULT_FILTER } from "@/types/monitoring-filters";
+import { DEFAULT_LAYOUT } from "@/types/monitoring-layout";
 
 // 導入圖標
 import {
   FunnelIcon,
   DocumentArrowDownIcon,
   Cog6ToothIcon,
-} from '@heroicons/vue/24/outline'
+} from "@heroicons/vue/24/outline";
 ```
 
 ### 步驟 2: 添加狀態變量
@@ -63,21 +67,21 @@ import {
 ```typescript
 // 過濾器狀態
 const currentFilter = ref<MonitoringFilter>(
-  monitoringStorage.getActiveFilter() || DEFAULT_FILTER
-)
-const showFilterPanel = ref(false)
-const savedFilters = ref(monitoringStorage.getSavedFilters())
+  monitoringStorage.getActiveFilter() || DEFAULT_FILTER,
+);
+const showFilterPanel = ref(false);
+const savedFilters = ref(monitoringStorage.getSavedFilters());
 
 // 導出狀態
-const showExportModal = ref(false)
-const exportData = ref<any[]>([])
+const showExportModal = ref(false);
+const exportData = ref<any[]>([]);
 
 // 佈局狀態
 const currentLayout = ref<DashboardLayout>(
-  monitoringStorage.getActiveLayout() || DEFAULT_LAYOUT
-)
-const layoutEditMode = ref(false)
-const savedLayouts = ref(monitoringStorage.getSavedLayouts())
+  monitoringStorage.getActiveLayout() || DEFAULT_LAYOUT,
+);
+const layoutEditMode = ref(false);
+const savedLayouts = ref(monitoringStorage.getSavedLayouts());
 ```
 
 ### 步驟 3: 添加方法
@@ -85,85 +89,85 @@ const savedLayouts = ref(monitoringStorage.getSavedLayouts())
 ```typescript
 // 過濾器方法
 function handleFilterApply(filter: MonitoringFilter) {
-  currentFilter.value = filter
-  monitoringStorage.setActiveFilter(filter)
-  refreshAllData() // 使用新過濾器重新加載數據
+  currentFilter.value = filter;
+  monitoringStorage.setActiveFilter(filter);
+  refreshAllData(); // 使用新過濾器重新加載數據
 }
 
 function handleFilterSave(name: string, filter: MonitoringFilter) {
-  monitoringStorage.saveFilter(name, filter)
-  savedFilters.value = monitoringStorage.getSavedFilters()
+  monitoringStorage.saveFilter(name, filter);
+  savedFilters.value = monitoringStorage.getSavedFilters();
 }
 
 function handleFilterLoad(filterId: string) {
-  const saved = savedFilters.value.find(f => f.id === filterId)
+  const saved = savedFilters.value.find((f) => f.id === filterId);
   if (saved) {
-    currentFilter.value = saved.filter
-    handleFilterApply(saved.filter)
+    currentFilter.value = saved.filter;
+    handleFilterApply(saved.filter);
   }
 }
 
 // 導出方法
 function handleExportClick() {
   // 準備導出數據
-  exportData.value = prepareExportData()
-  showExportModal.value = true
+  exportData.value = prepareExportData();
+  showExportModal.value = true;
 }
 
 function prepareExportData(): any[] {
   // 根據當前視圖準備數據
-  const data: any[] = []
+  const data: any[] = [];
 
   // 添加警報數據
   if (wsAlerts.value.length > 0) {
-    wsAlerts.value.forEach(alert => {
+    wsAlerts.value.forEach((alert) => {
       data.push({
-        type: 'alert',
+        type: "alert",
         timestamp: alert.timestamp,
         severity: alert.severity,
         component: alert.component,
         message: alert.message,
-        status: 'active',
-      })
-    })
+        status: "active",
+      });
+    });
   }
 
   // 添加性能數據
   if (metricsData.value) {
     data.push({
-      type: 'performance',
+      type: "performance",
       timestamp: new Date(),
-      component: 'api',
-      metric: 'response_time',
+      component: "api",
+      metric: "response_time",
       value: metricsData.value.api?.avgResponseTime || 0,
-      unit: 'ms',
-    })
+      unit: "ms",
+    });
   }
 
-  return data
+  return data;
 }
 
 function handleExported(filename: string) {
-  console.log(`Report exported: ${filename}`)
+  console.log(`Report exported: ${filename}`);
   // 可以在這裡添加成功通知
 }
 
 // 佈局方法
 function toggleLayoutEditMode() {
-  layoutEditMode.value = !layoutEditMode.value
+  layoutEditMode.value = !layoutEditMode.value;
 }
 
 function handleLayoutSave(layout: DashboardLayout) {
-  monitoringStorage.updateLayout(layout.id, layout)
-  monitoringStorage.setActiveLayout(layout)
-  savedLayouts.value = monitoringStorage.getSavedLayouts()
-  layoutEditMode.value = false
+  monitoringStorage.updateLayout(layout.id, layout);
+  monitoringStorage.setActiveLayout(layout);
+  savedLayouts.value = monitoringStorage.getSavedLayouts();
+  layoutEditMode.value = false;
 }
 
 function handleLayoutCancel() {
   // 恢復之前的佈局
-  currentLayout.value = monitoringStorage.getActiveLayout() || DEFAULT_LAYOUT
-  layoutEditMode.value = false
+  currentLayout.value = monitoringStorage.getActiveLayout() || DEFAULT_LAYOUT;
+  layoutEditMode.value = false;
 }
 ```
 
@@ -286,6 +290,7 @@ function handleLayoutCancel() {
 ## 🎨 功能特色
 
 ### 高級過濾與搜索
+
 - ✅ 預設快速篩選器（嚴重警報、API 問題等）
 - ✅ 多維度篩選（時間、組件、嚴重程度、狀態）
 - ✅ 關鍵字搜索
@@ -293,6 +298,7 @@ function handleLayoutCancel() {
 - ✅ 高級選項（響應時間閾值、包含已解決等）
 
 ### 導出報告功能
+
 - ✅ 三種格式：CSV、Excel、PDF
 - ✅ 預設報告範本（每日摘要、週度性能、警報歷史等）
 - ✅ 自定義導出選項
@@ -300,6 +306,7 @@ function handleLayoutCancel() {
 - ✅ 即時進度指示
 
 ### 自定義佈局系統
+
 - ✅ 12 種預設小部件類型
 - ✅ 拖放式佈局編輯
 - ✅ 小部件鎖定/配置
@@ -310,38 +317,43 @@ function handleLayoutCancel() {
 ## 🧪 測試建議
 
 ### 1. 過濾器測試
+
 ```typescript
 // 測試過濾器應用
 const testFilter: MonitoringFilter = {
-  timeRange: 'last1hour',
-  components: ['api', 'database'],
-  severity: ['critical'],
-  status: ['active'],
-  searchKeyword: 'timeout',
+  timeRange: "last1hour",
+  components: ["api", "database"],
+  severity: ["critical"],
+  status: ["active"],
+  searchKeyword: "timeout",
   // ...
-}
-handleFilterApply(testFilter)
+};
+handleFilterApply(testFilter);
 ```
 
 ### 2. 導出測試
+
 ```typescript
 // 準備測試數據
 const testData = [
-  { timestamp: new Date(), severity: 'critical', message: 'Test alert' },
+  { timestamp: new Date(), severity: "critical", message: "Test alert" },
   // ...
-]
-exportService.quickExport(testData, 'csv', 'alerts')
+];
+exportService.quickExport(testData, "csv", "alerts");
 ```
 
 ### 3. 佈局測試
+
 ```typescript
 // 測試佈局保存
 const testLayout: DashboardLayout = {
   ...DEFAULT_LAYOUT,
-  name: '測試佈局',
-  widgets: [/* ... */],
-}
-monitoringStorage.saveLayout(testLayout)
+  name: "測試佈局",
+  widgets: [
+    /* ... */
+  ],
+};
+monitoringStorage.saveLayout(testLayout);
 ```
 
 ## 📝 注意事項

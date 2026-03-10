@@ -118,6 +118,7 @@ git checkout -b fix/bug-description
 - `chore/` - 建置工具或輔助工具的變動
 
 **範例**：
+
 ```
 feature/group-order-split-bill
 fix/order-status-transition
@@ -169,43 +170,43 @@ git push origin feature/your-feature-name
 ```typescript
 // 使用明確的類型定義
 interface CreateOrderInput {
-  restaurantId: number
-  customerId: number
-  items: OrderItem[]
-  totalAmount: number
+  restaurantId: number;
+  customerId: number;
+  items: OrderItem[];
+  totalAmount: number;
 }
 
 // 使用 async/await 而非 Promise.then
 async function createOrder(data: CreateOrderInput): Promise<Order> {
-  const order = await db.insert(orders).values(data)
-  return order
+  const order = await db.insert(orders).values(data);
+  return order;
 }
 
 // 使用解構賦值
-const { restaurantId, customerId, items } = orderData
+const { restaurantId, customerId, items } = orderData;
 
 // 使用可選鏈
-const userName = user?.profile?.name ?? 'Guest'
+const userName = user?.profile?.name ?? "Guest";
 ```
 
 #### ❌ 避免的實踐
 
 ```typescript
 // ❌ 不要使用 any
-function process(data: any) { }  // 不好
+function process(data: any) {} // 不好
 
 // ✅ 使用明確類型
-function process(data: ProcessData) { }  // 好
+function process(data: ProcessData) {} // 好
 
 // ❌ 不要忽略錯誤處理
-await createOrder(data)  // 不好
+await createOrder(data); // 不好
 
 // ✅ 正確處理錯誤
 try {
-  await createOrder(data)
+  await createOrder(data);
 } catch (error) {
-  logger.error('Failed to create order', error)
-  throw new ApiError('ORDER_CREATION_FAILED', 500)
+  logger.error("Failed to create order", error);
+  throw new ApiError("ORDER_CREATION_FAILED", 500);
 }
 ```
 
@@ -225,54 +226,54 @@ try {
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import type { Order } from '@makanmakan/shared-types'
+import { ref, computed, onMounted } from "vue";
+import type { Order } from "@makanmakan/shared-types";
 
 // Props 定義
 interface Props {
-  restaurantId: number
-  status?: OrderStatus
+  restaurantId: number;
+  status?: OrderStatus;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  status: 'pending'
-})
+  status: "pending",
+});
 
 // Emits 定義
 interface Emits {
-  (e: 'update', order: Order): void
+  (e: "update", order: Order): void;
 }
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 // 狀態管理
-const orders = ref<Order[]>([])
-const loading = ref(false)
+const orders = ref<Order[]>([]);
+const loading = ref(false);
 
 // 計算屬性
-const pendingCount = computed(() =>
-  orders.value.filter(o => o.status === 'pending').length
-)
+const pendingCount = computed(
+  () => orders.value.filter((o) => o.status === "pending").length,
+);
 
 // 生命週期
 onMounted(async () => {
-  await fetchOrders()
-})
+  await fetchOrders();
+});
 
 // 方法
 async function fetchOrders() {
-  loading.value = true
+  loading.value = true;
   try {
-    orders.value = await api.getOrders(props.restaurantId)
+    orders.value = await api.getOrders(props.restaurantId);
   } catch (error) {
-    console.error('Failed to fetch orders', error)
+    console.error("Failed to fetch orders", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function handleUpdate(order: Order) {
-  emit('update', order)
+  emit("update", order);
 }
 </script>
 
@@ -320,76 +321,76 @@ function handleUpdate(order: Order) {
 **單元測試**：
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest'
-import { OrderService } from '../OrderService'
-import { createTestDB } from '@/tests/helpers/test-utils'
+import { describe, it, expect, beforeEach } from "vitest";
+import { OrderService } from "../OrderService";
+import { createTestDB } from "@/tests/helpers/test-utils";
 
-describe('OrderService', () => {
-  let orderService: OrderService
-  let db: TestDatabase
+describe("OrderService", () => {
+  let orderService: OrderService;
+  let db: TestDatabase;
 
   beforeEach(async () => {
-    db = await createTestDB()
-    orderService = new OrderService(db)
-  })
+    db = await createTestDB();
+    orderService = new OrderService(db);
+  });
 
-  describe('createOrder', () => {
-    it('should create order with valid data', async () => {
+  describe("createOrder", () => {
+    it("should create order with valid data", async () => {
       const orderData = {
         restaurantId: 1,
         customerId: 1,
-        items: [{ menuItemId: 1, quantity: 2 }]
-      }
+        items: [{ menuItemId: 1, quantity: 2 }],
+      };
 
-      const order = await orderService.createOrder(orderData)
+      const order = await orderService.createOrder(orderData);
 
-      expect(order.id).toBeDefined()
-      expect(order.status).toBe('pending')
-      expect(order.totalAmount).toBeGreaterThan(0)
-    })
+      expect(order.id).toBeDefined();
+      expect(order.status).toBe("pending");
+      expect(order.totalAmount).toBeGreaterThan(0);
+    });
 
-    it('should reject order with invalid restaurant', async () => {
+    it("should reject order with invalid restaurant", async () => {
       const orderData = {
         restaurantId: 999, // Non-existent
         customerId: 1,
-        items: []
-      }
+        items: [],
+      };
 
-      await expect(
-        orderService.createOrder(orderData)
-      ).rejects.toThrow('Restaurant not found')
-    })
-  })
-})
+      await expect(orderService.createOrder(orderData)).rejects.toThrow(
+        "Restaurant not found",
+      );
+    });
+  });
+});
 ```
 
 **整合測試**：
 
 ```typescript
-import { describe, it, expect } from 'vitest'
-import { createTestApp } from '@/tests/helpers/test-utils'
+import { describe, it, expect } from "vitest";
+import { createTestApp } from "@/tests/helpers/test-utils";
 
-describe('POST /api/v1/orders', () => {
-  it('should create order for authenticated user', async () => {
-    const app = await createTestApp()
+describe("POST /api/v1/orders", () => {
+  it("should create order for authenticated user", async () => {
+    const app = await createTestApp();
 
-    const response = await app.request('/api/v1/orders', {
-      method: 'POST',
+    const response = await app.request("/api/v1/orders", {
+      method: "POST",
       headers: {
-        'Authorization': 'Bearer valid-token',
-        'Content-Type': 'application/json'
+        Authorization: "Bearer valid-token",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         restaurantId: 1,
-        items: [{ menuItemId: 1, quantity: 2 }]
-      })
-    })
+        items: [{ menuItemId: 1, quantity: 2 }],
+      }),
+    });
 
-    expect(response.status).toBe(201)
-    const order = await response.json()
-    expect(order.id).toBeDefined()
-  })
-})
+    expect(response.status).toBe(201);
+    const order = await response.json();
+    expect(order.id).toBeDefined();
+  });
+});
 ```
 
 ### 使用測試數據工廠
@@ -402,29 +403,29 @@ import {
   restaurantFactory,
   orderFactory,
   buildCompleteRestaurantData,
-  resetAllFactories
-} from '@makanmakan/testing-utils'
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
-describe('Order Flow', () => {
+describe("Order Flow", () => {
   beforeEach(() => {
-    resetAllFactories()
-  })
+    resetAllFactories();
+  });
 
-  it('should process complete order flow', async () => {
+  it("should process complete order flow", async () => {
     // 使用工廠快速生成測試數據
-    const testData = buildCompleteRestaurantData()
+    const testData = buildCompleteRestaurantData();
 
     const order = orderFactory.build({
       relations: {
         restaurantId: testData.restaurant.id!,
-        customerId: testData.customers[0].id!
-      }
-    })
+        customerId: testData.customers[0].id!,
+      },
+    });
 
     // 執行測試邏輯
     // ...
-  })
-})
+  });
+});
 ```
 
 ### 執行測試
@@ -563,6 +564,7 @@ git commit -m "refactor(database): Optimize query performance
 ### 2. 創建 Pull Request
 
 1. **推送分支到你的 fork**：
+
    ```bash
    git push origin feature/your-feature-name
    ```

@@ -7,23 +7,29 @@ This document outlines the security vulnerabilities that have been fixed and bes
 ### ✅ Critical Fixes Applied
 
 #### 1. Password Hashing Implementation
+
 **Issue**: Passwords were stored and compared in plain text
 **Fix**: Implemented bcrypt with salt rounds of 12
-- **Files Modified**: 
+
+- **Files Modified**:
   - `apps/api/src/routes/auth.ts:47-54`
   - `apps/api/src/routes/users.ts:309-320, 453-459, 496-500, 609-625`
 - **Impact**: All passwords are now securely hashed before storage
 
-#### 2. Hardcoded Credentials Removal  
+#### 2. Hardcoded Credentials Removal
+
 **Issue**: Database password hardcoded as "12345" in config.php
 **Fix**: Replaced with environment variable configuration
-- **Files Modified**: 
+
+- **Files Modified**:
   - `config.php:2-14`
 - **Impact**: Database credentials now sourced from environment variables
 
 #### 3. JWT Security Enhancements
+
 **Improvements**: Added comprehensive JWT security measures
-- **Files Modified**: 
+
+- **Files Modified**:
   - `apps/api/src/middleware/auth.ts:29-75`
   - `apps/api/src/routes/auth.ts:241-252`
 - **Features Added**:
@@ -33,9 +39,11 @@ This document outlines the security vulnerabilities that have been fixed and bes
   - Enhanced error handling
 
 #### 4. CORS Security Hardening
+
 **Issue**: Overly permissive CORS configuration
 **Fix**: Strict origin validation and security headers
-- **Files Modified**: 
+
+- **Files Modified**:
   - `apps/api/src/middleware/cors.ts:4-63`
 - **Improvements**:
   - Removed development wildcard origins
@@ -47,17 +55,20 @@ This document outlines the security vulnerabilities that have been fixed and bes
 ### Environment Variables Setup
 
 1. Copy `.env.example` to `.env.local`:
+
 ```bash
 cp .env.example .env.local
 ```
 
 2. Generate secure JWT secret:
+
 ```bash
 # Generate a secure 48-byte JWT secret
 openssl rand -base64 48
 ```
 
 3. Update environment variables with real values:
+
 - Never use default/example values in production
 - Use different secrets for each environment
 - Store secrets securely (use `wrangler secret put` for Cloudflare Workers)
@@ -65,6 +76,7 @@ openssl rand -base64 48
 ### Database Security (Legacy PHP)
 
 1. Create dedicated database user with minimal permissions:
+
 ```sql
 CREATE USER 'makanmakan_app'@'localhost' IDENTIFIED BY 'your-secure-password';
 GRANT SELECT, INSERT, UPDATE, DELETE ON makanmakan.* TO 'makanmakan_app'@'localhost';
@@ -77,6 +89,7 @@ FLUSH PRIVILEGES;
 ### Cloudflare Workers Security
 
 1. Configure wrangler.toml bindings:
+
 ```toml
 [env.production]
 name = "makanmakan-api-prod"
@@ -86,13 +99,14 @@ vars = { NODE_ENV = "production" }
 binding = "TOKEN_BLACKLIST"
 id = "your-kv-namespace-id"
 
-[[env.production.d1_databases]]  
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
 database_id = "your-d1-database-id"
 ```
 
 2. Set secrets using Wrangler:
+
 ```bash
 wrangler secret put JWT_SECRET --env production
 wrangler secret put SLACK_WEBHOOK_URL --env production
@@ -101,11 +115,13 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 ## 🔍 Security Monitoring
 
 ### Audit Logging
+
 - All authentication events are logged to `audit_logs` table
 - Monitor for unusual login patterns
 - Set up alerts for failed authentication attempts
 
 ### Error Monitoring
+
 - Configure Slack webhook for critical errors
 - Review application logs regularly
 - Set up uptime monitoring
@@ -113,17 +129,20 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 ### Regular Security Tasks
 
 #### Weekly
-- [ ] Review access logs for suspicious activity  
+
+- [ ] Review access logs for suspicious activity
 - [ ] Check for failed authentication attempts
 - [ ] Monitor error rates and patterns
 
-#### Monthly  
+#### Monthly
+
 - [ ] Review user permissions and roles
 - [ ] Update dependencies with security patches
 - [ ] Audit CORS allowed origins list
 - [ ] Check JWT token blacklist size
 
 #### Quarterly
+
 - [ ] Rotate JWT secrets
 - [ ] Update database passwords
 - [ ] Review and update security headers
@@ -141,6 +160,7 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
    - Notify affected users if necessary
 
 2. **JWT Secret Compromise**:
+
 ```bash
 # Generate new secret
 NEW_SECRET=$(openssl rand -base64 48)
@@ -155,13 +175,15 @@ wrangler secret put JWT_SECRET --env production
    - Consider additional authentication measures
 
 ### Security Contacts
+
 - **System Administrator**: [Your contact]
-- **Security Team**: [Your team contact]  
+- **Security Team**: [Your team contact]
 - **Incident Response**: [Emergency contact]
 
 ## 📋 Security Checklist for New Deployments
 
 ### Pre-deployment
+
 - [ ] All environment variables configured
 - [ ] JWT secret minimum 32 characters
 - [ ] Database credentials are environment-based
@@ -171,6 +193,7 @@ wrangler secret put JWT_SECRET --env production
 - [ ] SSL/TLS certificates valid
 
 ### Post-deployment
+
 - [ ] Test authentication flows
 - [ ] Verify CORS behavior
 - [ ] Check security headers in browser
@@ -181,6 +204,7 @@ wrangler secret put JWT_SECRET --env production
 ## 🔧 Development Security
 
 ### Secure Development Practices
+
 1. Never commit secrets or credentials
 2. Use `.env.local` for local development
 3. Run security linting regularly
@@ -188,11 +212,12 @@ wrangler secret put JWT_SECRET --env production
 5. Test authentication and authorization flows
 
 ### Testing Security Features
+
 ```bash
 # Test JWT token validation
 curl -H "Authorization: Bearer invalid-token" https://api.yourdomain.com/auth/me
 
-# Test CORS restrictions  
+# Test CORS restrictions
 curl -H "Origin: https://malicious-site.com" https://api.yourdomain.com/health
 
 # Test rate limiting

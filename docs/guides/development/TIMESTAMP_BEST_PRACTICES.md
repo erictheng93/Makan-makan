@@ -31,13 +31,18 @@ Error: NOT NULL constraint failed: waiting_queue.created_at
 Generate timestamps in the application layer using the provided utility functions:
 
 ```typescript
-import { getCurrentTimestamp } from '@makanmakan/database'
+import { getCurrentTimestamp } from "@makanmakan/database";
 
-const now = getCurrentTimestamp()
-await db.prepare(`
+const now = getCurrentTimestamp();
+await db
+  .prepare(
+    `
   INSERT INTO users (username, created_at, updated_at)
   VALUES (?, ?, ?)
-`).bind('john', now, now).run()
+`,
+  )
+  .bind("john", now, now)
+  .run();
 ```
 
 ---
@@ -46,10 +51,15 @@ await db.prepare(`
 
 ```typescript
 // ❌ BAD - Will fail in test environments
-await db.prepare(`
+await db
+  .prepare(
+    `
   INSERT INTO users (username, created_at)
   VALUES (?, CURRENT_TIMESTAMP)
-`).bind('john').run()
+`,
+  )
+  .bind("john")
+  .run();
 ```
 
 ---
@@ -58,13 +68,18 @@ await db.prepare(`
 
 ```typescript
 // ✅ GOOD - Works in all environments
-import { getCurrentTimestamp } from '@makanmakan/database'
+import { getCurrentTimestamp } from "@makanmakan/database";
 
-const now = getCurrentTimestamp()
-await db.prepare(`
+const now = getCurrentTimestamp();
+await db
+  .prepare(
+    `
   INSERT INTO users (username, created_at)
   VALUES (?, ?)
-`).bind('john', now).run()
+`,
+  )
+  .bind("john", now)
+  .run();
 ```
 
 ---
@@ -75,14 +90,14 @@ await db.prepare(`
 
 ```typescript
 import {
-  getCurrentTimestamp,      // Get current ISO timestamp
-  getUnixTimestamp,         // Get Unix timestamp (seconds)
-  getUnixTimestampMs,       // Get Unix timestamp (milliseconds)
-  getTimestampOffset,       // Get past/future timestamp
-  formatTimestamp,          // Format for display
-  TIME_OFFSET,              // Time constants (ms)
-  TIME_OFFSET_SECONDS       // Time constants (seconds)
-} from '@makanmakan/database'
+  getCurrentTimestamp, // Get current ISO timestamp
+  getUnixTimestamp, // Get Unix timestamp (seconds)
+  getUnixTimestampMs, // Get Unix timestamp (milliseconds)
+  getTimestampOffset, // Get past/future timestamp
+  formatTimestamp, // Format for display
+  TIME_OFFSET, // Time constants (ms)
+  TIME_OFFSET_SECONDS, // Time constants (seconds)
+} from "@makanmakan/database";
 ```
 
 ### Usage Examples
@@ -90,47 +105,67 @@ import {
 #### 1. Basic INSERT
 
 ```typescript
-const now = getCurrentTimestamp()
+const now = getCurrentTimestamp();
 
-await db.prepare(`
+await db
+  .prepare(
+    `
   INSERT INTO restaurants (name, created_at, updated_at)
   VALUES (?, ?, ?)
-`).bind('Restaurant Name', now, now).run()
+`,
+  )
+  .bind("Restaurant Name", now, now)
+  .run();
 ```
 
 #### 2. UPDATE with Timestamp
 
 ```typescript
-const now = getCurrentTimestamp()
+const now = getCurrentTimestamp();
 
-await db.prepare(`
+await db
+  .prepare(
+    `
   UPDATE orders
   SET status = ?, updated_at = ?
   WHERE id = ?
-`).bind('completed', now, orderId).run()
+`,
+  )
+  .bind("completed", now, orderId)
+  .run();
 ```
 
 #### 3. Multiple Timestamps
 
 ```typescript
-const now = getCurrentTimestamp()
-const expiresAt = getTimestampOffset(24 * 60 * 60 * 1000) // 24 hours
+const now = getCurrentTimestamp();
+const expiresAt = getTimestampOffset(24 * 60 * 60 * 1000); // 24 hours
 
-await db.prepare(`
+await db
+  .prepare(
+    `
   INSERT INTO sessions (user_id, created_at, expires_at)
   VALUES (?, ?, ?)
-`).bind(userId, now, expiresAt).run()
+`,
+  )
+  .bind(userId, now, expiresAt)
+  .run();
 ```
 
 #### 4. Historical Timestamp
 
 ```typescript
-const oneHourAgo = getTimestampOffset(-TIME_OFFSET.ONE_HOUR)
+const oneHourAgo = getTimestampOffset(-TIME_OFFSET.ONE_HOUR);
 
-const recentOrders = await db.prepare(`
+const recentOrders = await db
+  .prepare(
+    `
   SELECT * FROM orders
   WHERE created_at >= ?
-`).bind(oneHourAgo).all()
+`,
+  )
+  .bind(oneHourAgo)
+  .all();
 ```
 
 ---
@@ -141,68 +176,73 @@ const recentOrders = await db.prepare(`
 
 ```typescript
 // ✅ Single timestamp for both fields
-const now = getCurrentTimestamp()
+const now = getCurrentTimestamp();
 
 await db.insert(table).values({
   ...data,
   created_at: now,
-  updated_at: now
-})
+  updated_at: now,
+});
 ```
 
 ### Pattern 2: UPDATE with updated_at
 
 ```typescript
 // ✅ Always update timestamp on changes
-const now = getCurrentTimestamp()
+const now = getCurrentTimestamp();
 
-await db.update(table)
+await db
+  .update(table)
   .set({
     ...updates,
-    updated_at: now
+    updated_at: now,
   })
-  .where(eq(table.id, id))
+  .where(eq(table.id, id));
 ```
 
 ### Pattern 3: Conditional Timestamp
 
 ```typescript
 // ✅ Set timestamp only if condition met
-const statusChangedAt = status === 'completed'
-  ? getCurrentTimestamp()
-  : null
+const statusChangedAt = status === "completed" ? getCurrentTimestamp() : null;
 
-await db.update(orders)
+await db
+  .update(orders)
   .set({
     status,
-    completed_at: statusChangedAt
+    completed_at: statusChangedAt,
   })
-  .where(eq(orders.id, orderId))
+  .where(eq(orders.id, orderId));
 ```
 
 ### Pattern 4: Dynamic UPDATE Fields
 
 ```typescript
 // ✅ Add updated_at to dynamic updates
-const updates: string[] = []
-const params: any[] = []
+const updates: string[] = [];
+const params: any[] = [];
 
 if (data.name) {
-  updates.push('name = ?')
-  params.push(data.name)
+  updates.push("name = ?");
+  params.push(data.name);
 }
 
 // Always add updated_at
-const now = getCurrentTimestamp()
-updates.push('updated_at = ?')
-params.push(now)
-params.push(id) // WHERE clause parameter
+const now = getCurrentTimestamp();
+updates.push("updated_at = ?");
+params.push(now);
+params.push(id); // WHERE clause parameter
 
-await db.prepare(`
+await db
+  .prepare(
+    `
   UPDATE table_name
-  SET ${updates.join(', ')}
+  SET ${updates.join(", ")}
   WHERE id = ?
-`).bind(...params).run()
+`,
+  )
+  .bind(...params)
+  .run();
 ```
 
 ---
@@ -212,25 +252,35 @@ await db.prepare(`
 ### Before (Using CURRENT_TIMESTAMP)
 
 ```typescript
-await db.prepare(`
+await db
+  .prepare(
+    `
   INSERT INTO waiting_queue (
     id, restaurant_id, customer_name,
     created_at, updated_at
   ) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-`).bind(id, restaurantId, customerName).run()
+`,
+  )
+  .bind(id, restaurantId, customerName)
+  .run();
 ```
 
 ### After (Using getCurrentTimestamp)
 
 ```typescript
-const now = getCurrentTimestamp()
+const now = getCurrentTimestamp();
 
-await db.prepare(`
+await db
+  .prepare(
+    `
   INSERT INTO waiting_queue (
     id, restaurant_id, customer_name,
     created_at, updated_at
   ) VALUES (?, ?, ?, ?, ?)
-`).bind(id, restaurantId, customerName, now, now).run()
+`,
+  )
+  .bind(id, restaurantId, customerName, now, now)
+  .run();
 ```
 
 ---
@@ -246,17 +296,18 @@ await db.prepare(`
 ### Example Test
 
 ```typescript
-test('should set correct timestamps', async () => {
-  const beforeInsert = getCurrentTimestamp()
+test("should set correct timestamps", async () => {
+  const beforeInsert = getCurrentTimestamp();
 
-  await service.createUser({ username: 'test' })
+  await service.createUser({ username: "test" });
 
-  const user = await service.getUser('test')
+  const user = await service.getUser("test");
 
-  expect(user.created_at).toBeDefined()
-  expect(new Date(user.created_at).getTime())
-    .toBeGreaterThanOrEqual(new Date(beforeInsert).getTime())
-})
+  expect(user.created_at).toBeDefined();
+  expect(new Date(user.created_at).getTime()).toBeGreaterThanOrEqual(
+    new Date(beforeInsert).getTime(),
+  );
+});
 ```
 
 ---
@@ -269,28 +320,29 @@ To prevent accidental use of `CURRENT_TIMESTAMP`, add this ESLint rule:
 // .eslintrc.js
 module.exports = {
   rules: {
-    'no-restricted-syntax': [
-      'error',
+    "no-restricted-syntax": [
+      "error",
       {
-        selector: 'Literal[value=/CURRENT_TIMESTAMP/]',
-        message: 'Use getCurrentTimestamp() from @makanmakan/database instead of CURRENT_TIMESTAMP in SQL'
-      }
-    ]
-  }
-}
+        selector: "Literal[value=/CURRENT_TIMESTAMP/]",
+        message:
+          "Use getCurrentTimestamp() from @makanmakan/database instead of CURRENT_TIMESTAMP in SQL",
+      },
+    ],
+  },
+};
 ```
 
 ---
 
 ## Quick Reference
 
-| Task | Function | Example |
-|------|----------|---------|
-| Get current time | `getCurrentTimestamp()` | `"2025-11-10T08:30:45.123Z"` |
-| Unix timestamp | `getUnixTimestamp()` | `1731225045` |
-| Time offset | `getTimestampOffset(ms)` | `getTimestampOffset(-3600000)` |
-| Format display | `formatTimestamp(iso)` | `"11/10/2025, 8:30:45 AM"` |
-| Time constants | `TIME_OFFSET.ONE_HOUR` | `3600000` (ms) |
+| Task             | Function                 | Example                        |
+| ---------------- | ------------------------ | ------------------------------ |
+| Get current time | `getCurrentTimestamp()`  | `"2025-11-10T08:30:45.123Z"`   |
+| Unix timestamp   | `getUnixTimestamp()`     | `1731225045`                   |
+| Time offset      | `getTimestampOffset(ms)` | `getTimestampOffset(-3600000)` |
+| Format display   | `formatTimestamp(iso)`   | `"11/10/2025, 8:30:45 AM"`     |
+| Time constants   | `TIME_OFFSET.ONE_HOUR`   | `3600000` (ms)                 |
 
 ---
 
@@ -307,6 +359,7 @@ module.exports = {
 **Last Updated**: 2025-11-10
 **Status**: Production Standard
 **See Also**:
+
 - `packages/database/src/utils/timestamp.ts` - Implementation
 - `docs/testing/DATABASE_TESTING.md` - Testing guide
 - `CLAUDE.md` - Project overview

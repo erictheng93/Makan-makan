@@ -1,6 +1,6 @@
 // Kitchen Display - OrderStatusBadge 組件測試範例
-import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect } from "vitest";
+import { mount } from "@vue/test-utils";
 
 /**
  * OrderStatusBadge 組件測試
@@ -13,7 +13,7 @@ import { mount } from '@vue/test-utils';
  */
 
 // 簡單的 OrderStatusBadge 組件實現（範例）
-type StatusType = 'pending' | 'preparing' | 'ready' | 'completed';
+type StatusType = "pending" | "preparing" | "ready" | "completed";
 
 interface OrderStatusBadgeComponent {
   name: string;
@@ -32,13 +32,13 @@ interface OrderStatusBadgeComponent {
 }
 
 const OrderStatusBadge: OrderStatusBadgeComponent = {
-  name: 'OrderStatusBadge',
+  name: "OrderStatusBadge",
   props: {
     status: {
       type: String,
       required: true,
       validator: (value: string) =>
-        ['pending', 'preparing', 'ready', 'completed'].includes(value),
+        ["pending", "preparing", "ready", "completed"].includes(value),
     },
   },
   computed: {
@@ -47,10 +47,10 @@ const OrderStatusBadge: OrderStatusBadgeComponent = {
     },
     statusText(): string {
       const textMap: Record<StatusType, string> = {
-        pending: '待處理',
-        preparing: '製作中',
-        ready: '已完成',
-        completed: '已送出',
+        pending: "待處理",
+        preparing: "製作中",
+        ready: "已完成",
+        completed: "已送出",
       };
       const status = (this as unknown as { status: StatusType }).status;
       return textMap[status] || status;
@@ -66,109 +66,117 @@ const OrderStatusBadge: OrderStatusBadgeComponent = {
   `,
 };
 
-describe('OrderStatusBadge.vue', () => {
+describe("OrderStatusBadge.vue", () => {
   const createWrapper = (status: string) => {
     return mount(OrderStatusBadge, {
       props: { status },
     });
   };
 
-  describe('狀態顯示', () => {
-    it('應該顯示「待處理」狀態', () => {
-      const wrapper = createWrapper('pending');
+  describe("狀態顯示", () => {
+    it("應該顯示「待處理」狀態", () => {
+      const wrapper = createWrapper("pending");
 
-      expect(wrapper.text()).toBe('待處理');
+      expect(wrapper.text()).toBe("待處理");
     });
 
-    it('應該顯示「製作中」狀態', () => {
-      const wrapper = createWrapper('preparing');
+    it("應該顯示「製作中」狀態", () => {
+      const wrapper = createWrapper("preparing");
 
-      expect(wrapper.text()).toBe('製作中');
+      expect(wrapper.text()).toBe("製作中");
     });
 
-    it('應該顯示「已完成」狀態', () => {
-      const wrapper = createWrapper('ready');
+    it("應該顯示「已完成」狀態", () => {
+      const wrapper = createWrapper("ready");
 
-      expect(wrapper.text()).toBe('已完成');
+      expect(wrapper.text()).toBe("已完成");
     });
 
-    it('應該顯示「已送出」狀態', () => {
-      const wrapper = createWrapper('completed');
+    it("應該顯示「已送出」狀態", () => {
+      const wrapper = createWrapper("completed");
 
-      expect(wrapper.text()).toBe('已送出');
+      expect(wrapper.text()).toBe("已送出");
     });
   });
 
-  describe('CSS 類別', () => {
-    it('pending 狀態應該有 status-pending 類別', () => {
-      const wrapper = createWrapper('pending');
+  describe("CSS 類別", () => {
+    it("pending 狀態應該有 status-pending 類別", () => {
+      const wrapper = createWrapper("pending");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-pending');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-pending",
+      );
     });
 
-    it('preparing 狀態應該有 status-preparing 類別', () => {
-      const wrapper = createWrapper('preparing');
+    it("preparing 狀態應該有 status-preparing 類別", () => {
+      const wrapper = createWrapper("preparing");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-preparing');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-preparing",
+      );
     });
 
-    it('ready 狀態應該有 status-ready 類別', () => {
-      const wrapper = createWrapper('ready');
+    it("ready 狀態應該有 status-ready 類別", () => {
+      const wrapper = createWrapper("ready");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-ready');
+      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
+        "status-ready",
+      );
     });
 
-    it('所有狀態都應該有 status-badge 基礎類別', () => {
-      const statuses = ['pending', 'preparing', 'ready', 'completed'];
+    it("所有狀態都應該有 status-badge 基礎類別", () => {
+      const statuses = ["pending", "preparing", "ready", "completed"];
 
       statuses.forEach((status) => {
         const wrapper = createWrapper(status);
-        expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain('status-badge');
+        expect(
+          wrapper.find('[data-testid="status-badge"]').classes(),
+        ).toContain("status-badge");
       });
     });
   });
 
-  describe('Props 驗證', () => {
-    it('應該接受有效的 status prop', () => {
-      const validStatuses = ['pending', 'preparing', 'ready', 'completed'];
+  describe("Props 驗證", () => {
+    it("應該接受有效的 status prop", () => {
+      const validStatuses = ["pending", "preparing", "ready", "completed"];
 
       validStatuses.forEach((status) => {
         expect(() => createWrapper(status)).not.toThrow();
       });
     });
 
-    it('status prop 應該是必填的', () => {
+    it("status prop 應該是必填的", () => {
       const validator = OrderStatusBadge.props.status.required;
 
       expect(validator).toBe(true);
     });
 
-    it('應該驗證 status prop 的有效值', () => {
+    it("應該驗證 status prop 的有效值", () => {
       const validator = OrderStatusBadge.props.status.validator;
 
-      expect(validator('pending')).toBe(true);
-      expect(validator('preparing')).toBe(true);
-      expect(validator('ready')).toBe(true);
-      expect(validator('completed')).toBe(true);
-      expect(validator('invalid')).toBe(false);
+      expect(validator("pending")).toBe(true);
+      expect(validator("preparing")).toBe(true);
+      expect(validator("ready")).toBe(true);
+      expect(validator("completed")).toBe(true);
+      expect(validator("invalid")).toBe(false);
     });
   });
 
-  describe('快照測試', () => {
-    it('pending 狀態快照應該匹配', () => {
-      const wrapper = createWrapper('pending');
+  describe("快照測試", () => {
+    it("pending 狀態快照應該匹配", () => {
+      const wrapper = createWrapper("pending");
 
       expect(wrapper.html()).toMatchSnapshot();
     });
 
-    it('preparing 狀態快照應該匹配', () => {
-      const wrapper = createWrapper('preparing');
+    it("preparing 狀態快照應該匹配", () => {
+      const wrapper = createWrapper("preparing");
 
       expect(wrapper.html()).toMatchSnapshot();
     });
 
-    it('ready 狀態快照應該匹配', () => {
-      const wrapper = createWrapper('ready');
+    it("ready 狀態快照應該匹配", () => {
+      const wrapper = createWrapper("ready");
 
       expect(wrapper.html()).toMatchSnapshot();
     });

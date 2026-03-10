@@ -3,11 +3,11 @@
  * https://docs.anthropic.com/claude/reference/messages_post
  */
 
-import { BaseLLMProvider } from './base';
-import type { LLMRequest, LLMResponse } from '../types';
+import { BaseLLMProvider } from "./base";
+import type { LLMRequest, LLMResponse } from "../types";
 
 interface AnthropicMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -36,11 +36,11 @@ interface AnthropicResponse {
 }
 
 export class AnthropicProvider extends BaseLLMProvider {
-  private readonly baseUrl = 'https://api.anthropic.com/v1';
-  private readonly apiVersion = '2023-06-01';
+  private readonly baseUrl = "https://api.anthropic.com/v1";
+  private readonly apiVersion = "2023-06-01";
 
   protected getDefaultModel(): string {
-    return 'claude-3-5-sonnet-20241022';
+    return "claude-3-5-sonnet-20241022";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
@@ -52,7 +52,7 @@ export class AnthropicProvider extends BaseLLMProvider {
         max_tokens: request.maxTokens || this.config.maxTokens || 4096,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: request.prompt,
           },
         ],
@@ -64,25 +64,29 @@ export class AnthropicProvider extends BaseLLMProvider {
       }
 
       const response = await fetch(`${this.baseUrl}/messages`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.config.apiKey,
-          'anthropic-version': this.apiVersion,
+          "Content-Type": "application/json",
+          "x-api-key": this.config.apiKey,
+          "anthropic-version": this.apiVersion,
         },
         body: JSON.stringify(anthropicRequest),
       });
 
       if (!response.ok) {
-        const errorData = await response.json() as { error?: { message?: string } };
-        throw new Error(`Anthropic API error: ${errorData.error?.message || response.statusText}`);
+        const errorData = (await response.json()) as {
+          error?: { message?: string };
+        };
+        throw new Error(
+          `Anthropic API error: ${errorData.error?.message || response.statusText}`,
+        );
       }
 
-      const data = await response.json() as AnthropicResponse;
+      const data = (await response.json()) as AnthropicResponse;
       const latencyMs = Date.now() - startTime;
 
       return {
-        content: data.content[0]?.text || '',
+        content: data.content[0]?.text || "",
         usage: {
           promptTokens: data.usage.input_tokens,
           completionTokens: data.usage.output_tokens,
@@ -95,11 +99,17 @@ export class AnthropicProvider extends BaseLLMProvider {
         },
       };
     } catch (error) {
-      throw new Error(`Anthropic provider error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Anthropic provider error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
-  async test(): Promise<{ success: boolean; latencyMs?: number; error?: string }> {
+  async test(): Promise<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -118,7 +128,7 @@ export class AnthropicProvider extends BaseLLMProvider {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }

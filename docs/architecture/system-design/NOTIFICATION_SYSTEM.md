@@ -69,28 +69,28 @@ The MakanMakan Notification System provides automated employee notifications via
 
 ### 請假管理通知 (Leave Management)
 
-| 類別 | 觸發時機 | 優先級 | 通道 |
-|------|---------|--------|------|
+| 類別                      | 觸發時機         | 優先級 | 通道  |
+| ------------------------- | ---------------- | ------ | ----- |
 | `leave_request_submitted` | 員工提交請假申請 | Normal | Email |
-| `leave_request_approved` | 主管批准請假 | High | Email |
-| `leave_request_rejected` | 主管拒絕請假 | High | Email |
-| `leave_request_cancelled` | 員工取消請假 | Normal | Email |
+| `leave_request_approved`  | 主管批准請假     | High   | Email |
+| `leave_request_rejected`  | 主管拒絕請假     | High   | Email |
+| `leave_request_cancelled` | 員工取消請假     | Normal | Email |
 
 ### 排班管理通知 (Scheduling)
 
-| 類別 | 觸發時機 | 優先級 | 通道 |
-|------|---------|--------|------|
-| `schedule_created` | 創建新排班 | Normal | Email, SMS |
-| `schedule_updated` | 更新現有排班 | High | Email, SMS |
-| `schedule_cancelled` | 取消排班 | High | Email, SMS |
-| `swap_request_created` | 創建換班請求 | Normal/High | Email |
-| `swap_request_approved` | 主管批准換班 | High | Email |
-| `swap_request_rejected` | 主管拒絕換班 | High | Email |
+| 類別                    | 觸發時機     | 優先級      | 通道       |
+| ----------------------- | ------------ | ----------- | ---------- |
+| `schedule_created`      | 創建新排班   | Normal      | Email, SMS |
+| `schedule_updated`      | 更新現有排班 | High        | Email, SMS |
+| `schedule_cancelled`    | 取消排班     | High        | Email, SMS |
+| `swap_request_created`  | 創建換班請求 | Normal/High | Email      |
+| `swap_request_approved` | 主管批准換班 | High        | Email      |
+| `swap_request_rejected` | 主管拒絕換班 | High        | Email      |
 
 ### 提醒通知 (Reminders)
 
-| 類別 | 觸發時機 | 優先級 | 通道 |
-|------|---------|--------|------|
+| 類別             | 觸發時機       | 優先級 | 通道       |
+| ---------------- | -------------- | ------ | ---------- |
 | `shift_reminder` | 班次開始前提醒 | Normal | Email, SMS |
 
 ## 配置設定 (Configuration)
@@ -142,12 +142,14 @@ TWILIO_AUTH_TOKEN=xxxxxxxxxxxxx
 ### 獲取 API 密鑰 (Getting API Keys)
 
 #### Resend (Email)
+
 1. 註冊賬號：https://resend.com/
 2. 進入 API Keys 頁面
 3. 創建新的 API Key
 4. 驗證域名並配置 DNS 記錄
 
 #### Twilio (SMS)
+
 1. 註冊賬號：https://www.twilio.com/
 2. 進入 Console Dashboard
 3. 獲取 Account SID 和 Auth Token
@@ -280,6 +282,7 @@ Content-Type: application/json
 ### 請假通知變量 (Leave Notifications)
 
 #### leave_request_submitted
+
 - `employeeName` - 員工姓名
 - `leaveType` - 請假類型
 - `startDate` - 開始日期
@@ -287,6 +290,7 @@ Content-Type: application/json
 - `totalDays` - 總天數
 
 #### leave_request_approved
+
 - `employeeName` - 員工姓名
 - `leaveType` - 請假類型
 - `startDate` - 開始日期
@@ -296,6 +300,7 @@ Content-Type: application/json
 - `approverNotes` - 批准備註
 
 #### leave_request_rejected
+
 - `employeeName` - 員工姓名
 - `leaveType` - 請假類型
 - `startDate` - 開始日期
@@ -303,6 +308,7 @@ Content-Type: application/json
 - `rejectionReason` - 拒絕原因
 
 #### leave_request_cancelled
+
 - `employeeName` - 員工姓名
 - `leaveType` - 請假類型
 - `startDate` - 開始日期
@@ -311,6 +317,7 @@ Content-Type: application/json
 ### 排班通知變量 (Scheduling Notifications)
 
 #### schedule_created / schedule_updated
+
 - `employeeName` - 員工姓名
 - `shiftName` - 班次名稱
 - `scheduleDate` - 排班日期
@@ -320,6 +327,7 @@ Content-Type: application/json
 - `notes` - 備註
 
 #### schedule_cancelled
+
 - `employeeName` - 員工姓名
 - `shiftName` - 班次名稱
 - `scheduleDate` - 排班日期
@@ -328,6 +336,7 @@ Content-Type: application/json
 - `cancellationReason` - 取消原因
 
 #### swap_request_created
+
 - `requesterName` - 請求人姓名
 - `targetName` - 目標員工姓名
 - `scheduleDate` - 排班日期
@@ -338,6 +347,7 @@ Content-Type: application/json
 - `urgency` - 緊急程度
 
 #### swap_request_approved
+
 - `requesterName` - 請求人姓名
 - `targetName` - 目標員工姓名（如有）
 - `managerName` - 批准主管姓名
@@ -347,6 +357,7 @@ Content-Type: application/json
 - `requestType` - 請求類型
 
 #### swap_request_rejected
+
 - `requesterName` - 請求人姓名
 - `managerName` - 拒絕主管姓名
 - `scheduleDate` - 排班日期
@@ -389,7 +400,7 @@ await schedulingService.rejectSwapRequest(id, ...)     // → swap_request_rejec
 
 ```typescript
 // 主業務操作成功完成
-const leave = await leaveService.createLeaveRequest(data)
+const leave = await leaveService.createLeaveRequest(data);
 
 // 通知發送失敗也不會拋出錯誤
 // 只會記錄到控制台日誌
@@ -401,8 +412,8 @@ const leave = await leaveService.createLeaveRequest(data)
 所有通知錯誤都會記錄到控制台：
 
 ```javascript
-console.error('Failed to send leave request notification:', error)
-console.error('Failed to send schedule creation notification:', error)
+console.error("Failed to send leave request notification:", error);
+console.error("Failed to send schedule creation notification:", error);
 // ... 等等
 ```
 
@@ -481,15 +492,16 @@ curl -X GET http://localhost:8787/api/v1/notifications/templates \
 
 ### API 權限要求
 
-| 端點 | 最低權限 | 說明 |
-|------|---------|------|
-| POST /test | Admin, Shop Owner | 測試通知發送 |
+| 端點           | 最低權限          | 說明         |
+| -------------- | ----------------- | ------------ |
+| POST /test     | Admin, Shop Owner | 測試通知發送 |
 | GET /templates | Admin, Shop Owner | 查看模板列表 |
-| POST /send | Admin, Shop Owner | 手動發送通知 |
+| POST /send     | Admin, Shop Owner | 手動發送通知 |
 
 ### 自動通知權限
 
 自動通知由業務邏輯觸發，遵循對應功能的權限控制：
+
 - 請假管理：需要相應的請假操作權限
 - 排班管理：需要相應的排班操作權限
 
@@ -526,10 +538,12 @@ curl -X POST /api/v1/notifications/test ...
 ### 問題：通知模板變量缺失
 
 **症狀：**
+
 - 通知內容顯示 `{{variableName}}`
 - 模板變量未被替換
 
 **解決方案：**
+
 1. 檢查傳入的 `data` 對象是否包含所有必需變量
 2. 參考上方「模板變量參考」部分
 3. 確保變量名稱拼寫正確（區分大小寫）
@@ -542,7 +556,7 @@ curl -X POST /api/v1/notifications/test ...
 
 ```typescript
 // 主操作立即返回
-const schedule = await createSchedule(data)
+const schedule = await createSchedule(data);
 
 // 通知在後台異步發送
 // 不影響響應時間
@@ -555,12 +569,12 @@ const schedule = await createSchedule(data)
 ```typescript
 // 不推薦：循環發送
 for (const employee of employees) {
-  await createSchedule({ employeeId: employee.id })
+  await createSchedule({ employeeId: employee.id });
   // 每次都會發送通知
 }
 
 // 推薦：批量創建後統一通知
-const schedules = await bulkCreateSchedules(data)
+const schedules = await bulkCreateSchedules(data);
 // 可以實現批量通知邏輯
 ```
 
@@ -587,6 +601,7 @@ const schedules = await bulkCreateSchedules(data)
 ## 支援聯繫 (Support)
 
 如有問題或建議，請聯繫：
+
 - 技術支援：tech@makanmakan.com
 - 文檔問題：docs@makanmakan.com
 

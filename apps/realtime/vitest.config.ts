@@ -1,36 +1,45 @@
-import { defineConfig } from 'vitest/config'
-import path from 'path'
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/__tests__/setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       exclude: [
-        'node_modules/',
-        'src/__tests__/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/dist/',
-        '**/coverage/'
-      ]
+        "node_modules/",
+        "src/__tests__/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/dist/",
+        "**/coverage/",
+      ],
     },
     testTimeout: 10000,
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}']
+    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
       // Monorepo internal packages - point to index.ts for reliable resolution
-      '@makanmakan/shared-types': path.resolve(__dirname, '../../packages/shared-types/src/index.ts'),
-      '@makanmakan/utils': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
-      '@makanmakan/database': path.resolve(__dirname, '../../packages/database/src/index.ts')
-    }
+      "@makanmakan/shared-types": path.resolve(
+        __dirname,
+        "../../packages/shared-types/src/index.ts",
+      ),
+      "@makanmakan/utils": path.resolve(
+        __dirname,
+        "../../packages/utils/src/index.ts",
+      ),
+      "@makanmakan/database": path.resolve(
+        __dirname,
+        "../../packages/database/src/index.ts",
+      ),
+    },
   },
   esbuild: {
-    target: 'node14'
-  }
-})
+    target: "node14",
+  },
+});

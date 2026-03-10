@@ -3,7 +3,7 @@
  * 為實時服務提供測試環境的 Browser API Mocks
  */
 
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
 // ============================================================
 // WebSocket API Mocks
@@ -13,124 +13,124 @@ import { vi } from 'vitest'
  * Mock CloseEvent
  * jsdom 不完全支持 CloseEvent，需要手動 mock
  */
-if (typeof global.CloseEvent === 'undefined') {
+if (typeof global.CloseEvent === "undefined") {
   global.CloseEvent = class CloseEvent extends Event {
-    code: number
-    reason: string
-    wasClean: boolean
+    code: number;
+    reason: string;
+    wasClean: boolean;
 
     constructor(
       type: string,
       eventInitDict?: {
-        code?: number
-        reason?: string
-        wasClean?: boolean
-        bubbles?: boolean
-        cancelable?: boolean
-        composed?: boolean
-      }
+        code?: number;
+        reason?: string;
+        wasClean?: boolean;
+        bubbles?: boolean;
+        cancelable?: boolean;
+        composed?: boolean;
+      },
     ) {
-      super(type, eventInitDict)
-      this.code = eventInitDict?.code ?? 0
-      this.reason = eventInitDict?.reason ?? ''
-      this.wasClean = eventInitDict?.wasClean ?? false
+      super(type, eventInitDict);
+      this.code = eventInitDict?.code ?? 0;
+      this.reason = eventInitDict?.reason ?? "";
+      this.wasClean = eventInitDict?.wasClean ?? false;
     }
-  } as any
+  } as any;
 }
 
 /**
  * Mock MessageEvent
  * 確保 MessageEvent 在測試環境中可用
  */
-if (typeof global.MessageEvent === 'undefined') {
+if (typeof global.MessageEvent === "undefined") {
   global.MessageEvent = class MessageEvent extends Event {
-    data: any
-    origin: string
-    lastEventId: string
-    source: any
-    ports: any[]
+    data: any;
+    origin: string;
+    lastEventId: string;
+    source: any;
+    ports: any[];
 
     constructor(
       type: string,
       eventInitDict?: {
-        data?: any
-        origin?: string
-        lastEventId?: string
-        source?: any
-        ports?: any[]
-        bubbles?: boolean
-        cancelable?: boolean
-        composed?: boolean
-      }
+        data?: any;
+        origin?: string;
+        lastEventId?: string;
+        source?: any;
+        ports?: any[];
+        bubbles?: boolean;
+        cancelable?: boolean;
+        composed?: boolean;
+      },
     ) {
-      super(type, eventInitDict)
-      this.data = eventInitDict?.data
-      this.origin = eventInitDict?.origin ?? ''
-      this.lastEventId = eventInitDict?.lastEventId ?? ''
-      this.source = eventInitDict?.source ?? null
-      this.ports = eventInitDict?.ports ?? []
+      super(type, eventInitDict);
+      this.data = eventInitDict?.data;
+      this.origin = eventInitDict?.origin ?? "";
+      this.lastEventId = eventInitDict?.lastEventId ?? "";
+      this.source = eventInitDict?.source ?? null;
+      this.ports = eventInitDict?.ports ?? [];
     }
-  } as any
+  } as any;
 }
 
 /**
  * Mock WebSocket
  * 提供基本的 WebSocket API
  */
-if (typeof global.WebSocket === 'undefined') {
+if (typeof global.WebSocket === "undefined") {
   global.WebSocket = class WebSocket extends EventTarget {
-    static CONNECTING = 0
-    static OPEN = 1
-    static CLOSING = 2
-    static CLOSED = 3
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
 
-    readonly CONNECTING = 0
-    readonly OPEN = 1
-    readonly CLOSING = 2
-    readonly CLOSED = 3
+    readonly CONNECTING = 0;
+    readonly OPEN = 1;
+    readonly CLOSING = 2;
+    readonly CLOSED = 3;
 
-    url: string
-    readyState: number = WebSocket.CONNECTING
-    bufferedAmount: number = 0
-    extensions: string = ''
-    protocol: string = ''
-    binaryType: 'blob' | 'arraybuffer' = 'blob'
+    url: string;
+    readyState: number = WebSocket.CONNECTING;
+    bufferedAmount: number = 0;
+    extensions: string = "";
+    protocol: string = "";
+    binaryType: "blob" | "arraybuffer" = "blob";
 
-    onopen: ((event: Event) => void) | null = null
-    onclose: ((event: CloseEvent) => void) | null = null
-    onmessage: ((event: MessageEvent) => void) | null = null
-    onerror: ((event: Event) => void) | null = null
+    onopen: ((event: Event) => void) | null = null;
+    onclose: ((event: CloseEvent) => void) | null = null;
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    onerror: ((event: Event) => void) | null = null;
 
     constructor(url: string, protocols?: string | string[]) {
-      super()
-      this.url = url
+      super();
+      this.url = url;
       // Auto-open in next tick
       setTimeout(() => {
-        this.readyState = WebSocket.OPEN
-        this.onopen?.(new Event('open'))
-      }, 0)
+        this.readyState = WebSocket.OPEN;
+        this.onopen?.(new Event("open"));
+      }, 0);
     }
 
     send(data: string | ArrayBuffer | Blob): void {
       if (this.readyState !== WebSocket.OPEN) {
-        throw new Error('WebSocket is not open')
+        throw new Error("WebSocket is not open");
       }
       // No-op in tests
     }
 
     close(code?: number, reason?: string): void {
-      this.readyState = WebSocket.CLOSING
+      this.readyState = WebSocket.CLOSING;
       setTimeout(() => {
-        this.readyState = WebSocket.CLOSED
-        const event = new CloseEvent('close', {
+        this.readyState = WebSocket.CLOSED;
+        const event = new CloseEvent("close", {
           code: code ?? 1000,
-          reason: reason ?? '',
-          wasClean: true
-        })
-        this.onclose?.(event)
-      }, 0)
+          reason: reason ?? "",
+          wasClean: true,
+        });
+        this.onclose?.(event);
+      }, 0);
     }
-  } as any
+  } as any;
 }
 
 // ============================================================
@@ -143,8 +143,8 @@ const originalConsole = {
   warn: console.warn,
   error: console.error,
   info: console.info,
-  debug: console.debug
-}
+  debug: console.debug,
+};
 
 // Mock console methods to reduce test output noise
 global.console = {
@@ -153,14 +153,14 @@ global.console = {
   warn: vi.fn(),
   error: vi.fn(),
   info: vi.fn(),
-  debug: vi.fn()
-}
+  debug: vi.fn(),
+};
 
 // ============================================================
 // Performance API Mock
 // ============================================================
 
-if (typeof global.performance === 'undefined') {
+if (typeof global.performance === "undefined") {
   global.performance = {
     now: () => Date.now(),
     timing: {} as any, // Legacy API - using any for test compatibility
@@ -173,34 +173,34 @@ if (typeof global.performance === 'undefined') {
     getEntriesByName: vi.fn(() => []),
     getEntriesByType: vi.fn(() => []),
     getEntries: vi.fn(() => []),
-    toJSON: vi.fn(() => ({}))
-  } as any
+    toJSON: vi.fn(() => ({})),
+  } as any;
 }
 
 // ============================================================
 // Crypto API Mock (for random ID generation)
 // ============================================================
 
-if (typeof global.crypto === 'undefined') {
+if (typeof global.crypto === "undefined") {
   global.crypto = {
     getRandomValues: (arr: any) => {
       for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256)
+        arr[i] = Math.floor(Math.random() * 256);
       }
-      return arr
+      return arr;
     },
     randomUUID: () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0
-        const v = c === 'x' ? r : (r & 0x3) | 0x8
-        return v.toString(16)
-      })
-    }
-  } as any
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    },
+  } as any;
 }
 
 // ============================================================
 // Export for testing utilities
 // ============================================================
 
-export { originalConsole }
+export { originalConsole };

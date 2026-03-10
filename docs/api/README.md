@@ -5,9 +5,11 @@ MakanMakan REST API 文檔與使用指南。
 ## 📂 文件夾結構
 
 ### 📍 Endpoints (`endpoints/`)
+
 各 API 端點的詳細文檔（待建立）
 
 建議結構:
+
 - `auth.md` - 認證 API
 - `restaurants.md` - 餐廳管理 API
 - `menu.md` - 菜單管理 API
@@ -16,9 +18,11 @@ MakanMakan REST API 文檔與使用指南。
 - `partnerships.md` - 合作夥伴 API
 
 ### 📋 Schemas (`schemas/`)
+
 API Schema 定義（待建立）
 
 ### 📚 Guides (`guides/`)
+
 API 使用指南
 
 - `API_PAGINATION_GUIDE.md` - 分頁指南
@@ -48,12 +52,14 @@ Authorization: Bearer <your_jwt_token>
 ## 📖 API 端點總覽
 
 ### 🔐 Authentication (`/auth`)
+
 - `POST /auth/register` - 註冊
 - `POST /auth/login` - 登入
 - `POST /auth/refresh` - 刷新令牌
 - `POST /auth/logout` - 登出
 
 ### 🏪 Restaurants (`/restaurants`)
+
 - `GET /restaurants` - 取得餐廳列表
 - `GET /restaurants/:id` - 取得餐廳詳情
 - `POST /restaurants` - 創建餐廳 (Admin)
@@ -61,6 +67,7 @@ Authorization: Bearer <your_jwt_token>
 - `DELETE /restaurants/:id` - 刪除餐廳 (Admin)
 
 ### 🍽️ Menu (`/menu`)
+
 - `GET /menu/:restaurant_id/items` - 取得菜單項目
 - `GET /menu/:restaurant_id/categories` - 取得分類
 - `POST /menu/:restaurant_id/items` - 新增菜單項目
@@ -68,6 +75,7 @@ Authorization: Bearer <your_jwt_token>
 - `DELETE /menu/items/:id` - 刪除菜單項目
 
 ### 📦 Orders (`/orders`)
+
 - `GET /orders` - 取得訂單列表
 - `GET /orders/:id` - 取得訂單詳情
 - `POST /orders` - 創建訂單
@@ -75,24 +83,28 @@ Authorization: Bearer <your_jwt_token>
 - `POST /orders/:id/items` - 新增訂單項目
 
 ### 🪑 Tables (`/tables`)
+
 - `GET /tables/:restaurant_id` - 取得桌位列表
 - `POST /tables/:restaurant_id` - 創建桌位
 - `PUT /tables/:id` - 更新桌位
 - `POST /tables/:id/qr` - 生成 QR 碼
 
 ### 👥 Users (`/users`)
+
 - `GET /users/:restaurant_id` - 取得員工列表
 - `POST /users/:restaurant_id` - 新增員工
 - `PUT /users/:id` - 更新員工
 - `DELETE /users/:id` - 刪除員工
 
 ### 🤝 Partnerships (`/partnerships`)
+
 - `GET /partnerships/:restaurant_id` - 取得合作夥伴列表
 - `POST /partnerships/:restaurant_id` - 創建合作夥伴
 - `GET /partnerships/:id/plans` - 取得方案
 - `POST /partnerships/:id/members` - 會員驗證
 
 ### ⚡ Realtime (`/realtime`)
+
 - `POST /realtime/auth/token` - 生成 WebSocket 令牌
 - `POST /realtime/auth/verify` - 驗證令牌
 
@@ -178,18 +190,18 @@ curl https://api.makanmakan.com/v1/menu/123/items \
 ### 使用 JavaScript
 
 ```javascript
-const response = await fetch('https://api.makanmakan.com/v1/auth/login', {
-  method: 'POST',
+const response = await fetch("https://api.makanmakan.com/v1/auth/login", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'password'
-  })
-})
+    email: "user@example.com",
+    password: "password",
+  }),
+});
 
-const data = await response.json()
+const data = await response.json();
 ```
 
 ---

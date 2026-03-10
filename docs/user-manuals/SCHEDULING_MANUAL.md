@@ -1,4 +1,5 @@
 # 員工排班操作手冊
+
 # Employee Scheduling Manual
 
 **Version**: 1.0

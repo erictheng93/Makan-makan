@@ -4,14 +4,19 @@
  */
 
 // Types
-export * from './types';
+export * from "./types";
 
 // Providers
-export * from './providers';
+export * from "./providers";
 
 // Services
-export { ProductAnalysisService } from './services/ProductAnalysisService';
-export { AIInsightsService } from './services/AIInsightsService';
+export { ProductAnalysisService } from "./services/ProductAnalysisService";
+export { AIInsightsService } from "./services/AIInsightsService";
 
 // Re-export commonly used functions
-export { createProvider, testProvider, getDefaultModel, getAvailableModels } from './providers';
+export {
+  createProvider,
+  testProvider,
+  getDefaultModel,
+  getAvailableModels,
+} from "./providers";

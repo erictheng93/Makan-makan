@@ -127,17 +127,17 @@ FAIL_ON_WARNING=true pnpm run factory:check
 
 ##### 錯誤級別（必須修復）
 
-| 規則 ID | 說明 | 修復方法 |
-|---------|------|----------|
-| `missing-reset` | 使用 factory 但缺少 resetAllFactories() | 在 beforeEach 中添加 resetAllFactories() |
-| `missing-factory-import` | 使用 factory 方法但沒有導入 | 添加 import 語句 |
+| 規則 ID                  | 說明                                    | 修復方法                                 |
+| ------------------------ | --------------------------------------- | ---------------------------------------- |
+| `missing-reset`          | 使用 factory 但缺少 resetAllFactories() | 在 beforeEach 中添加 resetAllFactories() |
+| `missing-factory-import` | 使用 factory 方法但沒有導入             | 添加 import 語句                         |
 
 ##### 警告級別（建議修復）
 
-| 規則 ID | 說明 | 建議 |
-|---------|------|------|
-| `manual-data-creation` | 手動創建測試數據 | 使用 factory 替代 |
-| `large-test-file` | 測試文件過大（> 500 行） | 拆分文件或使用 factory 簡化 |
+| 規則 ID                | 說明                     | 建議                        |
+| ---------------------- | ------------------------ | --------------------------- |
+| `manual-data-creation` | 手動創建測試數據         | 使用 factory 替代           |
+| `large-test-file`      | 測試文件過大（> 500 行） | 拆分文件或使用 factory 簡化 |
 
 ---
 
@@ -168,13 +168,8 @@ fi
 ```json
 {
   "lint-staged": {
-    "**/*.test.ts": [
-      "node scripts/check-factory-usage.js"
-    ],
-    "**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+    "**/*.test.ts": ["node scripts/check-factory-usage.js"],
+    "**/*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"]
   }
 }
 ```
@@ -233,8 +228,8 @@ name: Factory Usage Check
 on:
   pull_request:
     paths:
-      - '**/__tests__/**'
-      - '**/*.test.ts'
+      - "**/__tests__/**"
+      - "**/*.test.ts"
 
 jobs:
   check-factory-usage:
@@ -246,8 +241,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -275,13 +270,14 @@ jobs:
 import { userFactory, resetAllFactories } from "@makanmakan/testing-utils"
 
 describe("Test Suite", () => {
-  beforeEach(() => {
-    resetAllFactories() // 添加這一行
-  })
+beforeEach(() => {
+resetAllFactories() // 添加這一行
+})
 })
 \`\`\`
 
 ---
+
 _這是自動檢查，不會阻塞 PR 合併。但建議盡快修復問題。_
 ```
 
@@ -364,11 +360,11 @@ pnpm run factory:badges
 
 ## 🥇 排行榜
 
-| 排名 | 開發者 | 分數 | 徽章 | 文件數 |
-|------|--------|------|------|--------|
-| 1 | Alice | 35 | 🌱 🔄 🚀 | 8 |
-| 2 | Bob | 25 | 📦 | 5 |
-| 3 | Charlie | 10 | 🌱 | 2 |
+| 排名 | 開發者  | 分數 | 徽章     | 文件數 |
+| ---- | ------- | ---- | -------- | ------ |
+| 1    | Alice   | 35   | 🌱 🔄 🚀 | 8      |
+| 2    | Bob     | 25   | 📦       | 5      |
+| 3    | Charlie | 10   | 🌱       | 2      |
 ```
 
 ### 分數計算
@@ -394,26 +390,26 @@ pnpm run factory:badges
 
 ```typescript
 // ❌ 錯誤
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
-describe('Test', () => {
-  it('should work', () => {
-    const user = userFactory.build()
-  })
-})
+describe("Test", () => {
+  it("should work", () => {
+    const user = userFactory.build();
+  });
+});
 
 // ✅ 正確
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
-describe('Test', () => {
+describe("Test", () => {
   beforeEach(() => {
-    resetAllFactories()
-  })
+    resetAllFactories();
+  });
 
-  it('should work', () => {
-    const user = userFactory.build()
-  })
-})
+  it("should work", () => {
+    const user = userFactory.build();
+  });
+});
 ```
 
 #### prefer-factory-over-manual
@@ -428,14 +424,14 @@ describe('Test', () => {
 // ⚠️ 警告
 const user = {
   id: 1,
-  username: 'testuser',
-  role: 'ADMIN',
-  email: 'test@example.com',
-  fullName: 'Test User'
-}
+  username: "testuser",
+  role: "ADMIN",
+  email: "test@example.com",
+  fullName: "Test User",
+};
 
 // ✅ 建議
-const user = userFactory.buildAdmin()
+const user = userFactory.buildAdmin();
 ```
 
 ### 配置
@@ -444,12 +440,12 @@ const user = userFactory.buildAdmin()
 
 ```javascript
 module.exports = {
-  plugins: ['testing-utils'],
+  plugins: ["testing-utils"],
   rules: {
-    'testing-utils/enforce-factory-reset': 'error',
-    'testing-utils/prefer-factory-over-manual': 'warn'
-  }
-}
+    "testing-utils/enforce-factory-reset": "error",
+    "testing-utils/prefer-factory-over-manual": "warn",
+  },
+};
 ```
 
 ---
@@ -513,13 +509,13 @@ git diff --cached --name-only | grep '.test.ts$' | xargs node scripts/check-fact
 
 ## 📊 工具對比
 
-| 工具 | 執行時機 | 阻塞性 | 用途 |
-|------|----------|--------|------|
-| factory:check | 手動/CI | 可選 | 完整檢查 |
-| Pre-commit hook | Git commit | 是 | 快速檢查 |
-| GitHub Actions | PR 提交 | 否 | 自動評論 |
-| ESLint 規則 | 編輯時 | 否 | 即時反饋 |
-| factory:badges | 手動 | 否 | 遊戲化激勵 |
+| 工具            | 執行時機   | 阻塞性 | 用途       |
+| --------------- | ---------- | ------ | ---------- |
+| factory:check   | 手動/CI    | 可選   | 完整檢查   |
+| Pre-commit hook | Git commit | 是     | 快速檢查   |
+| GitHub Actions  | PR 提交    | 否     | 自動評論   |
+| ESLint 規則     | 編輯時     | 否     | 即時反饋   |
+| factory:badges  | 手動       | 否     | 遊戲化激勵 |
 
 ---
 

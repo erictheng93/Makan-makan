@@ -81,6 +81,7 @@ As a service crew member, you are the vital bridge between the restaurant and cu
 ```
 
 **Role Explanation**:
+
 - **Chef**: Prepares meals → Notifies pickup
 - **You (Service Crew)**: Pick up → Deliver → Update status
 - **Cashier**: Process payment → Complete order
@@ -135,24 +136,27 @@ As a service crew member, you are the vital bridge between the restaurant and cu
 
 ### Login Credentials Example
 
-| Item | Description | Example |
-|------|-------------|---------|
-| Username | Employee account created by owner | crew001 or your.email@example.com |
-| Initial Password | Temporary password from owner | Temp123456 |
-| New Password Requirements | At least 8 characters, letters and numbers | MyPass2025! |
+| Item                      | Description                                | Example                           |
+| ------------------------- | ------------------------------------------ | --------------------------------- |
+| Username                  | Employee account created by owner          | crew001 or your.email@example.com |
+| Initial Password          | Temporary password from owner              | Temp123456                        |
+| New Password Requirements | At least 8 characters, letters and numbers | MyPass2025!                       |
 
 ### First Login Checklist
 
 ✅ **Change Default Password**
+
 - Set secure and memorable password
 - Do not share with others
 
 ✅ **Complete Personal Profile**
+
 - Upload profile photo (optional)
 - Fill in contact phone
 - Confirm emergency contact
 
 ✅ **Familiarize with Interface**
+
 - Browse main function areas
 - Test order viewing function
 - Understand status update methods
@@ -220,13 +224,13 @@ As a service crew member, you are the vital bridge between the restaurant and cu
 
 ### Order Information Guide
 
-| Icon/Label | Meaning | Your Action |
-|-----------|---------|-------------|
-| 🔴 New Order | Just placed | Monitor kitchen progress |
-| 🟡 Cooking | Kitchen preparing | Wait for pickup notification |
-| 🟢 Ready | Meal completed | **Pick up immediately** |
-| 🔵 Delivering | You are delivering | Deliver ASAP |
-| ✅ Delivered | Meal delivered | Task complete |
+| Icon/Label    | Meaning            | Your Action                  |
+| ------------- | ------------------ | ---------------------------- |
+| 🔴 New Order  | Just placed        | Monitor kitchen progress     |
+| 🟡 Cooking    | Kitchen preparing  | Wait for pickup notification |
+| 🟢 Ready      | Meal completed     | **Pick up immediately**      |
+| 🔵 Delivering | You are delivering | Deliver ASAP                 |
+| ✅ Delivered  | Meal delivered     | Task complete                |
 
 ### Order Filter Function
 
@@ -291,13 +295,13 @@ Filter Options:
 
 When picking up from kitchen, verify:
 
-| Check Item | Confirm Content |
-|-----------|----------------|
-| ✅ Order Number | Match system display |
-| ✅ Meal Items | Verify name and quantity |
-| ✅ Completeness | Side dishes, sauces, utensils |
-| ✅ Meal Condition | Hot food hot, cold drinks cold |
-| ✅ Appearance | Neat plating, no spills |
+| Check Item          | Confirm Content                          |
+| ------------------- | ---------------------------------------- |
+| ✅ Order Number     | Match system display                     |
+| ✅ Meal Items       | Verify name and quantity                 |
+| ✅ Completeness     | Side dishes, sauces, utensils            |
+| ✅ Meal Condition   | Hot food hot, cold drinks cold           |
+| ✅ Appearance       | Neat plating, no spills                  |
 | ✅ Special Requests | Check notes (e.g., no spicy, vegetarian) |
 
 ### Delivery Service Etiquette
@@ -402,10 +406,10 @@ Order #1236 → Table B2 → Smoothie (cold)
 
 ### Status Update Timing
 
-| Current Status | Update To | When |
-|---------------|-----------|------|
-| 🟢 Ready | 🚶 Delivering | **After pickup, before departing** |
-| 🚶 Delivering | ✅ Delivered | **After placing meal on table** |
+| Current Status | Update To     | When                               |
+| -------------- | ------------- | ---------------------------------- |
+| 🟢 Ready       | 🚶 Delivering | **After pickup, before departing** |
+| 🚶 Delivering  | ✅ Delivered  | **After placing meal on table**    |
 
 ### Importance of Status Updates
 
@@ -566,12 +570,12 @@ Delivery Record List
 
 ### Performance Metrics
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| Avg Delivery Time | From pickup to delivery | < 5 minutes |
-| Completed Orders | Daily successful deliveries | Depends on shift |
-| Customer Rating | Based on reviews | ≥ 4.5 / 5.0 |
-| On-time Rate | Delivered within estimate | ≥ 95% |
+| Metric            | Description                 | Target           |
+| ----------------- | --------------------------- | ---------------- |
+| Avg Delivery Time | From pickup to delivery     | < 5 minutes      |
+| Completed Orders  | Daily successful deliveries | Depends on shift |
+| Customer Rating   | Based on reviews            | ≥ 4.5 / 5.0      |
+| On-time Rate      | Delivered within estimate   | ≥ 95%            |
 
 ---
 
@@ -985,6 +989,7 @@ Thank you for joining the MakanMakan team!
 As service crew, you are the vital bridge connecting kitchen and customers. Every smile, every on-time delivery creates wonderful dining experiences.
 
 Remember:
+
 - ✨ **Attitude is everything** - Stay positive and enthusiastic
 - 🚀 **Efficiency creates value** - Fast but steady
 - 🤝 **Service from the heart** - Treat every customer sincerely

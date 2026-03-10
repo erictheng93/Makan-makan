@@ -22,30 +22,31 @@
 
 ```typescript
 // ❌ 沒有工廠：每次都要手動創建數據
-it('should create order', () => {
+it("should create order", () => {
   const user = {
     id: 1,
-    username: 'testuser',
-    email: 'test@example.com',
-    phone: '0912345678',
-    fullName: 'Test User',
+    username: "testuser",
+    email: "test@example.com",
+    phone: "0912345678",
+    fullName: "Test User",
     role: 5,
     restaurantId: null,
     isActive: true,
     createdAt: Date.now(),
-    updatedAt: Date.now()
-  }
+    updatedAt: Date.now(),
+  };
   // ... 重複的代碼
-})
+});
 
 // ✅ 使用工廠：一行搞定
-it('should create order', () => {
-  const user = userFactory.buildCustomer()
+it("should create order", () => {
+  const user = userFactory.buildCustomer();
   // 清楚、簡潔、可維護
-})
+});
 ```
 
 **優點總結**：
+
 - ✅ 減少重複代碼（平均減少 50-70%）
 - ✅ 提高可讀性
 - ✅ 統一測試數據格式
@@ -65,6 +66,7 @@ it('should create order', () => {
 ```
 
 **政策**：
+
 - 🔴 **新測試必須使用工廠**（從 2025-11-15 開始）
 - 🟡 修改現有測試時，建議順便遷移
 - 🟢 穩定的舊測試可以保持現狀
@@ -77,25 +79,25 @@ it('should create order', () => {
 
 ```typescript
 // 性能測試結果
-describe('Performance Comparison', () => {
-  it('手動創建數據', () => {
-    const start = Date.now()
+describe("Performance Comparison", () => {
+  it("手動創建數據", () => {
+    const start = Date.now();
     const user = {
       id: 1,
-      username: 'testuser',
+      username: "testuser",
       // ... 10+ 字段
-    }
-    const time = Date.now() - start
+    };
+    const time = Date.now() - start;
     // 平均: ~0.5ms
-  })
+  });
 
-  it('使用工廠', () => {
-    const start = Date.now()
-    const user = userFactory.build()
-    const time = Date.now() - start
+  it("使用工廠", () => {
+    const start = Date.now();
+    const user = userFactory.build();
+    const time = Date.now() - start;
     // 平均: ~0.3ms (更快！)
-  })
-})
+  });
+});
 ```
 
 **結論**：工廠使用優化過的數據生成邏輯，通常比手動創建更快。
@@ -108,25 +110,26 @@ describe('Performance Comparison', () => {
 
 ```typescript
 // ❌ 錯誤：在生產代碼中使用
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
 export async function createUser() {
-  const user = userFactory.build()  // 絕對不要這樣做！
-  return db.insert(users).values(user)
+  const user = userFactory.build(); // 絕對不要這樣做！
+  return db.insert(users).values(user);
 }
 
 // ✅ 正確：只在測試中使用
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
-describe('User Service', () => {
-  it('should create user', () => {
-    const testUser = userFactory.build()  // 只在測試中使用
+describe("User Service", () => {
+  it("should create user", () => {
+    const testUser = userFactory.build(); // 只在測試中使用
     // ...
-  })
-})
+  });
+});
 ```
 
 **原因**：
+
 - testing-utils 是 devDependency
 - 工廠生成的是測試數據，不適合生產環境
 - 會增加生產包的大小
@@ -142,18 +145,18 @@ describe('User Service', () => {
 ```typescript
 // 方法 1: 使用 sequence 參數
 const user = userFactory.build({
-  sequence: 99  // 會生成 id: 100
-})
+  sequence: 99, // 會生成 id: 100
+});
 
 // 方法 2: 使用 overrides (不推薦，但可行)
 const user = userFactory.build({
-  overrides: { id: 100 }
-})
+  overrides: { id: 100 },
+});
 
 // 方法 3: 重置序列號後生成
-userFactory.resetSequence()
-const user1 = userFactory.build()  // id: 1
-const user2 = userFactory.build()  // id: 2
+userFactory.resetSequence();
+const user1 = userFactory.build(); // id: 1
+const user2 = userFactory.build(); // id: 2
 ```
 
 **建議**：大多數情況不需要指定 ID，讓工廠自動生成即可。
@@ -166,26 +169,26 @@ const user2 = userFactory.build()  // id: 2
 
 ```typescript
 // ✅ 正確方式：使用 relations
-const restaurant = restaurantFactory.build()
+const restaurant = restaurantFactory.build();
 const category = categoryFactory.build({
   relations: {
-    restaurantId: restaurant.id!
-  }
-})
+    restaurantId: restaurant.id!,
+  },
+});
 const menuItem = menuItemFactory.build({
   relations: {
     restaurantId: restaurant.id!,
     categoryId: category.id!,
-    categoryName: category.name
-  }
-})
+    categoryName: category.name,
+  },
+});
 
 // ❌ 錯誤方式：使用 overrides
 const menuItem = menuItemFactory.build({
   overrides: {
-    restaurantId: restaurant.id  // 不推薦
-  }
-})
+    restaurantId: restaurant.id, // 不推薦
+  },
+});
 ```
 
 **原因**：`relations` 參數專門用於設置關聯，語義更清楚。
@@ -198,16 +201,16 @@ const menuItem = menuItemFactory.build({
 
 ```typescript
 // 預設生成（數據較多）
-const testData = buildCompleteRestaurantData()
+const testData = buildCompleteRestaurantData();
 // 10 categories * 5 items = 50 menu items
 // 10 orders * 3 items = 30 order items
 
 // 自訂生成（減少數據量）
 const testData = buildCompleteRestaurantData({
-  categoryCount: 5,           // 只生成 5 個分類
-  menuItemsPerCategory: 2,    // 每個分類 2 個項目
-  orderCount: 3               // 只生成 3 筆訂單
-})
+  categoryCount: 5, // 只生成 5 個分類
+  menuItemsPerCategory: 2, // 每個分類 2 個項目
+  orderCount: 3, // 只生成 3 筆訂單
+});
 // 5 categories * 2 items = 10 menu items
 // 3 orders * 3 items = 9 order items
 
@@ -215,8 +218,8 @@ const testData = buildCompleteRestaurantData({
 const testData = buildCompleteRestaurantData({
   categoryCount: 1,
   menuItemsPerCategory: 1,
-  orderCount: 1
-})
+  orderCount: 1,
+});
 ```
 
 ---
@@ -226,42 +229,42 @@ const testData = buildCompleteRestaurantData({
 **A**: 多次調用並重置序列號：
 
 ```typescript
-describe('Multi-Restaurant Tests', () => {
-  it('should handle multiple restaurants', () => {
+describe("Multi-Restaurant Tests", () => {
+  it("should handle multiple restaurants", () => {
     // 餐廳 1
-    resetAllFactories()
-    const restaurant1Data = buildCompleteRestaurantData()
+    resetAllFactories();
+    const restaurant1Data = buildCompleteRestaurantData();
 
     // 餐廳 2
-    resetAllFactories()
-    const restaurant2Data = buildCompleteRestaurantData()
+    resetAllFactories();
+    const restaurant2Data = buildCompleteRestaurantData();
 
     // 驗證
-    expect(restaurant1Data.restaurant.id).toBe(1)
-    expect(restaurant2Data.restaurant.id).toBe(1)
-  })
-})
+    expect(restaurant1Data.restaurant.id).toBe(1);
+    expect(restaurant2Data.restaurant.id).toBe(1);
+  });
+});
 ```
 
 **或者手動生成**：
 
 ```typescript
-describe('Multi-Restaurant Tests', () => {
-  it('should handle multiple restaurants', () => {
-    resetAllFactories()
+describe("Multi-Restaurant Tests", () => {
+  it("should handle multiple restaurants", () => {
+    resetAllFactories();
 
     // 生成 3 個餐廳
-    const restaurants = restaurantFactory.buildList(3)
+    const restaurants = restaurantFactory.buildList(3);
 
     // 為每個餐廳生成菜單
-    restaurants.forEach(restaurant => {
+    restaurants.forEach((restaurant) => {
       const categories = categoryFactory.buildRestaurantCategories(
-        restaurant.id!
-      )
+        restaurant.id!,
+      );
       // ...
-    })
-  })
-})
+    });
+  });
+});
 ```
 
 ---
@@ -272,15 +275,15 @@ describe('Multi-Restaurant Tests', () => {
 
 ```typescript
 // 工廠只生成數據對象
-const user = userFactory.build()
-console.log(user)  // { id: 1, username: '...', ... }
+const user = userFactory.build();
+console.log(user); // { id: 1, username: '...', ... }
 
 // 你需要手動存入資料庫（在測試中）
-await db.insert(users).values(user)
+await db.insert(users).values(user);
 
 // 或者使用測試輔助函數
-const testDB = await createTestDB()
-await testDB.insert(users).values(user)
+const testDB = await createTestDB();
+await testDB.insert(users).values(user);
 ```
 
 ---
@@ -291,34 +294,34 @@ await testDB.insert(users).values(user)
 
 ```typescript
 // ❌ 沒有重置：測試結果不穩定
-describe('User Tests', () => {
-  it('test 1', () => {
-    const user = userFactory.build()
-    expect(user.id).toBe(1)  // ✅ 通過
-  })
+describe("User Tests", () => {
+  it("test 1", () => {
+    const user = userFactory.build();
+    expect(user.id).toBe(1); // ✅ 通過
+  });
 
-  it('test 2', () => {
-    const user = userFactory.build()
-    expect(user.id).toBe(1)  // ❌ 失敗！實際是 2
-  })
-})
+  it("test 2", () => {
+    const user = userFactory.build();
+    expect(user.id).toBe(1); // ❌ 失敗！實際是 2
+  });
+});
 
 // ✅ 有重置：測試結果穩定
-describe('User Tests', () => {
+describe("User Tests", () => {
   beforeEach(() => {
-    resetAllFactories()
-  })
+    resetAllFactories();
+  });
 
-  it('test 1', () => {
-    const user = userFactory.build()
-    expect(user.id).toBe(1)  // ✅ 通過
-  })
+  it("test 1", () => {
+    const user = userFactory.build();
+    expect(user.id).toBe(1); // ✅ 通過
+  });
 
-  it('test 2', () => {
-    const user = userFactory.build()
-    expect(user.id).toBe(1)  // ✅ 通過
-  })
-})
+  it("test 2", () => {
+    const user = userFactory.build();
+    expect(user.id).toBe(1); // ✅ 通過
+  });
+});
 ```
 
 ---
@@ -336,43 +339,43 @@ describe('User Tests', () => {
 function buildPremiumUser() {
   return userFactory.build({
     overrides: {
-      fullName: 'Premium User',
+      fullName: "Premium User",
       // 假設有 isPremium 字段
       // isPremium: true
-    }
-  })
+    },
+  });
 }
 
 // 使用
-const premiumUser = buildPremiumUser()
+const premiumUser = buildPremiumUser();
 ```
 
 **方法 2：繼承 Factory 類（複雜場景）**
 
 ```typescript
 // 在你的測試輔助文件中
-import { UserFactory, userFactory } from '@makanmakan/testing-utils'
+import { UserFactory, userFactory } from "@makanmakan/testing-utils";
 
 class ExtendedUserFactory extends UserFactory {
   buildPremiumUser() {
     return this.build({
       overrides: {
-        fullName: 'Premium User',
+        fullName: "Premium User",
         // 自訂字段
-      }
-    })
+      },
+    });
   }
 
   buildInactiveUser() {
     return this.build({
       overrides: {
-        isActive: false
-      }
-    })
+        isActive: false,
+      },
+    });
   }
 }
 
-export const extendedUserFactory = new ExtendedUserFactory()
+export const extendedUserFactory = new ExtendedUserFactory();
 ```
 
 ---
@@ -384,33 +387,28 @@ export const extendedUserFactory = new ExtendedUserFactory()
 ```typescript
 // 業務規則：訂單金額 = 項目價格總和 + 服務費
 function buildValidOrder() {
-  const items = orderItemFactory.buildForOrder(1, 3)
+  const items = orderItemFactory.buildForOrder(1, 3);
 
   // 計算總金額
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.totalPrice,
-    0
-  )
-  const serviceCharge = subtotal * 0.1
-  const totalAmount = subtotal + serviceCharge
+  const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const serviceCharge = subtotal * 0.1;
+  const totalAmount = subtotal + serviceCharge;
 
   // 生成訂單
   const order = orderFactory.build({
     overrides: {
       subtotal,
       serviceCharge,
-      totalAmount
-    }
-  })
+      totalAmount,
+    },
+  });
 
-  return { order, items }
+  return { order, items };
 }
 
 // 使用
-const { order, items } = buildValidOrder()
-expect(order.totalAmount).toBe(
-  order.subtotal + order.serviceCharge
-)
+const { order, items } = buildValidOrder();
+expect(order.totalAmount).toBe(order.subtotal + order.serviceCharge);
 ```
 
 ---
@@ -423,20 +421,20 @@ expect(order.totalAmount).toBe(
 // 生成沒有電話的用戶
 const user = userFactory.build({
   overrides: {
-    phone: null
-  }
-})
+    phone: null,
+  },
+});
 
 // 生成沒有餐廳的用戶（顧客）
 const customer = userFactory.build({
   overrides: {
     restaurantId: null,
-    role: UserRoles.CUSTOMER
-  }
-})
+    role: UserRoles.CUSTOMER,
+  },
+});
 
 // 或使用專用方法
-const customer = userFactory.buildCustomer()  // 自動設置 restaurantId: null
+const customer = userFactory.buildCustomer(); // 自動設置 restaurantId: null
 ```
 
 ---
@@ -446,31 +444,29 @@ const customer = userFactory.buildCustomer()  // 自動設置 restaurantId: null
 **A**: 可以！這是測試錯誤處理的好方法：
 
 ```typescript
-describe('Error Handling', () => {
-  it('should reject invalid email', async () => {
+describe("Error Handling", () => {
+  it("should reject invalid email", async () => {
     const user = userFactory.build({
       overrides: {
-        email: 'not-an-email'  // 無效 email
-      }
-    })
+        email: "not-an-email", // 無效 email
+      },
+    });
 
-    await expect(
-      userService.create(user)
-    ).rejects.toThrow('Invalid email')
-  })
+    await expect(userService.create(user)).rejects.toThrow("Invalid email");
+  });
 
-  it('should reject negative price', async () => {
+  it("should reject negative price", async () => {
     const menuItem = menuItemFactory.build({
       overrides: {
-        price: -100  // 無效價格
-      }
-    })
+        price: -100, // 無效價格
+      },
+    });
 
-    await expect(
-      menuService.create(menuItem)
-    ).rejects.toThrow('Price must be positive')
-  })
-})
+    await expect(menuService.create(menuItem)).rejects.toThrow(
+      "Price must be positive",
+    );
+  });
+});
 ```
 
 ---
@@ -480,38 +476,38 @@ describe('Error Handling', () => {
 **A**: 結合測試資料庫使用：
 
 ```typescript
-import { createTestDB } from '@/tests/helpers/test-utils'
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { createTestDB } from "@/tests/helpers/test-utils";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
-describe('User API Integration', () => {
-  let testDB: TestDatabase
+describe("User API Integration", () => {
+  let testDB: TestDatabase;
 
   beforeEach(async () => {
-    testDB = await createTestDB()
-    resetAllFactories()
-  })
+    testDB = await createTestDB();
+    resetAllFactories();
+  });
 
-  it('should create user via API', async () => {
+  it("should create user via API", async () => {
     // 1. 使用工廠生成測試數據
-    const userData = userFactory.build()
+    const userData = userFactory.build();
 
     // 2. 通過 API 創建
-    const response = await api.post('/users', userData)
+    const response = await api.post("/users", userData);
 
     // 3. 驗證結果
-    expect(response.status).toBe(201)
+    expect(response.status).toBe(201);
 
     // 4. 從資料庫驗證
     const dbUser = await testDB
       .select()
       .from(users)
       .where(eq(users.id, response.data.id))
-      .get()
+      .get();
 
-    expect(dbUser).toBeDefined()
-    expect(dbUser.username).toBe(userData.username)
-  })
-})
+    expect(dbUser).toBeDefined();
+    expect(dbUser.username).toBe(userData.username);
+  });
+});
 ```
 
 ---
@@ -526,45 +522,45 @@ describe('User API Integration', () => {
 
 ```typescript
 // ❌ 問題
-describe('Tests', () => {
-  it('test 1', () => {
-    const user = userFactory.build()  // id: 1
-  })
-  it('test 2', () => {
-    const user = userFactory.build()  // id: 2 (應該是 1)
-  })
-})
+describe("Tests", () => {
+  it("test 1", () => {
+    const user = userFactory.build(); // id: 1
+  });
+  it("test 2", () => {
+    const user = userFactory.build(); // id: 2 (應該是 1)
+  });
+});
 
 // ✅ 解決
-describe('Tests', () => {
+describe("Tests", () => {
   beforeEach(() => {
-    resetAllFactories()
-  })
+    resetAllFactories();
+  });
   // ...
-})
+});
 ```
 
 2. **在 beforeEach 之外生成數據**：
 
 ```typescript
 // ❌ 問題
-describe('Tests', () => {
-  const user = userFactory.build()  // 在外面生成
+describe("Tests", () => {
+  const user = userFactory.build(); // 在外面生成
 
   beforeEach(() => {
-    resetAllFactories()  // 重置無效
-  })
-})
+    resetAllFactories(); // 重置無效
+  });
+});
 
 // ✅ 解決
-describe('Tests', () => {
-  let user: UserTestData
+describe("Tests", () => {
+  let user: UserTestData;
 
   beforeEach(() => {
-    resetAllFactories()
-    user = userFactory.build()  // 在 beforeEach 裡生成
-  })
-})
+    resetAllFactories();
+    user = userFactory.build(); // 在 beforeEach 裡生成
+  });
+});
 ```
 
 ---
@@ -589,9 +585,7 @@ pnpm install
 {
   "compilerOptions": {
     "paths": {
-      "@makanmakan/testing-utils": [
-        "../../packages/testing-utils/src"
-      ]
+      "@makanmakan/testing-utils": ["../../packages/testing-utils/src"]
     }
   }
 }
@@ -602,11 +596,11 @@ pnpm install
 ```typescript
 // ✅ 在測試文件中
 // __tests__/user.test.ts
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
 // ❌ 在生產代碼中（會報錯）
 // src/services/user.ts
-import { userFactory } from '@makanmakan/testing-utils'  // 錯誤！
+import { userFactory } from "@makanmakan/testing-utils"; // 錯誤！
 ```
 
 ---
@@ -617,24 +611,25 @@ import { userFactory } from '@makanmakan/testing-utils'  // 錯誤！
 
 ```typescript
 // 問題：生成太多數據
-const testData = buildCompleteRestaurantData()
+const testData = buildCompleteRestaurantData();
 // 預設：50 menu items, 10 orders, 30 order items
 
 // 解決方案 1：減少數據量
 const testData = buildCompleteRestaurantData({
   categoryCount: 3,
   menuItemsPerCategory: 2,
-  orderCount: 2
-})
+  orderCount: 2,
+});
 // 只生成：6 menu items, 2 orders, 6 order items
 
 // 解決方案 2：只生成需要的數據
-const restaurant = restaurantFactory.build()
-const team = userFactory.buildRestaurantTeam(restaurant.id!)
+const restaurant = restaurantFactory.build();
+const team = userFactory.buildRestaurantTeam(restaurant.id!);
 // 只生成餐廳和團隊，不生成菜單和訂單
 ```
 
 **性能參考**：
+
 - 最小化數據：~5ms
 - 預設數據：~20ms
 - 大量數據：~100ms
@@ -649,22 +644,22 @@ const team = userFactory.buildRestaurantTeam(restaurant.id!)
 // 方法 1：覆寫關鍵字段
 const user = userFactory.build({
   overrides: {
-    username: 'fixed_username',  // 使用固定值
-    email: 'fixed@test.com'
-  }
-})
+    username: "fixed_username", // 使用固定值
+    email: "fixed@test.com",
+  },
+});
 
 // 方法 2：只驗證格式，不驗證具體值
-const user = userFactory.build()
-expect(user.email).toMatch(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
-expect(user.phone).toMatch(/^09\d{8}$/)
+const user = userFactory.build();
+expect(user.email).toMatch(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/);
+expect(user.phone).toMatch(/^09\d{8}$/);
 
 // 方法 3：重置序列號確保 ID 一致
 beforeEach(() => {
-  resetAllFactories()
-})
-const user1 = userFactory.build()
-expect(user1.id).toBe(1)  // 每次都是 1
+  resetAllFactories();
+});
+const user1 = userFactory.build();
+expect(user1.id).toBe(1); // 每次都是 1
 ```
 
 ---
@@ -675,13 +670,13 @@ expect(user1.id).toBe(1)  // 每次都是 1
 
 ```typescript
 // ✅ 正確：使用套件名稱
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from "@makanmakan/testing-utils";
 
 // ❌ 錯誤：使用相對路徑
-import { userFactory } from '../../packages/testing-utils/src/factories/user.factory'
+import { userFactory } from "../../packages/testing-utils/src/factories/user.factory";
 
 // ❌ 錯誤：直接導入 factories
-import { userFactory } from '@makanmakan/testing-utils/factories'
+import { userFactory } from "@makanmakan/testing-utils/factories";
 ```
 
 ---
@@ -709,23 +704,23 @@ import { userFactory } from '@makanmakan/testing-utils/factories'
 
 ```typescript
 // ✅ 適合使用 buildCompleteRestaurantData
-it('should process complete order flow', () => {
-  const testData = buildCompleteRestaurantData()
+it("should process complete order flow", () => {
+  const testData = buildCompleteRestaurantData();
   // 需要餐廳、員工、菜單、訂單的完整流程測試
-})
+});
 
 // ❌ 不適合，太重了
-it('should validate user email', () => {
-  const testData = buildCompleteRestaurantData()
-  const user = testData.customers[0]
-  expect(validateEmail(user.email)).toBe(true)
-})
+it("should validate user email", () => {
+  const testData = buildCompleteRestaurantData();
+  const user = testData.customers[0];
+  expect(validateEmail(user.email)).toBe(true);
+});
 
 // ✅ 更好的方式
-it('should validate user email', () => {
-  const user = userFactory.build()
-  expect(validateEmail(user.email)).toBe(true)
-})
+it("should validate user email", () => {
+  const user = userFactory.build();
+  expect(validateEmail(user.email)).toBe(true);
+});
 ```
 
 ---
@@ -735,37 +730,37 @@ it('should validate user email', () => {
 **A**: 建議結構：
 
 ```typescript
-describe('Order Service', () => {
+describe("Order Service", () => {
   // 1. 在頂層聲明變量
-  let testData: ReturnType<typeof buildCompleteRestaurantData>
-  let testDB: TestDatabase
+  let testData: ReturnType<typeof buildCompleteRestaurantData>;
+  let testDB: TestDatabase;
 
   // 2. 在 beforeEach 中初始化
   beforeEach(async () => {
-    resetAllFactories()
-    testDB = await createTestDB()
-    testData = buildCompleteRestaurantData()
-  })
+    resetAllFactories();
+    testDB = await createTestDB();
+    testData = buildCompleteRestaurantData();
+  });
 
   // 3. 測試中直接使用
-  it('should create order', () => {
-    const order = testData.orders[0]
+  it("should create order", () => {
+    const order = testData.orders[0];
     // ...
-  })
+  });
 
   // 4. 如需特殊數據，在測試內生成
-  it('should handle custom scenario', () => {
+  it("should handle custom scenario", () => {
     const customOrder = orderFactory.build({
       relations: {
-        restaurantId: testData.restaurant.id!
+        restaurantId: testData.restaurant.id!,
       },
       overrides: {
-        status: 'custom_status'
-      }
-    })
+        status: "custom_status",
+      },
+    });
     // ...
-  })
-})
+  });
+});
 ```
 
 ---
@@ -798,50 +793,50 @@ describe('Order Service', () => {
 
 ```typescript
 // ✅ 好的使用方式
-describe('Good Example', () => {
+describe("Good Example", () => {
   beforeEach(() => {
-    resetAllFactories()  // ✅ 重置序列號
-  })
+    resetAllFactories(); // ✅ 重置序列號
+  });
 
-  it('should work correctly', () => {
+  it("should work correctly", () => {
     // ✅ 使用專用方法
-    const admin = userFactory.buildAdmin()
+    const admin = userFactory.buildAdmin();
 
     // ✅ 使用 relations
     const order = orderFactory.build({
       relations: {
         restaurantId: 1,
-        customerId: admin.id!
-      }
-    })
+        customerId: admin.id!,
+      },
+    });
 
     // ✅ 使用常量
-    expect(admin.role).toBe(UserRoles.ADMIN)
-  })
-})
+    expect(admin.role).toBe(UserRoles.ADMIN);
+  });
+});
 
 // ❌ 不好的使用方式
-describe('Bad Example', () => {
+describe("Bad Example", () => {
   // ❌ 沒有重置序列號
 
-  it('should work correctly', () => {
+  it("should work correctly", () => {
     // ❌ 手動設置所有字段
     const admin = userFactory.build({
       overrides: {
-        role: 0,  // ❌ 魔術數字
-        fullName: '管理員',
+        role: 0, // ❌ 魔術數字
+        fullName: "管理員",
         // ... 一堆字段
-      }
-    })
+      },
+    });
 
     // ❌ 使用 overrides 設置關聯
     const order = orderFactory.build({
       overrides: {
-        restaurantId: 1
-      }
-    })
-  })
-})
+        restaurantId: 1,
+      },
+    });
+  });
+});
 ```
 
 ---
@@ -871,6 +866,7 @@ describe('Bad Example', () => {
 ```
 
 **提問時請包含**：
+
 - 完整的錯誤訊息
 - 相關的程式碼片段
 - 你已經嘗試的解決方案

@@ -1,10 +1,10 @@
-import { ref, onMounted, onBeforeUnmount, Ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, Ref } from "vue";
 
 interface LazyLoadOptions {
-  rootMargin?: string
-  threshold?: number | number[]
-  once?: boolean
-  onIntersect?: (entry: IntersectionObserverEntry) => void
+  rootMargin?: string;
+  threshold?: number | number[];
+  once?: boolean;
+  onIntersect?: (entry: IntersectionObserverEntry) => void;
 }
 
 /**
@@ -13,123 +13,123 @@ interface LazyLoadOptions {
  */
 export function useLazyLoad(options: LazyLoadOptions = {}) {
   const {
-    rootMargin = '50px',
+    rootMargin = "50px",
     threshold = 0.1,
     once = true,
-    onIntersect
-  } = options
+    onIntersect,
+  } = options;
 
-  const targetRef = ref<HTMLElement | null>(null)
-  const isVisible = ref(false)
-  const hasLoaded = ref(false)
+  const targetRef = ref<HTMLElement | null>(null);
+  const isVisible = ref(false);
+  const hasLoaded = ref(false);
 
-  let observer: IntersectionObserver | null = null
+  let observer: IntersectionObserver | null = null;
 
   const observe = () => {
-    if (!targetRef.value || !('IntersectionObserver' in window)) {
+    if (!targetRef.value || !("IntersectionObserver" in window)) {
       // 不支持 IntersectionObserver，直接加載
-      isVisible.value = true
-      hasLoaded.value = true
-      return
+      isVisible.value = true;
+      hasLoaded.value = true;
+      return;
     }
 
     observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            isVisible.value = true
+            isVisible.value = true;
 
             if (once && !hasLoaded.value) {
-              hasLoaded.value = true
-              observer?.unobserve(entry.target)
+              hasLoaded.value = true;
+              observer?.unobserve(entry.target);
             }
 
-            onIntersect?.(entry)
+            onIntersect?.(entry);
           } else {
             if (!once) {
-              isVisible.value = false
+              isVisible.value = false;
             }
           }
-        })
+        });
       },
       {
         rootMargin,
-        threshold
-      }
-    )
+        threshold,
+      },
+    );
 
-    observer.observe(targetRef.value)
-  }
+    observer.observe(targetRef.value);
+  };
 
   const unobserve = () => {
     if (observer && targetRef.value) {
-      observer.unobserve(targetRef.value)
+      observer.unobserve(targetRef.value);
     }
-  }
+  };
 
   onMounted(() => {
-    observe()
-  })
+    observe();
+  });
 
   onBeforeUnmount(() => {
-    unobserve()
-    observer?.disconnect()
-  })
+    unobserve();
+    observer?.disconnect();
+  });
 
   return {
     targetRef,
     isVisible,
-    hasLoaded
-  }
+    hasLoaded,
+  };
 }
 
 /**
  * 懶加載圖片 Hook
  */
 export function useLazyImage(src: string, options: LazyLoadOptions = {}) {
-  const { targetRef, isVisible } = useLazyLoad(options)
-  const currentSrc = ref<string>('')
-  const isLoading = ref(false)
-  const hasError = ref(false)
+  const { targetRef, isVisible } = useLazyLoad(options);
+  const currentSrc = ref<string>("");
+  const isLoading = ref(false);
+  const hasError = ref(false);
 
   const loadImage = () => {
-    if (isLoading.value || currentSrc.value === src) return
+    if (isLoading.value || currentSrc.value === src) return;
 
-    isLoading.value = true
-    hasError.value = false
+    isLoading.value = true;
+    hasError.value = false;
 
-    const img = new Image()
+    const img = new Image();
 
     img.onload = () => {
-      currentSrc.value = src
-      isLoading.value = false
-    }
+      currentSrc.value = src;
+      isLoading.value = false;
+    };
 
     img.onerror = () => {
-      hasError.value = true
-      isLoading.value = false
-    }
+      hasError.value = true;
+      isLoading.value = false;
+    };
 
-    img.src = src
-  }
+    img.src = src;
+  };
 
   // 當元素可見時加載圖片
   onMounted(() => {
     const unwatch = watch(isVisible, (visible) => {
       if (visible) {
-        loadImage()
-        unwatch()
+        loadImage();
+        unwatch();
       }
-    })
-  })
+    });
+  });
 
   return {
     targetRef,
     currentSrc,
     isLoading,
     hasError,
-    isVisible
-  }
+    isVisible,
+  };
 }
 
 /**
@@ -138,45 +138,44 @@ export function useLazyImage(src: string, options: LazyLoadOptions = {}) {
 export function useInfiniteScroll(
   loadMore: () => Promise<void>,
   options: {
-    distance?: number
-    threshold?: number
-    immediate?: boolean
-  } = {}
+    distance?: number;
+    threshold?: number;
+    immediate?: boolean;
+  } = {},
 ) {
-  const distance = options.distance || 100
-  const threshold = options.threshold || 0.1
+  const distance = options.distance || 100;
+  const threshold = options.threshold || 0.1;
 
-
-  const targetRef = ref<HTMLElement | null>(null)
-  const isLoading = ref(false)
-  const hasMore = ref(true)
+  const targetRef = ref<HTMLElement | null>(null);
+  const isLoading = ref(false);
+  const hasMore = ref(true);
 
   const { isVisible } = useLazyLoad({
     rootMargin: `${distance}px`,
     threshold,
     once: false,
     onIntersect: async () => {
-      if (isLoading.value || !hasMore.value) return
+      if (isLoading.value || !hasMore.value) return;
 
-      isLoading.value = true
+      isLoading.value = true;
 
       try {
-        await loadMore()
+        await loadMore();
       } catch (error) {
-        console.error('Failed to load more:', error)
-        hasMore.value = false
+        console.error("Failed to load more:", error);
+        hasMore.value = false;
       } finally {
-        isLoading.value = false
+        isLoading.value = false;
       }
-    }
-  })
+    },
+  });
 
   return {
     targetRef,
     isLoading,
     hasMore,
-    isVisible
-  }
+    isVisible,
+  };
 }
 
 /**
@@ -185,42 +184,42 @@ export function useInfiniteScroll(
  */
 export function useComponentLazyLoad(
   loadComponent: () => Promise<any>,
-  options: LazyLoadOptions = {}
+  options: LazyLoadOptions = {},
 ) {
   const { targetRef, isVisible, hasLoaded } = useLazyLoad({
     ...options,
-    once: true
-  })
+    once: true,
+  });
 
-  const component = ref<any>(null)
-  const isLoading = ref(false)
-  const hasError = ref(false)
+  const component = ref<any>(null);
+  const isLoading = ref(false);
+  const hasError = ref(false);
 
   const load = async () => {
-    if (isLoading.value || component.value) return
+    if (isLoading.value || component.value) return;
 
-    isLoading.value = true
-    hasError.value = false
+    isLoading.value = true;
+    hasError.value = false;
 
     try {
-      const loaded = await loadComponent()
-      component.value = loaded.default || loaded
+      const loaded = await loadComponent();
+      component.value = loaded.default || loaded;
     } catch (error) {
-      console.error('Failed to load component:', error)
-      hasError.value = true
+      console.error("Failed to load component:", error);
+      hasError.value = true;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
-  }
+  };
 
   onMounted(() => {
     const unwatch = watch(isVisible, (visible) => {
       if (visible) {
-        load()
-        unwatch()
+        load();
+        unwatch();
       }
-    })
-  })
+    });
+  });
 
   return {
     targetRef,
@@ -228,30 +227,30 @@ export function useComponentLazyLoad(
     isLoading,
     hasError,
     isVisible,
-    hasLoaded
-  }
+    hasLoaded,
+  };
 }
 
 // 工具函數
-import { watch } from 'vue'
+import { watch } from "vue";
 
 /**
  * 預加載圖片
  */
 export function preloadImage(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve()
-    img.onerror = reject
-    img.src = src
-  })
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = reject;
+    img.src = src;
+  });
 }
 
 /**
  * 預加載多張圖片
  */
 export function preloadImages(sources: string[]): Promise<void[]> {
-  return Promise.all(sources.map(preloadImage))
+  return Promise.all(sources.map(preloadImage));
 }
 
 /**
@@ -260,47 +259,47 @@ export function preloadImages(sources: string[]): Promise<void[]> {
 export function useBatchLazyLoad<T>(
   items: Ref<T[]>,
   batchSize: number = 10,
-  delay: number = 100
+  delay: number = 100,
 ) {
-  const loadedItems = ref<T[]>([])
-  const currentBatch = ref(0)
-  const isLoading = ref(false)
+  const loadedItems = ref<T[]>([]);
+  const currentBatch = ref(0);
+  const isLoading = ref(false);
 
   const loadNextBatch = () => {
-    if (isLoading.value) return
+    if (isLoading.value) return;
 
-    const startIndex = currentBatch.value * batchSize
-    const endIndex = Math.min(startIndex + batchSize, items.value.length)
+    const startIndex = currentBatch.value * batchSize;
+    const endIndex = Math.min(startIndex + batchSize, items.value.length);
 
-    if (startIndex >= items.value.length) return
+    if (startIndex >= items.value.length) return;
 
-    isLoading.value = true
+    isLoading.value = true;
 
     setTimeout(() => {
-      const batch = items.value.slice(startIndex, endIndex)
-      loadedItems.value = loadedItems.value.concat(batch as any)
-      currentBatch.value++
-      isLoading.value = false
-    }, delay)
-  }
+      const batch = items.value.slice(startIndex, endIndex);
+      loadedItems.value = loadedItems.value.concat(batch as any);
+      currentBatch.value++;
+      isLoading.value = false;
+    }, delay);
+  };
 
   const reset = () => {
-    loadedItems.value = []
-    currentBatch.value = 0
-    isLoading.value = false
-  }
+    loadedItems.value = [];
+    currentBatch.value = 0;
+    isLoading.value = false;
+  };
 
   onMounted(() => {
-    loadNextBatch()
-  })
+    loadNextBatch();
+  });
 
   return {
     loadedItems,
     loadNextBatch,
     isLoading,
     hasMore: computed(() => loadedItems.value.length < items.value.length),
-    reset
-  }
+    reset,
+  };
 }
 
-import { computed } from 'vue'
+import { computed } from "vue";

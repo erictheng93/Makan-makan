@@ -44,10 +44,7 @@
       </div>
 
       <!-- Token 錯誤 -->
-      <div
-        v-else-if="tokenError"
-        class="bg-white rounded-2xl shadow-xl p-8"
-      >
+      <div v-else-if="tokenError" class="bg-white rounded-2xl shadow-xl p-8">
         <div class="text-center">
           <svg
             class="mx-auto h-16 w-16 text-red-400"
@@ -62,7 +59,9 @@
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">連結無效或已過期</h3>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">
+            連結無效或已過期
+          </h3>
           <p class="mt-2 text-sm text-gray-600">{{ tokenError }}</p>
           <div class="mt-6 space-y-3">
             <button
@@ -82,10 +81,7 @@
       </div>
 
       <!-- 重設成功 -->
-      <div
-        v-else-if="success"
-        class="bg-white rounded-2xl shadow-xl p-8"
-      >
+      <div v-else-if="success" class="bg-white rounded-2xl shadow-xl p-8">
         <div class="text-center">
           <svg
             class="mx-auto h-16 w-16 text-green-400"
@@ -180,7 +176,9 @@
             <!-- 密碼強度指示器 -->
             <div v-if="form.newPassword" class="mt-2">
               <div class="flex items-center space-x-2">
-                <div class="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  class="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden"
+                >
                   <div
                     class="h-full transition-all duration-300"
                     :class="passwordStrengthColor"
@@ -310,7 +308,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>{{ isLoading ? '重設中...' : '重設密碼' }}</span>
+              <span>{{ isLoading ? "重設中..." : "重設密碼" }}</span>
             </button>
           </div>
         </form>
@@ -320,170 +318,170 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
-const _router = useRouter()
-const route = useRoute()
+const _router = useRouter();
+const route = useRoute();
 
 const form = reactive({
-  newPassword: '',
-  confirmPassword: '',
-})
+  newPassword: "",
+  confirmPassword: "",
+});
 
 const errors = reactive({
-  newPassword: '',
-  confirmPassword: '',
-})
+  newPassword: "",
+  confirmPassword: "",
+});
 
-const token = ref('')
-const maskedEmail = ref('')
-const error = ref('')
-const tokenError = ref('')
-const success = ref(false)
-const successMessage = ref('')
-const isLoading = ref(false)
-const verifying = ref(true)
-const showNewPassword = ref(false)
-const showConfirmPassword = ref(false)
+const token = ref("");
+const maskedEmail = ref("");
+const error = ref("");
+const tokenError = ref("");
+const success = ref(false);
+const successMessage = ref("");
+const isLoading = ref(false);
+const verifying = ref(true);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 // 密碼強度計算
 const passwordStrength = computed(() => {
-  const password = form.newPassword
-  let strength = 0
+  const password = form.newPassword;
+  let strength = 0;
 
-  if (password.length >= 6) strength++
-  if (password.length >= 8) strength++
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++
-  if (/\d/.test(password)) strength++
-  if (/[^a-zA-Z0-9]/.test(password)) strength++
+  if (password.length >= 6) strength++;
+  if (password.length >= 8) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/\d/.test(password)) strength++;
+  if (/[^a-zA-Z0-9]/.test(password)) strength++;
 
-  return strength
-})
+  return strength;
+});
 
 const passwordStrengthWidth = computed(() => {
-  return `${(passwordStrength.value / 5) * 100}%`
-})
+  return `${(passwordStrength.value / 5) * 100}%`;
+});
 
 const passwordStrengthColor = computed(() => {
-  if (passwordStrength.value <= 1) return 'bg-red-500'
-  if (passwordStrength.value <= 2) return 'bg-orange-500'
-  if (passwordStrength.value <= 3) return 'bg-yellow-500'
-  if (passwordStrength.value <= 4) return 'bg-blue-500'
-  return 'bg-green-500'
-})
+  if (passwordStrength.value <= 1) return "bg-red-500";
+  if (passwordStrength.value <= 2) return "bg-orange-500";
+  if (passwordStrength.value <= 3) return "bg-yellow-500";
+  if (passwordStrength.value <= 4) return "bg-blue-500";
+  return "bg-green-500";
+});
 
 const passwordStrengthTextColor = computed(() => {
-  if (passwordStrength.value <= 1) return 'text-red-600'
-  if (passwordStrength.value <= 2) return 'text-orange-600'
-  if (passwordStrength.value <= 3) return 'text-yellow-600'
-  if (passwordStrength.value <= 4) return 'text-blue-600'
-  return 'text-green-600'
-})
+  if (passwordStrength.value <= 1) return "text-red-600";
+  if (passwordStrength.value <= 2) return "text-orange-600";
+  if (passwordStrength.value <= 3) return "text-yellow-600";
+  if (passwordStrength.value <= 4) return "text-blue-600";
+  return "text-green-600";
+});
 
 const passwordStrengthText = computed(() => {
-  if (passwordStrength.value <= 1) return '弱'
-  if (passwordStrength.value <= 2) return '中等'
-  if (passwordStrength.value <= 3) return '良好'
-  if (passwordStrength.value <= 4) return '強'
-  return '非常強'
-})
+  if (passwordStrength.value <= 1) return "弱";
+  if (passwordStrength.value <= 2) return "中等";
+  if (passwordStrength.value <= 3) return "良好";
+  if (passwordStrength.value <= 4) return "強";
+  return "非常強";
+});
 
 const validateForm = () => {
-  errors.newPassword = ''
-  errors.confirmPassword = ''
-  let isValid = true
+  errors.newPassword = "";
+  errors.confirmPassword = "";
+  let isValid = true;
 
   // 新密碼驗證
   if (!form.newPassword) {
-    errors.newPassword = '請輸入新密碼'
-    isValid = false
+    errors.newPassword = "請輸入新密碼";
+    isValid = false;
   } else if (form.newPassword.length < 6) {
-    errors.newPassword = '密碼至少需要 6 個字符'
-    isValid = false
+    errors.newPassword = "密碼至少需要 6 個字符";
+    isValid = false;
   }
 
   // 確認密碼驗證
   if (!form.confirmPassword) {
-    errors.confirmPassword = '請再次輸入密碼'
-    isValid = false
+    errors.confirmPassword = "請再次輸入密碼";
+    isValid = false;
   } else if (form.newPassword !== form.confirmPassword) {
-    errors.confirmPassword = '兩次輸入的密碼不一致'
-    isValid = false
+    errors.confirmPassword = "兩次輸入的密碼不一致";
+    isValid = false;
   }
 
-  return isValid
-}
+  return isValid;
+};
 
 const verifyToken = async () => {
   try {
     const response = await fetch(
-      `/api/v1/auth/reset-password/verify?token=${token.value}`
-    )
-    const data = await response.json()
+      `/api/v1/auth/reset-password/verify?token=${token.value}`,
+    );
+    const data = await response.json();
 
     if (data.valid) {
-      maskedEmail.value = data.email || ''
+      maskedEmail.value = data.email || "";
     } else {
-      tokenError.value = data.error || 'Token 無效或已過期'
+      tokenError.value = data.error || "Token 無效或已過期";
     }
   } catch (err) {
-    console.error('Verify token error:', err)
-    tokenError.value = '驗證 Token 時發生錯誤'
+    console.error("Verify token error:", err);
+    tokenError.value = "驗證 Token 時發生錯誤";
   } finally {
-    verifying.value = false
+    verifying.value = false;
   }
-}
+};
 
 const handleSubmit = async () => {
-  error.value = ''
+  error.value = "";
 
   if (!validateForm()) {
-    return
+    return;
   }
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
-    const response = await fetch('/api/v1/auth/reset-password', {
-      method: 'POST',
+    const response = await fetch("/api/v1/auth/reset-password", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         token: token.value,
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,
       }),
-    })
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
     if (data.success) {
-      success.value = true
-      successMessage.value = data.message || '密碼已成功重設，請重新登入'
+      success.value = true;
+      successMessage.value = data.message || "密碼已成功重設，請重新登入";
     } else {
-      error.value = data.error || '重設密碼失敗，請稍後再試'
+      error.value = data.error || "重設密碼失敗，請稍後再試";
     }
   } catch (err) {
-    console.error('Reset password error:', err)
-    error.value = '網路錯誤，請檢查您的網路連線'
+    console.error("Reset password error:", err);
+    error.value = "網路錯誤，請檢查您的網路連線";
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 onMounted(() => {
   // 從 URL 參數獲取 token
-  token.value = route.query.token as string
+  token.value = route.query.token as string;
 
   if (!token.value) {
-    tokenError.value = '缺少 Token 參數'
-    verifying.value = false
-    return
+    tokenError.value = "缺少 Token 參數";
+    verifying.value = false;
+    return;
   }
 
   // 驗證 token
-  verifyToken()
-})
+  verifyToken();
+});
 </script>

@@ -10,7 +10,11 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["queue", "restaurant", "service"],
+  "keywords": [
+    "queue",
+    "restaurant",
+    "service"
+  ],
   "author": "MakanMakan Team",
   "license": "MIT",
   "devDependencies": {

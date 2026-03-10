@@ -12,35 +12,35 @@ export interface PaginationParams {
    * Page number (1-indexed)
    * @default 1
    */
-  page?: number
+  page?: number;
 
   /**
    * Number of items per page
    * @default 20
    */
-  pageSize?: number
+  pageSize?: number;
 
   /**
    * Sort field
    * @example "createdAt" | "updatedAt" | "name"
    */
-  sortBy?: string
+  sortBy?: string;
 
   /**
    * Sort order
    * @default "desc"
    */
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: "asc" | "desc";
 
   /**
    * Search query
    */
-  search?: string
+  search?: string;
 
   /**
    * Additional filters (endpoint-specific)
    */
-  filters?: Record<string, any>
+  filters?: Record<string, any>;
 }
 
 /**
@@ -50,42 +50,42 @@ export interface PaginationMeta {
   /**
    * Current page number (1-indexed)
    */
-  currentPage: number
+  currentPage: number;
 
   /**
    * Number of items per page
    */
-  pageSize: number
+  pageSize: number;
 
   /**
    * Total number of items across all pages
    */
-  totalItems: number
+  totalItems: number;
 
   /**
    * Total number of pages
    */
-  totalPages: number
+  totalPages: number;
 
   /**
    * Whether there is a next page
    */
-  hasNextPage: boolean
+  hasNextPage: boolean;
 
   /**
    * Whether there is a previous page
    */
-  hasPreviousPage: boolean
+  hasPreviousPage: boolean;
 
   /**
    * Index of first item on current page (0-indexed)
    */
-  startIndex: number
+  startIndex: number;
 
   /**
    * Index of last item on current page (0-indexed)
    */
-  endIndex: number
+  endIndex: number;
 }
 
 /**
@@ -95,17 +95,17 @@ export interface PaginatedResponse<T> {
   /**
    * Array of items for current page
    */
-  data: T[]
+  data: T[];
 
   /**
    * Pagination metadata
    */
-  pagination: PaginationMeta
+  pagination: PaginationMeta;
 
   /**
    * Timestamp of response
    */
-  timestamp?: string
+  timestamp?: string;
 }
 
 /**
@@ -116,18 +116,18 @@ export interface CursorPaginationParams {
    * Number of items to fetch
    * @default 20
    */
-  limit?: number
+  limit?: number;
 
   /**
    * Cursor for next page (opaque string)
    */
-  cursor?: string
+  cursor?: string;
 
   /**
    * Direction of pagination
    * @default "forward"
    */
-  direction?: 'forward' | 'backward'
+  direction?: "forward" | "backward";
 }
 
 /**
@@ -137,22 +137,22 @@ export interface CursorPaginationMeta {
   /**
    * Number of items returned
    */
-  count: number
+  count: number;
 
   /**
    * Cursor for next page (null if no more pages)
    */
-  nextCursor: string | null
+  nextCursor: string | null;
 
   /**
    * Cursor for previous page (null if on first page)
    */
-  previousCursor: string | null
+  previousCursor: string | null;
 
   /**
    * Whether there are more items
    */
-  hasMore: boolean
+  hasMore: boolean;
 }
 
 /**
@@ -162,17 +162,17 @@ export interface CursorPaginatedResponse<T> {
   /**
    * Array of items
    */
-  data: T[]
+  data: T[];
 
   /**
    * Cursor pagination metadata
    */
-  pagination: CursorPaginationMeta
+  pagination: CursorPaginationMeta;
 
   /**
    * Timestamp of response
    */
-  timestamp?: string
+  timestamp?: string;
 }
 
 /**
@@ -182,27 +182,27 @@ export interface InfiniteScrollState<T> {
   /**
    * All loaded items
    */
-  items: T[]
+  items: T[];
 
   /**
    * Whether currently loading
    */
-  isLoading: boolean
+  isLoading: boolean;
 
   /**
    * Whether there are more items to load
    */
-  hasMore: boolean
+  hasMore: boolean;
 
   /**
    * Current page number
    */
-  currentPage: number
+  currentPage: number;
 
   /**
    * Error if any
    */
-  error: Error | null
+  error: Error | null;
 }
 
 /**
@@ -213,25 +213,25 @@ export interface PaginationConfig {
    * Default page size
    * @default 20
    */
-  defaultPageSize: number
+  defaultPageSize: number;
 
   /**
    * Maximum page size allowed
    * @default 100
    */
-  maxPageSize: number
+  maxPageSize: number;
 
   /**
    * Minimum page size allowed
    * @default 1
    */
-  minPageSize: number
+  minPageSize: number;
 
   /**
    * Default sort order
    * @default "desc"
    */
-  defaultSortOrder: 'asc' | 'desc'
+  defaultSortOrder: "asc" | "desc";
 }
 
 /**
@@ -241,8 +241,8 @@ export const DEFAULT_PAGINATION_CONFIG: PaginationConfig = {
   defaultPageSize: 20,
   maxPageSize: 100,
   minPageSize: 1,
-  defaultSortOrder: 'desc'
-}
+  defaultSortOrder: "desc",
+};
 
 /**
  * Calculate pagination metadata from total count
@@ -250,12 +250,12 @@ export const DEFAULT_PAGINATION_CONFIG: PaginationConfig = {
 export function calculatePaginationMeta(
   page: number,
   pageSize: number,
-  totalItems: number
+  totalItems: number,
 ): PaginationMeta {
-  const totalPages = Math.ceil(totalItems / pageSize)
-  const currentPage = Math.min(Math.max(1, page), totalPages || 1)
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = Math.min(startIndex + pageSize - 1, totalItems - 1)
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const currentPage = Math.min(Math.max(1, page), totalPages || 1);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize - 1, totalItems - 1);
 
   return {
     currentPage,
@@ -265,8 +265,8 @@ export function calculatePaginationMeta(
     hasNextPage: currentPage < totalPages,
     hasPreviousPage: currentPage > 1,
     startIndex,
-    endIndex
-  }
+    endIndex,
+  };
 }
 
 /**
@@ -274,33 +274,33 @@ export function calculatePaginationMeta(
  */
 export function validatePaginationParams(
   params: PaginationParams,
-  config: PaginationConfig = DEFAULT_PAGINATION_CONFIG
+  config: PaginationConfig = DEFAULT_PAGINATION_CONFIG,
 ): { valid: boolean; errors: string[] } {
-  const errors: string[] = []
+  const errors: string[] = [];
 
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? config.defaultPageSize
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? config.defaultPageSize;
 
   if (page < 1) {
-    errors.push('Page number must be >= 1')
+    errors.push("Page number must be >= 1");
   }
 
   if (pageSize < config.minPageSize) {
-    errors.push(`Page size must be >= ${config.minPageSize}`)
+    errors.push(`Page size must be >= ${config.minPageSize}`);
   }
 
   if (pageSize > config.maxPageSize) {
-    errors.push(`Page size must be <= ${config.maxPageSize}`)
+    errors.push(`Page size must be <= ${config.maxPageSize}`);
   }
 
-  if (params.sortOrder && !['asc', 'desc'].includes(params.sortOrder)) {
-    errors.push('Sort order must be "asc" or "desc"')
+  if (params.sortOrder && !["asc", "desc"].includes(params.sortOrder)) {
+    errors.push('Sort order must be "asc" or "desc"');
   }
 
   return {
     valid: errors.length === 0,
-    errors
-  }
+    errors,
+  };
 }
 
 /**
@@ -308,42 +308,43 @@ export function validatePaginationParams(
  */
 export function normalizePaginationParams(
   params: PaginationParams,
-  config: PaginationConfig = DEFAULT_PAGINATION_CONFIG
-): Required<Omit<PaginationParams, 'search' | 'filters'>> & Pick<PaginationParams, 'search' | 'filters'> {
+  config: PaginationConfig = DEFAULT_PAGINATION_CONFIG,
+): Required<Omit<PaginationParams, "search" | "filters">> &
+  Pick<PaginationParams, "search" | "filters"> {
   return {
     page: Math.max(1, params.page ?? 1),
     pageSize: Math.min(
       Math.max(config.minPageSize, params.pageSize ?? config.defaultPageSize),
-      config.maxPageSize
+      config.maxPageSize,
     ),
-    sortBy: params.sortBy ?? 'createdAt',
+    sortBy: params.sortBy ?? "createdAt",
     sortOrder: params.sortOrder ?? config.defaultSortOrder,
     search: params.search,
-    filters: params.filters
-  }
+    filters: params.filters,
+  };
 }
 
 /**
  * Generate SQL OFFSET and LIMIT from pagination params
  */
 export function getPaginationOffsetLimit(params: PaginationParams): {
-  offset: number
-  limit: number
+  offset: number;
+  limit: number;
 } {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGINATION_CONFIG.defaultPageSize
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? DEFAULT_PAGINATION_CONFIG.defaultPageSize;
 
   return {
     offset: (page - 1) * pageSize,
-    limit: pageSize
-  }
+    limit: pageSize,
+  };
 }
 
 /**
  * Encode cursor for cursor-based pagination
  */
 export function encodeCursor(data: Record<string, any>): string {
-  return Buffer.from(JSON.stringify(data)).toString('base64')
+  return Buffer.from(JSON.stringify(data)).toString("base64");
 }
 
 /**
@@ -351,8 +352,8 @@ export function encodeCursor(data: Record<string, any>): string {
  */
 export function decodeCursor(cursor: string): Record<string, any> {
   try {
-    return JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'))
+    return JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
   } catch {
-    throw new Error('Invalid cursor')
+    throw new Error("Invalid cursor");
   }
 }

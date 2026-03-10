@@ -7,85 +7,85 @@ import type {
   PrinterDevice,
   PrintContent,
   PrintResponse,
-  PrinterStatus
-} from '@makanmakan/shared-types'
+  PrinterStatus,
+} from "@makanmakan/shared-types";
 
 export interface IPrinterDriver {
   /**
    * Connect to the printer
    */
-  connect(): Promise<boolean>
+  connect(): Promise<boolean>;
 
   /**
    * Disconnect from the printer
    */
-  disconnect(): Promise<void>
+  disconnect(): Promise<void>;
 
   /**
    * Check if printer is connected
    */
-  isConnected(): boolean
+  isConnected(): boolean;
 
   /**
    * Get current printer status
    */
-  getStatus(): Promise<PrinterStatus>
+  getStatus(): Promise<PrinterStatus>;
 
   /**
    * Print content to the printer
    */
-  print(content: PrintContent): Promise<PrintResponse>
+  print(content: PrintContent): Promise<PrintResponse>;
 
   /**
    * Get printer device information
    */
-  getDeviceInfo(): PrinterDevice
+  getDeviceInfo(): PrinterDevice;
 
   /**
    * Test printer connection
    */
-  testConnection(): Promise<boolean>
+  testConnection(): Promise<boolean>;
 
   /**
    * Reset printer to default state
    */
-  reset(): Promise<void>
+  reset(): Promise<void>;
 }
 
 export abstract class PrinterDriver implements IPrinterDriver {
-  protected device: PrinterDevice
-  protected connected = false
+  protected device: PrinterDevice;
+  protected connected = false;
 
   constructor(device: PrinterDevice) {
-    this.device = device
+    this.device = device;
   }
 
-  abstract connect(): Promise<boolean>
-  abstract disconnect(): Promise<void>
-  abstract getStatus(): Promise<PrinterStatus>
-  abstract print(content: PrintContent): Promise<PrintResponse>
+  abstract connect(): Promise<boolean>;
+  abstract disconnect(): Promise<void>;
+  abstract getStatus(): Promise<PrinterStatus>;
+  abstract print(content: PrintContent): Promise<PrintResponse>;
 
   isConnected(): boolean {
-    return this.connected
+    return this.connected;
   }
 
   getDeviceInfo(): PrinterDevice {
-    return { ...this.device }
+    return { ...this.device };
   }
 
   async testConnection(): Promise<boolean> {
     try {
-      const status = await this.getStatus()
-      return status === 'online'
+      const status = await this.getStatus();
+      return status === "online";
     } catch {
-      return false
+      return false;
     }
   }
 
   async reset(): Promise<void> {
     if (this.connected) {
-      await this.disconnect()
-      await this.connect()
+      await this.disconnect();
+      await this.connect();
     }
   }
 }

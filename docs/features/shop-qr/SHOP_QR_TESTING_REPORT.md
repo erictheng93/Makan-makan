@@ -12,11 +12,11 @@
 
 ### 整體進度
 
-| Phase | 描述 | 狀態 | 完成度 |
-|-------|------|------|--------|
-| **Phase 1** | Backend API & Database | ⚠️ **修復中** | 85% |
-| **Phase 2** | Customer App 前端 | ✅ **完成** | 100% |
-| **Phase 3** | Admin Dashboard 前端 | ✅ **完成** | 100% |
+| Phase       | 描述                   | 狀態          | 完成度 |
+| ----------- | ---------------------- | ------------- | ------ |
+| **Phase 1** | Backend API & Database | ⚠️ **修復中** | 85%    |
+| **Phase 2** | Customer App 前端      | ✅ **完成**   | 100%   |
+| **Phase 3** | Admin Dashboard 前端   | ✅ **完成**   | 100%   |
 
 ---
 
@@ -53,6 +53,7 @@
 **位置**: `apps/api/src/features/restaurants/services/RestaurantsService.ts`
 
 **缺失方法**:
+
 - `generateShopQrCode(id: number)`
 - `regenerateShopQrCode(id: number)`
 - `getShopQrCodeInfo(id: number)`
@@ -60,11 +61,13 @@
 - `updateShopMode(id: number, enabled: boolean, settings?: any)`
 
 **錯誤訊息**:
+
 ```
 {"success":false,"error":"restaurantsService.getShopQrCodeInfo is not a function"}
 ```
 
 **修復狀態**: ✅ **已修復** (2025-10-10)
+
 - 添加了所有 5 個缺失的方法到 RestaurantsService (lines 355-477)
 - 方法包含適當的錯誤處理和 cache invalidation
 - 調用 database layer 對應方法
@@ -74,17 +77,24 @@
 **問題**: API 的 CSRF 保護機制阻止了測試腳本的 POST 請求
 
 **影響的 Endpoints**:
+
 - POST `/api/v1/restaurants/1/qr/shop/generate`
 - POST `/api/v1/restaurants/1/qr/shop/regenerate`
 - PUT `/api/v1/restaurants/1/shop-mode`
 - POST `/api/v1/restaurants/1/qr/shop/upload-image`
 
 **錯誤訊息**:
+
 ```json
-{"success":false,"error":"CSRF token missing","message":"CSRF token is required for this request"}
+{
+  "success": false,
+  "error": "CSRF token missing",
+  "message": "CSRF token is required for this request"
+}
 ```
 
 **解決方案選項**:
+
 1. 修改測試腳本以正確處理 CSRF tokens (推薦)
 2. 臨時添加 Shop QR endpoints 到 CSRF 排除列表 (僅用於測試)
 
@@ -95,12 +105,14 @@
 **問題**: Restaurant ID 1 尚未啟用 Shop QR mode
 
 **測試結果**:
+
 ```bash
 Test 2: Get shop QR code info
 Response: {"success":false,"error":"Failed to retrieve shop QR code information"}
 ```
 
 **原因**:
+
 - Restaurant 資料庫記錄可能缺少 shop QR 相關欄位值
 - 需要先調用 `generateShopQrCode` 或 `updateShopMode` 來初始化
 
@@ -111,8 +123,13 @@ Response: {"success":false,"error":"Failed to retrieve shop QR code information"
 **問題**: Public QR code verification endpoint 不存在
 
 **錯誤訊息**:
+
 ```json
-{"success":false,"error":"API endpoint not found","path":"/api/v1/qr-codes/verify/shop/SHOP-1-1234567890"}
+{
+  "success": false,
+  "error": "API endpoint not found",
+  "path": "/api/v1/qr-codes/verify/shop/SHOP-1-1234567890"
+}
 ```
 
 **期望路由**: `GET /api/v1/qr-codes/verify/shop/:qrCode`
@@ -128,6 +145,7 @@ Response: {"success":false,"error":"Failed to retrieve shop QR code information"
 **腳本**: `test-shop-qr-endpoints.sh`
 
 **結果**:
+
 ```
 Test 1: Login ✅ PASS
 Test 2: Generate shop QR ❌ FAIL (CSRF token missing)
@@ -143,6 +161,7 @@ Test 7: Regenerate QR ❌ FAIL (CSRF token missing)
 **腳本**: `test-shop-qr-simple.sh`
 
 **結果**:
+
 ```
 Test 1: Login ✅ PASS
 Test 2: Get shop QR info ⚠️ PARTIAL (Method exists, but no QR data)
@@ -160,6 +179,7 @@ Test 3: QR verification endpoint ❌ FAIL (Endpoint not found)
 **Date**: 2025-10-10
 
 **Changes**:
+
 1. 添加 `generateShopQrCode(id)` 方法
 2. 添加 `regenerateShopQrCode(id)` 方法
 3. 添加 `getShopQrCodeInfo(id)` 方法
@@ -167,6 +187,7 @@ Test 3: QR verification endpoint ❌ FAIL (Endpoint not found)
 5. 添加 `updateShopMode(id, enabled, settings)` 方法
 
 **每個方法包含**:
+
 - Try-catch 錯誤處理
 - Logger 日誌記錄
 - Cache invalidation
@@ -221,41 +242,51 @@ Test 3: QR verification endpoint ❌ FAIL (Endpoint not found)
 ### Phase 1: Backend (已修復)
 
 **Database**:
+
 - ✅ `packages/database/migrations/0033_shop_level_qr.sql`
 - ✅ `packages/database/src/schema/restaurants.ts`
 - ✅ `packages/database/src/services/restaurant.ts`
 
 **API Routes**:
+
 - ✅ `apps/api/src/features/restaurants/routes/index.ts` (lines 322-537)
 
 **API Services** (已修復):
+
 - ✅ `apps/api/src/features/restaurants/services/RestaurantsService.ts` (lines 353-478)
 
 **Types**:
+
 - ✅ `packages/shared-types/src/restaurant.ts`
 
 ### Phase 2: Customer App (100%)
 
 **Routes**:
+
 - ✅ `apps/customer-app/src/router/index.ts`
 
 **Views**:
+
 - ✅ `apps/customer-app/src/views/ShopPhoneVerificationView.vue` (287 lines)
 - ✅ `apps/customer-app/src/views/ShopMenuView.vue` (462 lines)
 - ✅ `apps/customer-app/src/views/QRScanView.vue` (modified)
 
 **Components**:
+
 - ✅ `apps/customer-app/src/components/ShopCartModal.vue` (227 lines)
 
 **Stores**:
+
 - ✅ `apps/customer-app/src/stores/shopCart.ts` (308 lines)
 
 **Utils**:
+
 - ✅ `apps/customer-app/src/utils/qr-parser.ts` (enhanced)
 
 ### Phase 3: Admin Dashboard (100%)
 
 **Views**:
+
 - ✅ `apps/admin-dashboard/src/views/SettingsView.vue` (modified)
   - Lines 360-599: Shop QR UI template
   - Lines 881-896: Reactive state
@@ -280,6 +311,7 @@ Test 3: QR verification endpoint ❌ FAIL (Endpoint not found)
 ### 立即行動 (今日)
 
 1. **解決 CSRF Token 問題**
+
    ```bash
    # 選項 A: 修改 CSRF middleware 排除測試 endpoints
    # 選項 B: 更新測試腳本以處理 CSRF tokens
@@ -324,16 +356,17 @@ Test 3: QR verification endpoint ❌ FAIL (Endpoint not found)
 ### Backend 改進
 
 1. **更好的錯誤訊息**
+
    ```typescript
    // 現況
-   throw new Error('Failed to retrieve shop QR code information')
+   throw new Error("Failed to retrieve shop QR code information");
 
    // 建議
    if (!restaurant) {
-     throw new Error(`Restaurant ${id} not found`)
+     throw new Error(`Restaurant ${id} not found`);
    }
    if (!restaurant.enableShopMode) {
-     throw new Error(`Shop mode not enabled for restaurant ${id}`)
+     throw new Error(`Shop mode not enabled for restaurant ${id}`);
    }
    ```
 

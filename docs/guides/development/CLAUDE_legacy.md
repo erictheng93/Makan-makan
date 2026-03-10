@@ -9,12 +9,14 @@ MakanMakan is a PHP-based restaurant management system that provides online orde
 ## Database Configuration
 
 The system uses MySQL/MariaDB with the following setup:
+
 - Database: `makanmakan`
 - Configuration file: `config.php` (contains connection parameters)
 - SQL schema: `SQL/makanmakan.sql`
 - Default credentials: root/12345 (localhost)
 
 To set up the database:
+
 ```bash
 # Import the schema
 mysql -u root -p makanmakan < SQL/makanmakan.sql
@@ -23,10 +25,12 @@ mysql -u root -p makanmakan < SQL/makanmakan.sql
 ## Core System Architecture
 
 ### Multi-Role Access System
+
 The system implements role-based access with different permission levels:
+
 - 0: Admin
 - 1: Shop Owner (店主)
-- 2: Chef (廚師)  
+- 2: Chef (廚師)
 - 3: Service Crew (送菜的service crew)
 - 4: Cashier (收銀)
 
@@ -56,7 +60,9 @@ Authentication is handled through `login/checkpass.php` with session management.
    - QR code generation for tables (`login/phpqr/`)
 
 ### Database Tables
+
 Key tables include:
+
 - `employee`: Staff/user accounts with roles and shop assignments
 - `shop_info`: Restaurant/shop information
 - `shop_table`: Table management and availability
@@ -65,6 +71,7 @@ Key tables include:
 - `category`: Menu categories
 
 ### File Organization
+
 - `/config.php`: Database connection
 - `/login/`: Authentication and admin interface
 - `/food/`: Menu display system
@@ -77,27 +84,33 @@ Key tables include:
 ## Development Workflow
 
 ### Local Development
+
 No build process required - this is a standard PHP application that runs directly on a web server.
 
 To run locally:
+
 1. Set up XAMPP/WAMP or similar PHP environment
 2. Import database from `SQL/makanmakan.sql`
 3. Update database credentials in `config.php`
 4. Access via `http://localhost/makanmakan/`
 
 ### Testing
+
 No automated test framework is configured. Manual testing through:
+
 - Login interface: `login/login.php`
 - Menu display: `food/index.php`
 - Order system: `order/index.php?k=[shop_id]&m=[table_number]`
 
 ### Code Style
+
 - Mixed Chinese and English comments
 - Inline PHP with HTML
 - Foundation CSS and Tailwind CSS for styling
 - jQuery for JavaScript functionality
 
 ## Key Features
+
 - Multi-shop support with individual menus and tables
 - QR code-based table ordering
 - Real-time order management
@@ -106,6 +119,7 @@ No automated test framework is configured. Manual testing through:
 - PDF report generation (using TCPDF)
 
 ## Common Tasks
+
 - Adding new menu items: Use `login/edit/productAdd1-2.php`
 - Managing categories: Use `login/catedit/catedit.php`
 - Table management: Configure through `shop_table` database table

@@ -5,10 +5,10 @@
  */
 
 // Services
-export * from './services'
+export * from "./services";
 
 // Re-export core types for convenience
-export * from '@makanmakan/queue-core'
+export * from "@makanmakan/queue-core";
 
 // Main service class
-export { QueueService } from './services/QueueService'
+export { QueueService } from "./services/QueueService";

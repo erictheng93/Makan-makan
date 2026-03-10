@@ -3,7 +3,7 @@
  * 為測試環境提供完整的瀏覽器 API mock
  */
 
-import { vi, beforeEach } from 'vitest'
+import { vi, beforeEach } from "vitest";
 
 // ============================================================
 // localStorage Mock (功能完整版)
@@ -14,31 +14,31 @@ import { vi, beforeEach } from 'vitest'
  * 實現真正的內存存儲，而不僅僅是 vi.fn()
  */
 class LocalStorageMock {
-  private store: Map<string, string> = new Map()
+  private store: Map<string, string> = new Map();
 
   getItem(key: string): string | null {
-    return this.store.get(key) ?? null
+    return this.store.get(key) ?? null;
   }
 
   setItem(key: string, value: string): void {
-    this.store.set(key, value)
+    this.store.set(key, value);
   }
 
   removeItem(key: string): void {
-    this.store.delete(key)
+    this.store.delete(key);
   }
 
   clear(): void {
-    this.store.clear()
+    this.store.clear();
   }
 
   get length(): number {
-    return this.store.size
+    return this.store.size;
   }
 
   key(index: number): string | null {
-    const keys = Array.from(this.store.keys())
-    return keys[index] ?? null
+    const keys = Array.from(this.store.keys());
+    return keys[index] ?? null;
   }
 }
 
@@ -46,15 +46,15 @@ class LocalStorageMock {
  * 安裝功能完整的 localStorage mock
  */
 export function setupLocalStorage() {
-  const localStorageMock = new LocalStorageMock()
+  const localStorageMock = new LocalStorageMock();
 
-  Object.defineProperty(window, 'localStorage', {
+  Object.defineProperty(window, "localStorage", {
     value: localStorageMock,
     writable: true,
     configurable: true,
-  })
+  });
 
-  return localStorageMock
+  return localStorageMock;
 }
 
 // ============================================================
@@ -65,15 +65,15 @@ export function setupLocalStorage() {
  * 安裝功能完整的 sessionStorage mock
  */
 export function setupSessionStorage() {
-  const sessionStorageMock = new LocalStorageMock()
+  const sessionStorageMock = new LocalStorageMock();
 
-  Object.defineProperty(window, 'sessionStorage', {
+  Object.defineProperty(window, "sessionStorage", {
     value: sessionStorageMock,
     writable: true,
     configurable: true,
-  })
+  });
 
-  return sessionStorageMock
+  return sessionStorageMock;
 }
 
 // ============================================================
@@ -86,37 +86,37 @@ export function setupSessionStorage() {
  */
 export function setupURLMock() {
   // 存儲已創建的 URL，用於驗證
-  const objectURLs = new Set<string>()
+  const objectURLs = new Set<string>();
 
   // Mock createObjectURL
   const createObjectURL = vi.fn((_blob: Blob | MediaSource): string => {
-    const url = `blob:http://localhost/${Math.random().toString(36).substring(7)}`
-    objectURLs.add(url)
-    return url
-  })
+    const url = `blob:http://localhost/${Math.random().toString(36).substring(7)}`;
+    objectURLs.add(url);
+    return url;
+  });
 
   // Mock revokeObjectURL
   const revokeObjectURL = vi.fn((url: string): void => {
-    objectURLs.delete(url)
-  })
+    objectURLs.delete(url);
+  });
 
   // 安裝 mock
-  if (typeof window.URL !== 'undefined') {
-    window.URL.createObjectURL = createObjectURL
-    window.URL.revokeObjectURL = revokeObjectURL
+  if (typeof window.URL !== "undefined") {
+    window.URL.createObjectURL = createObjectURL;
+    window.URL.revokeObjectURL = revokeObjectURL;
   } else {
     // 如果 window.URL 不存在，創建它
-    Object.defineProperty(window, 'URL', {
+    Object.defineProperty(window, "URL", {
       value: {
         createObjectURL,
         revokeObjectURL,
       },
       writable: true,
       configurable: true,
-    })
+    });
   }
 
-  return { createObjectURL, revokeObjectURL, objectURLs }
+  return { createObjectURL, revokeObjectURL, objectURLs };
 }
 
 // ============================================================
@@ -128,31 +128,31 @@ export function setupURLMock() {
  * 測試環境無法真正下載文件，但我們可以驗證下載被觸發
  */
 export function setupFileDownloadMock() {
-  const downloads: Array<{ url: string; filename: string }> = []
+  const downloads: Array<{ url: string; filename: string }> = [];
 
   // Mock createElement for download links
-  const originalCreateElement = document.createElement.bind(document)
+  const originalCreateElement = document.createElement.bind(document);
   document.createElement = vi.fn((tagName: string) => {
-    const element = originalCreateElement(tagName)
+    const element = originalCreateElement(tagName);
 
-    if (tagName === 'a') {
-      const anchorElement = element as HTMLAnchorElement
-      const originalClick = element.click.bind(element)
+    if (tagName === "a") {
+      const anchorElement = element as HTMLAnchorElement;
+      const originalClick = element.click.bind(element);
       element.click = vi.fn(() => {
         if (anchorElement.href && anchorElement.download) {
           downloads.push({
             url: anchorElement.href,
             filename: anchorElement.download,
-          })
+          });
         }
-        originalClick()
-      })
+        originalClick();
+      });
     }
 
-    return element
-  }) as any
+    return element;
+  }) as any;
 
-  return { downloads }
+  return { downloads };
 }
 
 // ============================================================
@@ -165,42 +165,44 @@ export function setupFileDownloadMock() {
  */
 export function setupBlobMock() {
   // jsdom 應該已經有 Blob 實現，但我們可以增強它
-  if (typeof global.Blob === 'undefined') {
+  if (typeof global.Blob === "undefined") {
     class BlobMock {
-      size: number
-      type: string
-      parts: any[]
+      size: number;
+      type: string;
+      parts: any[];
 
       constructor(parts: any[] = [], options: { type?: string } = {}) {
-        this.parts = parts
-        this.type = options.type || ''
+        this.parts = parts;
+        this.type = options.type || "";
         this.size = parts.reduce((total, part) => {
-          if (typeof part === 'string') {
-            return total + part.length
+          if (typeof part === "string") {
+            return total + part.length;
           }
           if (part instanceof ArrayBuffer) {
-            return total + part.byteLength
+            return total + part.byteLength;
           }
-          return total
-        }, 0)
+          return total;
+        }, 0);
       }
 
       slice(_start?: number, _end?: number, contentType?: string): Blob {
-        return new BlobMock(this.parts, { type: contentType || this.type }) as any
+        return new BlobMock(this.parts, {
+          type: contentType || this.type,
+        }) as any;
       }
 
       async text(): Promise<string> {
-        return this.parts.join('')
+        return this.parts.join("");
       }
 
       async arrayBuffer(): Promise<ArrayBuffer> {
-        const encoder = new TextEncoder()
-        const text = await this.text()
-        return encoder.encode(text).buffer
+        const encoder = new TextEncoder();
+        const text = await this.text();
+        return encoder.encode(text).buffer;
       }
     }
 
-    global.Blob = BlobMock as any
+    global.Blob = BlobMock as any;
   }
 }
 
@@ -213,18 +215,18 @@ export function setupBlobMock() {
  * 在測試 setup 文件中調用一次即可
  */
 export function setupAllBrowserAPIs() {
-  const localStorage = setupLocalStorage()
-  const sessionStorage = setupSessionStorage()
-  const urlMock = setupURLMock()
-  const fileDownload = setupFileDownloadMock()
-  setupBlobMock()
+  const localStorage = setupLocalStorage();
+  const sessionStorage = setupSessionStorage();
+  const urlMock = setupURLMock();
+  const fileDownload = setupFileDownloadMock();
+  setupBlobMock();
 
   return {
     localStorage,
     sessionStorage,
     urlMock,
     fileDownload,
-  }
+  };
 }
 
 // ============================================================
@@ -238,17 +240,17 @@ export function setupAllBrowserAPIs() {
 export function setupBrowserAPITestHooks() {
   beforeEach(() => {
     // 清空 localStorage
-    window.localStorage.clear()
+    window.localStorage.clear();
 
     // 清空 sessionStorage
-    window.sessionStorage.clear()
+    window.sessionStorage.clear();
 
     // 清除所有 mock 調用記錄
     if (vi.isMockFunction(window.URL.createObjectURL)) {
-      vi.mocked(window.URL.createObjectURL).mockClear()
+      vi.mocked(window.URL.createObjectURL).mockClear();
     }
     if (vi.isMockFunction(window.URL.revokeObjectURL)) {
-      vi.mocked(window.URL.revokeObjectURL).mockClear()
+      vi.mocked(window.URL.revokeObjectURL).mockClear();
     }
-  })
+  });
 }

@@ -62,6 +62,7 @@ export const restaurants = sqliteTable("restaurants", {
   settings: text("settings", { mode: "json" }).$type<{
     allowOnlineOrdering?: boolean;
     allowTableReservation?: boolean;
+    allowGuestOrders?: boolean;
     requireCustomerInfo?: boolean;
     autoConfirmOrders?: boolean;
     currency?: string;

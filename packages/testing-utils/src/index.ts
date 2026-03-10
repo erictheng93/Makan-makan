@@ -5,7 +5,7 @@
  */
 
 // Export all factories
-export * from './factories'
+export * from "./factories";
 
 // Re-export commonly used items for convenience
 export {
@@ -18,5 +18,5 @@ export {
   orderFactory,
   orderItemFactory,
   resetAllFactories,
-  buildCompleteRestaurantData
-} from './factories'
+  buildCompleteRestaurantData,
+} from "./factories";

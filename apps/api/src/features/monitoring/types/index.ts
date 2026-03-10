@@ -5,92 +5,92 @@
 
 // 監控指標接口
 export interface SystemMetrics {
-  timestamp: number
+  timestamp: number;
   apiMetrics: {
-    totalRequests: number
-    errorRate: number
-    averageResponseTime: number
-    p95ResponseTime: number
-    p99ResponseTime: number
-    slowRequestCount: number
-    requestsPerSecond: number
-  }
+    totalRequests: number;
+    errorRate: number;
+    averageResponseTime: number;
+    p95ResponseTime: number;
+    p99ResponseTime: number;
+    slowRequestCount: number;
+    requestsPerSecond: number;
+  };
   databaseMetrics: {
-    queryCount: number
-    averageQueryTime: number
-    slowQueryCount: number
-    connectionPoolUsage: number
-    errorCount: number
-  }
+    queryCount: number;
+    averageQueryTime: number;
+    slowQueryCount: number;
+    connectionPoolUsage: number;
+    errorCount: number;
+  };
   cacheMetrics: {
-    hitRate: number
-    totalKeys: number
-    totalSize: number
-    expiringKeysCount: number
-    invalidationCount: number
-  }
+    hitRate: number;
+    totalKeys: number;
+    totalSize: number;
+    expiringKeysCount: number;
+    invalidationCount: number;
+  };
   resourceMetrics: {
-    memoryUsage: number
-    cpuUsage: number
-    activeConnections: number
-    queueLength: number
-  }
+    memoryUsage: number;
+    cpuUsage: number;
+    activeConnections: number;
+    queueLength: number;
+  };
   errorMetrics: {
-    totalErrors: number
-    criticalErrors: number
-    warningCount: number
-    errorsByType: Record<string, number>
-  }
+    totalErrors: number;
+    criticalErrors: number;
+    warningCount: number;
+    errorsByType: Record<string, number>;
+  };
 }
 
 // 警報配置
 export interface AlertConfig {
-  type: 'email' | 'slack' | 'webhook' | 'sms'
-  severity: 'info' | 'warning' | 'critical' | 'fatal'
-  enabled: boolean
-  threshold?: number
-  interval?: number // 分鐘
-  recipients?: string[]
-  webhookUrl?: string
-  template?: string
+  type: "email" | "slack" | "webhook" | "sms";
+  severity: "info" | "warning" | "critical" | "fatal";
+  enabled: boolean;
+  threshold?: number;
+  interval?: number; // 分鐘
+  recipients?: string[];
+  webhookUrl?: string;
+  template?: string;
 }
 
 // 警報規則
 export interface AlertRule {
-  id: string
-  name: string
-  condition: string
-  metric: keyof SystemMetrics | string
-  operator: '>' | '<' | '=' | '>=' | '<='
-  threshold: number
-  duration: number // 持續時間（秒）
-  config: AlertConfig
-  lastTriggered?: number
-  triggerCount: number
-  isActive: boolean
+  id: string;
+  name: string;
+  condition: string;
+  metric: keyof SystemMetrics | string;
+  operator: ">" | "<" | "=" | ">=" | "<=";
+  threshold: number;
+  duration: number; // 持續時間（秒）
+  config: AlertConfig;
+  lastTriggered?: number;
+  triggerCount: number;
+  isActive: boolean;
 }
 
 // 健康狀態
 export interface HealthStatus {
-  overall: 'healthy' | 'warning' | 'critical' | 'down'
+  overall: "healthy" | "warning" | "critical" | "down";
   components: {
-    api: ComponentHealth
-    database: ComponentHealth
-    cache: ComponentHealth
-    external: ComponentHealth
-  }
-  uptime: number
-  version: string
-  timestamp: number
+    api: ComponentHealth;
+    database: ComponentHealth;
+    cache: ComponentHealth;
+    external: ComponentHealth;
+  };
+  uptime: number;
+  version: string;
+  timestamp: number;
 }
 
 export interface ComponentHealth {
-  status: 'healthy' | 'warning' | 'critical' | 'down'
-  latency?: number
-  errorRate?: number
-  lastCheck: number
-  issues: string[]
-  metrics?: Record<string, number>
+  status: "healthy" | "warning" | "critical" | "down";
+  latency?: number;
+  errorRate?: number;
+  lastCheck: number;
+  issues: string[];
+  metrics?: Record<string, number>;
 }
 
 // 效能基準
@@ -105,57 +105,57 @@ export const PERFORMANCE_THRESHOLDS = {
   CACHE_HIT_RATE_CRITICAL: 0.3, // 30%
   MEMORY_USAGE_WARNING: 0.8, // 80%
   MEMORY_USAGE_CRITICAL: 0.9, // 90%
-} as const
+} as const;
 
 // Error reporting types
 export interface ErrorReportRequest {
-  type: string
-  message: string
-  severity: 'info' | 'warning' | 'critical' | 'fatal'
-  metadata?: Record<string, any>
+  type: string;
+  message: string;
+  severity: "info" | "warning" | "critical" | "fatal";
+  metadata?: Record<string, any>;
 }
 
 // Metrics query types
 export interface MetricsQuery {
-  period: '1h' | '6h' | '24h' | '7d' | '30d'
-  granularity: '1m' | '5m' | '15m' | '1h' | '6h'
+  period: "1h" | "6h" | "24h" | "7d" | "30d";
+  granularity: "1m" | "5m" | "15m" | "1h" | "6h";
 }
 
 // Performance report types
 export interface PerformanceReport {
-  period: string
-  generatedAt: number
+  period: string;
+  generatedAt: number;
   apiPerformance: {
-    totalRequests: number
-    averageResponseTime: number
-    p95ResponseTime: number
-    p99ResponseTime: number
-    errorRate: string
-    slowRequests: number
-  }
+    totalRequests: number;
+    averageResponseTime: number;
+    p95ResponseTime: number;
+    p99ResponseTime: number;
+    errorRate: string;
+    slowRequests: number;
+  };
   databasePerformance: {
-    totalQueries: number
-    averageQueryTime: number
-    slowQueries: number
-    queryErrorRate: string
-  }
+    totalQueries: number;
+    averageQueryTime: number;
+    slowQueries: number;
+    queryErrorRate: string;
+  };
   cachePerformance: {
-    hitRate: string
-    totalKeys: number
-    totalSize: string
-    expiringKeys: number
-  }
+    hitRate: string;
+    totalKeys: number;
+    totalSize: string;
+    expiringKeys: number;
+  };
   errorAnalysis: {
-    totalErrors: number
-    criticalErrors: number
-    warningsCount: number
+    totalErrors: number;
+    criticalErrors: number;
+    warningsCount: number;
     errorsByType: Array<{
-      type: string
-      count: number
-      percentage: string
-    }>
-  }
-  recommendations: string[]
+      type: string;
+      count: number;
+      percentage: string;
+    }>;
+  };
+  recommendations: string[];
 }
 
 // Test alert request interface (use validation schema type instead)
@@ -167,37 +167,37 @@ export interface PerformanceReport {
 
 // Monitoring overview
 export interface MonitoringOverview {
-  status: 'healthy' | 'warning' | 'critical' | 'down'
-  uptime: number
-  version: string
-  timestamp: number
+  status: "healthy" | "warning" | "critical" | "down";
+  uptime: number;
+  version: string;
+  timestamp: number;
   keyMetrics: {
-    requestsPerMinute: number
-    errorRate: string
-    averageResponseTime: string
-    cacheHitRate: string
-    activeErrors: number
-  }
+    requestsPerMinute: number;
+    errorRate: string;
+    averageResponseTime: string;
+    cacheHitRate: string;
+    activeErrors: number;
+  };
   components: Array<{
-    name: string
-    status: 'healthy' | 'warning' | 'critical' | 'down'
-    latency?: number
-    issues: number
-    lastCheck: number
-  }>
+    name: string;
+    status: "healthy" | "warning" | "critical" | "down";
+    latency?: number;
+    issues: number;
+    lastCheck: number;
+  }>;
   topErrors: Array<{
-    type: string
-    count: number
-  }>
+    type: string;
+    count: number;
+  }>;
   trends: {
     responseTime: {
-      current: number
-      p95: number
-      p99: number
-    }
+      current: number;
+      p95: number;
+      p99: number;
+    };
     throughput: {
-      requestsPerSecond: number
-      totalRequests: number
-    }
-  }
+      requestsPerSecond: number;
+      totalRequests: number;
+    };
+  };
 }

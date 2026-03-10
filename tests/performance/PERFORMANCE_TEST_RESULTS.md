@@ -10,11 +10,13 @@
 ## 📊 測試結果摘要
 
 ### 總體統計
+
 - **虛擬用戶創建**: 19,500
 - **虛擬用戶失敗**: 19,500 (100%)
 - **總錯誤數**: 39,000+
 
 ### 錯誤分布
+
 ```
 errors.Unexpected server response: 404   32,412 (83.1%)
 errors.ECONNREFUSED                       6,522 (16.7%)
@@ -27,6 +29,7 @@ errors.HPE_INVALID_CONSTANT                   1 (<0.1%)
 ```
 
 ### 場景分布
+
 ```
 Customer WebSocket Connection:   9,645 (49.5%)  [全部失敗]
 Admin WebSocket Connection:      7,172 (36.8%)  [全部失敗]
@@ -35,6 +38,7 @@ Kitchen WebSocket Connection:      243 ( 1.2%)  [全部失敗]
 ```
 
 ### Token 生成統計
+
 ```
 ❌ 無任何 token 生成統計
    - tokens.kitchen.success: 0
@@ -55,16 +59,16 @@ Kitchen WebSocket Connection:      243 ( 1.2%)  [全部失敗]
 **當前代碼 (錯誤)**:
 \`\`\`javascript
 async function getKitchenToken(context, events, done) {
-  // ...
-  return done();  // ❌ Artillery 2.x 不支持
+// ...
+return done(); // ❌ Artillery 2.x 不支持
 }
 \`\`\`
 
 **正確代碼 (應修復)**:
 \`\`\`javascript
 async function getKitchenToken(context, events) {
-  // ...
-  // ✅ 直接返回，不需要 done()
+// ...
+// ✅ 直接返回，不需要 done()
 }
 \`\`\`
 
@@ -81,15 +85,16 @@ async function getKitchenToken(context, events) {
 **測試證據**:
 \`\`\`json
 {
-  "success": false,
-  "error": "Rate limit exceeded",
-  "reason": "Rate limit exceeded",
-  "retry_after": 300,
-  "threat_score": 0
+"success": false,
+"error": "Rate limit exceeded",
+"reason": "Rate limit exceeded",
+"retry_after": 300,
+"threat_score": 0
 }
 \`\`\`
 
 **建議**:
+
 1. 為性能測試環境禁用或放寬速率限制
 2. 在 `wrangler.toml` 中添加測試模式配置
 3. 使用 IP 白名單繞過 localhost 限制
@@ -103,6 +108,7 @@ async function getKitchenToken(context, events) {
 **影響**: WebSocket URL 變成無效路徑 (如 `/`)
 
 **連鎖反應**:
+
 1. Processor callback 錯誤 →
 2. context.vars.token 未設置 →
 3. WebSocket URL 無效 →
@@ -126,11 +132,12 @@ async function getKitchenToken(context, events) {
 
 \`\`\`
 ✅ Kitchen Token 生成: 成功 (Status 200)
-✅ Admin Token 生成:   成功 (Status 200)
+✅ Admin Token 生成: 成功 (Status 200)
 ❌ Customer Token 生成: 失敗 (Status 400, "Invalid table ID")
 \`\`\`
 
 **Customer Token 問題**:
+
 - TableId='1' 被視為無效
 - 數據庫中 tables (ID 1-10) 確實存在
 - 可能是 tableId 傳遞方式的問題（應該用 QR code?）
@@ -152,6 +159,7 @@ async function getKitchenToken(context, events) {
 ## 🎯 根本原因總結
 
 ### 主要原因
+
 1. **Artillery Processor 語法過時** (Critical)
    - 使用了已棄用的 callback 模式
    - 導致所有 processor 函數執行失敗
@@ -178,18 +186,19 @@ async function getKitchenToken(context, events) {
 // 移除所有函數中的 done 參數和 return done()
 // 從:
 async function getKitchenToken(context, events, done) {
-  // ...
-  return done();
+// ...
+return done();
 }
 
 // 改為:
 async function getKitchenToken(context, events) {
-  // ...
-  // 直接返回，無需 done()
+// ...
+// 直接返回，無需 done()
 }
 \`\`\`
 
 **影響文件**: 3個函數需要修改
+
 - getKitchenToken
 - getAdminToken
 - getCustomerToken
@@ -214,7 +223,7 @@ RATE_LIMIT_MULTIPLIER = "10"
 \`\`\`javascript
 // 跳過 localhost 的速率限制
 if (ip === '127.0.0.1' || ip === '::1') {
-  return next();
+return next();
 }
 \`\`\`
 
@@ -228,7 +237,7 @@ if (ip === '127.0.0.1' || ip === '::1') {
 \`\`\`typescript
 // Line 193: 使用 qr_code 而不是 id
 const stmt = this.db.prepare(
-  \`SELECT id, restaurant_id FROM tables WHERE qr_code = ? ...\`
+\`SELECT id, restaurant_id FROM tables WHERE qr_code = ? ...\`
 ).bind(tableId, parseInt(restaurantId))
 \`\`\`
 
@@ -236,11 +245,11 @@ const stmt = this.db.prepare(
 支持同時通過 ID 或 QR code 查找:
 \`\`\`typescript
 const stmt = this.db.prepare(
-  \`SELECT id, restaurant_id FROM tables
-   WHERE (id = ? OR qr_code = ?)
-   AND restaurant_id = ?
-   AND is_active = 1
-   LIMIT 1\`
+\`SELECT id, restaurant_id FROM tables
+WHERE (id = ? OR qr_code = ?)
+AND restaurant_id = ?
+AND is_active = 1
+LIMIT 1\`
 ).bind(tableId, tableId, restaurantId)
 \`\`\`
 
@@ -252,11 +261,11 @@ const stmt = this.db.prepare(
 
 \`\`\`
 目標指標:
-├─ WebSocket 連線成功率  > 99%      (當前: 0%)
-├─ 訊息延遲 P95          < 200ms     (當前: N/A)
-├─ 訊息延遲 P99          < 500ms     (當前: N/A)
-├─ 並發連線數            1,000+      (當前: 0)
-└─ Token 生成成功率      > 95%       (當前: ~60% with rate limit)
+├─ WebSocket 連線成功率 > 99% (當前: 0%)
+├─ 訊息延遲 P95 < 200ms (當前: N/A)
+├─ 訊息延遲 P99 < 500ms (當前: N/A)
+├─ 並發連線數 1,000+ (當前: 0)
+└─ Token 生成成功率 > 95% (當前: ~60% with rate limit)
 \`\`\`
 
 ---

@@ -59,6 +59,7 @@
 **核心改進:**
 
 1. **QR 類型系統 (第 6-16 行):**
+
 ```typescript
 export type QRType = "shop" | "table" | "seat";
 
@@ -74,6 +75,7 @@ export interface QRData {
 ```
 
 2. **店家 QR 解析 (第 61-75 行):**
+
 ```typescript
 function parseShopQRFormat(content: string): QRData | null {
   const shopQrMatch = content.match(/^SHOP-(\d+)-(\d+)$/);
@@ -95,6 +97,7 @@ function parseShopQRFormat(content: string): QRData | null {
 3. **解析優先級:** shop > JSON > URL > simple
 
 4. **類型驗證 (第 248-282 行):**
+
 ```typescript
 export function validateQRData(data: QRData): boolean {
   switch (data.type) {
@@ -103,9 +106,12 @@ export function validateQRData(data: QRData): boolean {
     case "table":
       return typeof data.tableId === "number" && data.tableId > 0;
     case "seat":
-      return typeof data.tableId === "number" &&
-             typeof data.seatId === "number" &&
-             data.tableId > 0 && data.seatId > 0;
+      return (
+        typeof data.tableId === "number" &&
+        typeof data.seatId === "number" &&
+        data.tableId > 0 &&
+        data.seatId > 0
+      );
   }
 }
 ```
@@ -172,13 +178,15 @@ const handleQRCodeDetected = async (qrContent: string) => {
 **核心功能:**
 
 1. **驗證 Shop QR Code:**
+
 ```typescript
 const verifyResponse = await axios.get(
-  `/api/v1/qr-codes/verify/shop/${props.shopQrCode}`
+  `/api/v1/qr-codes/verify/shop/${props.shopQrCode}`,
 );
 ```
 
 2. **手機後3位輸入:**
+
 ```vue
 <input
   v-model="phoneLastDigits"
@@ -190,15 +198,16 @@ const verifyResponse = await axios.get(
 ```
 
 3. **驗證邏輯:**
+
 ```typescript
 const handleVerify = async () => {
   if (!/^\d{3}$/.test(phoneLastDigits.value)) {
-    throw new Error('請輸入正確的手機後3位數字');
+    throw new Error("請輸入正確的手機後3位數字");
   }
 
   // 導航到店家菜單
   router.push({
-    name: 'ShopMenu',
+    name: "ShopMenu",
     params: { restaurantId: props.restaurantId },
     query: { phone: phoneLastDigits.value },
   });
@@ -206,6 +215,7 @@ const handleVerify = async () => {
 ```
 
 **UI 特點:**
+
 - 餐廳資訊卡片顯示
 - 手機號碼輸入框（自動過濾非數字）
 - 即時驗證提示
@@ -221,13 +231,15 @@ const handleVerify = async () => {
 **核心功能:**
 
 1. **初始化店家購物車:**
+
 ```typescript
 onMounted(() => {
-  shopCartStore.initializeCart(props.restaurantId, props.phoneLastDigits || '');
+  shopCartStore.initializeCart(props.restaurantId, props.phoneLastDigits || "");
 });
 ```
 
 2. **菜單瀏覽:**
+
 - 分類導航
 - 搜尋功能
 - 推薦菜品展示
@@ -235,19 +247,21 @@ onMounted(() => {
 - 客製化選項彈窗
 
 3. **購物車管理:**
+
 ```typescript
 const handleAddToCart = (data) => {
   shopCartStore.addItem(
     data.item,
     data.quantity,
     data.customizations,
-    data.notes
+    data.notes,
   );
   toast.success(`已加入 ${data.item.name}`);
 };
 ```
 
 4. **顯示購物車彈窗:**
+
 ```vue
 <ShopCartModal
   :show="showCart"
@@ -258,6 +272,7 @@ const handleAddToCart = (data) => {
 ```
 
 **UI 特點:**
+
 - 無桌號顯示（店家模式）
 - 購物車懸浮按鈕
 - 類別滾動導航
@@ -272,12 +287,14 @@ const handleAddToCart = (data) => {
 **與 `cart.ts` 的關鍵區別:**
 
 1. **狀態管理:**
+
 ```typescript
 const restaurantId = ref<number | null>(null);
 const phoneLastDigits = ref<string>(""); // 取代 tableId
 ```
 
 2. **初始化方法:**
+
 ```typescript
 const initializeCart = (restId: number, phone: string) => {
   if (restaurantId.value !== restId || phoneLastDigits.value !== phone) {
@@ -288,6 +305,7 @@ const initializeCart = (restId: number, phone: string) => {
 ```
 
 3. **LocalStorage Key:**
+
 ```typescript
 const getCartStorageKey = () => {
   return `makanmakan_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
@@ -295,6 +313,7 @@ const getCartStorageKey = () => {
 ```
 
 4. **資料驗證 Schema:**
+
 ```typescript
 const ShopCartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),
@@ -305,6 +324,7 @@ const ShopCartDataSchema = z.object({
 ```
 
 **功能特點:**
+
 - 完整的 Pinia store
 - XSS 防護 (Zod 驗證)
 - 2小時快取過期
@@ -320,12 +340,13 @@ const ShopCartDataSchema = z.object({
 **核心功能:**
 
 1. **訂單提交:**
+
 ```typescript
 const handleCheckout = async () => {
   const orderData = {
     restaurantId: props.restaurantId,
-    orderType: 'shop',
-    items: shopCartStore.items.map(item => ({
+    orderType: "shop",
+    items: shopCartStore.items.map((item) => ({
       menuItemId: item.menuItem.id,
       quantity: item.quantity,
       price: item.price,
@@ -334,20 +355,23 @@ const handleCheckout = async () => {
     })),
     customerInfo: {
       phoneLastDigits: props.phoneLastDigits,
-      orderType: 'shop',
+      orderType: "shop",
     },
     totalAmount: shopCartStore.subtotal,
   };
 
-  const response = await axios.post('/api/v1/orders', orderData);
+  const response = await axios.post("/api/v1/orders", orderData);
 
   // 清空購物車並導航到訂單追蹤
   shopCartStore.clearCart();
-  router.push({ /* ... */ });
+  router.push({
+    /* ... */
+  });
 };
 ```
 
 2. **UI 元素:**
+
 - 商品列表展示
 - 數量調整按鈕
 - 客製化選項顯示
@@ -357,6 +381,7 @@ const handleCheckout = async () => {
 - 確認訂單按鈕
 
 **動畫效果:**
+
 - Teleport to body
 - Transition 滑入滑出
 - 背景半透明遮罩
@@ -365,38 +390,42 @@ const handleCheckout = async () => {
 
 ## 📊 Phase 2 代碼統計
 
-| 類別 | 文件數 | 新增行數 | 備註 |
-|------|--------|----------|------|
-| 路由配置 | 1 | ~30 | shop 路由 |
-| QR Parser 增強 | 1 | ~370 | 完整重構 |
-| View 組件 | 2 | ~750 | 驗證頁 + 菜單頁 |
-| QRScanView 更新 | 1 | ~80 | 三類型處理 |
-| Store | 1 | ~310 | 店家購物車 |
-| Modal 組件 | 1 | ~230 | 購物車彈窗 |
-| **總計** | **7** | **~1770** | **Phase 2 完整前端** |
+| 類別            | 文件數 | 新增行數  | 備註                 |
+| --------------- | ------ | --------- | -------------------- |
+| 路由配置        | 1      | ~30       | shop 路由            |
+| QR Parser 增強  | 1      | ~370      | 完整重構             |
+| View 組件       | 2      | ~750      | 驗證頁 + 菜單頁      |
+| QRScanView 更新 | 1      | ~80       | 三類型處理           |
+| Store           | 1      | ~310      | 店家購物車           |
+| Modal 組件      | 1      | ~230      | 購物車彈窗           |
+| **總計**        | **7**  | **~1770** | **Phase 2 完整前端** |
 
 ---
 
 ## 🎨 設計特點
 
 ### 1. 無縫整合
+
 - 與現有 table/seat 流程完美兼容
 - 共用 MenuItemCard、MenuItemModal 等組件
 - 統一的設計語言和交互模式
 
 ### 2. 用戶體驗優化
+
 - **簡潔流程:** 掃描 → 驗證 → 點餐 → 結帳（4步）
 - **清晰指引:** 每步都有明確的說明和視覺反饋
 - **錯誤處理:** 友善的錯誤提示和重試機制
 - **加載狀態:** 所有異步操作都有加載指示器
 
 ### 3. 性能優化
+
 - **懶加載:** 所有 View 組件使用動態導入
 - **本地快取:** localStorage 存儲購物車（2小時 TTL）
 - **防抖處理:** 搜尋框使用 v-model
 - **虛擬滾動:** 長列表優化（如適用）
 
 ### 4. 安全性
+
 - **XSS 防護:** Zod schema 驗證所有 localStorage 資料
 - **輸入驗證:** 手機號碼格式驗證和過濾
 - **API 驗證:** 所有請求經過後端驗證
@@ -475,6 +504,7 @@ const handleCheckout = async () => {
 ### 1. QR 掃描測試
 
 **測試 QR 碼:**
+
 ```
 SHOP-1-1760068334  (店家 QR)
 {"type":"table","restaurantId":1,"tableId":5}  (桌台 QR)
@@ -482,6 +512,7 @@ SHOP-1-1760068334  (店家 QR)
 ```
 
 **驗證點:**
+
 - ✅ 正確識別三種 QR 類型
 - ✅ 導航到對應頁面
 - ✅ 錯誤 QR 碼顯示錯誤訊息
@@ -489,6 +520,7 @@ SHOP-1-1760068334  (店家 QR)
 ### 2. 手機驗證測試
 
 **測試案例:**
+
 ```
 輸入: "123" → ✅ 通過驗證
 輸入: "12"  → ❌ 錯誤提示
@@ -499,6 +531,7 @@ SHOP-1-1760068334  (店家 QR)
 ### 3. 購物車測試
 
 **測試流程:**
+
 ```
 1. 加入商品 A × 2
 2. 加入商品 A × 1（相同配置） → 合併為 × 3
@@ -511,6 +544,7 @@ SHOP-1-1760068334  (店家 QR)
 ### 4. 訂單提交測試
 
 **測試場景:**
+
 ```bash
 # 模擬 API 請求
 curl -X POST http://localhost:8787/api/v1/orders \
@@ -542,12 +576,14 @@ curl -X POST http://localhost:8787/api/v1/orders \
 **問題:** 目前使用桌台的訂單追蹤頁面，傳遞 `tableId: 0` 作為店家訂單標記。
 
 **解決方案 (未來):**
+
 - 創建專用的 `ShopOrderTrackingView.vue`
 - 或修改現有的 `OrderTrackingView.vue` 支持店家模式
 
 ### 2. MenuItemCard 組件依賴
 
 **假設:** 項目已有以下組件（Phase 2 直接使用）:
+
 - `MenuItemCard.vue`
 - `MenuItemModal.vue`
 - `CustomizationModal.vue`
@@ -557,6 +593,7 @@ curl -X POST http://localhost:8787/api/v1/orders \
 ### 3. API 端點假設
 
 **假設的 API 端點:**
+
 ```
 GET  /api/v1/restaurants/:id        # 獲取餐廳資訊
 GET  /api/v1/menu/:restaurantId     # 獲取菜單
@@ -569,18 +606,18 @@ POST /api/v1/orders                 # 創建訂單
 
 ## ✅ Phase 2 驗收標準
 
-| 驗收項 | 狀態 | 備註 |
-|--------|------|------|
-| 路由配置完成 | ✅ | 2個新路由已添加 |
-| QR Parser 增強 | ✅ | 支持三種 QR 類型 |
-| QRScanView 更新 | ✅ | 類型分發邏輯完成 |
-| 手機驗證組件 | ✅ | 287行完整實現 |
-| 店家菜單組件 | ✅ | 462行完整實現 |
-| 店家購物車 Store | ✅ | 308行 Pinia store |
-| 購物車彈窗組件 | ✅ | 227行 Modal 組件 |
-| TypeScript 類型完整 | ✅ | 0 compilation errors |
-| 向後兼容性 | ✅ | 現有 table/seat 流程不受影響 |
-| 設計一致性 | ✅ | 參考 admin dashboard 風格 |
+| 驗收項              | 狀態 | 備註                         |
+| ------------------- | ---- | ---------------------------- |
+| 路由配置完成        | ✅   | 2個新路由已添加              |
+| QR Parser 增強      | ✅   | 支持三種 QR 類型             |
+| QRScanView 更新     | ✅   | 類型分發邏輯完成             |
+| 手機驗證組件        | ✅   | 287行完整實現                |
+| 店家菜單組件        | ✅   | 462行完整實現                |
+| 店家購物車 Store    | ✅   | 308行 Pinia store            |
+| 購物車彈窗組件      | ✅   | 227行 Modal 組件             |
+| TypeScript 類型完整 | ✅   | 0 compilation errors         |
+| 向後兼容性          | ✅   | 現有 table/seat 流程不受影響 |
+| 設計一致性          | ✅   | 參考 admin dashboard 風格    |
 
 ---
 

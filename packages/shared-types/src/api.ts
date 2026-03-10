@@ -1,37 +1,40 @@
-import { PaginationParams, PaginatedResponse as PaginationPaginatedResponse } from './pagination';
+import {
+  PaginationParams,
+  PaginatedResponse as PaginationPaginatedResponse,
+} from "./pagination";
 
 // HTTP 方法
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 // API 錯誤碼
 export enum ApiErrorCode {
   // 通用錯誤
-  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
-  INVALID_REQUEST = 'INVALID_REQUEST',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  NOT_FOUND = 'NOT_FOUND',
-  CONFLICT = 'CONFLICT',
-  
+  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  INVALID_REQUEST = "INVALID_REQUEST",
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  NOT_FOUND = "NOT_FOUND",
+  CONFLICT = "CONFLICT",
+
   // 認證錯誤
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  FORBIDDEN = 'FORBIDDEN',
-  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-  TOKEN_INVALID = 'TOKEN_INVALID',
-  
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  TOKEN_EXPIRED = "TOKEN_EXPIRED",
+  TOKEN_INVALID = "TOKEN_INVALID",
+
   // 業務邏輯錯誤
-  RESTAURANT_NOT_FOUND = 'RESTAURANT_NOT_FOUND',
-  ORDER_NOT_FOUND = 'ORDER_NOT_FOUND',
-  MENU_ITEM_NOT_AVAILABLE = 'MENU_ITEM_NOT_AVAILABLE',
-  TABLE_OCCUPIED = 'TABLE_OCCUPIED',
-  DUPLICATE_EMAIL = 'DUPLICATE_EMAIL',
-  INSUFFICIENT_INVENTORY = 'INSUFFICIENT_INVENTORY',
-  
+  RESTAURANT_NOT_FOUND = "RESTAURANT_NOT_FOUND",
+  ORDER_NOT_FOUND = "ORDER_NOT_FOUND",
+  MENU_ITEM_NOT_AVAILABLE = "MENU_ITEM_NOT_AVAILABLE",
+  TABLE_OCCUPIED = "TABLE_OCCUPIED",
+  DUPLICATE_EMAIL = "DUPLICATE_EMAIL",
+  INSUFFICIENT_INVENTORY = "INSUFFICIENT_INVENTORY",
+
   // 速率限制
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  
+  RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED",
+
   // 網路錯誤
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  TIMEOUT = 'TIMEOUT'
+  NETWORK_ERROR = "NETWORK_ERROR",
+  TIMEOUT = "TIMEOUT",
 }
 
 // API 請求配置
@@ -89,7 +92,7 @@ export interface FileUploadResponse {
 
 // 批量操作請求
 export interface BulkOperationRequest<T = any> {
-  operation: 'create' | 'update' | 'delete';
+  operation: "create" | "update" | "delete";
   items: T[];
   options?: {
     continueOnError?: boolean;
@@ -114,7 +117,7 @@ export interface BulkOperationResponse<T = any> {
 
 // 健康檢查響應
 export interface HealthCheckResponse {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   version: string;
   checks: {

@@ -4,67 +4,67 @@
  */
 
 export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  message?: string
-  error?: string
-  timestamp: string
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  timestamp: string;
   meta?: {
     pagination?: {
-      page: number
-      limit: number
-      total: number
-      totalPages: number
-    }
-    [key: string]: any
-  }
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    [key: string]: any;
+  };
 }
 
 export interface ErrorResponse {
-  success: false
-  error: string
-  details?: any
-  timestamp: string
-  code?: number
+  success: false;
+  error: string;
+  details?: any;
+  timestamp: string;
+  code?: number;
 }
 
 export function createSuccessResponse<T>(
   data: T,
   message?: string,
-  meta?: ApiResponse<T>['meta']
+  meta?: ApiResponse<T>["meta"],
 ): ApiResponse<T> {
   return {
     success: true,
     data,
     message,
     timestamp: new Date().toISOString(),
-    ...(meta && { meta })
-  }
+    ...(meta && { meta }),
+  };
 }
 
 export function createErrorResponse(
   error: string,
   code?: number,
-  details?: any
+  details?: any,
 ): ErrorResponse {
   return {
     success: false,
     error,
     timestamp: new Date().toISOString(),
     ...(code && { code }),
-    ...(details && { details })
-  }
+    ...(details && { details }),
+  };
 }
 
 export function createPaginatedResponse<T>(
   data: T[],
   pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   },
-  message?: string
+  message?: string,
 ): ApiResponse<T[]> {
-  return createSuccessResponse(data, message, { pagination })
+  return createSuccessResponse(data, message, { pagination });
 }

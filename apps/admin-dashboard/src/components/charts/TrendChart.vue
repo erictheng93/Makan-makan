@@ -3,18 +3,28 @@
     <div class="chart-header">
       <h3 class="chart-title">
         <span class="icon">📈</span>
-        {{ t('charts.trend.title') }}
+        {{ t("charts.trend.title") }}
       </h3>
       <div class="chart-filters">
-        <select v-model="selectedMetric" class="metric-select" @change="updateChart">
-          <option value="total">{{ t('charts.trend.totalHours') }}</option>
-          <option value="average">{{ t('charts.trend.averageHours') }}</option>
-          <option value="schedules">{{ t('charts.trend.scheduleCount') }}</option>
+        <select
+          v-model="selectedMetric"
+          class="metric-select"
+          @change="updateChart"
+        >
+          <option value="total">{{ t("charts.trend.totalHours") }}</option>
+          <option value="average">{{ t("charts.trend.averageHours") }}</option>
+          <option value="schedules">
+            {{ t("charts.trend.scheduleCount") }}
+          </option>
         </select>
-        <select v-model="selectedPeriod" class="period-select" @change="updateChart">
-          <option value="7days">{{ t('charts.trend.last7Days') }}</option>
-          <option value="30days">{{ t('charts.trend.last30Days') }}</option>
-          <option value="90days">{{ t('charts.trend.last90Days') }}</option>
+        <select
+          v-model="selectedPeriod"
+          class="period-select"
+          @change="updateChart"
+        >
+          <option value="7days">{{ t("charts.trend.last7Days") }}</option>
+          <option value="30days">{{ t("charts.trend.last30Days") }}</option>
+          <option value="90days">{{ t("charts.trend.last90Days") }}</option>
         </select>
       </div>
     </div>
@@ -23,14 +33,14 @@
       <div class="highlight-card">
         <div class="highlight-label">
           <span class="icon">📊</span>
-          {{ t('charts.trend.currentValue') }}
+          {{ t("charts.trend.currentValue") }}
         </div>
         <div class="highlight-value">{{ currentValue }}</div>
       </div>
       <div class="highlight-card">
         <div class="highlight-label">
           <span class="icon">📉</span>
-          {{ t('charts.trend.trend') }}
+          {{ t("charts.trend.trend") }}
         </div>
         <div class="highlight-value" :class="trendClass">
           {{ trendText }}
@@ -40,7 +50,7 @@
       <div class="highlight-card">
         <div class="highlight-label">
           <span class="icon">🎯</span>
-          {{ t('charts.trend.changeRate') }}
+          {{ t("charts.trend.changeRate") }}
         </div>
         <div class="highlight-value" :class="changeClass">
           {{ changeRate }}
@@ -59,189 +69,194 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from '@/i18n'
-import { useDateFormatter } from '@/composables/useDateFormatter'
-import BaseChart from './BaseChart.vue'
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
+import BaseChart from "./BaseChart.vue";
 
 interface TrendData {
-  date: string
-  value: number
+  date: string;
+  value: number;
 }
 
 interface Props {
-  data?: TrendData[]
-  autoFetch?: boolean
+  data?: TrendData[];
+  autoFetch?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   data: () => [],
-  autoFetch: false
-})
+  autoFetch: false,
+});
 
-const { t } = useI18n()
-const { formatDate } = useDateFormatter()
+const { t } = useI18n();
+const { formatDate } = useDateFormatter();
 
-const selectedMetric = ref('total')
-const selectedPeriod = ref('7days')
-const isLoading = ref(false)
-const error = ref('')
-const trendData = ref<TrendData[]>(props.data)
+const selectedMetric = ref("total");
+const selectedPeriod = ref("7days");
+const isLoading = ref(false);
+const error = ref("");
+const trendData = ref<TrendData[]>(props.data);
 
 // 當前值
 const currentValue = computed(() => {
-  if (trendData.value.length === 0) return '0'
-  const latest = trendData.value[trendData.value.length - 1]
+  if (trendData.value.length === 0) return "0";
+  const latest = trendData.value[trendData.value.length - 1];
 
-  if (selectedMetric.value === 'schedules') {
-    return `${latest.value} ${t('charts.trend.items')}`
+  if (selectedMetric.value === "schedules") {
+    return `${latest.value} ${t("charts.trend.items")}`;
   }
-  return `${latest.value.toFixed(1)}${t('charts.workHours.hoursUnit')}`
-})
+  return `${latest.value.toFixed(1)}${t("charts.workHours.hoursUnit")}`;
+});
 
 // 趨勢計算
 const trendCalculation = computed(() => {
   if (trendData.value.length < 2) {
-    return { trend: 'stable', change: 0 }
+    return { trend: "stable", change: 0 };
   }
 
-  const latest = trendData.value[trendData.value.length - 1].value
-  const previous = trendData.value[trendData.value.length - 2].value
+  const latest = trendData.value[trendData.value.length - 1].value;
+  const previous = trendData.value[trendData.value.length - 2].value;
 
-  const change = ((latest - previous) / previous) * 100
+  const change = ((latest - previous) / previous) * 100;
 
-  let trend = 'stable'
-  if (change > 5) trend = 'up'
-  else if (change < -5) trend = 'down'
+  let trend = "stable";
+  if (change > 5) trend = "up";
+  else if (change < -5) trend = "down";
 
-  return { trend, change }
-})
+  return { trend, change };
+});
 
 const trendText = computed(() => {
-  const { trend } = trendCalculation.value
-  if (trend === 'up') return t('charts.trend.upTrend')
-  if (trend === 'down') return t('charts.trend.downTrend')
-  return t('charts.trend.stable')
-})
+  const { trend } = trendCalculation.value;
+  if (trend === "up") return t("charts.trend.upTrend");
+  if (trend === "down") return t("charts.trend.downTrend");
+  return t("charts.trend.stable");
+});
 
 const trendIcon = computed(() => {
-  const { trend } = trendCalculation.value
-  if (trend === 'up') return '↗'
-  if (trend === 'down') return '↘'
-  return '→'
-})
+  const { trend } = trendCalculation.value;
+  if (trend === "up") return "↗";
+  if (trend === "down") return "↘";
+  return "→";
+});
 
 const trendClass = computed(() => {
-  const { trend } = trendCalculation.value
+  const { trend } = trendCalculation.value;
   return {
-    'trend-up': trend === 'up',
-    'trend-down': trend === 'down',
-    'trend-stable': trend === 'stable'
-  }
-})
+    "trend-up": trend === "up",
+    "trend-down": trend === "down",
+    "trend-stable": trend === "stable",
+  };
+});
 
 const changeRate = computed(() => {
-  const { change } = trendCalculation.value
-  const sign = change >= 0 ? '+' : ''
-  return `${sign}${change.toFixed(1)}%`
-})
+  const { change } = trendCalculation.value;
+  const sign = change >= 0 ? "+" : "";
+  return `${sign}${change.toFixed(1)}%`;
+});
 
 const changeClass = computed(() => {
-  const { change } = trendCalculation.value
+  const { change } = trendCalculation.value;
   return {
-    'change-positive': change > 0,
-    'change-negative': change < 0
-  }
-})
+    "change-positive": change > 0,
+    "change-negative": change < 0,
+  };
+});
 
 // 圖表數據
 const chartData = computed(() => {
   return {
-    labels: trendData.value.map(item => {
-      const date = new Date(item.date)
-      return formatDate(date, false).replace(/\d{4}年/, '')
+    labels: trendData.value.map((item) => {
+      const date = new Date(item.date);
+      return formatDate(date, false).replace(/\d{4}年/, "");
     }),
     datasets: [
       {
         label: getMetricLabel(),
-        data: trendData.value.map(item => item.value),
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        borderColor: '#3b82f6',
+        data: trendData.value.map((item) => item.value),
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        borderColor: "#3b82f6",
         borderWidth: 2,
         fill: true,
-        tension: 0.4
-      }
-    ]
-  }
-})
+        tension: 0.4,
+      },
+    ],
+  };
+});
 
 const getMetricLabel = () => {
   switch (selectedMetric.value) {
-    case 'total':
-      return t('charts.trend.totalHours')
-    case 'average':
-      return t('charts.trend.averageHours')
-    case 'schedules':
-      return t('charts.trend.scheduleCount')
+    case "total":
+      return t("charts.trend.totalHours");
+    case "average":
+      return t("charts.trend.averageHours");
+    case "schedules":
+      return t("charts.trend.scheduleCount");
     default:
-      return t('charts.trend.currentValue')
+      return t("charts.trend.currentValue");
   }
-}
+};
 
 const generateMockData = (days: number) => {
-  const data: TrendData[] = []
-  const today = new Date()
+  const data: TrendData[] = [];
+  const today = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
 
-    let value = 0
-    if (selectedMetric.value === 'schedules') {
-      value = Math.floor(Math.random() * 20) + 30
+    let value = 0;
+    if (selectedMetric.value === "schedules") {
+      value = Math.floor(Math.random() * 20) + 30;
     } else {
-      value = Math.random() * 20 + 35
+      value = Math.random() * 20 + 35;
     }
 
     data.push({
-      date: date.toISOString().split('T')[0],
-      value
-    })
+      date: date.toISOString().split("T")[0],
+      value,
+    });
   }
 
-  return data
-}
+  return data;
+};
 
 const fetchData = async () => {
-  if (!props.autoFetch) return
+  if (!props.autoFetch) return;
 
-  isLoading.value = true
-  error.value = ''
+  isLoading.value = true;
+  error.value = "";
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const days = selectedPeriod.value === '7days' ? 7 : selectedPeriod.value === '30days' ? 30 : 90
-    trendData.value = generateMockData(days)
+    const days =
+      selectedPeriod.value === "7days"
+        ? 7
+        : selectedPeriod.value === "30days"
+          ? 30
+          : 90;
+    trendData.value = generateMockData(days);
   } catch (err) {
-    error.value = t('charts.trend.loadFailed')
-    console.error(err)
+    error.value = t("charts.trend.loadFailed");
+    console.error(err);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const updateChart = () => {
-  fetchData()
-}
+  fetchData();
+};
 
 onMounted(() => {
   if (props.autoFetch) {
-    fetchData()
+    fetchData();
   } else if (props.data.length > 0) {
-    trendData.value = props.data
+    trendData.value = props.data;
   }
-})
+});
 </script>
 
 <style scoped>

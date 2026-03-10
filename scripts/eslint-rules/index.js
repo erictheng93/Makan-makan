@@ -6,17 +6,17 @@
 
 module.exports = {
   rules: {
-    'enforce-factory-reset': require('./enforce-factory-reset'),
-    'prefer-factory-over-manual': require('./prefer-factory-over-manual')
+    "enforce-factory-reset": require("./enforce-factory-reset"),
+    "prefer-factory-over-manual": require("./prefer-factory-over-manual"),
   },
 
   configs: {
     recommended: {
-      plugins: ['testing-utils'],
+      plugins: ["testing-utils"],
       rules: {
-        'testing-utils/enforce-factory-reset': 'error',
-        'testing-utils/prefer-factory-over-manual': 'warn'
-      }
-    }
-  }
-}
+        "testing-utils/enforce-factory-reset": "error",
+        "testing-utils/prefer-factory-over-manual": "warn",
+      },
+    },
+  },
+};

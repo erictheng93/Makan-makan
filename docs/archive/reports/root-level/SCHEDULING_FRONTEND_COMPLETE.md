@@ -16,6 +16,7 @@
 **後端整合邏輯實施**
 
 #### 1.1 自動排班取消功能
+
 - **檔案**: `packages/database/src/services/SchedulingService.ts`
 - **方法**: `cancelSchedulesByDateRange()` (lines 845-900)
 - **功能**:
@@ -25,6 +26,7 @@
   - 回傳被取消的排班 ID 列表用於審計追蹤
 
 #### 1.2 可用員工查詢功能
+
 - **檔案**: `packages/database/src/services/SchedulingService.ts`
 - **方法**: `getAvailableEmployees()` (lines 902-969)
 - **功能**:
@@ -34,6 +36,7 @@
   - 回傳員工可用性狀態和原因
 
 #### 1.3 請假服務整合
+
 - **檔案**: `packages/database/src/services/LeaveService.ts`
 - **整合點**: `approveLeaveRequest()` 方法 (lines 711-744)
 - **流程**:
@@ -50,6 +53,7 @@
   ```
 
 #### 1.4 API 端點實施
+
 - **檔案**: `apps/api/src/features/scheduling/routes/index.ts`
 - **端點**: `GET /:restaurantId/available-employees` (lines 555-594)
 - **參數**:
@@ -58,6 +62,7 @@
 - **回應**: 可用員工列表含可用性狀態
 
 #### 1.5 驗證架構
+
 - **檔案**: `apps/api/src/features/scheduling/schemas/validation.ts`
 - **Schema**: `availableEmployeesQuerySchema` (lines 281-284)
 
@@ -68,9 +73,11 @@
 **Vue 元件架構建立**
 
 #### 2.1 主視圖元件
+
 **檔案**: `apps/admin-dashboard/src/views/scheduling/SchedulingView.vue`
 
 **功能特點**:
+
 - ✅ 5個分頁導航系統
   - 📅 日曆視圖
   - 📋 清單視圖
@@ -83,9 +90,11 @@
 - ✅ 載入狀態覆蓋層
 
 #### 2.2 日曆視圖元件
+
 **檔案**: `apps/admin-dashboard/src/components/scheduling/SchedulingCalendar.vue`
 
 **功能實施**:
+
 - ✅ 完整月曆實施（7x6 網格）
 - ✅ 月份導航（上一月/下一月）
 - ✅ 今日高亮顯示
@@ -95,9 +104,11 @@
 - ✅ 響應式設計
 
 #### 2.3 清單視圖元件
+
 **檔案**: `apps/admin-dashboard/src/components/scheduling/SchedulingList.vue`
 
 **功能實施**:
+
 - ✅ 響應式表格佈局
 - ✅ 員工姓名搜尋
 - ✅ 狀態篩選器
@@ -107,6 +118,7 @@
 - ✅ 編輯/刪除操作按鈕
 
 **表格欄位**:
+
 1. 日期（含星期）
 2. 員工姓名
 3. 班別（彩色 badge）
@@ -116,11 +128,13 @@
 7. 操作按鈕
 
 #### 2.4 骨架元件（佔位符）
+
 - ✅ `ShiftTemplatesList.vue` - 班別模板管理
 - ✅ `SchedulingConflicts.vue` - 衝突警告列表
 - ✅ `SwapRequests.vue` - 換班申請管理
 
 #### 2.5 路由配置
+
 **檔案**: `apps/admin-dashboard/src/router/index.ts`
 
 ```typescript
@@ -142,9 +156,11 @@
 **API 服務層完整實施**
 
 #### 3.1 TypeScript 類型定義
+
 **檔案**: `apps/admin-dashboard/src/types/scheduling.ts`
 
 **定義的類型**:
+
 - ✅ `ShiftTemplate` - 班別模板（36 個欄位）
 - ✅ `EmployeeSchedule` - 員工排班（26 個欄位）
 - ✅ `SchedulingConflict` - 排班衝突（14 個欄位）
@@ -159,13 +175,15 @@
 **總計**: ~350 行完整類型定義
 
 #### 3.2 API 服務實施
+
 **檔案**: `apps/admin-dashboard/src/services/schedulingService.ts`
 
 **服務架構**:
+
 ```typescript
 class SchedulingService {
-  private api: AxiosInstance
-  private baseURL: string
+  private api: AxiosInstance;
+  private baseURL: string;
 
   constructor() {
     // 基礎 URL 配置
@@ -175,55 +193,57 @@ class SchedulingService {
   }
 
   // 班別模板管理 (5 個方法)
-  async getShiftTemplates(restaurantId: number)
-  async getShiftTemplate(id: number)
-  async createShiftTemplate(restaurantId: number, data)
-  async updateShiftTemplate(id: number, data)
-  async deleteShiftTemplate(id: number)
+  async getShiftTemplates(restaurantId: number);
+  async getShiftTemplate(id: number);
+  async createShiftTemplate(restaurantId: number, data);
+  async updateShiftTemplate(id: number, data);
+  async deleteShiftTemplate(id: number);
 
   // 排班管理 (6 個方法)
-  async getSchedules(filters: ScheduleFilters)
-  async getSchedule(id: number)
-  async createSchedule(restaurantId: number, data)
-  async updateSchedule(id: number, data)
-  async deleteSchedule(id: number)
-  async bulkCreateSchedules(restaurantId: number, data)
+  async getSchedules(filters: ScheduleFilters);
+  async getSchedule(id: number);
+  async createSchedule(restaurantId: number, data);
+  async updateSchedule(id: number, data);
+  async deleteSchedule(id: number);
+  async bulkCreateSchedules(restaurantId: number, data);
 
   // 可用員工查詢 (Leave Integration) ⭐
   async getAvailableEmployees(
     restaurantId: number,
     date: string,
-    shiftTemplateId?: number
-  ): Promise<AvailableEmployee[]>
+    shiftTemplateId?: number,
+  ): Promise<AvailableEmployee[]>;
 
   // 打卡功能 (2 個方法)
-  async clockIn(id: number, data: ClockInData)
-  async clockOut(id: number, data: ClockOutData)
+  async clockIn(id: number, data: ClockInData);
+  async clockOut(id: number, data: ClockOutData);
 
   // 衝突管理 (2 個方法)
-  async getConflicts(filters: ConflictFilters)
-  async resolveConflict(id: number, userId: number, notes: string)
+  async getConflicts(filters: ConflictFilters);
+  async resolveConflict(id: number, userId: number, notes: string);
 
   // 換班申請 (4 個方法)
-  async getSwapRequests(filters: SwapRequestFilters)
-  async createSwapRequest(restaurantId: number, data)
-  async approveSwapRequest(id: number, managerId: number)
-  async rejectSwapRequest(id: number, managerId: number, reason: string)
+  async getSwapRequests(filters: SwapRequestFilters);
+  async createSwapRequest(restaurantId: number, data);
+  async approveSwapRequest(id: number, managerId: number);
+  async rejectSwapRequest(id: number, managerId: number, reason: string);
 
   // 統計分析 (2 個方法)
-  async getDailyStats(restaurantId: number, date: string)
-  async getWeeklySummary(restaurantId: number, weekStartDate: string)
+  async getDailyStats(restaurantId: number, date: string);
+  async getWeeklySummary(restaurantId: number, weekStartDate: string);
 }
 
-export const schedulingService = new SchedulingService()
+export const schedulingService = new SchedulingService();
 ```
 
 **總計**: 22+ API 方法，~375 行程式碼
 
 #### 3.3 主視圖整合
+
 **檔案**: `apps/admin-dashboard/src/views/scheduling/SchedulingView.vue`
 
 **整合的 API 呼叫**:
+
 - ✅ `fetchSchedules()` - 獲取排班列表
 - ✅ `fetchShiftTemplates()` - 獲取班別模板
 - ✅ `fetchConflicts()` - 獲取衝突警告
@@ -236,6 +256,7 @@ export const schedulingService = new SchedulingService()
 - ✅ `handleRejectSwap()` - 拒絕換班
 
 **錯誤處理**:
+
 - 完整的 try-catch 包裝
 - 使用者友善的錯誤訊息
 - 自動重新載入資料
@@ -247,9 +268,11 @@ export const schedulingService = new SchedulingService()
 **完整排班表單實施**
 
 #### 4.1 表單元件
+
 **檔案**: `apps/admin-dashboard/src/components/scheduling/ScheduleFormModal.vue`
 
 **表單欄位**:
+
 1. **員工選擇** ⭐
    - 動態載入可用員工列表
    - 自動過濾請假員工
@@ -283,7 +306,9 @@ export const schedulingService = new SchedulingService()
    - 管理備註（選填）
 
 #### 4.2 表單驗證
+
 **驗證規則**:
+
 - ✅ 員工必須選擇
 - ✅ 日期必須填寫
 - ✅ 開始和結束時間必填
@@ -291,22 +316,26 @@ export const schedulingService = new SchedulingService()
 - ✅ 即時錯誤訊息顯示
 
 #### 4.3 自動計算邏輯
+
 **工時計算**:
+
 ```typescript
 const calculatedHours = computed(() => {
-  const totalMinutes = (endTime - startTime) - breakDuration
+  const totalMinutes = endTime - startTime - breakDuration;
 
   // 處理隔夜班次
   if (totalMinutes < 0) {
-    totalMinutes += 24 * 60
+    totalMinutes += 24 * 60;
   }
 
-  return (totalMinutes / 60).toFixed(1)
-})
+  return (totalMinutes / 60).toFixed(1);
+});
 ```
 
 #### 4.4 模板自動填充
+
 **功能**:
+
 - 選擇班別模板時自動填充：
   - 開始時間
   - 結束時間
@@ -319,49 +348,53 @@ const calculatedHours = computed(() => {
 **Leave-Schedule 可用員工整合**
 
 #### 5.1 API 整合點
+
 **檔案**: `apps/admin-dashboard/src/components/scheduling/ScheduleFormModal.vue`
 
 **整合方法**: `handleDateChange()` (lines 243-269)
 
 ```typescript
 const handleDateChange = async () => {
-  if (!formData.workDate) return
+  if (!formData.workDate) return;
 
   try {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
 
     // 🔄 呼叫可用員工 API（Leave Integration）
     availableEmployees.value = await schedulingService.getAvailableEmployees(
       restaurantId.value,
       formData.workDate,
-      formData.shiftTemplateId || undefined
-    )
+      formData.shiftTemplateId || undefined,
+    );
 
     // 自動重置已選員工（如果該員工不可用）
     if (
       formData.employeeId &&
-      !availableEmployees.value.find(emp => emp.id === formData.employeeId)
+      !availableEmployees.value.find((emp) => emp.id === formData.employeeId)
     ) {
-      formData.employeeId = ''
+      formData.employeeId = "";
     }
   } catch (err) {
-    console.error('Failed to fetch available employees:', err)
-    error.value = '無法載入可用員工列表'
+    console.error("Failed to fetch available employees:", err);
+    error.value = "無法載入可用員工列表";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 ```
 
 #### 5.2 自動過濾邏輯
+
 **後端過濾規則**（已在 Part 1 實施）:
+
 1. ✅ 過濾請假中的員工（approved leave）
 2. ✅ 過濾已排班的員工（non-cancelled schedules）
 3. ✅ 僅顯示 active 員工
 4. ✅ 回傳可用性狀態和原因
 
 #### 5.3 使用者體驗
+
 - ✅ 日期變更時自動載入可用員工
 - ✅ 載入狀態顯示
 - ✅ 錯誤訊息提示
@@ -375,33 +408,38 @@ const handleDateChange = async () => {
 **所有元件後端連接**
 
 #### 6.1 類型統一
+
 **更新檔案**:
+
 - ✅ `SchedulingCalendar.vue` - 使用 `EmployeeSchedule` 類型
 - ✅ `SchedulingList.vue` - 使用 `EmployeeSchedule` 類型
 
 **更改前**:
+
 ```typescript
 // 本地定義的 Schedule 介面
 interface Schedule {
-  id: number
-  workDate: string
-  employeeName: string
+  id: number;
+  workDate: string;
+  employeeName: string;
   // ...
 }
 ```
 
 **更改後**:
+
 ```typescript
 // 使用統一的類型定義
-import type { EmployeeSchedule } from '@/types/scheduling'
+import type { EmployeeSchedule } from "@/types/scheduling";
 
 interface Props {
-  schedules: EmployeeSchedule[]
-  loading?: boolean
+  schedules: EmployeeSchedule[];
+  loading?: boolean;
 }
 ```
 
 #### 6.2 Props 資料流
+
 **SchedulingView → 子元件**:
 
 ```vue
@@ -455,7 +493,9 @@ interface Props {
 ```
 
 #### 6.3 事件處理流程
+
 **完整的資料流**:
+
 ```
 使用者操作
   ↓
@@ -479,14 +519,17 @@ Props 傳遞到子元件
 **側邊欄導航新增**
 
 #### 7.1 側邊欄更新
+
 **檔案**: `apps/admin-dashboard/src/components/layout/Sidebar.vue`
 
 **新增圖標導入**:
+
 ```typescript
-import { Calendar } from "lucide-vue-next"
+import { Calendar } from "lucide-vue-next";
 ```
 
 **新增導航項**:
+
 ```typescript
 {
   name: "scheduling",
@@ -498,7 +541,9 @@ import { Calendar } from "lucide-vue-next"
 ```
 
 #### 7.2 導航位置
+
 放置在「員工管理」之後，因為功能相關：
+
 ```
 儀表板
 訂單管理
@@ -512,6 +557,7 @@ import { Calendar } from "lucide-vue-next"
 ```
 
 #### 7.3 權限設定
+
 - ✅ 僅 Admin 和 Owner 可見
 - ✅ 使用 `canAccessAdminFeatures` 權限檢查
 - ✅ 與路由權限一致
@@ -523,13 +569,16 @@ import { Calendar } from "lucide-vue-next"
 **完整測試指南**
 
 #### 8.1 測試準備
+
 **前置需求**:
+
 1. ✅ API 服務運行中 (`http://localhost:8787`)
 2. ✅ Admin Dashboard 運行中 (`http://localhost:5173`)
 3. ✅ 資料庫已遷移最新 schema
 4. ✅ 測試帳號已建立（Admin/Owner 角色）
 
 **測試帳號**:
+
 ```
 Email: admin@test.com
 Password: admin123
@@ -542,36 +591,37 @@ Role: Admin (role = 0)
 
 ### 程式碼統計
 
-| 類別 | 檔案數 | 行數 | 說明 |
-|------|--------|------|------|
-| **Backend Services** | 2 | ~200 | SchedulingService, LeaveService 整合 |
-| **API Routes** | 1 | ~40 | Available employees endpoint |
-| **Frontend Types** | 1 | ~350 | 完整 TypeScript 類型定義 |
-| **API Service** | 1 | ~375 | schedulingService 實施 |
-| **Vue Components** | 7 | ~1,500 | 主視圖 + 6 個子元件 |
-| **Router Config** | 1 | ~10 | 排班路由設定 |
-| **Sidebar Navigation** | 1 | ~10 | 導航連結 |
-| **測試腳本** | 3 | ~400 | PowerShell, Bash, 文檔 |
-| **總計** | 17 | ~2,885 | 完整實施 |
+| 類別                   | 檔案數 | 行數   | 說明                                 |
+| ---------------------- | ------ | ------ | ------------------------------------ |
+| **Backend Services**   | 2      | ~200   | SchedulingService, LeaveService 整合 |
+| **API Routes**         | 1      | ~40    | Available employees endpoint         |
+| **Frontend Types**     | 1      | ~350   | 完整 TypeScript 類型定義             |
+| **API Service**        | 1      | ~375   | schedulingService 實施               |
+| **Vue Components**     | 7      | ~1,500 | 主視圖 + 6 個子元件                  |
+| **Router Config**      | 1      | ~10    | 排班路由設定                         |
+| **Sidebar Navigation** | 1      | ~10    | 導航連結                             |
+| **測試腳本**           | 3      | ~400   | PowerShell, Bash, 文檔               |
+| **總計**               | 17     | ~2,885 | 完整實施                             |
 
 ### 功能統計
 
-| 功能模組 | 方法/元件數 | 完成度 |
-|----------|------------|--------|
-| **後端服務** | 2 個新方法 | ✅ 100% |
-| **API 端點** | 1 個新端點 | ✅ 100% |
-| **前端類型** | 15+ 類型定義 | ✅ 100% |
-| **API 服務** | 22+ API 方法 | ✅ 100% |
-| **UI 元件** | 7 個 Vue 元件 | ✅ 100% |
-| **表單驗證** | 5 個驗證規則 | ✅ 100% |
-| **自動計算** | 工時計算邏輯 | ✅ 100% |
-| **導航整合** | 側邊欄連結 | ✅ 100% |
+| 功能模組     | 方法/元件數   | 完成度  |
+| ------------ | ------------- | ------- |
+| **後端服務** | 2 個新方法    | ✅ 100% |
+| **API 端點** | 1 個新端點    | ✅ 100% |
+| **前端類型** | 15+ 類型定義  | ✅ 100% |
+| **API 服務** | 22+ API 方法  | ✅ 100% |
+| **UI 元件**  | 7 個 Vue 元件 | ✅ 100% |
+| **表單驗證** | 5 個驗證規則  | ✅ 100% |
+| **自動計算** | 工時計算邏輯  | ✅ 100% |
+| **導航整合** | 側邊欄連結    | ✅ 100% |
 
 ---
 
 ## 🔌 API 端點總覽
 
 ### 排班管理 API
+
 ```
 GET    /api/v1/scheduling/:restaurantId/schedules
 POST   /api/v1/scheduling/:restaurantId/schedules
@@ -582,6 +632,7 @@ GET    /api/v1/scheduling/schedules/:id
 ```
 
 ### 班別模板 API
+
 ```
 GET    /api/v1/scheduling/:restaurantId/templates
 POST   /api/v1/scheduling/:restaurantId/templates
@@ -591,6 +642,7 @@ DELETE /api/v1/scheduling/templates/:id
 ```
 
 ### Leave Integration API ⭐
+
 ```
 GET    /api/v1/scheduling/:restaurantId/available-employees
   ?date=YYYY-MM-DD
@@ -598,18 +650,21 @@ GET    /api/v1/scheduling/:restaurantId/available-employees
 ```
 
 ### 打卡功能 API
+
 ```
 POST   /api/v1/scheduling/schedules/:id/clock-in
 POST   /api/v1/scheduling/schedules/:id/clock-out
 ```
 
 ### 衝突管理 API
+
 ```
 GET    /api/v1/scheduling/:restaurantId/conflicts
 POST   /api/v1/scheduling/conflicts/:id/resolve
 ```
 
 ### 換班申請 API
+
 ```
 GET    /api/v1/scheduling/:restaurantId/swap-requests
 POST   /api/v1/scheduling/:restaurantId/swap-requests
@@ -618,6 +673,7 @@ POST   /api/v1/scheduling/swap-requests/:id/reject
 ```
 
 ### 統計分析 API
+
 ```
 GET    /api/v1/scheduling/:restaurantId/stats/daily
 GET    /api/v1/scheduling/:restaurantId/stats/weekly
@@ -630,7 +686,9 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 1: 基礎 UI 測試
 
 #### 步驟：
+
 1. **登入系統**
+
    ```
    URL: http://localhost:5173/login
    Email: admin@test.com
@@ -664,6 +722,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 2: 排班建立測試（含 Leave Integration）
 
 #### 步驟：
+
 1. **開啟排班表單**
    - 點擊「新增排班」按鈕
    - 確認模態框彈出
@@ -674,6 +733,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
    - 確認僅顯示可用員工（未請假、未排班）
 
 3. **填寫排班資訊**
+
    ```
    員工：選擇任一可用員工
    排班日期：明天日期
@@ -696,10 +756,12 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 3: Leave-Schedule Integration 測試 ⭐
 
 #### 前置準備：
+
 1. 建立測試排班（使用測試 2）
 2. 確認排班存在於清單中
 
 #### 步驟：
+
 1. **建立請假申請**
    - 切換到請假管理頁面
    - 建立新的請假申請
@@ -724,6 +786,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 4: 排班編輯測試
 
 #### 步驟：
+
 1. **選擇排班**
    - 在清單視圖找到一筆排班
    - 點擊「編輯」按鈕
@@ -741,6 +804,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 5: 排班刪除測試
 
 #### 步驟：
+
 1. **選擇排班**
    - 在清單視圖找到測試排班
    - 點擊「刪除」按鈕
@@ -756,6 +820,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 6: 錯誤處理測試
 
 #### 測試場景：
+
 1. **表單驗證**
    - 嘗試不選員工就儲存
    - 確認錯誤訊息：「請選擇員工」
@@ -777,6 +842,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 7: 搜尋和篩選測試
 
 #### 步驟：
+
 1. **員工搜尋**
    - 在搜尋框輸入員工姓名
    - 確認清單即時過濾
@@ -794,6 +860,7 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ### 測試 8: 響應式測試
 
 #### 步驟：
+
 1. **桌面視圖**
    - 確認佈局正常（1920x1080）
    - 所有元素可見
@@ -813,14 +880,17 @@ GET    /api/v1/scheduling/:restaurantId/stats/weekly
 ## 🔍 整合測試腳本
 
 ### 後端整合測試
+
 **檔案**: `test-leave-schedule-integration.sh`
 
 **執行**:
+
 ```bash
 bash test-leave-schedule-integration.sh
 ```
 
 **測試項目**:
+
 - ✅ 使用者認證
 - ✅ 可用員工 API 回應
 - ✅ 建立測試排班
@@ -829,9 +899,11 @@ bash test-leave-schedule-integration.sh
 - ✅ 驗證可用員工過濾
 
 ### PowerShell 測試腳本
+
 **檔案**: `test-leave-schedule-integration.ps1`
 
 **執行**:
+
 ```powershell
 .\test-leave-schedule-integration.ps1
 ```
@@ -903,6 +975,7 @@ bash test-leave-schedule-integration.sh
 ### 新增檔案
 
 #### Backend
+
 1. ✅ `packages/database/src/services/SchedulingService.ts` (新增 2 個方法)
 2. ✅ `packages/database/src/services/LeaveService.ts` (整合點修改)
 3. ✅ `apps/api/src/features/scheduling/routes/index.ts` (新增 endpoint)
@@ -910,15 +983,19 @@ bash test-leave-schedule-integration.sh
 5. ✅ `apps/api/src/features/leaves/types/index.ts` (新增 type alias)
 
 #### Frontend Types
+
 6. ✅ `apps/admin-dashboard/src/types/scheduling.ts` (完整類型定義)
 
 #### Frontend Services
+
 7. ✅ `apps/admin-dashboard/src/services/schedulingService.ts` (API 服務層)
 
 #### Frontend Views
+
 8. ✅ `apps/admin-dashboard/src/views/scheduling/SchedulingView.vue`
 
 #### Frontend Components
+
 9. ✅ `apps/admin-dashboard/src/components/scheduling/SchedulingCalendar.vue`
 10. ✅ `apps/admin-dashboard/src/components/scheduling/SchedulingList.vue`
 11. ✅ `apps/admin-dashboard/src/components/scheduling/ScheduleFormModal.vue`
@@ -927,10 +1004,12 @@ bash test-leave-schedule-integration.sh
 14. ✅ `apps/admin-dashboard/src/components/scheduling/SwapRequests.vue`
 
 #### Configuration
+
 15. ✅ `apps/admin-dashboard/src/router/index.ts` (新增路由)
 16. ✅ `apps/admin-dashboard/src/components/layout/Sidebar.vue` (新增導航)
 
 #### Testing & Documentation
+
 17. ✅ `test-leave-schedule-integration.ps1`
 18. ✅ `test-leave-schedule-integration.sh`
 19. ✅ `LEAVE_SCHEDULE_INTEGRATION_TESTING.md`
@@ -945,6 +1024,7 @@ bash test-leave-schedule-integration.sh
 ## ✅ 完成檢查清單
 
 ### Backend Implementation
+
 - [x] SchedulingService.cancelSchedulesByDateRange() 實施
 - [x] SchedulingService.getAvailableEmployees() 實施
 - [x] LeaveService.approveLeaveRequest() 整合
@@ -953,6 +1033,7 @@ bash test-leave-schedule-integration.sh
 - [x] TypeScript 類型匯出
 
 ### Frontend Implementation
+
 - [x] TypeScript 類型定義完整
 - [x] API 服務層實施（22+ 方法）
 - [x] SchedulingView 主視圖實施
@@ -964,6 +1045,7 @@ bash test-leave-schedule-integration.sh
 - [x] 側邊欄導航整合
 
 ### Leave Integration
+
 - [x] 請假核准時自動取消排班
 - [x] 可用員工查詢 API
 - [x] 前端表單整合 getAvailableEmployees
@@ -972,6 +1054,7 @@ bash test-leave-schedule-integration.sh
 - [x] 自動過濾已排班員工
 
 ### Form Features
+
 - [x] 員工選擇（含可用性檢查）
 - [x] 日期選擇器
 - [x] 班別模板選擇
@@ -982,6 +1065,7 @@ bash test-leave-schedule-integration.sh
 - [x] 錯誤處理
 
 ### Testing
+
 - [x] PowerShell 測試腳本
 - [x] Bash 測試腳本
 - [x] 測試文檔建立
@@ -993,6 +1077,7 @@ bash test-leave-schedule-integration.sh
 ## 🚀 下一步建議
 
 ### 立即可做
+
 1. **執行完整測試**
    - 啟動 API 服務和 Admin Dashboard
    - 執行所有測試場景（測試 1-8）
@@ -1009,6 +1094,7 @@ bash test-leave-schedule-integration.sh
    - 測試批次操作
 
 ### 功能增強（選做）
+
 1. **進階功能**
    - 批次排班建立介面
    - 排班範本複製功能
@@ -1054,6 +1140,7 @@ bash test-leave-schedule-integration.sh
 成功完成員工排班系統的完整前端實施，核心亮點：
 
 ### 🌟 核心成就
+
 1. ✅ **Leave-Schedule 雙向整合** - 請假核准自動取消排班
 2. ✅ **智慧員工過濾** - 自動排除請假和已排班員工
 3. ✅ **完整 CRUD 操作** - 建立、讀取、更新、刪除排班
@@ -1063,6 +1150,7 @@ bash test-leave-schedule-integration.sh
 7. ✅ **響應式設計** - 支援桌面/平板/手機
 
 ### 📊 實施規模
+
 - **17 個檔案** 新增/修改
 - **~2,885 行程式碼** 實施
 - **22+ API 方法** 建立
@@ -1070,6 +1158,7 @@ bash test-leave-schedule-integration.sh
 - **15+ 類型定義** 建立
 
 ### 🔄 整合完成度
+
 - ✅ 後端服務整合 100%
 - ✅ 前端 UI 實施 100%
 - ✅ API 服務層 100%

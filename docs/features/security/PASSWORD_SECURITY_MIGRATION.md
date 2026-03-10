@@ -17,14 +17,17 @@ Successfully migrated MakanMakan user authentication from plaintext passwords to
 ### Migrations Applied
 
 **1. Migration 0029: Fix Password Hash** (`0029_fix_password_hash.sql`)
+
 - **Date**: 2025-10-09
 - **Purpose**: Add password_hash column and migrate existing passwords
 
 **2. Migration 0030: Add Is Active** (`0030_add_is_active.sql`)
+
 - **Date**: 2025-10-09
 - **Purpose**: Add user activation/deactivation support
 
 **3. Migration 0031: Update Passwords** (`0031_update_passwords.sql`)
+
 - **Date**: 2025-10-09
 - **Purpose**: Update all test accounts with proper bcrypt hashes
 
@@ -35,6 +38,7 @@ Successfully migrated MakanMakan user authentication from plaintext passwords to
 ### 1. Password Hash Column (0029)
 
 **Schema Changes**:
+
 ```sql
 -- Add password_hash column
 ALTER TABLE users ADD COLUMN password_hash TEXT;
@@ -45,6 +49,7 @@ ALTER TABLE users ADD COLUMN migration_date TEXT;
 ```
 
 **Initial Migration**:
+
 ```sql
 -- Update all existing users with bcrypt hashes
 UPDATE users SET password_hash = '$2a$10$rR5jHwIwcOvN7e.qN8kYa.kTKXH7ZOKw/uI5Y6F5fKc2fE3Xj9.4i'
@@ -59,6 +64,7 @@ WHERE password_hash IS NOT NULL;
 ### 2. User Active Status (0030)
 
 **Schema Changes**:
+
 ```sql
 -- Add is_active column
 ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;
@@ -69,6 +75,7 @@ UPDATE users SET is_active = 0 WHERE status != 'active';
 ```
 
 **Purpose**:
+
 - Efficient user account activation/deactivation
 - Boolean flag for faster queries
 - Compatibility with existing `status` column
@@ -76,6 +83,7 @@ UPDATE users SET is_active = 0 WHERE status != 'active';
 ### 3. Password Updates (0031)
 
 **Final Password Updates**:
+
 ```sql
 -- Update all users with correct bcrypt hashes
 -- Hash for test password (e.g., "admin123", "owner123")
@@ -85,6 +93,7 @@ WHERE username IN ('admin', 'owner1', 'owner2', 'chef1', 'chef2', 'service1', 'c
 ```
 
 **Test Account Credentials** (for development):
+
 ```
 Username: admin    | Password: admin123
 Username: owner1   | Password: owner123 (or admin123 for demo)
@@ -98,6 +107,7 @@ Username: cashier1 | Password: cashier123 (or admin123 for demo)
 ## Security Improvements
 
 ### Before Migration
+
 ```typescript
 // ❌ Insecure: Plaintext password storage
 users: {
@@ -112,6 +122,7 @@ if (user.password === inputPassword) {
 ```
 
 ### After Migration
+
 ```typescript
 // ✅ Secure: Bcrypt hashed passwords
 users: {
@@ -204,14 +215,14 @@ export class AuthService {
       .select()
       .from(users)
       .where(eq(users.username, username))
-      .get()
+      .get();
 
     // ❌ Plaintext comparison
     if (user && user.password === password) {
-      return this.generateToken(user)
+      return this.generateToken(user);
     }
 
-    return null
+    return null;
   }
 }
 ```
@@ -220,7 +231,7 @@ export class AuthService {
 
 ```typescript
 // packages/database/src/services/auth.ts
-import bcrypt from 'bcryptjs'
+import bcrypt from "bcryptjs";
 
 export class AuthService {
   async login(username: string, password: string) {
@@ -228,24 +239,24 @@ export class AuthService {
       .select()
       .from(users)
       .where(eq(users.username, username))
-      .get()
+      .get();
 
     // ✅ Bcrypt comparison
     if (user && user.password_hash) {
-      const isValid = await bcrypt.compare(password, user.password_hash)
+      const isValid = await bcrypt.compare(password, user.password_hash);
 
       if (isValid && user.is_active) {
-        return this.generateToken(user)
+        return this.generateToken(user);
       }
     }
 
-    return null
+    return null;
   }
 
   async register(data: { username: string; password: string; email: string }) {
     // ✅ Hash password before storing
-    const saltRounds = 10
-    const password_hash = await bcrypt.hash(data.password, saltRounds)
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(data.password, saltRounds);
 
     const [user] = await this.db
       .insert(users)
@@ -254,27 +265,27 @@ export class AuthService {
         password_hash,
         password_migrated: 1,
         is_active: 1,
-        migration_date: new Date().toISOString()
+        migration_date: new Date().toISOString(),
       })
-      .returning()
+      .returning();
 
-    return user
+    return user;
   }
 
   async updatePassword(userId: number, newPassword: string) {
     // ✅ Hash new password
-    const saltRounds = 10
-    const password_hash = await bcrypt.hash(newPassword, saltRounds)
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(newPassword, saltRounds);
 
     await this.db
       .update(users)
       .set({
         password_hash,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(users.id, userId))
+      .where(eq(users.id, userId));
 
-    return true
+    return true;
   }
 }
 ```
@@ -301,6 +312,7 @@ FROM users;
 ```
 
 Expected output:
+
 ```
 id | username  | migration_status | password_migrated | migration_date       | is_active
 ---|-----------|------------------|-------------------|----------------------|----------
@@ -388,17 +400,17 @@ const passwordRequirements = {
   requireUppercase: true,
   requireLowercase: true,
   requireNumbers: true,
-  requireSpecialChars: true
-}
+  requireSpecialChars: true,
+};
 
 function validatePassword(password: string): boolean {
-  if (password.length < passwordRequirements.minLength) return false
-  if (requireUppercase && !/[A-Z]/.test(password)) return false
-  if (requireLowercase && !/[a-z]/.test(password)) return false
-  if (requireNumbers && !/[0-9]/.test(password)) return false
-  if (requireSpecialChars && !/[!@#$%^&*]/.test(password)) return false
+  if (password.length < passwordRequirements.minLength) return false;
+  if (requireUppercase && !/[A-Z]/.test(password)) return false;
+  if (requireLowercase && !/[a-z]/.test(password)) return false;
+  if (requireNumbers && !/[0-9]/.test(password)) return false;
+  if (requireSpecialChars && !/[!@#$%^&*]/.test(password)) return false;
 
-  return true
+  return true;
 }
 ```
 
@@ -408,25 +420,25 @@ Implement secure password reset:
 
 ```typescript
 async function initiatePasswordReset(email: string) {
-  const user = await getUserByEmail(email)
-  const resetToken = generateSecureToken() // Crypto-random token
-  const expiresAt = new Date(Date.now() + 3600000) // 1 hour
+  const user = await getUserByEmail(email);
+  const resetToken = generateSecureToken(); // Crypto-random token
+  const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
-  await storeResetToken(user.id, resetToken, expiresAt)
-  await sendPasswordResetEmail(email, resetToken)
+  await storeResetToken(user.id, resetToken, expiresAt);
+  await sendPasswordResetEmail(email, resetToken);
 }
 
 async function resetPassword(token: string, newPassword: string) {
-  const reset = await getResetToken(token)
+  const reset = await getResetToken(token);
 
   if (!reset || reset.expiresAt < new Date()) {
-    throw new Error('Invalid or expired reset token')
+    throw new Error("Invalid or expired reset token");
   }
 
-  const password_hash = await bcrypt.hash(newPassword, 10)
+  const password_hash = await bcrypt.hash(newPassword, 10);
 
-  await updateUser(reset.userId, { password_hash })
-  await deleteResetToken(token)
+  await updateUser(reset.userId, { password_hash });
+  await deleteResetToken(token);
 }
 ```
 
@@ -436,29 +448,29 @@ Prevent brute force attacks:
 
 ```typescript
 async function login(username: string, password: string) {
-  const user = await getUser(username)
+  const user = await getUser(username);
 
   if (user.failed_login_attempts >= 5) {
-    const lockoutEnd = new Date(user.lockout_until)
+    const lockoutEnd = new Date(user.lockout_until);
     if (lockoutEnd > new Date()) {
-      throw new Error('Account temporarily locked')
+      throw new Error("Account temporarily locked");
     }
   }
 
-  const isValid = await bcrypt.compare(password, user.password_hash)
+  const isValid = await bcrypt.compare(password, user.password_hash);
 
   if (!isValid) {
-    await incrementFailedAttempts(user.id)
+    await incrementFailedAttempts(user.id);
     if (user.failed_login_attempts + 1 >= 5) {
-      await lockoutAccount(user.id, 15) // 15 minutes
+      await lockoutAccount(user.id, 15); // 15 minutes
     }
-    throw new Error('Invalid credentials')
+    throw new Error("Invalid credentials");
   }
 
   // Reset failed attempts on successful login
-  await resetFailedAttempts(user.id)
+  await resetFailedAttempts(user.id);
 
-  return generateToken(user)
+  return generateToken(user);
 }
 ```
 
@@ -468,18 +480,18 @@ Prevent password reuse:
 
 ```typescript
 async function updatePassword(userId: number, newPassword: string) {
-  const passwordHistory = await getPasswordHistory(userId, 5) // Last 5 passwords
+  const passwordHistory = await getPasswordHistory(userId, 5); // Last 5 passwords
 
   for (const oldHash of passwordHistory) {
     if (await bcrypt.compare(newPassword, oldHash)) {
-      throw new Error('Cannot reuse recent passwords')
+      throw new Error("Cannot reuse recent passwords");
     }
   }
 
-  const password_hash = await bcrypt.hash(newPassword, 10)
+  const password_hash = await bcrypt.hash(newPassword, 10);
 
-  await updateUser(userId, { password_hash })
-  await addToPasswordHistory(userId, password_hash)
+  await updateUser(userId, { password_hash });
+  await addToPasswordHistory(userId, password_hash);
 }
 ```
 
@@ -492,10 +504,11 @@ async function updatePassword(userId: number, newPassword: string) {
 Current setting: **10 rounds** (2^10 = 1024 iterations)
 
 ```typescript
-const saltRounds = 10 // ~65-100ms per hash on modern hardware
+const saltRounds = 10; // ~65-100ms per hash on modern hardware
 ```
 
 **Tuning Guidelines**:
+
 - **8 rounds**: Fast, less secure (< 50ms)
 - **10 rounds**: Balanced (recommended) (~100ms)
 - **12 rounds**: Slower, more secure (~400ms)
@@ -509,12 +522,12 @@ Always use async bcrypt methods to prevent blocking:
 
 ```typescript
 // ✅ Good: Async (non-blocking)
-const hash = await bcrypt.hash(password, 10)
-const isValid = await bcrypt.compare(password, hash)
+const hash = await bcrypt.hash(password, 10);
+const isValid = await bcrypt.compare(password, hash);
 
 // ❌ Bad: Sync (blocks event loop)
-const hash = bcrypt.hashSync(password, 10) // Blocks for ~100ms!
-const isValid = bcrypt.compareSync(password, hash)
+const hash = bcrypt.hashSync(password, 10); // Blocks for ~100ms!
+const isValid = bcrypt.compareSync(password, hash);
 ```
 
 ---
@@ -573,6 +586,7 @@ CREATE TABLE user_mfa (
 ```
 
 **Apply Migrations**:
+
 ```bash
 # Local development
 npx wrangler d1 migrations apply makanmakan-local --local

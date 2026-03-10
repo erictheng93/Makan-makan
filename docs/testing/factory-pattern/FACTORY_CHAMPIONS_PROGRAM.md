@@ -23,6 +23,7 @@
 ### 什麼是 Factory Champion？
 
 Factory Champion 是團隊中的測試專家，負責：
+
 - 推廣 factory 最佳實踐
 - 幫助團隊成員使用 factory
 - 維護測試基礎設施
@@ -171,23 +172,23 @@ Factory Champion 是團隊中的測試專家，負責：
 interface ChampionRequirements {
   // 技術要求
   technical: {
-    factoryExperience: '至少遷移 3 個測試文件',
-    codeQuality: '所有測試都正確使用 resetAllFactories',
-    documentation: '閱讀並理解所有 factory 文檔'
-  }
+    factoryExperience: "至少遷移 3 個測試文件";
+    codeQuality: "所有測試都正確使用 resetAllFactories";
+    documentation: "閱讀並理解所有 factory 文檔";
+  };
 
   // 軟技能
   softSkills: {
-    communication: '能清晰解釋技術概念',
-    patience: '願意幫助他人',
-    proactive: '主動發現和解決問題'
-  }
+    communication: "能清晰解釋技術概念";
+    patience: "願意幫助他人";
+    proactive: "主動發現和解決問題";
+  };
 
   // 時間投入
   commitment: {
-    weeklyHours: '每週 2-4 小時',
-    duration: '至少 3 個月'
-  }
+    weeklyHours: "每週 2-4 小時";
+    duration: "至少 3 個月";
+  };
 }
 ```
 
@@ -233,24 +234,29 @@ interface ChampionRequirements {
 # Factory Champion 申請表單
 
 ## 個人信息
+
 - 姓名：
 - 團隊：
 - Slack ID：
 - GitHub ID：
 
 ## 資格證明
+
 - 已遷移的測試文件數：
 - 獲得的徽章：
 - 對 testing-utils 的貢獻：
 
 ## 動機
+
 為什麼想成為 Factory Champion？（100-200 字）
 
 ## 承諾
+
 每週可投入時間：
 預期擔任期限：
 
 ## 簽名
+
 日期：
 簽名：
 ```
@@ -494,25 +500,25 @@ interface ChampionRequirements {
 interface ChampionMetrics {
   // 每季度目標
   quarterly: {
-    questionsAnswered: 20, // 回答問題數
-    prsReviewed: 15, // Review PR 數
-    workshopsHosted: 1, // 主持工作坊數
-    helpedDevelopers: 5 // 幫助的開發者數
-  }
+    questionsAnswered: 20; // 回答問題數
+    prsReviewed: 15; // Review PR 數
+    workshopsHosted: 1; // 主持工作坊數
+    helpedDevelopers: 5; // 幫助的開發者數
+  };
 
   // 質量指標
   quality: {
-    averageResponseTime: '< 4 小時',
-    satisfactionScore: '> 4.5/5',
-    issueResolutionRate: '> 90%'
-  }
+    averageResponseTime: "< 4 小時";
+    satisfactionScore: "> 4.5/5";
+    issueResolutionRate: "> 90%";
+  };
 
   // 影響力指標
   impact: {
-    teamAdoptionRate: '+10%', // 團隊採用率提升
-    newChampionsRecruited: 1, // 招募新 Champions
-    documentationUpdates: 5 // 文檔更新次數
-  }
+    teamAdoptionRate: "+10%"; // 團隊採用率提升
+    newChampionsRecruited: 1; // 招募新 Champions
+    documentationUpdates: 5; // 文檔更新次數
+  };
 }
 ```
 
@@ -569,6 +575,7 @@ Champions 覆蓋：
 4. 💬 聯繫現有 Champion
 
 **申請方式**：
+
 - 📧 發送郵件至：champions@makanmakan.com
 - 💬 Slack 私訊：@factory-champion-lead
 - 🎫 提交 GitHub Issue：[申請成為 Champion]
@@ -583,18 +590,21 @@ Champions 覆蓋：
 ## Champions 入職清單
 
 ### 第 1 天
+
 - [ ] 獲得所有必要權限
 - [ ] 加入 Slack 頻道和郵件列表
 - [ ] 收到 Champions 歡迎包
 - [ ] 閱讀所有相關文檔
 
 ### 第 1 週
+
 - [ ] 完成初始培訓
 - [ ] 與 Lead Champion 1-on-1
 - [ ] 設置 Champions Dashboard
 - [ ] 回答第一個問題
 
 ### 第 1 個月
+
 - [ ] 主持或協助一次工作坊
 - [ ] 完成 3 次 code review
 - [ ] 幫助 5 位團隊成員
@@ -609,20 +619,24 @@ Champions 覆蓋：
 **週次**: 2025-W##
 
 ### 技術支援
+
 - 回答問題數：
 - Review PR 數：
 - 解決 Issue 數：
 
 ### 知識傳播
+
 - 工作坊/培訓：
 - 文檔更新：
 - 分享最佳實踐：
 
 ### 遷移推動
+
 - 新遷移文件：
 - 協助團隊：
 
 ### 下週計劃
+
 -
 ```
 
@@ -637,11 +651,13 @@ Champions 覆蓋：
 **講師**：
 
 ### 學習目標
+
 1.
 2.
 3.
 
 ### 議程（60 分鐘）
+
 - 00:00-00:10 | 介紹和破冰
 - 00:10-00:30 | 主題講解
 - 00:30-00:45 | 實戰練習
@@ -649,6 +665,7 @@ Champions 覆蓋：
 - 00:55-01:00 | 總結和反饋
 
 ### 準備材料
+
 - [ ] 簡報
 - [ ] 範例代碼
 - [ ] 練習題

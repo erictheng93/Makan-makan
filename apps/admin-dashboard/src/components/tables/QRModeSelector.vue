@@ -4,9 +4,7 @@
       <label class="block text-sm font-medium text-gray-700 mb-2">
         QR 碼管理模式 <span class="text-red-500">*</span>
       </label>
-      <p class="text-xs text-gray-500 mb-4">
-        選擇如何為此桌台生成 QR 碼
-      </p>
+      <p class="text-xs text-gray-500 mb-4">選擇如何為此桌台生成 QR 碼</p>
     </div>
 
     <!-- 模式選擇 -->
@@ -17,7 +15,7 @@
           'mode-card relative rounded-lg border-2 p-6 cursor-pointer transition-all',
           modelValue === 'table'
             ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-            : 'border-gray-300 hover:border-blue-300'
+            : 'border-gray-300 hover:border-blue-300',
         ]"
         @click="selectMode('table')"
       >
@@ -28,7 +26,7 @@
                 'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
                 modelValue === 'table'
                   ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-300'
+                  : 'border-gray-300',
               ]"
             >
               <div
@@ -49,7 +47,9 @@
         <div class="bg-white rounded-lg p-4 border border-gray-200">
           <div class="flex items-center justify-center">
             <div class="text-center">
-              <div class="w-24 h-24 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+              <div
+                class="w-24 h-24 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300"
+              >
                 <QRCodeIcon class="h-12 w-12 text-gray-400" />
               </div>
               <p class="text-xs text-gray-500 mt-2">一桌一碼</p>
@@ -79,7 +79,7 @@
           'mode-card relative rounded-lg border-2 p-6 cursor-pointer transition-all',
           modelValue === 'seat'
             ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-            : 'border-gray-300 hover:border-blue-300'
+            : 'border-gray-300 hover:border-blue-300',
         ]"
         @click="selectMode('seat')"
       >
@@ -90,7 +90,7 @@
                 'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
                 modelValue === 'seat'
                   ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-300'
+                  : 'border-gray-300',
               ]"
             >
               <div
@@ -207,7 +207,9 @@
     <!-- 提示資訊 -->
     <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
       <div class="flex">
-        <ExclamationTriangleIcon class="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" />
+        <ExclamationTriangleIcon
+          class="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5"
+        />
         <div class="text-sm text-yellow-800">
           <p class="font-medium mb-1">注意事項</p>
           <ul class="list-disc list-inside space-y-1 text-xs">
@@ -222,78 +224,78 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 import {
   TableCellsIcon,
   UserGroupIcon,
   CheckIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline'
-import QRCodeIcon from '@heroicons/vue/24/outline/QrCodeIcon'
+  ExclamationTriangleIcon,
+} from "@heroicons/vue/24/outline";
+import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 
 interface SeatConfig {
-  count: number
-  numberingStyle: 'numeric' | 'alphabetic' | 'custom'
+  count: number;
+  numberingStyle: "numeric" | "alphabetic" | "custom";
 }
 
 interface Props {
-  modelValue: 'table' | 'seat'
-  seatConfig: SeatConfig
+  modelValue: "table" | "seat";
+  seatConfig: SeatConfig;
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: 'table' | 'seat'): void
-  (e: 'update:seatConfig', value: SeatConfig): void
+  (e: "update:modelValue", value: "table" | "seat"): void;
+  (e: "update:seatConfig", value: SeatConfig): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 // 選擇模式
-const selectMode = (mode: 'table' | 'seat') => {
-  emit('update:modelValue', mode)
-}
+const selectMode = (mode: "table" | "seat") => {
+  emit("update:modelValue", mode);
+};
 
 // 更新座位數量
 const updateSeatCount = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const count = parseInt(target.value) || 1
-  emit('update:seatConfig', {
+  const target = event.target as HTMLInputElement;
+  const count = parseInt(target.value) || 1;
+  emit("update:seatConfig", {
     ...props.seatConfig,
-    count
-  })
-}
+    count,
+  });
+};
 
 // 更新編號風格
 const updateNumberingStyle = (event: Event) => {
-  const target = event.target as HTMLSelectElement
-  const numberingStyle = target.value as 'numeric' | 'alphabetic' | 'custom'
-  emit('update:seatConfig', {
+  const target = event.target as HTMLSelectElement;
+  const numberingStyle = target.value as "numeric" | "alphabetic" | "custom";
+  emit("update:seatConfig", {
     ...props.seatConfig,
-    numberingStyle
-  })
-}
+    numberingStyle,
+  });
+};
 
 // 生成座位編號預覽
 const previewNumbers = computed(() => {
-  const { count, numberingStyle } = props.seatConfig
-  const previewCount = Math.min(count, 10)
-  const numbers: string[] = []
+  const { count, numberingStyle } = props.seatConfig;
+  const previewCount = Math.min(count, 10);
+  const numbers: string[] = [];
 
   for (let i = 0; i < previewCount; i++) {
-    if (numberingStyle === 'numeric') {
-      numbers.push(String(i + 1).padStart(2, '0'))
-    } else if (numberingStyle === 'alphabetic') {
-      const letter = String.fromCharCode(65 + (i % 26))
-      const repeat = Math.floor(i / 26) + 1
-      numbers.push(letter.repeat(repeat))
+    if (numberingStyle === "numeric") {
+      numbers.push(String(i + 1).padStart(2, "0"));
+    } else if (numberingStyle === "alphabetic") {
+      const letter = String.fromCharCode(65 + (i % 26));
+      const repeat = Math.floor(i / 26) + 1;
+      numbers.push(letter.repeat(repeat));
     } else {
-      numbers.push(`S${i + 1}`)
+      numbers.push(`S${i + 1}`);
     }
   }
 
-  return numbers
-})
+  return numbers;
+});
 </script>
 
 <style scoped>

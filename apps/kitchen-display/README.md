@@ -5,22 +5,27 @@
 ## 🚀 快速開始
 
 ### 安裝依賴
+
 ```bash
 pnpm install
 ```
 
 ### 開發模式
+
 ```bash
 pnpm dev
 ```
+
 訪問：http://localhost:3002
 
 ### 構建生產版本
+
 ```bash
 pnpm build
 ```
 
 ### 運行測試
+
 ```bash
 pnpm test
 ```
@@ -46,6 +51,7 @@ src/
 ## 🎨 特色功能
 
 ### 已完成 (Phase 1)
+
 - ✅ 現代化 Vue.js 3 + TypeScript 架構
 - ✅ 廚師專用登入認證系統
 - ✅ 響應式大屏幕優化設計
@@ -57,6 +63,7 @@ src/
 - ✅ PWA 準備就緒
 
 ### 開發中 (Phase 2-4)
+
 - 🔄 SSE 實時訂單推送
 - 🔄 WebSocket fallback 機制
 - 🔄 離線模式支持
@@ -98,13 +105,13 @@ src/
 
 ## 🎮 鍵盤快捷鍵
 
-| 按鍵 | 功能 |
-|------|------|
+| 按鍵    | 功能     |
+| ------- | -------- |
 | `Space` | 標記完成 |
 | `Enter` | 開始製作 |
-| `M` | 音效開關 |
-| `F` | 全屏模式 |
-| `?` | 顯示幫助 |
+| `M`     | 音效開關 |
+| `F`     | 全屏模式 |
+| `?`     | 顯示幫助 |
 
 ## 📱 響應式設計
 
@@ -126,12 +133,14 @@ VITE_DEV_MODE=true
 ## 🚀 部署
 
 ### Cloudflare Pages
+
 ```bash
 pnpm build
 # 上傳 dist/ 目錄到 Cloudflare Pages
 ```
 
 ### 環境配置
+
 - **開發**: localhost:3002
 - **測試**: staging-kitchen.makanmakan.com
 - **生產**: kitchen.makanmakan.com
@@ -139,12 +148,14 @@ pnpm build
 ## 🤝 開發指南
 
 ### 代碼規範
+
 - ESLint + Prettier
 - TypeScript 嚴格模式
 - Vue 3 Composition API
 - 組件單一職責原則
 
 ### 提交規範
+
 ```bash
 # 功能
 git commit -m "feat(orders): add real-time order status updates"

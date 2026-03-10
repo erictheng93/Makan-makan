@@ -1,6 +1,7 @@
 # Kitchen Display 測試修復進度報告
 
 ## 執行時間
+
 2025-11-17 17:15 CST
 
 ---
@@ -38,11 +39,13 @@
 **根本原因**: Store 導出的是 `useOrderManagementStore`，但測試導入的是 `useOrderManagement`（缺少 "Store" 後綴）
 
 **修復檔案** (3個):
+
 1. `apps/kitchen-display/tests/integration/workflow-integration.test.ts`
 2. `apps/kitchen-display/tests/integration/end-to-end.test.ts`
 3. `apps/kitchen-display/tests/integration/keyboard-shortcuts-integration.test.ts`
 
 **修復內容**:
+
 ```typescript
 // ❌ Before
 import { useOrderManagement } from "@/stores/orderManagement";
@@ -66,14 +69,17 @@ orderStore = useOrderManagementStore();
 **修復檔案**: `apps/kitchen-display/tests/setup.ts`
 
 **修復內容**:
+
 ```typescript
 // ❌ Before (條件可能失效)
 if (!global.URL.createObjectURL) {
-  global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 }
 
 // ✅ After (總是覆寫)
-global.URL.createObjectURL = vi.fn(() => 'blob:mock-url-' + Math.random().toString(36).substring(7));
+global.URL.createObjectURL = vi.fn(
+  () => "blob:mock-url-" + Math.random().toString(36).substring(7),
+);
 global.URL.revokeObjectURL = vi.fn();
 ```
 
@@ -90,6 +96,7 @@ global.URL.revokeObjectURL = vi.fn();
 **修復檔案**: `apps/kitchen-display/tests/setup.ts`
 
 **修復內容**:
+
 ```typescript
 // ❌ Before (過於簡單)
 const localStorageMock = {
@@ -140,10 +147,12 @@ global.sessionStorage = createStorageMock() as any;
 **根本原因**: Vitest fork workers 不繼承 package.json 中的 NODE_OPTIONS
 
 **修復檔案**:
+
 1. `vitest.config.ts`
 2. `package.json`
 
 **修復內容**:
+
 ```typescript
 // vitest.config.ts
 pool: 'threads',  // 從 'forks' 改為 'threads'
@@ -158,6 +167,7 @@ testTimeout: 60000
 ```
 
 **影響**:
+
 - ✅ 記憶體崩潰率: 100% → 0%
 - ✅ 測試套件可穩定執行完成
 - ✅ 組件測試 94/94 全部通過
@@ -171,6 +181,7 @@ testTimeout: 60000
 **問題**: `Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside`
 
 **影響的檔案**:
+
 - `src/__tests__/integration/realtime-updates.test.ts`
 - `src/__tests__/integration/notification-system.test.ts`
 
@@ -187,6 +198,7 @@ testTimeout: 60000
 **問題**: `[Vue warn] onMounted is called when there is no active component instance`
 
 **影響的檔案**:
+
 - `src/composables/__tests__/useAudioNotifications.test.ts`
 
 **根本原因**: async setup() 中使用 lifecycle hooks
@@ -248,12 +260,14 @@ pnpm test:kitchen
 根據最初的請求，還有 ~25 個測試檔案需要驗證和修復：
 
 **組件測試**:
+
 - ConnectionStatus.test.ts
 - OrderDetailsModal.test.ts
 - KitchenHeader.test.ts
 - OrderStats.test.ts (可能已通過)
 
 **Composables 測試**:
+
 - useOrders.test.ts
 - useWebSocket.test.ts
 - useNotifications.test.ts
@@ -261,12 +275,14 @@ pnpm test:kitchen
 - useRealtimeKitchen.test.ts
 
 **Store 測試**:
+
 - orderManagement.test.ts
 - auth.test.ts
 - settings.test.ts
 - orders.test.ts
 
 **Integration 測試**:
+
 - performance-integration.test.ts
 - offline-sync-integration.test.ts
 - audio-integration.test.ts
@@ -278,6 +294,7 @@ pnpm test:kitchen
 ## 📊 成功指標
 
 ### 當前狀態
+
 - ✅ 記憶體問題: 100% 解決
 - ✅ Import 問題: 100% 解決 (3 個檔案)
 - ✅ Browser API: 100% 解決
@@ -286,6 +303,7 @@ pnpm test:kitchen
 - ⏳ Lifecycle: 待處理
 
 ### 目標狀態 (預計 30-45 分鐘後)
+
 - ✅ 所有 6 種主要問題類型修復
 - ✅ Kitchen Display 失敗測試: 81 → 0-5
 - ✅ 組件測試: 100% 通過
@@ -325,6 +343,7 @@ pnpm test:kitchen
 ## 📝 修復模式總結
 
 ### 模式 1: Import 錯誤
+
 ```typescript
 // 搜尋模式
 grep -r "import.*useX[^S]" **/*.test.ts
@@ -334,12 +353,14 @@ s/useX/useXStore/g
 ```
 
 ### 模式 2: Browser API Mock
+
 ```typescript
 // setup.ts 中總是覆寫
 global.API = vi.fn(() => mockImplementation);
 ```
 
 ### 模式 3: Storage Mock
+
 ```typescript
 // 提供完整實現
 const createStorageMock = () => {
@@ -349,11 +370,12 @@ const createStorageMock = () => {
 ```
 
 ### 模式 4: Memory Configuration
+
 ```typescript
 // vitest.config.ts
 poolOptions: {
   threads: {
-    execArgv: ['--max-old-space-size=8192']
+    execArgv: ["--max-old-space-size=8192"];
   }
 }
 ```

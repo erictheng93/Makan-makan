@@ -5,8 +5,8 @@
  * 確保前端、後端和即時服務之間的型別安全。
  */
 
-import type { OrderStatus, OrderItemStatus } from './order';
-import type { MenuItem } from './menu';
+import type { OrderStatus, OrderItemStatus } from "./order";
+import type { MenuItem } from "./menu";
 
 // ============================================================================
 // 房間類型定義
@@ -16,10 +16,10 @@ import type { MenuItem } from './menu';
  * WebSocket 連線的房間類型
  */
 export type RoomType =
-  | 'customer'    // 顧客房間（桌號或店鋪）
-  | 'kitchen'     // 廚房顯示系統
-  | 'admin'       // 管理後台
-  | 'restaurant'; // 餐廳級別（所有訂單）
+  | "customer" // 顧客房間（桌號或店鋪）
+  | "kitchen" // 廚房顯示系統
+  | "admin" // 管理後台
+  | "restaurant"; // 餐廳級別（所有訂單）
 
 /**
  * 房間 ID 格式
@@ -45,7 +45,7 @@ export interface RealtimeAuthPayload {
   /** 餐廳 ID */
   restaurantId: string;
   /** 使用者角色 */
-  role: 'customer' | 'staff' | 'admin';
+  role: "customer" | "staff" | "admin";
   /** 桌號 ID（顧客連線時使用） */
   tableId?: string;
   /** 座位 ID（座位級別連線時使用） */
@@ -97,31 +97,31 @@ export interface RealtimeAuthTokenResponse {
  */
 export enum RealtimeEventType {
   // 訂單事件
-  NEW_ORDER = 'new_order',
-  ORDER_STATUS_UPDATE = 'order_status_update',
-  ORDER_ITEM_STATUS_UPDATE = 'order_item_status_update',
-  ORDER_CANCELLED = 'order_cancelled',
+  NEW_ORDER = "new_order",
+  ORDER_STATUS_UPDATE = "order_status_update",
+  ORDER_ITEM_STATUS_UPDATE = "order_item_status_update",
+  ORDER_CANCELLED = "order_cancelled",
 
   // 廚房事件
-  KITCHEN_ITEM_STATUS = 'kitchen_item_status',
-  KITCHEN_QUEUE_UPDATE = 'kitchen_queue_update',
+  KITCHEN_ITEM_STATUS = "kitchen_item_status",
+  KITCHEN_QUEUE_UPDATE = "kitchen_queue_update",
 
   // 桌台事件
-  TABLE_STATUS_UPDATE = 'table_status_update',
-  TABLE_CALL_SERVICE = 'table_call_service',
+  TABLE_STATUS_UPDATE = "table_status_update",
+  TABLE_CALL_SERVICE = "table_call_service",
 
   // 菜單事件
-  MENU_AVAILABILITY_UPDATE = 'menu_availability_update',
-  MENU_ITEM_UPDATE = 'menu_item_update',
+  MENU_AVAILABILITY_UPDATE = "menu_availability_update",
+  MENU_ITEM_UPDATE = "menu_item_update",
 
   // 系統事件
-  SYSTEM_NOTIFICATION = 'system_notification',
-  CONNECTION_ACK = 'connection_ack',
-  HEARTBEAT = 'heartbeat',
-  ERROR = 'error',
+  SYSTEM_NOTIFICATION = "system_notification",
+  CONNECTION_ACK = "connection_ack",
+  HEARTBEAT = "heartbeat",
+  ERROR = "error",
 
   // 餐廳事件
-  RESTAURANT_STATUS_UPDATE = 'restaurant_status_update',
+  RESTAURANT_STATUS_UPDATE = "restaurant_status_update",
 }
 
 /**
@@ -267,11 +267,11 @@ export interface KitchenItemStatusEvent extends BaseRealtimeEvent {
     /** 菜單項目名稱 */
     menuItemName: string;
     /** 狀態 */
-    status: 'pending' | 'cooking' | 'ready' | 'served';
+    status: "pending" | "cooking" | "ready" | "served";
     /** 桌號名稱 */
     tableName?: string;
     /** 優先級 */
-    priority?: 'normal' | 'high' | 'urgent';
+    priority?: "normal" | "high" | "urgent";
     /** 等待時間（分鐘） */
     waitingTime?: number;
   };
@@ -311,7 +311,7 @@ export interface TableStatusUpdateEvent extends BaseRealtimeEvent {
     /** 桌號名稱 */
     tableName: string;
     /** 狀態 */
-    status: 'available' | 'occupied' | 'reserved' | 'cleaning';
+    status: "available" | "occupied" | "reserved" | "cleaning";
     /** 顧客數量 */
     customerCount?: number;
     /** 當前訂單 ID */
@@ -330,11 +330,11 @@ export interface TableCallServiceEvent extends BaseRealtimeEvent {
     /** 桌號名稱 */
     tableName: string;
     /** 服務類型 */
-    serviceType: 'water' | 'utensils' | 'help' | 'bill' | 'other';
+    serviceType: "water" | "utensils" | "help" | "bill" | "other";
     /** 備註 */
     notes?: string;
     /** 緊急程度 */
-    urgency: 'low' | 'normal' | 'high';
+    urgency: "low" | "normal" | "high";
   };
 }
 
@@ -370,7 +370,7 @@ export interface MenuItemUpdateEvent extends BaseRealtimeEvent {
     /** 菜單項目 ID */
     menuItemId: number;
     /** 更新動作 */
-    action: 'added' | 'updated' | 'removed';
+    action: "added" | "updated" | "removed";
     /** 菜單項目資料（新增或更新時） */
     menuItem?: Partial<MenuItem>;
   };
@@ -389,7 +389,7 @@ export interface SystemNotificationEvent extends BaseRealtimeEvent {
     /** 通知 ID */
     notificationId: string;
     /** 通知等級 */
-    level: 'info' | 'success' | 'warning' | 'error';
+    level: "info" | "success" | "warning" | "error";
     /** 標題 */
     title: string;
     /** 訊息內容 */
@@ -506,84 +506,108 @@ export function isNewOrderEvent(event: RealtimeEvent): event is NewOrderEvent {
 /**
  * 檢查是否為訂單狀態更新事件
  */
-export function isOrderStatusUpdateEvent(event: RealtimeEvent): event is OrderStatusUpdateEvent {
+export function isOrderStatusUpdateEvent(
+  event: RealtimeEvent,
+): event is OrderStatusUpdateEvent {
   return event.type === RealtimeEventType.ORDER_STATUS_UPDATE;
 }
 
 /**
  * 檢查是否為訂單項目狀態更新事件
  */
-export function isOrderItemStatusUpdateEvent(event: RealtimeEvent): event is OrderItemStatusUpdateEvent {
+export function isOrderItemStatusUpdateEvent(
+  event: RealtimeEvent,
+): event is OrderItemStatusUpdateEvent {
   return event.type === RealtimeEventType.ORDER_ITEM_STATUS_UPDATE;
 }
 
 /**
  * 檢查是否為訂單取消事件
  */
-export function isOrderCancelledEvent(event: RealtimeEvent): event is OrderCancelledEvent {
+export function isOrderCancelledEvent(
+  event: RealtimeEvent,
+): event is OrderCancelledEvent {
   return event.type === RealtimeEventType.ORDER_CANCELLED;
 }
 
 /**
  * 檢查是否為廚房項目狀態事件
  */
-export function isKitchenItemStatusEvent(event: RealtimeEvent): event is KitchenItemStatusEvent {
+export function isKitchenItemStatusEvent(
+  event: RealtimeEvent,
+): event is KitchenItemStatusEvent {
   return event.type === RealtimeEventType.KITCHEN_ITEM_STATUS;
 }
 
 /**
  * 檢查是否為廚房佇列更新事件
  */
-export function isKitchenQueueUpdateEvent(event: RealtimeEvent): event is KitchenQueueUpdateEvent {
+export function isKitchenQueueUpdateEvent(
+  event: RealtimeEvent,
+): event is KitchenQueueUpdateEvent {
   return event.type === RealtimeEventType.KITCHEN_QUEUE_UPDATE;
 }
 
 /**
  * 檢查是否為桌台狀態更新事件
  */
-export function isTableStatusUpdateEvent(event: RealtimeEvent): event is TableStatusUpdateEvent {
+export function isTableStatusUpdateEvent(
+  event: RealtimeEvent,
+): event is TableStatusUpdateEvent {
   return event.type === RealtimeEventType.TABLE_STATUS_UPDATE;
 }
 
 /**
  * 檢查是否為桌台呼叫服務事件
  */
-export function isTableCallServiceEvent(event: RealtimeEvent): event is TableCallServiceEvent {
+export function isTableCallServiceEvent(
+  event: RealtimeEvent,
+): event is TableCallServiceEvent {
   return event.type === RealtimeEventType.TABLE_CALL_SERVICE;
 }
 
 /**
  * 檢查是否為菜單可用性更新事件
  */
-export function isMenuAvailabilityUpdateEvent(event: RealtimeEvent): event is MenuAvailabilityUpdateEvent {
+export function isMenuAvailabilityUpdateEvent(
+  event: RealtimeEvent,
+): event is MenuAvailabilityUpdateEvent {
   return event.type === RealtimeEventType.MENU_AVAILABILITY_UPDATE;
 }
 
 /**
  * 檢查是否為菜單項目更新事件
  */
-export function isMenuItemUpdateEvent(event: RealtimeEvent): event is MenuItemUpdateEvent {
+export function isMenuItemUpdateEvent(
+  event: RealtimeEvent,
+): event is MenuItemUpdateEvent {
   return event.type === RealtimeEventType.MENU_ITEM_UPDATE;
 }
 
 /**
  * 檢查是否為系統通知事件
  */
-export function isSystemNotificationEvent(event: RealtimeEvent): event is SystemNotificationEvent {
+export function isSystemNotificationEvent(
+  event: RealtimeEvent,
+): event is SystemNotificationEvent {
   return event.type === RealtimeEventType.SYSTEM_NOTIFICATION;
 }
 
 /**
  * 檢查是否為連線確認事件
  */
-export function isConnectionAckEvent(event: RealtimeEvent): event is ConnectionAckEvent {
+export function isConnectionAckEvent(
+  event: RealtimeEvent,
+): event is ConnectionAckEvent {
   return event.type === RealtimeEventType.CONNECTION_ACK;
 }
 
 /**
  * 檢查是否為心跳事件
  */
-export function isHeartbeatEvent(event: RealtimeEvent): event is HeartbeatEvent {
+export function isHeartbeatEvent(
+  event: RealtimeEvent,
+): event is HeartbeatEvent {
   return event.type === RealtimeEventType.HEARTBEAT;
 }
 
@@ -597,7 +621,9 @@ export function isErrorEvent(event: RealtimeEvent): event is ErrorEvent {
 /**
  * 檢查是否為餐廳狀態更新事件
  */
-export function isRestaurantStatusUpdateEvent(event: RealtimeEvent): event is RestaurantStatusUpdateEvent {
+export function isRestaurantStatusUpdateEvent(
+  event: RealtimeEvent,
+): event is RestaurantStatusUpdateEvent {
   return event.type === RealtimeEventType.RESTAURANT_STATUS_UPDATE;
 }
 
@@ -610,7 +636,12 @@ export function isRestaurantStatusUpdateEvent(event: RealtimeEvent): event is Re
  */
 export interface RealtimeConnectionState {
   /** 連線狀態 */
-  status: 'connecting' | 'connected' | 'disconnecting' | 'disconnected' | 'error';
+  status:
+    | "connecting"
+    | "connected"
+    | "disconnecting"
+    | "disconnected"
+    | "error";
   /** 連線 ID */
   connectionId?: string;
   /** 房間類型 */
@@ -632,7 +663,7 @@ export interface RealtimeConnectionState {
  */
 export interface ClientMessage {
   /** 訊息類型 */
-  type: 'ping' | 'subscribe' | 'unsubscribe';
+  type: "ping" | "subscribe" | "unsubscribe";
   /** 時間戳 */
   timestamp: number;
   /** 附加資料 */

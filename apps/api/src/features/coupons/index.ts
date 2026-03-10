@@ -10,13 +10,13 @@
  * - Promotional campaign management
  */
 
-import routes from './routes'
-export { routes }
-export { default as couponsRoutes } from './routes'
-export * from './services/CouponsService'
-export * from './types'
-export * from './schemas/validation'
+import routes from "./routes";
+export { routes };
+export { default as couponsRoutes } from "./routes";
+export * from "./services/CouponsService";
+export * from "./types";
+export * from "./schemas/validation";
 
 export default {
-  routes
-}
+  routes,
+};

@@ -47,6 +47,7 @@
 ### Daily Opening Checklist
 
 ✅ **Before Business Hours**
+
 - [ ] Login to cashier system
 - [ ] Verify cash drawer float amount
 - [ ] Check receipt paper supply
@@ -54,12 +55,14 @@
 - [ ] Review daily sales targets
 
 ✅ **During Business Hours**
+
 - [ ] Monitor pending checkout orders
 - [ ] Keep cash drawer organized
 - [ ] Regularly verify POS functionality
 - [ ] Watch for unusual transaction alerts
 
 ✅ **After Business Hours**
+
 - [ ] Execute daily reconciliation
 - [ ] Count cash and compare with records
 - [ ] Print daily settlement report
@@ -147,15 +150,15 @@
 
 ### Function Button Description
 
-| Button | Function | Description |
-|--------|----------|-------------|
-| 🔍 **Quick Search** | Search Orders | Search by table, order number, or phone |
-| 📋 **Order Details** | View Details | Display complete order content |
-| 💳 **Checkout** | Process Payment | Enter payment flow |
-| 🧾 **Reprint Invoice** | Reprint | Reprint lost or damaged invoices |
-| 🔄 **Refund** | Process Refund | Apply for order refund |
-| 📊 **Reports** | Query Reports | View business data |
-| 🔐 **Settlement** | Daily Settlement | Execute end-of-day reconciliation |
+| Button                 | Function         | Description                             |
+| ---------------------- | ---------------- | --------------------------------------- |
+| 🔍 **Quick Search**    | Search Orders    | Search by table, order number, or phone |
+| 📋 **Order Details**   | View Details     | Display complete order content          |
+| 💳 **Checkout**        | Process Payment  | Enter payment flow                      |
+| 🧾 **Reprint Invoice** | Reprint          | Reprint lost or damaged invoices        |
+| 🔄 **Refund**          | Process Refund   | Apply for order refund                  |
+| 📊 **Reports**         | Query Reports    | View business data                      |
+| 🔐 **Settlement**      | Daily Settlement | Execute end-of-day reconciliation       |
 
 ---
 
@@ -223,6 +226,7 @@
 ```
 
 **Check Points:**
+
 - ✅ Verify item quantities are correct
 - ✅ Verify prices are calculated correctly
 - ✅ Verify special discounts are applied
@@ -418,11 +422,11 @@
 
 **Check Points:**
 
-| Bill | Verification Method |
-|------|---------------------|
+| Bill         | Verification Method                                     |
+| ------------ | ------------------------------------------------------- |
 | 💵 **$1000** | Color-shifting foil, intaglio printing, security thread |
-| 💵 **$500** | Hidden "500", plum blossom watermark |
-| 💵 **$100** | Color-shifting ink, braille dots |
+| 💵 **$500**  | Hidden "500", plum blossom watermark                    |
+| 💵 **$100**  | Color-shifting ink, braille dots                        |
 
 **Suspicious Bill Handling:**
 
@@ -467,13 +471,13 @@
 
 #### Transaction Failure Handling
 
-| Error Message | Cause | Solution |
-|--------------|-------|----------|
-| ❌ **Insufficient Funds** | Credit limit exceeded | Ask customer to use another card or payment method |
-| ❌ **Card Expired** | Card past expiration | Use valid card |
-| ❌ **Transaction Declined** | Bank refused authorization | Suggest contacting issuing bank or alternate method |
-| ❌ **Connection Failed** | Network issue | Retry card or use cash |
-| ❌ **Card Read Error** | Damaged magnetic strip/chip | Clean card and retry or use different card |
+| Error Message               | Cause                       | Solution                                            |
+| --------------------------- | --------------------------- | --------------------------------------------------- |
+| ❌ **Insufficient Funds**   | Credit limit exceeded       | Ask customer to use another card or payment method  |
+| ❌ **Card Expired**         | Card past expiration        | Use valid card                                      |
+| ❌ **Transaction Declined** | Bank refused authorization  | Suggest contacting issuing bank or alternate method |
+| ❌ **Connection Failed**    | Network issue               | Retry card or use cash                              |
+| ❌ **Card Read Error**      | Damaged magnetic strip/chip | Clean card and retry or use different card          |
 
 ---
 
@@ -613,6 +617,7 @@ Option C: Print paper
 ### Invoice Reprint
 
 **When is reprint needed?**
+
 - Invoice machine paper jam
 - Invoice print unclear
 - Customer lost invoice
@@ -631,6 +636,7 @@ Option C: Print paper
 ```
 
 ⚠️ **Notes:**
+
 - Same invoice can be reprinted max 3 times
 - Reprinted invoice must note "REPRINT"
 - Record reprint time and reason
@@ -641,6 +647,7 @@ Option C: Print paper
 ### Invoice Void
 
 **When to void invoice?**
+
 - Order canceled
 - Invoice information incorrect (Tax ID, name)
 - Amount issued incorrectly
@@ -1414,6 +1421,7 @@ Steps:
 ### Cash Counting
 
 **Counting Times:**
+
 - Before daily business start
 - During shift change
 - After daily business end
@@ -1928,12 +1936,14 @@ If truly urgent matter:
 ### A. Standard Cashier Phrases
 
 **Greeting:**
+
 ```
 "Hello, welcome!"
 "Hello, dine-in or takeout?"
 ```
 
 **During Checkout:**
+
 ```
 "Hello, ready to check out?"
 "The total is $XXX"
@@ -1943,6 +1953,7 @@ If truly urgent matter:
 ```
 
 **Invoice Issuance:**
+
 ```
 "Do you need a Tax ID?"
 "What's the company name?"
@@ -1950,12 +1961,14 @@ If truly urgent matter:
 ```
 
 **Handing Invoice:**
+
 ```
 "Here's your invoice, please keep it"
 "Thank you for dining, welcome back!"
 ```
 
 **Encountering Issues:**
+
 ```
 "Excuse me, please wait a moment"
 "Sorry for the wait"
@@ -1966,17 +1979,17 @@ If truly urgent matter:
 
 ### B. Keyboard Shortcuts
 
-| Function | Shortcut |
-|----------|---------|
-| Quick Search | F1 |
-| Checkout | F2 |
-| Cancel | ESC |
-| Print Invoice | Ctrl+P |
-| Reprint | Ctrl+R |
-| Refund | Ctrl+Alt+R |
-| Lock Screen | Ctrl+L |
-| Logout | Ctrl+Q |
-| Help | F12 |
+| Function      | Shortcut   |
+| ------------- | ---------- |
+| Quick Search  | F1         |
+| Checkout      | F2         |
+| Cancel        | ESC        |
+| Print Invoice | Ctrl+P     |
+| Reprint       | Ctrl+R     |
+| Refund        | Ctrl+Alt+R |
+| Lock Screen   | Ctrl+L     |
+| Logout        | Ctrl+Q     |
+| Help          | F12        |
 
 ---
 
@@ -2042,10 +2055,10 @@ Required Skill Enhancements:
 
 ## 📝 Version History
 
-| Version | Date | Updates |
-|---------|------|---------|
-| 2.0 | 2025-10-26 | Initial release |
-| - | - | To be updated |
+| Version | Date       | Updates         |
+| ------- | ---------- | --------------- |
+| 2.0     | 2025-10-26 | Initial release |
+| -       | -          | To be updated   |
 
 ---
 
@@ -2056,6 +2069,7 @@ Thank you for choosing to become a MakanMakan cashier!
 Cashier work seems simple but carries great responsibility. You are the last point of contact customers have in the store, and the key person leaving the final impression.
 
 **Please Remember:**
+
 - 💰 **Accuracy** is the primary principle of cashier work
 - 😊 **Courtesy** is the basic requirement of quality service
 - 🔒 **Integrity** is the core value of professional ethics

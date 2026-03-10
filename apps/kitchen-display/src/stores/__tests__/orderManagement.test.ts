@@ -3,19 +3,22 @@
  * 測試訂單管理 store 的功能
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
-import { useOrderManagementStore } from '../orderManagement'
-import type { KitchenOrder, OrderStatus, ItemStatus } from '@/types'
+import { describe, it, expect, beforeEach } from "vitest";
+import { setActivePinia, createPinia } from "pinia";
+import { useOrderManagementStore } from "../orderManagement";
+import type { KitchenOrder, OrderStatus, ItemStatus } from "@/types";
 
-function createMockOrder(id: number, overrides: Partial<KitchenOrder> = {}): KitchenOrder {
+function createMockOrder(
+  id: number,
+  overrides: Partial<KitchenOrder> = {},
+): KitchenOrder {
   return {
     id,
-    orderNumber: `ORD-${id.toString().padStart(3, '0')}`,
+    orderNumber: `ORD-${id.toString().padStart(3, "0")}`,
     tableName: `T${id}`,
     tableId: id,
     status: 1 as OrderStatus,
-    priority: 'normal',
+    priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 10,
     estimatedTime: 15,
@@ -23,697 +26,811 @@ function createMockOrder(id: number, overrides: Partial<KitchenOrder> = {}): Kit
     items: [
       {
         id: id * 10 + 1,
-        name: '宮保雞丁',
+        name: "宮保雞丁",
         quantity: 1,
-        status: 'pending' as ItemStatus,
-        priority: 'normal' as const
-      }
+        status: "pending" as ItemStatus,
+        priority: "normal" as const,
+      },
     ],
-    ...overrides
-  }
+    ...overrides,
+  };
 }
 
-describe('OrderManagement Store', () => {
+describe("OrderManagement Store", () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-  })
+    setActivePinia(createPinia());
+  });
 
-  describe('Selection Management', () => {
-    it('should select an order', () => {
-      const store = useOrderManagementStore()
+  describe("Selection Management", () => {
+    it("should select an order", () => {
+      const store = useOrderManagementStore();
 
-      store.selectOrder(1)
+      store.selectOrder(1);
 
-      expect(store.isOrderSelected(1)).toBe(true)
-    })
+      expect(store.isOrderSelected(1)).toBe(true);
+    });
 
-    it('should deselect an order', () => {
-      const store = useOrderManagementStore()
+    it("should deselect an order", () => {
+      const store = useOrderManagementStore();
 
-      store.selectOrder(1)
-      store.deselectOrder(1)
+      store.selectOrder(1);
+      store.deselectOrder(1);
 
-      expect(store.isOrderSelected(1)).toBe(false)
-    })
+      expect(store.isOrderSelected(1)).toBe(false);
+    });
 
-    it('should toggle order selection', () => {
-      const store = useOrderManagementStore()
+    it("should toggle order selection", () => {
+      const store = useOrderManagementStore();
 
-      store.toggleOrderSelection(1)
-      expect(store.isOrderSelected(1)).toBe(true)
+      store.toggleOrderSelection(1);
+      expect(store.isOrderSelected(1)).toBe(true);
 
-      store.toggleOrderSelection(1)
-      expect(store.isOrderSelected(1)).toBe(false)
-    })
+      store.toggleOrderSelection(1);
+      expect(store.isOrderSelected(1)).toBe(false);
+    });
 
-    it('should select all orders', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2), createMockOrder(3)]
-
-      store.selectAll(orders)
-
-      expect(store.selectedOrdersCount).toBe(3)
-    })
-
-    it('should deselect all orders', () => {
-      const store = useOrderManagementStore()
-
-      store.selectOrder(1)
-      store.selectOrder(2)
-      store.deselectAll()
-
-      expect(store.selectedOrdersCount).toBe(0)
-    })
-
-    it('should track selected orders count', () => {
-      const store = useOrderManagementStore()
-
-      store.selectOrder(1)
-      store.selectOrder(2)
-
-      expect(store.selectedOrdersCount).toBe(2)
-    })
-
-    it('should indicate if has selected orders', () => {
-      const store = useOrderManagementStore()
-
-      expect(store.hasSelectedOrders).toBe(false)
-
-      store.selectOrder(1)
-
-      expect(store.hasSelectedOrders).toBe(true)
-    })
-  })
-
-  describe('Filtering', () => {
-    it('should filter orders by status', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { status: 1 }),
-        createMockOrder(2, { status: 2 }),
-        createMockOrder(3, { status: 1 })
-      ]
-
-      store.setFilter('status', [1])
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(2)
-    })
-
-    it('should filter orders by priority', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { priority: 'normal' }),
-        createMockOrder(2, { priority: 'urgent' }),
-        createMockOrder(3, { priority: 'normal' })
-      ]
-
-      store.setFilter('priority', ['urgent'])
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-      expect(filtered[0].priority).toBe('urgent')
-    })
-
-    it('should filter orders by search text', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { orderNumber: 'ORD-001' }),
-        createMockOrder(2, { orderNumber: 'ORD-002' }),
-        createMockOrder(3, { tableName: 'T5' })
-      ]
-
-      store.setFilter('searchText', 'ORD-001')
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-      expect(filtered[0].orderNumber).toBe('ORD-001')
-    })
-
-    it('should filter by customer name', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { customerName: '張三' }),
-        createMockOrder(2, { customerName: '李四' })
-      ]
-
-      store.setFilter('searchText', '張三')
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-      expect(filtered[0].customerName).toBe('張三')
-    })
-
-    it('should filter by item name', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, {
-          items: [{ id: 1, name: '宮保雞丁', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
-        }),
-        createMockOrder(2, {
-          items: [{ id: 2, name: '麻婆豆腐', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
-        })
-      ]
-
-      store.setFilter('searchText', '宮保')
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-    })
-
-    it('should filter by elapsed time range', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { elapsedTime: 5 }),
-        createMockOrder(2, { elapsedTime: 15 }),
-        createMockOrder(3, { elapsedTime: 25 })
-      ]
-
-      store.setFilter('minElapsedTime', 10)
-      store.setFilter('maxElapsedTime', 20)
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-      expect(filtered[0].elapsedTime).toBe(15)
-    })
-
-    it('should filter by table IDs', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { tableId: 1 }),
-        createMockOrder(2, { tableId: 2 }),
-        createMockOrder(3, { tableId: 3 })
-      ]
-
-      store.setFilter('tableIds', [1, 3])
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(2)
-    })
-
-    it('should filter by has notes', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { notes: 'Special request' }),
-        createMockOrder(2),
-        createMockOrder(3, { notes: 'Another note' })
-      ]
-
-      store.setFilter('hasNotes', true)
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(2)
-    })
-
-    it('should filter by has customizations', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, {
-          items: [{
-            id: 1,
-            name: 'Item',
-            quantity: 1,
-            status: 'pending' as ItemStatus,
-            customizations: ['Extra spicy'],
-            priority: 'normal' as const
-          }]
-        }),
-        createMockOrder(2)
-      ]
-
-      store.setFilter('hasCustomizations', true)
-      const filtered = store.filterOrders(orders)
-
-      expect(filtered).toHaveLength(1)
-    })
-
-    it('should clear all filters', () => {
-      const store = useOrderManagementStore()
-
-      store.setFilter('status', [1])
-      store.setFilter('priority', ['urgent'])
-      store.clearFilters()
-
-      expect(store.hasActiveFilters).toBe(false)
-    })
-
-    it('should detect active filters', () => {
-      const store = useOrderManagementStore()
-
-      expect(store.hasActiveFilters).toBe(false)
-
-      store.setFilter('status', [1])
-
-      expect(store.hasActiveFilters).toBe(true)
-    })
-  })
-
-  describe('Sorting', () => {
-    it('should sort by created time ascending', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { createdAt: '2025-11-15T14:30:00' }),
-        createMockOrder(2, { createdAt: '2025-11-15T14:00:00' }),
-        createMockOrder(3, { createdAt: '2025-11-15T14:45:00' })
-      ]
-
-      store.setSorting('createdAt', 'asc')
-      const sorted = store.sortOrders(orders)
-
-      expect(sorted[0].id).toBe(2)
-      expect(sorted[2].id).toBe(3)
-    })
-
-    it('should sort by created time descending', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { createdAt: '2025-11-15T14:30:00' }),
-        createMockOrder(2, { createdAt: '2025-11-15T14:00:00' }),
-        createMockOrder(3, { createdAt: '2025-11-15T14:45:00' })
-      ]
-
-      store.setSorting('createdAt', 'desc')
-      const sorted = store.sortOrders(orders)
-
-      expect(sorted[0].id).toBe(3)
-      expect(sorted[2].id).toBe(2)
-    })
-
-    it('should sort by elapsed time', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { elapsedTime: 20 }),
-        createMockOrder(2, { elapsedTime: 5 }),
-        createMockOrder(3, { elapsedTime: 15 })
-      ]
-
-      store.setSorting('elapsedTime', 'asc')
-      const sorted = store.sortOrders(orders)
-
-      expect(sorted[0].elapsedTime).toBe(5)
-      expect(sorted[2].elapsedTime).toBe(20)
-    })
-
-    it('should sort by priority', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { priority: 'normal' }),
-        createMockOrder(2, { priority: 'urgent' }),
-        createMockOrder(3, { priority: 'high' })
-      ]
-
-      store.setSorting('priority', 'desc')
-      const sorted = store.sortOrders(orders)
-
-      expect(sorted[0].priority).toBe('urgent')
-      expect(sorted[2].priority).toBe('normal')
-    })
-
-    it('should toggle sort direction', () => {
-      const store = useOrderManagementStore()
-
-      store.setSorting('createdAt', 'asc')
-      expect(store.sortBy.direction).toBe('asc')
-
-      store.setSorting('createdAt')
-      expect(store.sortBy.direction).toBe('desc')
-    })
-  })
-
-  describe('Priority Management', () => {
-    it('should calculate urgent priority for old orders', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, { elapsedTime: 20 })
-
-      const priority = store.calculateOrderPriority(order)
-
-      expect(priority).toBe('urgent')
-    })
-
-    it('should calculate high priority for warning threshold', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, { elapsedTime: 12 })
-
-      const priority = store.calculateOrderPriority(order)
-
-      expect(priority).toBe('high')
-    })
-
-    it('should calculate normal priority for new orders', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, { elapsedTime: 5 })
-
-      const priority = store.calculateOrderPriority(order)
-
-      expect(priority).toBe('normal')
-    })
-
-    it('should update order priorities', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { elapsedTime: 5, priority: 'normal' }),
-        createMockOrder(2, { elapsedTime: 20, priority: 'normal' })
-      ]
-
-      const updated = store.updateOrderPriorities(orders)
-
-      expect(updated[0].priority).toBe('normal')
-      expect(updated[1].priority).toBe('urgent')
-    })
-  })
-
-  describe('Time Management', () => {
-    it('should calculate elapsed time', () => {
-      const store = useOrderManagementStore()
-      const createdAt = new Date(Date.now() - 600000).toISOString() // 10 minutes ago
-      const order = createMockOrder(1, { createdAt })
-
-      const elapsed = store.calculateElapsedTime(order)
-
-      expect(elapsed).toBeGreaterThanOrEqual(9)
-      expect(elapsed).toBeLessThanOrEqual(11)
-    })
-
-    it('should update elapsed times for all orders', () => {
-      const store = useOrderManagementStore()
-      const orders = [
-        createMockOrder(1, { createdAt: new Date(Date.now() - 300000).toISOString() }),
-        createMockOrder(2, { createdAt: new Date(Date.now() - 600000).toISOString() })
-      ]
-
-      const updated = store.updateElapsedTimes(orders)
-
-      expect(updated[0].elapsedTime).toBeGreaterThanOrEqual(4)
-      expect(updated[1].elapsedTime).toBeGreaterThanOrEqual(9)
-    })
-  })
-
-  describe('Item Status Management', () => {
-    it('should get next item status', () => {
-      const store = useOrderManagementStore()
-
-      expect(store.getNextItemStatus('pending')).toBe('preparing')
-      expect(store.getNextItemStatus('preparing')).toBe('ready')
-      expect(store.getNextItemStatus('ready')).toBe('completed')
-    })
-
-    it('should check if can advance item status', () => {
-      const store = useOrderManagementStore()
-
-      expect(store.canAdvanceItemStatus('pending')).toBe(true)
-      expect(store.canAdvanceItemStatus('preparing')).toBe(true)
-      expect(store.canAdvanceItemStatus('ready')).toBe(false)
-      expect(store.canAdvanceItemStatus('completed')).toBe(false)
-    })
-
-    it('should get items by status', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, {
-        items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const },
-          { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
-        ]
-      })
-
-      const pendingItems = store.getItemsByStatus(order, 'pending')
-
-      expect(pendingItems).toHaveLength(2)
-    })
-
-    it('should calculate order progress', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, {
-        items: [
-          { id: 1, name: 'Item 1', quantity: 1, status: 'ready' as ItemStatus, priority: 'normal' as const },
-          { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const },
-          { id: 3, name: 'Item 3', quantity: 1, status: 'ready' as ItemStatus, priority: 'normal' as const },
-          { id: 4, name: 'Item 4', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
-        ]
-      })
-
-      const progress = store.getOrderProgress(order)
-
-      expect(progress).toBe(50) // 2 out of 4 items ready
-    })
-  })
-
-  describe('Batch Operations', () => {
-    it('should get selected orders data', () => {
-      const store = useOrderManagementStore()
+    it("should select all orders", () => {
+      const store = useOrderManagementStore();
       const orders = [
         createMockOrder(1),
         createMockOrder(2),
-        createMockOrder(3)
-      ]
+        createMockOrder(3),
+      ];
 
-      store.selectOrder(1)
-      store.selectOrder(3)
+      store.selectAll(orders);
 
-      const selected = store.getSelectedOrdersData(orders)
+      expect(store.selectedOrdersCount).toBe(3);
+    });
 
-      expect(selected).toHaveLength(2)
-      expect(selected[0].id).toBe(1)
-      expect(selected[1].id).toBe(3)
-    })
+    it("should deselect all orders", () => {
+      const store = useOrderManagementStore();
 
-    it('should check if can batch start cooking', () => {
-      const store = useOrderManagementStore()
+      store.selectOrder(1);
+      store.selectOrder(2);
+      store.deselectAll();
+
+      expect(store.selectedOrdersCount).toBe(0);
+    });
+
+    it("should track selected orders count", () => {
+      const store = useOrderManagementStore();
+
+      store.selectOrder(1);
+      store.selectOrder(2);
+
+      expect(store.selectedOrdersCount).toBe(2);
+    });
+
+    it("should indicate if has selected orders", () => {
+      const store = useOrderManagementStore();
+
+      expect(store.hasSelectedOrders).toBe(false);
+
+      store.selectOrder(1);
+
+      expect(store.hasSelectedOrders).toBe(true);
+    });
+  });
+
+  describe("Filtering", () => {
+    it("should filter orders by status", () => {
+      const store = useOrderManagementStore();
       const orders = [
-        createMockOrder(1, {
-          items: [{ id: 1, name: 'Item', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }]
-        })
-      ]
+        createMockOrder(1, { status: 1 }),
+        createMockOrder(2, { status: 2 }),
+        createMockOrder(3, { status: 1 }),
+      ];
 
-      expect(store.canBatchStartCooking(orders)).toBe(true)
-    })
+      store.setFilter("status", [1]);
+      const filtered = store.filterOrders(orders);
 
-    it('should check if can batch mark ready', () => {
-      const store = useOrderManagementStore()
+      expect(filtered).toHaveLength(2);
+    });
+
+    it("should filter orders by priority", () => {
+      const store = useOrderManagementStore();
       const orders = [
-        createMockOrder(1, {
-          items: [{ id: 1, name: 'Item', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const }]
-        })
-      ]
+        createMockOrder(1, { priority: "normal" }),
+        createMockOrder(2, { priority: "urgent" }),
+        createMockOrder(3, { priority: "normal" }),
+      ];
 
-      expect(store.canBatchMarkReady(orders)).toBe(true)
-    })
+      store.setFilter("priority", ["urgent"]);
+      const filtered = store.filterOrders(orders);
 
-    it('should get batch operation summary', () => {
-      const store = useOrderManagementStore()
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].priority).toBe("urgent");
+    });
+
+    it("should filter orders by search text", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { orderNumber: "ORD-001" }),
+        createMockOrder(2, { orderNumber: "ORD-002" }),
+        createMockOrder(3, { tableName: "T5" }),
+      ];
+
+      store.setFilter("searchText", "ORD-001");
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].orderNumber).toBe("ORD-001");
+    });
+
+    it("should filter by customer name", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { customerName: "張三" }),
+        createMockOrder(2, { customerName: "李四" }),
+      ];
+
+      store.setFilter("searchText", "張三");
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].customerName).toBe("張三");
+    });
+
+    it("should filter by item name", () => {
+      const store = useOrderManagementStore();
       const orders = [
         createMockOrder(1, {
           items: [
-            { id: 1, name: 'Item 1', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const },
-            { id: 2, name: 'Item 2', quantity: 1, status: 'preparing' as ItemStatus, priority: 'normal' as const }
-          ]
+            {
+              id: 1,
+              name: "宮保雞丁",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
         }),
         createMockOrder(2, {
           items: [
-            { id: 3, name: 'Item 3', quantity: 1, status: 'pending' as ItemStatus, priority: 'normal' as const }
-          ]
-        })
-      ]
+            {
+              id: 2,
+              name: "麻婆豆腐",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
+        }),
+      ];
 
-      const summary = store.getBatchOperationSummary(orders)
+      store.setFilter("searchText", "宮保");
+      const filtered = store.filterOrders(orders);
 
-      expect(summary.totalOrders).toBe(2)
-      expect(summary.totalItems).toBe(3)
-      expect(summary.pendingItems).toBe(2)
-      expect(summary.preparingItems).toBe(1)
-    })
-  })
+      expect(filtered).toHaveLength(1);
+    });
 
-  describe('View Management', () => {
-    it('should set view mode', () => {
-      const store = useOrderManagementStore()
+    it("should filter by elapsed time range", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { elapsedTime: 5 }),
+        createMockOrder(2, { elapsedTime: 15 }),
+        createMockOrder(3, { elapsedTime: 25 }),
+      ];
 
-      store.setViewMode('list')
+      store.setFilter("minElapsedTime", 10);
+      store.setFilter("maxElapsedTime", 20);
+      const filtered = store.filterOrders(orders);
 
-      expect(store.viewMode).toBe('list')
-    })
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].elapsedTime).toBe(15);
+    });
 
-    it('should toggle completed orders visibility', () => {
-      const store = useOrderManagementStore()
+    it("should filter by table IDs", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { tableId: 1 }),
+        createMockOrder(2, { tableId: 2 }),
+        createMockOrder(3, { tableId: 3 }),
+      ];
 
-      expect(store.showCompletedOrders).toBe(false)
+      store.setFilter("tableIds", [1, 3]);
+      const filtered = store.filterOrders(orders);
 
-      store.toggleCompletedOrders()
+      expect(filtered).toHaveLength(2);
+    });
 
-      expect(store.showCompletedOrders).toBe(true)
-    })
+    it("should filter by has notes", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { notes: "Special request" }),
+        createMockOrder(2),
+        createMockOrder(3, { notes: "Another note" }),
+      ];
 
-    it('should toggle auto refresh', () => {
-      const store = useOrderManagementStore()
+      store.setFilter("hasNotes", true);
+      const filtered = store.filterOrders(orders);
 
-      expect(store.autoRefreshEnabled).toBe(true)
+      expect(filtered).toHaveLength(2);
+    });
 
-      store.toggleAutoRefresh()
+    it("should filter by has customizations", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, {
+          items: [
+            {
+              id: 1,
+              name: "Item",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              customizations: ["Extra spicy"],
+              priority: "normal" as const,
+            },
+          ],
+        }),
+        createMockOrder(2),
+      ];
 
-      expect(store.autoRefreshEnabled).toBe(false)
-    })
-  })
+      store.setFilter("hasCustomizations", true);
+      const filtered = store.filterOrders(orders);
 
-  describe('Quick Filters', () => {
-    it('should apply urgent only filter', () => {
-      const store = useOrderManagementStore()
+      expect(filtered).toHaveLength(1);
+    });
 
-      store.quickFilters.showUrgentOnly()
+    it("should clear all filters", () => {
+      const store = useOrderManagementStore();
 
-      expect(store.filters.priority).toEqual(['urgent'])
-    })
+      store.setFilter("status", [1]);
+      store.setFilter("priority", ["urgent"]);
+      store.clearFilters();
 
-    it('should apply pending only filter', () => {
-      const store = useOrderManagementStore()
+      expect(store.hasActiveFilters).toBe(false);
+    });
 
-      store.quickFilters.showPendingOnly()
+    it("should detect active filters", () => {
+      const store = useOrderManagementStore();
 
-      expect(store.filters.status).toEqual([1])
-    })
+      expect(store.hasActiveFilters).toBe(false);
 
-    it('should apply preparing only filter', () => {
-      const store = useOrderManagementStore()
+      store.setFilter("status", [1]);
 
-      store.quickFilters.showPreparingOnly()
+      expect(store.hasActiveFilters).toBe(true);
+    });
+  });
 
-      expect(store.filters.status).toEqual([2])
-    })
+  describe("Sorting", () => {
+    it("should sort by created time ascending", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { createdAt: "2025-11-15T14:30:00" }),
+        createMockOrder(2, { createdAt: "2025-11-15T14:00:00" }),
+        createMockOrder(3, { createdAt: "2025-11-15T14:45:00" }),
+      ];
 
-    it('should apply with notes filter', () => {
-      const store = useOrderManagementStore()
+      store.setSorting("createdAt", "asc");
+      const sorted = store.sortOrders(orders);
 
-      store.quickFilters.showWithNotes()
+      expect(sorted[0].id).toBe(2);
+      expect(sorted[2].id).toBe(3);
+    });
 
-      expect(store.filters.hasNotes).toBe(true)
-    })
+    it("should sort by created time descending", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { createdAt: "2025-11-15T14:30:00" }),
+        createMockOrder(2, { createdAt: "2025-11-15T14:00:00" }),
+        createMockOrder(3, { createdAt: "2025-11-15T14:45:00" }),
+      ];
 
-    it('should apply overdue filter', () => {
-      const store = useOrderManagementStore()
+      store.setSorting("createdAt", "desc");
+      const sorted = store.sortOrders(orders);
 
-      store.quickFilters.showOverdue()
+      expect(sorted[0].id).toBe(3);
+      expect(sorted[2].id).toBe(2);
+    });
 
-      expect(store.filters.minElapsedTime).toBeGreaterThan(0)
-    })
-  })
+    it("should sort by elapsed time", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { elapsedTime: 20 }),
+        createMockOrder(2, { elapsedTime: 5 }),
+        createMockOrder(3, { elapsedTime: 15 }),
+      ];
 
-  describe('Focus Management', () => {
-    it('should select next order', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2), createMockOrder(3)]
+      store.setSorting("elapsedTime", "asc");
+      const sorted = store.sortOrders(orders);
 
-      store.selectNextOrder(orders)
+      expect(sorted[0].elapsedTime).toBe(5);
+      expect(sorted[2].elapsedTime).toBe(20);
+    });
 
-      expect(store.focusedOrderId).toBe(1)
-      expect(store.isOrderSelected(1)).toBe(true)
-    })
+    it("should sort by priority", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { priority: "normal" }),
+        createMockOrder(2, { priority: "urgent" }),
+        createMockOrder(3, { priority: "high" }),
+      ];
 
-    it('should select previous order', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2), createMockOrder(3)]
+      store.setSorting("priority", "desc");
+      const sorted = store.sortOrders(orders);
 
-      store.focusedOrderId = 2
-      store.selectPreviousOrder(orders)
+      expect(sorted[0].priority).toBe("urgent");
+      expect(sorted[2].priority).toBe("normal");
+    });
 
-      expect(store.focusedOrderId).toBe(1)
-    })
+    it("should toggle sort direction", () => {
+      const store = useOrderManagementStore();
 
-    it('should wrap around when selecting next from last', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2)]
+      store.setSorting("createdAt", "asc");
+      expect(store.sortBy.direction).toBe("asc");
 
-      store.focusedOrderId = 2
-      store.selectNextOrder(orders)
+      store.setSorting("createdAt");
+      expect(store.sortBy.direction).toBe("desc");
+    });
+  });
 
-      expect(store.focusedOrderId).toBe(1)
-    })
+  describe("Priority Management", () => {
+    it("should calculate urgent priority for old orders", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, { elapsedTime: 20 });
 
-    it('should select first order', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2)]
+      const priority = store.calculateOrderPriority(order);
 
-      store.selectFirstOrder(orders)
+      expect(priority).toBe("urgent");
+    });
 
-      expect(store.focusedOrderId).toBe(1)
-    })
+    it("should calculate high priority for warning threshold", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, { elapsedTime: 12 });
 
-    it('should select last order', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2)]
+      const priority = store.calculateOrderPriority(order);
 
-      store.selectLastOrder(orders)
+      expect(priority).toBe("high");
+    });
 
-      expect(store.focusedOrderId).toBe(2)
-    })
+    it("should calculate normal priority for new orders", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, { elapsedTime: 5 });
 
-    it('should select all visible orders', () => {
-      const store = useOrderManagementStore()
-      const orders = [createMockOrder(1), createMockOrder(2), createMockOrder(3)]
+      const priority = store.calculateOrderPriority(order);
 
-      store.selectAllVisibleOrders(orders)
+      expect(priority).toBe("normal");
+    });
 
-      expect(store.selectedOrdersCount).toBe(3)
-    })
-  })
+    it("should update order priorities", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { elapsedTime: 5, priority: "normal" }),
+        createMockOrder(2, { elapsedTime: 20, priority: "normal" }),
+      ];
 
-  describe('Reset State', () => {
-    it('should reset all management state', () => {
-      const store = useOrderManagementStore()
+      const updated = store.updateOrderPriorities(orders);
+
+      expect(updated[0].priority).toBe("normal");
+      expect(updated[1].priority).toBe("urgent");
+    });
+  });
+
+  describe("Time Management", () => {
+    it("should calculate elapsed time", () => {
+      const store = useOrderManagementStore();
+      const createdAt = new Date(Date.now() - 600000).toISOString(); // 10 minutes ago
+      const order = createMockOrder(1, { createdAt });
+
+      const elapsed = store.calculateElapsedTime(order);
+
+      expect(elapsed).toBeGreaterThanOrEqual(9);
+      expect(elapsed).toBeLessThanOrEqual(11);
+    });
+
+    it("should update elapsed times for all orders", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, {
+          createdAt: new Date(Date.now() - 300000).toISOString(),
+        }),
+        createMockOrder(2, {
+          createdAt: new Date(Date.now() - 600000).toISOString(),
+        }),
+      ];
+
+      const updated = store.updateElapsedTimes(orders);
+
+      expect(updated[0].elapsedTime).toBeGreaterThanOrEqual(4);
+      expect(updated[1].elapsedTime).toBeGreaterThanOrEqual(9);
+    });
+  });
+
+  describe("Item Status Management", () => {
+    it("should get next item status", () => {
+      const store = useOrderManagementStore();
+
+      expect(store.getNextItemStatus("pending")).toBe("preparing");
+      expect(store.getNextItemStatus("preparing")).toBe("ready");
+      expect(store.getNextItemStatus("ready")).toBe("completed");
+    });
+
+    it("should check if can advance item status", () => {
+      const store = useOrderManagementStore();
+
+      expect(store.canAdvanceItemStatus("pending")).toBe(true);
+      expect(store.canAdvanceItemStatus("preparing")).toBe(true);
+      expect(store.canAdvanceItemStatus("ready")).toBe(false);
+      expect(store.canAdvanceItemStatus("completed")).toBe(false);
+    });
+
+    it("should get items by status", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, {
+        items: [
+          {
+            id: 1,
+            name: "Item 1",
+            quantity: 1,
+            status: "pending" as ItemStatus,
+            priority: "normal" as const,
+          },
+          {
+            id: 2,
+            name: "Item 2",
+            quantity: 1,
+            status: "preparing" as ItemStatus,
+            priority: "normal" as const,
+          },
+          {
+            id: 3,
+            name: "Item 3",
+            quantity: 1,
+            status: "pending" as ItemStatus,
+            priority: "normal" as const,
+          },
+        ],
+      });
+
+      const pendingItems = store.getItemsByStatus(order, "pending");
+
+      expect(pendingItems).toHaveLength(2);
+    });
+
+    it("should calculate order progress", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, {
+        items: [
+          {
+            id: 1,
+            name: "Item 1",
+            quantity: 1,
+            status: "ready" as ItemStatus,
+            priority: "normal" as const,
+          },
+          {
+            id: 2,
+            name: "Item 2",
+            quantity: 1,
+            status: "preparing" as ItemStatus,
+            priority: "normal" as const,
+          },
+          {
+            id: 3,
+            name: "Item 3",
+            quantity: 1,
+            status: "ready" as ItemStatus,
+            priority: "normal" as const,
+          },
+          {
+            id: 4,
+            name: "Item 4",
+            quantity: 1,
+            status: "pending" as ItemStatus,
+            priority: "normal" as const,
+          },
+        ],
+      });
+
+      const progress = store.getOrderProgress(order);
+
+      expect(progress).toBe(50); // 2 out of 4 items ready
+    });
+  });
+
+  describe("Batch Operations", () => {
+    it("should get selected orders data", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1),
+        createMockOrder(2),
+        createMockOrder(3),
+      ];
+
+      store.selectOrder(1);
+      store.selectOrder(3);
+
+      const selected = store.getSelectedOrdersData(orders);
+
+      expect(selected).toHaveLength(2);
+      expect(selected[0].id).toBe(1);
+      expect(selected[1].id).toBe(3);
+    });
+
+    it("should check if can batch start cooking", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, {
+          items: [
+            {
+              id: 1,
+              name: "Item",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
+        }),
+      ];
+
+      expect(store.canBatchStartCooking(orders)).toBe(true);
+    });
+
+    it("should check if can batch mark ready", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, {
+          items: [
+            {
+              id: 1,
+              name: "Item",
+              quantity: 1,
+              status: "preparing" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
+        }),
+      ];
+
+      expect(store.canBatchMarkReady(orders)).toBe(true);
+    });
+
+    it("should get batch operation summary", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, {
+          items: [
+            {
+              id: 1,
+              name: "Item 1",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              priority: "normal" as const,
+            },
+            {
+              id: 2,
+              name: "Item 2",
+              quantity: 1,
+              status: "preparing" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
+        }),
+        createMockOrder(2, {
+          items: [
+            {
+              id: 3,
+              name: "Item 3",
+              quantity: 1,
+              status: "pending" as ItemStatus,
+              priority: "normal" as const,
+            },
+          ],
+        }),
+      ];
+
+      const summary = store.getBatchOperationSummary(orders);
+
+      expect(summary.totalOrders).toBe(2);
+      expect(summary.totalItems).toBe(3);
+      expect(summary.pendingItems).toBe(2);
+      expect(summary.preparingItems).toBe(1);
+    });
+  });
+
+  describe("View Management", () => {
+    it("should set view mode", () => {
+      const store = useOrderManagementStore();
+
+      store.setViewMode("list");
+
+      expect(store.viewMode).toBe("list");
+    });
+
+    it("should toggle completed orders visibility", () => {
+      const store = useOrderManagementStore();
+
+      expect(store.showCompletedOrders).toBe(false);
+
+      store.toggleCompletedOrders();
+
+      expect(store.showCompletedOrders).toBe(true);
+    });
+
+    it("should toggle auto refresh", () => {
+      const store = useOrderManagementStore();
+
+      expect(store.autoRefreshEnabled).toBe(true);
+
+      store.toggleAutoRefresh();
+
+      expect(store.autoRefreshEnabled).toBe(false);
+    });
+  });
+
+  describe("Quick Filters", () => {
+    it("should apply urgent only filter", () => {
+      const store = useOrderManagementStore();
+
+      store.quickFilters.showUrgentOnly();
+
+      expect(store.filters.priority).toEqual(["urgent"]);
+    });
+
+    it("should apply pending only filter", () => {
+      const store = useOrderManagementStore();
+
+      store.quickFilters.showPendingOnly();
+
+      expect(store.filters.status).toEqual([1]);
+    });
+
+    it("should apply preparing only filter", () => {
+      const store = useOrderManagementStore();
+
+      store.quickFilters.showPreparingOnly();
+
+      expect(store.filters.status).toEqual([2]);
+    });
+
+    it("should apply with notes filter", () => {
+      const store = useOrderManagementStore();
+
+      store.quickFilters.showWithNotes();
+
+      expect(store.filters.hasNotes).toBe(true);
+    });
+
+    it("should apply overdue filter", () => {
+      const store = useOrderManagementStore();
+
+      store.quickFilters.showOverdue();
+
+      expect(store.filters.minElapsedTime).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Focus Management", () => {
+    it("should select next order", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1),
+        createMockOrder(2),
+        createMockOrder(3),
+      ];
+
+      store.selectNextOrder(orders);
+
+      expect(store.focusedOrderId).toBe(1);
+      expect(store.isOrderSelected(1)).toBe(true);
+    });
+
+    it("should select previous order", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1),
+        createMockOrder(2),
+        createMockOrder(3),
+      ];
+
+      store.focusedOrderId = 2;
+      store.selectPreviousOrder(orders);
+
+      expect(store.focusedOrderId).toBe(1);
+    });
+
+    it("should wrap around when selecting next from last", () => {
+      const store = useOrderManagementStore();
+      const orders = [createMockOrder(1), createMockOrder(2)];
+
+      store.focusedOrderId = 2;
+      store.selectNextOrder(orders);
+
+      expect(store.focusedOrderId).toBe(1);
+    });
+
+    it("should select first order", () => {
+      const store = useOrderManagementStore();
+      const orders = [createMockOrder(1), createMockOrder(2)];
+
+      store.selectFirstOrder(orders);
+
+      expect(store.focusedOrderId).toBe(1);
+    });
+
+    it("should select last order", () => {
+      const store = useOrderManagementStore();
+      const orders = [createMockOrder(1), createMockOrder(2)];
+
+      store.selectLastOrder(orders);
+
+      expect(store.focusedOrderId).toBe(2);
+    });
+
+    it("should select all visible orders", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1),
+        createMockOrder(2),
+        createMockOrder(3),
+      ];
+
+      store.selectAllVisibleOrders(orders);
+
+      expect(store.selectedOrdersCount).toBe(3);
+    });
+  });
+
+  describe("Reset State", () => {
+    it("should reset all management state", () => {
+      const store = useOrderManagementStore();
 
       // Set some state
-      store.selectOrder(1)
-      store.setFilter('status', [1])
-      store.setSorting('elapsedTime', 'desc')
-      store.setViewMode('list')
-      store.toggleCompletedOrders()
-      store.toggleAutoRefresh()
+      store.selectOrder(1);
+      store.setFilter("status", [1]);
+      store.setSorting("elapsedTime", "desc");
+      store.setViewMode("list");
+      store.toggleCompletedOrders();
+      store.toggleAutoRefresh();
 
       // Reset
-      store.resetManagementState()
+      store.resetManagementState();
 
-      expect(store.selectedOrdersCount).toBe(0)
-      expect(store.hasActiveFilters).toBe(false)
-      expect(store.sortBy.field).toBe('createdAt')
-      expect(store.sortBy.direction).toBe('asc')
-      expect(store.viewMode).toBe('card')
-      expect(store.showCompletedOrders).toBe(false)
-      expect(store.autoRefreshEnabled).toBe(true)
-    })
-  })
+      expect(store.selectedOrdersCount).toBe(0);
+      expect(store.hasActiveFilters).toBe(false);
+      expect(store.sortBy.field).toBe("createdAt");
+      expect(store.sortBy.direction).toBe("asc");
+      expect(store.viewMode).toBe("card");
+      expect(store.showCompletedOrders).toBe(false);
+      expect(store.autoRefreshEnabled).toBe(true);
+    });
+  });
 
-  describe('Edge Cases', () => {
-    it('should handle empty orders array', () => {
-      const store = useOrderManagementStore()
+  describe("Edge Cases", () => {
+    it("should handle empty orders array", () => {
+      const store = useOrderManagementStore();
 
-      const filtered = store.filterOrders([])
-      const sorted = store.sortOrders([])
+      const filtered = store.filterOrders([]);
+      const sorted = store.sortOrders([]);
 
-      expect(filtered).toHaveLength(0)
-      expect(sorted).toHaveLength(0)
-    })
+      expect(filtered).toHaveLength(0);
+      expect(sorted).toHaveLength(0);
+    });
 
-    it('should handle order with no items', () => {
-      const store = useOrderManagementStore()
-      const order = createMockOrder(1, { items: [] })
+    it("should handle order with no items", () => {
+      const store = useOrderManagementStore();
+      const order = createMockOrder(1, { items: [] });
 
-      const progress = store.getOrderProgress(order)
+      const progress = store.getOrderProgress(order);
 
-      expect(progress).toBe(0)
-    })
+      expect(progress).toBe(0);
+    });
 
-    it('should handle selecting non-existent order', () => {
-      const store = useOrderManagementStore()
+    it("should handle selecting non-existent order", () => {
+      const store = useOrderManagementStore();
 
-      store.selectOrder(999)
+      store.selectOrder(999);
 
-      expect(store.isOrderSelected(999)).toBe(true)
-    })
+      expect(store.isOrderSelected(999)).toBe(true);
+    });
 
-    it('should handle deselecting non-selected order', () => {
-      const store = useOrderManagementStore()
+    it("should handle deselecting non-selected order", () => {
+      const store = useOrderManagementStore();
 
-      store.deselectOrder(999)
+      store.deselectOrder(999);
 
-      expect(store.isOrderSelected(999)).toBe(false)
-    })
-  })
-})
+      expect(store.isOrderSelected(999)).toBe(false);
+    });
+  });
+});

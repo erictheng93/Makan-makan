@@ -19,12 +19,14 @@
 ### 核心功能
 
 ✅ **合作夥伴管理**
+
 - 創建和管理合作機構（大學、企業、政府機關等）
 - 合約資訊追蹤（起迄日期、合約編號）
 - 多種認證方式（Email 網域、學生證、QR Code、API）
 - 完整的統計資料
 
 ✅ **特約方案管理**
+
 - 為每個餐廳設定專屬優惠方案
 - 彈性折扣設定（百分比、固定金額、特價）
 - 精細化使用條件（最低消費、適用商品/分類、時段限制）
@@ -32,12 +34,14 @@
 - 優惠疊加控制（可與優惠券/促銷組合）
 
 ✅ **會員認證管理**
+
 - 學生/員工自助申請認證
 - 管理員審核機制
 - 認證有效期管理
 - 會員使用統計
 
 ✅ **使用記錄追蹤**
+
 - 完整的使用記錄（訂單、折扣金額、驗證方式）
 - 支援取消和退款
 - 多維度統計報表
@@ -91,66 +95,66 @@
 
 ### 1. partnerships (合作夥伴表)
 
-| 欄位 | 類型 | 說明 |
-|------|------|------|
-| id | TEXT | 主鍵 (UUID) |
-| partner_code | TEXT | 合作夥伴代碼（唯一） |
-| partner_name | TEXT | 機構名稱 |
-| partner_type | TEXT | 機構類型（university, school, corporation 等） |
-| contact_person | TEXT | 聯絡人 |
-| contract_start_date | INTEGER | 合約起始日期 (Unix timestamp ms) |
-| contract_end_date | INTEGER | 合約結束日期 |
-| verification_method | TEXT | 認證方式 |
-| allowed_email_domains | TEXT | 允許的 Email 網域 (JSON) |
-| status | TEXT | 狀態（draft, active, suspended 等） |
-| total_verified_members | INTEGER | 總認證會員數 |
-| total_usage_count | INTEGER | 總使用次數 |
+| 欄位                   | 類型    | 說明                                           |
+| ---------------------- | ------- | ---------------------------------------------- |
+| id                     | TEXT    | 主鍵 (UUID)                                    |
+| partner_code           | TEXT    | 合作夥伴代碼（唯一）                           |
+| partner_name           | TEXT    | 機構名稱                                       |
+| partner_type           | TEXT    | 機構類型（university, school, corporation 等） |
+| contact_person         | TEXT    | 聯絡人                                         |
+| contract_start_date    | INTEGER | 合約起始日期 (Unix timestamp ms)               |
+| contract_end_date      | INTEGER | 合約結束日期                                   |
+| verification_method    | TEXT    | 認證方式                                       |
+| allowed_email_domains  | TEXT    | 允許的 Email 網域 (JSON)                       |
+| status                 | TEXT    | 狀態（draft, active, suspended 等）            |
+| total_verified_members | INTEGER | 總認證會員數                                   |
+| total_usage_count      | INTEGER | 總使用次數                                     |
 
 ### 2. partnership_plans (特約方案表)
 
-| 欄位 | 類型 | 說明 |
-|------|------|------|
-| id | TEXT | 主鍵 (UUID) |
-| partnership_id | TEXT | 合作夥伴 ID (外鍵) |
-| restaurant_id | TEXT | 餐廳 ID (外鍵) |
-| plan_code | TEXT | 方案代碼 |
-| plan_name | TEXT | 方案名稱 |
-| discount_type | TEXT | 折扣類型（percentage, fixed, special_price） |
-| discount_value | REAL | 折扣值 |
-| min_order_amount | REAL | 最低消費金額 |
-| applicable_menu_items | TEXT | 適用商品 (JSON array) |
-| applicable_days | TEXT | 適用星期 (JSON array) |
-| usage_limit_per_member | INTEGER | 每會員使用限制 |
-| valid_from | INTEGER | 有效期開始 |
-| valid_to | INTEGER | 有效期結束 |
+| 欄位                   | 類型    | 說明                                         |
+| ---------------------- | ------- | -------------------------------------------- |
+| id                     | TEXT    | 主鍵 (UUID)                                  |
+| partnership_id         | TEXT    | 合作夥伴 ID (外鍵)                           |
+| restaurant_id          | TEXT    | 餐廳 ID (外鍵)                               |
+| plan_code              | TEXT    | 方案代碼                                     |
+| plan_name              | TEXT    | 方案名稱                                     |
+| discount_type          | TEXT    | 折扣類型（percentage, fixed, special_price） |
+| discount_value         | REAL    | 折扣值                                       |
+| min_order_amount       | REAL    | 最低消費金額                                 |
+| applicable_menu_items  | TEXT    | 適用商品 (JSON array)                        |
+| applicable_days        | TEXT    | 適用星期 (JSON array)                        |
+| usage_limit_per_member | INTEGER | 每會員使用限制                               |
+| valid_from             | INTEGER | 有效期開始                                   |
+| valid_to               | INTEGER | 有效期結束                                   |
 
 ### 3. verified_members (認證會員表)
 
-| 欄位 | 類型 | 說明 |
-|------|------|------|
-| id | TEXT | 主鍵 (UUID) |
-| partnership_id | TEXT | 合作夥伴 ID (外鍵) |
-| member_id | TEXT | 會員編號（學號/工號） |
-| member_type | TEXT | 會員類型（student, employee 等） |
-| full_name | TEXT | 姓名 |
-| status | TEXT | 狀態（pending, verified, rejected 等） |
-| verified_at | INTEGER | 認證通過時間 |
-| total_usage_count | INTEGER | 總使用次數 |
+| 欄位              | 類型    | 說明                                   |
+| ----------------- | ------- | -------------------------------------- |
+| id                | TEXT    | 主鍵 (UUID)                            |
+| partnership_id    | TEXT    | 合作夥伴 ID (外鍵)                     |
+| member_id         | TEXT    | 會員編號（學號/工號）                  |
+| member_type       | TEXT    | 會員類型（student, employee 等）       |
+| full_name         | TEXT    | 姓名                                   |
+| status            | TEXT    | 狀態（pending, verified, rejected 等） |
+| verified_at       | INTEGER | 認證通過時間                           |
+| total_usage_count | INTEGER | 總使用次數                             |
 
 ### 4. partnership_usage_logs (使用記錄表)
 
-| 欄位 | 類型 | 說明 |
-|------|------|------|
-| id | TEXT | 主鍵 (UUID) |
-| partnership_id | TEXT | 合作夥伴 ID (外鍵) |
-| plan_id | TEXT | 方案 ID (外鍵) |
-| member_id | TEXT | 會員 ID (外鍵) |
-| order_id | TEXT | 訂單 ID (外鍵) |
-| discount_amount | REAL | 實際折扣金額 |
-| original_amount | REAL | 原始金額 |
-| final_amount | REAL | 最終金額 |
-| used_at | INTEGER | 使用時間 |
-| status | TEXT | 狀態（pending, completed, cancelled, refunded） |
+| 欄位            | 類型    | 說明                                            |
+| --------------- | ------- | ----------------------------------------------- |
+| id              | TEXT    | 主鍵 (UUID)                                     |
+| partnership_id  | TEXT    | 合作夥伴 ID (外鍵)                              |
+| plan_id         | TEXT    | 方案 ID (外鍵)                                  |
+| member_id       | TEXT    | 會員 ID (外鍵)                                  |
+| order_id        | TEXT    | 訂單 ID (外鍵)                                  |
+| discount_amount | REAL    | 實際折扣金額                                    |
+| original_amount | REAL    | 原始金額                                        |
+| final_amount    | REAL    | 最終金額                                        |
+| used_at         | INTEGER | 使用時間                                        |
+| status          | TEXT    | 狀態（pending, completed, cancelled, refunded） |
 
 ---
 
@@ -277,149 +281,152 @@ sequenceDiagram
 ### 創建合作夥伴
 
 ```typescript
-const partnership = await fetch('/api/v1/partnerships', {
-  method: 'POST',
+const partnership = await fetch("/api/v1/partnerships", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   },
   body: JSON.stringify({
-    partnerCode: 'NTUST-2025',
-    partnerName: '國立台灣科技大學',
-    partnerNameEn: 'National Taiwan University of Science and Technology',
-    partnerType: 'university',
-    contactPerson: '王小明',
-    contactPhone: '02-2737-6000',
-    contactEmail: 'contact@mail.ntust.edu.tw',
+    partnerCode: "NTUST-2025",
+    partnerName: "國立台灣科技大學",
+    partnerNameEn: "National Taiwan University of Science and Technology",
+    partnerType: "university",
+    contactPerson: "王小明",
+    contactPhone: "02-2737-6000",
+    contactEmail: "contact@mail.ntust.edu.tw",
     contractStartDate: Date.now(),
     contractEndDate: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
-    verificationMethod: 'email_domain',
-    allowedEmailDomains: ['@mail.ntust.edu.tw', '@gapps.ntust.edu.tw'],
-    defaultDiscountType: 'percentage',
+    verificationMethod: "email_domain",
+    allowedEmailDomains: ["@mail.ntust.edu.tw", "@gapps.ntust.edu.tw"],
+    defaultDiscountType: "percentage",
     defaultDiscountValue: 10,
-    description: '提供台科大師生專屬優惠'
-  })
-})
+    description: "提供台科大師生專屬優惠",
+  }),
+});
 
-const result = await partnership.json()
-console.log(result.data) // Partnership object
+const result = await partnership.json();
+console.log(result.data); // Partnership object
 ```
 
 ### 創建特約方案
 
 ```typescript
-const plan = await fetch('/api/v1/partnerships/plans', {
-  method: 'POST',
+const plan = await fetch("/api/v1/partnerships/plans", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   },
   body: JSON.stringify({
-    partnershipId: 'partnership-uuid',
-    restaurantId: 'restaurant-id',
-    planCode: 'STUDENT-LUNCH',
-    planName: '學生午餐優惠',
-    discountType: 'percentage',
+    partnershipId: "partnership-uuid",
+    restaurantId: "restaurant-id",
+    planCode: "STUDENT-LUNCH",
+    planName: "學生午餐優惠",
+    discountType: "percentage",
     discountValue: 15, // 85折
     maxDiscountAmount: 50, // 最多折50元
     minOrderAmount: 100, // 最低消費100元
     applicableDays: [1, 2, 3, 4, 5], // 週一到週五
     applicableTimeSlots: [
-      { start: '11:00', end: '14:00' } // 11:00-14:00
+      { start: "11:00", end: "14:00" }, // 11:00-14:00
     ],
     usageLimitPerMember: 5, // 每人限用5次
     validFrom: Date.now(),
     validTo: Date.now() + 180 * 24 * 60 * 60 * 1000, // 半年
     showOnMenu: true,
-    badgeText: '學生優惠',
-    badgeColor: '#4CAF50'
-  })
-})
+    badgeText: "學生優惠",
+    badgeColor: "#4CAF50",
+  }),
+});
 
-const result = await plan.json()
-console.log(result.data) // Plan object
+const result = await plan.json();
+console.log(result.data); // Plan object
 ```
 
 ### 會員認證申請
 
 ```typescript
-const verification = await fetch('/api/v1/partnerships/members/verify', {
-  method: 'POST',
+const verification = await fetch("/api/v1/partnerships/members/verify", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    partnershipId: 'partnership-uuid',
-    memberId: 'B10812345', // 學號
-    memberType: 'student',
-    fullName: '張三',
-    email: 'b10812345@mail.ntust.edu.tw',
-    phone: '0912345678',
-    verificationMethod: 'email_domain',
-    department: '資訊工程系',
-    gradeOrPosition: '大三',
-    studentIdPhotoUrl: 'https://example.com/student-id.jpg'
-  })
-})
+    partnershipId: "partnership-uuid",
+    memberId: "B10812345", // 學號
+    memberType: "student",
+    fullName: "張三",
+    email: "b10812345@mail.ntust.edu.tw",
+    phone: "0912345678",
+    verificationMethod: "email_domain",
+    department: "資訊工程系",
+    gradeOrPosition: "大三",
+    studentIdPhotoUrl: "https://example.com/student-id.jpg",
+  }),
+});
 
-const result = await verification.json()
-console.log(result.message) // "Verification request submitted successfully"
+const result = await verification.json();
+console.log(result.message); // "Verification request submitted successfully"
 ```
 
 ### 驗證方案並計算折扣
 
 ```typescript
-const validation = await fetch('/api/v1/partnerships/plans/validate', {
-  method: 'POST',
+const validation = await fetch("/api/v1/partnerships/plans/validate", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   },
   body: JSON.stringify({
-    planId: 'plan-uuid',
-    memberId: 'member-uuid',
+    planId: "plan-uuid",
+    memberId: "member-uuid",
     orderAmount: 200,
-    menuItems: ['menu-item-1', 'menu-item-2'],
-    categories: ['category-1']
-  })
-})
+    menuItems: ["menu-item-1", "menu-item-2"],
+    categories: ["category-1"],
+  }),
+});
 
-const result = await validation.json()
+const result = await validation.json();
 if (result.data.valid) {
-  console.log('Discount:', result.data.discountAmount)
-  console.log('Final Amount:', result.data.finalAmount)
-  console.log('Can combine with coupons:', result.data.canCombineWithOthers.coupons)
+  console.log("Discount:", result.data.discountAmount);
+  console.log("Final Amount:", result.data.finalAmount);
+  console.log(
+    "Can combine with coupons:",
+    result.data.canCombineWithOthers.coupons,
+  );
 } else {
-  console.log('Error:', result.data.error)
+  console.log("Error:", result.data.error);
 }
 ```
 
 ### 記錄使用
 
 ```typescript
-const usage = await fetch('/api/v1/partnerships/usage', {
-  method: 'POST',
+const usage = await fetch("/api/v1/partnerships/usage", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   },
   body: JSON.stringify({
-    partnershipId: 'partnership-uuid',
-    planId: 'plan-uuid',
-    memberId: 'member-uuid',
-    orderId: 'order-uuid',
-    restaurantId: 'restaurant-id',
-    discountType: 'percentage',
+    partnershipId: "partnership-uuid",
+    planId: "plan-uuid",
+    memberId: "member-uuid",
+    orderId: "order-uuid",
+    restaurantId: "restaurant-id",
+    discountType: "percentage",
     discountValue: 15,
     discountAmount: 30,
     originalAmount: 200,
     finalAmount: 170,
-    channel: 'dine_in'
-  })
-})
+    channel: "dine_in",
+  }),
+});
 
-const result = await usage.json()
-console.log(result.message) // "Usage logged successfully"
+const result = await usage.json();
+console.log(result.message); // "Usage logged successfully"
 ```
 
 ---
@@ -448,6 +455,7 @@ npx wrangler d1 execute makanmakan-staging --local \
 ```
 
 預期輸出：
+
 ```
 partnerships
 partnership_plans

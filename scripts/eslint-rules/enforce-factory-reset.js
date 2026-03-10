@@ -9,66 +9,65 @@
 
 module.exports = {
   meta: {
-    type: 'problem',
+    type: "problem",
     docs: {
-      description:
-        '強制在使用 factory 的測試文件中調用 resetAllFactories()',
-      category: 'Best Practices',
-      recommended: true
+      description: "強制在使用 factory 的測試文件中調用 resetAllFactories()",
+      category: "Best Practices",
+      recommended: true,
     },
-    fixable: 'code',
+    fixable: "code",
     schema: [],
     messages: {
       missingReset:
-        '測試文件使用了 factory 但缺少 resetAllFactories() 調用。建議在 beforeEach 中添加。',
-      missingImport: '缺少 resetAllFactories 的導入'
-    }
+        "測試文件使用了 factory 但缺少 resetAllFactories() 調用。建議在 beforeEach 中添加。",
+      missingImport: "缺少 resetAllFactories 的導入",
+    },
   },
 
   create(context) {
-    const filename = context.getFilename()
+    const filename = context.getFilename();
 
     // 只檢查測試文件
-    if (!filename.includes('.test.ts') && !filename.includes('.spec.ts')) {
-      return {}
+    if (!filename.includes(".test.ts") && !filename.includes(".spec.ts")) {
+      return {};
     }
 
-    let hasFactoryImport = false
-    let hasResetAllFactoriesImport = false
-    let hasResetAllFactoriesCall = false
-    let factoryImportNode = null
-    let lastImportNode = null
+    let hasFactoryImport = false;
+    let hasResetAllFactoriesImport = false;
+    let hasResetAllFactoriesCall = false;
+    let factoryImportNode = null;
+    let lastImportNode = null;
 
     // Factory 使用模式
     const factoryPatterns = [
-      'userFactory',
-      'restaurantFactory',
-      'categoryFactory',
-      'menuItemFactory',
-      'orderFactory',
-      'orderItemFactory',
-      'buildCompleteRestaurantData'
-    ]
+      "userFactory",
+      "restaurantFactory",
+      "categoryFactory",
+      "menuItemFactory",
+      "orderFactory",
+      "orderItemFactory",
+      "buildCompleteRestaurantData",
+    ];
 
     return {
       // 檢查導入語句
       ImportDeclaration(node) {
-        lastImportNode = node
+        lastImportNode = node;
 
         // 檢查是否從 @makanmakan/testing-utils 導入
-        if (node.source.value === '@makanmakan/testing-utils') {
-          hasFactoryImport = true
-          factoryImportNode = node
+        if (node.source.value === "@makanmakan/testing-utils") {
+          hasFactoryImport = true;
+          factoryImportNode = node;
 
           // 檢查是否導入了 resetAllFactories
-          node.specifiers.forEach(spec => {
+          node.specifiers.forEach((spec) => {
             if (
-              spec.type === 'ImportSpecifier' &&
-              spec.imported.name === 'resetAllFactories'
+              spec.type === "ImportSpecifier" &&
+              spec.imported.name === "resetAllFactories"
             ) {
-              hasResetAllFactoriesImport = true
+              hasResetAllFactoriesImport = true;
             }
-          })
+          });
         }
       },
 
@@ -76,92 +75,92 @@ module.exports = {
       CallExpression(node) {
         // 檢查 resetAllFactories() 調用
         if (
-          node.callee.type === 'Identifier' &&
-          node.callee.name === 'resetAllFactories'
+          node.callee.type === "Identifier" &&
+          node.callee.name === "resetAllFactories"
         ) {
-          hasResetAllFactoriesCall = true
+          hasResetAllFactoriesCall = true;
         }
 
         // 檢查是否使用了 factory
-        if (node.callee.type === 'MemberExpression') {
-          const objectName = node.callee.object.name
+        if (node.callee.type === "MemberExpression") {
+          const objectName = node.callee.object.name;
           if (factoryPatterns.includes(objectName)) {
-            hasFactoryImport = true
+            hasFactoryImport = true;
           }
         }
 
         // 檢查 buildCompleteRestaurantData
         if (
-          node.callee.type === 'Identifier' &&
-          node.callee.name === 'buildCompleteRestaurantData'
+          node.callee.type === "Identifier" &&
+          node.callee.name === "buildCompleteRestaurantData"
         ) {
-          hasFactoryImport = true
+          hasFactoryImport = true;
         }
       },
 
       // 程序結束時檢查
-      'Program:exit'(node) {
+      "Program:exit"(node) {
         if (hasFactoryImport && !hasResetAllFactoriesCall) {
           // 如果沒有導入 resetAllFactories，報告導入錯誤
           if (!hasResetAllFactoriesImport && factoryImportNode) {
             context.report({
               node: factoryImportNode,
-              messageId: 'missingImport',
+              messageId: "missingImport",
               fix(fixer) {
                 // 自動添加 resetAllFactories 到導入列表
                 const importSpecifiers = factoryImportNode.specifiers
-                  .map(s => s.local.name)
-                  .concat(['resetAllFactories'])
-                  .join(', ')
+                  .map((s) => s.local.name)
+                  .concat(["resetAllFactories"])
+                  .join(", ");
 
                 return fixer.replaceText(
                   factoryImportNode,
-                  `import { ${importSpecifiers} } from '@makanmakan/testing-utils'`
-                )
-              }
-            })
+                  `import { ${importSpecifiers} } from '@makanmakan/testing-utils'`,
+                );
+              },
+            });
           }
 
           // 報告缺少調用的錯誤
           context.report({
             node: lastImportNode || node,
-            messageId: 'missingReset',
+            messageId: "missingReset",
             fix(fixer) {
               // 嘗試在文件開頭添加 beforeEach
-              const sourceCode = context.getSourceCode()
-              const programBody = node.body
+              const sourceCode = context.getSourceCode();
+              const programBody = node.body;
 
               // 找到第一個 describe 或 test 塊
-              let insertPosition = null
+              let insertPosition = null;
               for (const statement of programBody) {
                 if (
-                  statement.type === 'ExpressionStatement' &&
-                  statement.expression.type === 'CallExpression'
+                  statement.type === "ExpressionStatement" &&
+                  statement.expression.type === "CallExpression"
                 ) {
-                  const callee = statement.expression.callee
+                  const callee = statement.expression.callee;
                   if (
-                    callee.type === 'Identifier' &&
-                    (callee.name === 'describe' || callee.name === 'test')
+                    callee.type === "Identifier" &&
+                    (callee.name === "describe" || callee.name === "test")
                   ) {
-                    insertPosition = statement.range[0]
-                    break
+                    insertPosition = statement.range[0];
+                    break;
                   }
                 }
               }
 
               if (insertPosition !== null) {
-                const beforeEachCode = `\nbeforeEach(() => {\n  resetAllFactories()\n})\n\n`
+                const beforeEachCode = `\nbeforeEach(() => {\n  resetAllFactories()\n})\n\n`;
                 return fixer.insertTextBeforeRange(
                   [insertPosition, insertPosition],
-                  beforeEachCode
-                )
+                  beforeEachCode,
+                );
               }
 
-              return null
-            }
-          })
+              return null;
+            },
+          });
         }
-      }
-    }
-  }
-}
+      },
+    };
+  },
+};

@@ -47,13 +47,13 @@
 
 ### 測試覆蓋範圍
 
-| 模組 | 單元測試 | 整合測試 | 手動測試 | 狀態 |
-|------|---------|---------|---------|------|
-| RealtimeBroadcastService | ✅ 10 tests | ⏳ | ⏳ | 完成 |
-| RealtimeAuthService | ✅ 25 tests | ⏳ | ⏳ | 完成 |
-| Message Routing | ✅ Logic tests | ⏳ | ⏳ | 完成 |
-| OrdersService Integration | ⏳ | ⏳ | ⏳ | 計劃中 |
-| WebSocket Connection | N/A | ⏳ | ⏳ | 計劃中 |
+| 模組                      | 單元測試       | 整合測試 | 手動測試 | 狀態   |
+| ------------------------- | -------------- | -------- | -------- | ------ |
+| RealtimeBroadcastService  | ✅ 10 tests    | ⏳       | ⏳       | 完成   |
+| RealtimeAuthService       | ✅ 25 tests    | ⏳       | ⏳       | 完成   |
+| Message Routing           | ✅ Logic tests | ⏳       | ⏳       | 完成   |
+| OrdersService Integration | ⏳             | ⏳       | ⏳       | 計劃中 |
+| WebSocket Connection      | N/A            | ⏳       | ⏳       | 計劃中 |
 
 ---
 
@@ -64,6 +64,7 @@
 **文件位置**: `apps/api/src/services/__tests__/RealtimeBroadcastService.test.ts`
 
 **測試範圍**:
+
 - ✅ 成功廣播事件到 Durable Object
 - ✅ 處理廣播失敗的情況
 - ✅ 處理網路錯誤
@@ -76,12 +77,14 @@
 - ✅ 事件 ID 包含時間戳
 
 **執行測試**:
+
 ```bash
 cd apps/api
 pnpm test src/services/__tests__/RealtimeBroadcastService.test.ts
 ```
 
 **預期結果**:
+
 ```
 ✓ RealtimeBroadcastService (10 tests) 32ms
   Test Files  1 passed (1)
@@ -93,6 +96,7 @@ pnpm test src/services/__tests__/RealtimeBroadcastService.test.ts
 **文件位置**: `apps/api/src/features/realtime/__tests__/RealtimeAuthService.test.ts`
 
 **測試範圍**:
+
 - ✅ JWT_SECRET 驗證
 - ✅ 為顧客房間生成 token
 - ✅ 為廚房房間生成 token
@@ -112,12 +116,14 @@ pnpm test src/services/__tests__/RealtimeBroadcastService.test.ts
 - ✅ WebSocket URL 構建
 
 **執行測試**:
+
 ```bash
 cd apps/api
 pnpm test src/features/realtime/__tests__/RealtimeAuthService.test.ts
 ```
 
 **預期結果**:
+
 ```
 ✓ RealtimeAuthService (25 tests) 38ms
   Test Files  1 passed (1)
@@ -129,6 +135,7 @@ pnpm test src/features/realtime/__tests__/RealtimeAuthService.test.ts
 **文件位置**: `apps/realtime/src/__tests__/message-routing.test.ts`
 
 **測試範圍**:
+
 - ✅ 餐廳 ID 隔離
 - ✅ NEW_ORDER 事件路由（所有角色）
 - ✅ ORDER_STATUS_UPDATE 路由（角色過濾）
@@ -151,6 +158,7 @@ pnpm test src/features/realtime/__tests__/RealtimeAuthService.test.ts
 **端點**: `POST /api/v1/realtime/auth/token`
 
 **測試案例 A - 顧客連線**:
+
 ```bash
 curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
   -H "Content-Type: application/json" \
@@ -163,6 +171,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 ```
 
 **預期響應**:
+
 ```json
 {
   "success": true,
@@ -175,6 +184,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 ```
 
 **測試案例 B - 廚房連線**:
+
 ```bash
 curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
   -H "Content-Type: application/json" \
@@ -187,6 +197,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 ```
 
 **測試案例 C - 管理員連線**:
+
 ```bash
 curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
   -H "Content-Type: application/json" \
@@ -211,6 +222,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/verify \
 ```
 
 **預期響應**:
+
 ```json
 {
   "success": true,
@@ -242,8 +254,10 @@ wscat -c "wss://realtime.makanmakan.workers.dev/customer/room_test_1?token=<YOUR
 ```
 
 **預期行為**:
+
 1. 連線成功
 2. 收到 `CONNECTION_ACK` 事件:
+
 ```json
 {
   "type": "connection_ack",
@@ -261,11 +275,13 @@ wscat -c "wss://realtime.makanmakan.workers.dev/customer/room_test_1?token=<YOUR
 ```
 
 3. 發送 ping 測試:
+
 ```json
-{"type": "ping"}
+{ "type": "ping" }
 ```
 
 4. 收到 `HEARTBEAT` 響應:
+
 ```json
 {
   "type": "heartbeat",
@@ -283,11 +299,13 @@ wscat -c "wss://realtime.makanmakan.workers.dev/customer/room_test_1?token=<YOUR
 #### 測試場景：創建訂單並驗證即時廣播
 
 **步驟 1**: 建立 3 個 WebSocket 連線
+
 - 連線 A: 顧客 (customer)
 - 連線 B: 廚房 (kitchen/staff)
 - 連線 C: 管理員 (admin)
 
 **步驟 2**: 通過 API 創建訂單
+
 ```bash
 curl -X POST http://localhost:8787/api/v1/orders \
   -H "Content-Type: application/json" \
@@ -309,6 +327,7 @@ curl -X POST http://localhost:8787/api/v1/orders \
 **預期結果**: 所有 3 個連線都應該收到 `NEW_ORDER` 事件
 
 **連線 A/B/C 都會收到**:
+
 ```json
 {
   "type": "new_order",
@@ -337,6 +356,7 @@ curl -X POST http://localhost:8787/api/v1/orders \
 ```
 
 **步驟 3**: 更新訂單狀態
+
 ```bash
 curl -X PATCH http://localhost:8787/api/v1/orders/1/status \
   -H "Content-Type": application/json" \
@@ -348,6 +368,7 @@ curl -X PATCH http://localhost:8787/api/v1/orders/1/status \
 ```
 
 **預期結果**:
+
 - 連線 A (顧客): 收到 `ORDER_STATUS_UPDATE` ✅
 - 連線 B (廚房/staff): 收到 `ORDER_STATUS_UPDATE` ✅
 - 連線 C (管理員): 收到 `ORDER_STATUS_UPDATE` ✅
@@ -356,15 +377,15 @@ curl -X PATCH http://localhost:8787/api/v1/orders/1/status \
 
 **測試目的**: 驗證不同角色收到正確的事件
 
-| 事件類型 | Customer | Staff | Admin |
-|---------|----------|-------|-------|
-| NEW_ORDER | ✅ | ✅ | ✅ |
-| ORDER_STATUS_UPDATE | ✅ | ✅ | ✅ |
-| ORDER_ITEM_STATUS_UPDATE | ✅ | ✅ | ✅ |
-| KITCHEN_ITEM_STATUS | ❌ | ✅ | ✅ |
-| KITCHEN_QUEUE_UPDATE | ❌ | ✅ | ✅ |
-| MENU_AVAILABILITY_UPDATE | ✅ | ✅ | ✅ |
-| SYSTEM_NOTIFICATION | ✅ | ✅ | ✅ |
+| 事件類型                 | Customer | Staff | Admin |
+| ------------------------ | -------- | ----- | ----- |
+| NEW_ORDER                | ✅       | ✅    | ✅    |
+| ORDER_STATUS_UPDATE      | ✅       | ✅    | ✅    |
+| ORDER_ITEM_STATUS_UPDATE | ✅       | ✅    | ✅    |
+| KITCHEN_ITEM_STATUS      | ❌       | ✅    | ✅    |
+| KITCHEN_QUEUE_UPDATE     | ❌       | ✅    | ✅    |
+| MENU_AVAILABILITY_UPDATE | ✅       | ✅    | ✅    |
+| SYSTEM_NOTIFICATION      | ✅       | ✅    | ✅    |
 
 ### 離線重連測試
 
@@ -377,6 +398,7 @@ curl -X PATCH http://localhost:8787/api/v1/orders/1/status \
 **步驟 4**: 重新連線
 
 **步驟 5**: 請求歷史事件
+
 ```bash
 # 通過 HTTP 端點查詢歷史
 curl "https://realtime.makanmakan.workers.dev/history?since=<lastEventId>"
@@ -423,11 +445,13 @@ curl "https://realtime.makanmakan.workers.dev/history?since=<lastEventId>"
 **症狀**: `401 Unauthorized` 或 `403 Forbidden`
 
 **可能原因**:
+
 - Token 已過期 (5 分鐘有效期)
 - Token 與請求的 roomId/roomType 不匹配
 - JWT_SECRET 配置錯誤
 
 **解決方案**:
+
 ```bash
 # 重新請求 token
 curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
@@ -438,11 +462,13 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 #### 2. 沒有收到廣播事件
 
 **可能原因**:
+
 - 餐廳 ID 不匹配
 - 角色權限不足
 - WebSocket 連線斷開
 
 **檢查步驟**:
+
 1. 確認連線狀態: `socket.readyState === WebSocket.OPEN`
 2. 檢查餐廳 ID 是否一致
 3. 查看 Durable Object 日誌: `npx wrangler tail`
@@ -450,11 +476,13 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
 #### 3. Token 驗證失敗
 
 **可能原因**:
+
 - JWT_SECRET 不一致
 - Token 格式錯誤
 - Token 過期
 
 **檢查步驟**:
+
 ```bash
 # 驗證 token
 curl -X POST http://localhost:8787/api/v1/realtime/auth/verify \
@@ -465,6 +493,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/verify \
 ### 除錯工具
 
 #### 1. Wrangler Tail (即時日誌)
+
 ```bash
 # 查看 realtime worker 日誌
 npx wrangler tail --env production
@@ -474,12 +503,14 @@ cd apps/api && npx wrangler tail
 ```
 
 #### 2. Durable Object Stats
+
 ```bash
 # 查看連線統計
 curl https://realtime.makanmakan.workers.dev/stats
 ```
 
 **預期響應**:
+
 ```json
 {
   "roomInfo": {
@@ -503,6 +534,7 @@ curl https://realtime.makanmakan.workers.dev/stats
 ```
 
 #### 3. Event History
+
 ```bash
 # 查看事件歷史
 curl "https://realtime.makanmakan.workers.dev/history"
@@ -516,16 +548,19 @@ curl "https://realtime.makanmakan.workers.dev/history?since=evt_12345"
 ## 後續改進
 
 ### 短期 (1-2週)
+
 - [ ] 完成 OrdersService 整合測試的 mock 配置
 - [ ] 添加 realtime 應用的測試框架支援
 - [ ] 實施自動化 E2E 測試
 
 ### 中期 (1個月)
+
 - [ ] 添加效能測試 (併發連線、訊息吞吐量)
 - [ ] 實施壓力測試 (1000+ 併發連線)
 - [ ] 添加監控和告警測試
 
 ### 長期 (3個月+)
+
 - [ ] 實施混沌工程測試 (Chaos Engineering)
 - [ ] 添加跨區域測試
 - [ ] 實施 A/B 測試框架
@@ -541,6 +576,7 @@ curl "https://realtime.makanmakan.workers.dev/history?since=evt_12345"
 ---
 
 **文檔維護**:
+
 - **建立日期**: 2025-11-03
 - **維護者**: MakanMakan Tech Team
 - **審核週期**: 每月

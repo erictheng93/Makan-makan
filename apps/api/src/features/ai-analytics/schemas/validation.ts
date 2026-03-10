@@ -3,17 +3,23 @@
  * Zod schemas for request validation
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Time range schema
 export const timeRangeSchema = z.object({
-  range: z.enum(['7d', '14d', '30d', '90d', '180d', '1y', 'custom']),
+  range: z.enum(["7d", "14d", "30d", "90d", "180d", "1y", "custom"]),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
 
 // AI provider enum
-export const aiProviderSchema = z.enum(['anthropic', 'openai', 'google', 'deepseek', 'custom']);
+export const aiProviderSchema = z.enum([
+  "anthropic",
+  "openai",
+  "google",
+  "deepseek",
+  "custom",
+]);
 
 // Configure AI schema
 export const configureAISchema = z.object({
@@ -42,8 +48,8 @@ export const generateAnalyticsSchema = z.object({
 
 // Product query schema
 export const productQuerySchema = z.object({
-  timeRange: z.string().default('30d'),
-  limit: z.string().transform(Number).default('10'),
+  timeRange: z.string().default("30d"),
+  limit: z.string().transform(Number).default("10"),
 });
 
 // Usage query schema

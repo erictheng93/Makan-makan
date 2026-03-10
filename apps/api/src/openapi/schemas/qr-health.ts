@@ -3,14 +3,19 @@
  * QR 碼與系統健康 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define enums first to avoid circular reference
-const QRCodeType = z.enum(['table', 'seat', 'shop', 'payment', 'menu']);
-const QRCodeFormat = z.enum(['svg', 'png', 'pdf']);
-const HealthStatus = z.enum(['healthy', 'degraded', 'unhealthy', 'maintenance']);
+const QRCodeType = z.enum(["table", "seat", "shop", "payment", "menu"]);
+const QRCodeFormat = z.enum(["svg", "png", "pdf"]);
+const HealthStatus = z.enum([
+  "healthy",
+  "degraded",
+  "unhealthy",
+  "maintenance",
+]);
 
 /**
  * QR Code & System Health API Schemas
@@ -34,10 +39,16 @@ export const QRHealthSchemas = {
     design: z.object({
       logo: z.string().url().optional(),
       primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i),
-      secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-      backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i).default('#FFFFFF'),
-      cornerStyle: z.enum(['square', 'rounded', 'dot']).default('square'),
-      errorCorrectionLevel: z.enum(['L', 'M', 'Q', 'H']).default('M'),
+      secondaryColor: z
+        .string()
+        .regex(/^#[0-9A-F]{6}$/i)
+        .optional(),
+      backgroundColor: z
+        .string()
+        .regex(/^#[0-9A-F]{6}$/i)
+        .default("#FFFFFF"),
+      cornerStyle: z.enum(["square", "rounded", "dot"]).default("square"),
+      errorCorrectionLevel: z.enum(["L", "M", "Q", "H"]).default("M"),
     }),
     isActive: z.boolean(),
     createdAt: z.string().datetime(),
@@ -47,15 +58,21 @@ export const QRHealthSchemas = {
   // Create QR Template Request
   CreateQRTemplateRequest: z.object({
     restaurantId: z.string().uuid(),
-    name: z.string().min(1, 'Template name is required'),
+    name: z.string().min(1, "Template name is required"),
     type: QRCodeType,
     design: z.object({
       logo: z.string().url().optional(),
-      primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
-      secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color').optional(),
-      backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color').optional(),
-      cornerStyle: z.enum(['square', 'rounded', 'dot']).optional(),
-      errorCorrectionLevel: z.enum(['L', 'M', 'Q', 'H']).optional(),
+      primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
+      secondaryColor: z
+        .string()
+        .regex(/^#[0-9A-F]{6}$/i, "Invalid hex color")
+        .optional(),
+      backgroundColor: z
+        .string()
+        .regex(/^#[0-9A-F]{6}$/i, "Invalid hex color")
+        .optional(),
+      cornerStyle: z.enum(["square", "rounded", "dot"]).optional(),
+      errorCorrectionLevel: z.enum(["L", "M", "Q", "H"]).optional(),
     }),
   }),
 
@@ -65,7 +82,7 @@ export const QRHealthSchemas = {
     targetId: z.string().uuid(), // tableId, seatId, restaurantId, etc.
     restaurantId: z.string().uuid(),
     templateId: z.string().uuid().optional(),
-    format: QRCodeFormat.default('png'),
+    format: QRCodeFormat.default("png"),
     size: z.number().int().min(128).max(2048).default(512),
     metadata: z.record(z.string()).optional(),
   }),
@@ -87,10 +104,13 @@ export const QRHealthSchemas = {
   // Bulk Generate QR Codes Request
   BulkGenerateQRCodesRequest: z.object({
     type: QRCodeType,
-    targetIds: z.array(z.string().uuid()).min(1, 'At least one target ID required').max(100),
+    targetIds: z
+      .array(z.string().uuid())
+      .min(1, "At least one target ID required")
+      .max(100),
     restaurantId: z.string().uuid(),
     templateId: z.string().uuid().optional(),
-    format: QRCodeFormat.default('png'),
+    format: QRCodeFormat.default("png"),
     size: z.number().int().min(128).max(2048).default(512),
   }),
 
@@ -104,7 +124,7 @@ export const QRHealthSchemas = {
         type: QRCodeType,
         url: z.string().url(),
         imageUrl: z.string().url(),
-      })
+      }),
     ),
     meta: z.object({
       totalGenerated: z.number().int(),
@@ -149,10 +169,10 @@ export const QRHealthSchemas = {
     issues: z.array(
       z.object({
         service: z.string(),
-        severity: z.enum(['low', 'medium', 'high', 'critical']),
+        severity: z.enum(["low", "medium", "high", "critical"]),
         message: z.string(),
         timestamp: z.string().datetime(),
-      })
+      }),
     ),
   }),
 
@@ -195,7 +215,7 @@ export const QRHealthSchemas = {
         type: z.string(),
         count: z.number().int(),
         percentage: z.number().min(0).max(1),
-      })
+      }),
     ),
   }),
 };
@@ -206,16 +226,16 @@ export const QRHealthSchemas = {
 
 // Generate Individual QR Code
 export const generateQRCodeRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/qr/generate',
-  tags: ['qr-codes'],
-  summary: '生成 QR 碼',
-  description: '生成單個 QR 碼（桌號、座位、店舖等）',
+  method: "post",
+  path: "/api/v1/qr/generate",
+  tags: ["qr-codes"],
+  summary: "生成 QR 碼",
+  description: "生成單個 QR 碼（桌號、座位、店舖等）",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: QRHealthSchemas.GenerateQRCodeRequest,
         },
       },
@@ -223,9 +243,9 @@ export const generateQRCodeRoute = createRoute({
   },
   responses: {
     201: {
-      description: 'QR 碼生成成功',
+      description: "QR 碼生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: QRHealthSchemas.GenerateQRCodeResponse,
         },
       },
@@ -236,16 +256,16 @@ export const generateQRCodeRoute = createRoute({
 
 // Bulk Generate QR Codes
 export const bulkGenerateQRCodesRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/qr/bulk',
-  tags: ['qr-codes'],
-  summary: '批次生成 QR 碼',
-  description: '批次生成多個 QR 碼並提供 ZIP 下載',
+  method: "post",
+  path: "/api/v1/qr/bulk",
+  tags: ["qr-codes"],
+  summary: "批次生成 QR 碼",
+  description: "批次生成多個 QR 碼並提供 ZIP 下載",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: QRHealthSchemas.BulkGenerateQRCodesRequest,
         },
       },
@@ -253,9 +273,9 @@ export const bulkGenerateQRCodesRoute = createRoute({
   },
   responses: {
     201: {
-      description: '批次生成成功',
+      description: "批次生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: QRHealthSchemas.BulkGenerateQRCodesResponse,
         },
       },
@@ -266,11 +286,11 @@ export const bulkGenerateQRCodesRoute = createRoute({
 
 // Get QR Code Templates
 export const getQRTemplatesRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/qr/templates/:restaurantId',
-  tags: ['qr-codes'],
-  summary: '獲取 QR 碼模板',
-  description: '獲取餐廳的 QR 碼設計模板',
+  method: "get",
+  path: "/api/v1/qr/templates/:restaurantId",
+  tags: ["qr-codes"],
+  summary: "獲取 QR 碼模板",
+  description: "獲取餐廳的 QR 碼設計模板",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -278,14 +298,17 @@ export const getQRTemplatesRoute = createRoute({
     }),
     query: z.object({
       type: QRHealthSchemas.QRCodeType.optional(),
-      isActive: z.string().transform((val) => val === 'true').optional(),
+      isActive: z
+        .string()
+        .transform((val) => val === "true")
+        .optional(),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取模板列表',
+      description: "成功獲取模板列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.array(QRHealthSchemas.QRTemplate),
@@ -299,16 +322,16 @@ export const getQRTemplatesRoute = createRoute({
 
 // Create QR Code Template
 export const createQRTemplateRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/qr/templates',
-  tags: ['qr-codes'],
-  summary: '創建 QR 碼模板',
-  description: '創建新的 QR 碼設計模板',
+  method: "post",
+  path: "/api/v1/qr/templates",
+  tags: ["qr-codes"],
+  summary: "創建 QR 碼模板",
+  description: "創建新的 QR 碼設計模板",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: QRHealthSchemas.CreateQRTemplateRequest,
         },
       },
@@ -316,9 +339,9 @@ export const createQRTemplateRoute = createRoute({
   },
   responses: {
     201: {
-      description: '模板創建成功',
+      description: "模板創建成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: QRHealthSchemas.QRTemplate,
@@ -332,16 +355,16 @@ export const createQRTemplateRoute = createRoute({
 
 // Get System Health
 export const getSystemHealthRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/health',
-  tags: ['system-health'],
-  summary: '獲取系統健康狀態',
-  description: '獲取系統各服務的健康狀態和運行指標',
+  method: "get",
+  path: "/api/v1/health",
+  tags: ["system-health"],
+  summary: "獲取系統健康狀態",
+  description: "獲取系統各服務的健康狀態和運行指標",
   responses: {
     200: {
-      description: '成功獲取健康狀態',
+      description: "成功獲取健康狀態",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: QRHealthSchemas.SystemHealth,
@@ -354,24 +377,24 @@ export const getSystemHealthRoute = createRoute({
 
 // Get Performance Metrics
 export const getPerformanceMetricsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/metrics/performance',
-  tags: ['system-health'],
-  summary: '獲取性能指標',
-  description: '獲取系統性能和使用統計',
+  method: "get",
+  path: "/api/v1/metrics/performance",
+  tags: ["system-health"],
+  summary: "獲取性能指標",
+  description: "獲取系統性能和使用統計",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
       startTime: z.string().datetime(),
       endTime: z.string().datetime(),
-      granularity: z.enum(['minute', 'hour', 'day']).default('hour'),
+      granularity: z.enum(["minute", "hour", "day"]).default("hour"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取性能指標',
+      description: "成功獲取性能指標",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: QRHealthSchemas.PerformanceMetrics,

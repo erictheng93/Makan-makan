@@ -34,6 +34,7 @@
 ### 1. 產品目錄系統 ✅ (04_product_catalog.sql)
 
 **表結構**:
+
 - ✅ `categories` - 分類管理（階層式）
 - ✅ `menu_items` - 菜單項目
 - ✅ `menu_modifiers` - 修改選項
@@ -42,6 +43,7 @@
 - ✅ `modifier_groups` - 修改選項群組
 
 **關鍵特性**:
+
 ```
 • 階層式分類（parent_id, path, level）
 • 完整商品資訊（定價、庫存、營養資訊）
@@ -54,6 +56,7 @@
 ```
 
 **統計**:
+
 - 表: 6 個
 - 索引: 25 個
 - 視圖: 3 個
@@ -65,11 +68,13 @@
 ### 2. 訂單管理系統 ✅ (05_order_management.sql)
 
 **表結構**:
+
 - ✅ `orders` - 訂單主表
 - ✅ `order_items` - 訂單項目
 - ✅ `order_payments` - 付款記錄
 
 **關鍵特性**:
+
 ```
 • 多訂單類型（內用、外帶、外送、團購）
 • 多訂單來源（QR、POS、APP、網站）
@@ -85,6 +90,7 @@
 ```
 
 **統計**:
+
 - 表: 3 個
 - 索引: 32 個
 - 視圖: 4 個
@@ -96,12 +102,14 @@
 ### 3. 顧客管理系統 ✅ (06_customer_management.sql)
 
 **表結構**:
+
 - ✅ `customer_profiles` - 顧客詳細資料
 - ✅ `customer_addresses` - 顧客地址簿
 - ✅ `customer_preferences` - 顧客偏好
 - ✅ `customer_favorites` - 最愛項目
 
 **關鍵特性**:
+
 ```
 • 完整 CRM 系統
 • 會員等級系統（bronze → diamond）
@@ -120,6 +128,7 @@
 ```
 
 **統計**:
+
 - 表: 4 個
 - 索引: 27 個
 - 視圖: 4 個

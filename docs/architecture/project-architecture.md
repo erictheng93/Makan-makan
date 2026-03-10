@@ -191,16 +191,14 @@ makanmakan/
 ## 🔧 核心配置文件
 
 ### 根目錄 package.json
+
 ```json
 {
   "name": "makanmakan",
   "version": "2.0.0",
   "description": "智慧雲端點餐平台 - 基於Cloudflare生態系統",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
@@ -235,6 +233,7 @@ makanmakan/
 ```
 
 ### TypeScript 全局配置
+
 ```json
 {
   "compilerOptions": {
@@ -256,29 +255,22 @@ makanmakan/
       "@makanmakan/utils": ["packages/utils/src"]
     }
   },
-  "include": [
-    "apps/**/*",
-    "packages/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "legacy"
-  ]
+  "include": ["apps/**/*", "packages/**/*"],
+  "exclude": ["node_modules", "dist", "legacy"]
 }
 ```
 
 ## 🌐 Cloudflare服務映射
 
-| 應用/功能 | Cloudflare服務 | 配置位置 |
-|----------|---------------|---------|
-| 消費者前端 | Pages | `apps/customer-app/` |
-| 管理後台 | Pages | `apps/admin-dashboard/` |
-| 核心API | Workers | `apps/api/` |
-| 即時通訊 | Durable Objects | `apps/realtime/` |
-| 圖片處理 | Workers + R2 + Images | `apps/image-processor/` |
-| 資料庫 | D1 | `packages/database/` |
-| 快取 | KV Store | 各個應用配置 |
+| 應用/功能  | Cloudflare服務        | 配置位置                |
+| ---------- | --------------------- | ----------------------- |
+| 消費者前端 | Pages                 | `apps/customer-app/`    |
+| 管理後台   | Pages                 | `apps/admin-dashboard/` |
+| 核心API    | Workers               | `apps/api/`             |
+| 即時通訊   | Durable Objects       | `apps/realtime/`        |
+| 圖片處理   | Workers + R2 + Images | `apps/image-processor/` |
+| 資料庫     | D1                    | `packages/database/`    |
+| 快取       | KV Store              | 各個應用配置            |
 
 ## 📋 開發工作流程
 

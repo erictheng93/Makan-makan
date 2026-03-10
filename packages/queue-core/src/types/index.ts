@@ -5,9 +5,9 @@
  */
 
 // Core Queue Types
-export * from './queue'
-export * from './requests'
-export * from './events'
+export * from "./queue";
+export * from "./requests";
+export * from "./events";
 
 // Re-export commonly used types for convenience
 export type {
@@ -16,19 +16,15 @@ export type {
   QueueNotification,
   QueueSettings,
   QueueStatistics,
-  QueueEvent as QueueEventType
-} from './queue'
+  QueueEvent as QueueEventType,
+} from "./queue";
 
 export type {
   JoinQueueRequest,
   JoinQueueResponse,
   CallNextRequest,
   QueuePositionResponse,
-  ApiResponse
-} from './requests'
+  ApiResponse,
+} from "./requests";
 
-export type {
-  QueueEvent,
-  QueueEventHandler,
-  QueueEventBus
-} from './events'
+export type { QueueEvent, QueueEventHandler, QueueEventBus } from "./events";

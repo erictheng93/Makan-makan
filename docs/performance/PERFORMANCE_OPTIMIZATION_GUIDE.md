@@ -9,6 +9,7 @@ This guide provides step-by-step instructions to implement the performance optim
 ## Prerequisites
 
 Before starting, ensure you have:
+
 - [x] Backup of production database
 - [x] Access to staging environment
 - [x] Performance baseline metrics recorded
@@ -44,6 +45,7 @@ npx wrangler d1 execute makanmakan-staging --env staging \
 ```
 
 **Performance Verification**:
+
 ```bash
 # Before optimization - should be slow (500-800ms)
 time npx wrangler d1 execute makanmakan-staging --env staging \
@@ -54,6 +56,7 @@ time npx wrangler d1 execute makanmakan-staging --env staging \
 ```
 
 **Deploy to Production** (during low-traffic hours):
+
 ```bash
 # Production deployment
 npx wrangler d1 migrations apply makanmakan-prod \
@@ -102,16 +105,17 @@ cp packages/database/src/services/order.ts \
 // packages/database/src/services/index.ts
 
 // Export both versions during transition
-export { OrderService } from './order'           // Existing
-export { OrderServiceOptimized } from './order.optimized'  // New
+export { OrderService } from "./order"; // Existing
+export { OrderServiceOptimized } from "./order.optimized"; // New
 
 // Feature flag for gradual rollout
-const USE_OPTIMIZED_ORDER_SERVICE = process.env.USE_OPTIMIZED_ORDER_SERVICE === 'true'
+const USE_OPTIMIZED_ORDER_SERVICE =
+  process.env.USE_OPTIMIZED_ORDER_SERVICE === "true";
 
 export function createOrderService(db: D1Database) {
   return USE_OPTIMIZED_ORDER_SERVICE
     ? new OrderServiceOptimized(db)
-    : new OrderService(db)
+    : new OrderService(db);
 }
 ```
 
@@ -182,42 +186,45 @@ const routes = [
   // ... other routes
 
   {
-    path: '/scan',
-    name: 'QRScan',
+    path: "/scan",
+    name: "QRScan",
     // CRITICAL: Lazy load QR scanner (removes 381KB from initial bundle)
-    component: () => import(
-      /* webpackChunkName: "qr-scanner" */
-      /* webpackPrefetch: false */
-      '../views/QRScanView.vue'
-    ),
+    component: () =>
+      import(
+        /* webpackChunkName: "qr-scanner" */
+        /* webpackPrefetch: false */
+        "../views/QRScanView.vue"
+      ),
     meta: {
-      title: '掃描 QR Code'
-    }
+      title: "掃描 QR Code",
+    },
   },
 
   {
-    path: '/menu',
-    name: 'Menu',
-    component: () => import(
-      /* webpackChunkName: "menu" */
-      /* webpackPrefetch: true */
-      '../views/MenuView.vue'
-    ),
+    path: "/menu",
+    name: "Menu",
+    component: () =>
+      import(
+        /* webpackChunkName: "menu" */
+        /* webpackPrefetch: true */
+        "../views/MenuView.vue"
+      ),
     meta: {
-      requiresAuth: true
-    }
+      requiresAuth: true,
+    },
   },
 
   {
-    path: '/cart',
-    name: 'Cart',
-    component: () => import(
-      /* webpackChunkName: "cart" */
-      /* webpackPrefetch: true */
-      '../views/CartView.vue'
-    )
-  }
-]
+    path: "/cart",
+    name: "Cart",
+    component: () =>
+      import(
+        /* webpackChunkName: "cart" */
+        /* webpackPrefetch: true */
+        "../views/CartView.vue"
+      ),
+  },
+];
 ```
 
 ### Step 3.3: Build and Analyze Bundle
@@ -284,45 +291,48 @@ ls -lh dist/assets/*.{br,gz}
 
 export const CACHE_STRATEGIES = {
   MENU: {
-    ttl: 1800,        // 30 minutes (was 300)
-    tags: ['menu'],
-    priority: 'high',
-    invalidateOn: ['menu_update', 'item_availability'],
-    preload: true     // NEW: Enable predictive preloading
+    ttl: 1800, // 30 minutes (was 300)
+    tags: ["menu"],
+    priority: "high",
+    invalidateOn: ["menu_update", "item_availability"],
+    preload: true, // NEW: Enable predictive preloading
   },
 
   RESTAURANT: {
-    ttl: 3600,        // 1 hour (was 300)
-    tags: ['restaurant'],
-    priority: 'high',
-    invalidateOn: ['restaurant_update'],
-    preload: true
+    ttl: 3600, // 1 hour (was 300)
+    tags: ["restaurant"],
+    priority: "high",
+    invalidateOn: ["restaurant_update"],
+    preload: true,
   },
 
   ANALYTICS: {
     ttl: (timeRange: string) => {
-      switch(timeRange) {
-        case '1h': return 60      // 1 min for real-time
-        case '24h': return 300    // 5 min
-        case '7d': return 1800    // 30 min
-        case '30d': return 3600   // 1 hour
-        default: return 300
+      switch (timeRange) {
+        case "1h":
+          return 60; // 1 min for real-time
+        case "24h":
+          return 300; // 5 min
+        case "7d":
+          return 1800; // 30 min
+        case "30d":
+          return 3600; // 1 hour
+        default:
+          return 300;
       }
     },
-    tags: ['analytics'],
-    priority: 'normal',
-    invalidateOn: ['order_completed'],
-    preload: false
-  }
-}
+    tags: ["analytics"],
+    priority: "normal",
+    invalidateOn: ["order_completed"],
+    preload: false,
+  },
+};
 
 // Granular cache invalidation
 export const invalidateMenuCache = (restaurantId?: number) =>
   cacheInvalidationMiddleware(
-    restaurantId
-      ? [`menu:${restaurantId}`]
-      : ['menu']
-  )
+    restaurantId ? [`menu:${restaurantId}`] : ["menu"],
+  );
 ```
 
 ### Step 4.2: Integrate Intelligent D1 Service
@@ -330,15 +340,15 @@ export const invalidateMenuCache = (restaurantId?: number) =>
 ```typescript
 // packages/database/src/services/menu.ts
 
-import { IntelligentD1Service } from './intelligent-d1'
+import { IntelligentD1Service } from "./intelligent-d1";
 
 export class MenuService extends BaseService {
-  private intelligentDb?: IntelligentD1Service
+  private intelligentDb?: IntelligentD1Service;
 
   constructor(d1: D1Database, cacheManager?: any) {
-    super(d1)
+    super(d1);
     if (cacheManager) {
-      this.intelligentDb = new IntelligentD1Service(d1, cacheManager)
+      this.intelligentDb = new IntelligentD1Service(d1, cacheManager);
     }
   }
 
@@ -351,12 +361,12 @@ export class MenuService extends BaseService {
           cacheKey: `menu:${restaurantId}`,
           cacheTtl: 1800,
           tags: [`menu`, `restaurant:${restaurantId}`],
-          enablePreloading: true
-        }
-      )
+          enablePreloading: true,
+        },
+      );
     }
 
-    return this.standardGetMenu(restaurantId)
+    return this.standardGetMenu(restaurantId);
   }
 }
 ```
@@ -396,38 +406,42 @@ npx wrangler tail makanmakan-api-staging | grep "Cache"
 <!-- apps/customer-app/src/components/MenuItemCard.vue -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 // Memoize expensive calculations
 const imageUrl = computed(() => {
-  const url = props.item.imageVariants?.medium || props.item.imageUrl
-  if (url?.startsWith('/')) {
-    return `${import.meta.env.VITE_IMAGE_BASE_URL || ''}${url}`
+  const url = props.item.imageVariants?.medium || props.item.imageUrl;
+  if (url?.startsWith("/")) {
+    return `${import.meta.env.VITE_IMAGE_BASE_URL || ""}${url}`;
   }
-  return url
-})
+  return url;
+});
 
 // Cache lazy loading config
 const lazyConfig = computed(() => ({
   src: imageUrl.value,
-  placeholder: '/placeholder-food.jpg',
+  placeholder: "/placeholder-food.jpg",
   quality: 85,
   progressive: true,
-}))
+}));
 
 // Memoize dietary tags
 const dietaryTags = computed(() => {
-  const dietary = props.item.dietaryInfo
-  if (!dietary) return []
+  const dietary = props.item.dietaryInfo;
+  if (!dietary) return [];
 
-  const tags = []
+  const tags = [];
   if (dietary.vegetarian) {
-    tags.push({ key: 'vegetarian', label: '素食', class: 'bg-green-100 text-green-800' })
+    tags.push({
+      key: "vegetarian",
+      label: "素食",
+      class: "bg-green-100 text-green-800",
+    });
   }
   // ... other tags
 
-  return tags
-})
+  return tags;
+});
 </script>
 
 <template>
@@ -440,31 +454,31 @@ const dietaryTags = computed(() => {
 ```typescript
 // apps/kitchen-display/src/components/VirtualOrderGrid.vue
 
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn } from "@vueuse/core";
 
 // Debounce scroll handler for 60fps
 const handleScroll = useDebounceFn(async (event: Event) => {
-  const target = event.target as HTMLElement
-  scrollTop.value = target.scrollTop
+  const target = event.target as HTMLElement;
+  scrollTop.value = target.scrollTop;
 
   if (props.hasMore && !isLoadingMore.value) {
     const scrolledPercentage =
-      (target.scrollTop + target.clientHeight) / target.scrollHeight
+      (target.scrollTop + target.clientHeight) / target.scrollHeight;
     if (scrolledPercentage > 0.9) {
-      await loadMoreItems()
+      await loadMoreItems();
     }
   }
-}, 16) // 60fps = 16ms frame time
+}, 16); // 60fps = 16ms frame time
 
 // Increase buffer for smoother scrolling
-const bufferSize = ref(5) // was 3
+const bufferSize = ref(5); // was 3
 
 // Use RAF for smooth updates
 const updateVisibleItems = () => {
   requestAnimationFrame(() => {
     // Recalculate visible orders
-  })
-}
+  });
+};
 ```
 
 ### Step 5.3: Optimize Cart Store
@@ -472,36 +486,36 @@ const updateVisibleItems = () => {
 ```typescript
 // apps/customer-app/src/stores/cart.ts
 
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn } from "@vueuse/core";
 
 // Debounced save to localStorage
 const debouncedSave = useDebounceFn(() => {
-  if (!restaurantId.value || !tableId.value) return
+  if (!restaurantId.value || !tableId.value) return;
 
   const cartData = {
     items: items.value,
     restaurantId: restaurantId.value,
     tableId: tableId.value,
     timestamp: Date.now(),
-  }
+  };
 
   // Async write using requestIdleCallback
   requestIdleCallback(() => {
     try {
-      localStorage.setItem(getCartStorageKey(), JSON.stringify(cartData))
+      localStorage.setItem(getCartStorageKey(), JSON.stringify(cartData));
     } catch (error) {
-      console.warn('保存購物車失敗:', error)
+      console.warn("保存購物車失敗:", error);
     }
-  })
-}, 500) // Batch saves every 500ms
+  });
+}, 500); // Batch saves every 500ms
 
 // Batch add items
 const addItems = (itemsToAdd: CartItem[]) => {
-  itemsToAdd.forEach(item => {
-    items.value.push(item)
-  })
-  debouncedSave() // Single save after all additions
-}
+  itemsToAdd.forEach((item) => {
+    items.value.push(item);
+  });
+  debouncedSave(); // Single save after all additions
+};
 ```
 
 ---
@@ -664,41 +678,41 @@ After all optimizations are deployed, verify:
 // Create performance monitoring dashboard
 
 // 1. Add monitoring route
-app.get('/api/v1/monitoring/dashboard', async (c) => {
+app.get("/api/v1/monitoring/dashboard", async (c) => {
   const metrics = {
     frontend: {
-      lcp: await getMetric('lcp'),
-      fcp: await getMetric('fcp'),
-      tti: await getMetric('tti'),
-      bundleSize: await getMetric('bundleSize')
+      lcp: await getMetric("lcp"),
+      fcp: await getMetric("fcp"),
+      tti: await getMetric("tti"),
+      bundleSize: await getMetric("bundleSize"),
     },
     backend: {
-      apiResponseP95: await getMetric('apiResponseP95'),
-      dbQueryP95: await getMetric('dbQueryP95'),
-      cacheHitRate: await getMetric('cacheHitRate')
+      apiResponseP95: await getMetric("apiResponseP95"),
+      dbQueryP95: await getMetric("dbQueryP95"),
+      cacheHitRate: await getMetric("cacheHitRate"),
     },
     business: {
-      conversionRate: await getMetric('conversionRate'),
-      avgOrderValue: await getMetric('avgOrderValue'),
-      orderCompletionRate: await getMetric('orderCompletionRate')
-    }
-  }
+      conversionRate: await getMetric("conversionRate"),
+      avgOrderValue: await getMetric("avgOrderValue"),
+      orderCompletionRate: await getMetric("orderCompletionRate"),
+    },
+  };
 
-  return c.json({ success: true, data: metrics })
-})
+  return c.json({ success: true, data: metrics });
+});
 
 // 2. Setup alerts
 const performanceAlerts = {
-  lcp: { threshold: 2500, severity: 'warning' },
-  apiResponseP95: { threshold: 300, severity: 'critical' },
-  cacheHitRate: { threshold: 0.7, severity: 'warning' }
-}
+  lcp: { threshold: 2500, severity: "warning" },
+  apiResponseP95: { threshold: 300, severity: "critical" },
+  cacheHitRate: { threshold: 0.7, severity: "warning" },
+};
 
 // 3. Automated reports
 setInterval(async () => {
-  const report = await generatePerformanceReport()
-  await sendToSlack(report)
-}, 3600000) // Hourly reports
+  const report = await generatePerformanceReport();
+  await sendToSlack(report);
+}, 3600000); // Hourly reports
 ```
 
 ---
@@ -731,6 +745,7 @@ After implementing all optimizations:
 ### Common Issues
 
 **Issue: Indexes not improving performance**
+
 ```bash
 # Solution: Analyze tables
 npx wrangler d1 execute makanmakan-prod --env production \
@@ -738,6 +753,7 @@ npx wrangler d1 execute makanmakan-prod --env production \
 ```
 
 **Issue: Cache hit rate still low**
+
 ```bash
 # Solution: Check cache configuration
 curl -I https://api.makanmakan.app/api/v1/menu/1 | grep Cache
@@ -746,6 +762,7 @@ curl -I https://api.makanmakan.app/api/v1/menu/1 | grep Cache
 ```
 
 **Issue: Bundle still large**
+
 ```bash
 # Solution: Analyze bundle composition
 ANALYZE=true pnpm build

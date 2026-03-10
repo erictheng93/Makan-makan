@@ -204,12 +204,15 @@ export function integrateOpenAPI(app: Hono) {
   const openApiApp = createOpenAPIApp();
 
   // ✅ Swagger UI 主頁面
-  app.get('/docs', swaggerUI({
-    url: '/openapi.json'
-  }));
+  app.get(
+    "/docs",
+    swaggerUI({
+      url: "/openapi.json",
+    }),
+  );
 
   // ✅ OpenAPI JSON 端點
-  app.get('/openapi.json', (c) => {
+  app.get("/openapi.json", (c) => {
     return c.json(openApiApp.getOpenAPI31Document());
   });
 
@@ -218,6 +221,7 @@ export function integrateOpenAPI(app: Hono) {
 ```
 
 **訪問方式**：
+
 - Swagger UI: `http://localhost:8787/docs`
 - OpenAPI JSON: `http://localhost:8787/openapi.json`
 
@@ -229,8 +233,8 @@ export function integrateOpenAPI(app: Hono) {
 export const AuthSchemas = {
   // ✅ Login Request Schema
   LoginRequest: z.object({
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    email: z.string().email("Invalid email format"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
   }),
 
   // ✅ Login Response Schema
@@ -273,8 +277,8 @@ export const MenuSchemas = {
     restaurantId: z.string().uuid(),
     categoryId: z.string().uuid().optional(),
     available: z.boolean().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
   }),
 
   // ✅ Get Menu Items Response Schema
@@ -296,7 +300,13 @@ export const MenuSchemas = {
 ```typescript
 export const OrdersSchemas = {
   // ✅ Order Status Enum
-  OrderStatus: z.enum(['pending', 'preparing', 'ready', 'completed', 'cancelled']),
+  OrderStatus: z.enum([
+    "pending",
+    "preparing",
+    "ready",
+    "completed",
+    "cancelled",
+  ]),
 
   // ✅ Order Item Schema
   OrderItem: z.object({
@@ -306,7 +316,7 @@ export const OrdersSchemas = {
     quantity: z.number().int().positive(),
     price: z.number().positive(),
     notes: z.string().optional(),
-    status: z.enum(['pending', 'preparing', 'ready']),
+    status: z.enum(["pending", "preparing", "ready"]),
   }),
 
   // ✅ Order Schema
@@ -333,15 +343,15 @@ export const OrdersSchemas = {
 
 ```typescript
 export const authLoginRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/auth/login',
-  tags: ['auth'],
-  summary: '用戶登入',
-  description: '使用 email 和密碼進行身份驗證，成功後返回 JWT token',
+  method: "post",
+  path: "/api/v1/auth/login",
+  tags: ["auth"],
+  summary: "用戶登入",
+  description: "使用 email 和密碼進行身份驗證，成功後返回 JWT token",
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: AuthSchemas.LoginRequest,
         },
       },
@@ -349,9 +359,9 @@ export const authLoginRoute = createRoute({
   },
   responses: {
     200: {
-      description: '登入成功',
+      description: "登入成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: AuthSchemas.LoginResponse,
         },
       },
@@ -366,11 +376,11 @@ export const authLoginRoute = createRoute({
 
 ```typescript
 export const getMenuItemsRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/menu/:restaurantId/items',
-  tags: ['menu'],
-  summary: '獲取菜單項目列表',
-  description: '獲取指定餐廳的菜單項目，支持分頁和過濾',
+  method: "get",
+  path: "/api/v1/menu/:restaurantId/items",
+  tags: ["menu"],
+  summary: "獲取菜單項目列表",
+  description: "獲取指定餐廳的菜單項目，支持分頁和過濾",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -378,16 +388,19 @@ export const getMenuItemsRoute = createRoute({
     }),
     query: z.object({
       categoryId: z.string().uuid().optional(),
-      available: z.string().transform(val => val === 'true').optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      available: z
+        .string()
+        .transform((val) => val === "true")
+        .optional(),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取菜單項目',
+      description: "成功獲取菜單項目",
       content: {
-        'application/json': {
+        "application/json": {
           schema: MenuSchemas.GetMenuItemsResponse,
         },
       },
@@ -402,16 +415,16 @@ export const getMenuItemsRoute = createRoute({
 
 ```typescript
 export const createOrderRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/orders',
-  tags: ['orders'],
-  summary: '創建新訂單',
-  description: '創建新的訂單，包含一個或多個菜單項目',
+  method: "post",
+  path: "/api/v1/orders",
+  tags: ["orders"],
+  summary: "創建新訂單",
+  description: "創建新的訂單，包含一個或多個菜單項目",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: OrdersSchemas.CreateOrderRequest,
         },
       },
@@ -419,9 +432,9 @@ export const createOrderRoute = createRoute({
   },
   responses: {
     201: {
-      description: '訂單創建成功',
+      description: "訂單創建成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: OrdersSchemas.Order,
@@ -519,12 +532,14 @@ export const createOrderRoute = createRoute({
 ### Phase 2: 測試實施
 
 **Realtime Services（需要 16 個測試文件）**：
+
 - routing/ 目錄：5 個測試
 - integration/ 目錄：5 個測試
 - auth/ 目錄：4 個測試（已有 1 個）
 - connection/ 目錄：2 個測試（已有 3 個）
 
 **Kitchen Display（需要 23 個測試文件）**：
+
 - components/ 目錄：8 個測試（已有 2 個）
 - composables/ 目錄：5 個測試
 - stores/ 目錄：5 個測試
@@ -533,6 +548,7 @@ export const createOrderRoute = createRoute({
 ### Phase 3: API 文檔化
 
 **需要文檔化的端點組（剩餘 11 個）**：
+
 - ✅ auth（已完成）
 - ✅ menu（已完成）
 - ✅ orders（已完成）
@@ -555,6 +571,7 @@ export const createOrderRoute = createRoute({
 ### 如何使用創建的測試範例
 
 1. **複製範例測試文件**
+
    ```bash
    # 複製 Realtime 測試範例
    cp apps/realtime/src/__tests__/unit/connection/heartbeat-mechanism.test.ts \
@@ -567,6 +584,7 @@ export const createOrderRoute = createRoute({
    - 添加新的測試案例
 
 3. **運行測試**
+
    ```bash
    # 運行所有測試
    pnpm test
@@ -581,6 +599,7 @@ export const createOrderRoute = createRoute({
 ### 如何使用 OpenAPI Schema
 
 1. **在路由處理器中使用**
+
    ```typescript
    import { authLoginRoute } from './openapi/integration';
 
@@ -597,6 +616,7 @@ export const createOrderRoute = createRoute({
    ```
 
 2. **創建新的 API Schema**
+
    ```typescript
    // 仿照 MenuSchemas 的模式
    export const TablesSchemas = {
@@ -610,6 +630,7 @@ export const createOrderRoute = createRoute({
    ```
 
 3. **訪問 Swagger UI**
+
    ```bash
    # 啟動開發服務器
    pnpm dev
@@ -670,6 +691,7 @@ export const createOrderRoute = createRoute({
 ```
 
 **說明**：
+
 - **均衡測試分布**: 從 30% → 50%（新增 6 個核心測試文件）
 - **測試覆蓋率**: 估計達到 85%+（核心模組）
 - **OpenAPI 規範化**: 從 0% → 35%（3/14 端點組 + 基礎設施）
@@ -681,9 +703,10 @@ export const createOrderRoute = createRoute({
 ### 立即行動
 
 1. **整合 OpenAPI 到主應用**
+
    ```typescript
    // apps/api/src/index.ts
-   import { integrateOpenAPI } from './openapi/integration';
+   import { integrateOpenAPI } from "./openapi/integration";
 
    const app = new Hono();
 
@@ -695,6 +718,7 @@ export const createOrderRoute = createRoute({
    ```
 
 2. **運行核心測試**
+
    ```bash
    # 運行 Realtime 測試
    pnpm test apps/realtime
@@ -707,6 +731,7 @@ export const createOrderRoute = createRoute({
    ```
 
 3. **驗證 Swagger UI**
+
    ```bash
    # 啟動 API 服務
    cd apps/api && pnpm dev
@@ -718,12 +743,14 @@ export const createOrderRoute = createRoute({
 ### 團隊分配（剩餘工作）
 
 **Week 1-2: 補充測試文件**
+
 - 開發者 A: Realtime routing/ 測試（5 個）
 - 開發者 B: Realtime integration/ 測試（5 個）
 - 開發者 C: Kitchen composables/ + stores/ 測試（10 個）
 - 開發者 D: Kitchen integration/ 測試（5 個）
 
 **Week 3: API 文檔化**
+
 - 開發者 A: tables + users + customers（3 個端點組）
 - 開發者 B: restaurants + realtime + analytics（3 個端點組）
 - 開發者 C: ai-analytics + scheduling + leaves（3 個端點組）
@@ -736,16 +763,15 @@ export const createOrderRoute = createRoute({
 ### A. 創建的文件清單
 
 **測試文件**：
+
 1. `apps/realtime/src/__tests__/unit/auth/token-verification.test.ts`
 2. `apps/realtime/src/__tests__/unit/connection/heartbeat-mechanism.test.ts`
 3. `apps/realtime/src/__tests__/unit/connection/connection-pool.test.ts`
 4. `apps/kitchen-display/src/__tests__/unit/components/OrderCard.test.ts`
 
-**API 文檔化文件**：
-5. `apps/api/src/openapi/integration.ts`
+**API 文檔化文件**：5. `apps/api/src/openapi/integration.ts`
 
-**文檔文件**：
-6. `docs/TESTING_INFRASTRUCTURE_PHASE2-3_COMPLETION.md` (本文件)
+**文檔文件**：6. `docs/TESTING_INFRASTRUCTURE_PHASE2-3_COMPLETION.md` (本文件)
 
 ### B. 快速命令參考
 

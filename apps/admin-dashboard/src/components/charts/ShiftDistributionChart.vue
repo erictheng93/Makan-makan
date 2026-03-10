@@ -3,7 +3,7 @@
     <div class="chart-header">
       <h3 class="chart-title">
         <span class="icon">🥧</span>
-        {{ t('charts.shiftDistribution.title') }}
+        {{ t("charts.shiftDistribution.title") }}
       </h3>
       <div class="chart-controls">
         <button
@@ -24,10 +24,17 @@
         class="shift-badge"
         :style="{ borderLeftColor: colors[index] }"
       >
-        <div class="badge-color" :style="{ backgroundColor: colors[index] }"></div>
+        <div
+          class="badge-color"
+          :style="{ backgroundColor: colors[index] }"
+        ></div>
         <div class="badge-info">
           <div class="badge-name">{{ shift.name }}</div>
-          <div class="badge-count">{{ shift.count }} {{ t('charts.shiftDistribution.people') }} ({{ getPercentage(shift.count) }}%)</div>
+          <div class="badge-count">
+            {{ shift.count }} {{ t("charts.shiftDistribution.people") }} ({{
+              getPercentage(shift.count)
+            }}%)
+          </div>
         </div>
       </div>
     </div>
@@ -43,106 +50,109 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from '@/i18n'
-import BaseChart from './BaseChart.vue'
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
+import BaseChart from "./BaseChart.vue";
 
 interface ShiftData {
-  id: string
-  name: string
-  count: number
-  color?: string
+  id: string;
+  name: string;
+  count: number;
+  color?: string;
 }
 
 interface Props {
-  data?: ShiftData[]
-  autoFetch?: boolean
+  data?: ShiftData[];
+  autoFetch?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   data: () => [],
-  autoFetch: false
-})
+  autoFetch: false,
+});
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const selectedType = ref<'pie' | 'doughnut'>('doughnut')
-const isLoading = ref(false)
-const error = ref('')
-const shifts = ref<ShiftData[]>(props.data)
+const selectedType = ref<"pie" | "doughnut">("doughnut");
+const isLoading = ref(false);
+const error = ref("");
+const shifts = ref<ShiftData[]>(props.data);
 
 const chartTypes = computed(() => [
-  { value: 'doughnut' as const, label: t('charts.shiftDistribution.doughnutChart') },
-  { value: 'pie' as const, label: t('charts.shiftDistribution.pieChart') }
-])
+  {
+    value: "doughnut" as const,
+    label: t("charts.shiftDistribution.doughnutChart"),
+  },
+  { value: "pie" as const, label: t("charts.shiftDistribution.pieChart") },
+]);
 
 const colors = [
-  '#3b82f6', // 藍色 - 早班
-  '#10b981', // 綠色 - 午班
-  '#f59e0b', // 橙色 - 晚班
-  '#8b5cf6', // 紫色 - 夜班
-  '#ef4444', // 紅色 - 全天
-  '#06b6d4', // 青色
-  '#ec4899', // 粉色
-  '#6b7280'  // 灰色
-]
+  "#3b82f6", // 藍色 - 早班
+  "#10b981", // 綠色 - 午班
+  "#f59e0b", // 橙色 - 晚班
+  "#8b5cf6", // 紫色 - 夜班
+  "#ef4444", // 紅色 - 全天
+  "#06b6d4", // 青色
+  "#ec4899", // 粉色
+  "#6b7280", // 灰色
+];
 
 const totalCount = computed(() => {
-  return shifts.value.reduce((sum, shift) => sum + shift.count, 0)
-})
+  return shifts.value.reduce((sum, shift) => sum + shift.count, 0);
+});
 
 const getPercentage = (count: number) => {
-  if (totalCount.value === 0) return 0
-  return ((count / totalCount.value) * 100).toFixed(1)
-}
+  if (totalCount.value === 0) return 0;
+  return ((count / totalCount.value) * 100).toFixed(1);
+};
 
 const chartData = computed(() => {
   return {
-    labels: shifts.value.map(shift => shift.name),
+    labels: shifts.value.map((shift) => shift.name),
     datasets: [
       {
-        label: t('charts.shiftDistribution.distribution'),
-        data: shifts.value.map(shift => shift.count),
+        label: t("charts.shiftDistribution.distribution"),
+        data: shifts.value.map((shift) => shift.count),
         backgroundColor: colors.slice(0, shifts.value.length),
-        borderColor: '#ffffff',
-        borderWidth: 3
-      }
-    ]
-  }
-})
+        borderColor: "#ffffff",
+        borderWidth: 3,
+      },
+    ],
+  };
+});
 
 const fetchData = async () => {
-  if (!props.autoFetch) return
+  if (!props.autoFetch) return;
 
-  isLoading.value = true
-  error.value = ''
+  isLoading.value = true;
+  error.value = "";
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     // 模擬數據
     shifts.value = [
-      { id: '1', name: '早班 (08:00-16:00)', count: 45 },
-      { id: '2', name: '午班 (12:00-20:00)', count: 38 },
-      { id: '3', name: '晚班 (16:00-00:00)', count: 32 },
-      { id: '4', name: '夜班 (00:00-08:00)', count: 18 },
-      { id: '5', name: '全天 (08:00-20:00)', count: 12 }
-    ]
+      { id: "1", name: "早班 (08:00-16:00)", count: 45 },
+      { id: "2", name: "午班 (12:00-20:00)", count: 38 },
+      { id: "3", name: "晚班 (16:00-00:00)", count: 32 },
+      { id: "4", name: "夜班 (00:00-08:00)", count: 18 },
+      { id: "5", name: "全天 (08:00-20:00)", count: 12 },
+    ];
   } catch (err) {
-    error.value = t('charts.shiftDistribution.loadFailed')
-    console.error(err)
+    error.value = t("charts.shiftDistribution.loadFailed");
+    console.error(err);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 onMounted(() => {
   if (props.autoFetch) {
-    fetchData()
+    fetchData();
   } else if (props.data.length > 0) {
-    shifts.value = props.data
+    shifts.value = props.data;
   }
-})
+});
 </script>
 
 <style scoped>

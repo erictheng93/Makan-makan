@@ -34,13 +34,13 @@ MakanMakan 實時服務系統基於 **Cloudflare Durable Objects** 構建，提�
 
 ### 性能指標
 
-| 指標 | 目標 | 當前狀態 |
-|------|------|---------|
-| WebSocket 延遲 | < 50ms | ✅ 已達成 |
-| 事件路由時間 | < 10ms | ✅ 已達成 |
-| 並發連接數 | 1000+ | ⏳ 待驗證 |
-| 離線重連時間 | < 3s | ✅ 已達成 |
-| 事件歷史容量 | 100 events | ✅ 已實現 |
+| 指標           | 目標       | 當前狀態  |
+| -------------- | ---------- | --------- |
+| WebSocket 延遲 | < 50ms     | ✅ 已達成 |
+| 事件路由時間   | < 10ms     | ✅ 已達成 |
+| 並發連接數     | 1000+      | ⏳ 待驗證 |
+| 離線重連時間   | < 3s       | ✅ 已達成 |
+| 事件歷史容量   | 100 events | ✅ 已實現 |
 
 ---
 
@@ -208,33 +208,33 @@ private async handleHistoryRequest(request: Request): Promise<Response>
 switch (eventType) {
   // 訂單事件 - 所有角色接收
   case RealtimeEventType.NEW_ORDER:
-    return true
+    return true;
 
   // 訂單狀態更新 - 顧客接收自己的，廚房/管理員接收所有
   case RealtimeEventType.ORDER_STATUS_UPDATE:
-    if (role === 'customer') return true  // 可優化為檢查訂單所屬
-    return role === 'staff' || role === 'admin'
+    if (role === "customer") return true; // 可優化為檢查訂單所屬
+    return role === "staff" || role === "admin";
 
   // 廚房事件 - 只有廚房和管理員接收
   case RealtimeEventType.KITCHEN_ITEM_STATUS:
-    return role === 'staff' || role === 'admin'
+    return role === "staff" || role === "admin";
 
   // 菜單事件 - 所有角色接收
   case RealtimeEventType.MENU_AVAILABILITY_UPDATE:
-    return true
+    return true;
 
   // 系統事件 - 所有角色接收
   case RealtimeEventType.SYSTEM_NOTIFICATION:
-    return true
+    return true;
 
   // 內部事件 - 不通過 broadcast
   case RealtimeEventType.CONNECTION_ACK:
   case RealtimeEventType.HEARTBEAT:
-    return false
+    return false;
 
   default:
     // 未知事件 - 只發送給管理員
-    return role === 'admin'
+    return role === "admin";
 }
 ```
 
@@ -352,7 +352,7 @@ interface GroupOrderState {
 
 ```typescript
 // 在訂單創建後廣播
-const broadcastService = new RealtimeBroadcastService(env)
+const broadcastService = new RealtimeBroadcastService(env);
 
 const newOrderEvent: NewOrderEvent = {
   type: RealtimeEventType.NEW_ORDER,
@@ -364,18 +364,18 @@ const newOrderEvent: NewOrderEvent = {
     orderNumber: order.order_number,
     tableId: order.table_id,
     tableName: table.name,
-    items: orderItems.map(item => ({
+    items: orderItems.map((item) => ({
       orderItemId: item.id,
       menuItemId: item.menu_item_id,
       menuItemName: item.name,
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
     })),
-    totalAmount: order.total_amount
-  }
-}
+    totalAmount: order.total_amount,
+  },
+};
 
-await broadcastService.broadcastNewOrder(newOrderEvent)
+await broadcastService.broadcastNewOrder(newOrderEvent);
 ```
 
 ### 4. RealtimeAuthService (認證服務)
@@ -445,6 +445,7 @@ Content-Type: application/json
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -468,6 +469,7 @@ Content-Type: application/json
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -491,19 +493,19 @@ Content-Type: application/json
 
 ```javascript
 // 客戶端
-const ws = new WebSocket('wss://realtime.../customer/table1?token=xxx')
+const ws = new WebSocket("wss://realtime.../customer/table1?token=xxx");
 
 ws.onopen = () => {
-  console.log('Connected')
-}
+  console.log("Connected");
+};
 
 // 接收 CONNECTION_ACK
 ws.onmessage = (event) => {
-  const message = JSON.parse(event.data)
-  if (message.type === 'connection_ack') {
-    console.log('Connection acknowledged:', message.data.connectionId)
+  const message = JSON.parse(event.data);
+  if (message.type === "connection_ack") {
+    console.log("Connection acknowledged:", message.data.connectionId);
   }
-}
+};
 ```
 
 #### 心跳檢測
@@ -528,22 +530,26 @@ ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }))
 
 ```javascript
 // 訂閱訂單更新
-ws.send(JSON.stringify({
-  type: 'subscribe',
-  timestamp: Date.now(),
-  data: {
-    channels: ['order:123', 'table:table1']
-  }
-}))
+ws.send(
+  JSON.stringify({
+    type: "subscribe",
+    timestamp: Date.now(),
+    data: {
+      channels: ["order:123", "table:table1"],
+    },
+  }),
+);
 
 // 取消訂閱
-ws.send(JSON.stringify({
-  type: 'unsubscribe',
-  timestamp: Date.now(),
-  data: {
-    channels: ['order:123']
-  }
-}))
+ws.send(
+  JSON.stringify({
+    type: "unsubscribe",
+    timestamp: Date.now(),
+    data: {
+      channels: ["order:123"],
+    },
+  }),
+);
 ```
 
 ### 事件類型
@@ -666,65 +672,65 @@ ws.send(JSON.stringify({
 **文件**: `apps/customer-app/src/composables/useWebSocket.ts` (391 lines)
 
 ```typescript
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket } from "@/composables/useWebSocket";
 
 // 基礎使用
 const { isConnected, isConnecting, connect, disconnect, send } = useWebSocket({
-  url: 'wss://realtime.../customer/table1?token=xxx',
+  url: "wss://realtime.../customer/table1?token=xxx",
   reconnectAttempts: 5,
   reconnectInterval: 3000,
   heartbeatInterval: 30000,
   onMessage: (data) => {
-    console.log('Received:', data)
+    console.log("Received:", data);
   },
   onError: (error) => {
-    console.error('Error:', error)
-  }
-})
+    console.error("Error:", error);
+  },
+});
 
 // 連接
-connect()
+connect();
 
 // 發送消息
-send({ type: 'ping', timestamp: Date.now() })
+send({ type: "ping", timestamp: Date.now() });
 
 // 訂閱
-const { subscribe, unsubscribe } = useWebSocket(options)
-subscribe('order:123')
-unsubscribe('order:123')
+const { subscribe, unsubscribe } = useWebSocket(options);
+subscribe("order:123");
+unsubscribe("order:123");
 ```
 
 #### useOrderTracking (訂單追蹤)
 
 ```typescript
-import { useOrderTracking } from '@/composables/useWebSocket'
+import { useOrderTracking } from "@/composables/useWebSocket";
 
-const { orderUpdates, currentStatus, isConnected } = useOrderTracking(orderId)
+const { orderUpdates, currentStatus, isConnected } = useOrderTracking(orderId);
 
 watch(currentStatus, (newStatus) => {
-  console.log('Order status changed:', newStatus)
+  console.log("Order status changed:", newStatus);
 
-  if (newStatus === 'ready') {
-    showNotification('您的餐點已準備完成！')
+  if (newStatus === "ready") {
+    showNotification("您的餐點已準備完成！");
   }
-})
+});
 
 watch(orderUpdates, (updates) => {
-  console.log('Order updates:', updates)
-})
+  console.log("Order updates:", updates);
+});
 ```
 
 #### useRealtimeNotifications
 
 ```typescript
-import { useRealtimeNotifications } from '@/composables/useRealtimeNotifications'
+import { useRealtimeNotifications } from "@/composables/useRealtimeNotifications";
 
-const { isConnected, connect, disconnect } = useRealtimeNotifications()
+const { isConnected, connect, disconnect } = useRealtimeNotifications();
 
 // 自動連接並處理通知
 onMounted(() => {
-  connect()
-})
+  connect();
+});
 
 // 自動顯示 Toast 通知
 // - 訂單已確認！
@@ -736,38 +742,38 @@ onMounted(() => {
 
 ```typescript
 // useAdminRealtime.ts
-import { ref } from 'vue'
-import { useWebSocket } from './useWebSocket'
+import { ref } from "vue";
+import { useWebSocket } from "./useWebSocket";
 
 export function useAdminRealtime(restaurantId: number) {
-  const newOrders = ref<Order[]>([])
-  const orderUpdates = ref<OrderUpdate[]>([])
+  const newOrders = ref<Order[]>([]);
+  const orderUpdates = ref<OrderUpdate[]>([]);
   const kitchenQueue = ref<KitchenQueue>({
     pending: 0,
     cooking: 0,
-    ready: 0
-  })
+    ready: 0,
+  });
 
   const { isConnected, connect, disconnect } = useWebSocket({
     url: `wss://realtime.../admin/${restaurantId}?token=xxx`,
     onMessage: (data) => {
       switch (data.type) {
-        case 'new_order':
-          newOrders.value.unshift(data.data)
-          playNotificationSound()
-          break
+        case "new_order":
+          newOrders.value.unshift(data.data);
+          playNotificationSound();
+          break;
 
-        case 'order_status_update':
-          orderUpdates.value.unshift(data.data)
-          updateOrderInList(data.data)
-          break
+        case "order_status_update":
+          orderUpdates.value.unshift(data.data);
+          updateOrderInList(data.data);
+          break;
 
-        case 'kitchen_queue_update':
-          kitchenQueue.value = data.data
-          break
+        case "kitchen_queue_update":
+          kitchenQueue.value = data.data;
+          break;
       }
-    }
-  })
+    },
+  });
 
   return {
     newOrders,
@@ -775,8 +781,8 @@ export function useAdminRealtime(restaurantId: number) {
     kitchenQueue,
     isConnected,
     connect,
-    disconnect
-  }
+    disconnect,
+  };
 }
 ```
 
@@ -785,41 +791,45 @@ export function useAdminRealtime(restaurantId: number) {
 ```typescript
 // useKitchenRealtime.ts
 export function useKitchenRealtime(restaurantId: number) {
-  const pendingOrders = ref<KitchenOrder[]>([])
-  const cookingOrders = ref<KitchenOrder[]>([])
-  const readyOrders = ref<KitchenOrder[]>([])
+  const pendingOrders = ref<KitchenOrder[]>([]);
+  const cookingOrders = ref<KitchenOrder[]>([]);
+  const readyOrders = ref<KitchenOrder[]>([]);
 
   const { isConnected, send } = useWebSocket({
     url: `wss://realtime.../kitchen/${restaurantId}?token=xxx`,
     onMessage: (data) => {
       switch (data.type) {
-        case 'new_order':
-          pendingOrders.value.push(data.data)
-          playKitchenAlert()
-          break
+        case "new_order":
+          pendingOrders.value.push(data.data);
+          playKitchenAlert();
+          break;
 
-        case 'kitchen_item_status':
-          updateItemStatus(data.data)
-          break
+        case "kitchen_item_status":
+          updateItemStatus(data.data);
+          break;
       }
-    }
-  })
+    },
+  });
 
   // 更新項目狀態
-  const updateItemStatus = (orderId: number, itemId: number, status: string) => {
+  const updateItemStatus = (
+    orderId: number,
+    itemId: number,
+    status: string,
+  ) => {
     send({
-      type: 'update_item_status',
-      data: { orderId, itemId, status }
-    })
-  }
+      type: "update_item_status",
+      data: { orderId, itemId, status },
+    });
+  };
 
   return {
     pendingOrders,
     cookingOrders,
     readyOrders,
     updateItemStatus,
-    isConnected
-  }
+    isConnected,
+  };
 }
 ```
 
@@ -905,11 +915,11 @@ npx wrangler tail makanmakan-realtime-prod | grep "ERROR"
 
 ```typescript
 // 限制單個房間的最大連接數
-const MAX_CONNECTIONS_PER_ROOM = 1000
+const MAX_CONNECTIONS_PER_ROOM = 1000;
 
 // 連接數監控
 if (connections.size >= MAX_CONNECTIONS_PER_ROOM) {
-  return new Response('Room is full', { status: 503 })
+  return new Response("Room is full", { status: 503 });
 }
 ```
 
@@ -917,17 +927,15 @@ if (connections.size >= MAX_CONNECTIONS_PER_ROOM) {
 
 ```typescript
 // 批次廣播（減少循環）
-const batch = []
+const batch = [];
 for (const [socket, conn] of connections) {
   if (shouldSendEvent(event, conn)) {
-    batch.push({ socket, conn })
+    batch.push({ socket, conn });
   }
 }
 
 // 並行發送
-await Promise.all(
-  batch.map(({ socket, conn }) => sendEvent(socket, event))
-)
+await Promise.all(batch.map(({ socket, conn }) => sendEvent(socket, event)));
 ```
 
 ### 3. 事件壓縮
@@ -936,8 +944,8 @@ await Promise.all(
 // 壓縮大型事件
 if (JSON.stringify(event).length > 10000) {
   // 使用 gzip 壓縮
-  const compressed = await compress(event)
-  socket.send(compressed)
+  const compressed = await compress(event);
+  socket.send(compressed);
 }
 ```
 
@@ -945,11 +953,14 @@ if (JSON.stringify(event).length > 10000) {
 
 ```typescript
 // 根據活躍度動態調整休眠時間
-const getHibernationTimeout = (lastActivity: number, connectionCount: number) => {
-  if (connectionCount === 0) return 5 * 60 * 1000  // 5 分鐘
-  if (connectionCount < 10) return 30 * 60 * 1000  // 30 分鐘
-  return 60 * 60 * 1000  // 1 小時
-}
+const getHibernationTimeout = (
+  lastActivity: number,
+  connectionCount: number,
+) => {
+  if (connectionCount === 0) return 5 * 60 * 1000; // 5 分鐘
+  if (connectionCount < 10) return 30 * 60 * 1000; // 30 分鐘
+  return 60 * 60 * 1000; // 1 小時
+};
 ```
 
 ---
@@ -1043,6 +1054,7 @@ describe('End-to-End Realtime Tests', () => {
 **症狀**: 無法建立 WebSocket 連接
 
 **排查步驟**:
+
 ```bash
 # 1. 檢查 JWT Token 是否有效
 curl -X POST https://api.makanmakan.com/api/v1/realtime/auth/verify \
@@ -1057,6 +1069,7 @@ npx wrangler tail makanmakan-realtime-prod
 ```
 
 **解決方案**:
+
 - 確認 JWT_SECRET 環境變數正確設置
 - 檢查 Token 是否過期（有效期 5 分鐘）
 - 驗證 wrangler.toml 中的 Durable Objects 綁定
@@ -1066,6 +1079,7 @@ npx wrangler tail makanmakan-realtime-prod
 **症狀**: 連接成功但無法接收事件
 
 **排查步驟**:
+
 ```bash
 # 1. 檢查房間統計
 curl https://realtime.../stats/restaurant/rest_1
@@ -1075,6 +1089,7 @@ curl https://realtime.../stats/restaurant/rest_1
 ```
 
 **解決方案**:
+
 - 檢查 `shouldSendEventToConnection` 路由邏輯
 - 驗證 `restaurantId` 是否匹配
 - 確認用戶角色權限正確
@@ -1084,6 +1099,7 @@ curl https://realtime.../stats/restaurant/rest_1
 **症狀**: 重連後無法恢復事件
 
 **排查步驟**:
+
 ```bash
 # 查詢事件歷史
 GET /history?since=evt_last_known
@@ -1093,6 +1109,7 @@ curl https://realtime.../stats/customer/table1
 ```
 
 **解決方案**:
+
 - 確認 `lastEventId` 正確追蹤
 - 檢查事件歷史未超過 100 個限制
 - 驗證重連間隔時間
@@ -1102,6 +1119,7 @@ curl https://realtime.../stats/customer/table1
 **症狀**: 連接意外關閉
 
 **排查步驟**:
+
 ```bash
 # 檢查休眠狀態
 curl https://realtime.../stats/restaurant/rest_1
@@ -1111,6 +1129,7 @@ npx wrangler tail | grep "hibernat"
 ```
 
 **解決方案**:
+
 - 調整 `HIBERNATION_TIMEOUT` 參數
 - 實現心跳保持連接活躍
 - 檢查 `lastActivity` 時間戳更新
@@ -1155,40 +1174,30 @@ npx wrangler tail | grep "hibernat"
 參見: `packages/shared-types/src/realtime-events.ts` (642 lines)
 
 **訂單事件** (4 種):
+
 1. `NEW_ORDER` - 新訂單
 2. `ORDER_STATUS_UPDATE` - 訂單狀態更新
 3. `ORDER_ITEM_STATUS_UPDATE` - 訂單項目狀態更新
 4. `ORDER_CANCELLED` - 訂單取消
 
-**廚房事件** (2 種):
-5. `KITCHEN_ITEM_STATUS` - 廚房項目狀態
-6. `KITCHEN_QUEUE_UPDATE` - 廚房佇列更新
+**廚房事件** (2 種): 5. `KITCHEN_ITEM_STATUS` - 廚房項目狀態 6. `KITCHEN_QUEUE_UPDATE` - 廚房佇列更新
 
-**桌台事件** (2 種):
-7. `TABLE_STATUS_UPDATE` - 桌台狀態更新
-8. `TABLE_CALL_SERVICE` - 呼叫服務
+**桌台事件** (2 種): 7. `TABLE_STATUS_UPDATE` - 桌台狀態更新 8. `TABLE_CALL_SERVICE` - 呼叫服務
 
-**菜單事件** (2 種):
-9. `MENU_AVAILABILITY_UPDATE` - 菜單可用性更新
-10. `MENU_ITEM_UPDATE` - 菜單項目更新
+**菜單事件** (2 種): 9. `MENU_AVAILABILITY_UPDATE` - 菜單可用性更新 10. `MENU_ITEM_UPDATE` - 菜單項目更新
 
-**系統事件** (5 種):
-11. `SYSTEM_NOTIFICATION` - 系統通知
-12. `CONNECTION_ACK` - 連接確認
-13. `HEARTBEAT` - 心跳
-14. `ERROR` - 錯誤
-15. `RESTAURANT_STATUS_UPDATE` - 餐廳狀態更新
+**系統事件** (5 種): 11. `SYSTEM_NOTIFICATION` - 系統通知 12. `CONNECTION_ACK` - 連接確認 13. `HEARTBEAT` - 心跳 14. `ERROR` - 錯誤 15. `RESTAURANT_STATUS_UPDATE` - 餐廳狀態更新
 
 ### B. 代碼統計
 
-| 組件 | 文件數 | 代碼行數 | 狀態 |
-|------|--------|---------|------|
-| Realtime App | 7 | 2,822 | ✅ 完成 |
-| API Integration | 4 | 520 | ✅ 完成 |
-| Shared Types | 1 | 642 | ✅ 完成 |
-| Frontend Hooks | 3 | 485 | ⏳ 85% |
-| Tests | 4 | 1,800+ | ⏳ 70% |
-| **總計** | **19** | **6,269+** | **82.5%** |
+| 組件            | 文件數 | 代碼行數   | 狀態      |
+| --------------- | ------ | ---------- | --------- |
+| Realtime App    | 7      | 2,822      | ✅ 完成   |
+| API Integration | 4      | 520        | ✅ 完成   |
+| Shared Types    | 1      | 642        | ✅ 完成   |
+| Frontend Hooks  | 3      | 485        | ⏳ 85%    |
+| Tests           | 4      | 1,800+     | ⏳ 70%    |
+| **總計**        | **19** | **6,269+** | **82.5%** |
 
 ### C. 相關資源
 

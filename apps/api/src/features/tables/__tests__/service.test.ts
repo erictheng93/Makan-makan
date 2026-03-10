@@ -804,7 +804,11 @@ describe("TablesService", () => {
   describe("validateTableAccess", () => {
     it("should grant access to admin users", () => {
       const table = { ...mockTable, restaurantId: "test-restaurant-1" };
-      const result = tablesService.validateTableAccess(table as Table, "test-restaurant-2", true);
+      const result = tablesService.validateTableAccess(
+        table as Table,
+        "test-restaurant-2",
+        true,
+      );
       expect(result).toBe(true);
     });
 
@@ -831,17 +835,29 @@ describe("TablesService", () => {
 
   describe("validateRestaurantAccess", () => {
     it("should grant access to admin users", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", true);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-2",
+        true,
+      );
       expect(result).toBe(true);
     });
 
     it("should grant access to same restaurant", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-1", false);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-1",
+        false,
+      );
       expect(result).toBe(true);
     });
 
     it("should deny access to different restaurant for non-admin", () => {
-      const result = tablesService.validateRestaurantAccess("test-restaurant-1", "test-restaurant-2", false);
+      const result = tablesService.validateRestaurantAccess(
+        "test-restaurant-1",
+        "test-restaurant-2",
+        false,
+      );
       expect(result).toBe(false);
     });
   });

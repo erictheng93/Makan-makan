@@ -100,11 +100,11 @@ Total: 17 performance test cases
 
 **性能目標:**
 
-| 查詢類型 | P95 目標 | P99 目標 |
-|---------|----------|----------|
-| 簡單查詢 (SELECT by ID) | < 30ms | < 50ms |
-| 複雜查詢 (JOIN, GROUP BY) | < 100ms | < 150ms |
-| 分析查詢 (Analytics) | < 200ms | < 300ms |
+| 查詢類型                  | P95 目標 | P99 目標 |
+| ------------------------- | -------- | -------- |
+| 簡單查詢 (SELECT by ID)   | < 30ms   | < 50ms   |
+| 複雜查詢 (JOIN, GROUP BY) | < 100ms  | < 150ms  |
+| 分析查詢 (Analytics)      | < 200ms  | < 300ms  |
 
 **執行:**
 
@@ -275,6 +275,7 @@ tests/performance/baselines/
 **版本控制:**
 
 基準線應該提交到 Git,以便:
+
 - 追蹤性能變化歷史
 - 在不同分支比較性能
 - 回滾到之前的基準線
@@ -463,12 +464,12 @@ CI/CD 流程:
 
 ### 📊 性能概覽
 
-| 查詢類別 | 平均時間 | 狀態 |
-|---------|---------|------|
-| menu | 45.23ms | 🟢 優秀 |
-| orders | 72.45ms | 🟡 良好 |
-| tables | 38.12ms | 🟢 優秀 |
-| users | 25.34ms | 🟢 優秀 |
+| 查詢類別  | 平均時間 | 狀態      |
+| --------- | -------- | --------- |
+| menu      | 45.23ms  | 🟢 優秀   |
+| orders    | 72.45ms  | 🟡 良好   |
+| tables    | 38.12ms  | 🟢 優秀   |
+| users     | 25.34ms  | 🟢 優秀   |
 | analytics | 156.78ms | 🔴 需優化 |
 
 ---
@@ -547,12 +548,18 @@ ON menu_items(restaurant_id, is_available);
 
 ```typescript
 // 載入訂單
-const orders = await db.prepare('SELECT * FROM orders WHERE restaurant_id = ?').bind(1).all()
+const orders = await db
+  .prepare("SELECT * FROM orders WHERE restaurant_id = ?")
+  .bind(1)
+  .all();
 
 // 為每個訂單載入訂單項目 (N+1!)
 for (const order of orders.results) {
-  const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').bind(order.id).all()
-  order.items = items.results
+  const items = await db
+    .prepare("SELECT * FROM order_items WHERE order_id = ?")
+    .bind(order.id)
+    .all();
+  order.items = items.results;
 }
 ```
 
@@ -560,7 +567,9 @@ for (const order of orders.results) {
 
 ```typescript
 // 使用 JOIN 一次載入所有資料
-const ordersWithItems = await db.prepare(`
+const ordersWithItems = await db
+  .prepare(
+    `
   SELECT
     o.*,
     json_group_array(json_object('id', oi.id, 'quantity', oi.quantity)) as items
@@ -568,18 +577,21 @@ const ordersWithItems = await db.prepare(`
   LEFT JOIN order_items oi ON o.id = oi.order_id
   WHERE o.restaurant_id = ?
   GROUP BY o.id
-`).bind(1).all()
+`,
+  )
+  .bind(1)
+  .all();
 ```
 
 ### 5. 性能測試頻率
 
-| 類型 | 頻率 | 說明 |
-|-----|------|------|
-| 單元測試 | 每次提交 | 快速驗證 |
-| 整合測試 | 每次 PR | 功能驗證 |
-| 性能測試 | 每次 PR/Push | 性能驗證 |
-| 基準線更新 | 每個版本 | 追蹤變化 |
-| 壓力測試 | 每週/每月 | 極限測試 |
+| 類型       | 頻率         | 說明     |
+| ---------- | ------------ | -------- |
+| 單元測試   | 每次提交     | 快速驗證 |
+| 整合測試   | 每次 PR      | 功能驗證 |
+| 性能測試   | 每次 PR/Push | 性能驗證 |
+| 基準線更新 | 每個版本     | 追蹤變化 |
+| 壓力測試   | 每週/每月    | 極限測試 |
 
 ---
 

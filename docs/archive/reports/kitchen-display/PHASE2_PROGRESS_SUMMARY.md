@@ -7,18 +7,21 @@
 ## 📊 總體進度
 
 ### 初始狀態 (Phase Start)
+
 - Total Tests: 566
 - Passed: 444 (78.4%)
 - **Failed: 122 (21.6%)**
 - Failed Files: 19
 
 ### 當前狀態 (Phase 2 - In Progress)
+
 - Total Tests: **619** (+53 unlocked!)
 - **Passed: 538 (86.9%)** ⬆️ +8.5%
 - **Failed: 81 (13.1%)** ⬇️ -8.5%
 - **Failed Files: 12** ⬇️ -7 files
 
 ### 累計成果
+
 - ✅ **94 tests fixed** (122 → 81 + 53 unlocked)
 - ✅ **7 test files completely fixed**
 - ✅ **通過率提升 8.5%** (78.4% → 86.9%)
@@ -57,38 +60,41 @@
 ### 1. localStorage Mock (auth.test.ts, settings.test.ts)
 
 **問題**：
+
 - localStorage 在 jsdom 環境中返回 `undefined`
 - `JSON.parse(undefined)` 導致 SyntaxError
 
 **解決方案**：
+
 ```typescript
-let localStorageMock: Map<string, string>
+let localStorageMock: Map<string, string>;
 
 beforeEach(() => {
-  localStorageMock = new Map()
+  localStorageMock = new Map();
 
   const localStorageStub = {
     getItem: vi.fn((key: string) => localStorageMock.get(key) ?? null),
     setItem: vi.fn((key: string, value: string) => {
-      localStorageMock.set(key, value)
+      localStorageMock.set(key, value);
     }),
     removeItem: vi.fn((key: string) => {
-      localStorageMock.delete(key)
+      localStorageMock.delete(key);
     }),
     clear: vi.fn(() => {
-      localStorageMock.clear()
-    })
-  }
+      localStorageMock.clear();
+    }),
+  };
 
-  vi.stubGlobal('localStorage', localStorageStub)
-})
+  vi.stubGlobal("localStorage", localStorageStub);
+});
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 ```
 
 **重點**：
+
 - ✅ 使用 `vi.stubGlobal()` 而非 `Object.defineProperty()`
 - ✅ 使用 `Map<string, string>` 追蹤狀態
 - ✅ `getItem` 返回 `null` 而非 `undefined`（符合 Web API）
@@ -97,44 +103,47 @@ afterEach(() => {
 ### 2. Vitest Module Hoisting (useAudioNotifications.test.ts)
 
 **問題**：
+
 ```typescript
 // ❌ 錯誤做法 - 頂層變量在 vi.mock() 中無法訪問
 const mockAudioService = {
-  playNewOrder: vi.fn()
-}
+  playNewOrder: vi.fn(),
+};
 
-vi.mock('@/services/audioService', () => ({
-  audioService: mockAudioService  // ReferenceError!
-}))
+vi.mock("@/services/audioService", () => ({
+  audioService: mockAudioService, // ReferenceError!
+}));
 ```
 
 **原因**：
 `vi.mock()` 會被提升（hoisted）到文件頂部執行，此時 `mockAudioService` 還未初始化。
 
 **解決方案 1：內聯 Mock 對象**：
+
 ```typescript
 // ✅ 正確做法 - 直接在工廠函數中定義
-vi.mock('@/services/audioService', () => ({
+vi.mock("@/services/audioService", () => ({
   audioService: {
     playNewOrder: vi.fn().mockResolvedValue(undefined),
     playOrderReady: vi.fn().mockResolvedValue(undefined),
     // ... 其他方法
-  }
-}))
+  },
+}));
 ```
 
 **解決方案 2：在 describe 內訪問**：
+
 ```typescript
-describe('Component Tests', () => {
-  let mockAudioService: any
+describe("Component Tests", () => {
+  let mockAudioService: any;
 
   beforeEach(async () => {
-    const { audioService } = await import('@/services/audioService')
-    mockAudioService = audioService
-  })
+    const { audioService } = await import("@/services/audioService");
+    mockAudioService = audioService;
+  });
 
   // 現在可以在測試中使用 mockAudioService
-})
+});
 ```
 
 ---
@@ -144,6 +153,7 @@ describe('Component Tests', () => {
 ### Priority 2 - Mock Configuration (Remaining)
 
 **仍需修復的 Mock 錯誤** (預估 6-7 files):
+
 1. `orders.test.ts` - Vitest module hoisting error
 2. `notification-system.test.ts` - Vitest module hoisting error
 3. `multi-order-handling.test.ts` - Vitest module hoisting error
@@ -153,18 +163,21 @@ describe('Component Tests', () => {
 7. `end-to-end.test.ts` - `URL.createObjectURL is not a function`
 
 **策略**：
+
 - 對於 Vitest hoisting 錯誤：應用相同的內聯 mock 修復
 - 對於 Web API 錯誤：添加 jsdom polyfills 或 stub URL.createObjectURL
 
 ### Priority 3 - Integration Tests
 
 **失敗的集成測試** (~70-75 tests):
+
 - `performance-integration.test.ts` - 25 failures
 - `keyboard-shortcuts-integration.test.ts` - 21 failures
 - `offline-sync-integration.test.ts` - 17 failures
 - `workflow-integration.test.ts` - 14 failures
 
 **主要問題**：
+
 - `useOrderManagement is not a function`
 - `performanceService.stop is not a function`
 - localStorage/IndexedDB mock 問題
@@ -174,17 +187,20 @@ describe('Component Tests', () => {
 ## 🎯 下一步行動
 
 ### 立即行動
+
 1. ✅ **已完成**: useAudioNotifications mock 修復
 2. 🔄 **進行中**: 識別剩餘 mock 錯誤的文件
 3. ⏳ **待處理**: 應用相同的 hoisting 修復到其他文件
 4. ⏳ **待處理**: 添加 Web API polyfills（URL.createObjectURL）
 
 ### 預估時間
+
 - Priority 2 剩餘工作: 30-45 分鐘
 - Priority 3 集成測試: 1-2 小時
 - **總預估**: 2-3 小時完成所有修復
 
 ### 目標
+
 - 🎯 達到 **95%+ 測試通過率** (>587/619 tests)
 - 🎯 失敗測試降至 **<30 failures**
 - 🎯 所有關鍵路徑測試通過
@@ -196,55 +212,58 @@ describe('Component Tests', () => {
 ### Vitest Mocking 最佳實踐
 
 1. **避免頂層變量在 vi.mock() 中**
+
    ```typescript
    // ❌ 錯誤
-   const mock = {}
-   vi.mock('module', () => ({ export: mock }))
+   const mock = {};
+   vi.mock("module", () => ({ export: mock }));
 
    // ✅ 正確
-   vi.mock('module', () => ({ export: {} }))
+   vi.mock("module", () => ({ export: {} }));
    ```
 
 2. **使用 vi.stubGlobal() 替代 Object.defineProperty()**
+
    ```typescript
    // ❌ 不推薦
-   Object.defineProperty(global, 'localStorage', { value: mock })
+   Object.defineProperty(global, "localStorage", { value: mock });
 
    // ✅ 推薦
-   vi.stubGlobal('localStorage', mock)
+   vi.stubGlobal("localStorage", mock);
    ```
 
 3. **在 beforeEach 中訪問 mocked 模組**
+
    ```typescript
-   let mockedService: any
+   let mockedService: any;
    beforeEach(async () => {
-     const module = await import('./service')
-     mockedService = module.service
-   })
+     const module = await import("./service");
+     mockedService = module.service;
+   });
    ```
 
 4. **記得清理 stubs**
    ```typescript
    afterEach(() => {
-     vi.unstubAllGlobals()
-     vi.clearAllMocks()
-   })
+     vi.unstubAllGlobals();
+     vi.clearAllMocks();
+   });
    ```
 
 ### localStorage Mock 模式
 
 ```typescript
 // 標準模式
-let storage: Map<string, string>
+let storage: Map<string, string>;
 beforeEach(() => {
-  storage = new Map()
-  vi.stubGlobal('localStorage', {
+  storage = new Map();
+  vi.stubGlobal("localStorage", {
     getItem: vi.fn((k: string) => storage.get(k) ?? null),
     setItem: vi.fn((k: string, v: string) => storage.set(k, v)),
     removeItem: vi.fn((k: string) => storage.delete(k)),
-    clear: vi.fn(() => storage.clear())
-  })
-})
+    clear: vi.fn(() => storage.clear()),
+  });
+});
 ```
 
 ---
@@ -252,6 +271,7 @@ beforeEach(() => {
 ## 📈 性能指標
 
 ### 修復效率
+
 - **Phase 1**: 40 tests / 2 hours = 20 tests/hour
 - **Priority 1**: 5 tests / 15 mins = 20 tests/hour
 - **Priority 2 (partial)**: 49 tests / 10 mins = **294 tests/hour** 🚀
@@ -290,6 +310,6 @@ beforeEach(() => {
 
 ---
 
-*報告生成時間: 2025-11-17 17:10*
-*累計修復時間: ~2.5 小時*
-*平均修復效率: 38 tests/hour*
+_報告生成時間: 2025-11-17 17:10_
+_累計修復時間: ~2.5 小時_
+_平均修復效率: 38 tests/hour_

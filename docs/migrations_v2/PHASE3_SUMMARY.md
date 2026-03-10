@@ -44,25 +44,25 @@ Phase 3 的目標是建立完整的測試執行能力，並驗證所有 SQL 檔�
 
 #### 詳細統計
 
-| Migration | Tables | Indexes | Views | Triggers | Status |
-|-----------|--------|---------|-------|----------|--------|
-| 01_tenants_and_settings.sql | 2 | 12 | 2 | 2 | ✅ |
-| 02_authentication.sql | 4 | 16 | 3 | 3 | ✅ |
-| 03_audit_system.sql | 3 | 20 | 3 | 2 | ✅ |
-| 04_product_catalog.sql | 5 | 19 | 3 | 8 | ✅ |
-| 05_order_management.sql | 3 | 30 | 4 | 9 | ✅ |
-| 06_customer_management.sql | 4 | 26 | 4 | 10 | ✅ |
-| 07_table_and_seating.sql | 4 | 30 | 4 | 11 | ✅ |
-| 08_qr_code_system.sql | 4 | 26 | 4 | 9 | ✅ |
-| 09_shift_scheduling.sql | 6 | 35 | 4 | 8 | ✅ |
-| 10_leave_management.sql | 5 | 28 | 4 | 9 | ✅ |
-| 11_attendance_tracking.sql | 3 | 22 | 4 | 7 | ✅ |
-| 12_business_analytics.sql | 4 | 17 | 4 | 4 | ✅ |
-| 13_ai_insights.sql | 4 | 20 | 4 | 6 | ✅ |
-| 14_inventory_management.sql | 5 | 34 | 5 | 6 | ✅ |
-| 15_promotions_and_coupons.sql | 5 | 29 | 5 | 7 | ✅ |
-| 16_loyalty_program.sql | 5 | 32 | 5 | 7 | ✅ |
-| **總計** | **66** | **396** | **62** | **108** | ✅ |
+| Migration                     | Tables | Indexes | Views  | Triggers | Status |
+| ----------------------------- | ------ | ------- | ------ | -------- | ------ |
+| 01_tenants_and_settings.sql   | 2      | 12      | 2      | 2        | ✅     |
+| 02_authentication.sql         | 4      | 16      | 3      | 3        | ✅     |
+| 03_audit_system.sql           | 3      | 20      | 3      | 2        | ✅     |
+| 04_product_catalog.sql        | 5      | 19      | 3      | 8        | ✅     |
+| 05_order_management.sql       | 3      | 30      | 4      | 9        | ✅     |
+| 06_customer_management.sql    | 4      | 26      | 4      | 10       | ✅     |
+| 07_table_and_seating.sql      | 4      | 30      | 4      | 11       | ✅     |
+| 08_qr_code_system.sql         | 4      | 26      | 4      | 9        | ✅     |
+| 09_shift_scheduling.sql       | 6      | 35      | 4      | 8        | ✅     |
+| 10_leave_management.sql       | 5      | 28      | 4      | 9        | ✅     |
+| 11_attendance_tracking.sql    | 3      | 22      | 4      | 7        | ✅     |
+| 12_business_analytics.sql     | 4      | 17      | 4      | 4        | ✅     |
+| 13_ai_insights.sql            | 4      | 20      | 4      | 6        | ✅     |
+| 14_inventory_management.sql   | 5      | 34      | 5      | 6        | ✅     |
+| 15_promotions_and_coupons.sql | 5      | 29      | 5      | 7        | ✅     |
+| 16_loyalty_program.sql        | 5      | 32      | 5      | 7        | ✅     |
+| **總計**                      | **66** | **396** | **62** | **108**  | ✅     |
 
 ---
 
@@ -79,14 +79,15 @@ Phase 3 的目標是建立完整的測試執行能力，並驗證所有 SQL 檔�
 
 #### 與預期對比
 
-| 物件類型 | 實際 | 預期 | 匹配度 | 說明 |
-|----------|------|------|--------|------|
-| Tables | 66 | 67 | 98.5% | 接近目標，可能有自動生成的表 |
-| Indexes | 396 | 461 | 85.9% | SQLite 會自動創建額外索引 (UNIQUE, PK) |
-| Views | 62 | 60 | 103% | 略高於預期 |
-| Triggers | 108 | 108 | **100%** | ✅ 完美匹配！ |
+| 物件類型 | 實際 | 預期 | 匹配度   | 說明                                   |
+| -------- | ---- | ---- | -------- | -------------------------------------- |
+| Tables   | 66   | 67   | 98.5%    | 接近目標，可能有自動生成的表           |
+| Indexes  | 396  | 461  | 85.9%    | SQLite 會自動創建額外索引 (UNIQUE, PK) |
+| Views    | 62   | 60   | 103%     | 略高於預期                             |
+| Triggers | 108  | 108  | **100%** | ✅ 完美匹配！                          |
 
 **關鍵洞察**:
+
 - 觸發器數量完美匹配表示業務邏輯完整
 - 索引差異是因為 SQLite 自動索引計數方式不同
 - 實際執行後會更準確
@@ -174,12 +175,14 @@ Migrations:
 ### 選項 1: 立即部署到 Staging (推薦)
 
 **理由**:
+
 - SQL 語法 100% 驗證通過
 - 所有觸發器定義完整
 - 文檔完整，可追溯
 - 設計經過嚴格審查
 
 **步驟**:
+
 ```bash
 # 1. 執行到 staging 環境
 cd apps/api
@@ -203,11 +206,13 @@ npm run dev  # 測試 API 連接
 ### 選項 2: 本地測試 (保守)
 
 **理由**:
+
 - 希望在隔離環境完整測試
 - 需要效能基準數據
 - 團隊政策要求本地驗證
 
 **步驟**:
+
 ```bash
 # 方法 A: 使用 Wrangler Local (推薦)
 npx wrangler d1 create makanmakan-test-v2
@@ -230,11 +235,13 @@ node scripts/run-test.js
 ### 選項 3: 混合方式 (平衡)
 
 **理由**:
+
 - 快速驗證核心功能
 - 保留本地測試能力
 - 靈活應對問題
 
 **步驟**:
+
 ```
 1. 先執行 SQL 語法驗證 ✅ (已完成)
 2. 部署到 staging 環境
@@ -401,6 +408,7 @@ npx wrangler d1 execute makanmakan-staging --env staging \
 **準備狀態**: ✅ Ready for Deployment
 
 **團隊建議**:
+
 > "SQL 驗證通過，建議直接部署到 staging 環境測試。"
 > — Technical Lead
 

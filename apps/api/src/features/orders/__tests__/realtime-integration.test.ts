@@ -5,12 +5,12 @@
  * 測試策略：直接替換內部服務實例，避免依賴 vi.mock() 的複雜行為
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Env } from '../../../shared/types'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Env } from "../../../shared/types";
 
 // Mock @makanmakan/shared-types to ensure enums are available
-vi.mock('@makanmakan/shared-types', async () => {
-  const actual = await vi.importActual('@makanmakan/shared-types')
+vi.mock("@makanmakan/shared-types", async () => {
+  const actual = await vi.importActual("@makanmakan/shared-types");
   return {
     ...actual,
     OrderStatus: {
@@ -20,69 +20,69 @@ vi.mock('@makanmakan/shared-types', async () => {
       READY: 3,
       DELIVERED: 4,
       PAID: 5,
-      CANCELLED: 6
+      CANCELLED: 6,
     },
     RealtimeEventType: {
-      NEW_ORDER: 'new_order',
-      ORDER_STATUS_UPDATE: 'order_status_update',
-      ORDER_ITEM_STATUS_UPDATE: 'order_item_status_update',
-      KITCHEN_ITEM_STATUS: 'kitchen_item_status',
-      MENU_AVAILABILITY_UPDATE: 'menu_availability_update'
-    }
-  }
-})
+      NEW_ORDER: "new_order",
+      ORDER_STATUS_UPDATE: "order_status_update",
+      ORDER_ITEM_STATUS_UPDATE: "order_item_status_update",
+      KITCHEN_ITEM_STATUS: "kitchen_item_status",
+      MENU_AVAILABILITY_UPDATE: "menu_availability_update",
+    },
+  };
+});
 
 // Import after mocking
-import { OrdersService } from '../services/OrdersService'
-import { OrderStatus } from '@makanmakan/shared-types'
+import { OrdersService } from "../services/OrdersService";
+import { OrderStatus } from "@makanmakan/shared-types";
 
 // RealtimeEventType for assertions
 const RealtimeEventType = {
-  NEW_ORDER: 'new_order',
-  ORDER_STATUS_UPDATE: 'order_status_update'
-} as const
+  NEW_ORDER: "new_order",
+  ORDER_STATUS_UPDATE: "order_status_update",
+} as const;
 
-describe('Orders + Realtime Integration', () => {
-  let ordersService: OrdersService
-  let mockEnv: Env
-  let mockBroadcastService: any
-  let mockOrderService: any
+describe("Orders + Realtime Integration", () => {
+  let ordersService: OrdersService;
+  let mockEnv: Env;
+  let mockBroadcastService: any;
+  let mockOrderService: any;
 
   beforeEach(() => {
     // Create mock services
     mockBroadcastService = {
       broadcastNewOrder: vi.fn().mockResolvedValue({
         success: true,
-        eventId: 'evt_test_123',
-        recipientCount: 1
+        eventId: "evt_test_123",
+        recipientCount: 1,
       }),
       broadcastOrderStatusUpdate: vi.fn().mockResolvedValue({
         success: true,
-        eventId: 'evt_update_123',
-        recipientCount: 1
+        eventId: "evt_update_123",
+        recipientCount: 1,
       }),
-      generateEventId: vi.fn(() => 'evt_test_123')
-    }
+      generateEventId: vi.fn(() => "evt_test_123"),
+    };
 
     mockOrderService = {
       createOrder: vi.fn(),
       getOrder: vi.fn(),
       updateOrderStatus: vi.fn(),
-      updateOrderItemStatus: vi.fn()
-    }
+      updateOrderItemStatus: vi.fn(),
+    };
 
     // Mock environment
     mockEnv = {
-      NODE_ENV: 'test',
-      JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars-long',
-      API_VERSION: '1.0.0',
-      ENCRYPTION_KEY: 'test-encryption-key-for-testing-only-32chars',
+      NODE_ENV: "test",
+      JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
+      API_VERSION: "1.0.0",
+      ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
       DB: {} as any,
       CACHE_KV: {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         put: vi.fn().mockResolvedValue(undefined),
-        delete: vi.fn().mockResolvedValue(true)
+        delete: vi.fn().mockResolvedValue(true),
       } as any,
       TOKEN_BLACKLIST: {} as any,
       IMAGES_BUCKET: {} as any,
@@ -90,52 +90,52 @@ describe('Orders + Realtime Integration', () => {
       JOB_QUEUE: {} as any,
       REALTIME_ORDERS: {} as any,
       ANALYTICS_ENGINE: {
-        writeDataPoint: vi.fn()
+        writeDataPoint: vi.fn(),
       } as any,
       RATE_LIMIT_KV: {} as any,
-      REALTIME_SESSION: {} as any
-    }
+      REALTIME_SESSION: {} as any,
+    };
 
     // Create service instance
-    ordersService = new OrdersService(mockEnv)
+    ordersService = new OrdersService(mockEnv);
 
     // CRITICAL: Replace internal services with our mocks
     // This is the key to making these tests work reliably
-    ordersService['realtimeBroadcastService'] = mockBroadcastService
-    ordersService['baseOrderService'] = mockOrderService
-    ordersService['logger'] = {
-      feature: 'test-orders',
+    ordersService["realtimeBroadcastService"] = mockBroadcastService;
+    ordersService["baseOrderService"] = mockOrderService;
+    ordersService["logger"] = {
+      feature: "test-orders",
       info: vi.fn(),
       error: vi.fn(),
       warn: vi.fn(),
-      debug: vi.fn()
-    } as any
-  })
+      debug: vi.fn(),
+    } as any;
+  });
 
-  describe('createOrder - Realtime Integration', () => {
-    it('應該在創建訂單後廣播 NEW_ORDER 事件', async () => {
+  describe("createOrder - Realtime Integration", () => {
+    it("應該在創建訂單後廣播 NEW_ORDER 事件", async () => {
       const orderData = {
-        restaurantId: '1',
+        restaurantId: "1",
         tableId: 10,
-        customerName: 'John Doe',
-        customerPhone: '+1234567890',
+        customerName: "John Doe",
+        customerPhone: "+1234567890",
         items: [
           {
             menuItemId: 100,
             quantity: 2,
-            notes: 'No onions'
-          }
+            notes: "No onions",
+          },
         ],
-        notes: 'Quick service'
-      }
+        notes: "Quick service",
+      };
 
       const createdOrder = {
         id: 1,
-        restaurantId: '1',
+        restaurantId: "1",
         tableId: 10,
-        orderNumber: '#001',
-        customerName: 'John Doe',
-        customerPhone: '+1234567890',
+        orderNumber: "#001",
+        customerName: "John Doe",
+        customerPhone: "+1234567890",
         totalAmount: 2000,
         subtotal: 2000,
         status: OrderStatus.PENDING,
@@ -150,57 +150,58 @@ describe('Orders + Realtime Integration', () => {
             quantity: 2,
             unitPrice: 1000,
             totalPrice: 2000,
-            notes: 'No onions',
+            notes: "No onions",
             status: 0,
             menuItem: {
               id: 100,
-              name: 'Burger',
-              price: 1000
+              name: "Burger",
+              price: 1000,
             },
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]
-      }
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      };
 
-      mockOrderService.createOrder.mockResolvedValue(createdOrder)
+      mockOrderService.createOrder.mockResolvedValue(createdOrder);
 
-      const result = await ordersService.createOrder(orderData)
+      const result = await ordersService.createOrder(orderData);
 
       // Verify order creation
-      expect(result).toEqual(createdOrder)
+      expect(result).toEqual(createdOrder);
 
       // Verify broadcast was called
-      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalledTimes(1)
+      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalledTimes(1);
 
-      const broadcastCall = mockBroadcastService.broadcastNewOrder.mock.calls[0][0]
-      expect(broadcastCall.type).toBe(RealtimeEventType.NEW_ORDER)
-      expect(broadcastCall.restaurantId).toBe('1')
-      expect(broadcastCall.data.orderId).toBe(1)
-      expect(broadcastCall.data.orderNumber).toBe('#001')
-      expect(broadcastCall.data.items).toHaveLength(1)
-      expect(broadcastCall.data.items[0].menuItemName).toBe('Burger')
-      expect(broadcastCall.data.items[0].price).toBe(1000)
-      expect(broadcastCall.data.totalAmount).toBe(2000)
-    })
+      const broadcastCall =
+        mockBroadcastService.broadcastNewOrder.mock.calls[0][0];
+      expect(broadcastCall.type).toBe(RealtimeEventType.NEW_ORDER);
+      expect(broadcastCall.restaurantId).toBe("1");
+      expect(broadcastCall.data.orderId).toBe(1);
+      expect(broadcastCall.data.orderNumber).toBe("#001");
+      expect(broadcastCall.data.items).toHaveLength(1);
+      expect(broadcastCall.data.items[0].menuItemName).toBe("Burger");
+      expect(broadcastCall.data.items[0].price).toBe(1000);
+      expect(broadcastCall.data.totalAmount).toBe(2000);
+    });
 
-    it('應該即使廣播失敗也能成功創建訂單', async () => {
+    it("應該即使廣播失敗也能成功創建訂單", async () => {
       const orderData = {
-        restaurantId: '2',
+        restaurantId: "2",
         tableId: 20,
         items: [
           {
             menuItemId: 200,
-            quantity: 1
-          }
-        ]
-      }
+            quantity: 1,
+          },
+        ],
+      };
 
       const createdOrder = {
         id: 2,
-        restaurantId: '2',
+        restaurantId: "2",
         tableId: 20,
-        orderNumber: '#002',
+        orderNumber: "#002",
         totalAmount: 500,
         subtotal: 500,
         status: OrderStatus.PENDING,
@@ -218,143 +219,153 @@ describe('Orders + Realtime Integration', () => {
             status: 0,
             menuItem: {
               id: 200,
-              name: 'Salad',
-              price: 500
+              name: "Salad",
+              price: 500,
             },
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]
-      }
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      };
 
-      mockOrderService.createOrder.mockResolvedValue(createdOrder)
+      mockOrderService.createOrder.mockResolvedValue(createdOrder);
       // Make broadcast fail for this test
       mockBroadcastService.broadcastNewOrder.mockResolvedValueOnce({
         success: false,
-        error: 'Broadcast failed'
-      })
+        error: "Broadcast failed",
+      });
 
       // Should not throw even if broadcast fails
-      const result = await ordersService.createOrder(orderData)
+      const result = await ordersService.createOrder(orderData);
 
-      expect(result).toEqual(createdOrder)
-      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalled()
-    })
-  })
+      expect(result).toEqual(createdOrder);
+      expect(mockBroadcastService.broadcastNewOrder).toHaveBeenCalled();
+    });
+  });
 
-  describe('updateOrderStatus - Realtime Integration', () => {
-    it('應該在更新訂單狀態後廣播 ORDER_STATUS_UPDATE 事件', async () => {
-      const orderId = 3
-      const currentStatus = 'confirmed'
-      const newStatus = 'preparing'
-      const notes = 'Starting to prepare'
+  describe("updateOrderStatus - Realtime Integration", () => {
+    it("應該在更新訂單狀態後廣播 ORDER_STATUS_UPDATE 事件", async () => {
+      const orderId = 3;
+      const currentStatus = "confirmed";
+      const newStatus = "preparing";
+      const notes = "Starting to prepare";
 
       const currentOrder = {
         id: orderId,
-        restaurantId: '3',
+        restaurantId: "3",
         tableId: 30,
-        orderNumber: '#003',
+        orderNumber: "#003",
         status: currentStatus as any,
         totalAmount: 1500,
         subtotal: 1500,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        items: []
-      }
+        items: [],
+      };
 
       const updatedOrder = {
         ...currentOrder,
         status: newStatus as any,
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      };
 
-      mockOrderService.getOrder.mockResolvedValue(currentOrder)
-      mockOrderService.updateOrderStatus.mockResolvedValue(updatedOrder)
+      mockOrderService.getOrder.mockResolvedValue(currentOrder);
+      mockOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
-      const result = await ordersService.updateOrderStatus(orderId, { status: newStatus as any, notes })
+      const result = await ordersService.updateOrderStatus(orderId, {
+        status: newStatus as any,
+        notes,
+      });
 
       // Verify update
-      expect(result).toEqual(updatedOrder)
+      expect(result).toEqual(updatedOrder);
 
       // Verify broadcast
-      expect(mockBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalledTimes(1)
+      expect(
+        mockBroadcastService.broadcastOrderStatusUpdate,
+      ).toHaveBeenCalledTimes(1);
 
-      const broadcastCall = mockBroadcastService.broadcastOrderStatusUpdate.mock.calls[0][0]
-      expect(broadcastCall.type).toBe(RealtimeEventType.ORDER_STATUS_UPDATE)
-      expect(broadcastCall.restaurantId).toBe('3')
-      expect(broadcastCall.data.orderId).toBe(orderId)
-      expect(broadcastCall.data.orderNumber).toBe('#003')
-      expect(broadcastCall.data.status).toBe('preparing')
-    })
-  })
+      const broadcastCall =
+        mockBroadcastService.broadcastOrderStatusUpdate.mock.calls[0][0];
+      expect(broadcastCall.type).toBe(RealtimeEventType.ORDER_STATUS_UPDATE);
+      expect(broadcastCall.restaurantId).toBe("3");
+      expect(broadcastCall.data.orderId).toBe(orderId);
+      expect(broadcastCall.data.orderNumber).toBe("#003");
+      expect(broadcastCall.data.status).toBe("preparing");
+    });
+  });
 
-  describe('broadcastOrderUpdate', () => {
-    it('應該正確處理訂單更新事件', async () => {
+  describe("broadcastOrderUpdate", () => {
+    it("應該正確處理訂單更新事件", async () => {
       const order = {
         id: 4,
-        restaurantId: '4',
+        restaurantId: "4",
         tableId: 40,
-        orderNumber: '#004',
-        status: 'confirmed' as any,
+        orderNumber: "#004",
+        status: "confirmed" as any,
         totalAmount: 3000,
         subtotal: 3000,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      };
 
-      mockOrderService.getOrder.mockResolvedValue(order)
+      mockOrderService.getOrder.mockResolvedValue(order);
 
       await ordersService.broadcastOrderUpdate({
         orderId: 4,
-        newStatus: 'confirmed' as any,
+        newStatus: "confirmed" as any,
         previousStatus: OrderStatus.PENDING,
-        notes: 'Order confirmed',
+        notes: "Order confirmed",
         updatedBy: 1,
-        updatedAt: new Date()
-      })
+        updatedAt: new Date(),
+      });
 
-      expect(mockBroadcastService.broadcastOrderStatusUpdate).toHaveBeenCalled()
-    })
+      expect(
+        mockBroadcastService.broadcastOrderStatusUpdate,
+      ).toHaveBeenCalled();
+    });
 
-    it('應該在訂單不存在時不廣播', async () => {
-      mockOrderService.getOrder.mockResolvedValue(null)
+    it("應該在訂單不存在時不廣播", async () => {
+      mockOrderService.getOrder.mockResolvedValue(null);
 
       await ordersService.broadcastOrderUpdate({
         orderId: 999,
-        newStatus: 'confirmed' as any,
+        newStatus: "confirmed" as any,
         previousStatus: OrderStatus.PENDING,
         updatedBy: 1,
-        updatedAt: new Date()
-      })
+        updatedAt: new Date(),
+      });
 
-      expect(mockBroadcastService.broadcastOrderStatusUpdate).not.toHaveBeenCalled()
-    })
-  })
+      expect(
+        mockBroadcastService.broadcastOrderStatusUpdate,
+      ).not.toHaveBeenCalled();
+    });
+  });
 
-  describe('Event Data Mapping', () => {
-    it('應該正確映射訂單項目到事件資料', async () => {
+  describe("Event Data Mapping", () => {
+    it("應該正確映射訂單項目到事件資料", async () => {
       const orderData = {
-        restaurantId: '5',
+        restaurantId: "5",
         tableId: 50,
         items: [
           {
             menuItemId: 300,
             quantity: 3,
             customizations: {
-              specialInstructions: 'Extra spicy'
+              specialInstructions: "Extra spicy",
             },
-            notes: 'Chef special'
-          }
-        ]
-      }
+            notes: "Chef special",
+          },
+        ],
+      };
 
       const createdOrder = {
         id: 5,
-        restaurantId: '5',
+        restaurantId: "5",
         tableId: 50,
-        orderNumber: '#005',
+        orderNumber: "#005",
         totalAmount: 4500,
         subtotal: 4500,
         status: OrderStatus.PENDING,
@@ -369,36 +380,37 @@ describe('Orders + Realtime Integration', () => {
             quantity: 3,
             unitPrice: 1500,
             totalPrice: 4500,
-            notes: 'Chef special',
+            notes: "Chef special",
             status: 0,
             customizations: {
-              specialInstructions: 'Extra spicy'
+              specialInstructions: "Extra spicy",
             },
             menuItem: {
               id: 300,
-              name: 'Spicy Noodles',
-              price: 1500
+              name: "Spicy Noodles",
+              price: 1500,
             },
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]
-      }
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      };
 
-      mockOrderService.createOrder.mockResolvedValue(createdOrder)
+      mockOrderService.createOrder.mockResolvedValue(createdOrder);
 
-      await ordersService.createOrder(orderData)
+      await ordersService.createOrder(orderData);
 
-      const broadcastCall = mockBroadcastService.broadcastNewOrder.mock.calls[0][0]
+      const broadcastCall =
+        mockBroadcastService.broadcastNewOrder.mock.calls[0][0];
 
       expect(broadcastCall.data.items[0]).toMatchObject({
         orderItemId: 5,
         menuItemId: 300,
-        menuItemName: 'Spicy Noodles',
+        menuItemName: "Spicy Noodles",
         quantity: 3,
         price: 1500,
-        notes: 'Chef special'
-      })
-    })
-  })
-})
+        notes: "Chef special",
+      });
+    });
+  });
+});

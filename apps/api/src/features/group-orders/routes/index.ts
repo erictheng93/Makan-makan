@@ -3,532 +3,674 @@
  * HTTP routes for group ordering functionality
  */
 
-import { Hono } from 'hono'
-import { authMiddleware, requireRole } from '../../../middleware/auth'
-import { validateBody, validateQuery, validateParams } from '../../../middleware/validation'
-import { GroupOrdersService } from '../services/GroupOrdersService'
-import { groupOrderSchemas } from '../schemas/validation'
-import type { Env } from '../../../types/env'
+import { Hono } from "hono";
+import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from "../../../middleware/validation";
+import { GroupOrdersService } from "../services/GroupOrdersService";
+import { groupOrderSchemas } from "../schemas/validation";
+import type { Env } from "../../../types/env";
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<{ Bindings: Env }>();
 
 /**
  * Create group order
  * POST /api/v1/orders/group/create
  */
-app.post('/create',
+app.post(
+  "/create",
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]), // All authenticated users can create group orders
   validateBody(groupOrderSchemas.createGroupOrder),
   async (c) => {
     try {
-      const data = c.get('validatedBody')
-      const user = c.get('user')
+      const data = c.get("validatedBody");
+      const user = c.get("user");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.createGroupOrder(data, user.id)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.createGroupOrder(data, user.id);
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       // Trigger real-time event
       try {
-        await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/group-created`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+        await fetch(
+          `${c.env.API_BASE_URL}/api/v1/sse/broadcast/group-created`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
+            },
+            body: JSON.stringify({
+              groupOrderId: result.data?.groupOrderId,
+              restaurantId: data.restaurantId,
+              tableId: data.tableId,
+              shareCode: result.data?.shareCode,
+            }),
           },
-          body: JSON.stringify({
-            groupOrderId: result.data?.groupOrderId,
-            restaurantId: data.restaurantId,
-            tableId: data.tableId,
-            shareCode: result.data?.shareCode
-          })
-        })
+        );
       } catch (broadcastError) {
-        console.warn('Failed to broadcast group creation:', broadcastError)
+        console.warn("Failed to broadcast group creation:", broadcastError);
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Create group order error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to create group order'
-      }, 500)
+      console.error("Create group order error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to create group order",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Join group order
  * POST /api/v1/orders/group/join/{shareCode}
  */
-app.post('/join/:shareCode',
+app.post(
+  "/join/:shareCode",
   validateParams(groupOrderSchemas.shareCodeParam),
   validateBody(groupOrderSchemas.joinGroup),
   async (c) => {
     try {
-      const { shareCode } = c.get('validatedParams')
-      const memberData = c.get('validatedBody')
+      const { shareCode } = c.get("validatedParams");
+      const memberData = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.joinGroup(shareCode, memberData)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.joinGroup(shareCode, memberData);
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       // Trigger real-time event
       try {
-        await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/member-joined`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+        await fetch(
+          `${c.env.API_BASE_URL}/api/v1/sse/broadcast/member-joined`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
+            },
+            body: JSON.stringify({
+              groupOrderId: result.data?.groupOrder.groupOrderId,
+              member: result.data?.member,
+            }),
           },
-          body: JSON.stringify({
-            groupOrderId: result.data?.groupOrder.groupOrderId,
-            member: result.data?.member
-          })
-        })
+        );
       } catch (broadcastError) {
-        console.warn('Failed to broadcast member join:', broadcastError)
+        console.warn("Failed to broadcast member join:", broadcastError);
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Join group error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to join group'
-      }, 500)
+      console.error("Join group error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to join group",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Get group order statistics
  * GET /api/v1/orders/group/statistics
  * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId
  */
-app.get('/statistics',
+app.get(
+  "/statistics",
   authMiddleware,
   requireRole([0, 1]), // Admin or Owner
   validateQuery(groupOrderSchemas.statisticsQuery),
   async (c) => {
     try {
-      const { restaurantId, timeRange } = c.get('validatedQuery')
-      const user = c.get('user')
+      const { restaurantId, timeRange } = c.get("validatedQuery");
+      const user = c.get("user");
 
       // Permission check for owners
-      if (user.role === 1 && restaurantId && user.restaurantId !== restaurantId) {
-        return c.json({
-          success: false,
-          error: 'Access denied: can only view own restaurant statistics'
-        }, 403)
+      if (
+        user.role === 1 &&
+        restaurantId &&
+        user.restaurantId !== restaurantId
+      ) {
+        return c.json(
+          {
+            success: false,
+            error: "Access denied: can only view own restaurant statistics",
+          },
+          403,
+        );
       }
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const statistics = await groupOrderService.getStatistics(restaurantId, timeRange)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const statistics = await groupOrderService.getStatistics(
+        restaurantId,
+        timeRange,
+      );
 
       return c.json({
         success: true,
-        data: statistics
-      })
-
+        data: statistics,
+      });
     } catch (error) {
-      console.error('Get statistics error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to get statistics'
-      }, 500)
+      console.error("Get statistics error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to get statistics",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Get group order details
  * GET /api/v1/orders/group/{groupOrderId}
  */
-app.get('/:groupOrderId',
+app.get(
+  "/:groupOrderId",
   validateParams(groupOrderSchemas.groupOrderIdParam),
   async (c) => {
     try {
-      const { groupOrderId } = c.get('validatedParams')
+      const { groupOrderId } = c.get("validatedParams");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const groupOrder = await groupOrderService.getGroupOrder(groupOrderId)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const groupOrder = await groupOrderService.getGroupOrder(groupOrderId);
 
       if (!groupOrder) {
-        return c.json({
-          success: false,
-          error: 'Group order not found'
-        }, 404)
+        return c.json(
+          {
+            success: false,
+            error: "Group order not found",
+          },
+          404,
+        );
       }
 
       return c.json({
         success: true,
-        data: groupOrder
-      })
-
+        data: groupOrder,
+      });
     } catch (error) {
-      console.error('Get group order error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to get group order'
-      }, 500)
+      console.error("Get group order error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to get group order",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Add cart item
  * POST /api/v1/orders/group/{groupOrderId}/cart
  */
-app.post('/:groupOrderId/cart',
+app.post(
+  "/:groupOrderId/cart",
   validateParams(groupOrderSchemas.groupOrderIdParam),
   validateBody(groupOrderSchemas.addCartItem),
   async (c) => {
     try {
-      const { groupOrderId } = c.get('validatedParams')
-      const itemData = c.get('validatedBody')
+      const { groupOrderId } = c.get("validatedParams");
+      const itemData = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.addCartItem(groupOrderId, itemData)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.addCartItem(
+        groupOrderId,
+        itemData,
+      );
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       // Trigger real-time event
       try {
         await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
           },
           body: JSON.stringify({
             groupOrderId,
-            action: 'added',
-            item: result.data
-          })
-        })
+            action: "added",
+            item: result.data,
+          }),
+        });
       } catch (broadcastError) {
-        console.warn('Failed to broadcast cart update:', broadcastError)
+        console.warn("Failed to broadcast cart update:", broadcastError);
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Add cart item error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to add cart item'
-      }, 500)
+      console.error("Add cart item error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to add cart item",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Update cart item
  * PUT /api/v1/orders/group/{groupOrderId}/cart/{itemId}
  */
-app.put('/:groupOrderId/cart/:itemId',
-  validateParams(groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam)),
+app.put(
+  "/:groupOrderId/cart/:itemId",
+  validateParams(
+    groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam),
+  ),
   validateBody(groupOrderSchemas.updateCartItem),
   async (c) => {
     try {
-      const { groupOrderId, itemId } = c.get('validatedParams')
-      const updateData = c.get('validatedBody')
+      const { groupOrderId, itemId } = c.get("validatedParams");
+      const updateData = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.updateCartItem(groupOrderId, itemId, updateData)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.updateCartItem(
+        groupOrderId,
+        itemId,
+        updateData,
+      );
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       // Trigger real-time event
       try {
         await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
           },
           body: JSON.stringify({
             groupOrderId,
-            action: 'updated',
-            item: result.data
-          })
-        })
+            action: "updated",
+            item: result.data,
+          }),
+        });
       } catch (broadcastError) {
-        console.warn('Failed to broadcast cart update:', broadcastError)
+        console.warn("Failed to broadcast cart update:", broadcastError);
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Update cart item error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to update cart item'
-      }, 500)
+      console.error("Update cart item error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to update cart item",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Remove cart item
  * DELETE /api/v1/orders/group/{groupOrderId}/cart/{itemId}
  */
-app.delete('/:groupOrderId/cart/:itemId',
-  validateParams(groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam)),
+app.delete(
+  "/:groupOrderId/cart/:itemId",
+  validateParams(
+    groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam),
+  ),
   validateBody(groupOrderSchemas.memberIdParam),
   async (c) => {
     try {
-      const { groupOrderId, itemId } = c.get('validatedParams')
-      const { memberId } = c.get('validatedBody')
+      const { groupOrderId, itemId } = c.get("validatedParams");
+      const { memberId } = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.removeCartItem(groupOrderId, itemId, memberId)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.removeCartItem(
+        groupOrderId,
+        itemId,
+        memberId,
+      );
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       // Trigger real-time event
       try {
         await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${c.env.INTERNAL_API_TOKEN}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
           },
           body: JSON.stringify({
             groupOrderId,
-            action: 'removed',
-            itemId
-          })
-        })
+            action: "removed",
+            itemId,
+          }),
+        });
       } catch (broadcastError) {
-        console.warn('Failed to broadcast cart update:', broadcastError)
+        console.warn("Failed to broadcast cart update:", broadcastError);
       }
 
       return c.json({
         success: true,
-        message: 'Cart item removed successfully'
-      })
-
+        message: "Cart item removed successfully",
+      });
     } catch (error) {
-      console.error('Remove cart item error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to remove cart item'
-      }, 500)
+      console.error("Remove cart item error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to remove cart item",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Split bill
  * POST /api/v1/orders/group/{groupOrderId}/split
  */
-app.post('/:groupOrderId/split',
+app.post(
+  "/:groupOrderId/split",
   validateParams(groupOrderSchemas.groupOrderIdParam),
   validateBody(groupOrderSchemas.splitBill),
   async (c) => {
     try {
-      const { groupOrderId } = c.get('validatedParams')
-      const splitData = c.get('validatedBody')
+      const { groupOrderId } = c.get("validatedParams");
+      const splitData = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.splitBill(groupOrderId, splitData)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Split bill error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to split bill'
-      }, 500)
+      console.error("Split bill error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to split bill",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Process payment
  * POST /api/v1/orders/group/{groupOrderId}/payment/{memberId}
  */
-app.post('/:groupOrderId/payment/:memberId',
-  validateParams(groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.memberIdParam)),
+app.post(
+  "/:groupOrderId/payment/:memberId",
+  validateParams(
+    groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.memberIdParam),
+  ),
   validateBody(groupOrderSchemas.processPayment),
   async (c) => {
     try {
-      const { groupOrderId, memberId } = c.get('validatedParams')
-      const paymentData = c.get('validatedBody')
+      const { groupOrderId, memberId } = c.get("validatedParams");
+      const paymentData = c.get("validatedBody");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.processPayment(groupOrderId, memberId, paymentData)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.processPayment(
+        groupOrderId,
+        memberId,
+        paymentData,
+      );
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       return c.json({
         success: true,
-        data: result.data
-      })
-
+        data: result.data,
+      });
     } catch (error) {
-      console.error('Process payment error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to process payment'
-      }, 500)
+      console.error("Process payment error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to process payment",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Leave group
  * POST /api/v1/orders/group/{groupOrderId}/leave/{memberId}
  */
-app.post('/:groupOrderId/leave/:memberId',
-  validateParams(groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.memberIdParam)),
+app.post(
+  "/:groupOrderId/leave/:memberId",
+  validateParams(
+    groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.memberIdParam),
+  ),
   async (c) => {
     try {
-      const { groupOrderId, memberId } = c.get('validatedParams')
+      const { groupOrderId, memberId } = c.get("validatedParams");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.leaveGroup(groupOrderId, memberId)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.leaveGroup(groupOrderId, memberId);
 
       if (!result.success) {
-        return c.json({
-          success: false,
-          error: result.error
-        }, 400)
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          400,
+        );
       }
 
       return c.json({
         success: true,
-        message: 'Left group successfully'
-      })
-
+        message: "Left group successfully",
+      });
     } catch (error) {
-      console.error('Leave group error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to leave group'
-      }, 500)
+      console.error("Leave group error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to leave group",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Get group activities
  * GET /api/v1/orders/group/{groupOrderId}/activities
  */
-app.get('/:groupOrderId/activities',
+app.get(
+  "/:groupOrderId/activities",
   validateParams(groupOrderSchemas.groupOrderIdParam),
   validateQuery(groupOrderSchemas.activitiesQuery),
   async (c) => {
     try {
-      const { groupOrderId } = c.get('validatedParams')
+      const { groupOrderId } = c.get("validatedParams");
 
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const activities = await groupOrderService.getActivities(groupOrderId)
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const activities = await groupOrderService.getActivities(groupOrderId);
 
       return c.json({
         success: true,
-        data: activities
-      })
-
+        data: activities,
+      });
     } catch (error) {
-      console.error('Get activities error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to get activities'
-      }, 500)
+      console.error("Get activities error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to get activities",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 /**
  * Cleanup expired groups
  * POST /api/v1/orders/group/cleanup/expired
  */
-app.post('/cleanup/expired',
+app.post(
+  "/cleanup/expired",
   authMiddleware,
   requireRole([0]), // Admin only
   async (c) => {
     try {
-      const groupOrderService = new GroupOrdersService(c.env.DB as any, c.env.CACHE_KV)
-      const result = await groupOrderService.cleanupExpiredGroups()
+      const groupOrderService = new GroupOrdersService(
+        c.env.DB as any,
+        c.env.CACHE_KV,
+      );
+      const result = await groupOrderService.cleanupExpiredGroups();
 
       return c.json({
         success: true,
         data: {
           cleaned: result.cleaned,
-          errors: result.errors
-        }
-      })
-
+          errors: result.errors,
+        },
+      });
     } catch (error) {
-      console.error('Cleanup expired groups error:', error)
-      return c.json({
-        success: false,
-        error: 'Failed to cleanup expired groups'
-      }, 500)
+      console.error("Cleanup expired groups error:", error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to cleanup expired groups",
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
-export default app
+export default app;

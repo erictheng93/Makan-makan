@@ -41,13 +41,13 @@
 
 ```typescript
 // 測試 A
-const user = { id: 1, username: 'test', role: 2 }
+const user = { id: 1, username: "test", role: 2 };
 
 // 測試 B
-const user = { id: 1, name: 'test', role: 2, restaurantId: 1 }  // 欸？少了字段
+const user = { id: 1, name: "test", role: 2, restaurantId: 1 }; // 欸？少了字段
 
 // 測試 C
-const user = { id: 1, username: 'test', userRole: 2 }  // 欸？字段名不對
+const user = { id: 1, username: "test", userRole: 2 }; // 欸？字段名不對
 ```
 
 **結果**: 隱藏的 bug，維護困難
@@ -60,24 +60,24 @@ const user = { id: 1, username: 'test', userRole: 2 }  // 欸？字段名不對
 // 每個測試都要寫 18 個字段... 😓
 const user = {
   id: 1,
-  username: 'testuser',
+  username: "testuser",
   role: USER_ROLES.CHEF,
   restaurantId: 1,
-  email: 'test@example.com',
-  fullName: 'Test User',
-  phone: '+1234567890',
-  address: '123 Test St',
-  dateOfBirth: '1990-01-01',
-  profileImageUrl: 'https://example.com/avatar.jpg',
+  email: "test@example.com",
+  fullName: "Test User",
+  phone: "+1234567890",
+  address: "123 Test St",
+  dateOfBirth: "1990-01-01",
+  profileImageUrl: "https://example.com/avatar.jpg",
   isActive: true,
   isVerified: true,
-  preferences: { theme: 'dark' },
+  preferences: { theme: "dark" },
   totalOrders: 10,
-  totalSpent: 250.50,
-  lastLoginAt: '2023-01-01T00:00:00Z',
-  createdAt: '2022-01-01T00:00:00Z',
-  updatedAt: '2023-01-01T00:00:00Z'
-}
+  totalSpent: 250.5,
+  lastLoginAt: "2023-01-01T00:00:00Z",
+  createdAt: "2022-01-01T00:00:00Z",
+  updatedAt: "2023-01-01T00:00:00Z",
+};
 ```
 
 **結果**: 複製貼上滿天飛，改一個字段要改 20 個地方
@@ -105,7 +105,7 @@ const user = { id: 1, ... }  // 哎呀！ID 衝突了
 **一行代碼，完整數據：**
 
 ```typescript
-const user = userFactory.buildChef(1)
+const user = userFactory.buildChef(1);
 ```
 
 ✅ 所有字段自動生成
@@ -134,10 +134,10 @@ const user = userFactory.buildChef(1)
 
 ```typescript
 // ❌ Before: 不清楚這是什麼角色
-const user = { role: USER_ROLES.CHEF, restaurantId: 1 }
+const user = { role: USER_ROLES.CHEF, restaurantId: 1 };
 
 // ✅ After: 一目了然！
-const user = userFactory.buildChef(1)
+const user = userFactory.buildChef(1);
 ```
 
 **改進**: +100% 可讀性
@@ -150,33 +150,33 @@ const user = userFactory.buildChef(1)
 // ❌ Before: 18 行手動創建 😫
 const rawUser = {
   id: 1,
-  username: 'testuser',
+  username: "testuser",
   role: USER_ROLES.CHEF,
   restaurantId: 1,
-  email: 'test@example.com',
-  fullName: 'Test User',
-  phone: '+1234567890',
-  address: '123 Test St',
-  dateOfBirth: '1990-01-01',
-  profileImageUrl: 'https://example.com/avatar.jpg',
+  email: "test@example.com",
+  fullName: "Test User",
+  phone: "+1234567890",
+  address: "123 Test St",
+  dateOfBirth: "1990-01-01",
+  profileImageUrl: "https://example.com/avatar.jpg",
   isActive: true,
   isVerified: true,
-  preferences: { theme: 'dark' },
+  preferences: { theme: "dark" },
   totalOrders: 10,
-  totalSpent: 250.50,
-  lastLoginAt: '2023-01-01T00:00:00Z',
-  createdAt: '2022-01-01T00:00:00Z',
-  updatedAt: '2023-01-01T00:00:00Z'
-}
+  totalSpent: 250.5,
+  lastLoginAt: "2023-01-01T00:00:00Z",
+  createdAt: "2022-01-01T00:00:00Z",
+  updatedAt: "2023-01-01T00:00:00Z",
+};
 
 // ✅ After: 7 行搞定！🎉
 const rawUser = userFactory.buildChef(1, {
   overrides: {
-    preferences: { theme: 'dark' },
+    preferences: { theme: "dark" },
     totalOrders: 10,
-    totalSpent: 250.50
-  }
-})
+    totalSpent: 250.5,
+  },
+});
 ```
 
 **改進**: -61% 代碼量，100% 字段完整
@@ -185,14 +185,14 @@ const rawUser = userFactory.buildChef(1, {
 
 ### 關鍵改進數據
 
-| 指標 | Before | After | 改進 |
-|------|--------|-------|------|
-| 測試通過率 | 100% | 100% | ✅ 保持 |
-| 代碼行數 | 162 | 140 | -14% |
-| 手動創建 | 7 處 | 0 處 | -100% |
-| 執行時間 | ~95ms | ~95ms | 無退化 |
-| 可讀性 | 😐 | 😄 | +40% |
-| 維護成本 | 😫 | 😊 | -60% |
+| 指標       | Before | After | 改進    |
+| ---------- | ------ | ----- | ------- |
+| 測試通過率 | 100%   | 100%  | ✅ 保持 |
+| 代碼行數   | 162    | 140   | -14%    |
+| 手動創建   | 7 處   | 0 處  | -100%   |
+| 執行時間   | ~95ms  | ~95ms | 無退化  |
+| 可讀性     | 😐     | 😄    | +40%    |
+| 維護成本   | 😫     | 😊    | -60%    |
 
 ---
 
@@ -203,30 +203,31 @@ const rawUser = userFactory.buildChef(1, {
 **場景**: 測試用戶角色邏輯
 
 ```typescript
-import { describe, test, expect, beforeEach } from 'vitest'
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { describe, test, expect, beforeEach } from "vitest";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
-describe('User Roles', () => {
+describe("User Roles", () => {
   beforeEach(() => {
-    resetAllFactories()  // ⭐ 重要：每個測試重置
-  })
+    resetAllFactories(); // ⭐ 重要：每個測試重置
+  });
 
-  test('chef has correct role', () => {
-    const chef = userFactory.buildChef(1)
+  test("chef has correct role", () => {
+    const chef = userFactory.buildChef(1);
 
-    expect(chef.role).toBe(USER_ROLES.CHEF)
-    expect(chef.restaurantId).toBe(1)
-  })
+    expect(chef.role).toBe(USER_ROLES.CHEF);
+    expect(chef.restaurantId).toBe(1);
+  });
 
-  test('admin has admin role', () => {
-    const admin = userFactory.buildAdmin()
+  test("admin has admin role", () => {
+    const admin = userFactory.buildAdmin();
 
-    expect(admin.role).toBe(USER_ROLES.ADMIN)
-  })
-})
+    expect(admin.role).toBe(USER_ROLES.ADMIN);
+  });
+});
 ```
 
 **關鍵點**:
+
 1. ✅ 導入 factory 和 reset
 2. ✅ beforeEach 調用 reset
 3. ✅ 使用語義化方法
@@ -238,21 +239,22 @@ describe('User Roles', () => {
 **場景**: 測試訂單和用戶的關係
 
 ```typescript
-test('order belongs to user', () => {
-  const restaurant = restaurantFactory.build()
-  const customer = userFactory.buildCustomer()
+test("order belongs to user", () => {
+  const restaurant = restaurantFactory.build();
+  const customer = userFactory.buildCustomer();
 
   const order = orderFactory.build({
-    restaurantId: restaurant.id,  // ⭐ 引用而非硬編碼
-    userId: customer.id
-  })
+    restaurantId: restaurant.id, // ⭐ 引用而非硬編碼
+    userId: customer.id,
+  });
 
-  expect(order.restaurantId).toBe(restaurant.id)
-  expect(order.userId).toBe(customer.id)
-})
+  expect(order.restaurantId).toBe(restaurant.id);
+  expect(order.userId).toBe(customer.id);
+});
 ```
 
 **關鍵點**:
+
 1. ✅ 先創建父實體
 2. ✅ 引用父實體的 ID
 3. ✅ 驗證關聯正確
@@ -264,18 +266,19 @@ test('order belongs to user', () => {
 **場景**: 測試非活躍用戶邏輯
 
 ```typescript
-test('inactive user cannot login', () => {
+test("inactive user cannot login", () => {
   const inactiveUser = userFactory.buildChef(1, {
     overrides: {
-      isActive: false  // ⭐ 只覆蓋測試關鍵字段
-    }
-  })
+      isActive: false, // ⭐ 只覆蓋測試關鍵字段
+    },
+  });
 
-  expect(canLogin(inactiveUser)).toBe(false)
-})
+  expect(canLogin(inactiveUser)).toBe(false);
+});
 ```
 
 **關鍵點**:
+
 1. ✅ 最小化 overrides
 2. ✅ 只覆蓋測試必需字段
 3. ✅ 其他字段由 factory 提供
@@ -288,37 +291,37 @@ test('inactive user cannot login', () => {
 
 ```typescript
 // 我們要遷移這個測試
-test('owner can manage staff', () => {
-  const owner = { role: USER_ROLES.OWNER, id: 1, restaurantId: 1 }
-  const staff = { id: 2, restaurantId: 1 }
+test("owner can manage staff", () => {
+  const owner = { role: USER_ROLES.OWNER, id: 1, restaurantId: 1 };
+  const staff = { id: 2, restaurantId: 1 };
 
-  expect(owner.canManage(staff)).toBe(true)
-})
+  expect(owner.canManage(staff)).toBe(true);
+});
 ```
 
 **Step 1**: 導入 factory
 
 ```typescript
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 ```
 
 **Step 2**: 添加 reset
 
 ```typescript
 beforeEach(() => {
-  resetAllFactories()
-})
+  resetAllFactories();
+});
 ```
 
 **Step 3**: 替換手動創建
 
 ```typescript
-test('owner can manage staff', () => {
-  const owner = userFactory.buildShopOwner(1)  // ✨ 語義化！
-  const staff = userFactory.build({ overrides: { restaurantId: 1 } })
+test("owner can manage staff", () => {
+  const owner = userFactory.buildShopOwner(1); // ✨ 語義化！
+  const staff = userFactory.build({ overrides: { restaurantId: 1 } });
 
-  expect(owner.canManage(staff)).toBe(true)
-})
+  expect(owner.canManage(staff)).toBe(true);
+});
 ```
 
 **完成！** 🎉 測試通過，代碼更清晰！
@@ -333,10 +336,10 @@ test('owner can manage staff', () => {
 
 ```typescript
 // ✅ 正確
-const user = userFactory.buildChef(1)  // 有效的廚師
+const user = userFactory.buildChef(1); // 有效的廚師
 
 // ❌ 錯誤
-const user = userFactory.build({ overrides: { role: 999 } })  // 無效角色
+const user = userFactory.build({ overrides: { role: 999 } }); // 無效角色
 ```
 
 **邊界測試用手動創建！**
@@ -347,12 +350,12 @@ const user = userFactory.build({ overrides: { role: 999 } })  // 無效角色
 
 ```typescript
 // ✅ 推薦
-const chef = userFactory.buildChef(1)
+const chef = userFactory.buildChef(1);
 
 // ⚠️ 次選
 const chef = userFactory.build({
-  overrides: { role: USER_ROLES.CHEF, restaurantId: 1 }
-})
+  overrides: { role: USER_ROLES.CHEF, restaurantId: 1 },
+});
 ```
 
 **清晰 > 靈活**
@@ -364,18 +367,18 @@ const chef = userFactory.build({
 ```typescript
 // ✅ 好
 const user = userFactory.buildChef(1, {
-  overrides: { isActive: false }  // 只覆蓋關鍵字段
-})
+  overrides: { isActive: false }, // 只覆蓋關鍵字段
+});
 
 // ❌ 差
 const user = userFactory.buildChef(1, {
   overrides: {
-    username: 'test',
-    email: 'test@example.com',
-    fullName: 'Test',
+    username: "test",
+    email: "test@example.com",
+    fullName: "Test",
     // ... 太多了！
-  }
-})
+  },
+});
 ```
 
 **只覆蓋測試必需的！**
@@ -386,12 +389,12 @@ const user = userFactory.buildChef(1, {
 
 ```typescript
 // ✅ 正確
-const user = userFactory.buildChef(1)
-const profile = { userId: user.id }
+const user = userFactory.buildChef(1);
+const profile = { userId: user.id };
 
 // ❌ 錯誤
-const user = userFactory.buildChef(1)
-const profile = { userId: 1 }  // 假設 user.id === 1
+const user = userFactory.buildChef(1);
+const profile = { userId: 1 }; // 假設 user.id === 1
 ```
 
 **Factory 管理 ID，你管邏輯！**
@@ -403,8 +406,8 @@ const profile = { userId: 1 }  // 假設 user.id === 1
 ```typescript
 // ✅ 必須的！
 beforeEach(() => {
-  resetAllFactories()
-})
+  resetAllFactories();
+});
 ```
 
 **確保測試獨立性！**

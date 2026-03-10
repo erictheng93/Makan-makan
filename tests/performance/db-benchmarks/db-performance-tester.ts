@@ -9,63 +9,66 @@
  * - Performance baseline management
  */
 
-import type { D1Database } from '@cloudflare/workers-types'
+import type { D1Database } from "@cloudflare/workers-types";
 
 export interface QueryPerformanceResult {
-  query: string
-  executionTime: number // milliseconds
-  rowsReturned: number
-  timestamp: number
-  indexUsed: boolean
-  queryPlan?: string
+  query: string;
+  executionTime: number; // milliseconds
+  rowsReturned: number;
+  timestamp: number;
+  indexUsed: boolean;
+  queryPlan?: string;
 }
 
 export interface N1DetectionResult {
-  endpoint: string
-  totalQueries: number
-  uniqueQueries: number
+  endpoint: string;
+  totalQueries: number;
+  uniqueQueries: number;
   repeatedQueries: Array<{
-    query: string
-    count: number
-  }>
-  hasN1Problem: boolean
-  suggestions: string[]
+    query: string;
+    count: number;
+  }>;
+  hasN1Problem: boolean;
+  suggestions: string[];
 }
 
 export interface PerformanceBaseline {
-  version: string
-  timestamp: number
-  queries: Record<string, {
-    avgTime: number
-    p95Time: number
-    p99Time: number
-    indexUsed: boolean
-  }>
+  version: string;
+  timestamp: number;
+  queries: Record<
+    string,
+    {
+      avgTime: number;
+      p95Time: number;
+      p99Time: number;
+      indexUsed: boolean;
+    }
+  >;
 }
 
 export class DatabasePerformanceTester {
-  private db: D1Database
-  private queryLog: QueryPerformanceResult[] = []
-  private enableQueryLogging: boolean = false
+  private db: D1Database;
+  private queryLog: QueryPerformanceResult[] = [];
+  private enableQueryLogging: boolean = false;
 
   constructor(db: D1Database) {
-    this.db = db
+    this.db = db;
   }
 
   /**
    * Enable query logging for N+1 detection
    */
   startQueryLogging(): void {
-    this.enableQueryLogging = true
-    this.queryLog = []
+    this.enableQueryLogging = true;
+    this.queryLog = [];
   }
 
   /**
    * Stop query logging and analyze results
    */
   stopQueryLogging(): N1DetectionResult {
-    this.enableQueryLogging = false
-    return this.analyzeN1Queries()
+    this.enableQueryLogging = false;
+    return this.analyzeN1Queries();
   }
 
   /**
@@ -74,33 +77,39 @@ export class DatabasePerformanceTester {
   async measureQuery(
     query: string,
     params: any[] = [],
-    options: { warmup?: boolean; explain?: boolean } = {}
+    options: { warmup?: boolean; explain?: boolean } = {},
   ): Promise<QueryPerformanceResult> {
     // Warmup run (not measured)
     if (options.warmup) {
-      await this.db.prepare(query).bind(...params).all()
+      await this.db
+        .prepare(query)
+        .bind(...params)
+        .all();
     }
 
     // Get query plan if requested
-    let queryPlan: string | undefined
+    let queryPlan: string | undefined;
     if (options.explain) {
       const planResult = await this.db
         .prepare(`EXPLAIN QUERY PLAN ${query}`)
         .bind(...params)
-        .all()
-      queryPlan = JSON.stringify(planResult.results)
+        .all();
+      queryPlan = JSON.stringify(planResult.results);
     }
 
     // Measure execution time
-    const startTime = performance.now()
-    const result = await this.db.prepare(query).bind(...params).all()
-    const endTime = performance.now()
+    const startTime = performance.now();
+    const result = await this.db
+      .prepare(query)
+      .bind(...params)
+      .all();
+    const endTime = performance.now();
 
-    const executionTime = endTime - startTime
-    const rowsReturned = result.results?.length || 0
+    const executionTime = endTime - startTime;
+    const rowsReturned = result.results?.length || 0;
 
     // Check if index was used (from query plan)
-    const indexUsed = queryPlan?.includes('USING INDEX') || false
+    const indexUsed = queryPlan?.includes("USING INDEX") || false;
 
     const perfResult: QueryPerformanceResult = {
       query,
@@ -108,15 +117,15 @@ export class DatabasePerformanceTester {
       rowsReturned,
       timestamp: Date.now(),
       indexUsed,
-      queryPlan
-    }
+      queryPlan,
+    };
 
     // Log if logging is enabled
     if (this.enableQueryLogging) {
-      this.queryLog.push(perfResult)
+      this.queryLog.push(perfResult);
     }
 
-    return perfResult
+    return perfResult;
   }
 
   /**
@@ -125,39 +134,41 @@ export class DatabasePerformanceTester {
   async benchmarkQuery(
     query: string,
     params: any[] = [],
-    iterations: number = 10
+    iterations: number = 10,
   ): Promise<{
-    query: string
-    iterations: number
-    avgTime: number
-    minTime: number
-    maxTime: number
-    p95Time: number
-    p99Time: number
-    stdDev: number
+    query: string;
+    iterations: number;
+    avgTime: number;
+    minTime: number;
+    maxTime: number;
+    p95Time: number;
+    p99Time: number;
+    stdDev: number;
   }> {
-    const times: number[] = []
+    const times: number[] = [];
 
     // Warmup
-    await this.measureQuery(query, params, { warmup: true })
+    await this.measureQuery(query, params, { warmup: true });
 
     // Run benchmark
     for (let i = 0; i < iterations; i++) {
-      const result = await this.measureQuery(query, params)
-      times.push(result.executionTime)
+      const result = await this.measureQuery(query, params);
+      times.push(result.executionTime);
     }
 
     // Calculate statistics
-    times.sort((a, b) => a - b)
-    const avgTime = times.reduce((a, b) => a + b, 0) / times.length
-    const minTime = times[0]
-    const maxTime = times[times.length - 1]
-    const p95Time = times[Math.floor(times.length * 0.95)]
-    const p99Time = times[Math.floor(times.length * 0.99)]
+    times.sort((a, b) => a - b);
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    const minTime = times[0];
+    const maxTime = times[times.length - 1];
+    const p95Time = times[Math.floor(times.length * 0.95)];
+    const p99Time = times[Math.floor(times.length * 0.99)];
 
     // Calculate standard deviation
-    const variance = times.reduce((sum, time) => sum + Math.pow(time - avgTime, 2), 0) / times.length
-    const stdDev = Math.sqrt(variance)
+    const variance =
+      times.reduce((sum, time) => sum + Math.pow(time - avgTime, 2), 0) /
+      times.length;
+    const stdDev = Math.sqrt(variance);
 
     return {
       query,
@@ -167,8 +178,8 @@ export class DatabasePerformanceTester {
       maxTime,
       p95Time,
       p99Time,
-      stdDev
-    }
+      stdDev,
+    };
   }
 
   /**
@@ -177,90 +188,100 @@ export class DatabasePerformanceTester {
   async benchmarkConcurrent(
     query: string,
     params: any[] = [],
-    concurrency: number = 10
+    concurrency: number = 10,
   ): Promise<{
-    concurrency: number
-    totalTime: number
-    avgQueryTime: number
-    successCount: number
-    errorCount: number
+    concurrency: number;
+    totalTime: number;
+    avgQueryTime: number;
+    successCount: number;
+    errorCount: number;
   }> {
-    const startTime = performance.now()
-    const promises = []
+    const startTime = performance.now();
+    const promises = [];
 
     for (let i = 0; i < concurrency; i++) {
       promises.push(
         this.measureQuery(query, params).catch((error) => ({
           error: true,
-          message: error.message
-        }))
-      )
+          message: error.message,
+        })),
+      );
     }
 
-    const results = await Promise.all(promises)
-    const endTime = performance.now()
+    const results = await Promise.all(promises);
+    const endTime = performance.now();
 
-    const successResults = results.filter((r: any) => !r.error) as QueryPerformanceResult[]
-    const errorCount = results.filter((r: any) => r.error).length
+    const successResults = results.filter(
+      (r: any) => !r.error,
+    ) as QueryPerformanceResult[];
+    const errorCount = results.filter((r: any) => r.error).length;
 
-    const avgQueryTime = successResults.length > 0
-      ? successResults.reduce((sum, r) => sum + r.executionTime, 0) / successResults.length
-      : 0
+    const avgQueryTime =
+      successResults.length > 0
+        ? successResults.reduce((sum, r) => sum + r.executionTime, 0) /
+          successResults.length
+        : 0;
 
     return {
       concurrency,
       totalTime: endTime - startTime,
       avgQueryTime,
       successCount: successResults.length,
-      errorCount
-    }
+      errorCount,
+    };
   }
 
   /**
    * Analyze query log for N+1 problems
    */
   private analyzeN1Queries(): N1DetectionResult {
-    const totalQueries = this.queryLog.length
-    const uniqueQueries = new Set(this.queryLog.map((q) => q.query)).size
+    const totalQueries = this.queryLog.length;
+    const uniqueQueries = new Set(this.queryLog.map((q) => q.query)).size;
 
     // Count repeated queries
-    const queryCounts = new Map<string, number>()
+    const queryCounts = new Map<string, number>();
     this.queryLog.forEach((log) => {
-      queryCounts.set(log.query, (queryCounts.get(log.query) || 0) + 1)
-    })
+      queryCounts.set(log.query, (queryCounts.get(log.query) || 0) + 1);
+    });
 
     const repeatedQueries = Array.from(queryCounts.entries())
       .filter(([_, count]) => count > 1)
       .map(([query, count]) => ({ query, count }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.count - a.count);
 
     // Detect N+1 problem
     // Heuristic: If we have more than 5 identical queries, it's likely an N+1 problem
-    const hasN1Problem = repeatedQueries.some((q) => q.count > 5)
+    const hasN1Problem = repeatedQueries.some((q) => q.count > 5);
 
     // Generate suggestions
-    const suggestions: string[] = []
+    const suggestions: string[] = [];
     if (hasN1Problem) {
-      suggestions.push('🔴 N+1 query problem detected!')
-      suggestions.push('Consider using JOIN or batch loading to reduce queries')
+      suggestions.push("🔴 N+1 query problem detected!");
+      suggestions.push(
+        "Consider using JOIN or batch loading to reduce queries",
+      );
 
       repeatedQueries.slice(0, 3).forEach((q) => {
-        suggestions.push(`  - Query executed ${q.count} times: ${q.query.substring(0, 100)}...`)
-      })
+        suggestions.push(
+          `  - Query executed ${q.count} times: ${q.query.substring(0, 100)}...`,
+        );
+      });
     }
 
     if (totalQueries > 20) {
-      suggestions.push('⚠️ High number of queries per request. Consider caching or optimization.')
+      suggestions.push(
+        "⚠️ High number of queries per request. Consider caching or optimization.",
+      );
     }
 
     return {
-      endpoint: 'unknown', // Will be set by caller
+      endpoint: "unknown", // Will be set by caller
       totalQueries,
       uniqueQueries,
       repeatedQueries,
       hasN1Problem,
-      suggestions
-    }
+      suggestions,
+    };
   }
 
   /**
@@ -268,30 +289,31 @@ export class DatabasePerformanceTester {
    */
   async validateIndexUsage(
     query: string,
-    params: any[] = []
+    params: any[] = [],
   ): Promise<{
-    query: string
-    indexUsed: boolean
-    queryPlan: string
-    executionTime: number
-    recommendation: string
+    query: string;
+    indexUsed: boolean;
+    queryPlan: string;
+    executionTime: number;
+    recommendation: string;
   }> {
-    const result = await this.measureQuery(query, params, { explain: true })
+    const result = await this.measureQuery(query, params, { explain: true });
 
-    let recommendation = ''
+    let recommendation = "";
     if (!result.indexUsed) {
-      recommendation = '⚠️ No index used. Consider adding an index for better performance.'
+      recommendation =
+        "⚠️ No index used. Consider adding an index for better performance.";
     } else {
-      recommendation = '✅ Query uses index efficiently.'
+      recommendation = "✅ Query uses index efficiently.";
     }
 
     return {
       query,
       indexUsed: result.indexUsed,
-      queryPlan: result.queryPlan || 'N/A',
+      queryPlan: result.queryPlan || "N/A",
       executionTime: result.executionTime,
-      recommendation
-    }
+      recommendation,
+    };
   }
 
   /**
@@ -300,38 +322,39 @@ export class DatabasePerformanceTester {
   async stressTest(
     query: string,
     params: any[] = [],
-    duration: number = 10000 // 10 seconds
+    duration: number = 10000, // 10 seconds
   ): Promise<{
-    duration: number
-    totalQueries: number
-    successfulQueries: number
-    failedQueries: number
-    avgTime: number
-    maxTime: number
-    queriesPerSecond: number
+    duration: number;
+    totalQueries: number;
+    successfulQueries: number;
+    failedQueries: number;
+    avgTime: number;
+    maxTime: number;
+    queriesPerSecond: number;
   }> {
-    const startTime = Date.now()
-    const endTime = startTime + duration
-    let totalQueries = 0
-    let successfulQueries = 0
-    let failedQueries = 0
-    const times: number[] = []
+    const startTime = Date.now();
+    const endTime = startTime + duration;
+    let totalQueries = 0;
+    let successfulQueries = 0;
+    let failedQueries = 0;
+    const times: number[] = [];
 
     while (Date.now() < endTime) {
       try {
-        const result = await this.measureQuery(query, params)
-        times.push(result.executionTime)
-        successfulQueries++
+        const result = await this.measureQuery(query, params);
+        times.push(result.executionTime);
+        successfulQueries++;
       } catch (error) {
-        failedQueries++
+        failedQueries++;
       }
-      totalQueries++
+      totalQueries++;
     }
 
-    const actualDuration = Date.now() - startTime
-    const avgTime = times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0
-    const maxTime = times.length > 0 ? Math.max(...times) : 0
-    const queriesPerSecond = (totalQueries / actualDuration) * 1000
+    const actualDuration = Date.now() - startTime;
+    const avgTime =
+      times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+    const maxTime = times.length > 0 ? Math.max(...times) : 0;
+    const queriesPerSecond = (totalQueries / actualDuration) * 1000;
 
     return {
       duration: actualDuration,
@@ -340,22 +363,22 @@ export class DatabasePerformanceTester {
       failedQueries,
       avgTime,
       maxTime,
-      queriesPerSecond
-    }
+      queriesPerSecond,
+    };
   }
 
   /**
    * Clear query log
    */
   clearQueryLog(): void {
-    this.queryLog = []
+    this.queryLog = [];
   }
 
   /**
    * Get query log
    */
   getQueryLog(): QueryPerformanceResult[] {
-    return [...this.queryLog]
+    return [...this.queryLog];
   }
 }
 
@@ -363,10 +386,10 @@ export class DatabasePerformanceTester {
  * Performance baseline manager
  */
 export class PerformanceBaselineManager {
-  private baselinePath: string
+  private baselinePath: string;
 
-  constructor(baselinePath: string = './baselines/db-baseline.json') {
-    this.baselinePath = baselinePath
+  constructor(baselinePath: string = "./baselines/db-baseline.json") {
+    this.baselinePath = baselinePath;
   }
 
   /**
@@ -374,11 +397,11 @@ export class PerformanceBaselineManager {
    */
   async loadBaseline(): Promise<PerformanceBaseline | null> {
     try {
-      const fs = await import('fs/promises')
-      const data = await fs.readFile(this.baselinePath, 'utf-8')
-      return JSON.parse(data)
+      const fs = await import("fs/promises");
+      const data = await fs.readFile(this.baselinePath, "utf-8");
+      return JSON.parse(data);
     } catch (error) {
-      return null
+      return null;
     }
   }
 
@@ -386,19 +409,19 @@ export class PerformanceBaselineManager {
    * Save baseline to file
    */
   async saveBaseline(baseline: PerformanceBaseline): Promise<void> {
-    const fs = await import('fs/promises')
-    const path = await import('path')
+    const fs = await import("fs/promises");
+    const path = await import("path");
 
     // Ensure directory exists
-    const dir = path.dirname(this.baselinePath)
-    await fs.mkdir(dir, { recursive: true })
+    const dir = path.dirname(this.baselinePath);
+    await fs.mkdir(dir, { recursive: true });
 
     // Save baseline
     await fs.writeFile(
       this.baselinePath,
       JSON.stringify(baseline, null, 2),
-      'utf-8'
-    )
+      "utf-8",
+    );
   }
 
   /**
@@ -406,30 +429,32 @@ export class PerformanceBaselineManager {
    */
   compareWithBaseline(
     current: Record<string, { avgTime: number; p95Time: number }>,
-    baseline: PerformanceBaseline
+    baseline: PerformanceBaseline,
   ): {
-    queryName: string
-    currentAvg: number
-    baselineAvg: number
-    percentageChange: number
-    status: 'improved' | 'degraded' | 'stable'
+    queryName: string;
+    currentAvg: number;
+    baselineAvg: number;
+    percentageChange: number;
+    status: "improved" | "degraded" | "stable";
   }[] {
-    const results = []
+    const results = [];
 
     for (const [queryName, currentMetrics] of Object.entries(current)) {
-      const baselineMetrics = baseline.queries[queryName]
-      if (!baselineMetrics) continue
+      const baselineMetrics = baseline.queries[queryName];
+      if (!baselineMetrics) continue;
 
       const percentageChange =
-        ((currentMetrics.avgTime - baselineMetrics.avgTime) / baselineMetrics.avgTime) * 100
+        ((currentMetrics.avgTime - baselineMetrics.avgTime) /
+          baselineMetrics.avgTime) *
+        100;
 
-      let status: 'improved' | 'degraded' | 'stable'
+      let status: "improved" | "degraded" | "stable";
       if (percentageChange > 20) {
-        status = 'degraded'
+        status = "degraded";
       } else if (percentageChange < -20) {
-        status = 'improved'
+        status = "improved";
       } else {
-        status = 'stable'
+        status = "stable";
       }
 
       results.push({
@@ -437,11 +462,11 @@ export class PerformanceBaselineManager {
         currentAvg: currentMetrics.avgTime,
         baselineAvg: baselineMetrics.avgTime,
         percentageChange,
-        status
-      })
+        status,
+      });
     }
 
-    return results
+    return results;
   }
 
   /**
@@ -449,17 +474,20 @@ export class PerformanceBaselineManager {
    */
   createBaseline(
     version: string,
-    benchmarkResults: Record<string, {
-      avgTime: number
-      p95Time: number
-      p99Time: number
-      indexUsed?: boolean
-    }>
+    benchmarkResults: Record<
+      string,
+      {
+        avgTime: number;
+        p95Time: number;
+        p99Time: number;
+        indexUsed?: boolean;
+      }
+    >,
   ): PerformanceBaseline {
     return {
       version,
       timestamp: Date.now(),
-      queries: benchmarkResults
-    }
+      queries: benchmarkResults,
+    };
   }
 }

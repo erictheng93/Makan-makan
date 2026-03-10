@@ -28,14 +28,15 @@ This guide explains how to maintain test documentation in the MakanMakan project
 
 ```typescript
 // ❌ 只有程式碼，沒有文檔
-describe('New Feature: Group Order Split Bill', () => {
-  it('should split bill equally among group members', () => {
+describe("New Feature: Group Order Split Bill", () => {
+  it("should split bill equally among group members", () => {
     // test implementation
-  })
-})
+  });
+});
 ```
 
 **需要更新**：
+
 - `docs/testing/TESTING_GUIDE.md` - 新增測試場景說明
 - 相關模組的 `README.md` - 新增功能測試範例
 - `docs/features/group-orders.md` - 新增測試說明章節
@@ -45,14 +46,15 @@ describe('New Feature: Group Order Split Bill', () => {
 ```typescript
 // 從 mock 改為使用真實資料庫
 // Before: Using mocked DB
-const mockDB = createMockDB()
+const mockDB = createMockDB();
 
 // After: Using real test database with factories
-const testDB = await createTestDB()
-const testData = buildCompleteRestaurantData()
+const testDB = await createTestDB();
+const testData = buildCompleteRestaurantData();
 ```
 
 **需要更新**：
+
 - `docs/testing/TESTING_GUIDE.md` - 更新測試策略章節
 - 相關模組的測試說明 - 說明為何改變策略
 
@@ -61,16 +63,17 @@ const testData = buildCompleteRestaurantData()
 ```typescript
 // 新增測試數據工廠
 export function buildCompleteRestaurantData(options?: {
-  enableShopMode?: boolean
-  categoryCount?: number
-  menuItemsPerCategory?: number
-  orderCount?: number
+  enableShopMode?: boolean;
+  categoryCount?: number;
+  menuItemsPerCategory?: number;
+  orderCount?: number;
 }): CompleteTestData {
   // factory implementation
 }
 ```
 
 **需要更新**：
+
 - `packages/testing-utils/README.md` - 新增 API 文檔
 - `docs/testing/TESTING_GUIDE.md` - 新增測試工具使用指南
 - 相關測試檔案 - 新增使用範例
@@ -82,16 +85,17 @@ export function buildCompleteRestaurantData(options?: {
 export default defineConfig({
   test: {
     coverage: {
-      lines: 80,      // 從 70% 提升到 80%
-      functions: 80,  // 從 70% 提升到 80%
-      branches: 75,   // 從 65% 提升到 75%
-      statements: 80  // 從 70% 提升到 80%
-    }
-  }
-})
+      lines: 80, // 從 70% 提升到 80%
+      functions: 80, // 從 70% 提升到 80%
+      branches: 75, // 從 65% 提升到 75%
+      statements: 80, // 從 70% 提升到 80%
+    },
+  },
+});
 ```
 
 **需要更新**：
+
 - `docs/testing/TESTING_GUIDE.md` - 更新覆蓋率目標說明
 - `CONTRIBUTING.md` - 更新 PR 提交標準
 
@@ -99,14 +103,15 @@ export default defineConfig({
 
 ```typescript
 // 新增 Realtime WebSocket 整合測試
-describe('Realtime WebSocket Integration', () => {
-  it('should handle concurrent connections', async () => {
+describe("Realtime WebSocket Integration", () => {
+  it("should handle concurrent connections", async () => {
     // integration test
-  })
-})
+  });
+});
 ```
 
 **需要更新**：
+
 - `docs/testing/TESTING_GUIDE.md` - 新增整合測試章節
 - 相關功能文檔 (如 `docs/REALTIME_SERVICES_IMPLEMENTATION.md`) - 新增測試說明
 
@@ -120,10 +125,10 @@ describe('Realtime WebSocket Integration', () => {
 
 ```typescript
 // Before: Wrong assertion
-expect(order.totalAmount).toBe(100)
+expect(order.totalAmount).toBe(100);
 
 // After: Fixed calculation
-expect(order.totalAmount).toBe(calculateTotal(order.items))
+expect(order.totalAmount).toBe(calculateTotal(order.items));
 ```
 
 **原因**：測試邏輯修正，不影響測試策略或使用方式。
@@ -132,10 +137,10 @@ expect(order.totalAmount).toBe(calculateTotal(order.items))
 
 ```typescript
 // Before: Small dataset
-const items = menuItemFactory.buildList(5)
+const items = menuItemFactory.buildList(5);
 
 // After: Larger dataset for better coverage
-const items = menuItemFactory.buildList(20)
+const items = menuItemFactory.buildList(20);
 ```
 
 **原因**：數據量調整，測試目的和方法未改變。
@@ -144,23 +149,23 @@ const items = menuItemFactory.buildList(20)
 
 ```typescript
 // Before: Inline test data
-it('should create order', () => {
+it("should create order", () => {
   const order = {
     id: 1,
     restaurantId: 1,
     customerId: 10,
-    totalAmount: 500
-  }
+    totalAmount: 500,
+  };
   // test logic
-})
+});
 
 // After: Using factory (same functionality)
-it('should create order', () => {
+it("should create order", () => {
   const order = orderFactory.build({
-    relations: { restaurantId: 1, customerId: 10 }
-  })
+    relations: { restaurantId: 1, customerId: 10 },
+  });
   // same test logic
-})
+});
 ```
 
 **原因**：僅改善代碼品質，測試行為相同。
@@ -169,16 +174,16 @@ it('should create order', () => {
 
 ```typescript
 // Before: Unclear naming
-describe('Tests', () => {
-  it('test1', () => {})
-  it('test2', () => {})
-})
+describe("Tests", () => {
+  it("test1", () => {});
+  it("test2", () => {});
+});
 
 // After: Better naming (same tests)
-describe('Order Service', () => {
-  it('should create order with valid data', () => {})
-  it('should reject order with invalid data', () => {})
-})
+describe("Order Service", () => {
+  it("should create order with valid data", () => {});
+  it("should reject order with invalid data", () => {});
+});
 ```
 
 **原因**：改善可讀性，測試內容未變。
@@ -228,9 +233,9 @@ describe('Order Service', () => {
 import { buildCompleteRestaurantData } from '@makanmakan/testing-utils'
 
 const testData = buildCompleteRestaurantData({
-  enableShopMode: true,
-  menuItemsPerCategory: 5,
-  orderCount: 20
+enableShopMode: true,
+menuItemsPerCategory: 5,
+orderCount: 20
 })
 
 // testData 包含:
@@ -244,12 +249,12 @@ const testData = buildCompleteRestaurantData({
 
 **參數說明**:
 
-| 參數 | 類型 | 預設值 | 說明 |
-|------|------|--------|------|
-| enableShopMode | boolean | false | 是否啟用 Shop QR 模式 |
-| categoryCount | number | 10 | 分類數量 |
-| menuItemsPerCategory | number | 5 | 每個分類的菜品數量 |
-| orderCount | number | 10 | 訂單數量 |
+| 參數                 | 類型    | 預設值 | 說明                  |
+| -------------------- | ------- | ------ | --------------------- |
+| enableShopMode       | boolean | false  | 是否啟用 Shop QR 模式 |
+| categoryCount        | number  | 10     | 分類數量              |
+| menuItemsPerCategory | number  | 5      | 每個分類的菜品數量    |
+| orderCount           | number  | 10     | 訂單數量              |
 ```
 
 #### 範例：新增測試場景文檔
@@ -275,16 +280,17 @@ const testData = buildCompleteRestaurantData({
 
 \`\`\`typescript
 describe('Group Order Split Bill', () => {
-  it('should split bill equally', () => {
-    const order = orderFactory.build({
-      overrides: { totalAmount: 1000 }
-    })
-    const members = 4
+it('should split bill equally', () => {
+const order = orderFactory.build({
+overrides: { totalAmount: 1000 }
+})
+const members = 4
 
     const result = splitBillEqually(order, members)
 
     expect(result.amountPerPerson).toBe(250)
-  })
+
+})
 })
 \`\`\`
 
@@ -333,12 +339,14 @@ git push origin feature/group-order-split-bill
 ### 1. 測試指南 (`docs/testing/TESTING_GUIDE.md`)
 
 **適用情況**：
+
 - 新增測試類型或測試策略
 - 修改測試配置或覆蓋率目標
 - 新增測試工具或測試框架
 - 新增測試最佳實踐
 
 **內容要求**：
+
 - 清楚說明測試目的和適用場景
 - 提供完整的測試範例代碼
 - 說明測試策略和決策原因
@@ -347,11 +355,13 @@ git push origin feature/group-order-split-bill
 ### 2. 模組 README (`packages/*/README.md`, `apps/*/README.md`)
 
 **適用情況**：
+
 - 模組新增測試範例
 - 測試使用方式變更
 - 新增測試工具 API
 
 **內容要求**：
+
 - 簡潔的 API 文檔
 - 實際可執行的範例代碼
 - 參數說明表格
@@ -360,11 +370,13 @@ git push origin feature/group-order-split-bill
 ### 3. 功能實現文檔 (`docs/features/*.md`, `docs/*_IMPLEMENTATION.md`)
 
 **適用情況**：
+
 - 功能新增整合測試或 E2E 測試
 - 測試涵蓋重要業務邏輯
 - 測試驗證功能正確性
 
 **內容要求**：
+
 - 測試策略說明
 - 關鍵測試場景列表
 - 測試檔案位置
@@ -373,11 +385,13 @@ git push origin feature/group-order-split-bill
 ### 4. 貢獻指南 (`CONTRIBUTING.md`)
 
 **適用情況**：
+
 - 修改測試提交標準
 - 新增測試檢查流程
 - 修改 PR 審查要求
 
 **內容要求**：
+
 - 清楚的提交規範
 - 測試要求檢查清單
 - PR 審查標準
@@ -438,8 +452,8 @@ git push origin feature/group-order-split-bill
 
 \`\`\`
 PENDING → CONFIRMED → PREPARING → READY → DELIVERED → COMPLETED
-   ↓          ↓            ↓         ↓         ↓           ↓
-CANCELLED  CANCELLED   CANCELLED  CANCELLED CANCELLED      ✓
+↓ ↓ ↓ ↓ ↓ ↓
+CANCELLED CANCELLED CANCELLED CANCELLED CANCELLED ✓
 \`\`\`
 
 ### 測試覆蓋
@@ -453,10 +467,11 @@ CANCELLED  CANCELLED   CANCELLED  CANCELLED CANCELLED      ✓
 
 - 測試檔案: `apps/api/src/features/orders/__tests__/order-lifecycle.test.ts`
 - 服務檔案: `apps/api/src/features/orders/services/OrdersService.ts`
-\`\`\`
+  \`\`\`
 ```
 
 **優點**：
+
 - 有清楚的視覺化流程圖
 - 測試覆蓋完整明確
 - 提供相關檔案連結
@@ -470,18 +485,18 @@ CANCELLED  CANCELLED   CANCELLED  CANCELLED CANCELLED      ✓
 
 **參數**：
 
-| 名稱 | 類型 | 必填 | 說明 |
-|------|------|------|------|
-| restaurantId | number | 是 | 餐廳 ID |
+| 名稱         | 類型   | 必填 | 說明    |
+| ------------ | ------ | ---- | ------- |
+| restaurantId | number | 是   | 餐廳 ID |
 
 **返回值**：
 
 \`\`\`typescript
 {
-  owner: UserTestData,           // 1 位店主
-  chefs: UserTestData[],         // 2 位廚師
-  serviceCrews: UserTestData[],  // 3 位服務員
-  cashiers: UserTestData[]       // 2 位收銀員
+owner: UserTestData, // 1 位店主
+chefs: UserTestData[], // 2 位廚師
+serviceCrews: UserTestData[], // 3 位服務員
+cashiers: UserTestData[] // 2 位收銀員
 }
 \`\`\`
 
@@ -492,8 +507,8 @@ import { userFactory } from '@makanmakan/testing-utils'
 
 const team = userFactory.buildRestaurantTeam(1)
 
-console.log(team.owner.role)  // UserRoles.SHOP_OWNER
-console.log(team.chefs.length)  // 2
+console.log(team.owner.role) // UserRoles.SHOP_OWNER
+console.log(team.chefs.length) // 2
 \`\`\`
 
 **相關方法**：
@@ -501,10 +516,11 @@ console.log(team.chefs.length)  // 2
 - `buildShopOwner(restaurantId)` - 只生成店主
 - `buildChef(restaurantId)` - 只生成廚師
 - `buildServiceCrew(restaurantId)` - 只生成服務員
-\`\`\`
+  \`\`\`
 ```
 
 **優點**：
+
 - 參數說明清楚完整
 - 返回值有型別定義
 - 範例代碼可直接執行
@@ -525,12 +541,13 @@ console.log(team.chefs.length)  // 2
 
 \`\`\`typescript
 it('test', () => {
-  // some test
+// some test
 })
 \`\`\`
 ```
 
 **問題**：
+
 - 沒有說明測試目的
 - 沒有測試場景說明
 - 範例代碼不完整
@@ -554,6 +571,7 @@ createUser(data: CreateUserInput): Promise<User>
 ```
 
 **問題**：
+
 - 參數簽名過時
 - 缺少型別資訊
 - 沒有說明必填/可選
@@ -602,11 +620,13 @@ createUser(data: CreateUserInput): Promise<User>
 ### Q1: 我只是修復了一個測試 bug，真的不需要更新文檔嗎？
 
 **A**: 如果是以下情況，確實不需要更新文檔：
+
 - 修正了錯誤的斷言 (assertion)
 - 調整了測試數據
 - 改善了測試代碼結構但功能不變
 
 但如果是以下情況，建議更新文檔：
+
 - Bug 修復揭示了測試策略的問題
 - Bug 修復改變了測試方式
 - Bug 修復值得記錄以避免重複犯錯
@@ -614,6 +634,7 @@ createUser(data: CreateUserInput): Promise<User>
 ### Q2: 測試範例代碼要多詳細？
 
 **A**: 遵循以下原則：
+
 - ✅ 範例代碼應該可以直接複製執行
 - ✅ 包含必要的 import 語句
 - ✅ 包含完整的測試設定 (setup)
@@ -624,21 +645,21 @@ createUser(data: CreateUserInput): Promise<User>
 **好的範例**：
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest'
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { describe, it, expect, beforeEach } from "vitest";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
-describe('User Service', () => {
+describe("User Service", () => {
   beforeEach(() => {
-    resetAllFactories()
-  })
+    resetAllFactories();
+  });
 
-  it('should create admin user', () => {
-    const admin = userFactory.buildAdmin()
+  it("should create admin user", () => {
+    const admin = userFactory.buildAdmin();
 
-    expect(admin.role).toBe(UserRoles.ADMIN)
-    expect(admin.isActive).toBe(true)
-  })
-})
+    expect(admin.role).toBe(UserRoles.ADMIN);
+    expect(admin.isActive).toBe(true);
+  });
+});
 ```
 
 ### Q3: 多個測試檔案改動，要如何組織文檔更新？
@@ -667,8 +688,8 @@ describe('User Service', () => {
 
 \`\`\`typescript
 const groupData = buildGroupOrderTestData({
-  memberCount: 4,
-  itemsPerMember: 3
+memberCount: 4,
+itemsPerMember: 3
 })
 \`\`\`
 
@@ -696,6 +717,7 @@ const groupData = buildGroupOrderTestData({
 - ✅ 測試配置沒有變更
 
 **變更內容**：
+
 - 將內聯測試數據改為使用 factory
 - 改善測試命名使其更清楚
 - 移除重複的測試設定代碼
@@ -719,15 +741,15 @@ const groupData = buildGroupOrderTestData({
 // docs/testing/TESTING_GUIDE.md 中的範例
 // 同時也是 docs/testing/__tests__/guide-examples.test.ts
 
-describe('Documentation Examples', () => {
-  it('example from TESTING_GUIDE.md should work', () => {
+describe("Documentation Examples", () => {
+  it("example from TESTING_GUIDE.md should work", () => {
     // 直接複製文檔中的範例代碼
-    const admin = userFactory.buildAdmin()
+    const admin = userFactory.buildAdmin();
 
-    expect(admin.role).toBe(UserRoles.ADMIN)
-    expect(admin.isActive).toBe(true)
-  })
-})
+    expect(admin.role).toBe(UserRoles.ADMIN);
+    expect(admin.isActive).toBe(true);
+  });
+});
 ```
 
 這樣可以確保文檔範例永遠是正確可執行的。

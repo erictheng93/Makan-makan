@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useAIAnalytics } from '@/composables/useAIAnalytics'
-import type { ProductAnalysis } from '@makanmakan/ai-analytics'
+import { ref, computed, onMounted, watch } from "vue";
+import { useAIAnalytics } from "@/composables/useAIAnalytics";
+import type { ProductAnalysis } from "@makanmakan/ai-analytics";
 
 // Icons
 import {
@@ -14,128 +14,126 @@ import {
   ShoppingCartIcon,
   UserGroupIcon,
   FireIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline'
+  ExclamationTriangleIcon,
+} from "@heroicons/vue/24/outline";
 
-const {
-  getTrafficDrivers,
-  getBestsellers,
-  getProfitLeaders
-} = useAIAnalytics()
+const { getTrafficDrivers, getBestsellers, getProfitLeaders } =
+  useAIAnalytics();
 
-const activeTab = ref<'traffic' | 'bestsellers' | 'profit'>('traffic')
-const selectedTimeRange = ref('30d')
-const isRefreshing = ref(false)
-const errorMessage = ref<string | null>(null)
+const activeTab = ref<"traffic" | "bestsellers" | "profit">("traffic");
+const selectedTimeRange = ref("30d");
+const isRefreshing = ref(false);
+const errorMessage = ref<string | null>(null);
 
 // Mock restaurant ID
-const restaurantId = ref('rest_123')
+const restaurantId = ref("rest_123");
 
 // Product data
-const trafficDrivers = ref<ProductAnalysis[]>([])
-const bestsellers = ref<ProductAnalysis[]>([])
-const profitLeaders = ref<ProductAnalysis[]>([])
+const trafficDrivers = ref<ProductAnalysis[]>([]);
+const bestsellers = ref<ProductAnalysis[]>([]);
+const profitLeaders = ref<ProductAnalysis[]>([]);
 
 const timeRangeOptions = [
-  { value: '7d', label: '過去 7 天' },
-  { value: '14d', label: '過去 14 天' },
-  { value: '30d', label: '過去 30 天' },
-  { value: '90d', label: '過去 90 天' },
-]
+  { value: "7d", label: "過去 7 天" },
+  { value: "14d", label: "過去 14 天" },
+  { value: "30d", label: "過去 30 天" },
+  { value: "90d", label: "過去 90 天" },
+];
 
 // Tab configurations
 const tabs = [
   {
-    id: 'traffic',
-    label: '引流產品',
+    id: "traffic",
+    label: "引流產品",
     icon: UserGroupIcon,
-    description: '帶來新客戶的產品',
-    color: 'indigo',
+    description: "帶來新客戶的產品",
+    color: "indigo",
   },
   {
-    id: 'bestsellers',
-    label: '熱銷產品',
+    id: "bestsellers",
+    label: "熱銷產品",
     icon: FireIcon,
-    description: '銷量最高的產品',
-    color: 'orange',
+    description: "銷量最高的產品",
+    color: "orange",
   },
   {
-    id: 'profit',
-    label: '利潤最大',
+    id: "profit",
+    label: "利潤最大",
     icon: CurrencyDollarIcon,
-    description: '最賺錢的產品',
-    color: 'green',
+    description: "最賺錢的產品",
+    color: "green",
   },
-]
+];
 
 // Current tab data
 const currentProducts = computed(() => {
   switch (activeTab.value) {
-    case 'traffic':
-      return trafficDrivers.value
-    case 'bestsellers':
-      return bestsellers.value
-    case 'profit':
-      return profitLeaders.value
+    case "traffic":
+      return trafficDrivers.value;
+    case "bestsellers":
+      return bestsellers.value;
+    case "profit":
+      return profitLeaders.value;
     default:
-      return []
+      return [];
   }
-})
+});
 
 // Load data
 const loadData = async () => {
-  isRefreshing.value = true
-  errorMessage.value = null
+  isRefreshing.value = true;
+  errorMessage.value = null;
 
   try {
     const [traffic, best, profit] = await Promise.all([
       getTrafficDrivers(restaurantId.value, selectedTimeRange.value, 10),
       getBestsellers(restaurantId.value, selectedTimeRange.value, 10),
       getProfitLeaders(restaurantId.value, selectedTimeRange.value, 10),
-    ])
+    ]);
 
-    trafficDrivers.value = traffic
-    bestsellers.value = best
-    profitLeaders.value = profit
+    trafficDrivers.value = traffic;
+    bestsellers.value = best;
+    profitLeaders.value = profit;
   } catch (err) {
-    console.error('Failed to load product analytics:', err)
-    errorMessage.value = err instanceof Error ? err.message : '載入產品分析失敗，請稍後再試'
+    console.error("Failed to load product analytics:", err);
+    errorMessage.value =
+      err instanceof Error ? err.message : "載入產品分析失敗，請稍後再試";
   } finally {
-    isRefreshing.value = false
+    isRefreshing.value = false;
   }
-}
+};
 
 // Watch time range changes
 watch(selectedTimeRange, () => {
-  loadData()
-})
+  loadData();
+});
 
 // Load on mount
 onMounted(() => {
-  loadData()
-})
+  loadData();
+});
 
 // Format currency
 const formatCurrency = (value?: number) => {
-  if (value === undefined) return 'N/A'
-  return new Intl.NumberFormat('zh-TW', {
-    style: 'currency',
-    currency: 'TWD',
+  if (value === undefined) return "N/A";
+  return new Intl.NumberFormat("zh-TW", {
+    style: "currency",
+    currency: "TWD",
     minimumFractionDigits: 0,
-  }).format(value)
-}
+  }).format(value);
+};
 
 // Format percent
 const formatPercent = (value: number) => {
-  return `${(value * 100).toFixed(1)}%`
-}
+  return `${(value * 100).toFixed(1)}%`;
+};
 
 // Get trend color
 const getTrendColor = (trend: number) => {
-  if (trend > 0.2) return 'text-green-600'
-  if (trend < -0.2) return 'text-red-600'
-  return 'text-gray-600'
-}
+  if (trend > 0.2) return "text-green-600";
+  if (trend < -0.2) return "text-red-600";
+  return "text-gray-600";
+};
 </script>
 
 <template>
@@ -155,7 +153,9 @@ const getTrendColor = (trend: number) => {
 
         <!-- Quick Navigation -->
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2 bg-white rounded-xl p-2 border border-gray-100 w-fit">
+          <div
+            class="flex items-center space-x-2 bg-white rounded-xl p-2 border border-gray-100 w-fit"
+          >
             <router-link
               to="/dashboard/ai-analytics/insights"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
@@ -182,7 +182,11 @@ const getTrendColor = (trend: number) => {
               v-model="selectedTimeRange"
               class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
-              <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">
+              <option
+                v-for="option in timeRangeOptions"
+                :key="option.value"
+                :value="option.value"
+              >
                 {{ option.label }}
               </option>
             </select>
@@ -202,26 +206,44 @@ const getTrendColor = (trend: number) => {
       </div>
 
       <!-- Tabs -->
-      <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+      <div
+        class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6"
+      >
         <div class="flex border-b border-gray-100">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             class="flex-1 px-6 py-4 flex items-center justify-center space-x-3 transition-all relative"
-            :class="activeTab === tab.id
-              ? 'bg-gradient-to-br from-' + tab.color + '-50 to-' + tab.color + '-100 border-b-2 border-' + tab.color + '-600'
-              : 'hover:bg-gray-50'"
+            :class="
+              activeTab === tab.id
+                ? 'bg-gradient-to-br from-' +
+                  tab.color +
+                  '-50 to-' +
+                  tab.color +
+                  '-100 border-b-2 border-' +
+                  tab.color +
+                  '-600'
+                : 'hover:bg-gray-50'
+            "
             @click="activeTab = tab.id as any"
           >
             <component
               :is="tab.icon"
               class="w-6 h-6"
-              :class="activeTab === tab.id ? 'text-' + tab.color + '-600' : 'text-gray-400'"
+              :class="
+                activeTab === tab.id
+                  ? 'text-' + tab.color + '-600'
+                  : 'text-gray-400'
+              "
             />
             <div class="text-left">
               <div
                 class="font-semibold"
-                :class="activeTab === tab.id ? 'text-' + tab.color + '-900' : 'text-gray-600'"
+                :class="
+                  activeTab === tab.id
+                    ? 'text-' + tab.color + '-900'
+                    : 'text-gray-600'
+                "
               >
                 {{ tab.label }}
               </div>
@@ -232,9 +254,14 @@ const getTrendColor = (trend: number) => {
       </div>
 
       <!-- Error State -->
-      <div v-if="errorMessage && !isRefreshing" class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
+      <div
+        v-if="errorMessage && !isRefreshing"
+        class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6"
+      >
         <div class="flex items-start space-x-3">
-          <ExclamationTriangleIcon class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <ExclamationTriangleIcon
+            class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+          />
           <div class="flex-1">
             <h3 class="text-red-900 font-semibold mb-1">載入數據時發生錯誤</h3>
             <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
@@ -249,28 +276,38 @@ const getTrendColor = (trend: number) => {
       </div>
 
       <!-- Loading State -->
-      <div v-if="isRefreshing && currentProducts.length === 0" class="flex items-center justify-center py-20">
+      <div
+        v-if="isRefreshing && currentProducts.length === 0"
+        class="flex items-center justify-center py-20"
+      >
         <div class="text-center">
-          <ArrowPathIcon class="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4" />
+          <ArrowPathIcon
+            class="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4"
+          />
           <div class="text-gray-600 font-medium">載入產品分析...</div>
         </div>
       </div>
 
       <!-- Products Grid -->
-      <div v-else-if="currentProducts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        v-else-if="currentProducts.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         <div
           v-for="(product, index) in currentProducts"
           :key="product.menuItemId"
           class="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all relative overflow-hidden group"
         >
           <!-- Rank Badge -->
-          <div class="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
-               :class="{
-                 'bg-gradient-to-br from-yellow-400 to-orange-500': index === 0,
-                 'bg-gradient-to-br from-gray-300 to-gray-400': index === 1,
-                 'bg-gradient-to-br from-orange-300 to-orange-400': index === 2,
-                 'bg-gradient-to-br from-indigo-500 to-purple-600': index > 2,
-               }">
+          <div
+            class="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
+            :class="{
+              'bg-gradient-to-br from-yellow-400 to-orange-500': index === 0,
+              'bg-gradient-to-br from-gray-300 to-gray-400': index === 1,
+              'bg-gradient-to-br from-orange-300 to-orange-400': index === 2,
+              'bg-gradient-to-br from-indigo-500 to-purple-600': index > 2,
+            }"
+          >
             {{ index + 1 }}
           </div>
 
@@ -286,62 +323,110 @@ const getTrendColor = (trend: number) => {
           <div class="space-y-3 mb-4">
             <!-- Traffic Drivers Metrics -->
             <template v-if="activeTab === 'traffic'">
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">首選次數</span>
-                <span class="font-semibold text-gray-900">{{ product.firstItemInOrderCount }}</span>
+                <span class="font-semibold text-gray-900">{{
+                  product.firstItemInOrderCount
+                }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">轉換率</span>
-                <span class="font-semibold text-indigo-600">{{ formatPercent(product.conversionRate) }}</span>
+                <span class="font-semibold text-indigo-600">{{
+                  formatPercent(product.conversionRate)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">加購率</span>
-                <span class="font-semibold text-purple-600">{{ formatPercent(product.cartAdditionRate) }}</span>
+                <span class="font-semibold text-purple-600">{{
+                  formatPercent(product.cartAdditionRate)
+                }}</span>
               </div>
             </template>
 
             <!-- Bestsellers Metrics -->
             <template v-if="activeTab === 'bestsellers'">
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">總訂單</span>
-                <span class="font-semibold text-gray-900">{{ product.totalOrders }}</span>
+                <span class="font-semibold text-gray-900">{{
+                  product.totalOrders
+                }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">總營收</span>
-                <span class="font-semibold text-green-600">{{ formatCurrency(product.totalRevenue) }}</span>
+                <span class="font-semibold text-green-600">{{
+                  formatCurrency(product.totalRevenue)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">平均客單價</span>
-                <span class="font-semibold text-blue-600">{{ formatCurrency(product.averageOrderValue) }}</span>
+                <span class="font-semibold text-blue-600">{{
+                  formatCurrency(product.averageOrderValue)
+                }}</span>
               </div>
             </template>
 
             <!-- Profit Leaders Metrics -->
             <template v-if="activeTab === 'profit'">
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">總利潤</span>
-                <span class="font-semibold text-green-600">{{ formatCurrency(product.totalProfit) }}</span>
+                <span class="font-semibold text-green-600">{{
+                  formatCurrency(product.totalProfit)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">利潤率</span>
                 <span class="font-semibold text-emerald-600">
-                  {{ product.profitMargin ? formatPercent(product.profitMargin) : 'N/A' }}
+                  {{
+                    product.profitMargin
+                      ? formatPercent(product.profitMargin)
+                      : "N/A"
+                  }}
                 </span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <div
+                class="flex items-center justify-between py-2 border-b border-gray-100"
+              >
                 <span class="text-sm text-gray-600">單價</span>
-                <span class="font-semibold text-gray-900">{{ formatCurrency(product.unitPrice) }}</span>
+                <span class="font-semibold text-gray-900">{{
+                  formatCurrency(product.unitPrice)
+                }}</span>
               </div>
             </template>
 
             <!-- Common Metrics -->
             <div class="flex items-center justify-between py-2">
               <span class="text-sm text-gray-600">趨勢</span>
-              <div class="flex items-center space-x-1" :class="getTrendColor(product.trendScore)">
-                <ArrowTrendingUpIcon v-if="product.trendScore > 0" class="w-4 h-4" />
-                <ArrowTrendingDownIcon v-else-if="product.trendScore < 0" class="w-4 h-4" />
+              <div
+                class="flex items-center space-x-1"
+                :class="getTrendColor(product.trendScore)"
+              >
+                <ArrowTrendingUpIcon
+                  v-if="product.trendScore > 0"
+                  class="w-4 h-4"
+                />
+                <ArrowTrendingDownIcon
+                  v-else-if="product.trendScore < 0"
+                  class="w-4 h-4"
+                />
                 <span class="font-semibold">
-                  {{ product.trendScore > 0 ? '+' : '' }}{{ (product.trendScore * 100).toFixed(0) }}%
+                  {{ product.trendScore > 0 ? "+" : ""
+                  }}{{ (product.trendScore * 100).toFixed(0) }}%
                 </span>
               </div>
             </div>
@@ -361,16 +446,21 @@ const getTrendColor = (trend: number) => {
               }"
             >
               {{
-                category === 'traffic-driver' ? '引流'
-                : category === 'bestseller' ? '熱銷'
-                : category === 'profit-leader' ? '高利潤'
-                : '待改進'
+                category === "traffic-driver"
+                  ? "引流"
+                  : category === "bestseller"
+                    ? "熱銷"
+                    : category === "profit-leader"
+                      ? "高利潤"
+                      : "待改進"
               }}
             </span>
           </div>
 
           <!-- Hover Effect -->
-          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          ></div>
         </div>
       </div>
 
@@ -382,10 +472,17 @@ const getTrendColor = (trend: number) => {
       </div>
 
       <!-- Summary Cards -->
-      <div v-if="currentProducts.length > 0" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100">
+      <div
+        v-if="currentProducts.length > 0"
+        class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        <div
+          class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100"
+        >
           <div class="flex items-center space-x-3 mb-3">
-            <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+            <div
+              class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center"
+            >
               <ShoppingCartIcon class="w-6 h-6 text-white" />
             </div>
             <div class="font-semibold text-blue-900">分析見解</div>
@@ -403,9 +500,13 @@ const getTrendColor = (trend: number) => {
           </p>
         </div>
 
-        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
+        <div
+          class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100"
+        >
           <div class="flex items-center space-x-3 mb-3">
-            <div class="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
+            <div
+              class="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center"
+            >
               <SparklesIcon class="w-6 h-6 text-white" />
             </div>
             <div class="font-semibold text-purple-900">優化建議</div>
@@ -423,9 +524,13 @@ const getTrendColor = (trend: number) => {
           </p>
         </div>
 
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
+        <div
+          class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100"
+        >
           <div class="flex items-center space-x-3 mb-3">
-            <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
+            <div
+              class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center"
+            >
               <ArrowTrendingUpIcon class="w-6 h-6 text-white" />
             </div>
             <div class="font-semibold text-green-900">行動方案</div>

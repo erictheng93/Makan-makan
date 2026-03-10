@@ -33,20 +33,16 @@ vi.mock("@makanmakan/database", () => ({
 vi.mock("../../../services/RealtimeBroadcastService", () => ({
   RealtimeBroadcastService: vi.fn(function () {
     return {
-      broadcastNewOrder: vi
-        .fn()
-        .mockResolvedValue({
-          success: true,
-          eventId: "evt-1",
-          recipientCount: 1,
-        }),
-      broadcastOrderStatusUpdate: vi
-        .fn()
-        .mockResolvedValue({
-          success: true,
-          eventId: "evt-2",
-          recipientCount: 1,
-        }),
+      broadcastNewOrder: vi.fn().mockResolvedValue({
+        success: true,
+        eventId: "evt-1",
+        recipientCount: 1,
+      }),
+      broadcastOrderStatusUpdate: vi.fn().mockResolvedValue({
+        success: true,
+        eventId: "evt-2",
+        recipientCount: 1,
+      }),
       generateEventId: vi.fn().mockReturnValue("evt-123"),
     };
   }),
@@ -120,7 +116,7 @@ describe("OrdersService", () => {
   describe("Order Creation", () => {
     describe("createOrder", () => {
       const validOrderData = {
-        restaurantId: '1',
+        restaurantId: "1",
         tableId: 5,
         items: [
           { menuItemId: 1, quantity: 2, notes: "Extra spicy" },
@@ -138,7 +134,7 @@ describe("OrdersService", () => {
         const mockOrder = {
           id: 1,
           orderNumber: "ORD-001",
-          restaurantId: '1',
+          restaurantId: "1",
           totalAmount: 5000,
           status: OrderStatus.PENDING,
           items: validOrderData.items,
@@ -153,7 +149,7 @@ describe("OrdersService", () => {
       });
 
       it("should reject order with invalid restaurant ID", async () => {
-        const invalidData = { ...validOrderData, restaurantId: '' };
+        const invalidData = { ...validOrderData, restaurantId: "" };
 
         await expect(service.createOrder(invalidData, 100)).rejects.toThrow(
           "Invalid restaurant ID",
@@ -300,7 +296,7 @@ describe("OrdersService", () => {
         mockBaseOrderService.getOrders.mockResolvedValue(mockOrders);
 
         const result = await service.getOrders({
-          restaurantId: '1',
+          restaurantId: "1",
           status: [OrderStatus.PENDING],
         });
 
@@ -334,7 +330,7 @@ describe("OrdersService", () => {
           pagination: { page: 1, limit: 100, total: 2, totalPages: 1 },
         });
 
-        const result = await service.getActiveOrders('1');
+        const result = await service.getActiveOrders("1");
 
         expect(result).toHaveLength(2);
       });
@@ -378,12 +374,12 @@ describe("OrdersService", () => {
         const existingOrder = {
           id: 1,
           status: OrderStatus.PENDING,
-          restaurantId: '1',
+          restaurantId: "1",
         };
         const updatedOrder = {
           id: 1,
           status: OrderStatus.CONFIRMED,
-          restaurantId: '1',
+          restaurantId: "1",
         };
 
         mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
@@ -475,7 +471,7 @@ describe("OrdersService", () => {
         });
 
         const result = await service.validateCoupon({
-          restaurantId: '1',
+          restaurantId: "1",
           couponCode: "SAVE10",
           orderAmount: 5000,
         });
@@ -492,7 +488,7 @@ describe("OrdersService", () => {
         });
 
         const result = await service.validateCoupon({
-          restaurantId: '1',
+          restaurantId: "1",
           couponCode: "EXPIRED",
           orderAmount: 5000,
         });
@@ -507,7 +503,7 @@ describe("OrdersService", () => {
         );
 
         const result = await service.validateCoupon({
-          restaurantId: '1',
+          restaurantId: "1",
           couponCode: "TEST",
           orderAmount: 5000,
         });
@@ -526,7 +522,7 @@ describe("OrdersService", () => {
         });
 
         const result = await service.previewCoupon({
-          restaurantId: '1',
+          restaurantId: "1",
           couponCode: "SUMMER20",
           orderAmount: 5000,
         });
@@ -546,7 +542,7 @@ describe("OrdersService", () => {
           avgOrderValue: 5000,
         });
 
-        const result = await service.getOrderAnalytics({ restaurantId: '1' });
+        const result = await service.getOrderAnalytics({ restaurantId: "1" });
 
         expect(result.summary.totalOrders).toBe(50);
         expect(result.summary.totalRevenue).toBe(250000);
@@ -558,7 +554,7 @@ describe("OrdersService", () => {
         };
         mockEnv.CACHE_KV.get.mockResolvedValue(cachedAnalytics);
 
-        const result = await service.getOrderAnalytics({ restaurantId: '1' });
+        const result = await service.getOrderAnalytics({ restaurantId: "1" });
 
         expect(result.summary.totalOrders).toBe(100);
         expect(mockBaseOrderService.getDailyOrderStats).not.toHaveBeenCalled();
@@ -579,7 +575,7 @@ describe("OrdersService", () => {
           avgOrderValue: 5000,
         });
 
-        const result = await service.getDailyStats('1');
+        const result = await service.getDailyStats("1");
 
         expect(result.totalOrders).toBe(25);
         expect(result.totalRevenue).toBe(125000);
@@ -588,7 +584,7 @@ describe("OrdersService", () => {
 
     describe("getPopularItems", () => {
       it("should return popular items", async () => {
-        const result = await service.getPopularItems('1', "month");
+        const result = await service.getPopularItems("1", "month");
 
         expect(Array.isArray(result)).toBe(true);
       });
@@ -602,7 +598,7 @@ describe("OrdersService", () => {
         mockEnv.CACHE_KV.get.mockResolvedValue({
           id: 1,
           status: OrderStatus.PENDING,
-          restaurantId: '1',
+          restaurantId: "1",
         });
         mockBaseOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
@@ -642,7 +638,7 @@ describe("OrdersService", () => {
           .mockResolvedValueOnce({
             id: 1,
             status: OrderStatus.PENDING,
-            restaurantId: '1',
+            restaurantId: "1",
           })
           .mockResolvedValueOnce(null); // Order not found
         mockBaseOrderService.updateOrderStatus.mockResolvedValue({
@@ -686,7 +682,7 @@ describe("OrdersService", () => {
         const order = {
           id: 1,
           orderNumber: "ORD-001",
-          restaurantId: '1',
+          restaurantId: "1",
           restaurant: { name: "Test Restaurant", address: "123 Main St" },
           customerInfo: { name: "John Doe", phone: "+60123456789" },
           items: [
@@ -778,19 +774,22 @@ describe("OrdersService", () => {
   describe("Export", () => {
     describe("exportOrders", () => {
       it("should export orders as CSV", async () => {
-        const result = await service.exportOrders({ restaurantId: '1' }, "csv");
+        const result = await service.exportOrders({ restaurantId: "1" }, "csv");
 
         expect(result).toBeInstanceOf(Buffer);
       });
 
       it("should export orders as Excel", async () => {
-        const result = await service.exportOrders({ restaurantId: '1' }, "excel");
+        const result = await service.exportOrders(
+          { restaurantId: "1" },
+          "excel",
+        );
 
         expect(result).toBeInstanceOf(Buffer);
       });
 
       it("should export orders as PDF", async () => {
-        const result = await service.exportOrders({ restaurantId: '1' }, "pdf");
+        const result = await service.exportOrders({ restaurantId: "1" }, "pdf");
 
         expect(result).toBeInstanceOf(Buffer);
       });
@@ -807,7 +806,7 @@ describe("OrdersService", () => {
 
         const result = await service.searchOrders(
           { query: "ORD-001" },
-          { restaurantId: '1' },
+          { restaurantId: "1" },
           100,
         );
 

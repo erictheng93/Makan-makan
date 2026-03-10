@@ -7,18 +7,21 @@
 ## 📊 進度統計
 
 ### Before Priority 1
+
 - Total Tests: 566
 - Passed: 484 (85.5%)
 - **Failed: 82 (14.5%)**
 - Failed Files: 14
 
 ### After Priority 1
+
 - Total Tests: 566
 - **Passed: 489 (86.4%)** ⬆️ +0.9%
 - **Failed: 77 (13.6%)** ⬇️ -0.9%
 - **Failed Files: 12** ⬇️ -2 files
 
 ### Improvement
+
 - ✅ **5 tests fixed** (82 → 77)
 - ✅ **2 test files completely fixed**
 - ✅ **通過率提升 0.9%**
@@ -28,10 +31,12 @@
 ## ✅ 已修復的測試文件
 
 ### 1. auth.test.ts ✅
+
 **位置**: `src/stores/__tests__/auth.test.ts`
 **狀態**: 3 failures → **10 tests 全部通過**
 
 **失敗的測試**:
+
 1. ❌ "should store token after successful login" - `expected undefined to be 'test-token-123'`
 2. ❌ "should clear auth state on logout" - `expected undefined to be null`
 3. ❌ "should persist auth state across reloads" - `SyntaxError: "undefined" is not valid JSON`
@@ -43,41 +48,42 @@ localStorage 在 vitest/jsdom 環境中未正確初始化，所有 `localStorage
 使用 `vi.stubGlobal()` 正確 mock localStorage：
 
 ```typescript
-describe('Auth Store', () => {
-  let localStorageMock: Map<string, string>
+describe("Auth Store", () => {
+  let localStorageMock: Map<string, string>;
 
   beforeEach(() => {
-    setActivePinia(createPinia())
-    vi.clearAllMocks()
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
 
     // Mock localStorage with Map for better tracking
-    localStorageMock = new Map()
+    localStorageMock = new Map();
 
     const localStorageStub = {
       getItem: vi.fn((key: string) => localStorageMock.get(key) ?? null),
       setItem: vi.fn((key: string, value: string) => {
-        localStorageMock.set(key, value)
+        localStorageMock.set(key, value);
       }),
       removeItem: vi.fn((key: string) => {
-        localStorageMock.delete(key)
+        localStorageMock.delete(key);
       }),
       clear: vi.fn(() => {
-        localStorageMock.clear()
-      })
-    }
+        localStorageMock.clear();
+      }),
+    };
 
-    vi.stubGlobal('localStorage', localStorageStub)
-  })
+    vi.stubGlobal("localStorage", localStorageStub);
+  });
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   // ... tests
-})
+});
 ```
 
 **修復重點**:
+
 1. ✅ 使用 `vi.stubGlobal()` 而非 `Object.defineProperty(window, 'localStorage', ...)`
 2. ✅ 使用 `Map<string, string>` 追蹤 localStorage 狀態
 3. ✅ 使用 `vi.fn()` 包裝所有方法以便追蹤調用
@@ -89,10 +95,12 @@ describe('Auth Store', () => {
 ---
 
 ### 2. settings.test.ts ✅
+
 **位置**: `src/stores/__tests__/settings.test.ts`
 **狀態**: 2 failures → **10 tests 全部通過**
 
 **失敗的測試**:
+
 1. ❌ "should save settings to localStorage" - `expected undefined to be truthy`
 2. ❌ "should load settings from localStorage" - `SyntaxError: "undefined" is not valid JSON`
 
@@ -103,40 +111,40 @@ describe('Auth Store', () => {
 應用相同的 localStorage mock 策略：
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { setActivePinia, createPinia } from "pinia";
 
-describe('Settings Store', () => {
-  let localStorageMock: Map<string, string>
+describe("Settings Store", () => {
+  let localStorageMock: Map<string, string>;
 
   beforeEach(() => {
-    setActivePinia(createPinia())
+    setActivePinia(createPinia());
 
     // Mock localStorage with Map for better tracking
-    localStorageMock = new Map()
+    localStorageMock = new Map();
 
     const localStorageStub = {
       getItem: vi.fn((key: string) => localStorageMock.get(key) ?? null),
       setItem: vi.fn((key: string, value: string) => {
-        localStorageMock.set(key, value)
+        localStorageMock.set(key, value);
       }),
       removeItem: vi.fn((key: string) => {
-        localStorageMock.delete(key)
+        localStorageMock.delete(key);
       }),
       clear: vi.fn(() => {
-        localStorageMock.clear()
-      })
-    }
+        localStorageMock.clear();
+      }),
+    };
 
-    vi.stubGlobal('localStorage', localStorageStub)
-  })
+    vi.stubGlobal("localStorage", localStorageStub);
+  });
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   // ... tests
-})
+});
 ```
 
 **測試結果**: ✅ 10/10 tests passed
@@ -148,44 +156,48 @@ describe('Settings Store', () => {
 ### localStorage Mock 最佳實踐
 
 #### ❌ 不推薦的做法
+
 ```typescript
 // 方法 1: 直接使用 window.localStorage（在 jsdom 中可能未初始化）
-localStorage.setItem('key', 'value')
-const value = localStorage.getItem('key') // 返回 undefined
+localStorage.setItem("key", "value");
+const value = localStorage.getItem("key"); // 返回 undefined
 
 // 方法 2: 使用 Object.defineProperty（在 vitest 中不可靠）
-Object.defineProperty(window, 'localStorage', {
-  value: { /* mock implementation */ }
-})
+Object.defineProperty(window, "localStorage", {
+  value: {
+    /* mock implementation */
+  },
+});
 ```
 
 #### ✅ 推薦的做法
+
 ```typescript
 // 使用 vi.stubGlobal() 和 Map
-let localStorageMock: Map<string, string>
+let localStorageMock: Map<string, string>;
 
 beforeEach(() => {
-  localStorageMock = new Map()
+  localStorageMock = new Map();
 
   const localStorageStub = {
     getItem: vi.fn((key: string) => localStorageMock.get(key) ?? null),
     setItem: vi.fn((key: string, value: string) => {
-      localStorageMock.set(key, value)
+      localStorageMock.set(key, value);
     }),
     removeItem: vi.fn((key: string) => {
-      localStorageMock.delete(key)
+      localStorageMock.delete(key);
     }),
     clear: vi.fn(() => {
-      localStorageMock.clear()
-    })
-  }
+      localStorageMock.clear();
+    }),
+  };
 
-  vi.stubGlobal('localStorage', localStorageStub)
-})
+  vi.stubGlobal("localStorage", localStorageStub);
+});
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 ```
 
 ### 為什麼使用 Map？
@@ -229,6 +241,7 @@ afterEach(() => {
 ## 📋 下一階段：Priority 2
 
 ### 剩餘失敗統計
+
 - 失敗測試: 77 個
 - 失敗文件: 12 個
 
@@ -237,6 +250,7 @@ afterEach(() => {
 **目標**: 修復 Vitest module mocking 錯誤
 
 **受影響的文件** (8 suites):
+
 1. `useAudioNotifications.test.ts`
    - Error: Vitest module mocking error
 
@@ -264,6 +278,7 @@ afterEach(() => {
 **預估工作量**: 1-2 小時
 
 **策略**:
+
 1. 修復 Vitest module mocking 配置問題
 2. 為 Web API（URL.createObjectURL, AudioContext）添加 polyfills
 3. 檢查 vi.mock() 工廠函數中的頂層變量問題
@@ -273,15 +288,18 @@ afterEach(() => {
 ## 🎯 總體進度
 
 ### 已完成
+
 - ✅ Phase 1: 40 tests fixed (4 files)
 - ✅ Priority 1: 5 tests fixed (2 files)
 - ✅ **Total: 45 tests fixed (6 files)**
 
 ### 剩餘工作
+
 - ⏳ Priority 2: Mock configuration (8 suites)
 - ⏳ Priority 3: Integration tests (77 failures)
 
 ### 最終目標
+
 - 🎯 達到 95%+ 測試通過率
 - 🎯 修復所有關鍵路徑測試
 - 🎯 建立穩定的測試基礎設施
@@ -296,6 +314,6 @@ afterEach(() => {
 
 ---
 
-*報告生成時間: 2025-11-17 17:05*
-*Priority 1 修復時間: ~15 分鐘*
-*修復效率: 20 tests/hour (保持)*
+_報告生成時間: 2025-11-17 17:05_
+_Priority 1 修復時間: ~15 分鐘_
+_修復效率: 20 tests/hour (保持)_

@@ -33,7 +33,9 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+      <div
+        class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
+      ></div>
       <p class="mt-4 text-gray-600">載入日曆中...</p>
     </div>
 
@@ -103,7 +105,9 @@
     <!-- Calendar Legend -->
     <div class="flex items-center justify-center gap-6 mt-6 text-sm">
       <div class="flex items-center gap-2">
-        <div class="w-4 h-4 bg-blue-50 ring-2 ring-blue-500 ring-inset rounded"></div>
+        <div
+          class="w-4 h-4 bg-blue-50 ring-2 ring-blue-500 ring-inset rounded"
+        ></div>
         <span class="text-gray-700">今天</span>
       </div>
       <div class="flex items-center gap-2">
@@ -119,69 +123,69 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { EmployeeSchedule } from '@/types/scheduling'
+import { ref, computed } from "vue";
+import type { EmployeeSchedule } from "@/types/scheduling";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CalendarIcon,
   ClipboardDocumentListIcon,
-} from '@heroicons/vue/24/outline'
+} from "@heroicons/vue/24/outline";
 
 interface Props {
-  schedules: EmployeeSchedule[]
-  loading?: boolean
+  schedules: EmployeeSchedule[];
+  loading?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-})
+});
 
 const emit = defineEmits<{
-  dateSelect: [date: string]
-  scheduleClick: [schedule: EmployeeSchedule]
-}>()
+  dateSelect: [date: string];
+  scheduleClick: [schedule: EmployeeSchedule];
+}>();
 
 // State
-const currentDate = ref(new Date())
-const hoveredDate = ref<string | null>(null)
+const currentDate = ref(new Date());
+const hoveredDate = ref<string | null>(null);
 
 // Computed
 const currentMonthYear = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth() + 1
-  return `${year}年 ${month}月`
-})
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth() + 1;
+  return `${year}年 ${month}月`;
+});
 
 const isCurrentMonth = computed(() => {
-  const today = new Date()
+  const today = new Date();
   return (
     currentDate.value.getFullYear() === today.getFullYear() &&
     currentDate.value.getMonth() === today.getMonth()
-  )
-})
+  );
+});
 
-const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
 
 const calendarDays = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
 
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const daysInMonth = lastDay.getDate()
-  const startDayOfWeek = firstDay.getDay()
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startDayOfWeek = firstDay.getDay();
 
-  const days: any[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const days: any[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Previous month days
-  const prevMonthLastDay = new Date(year, month, 0).getDate()
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
-    const dayNumber = prevMonthLastDay - i
-    const date = new Date(year, month - 1, dayNumber)
-    const formattedDate = formatDate(date)
+    const dayNumber = prevMonthLastDay - i;
+    const date = new Date(year, month - 1, dayNumber);
+    const formattedDate = formatDate(date);
     days.push({
       dayNumber,
       date: formattedDate,
@@ -189,13 +193,13 @@ const calendarDays = computed(() => {
       isToday: false,
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
       scheduleCount: getScheduleCount(formattedDate),
-    })
+    });
   }
 
   // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
-    const date = new Date(year, month, i)
-    const formattedDate = formatDate(date)
+    const date = new Date(year, month, i);
+    const formattedDate = formatDate(date);
     days.push({
       dayNumber: i,
       date: formattedDate,
@@ -203,14 +207,14 @@ const calendarDays = computed(() => {
       isToday: isSameDay(date, today),
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
       scheduleCount: getScheduleCount(formattedDate),
-    })
+    });
   }
 
   // Next month days
-  const remainingDays = 42 - days.length // 6 weeks * 7 days
+  const remainingDays = 42 - days.length; // 6 weeks * 7 days
   for (let i = 1; i <= remainingDays; i++) {
-    const date = new Date(year, month + 1, i)
-    const formattedDate = formatDate(date)
+    const date = new Date(year, month + 1, i);
+    const formattedDate = formatDate(date);
     days.push({
       dayNumber: i,
       date: formattedDate,
@@ -218,59 +222,59 @@ const calendarDays = computed(() => {
       isToday: false,
       isWeekend: date.getDay() === 0 || date.getDay() === 6,
       scheduleCount: getScheduleCount(formattedDate),
-    })
+    });
   }
 
-  return days
-})
+  return days;
+});
 
 // Methods
 const formatDate = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const isSameDay = (date1: Date, date2: Date): boolean => {
   return (
     date1.getFullYear() === date2.getFullYear() &&
     date1.getMonth() === date2.getMonth() &&
     date1.getDate() === date2.getDate()
-  )
-}
+  );
+};
 
 const getScheduleCount = (date: string): number => {
-  return props.schedules.filter((s) => s.workDate === date).length
-}
+  return props.schedules.filter((s) => s.workDate === date).length;
+};
 
 const previousMonth = () => {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
     currentDate.value.getMonth() - 1,
-    1
-  )
-}
+    1,
+  );
+};
 
 const nextMonth = () => {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
     currentDate.value.getMonth() + 1,
-    1
-  )
-}
+    1,
+  );
+};
 
 const selectDate = (date: string) => {
-  emit('dateSelect', date)
-}
+  emit("dateSelect", date);
+};
 
 const goToToday = () => {
-  currentDate.value = new Date()
-}
+  currentDate.value = new Date();
+};
 
 const getScheduleBadgeClass = (count: number) => {
-  if (count >= 5) return 'bg-red-100 text-red-700'
-  if (count >= 3) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-green-100 text-green-700'
-}
+  if (count >= 5) return "bg-red-100 text-red-700";
+  if (count >= 3) return "bg-yellow-100 text-yellow-700";
+  return "bg-green-100 text-green-700";
+};
 </script>

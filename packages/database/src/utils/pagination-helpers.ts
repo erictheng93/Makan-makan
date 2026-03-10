@@ -4,21 +4,21 @@
  * Utilities for implementing pagination in Drizzle ORM queries
  */
 
-import { sql, SQL } from 'drizzle-orm'
+import { sql, SQL } from "drizzle-orm";
 import type {
   PaginationParams,
   PaginatedResponse,
   PaginationMeta,
-  CursorPaginatedResponse
-} from '@makanmakan/shared-types'
+  CursorPaginatedResponse,
+} from "@makanmakan/shared-types";
 import {
   calculatePaginationMeta,
   normalizePaginationParams,
   getPaginationOffsetLimit,
   DEFAULT_PAGINATION_CONFIG,
   encodeCursor,
-  decodeCursor
-} from '@makanmakan/shared-types'
+  decodeCursor,
+} from "@makanmakan/shared-types";
 
 /**
  * Apply pagination to Drizzle query
@@ -28,14 +28,11 @@ import {
  * const paginatedQuery = applyPagination(query, { page: 1, pageSize: 20 })
  * const items = await paginatedQuery
  */
-export function applyPagination<T>(
-  query: any,
-  params: PaginationParams
-): any {
-  const normalized = normalizePaginationParams(params)
-  const { offset, limit } = getPaginationOffsetLimit(normalized)
+export function applyPagination<T>(query: any, params: PaginationParams): any {
+  const normalized = normalizePaginationParams(params);
+  const { offset, limit } = getPaginationOffsetLimit(normalized);
 
-  return query.limit(limit).offset(offset)
+  return query.limit(limit).offset(offset);
 }
 
 /**
@@ -49,16 +46,20 @@ export function applyPagination<T>(
 export function applySorting<T>(
   query: any,
   table: any,
-  sortBy: string = 'createdAt',
-  sortOrder: 'asc' | 'desc' = 'desc'
+  sortBy: string = "createdAt",
+  sortOrder: "asc" | "desc" = "desc",
 ): any {
-  const column = table[sortBy]
+  const column = table[sortBy];
   if (!column) {
-    console.warn(`[Pagination] Sort column ${sortBy} not found, using createdAt`)
-    return query.orderBy(sortOrder === 'asc' ? table.createdAt : sql`${table.createdAt} DESC`)
+    console.warn(
+      `[Pagination] Sort column ${sortBy} not found, using createdAt`,
+    );
+    return query.orderBy(
+      sortOrder === "asc" ? table.createdAt : sql`${table.createdAt} DESC`,
+    );
   }
 
-  return query.orderBy(sortOrder === 'asc' ? column : sql`${column} DESC`)
+  return query.orderBy(sortOrder === "asc" ? column : sql`${column} DESC`);
 }
 
 /**
@@ -74,16 +75,18 @@ export function applySorting<T>(
 export async function getTotalCount(
   db: any,
   table: any,
-  where?: SQL
+  where?: SQL,
 ): Promise<number> {
-  const countQuery = db.select({ count: sql<number>`count(*)::int` }).from(table)
+  const countQuery = db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(table);
 
   if (where) {
-    countQuery.where(where)
+    countQuery.where(where);
   }
 
-  const result = await countQuery
-  return result[0]?.count ?? 0
+  const result = await countQuery;
+  return result[0]?.count ?? 0;
 }
 
 /**
@@ -97,20 +100,20 @@ export async function getTotalCount(
 export function createPaginatedResponse<T>(
   data: T[],
   params: PaginationParams,
-  totalItems: number
+  totalItems: number,
 ): PaginatedResponse<T> {
-  const normalized = normalizePaginationParams(params)
+  const normalized = normalizePaginationParams(params);
   const pagination = calculatePaginationMeta(
     normalized.page,
     normalized.pageSize,
-    totalItems
-  )
+    totalItems,
+  );
 
   return {
     data,
     pagination,
-    timestamp: new Date().toISOString()
-  }
+    timestamp: new Date().toISOString(),
+  };
 }
 
 /**
@@ -132,30 +135,30 @@ export async function paginateQuery<T>(
   baseQuery: any,
   table: any,
   params: PaginationParams,
-  where?: SQL
+  where?: SQL,
 ): Promise<PaginatedResponse<T>> {
-  const normalized = normalizePaginationParams(params)
+  const normalized = normalizePaginationParams(params);
 
   // Apply where clause
-  let query = baseQuery
+  let query = baseQuery;
   if (where) {
-    query = query.where(where)
+    query = query.where(where);
   }
 
   // Apply sorting
-  query = applySorting(query, table, normalized.sortBy, normalized.sortOrder)
+  query = applySorting(query, table, normalized.sortBy, normalized.sortOrder);
 
   // Get total count
-  const totalItems = await getTotalCount(db, table, where)
+  const totalItems = await getTotalCount(db, table, where);
 
   // Apply pagination
-  query = applyPagination(query, normalized)
+  query = applyPagination(query, normalized);
 
   // Execute query
-  const data = await query
+  const data = await query;
 
   // Create response
-  return createPaginatedResponse(data, normalized, totalItems)
+  return createPaginatedResponse(data, normalized, totalItems);
 }
 
 /**
@@ -174,59 +177,61 @@ export async function paginateWithCursor<T extends Record<string, any>>(
   db: any,
   table: any,
   options: {
-    cursor?: string
-    limit?: number
-    where?: SQL
+    cursor?: string;
+    limit?: number;
+    where?: SQL;
   },
-  cursorField: string = 'id',
-  sortField: string = 'createdAt'
+  cursorField: string = "id",
+  sortField: string = "createdAt",
 ): Promise<CursorPaginatedResponse<T>> {
-  const { cursor, limit = 20, where: whereCondition } = options
+  const { cursor, limit = 20, where: whereCondition } = options;
 
-  let query = db.select().from(table)
+  let query = db.select().from(table);
 
   // Apply where clause
   if (whereCondition) {
-    query = query.where(whereCondition)
+    query = query.where(whereCondition);
   }
 
   // Apply cursor
   if (cursor) {
     try {
-      const decoded = decodeCursor(cursor)
-      const cursorValue = decoded[cursorField]
+      const decoded = decodeCursor(cursor);
+      const cursorValue = decoded[cursorField];
 
       // Add cursor condition (assuming forward pagination)
-      query = query.where(sql`${table[cursorField]} > ${cursorValue}`)
+      query = query.where(sql`${table[cursorField]} > ${cursorValue}`);
     } catch (error) {
-      console.error('[Cursor Pagination] Invalid cursor:', error)
-      throw new Error('Invalid cursor')
+      console.error("[Cursor Pagination] Invalid cursor:", error);
+      throw new Error("Invalid cursor");
     }
   }
 
   // Apply sorting
-  query = query.orderBy(table[sortField])
+  query = query.orderBy(table[sortField]);
 
   // Fetch one extra item to check if there are more
-  query = query.limit(limit + 1)
+  query = query.limit(limit + 1);
 
-  const items = await query
-  const hasMore = items.length > limit
+  const items = await query;
+  const hasMore = items.length > limit;
 
   // Remove extra item if exists
   if (hasMore) {
-    items.pop()
+    items.pop();
   }
 
   // Generate next cursor
-  const nextCursor = hasMore && items.length > 0
-    ? encodeCursor({ [cursorField]: items[items.length - 1][cursorField] })
-    : null
+  const nextCursor =
+    hasMore && items.length > 0
+      ? encodeCursor({ [cursorField]: items[items.length - 1][cursorField] })
+      : null;
 
   // Generate previous cursor (if current cursor exists)
-  const previousCursor = cursor && items.length > 0
-    ? encodeCursor({ [cursorField]: items[0][cursorField] })
-    : null
+  const previousCursor =
+    cursor && items.length > 0
+      ? encodeCursor({ [cursorField]: items[0][cursorField] })
+      : null;
 
   return {
     data: items as T[],
@@ -234,10 +239,10 @@ export async function paginateWithCursor<T extends Record<string, any>>(
       count: items.length,
       nextCursor,
       previousCursor,
-      hasMore
+      hasMore,
     },
-    timestamp: new Date().toISOString()
-  }
+    timestamp: new Date().toISOString(),
+  };
 }
 
 /**
@@ -258,23 +263,34 @@ export async function searchWithPagination<T>(
   searchFields: string[],
   searchQuery: string,
   params: PaginationParams,
-  additionalWhere?: SQL
+  additionalWhere?: SQL,
 ): Promise<PaginatedResponse<T>> {
-  if (!searchQuery || searchQuery.trim() === '') {
-    return paginateQuery(db, db.select().from(table), table, params, additionalWhere)
+  if (!searchQuery || searchQuery.trim() === "") {
+    return paginateQuery(
+      db,
+      db.select().from(table),
+      table,
+      params,
+      additionalWhere,
+    );
   }
 
   // Build search conditions
   const searchConditions = searchFields
-    .map(field => sql`LOWER(${table[field]}) LIKE LOWER(${'%' + searchQuery + '%'})`)
-    .reduce((acc, condition) => acc ? sql`${acc} OR ${condition}` : condition)
+    .map(
+      (field) =>
+        sql`LOWER(${table[field]}) LIKE LOWER(${"%" + searchQuery + "%"})`,
+    )
+    .reduce((acc, condition) =>
+      acc ? sql`${acc} OR ${condition}` : condition,
+    );
 
   // Combine with additional where
   const where = additionalWhere
     ? sql`(${searchConditions}) AND (${additionalWhere})`
-    : searchConditions
+    : searchConditions;
 
-  return paginateQuery(db, db.select().from(table), table, params, where)
+  return paginateQuery(db, db.select().from(table), table, params, where);
 }
 
 /**
@@ -294,10 +310,10 @@ export async function batchPaginate<T>(
   db: any,
   table: any,
   pages: number[],
-  params: Omit<PaginationParams, 'page'>,
-  where?: SQL
+  params: Omit<PaginationParams, "page">,
+  where?: SQL,
 ): Promise<Record<number, PaginatedResponse<T>>> {
-  const results: Record<number, PaginatedResponse<T>> = {}
+  const results: Record<number, PaginatedResponse<T>> = {};
 
   await Promise.all(
     pages.map(async (page) => {
@@ -306,11 +322,11 @@ export async function batchPaginate<T>(
         db.select().from(table),
         table,
         { ...params, page },
-        where
-      )
-      results[page] = response
-    })
-  )
+        where,
+      );
+      results[page] = response;
+    }),
+  );
 
-  return results
+  return results;
 }

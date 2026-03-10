@@ -8,10 +8,10 @@
  * - Rate limiting for security
  */
 
-import routes from './routes';
+import routes from "./routes";
 export { routes };
-export { default as verificationRoutes } from './routes';
-export * from './types';
+export { default as verificationRoutes } from "./routes";
+export * from "./types";
 // Note: schemas re-export types with same names, using explicit exports to avoid conflicts
 export {
   forgotPasswordSchema,
@@ -21,8 +21,8 @@ export {
   verifyEmailSchema,
   sendPhoneVerificationSchema,
   verifyPhoneSchema,
-} from './schemas/validation';
+} from "./schemas/validation";
 
 export default {
-  routes
+  routes,
 };

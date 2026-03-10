@@ -34,11 +34,13 @@
 ### Bug #1: JWT Token 生成衝突
 
 **錯誤訊息**:
+
 ```
 Error: Bad "options.expiresIn" option the payload already has an "exp" property.
 ```
 
 **問題分析**:
+
 - `RealtimeAuthService.ts` 第 102 行手動設定了 `exp` 屬性
 - 第 108 行又傳遞了 `expiresIn` 選項給 `jwt.sign()`
 - `jsonwebtoken` 不允許同時使用兩者
@@ -48,16 +50,17 @@ Error: Bad "options.expiresIn" option the payload already has an "exp" property.
 ```typescript
 // 修復前（第 107-109 行）
 const token = sign(payload, this.jwtSecret, {
-  expiresIn: `${expiresIn}s`
-})
+  expiresIn: `${expiresIn}s`,
+});
 
 // 修復後
-const token = sign(payload, this.jwtSecret)
+const token = sign(payload, this.jwtSecret);
 ```
 
 **修復檔案**: `apps/api/src/features/realtime/services/RealtimeAuthService.ts`
 
 **影響**:
+
 - ✅ Kitchen Token 生成成功
 - ✅ Admin Token 生成成功
 - ✅ 所有單元測試繼續通過
@@ -69,6 +72,7 @@ const token = sign(payload, this.jwtSecret)
 #### 1.1 顧客 Token (Customer)
 
 **測試請求**:
+
 ```json
 {
   "roomType": "customer",
@@ -83,6 +87,7 @@ const token = sign(payload, this.jwtSecret)
 **錯誤訊息**: `Invalid table ID`
 
 **分析**:
+
 - 這是**正確的行為**，資料庫驗證機制正常運作
 - `table_1` 在本地資料庫中不存在
 - 安全驗證阻止了無效的 table ID
@@ -94,6 +99,7 @@ const token = sign(payload, this.jwtSecret)
 #### 1.2 廚房 Token (Kitchen)
 
 **測試請求**:
+
 ```json
 {
   "roomType": "kitchen",
@@ -106,11 +112,13 @@ const token = sign(payload, this.jwtSecret)
 **測試結果**: ✅ **成功**
 
 **生成的 Token 資訊**:
+
 - **Token 長度**: 約 200+ 字符
 - **有效期**: 300 秒（5 分鐘）
 - **WebSocket URL**: `wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=...`
 
 **Token Payload** (解碼後):
+
 ```json
 {
   "roomType": "kitchen",
@@ -127,6 +135,7 @@ const token = sign(payload, this.jwtSecret)
 #### 1.3 管理員 Token (Admin)
 
 **測試請求**:
+
 ```json
 {
   "roomType": "admin",
@@ -139,11 +148,13 @@ const token = sign(payload, this.jwtSecret)
 **測試結果**: ✅ **成功**
 
 **生成的 Token 資訊**:
+
 - **Token 長度**: 約 200+ 字符
 - **有效期**: 300 秒（5 分鐘）
 - **WebSocket URL**: `wss://realtime.makanmakan.workers.dev/admin/admin_1?token=...`
 
 **Token Payload** (解碼後):
+
 ```json
 {
   "roomType": "admin",
@@ -164,11 +175,13 @@ const token = sign(payload, this.jwtSecret)
 **錯誤訊息**: `Rate limit exceeded`
 
 **分析**:
+
 - 測試腳本在短時間內發送了多個請求（token 生成 + 驗證）
 - 速率限制保護機制正常運作
 - 這是**預期的安全行為**
 
 **建議**:
+
 - 在測試腳本中加入延遲（如 1 秒間隔）
 - 或臨時調整本地開發環境的速率限制設定
 
@@ -181,16 +194,19 @@ const token = sign(payload, this.jwtSecret)
 **已生成的連線範例**:
 
 #### Kitchen WebSocket 連線
+
 ```bash
 wscat -c "wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc..."
 ```
 
 #### Admin WebSocket 連線
+
 ```bash
 wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 ```
 
 **預期測試步驟**:
+
 1. 安裝 `wscat`: `npm install -g wscat`
 2. 執行上述連線命令
 3. 觀察 `connection_ack` 訊息
@@ -199,6 +215,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 6. 觀察即時廣播
 
 **預期收到的首個訊息**:
+
 ```json
 {
   "type": "connection_ack",
@@ -224,6 +241,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 #### 客戶端訊息範例
 
 **Ping (心跳)**:
+
 ```json
 {
   "type": "ping"
@@ -231,6 +249,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 ```
 
 **Subscribe (訂閱事件)**:
+
 ```json
 {
   "type": "subscribe",
@@ -243,6 +262,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 #### 伺服器訊息範例
 
 **Connection Acknowledgment**:
+
 ```json
 {
   "type": "connection_ack",
@@ -260,6 +280,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 ```
 
 **Heartbeat**:
+
 ```json
 {
   "type": "heartbeat",
@@ -273,6 +294,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 ```
 
 **New Order Event**:
+
 ```json
 {
   "type": "new_order",
@@ -298,6 +320,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 **狀態**: ✅ 運行中
 
 **已初始化的模組**:
+
 - ✅ queue (v2.0.0)
 - ✅ sse (v1.0.0)
 - ✅ monitoring (v1.0.0)
@@ -313,9 +336,10 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 - ✅ scheduling (v1.0.0)
 
 **環境變數**:
+
 - NODE_ENV: development
 - API_VERSION: v1
-- CORS_ORIGIN: *
+- CORS_ORIGIN: \*
 - LOG_LEVEL: debug
 
 ---
@@ -326,11 +350,13 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 **狀態**: ✅ 運行中
 
 **Durable Object 綁定**:
+
 - ✅ REALTIME_SESSION (RealtimeSession)
 
 **Compatibility Date**: 2024-09-23 (已更新修復 Node.js 模組相容性)
 
 **修復記錄**:
+
 - 原 compatibility_date: 2024-01-01
 - 更新後: 2024-09-23
 - 修復了 `crypto`, `util`, `stream` 模組的 import 問題
@@ -339,31 +365,32 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 
 ### 單元測試（自動化）
 
-| 測試套件 | 測試數量 | 通過率 | 檔案 |
-|---------|---------|-------|------|
-| RealtimeBroadcastService | 10 | 100% ✅ | `apps/api/src/services/__tests__/` |
-| RealtimeAuthService | 25 | 100% ✅ | `apps/api/src/features/realtime/__tests__/` |
-| Orders + Realtime Integration | 6 | 計劃中 ⏳ | `apps/api/src/features/orders/__tests__/` |
-| Message Routing Logic | 15 | 100% ✅ | `apps/realtime/src/__tests__/` |
-| **總計** | **56** | **89%** | |
+| 測試套件                      | 測試數量 | 通過率    | 檔案                                        |
+| ----------------------------- | -------- | --------- | ------------------------------------------- |
+| RealtimeBroadcastService      | 10       | 100% ✅   | `apps/api/src/services/__tests__/`          |
+| RealtimeAuthService           | 25       | 100% ✅   | `apps/api/src/features/realtime/__tests__/` |
+| Orders + Realtime Integration | 6        | 計劃中 ⏳ | `apps/api/src/features/orders/__tests__/`   |
+| Message Routing Logic         | 15       | 100% ✅   | `apps/realtime/src/__tests__/`              |
+| **總計**                      | **56**   | **89%**   |                                             |
 
 ### 手動測試（進行中）
 
-| 測試項目 | 狀態 | 結果 |
-|---------|------|------|
-| Token 生成 (Kitchen) | ✅ 完成 | 成功 |
-| Token 生成 (Admin) | ✅ 完成 | 成功 |
+| 測試項目              | 狀態    | 結果               |
+| --------------------- | ------- | ------------------ |
+| Token 生成 (Kitchen)  | ✅ 完成 | 成功               |
+| Token 生成 (Admin)    | ✅ 完成 | 成功               |
 | Token 生成 (Customer) | ✅ 完成 | 預期失敗（DB驗證） |
-| Token 驗證 | ⚠️ 限流 | 保護機制正常 |
-| WebSocket 連線 | ⏳ 等待 | 待執行 |
-| 多角色訊息路由 | ⏳ 等待 | 待執行 |
-| 實際訂單流程 | ⏳ 等待 | 待執行 |
+| Token 驗證            | ⚠️ 限流 | 保護機制正常       |
+| WebSocket 連線        | ⏳ 等待 | 待執行             |
+| 多角色訊息路由        | ⏳ 等待 | 待執行             |
+| 實際訂單流程          | ⏳ 等待 | 待執行             |
 
 ## 🔍 待完成測試項目
 
 ### 1. WebSocket 連線測試
 
 **測試目標**:
+
 - 驗證 WebSocket 握手成功
 - 確認 `connection_ack` 訊息正確發送
 - 測試 ping/pong 心跳機制
@@ -371,6 +398,7 @@ wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
 **測試工具**: wscat 或瀏覽器 DevTools
 
 **測試步驟**:
+
 ```bash
 # 1. 安裝 wscat
 npm install -g wscat
@@ -393,19 +421,21 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 ### 2. 多角色訊息路由驗證
 
 **測試目標**:
+
 - 驗證不同角色收到對應的事件
 - 確認事件過濾邏輯正確
 
 **測試場景**:
 
-| 事件類型 | Customer | Kitchen | Admin |
-|---------|----------|---------|-------|
-| NEW_ORDER | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 |
-| ORDER_STATUS_UPDATE | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 |
-| KITCHEN_ITEM_STATUS | ❌ 不應收到 | ✅ 應收到 | ✅ 應收到 |
-| MENU_AVAILABILITY_UPDATE | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 |
+| 事件類型                 | Customer    | Kitchen   | Admin     |
+| ------------------------ | ----------- | --------- | --------- |
+| NEW_ORDER                | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 |
+| ORDER_STATUS_UPDATE      | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 |
+| KITCHEN_ITEM_STATUS      | ❌ 不應收到 | ✅ 應收到 | ✅ 應收到 |
+| MENU_AVAILABILITY_UPDATE | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 |
 
 **測試步驟**:
+
 1. 開啟 3 個 WebSocket 連線（customer, kitchen, admin）
 2. 觸發不同類型的事件
 3. 記錄每個連線收到的訊息
@@ -416,6 +446,7 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 ### 3. 實際訂單流程測試
 
 **測試目標**:
+
 - 端到端測試訂單創建與即時廣播
 - 驗證事件數據完整性
 
@@ -547,21 +578,25 @@ curl -X PUT http://localhost:8787/api/v1/orders/1/status \
 ### B. 相關檔案
 
 #### 測試腳本
+
 - `scripts/test-realtime-connection.js` (289 行)
 
 #### 測試套件
+
 - `apps/api/src/services/__tests__/RealtimeBroadcastService.test.ts` (342 行, 10 測試)
 - `apps/api/src/features/realtime/__tests__/RealtimeAuthService.test.ts` (408 行, 25 測試)
 - `apps/api/src/features/orders/__tests__/realtime-integration.test.ts` (331 行, 6 測試)
 - `apps/realtime/src/__tests__/message-routing.test.ts` (445 行, 15 測試)
 
 #### 實現檔案
+
 - `apps/api/src/features/realtime/services/RealtimeAuthService.ts` (已修復)
 - `apps/api/src/services/RealtimeBroadcastService.ts`
 - `apps/realtime/src/durableObjects/RealtimeSession.ts`
 - `apps/realtime/wrangler.toml` (已更新 compatibility_date)
 
 #### 文檔
+
 - `docs/REALTIME_TESTING_GUIDE.md` (6000+ 字符)
 - `docs/REALTIME_TEST_RESULTS.md` (本文件)
 

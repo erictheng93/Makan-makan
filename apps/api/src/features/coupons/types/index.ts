@@ -4,131 +4,131 @@
  * Type definitions for the coupons feature module
  */
 
-import type { DiscountType, DistributionType, TargetType, UsageStatus } from '@makanmakan/database'
+import type {
+  DiscountType,
+  DistributionType,
+  TargetType,
+  UsageStatus,
+} from "@makanmakan/database";
 
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
-  valid: boolean
-  coupon?: any
-  error?: string
-  discountAmount?: number
-  finalAmount?: number
+  valid: boolean;
+  coupon?: any;
+  error?: string;
+  discountAmount?: number;
+  finalAmount?: number;
 }
 
 // 優惠券創建資料接口
 export interface CreateCouponData {
-  restaurantId?: string
-  code: string
-  name: string
-  description?: string
-  discountType: DiscountType
-  discountValue: number
-  maxDiscountAmount?: number
-  minOrderAmount?: number
-  applicableMenuItems?: number[]
-  applicableCategories?: number[]
-  usageLimit?: number
-  usageLimitPerUser?: number
-  validFrom: string
-  validTo: string
-  isActive?: boolean
-  isVisible?: boolean
-  createdBy?: number
+  restaurantId?: string;
+  code: string;
+  name: string;
+  description?: string;
+  discountType: DiscountType;
+  discountValue: number;
+  maxDiscountAmount?: number;
+  minOrderAmount?: number;
+  applicableMenuItems?: number[];
+  applicableCategories?: number[];
+  usageLimit?: number;
+  usageLimitPerUser?: number;
+  validFrom: string;
+  validTo: string;
+  isActive?: boolean;
+  isVisible?: boolean;
+  createdBy?: number;
 }
 
 // 優惠券使用資料接口
 export interface UseCouponData {
-  couponId: number
-  orderId: number
-  userId?: number
-  discountAmount: number
-  originalAmount: number
-  finalAmount: number
+  couponId: number;
+  orderId: number;
+  userId?: number;
+  discountAmount: number;
+  originalAmount: number;
+  finalAmount: number;
 }
 
 // 優惠券查詢過濾器
 export interface CouponFilters {
-  restaurantId?: string
-  isActive?: boolean
-  isVisible?: boolean
-  discountType?: DiscountType
-  validOnly?: boolean
-  search?: string
+  restaurantId?: string;
+  isActive?: boolean;
+  isVisible?: boolean;
+  discountType?: DiscountType;
+  validOnly?: boolean;
+  search?: string;
 }
 
 // 優惠券統計數據
 export interface CouponStats {
-  totalUsed: number
-  totalDiscount: number
-  avgDiscount: number
-  lastUsed: string | null
+  totalUsed: number;
+  totalDiscount: number;
+  avgDiscount: number;
+  lastUsed: string | null;
 }
 
 // 優惠券驗證請求
 export interface ValidateCouponRequest {
-  code: string
-  restaurantId: string
-  orderAmount: number
-  userId?: number
-  menuItems?: Array<{ menuItemId: number; quantity: number }>
+  code: string;
+  restaurantId: string;
+  orderAmount: number;
+  userId?: number;
+  menuItems?: Array<{ menuItemId: number; quantity: number }>;
 }
 
 // 優惠券發放資料
 export interface CouponDistributionData {
-  couponId: number
-  distributionType: DistributionType
-  targetType?: TargetType
-  targetCriteria?: any
-  totalDistributed?: number
-  expiresAt?: string
-  notes?: string
-  createdBy?: number
+  couponId: number;
+  distributionType: DistributionType;
+  targetType?: TargetType;
+  targetCriteria?: any;
+  totalDistributed?: number;
+  expiresAt?: string;
+  notes?: string;
+  createdBy?: number;
 }
 
 // 優惠券模板資料
 export interface CouponTemplateData {
-  restaurantId?: string
-  name: string
-  description?: string
-  templateData: any
-  isSystemTemplate?: boolean
-  createdBy?: number
+  restaurantId?: string;
+  name: string;
+  description?: string;
+  templateData: any;
+  isSystemTemplate?: boolean;
+  createdBy?: number;
 }
 
 // 分頁響應
 export interface PaginatedCouponsResponse {
-  coupons: any[]
-  total: number
-  page: number
-  limit: number
-  pages: number
+  coupons: any[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
 }
 
 // API 響應基礎接口
 export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
 // 優惠券詳情響應
 export interface CouponDetailsResponse extends ApiResponse {
   data: {
     coupon: {
-      id: number
-      code: string
-      name: string
-      discountType: DiscountType
-      discountValue: number
-    }
-    stats: CouponStats
-  }
+      id: number;
+      code: string;
+      name: string;
+      discountType: DiscountType;
+      discountValue: number;
+    };
+    stats: CouponStats;
+  };
 }
 
-export type {
-  DiscountType,
-  DistributionType,
-  TargetType,
-  UsageStatus
-}
+export type { DiscountType, DistributionType, TargetType, UsageStatus };

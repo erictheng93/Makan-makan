@@ -1,4 +1,5 @@
 # Restaurant ID Migration Plan
+
 ## 從 INTEGER 改為 TEXT 格式的完整遷移計劃
 
 **建立日期**: 2025-10-27
@@ -16,6 +17,7 @@
 ## 🎯 新 ID 格式設計
 
 ### 格式規範
+
 ```
 S-YYYYMMDD-NNN
 │  │       │
@@ -25,11 +27,13 @@ S-YYYYMMDD-NNN
 ```
 
 ### 範例
+
 - `S-20251027-001` - 2025年10月27日建立的第1間店
 - `S-20251027-002` - 2025年10月27日建立的第2間店
 - `S-20251128-001` - 2025年11月28日建立的第1間店
 
 ### 優點
+
 - ✅ 業務可讀性強，一眼看出建立日期
 - ✅ 自然排序友好
 - ✅ 便於追蹤和管理
@@ -41,13 +45,14 @@ S-YYYYMMDD-NNN
 
 ### 受影響的表統計
 
-| 類別 | 表數量 | 當前類型 | 目標類型 |
-|------|--------|----------|----------|
-| **已使用 TEXT** | 9 | TEXT | TEXT (無需改動) |
-| **需要遷移** | 36 | INTEGER | TEXT |
-| **總計** | **45** | - | - |
+| 類別            | 表數量 | 當前類型 | 目標類型        |
+| --------------- | ------ | -------- | --------------- |
+| **已使用 TEXT** | 9      | TEXT     | TEXT (無需改動) |
+| **需要遷移**    | 36     | INTEGER  | TEXT            |
+| **總計**        | **45** | -        | -               |
 
 ### 已使用 TEXT 的表 (9張)
+
 這些表已經使用 TEXT 類型的 restaurant_id，無需修改結構，只需更新數據：
 
 1. `ai_configurations`
@@ -61,9 +66,11 @@ S-YYYYMMDD-NNN
 9. `qr_codes` (可選)
 
 ### 需要遷移的表 (36張)
+
 這些表需要修改 restaurant_id 欄位定義：
 
 #### 核心業務表 (高優先級)
+
 1. ⭐ `restaurants` - 主表
 2. ⭐ `users` - 用戶/員工表
 3. ⭐ `orders` - 訂單表
@@ -72,6 +79,7 @@ S-YYYYMMDD-NNN
 6. ⭐ `tables` - 桌位
 
 #### 排班與請假系統 (9張)
+
 7. `employee_schedules`
 8. `shift_templates`
 9. `scheduling_rules`
@@ -83,6 +91,7 @@ S-YYYYMMDD-NNN
 15. `employee_leave_balances`
 
 #### 點餐與支付系統 (6張)
+
 16. `group_orders`
 17. `promotions`
 18. `customer_reviews`
@@ -91,6 +100,7 @@ S-YYYYMMDD-NNN
 21. `cash_registers`
 
 #### 排隊系統 (4張)
+
 22. `waiting_queue`
 23. `queue_settings`
 24. `queue_displays`
@@ -98,11 +108,13 @@ S-YYYYMMDD-NNN
 26. `queue_statistics`
 
 #### 列印系統 (3張)
+
 27. `printer_devices`
 28. `printer_configurations`
 29. `print_templates`
 
 #### 其他系統表 (8張)
+
 30. `restaurant_settings`
 31. `restaurant_business_hours`
 32. `restaurant_special_hours`
@@ -118,18 +130,22 @@ S-YYYYMMDD-NNN
 ### 階段 1：準備與驗證 (30分鐘)
 
 #### 1.1 備份數據庫
+
 ```bash
 # 匯出當前數據庫
 npx wrangler d1 export makanmakan-local > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 #### 1.2 查看現有餐廳數據
+
 ```sql
 SELECT id, name, created_at FROM restaurants;
 ```
 
 #### 1.3 建立 ID 生成服務
+
 檔案：`packages/database/src/services/RestaurantIdGenerator.ts`
+
 - ✅ 已存在，無需建立
 
 ---
@@ -137,6 +153,7 @@ SELECT id, name, created_at FROM restaurants;
 ### 階段 2：雙 ID 模式 (1小時)
 
 #### 2.1 為 restaurants 表新增 public_id
+
 ```sql
 -- Migration: 0039_add_restaurant_public_id.sql
 
@@ -158,6 +175,7 @@ CREATE INDEX idx_restaurants_public_id ON restaurants(public_id);
 ```
 
 #### 2.2 驗證雙 ID 模式
+
 ```sql
 SELECT id, public_id, name FROM restaurants;
 ```
@@ -167,12 +185,14 @@ SELECT id, public_id, name FROM restaurants;
 ### 階段 3：逐表遷移 (2-3小時)
 
 由於 SQLite 不支援直接修改欄位類型，每張表需要：
+
 1. 建立新表結構
 2. 遷移數據
 3. 刪除舊表
 4. 重命名新表
 
 #### 3.1 遷移 users 表（範例）
+
 ```sql
 -- Migration: 0040_migrate_users_restaurant_id.sql
 
@@ -205,6 +225,7 @@ CREATE INDEX idx_users_restaurant_id ON users(restaurant_id);
 ```
 
 #### 3.2 批量遷移腳本
+
 建立自動化腳本：`packages/database/migrations/0040_batch_migrate_tables.sql`
 
 包含所有 36 張表的遷移 SQL。
@@ -214,6 +235,7 @@ CREATE INDEX idx_users_restaurant_id ON users(restaurant_id);
 ### 階段 4：完成與清理 (30分鐘)
 
 #### 4.1 驗證數據完整性
+
 ```sql
 -- 檢查所有表的記錄數是否一致
 SELECT
@@ -227,6 +249,7 @@ UNION ALL
 ```
 
 #### 4.2 移除舊 ID 並重命名
+
 ```sql
 -- Migration: 0041_finalize_restaurant_id.sql
 
@@ -253,6 +276,7 @@ ALTER TABLE restaurants_new RENAME TO restaurants;
 #### 4.3 更新應用程式碼
 
 **TypeScript 類型定義更新**：
+
 - `packages/shared-types/src/restaurant.ts`
 - `packages/shared-types/src/user.ts`
 - `packages/shared-types/src/order.ts`
@@ -261,18 +285,19 @@ ALTER TABLE restaurants_new RENAME TO restaurants;
 ```typescript
 // 更新前
 export interface Restaurant {
-  id: number;  // INTEGER
+  id: number; // INTEGER
   // ...
 }
 
 // 更新後
 export interface Restaurant {
-  id: string;  // TEXT (S-YYYYMMDD-NNN)
+  id: string; // TEXT (S-YYYYMMDD-NNN)
   // ...
 }
 ```
 
 **API 路由更新**：
+
 - 所有接受 `restaurant_id` 參數的端點
 - 驗證邏輯改為檢查 TEXT 格式
 - 查詢參數解析
@@ -283,16 +308,17 @@ export interface Restaurant {
 
 ### 高風險點
 
-| 風險 | 影響 | 緩解措施 |
-|------|------|----------|
-| 數據遷移失敗 | 🔴 嚴重 | 完整備份 + 分階段執行 + 回滾計劃 |
-| FOREIGN KEY 約束衝突 | 🟡 中等 | 先禁用約束，遷移後重新啟用 |
-| 應用程式碼不兼容 | 🟡 中等 | 完整的類型定義更新 + 測試 |
-| 性能下降 | 🟢 低 | TEXT 索引略慢，但可接受 |
+| 風險                 | 影響    | 緩解措施                         |
+| -------------------- | ------- | -------------------------------- |
+| 數據遷移失敗         | 🔴 嚴重 | 完整備份 + 分階段執行 + 回滾計劃 |
+| FOREIGN KEY 約束衝突 | 🟡 中等 | 先禁用約束，遷移後重新啟用       |
+| 應用程式碼不兼容     | 🟡 中等 | 完整的類型定義更新 + 測試        |
+| 性能下降             | 🟢 低   | TEXT 索引略慢，但可接受          |
 
 ### 回滾計劃
 
 如果遷移失敗：
+
 1. 停止應用服務
 2. 恢復備份數據庫
 3. 回退程式碼到遷移前版本
@@ -316,13 +342,13 @@ export interface Restaurant {
 
 ## 📝 執行時間表
 
-| 階段 | 預估時間 | 累計時間 |
-|------|---------|---------|
-| 階段 1：準備與驗證 | 30分鐘 | 0.5小時 |
-| 階段 2：雙 ID 模式 | 1小時 | 1.5小時 |
-| 階段 3：逐表遷移 | 2-3小時 | 3.5-4.5小時 |
-| 階段 4：完成與清理 | 30分鐘 | 4-5小時 |
-| **總計** | **4-5小時** | - |
+| 階段               | 預估時間    | 累計時間    |
+| ------------------ | ----------- | ----------- |
+| 階段 1：準備與驗證 | 30分鐘      | 0.5小時     |
+| 階段 2：雙 ID 模式 | 1小時       | 1.5小時     |
+| 階段 3：逐表遷移   | 2-3小時     | 3.5-4.5小時 |
+| 階段 4：完成與清理 | 30分鐘      | 4-5小時     |
+| **總計**           | **4-5小時** | -           |
 
 ---
 
@@ -331,11 +357,13 @@ export interface Restaurant {
 考慮到這是一個高風險、大規模的改造，建議：
 
 ### 方案 A：完整遷移（推薦給有充足時間的情況）
+
 - 按照上述計劃完整執行
 - 優點：徹底解決，未來無技術債
 - 缺點：時間成本高，風險大
 
 ### 方案 B：混合模式（務實方案）
+
 - 保持 INTEGER id 作為內部主鍵
 - 新增 TEXT public_id 作為業務 ID
 - 僅在 API 層面使用 public_id
@@ -343,6 +371,7 @@ export interface Restaurant {
 - 缺點：保留技術債，數據庫層面仍用 INTEGER
 
 ### 方案 C：僅新數據使用 TEXT（最小改動）
+
 - 現有數據保持 INTEGER
 - 新建立的餐廳使用 TEXT ID
 - 優點：零風險，不影響現有系統

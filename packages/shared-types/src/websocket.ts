@@ -1,4 +1,4 @@
-import { OrderStatus, OrderItemStatus, Order } from './order';
+import { OrderStatus, OrderItemStatus, Order } from "./order";
 
 // Order update data structure
 export interface OrderUpdateData {
@@ -24,7 +24,7 @@ export interface NotificationData {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   timestamp: number;
   actionUrl?: string;
   persistUntilRead?: boolean;
@@ -34,7 +34,7 @@ export interface NotificationData {
 export interface MenuUpdateData {
   restaurantId: string;
   menuItemId: number;
-  action: 'added' | 'updated' | 'removed' | 'availability_changed';
+  action: "added" | "updated" | "removed" | "availability_changed";
   isAvailable?: boolean;
   price?: number;
   name?: string;
@@ -50,7 +50,7 @@ export interface BaseWebSocketMessage {
 
 // 訂單狀態更新訊息
 export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
-  type: 'ORDER_STATUS_UPDATE';
+  type: "ORDER_STATUS_UPDATE";
   orderId: number;
   status: OrderStatus;
   estimatedTime?: number;
@@ -59,7 +59,7 @@ export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
 
 // 訂單項目狀態更新訊息
 export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
-  type: 'ORDER_ITEM_STATUS_UPDATE';
+  type: "ORDER_ITEM_STATUS_UPDATE";
   orderId: number;
   orderItemId: number;
   status: OrderItemStatus;
@@ -67,7 +67,7 @@ export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
 
 // 新訂單通知訊息
 export interface NewOrderMessage extends BaseWebSocketMessage {
-  type: 'NEW_ORDER';
+  type: "NEW_ORDER";
   orderId: number;
   restaurantId: string;
   tableId: number;
@@ -77,8 +77,8 @@ export interface NewOrderMessage extends BaseWebSocketMessage {
 
 // 系統通知訊息
 export interface SystemNotificationMessage extends BaseWebSocketMessage {
-  type: 'SYSTEM_NOTIFICATION';
-  level: 'info' | 'warning' | 'error';
+  type: "SYSTEM_NOTIFICATION";
+  level: "info" | "warning" | "error";
   title: string;
   message: string;
   actionUrl?: string;
@@ -86,15 +86,15 @@ export interface SystemNotificationMessage extends BaseWebSocketMessage {
 
 // 桌台狀態更新訊息
 export interface TableStatusUpdateMessage extends BaseWebSocketMessage {
-  type: 'TABLE_STATUS_UPDATE';
+  type: "TABLE_STATUS_UPDATE";
   tableId: number;
-  status: 'available' | 'occupied' | 'reserved';
+  status: "available" | "occupied" | "reserved";
   customerCount?: number;
 }
 
 // 菜單項目可用性更新訊息
 export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
-  type: 'MENU_AVAILABILITY_UPDATE';
+  type: "MENU_AVAILABILITY_UPDATE";
   menuItemId: number;
   isAvailable: boolean;
   inventoryCount?: number;
@@ -102,43 +102,43 @@ export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
 
 // 廚房顯示更新訊息
 export interface KitchenDisplayUpdateMessage extends BaseWebSocketMessage {
-  type: 'KITCHEN_DISPLAY_UPDATE';
+  type: "KITCHEN_DISPLAY_UPDATE";
   orderId: number;
-  action: 'add' | 'update' | 'remove';
-  priority?: 'normal' | 'high' | 'urgent';
+  action: "add" | "update" | "remove";
+  priority?: "normal" | "high" | "urgent";
 }
 
 // 心跳響應訊息
 export interface PongMessage extends BaseWebSocketMessage {
-  type: 'pong';
+  type: "pong";
 }
 
 // 訂單更新訊息（前端用）
 export interface OrderUpdateMessage extends BaseWebSocketMessage {
-  type: 'order_update';
+  type: "order_update";
   data: OrderUpdateData;
 }
 
 // 餐廳狀態更新訊息（前端用）
 export interface RestaurantStatusUpdateMessage extends BaseWebSocketMessage {
-  type: 'restaurant_status_update';
+  type: "restaurant_status_update";
   data: RestaurantStatusData;
 }
 
 // 通知訊息（前端用）
 export interface NotificationMessage extends BaseWebSocketMessage {
-  type: 'notification';
+  type: "notification";
   data: NotificationData;
 }
 
 // 菜單更新訊息（前端用）
 export interface MenuUpdateMessage extends BaseWebSocketMessage {
-  type: 'menu_update';
+  type: "menu_update";
   data: MenuUpdateData;
 }
 
 // 聯合類型：所有WebSocket訊息類型
-export type WebSocketMessage = 
+export type WebSocketMessage =
   | OrderStatusUpdateMessage
   | OrderItemStatusUpdateMessage
   | NewOrderMessage
@@ -154,7 +154,7 @@ export type WebSocketMessage =
 
 // WebSocket 連接狀態
 export interface WebSocketConnectionState {
-  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  status: "connecting" | "connected" | "disconnected" | "error";
   lastConnected?: number;
   reconnectAttempts: number;
   maxReconnectAttempts: number;

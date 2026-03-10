@@ -78,7 +78,9 @@
     <div v-show="activeTab === 'kitchen'" class="notification-content">
       <div class="content-header">
         <h3>廚房狀態</h3>
-        <span class="last-updated">{{ formatTime(kitchenStats.lastUpdated) }}</span>
+        <span class="last-updated">{{
+          formatTime(kitchenStats.lastUpdated)
+        }}</span>
       </div>
 
       <div class="kitchen-stats">
@@ -140,12 +142,12 @@
           class="notification-item menu-item"
           :class="{ unavailable: !alert.isAvailable }"
         >
-          <div class="item-icon">{{ alert.isAvailable ? '✅' : '⚠️' }}</div>
+          <div class="item-icon">{{ alert.isAvailable ? "✅" : "⚠️" }}</div>
           <div class="item-content">
             <div class="item-title">{{ alert.menuItemName }}</div>
             <div class="item-meta">
               <span v-if="!alert.isAvailable" class="status unavailable">
-                {{ alert.reason || '暫時售罄' }}
+                {{ alert.reason || "暫時售罄" }}
               </span>
               <span v-else class="status available">已恢復供應</span>
               <span class="time">{{ formatTime(alert.timestamp) }}</span>
@@ -196,9 +198,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useAdminRealtime } from '@/composables/useAdminRealtime'
-import type { OrderNotification, SystemAlert } from '@/composables/useAdminRealtime'
+import { ref, computed } from "vue";
+import { useAdminRealtime } from "@/composables/useAdminRealtime";
+import type {
+  OrderNotification,
+  SystemAlert,
+} from "@/composables/useAdminRealtime";
 
 // ========================================
 // Composables
@@ -223,13 +228,13 @@ const {
   clearOrderNotifications,
   clearMenuAlerts,
   clearSystemAlerts,
-} = useAdminRealtime()
+} = useAdminRealtime();
 
 // ========================================
 // 本地狀態
 // ========================================
 
-const activeTab = ref<'orders' | 'kitchen' | 'menu' | 'system'>('orders')
+const activeTab = ref<"orders" | "kitchen" | "menu" | "system">("orders");
 
 // ========================================
 // 計算屬性
@@ -237,53 +242,53 @@ const activeTab = ref<'orders' | 'kitchen' | 'menu' | 'system'>('orders')
 
 const tabs = computed(() => [
   {
-    id: 'orders' as const,
-    label: '訂單',
+    id: "orders" as const,
+    label: "訂單",
     badge: unreadOrderCount.value,
   },
   {
-    id: 'kitchen' as const,
-    label: '廚房',
+    id: "kitchen" as const,
+    label: "廚房",
     badge: 0,
   },
   {
-    id: 'menu' as const,
-    label: '菜單',
+    id: "menu" as const,
+    label: "菜單",
     badge: activeMenuAlerts.value.length,
   },
   {
-    id: 'system' as const,
-    label: '系統',
+    id: "system" as const,
+    label: "系統",
     badge: unreadAlertCount.value,
   },
-])
+]);
 
 const connectionStatusClass = computed(() => {
   return {
     connected: isConnected.value,
-    disconnected: connectionStatus.value === 'disconnected',
-    connecting: connectionStatus.value === 'connecting',
-    reconnecting: connectionStatus.value === 'reconnecting',
-    error: connectionStatus.value === 'error',
-  }
-})
+    disconnected: connectionStatus.value === "disconnected",
+    connecting: connectionStatus.value === "connecting",
+    reconnecting: connectionStatus.value === "reconnecting",
+    error: connectionStatus.value === "error",
+  };
+});
 
 const connectionStatusText = computed(() => {
   switch (connectionStatus.value) {
-    case 'connected':
-      return '已連接'
-    case 'connecting':
-      return '連接中...'
-    case 'reconnecting':
-      return '重新連接中...'
-    case 'disconnected':
-      return '未連接'
-    case 'error':
-      return '連接錯誤'
+    case "connected":
+      return "已連接";
+    case "connecting":
+      return "連接中...";
+    case "reconnecting":
+      return "重新連接中...";
+    case "disconnected":
+      return "未連接";
+    case "error":
+      return "連接錯誤";
     default:
-      return '未知狀態'
+      return "未知狀態";
   }
-})
+});
 
 // ========================================
 // 方法
@@ -293,80 +298,80 @@ const connectionStatusText = computed(() => {
  * 格式化時間
  */
 const formatTime = (timestamp: number): string => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(minutes / 60)
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
 
-  if (minutes < 1) return '剛剛'
-  if (minutes < 60) return `${minutes}分鐘前`
-  if (hours < 24) return `${hours}小時前`
+  if (minutes < 1) return "剛剛";
+  if (minutes < 60) return `${minutes}分鐘前`;
+  if (hours < 24) return `${hours}小時前`;
 
-  return date.toLocaleString('zh-TW', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+  return date.toLocaleString("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 /**
  * 獲取警示圖示
  */
 const getAlertIcon = (level: string): string => {
   switch (level) {
-    case 'info':
-      return 'ℹ️'
-    case 'warning':
-      return '⚠️'
-    case 'error':
-      return '❌'
-    case 'success':
-      return '✅'
+    case "info":
+      return "ℹ️";
+    case "warning":
+      return "⚠️";
+    case "error":
+      return "❌";
+    case "success":
+      return "✅";
     default:
-      return '📢'
+      return "📢";
   }
-}
+};
 
 /**
  * 處理訂單點擊
  */
 const handleOrderClick = (order: OrderNotification) => {
-  markOrderAsRead(order.orderId)
+  markOrderAsRead(order.orderId);
   // TODO: 導航到訂單詳情頁面
-  console.log('Navigate to order:', order.orderId)
-}
+  console.log("Navigate to order:", order.orderId);
+};
 
 /**
  * 處理警示點擊
  */
 const handleAlertClick = (alert: SystemAlert) => {
-  markAlertAsRead(alert.notificationId)
-}
+  markAlertAsRead(alert.notificationId);
+};
 
 /**
  * 清除訂單通知
  */
 const handleClearOrders = () => {
-  markAllOrdersAsRead()
-  clearOrderNotifications()
-}
+  markAllOrdersAsRead();
+  clearOrderNotifications();
+};
 
 /**
  * 清除菜單警示
  */
 const handleClearMenuAlerts = () => {
-  clearMenuAlerts()
-}
+  clearMenuAlerts();
+};
 
 /**
  * 清除系統通知
  */
 const handleClearSystemAlerts = () => {
-  markAllAlertsAsRead()
-  clearSystemAlerts()
-}
+  markAllAlertsAsRead();
+  clearSystemAlerts();
+};
 </script>
 
 <style scoped>
@@ -451,7 +456,7 @@ const handleClearSystemAlerts = () => {
 }
 
 .tab-button.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;

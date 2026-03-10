@@ -31,15 +31,16 @@
 
 #### 測試覆蓋率詳情
 
-| 測試套件 | 測試案例數 | 通過率 | 代碼行數 |
-|---------|-----------|-------|---------|
-| RealtimeBroadcastService | 10 | 100% ✅ | 342 |
-| RealtimeAuthService | 25 | 100% ✅ | 408 |
-| Orders + Realtime Integration | 6 | 0% ⏳ | 331 |
-| Message Routing Logic | 15 | 100% ✅ | 445 |
-| **總計** | **56** | **89%** | **1,526** |
+| 測試套件                      | 測試案例數 | 通過率  | 代碼行數  |
+| ----------------------------- | ---------- | ------- | --------- |
+| RealtimeBroadcastService      | 10         | 100% ✅ | 342       |
+| RealtimeAuthService           | 25         | 100% ✅ | 408       |
+| Orders + Realtime Integration | 6          | 0% ⏳   | 331       |
+| Message Routing Logic         | 15         | 100% ✅ | 445       |
+| **總計**                      | **56**     | **89%** | **1,526** |
 
 **分析**:
+
 - 核心服務測試覆蓋率達 100%
 - 整合測試待修復 mock 配置（已知問題，不影響核心功能）
 - 測試程式碼品質高，包含邊界條件和錯誤處理
@@ -53,32 +54,37 @@
 **檔案**: `apps/api/src/features/realtime/services/RealtimeAuthService.ts`
 
 **問題描述**:
+
 ```
 Error: Bad "options.expiresIn" option the payload already has an "exp" property.
 ```
 
 **根本原因**:
+
 - Payload 中手動設定了 `exp` (line 102)
 - jwt.sign() 中又傳遞了 `expiresIn` 選項 (line 108)
 - `jsonwebtoken` 庫不允許同時使用兩者
 
 **修復方案**:
+
 ```typescript
 // 修復前
 const token = sign(payload, this.jwtSecret, {
-  expiresIn: `${expiresIn}s`
-})
+  expiresIn: `${expiresIn}s`,
+});
 
 // 修復後
-const token = sign(payload, this.jwtSecret)
+const token = sign(payload, this.jwtSecret);
 ```
 
 **影響範圍**:
+
 - ✅ Kitchen Token 生成恢復正常
 - ✅ Admin Token 生成恢復正常
 - ✅ 所有現有單元測試繼續通過
 
 **驗證方法**:
+
 - 手動測試腳本執行成功
 - 單元測試全部通過
 - 服務日誌顯示正常運作
@@ -90,16 +96,19 @@ const token = sign(payload, this.jwtSecret)
 **檔案**: `apps/realtime/wrangler.toml`
 
 **問題描述**:
+
 ```
 ERROR: Could not resolve "crypto", "util", "stream"
 ```
 
 **根本原因**:
+
 - `compatibility_date` 設為 `2024-01-01`
 - `jsonwebtoken` 使用 Node.js 內建模組
 - 舊的 compatibility_date 不支援未加 "node:" 前綴的模組
 
 **修復方案**:
+
 ```toml
 # 修復前
 compatibility_date = "2024-01-01"
@@ -109,6 +118,7 @@ compatibility_date = "2024-09-23"
 ```
 
 **影響範圍**:
+
 - ✅ Realtime 服務成功啟動
 - ✅ Durable Object 正常運作
 - ✅ WebSocket 認證功能可用
@@ -120,17 +130,20 @@ compatibility_date = "2024-09-23"
 **檔案**: `scripts/test-realtime-connection.js` (289 行)
 
 **功能**:
+
 1. WebSocket Token 生成測試（3 個角色）
 2. Token 驗證測試
 3. WebSocket 連線範例生成
 4. 訊息格式驗證
 
 **輸出示例**:
+
 - 彩色終端輸出（綠色✅ 成功，紅色❌ 失敗，黃色⚠️ 警告）
 - Token 詳細資訊（有效期、WebSocket URL）
 - wscat 連線命令範例
 
 **測試結果**:
+
 ```
 ✅ 廚房 Token 生成成功 (300秒有效期)
 ✅ 管理員 Token 生成成功 (300秒有效期)
@@ -164,10 +177,11 @@ compatibility_date = "2024-09-23"
 ```
 
 **環境配置**:
+
 - NODE_ENV: development
 - API_VERSION: v1
 - LOG_LEVEL: debug
-- CORS_ORIGIN: *
+- CORS_ORIGIN: \*
 
 ---
 
@@ -177,11 +191,13 @@ compatibility_date = "2024-09-23"
 **地址**: http://127.0.0.1:8788
 
 **Durable Object 綁定**:
+
 ```
 ✅ REALTIME_SESSION (RealtimeSession) - local mode
 ```
 
 **配置更新**:
+
 - Compatibility Date: 2024-01-01 → 2024-09-23 ✅
 - Node.js Compat Flags: 啟用 ✅
 
@@ -234,6 +250,7 @@ compatibility_date = "2024-09-23"
 ### 測試案例 1: 顧客 Token (Customer)
 
 **請求參數**:
+
 ```json
 {
   "roomType": "customer",
@@ -248,12 +265,14 @@ compatibility_date = "2024-09-23"
 **錯誤訊息**: `Invalid table ID`
 
 **分析**:
+
 - 這是**正確的安全行為**
 - 資料庫驗證機制正常運作
 - `table_1` 在本地資料庫中不存在
 - 防止未授權的 WebSocket 連線
 
 **建議解決方案**:
+
 1. 創建資料庫種子數據
 2. 使用實際存在的 table ID 進行測試
 3. 或在測試模式下允許測試專用 ID
@@ -263,6 +282,7 @@ compatibility_date = "2024-09-23"
 ### 測試案例 2: 廚房 Token (Kitchen)
 
 **請求參數**:
+
 ```json
 {
   "roomType": "kitchen",
@@ -275,12 +295,14 @@ compatibility_date = "2024-09-23"
 **結果**: ✅ **成功**
 
 **生成的 Token**:
+
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImtpdGNoZW4i...
 (約 200+ 字符)
 ```
 
 **Token Payload** (解碼後):
+
 ```json
 {
   "roomType": "kitchen",
@@ -293,11 +315,13 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImtpdGNoZW4i...
 ```
 
 **WebSocket URL**:
+
 ```
 wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc...
 ```
 
 **驗證點**:
+
 - ✅ Token 成功生成
 - ✅ 有效期正確（300 秒）
 - ✅ Role 正確映射為 "staff"
@@ -308,6 +332,7 @@ wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc...
 ### 測試案例 3: 管理員 Token (Admin)
 
 **請求參數**:
+
 ```json
 {
   "roomType": "admin",
@@ -320,12 +345,14 @@ wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc...
 **結果**: ✅ **成功**
 
 **生成的 Token**:
+
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImFkbWluIi...
 (約 200+ 字符)
 ```
 
 **Token Payload** (解碼後):
+
 ```json
 {
   "roomType": "admin",
@@ -338,11 +365,13 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImFkbWluIi...
 ```
 
 **WebSocket URL**:
+
 ```
 wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc...
 ```
 
 **驗證點**:
+
 - ✅ Token 成功生成
 - ✅ 有效期正確（300 秒）
 - ✅ Role 正確映射為 "admin"
@@ -357,6 +386,7 @@ wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc...
 **錯誤訊息**: `Rate limit exceeded`
 
 **分析**:
+
 - 測試腳本在短時間內（< 5 秒）發送了 6 個請求
   - 3 個 token 生成請求
   - 3 個 token 驗證請求
@@ -364,6 +394,7 @@ wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc...
 - 這是**預期的安全行為**，防止 API 濫用
 
 **改進建議**:
+
 1. 在測試腳本中加入延遲（1-2 秒間隔）
 2. 本地開發環境可考慮放寬速率限制
 3. 或實作測試專用的速率限制配置
@@ -377,6 +408,7 @@ wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc...
 **原因**: 需要互動式工具（wscat）
 
 **測試步驟**:
+
 ```bash
 # 1. 安裝 wscat
 npm install -g wscat
@@ -419,14 +451,15 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 
 **測試場景**:
 
-| 事件類型 | Customer | Kitchen | Admin | 測試方法 |
-|---------|----------|---------|-------|---------|
-| NEW_ORDER | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 | 建立訂單 |
-| ORDER_STATUS_UPDATE | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 | 更新狀態 |
-| KITCHEN_ITEM_STATUS | ❌ 不應收到 | ✅ 應收到 | ✅ 應收到 | 廚房更新 |
-| MENU_AVAILABILITY_UPDATE | ✅ 應收到 | ✅ 應收到 | ✅ 應收到 | 菜單更新 |
+| 事件類型                 | Customer    | Kitchen   | Admin     | 測試方法 |
+| ------------------------ | ----------- | --------- | --------- | -------- |
+| NEW_ORDER                | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 | 建立訂單 |
+| ORDER_STATUS_UPDATE      | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 | 更新狀態 |
+| KITCHEN_ITEM_STATUS      | ❌ 不應收到 | ✅ 應收到 | ✅ 應收到 | 廚房更新 |
+| MENU_AVAILABILITY_UPDATE | ✅ 應收到   | ✅ 應收到 | ✅ 應收到 | 菜單更新 |
 
 **測試步驟**:
+
 1. 開啟 3 個終端，分別建立 customer, kitchen, admin WebSocket 連線
 2. 透過 API 觸發不同類型的事件
 3. 記錄每個連線收到的訊息
@@ -474,6 +507,7 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 ```
 
 **必要前置作業**:
+
 1. 創建 `scripts/seed-realtime-test.sql`
 2. 執行資料庫種子數據：
    ```sql
@@ -491,24 +525,24 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 
 ### 程式碼產出
 
-| 類別 | 檔案數 | 程式碼行數 | 測試覆蓋率 |
-|-----|--------|-----------|-----------|
-| 測試套件 | 4 | 1,526 | 89% |
-| 測試腳本 | 1 | 289 | N/A |
-| 文檔 | 5 | ~25,000 字符 | 100% |
-| Bug 修復 | 2 | -3 行 | N/A |
-| **總計** | **12** | **~27,000** | **89%** |
+| 類別     | 檔案數 | 程式碼行數   | 測試覆蓋率 |
+| -------- | ------ | ------------ | ---------- |
+| 測試套件 | 4      | 1,526        | 89%        |
+| 測試腳本 | 1      | 289          | N/A        |
+| 文檔     | 5      | ~25,000 字符 | 100%       |
+| Bug 修復 | 2      | -3 行        | N/A        |
+| **總計** | **12** | **~27,000**  | **89%**    |
 
 ### 時間投入
 
-| 活動 | 預估時間 | 實際時間 |
-|-----|---------|---------|
-| 單元測試開發 | 4 小時 | 3.5 小時 ✅ |
-| Bug 發現與修復 | 2 小時 | 1.5 小時 ✅ |
-| 手動測試腳本 | 1 小時 | 1 小時 ✅ |
-| 文檔撰寫 | 2 小時 | 2.5 小時 ✅ |
-| 服務配置與調試 | 1 小時 | 0.5 小時 ✅ |
-| **總計** | **10 小時** | **9 小時** |
+| 活動           | 預估時間    | 實際時間    |
+| -------------- | ----------- | ----------- |
+| 單元測試開發   | 4 小時      | 3.5 小時 ✅ |
+| Bug 發現與修復 | 2 小時      | 1.5 小時 ✅ |
+| 手動測試腳本   | 1 小時      | 1 小時 ✅   |
+| 文檔撰寫       | 2 小時      | 2.5 小時 ✅ |
+| 服務配置與調試 | 1 小時      | 0.5 小時 ✅ |
+| **總計**       | **10 小時** | **9 小時**  |
 
 ---
 
@@ -517,15 +551,18 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 ### 1. JWT 最佳實踐
 
 **學習點**:
+
 - `jsonwebtoken` 庫中，不能同時使用 payload 的 `exp` 屬性和 options 的 `expiresIn` 選項
 - 應選擇其中一種方式設定過期時間
 
 **建議**:
+
 - 手動設定 `exp` 提供更精確的控制
 - 使用 `expiresIn` 選項更簡潔，適合大多數場景
 - 在我們的案例中，選擇手動設定 `exp` 以統一時間戳處理
 
 **程式碼範例**:
+
 ```typescript
 // 推薦方式 1: 手動設定 exp
 const payload = {
@@ -548,11 +585,13 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ### 2. Cloudflare Workers 相容性管理
 
 **學習點**:
+
 - `compatibility_date` 控制 Workers 運行時的行為
 - 2024-09-23 版本開始支援不加 "node:" 前綴的內建模組導入
 - 定期更新 compatibility_date 可獲得新功能和 bug 修復
 
 **相容性時間線**:
+
 ```
 2024-01-01: 需要 node:crypto, node:util
            ↓
@@ -562,6 +601,7 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ```
 
 **建議**:
+
 - 新專案使用最新的 compatibility_date
 - 升級時查閱 Cloudflare Workers changelog
 - 在 staging 環境先測試升級
@@ -571,6 +611,7 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ### 3. 測試驅動的 Bug 發現
 
 **流程**:
+
 ```
 編寫單元測試
     ↓
@@ -592,11 +633,13 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ```
 
 **學習點**:
+
 - 單元測試可能通過，但實際運行時仍可能失敗
 - 日誌記錄是快速定位問題的關鍵
 - 手動測試和自動化測試相輔相成
 
 **改進建議**:
+
 - 加強整合測試，模擬更真實的環境
 - 在測試中加入 JWT token 實際解碼驗證
 - 使用更接近生產環境的測試配置
@@ -606,11 +649,13 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ### 4. 安全驗證的重要性
 
 **發現**:
+
 - 資料庫驗證在 token 生成前執行
 - 即使是內部 API，也應驗證輸入參數的有效性
 - 速率限制是防止濫用的有效手段
 
 **驗證層次**:
+
 ```
 1. 請求參數驗證 (Hono validator)
    ↓
@@ -624,6 +669,7 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ```
 
 **最佳實踐**:
+
 - 多層驗證提供深度防禦
 - 每層驗證失敗都應有清晰的錯誤訊息
 - 安全日誌記錄驗證失敗嘗試
@@ -633,6 +679,7 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 ### 5. 測試腳本設計原則
 
 **良好測試腳本特徵**:
+
 - ✅ 彩色輸出提升可讀性
 - ✅ 清晰的成功/失敗指示
 - ✅ 詳細的錯誤訊息
@@ -640,22 +687,23 @@ const token = sign(payload, secret, { expiresIn: '5m' }) // 會報錯
 - ✅ 提供下一步建議
 
 **我們的實現**:
+
 ```javascript
 // 彩色輸出
 const colors = {
-  green: '\x1b[32m',  // 成功
-  red: '\x1b[31m',     // 失敗
-  yellow: '\x1b[33m',  // 警告
-  cyan: '\x1b[36m'     // 資訊
-}
+  green: "\x1b[32m", // 成功
+  red: "\x1b[31m", // 失敗
+  yellow: "\x1b[33m", // 警告
+  cyan: "\x1b[36m", // 資訊
+};
 
 // 清晰的測試結果
 if (response.ok) {
-  logSuccess('✅ Token 生成成功')
-  console.log(`  Token: ${data.token.substring(0, 50)}...`)
+  logSuccess("✅ Token 生成成功");
+  console.log(`  Token: ${data.token.substring(0, 50)}...`);
 } else {
-  logError('❌ Token 生成失敗')
-  console.log(`  錯誤: ${data.error}`)
+  logError("❌ Token 生成失敗");
+  console.log(`  錯誤: ${data.error}`);
 }
 ```
 
@@ -859,19 +907,23 @@ npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM tables
 ### B. 相關檔案清單
 
 #### 測試檔案
+
 - `apps/api/src/services/__tests__/RealtimeBroadcastService.test.ts` (342 行)
 - `apps/api/src/features/realtime/__tests__/RealtimeAuthService.test.ts` (408 行)
 - `apps/api/src/features/orders/__tests__/realtime-integration.test.ts` (331 行)
 - `apps/realtime/src/__tests__/message-routing.test.ts` (445 行)
 
 #### 測試腳本
+
 - `scripts/test-realtime-connection.js` (289 行)
 
 #### 實現檔案（已修復）
+
 - `apps/api/src/features/realtime/services/RealtimeAuthService.ts` (JWT bug 修復)
 - `apps/realtime/wrangler.toml` (compatibility_date 更新)
 
 #### 文檔
+
 - `docs/REALTIME_TESTING_GUIDE.md` (~6,000 字符)
 - `docs/REALTIME_TEST_RESULTS.md` (~15,000 字符)
 - `docs/REALTIME_PHASE3_SUMMARY.md` (本文件, ~10,000 字符)
@@ -882,13 +934,13 @@ npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM tables
 
 **角色分工**:
 
-| 角色 | 負責任務 | 預估時間 |
-|-----|---------|---------|
-| 後端工程師 | 修復整合測試 mock 配置 | 2-3 小時 |
-| 測試工程師 | 執行手動 WebSocket 連線測試 | 2-3 小時 |
-| 測試工程師 | 驗證多角色訊息路由 | 3-4 小時 |
-| DevOps 工程師 | 準備資料庫種子數據 | 1-2 小時 |
-| 後端工程師 | 端到端訂單流程測試 | 4-5 小時 |
+| 角色          | 負責任務                    | 預估時間 |
+| ------------- | --------------------------- | -------- |
+| 後端工程師    | 修復整合測試 mock 配置      | 2-3 小時 |
+| 測試工程師    | 執行手動 WebSocket 連線測試 | 2-3 小時 |
+| 測試工程師    | 驗證多角色訊息路由          | 3-4 小時 |
+| DevOps 工程師 | 準備資料庫種子數據          | 1-2 小時 |
+| 後端工程師    | 端到端訂單流程測試          | 4-5 小時 |
 
 **預計完成時間**: 3-5 個工作日（並行執行）
 
@@ -899,6 +951,7 @@ npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM tables
 **Q1: 為什麼 Customer Token 生成失敗？**
 
 A: 這是預期的安全行為。Customer token 需要驗證 tableId 的有效性，測試用的 `table_1` 在資料庫中不存在。解決方案：
+
 - 創建資料庫種子數據
 - 使用實際存在的 table ID
 - 或在測試模式下跳過驗證
@@ -908,6 +961,7 @@ A: 這是預期的安全行為。Customer token 需要驗證 tableId 的有效�
 **Q2: 速率限制錯誤如何解決？**
 
 A: 測試腳本在短時間內發送多個請求觸發了速率限制。解決方案：
+
 - 在測試腳本中加入延遲（1-2 秒）
 - 本地開發環境可暫時放寬速率限制
 - 生產環境保持嚴格限制
@@ -917,6 +971,7 @@ A: 測試腳本在短時間內發送多個請求觸發了速率限制。解決�
 **Q3: 整合測試為什麼失敗？**
 
 A: OrdersService 整合測試的 mock 配置需要調整。這是已知問題，不影響核心功能。解決方案：
+
 - 修復 `@makanmakan/database` 的 mock 導出
 - 正確配置 BaseOrderService mock
 - 參考已通過的測試範例
@@ -926,6 +981,7 @@ A: OrdersService 整合測試的 mock 配置需要調整。這是已知問題，
 **Q4: WebSocket 連線如何測試？**
 
 A: 使用 wscat 工具進行互動式測試：
+
 ```bash
 # 1. 獲取 token
 node scripts/test-realtime-connection.js
@@ -945,6 +1001,7 @@ wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 **Q5: 如何驗證訊息路由是否正確？**
 
 A: 建立多個角色的連線並觸發不同事件：
+
 1. 開啟 3 個終端，分別連線 customer, kitchen, admin
 2. 透過 API 創建訂單（所有角色都應收到）
 3. 更新廚房項目狀態（只有 kitchen 和 admin 應收到）
@@ -975,5 +1032,6 @@ A: 建立多個角色的連線並觸發不同事件：
 ---
 
 **相關文檔**:
+
 - [即時通訊測試指南](./REALTIME_TESTING_GUIDE.md)
 - [測試結果詳細報告](./REALTIME_TEST_RESULTS.md)

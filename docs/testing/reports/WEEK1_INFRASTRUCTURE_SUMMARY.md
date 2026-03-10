@@ -24,14 +24,14 @@
 
 #### 已創建文檔
 
-| 文檔名稱 | 行數 | 用途 |
-|----------|------|------|
-| `FACTORY_QUICK_REFERENCE.md` | 587 | A4 雙面快速參考卡 |
-| `FACTORY_FAQ.md` | 587 | 25 個常見問題解答 |
-| `examples/01-basic-usage.ts` | 100 | 基礎使用範例 |
-| `examples/02-relationships.ts` | 150 | 關聯數據範例 |
-| `examples/03-complete-environment.ts` | 120 | 完整環境設置 |
-| `examples/README.md` | 200 | 學習路徑指南 |
+| 文檔名稱                              | 行數 | 用途              |
+| ------------------------------------- | ---- | ----------------- |
+| `FACTORY_QUICK_REFERENCE.md`          | 587  | A4 雙面快速參考卡 |
+| `FACTORY_FAQ.md`                      | 587  | 25 個常見問題解答 |
+| `examples/01-basic-usage.ts`          | 100  | 基礎使用範例      |
+| `examples/02-relationships.ts`        | 150  | 關聯數據範例      |
+| `examples/03-complete-environment.ts` | 120  | 完整環境設置      |
+| `examples/README.md`                  | 200  | 學習路徑指南      |
 
 **總計**: 1,744 行文檔 + 370 行範例代碼
 
@@ -60,18 +60,19 @@
 
 #### 候選模組評估
 
-| 模組 | 測試行數 | 複雜度 | 數據生成 | 優先級 | 推薦度 |
-|------|----------|--------|----------|--------|--------|
-| **users** | **136** | **低** | **中** | **P1** | **⭐⭐⭐⭐⭐** |
-| restaurants | 326 | 中 | 高 | P2 | ⭐⭐⭐⭐ |
-| menu | 629 | 高 | 高 | P3 | ⭐⭐⭐ |
-| orders | 626 | 高 | 高 | P3 | ⭐⭐⭐ |
+| 模組        | 測試行數 | 複雜度 | 數據生成 | 優先級 | 推薦度         |
+| ----------- | -------- | ------ | -------- | ------ | -------------- |
+| **users**   | **136**  | **低** | **中**   | **P1** | **⭐⭐⭐⭐⭐** |
+| restaurants | 326      | 中     | 高       | P2     | ⭐⭐⭐⭐       |
+| menu        | 629      | 高     | 高       | P3     | ⭐⭐⭐         |
+| orders      | 626      | 高     | 高       | P3     | ⭐⭐⭐         |
 
 #### 選定結果
 
 **試點模組**: `users` ✅
 
 **選擇理由**:
+
 1. ✅ 規模最小（136 行）- 風險最低
 2. ✅ 數據生成適中 - 能展示 factory 優勢
 3. ✅ 非核心業務邏輯 - 失敗影響小
@@ -109,6 +110,7 @@
 **文件**: `scripts/factory-usage-tracker.js` (337 行)
 
 **功能**:
+
 - 📊 掃描所有測試文件
 - 📈 計算採用率統計
 - 🔍 識別缺少 resetAllFactories 的文件
@@ -116,12 +118,14 @@
 - 📝 生成 Markdown + JSON 報告
 
 **使用方式**:
+
 ```bash
 npm run factory:usage      # 掃描並生成統計
 npm run factory:report     # 生成報告
 ```
 
 **報告內容**:
+
 - 總體統計（文件數、採用率、調用次數）
 - 最常用的 Factories（排名）
 - 已使用 Factory 的文件列表
@@ -133,6 +137,7 @@ npm run factory:report     # 生成報告
 **文件**: `scripts/migration-progress-tracker.js` (463 行)
 
 **功能**:
+
 - 📋 模組級別進度追蹤
 - 🎯 優先級組織（P0-P3）
 - 🎯 里程碑追蹤
@@ -140,6 +145,7 @@ npm run factory:report     # 生成報告
 - 💡 自動生成建議
 
 **使用方式**:
+
 ```bash
 npm run migration:init                      # 初始化
 npm run migration:update users in-progress 50  # 更新進度
@@ -148,6 +154,7 @@ npm run migration:dashboard                 # 完整儀表板
 ```
 
 **CLI 命令**:
+
 - `init` - 初始化狀態文件
 - `update <module> <status> [progress]` - 更新模組狀態
 - `report` - 生成進度報告
@@ -157,6 +164,7 @@ npm run migration:dashboard                 # 完整儀表板
 **文件**: `TRACKING_DASHBOARD_GUIDE.md` (576 行)
 
 **章節**:
+
 1. 快速開始
 2. 使用統計追蹤
 3. 遷移進度追蹤
@@ -174,16 +182,19 @@ npm run migration:dashboard                 # 完整儀表板
 ##### 1. ESLint 自定義規則
 
 **規則 1**: `enforce-factory-reset.js` (150 行)
+
 - **用途**: 強制 resetAllFactories() 調用
 - **級別**: error（阻塞）
 - **自動修復**: ✅ 支援
 
 **規則 2**: `prefer-factory-over-manual.js` (120 行)
+
 - **用途**: 建議使用 factory
 - **級別**: warn（警告）
 - **自動修復**: ❌ 不支援（提供建議）
 
 **索引文件**: `scripts/eslint-rules/index.js` (20 行)
+
 - 導出所有規則
 - 提供 recommended 配置
 
@@ -192,21 +203,25 @@ npm run migration:dashboard                 # 完整儀表板
 **文件**: `scripts/check-factory-usage.js` (340 行)
 
 **功能**:
+
 - 🔍 自動檢查所有測試文件
 - 📋 生成詳細報告
 - 🚦 可配置阻塞行為
 - 📊 支援多種輸出格式
 
 **輸出格式**:
+
 - Console（默認）- 彩色控制台輸出
 - JSON - 機器可讀格式
 - GitHub - GitHub Actions annotations
 
 **檢查規則**:
+
 - ❌ 錯誤級別：missing-reset, missing-factory-import
 - ⚠️ 警告級別：manual-data-creation, large-test-file
 
 **環境變量**:
+
 ```bash
 OUTPUT_FORMAT=console|json|github
 FAIL_ON_ERROR=true|false
@@ -218,17 +233,20 @@ FAIL_ON_WARNING=true|false
 **文件**: `.github/workflows/factory-usage-check.yml` (150 行)
 
 **觸發條件**:
+
 - Pull request 提交
 - 測試文件變更
 - 手動觸發
 
 **功能**:
+
 - ✅ 自動運行檢查
 - 💬 PR 評論（中文）
 - 🏷️ 自動標籤
 - 📊 狀態報告（非阻塞）
 
 **標籤**:
+
 - `needs-factory-fix` - 有錯誤
 - `testing-improvement-suggested` - 有警告
 
@@ -237,16 +255,19 @@ FAIL_ON_WARNING=true|false
 **文件**: `.husky/pre-commit` (30 行)
 
 **功能**:
+
 - 🔍 Git commit 時自動檢查
 - ⚡ 只檢查暫存的測試文件
 - 💡 即時提供修復建議
 - 🚫 阻塞不符合規範的提交
 
 **集成工具**:
+
 - Husky - Git hooks 管理
 - lint-staged - 暫存文件處理
 
 **package.json 配置**:
+
 ```json
 {
   "lint-staged": {
@@ -261,24 +282,28 @@ FAIL_ON_WARNING=true|false
 **文件**: `scripts/factory-badge-system.js` (450 行)
 
 **功能**:
+
 - 🏆 追蹤開發者貢獻
 - 🎖️ 授予成就徽章
 - 📊 生成排行榜
 - 🎮 遊戲化激勵
 
 **徽章等級**:
+
 - 🥉 青銅級（2 個）：第一步、重置大師
 - 🥈 銀級（3 個）：早期採用者、遷移專家、測試構建者
 - 🥇 金級（3 個）：Factory 冠軍、完美主義者、團隊領袖
 - 🏆 傳奇級（1 個）：Factory 傳奇
 
 **分數系統**:
+
 - 青銅：10 分/個
 - 銀：25 分/個
 - 金：50 分/個
 - 傳奇：100 分/個
 
 **使用方式**:
+
 ```bash
 npm run factory:badges  # 生成徽章報告
 ```
@@ -288,6 +313,7 @@ npm run factory:badges  # 生成徽章報告
 **文件**: `AUTOMATION_TOOLS_GUIDE.md` (600+ 行)
 
 **章節**:
+
 1. 快速開始
 2. 檢查工具詳解
 3. Pre-commit Hooks 配置
@@ -320,11 +346,13 @@ npm run factory:badges  # 生成徽章報告
 **完整內容**:
 
 ##### 1. 計畫概述
+
 - Champions 定義和目標
 - 短期/中期/長期目標
 - 為什麼需要 Champions
 
 ##### 2. 角色與職責
+
 - 🎯 核心職責（4 大類）：
   - 技術支援（40%）
   - 知識傳播（30%）
@@ -333,11 +361,13 @@ npm run factory:badges  # 生成徽章報告
 - 🚫 非職責範圍
 
 ##### 3. 如何成為 Champion
+
 - 📋 資格要求（技術 + 軟技能 + 時間投入）
 - 📝 申請流程（5 步驟）
 - 📄 申請表單範本
 
 ##### 4. 權限與資源
+
 - 🔑 特殊權限（代碼庫、群組、決策）
 - 🎁 提供資源：
   - 培訓資源
@@ -345,12 +375,14 @@ npm run factory:badges  # 生成徽章報告
   - 時間保障（工時計入）
 
 ##### 5. 認可與獎勵
+
 - 🏆 正式認可（內部 + 外部）
 - 🎁 實質獎勵：
   - 季度獎勵（所有 Champions）
   - 年度獎勵（傑出 Champion）
 
 ##### 6. 協作機制
+
 - 👥 團隊結構（Lead → Core → Junior）
 - 🗓️ 定期活動：
   - 每週同步（30 分鐘）
@@ -359,11 +391,13 @@ npm run factory:badges  # 生成徽章報告
 - 💬 溝通渠道
 
 ##### 7. 成功指標
+
 - 📊 個人指標（季度目標 + 質量 + 影響力）
 - 🎯 團隊指標（採用率 + 覆蓋率 + 滿意度）
 - 📈 追蹤方式
 
 ##### 8. 附錄
+
 - A. Champion 入職檢查清單
 - B. 每週工作範本
 - C. 工作坊大綱範本
@@ -460,16 +494,19 @@ ESLint   Pre-commit  GitHub   Dashboard
 ### Week 2-3: 試點執行與培訓
 
 **Task 1: 執行試點遷移**（3 天）
+
 - Day 1: 準備和分析
 - Day 2: 實施遷移
 - Day 3: 文檔和分享
 
 **Task 2: 舉辦首次工作坊**（1 小時）
+
 - 介紹 factory 基礎
 - 演示遷移過程
 - Q&A 環節
 
 **Task 3: 招募 Champions**（1 週）
+
 - 發布 Champions 計畫
 - 接受申請
 - 面談候選人
@@ -477,15 +514,18 @@ ESLint   Pre-commit  GitHub   Dashboard
 ### Week 4-5: 推廣與擴展
 
 **Task 1: 遷移更多模組**
+
 - restaurants（326 行）
 - menu（629 行）
 
 **Task 2: Champions 培訓**
+
 - 技術深度培訓
 - Code review 培訓
 - 溝通技巧培訓
 
 **Task 3: 追蹤和調整**
+
 - 每週查看儀表板
 - 根據反饋調整
 - 慶祝里程碑
@@ -547,6 +587,7 @@ ESLint   Pre-commit  GitHub   Dashboard
 感謝所有參與第1週基礎建設的團隊成員！
 
 特別感謝：
+
 - 📝 文檔撰寫
 - 🔧 工具開發
 - 🧪 測試驗證

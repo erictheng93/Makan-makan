@@ -16,7 +16,7 @@ import type {
   PlanDiscountType,
   UsageLogStatus,
   UsageChannel,
-} from '@makanmakan/database'
+} from "@makanmakan/database";
 
 // 重新導出資料庫類型
 export type {
@@ -32,108 +32,108 @@ export type {
   PlanDiscountType,
   UsageLogStatus,
   UsageChannel,
-}
+};
 
 // API 特定類型
 export interface PartnershipAPIResponse {
-  success: boolean
-  data?: Partnership
-  error?: string
+  success: boolean;
+  data?: Partnership;
+  error?: string;
 }
 
 export interface PartnershipListAPIResponse {
-  success: boolean
-  data?: Partnership[]
+  success: boolean;
+  data?: Partnership[];
   pagination?: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-  error?: string
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  error?: string;
 }
 
 export interface PlanAPIResponse {
-  success: boolean
-  data?: PartnershipPlan
-  error?: string
+  success: boolean;
+  data?: PartnershipPlan;
+  error?: string;
 }
 
 export interface PlanListAPIResponse {
-  success: boolean
-  data?: PartnershipPlan[]
+  success: boolean;
+  data?: PartnershipPlan[];
   pagination?: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-  error?: string
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  error?: string;
 }
 
 export interface MemberAPIResponse {
-  success: boolean
-  data?: VerifiedMember
-  message?: string
-  error?: string
+  success: boolean;
+  data?: VerifiedMember;
+  message?: string;
+  error?: string;
 }
 
 export interface MemberListAPIResponse {
-  success: boolean
-  data?: VerifiedMember[]
+  success: boolean;
+  data?: VerifiedMember[];
   pagination?: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-  error?: string
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  error?: string;
 }
 
 export interface UsageLogAPIResponse {
-  success: boolean
-  data?: PartnershipUsageLog
-  message?: string
-  error?: string
+  success: boolean;
+  data?: PartnershipUsageLog;
+  message?: string;
+  error?: string;
 }
 
 export interface UsageLogListAPIResponse {
-  success: boolean
-  data?: PartnershipUsageLog[]
+  success: boolean;
+  data?: PartnershipUsageLog[];
   pagination?: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-  error?: string
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  error?: string;
 }
 
 export interface StatisticsAPIResponse {
-  success: boolean
+  success: boolean;
   data?: {
-    totalUsageCount: number
-    totalDiscountGiven: number
-    totalRevenue: number
-    uniqueMembers: number
-    averageDiscount: number
-    averageOrderValue: number
-  }
-  error?: string
+    totalUsageCount: number;
+    totalDiscountGiven: number;
+    totalRevenue: number;
+    uniqueMembers: number;
+    averageDiscount: number;
+    averageOrderValue: number;
+  };
+  error?: string;
 }
 
 export interface PlanValidationAPIResponse {
-  success: boolean
+  success: boolean;
   data?: {
-    valid: boolean
-    plan?: PartnershipPlan
-    error?: string
-    discountAmount?: number
-    finalAmount?: number
+    valid: boolean;
+    plan?: PartnershipPlan;
+    error?: string;
+    discountAmount?: number;
+    finalAmount?: number;
     canCombineWithOthers?: {
-      coupons: boolean
-      promotions: boolean
-    }
-  }
-  error?: string
+      coupons: boolean;
+      promotions: boolean;
+    };
+  };
+  error?: string;
 }

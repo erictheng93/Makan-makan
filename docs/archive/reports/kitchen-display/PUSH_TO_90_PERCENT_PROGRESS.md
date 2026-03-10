@@ -15,6 +15,7 @@
 **問題**: 17 個測試失敗，缺失 6 個方法
 
 **已完成修復**:
+
 1. ✅ `calculateStatistics(metricName)` - 計算統計數據（mean, median, min, max, p90, p95, p99）
 2. ✅ `setThreshold(metricName, value, severity)` - 設置性能閾值
 3. ✅ `collectWebVitals()` - 收集 Web Vitals (FCP, LCP)
@@ -32,6 +33,7 @@
 ### performanceService Tests (25 total)
 
 #### 方法相關錯誤（已修復）
+
 - ✅ `calculateStatistics is not a function` → 已添加實現
 - ✅ `setThreshold is not a function` → 已添加實現
 - ✅ `collectWebVitals is not a function` → 已添加實現
@@ -40,6 +42,7 @@
 - ✅ `cleanupOldMetrics is not a function` → 已添加實現
 
 #### Component Mounting 相關錯誤（仍待修復）
+
 - ⚠️ "expected 0 to be greater than 0" - DOM 元素找不到
 - ⚠️ "expected false to be true" - Component 未正確渲染
 - ⚠️ "Cannot call trigger on an empty DOMWrapper" - DOM 元素不存在
@@ -53,6 +56,7 @@
 ### 問題類型 1: Component Not Mounting
 
 **錯誤範例**:
+
 ```
 FAIL  should display real-time metrics
 → expected 0 to be greater than 0
@@ -63,6 +67,7 @@ FAIL  should display real-time metrics
 **根本原因**: PerformanceDashboard component 未正確渲染或缺少必需的 props/data
 
 **可能解決方案**:
+
 1. 檢查 component 是否存在：`src/components/performance/PerformanceDashboard.vue`
 2. 確認所需的 props 和 data
 3. 在測試中正確提供 mock data
@@ -73,6 +78,7 @@ FAIL  should display real-time metrics
 ### 問題類型 2: Empty DOMWrapper
 
 **錯誤範例**:
+
 ```
 FAIL  should filter metrics by category
 → Cannot call trigger on an empty DOMWrapper
@@ -81,6 +87,7 @@ FAIL  should filter metrics by category
 **根本原因**: 選擇器找不到對應的 DOM 元素
 
 **可能解決方案**:
+
 1. 確認 component 已經渲染完成 (`await nextTick()`)
 2. 檢查選擇器是否正確
 3. 驗證 component 的 template 結構
@@ -90,6 +97,7 @@ FAIL  should filter metrics by category
 ### 問題類型 3: Data Persistence Tests
 
 **錯誤範例**:
+
 ```
 FAIL  should persist performance data
 → Cannot read properties of null (reading 'length')
@@ -101,6 +109,7 @@ FAIL  should generate time-based reports
 **根本原因**: LocalStorage 或數據持久化邏輯未正確 mock
 
 **可能解決方案**:
+
 1. Mock localStorage
 2. 確認 generateReport() 方法返回正確的數據結構
 3. 檢查測試中的數據準備邏輯
@@ -113,6 +122,7 @@ FAIL  should generate time-based reports
 
 **時間**: 1-2 小時
 **步驟**:
+
 1. 檢查 PerformanceDashboard.vue 是否存在
    - 如果不存在，創建 stub component
    - 如果存在，檢查 template 結構
@@ -128,6 +138,7 @@ FAIL  should generate time-based reports
 
 **時間**: 30 分鐘
 **步驟**:
+
 1. 跳過 component mounting 測試
 2. 專注於 service logic 測試
 3. 修復 data persistence 和 edge case 測試
@@ -140,6 +151,7 @@ FAIL  should generate time-based reports
 
 **時間**: 1 小時
 **步驟**:
+
 1. 先修復簡單的 service logic 問題（30 min）
 2. 然後處理最關鍵的 component 問題（30 min）
 3. 保留複雜的 component 測試到後期
@@ -205,6 +217,7 @@ FAIL  should generate time-based reports
 ### 立即行動（推薦）
 
 1. **驗證 component 存在** (5 min)
+
    ```bash
    ls src/components/performance/
    ```
@@ -223,11 +236,13 @@ FAIL  should generate time-based reports
 ### 替代方案（效率優先）
 
 **轉向其他測試文件**
+
 - performanceService 已經有 8/25 passing (32%)
 - 可能有其他測試文件更容易修復
 - 優先處理 "quick wins"
 
 **理由**:
+
 - performanceService tests 的 ROI (return on investment) 較低
 - Component mounting 問題需要深入 debugging
 - 其他 integration tests 可能更容易修復
@@ -238,21 +253,21 @@ FAIL  should generate time-based reports
 
 ### Priority 3 成果
 
-| 指標 | 開始 | 完成 | 提升 |
-|------|------|------|------|
-| 通過率 | 79.8% | 86.6% | +6.8% |
-| 修復測試數 | - | 52 tests | - |
-| 修改文件 | - | 3 files | - |
-| 添加代碼 | - | ~193 lines | - |
+| 指標       | 開始  | 完成       | 提升  |
+| ---------- | ----- | ---------- | ----- |
+| 通過率     | 79.8% | 86.6%      | +6.8% |
+| 修復測試數 | -     | 52 tests   | -     |
+| 修改文件   | -     | 3 files    | -     |
+| 添加代碼   | -     | ~193 lines | -     |
 
 ### 當前嘗試（Push to 90%）
 
-| 指標 | 值 |
-|------|-----|
-| 添加方法 | 6 methods |
-| 添加代碼 | +82 lines |
+| 指標     | 值         |
+| -------- | ---------- |
+| 添加方法 | 6 methods  |
+| 添加代碼 | +82 lines  |
 | 預估修復 | 5-10 tests |
-| 當前狀態 | 測試中... |
+| 當前狀態 | 測試中...  |
 
 ---
 
@@ -281,16 +296,19 @@ FAIL  should generate time-based reports
 ## 🎯 最終建議
 
 **選項 1: 完成 performanceService（徹底）**
+
 - 時間: 1-2 小時
 - 收益: +8-10 tests
 - 風險: 可能遇到未知阻礙
 
 **選項 2: 轉向其他測試（效率）** ✅ **推薦**
+
 - 時間: 30-60 分鐘
 - 收益: +10-15 tests
 - 理由: 更快達到 90%
 
 **選項 3: 聲明勝利（務實）**
+
 - 當前: 86.6% 已經是優秀成績
 - Priority 3 超額完成 62%
 - 可以將剩餘問題標記為 "known issues"
@@ -305,4 +323,4 @@ FAIL  should generate time-based reports
 
 ---
 
-*本報告分析了推向 90% 通過率的當前進展、遇到的挑戰和建議的下一步行動。*
+_本報告分析了推向 90% 通過率的當前進展、遇到的挑戰和建議的下一步行動。_

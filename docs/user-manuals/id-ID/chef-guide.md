@@ -51,21 +51,25 @@
 ### Daftar Periksa Penggunaan Pertama
 
 ✅ **Langkah Pertama: Konfirmasi Akun dan Perangkat**
+
 - Pastikan sudah mendapatkan akun koki
 - Uji coba login ke sistem tampilan dapur
 - Pastikan layar tampilan berfungsi normal
 
 ✅ **Langkah Kedua: Kenali Antarmuka**
+
 - Pahami tata letak kartu pesanan
 - Latih operasi pembaruan status
 - Uji notifikasi suara
 
 ✅ **Langkah Ketiga: Pahami Alur Kerja**
+
 - Cara notifikasi pesanan baru
 - Langkah-langkah pembaruan status
 - Proses penyelesaian pesanan
 
 ✅ **Langkah Keempat: Persiapan Kerja**
+
 - Pastikan peralatan dapur siap
 - Periksa persiapan bahan makanan
 - Mulai menerima pesanan
@@ -110,6 +114,7 @@
 ```
 
 **Penjelasan**:
+
 - **Pelanggan**: Memesan melalui QR Code
 - **Sistem Dapur**: Menerima dan menampilkan pesanan secara real-time
 - **Koki (Anda)**: Memproses pesanan dan memperbarui status
@@ -272,6 +277,7 @@ Pilih Stasiun Kerja Anda:
 ### Item Pemeriksaan Setelah Login
 
 ✅ **Konfirmasi Status Sistem**
+
 ```
 ┌─────────────────────────────┐
 │ Daftar Pemeriksaan Sistem   │

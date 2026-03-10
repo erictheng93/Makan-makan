@@ -27,31 +27,31 @@
 
 ### 性能目標
 
-| 指標 | 當前值 | 目標值 | 優先度 |
-|-----|--------|--------|--------|
-| WebSocket 連線延遲 | 未測量 | < 100ms | 高 |
-| 訊息端到端延遲 | 未測量 | < 200ms | 高 |
-| 並發連線支援 | 未測量 | 10,000+ | 中 |
-| 訊息吞吐量 | 未測量 | 1,000 msg/s | 中 |
-| Durable Object 冷啟動 | 未測量 | < 500ms | 低 |
+| 指標                  | 當前值 | 目標值      | 優先度 |
+| --------------------- | ------ | ----------- | ------ |
+| WebSocket 連線延遲    | 未測量 | < 100ms     | 高     |
+| 訊息端到端延遲        | 未測量 | < 200ms     | 高     |
+| 並發連線支援          | 未測量 | 10,000+     | 中     |
+| 訊息吞吐量            | 未測量 | 1,000 msg/s | 中     |
+| Durable Object 冷啟動 | 未測量 | < 500ms     | 低     |
 
 ### 可靠性目標
 
-| 指標 | 目標值 | 測量方式 |
-|-----|--------|----------|
-| 系統可用性 (SLA) | 99.9% | 月度正常運行時間 |
-| 平均故障恢復時間 (MTTR) | < 5 分鐘 | 事件追蹤 |
-| 訊息投遞成功率 | 99.99% | 事件日誌分析 |
-| Token 驗證成功率 | 99.9% | API 監控 |
+| 指標                    | 目標值   | 測量方式         |
+| ----------------------- | -------- | ---------------- |
+| 系統可用性 (SLA)        | 99.9%    | 月度正常運行時間 |
+| 平均故障恢復時間 (MTTR) | < 5 分鐘 | 事件追蹤         |
+| 訊息投遞成功率          | 99.99%   | 事件日誌分析     |
+| Token 驗證成功率        | 99.9%    | API 監控         |
 
 ### 安全目標
 
-| 項目 | 目標 | 狀態 |
-|-----|------|------|
-| Token 撤銷機制 | 實作完成 | ⏳ 待實作 |
-| 連線頻率限制 | 配置完成 | ⏳ 待配置 |
+| 項目               | 目標      | 狀態      |
+| ------------------ | --------- | --------- |
+| Token 撤銷機制     | 實作完成  | ⏳ 待實作 |
+| 連線頻率限制       | 配置完成  | ⏳ 待配置 |
 | WebSocket 訊息驗證 | 100% 覆蓋 | ⏳ 待實作 |
-| 安全審計日誌 | 完整記錄 | ⏳ 待實作 |
+| 安全審計日誌       | 完整記錄  | ⏳ 待實作 |
 
 ## 📊 Phase 4 任務架構
 
@@ -158,6 +158,7 @@ Week 4: Deployment & Operations
 **目標**: 建立性能基準數據，識別瓶頸
 
 **任務**:
+
 - [ ] 建立性能測試框架（Artillery 或 K6）
 - [ ] WebSocket 連線延遲測試
   - [ ] 單一連線延遲
@@ -177,6 +178,7 @@ Week 4: Deployment & Operations
   - [ ] 熱路徑執行時間
 
 **產出**:
+
 - 性能測試腳本
 - 性能基準報告
 - 瓶頸分析文檔
@@ -190,6 +192,7 @@ Week 4: Deployment & Operations
 **目標**: 優化連線管理，提升效率
 
 **任務**:
+
 - [ ] 實作連線池管理邏輯
   - [ ] 連線重用機制
   - [ ] 空閒連線清理
@@ -205,6 +208,7 @@ Week 4: Deployment & Operations
   - [ ] 事件歷史緩衝區優化
 
 **產出**:
+
 - 優化後的連線管理代碼
 - 性能對比報告
 
@@ -217,6 +221,7 @@ Week 4: Deployment & Operations
 **目標**: 提升訊息處理效率
 
 **任務**:
+
 - [ ] 設計批次處理邏輯
   - [ ] 訊息聚合策略
   - [ ] 批次大小配置
@@ -229,6 +234,7 @@ Week 4: Deployment & Operations
   - [ ] 性能提升測量
 
 **產出**:
+
 - 批次處理實作代碼
 - 性能優化報告
 
@@ -243,6 +249,7 @@ Week 4: Deployment & Operations
 **目標**: 實作 JWT Token 撤銷功能
 
 **任務**:
+
 - [ ] 設計 Token Blacklist 架構
   - [ ] 使用 KV Store 儲存已撤銷 token
   - [ ] 設定適當的 TTL
@@ -258,6 +265,7 @@ Week 4: Deployment & Operations
 - [ ] 自動清理過期 blacklist 項目
 
 **產出**:
+
 - Token 撤銷服務代碼
 - API 文檔更新
 - 單元測試
@@ -271,6 +279,7 @@ Week 4: Deployment & Operations
 **目標**: 防止 WebSocket 連線濫用
 
 **任務**:
+
 - [ ] 設計頻率限制策略
   - [ ] 每 IP 連線頻率限制
   - [ ] 每用戶連線數限制
@@ -286,6 +295,7 @@ Week 4: Deployment & Operations
   - [ ] 異常連線行為告警
 
 **產出**:
+
 - 頻率限制實作代碼
 - 配置文檔
 - 監控儀表板
@@ -299,6 +309,7 @@ Week 4: Deployment & Operations
 **目標**: 確保所有訊息格式正確且安全
 
 **任務**:
+
 - [ ] 定義訊息 Schema
   - [ ] 使用 Zod 定義驗證規則
   - [ ] 每種訊息類型的 schema
@@ -313,6 +324,7 @@ Week 4: Deployment & Operations
   - [ ] 訊息類型分別限制
 
 **產出**:
+
 - 訊息驗證代碼
 - Schema 定義文檔
 - 測試案例
@@ -330,29 +342,34 @@ Week 4: Deployment & Operations
 **關鍵指標**:
 
 **連線指標**:
+
 - `realtime_active_connections` - 當前活躍連線數（by room_type, restaurant_id）
 - `realtime_connection_duration_seconds` - 連線持續時間分佈
 - `realtime_connections_total` - 總連線數（累計）
 - `realtime_disconnections_total` - 斷線次數（by reason）
 
 **訊息指標**:
+
 - `realtime_messages_sent_total` - 發送訊息總數（by event_type）
 - `realtime_messages_received_total` - 接收訊息總數（by message_type）
 - `realtime_message_size_bytes` - 訊息大小分佈
 - `realtime_message_latency_seconds` - 訊息延遲分佈
 
 **性能指標**:
+
 - `realtime_broadcast_duration_seconds` - 廣播處理時間
 - `realtime_durable_object_cpu_time` - Durable Object CPU 使用
 - `realtime_token_generation_duration_seconds` - Token 生成時間
 - `realtime_token_verification_duration_seconds` - Token 驗證時間
 
 **錯誤指標**:
+
 - `realtime_errors_total` - 錯誤總數（by error_type）
 - `realtime_invalid_tokens_total` - 無效 token 嘗試次數
 - `realtime_rate_limit_exceeded_total` - 速率限制觸發次數
 
 **任務**:
+
 - [ ] 定義監控指標 schema
 - [ ] 實作 metrics 收集邏輯
 - [ ] 整合 Cloudflare Analytics Engine
@@ -360,6 +377,7 @@ Week 4: Deployment & Operations
 - [ ] 建立 Grafana 儀表板
 
 **產出**:
+
 - Metrics 定義文檔
 - 監控代碼實作
 - Grafana 儀表板 JSON
@@ -373,6 +391,7 @@ Week 4: Deployment & Operations
 **目標**: 實作統一的結構化日誌格式
 
 **日誌級別**:
+
 - `DEBUG`: 詳細除錯資訊
 - `INFO`: 一般資訊事件
 - `WARN`: 警告訊息
@@ -380,6 +399,7 @@ Week 4: Deployment & Operations
 - `FATAL`: 嚴重錯誤
 
 **日誌格式**:
+
 ```json
 {
   "timestamp": "2025-11-03T12:00:00.000Z",
@@ -400,6 +420,7 @@ Week 4: Deployment & Operations
 ```
 
 **任務**:
+
 - [ ] 設計日誌 schema
 - [ ] 實作統一日誌函式庫
 - [ ] 整合到所有服務
@@ -408,6 +429,7 @@ Week 4: Deployment & Operations
 - [ ] 實作日誌查詢工具
 
 **產出**:
+
 - 日誌庫代碼
 - 日誌格式文檔
 - Logpush 配置
@@ -421,6 +443,7 @@ Week 4: Deployment & Operations
 **目標**: 整合 Sentry 或類似工具進行錯誤追蹤
 
 **任務**:
+
 - [ ] 選擇錯誤追蹤工具（Sentry / Bugsnag）
 - [ ] 整合到 Workers
 - [ ] 配置錯誤過濾規則
@@ -429,6 +452,7 @@ Week 4: Deployment & Operations
 - [ ] Release 追蹤
 
 **產出**:
+
 - 錯誤追蹤配置
 - 整合文檔
 
@@ -443,6 +467,7 @@ Week 4: Deployment & Operations
 **目標**: 自動化測試、構建和部署流程
 
 **Pipeline 階段**:
+
 ```
 ┌─────────────┐
 │ 1. Code Push│
@@ -502,6 +527,7 @@ Week 4: Deployment & Operations
 ```
 
 **任務**:
+
 - [ ] 設計 GitHub Actions workflow
 - [ ] 配置測試自動化
 - [ ] 實作部署腳本
@@ -511,6 +537,7 @@ Week 4: Deployment & Operations
 - [ ] 部署通知（Slack）
 
 **產出**:
+
 - GitHub Actions workflows
 - 部署腳本
 - 部署文檔
@@ -524,6 +551,7 @@ Week 4: Deployment & Operations
 **目標**: 建立完整的災難恢復方案
 
 **災難場景**:
+
 1. Durable Object 故障
 2. KV Store 不可用
 3. D1 Database 故障
@@ -532,14 +560,15 @@ Week 4: Deployment & Operations
 
 **恢復策略**:
 
-| 場景 | RTO (恢復時間目標) | RPO (恢復點目標) | 策略 |
-|-----|-------------------|------------------|------|
-| DO 故障 | < 5 分鐘 | 0 | 自動故障轉移 |
-| KV 不可用 | < 10 分鐘 | 最近 5 分鐘 | 降級模式運作 |
-| D1 故障 | < 15 分鐘 | 最近 1 小時 | 使用備份恢復 |
-| 錯誤部署 | < 2 分鐘 | 0 | 自動回滾 |
+| 場景      | RTO (恢復時間目標) | RPO (恢復點目標) | 策略         |
+| --------- | ------------------ | ---------------- | ------------ |
+| DO 故障   | < 5 分鐘           | 0                | 自動故障轉移 |
+| KV 不可用 | < 10 分鐘          | 最近 5 分鐘      | 降級模式運作 |
+| D1 故障   | < 15 分鐘          | 最近 1 小時      | 使用備份恢復 |
+| 錯誤部署  | < 2 分鐘           | 0                | 自動回滾     |
 
 **任務**:
+
 - [ ] 文檔化恢復流程
 - [ ] 實作自動故障檢測
 - [ ] 配置降級模式
@@ -547,6 +576,7 @@ Week 4: Deployment & Operations
 - [ ] 定期災難演練（每季度）
 
 **產出**:
+
 - 災難恢復手冊
 - 自動化腳本
 - 演練報告
@@ -592,6 +622,7 @@ Week 4: Deployment & Operations
    - 部署後驗證
 
 **任務**:
+
 - [ ] 編寫運維手冊
 - [ ] 編寫故障排除指南
 - [ ] 編寫性能調優指南
@@ -601,6 +632,7 @@ Week 4: Deployment & Operations
 - [ ] 組織培訓工作坊
 
 **產出**:
+
 - 5 份運維文檔
 - 培訓簡報
 - 快速參考卡片
@@ -759,27 +791,27 @@ Week 5: Production (生產部署)
 
 ### 監控與日誌
 
-| 工具 | 用途 | 替代方案 |
-|-----|------|----------|
-| Cloudflare Analytics Engine | Metrics 收集 | Prometheus + VictoriaMetrics |
-| Grafana Cloud | 儀表板與視覺化 | Datadog, New Relic |
-| Cloudflare Logpush | 日誌聚合 | Elastic Stack, Splunk |
-| Sentry | 錯誤追蹤 | Bugsnag, Rollbar |
+| 工具                        | 用途           | 替代方案                     |
+| --------------------------- | -------------- | ---------------------------- |
+| Cloudflare Analytics Engine | Metrics 收集   | Prometheus + VictoriaMetrics |
+| Grafana Cloud               | 儀表板與視覺化 | Datadog, New Relic           |
+| Cloudflare Logpush          | 日誌聚合       | Elastic Stack, Splunk        |
+| Sentry                      | 錯誤追蹤       | Bugsnag, Rollbar             |
 
 ### 測試工具
 
-| 工具 | 用途 | 替代方案 |
-|-----|------|----------|
-| Artillery | 負載測試 | K6, Locust |
-| Vitest | 單元測試 | Jest |
-| Playwright | E2E 測試 | Cypress |
+| 工具       | 用途     | 替代方案   |
+| ---------- | -------- | ---------- |
+| Artillery  | 負載測試 | K6, Locust |
+| Vitest     | 單元測試 | Jest       |
+| Playwright | E2E 測試 | Cypress    |
 
 ### CI/CD
 
-| 工具 | 用途 | 替代方案 |
-|-----|------|----------|
-| GitHub Actions | CI/CD Pipeline | GitLab CI, CircleCI |
-| Wrangler | Cloudflare 部署 | - |
+| 工具           | 用途            | 替代方案            |
+| -------------- | --------------- | ------------------- |
+| GitHub Actions | CI/CD Pipeline  | GitLab CI, CircleCI |
+| Wrangler       | Cloudflare 部署 | -                   |
 
 ## 📊 預期成果
 

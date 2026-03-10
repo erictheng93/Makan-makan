@@ -4,28 +4,30 @@
  * Integrated with Chromatic for automated visual testing
  */
 
+const path = require("path"); // eslint-disable-line @typescript-eslint/no-require-imports
+
 module.exports = {
   stories: [
-    '../apps/**/*.stories.@(js|jsx|ts|tsx|mdx)',
-    '../packages/shared/**/*.stories.@(js|jsx|ts|tsx|mdx)',
+    "../apps/**/*.stories.@(js|jsx|ts|tsx|mdx)",
+    "../packages/shared/**/*.stories.@(js|jsx|ts|tsx|mdx)",
   ],
 
   addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-    '@storybook/addon-a11y', // Accessibility testing
-    '@storybook/addon-viewport', // Responsive testing
-    '@chromatic-com/storybook', // Chromatic integration
+    "@storybook/addon-links",
+    "@storybook/addon-essentials",
+    "@storybook/addon-interactions",
+    "@storybook/addon-a11y", // Accessibility testing
+    "@storybook/addon-viewport", // Responsive testing
+    "@chromatic-com/storybook", // Chromatic integration
   ],
 
   framework: {
-    name: '@storybook/vue3-vite',
+    name: "@storybook/vue3-vite",
     options: {},
   },
 
   docs: {
-    autodocs: 'tag',
+    autodocs: "tag",
   },
 
   // Chromatic-specific settings
@@ -55,9 +57,9 @@ module.exports = {
     // Customize Vite config for Storybook
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, '../'),
-    }
+      "@": path.resolve(__dirname, "../"),
+    };
 
-    return config
+    return config;
   },
-}
+};

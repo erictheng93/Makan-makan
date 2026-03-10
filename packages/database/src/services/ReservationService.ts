@@ -1,5 +1,16 @@
-import { eq, and, desc, asc, gte, lte, between, inArray, sql, count as sqlCount } from 'drizzle-orm';
-import { BaseService } from './base';
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  gte,
+  lte,
+  between,
+  inArray,
+  sql,
+  count as sqlCount,
+} from "drizzle-orm";
+import { BaseService } from "./base";
 import type {
   Reservation,
   ReservationStatus,
@@ -16,15 +27,14 @@ import type {
   BatchCreateSlotsRequest,
   ReservationStats,
   TableAssignmentRequest,
-  TableAssignmentResult
-} from '@makanmakan/shared-types';
+  TableAssignmentResult,
+} from "@makanmakan/shared-types";
 
 /**
  * 訂位系統服務
  * 負責訂位管理、時段容量管理、智能桌位分配
  */
 export class ReservationService extends BaseService {
-
   // ==========================================
   // 訂位管理 (Reservation Management)
   // ==========================================
@@ -32,7 +42,9 @@ export class ReservationService extends BaseService {
   /**
    * 建立新訂位
    */
-  async createReservation(data: CreateReservationRequest): Promise<ReservationResponse> {
+  async createReservation(
+    data: CreateReservationRequest,
+  ): Promise<ReservationResponse> {
     try {
       const reservationDateTime = `${data.reservationDate} ${data.reservationTime}`;
       const now = Date.now();
@@ -45,7 +57,7 @@ export class ReservationService extends BaseService {
         data.restaurantId,
         data.reservationDate,
         data.reservationTime,
-        data.partySize
+        data.partySize,
       );
 
       if (!slotAvailable.available) {
@@ -57,11 +69,11 @@ export class ReservationService extends BaseService {
         restaurantId: data.restaurantId,
         partySize: data.partySize,
         reservationTime: data.reservationTime,
-        specialRequests: data.specialRequests
+        specialRequests: data.specialRequests,
       });
 
       if (!tableAssignment) {
-        throw new Error('無法分配合適的桌位');
+        throw new Error("無法分配合適的桌位");
       }
 
       // 4. 生成確認碼
@@ -81,10 +93,10 @@ export class ReservationService extends BaseService {
         durationMinutes: data.durationMinutes || 90,
         tableId: tableAssignment.tableId,
         specialRequests: data.specialRequests,
-        status: 'pending' as ReservationStatus,
+        status: "pending" as ReservationStatus,
         confirmationCode,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       };
 
       // 6. 寫入資料庫
@@ -108,19 +120,25 @@ export class ReservationService extends BaseService {
         data.restaurantId,
         data.reservationDate,
         data.reservationTime,
-        data.partySize
+        data.partySize,
       );
 
       // 8. 更新桌位狀態
-      await this.updateTableStatus(tableAssignment.tableId, 'reserved', reservation.id);
+      await this.updateTableStatus(
+        tableAssignment.tableId,
+        "reserved",
+        reservation.id,
+      );
 
       // 9. 自動確認訂位
       await this.confirmReservation(reservation.id as string);
 
       // 10. 返回完整資料
-      return this.getReservationById(reservation.id as string) as Promise<ReservationResponse>;
+      return this.getReservationById(
+        reservation.id as string,
+      ) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error creating reservation:', error);
+      console.error("Error creating reservation:", error);
       throw error;
     }
   }
@@ -155,7 +173,7 @@ export class ReservationService extends BaseService {
 
       return this.formatReservationResponse(result);
     } catch (error) {
-      console.error('Error getting reservation:', error);
+      console.error("Error getting reservation:", error);
       throw error;
     }
   }
@@ -163,7 +181,9 @@ export class ReservationService extends BaseService {
   /**
    * 根據確認碼查詢訂位
    */
-  async getReservationByCode(confirmationCode: string): Promise<ReservationResponse | null> {
+  async getReservationByCode(
+    confirmationCode: string,
+  ): Promise<ReservationResponse | null> {
     try {
       const result = await this.db.get(sql`
         SELECT
@@ -182,7 +202,7 @@ export class ReservationService extends BaseService {
 
       return this.formatReservationResponse(result);
     } catch (error) {
-      console.error('Error getting reservation by code:', error);
+      console.error("Error getting reservation by code:", error);
       throw error;
     }
   }
@@ -190,60 +210,62 @@ export class ReservationService extends BaseService {
   /**
    * 查詢訂位列表（支援篩選）
    */
-  async listReservations(filters: ReservationFilters): Promise<{ data: ReservationResponse[]; total: number }> {
+  async listReservations(
+    filters: ReservationFilters,
+  ): Promise<{ data: ReservationResponse[]; total: number }> {
     try {
-      let whereClause = '1=1';
+      let whereClause = "1=1";
       const params: any[] = [];
 
       // 建構 WHERE 條件
       if (filters.restaurantId) {
-        whereClause += ' AND r.restaurant_id = ?';
+        whereClause += " AND r.restaurant_id = ?";
         params.push(filters.restaurantId);
       }
 
       if (filters.customerId) {
-        whereClause += ' AND r.customer_id = ?';
+        whereClause += " AND r.customer_id = ?";
         params.push(filters.customerId);
       }
 
       if (filters.customerPhone) {
-        whereClause += ' AND r.customer_phone = ?';
+        whereClause += " AND r.customer_phone = ?";
         params.push(filters.customerPhone);
       }
 
       if (filters.status) {
         if (Array.isArray(filters.status)) {
-          whereClause += ` AND r.status IN (${filters.status.map(() => '?').join(',')})`;
+          whereClause += ` AND r.status IN (${filters.status.map(() => "?").join(",")})`;
           params.push(...filters.status);
         } else {
-          whereClause += ' AND r.status = ?';
+          whereClause += " AND r.status = ?";
           params.push(filters.status);
         }
       }
 
       if (filters.reservationDate) {
-        whereClause += ' AND r.reservation_date = ?';
+        whereClause += " AND r.reservation_date = ?";
         params.push(filters.reservationDate);
       }
 
       if (filters.startDate && filters.endDate) {
-        whereClause += ' AND r.reservation_date BETWEEN ? AND ?';
+        whereClause += " AND r.reservation_date BETWEEN ? AND ?";
         params.push(filters.startDate, filters.endDate);
       }
 
       if (filters.tableId) {
-        whereClause += ' AND r.table_id = ?';
+        whereClause += " AND r.table_id = ?";
         params.push(filters.tableId);
       }
 
       if (filters.confirmationCode) {
-        whereClause += ' AND r.confirmation_code = ?';
+        whereClause += " AND r.confirmation_code = ?";
         params.push(filters.confirmationCode);
       }
 
       // 排序
-      const sortBy = filters.sortBy || 'created_at';
-      const sortOrder = filters.sortOrder || 'desc';
+      const sortBy = filters.sortBy || "created_at";
+      const sortOrder = filters.sortOrder || "desc";
       const orderClause = `ORDER BY r.${sortBy} ${sortOrder.toUpperCase()}`;
 
       // 分頁
@@ -256,27 +278,35 @@ export class ReservationService extends BaseService {
         let paramIndex = 0;
         return sqlStr.replace(/\?/g, () => {
           const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return 'NULL';
-          if (typeof param === 'number') return String(param);
-          if (typeof param === 'string') return `'${param.replace(/'/g, "''")}'`;
+          if (param === null || param === undefined) return "NULL";
+          if (typeof param === "number") return String(param);
+          if (typeof param === "string")
+            return `'${param.replace(/'/g, "''")}'`;
           return `'${String(param).replace(/'/g, "''")}'`;
         });
       };
 
       // 查詢總數
-      const countResult = await this.db.get(sql.raw(
-        replaceParams(`
+      const countResult = (await this.db.get(
+        sql.raw(
+          replaceParams(
+            `
           SELECT COUNT(*) as total
           FROM reservations r
           WHERE ${whereClause}
-        `, params)
+        `,
+            params,
+          ),
+        ),
       )) as { total: number } | undefined;
 
       const total = countResult?.total || 0;
 
       // 查詢資料
-      const results = await this.db.all(sql.raw(
-        replaceParams(`
+      const results = (await this.db.all(
+        sql.raw(
+          replaceParams(
+            `
           SELECT
             r.*,
             json_object(
@@ -289,14 +319,17 @@ export class ReservationService extends BaseService {
           WHERE ${whereClause}
           ${orderClause}
           LIMIT ? OFFSET ?
-        `, [...params, limit, offset])
+        `,
+            [...params, limit, offset],
+          ),
+        ),
       )) as any[];
 
-      const data = results.map(r => this.formatReservationResponse(r));
+      const data = results.map((r) => this.formatReservationResponse(r));
 
       return { data, total };
     } catch (error) {
-      console.error('Error listing reservations:', error);
+      console.error("Error listing reservations:", error);
       throw error;
     }
   }
@@ -304,11 +337,14 @@ export class ReservationService extends BaseService {
   /**
    * 更新訂位
    */
-  async updateReservation(id: string, data: UpdateReservationRequest): Promise<ReservationResponse> {
+  async updateReservation(
+    id: string,
+    data: UpdateReservationRequest,
+  ): Promise<ReservationResponse> {
     try {
       const existing = await this.getReservationById(id);
       if (!existing) {
-        throw new Error('訂位不存在');
+        throw new Error("訂位不存在");
       }
 
       // 建構更新語句
@@ -316,56 +352,56 @@ export class ReservationService extends BaseService {
       const params: any[] = [];
 
       if (data.customerName) {
-        updates.push('customer_name = ?');
+        updates.push("customer_name = ?");
         params.push(data.customerName);
       }
 
       if (data.customerPhone) {
-        updates.push('customer_phone = ?');
+        updates.push("customer_phone = ?");
         params.push(data.customerPhone);
       }
 
       if (data.customerEmail !== undefined) {
-        updates.push('customer_email = ?');
+        updates.push("customer_email = ?");
         params.push(data.customerEmail);
       }
 
       if (data.partySize) {
-        updates.push('party_size = ?');
+        updates.push("party_size = ?");
         params.push(data.partySize);
       }
 
       if (data.reservationDate) {
-        updates.push('reservation_date = ?');
+        updates.push("reservation_date = ?");
         params.push(data.reservationDate);
       }
 
       if (data.reservationTime) {
-        updates.push('reservation_time = ?');
+        updates.push("reservation_time = ?");
         params.push(data.reservationTime);
       }
 
       if (data.durationMinutes) {
-        updates.push('duration_minutes = ?');
+        updates.push("duration_minutes = ?");
         params.push(data.durationMinutes);
       }
 
       if (data.tableId !== undefined) {
-        updates.push('table_id = ?');
+        updates.push("table_id = ?");
         params.push(data.tableId);
       }
 
       if (data.specialRequests !== undefined) {
-        updates.push('special_requests = ?');
+        updates.push("special_requests = ?");
         params.push(data.specialRequests);
       }
 
       if (data.notes !== undefined) {
-        updates.push('notes = ?');
+        updates.push("notes = ?");
         params.push(data.notes);
       }
 
-      updates.push('updated_at = ?');
+      updates.push("updated_at = ?");
       params.push(Date.now());
 
       params.push(id);
@@ -375,24 +411,30 @@ export class ReservationService extends BaseService {
         let paramIndex = 0;
         return sqlStr.replace(/\?/g, () => {
           const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return 'NULL';
-          if (typeof param === 'number') return String(param);
-          if (typeof param === 'string') return `'${param.replace(/'/g, "''")}'`;
+          if (param === null || param === undefined) return "NULL";
+          if (typeof param === "number") return String(param);
+          if (typeof param === "string")
+            return `'${param.replace(/'/g, "''")}'`;
           return `'${String(param).replace(/'/g, "''")}'`;
         });
       };
 
-      await this.db.run(sql.raw(
-        replaceParams(`
+      await this.db.run(
+        sql.raw(
+          replaceParams(
+            `
           UPDATE reservations
-          SET ${updates.join(', ')}
+          SET ${updates.join(", ")}
           WHERE id = ?
-        `, params)
-      ));
+        `,
+            params,
+          ),
+        ),
+      );
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error updating reservation:', error);
+      console.error("Error updating reservation:", error);
       throw error;
     }
   }
@@ -415,7 +457,7 @@ export class ReservationService extends BaseService {
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error confirming reservation:', error);
+      console.error("Error confirming reservation:", error);
       throw error;
     }
   }
@@ -436,7 +478,7 @@ export class ReservationService extends BaseService {
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error marking arrived:', error);
+      console.error("Error marking arrived:", error);
       throw error;
     }
   }
@@ -450,7 +492,7 @@ export class ReservationService extends BaseService {
       const reservation = await this.getReservationById(id);
 
       if (!reservation) {
-        throw new Error('訂位不存在');
+        throw new Error("訂位不存在");
       }
 
       await this.db.run(sql`
@@ -463,14 +505,14 @@ export class ReservationService extends BaseService {
 
       // 更新桌位狀態為 occupied
       if (reservation.tableId) {
-        await this.updateTableStatus(reservation.tableId, 'occupied', id);
+        await this.updateTableStatus(reservation.tableId, "occupied", id);
       }
 
       // TODO: 自動建立訂單記錄
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error marking seated:', error);
+      console.error("Error marking seated:", error);
       throw error;
     }
   }
@@ -484,7 +526,7 @@ export class ReservationService extends BaseService {
       const reservation = await this.getReservationById(id);
 
       if (!reservation) {
-        throw new Error('訂位不存在');
+        throw new Error("訂位不存在");
       }
 
       await this.db.run(sql`
@@ -497,12 +539,12 @@ export class ReservationService extends BaseService {
 
       // 釋放桌位
       if (reservation.tableId) {
-        await this.updateTableStatus(reservation.tableId, 'cleaning');
+        await this.updateTableStatus(reservation.tableId, "cleaning");
       }
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error completing reservation:', error);
+      console.error("Error completing reservation:", error);
       throw error;
     }
   }
@@ -510,20 +552,23 @@ export class ReservationService extends BaseService {
   /**
    * 取消訂位
    */
-  async cancelReservation(id: string, reason?: string): Promise<ReservationResponse> {
+  async cancelReservation(
+    id: string,
+    reason?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
       const reservation = await this.getReservationById(id);
 
       if (!reservation) {
-        throw new Error('訂位不存在');
+        throw new Error("訂位不存在");
       }
 
       await this.db.run(sql`
         UPDATE reservations
         SET status = 'cancelled',
             cancelled_at = ${now},
-            notes = COALESCE(notes || ' ', '') || ${`取消原因: ${reason || '顧客取消'}`},
+            notes = COALESCE(notes || ' ', '') || ${`取消原因: ${reason || "顧客取消"}`},
             updated_at = ${now}
         WHERE id = ${id}
       `);
@@ -533,19 +578,19 @@ export class ReservationService extends BaseService {
         reservation.restaurantId,
         reservation.reservationDate,
         reservation.reservationTime,
-        reservation.partySize
+        reservation.partySize,
       );
 
       // 釋放桌位
       if (reservation.tableId) {
-        await this.updateTableStatus(reservation.tableId, 'available');
+        await this.updateTableStatus(reservation.tableId, "available");
       }
 
       // TODO: 發送取消通知
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error cancelling reservation:', error);
+      console.error("Error cancelling reservation:", error);
       throw error;
     }
   }
@@ -559,7 +604,7 @@ export class ReservationService extends BaseService {
       const reservation = await this.getReservationById(id);
 
       if (!reservation) {
-        throw new Error('訂位不存在');
+        throw new Error("訂位不存在");
       }
 
       await this.db.run(sql`
@@ -575,19 +620,19 @@ export class ReservationService extends BaseService {
         reservation.restaurantId,
         reservation.reservationDate,
         reservation.reservationTime,
-        reservation.partySize
+        reservation.partySize,
       );
 
       // 釋放桌位
       if (reservation.tableId) {
-        await this.updateTableStatus(reservation.tableId, 'available');
+        await this.updateTableStatus(reservation.tableId, "available");
       }
 
       // TODO: 更新顧客 No Show 記錄
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
-      console.error('Error marking no show:', error);
+      console.error("Error marking no show:", error);
       throw error;
     }
   }
@@ -617,7 +662,7 @@ export class ReservationService extends BaseService {
 
       return this.getSlotById(id) as Promise<ReservationSlot>;
     } catch (error) {
-      console.error('Error creating slot:', error);
+      console.error("Error creating slot:", error);
       throw error;
     }
   }
@@ -629,14 +674,17 @@ export class ReservationService extends BaseService {
     try {
       const startDate = new Date(data.startDate);
       const endDate = new Date(data.endDate);
-      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const days =
+        Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ) + 1;
 
       let count = 0;
 
       for (let i = 0; i < days; i++) {
         const date = new Date(startDate);
         date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = date.toISOString().split("T")[0];
 
         for (const timeSlot of data.timeSlots) {
           try {
@@ -646,7 +694,7 @@ export class ReservationService extends BaseService {
               timeSlot,
               maxCapacity: data.maxCapacity,
               maxTables: data.maxTables,
-              isAvailable: true
+              isAvailable: true,
             });
             count++;
           } catch (error) {
@@ -658,7 +706,7 @@ export class ReservationService extends BaseService {
 
       return count;
     } catch (error) {
-      console.error('Error batch creating slots:', error);
+      console.error("Error batch creating slots:", error);
       throw error;
     }
   }
@@ -666,18 +714,20 @@ export class ReservationService extends BaseService {
   /**
    * 查詢可用時段
    */
-  async getAvailableSlots(request: AvailabilityRequest): Promise<AvailabilityResponse> {
+  async getAvailableSlots(
+    request: AvailabilityRequest,
+  ): Promise<AvailabilityResponse> {
     try {
       const { restaurantId, date, partySize, duration = 90 } = request;
 
       // 查詢該日所有時段
-      const slots = await this.db.all(sql`
+      const slots = (await this.db.all(sql`
         SELECT * FROM reservation_slots
         WHERE restaurant_id = ${restaurantId}
           AND date = ${date}
           AND is_available = 1
         ORDER BY time_slot ASC
-      `) as Array<{
+      `)) as Array<{
         time_slot: string;
         max_capacity: number;
         current_capacity: number;
@@ -690,7 +740,8 @@ export class ReservationService extends BaseService {
       for (const slot of slots) {
         const remainingCapacity = slot.max_capacity - slot.current_capacity;
         const remainingTables = slot.max_tables - slot.current_reservations;
-        const canAccommodate = remainingCapacity >= partySize && remainingTables > 0;
+        const canAccommodate =
+          remainingCapacity >= partySize && remainingTables > 0;
 
         availability.push({
           time: slot.time_slot,
@@ -698,17 +749,21 @@ export class ReservationService extends BaseService {
           remainingCapacity,
           remainingTables,
           occupancyRate: slot.current_capacity / slot.max_capacity,
-          reason: canAccommodate ? undefined : (remainingTables === 0 ? '桌位已滿' : '容量不足')
+          reason: canAccommodate
+            ? undefined
+            : remainingTables === 0
+              ? "桌位已滿"
+              : "容量不足",
         });
       }
 
       return {
         date,
         partySize,
-        slots: availability
+        slots: availability,
       };
     } catch (error) {
-      console.error('Error getting available slots:', error);
+      console.error("Error getting available slots:", error);
       throw error;
     }
   }
@@ -720,12 +775,15 @@ export class ReservationService extends BaseService {
   /**
    * 智能桌位分配
    */
-  async assignTable(request: TableAssignmentRequest): Promise<TableAssignmentResult | null> {
+  async assignTable(
+    request: TableAssignmentRequest,
+  ): Promise<TableAssignmentResult | null> {
     try {
-      const { restaurantId, partySize, reservationTime, specialRequests } = request;
+      const { restaurantId, partySize, reservationTime, specialRequests } =
+        request;
 
       // 1. 查詢可用桌位
-      const availableTables = await this.db.all(sql`
+      const availableTables = (await this.db.all(sql`
         SELECT t.*,
           COALESCE(
             (SELECT COUNT(*) FROM orders o WHERE o.table_id = t.id AND DATE(o.created_at / 1000, 'unixepoch') = DATE('now')),
@@ -736,14 +794,21 @@ export class ReservationService extends BaseService {
           AND t.is_active = 1
           AND t.capacity >= ${partySize}
           AND t.current_status = 'available'
-      `) as Array<{ id: string; number: string; capacity: number; features?: string; turnover_count?: number; [key: string]: any }>;
+      `)) as Array<{
+        id: string;
+        number: string;
+        capacity: number;
+        features?: string;
+        turnover_count?: number;
+        [key: string]: any;
+      }>;
 
       if (availableTables.length === 0) {
         return null;
       }
 
       // 2. 計算每個桌位的評分
-      const scoredTables = availableTables.map(table => {
+      const scoredTables = availableTables.map((table) => {
         let score = 0;
 
         // 容量匹配度 (40%)
@@ -760,20 +825,26 @@ export class ReservationService extends BaseService {
         if (specialRequests) {
           const features = table.features ? JSON.parse(table.features) : {};
 
-          if (specialRequests.includes('靠窗') && features.hasView) specialRequestScore = 100;
-          if (specialRequests.includes('無障礙') && features.isAccessible) specialRequestScore = 100;
-          if (specialRequests.includes('安靜') && features.isQuietZone) specialRequestScore = 100;
+          if (specialRequests.includes("靠窗") && features.hasView)
+            specialRequestScore = 100;
+          if (specialRequests.includes("無障礙") && features.isAccessible)
+            specialRequestScore = 100;
+          if (specialRequests.includes("安靜") && features.isQuietZone)
+            specialRequestScore = 100;
         }
         score += specialRequestScore * 0.2;
 
         // 翻桌次數平衡 (10%)
-        const turnoverScore = Math.max(0, 100 - (table.turnover_count || 0) * 5);
+        const turnoverScore = Math.max(
+          0,
+          100 - (table.turnover_count || 0) * 5,
+        );
         score += turnoverScore * 0.1;
 
         return {
           table,
           score,
-          reason: `容量匹配${capacityScore.toFixed(0)}% | 利用率${utilizationScore.toFixed(0)}% | 特殊需求${specialRequestScore}% | 翻桌平衡${turnoverScore.toFixed(0)}%`
+          reason: `容量匹配${capacityScore.toFixed(0)}% | 利用率${utilizationScore.toFixed(0)}% | 特殊需求${specialRequestScore}% | 翻桌平衡${turnoverScore.toFixed(0)}%`,
         };
       });
 
@@ -782,13 +853,16 @@ export class ReservationService extends BaseService {
       const best = scoredTables[0];
 
       return {
-        tableId: typeof best.table.id === 'string' ? parseInt(best.table.id) : best.table.id,
+        tableId:
+          typeof best.table.id === "string"
+            ? parseInt(best.table.id)
+            : best.table.id,
         tableNumber: best.table.number,
         confidence: best.score / 100,
-        reason: best.reason
+        reason: best.reason,
       };
     } catch (error) {
-      console.error('Error assigning table:', error);
+      console.error("Error assigning table:", error);
       throw error;
     }
   }
@@ -800,13 +874,16 @@ export class ReservationService extends BaseService {
   /**
    * 取得訂位統計
    */
-  async getReservationStats(restaurantId: string, date?: string): Promise<ReservationStats> {
+  async getReservationStats(
+    restaurantId: string,
+    date?: string,
+  ): Promise<ReservationStats> {
     try {
-      let whereClause = 'restaurant_id = ?';
+      let whereClause = "restaurant_id = ?";
       const params = [restaurantId];
 
       if (date) {
-        whereClause += ' AND reservation_date = ?';
+        whereClause += " AND reservation_date = ?";
         params.push(date);
       }
 
@@ -815,15 +892,18 @@ export class ReservationService extends BaseService {
         let paramIndex = 0;
         return sqlStr.replace(/\?/g, () => {
           const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return 'NULL';
-          if (typeof param === 'number') return String(param);
-          if (typeof param === 'string') return `'${param.replace(/'/g, "''")}'`;
+          if (param === null || param === undefined) return "NULL";
+          if (typeof param === "number") return String(param);
+          if (typeof param === "string")
+            return `'${param.replace(/'/g, "''")}'`;
           return `'${String(param).replace(/'/g, "''")}'`;
         });
       };
 
-      const result = await this.db.get(sql.raw(
-        replaceParams(`
+      const result = (await this.db.get(
+        sql.raw(
+          replaceParams(
+            `
           SELECT
             COUNT(*) as total_reservations,
             SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
@@ -835,17 +915,22 @@ export class ReservationService extends BaseService {
             ROUND(CAST(SUM(party_size) AS REAL) / COUNT(*), 2) as avg_party_size
           FROM reservations
           WHERE ${whereClause}
-        `, params))
-      ) as {
-        total_reservations: number;
-        confirmed_count: number;
-        completed_count: number;
-        no_show_count: number;
-        cancelled_count: number;
-        total_guests: number;
-        no_show_rate: number;
-        avg_party_size: number;
-      } | undefined;
+        `,
+            params,
+          ),
+        ),
+      )) as
+        | {
+            total_reservations: number;
+            confirmed_count: number;
+            completed_count: number;
+            no_show_count: number;
+            cancelled_count: number;
+            total_guests: number;
+            no_show_rate: number;
+            avg_party_size: number;
+          }
+        | undefined;
 
       return {
         restaurantId,
@@ -857,10 +942,10 @@ export class ReservationService extends BaseService {
         cancelledCount: result?.cancelled_count || 0,
         totalGuests: result?.total_guests || 0,
         noShowRate: result?.no_show_rate || 0,
-        averagePartySize: result?.avg_party_size || 0
+        averagePartySize: result?.avg_party_size || 0,
       };
     } catch (error) {
-      console.error('Error getting reservation stats:', error);
+      console.error("Error getting reservation stats:", error);
       throw error;
     }
   }
@@ -874,31 +959,36 @@ export class ReservationService extends BaseService {
    */
   private validateReservationData(data: CreateReservationRequest): void {
     if (!data.customerName || data.customerName.trim().length === 0) {
-      throw new Error('顧客姓名為必填');
+      throw new Error("顧客姓名為必填");
     }
 
-    if (!data.customerPhone || !/^09\d{8}$/.test(data.customerPhone.replace(/[-\s]/g, ''))) {
-      throw new Error('請提供有效的手機號碼');
+    if (
+      !data.customerPhone ||
+      !/^09\d{8}$/.test(data.customerPhone.replace(/[-\s]/g, ""))
+    ) {
+      throw new Error("請提供有效的手機號碼");
     }
 
     if (data.partySize < 1 || data.partySize > 20) {
-      throw new Error('用餐人數必須在 1-20 人之間');
+      throw new Error("用餐人數必須在 1-20 人之間");
     }
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(data.reservationDate)) {
-      throw new Error('日期格式錯誤，應為 YYYY-MM-DD');
+      throw new Error("日期格式錯誤，應為 YYYY-MM-DD");
     }
 
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(data.reservationTime)) {
-      throw new Error('時間格式錯誤，應為 HH:MM');
+      throw new Error("時間格式錯誤，應為 HH:MM");
     }
 
     // 檢查是否訂位過去的時間
-    const reservationDateTime = new Date(`${data.reservationDate}T${data.reservationTime}:00`);
+    const reservationDateTime = new Date(
+      `${data.reservationDate}T${data.reservationTime}:00`,
+    );
     if (reservationDateTime.getTime() < Date.now()) {
-      throw new Error('無法訂位過去的時間');
+      throw new Error("無法訂位過去的時間");
     }
   }
 
@@ -909,53 +999,60 @@ export class ReservationService extends BaseService {
     restaurantId: string,
     date: string,
     timeSlot: string,
-    partySize: number
+    partySize: number,
   ): Promise<{ available: boolean; reason?: string }> {
     try {
-      const slot = await this.db.get(sql`
+      const slot = (await this.db.get(sql`
         SELECT * FROM reservation_slots
         WHERE restaurant_id = ${restaurantId}
           AND date = ${date}
           AND time_slot = ${timeSlot}
-      `) as {
-        is_available: number;
-        block_reason?: string | null;
-        max_capacity: number;
-        current_capacity: number;
-        max_tables: number;
-        current_reservations: number;
-      } | undefined;
+      `)) as
+        | {
+            is_available: number;
+            block_reason?: string | null;
+            max_capacity: number;
+            current_capacity: number;
+            max_tables: number;
+            current_reservations: number;
+          }
+        | undefined;
 
       if (!slot) {
-        return { available: false, reason: '時段不存在' };
+        return { available: false, reason: "時段不存在" };
       }
 
       if (!slot.is_available) {
-        return { available: false, reason: slot.block_reason || '時段已關閉' };
+        return { available: false, reason: slot.block_reason || "時段已關閉" };
       }
 
       const remainingCapacity = slot.max_capacity - slot.current_capacity;
       const remainingTables = slot.max_tables - slot.current_reservations;
 
       if (remainingTables === 0) {
-        return { available: false, reason: '桌位已滿' };
+        return { available: false, reason: "桌位已滿" };
       }
 
       if (remainingCapacity < partySize) {
-        return { available: false, reason: '容量不足' };
+        return { available: false, reason: "容量不足" };
       }
 
       return { available: true };
     } catch (error) {
-      console.error('Error checking slot availability:', error);
-      return { available: false, reason: '查詢錯誤' };
+      console.error("Error checking slot availability:", error);
+      return { available: false, reason: "查詢錯誤" };
     }
   }
 
   /**
    * 增加時段使用量
    */
-  private async incrementSlotUsage(restaurantId: string, date: string, timeSlot: string, partySize: number): Promise<void> {
+  private async incrementSlotUsage(
+    restaurantId: string,
+    date: string,
+    timeSlot: string,
+    partySize: number,
+  ): Promise<void> {
     try {
       await this.db.run(sql`
         UPDATE reservation_slots
@@ -967,14 +1064,19 @@ export class ReservationService extends BaseService {
           AND time_slot = ${timeSlot}
       `);
     } catch (error) {
-      console.error('Error incrementing slot usage:', error);
+      console.error("Error incrementing slot usage:", error);
     }
   }
 
   /**
    * 減少時段使用量
    */
-  private async decrementSlotUsage(restaurantId: string, date: string, timeSlot: string, partySize: number): Promise<void> {
+  private async decrementSlotUsage(
+    restaurantId: string,
+    date: string,
+    timeSlot: string,
+    partySize: number,
+  ): Promise<void> {
     try {
       await this.db.run(sql`
         UPDATE reservation_slots
@@ -986,18 +1088,22 @@ export class ReservationService extends BaseService {
           AND time_slot = ${timeSlot}
       `);
     } catch (error) {
-      console.error('Error decrementing slot usage:', error);
+      console.error("Error decrementing slot usage:", error);
     }
   }
 
   /**
    * 更新桌位狀態
    */
-  private async updateTableStatus(tableId: number, status: string, reservationId?: string): Promise<void> {
+  private async updateTableStatus(
+    tableId: number,
+    status: string,
+    reservationId?: string,
+  ): Promise<void> {
     try {
       const now = Date.now();
 
-      if (status === 'reserved' && reservationId) {
+      if (status === "reserved" && reservationId) {
         await this.db.run(sql`
           UPDATE tables
           SET current_status = ${status},
@@ -1005,7 +1111,7 @@ export class ReservationService extends BaseService {
               updated_at = ${now}
           WHERE id = ${tableId}
         `);
-      } else if (status === 'occupied') {
+      } else if (status === "occupied") {
         await this.db.run(sql`
           UPDATE tables
           SET current_status = ${status},
@@ -1013,7 +1119,7 @@ export class ReservationService extends BaseService {
               updated_at = ${now}
           WHERE id = ${tableId}
         `);
-      } else if (status === 'available') {
+      } else if (status === "available") {
         await this.db.run(sql`
           UPDATE tables
           SET current_status = ${status},
@@ -1033,7 +1139,7 @@ export class ReservationService extends BaseService {
         `);
       }
     } catch (error) {
-      console.error('Error updating table status:', error);
+      console.error("Error updating table status:", error);
     }
   }
 
@@ -1048,7 +1154,9 @@ export class ReservationService extends BaseService {
    * 生成 UUID
    */
   private generateUUID(): string {
-    return 'rsv_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    return (
+      "rsv_" + Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
+    );
   }
 
   /**
@@ -1081,7 +1189,7 @@ export class ReservationService extends BaseService {
       noShowAt: data.no_show_at,
       updatedAt: data.updated_at,
       table: data.table ? JSON.parse(data.table) : undefined,
-      customer: data.customer ? JSON.parse(data.customer) : undefined
+      customer: data.customer ? JSON.parse(data.customer) : undefined,
     };
   }
 
@@ -1090,22 +1198,24 @@ export class ReservationService extends BaseService {
    */
   private async getSlotById(id: string): Promise<ReservationSlot | null> {
     try {
-      const result = await this.db.get(sql`
+      const result = (await this.db.get(sql`
         SELECT * FROM reservation_slots WHERE id = ${id}
-      `) as {
-        id: string;
-        restaurant_id: string;
-        date: string;
-        time_slot: string;
-        max_capacity: number;
-        max_tables: number;
-        current_reservations: number;
-        current_capacity: number;
-        is_available: number;
-        block_reason?: string | null;
-        created_at: number;
-        updated_at: number;
-      } | undefined;
+      `)) as
+        | {
+            id: string;
+            restaurant_id: string;
+            date: string;
+            time_slot: string;
+            max_capacity: number;
+            max_tables: number;
+            current_reservations: number;
+            current_capacity: number;
+            is_available: number;
+            block_reason?: string | null;
+            created_at: number;
+            updated_at: number;
+          }
+        | undefined;
 
       if (!result) return null;
 
@@ -1121,10 +1231,10 @@ export class ReservationService extends BaseService {
         isAvailable: result.is_available === 1,
         blockReason: result.block_reason ?? undefined,
         createdAt: result.created_at,
-        updatedAt: result.updated_at
+        updatedAt: result.updated_at,
       };
     } catch (error) {
-      console.error('Error getting slot:', error);
+      console.error("Error getting slot:", error);
       return null;
     }
   }

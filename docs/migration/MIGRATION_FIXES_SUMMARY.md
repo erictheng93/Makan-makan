@@ -32,6 +32,7 @@ Successfully identified and fixed **2 critical SQLite syntax errors** across the
 **Location**: Line 297
 **Error Type**: Expression in UNIQUE constraint
 **Original Code**:
+
 ```sql
 UNIQUE(restaurant_id, queue_number, DATE(joined_at))
 ```
@@ -39,6 +40,7 @@ UNIQUE(restaurant_id, queue_number, DATE(joined_at))
 **Problem**: SQLite does not allow function expressions like `DATE()` in UNIQUE constraints.
 
 **Fix Applied**:
+
 ```sql
 -- NOTE: UNIQUE constraint removed DATE(joined_at) expression - SQLite doesn't allow expressions in constraints
 -- Application logic should enforce queue_number uniqueness per restaurant per day
@@ -46,6 +48,7 @@ UNIQUE(restaurant_id, queue_number, DATE(joined_at))
 ```
 
 **Impact**:
+
 - Removed the problematic constraint
 - Added detailed comment explaining the limitation
 - Application-level validation should enforce daily queue number uniqueness per restaurant
@@ -57,6 +60,7 @@ UNIQUE(restaurant_id, queue_number, DATE(joined_at))
 **Location**: Lines 50-51
 **Error Type**: Expressions in index definition
 **Original Code**:
+
 ```sql
 CREATE INDEX IF NOT EXISTS idx_orders_peak_hours
   ON orders(restaurant_id, strftime('%H', created_at), strftime('%w', created_at), status)
@@ -66,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_peak_hours
 **Problem**: SQLite does not allow function expressions like `strftime()` in index column definitions.
 
 **Fix Applied**:
+
 ```sql
 -- NOTE: SQLite doesn't allow expressions like strftime() in index definitions
 -- Application should extract hour/day at query time or use separate computed columns
@@ -80,6 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_peak_hours
 ```
 
 **Impact**:
+
 - Replaced expression-based index with simpler index on `created_at`
 - Added detailed comment explaining the limitation
 - Application can still perform time-based analysis by extracting hour/day from `created_at` in queries
@@ -90,19 +96,25 @@ CREATE INDEX IF NOT EXISTS idx_orders_peak_hours
 ## Validation Performed
 
 ### 1. Constraint Expression Check
+
 Verified no expressions exist in:
+
 - ✅ PRIMARY KEY constraints
 - ✅ UNIQUE constraints
 - ✅ CHECK constraints (allowed, but verified for compatibility)
 - ✅ FOREIGN KEY constraints
 
 ### 2. Index Expression Check
+
 Verified no function expressions in:
+
 - ✅ Index column definitions (ON clause)
 - ✅ Index WHERE clauses with non-deterministic functions
 
 ### 3. Valid Expression Usage
+
 Confirmed these valid uses remain intact:
+
 - ✅ CAST() in SELECT statements
 - ✅ DATE/DATETIME in DEFAULT values
 - ✅ strftime() in SELECT and WHERE clauses (queries, not constraints)
@@ -157,16 +169,19 @@ Confirmed these valid uses remain intact:
 ### Before Applying Migrations:
 
 1. **Backup Database**
+
    ```bash
    sqlite3 database.db ".backup backup_$(date +%Y%m%d).db"
    ```
 
 2. **Test in Development First**
+
    ```bash
    npx wrangler d1 migrations apply makanmakan-local --local
    ```
 
 3. **Verify Schema**
+
    ```bash
    npx wrangler d1 execute makanmakan-local --local --command ".schema"
    ```
@@ -184,6 +199,7 @@ Confirmed these valid uses remain intact:
 
 **Location**: Queue management service
 **Required Logic**:
+
 ```javascript
 // Before creating queue entry
 const existingQueue = await db
@@ -195,7 +211,7 @@ const existingQueue = await db
   .limit(1);
 
 if (existingQueue.length > 0) {
-  throw new Error('Queue number already exists for today');
+  throw new Error("Queue number already exists for today");
 }
 ```
 
@@ -203,6 +219,7 @@ if (existingQueue.length > 0) {
 
 **Location**: Analytics service
 **Required Query**:
+
 ```javascript
 // Extract hour and weekday in query
 const peakHours = await db
@@ -210,11 +227,11 @@ const peakHours = await db
     hour: sql`strftime('%H', created_at)`,
     weekday: sql`strftime('%w', created_at)`,
     orderCount: count(),
-    totalRevenue: sum(orders.total_amount)
+    totalRevenue: sum(orders.total_amount),
   })
   .from(orders)
   .where(eq(orders.restaurant_id, restaurantId))
-  .where(inArray(orders.status, ['paid', 'delivered']))
+  .where(inArray(orders.status, ["paid", "delivered"]))
   .groupBy(sql`strftime('%H', created_at), strftime('%w', created_at)`);
 ```
 
@@ -223,11 +240,13 @@ const peakHours = await db
 ## Performance Impact
 
 ### Indexes Still Effective:
+
 - ✅ `idx_orders_peak_hours` still provides performance benefits for time-based queries
 - ✅ All other indexes remain unchanged and fully functional
 - ✅ Query performance maintained through alternative indexing strategy
 
 ### No Performance Degradation Expected:
+
 - Peak hours queries can still leverage the `created_at` index
 - Application-level time extraction is efficient
 - Query planner can optimize time-based filtering effectively
@@ -273,5 +292,5 @@ const peakHours = await db
 
 ---
 
-*Generated: 2025-10-09*
-*Platform: MakanMakan - Cloudflare D1 SQLite Database*
+_Generated: 2025-10-09_
+_Platform: MakanMakan - Cloudflare D1 SQLite Database_

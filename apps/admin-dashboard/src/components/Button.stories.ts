@@ -4,21 +4,21 @@
  * Tests all button variants across different states and viewports
  */
 
-import type { Meta, StoryObj } from '@storybook/vue3'
+import type { Meta, StoryObj } from "@storybook/vue3";
 // Import your actual Button component
 // import Button from './Button.vue'
 
 // Mock Button component for demonstration
 const Button = {
-  name: 'Button',
+  name: "Button",
   props: {
     variant: {
       type: String,
-      default: 'primary',
+      default: "primary",
     },
     size: {
       type: String,
-      default: 'medium',
+      default: "medium",
     },
     disabled: {
       type: Boolean,
@@ -43,26 +43,26 @@ const Button = {
       <slot>Button</slot>
     </button>
   `,
-}
+};
 
 const meta: Meta<typeof Button> = {
-  title: 'Components/Button',
+  title: "Components/Button",
   component: Button,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['primary', 'secondary', 'danger', 'success', 'ghost'],
+      control: "select",
+      options: ["primary", "secondary", "danger", "success", "ghost"],
     },
     size: {
-      control: 'select',
-      options: ['small', 'medium', 'large'],
+      control: "select",
+      options: ["small", "medium", "large"],
     },
     disabled: {
-      control: 'boolean',
+      control: "boolean",
     },
     loading: {
-      control: 'boolean',
+      control: "boolean",
     },
   },
   parameters: {
@@ -72,83 +72,83 @@ const meta: Meta<typeof Button> = {
       delay: 300, // Wait 300ms before snapshot
     },
   },
-}
+};
 
-export default meta
-type Story = StoryObj<typeof Button>
+export default meta;
+type Story = StoryObj<typeof Button>;
 
 // Primary button
 export const Primary: Story = {
   args: {
-    variant: 'primary',
-    size: 'medium',
+    variant: "primary",
+    size: "medium",
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Primary Button</Button>',
   }),
-}
+};
 
 // Secondary button
 export const Secondary: Story = {
   args: {
-    variant: 'secondary',
-    size: 'medium',
+    variant: "secondary",
+    size: "medium",
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Secondary Button</Button>',
   }),
-}
+};
 
 // Danger button
 export const Danger: Story = {
   args: {
-    variant: 'danger',
-    size: 'medium',
+    variant: "danger",
+    size: "medium",
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Delete</Button>',
   }),
-}
+};
 
 // Disabled state
 export const Disabled: Story = {
   args: {
-    variant: 'primary',
-    size: 'medium',
+    variant: "primary",
+    size: "medium",
     disabled: true,
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Disabled Button</Button>',
   }),
-}
+};
 
 // Loading state
 export const Loading: Story = {
   args: {
-    variant: 'primary',
-    size: 'medium',
+    variant: "primary",
+    size: "medium",
     loading: true,
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Loading...</Button>',
   }),
@@ -160,7 +160,7 @@ export const Loading: Story = {
       pauseAnimationAtEnd: true,
     },
   },
-}
+};
 
 // All sizes comparison
 export const AllSizes: Story = {
@@ -174,7 +174,7 @@ export const AllSizes: Story = {
       </div>
     `,
   }),
-}
+};
 
 // All variants comparison
 export const AllVariants: Story = {
@@ -196,25 +196,25 @@ export const AllVariants: Story = {
       forcedReRender: true,
     },
   },
-}
+};
 
 // Dark mode
 export const DarkMode: Story = {
   args: {
-    variant: 'primary',
-    size: 'medium',
+    variant: "primary",
+    size: "medium",
   },
   render: (args) => ({
     components: { Button },
     setup() {
-      return { args }
+      return { args };
     },
     template: '<Button v-bind="args">Dark Mode Button</Button>',
   }),
   parameters: {
-    backgrounds: { default: 'dark' },
+    backgrounds: { default: "dark" },
   },
-}
+};
 
 // Responsive test
 export const Responsive: Story = {
@@ -234,4 +234,4 @@ export const Responsive: Story = {
       viewports: [375, 768, 1024, 1440],
     },
   },
-}
+};

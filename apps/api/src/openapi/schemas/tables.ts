@@ -3,12 +3,12 @@
  * 桌位管理 API Schema 定義
  */
 
-import { z } from 'zod';
-import { createRoute } from '@hono/zod-openapi';
-import { errorResponses } from '../config';
+import { z } from "zod";
+import { createRoute } from "@hono/zod-openapi";
+import { errorResponses } from "../config";
 
 // Define enums first to avoid circular reference
-const TableStatus = z.enum(['available', 'occupied', 'reserved', 'cleaning']);
+const TableStatus = z.enum(["available", "occupied", "reserved", "cleaning"]);
 const Table = z.object({
   id: z.string().uuid(),
   restaurantId: z.string().uuid(),
@@ -37,8 +37,8 @@ export const TablesSchemas = {
     restaurantId: z.string().uuid(),
     status: TableStatus.optional(),
     floor: z.string().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
   }),
 
   // Get Tables Response
@@ -56,8 +56,8 @@ export const TablesSchemas = {
   // Create Table Request
   CreateTableRequest: z.object({
     restaurantId: z.string().uuid(),
-    name: z.string().min(1, 'Table name is required'),
-    capacity: z.number().int().positive('Capacity must be positive'),
+    name: z.string().min(1, "Table name is required"),
+    capacity: z.number().int().positive("Capacity must be positive"),
     floor: z.string().optional(),
     section: z.string().optional(),
   }),
@@ -78,7 +78,7 @@ export const TablesSchemas = {
 
   // Generate QR Code Request
   GenerateQRCodeRequest: z.object({
-    template: z.enum(['basic', 'branded', 'custom']).optional(),
+    template: z.enum(["basic", "branded", "custom"]).optional(),
     size: z.number().int().min(100).max(1000).optional(),
   }),
 };
@@ -89,11 +89,11 @@ export const TablesSchemas = {
 
 // Get Tables
 export const getTablesRoute = createRoute({
-  method: 'get',
-  path: '/api/v1/tables/:restaurantId',
-  tags: ['tables'],
-  summary: '獲取桌位列表',
-  description: '獲取指定餐廳的所有桌位，支持按狀態、樓層過濾',
+  method: "get",
+  path: "/api/v1/tables/:restaurantId",
+  tags: ["tables"],
+  summary: "獲取桌位列表",
+  description: "獲取指定餐廳的所有桌位，支持按狀態、樓層過濾",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -102,15 +102,15 @@ export const getTablesRoute = createRoute({
     query: z.object({
       status: TablesSchemas.TableStatus.optional(),
       floor: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
+      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
     }),
   },
   responses: {
     200: {
-      description: '成功獲取桌位列表',
+      description: "成功獲取桌位列表",
       content: {
-        'application/json': {
+        "application/json": {
           schema: TablesSchemas.GetTablesResponse,
         },
       },
@@ -121,16 +121,16 @@ export const getTablesRoute = createRoute({
 
 // Create Table
 export const createTableRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/tables',
-  tags: ['tables'],
-  summary: '創建新桌位',
-  description: '在餐廳中創建新的桌位',
+  method: "post",
+  path: "/api/v1/tables",
+  tags: ["tables"],
+  summary: "創建新桌位",
+  description: "在餐廳中創建新的桌位",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: TablesSchemas.CreateTableRequest,
         },
       },
@@ -138,9 +138,9 @@ export const createTableRoute = createRoute({
   },
   responses: {
     201: {
-      description: '桌位創建成功',
+      description: "桌位創建成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: TablesSchemas.Table,
@@ -154,11 +154,11 @@ export const createTableRoute = createRoute({
 
 // Update Table Status
 export const updateTableStatusRoute = createRoute({
-  method: 'patch',
-  path: '/api/v1/tables/:tableId/status',
-  tags: ['tables'],
-  summary: '更新桌位狀態',
-  description: '更新桌位的使用狀態（可用、佔用、預訂、清理中）',
+  method: "patch",
+  path: "/api/v1/tables/:tableId/status",
+  tags: ["tables"],
+  summary: "更新桌位狀態",
+  description: "更新桌位的使用狀態（可用、佔用、預訂、清理中）",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -166,7 +166,7 @@ export const updateTableStatusRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: TablesSchemas.UpdateTableStatusRequest,
         },
       },
@@ -174,9 +174,9 @@ export const updateTableStatusRoute = createRoute({
   },
   responses: {
     200: {
-      description: '狀態更新成功',
+      description: "狀態更新成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: TablesSchemas.Table,
@@ -190,11 +190,11 @@ export const updateTableStatusRoute = createRoute({
 
 // Generate QR Code
 export const generateQRCodeRoute = createRoute({
-  method: 'post',
-  path: '/api/v1/tables/:tableId/qr',
-  tags: ['tables'],
-  summary: '生成桌位 QR Code',
-  description: '為指定桌位生成 QR Code，客戶掃描後可直接點餐',
+  method: "post",
+  path: "/api/v1/tables/:tableId/qr",
+  tags: ["tables"],
+  summary: "生成桌位 QR Code",
+  description: "為指定桌位生成 QR Code，客戶掃描後可直接點餐",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -202,7 +202,7 @@ export const generateQRCodeRoute = createRoute({
     }),
     body: {
       content: {
-        'application/json': {
+        "application/json": {
           schema: TablesSchemas.GenerateQRCodeRequest,
         },
       },
@@ -210,9 +210,9 @@ export const generateQRCodeRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'QR Code 生成成功',
+      description: "QR Code 生成成功",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.boolean(),
             data: z.object({

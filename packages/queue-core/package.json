@@ -13,7 +13,11 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
-  "keywords": ["queue", "restaurant", "types"],
+  "keywords": [
+    "queue",
+    "restaurant",
+    "types"
+  ],
   "author": "MakanMakan Team",
   "license": "MIT",
   "devDependencies": {

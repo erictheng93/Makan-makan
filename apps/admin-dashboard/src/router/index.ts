@@ -168,7 +168,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: "ai-analytics/products",
         name: "ProductAnalytics",
-        component: () => import("@/views/ai-analytics/ProductAnalyticsView.vue"),
+        component: () =>
+          import("@/views/ai-analytics/ProductAnalyticsView.vue"),
         meta: {
           title: "產品分析",
           roles: [UserRole.ADMIN, UserRole.OWNER],
@@ -201,7 +202,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/ReservationView.vue"),
         meta: {
           title: "訂位管理",
-          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
+          roles: [
+            UserRole.ADMIN,
+            UserRole.OWNER,
+            UserRole.SERVICE,
+            UserRole.CASHIER,
+          ],
         },
       },
       // Waiting list management
@@ -211,7 +217,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/WaitingListView.vue"),
         meta: {
           title: "候位管理",
-          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
+          roles: [
+            UserRole.ADMIN,
+            UserRole.OWNER,
+            UserRole.SERVICE,
+            UserRole.CASHIER,
+          ],
         },
       },
       // System monitoring

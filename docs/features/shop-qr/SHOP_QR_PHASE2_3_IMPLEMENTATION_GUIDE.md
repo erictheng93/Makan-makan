@@ -3,6 +3,7 @@
 ## ✅ 已完成的工作
 
 ### Phase 1 - 后端 (100% 完成)
+
 - ✅ 数据库 migration
 - ✅ TypeScript schemas
 - ✅ RestaurantService (7个新方法)
@@ -10,6 +11,7 @@
 - ✅ Validation schemas
 
 ### Phase 2 - 前端基础 (50% 完成)
+
 - ✅ QR Parser 增强（支持 shop/table/seat 三种类型）
 - ⏸️ 路由系统更新
 - ⏸️ 手机验证组件
@@ -89,12 +91,8 @@
       <!-- Phone Verification Card -->
       <div class="bg-white rounded-2xl shadow-xl p-8">
         <div class="mb-6">
-          <h2 class="text-xl font-semibold text-gray-800 mb-2">
-            驗證手機號碼
-          </h2>
-          <p class="text-sm text-gray-600">
-            請輸入手機號碼後3位數字以開始點餐
-          </p>
+          <h2 class="text-xl font-semibold text-gray-800 mb-2">驗證手機號碼</h2>
+          <p class="text-sm text-gray-600">請輸入手機號碼後3位數字以開始點餐</p>
         </div>
 
         <form @submit.prevent="handleSubmit">
@@ -217,7 +215,7 @@ onMounted(async () => {
 const verifyQRCode = async () => {
   try {
     const response = await axios.get(
-      `/api/v1/qr-codes/verify/shop/${props.shopQrCode}`
+      `/api/v1/qr-codes/verify/shop/${props.shopQrCode}`,
     );
     if (response.data.success && response.data.data.valid) {
       restaurantName.value = response.data.data.restaurant.name;
@@ -234,7 +232,9 @@ const verifyQRCode = async () => {
 
 const fetchRestaurantInfo = async () => {
   try {
-    const response = await axios.get(`/api/v1/restaurants/${props.restaurantId}`);
+    const response = await axios.get(
+      `/api/v1/restaurants/${props.restaurantId}`,
+    );
     if (response.data.success) {
       restaurantName.value = response.data.data.name;
     }
@@ -290,9 +290,7 @@ const handleSubmit = async () => {
             <h1 class="text-xl font-bold text-gray-900">
               {{ restaurant?.name || "店家菜單" }}
             </h1>
-            <p class="text-sm text-gray-600">
-              手機尾號: {{ phoneLastDigits }}
-            </p>
+            <p class="text-sm text-gray-600">手機尾號: {{ phoneLastDigits }}</p>
           </div>
           <button
             @click="viewCart"
@@ -328,7 +326,9 @@ const handleSubmit = async () => {
     <!-- Menu Content -->
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div v-if="isLoading" class="text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"
+        ></div>
         <p class="mt-4 text-gray-600">載入菜單中...</p>
       </div>
 
@@ -407,7 +407,9 @@ onMounted(async () => {
 
 const loadRestaurant = async () => {
   try {
-    const response = await axios.get(`/api/v1/restaurants/${props.restaurantId}`);
+    const response = await axios.get(
+      `/api/v1/restaurants/${props.restaurantId}`,
+    );
     if (response.data.success) {
       restaurant.value = response.data.data;
     }
@@ -423,14 +425,16 @@ const loadMenu = async () => {
   try {
     // 獲取分類
     const categoriesRes = await axios.get(
-      `/api/v1/menu/${props.restaurantId}/categories`
+      `/api/v1/menu/${props.restaurantId}/categories`,
     );
     if (categoriesRes.data.success) {
       categories.value = categoriesRes.data.data;
     }
 
     // 獲取菜單項目
-    const itemsRes = await axios.get(`/api/v1/menu/${props.restaurantId}/items`);
+    const itemsRes = await axios.get(
+      `/api/v1/menu/${props.restaurantId}/items`,
+    );
     if (itemsRes.data.success) {
       menuItems.value = itemsRes.data.data;
     }
@@ -455,7 +459,7 @@ const viewCart = () => {
   // 儲存購物車到 localStorage 或 Vuex
   localStorage.setItem(
     `cart_shop_${props.restaurantId}_${props.phoneLastDigits}`,
-    JSON.stringify(cart.value)
+    JSON.stringify(cart.value),
   );
 
   // 導航到購物車頁面（需要創建）
@@ -551,6 +555,7 @@ import { parseQRContent, validateQRData } from "@/utils/qr-parser";
 **文件**: `apps/admin-dashboard/src/views/settings/ShopQRManagementView.vue`
 
 **主要功能**:
+
 1. 查看當前 shop QR code
 2. 生成/重新生成 shop QR code
 3. 啟用/禁用店家模式
@@ -559,6 +564,7 @@ import { parseQRContent, validateQRData } from "@/utils/qr-parser";
 6. 顯示 QR code 統計
 
 **API 調用**:
+
 ```typescript
 // 獲取 shop QR 資訊
 GET /api/v1/restaurants/:id/qr/shop
@@ -636,6 +642,7 @@ console.log(tableQR);
 ## 📊 完成狀態
 
 ### Phase 1 - 後端 ✅ 100%
+
 - 數據庫 migrations
 - TypeScript schemas
 - Services
@@ -643,11 +650,13 @@ console.log(tableQR);
 - Validation
 
 ### Phase 2 - 前端基礎 ✅ 70%
+
 - ✅ QR Parser 增強
 - ✅ 實施指南完整
 - ⏸️ 需手動創建組件文件
 
 ### Phase 3 - Admin Dashboard ⏸️ 0%
+
 - 需基於 admin dashboard 設計風格實施
 
 ---

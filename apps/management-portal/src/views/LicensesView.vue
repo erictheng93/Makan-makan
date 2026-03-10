@@ -1,109 +1,112 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useTenantsStore } from '@/stores/tenants'
-import { licensesApi } from '@/services/api'
-import { useToast } from 'vue-toastification'
-import { RouterLink } from 'vue-router'
-import {
-  KeyIcon,
-  PlusIcon,
-  ArrowUpIcon
-} from '@heroicons/vue/24/outline'
-import type { License, LicenseTier, GenerateLicenseRequest } from '@/types'
+import { ref, onMounted, computed } from "vue";
+import { useTenantsStore } from "@/stores/tenants";
+import { licensesApi } from "@/services/api";
+import { useToast } from "vue-toastification";
+import { RouterLink } from "vue-router";
+import { KeyIcon, PlusIcon, ArrowUpIcon } from "@heroicons/vue/24/outline";
+import type { License, LicenseTier, GenerateLicenseRequest } from "@/types";
 
-const tenantsStore = useTenantsStore()
-const toast = useToast()
+const tenantsStore = useTenantsStore();
+const toast = useToast();
 
 // 狀態
-const licenses = ref<(License & { tenantName?: string })[]>([])
-const loading = ref(false)
-const showGenerateModal = ref(false)
+const licenses = ref<(License & { tenantName?: string })[]>([]);
+const loading = ref(false);
+const showGenerateModal = ref(false);
 
 // 生成表單
 const generateForm = ref<GenerateLicenseRequest>({
-  tenantId: '',
-  tier: 'standard',
-  expiresAt: ''
-})
+  tenantId: "",
+  tier: "standard",
+  expiresAt: "",
+});
 
 // 載入資料
 onMounted(async () => {
-  await tenantsStore.fetchTenants()
-  await loadAllLicenses()
-})
+  await tenantsStore.fetchTenants();
+  await loadAllLicenses();
+});
 
 // 載入所有授權
 const loadAllLicenses = async () => {
-  loading.value = true
-  const allLicenses: (License & { tenantName?: string })[] = []
+  loading.value = true;
+  const allLicenses: (License & { tenantName?: string })[] = [];
   for (const tenant of tenantsStore.tenants) {
     try {
-      const tenantLicenses = await licensesApi.getTenantLicense(tenant.id)
-      tenantLicenses.forEach(l => {
+      const tenantLicenses = await licensesApi.getTenantLicense(tenant.id);
+      tenantLicenses.forEach((l) => {
         allLicenses.push({
           ...l,
-          tenantName: tenant.businessName
-        })
-      })
+          tenantName: tenant.businessName,
+        });
+      });
     } catch {
       // 忽略錯誤
     }
   }
-  licenses.value = allLicenses.sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
-  loading.value = false
-}
+  licenses.value = allLicenses.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  loading.value = false;
+};
 
 // 統計
 const stats = computed(() => ({
   total: licenses.value.length,
-  active: licenses.value.filter(l => !l.revokedAt).length,
-  standard: licenses.value.filter(l => l.tier === 'standard' && !l.revokedAt).length,
-  professional: licenses.value.filter(l => l.tier === 'professional' && !l.revokedAt).length,
-  enterprise: licenses.value.filter(l => l.tier === 'enterprise' && !l.revokedAt).length
-}))
+  active: licenses.value.filter((l) => !l.revokedAt).length,
+  standard: licenses.value.filter((l) => l.tier === "standard" && !l.revokedAt)
+    .length,
+  professional: licenses.value.filter(
+    (l) => l.tier === "professional" && !l.revokedAt,
+  ).length,
+  enterprise: licenses.value.filter(
+    (l) => l.tier === "enterprise" && !l.revokedAt,
+  ).length,
+}));
 
 // 生成授權
 const handleGenerate = async () => {
   if (!generateForm.value.tenantId) {
-    toast.warning('請選擇租戶')
-    return
+    toast.warning("請選擇租戶");
+    return;
   }
 
   try {
-    const license = await licensesApi.generate(generateForm.value)
-    const tenant = tenantsStore.tenants.find(t => t.id === generateForm.value.tenantId)
+    const license = await licensesApi.generate(generateForm.value);
+    const tenant = tenantsStore.tenants.find(
+      (t) => t.id === generateForm.value.tenantId,
+    );
     licenses.value.unshift({
       ...license,
-      tenantName: tenant?.businessName
-    })
-    toast.success('授權生成成功')
-    showGenerateModal.value = false
-    generateForm.value = { tenantId: '', tier: 'standard', expiresAt: '' }
+      tenantName: tenant?.businessName,
+    });
+    toast.success("授權生成成功");
+    showGenerateModal.value = false;
+    generateForm.value = { tenantId: "", tier: "standard", expiresAt: "" };
   } catch (e) {
-    toast.error('授權生成失敗')
+    toast.error("授權生成失敗");
   }
-}
+};
 
 // 獲取等級標籤
 const getTierLabel = (tier: LicenseTier) => {
   const labels: Record<LicenseTier, string> = {
-    standard: '標準版',
-    professional: '專業版',
-    enterprise: '企業版'
-  }
-  return labels[tier] || tier
-}
+    standard: "標準版",
+    professional: "專業版",
+    enterprise: "企業版",
+  };
+  return labels[tier] || tier;
+};
 
 const getTierClass = (tier: LicenseTier) => {
   const classes: Record<LicenseTier, string> = {
-    standard: 'badge-info',
-    professional: 'badge-success',
-    enterprise: 'bg-purple-100 text-purple-800'
-  }
-  return classes[tier] || 'badge-gray'
-}
+    standard: "badge-info",
+    professional: "badge-success",
+    enterprise: "bg-purple-100 text-purple-800",
+  };
+  return classes[tier] || "badge-gray";
+};
 </script>
 
 <template>
@@ -112,9 +115,7 @@ const getTierClass = (tier: LicenseTier) => {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">授權管理</h1>
-        <p class="mt-1 text-sm text-gray-500">
-          管理租戶授權金鑰
-        </p>
+        <p class="mt-1 text-sm text-gray-500">管理租戶授權金鑰</p>
       </div>
       <button
         type="button"
@@ -135,26 +136,34 @@ const getTierClass = (tier: LicenseTier) => {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">有效授權</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ stats.active }}</p>
+            <p class="text-2xl font-semibold text-gray-900">
+              {{ stats.active }}
+            </p>
           </div>
         </div>
       </div>
       <div class="card">
         <div class="text-center">
           <p class="text-sm font-medium text-gray-500">標準版</p>
-          <p class="text-2xl font-semibold text-blue-600">{{ stats.standard }}</p>
+          <p class="text-2xl font-semibold text-blue-600">
+            {{ stats.standard }}
+          </p>
         </div>
       </div>
       <div class="card">
         <div class="text-center">
           <p class="text-sm font-medium text-gray-500">專業版</p>
-          <p class="text-2xl font-semibold text-green-600">{{ stats.professional }}</p>
+          <p class="text-2xl font-semibold text-green-600">
+            {{ stats.professional }}
+          </p>
         </div>
       </div>
       <div class="card">
         <div class="text-center">
           <p class="text-sm font-medium text-gray-500">企業版</p>
-          <p class="text-2xl font-semibold text-purple-600">{{ stats.enterprise }}</p>
+          <p class="text-2xl font-semibold text-purple-600">
+            {{ stats.enterprise }}
+          </p>
         </div>
       </div>
     </div>
@@ -204,11 +213,15 @@ const getTierClass = (tier: LicenseTier) => {
                 class="badge"
                 :class="license.revokedAt ? 'badge-danger' : 'badge-success'"
               >
-                {{ license.revokedAt ? '已撤銷' : '有效' }}
+                {{ license.revokedAt ? "已撤銷" : "有效" }}
               </span>
             </td>
             <td>
-              {{ license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : '永久' }}
+              {{
+                license.expiresAt
+                  ? new Date(license.expiresAt).toLocaleDateString()
+                  : "永久"
+              }}
             </td>
             <td class="text-gray-500">
               {{ new Date(license.createdAt).toLocaleDateString() }}
@@ -230,10 +243,7 @@ const getTierClass = (tier: LicenseTier) => {
 
     <!-- 生成授權 Modal -->
     <Teleport to="body">
-      <div
-        v-if="showGenerateModal"
-        class="fixed inset-0 z-50 overflow-y-auto"
-      >
+      <div v-if="showGenerateModal" class="fixed inset-0 z-50 overflow-y-auto">
         <div
           class="fixed inset-0 bg-gray-500 bg-opacity-75"
           @click="showGenerateModal = false"
