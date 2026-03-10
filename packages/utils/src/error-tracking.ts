@@ -4,70 +4,77 @@
  * Comprehensive error tracking with context, breadcrumbs, and reporting
  */
 
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical'
-export type ErrorCategory = 'network' | 'validation' | 'database' | 'authentication' | 'business' | 'system' | 'unknown'
+export type ErrorSeverity = "low" | "medium" | "high" | "critical";
+export type ErrorCategory =
+  | "network"
+  | "validation"
+  | "database"
+  | "authentication"
+  | "business"
+  | "system"
+  | "unknown";
 
 export interface ErrorContext {
   /**
    * User information
    */
   user?: {
-    id?: string | number
-    role?: string
-    email?: string
-  }
+    id?: string | number;
+    role?: string;
+    email?: string;
+  };
 
   /**
    * Request context
    */
   request?: {
-    url?: string
-    method?: string
-    headers?: Record<string, string>
-    body?: any
-    params?: Record<string, any>
-    query?: Record<string, any>
-  }
+    url?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: any;
+    params?: Record<string, any>;
+    query?: Record<string, any>;
+  };
 
   /**
    * Application state
    */
   app?: {
-    version?: string
-    environment?: string
-    userAgent?: string
-    referrer?: string
-  }
+    version?: string;
+    environment?: string;
+    userAgent?: string;
+    referrer?: string;
+  };
 
   /**
    * Additional custom context
    */
-  extra?: Record<string, any>
+  extra?: Record<string, any>;
 }
 
 export interface ErrorBreadcrumb {
-  timestamp: number
-  category: string
-  message: string
-  level: 'debug' | 'info' | 'warning' | 'error'
-  data?: Record<string, any>
+  timestamp: number;
+  category: string;
+  message: string;
+  level: "debug" | "info" | "warning" | "error";
+  data?: Record<string, any>;
 }
 
 export interface TrackedError {
-  id: string
-  message: string
-  stack?: string
-  name: string
-  code?: string
-  severity: ErrorSeverity
-  category: ErrorCategory
-  context: ErrorContext
-  breadcrumbs: ErrorBreadcrumb[]
-  timestamp: number
-  resolved: boolean
-  occurrenceCount: number
-  firstOccurrence: number
-  lastOccurrence: number
+  id: string;
+  message: string;
+  stack?: string;
+  name: string;
+  code?: string;
+  severity: ErrorSeverity;
+  category: ErrorCategory;
+  context: ErrorContext;
+  breadcrumbs: ErrorBreadcrumb[];
+  timestamp: number;
+  resolved: boolean;
+  occurrenceCount: number;
+  firstOccurrence: number;
+  lastOccurrence: number;
 }
 
 export interface ErrorTrackingOptions {
@@ -75,54 +82,57 @@ export interface ErrorTrackingOptions {
    * Enable error tracking
    * @default true
    */
-  enabled?: boolean
+  enabled?: boolean;
 
   /**
    * Automatically capture console errors
    * @default true
    */
-  captureConsoleErrors?: boolean
+  captureConsoleErrors?: boolean;
 
   /**
    * Automatically capture unhandled rejections
    * @default true
    */
-  captureUnhandledRejections?: boolean
+  captureUnhandledRejections?: boolean;
 
   /**
    * Maximum number of breadcrumbs to keep
    * @default 50
    */
-  maxBreadcrumbs?: number
+  maxBreadcrumbs?: number;
 
   /**
    * Sample rate (0-1)
    * @default 1.0
    */
-  sampleRate?: number
+  sampleRate?: number;
 
   /**
    * Before send hook - can modify or filter errors
    */
-  beforeSend?: (error: TrackedError) => TrackedError | null
+  beforeSend?: (error: TrackedError) => TrackedError | null;
 
   /**
    * Error reporter function
    */
-  onError?: (error: TrackedError) => void | Promise<void>
+  onError?: (error: TrackedError) => void | Promise<void>;
 
   /**
    * Debug logging
    * @default false
    */
-  debug?: boolean
+  debug?: boolean;
 }
 
 export class ErrorTracker {
-  private options: Required<Omit<ErrorTrackingOptions, 'beforeSend' | 'onError'>> & Pick<ErrorTrackingOptions, 'beforeSend' | 'onError'>
-  private breadcrumbs: ErrorBreadcrumb[] = []
-  private errors: Map<string, TrackedError> = new Map()
-  private context: ErrorContext = {}
+  private options: Required<
+    Omit<ErrorTrackingOptions, "beforeSend" | "onError">
+  > &
+    Pick<ErrorTrackingOptions, "beforeSend" | "onError">;
+  private breadcrumbs: ErrorBreadcrumb[] = [];
+  private errors: Map<string, TrackedError> = new Map();
+  private context: ErrorContext = {};
 
   constructor(options: ErrorTrackingOptions = {}) {
     this.options = {
@@ -133,11 +143,11 @@ export class ErrorTracker {
       sampleRate: options.sampleRate ?? 1.0,
       debug: options.debug ?? false,
       beforeSend: options.beforeSend,
-      onError: options.onError
-    }
+      onError: options.onError,
+    };
 
     if (this.options.enabled) {
-      this.setupGlobalHandlers()
+      this.setupGlobalHandlers();
     }
   }
 
@@ -147,33 +157,33 @@ export class ErrorTracker {
   setContext(context: Partial<ErrorContext>): void {
     this.context = {
       ...this.context,
-      ...context
-    }
+      ...context,
+    };
   }
 
   /**
    * Set user context
    */
-  setUser(user: ErrorContext['user']): void {
-    this.context.user = user
+  setUser(user: ErrorContext["user"]): void {
+    this.context.user = user;
   }
 
   /**
    * Add breadcrumb for debugging
    */
-  addBreadcrumb(breadcrumb: Omit<ErrorBreadcrumb, 'timestamp'>): void {
+  addBreadcrumb(breadcrumb: Omit<ErrorBreadcrumb, "timestamp">): void {
     this.breadcrumbs.push({
       ...breadcrumb,
-      timestamp: Date.now()
-    })
+      timestamp: Date.now(),
+    });
 
     // Keep only last N breadcrumbs
     if (this.breadcrumbs.length > this.options.maxBreadcrumbs) {
-      this.breadcrumbs.shift()
+      this.breadcrumbs.shift();
     }
 
     if (this.options.debug) {
-      console.log('[ErrorTracker] Breadcrumb:', breadcrumb)
+      console.log("[ErrorTracker] Breadcrumb:", breadcrumb);
     }
   }
 
@@ -183,29 +193,29 @@ export class ErrorTracker {
   captureError(
     error: Error | string,
     options: {
-      severity?: ErrorSeverity
-      category?: ErrorCategory
-      context?: Partial<ErrorContext>
-    } = {}
+      severity?: ErrorSeverity;
+      category?: ErrorCategory;
+      context?: Partial<ErrorContext>;
+    } = {},
   ): string {
     if (!this.options.enabled) {
-      return ''
+      return "";
     }
 
     // Sample rate check
     if (Math.random() > this.options.sampleRate) {
-      return ''
+      return "";
     }
 
-    const errorObj = typeof error === 'string' ? new Error(error) : error
+    const errorObj = typeof error === "string" ? new Error(error) : error;
 
-    const errorId = this.generateErrorId(errorObj)
-    const now = Date.now()
+    const errorId = this.generateErrorId(errorObj);
+    const now = Date.now();
 
     // Check if error already exists
-    const existing = this.errors.get(errorId)
+    const existing = this.errors.get(errorId);
 
-    let trackedError: TrackedError
+    let trackedError: TrackedError;
 
     if (existing) {
       // Update existing error
@@ -213,8 +223,8 @@ export class ErrorTracker {
         ...existing,
         occurrenceCount: existing.occurrenceCount + 1,
         lastOccurrence: now,
-        breadcrumbs: [...this.breadcrumbs]
-      }
+        breadcrumbs: [...this.breadcrumbs],
+      };
     } else {
       // Create new error
       trackedError = {
@@ -227,41 +237,41 @@ export class ErrorTracker {
         category: options.category ?? this.categorizeError(errorObj),
         context: {
           ...this.context,
-          ...options.context
+          ...options.context,
         },
         breadcrumbs: [...this.breadcrumbs],
         timestamp: now,
         resolved: false,
         occurrenceCount: 1,
         firstOccurrence: now,
-        lastOccurrence: now
-      }
+        lastOccurrence: now,
+      };
     }
 
     // Apply beforeSend hook
     if (this.options.beforeSend) {
-      const modified = this.options.beforeSend(trackedError)
+      const modified = this.options.beforeSend(trackedError);
       if (!modified) {
-        return errorId // Error filtered out
+        return errorId; // Error filtered out
       }
-      trackedError = modified
+      trackedError = modified;
     }
 
     // Store error
-    this.errors.set(errorId, trackedError)
+    this.errors.set(errorId, trackedError);
 
     // Report error
     if (this.options.onError) {
-      Promise.resolve(this.options.onError(trackedError)).catch(err => {
-        console.error('[ErrorTracker] Failed to report error:', err)
-      })
+      Promise.resolve(this.options.onError(trackedError)).catch((err) => {
+        console.error("[ErrorTracker] Failed to report error:", err);
+      });
     }
 
     if (this.options.debug) {
-      console.log('[ErrorTracker] Captured error:', trackedError)
+      console.log("[ErrorTracker] Captured error:", trackedError);
     }
 
-    return errorId
+    return errorId;
   }
 
   /**
@@ -269,10 +279,10 @@ export class ErrorTracker {
    */
   captureException(error: Error, context?: Partial<ErrorContext>): string {
     return this.captureError(error, {
-      severity: 'high',
-      category: 'system',
-      context
-    })
+      severity: "high",
+      category: "system",
+      context,
+    });
   }
 
   /**
@@ -280,38 +290,38 @@ export class ErrorTracker {
    */
   captureMessage(
     message: string,
-    severity: ErrorSeverity = 'low',
-    context?: Partial<ErrorContext>
+    severity: ErrorSeverity = "low",
+    context?: Partial<ErrorContext>,
   ): string {
     return this.captureError(new Error(message), {
       severity,
-      category: 'unknown',
-      context
-    })
+      category: "unknown",
+      context,
+    });
   }
 
   /**
    * Get all tracked errors
    */
   getErrors(): TrackedError[] {
-    return Array.from(this.errors.values())
+    return Array.from(this.errors.values());
   }
 
   /**
    * Get error by ID
    */
   getError(id: string): TrackedError | undefined {
-    return this.errors.get(id)
+    return this.errors.get(id);
   }
 
   /**
    * Mark error as resolved
    */
   resolveError(id: string): void {
-    const error = this.errors.get(id)
+    const error = this.errors.get(id);
     if (error) {
-      error.resolved = true
-      this.errors.set(id, error)
+      error.resolved = true;
+      this.errors.set(id, error);
     }
   }
 
@@ -319,27 +329,27 @@ export class ErrorTracker {
    * Clear all errors
    */
   clearErrors(): void {
-    this.errors.clear()
+    this.errors.clear();
   }
 
   /**
    * Clear breadcrumbs
    */
   clearBreadcrumbs(): void {
-    this.breadcrumbs = []
+    this.breadcrumbs = [];
   }
 
   /**
    * Get statistics
    */
   getStats() {
-    const errors = this.getErrors()
+    const errors = this.getErrors();
     const bySeverity = {
       low: 0,
       medium: 0,
       high: 0,
-      critical: 0
-    }
+      critical: 0,
+    };
     const byCategory: Record<ErrorCategory, number> = {
       network: 0,
       validation: 0,
@@ -347,111 +357,130 @@ export class ErrorTracker {
       authentication: 0,
       business: 0,
       system: 0,
-      unknown: 0
-    }
+      unknown: 0,
+    };
 
-    errors.forEach(error => {
-      bySeverity[error.severity]++
-      byCategory[error.category]++
-    })
+    errors.forEach((error) => {
+      bySeverity[error.severity]++;
+      byCategory[error.category]++;
+    });
 
     return {
       total: errors.length,
-      unresolved: errors.filter(e => !e.resolved).length,
+      unresolved: errors.filter((e) => !e.resolved).length,
       bySeverity,
       byCategory,
-      breadcrumbCount: this.breadcrumbs.length
-    }
+      breadcrumbCount: this.breadcrumbs.length,
+    };
   }
 
   /**
    * Generate unique error ID
    */
   private generateErrorId(error: Error): string {
-    const stack = error.stack || ''
-    const firstLine = stack.split('\n')[1] || error.message
-    return `${error.name}:${error.message}:${firstLine}`.replace(/\s+/g, '_').slice(0, 100)
+    const stack = error.stack || "";
+    const firstLine = stack.split("\n")[1] || error.message;
+    return `${error.name}:${error.message}:${firstLine}`
+      .replace(/\s+/g, "_")
+      .slice(0, 100);
   }
 
   /**
    * Categorize error severity
    */
   private categorizeSeverity(error: Error): ErrorSeverity {
-    const message = error.message.toLowerCase()
+    const message = error.message.toLowerCase();
 
-    if (message.includes('critical') || message.includes('fatal')) {
-      return 'critical'
+    if (message.includes("critical") || message.includes("fatal")) {
+      return "critical";
     }
-    if (message.includes('network') || message.includes('timeout')) {
-      return 'medium'
+    if (message.includes("network") || message.includes("timeout")) {
+      return "medium";
     }
-    if (message.includes('validation') || message.includes('invalid')) {
-      return 'low'
+    if (message.includes("validation") || message.includes("invalid")) {
+      return "low";
     }
 
-    return 'medium'
+    return "medium";
   }
 
   /**
    * Categorize error type
    */
   private categorizeError(error: Error): ErrorCategory {
-    const message = error.message.toLowerCase()
-    const name = error.name.toLowerCase()
+    const message = error.message.toLowerCase();
+    const name = error.name.toLowerCase();
 
-    if (message.includes('network') || message.includes('fetch') || name.includes('networkerror')) {
-      return 'network'
+    if (
+      message.includes("network") ||
+      message.includes("fetch") ||
+      name.includes("networkerror")
+    ) {
+      return "network";
     }
-    if (message.includes('validation') || message.includes('invalid') || name.includes('validationerror')) {
-      return 'validation'
+    if (
+      message.includes("validation") ||
+      message.includes("invalid") ||
+      name.includes("validationerror")
+    ) {
+      return "validation";
     }
-    if (message.includes('database') || message.includes('sql') || name.includes('databaseerror')) {
-      return 'database'
+    if (
+      message.includes("database") ||
+      message.includes("sql") ||
+      name.includes("databaseerror")
+    ) {
+      return "database";
     }
-    if (message.includes('auth') || message.includes('unauthorized') || name.includes('autherror')) {
-      return 'authentication'
+    if (
+      message.includes("auth") ||
+      message.includes("unauthorized") ||
+      name.includes("autherror")
+    ) {
+      return "authentication";
     }
 
-    return 'unknown'
+    return "unknown";
   }
 
   /**
    * Setup global error handlers
    */
   private setupGlobalHandlers(): void {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     // Capture unhandled errors
     if (this.options.captureConsoleErrors) {
-      window.addEventListener('error', (event) => {
+      window.addEventListener("error", (event) => {
         this.captureError(event.error || event.message, {
-          severity: 'high',
-          category: 'system',
+          severity: "high",
+          category: "system",
           context: {
             extra: {
               filename: event.filename,
               lineno: event.lineno,
-              colno: event.colno
-            }
-          }
-        })
-      })
+              colno: event.colno,
+            },
+          },
+        });
+      });
     }
 
     // Capture unhandled promise rejections
     if (this.options.captureUnhandledRejections) {
-      window.addEventListener('unhandledrejection', (event) => {
-        const error = event.reason instanceof Error
-          ? event.reason
-          : new Error(String(event.reason))
+      window.addEventListener("unhandledrejection", (event) => {
+        const error =
+          event.reason instanceof Error
+            ? event.reason
+            : new Error(String(event.reason));
 
         this.captureError(error, {
-          severity: 'high',
-          category: 'system'
-        })
-      })
+          severity: "high",
+          category: "system",
+        });
+      });
     }
   }
 }
@@ -459,15 +488,15 @@ export class ErrorTracker {
 /**
  * Global error tracker instance
  */
-let globalTracker: ErrorTracker | null = null
+let globalTracker: ErrorTracker | null = null;
 
 export function getErrorTracker(options?: ErrorTrackingOptions): ErrorTracker {
   if (!globalTracker) {
-    globalTracker = new ErrorTracker(options)
+    globalTracker = new ErrorTracker(options);
   }
-  return globalTracker
+  return globalTracker;
 }
 
 export function resetErrorTracker(): void {
-  globalTracker = null
+  globalTracker = null;
 }

@@ -2,7 +2,7 @@
  * Queue Errors - Main Export File
  */
 
-export * from './queue-errors'
+export * from "./queue-errors";
 
 // Re-export commonly used error classes
 export {
@@ -17,5 +17,5 @@ export {
   isQueueError,
   getErrorCode,
   getErrorStatusCode,
-  formatErrorResponse
-} from './queue-errors'
+  formatErrorResponse,
+} from "./queue-errors";
