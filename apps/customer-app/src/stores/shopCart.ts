@@ -54,6 +54,20 @@ const ShopCartDataSchema = z.object({
   restaurantId: z.string().min(1),
   phoneLastDigits: z.string().regex(/^\d{3}$/),
   timestamp: z.number().int().positive(),
+  fulfillmentType: z
+    .enum(["takeaway", "delivery"])
+    .optional()
+    .default("takeaway"),
+  deliveryInfo: z
+    .object({
+      address: z.string(),
+      phone: z.string(),
+      instructions: z.string(),
+    })
+    .nullable()
+    .optional()
+    .default(null),
+  deliveryFee: z.number().optional().default(0),
 });
 
 export const useShopCartStore = defineStore("shopCart", () => {
@@ -61,6 +75,13 @@ export const useShopCartStore = defineStore("shopCart", () => {
   const items = ref<CartItem[]>([]);
   const restaurantId = ref<string | null>(null);
   const phoneLastDigits = ref<string>("");
+  const fulfillmentType = ref<"takeaway" | "delivery">("takeaway");
+  const deliveryInfo = ref<{
+    address: string;
+    phone: string;
+    instructions: string;
+  } | null>(null);
+  const deliveryFee = ref<number>(0);
 
   // Getters
   const itemCount = computed(() => {
@@ -72,6 +93,13 @@ export const useShopCartStore = defineStore("shopCart", () => {
   });
 
   const isEmpty = computed(() => items.value.length === 0);
+
+  const totalWithDelivery = computed((): number => {
+    return (
+      subtotal.value +
+      (fulfillmentType.value === "delivery" ? deliveryFee.value : 0)
+    );
+  });
 
   const getItemById = (id: string) => {
     return items.value.find((item) => item.id === id);
@@ -163,6 +191,28 @@ export const useShopCartStore = defineStore("shopCart", () => {
     }
   };
 
+  const setFulfillmentType = (type: "takeaway" | "delivery") => {
+    fulfillmentType.value = type;
+    if (type !== "delivery") {
+      deliveryInfo.value = null;
+    }
+    saveCart();
+  };
+
+  const setDeliveryInfo = (info: {
+    address: string;
+    phone: string;
+    instructions: string;
+  }) => {
+    deliveryInfo.value = info;
+    saveCart();
+  };
+
+  const setDeliveryFee = (fee: number) => {
+    deliveryFee.value = fee;
+    saveCart();
+  };
+
   // Helper functions
   const calculatePrice = (
     menuItem: MenuItem,
@@ -240,6 +290,9 @@ export const useShopCartStore = defineStore("shopCart", () => {
       restaurantId: restaurantId.value,
       phoneLastDigits: phoneLastDigits.value,
       timestamp: Date.now(),
+      fulfillmentType: fulfillmentType.value,
+      deliveryInfo: deliveryInfo.value,
+      deliveryFee: deliveryFee.value,
     };
 
     try {
@@ -271,7 +324,13 @@ export const useShopCartStore = defineStore("shopCart", () => {
         return;
       }
 
-      const { items: savedItems, timestamp } = validationResult.data;
+      const {
+        items: savedItems,
+        timestamp,
+        fulfillmentType: savedFulfillmentType,
+        deliveryInfo: savedDeliveryInfo,
+        deliveryFee: savedDeliveryFee,
+      } = validationResult.data;
 
       // 檢查是否過期（2小時）
       if (Date.now() - timestamp > 2 * 60 * 60 * 1000) {
@@ -281,6 +340,9 @@ export const useShopCartStore = defineStore("shopCart", () => {
 
       // Type assertion: Zod validates structure, types are compatible
       items.value = savedItems as unknown as CartItem[];
+      fulfillmentType.value = savedFulfillmentType ?? "takeaway";
+      deliveryInfo.value = savedDeliveryInfo ?? null;
+      deliveryFee.value = savedDeliveryFee ?? 0;
     } catch (error) {
       console.warn("恢復購物車失敗:", error);
       localStorage.removeItem(getCartStorageKey());
@@ -292,11 +354,15 @@ export const useShopCartStore = defineStore("shopCart", () => {
     items,
     restaurantId,
     phoneLastDigits,
+    fulfillmentType,
+    deliveryInfo,
+    deliveryFee,
 
     // Getters
     itemCount,
     subtotal,
     isEmpty,
+    totalWithDelivery,
     getItemById,
 
     // Actions
@@ -306,5 +372,8 @@ export const useShopCartStore = defineStore("shopCart", () => {
     removeItem,
     clearCart,
     updateItemNotes,
+    setFulfillmentType,
+    setDeliveryInfo,
+    setDeliveryFee,
   };
 });
