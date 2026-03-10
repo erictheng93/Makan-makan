@@ -43,7 +43,7 @@ export default defineConfig({
     ],
 
     // Pool configuration (Vitest 4 flat format)
-    pool: "threads",
+    pool: "forks",
     maxWorkers: 2,
     minWorkers: 1,
     execArgv: ["--max-old-space-size=8192"],
