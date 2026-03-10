@@ -40,6 +40,12 @@ const restaurantSettingsSchema = z
     autoAcceptOrders: z.boolean().optional(),
     currency: z.string().length(3).optional(), // ISO currency codes are 3 characters
     timezone: z.string().optional(),
+    // Takeaway / delivery fulfillment settings
+    enableTakeaway: z.boolean().optional(),
+    enableDelivery: z.boolean().optional(),
+    deliveryFee: z.number().min(0).optional(),
+    estimatedPrepTimeMin: z.number().int().min(1).optional(),
+    estimatedPrepTimeMax: z.number().int().min(1).optional(),
   })
   .passthrough(); // Allow additional properties
 
