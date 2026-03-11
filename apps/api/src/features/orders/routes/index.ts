@@ -572,6 +572,29 @@ app.put(
         ),
       );
 
+      // Sync status to external platform if this is a platform order
+      if (existingOrder.orderSource && existingOrder.orderSource !== "direct") {
+        c.executionCtx?.waitUntil(
+          (async () => {
+            try {
+              const { PlatformOrderService } =
+                await import("../../integrations/services/PlatformOrderService");
+              const platformService = new PlatformOrderService(c.env);
+              await platformService.syncStatusToPlatform(
+                parseInt(id),
+                data.status,
+              );
+            } catch (err) {
+              logger.error(
+                "Failed to sync status to platform",
+                err instanceof Error ? err : undefined,
+                { orderId: id, status: data.status },
+              );
+            }
+          })(),
+        );
+      }
+
       return c.json({
         success: true,
         data: updatedOrder,

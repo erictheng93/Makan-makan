@@ -20,6 +20,10 @@ export * from "./pos";
 export * from "./group-orders";
 export * from "./partnerships";
 export * from "./verification";
+export * from "./platform-integrations";
+export * from "./platform-orders";
+export * from "./platform-menu-mappings";
+export * from "./platform-webhook-logs";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -83,6 +87,9 @@ export {
   phoneVerificationTokenRelations,
   passwordChangeLogRelations,
 } from "./verification";
+export { platformIntegrationsRelations } from "./platform-integrations";
+export { platformOrdersRelations } from "./platform-orders";
+export { platformMenuMappingsRelations } from "./platform-menu-mappings";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -126,3 +133,9 @@ export {
   USAGE_LOG_STATUS,
   USAGE_CHANNELS,
 } from "./partnerships";
+export { PLATFORM_TYPES, MENU_SYNC_STATUS } from "./platform-integrations";
+export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
+export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
+export type { MenuMappingSyncStatus } from "./platform-menu-mappings";
+export { WEBHOOK_LOG_STATUS } from "./platform-webhook-logs";
+export type { WebhookLogStatus } from "./platform-webhook-logs";

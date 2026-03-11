@@ -51,7 +51,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should set fulfillmentType to 'takeaway' via setFulfillmentType", () => {
       const store = useShopCartStore();
-      store.fulfillmentType = "delivery" as "delivery"; // set up non-default first
+      store.fulfillmentType = "delivery" as const; // set up non-default first
       store.setFulfillmentType("takeaway");
       expect(store.fulfillmentType).toBe("takeaway");
     });

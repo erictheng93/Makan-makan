@@ -20,6 +20,7 @@ export interface OrderFilter {
   hasNotes?: boolean;
   hasCustomizations?: boolean;
   orderTypes?: string[];
+  orderSources?: string[];
 }
 
 export interface OrderSort {
@@ -176,6 +177,14 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
       filtered = filtered.filter((order) => {
         const type = order.deliveryInfo?.type ?? "dine_in";
         return filters.value.orderTypes!.includes(type);
+      });
+    }
+
+    // Order source filter
+    if (filters.value.orderSources && filters.value.orderSources.length > 0) {
+      filtered = filtered.filter((order) => {
+        const source = order.orderSource ?? "direct";
+        return filters.value.orderSources!.includes(source);
       });
     }
 

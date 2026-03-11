@@ -28,6 +28,7 @@ export interface CreateOrderData {
   }>;
   notes?: string;
   couponCode?: string;
+  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
 }
 
 export interface UpdateOrderStatusData {
@@ -261,6 +262,7 @@ export class OrderService extends BaseService {
           customerInfo: data.customerInfo,
           notes: data.notes,
           couponCode: data.couponCode,
+          orderSource: data.orderSource || "direct",
           estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
         })
         .returning();
@@ -666,6 +668,7 @@ export class OrderService extends BaseService {
       customerId: order.customerId,
       orderNumber: order.orderNumber,
       status: order.status,
+      orderSource: order.orderSource,
       subtotal: order.subtotal,
       taxAmount: order.taxAmount,
       serviceCharge: order.serviceCharge,
@@ -686,6 +689,7 @@ export class OrderService extends BaseService {
       reviewComment: order.reviewComment,
       notes: order.notes,
       internalNotes: order.internalNotes,
+      deliveryInfo: order.deliveryInfo,
       items:
         order.items?.map((item: any) => ({
           id: item.id,

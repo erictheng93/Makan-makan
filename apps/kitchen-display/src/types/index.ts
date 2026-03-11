@@ -39,6 +39,7 @@ export interface KitchenOrder {
     instructions?: string;
     deliveryFee?: number;
   };
+  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
   items: KitchenOrderItem[];
   customerName?: string;
   notes?: string;

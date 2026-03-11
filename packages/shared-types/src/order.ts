@@ -1,6 +1,9 @@
 import { BaseEntity } from "./common";
 import { MenuItem } from "./menu";
 
+// Platform source for orders
+export type PlatformSource = "direct" | "uber_eats" | "foodpanda" | "grabfood";
+
 // Delivery/fulfillment information interface
 export interface DeliveryInfo {
   type: "dine_in" | "takeaway" | "delivery";
@@ -79,6 +82,7 @@ export interface Order extends BaseEntity {
   cancelledAt?: string;
   rating?: number;
   reviewComment?: string;
+  orderSource?: PlatformSource;
   deliveryInfo?: DeliveryInfo;
   items?: OrderItem[];
   restaurant?: RestaurantInfo;
@@ -187,6 +191,7 @@ export interface OrderFilters {
   customerPhone?: string;
   dateFrom?: string;
   dateTo?: string;
+  orderSource?: PlatformSource[];
 }
 
 export interface OrderStats {

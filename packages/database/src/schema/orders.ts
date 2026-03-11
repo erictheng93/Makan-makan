@@ -56,6 +56,11 @@ export const orders = sqliteTable(
       .$type<"shop" | "table" | "seat">()
       .default("table"), // 訂單來源類型
 
+    // 外送平台來源
+    orderSource: text("order_source")
+      .$type<"direct" | "uber_eats" | "foodpanda" | "grabfood">()
+      .default("direct"),
+
     // 金額資訊
     subtotal: real("subtotal").notNull(), // 小計
     taxAmount: real("tax_amount").notNull().default(0), // 稅額
@@ -150,6 +155,11 @@ export const orders = sqliteTable(
     paymentStatusIdx: index("orders_payment_status_idx").on(
       table.paymentStatus,
       table.paidAt,
+    ),
+    orderSourceIdx: index("orders_order_source_idx").on(
+      table.restaurantId,
+      table.orderSource,
+      table.createdAt,
     ),
   }),
 );

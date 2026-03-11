@@ -81,13 +81,13 @@
         {{ filter.label }}
       </button>
       <button
-        @click="toggleTakeawayDeliveryFilter"
         :class="[
           'px-3 py-1 rounded-full text-xs font-medium transition-colors',
           isTakeawayDeliveryActive
             ? 'bg-amber-100 text-amber-800'
             : 'bg-gray-100 text-gray-600',
         ]"
+        @click="toggleTakeawayDeliveryFilter"
       >
         🛍️🛵 外帶/外送
       </button>
@@ -156,12 +156,37 @@
             ]"
           >
             <input
+              v-model="selectedOrderTypes"
               type="checkbox"
               :value="type.value"
-              v-model="selectedOrderTypes"
               class="sr-only"
             />
             {{ type.emoji }} {{ type.label }}
+          </label>
+        </div>
+      </div>
+
+      <!-- Platform Source Filter -->
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-gray-600 mb-2">訂單來源</h4>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="source in orderSourceOptions"
+            :key="source.value"
+            :class="[
+              'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors',
+              selectedOrderSources.includes(source.value)
+                ? source.activeClass
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+            ]"
+          >
+            <input
+              v-model="selectedOrderSources"
+              type="checkbox"
+              :value="source.value"
+              class="sr-only"
+            />
+            {{ source.emoji }} {{ source.label }}
           </label>
         </div>
       </div>
@@ -298,6 +323,7 @@ const selectedStatuses = ref<number[]>([]);
 const selectedPriorities = ref<string[]>([]);
 const selectedTables = ref<number[]>([]);
 const selectedOrderTypes = ref<string[]>([]);
+const selectedOrderSources = ref<string[]>([]);
 const minElapsedTime = ref<number>();
 const maxElapsedTime = ref<number>();
 const hasNotesFilter = ref(false);
@@ -324,6 +350,27 @@ const orderTypeOptions = [
   },
 ];
 
+const orderSourceOptions = [
+  {
+    value: "direct",
+    label: "自家",
+    emoji: "\uD83C\uDFE0",
+    activeClass: "bg-blue-100 text-blue-800",
+  },
+  {
+    value: "uber_eats",
+    label: "Uber Eats",
+    emoji: "\uD83D\uDFE2",
+    activeClass: "bg-green-100 text-green-800",
+  },
+  {
+    value: "foodpanda",
+    label: "Foodpanda",
+    emoji: "\uD83E\uDE77",
+    activeClass: "bg-pink-100 text-pink-800",
+  },
+];
+
 // Computed
 const activeFilterCount = computed(() => {
   let count = 0;
@@ -332,6 +379,7 @@ const activeFilterCount = computed(() => {
   if (selectedPriorities.value.length > 0) count++;
   if (selectedTables.value.length > 0) count++;
   if (selectedOrderTypes.value.length > 0) count++;
+  if (selectedOrderSources.value.length > 0) count++;
   if (minElapsedTime.value !== undefined) count++;
   if (maxElapsedTime.value !== undefined) count++;
   if (hasNotesFilter.value) count++;
@@ -489,6 +537,7 @@ const clearAllFilters = () => {
   selectedPriorities.value = [];
   selectedTables.value = [];
   selectedOrderTypes.value = [];
+  selectedOrderSources.value = [];
   minElapsedTime.value = undefined;
   maxElapsedTime.value = undefined;
   hasNotesFilter.value = false;
@@ -548,6 +597,13 @@ watch(hasCustomizationsFilter, (newValue) => {
 watch(selectedOrderTypes, (newValue) => {
   orderManagementStore.setFilter(
     "orderTypes",
+    newValue.length > 0 ? newValue : undefined,
+  );
+});
+
+watch(selectedOrderSources, (newValue) => {
+  orderManagementStore.setFilter(
+    "orderSources",
     newValue.length > 0 ? newValue : undefined,
   );
 });

@@ -30,6 +30,17 @@
           {{ getOrderTypeBadge(order).emoji }}
           {{ getOrderTypeBadge(order).label }}
         </span>
+        <span
+          v-if="order.orderSource && order.orderSource !== 'direct'"
+          :class="[
+            getPlatformBadge(order.orderSource).bgClass,
+            getPlatformBadge(order.orderSource).textClass,
+          ]"
+          class="px-2 py-0.5 rounded-full text-xs font-semibold"
+        >
+          {{ getPlatformBadge(order.orderSource).emoji }}
+          {{ getPlatformBadge(order.orderSource).label }}
+        </span>
       </div>
 
       <div class="text-right">
@@ -263,6 +274,41 @@ function getOrderTypeBadge(order: KitchenOrder) {
     },
   };
   return badges[type] || badges.dine_in;
+}
+
+// Platform Source Badge
+function getPlatformBadge(source: string) {
+  const badges: Record<
+    string,
+    { label: string; emoji: string; bgClass: string; textClass: string }
+  > = {
+    uber_eats: {
+      label: "Uber Eats",
+      emoji: "\uD83D\uDFE2",
+      bgClass: "bg-green-100",
+      textClass: "text-green-800",
+    },
+    foodpanda: {
+      label: "Foodpanda",
+      emoji: "\uD83E\uDE77",
+      bgClass: "bg-pink-100",
+      textClass: "text-pink-800",
+    },
+    grabfood: {
+      label: "GrabFood",
+      emoji: "\uD83D\uDFE0",
+      bgClass: "bg-orange-100",
+      textClass: "text-orange-800",
+    },
+  };
+  return (
+    badges[source] || {
+      label: source,
+      emoji: "\uD83D\uDCE6",
+      bgClass: "bg-gray-100",
+      textClass: "text-gray-800",
+    }
+  );
 }
 
 // Computed

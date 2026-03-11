@@ -132,4 +132,8 @@ export interface Env {
   // AI and machine learning
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
+
+  // Platform integrations (Uber Eats, Foodpanda, etc.)
+  UBER_EATS_CLIENT_ID?: string;
+  UBER_EATS_CLIENT_SECRET?: string;
 }

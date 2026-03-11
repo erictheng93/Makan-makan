@@ -101,6 +101,16 @@
               <option value="takeaway">外帶</option>
               <option value="delivery">外送</option>
             </select>
+
+            <select
+              v-model="sourceFilter"
+              class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">所有來源</option>
+              <option value="direct">自家訂單</option>
+              <option value="uber_eats">Uber Eats</option>
+              <option value="foodpanda">Foodpanda</option>
+            </select>
           </div>
 
           <button
@@ -121,12 +131,13 @@
 
         <!-- 表格標題 -->
         <div
-          class="grid grid-cols-8 gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider mb-4 rounded-t-lg"
+          class="grid grid-cols-9 gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider mb-4 rounded-t-lg"
         >
           <div>訂單編號</div>
           <div>桌號</div>
           <div>客戶</div>
           <div>類型</div>
+          <div>來源</div>
           <div>狀態</div>
           <div>總金額</div>
           <div>下單時間</div>
@@ -156,7 +167,7 @@
               <div
                 v-for="{ item: order } in visibleItems"
                 :key="order.id"
-                class="grid grid-cols-8 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center"
+                class="grid grid-cols-9 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center"
                 :style="{ height: ITEM_HEIGHT + 'px' }"
               >
                 <div class="text-sm font-medium text-gray-900">
@@ -175,6 +186,16 @@
                   >
                     {{ getTypeText(getOrderType(order)) }}
                   </span>
+                </div>
+                <div>
+                  <span
+                    v-if="order.orderSource && order.orderSource !== 'direct'"
+                    :class="getSourceClass(order.orderSource)"
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  >
+                    {{ getSourceText(order.orderSource) }}
+                  </span>
+                  <span v-else class="text-xs text-gray-400">自家</span>
                 </div>
                 <div>
                   <span
@@ -429,6 +450,7 @@ const orderStore = useOrderStore();
 const searchQuery = ref("");
 const statusFilter = ref("");
 const typeFilter = ref("");
+const sourceFilter = ref("");
 const selectedOrder = ref<Order | null>(null);
 const isLoading = ref(false);
 
@@ -439,6 +461,25 @@ const getTableNumber = (order: Order) =>
   order.tableId ? `T${order.tableId.toString().padStart(2, "0")}` : "外帶";
 const getCustomerName = (order: Order) => order.customerInfo?.name || "客人";
 const getOrderType = (order: Order) => (order.tableId ? "dine_in" : "takeaway");
+
+const getSourceClass = (source: string) => {
+  const classes: Record<string, string> = {
+    uber_eats: "bg-green-100 text-green-800",
+    foodpanda: "bg-pink-100 text-pink-800",
+    grabfood: "bg-orange-100 text-orange-800",
+  };
+  return classes[source] || "bg-gray-100 text-gray-800";
+};
+
+const getSourceText = (source: string) => {
+  const texts: Record<string, string> = {
+    uber_eats: "Uber Eats",
+    foodpanda: "Foodpanda",
+    grabfood: "GrabFood",
+    direct: "自家",
+  };
+  return texts[source] || source;
+};
 const getMenuItemName = (item: any) => `菜品 #${item.menuItemId}`; // In real app, would lookup from menu
 const getItemTotalPrice = (item: any) =>
   (item.unitPrice * item.quantity).toFixed(2);
@@ -475,6 +516,12 @@ const filteredOrders = computed(() => {
   if (typeFilter.value) {
     filtered = filtered.filter(
       (order) => getOrderType(order) === typeFilter.value,
+    );
+  }
+
+  if (sourceFilter.value) {
+    filtered = filtered.filter(
+      (order) => (order.orderSource || "direct") === sourceFilter.value,
     );
   }
 

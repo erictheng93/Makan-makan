@@ -81,25 +81,25 @@
                   </p>
                   <div class="flex gap-2">
                     <button
-                      @click="shopCartStore.setFulfillmentType('takeaway')"
                       :class="[
                         'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
                         shopCartStore.fulfillmentType === 'takeaway'
                           ? 'bg-green-500 text-white'
                           : 'bg-gray-100 text-gray-600',
                       ]"
+                      @click="shopCartStore.setFulfillmentType('takeaway')"
                     >
                       🛍️ 外帶
                     </button>
                     <button
                       v-if="deliveryEnabled"
-                      @click="shopCartStore.setFulfillmentType('delivery')"
                       :class="[
                         'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
                         shopCartStore.fulfillmentType === 'delivery'
                           ? 'bg-amber-500 text-white'
                           : 'bg-gray-100 text-gray-600',
                       ]"
+                      @click="shopCartStore.setFulfillmentType('delivery')"
                     >
                       🛵 外送
                     </button>

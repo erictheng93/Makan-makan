@@ -43,6 +43,7 @@ export interface CreateOrderData {
   }>;
   notes?: string;
   couponCode?: string;
+  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
 }
 
 export interface UpdateOrderStatusData {

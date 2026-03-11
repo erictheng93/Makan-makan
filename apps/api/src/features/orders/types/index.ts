@@ -60,6 +60,7 @@ export interface CreateOrderData {
   items: OrderItemData[];
   notes?: string;
   orderType?: "dine_in" | "takeaway" | "delivery";
+  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
   isGuestOrder?: boolean;

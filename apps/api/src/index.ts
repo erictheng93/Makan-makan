@@ -89,6 +89,7 @@ import verificationFeature from "./features/verification";
 // Partnership system feature
 import partnershipsRoutes from "./features/partnerships/routes";
 import guestOrdersRoutes from "./features/guest-orders";
+import integrationsFeature from "./features/integrations";
 import {
   ErrorSanitizer,
   createSafeErrorResponse,
@@ -142,6 +143,12 @@ app.use(
         windowSeconds: 900,
         burstMultiplier: 1.0,
         blockDuration: 300,
+      },
+      "/api/v1/integrations/webhooks": {
+        requests: 100,
+        windowSeconds: 60,
+        burstMultiplier: 1.5,
+        blockDuration: 120,
       },
       "/api/v1/payments": {
         requests: 10,
@@ -333,6 +340,7 @@ app.get("/info", (c) => {
       notifications: "/api/v1/notifications",
       partnerships: "/api/v1/partnerships",
       guestOrders: "/api/v1/guest-orders",
+      integrations: "/api/v1/integrations",
       health: "/health",
       docs: "/docs",
     },
@@ -357,6 +365,7 @@ apiV1.route("/waiting-list", waitingListFeature); // 候位系統 (public + prot
 apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
 apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
 apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
+apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
 // 受保護的路由（需要認證）
 apiV1.use("/restaurants/*", authMiddleware);
@@ -381,6 +390,7 @@ apiV1.use("/leaves/*", authMiddleware);
 apiV1.use("/scheduling/*", authMiddleware);
 apiV1.use("/notifications/*", authMiddleware);
 apiV1.use("/partnerships/*", authMiddleware);
+// Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
 
 // Apply CSRF protection to state-changing operations after authentication
 apiV1.use(
@@ -398,6 +408,7 @@ apiV1.use(
       "/api/v1/partnerships/members/verify", // Public member verification application
       "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
       "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
+      "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
       // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
     ],
   }),
@@ -425,7 +436,6 @@ apiV1.route("/customers", customersRouter);
 apiV1.route("/leaves", leavesFeature.routes);
 apiV1.route("/scheduling", schedulingFeature.routes);
 apiV1.route("/notifications", notificationsRoutes);
-
 // 掛載 API 路由
 app.route("/api/v1", apiV1);
 

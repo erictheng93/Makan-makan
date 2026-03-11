@@ -335,8 +335,8 @@
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
-              type="checkbox"
               v-model="deliverySettings.enableTakeaway"
+              type="checkbox"
               class="sr-only peer"
             />
             <div
@@ -355,8 +355,8 @@
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
-              type="checkbox"
               v-model="deliverySettings.enableDelivery"
+              type="checkbox"
               class="sr-only peer"
             />
             <div
@@ -371,8 +371,8 @@
           <div class="flex items-center gap-2">
             <span class="text-gray-500 text-sm">NT$</span>
             <input
-              type="number"
               v-model.number="deliverySettings.deliveryFee"
+              type="number"
               min="0"
               step="10"
               class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -388,16 +388,16 @@
           >
           <div class="flex items-center gap-2">
             <input
-              type="number"
               v-model.number="deliverySettings.estimatedPrepTimeMin"
+              type="number"
               min="1"
               max="120"
               class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <span class="text-gray-500">~</span>
             <input
-              type="number"
               v-model.number="deliverySettings.estimatedPrepTimeMax"
+              type="number"
               min="1"
               max="120"
               class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1101,6 +1101,11 @@
     </div>
   </div>
 
+  <!-- 外送平台串接設定 -->
+  <div v-show="activeTab === 'integrations'" class="space-y-8">
+    <IntegrationsSettings />
+  </div>
+
   <!-- 成功提示 -->
   <div
     v-if="showSuccessMessage"
@@ -1116,6 +1121,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
+import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 
 // 分頁選項
 const tabs = [
@@ -1124,6 +1130,7 @@ const tabs = [
   { id: "qrcode", name: "QR Code" },
   { id: "notifications", name: "通知設定" },
   { id: "security", name: "安全設定" },
+  { id: "integrations", name: "外送平台" },
 ];
 
 const activeTab = ref("general");
