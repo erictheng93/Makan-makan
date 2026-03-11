@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { i18n } from "@/i18n";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -8,7 +9,7 @@ const routes: RouteRecordRaw[] = [
     name: "Home",
     component: () => import("@/views/HomeView.vue"),
     meta: {
-      title: "MakanMakan - 智慧點餐",
+      titleKey: "navigation.appTitle",
     },
   },
   {
@@ -16,7 +17,7 @@ const routes: RouteRecordRaw[] = [
     name: "Login",
     component: () => import("@/views/LoginView.vue"),
     meta: {
-      title: "會員登入",
+      titleKey: "navigation.login",
       requiresGuest: true,
     },
   },
@@ -25,7 +26,7 @@ const routes: RouteRecordRaw[] = [
     name: "Register",
     component: () => import("@/views/RegisterView.vue"),
     meta: {
-      title: "會員註冊",
+      titleKey: "navigation.register",
       requiresGuest: true,
     },
   },
@@ -34,7 +35,7 @@ const routes: RouteRecordRaw[] = [
     name: "ForgotPassword",
     component: () => import("@/views/ForgotPasswordView.vue"),
     meta: {
-      title: "忘記密碼",
+      titleKey: "navigation.forgotPassword",
       requiresGuest: true,
     },
   },
@@ -43,7 +44,7 @@ const routes: RouteRecordRaw[] = [
     name: "ResetPassword",
     component: () => import("@/views/ResetPasswordView.vue"),
     meta: {
-      title: "重設密碼",
+      titleKey: "navigation.resetPassword",
     },
   },
   {
@@ -51,7 +52,7 @@ const routes: RouteRecordRaw[] = [
     name: "VerifyEmail",
     component: () => import("@/views/VerifyEmailView.vue"),
     meta: {
-      title: "Email 驗證",
+      titleKey: "navigation.verifyEmail",
     },
   },
   {
@@ -59,7 +60,7 @@ const routes: RouteRecordRaw[] = [
     name: "Orders",
     component: () => import("@/views/OrderHistoryView.vue"),
     meta: {
-      title: "我的訂單",
+      titleKey: "navigation.myOrders",
       requiresAuth: true,
     },
   },
@@ -71,7 +72,7 @@ const routes: RouteRecordRaw[] = [
       orderId: Number(route.params.id),
     }),
     meta: {
-      title: "訂單詳情",
+      titleKey: "navigation.orderDetail",
       requiresAuth: true,
       allowGuestToken: true,
     },
@@ -81,7 +82,7 @@ const routes: RouteRecordRaw[] = [
     name: "Profile",
     component: () => import("@/views/ProfileView.vue"),
     meta: {
-      title: "個人中心",
+      titleKey: "navigation.profileCenter",
       requiresAuth: true,
     },
   },
@@ -90,7 +91,7 @@ const routes: RouteRecordRaw[] = [
     name: "Menu",
     component: () => import("@/views/HomeView.vue"),
     meta: {
-      title: "瀏覽菜單",
+      titleKey: "navigation.browseMenu",
     },
   },
   {
@@ -98,7 +99,7 @@ const routes: RouteRecordRaw[] = [
     name: "QRScan",
     component: () => import("@/views/QRScanView.vue"),
     meta: {
-      title: "掃描QR碼",
+      titleKey: "navigation.scanQR",
     },
   },
   {
@@ -110,7 +111,7 @@ const routes: RouteRecordRaw[] = [
       tableId: Number(route.params.tableId),
     }),
     meta: {
-      title: "瀏覽菜單",
+      titleKey: "navigation.browseMenu",
     },
   },
   {
@@ -118,7 +119,7 @@ const routes: RouteRecordRaw[] = [
     name: "OrderTypeLanding",
     component: () => import("@/views/OrderTypeLandingView.vue"),
     props: true,
-    meta: { title: "選擇取餐方式" },
+    meta: { titleKey: "navigation.orderTypeSelect" },
   },
   {
     path: "/restaurant/:restaurantId/shop/verify",
@@ -129,7 +130,7 @@ const routes: RouteRecordRaw[] = [
       shopQrCode: route.query.qr as string,
     }),
     meta: {
-      title: "驗證手機",
+      titleKey: "navigation.verifyPhone",
     },
   },
   {
@@ -141,7 +142,7 @@ const routes: RouteRecordRaw[] = [
       phoneLastDigits: route.query.phone as string,
     }),
     meta: {
-      title: "店家菜單",
+      titleKey: "navigation.shopMenu",
     },
   },
   {
@@ -153,7 +154,7 @@ const routes: RouteRecordRaw[] = [
       tableId: Number(route.params.tableId),
     }),
     meta: {
-      title: "購物車",
+      titleKey: "navigation.shoppingCart",
     },
   },
   {
@@ -166,7 +167,7 @@ const routes: RouteRecordRaw[] = [
       orderId: Number(route.params.orderId),
     }),
     meta: {
-      title: "訂單追蹤",
+      titleKey: "navigation.orderTracking",
     },
   },
   {
@@ -174,7 +175,7 @@ const routes: RouteRecordRaw[] = [
     name: "About",
     component: () => import("@/views/AboutView.vue"),
     meta: {
-      title: "關於我們",
+      titleKey: "navigation.about",
     },
   },
   {
@@ -182,7 +183,7 @@ const routes: RouteRecordRaw[] = [
     name: "Privacy",
     component: () => import("@/views/PrivacyView.vue"),
     meta: {
-      title: "隱私政策",
+      titleKey: "navigation.privacy",
     },
   },
   {
@@ -190,7 +191,7 @@ const routes: RouteRecordRaw[] = [
     name: "Terms",
     component: () => import("@/views/TermsView.vue"),
     meta: {
-      title: "服務條款",
+      titleKey: "navigation.terms",
     },
   },
   {
@@ -202,7 +203,7 @@ const routes: RouteRecordRaw[] = [
       message: route.query.message,
     }),
     meta: {
-      title: "發生錯誤",
+      titleKey: "navigation.error",
     },
   },
   {
@@ -210,7 +211,7 @@ const routes: RouteRecordRaw[] = [
     name: "NotFound",
     component: () => import("@/views/NotFoundView.vue"),
     meta: {
-      title: "頁面不存在",
+      titleKey: "navigation.pageNotFound",
     },
   },
 ];
@@ -235,9 +236,9 @@ const router = createRouter({
 // 路由守衛
 router.beforeEach(async (to, from, next) => {
   // 設置頁面標題
-  const title = to.meta?.title as string;
-  if (title) {
-    document.title = title;
+  const titleKey = to.meta?.titleKey as string;
+  if (titleKey) {
+    document.title = i18n.global.t(titleKey) as string;
   }
 
   // 獲取認證狀態
@@ -294,7 +295,7 @@ router.beforeEach(async (to, from, next) => {
         name: "Error",
         query: {
           code: "400",
-          message: "無效的餐廳或桌台編號",
+          message: i18n.global.t("errors.invalidRestaurantOrTable") as string,
         },
       });
       return;
@@ -316,7 +317,7 @@ router.onError((error) => {
     name: "Error",
     query: {
       code: "500",
-      message: "路由載入失敗",
+      message: i18n.global.t("errors.routeLoadFailed") as string,
     },
   });
 });

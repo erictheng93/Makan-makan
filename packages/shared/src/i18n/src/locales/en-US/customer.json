@@ -9,7 +9,25 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "contact": "Contact",
-    "help": "Help Center"
+    "help": "Help Center",
+    "appTitle": "MakanMakan - Smart Ordering",
+    "login": "Member Login",
+    "register": "Member Registration",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password",
+    "verifyEmail": "Email Verification",
+    "myOrders": "My Orders",
+    "orderDetail": "Order Details",
+    "profileCenter": "Profile",
+    "browseMenu": "Browse Menu",
+    "scanQR": "Scan QR Code",
+    "orderTypeSelect": "Select Pickup Method",
+    "verifyPhone": "Verify Phone",
+    "shopMenu": "Shop Menu",
+    "shoppingCart": "Shopping Cart",
+    "orderTracking": "Order Tracking",
+    "error": "An Error Occurred",
+    "pageNotFound": "Page Not Found"
   },
   "home": {
     "title": "Welcome to MakanMakan",
@@ -267,7 +285,20 @@
     "tableNotFound": "Table Not Found",
     "menuNotAvailable": "Menu temporarily unavailable",
     "orderFailed": "Order Failed",
-    "paymentFailed": "Payment Failed"
+    "paymentFailed": "Payment Failed",
+    "invalidRestaurantOrTable": "Invalid restaurant or table number",
+    "routeLoadFailed": "Route loading failed",
+    "unknown": "Unknown error",
+    "requestFailed": "Request processing failed",
+    "badRequest": "Bad request parameters",
+    "forbidden": "No permission to perform this action",
+    "notFoundResource": "The requested resource does not exist",
+    "conflict": "Resource conflict",
+    "tooManyRequests": "Too many requests, please try again later",
+    "internalServerError": "Internal server error",
+    "badGateway": "Service temporarily unavailable",
+    "serviceUnavailable": "Service under maintenance",
+    "gatewayTimeout": "Request timed out"
   },
   "restaurant": {
     "info": "Restaurant Information",
@@ -474,7 +505,11 @@
     "restaurantLoadFailed": "Unable to load restaurant information",
     "invalidQRCode": "Invalid QR Code",
     "shopModeNotEnabled": "This restaurant has not enabled shop mode",
-    "phoneVerifyError": "Please enter the correct last 3 digits of your phone number"
+    "phoneVerifyError": "Please enter the correct last 3 digits of your phone number",
+    "orderConfirmed": "Your order has been confirmed!",
+    "orderPreparing": "The kitchen is preparing your food",
+    "orderReady": "Your food is ready!",
+    "orderDelivered": "Your food has been delivered, enjoy!"
   },
   "orderTracking": {
     "title": "Order Tracking",
@@ -706,5 +741,36 @@
       "singlePayer": "Single payer",
       "singlePayerDesc": "One person pays for everyone"
     }
+  },
+  "messages": {
+    "networkError": "Network connection failed, please check your connection",
+    "sessionExpired": "Authentication failed, please log in again"
+  },
+  "format": {
+    "businessHoursNotSet": "Business hours not set",
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat",
+    "sunday": "Sun",
+    "closed": "Closed",
+    "unknown": "Unknown",
+    "notSet": "Not set",
+    "spiceNone": "Not spicy",
+    "spiceMild": "Mildly spicy",
+    "spiceLight": "Lightly spicy",
+    "spiceMedium": "Medium spicy",
+    "spiceHot": "Very spicy",
+    "orderPending": "Pending",
+    "orderConfirmed": "Confirmed",
+    "orderPreparing": "Preparing",
+    "orderReady": "Ready",
+    "orderDelivered": "Delivered",
+    "orderPaid": "Completed",
+    "orderCancelled": "Cancelled",
+    "unknownStatus": "Unknown status",
+    "noItems": "No {item}"
   }
 }

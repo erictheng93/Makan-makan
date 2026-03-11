@@ -4,6 +4,7 @@ import type {
   ApiErrorCode,
   PaginatedResponse,
 } from "@makanmakan/shared-types";
+import { i18n } from "@/i18n";
 
 // API 配置
 const getApiBaseUrl = (): string => {
@@ -84,7 +85,7 @@ class ApiClient {
             config.headers["X-Restaurant-ID"] = restaurant.id.toString();
             config.headers["X-Table-ID"] = tableId.toString();
           } catch (error) {
-            console.warn("解析餐廳上下文失敗:", error);
+            console.warn("Failed to parse restaurant context:", error);
           }
         }
 
@@ -128,7 +129,7 @@ class ApiClient {
         if (!error.response) {
           throw new ApiException(
             "NETWORK_ERROR" as ApiErrorCode,
-            "網路連接失敗，請檢查您的網路連接",
+            i18n.global.t("messages.networkError"),
             error.message,
           );
         }
@@ -140,7 +141,7 @@ class ApiClient {
           await this.handleAuthError();
           throw new ApiException(
             "UNAUTHORIZED" as ApiErrorCode,
-            "認證失敗，請重新登入",
+            i18n.global.t("messages.sessionExpired"),
             data,
             status,
           );
@@ -173,18 +174,19 @@ class ApiClient {
   }
 
   private getErrorMessage(status: number): string {
+    const t = i18n.global.t.bind(i18n.global);
     const messages: Record<number, string> = {
-      400: "請求參數錯誤",
-      403: "沒有權限執行此操作",
-      404: "請求的資源不存在",
-      409: "資源衝突",
-      429: "請求過於頻繁，請稍後再試",
-      500: "伺服器內部錯誤",
-      502: "服務暫時不可用",
-      503: "服務維護中",
-      504: "請求超時",
+      400: t("errors.badRequest"),
+      403: t("errors.forbidden"),
+      404: t("errors.notFoundResource"),
+      409: t("errors.conflict"),
+      429: t("errors.tooManyRequests"),
+      500: t("errors.internalServerError"),
+      502: t("errors.badGateway"),
+      503: t("errors.serviceUnavailable"),
+      504: t("errors.gatewayTimeout"),
     };
-    return messages[status] || "未知錯誤";
+    return messages[status] || t("errors.unknown");
   }
 
   // 通用請求方法
@@ -198,7 +200,7 @@ class ApiClient {
       }
       throw new ApiException(
         "INTERNAL_SERVER_ERROR" as ApiErrorCode,
-        "請求處理失敗",
+        i18n.global.t("errors.requestFailed"),
         error,
       );
     }
@@ -307,5 +309,5 @@ export const handleApiError = (error: unknown): string => {
     return error.message;
   }
 
-  return "發生未知錯誤";
+  return i18n.global.t("errors.unknown");
 };

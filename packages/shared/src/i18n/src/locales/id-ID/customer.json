@@ -9,7 +9,25 @@
     "privacy": "Kebijakan Privasi",
     "terms": "Ketentuan Layanan",
     "contact": "Hubungi Kami",
-    "help": "Pusat Bantuan"
+    "help": "Pusat Bantuan",
+    "appTitle": "MakanMakan - Pemesanan Cerdas",
+    "login": "Masuk Anggota",
+    "register": "Daftar Anggota",
+    "forgotPassword": "Lupa Kata Sandi",
+    "resetPassword": "Setel Ulang Kata Sandi",
+    "verifyEmail": "Verifikasi Email",
+    "myOrders": "Pesanan Saya",
+    "orderDetail": "Detail Pesanan",
+    "profileCenter": "Pusat Profil",
+    "browseMenu": "Lihat Menu",
+    "scanQR": "Pindai Kode QR",
+    "orderTypeSelect": "Pilih Metode Pengambilan",
+    "verifyPhone": "Verifikasi Telepon",
+    "shopMenu": "Menu Toko",
+    "shoppingCart": "Keranjang Belanja",
+    "orderTracking": "Lacak Pesanan",
+    "error": "Terjadi Kesalahan",
+    "pageNotFound": "Halaman Tidak Ditemukan"
   },
   "home": {
     "title": "Selamat Datang di MakanMakan",
@@ -267,7 +285,20 @@
     "tableNotFound": "Meja Tidak Ditemukan",
     "menuNotAvailable": "Menu tidak tersedia untuk sementara",
     "orderFailed": "Pesanan Gagal",
-    "paymentFailed": "Pembayaran Gagal"
+    "paymentFailed": "Pembayaran Gagal",
+    "invalidRestaurantOrTable": "Nomor restoran atau meja tidak valid",
+    "routeLoadFailed": "Pemuatan rute gagal",
+    "unknown": "Kesalahan tidak diketahui",
+    "requestFailed": "Pemrosesan permintaan gagal",
+    "badRequest": "Parameter permintaan tidak valid",
+    "forbidden": "Tidak ada izin untuk melakukan tindakan ini",
+    "notFoundResource": "Sumber daya yang diminta tidak ada",
+    "conflict": "Konflik sumber daya",
+    "tooManyRequests": "Terlalu banyak permintaan, coba lagi nanti",
+    "internalServerError": "Kesalahan server internal",
+    "badGateway": "Layanan sementara tidak tersedia",
+    "serviceUnavailable": "Layanan dalam pemeliharaan",
+    "gatewayTimeout": "Permintaan habis waktu"
   },
   "restaurant": {
     "info": "Informasi Restoran",
@@ -474,7 +505,11 @@
     "restaurantLoadFailed": "Tidak dapat memuat informasi restoran",
     "invalidQRCode": "Kode QR Tidak Valid",
     "shopModeNotEnabled": "Restoran ini belum mengaktifkan mode toko",
-    "phoneVerifyError": "Silakan masukkan 3 digit terakhir nomor telepon Anda dengan benar"
+    "phoneVerifyError": "Silakan masukkan 3 digit terakhir nomor telepon Anda dengan benar",
+    "orderConfirmed": "Pesanan Anda telah dikonfirmasi!",
+    "orderPreparing": "Dapur sedang mempersiapkan makanan Anda",
+    "orderReady": "Makanan Anda sudah siap!",
+    "orderDelivered": "Makanan telah diantarkan, selamat menikmati!"
   },
   "orderTracking": {
     "title": "Pelacakan Pesanan",
@@ -706,5 +741,36 @@
       "singlePayer": "Satu pembayar",
       "singlePayerDesc": "Satu orang membayar untuk semua"
     }
+  },
+  "messages": {
+    "networkError": "Koneksi jaringan gagal, periksa koneksi Anda",
+    "sessionExpired": "Autentikasi gagal, silakan masuk kembali"
+  },
+  "format": {
+    "businessHoursNotSet": "Jam operasional belum diatur",
+    "monday": "Sen",
+    "tuesday": "Sel",
+    "wednesday": "Rab",
+    "thursday": "Kam",
+    "friday": "Jum",
+    "saturday": "Sab",
+    "sunday": "Min",
+    "closed": "Tutup",
+    "unknown": "Tidak diketahui",
+    "notSet": "Belum diatur",
+    "spiceNone": "Tidak pedas",
+    "spiceMild": "Sedikit pedas",
+    "spiceLight": "Pedas ringan",
+    "spiceMedium": "Pedas sedang",
+    "spiceHot": "Sangat pedas",
+    "orderPending": "Menunggu",
+    "orderConfirmed": "Dikonfirmasi",
+    "orderPreparing": "Sedang dibuat",
+    "orderReady": "Siap",
+    "orderDelivered": "Dikirim",
+    "orderPaid": "Selesai",
+    "orderCancelled": "Dibatalkan",
+    "unknownStatus": "Status tidak diketahui",
+    "noItems": "Tidak ada {item}"
   }
 }

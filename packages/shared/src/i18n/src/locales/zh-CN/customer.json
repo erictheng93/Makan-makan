@@ -9,7 +9,25 @@
     "privacy": "隐私政策",
     "terms": "服务条款",
     "contact": "联系我们",
-    "help": "帮助中心"
+    "help": "帮助中心",
+    "appTitle": "MakanMakan - 智慧点餐",
+    "login": "会员登入",
+    "register": "会员注册",
+    "forgotPassword": "忘记密码",
+    "resetPassword": "重设密码",
+    "verifyEmail": "Email 验证",
+    "myOrders": "我的订单",
+    "orderDetail": "订单详情",
+    "profileCenter": "个人中心",
+    "browseMenu": "浏览菜单",
+    "scanQR": "扫描QR码",
+    "orderTypeSelect": "选择取餐方式",
+    "verifyPhone": "验证手机",
+    "shopMenu": "店家菜单",
+    "shoppingCart": "购物车",
+    "orderTracking": "订单追踪",
+    "error": "发生错误",
+    "pageNotFound": "页面不存在"
   },
   "home": {
     "title": "欢迎来到 MakanMakan",
@@ -267,7 +285,20 @@
     "tableNotFound": "找不到桌号",
     "menuNotAvailable": "菜单暂时无法加载",
     "orderFailed": "下单失败",
-    "paymentFailed": "付款失败"
+    "paymentFailed": "付款失败",
+    "invalidRestaurantOrTable": "无效的餐厅或桌台编号",
+    "routeLoadFailed": "路由加载失败",
+    "unknown": "未知错误",
+    "requestFailed": "请求处理失败",
+    "badRequest": "请求参数错误",
+    "forbidden": "没有权限执行此操作",
+    "notFoundResource": "请求的资源不存在",
+    "conflict": "资源冲突",
+    "tooManyRequests": "请求过于频繁，请稍后再试",
+    "internalServerError": "服务器内部错误",
+    "badGateway": "服务暂时不可用",
+    "serviceUnavailable": "服务维护中",
+    "gatewayTimeout": "请求超时"
   },
   "restaurant": {
     "info": "餐厅信息",
@@ -474,7 +505,11 @@
     "restaurantLoadFailed": "无法加载餐厅信息",
     "invalidQRCode": "无效的二维码",
     "shopModeNotEnabled": "此餐厅未启用店家模式",
-    "phoneVerifyError": "请输入正确的手机后3位数字"
+    "phoneVerifyError": "请输入正确的手机后3位数字",
+    "orderConfirmed": "您的订单已确认！",
+    "orderPreparing": "厨房正在准备您的餐点",
+    "orderReady": "您的餐点已准备完成！",
+    "orderDelivered": "餐点已送达，请享用！"
   },
   "orderTracking": {
     "title": "订单追踪",
@@ -706,5 +741,36 @@
       "singlePayer": "单人付",
       "singlePayerDesc": "由一人支付全部"
     }
+  },
+  "messages": {
+    "networkError": "网络连接失败，请检查您的网络连接",
+    "sessionExpired": "认证失败，请重新登入"
+  },
+  "format": {
+    "businessHoursNotSet": "营业时间未设定",
+    "monday": "周一",
+    "tuesday": "周二",
+    "wednesday": "周三",
+    "thursday": "周四",
+    "friday": "周五",
+    "saturday": "周六",
+    "sunday": "周日",
+    "closed": "休息",
+    "unknown": "未知",
+    "notSet": "未设置",
+    "spiceNone": "不辣",
+    "spiceMild": "微辣",
+    "spiceLight": "小辣",
+    "spiceMedium": "中辣",
+    "spiceHot": "大辣",
+    "orderPending": "待确认",
+    "orderConfirmed": "已确认",
+    "orderPreparing": "制作中",
+    "orderReady": "准备完成",
+    "orderDelivered": "已送达",
+    "orderPaid": "已完成",
+    "orderCancelled": "已取消",
+    "unknownStatus": "未知状态",
+    "noItems": "无{item}"
   }
 }

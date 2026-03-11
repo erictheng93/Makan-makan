@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/zh-tw";
 import relativeTime from "dayjs/plugin/relativeTime";
 import localizedFormat from "dayjs/plugin/localizedFormat";
+import { i18n } from "@/i18n";
 
 // 設定 dayjs
 dayjs.locale("zh-tw");
@@ -133,7 +134,7 @@ export const formatCount = (
   plural?: string,
 ): string => {
   if (count === 0) {
-    return `無${singular}`;
+    return i18n.global.t("format.noItems", { item: singular });
   }
 
   if (count === 1) {
@@ -220,24 +221,26 @@ export const formatAddress = (address: any): string => {
  * @returns 格式化後的營業時間字串
  */
 export const formatBusinessHours = (businessHours: any): string => {
+  const t = i18n.global.t.bind(i18n.global);
+
   if (!businessHours || typeof businessHours !== "object") {
-    return "營業時間未設定";
+    return t("format.businessHoursNotSet");
   }
 
   const dayNames = {
-    monday: "週一",
-    tuesday: "週二",
-    wednesday: "週三",
-    thursday: "週四",
-    friday: "週五",
-    saturday: "週六",
-    sunday: "週日",
+    monday: t("format.monday"),
+    tuesday: t("format.tuesday"),
+    wednesday: t("format.wednesday"),
+    thursday: t("format.thursday"),
+    friday: t("format.friday"),
+    saturday: t("format.saturday"),
+    sunday: t("format.sunday"),
   };
 
   const hours = Object.entries(businessHours)
     .map(([day, time]) => {
       const dayName = dayNames[day as keyof typeof dayNames];
-      return dayName ? `${dayName}: ${time || "休息"}` : null;
+      return dayName ? `${dayName}: ${time || t("format.closed")}` : null;
     })
     .filter(Boolean);
 
@@ -250,8 +253,15 @@ export const formatBusinessHours = (businessHours: any): string => {
  * @returns 辣度描述字串
  */
 export const formatSpiceLevel = (spiceLevel: number): string => {
-  const levels = ["不辣", "微辣", "小辣", "中辣", "大辣"];
-  return levels[spiceLevel] || "未知";
+  const t = i18n.global.t.bind(i18n.global);
+  const levels = [
+    t("format.spiceNone"),
+    t("format.spiceMild"),
+    t("format.spiceLight"),
+    t("format.spiceMedium"),
+    t("format.spiceHot"),
+  ];
+  return levels[spiceLevel] || t("format.unknown");
 };
 
 /**
@@ -260,15 +270,16 @@ export const formatSpiceLevel = (spiceLevel: number): string => {
  * @returns 狀態描述字串
  */
 export const formatOrderStatus = (status: number): string => {
-  const statuses = {
-    0: "待確認",
-    1: "已確認",
-    2: "製作中",
-    3: "準備完成",
-    4: "已送達",
-    5: "已完成",
-    6: "已取消",
+  const t = i18n.global.t.bind(i18n.global);
+  const statuses: Record<number, string> = {
+    0: t("format.orderPending"),
+    1: t("format.orderConfirmed"),
+    2: t("format.orderPreparing"),
+    3: t("format.orderReady"),
+    4: t("format.orderDelivered"),
+    5: t("format.orderPaid"),
+    6: t("format.orderCancelled"),
   };
 
-  return statuses[status as keyof typeof statuses] || "未知狀態";
+  return statuses[status] || t("format.unknownStatus");
 };

@@ -9,7 +9,25 @@
     "privacy": "Chính sách bảo mật",
     "terms": "Điều khoản dịch vụ",
     "contact": "Liên hệ",
-    "help": "Trung tâm trợ giúp"
+    "help": "Trung tâm trợ giúp",
+    "appTitle": "MakanMakan - Đặt Món Thông Minh",
+    "login": "Đăng Nhập Thành Viên",
+    "register": "Đăng Ký Thành Viên",
+    "forgotPassword": "Quên Mật Khẩu",
+    "resetPassword": "Đặt Lại Mật Khẩu",
+    "verifyEmail": "Xác Minh Email",
+    "myOrders": "Đơn Hàng Của Tôi",
+    "orderDetail": "Chi Tiết Đơn Hàng",
+    "profileCenter": "Trung Tâm Hồ Sơ",
+    "browseMenu": "Xem Thực Đơn",
+    "scanQR": "Quét Mã QR",
+    "orderTypeSelect": "Chọn Phương Thức Nhận Hàng",
+    "verifyPhone": "Xác Minh Điện Thoại",
+    "shopMenu": "Thực Đơn Cửa Hàng",
+    "shoppingCart": "Giỏ Hàng",
+    "orderTracking": "Theo Dõi Đơn Hàng",
+    "error": "Đã Xảy Ra Lỗi",
+    "pageNotFound": "Không Tìm Thấy Trang"
   },
   "home": {
     "title": "Chào mừng đến với MakanMakan",
@@ -267,7 +285,20 @@
     "tableNotFound": "Không tìm thấy bàn",
     "menuNotAvailable": "Thực đơn tạm thời không có sẵn",
     "orderFailed": "Đặt hàng thất bại",
-    "paymentFailed": "Thanh toán thất bại"
+    "paymentFailed": "Thanh toán thất bại",
+    "invalidRestaurantOrTable": "Số nhà hàng hoặc bàn không hợp lệ",
+    "routeLoadFailed": "Tải tuyến đường thất bại",
+    "unknown": "Lỗi không xác định",
+    "requestFailed": "Xử lý yêu cầu thất bại",
+    "badRequest": "Tham số yêu cầu không hợp lệ",
+    "forbidden": "Không có quyền thực hiện hành động này",
+    "notFoundResource": "Tài nguyên yêu cầu không tồn tại",
+    "conflict": "Xung đột tài nguyên",
+    "tooManyRequests": "Quá nhiều yêu cầu, vui lòng thử lại sau",
+    "internalServerError": "Lỗi máy chủ nội bộ",
+    "badGateway": "Dịch vụ tạm thời không khả dụng",
+    "serviceUnavailable": "Dịch vụ đang bảo trì",
+    "gatewayTimeout": "Yêu cầu hết thời gian"
   },
   "restaurant": {
     "info": "Thông tin nhà hàng",
@@ -474,7 +505,11 @@
     "restaurantLoadFailed": "Không thể tải thông tin nhà hàng",
     "invalidQRCode": "Mã QR không hợp lệ",
     "shopModeNotEnabled": "Nhà hàng này chưa bật chế độ cửa hàng",
-    "phoneVerifyError": "Vui lòng nhập đúng 3 chữ số cuối của số điện thoại"
+    "phoneVerifyError": "Vui lòng nhập đúng 3 chữ số cuối của số điện thoại",
+    "orderConfirmed": "Đơn hàng của bạn đã được xác nhận!",
+    "orderPreparing": "Bếp đang chuẩn bị món ăn của bạn",
+    "orderReady": "Món ăn của bạn đã sẵn sàng!",
+    "orderDelivered": "Món ăn đã được phục vụ, chúc ngon miệng!"
   },
   "orderTracking": {
     "title": "Theo dõi đơn hàng",
@@ -706,5 +741,36 @@
       "singlePayer": "Một người trả",
       "singlePayerDesc": "Một người trả cho tất cả"
     }
+  },
+  "messages": {
+    "networkError": "Kết nối mạng thất bại, vui lòng kiểm tra kết nối của bạn",
+    "sessionExpired": "Xác thực thất bại, vui lòng đăng nhập lại"
+  },
+  "format": {
+    "businessHoursNotSet": "Chưa thiết lập giờ làm việc",
+    "monday": "Th2",
+    "tuesday": "Th3",
+    "wednesday": "Th4",
+    "thursday": "Th5",
+    "friday": "Th6",
+    "saturday": "Th7",
+    "sunday": "CN",
+    "closed": "Đóng cửa",
+    "unknown": "Không xác định",
+    "notSet": "Chưa thiết lập",
+    "spiceNone": "Không cay",
+    "spiceMild": "Hơi cay",
+    "spiceLight": "Cay nhẹ",
+    "spiceMedium": "Cay vừa",
+    "spiceHot": "Rất cay",
+    "orderPending": "Chờ xác nhận",
+    "orderConfirmed": "Đã xác nhận",
+    "orderPreparing": "Đang chế biến",
+    "orderReady": "Đã sẵn sàng",
+    "orderDelivered": "Đã giao",
+    "orderPaid": "Hoàn thành",
+    "orderCancelled": "Đã hủy",
+    "unknownStatus": "Trạng thái không xác định",
+    "noItems": "Không có {item}"
   }
 }

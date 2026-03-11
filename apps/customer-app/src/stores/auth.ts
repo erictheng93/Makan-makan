@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
+import { i18n } from "@/i18n";
 
 // 定義客戶用戶類型
 export interface CustomerUser {
@@ -57,10 +58,10 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = data.error || "登入失敗";
+      error.value = data.error || i18n.global.t("auth.loginFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
-      error.value = err.message || "網絡錯誤，請稍後再試";
+      error.value = err.message || i18n.global.t("messages.networkError");
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;
@@ -106,10 +107,10 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = result.error || "註冊失敗";
+      error.value = result.error || i18n.global.t("auth.registerFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
-      error.value = err.message || "網絡錯誤，請稍後再試";
+      error.value = err.message || i18n.global.t("messages.networkError");
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;

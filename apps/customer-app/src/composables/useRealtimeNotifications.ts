@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useToast, POSITION } from "vue-toastification";
+import { useI18n } from "vue-i18n";
 
 interface OrderUpdate {
   orderId: string;
@@ -12,6 +13,7 @@ export function useRealtimeNotifications() {
   const isConnected = ref(false);
   const wsConnection = ref<WebSocket | null>(null);
   const toast = useToast();
+  const { t } = useI18n();
 
   const connect = () => {
     const realtimeWsUrl = import.meta.env.VITE_REALTIME_WS_URL;
@@ -59,10 +61,10 @@ export function useRealtimeNotifications() {
 
   const handleOrderUpdate = (update: OrderUpdate) => {
     const messages = {
-      confirmed: "您的訂單已確認！",
-      preparing: "廚房正在準備您的餐點",
-      ready: "您的餐點已準備完成！",
-      delivered: "餐點已送達，請享用！",
+      confirmed: t("toast.orderConfirmed"),
+      preparing: t("toast.orderPreparing"),
+      ready: t("toast.orderReady"),
+      delivered: t("toast.orderDelivered"),
     };
 
     const message =
