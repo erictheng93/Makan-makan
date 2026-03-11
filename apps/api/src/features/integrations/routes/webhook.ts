@@ -9,7 +9,6 @@ import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformOrderService } from "../services/PlatformOrderService";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
-import { generateUUID } from "@makanmakan/utils";
 
 const webhookRoutes = new Hono<{ Bindings: Env }>();
 
@@ -30,20 +29,23 @@ webhookRoutes.post("/uber-eats", async (c) => {
     return c.json({ error: "Missing store.id in payload" }, 400);
   }
 
-  // Look up integration by store_id
+  // Look up integration by platform — filter by enabled, then match storeId from credentials JSON
   const integrations = await db
     .select()
     .from(platformIntegrations)
     .where(
       and(
         eq(platformIntegrations.platform, "uber_eats"),
-        eq(platformIntegrations.storeId, storeId),
-        eq(platformIntegrations.isActive, true),
+        eq(platformIntegrations.enabled, true),
       ),
-    )
-    .limit(1);
+    );
 
-  const integration = integrations[0];
+  // Find the integration whose credentials contain the matching storeId
+  const integration = integrations.find((i) => {
+    const creds = i.credentials as { storeId?: string } | null;
+    return creds?.storeId === storeId;
+  });
+
   if (!integration) {
     return c.json({ error: "Unknown store" }, 404);
   }
@@ -56,7 +58,8 @@ webhookRoutes.post("/uber-eats", async (c) => {
     "uber_eats",
   );
 
-  const webhookSecret = creds.webhookSecret ?? creds.clientSecret;
+  const config = integration.config as { webhookSecret?: string } | null;
+  const webhookSecret = config?.webhookSecret ?? creds.clientSecret ?? "";
   const clonedRequest = new Request(c.req.url, {
     method: c.req.method,
     headers: c.req.raw.headers,
@@ -69,18 +72,21 @@ webhookRoutes.post("/uber-eats", async (c) => {
   }
 
   // Log webhook receipt
-  const logId = generateUUID();
   const now = new Date();
 
-  await db.insert(platformWebhookLogs).values({
-    id: logId,
-    restaurantId: integration.restaurantId,
-    platform: "uber_eats",
-    eventType: (payload.event_type as string) ?? "order",
-    payload: body,
-    status: "received",
-    createdAt: now,
-  });
+  const [insertedLog] = await db
+    .insert(platformWebhookLogs)
+    .values({
+      restaurantId: integration.restaurantId,
+      platform: "uber_eats",
+      eventType: (payload.event_type as string) ?? "order",
+      payload: body as unknown as Record<string, unknown>,
+      status: "received",
+      createdAt: now,
+    })
+    .returning({ id: platformWebhookLogs.id });
+
+  const logId = insertedLog.id;
 
   // Process the order
   try {
@@ -104,7 +110,7 @@ webhookRoutes.post("/uber-eats", async (c) => {
       .update(platformWebhookLogs)
       .set({
         status: "failed",
-        errorMessage,
+        error: errorMessage,
         processedAt: new Date(),
       })
       .where(eq(platformWebhookLogs.id, logId));

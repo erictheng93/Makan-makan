@@ -99,9 +99,9 @@ adminRoutes.get("/:restaurantId/:platform/orders", async (c) => {
 
   const filters: PlatformOrdersFilter = {
     platform,
-    status: c.req.query("status") ?? undefined,
+    platformStatus: c.req.query("status") ?? undefined,
     limit: c.req.query("limit") ? parseInt(c.req.query("limit")!) : 50,
-    offset: c.req.query("offset") ? parseInt(c.req.query("offset")!) : 0,
+    page: c.req.query("page") ? parseInt(c.req.query("page")!) : 1,
   };
 
   const service = new PlatformOrderService(c.env);
@@ -113,7 +113,7 @@ adminRoutes.get("/:restaurantId/:platform/orders", async (c) => {
 // GET /:restaurantId/webhook-logs — list webhook logs
 adminRoutes.get("/:restaurantId/webhook-logs", async (c) => {
   const restaurantId = c.req.param("restaurantId");
-  const platform = c.req.query("platform");
+  const platform = c.req.query("platform") as PlatformType | undefined;
   const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 50;
   const offset = c.req.query("offset") ? parseInt(c.req.query("offset")!) : 0;
 

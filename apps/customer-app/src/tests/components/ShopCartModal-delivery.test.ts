@@ -21,9 +21,17 @@ vi.mock("vue-toastification", () => ({
   useToast: vi.fn(() => ({ error: mockToastError, success: mockToastSuccess })),
 }));
 
-vi.mock("axios");
-import axios from "axios";
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+vi.mock("@/services/api", () => ({
+  apiClient: {
+    post: vi.fn(),
+    get: vi.fn(),
+  },
+}));
+import { apiClient } from "@/services/api";
+const mockedApiClient = apiClient as unknown as {
+  post: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -238,10 +246,8 @@ describe("ShopCartModal – delivery features", () => {
     store.setFulfillmentType("delivery");
     const setDeliveryInfoSpy = vi.spyOn(store, "setDeliveryInfo");
 
-    // Mock successful axios response
-    (mockedAxios.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      data: { success: true, order: { id: "order-123" } },
-    });
+    // Mock successful apiClient response (apiClient unwraps to data.data)
+    mockedApiClient.post.mockResolvedValueOnce({ id: "order-123" });
 
     const wrapper = mountModal();
     await wrapper.vm.$nextTick();
@@ -274,10 +280,8 @@ describe("ShopCartModal – delivery features", () => {
     store.setFulfillmentType("delivery");
     store.deliveryFee = 50;
 
-    // Mock successful axios response
-    (mockedAxios.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      data: { success: true, order: { id: "order-456" } },
-    });
+    // Mock successful apiClient response (apiClient unwraps to data.data)
+    mockedApiClient.post.mockResolvedValueOnce({ id: "order-456" });
 
     const wrapper = mountModal();
     await wrapper.vm.$nextTick();
@@ -298,8 +302,9 @@ describe("ShopCartModal – delivery features", () => {
     // Wait for async operations
     await wrapper.vm.$nextTick();
 
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      "/api/v1/orders",
+    // Component uses guest endpoint when no customer_auth_token
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      "/api/v1/orders/guest",
       expect.objectContaining({
         deliveryInfo: expect.objectContaining({
           type: "delivery",

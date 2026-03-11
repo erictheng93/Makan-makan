@@ -45,8 +45,14 @@ export class PlatformIntegrationService {
     platform: PlatformType,
     data: ConnectPlatformRequest,
   ) {
-    const encryptedCredentials = await this.encryptCredentials(
-      data.credentials,
+    const credentialsPayload: PlatformCredentials = {
+      clientId: data.clientId,
+      clientSecret: data.clientSecret,
+      storeId: data.storeId,
+    };
+
+    const encryptedCreds = await this.encryptCredentials(
+      credentialsPayload,
       this.encryptionKey,
     );
 
@@ -56,9 +62,13 @@ export class PlatformIntegrationService {
       await this.db
         .update(platformIntegrations)
         .set({
-          encryptedCredentials,
-          storeId: data.storeId,
-          isActive: true,
+          credentials:
+            encryptedCreds as unknown as typeof platformIntegrations.$inferInsert.credentials,
+          enabled: true,
+          config: {
+            autoAcceptOrders: data.autoAcceptOrders ?? false,
+            menuSyncEnabled: data.menuSyncEnabled ?? false,
+          },
           updatedAt: new Date(),
         })
         .where(
@@ -71,10 +81,13 @@ export class PlatformIntegrationService {
       await this.db.insert(platformIntegrations).values({
         restaurantId,
         platform,
-        storeId: data.storeId,
-        encryptedCredentials,
-        isActive: true,
-        autoAcceptOrders: false,
+        credentials:
+          encryptedCreds as unknown as typeof platformIntegrations.$inferInsert.credentials,
+        enabled: true,
+        config: {
+          autoAcceptOrders: data.autoAcceptOrders ?? false,
+          menuSyncEnabled: data.menuSyncEnabled ?? false,
+        },
         menuSyncStatus: "idle",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -98,12 +111,16 @@ export class PlatformIntegrationService {
   async updateConfig(
     restaurantId: string,
     platform: PlatformType,
-    config: UpdatePlatformConfigRequest,
+    configUpdate: UpdatePlatformConfigRequest,
   ) {
+    const existing = await this.getIntegration(restaurantId, platform);
+    const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
+    const newConfig = { ...currentConfig, ...configUpdate };
+
     await this.db
       .update(platformIntegrations)
       .set({
-        ...config,
+        config: newConfig as typeof platformIntegrations.$inferInsert.config,
         updatedAt: new Date(),
       })
       .where(
@@ -127,10 +144,8 @@ export class PlatformIntegrationService {
       );
     }
 
-    return this.decryptCredentials(
-      integration.encryptedCredentials,
-      this.encryptionKey,
-    );
+    const credentialsStr = integration.credentials as unknown as string;
+    return this.decryptCredentials(credentialsStr, this.encryptionKey);
   }
 
   async encryptCredentials(

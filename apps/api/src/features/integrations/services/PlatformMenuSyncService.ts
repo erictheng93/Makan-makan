@@ -10,8 +10,6 @@ import type { PlatformType, MenuSyncPayload } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
-import { generateUUID } from "@makanmakan/utils";
-
 export class PlatformMenuSyncService {
   private db;
   private env: Env;
@@ -51,12 +49,13 @@ export class PlatformMenuSyncService {
         .where(
           and(
             eq(menuItems.restaurantId, restaurantId),
-            eq(menuItems.isActive, true),
+            eq(menuItems.isAvailable, true),
           ),
         );
 
       // Build MenuSyncPayload
       const menuData: MenuSyncPayload = {
+        restaurantId,
         categories: allCategories.map((cat) => ({
           id: cat.id,
           name: cat.name,
@@ -68,7 +67,7 @@ export class PlatformMenuSyncService {
               description: item.description ?? "",
               price: item.price,
               imageUrl: item.imageUrl ?? undefined,
-              isAvailable: item.isActive,
+              available: item.isAvailable ?? true,
             })),
         })),
       };
@@ -85,9 +84,10 @@ export class PlatformMenuSyncService {
 
       // Update platform_menu_mappings with returned platformItemIds
       if (result.platformItemIds) {
-        for (const [internalId, platformItemId] of Object.entries(
+        for (const [internalIdStr, platformItemId] of Object.entries(
           result.platformItemIds,
         )) {
+          const menuItemId = Number(internalIdStr);
           const existing = await this.db
             .select()
             .from(platformMenuMappings)
@@ -95,7 +95,7 @@ export class PlatformMenuSyncService {
               and(
                 eq(platformMenuMappings.restaurantId, restaurantId),
                 eq(platformMenuMappings.platform, platform),
-                eq(platformMenuMappings.menuItemId, internalId),
+                eq(platformMenuMappings.menuItemId, menuItemId),
               ),
             )
             .limit(1);
@@ -110,10 +110,9 @@ export class PlatformMenuSyncService {
               .where(eq(platformMenuMappings.id, existing[0].id));
           } else {
             await this.db.insert(platformMenuMappings).values({
-              id: generateUUID(),
               restaurantId,
               platform,
-              menuItemId: internalId,
+              menuItemId,
               platformItemId,
               createdAt: new Date(),
               updatedAt: new Date(),

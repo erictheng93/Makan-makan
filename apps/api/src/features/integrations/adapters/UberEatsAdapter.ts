@@ -49,8 +49,8 @@ export class UberEatsAdapter implements PlatformAdapter {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "client_credentials",
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
+        client_id: credentials.clientId ?? "",
+        client_secret: credentials.clientSecret ?? "",
         scope: "eats.store eats.order eats.store.orders.read",
       }),
     });
@@ -77,27 +77,36 @@ export class UberEatsAdapter implements PlatformAdapter {
   async parseOrder(payload: unknown): Promise<ParsedPlatformOrder> {
     const order = payload as UberEatsOrderPayload;
 
+    const items = (order.cart?.items ?? []).map((item) => {
+      const quantity = item.quantity ?? 1;
+      const unitPrice = item.price?.unit_price?.amount ?? 0;
+      return {
+        platformItemId: item.id ?? "",
+        name: item.title ?? "",
+        quantity,
+        unitPrice,
+        totalPrice: unitPrice * quantity,
+        customizations: (item.selected_modifier_groups ?? []).flatMap((group) =>
+          (group.items ?? []).map((mod) => ({
+            name: mod.title ?? "",
+            value: mod.title ?? "",
+            priceAdjustment: mod.price?.unit_price?.amount ?? 0,
+          })),
+        ),
+      };
+    });
+
     return {
       platformOrderId: order.id,
       platformStoreId: order.store?.id ?? "",
       customerName: order.eater?.first_name ?? "Unknown",
       customerPhone: order.eater?.phone ?? "",
       deliveryAddress: order.delivery_info?.location?.address ?? "",
-      items: (order.cart?.items ?? []).map((item) => ({
-        platformItemId: item.id ?? "",
-        title: item.title ?? "",
-        quantity: item.quantity ?? 1,
-        unitPrice: item.price?.unit_price?.amount ?? 0,
-        modifiers: (item.selected_modifier_groups ?? []).flatMap((group) =>
-          (group.items ?? []).map((mod) => ({
-            name: mod.title ?? "",
-            price: mod.price?.unit_price?.amount ?? 0,
-          })),
-        ),
-      })),
+      items,
       totalAmount: order.payment?.charges?.total?.amount ?? 0,
-      subtotalAmount: order.payment?.charges?.sub_total?.amount ?? 0,
+      subtotal: order.payment?.charges?.sub_total?.amount ?? 0,
       taxAmount: order.payment?.charges?.tax?.amount ?? 0,
+      platformStatus: "received",
       rawPayload: payload,
     };
   }
@@ -224,12 +233,12 @@ export class UberEatsAdapter implements PlatformAdapter {
       }>;
     };
 
-    const platformItemIds: Record<string, string> = {};
+    const platformItemIds: Record<number, string> = {};
     for (const menu of result.menus ?? []) {
       for (const category of menu.categories ?? []) {
         for (const item of category.items ?? []) {
           if (item.external_id) {
-            platformItemIds[item.external_id] = item.id;
+            platformItemIds[Number(item.external_id)] = item.id;
           }
         }
       }
@@ -237,6 +246,7 @@ export class UberEatsAdapter implements PlatformAdapter {
 
     return {
       success: true,
+      syncedItems: Object.keys(platformItemIds).length,
       platformItemIds,
     };
   }

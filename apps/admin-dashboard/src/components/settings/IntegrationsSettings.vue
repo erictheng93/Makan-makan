@@ -398,9 +398,12 @@ async function loadIntegration() {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await apiClient.get(
-      `/api/v1/integrations/${restaurantId}/uber_eats`,
-    );
+    const response = await apiClient.get<{
+      enabled: boolean;
+      config: { autoAcceptOrders?: boolean; menuSyncEnabled?: boolean } | null;
+      lastMenuSyncAt: string | null;
+      menuSyncStatus: string | null;
+    }>(`/api/v1/integrations/${restaurantId}/uber_eats`);
     if (response.data?.data) {
       const data = response.data.data;
       uberEats.enabled = data.enabled;
@@ -506,7 +509,7 @@ async function disconnectUberEats() {
 async function loadWebhookLogs() {
   try {
     const restaurantId = authStore.restaurantId;
-    const response = await apiClient.get(
+    const response = await apiClient.get<typeof webhookLogs.value>(
       `/api/v1/integrations/${restaurantId}/webhook-logs`,
     );
     webhookLogs.value = response.data?.data || [];

@@ -13,7 +13,6 @@ import type {
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
-import { generateUUID } from "@makanmakan/utils";
 
 export class PlatformOrderService {
   private db;
@@ -30,7 +29,7 @@ export class PlatformOrderService {
     platform: PlatformType,
     payload: unknown,
     restaurantId: string,
-  ): Promise<string> {
+  ): Promise<number> {
     const adapter = getAdapter(platform);
     const parsedOrder = await adapter.parseOrder(payload);
 
@@ -50,49 +49,57 @@ export class PlatformOrderService {
     );
 
     // Create internal order
-    const orderId = generateUUID();
     const now = new Date();
 
-    await this.db.insert(orders).values({
-      id: orderId,
-      restaurantId,
-      status: "pending",
-      orderSource: platform,
-      customerName: parsedOrder.customerName,
-      customerPhone: parsedOrder.customerPhone,
-      deliveryAddress: parsedOrder.deliveryAddress,
-      totalAmount: parsedOrder.totalAmount,
-      subtotalAmount: parsedOrder.subtotalAmount,
-      taxAmount: parsedOrder.taxAmount,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const [insertedOrder] = await this.db
+      .insert(orders)
+      .values({
+        restaurantId,
+        orderNumber: `PL-${Date.now()}`,
+        status: "pending",
+        orderSource: platform,
+        customerInfo: {
+          name: parsedOrder.customerName,
+          phone: parsedOrder.customerPhone,
+        },
+        deliveryInfo: {
+          type: "delivery" as const,
+          address: parsedOrder.deliveryAddress,
+        },
+        totalAmount: parsedOrder.totalAmount,
+        subtotal: parsedOrder.subtotal,
+        taxAmount: parsedOrder.taxAmount,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: orders.id });
+
+    const orderId = insertedOrder.id;
 
     // Create order items
     for (const item of parsedOrder.items) {
       const menuItemId = platformToInternalMap.get(item.platformItemId);
+      if (menuItemId == null) continue; // skip unmapped items — menuItemId is NOT NULL
       await this.db.insert(orderItems).values({
-        id: generateUUID(),
         orderId,
-        menuItemId: menuItemId ?? null,
-        name: item.title,
+        menuItemId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        modifiers: JSON.stringify(item.modifiers),
+        totalPrice: item.unitPrice * item.quantity,
+        itemSnapshot: { name: item.name },
         createdAt: now,
       });
     }
 
     // Create platform order mapping
     await this.db.insert(platformOrders).values({
-      id: generateUUID(),
       orderId,
       restaurantId,
       platform,
       platformOrderId: parsedOrder.platformOrderId,
       platformStoreId: parsedOrder.platformStoreId,
-      status: "received",
-      rawPayload: JSON.stringify(parsedOrder.rawPayload),
+      platformStatus: "received",
+      rawPayload: parsedOrder.rawPayload as Record<string, unknown>,
       createdAt: now,
       updatedAt: now,
     });
@@ -102,7 +109,7 @@ export class PlatformOrderService {
       restaurantId,
       platform,
     );
-    if (integration?.autoAcceptOrders) {
+    if (integration?.config?.autoAcceptOrders) {
       try {
         const creds = await this.integrationService.getDecryptedCredentials(
           restaurantId,
@@ -112,7 +119,7 @@ export class PlatformOrderService {
 
         await this.db
           .update(platformOrders)
-          .set({ status: "accepted", updatedAt: new Date() })
+          .set({ platformStatus: "accepted", updatedAt: new Date() })
           .where(eq(platformOrders.orderId, orderId));
 
         await this.db
@@ -131,7 +138,7 @@ export class PlatformOrderService {
   }
 
   async syncStatusToPlatform(
-    orderId: string,
+    orderId: number,
     newStatus: string,
   ): Promise<void> {
     const platformOrderRecords = await this.db
@@ -149,13 +156,13 @@ export class PlatformOrderService {
       platformOrder.platform as PlatformType,
     );
 
-    const currentStatus = platformOrder.status;
+    const currentStatus = platformOrder.platformStatus;
 
     if (currentStatus === "received" && newStatus === "confirmed") {
       await adapter.acceptOrder(platformOrder.platformOrderId, creds);
       await this.db
         .update(platformOrders)
-        .set({ status: "accepted", updatedAt: new Date() })
+        .set({ platformStatus: "accepted", updatedAt: new Date() })
         .where(eq(platformOrders.id, platformOrder.id));
     } else if (currentStatus === "received" && newStatus === "cancelled") {
       await adapter.denyOrder(
@@ -165,7 +172,7 @@ export class PlatformOrderService {
       );
       await this.db
         .update(platformOrders)
-        .set({ status: "denied", updatedAt: new Date() })
+        .set({ platformStatus: "denied", updatedAt: new Date() })
         .where(eq(platformOrders.id, platformOrder.id));
     } else if (newStatus === "cancelled") {
       await adapter.cancelOrder(
@@ -175,7 +182,7 @@ export class PlatformOrderService {
       );
       await this.db
         .update(platformOrders)
-        .set({ status: "cancelled", updatedAt: new Date() })
+        .set({ platformStatus: "cancelled", updatedAt: new Date() })
         .where(eq(platformOrders.id, platformOrder.id));
     } else if (newStatus === "ready") {
       // Log only for now — pickup notification handled by platform
@@ -184,7 +191,7 @@ export class PlatformOrderService {
       );
       await this.db
         .update(platformOrders)
-        .set({ status: "ready", updatedAt: new Date() })
+        .set({ platformStatus: "ready", updatedAt: new Date() })
         .where(eq(platformOrders.id, platformOrder.id));
     }
   }
@@ -195,12 +202,15 @@ export class PlatformOrderService {
     if (filters.platform) {
       conditions.push(eq(platformOrders.platform, filters.platform));
     }
-    if (filters.status) {
-      conditions.push(eq(platformOrders.status, filters.status));
+    if (filters.platformStatus) {
+      conditions.push(
+        eq(platformOrders.platformStatus, filters.platformStatus),
+      );
     }
 
     const limit = filters.limit ?? 50;
-    const offset = filters.offset ?? 0;
+    const page = filters.page ?? 1;
+    const offset = (page - 1) * limit;
 
     const results = await this.db
       .select()
