@@ -426,6 +426,7 @@
     "orderSubmitSuccess": "订单提交成功！",
     "orderSubmitFailed": "订单提交失败，请重试",
     "itemRemoved": "已移除 {name}",
+    "itemAdded": "已加入 {name} x{quantity}",
     "cartCannotBeEmpty": "购物车不能为空",
     "scanSuccess": "扫描成功！",
     "scanTypeDetected": "扫描到{type}！",
@@ -615,7 +616,8 @@
     "noItemsInCategory": "此分类暂无可用菜品",
     "noResults": "找不到相关菜品",
     "tryOtherKeywords": "试试其他关键字",
-    "viewCart": "查看购物车"
+    "viewCart": "查看购物车",
+    "shopOrdering": "店家点餐"
   },
   "phoneVerification": {
     "title": "手机验证",
@@ -665,5 +667,33 @@
     "delivery": "外送 Delivery",
     "deliveryDesc": "送到指定地址",
     "continue": "继续"
+  },
+  "group": {
+    "sharedCart": "群组购物车",
+    "members": "位成员",
+    "unknownMember": "未知成员",
+    "me": "我",
+    "online": "在线",
+    "emptyCart": "购物车是空的",
+    "startAdding": "开始添加餐点吧！",
+    "splitMethod": "分账方式",
+    "total": "总计",
+    "myShare": "我的份额",
+    "perPerson": "每人",
+    "customShares": "自定义比例",
+    "sharesMustEqual100": "比例总和必须等于 100%",
+    "selectPayer": "选择付款人",
+    "split": {
+      "equal": "均分",
+      "equalDesc": "每人付一样的金额",
+      "by_item": "各付各",
+      "byItem": "各付各",
+      "byItemDesc": "各自付自己点的餐点",
+      "custom": "自定义",
+      "customDesc": "自定义每人的比例",
+      "single_payer": "单人付",
+      "singlePayer": "单人付",
+      "singlePayerDesc": "由一人支付全部"
+    }
   }
 }

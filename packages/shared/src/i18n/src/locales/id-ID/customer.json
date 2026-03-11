@@ -426,6 +426,7 @@
     "orderSubmitSuccess": "Pesanan berhasil dikirim!",
     "orderSubmitFailed": "Pengiriman pesanan gagal, silakan coba lagi",
     "itemRemoved": "{name} telah dihapus",
+    "itemAdded": "{name} x{quantity} telah ditambahkan",
     "cartCannotBeEmpty": "Keranjang tidak boleh kosong",
     "scanSuccess": "Pemindaian berhasil!",
     "scanTypeDetected": "{type} terdeteksi!",
@@ -615,7 +616,8 @@
     "noItemsInCategory": "Tidak ada item tersedia di kategori ini",
     "noResults": "Tidak ada hidangan ditemukan",
     "tryOtherKeywords": "Coba kata kunci lain",
-    "viewCart": "Lihat Keranjang"
+    "viewCart": "Lihat Keranjang",
+    "shopOrdering": "Pemesanan Toko"
   },
   "phoneVerification": {
     "title": "Verifikasi Telepon",
@@ -665,5 +667,33 @@
     "delivery": "Pengiriman Delivery",
     "deliveryDesc": "Kirim ke alamat Anda",
     "continue": "Lanjutkan"
+  },
+  "group": {
+    "sharedCart": "Keranjang Grup",
+    "members": "anggota",
+    "unknownMember": "Anggota Tidak Dikenal",
+    "me": "Saya",
+    "online": "Online",
+    "emptyCart": "Keranjang kosong",
+    "startAdding": "Mulai tambahkan item!",
+    "splitMethod": "Metode bagi tagihan",
+    "total": "Total",
+    "myShare": "Bagian saya",
+    "perPerson": "per orang",
+    "customShares": "Bagian kustom",
+    "sharesMustEqual100": "Total bagian harus sama dengan 100%",
+    "selectPayer": "Pilih pembayar",
+    "split": {
+      "equal": "Bagi rata",
+      "equalDesc": "Setiap orang membayar jumlah yang sama",
+      "by_item": "Bayar per item",
+      "byItem": "Bayar per item",
+      "byItemDesc": "Setiap orang membayar item mereka sendiri",
+      "custom": "Kustom",
+      "customDesc": "Atur persentase kustom untuk setiap orang",
+      "single_payer": "Satu pembayar",
+      "singlePayer": "Satu pembayar",
+      "singlePayerDesc": "Satu orang membayar untuk semua"
+    }
   }
 }

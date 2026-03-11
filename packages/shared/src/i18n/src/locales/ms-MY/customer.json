@@ -426,6 +426,7 @@
     "orderSubmitSuccess": "Pesanan berjaya dihantar!",
     "orderSubmitFailed": "Penghantaran pesanan gagal, sila cuba lagi",
     "itemRemoved": "{name} telah dibuang",
+    "itemAdded": "{name} x{quantity} telah ditambah",
     "cartCannotBeEmpty": "Troli tidak boleh kosong",
     "scanSuccess": "Imbasan berjaya!",
     "scanTypeDetected": "{type} dikesan!",
@@ -615,7 +616,8 @@
     "noItemsInCategory": "Tiada item tersedia dalam kategori ini",
     "noResults": "Tiada hidangan ditemui",
     "tryOtherKeywords": "Cuba kata kunci lain",
-    "viewCart": "Lihat Troli"
+    "viewCart": "Lihat Troli",
+    "shopOrdering": "Pesanan Kedai"
   },
   "phoneVerification": {
     "title": "Pengesahan Telefon",
@@ -665,5 +667,33 @@
     "delivery": "Penghantaran Delivery",
     "deliveryDesc": "Hantar ke alamat anda",
     "continue": "Teruskan"
+  },
+  "group": {
+    "sharedCart": "Troli Kumpulan",
+    "members": "ahli",
+    "unknownMember": "Ahli Tidak Diketahui",
+    "me": "Saya",
+    "online": "Dalam Talian",
+    "emptyCart": "Troli kosong",
+    "startAdding": "Mula tambah item!",
+    "splitMethod": "Kaedah bahagi bil",
+    "total": "Jumlah",
+    "myShare": "Bahagian saya",
+    "perPerson": "setiap orang",
+    "customShares": "Bahagian tersuai",
+    "sharesMustEqual100": "Jumlah bahagian mesti sama dengan 100%",
+    "selectPayer": "Pilih pembayar",
+    "split": {
+      "equal": "Bahagi sama rata",
+      "equalDesc": "Setiap orang bayar jumlah yang sama",
+      "by_item": "Bayar mengikut item",
+      "byItem": "Bayar mengikut item",
+      "byItemDesc": "Setiap orang bayar untuk item mereka sendiri",
+      "custom": "Tersuai",
+      "customDesc": "Tetapkan peratusan tersuai untuk setiap orang",
+      "single_payer": "Satu pembayar",
+      "singlePayer": "Satu pembayar",
+      "singlePayerDesc": "Satu orang bayar untuk semua"
+    }
   }
 }

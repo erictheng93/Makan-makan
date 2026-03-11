@@ -54,26 +54,26 @@ const modes = computed(() => [
   {
     id: "equal" as const,
     icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z",
-    label: t("group.split.equal", "均分"),
-    description: t("group.split.equalDesc", "每人付一樣的金額"),
+    label: t("group.split.equal"),
+    description: t("group.split.equalDesc"),
   },
   {
     id: "by_item" as const,
     icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01",
-    label: t("group.split.byItem", "各付各"),
-    description: t("group.split.byItemDesc", "各自付自己點的餐點"),
+    label: t("group.split.byItem"),
+    description: t("group.split.byItemDesc"),
   },
   {
     id: "custom" as const,
     icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z",
-    label: t("group.split.custom", "自訂"),
-    description: t("group.split.customDesc", "自訂每人的比例"),
+    label: t("group.split.custom"),
+    description: t("group.split.customDesc"),
   },
   {
     id: "single_payer" as const,
     icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    label: t("group.split.singlePayer", "單人付"),
-    description: t("group.split.singlePayerDesc", "由一人支付全部"),
+    label: t("group.split.singlePayer"),
+    description: t("group.split.singlePayerDesc"),
   },
 ]);
 
@@ -203,7 +203,7 @@ function getMemberShareAmount(memberId: string): number {
           {{ formatPrice(perPersonAmount) }}
         </div>
         <div class="text-sm text-gray-500">
-          {{ t("group.perPerson", "每人") }}
+          {{ t("group.perPerson") }}
         </div>
       </div>
       <div class="space-y-2">
@@ -213,9 +213,7 @@ function getMemberShareAmount(memberId: string): number {
           class="flex items-center justify-between text-sm"
         >
           <span class="text-gray-600">
-            {{
-              member.id === currentUserId ? t("group.me", "我") : member.name
-            }}
+            {{ member.id === currentUserId ? t("group.me") : member.name }}
           </span>
           <span class="font-medium text-gray-900">{{
             formatPrice(perPersonAmount)
@@ -228,7 +226,7 @@ function getMemberShareAmount(memberId: string): number {
     <div v-if="modelValue.mode === 'custom'" class="bg-gray-50 rounded-xl p-4">
       <div class="mb-3 flex items-center justify-between">
         <span class="text-sm font-medium text-gray-700">
-          {{ t("group.customShares", "自訂比例") }}
+          {{ t("group.customShares") }}
         </span>
         <span
           class="text-xs px-2 py-0.5 rounded-full"
@@ -246,9 +244,7 @@ function getMemberShareAmount(memberId: string): number {
         <div v-for="member in members" :key="member.id" class="space-y-1">
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-600">
-              {{
-                member.id === currentUserId ? t("group.me", "我") : member.name
-              }}
+              {{ member.id === currentUserId ? t("group.me") : member.name }}
             </span>
             <span class="font-medium text-gray-900">
               {{ formatPrice(getMemberShareAmount(member.id)) }}
@@ -294,9 +290,7 @@ function getMemberShareAmount(memberId: string): number {
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <span>{{
-          t("group.sharesMustEqual100", "比例總和必須等於 100%")
-        }}</span>
+        <span>{{ t("group.sharesMustEqual100") }}</span>
       </div>
     </div>
 
@@ -306,7 +300,7 @@ function getMemberShareAmount(memberId: string): number {
       class="bg-gray-50 rounded-xl p-4"
     >
       <div class="mb-3 text-sm font-medium text-gray-700">
-        {{ t("group.selectPayer", "選擇付款人") }}
+        {{ t("group.selectPayer") }}
       </div>
       <div class="space-y-2">
         <button
@@ -350,9 +344,7 @@ function getMemberShareAmount(memberId: string): number {
               }}</span>
             </div>
             <span class="font-medium text-gray-900">
-              {{
-                member.id === currentUserId ? t("group.me", "我") : member.name
-              }}
+              {{ member.id === currentUserId ? t("group.me") : member.name }}
             </span>
           </div>
           <span

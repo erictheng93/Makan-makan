@@ -426,6 +426,7 @@
     "orderSubmitSuccess": "Order submitted successfully!",
     "orderSubmitFailed": "Order submission failed, please try again",
     "itemRemoved": "Removed {name}",
+    "itemAdded": "Added {name} x{quantity}",
     "cartCannotBeEmpty": "Cart cannot be empty",
     "scanSuccess": "Scan successful!",
     "scanTypeDetected": "Detected {type}!",
@@ -615,7 +616,8 @@
     "noItemsInCategory": "No items available in this category",
     "noResults": "No dishes found",
     "tryOtherKeywords": "Try other keywords",
-    "viewCart": "View Cart"
+    "viewCart": "View Cart",
+    "shopOrdering": "Shop Ordering"
   },
   "phoneVerification": {
     "title": "Phone Verification",
@@ -665,5 +667,33 @@
     "delivery": "Delivery",
     "deliveryDesc": "Deliver to your address",
     "continue": "Continue"
+  },
+  "group": {
+    "sharedCart": "Group Cart",
+    "members": "members",
+    "unknownMember": "Unknown Member",
+    "me": "Me",
+    "online": "Online",
+    "emptyCart": "Cart is empty",
+    "startAdding": "Start adding items!",
+    "splitMethod": "Split method",
+    "total": "Total",
+    "myShare": "My share",
+    "perPerson": "per person",
+    "customShares": "Custom shares",
+    "sharesMustEqual100": "Shares must add up to 100%",
+    "selectPayer": "Select payer",
+    "split": {
+      "equal": "Equal split",
+      "equalDesc": "Everyone pays the same amount",
+      "by_item": "Pay by item",
+      "byItem": "Pay by item",
+      "byItemDesc": "Each person pays for their own items",
+      "custom": "Custom",
+      "customDesc": "Set custom percentage for each person",
+      "single_payer": "Single payer",
+      "singlePayer": "Single payer",
+      "singlePayerDesc": "One person pays for everyone"
+    }
   }
 }

@@ -67,8 +67,8 @@ function canModifyItem(item: GroupCartItem): boolean {
 
 function getMemberName(memberId: string): string {
   const member = memberById.value[memberId];
-  if (!member) return t("group.unknownMember", "未知成員");
-  if (memberId === props.currentUserId) return t("group.me", "我");
+  if (!member) return t("group.unknownMember");
+  if (memberId === props.currentUserId) return t("group.me");
   return member.name;
 }
 
@@ -110,12 +110,10 @@ function getMemberColor(memberId: string): string {
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <span class="font-semibold">{{
-            t("group.sharedCart", "群組購物車")
-          }}</span>
+          <span class="font-semibold">{{ t("group.sharedCart") }}</span>
         </div>
         <span class="text-sm opacity-90">
-          {{ members.length }} {{ t("group.members", "位成員") }}
+          {{ members.length }} {{ t("group.members") }}
         </span>
       </div>
     </div>
@@ -135,7 +133,7 @@ function getMemberColor(memberId: string): string {
             <span
               v-if="memberById[memberId]?.isOnline"
               class="w-2 h-2 bg-green-500 rounded-full"
-              :title="t('group.online', '在線')"
+              :title="t('group.online')"
             />
           </div>
 
@@ -255,9 +253,9 @@ function getMemberColor(memberId: string): string {
             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
           />
         </svg>
-        <p>{{ t("group.emptyCart", "購物車是空的") }}</p>
+        <p>{{ t("group.emptyCart") }}</p>
         <p class="text-sm mt-1">
-          {{ t("group.startAdding", "開始添加餐點吧！") }}
+          {{ t("group.startAdding") }}
         </p>
       </div>
     </div>
@@ -267,7 +265,7 @@ function getMemberColor(memberId: string): string {
       <!-- Split Mode Selector (Host Only) -->
       <div v-if="isHost" class="mb-4">
         <label class="block text-xs font-medium text-gray-500 mb-2">
-          {{ t("group.splitMethod", "分帳方式") }}
+          {{ t("group.splitMethod") }}
         </label>
         <div class="grid grid-cols-4 gap-2">
           <button
@@ -286,7 +284,7 @@ function getMemberColor(memberId: string): string {
             "
             @click="emit('change-split-mode', mode)"
           >
-            {{ t(`group.split.${mode}`, mode) }}
+            {{ t(`group.split.${mode}`) }}
           </button>
         </div>
       </div>
@@ -294,15 +292,13 @@ function getMemberColor(memberId: string): string {
       <!-- Totals -->
       <div class="space-y-2">
         <div class="flex justify-between text-sm">
-          <span class="text-gray-600">{{ t("group.total", "總計") }}</span>
+          <span class="text-gray-600">{{ t("group.total") }}</span>
           <span class="font-semibold text-gray-900">{{
             formatPrice(totalAmount)
           }}</span>
         </div>
         <div class="flex justify-between text-sm">
-          <span class="text-gray-600">{{
-            t("group.myShare", "我的份額")
-          }}</span>
+          <span class="text-gray-600">{{ t("group.myShare") }}</span>
           <span class="font-bold text-indigo-600">{{
             formatPrice(myShare)
           }}</span>

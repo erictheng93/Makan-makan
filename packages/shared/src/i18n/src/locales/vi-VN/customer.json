@@ -426,6 +426,7 @@
     "orderSubmitSuccess": "Đặt hàng thành công!",
     "orderSubmitFailed": "Đặt hàng thất bại, vui lòng thử lại",
     "itemRemoved": "Đã xóa {name}",
+    "itemAdded": "Đã thêm {name} x{quantity}",
     "cartCannotBeEmpty": "Giỏ hàng không được để trống",
     "scanSuccess": "Quét thành công!",
     "scanTypeDetected": "Đã phát hiện {type}!",
@@ -615,7 +616,8 @@
     "noItemsInCategory": "Không có món nào trong danh mục này",
     "noResults": "Không tìm thấy món ăn",
     "tryOtherKeywords": "Thử từ khóa khác",
-    "viewCart": "Xem giỏ hàng"
+    "viewCart": "Xem giỏ hàng",
+    "shopOrdering": "Đặt hàng tại cửa hàng"
   },
   "phoneVerification": {
     "title": "Xác minh điện thoại",
@@ -665,5 +667,33 @@
     "delivery": "Giao hàng Delivery",
     "deliveryDesc": "Giao đến địa chỉ của bạn",
     "continue": "Tiếp tục"
+  },
+  "group": {
+    "sharedCart": "Giỏ hàng nhóm",
+    "members": "thành viên",
+    "unknownMember": "Thành viên không xác định",
+    "me": "Tôi",
+    "online": "Trực tuyến",
+    "emptyCart": "Giỏ hàng trống",
+    "startAdding": "Bắt đầu thêm món ăn!",
+    "splitMethod": "Phương thức chia tiền",
+    "total": "Tổng cộng",
+    "myShare": "Phần của tôi",
+    "perPerson": "mỗi người",
+    "customShares": "Tỷ lệ tùy chỉnh",
+    "sharesMustEqual100": "Tổng tỷ lệ phải bằng 100%",
+    "selectPayer": "Chọn người thanh toán",
+    "split": {
+      "equal": "Chia đều",
+      "equalDesc": "Mỗi người trả cùng số tiền",
+      "by_item": "Tự trả phần mình",
+      "byItem": "Tự trả phần mình",
+      "byItemDesc": "Mỗi người trả cho món của mình",
+      "custom": "Tùy chỉnh",
+      "customDesc": "Đặt tỷ lệ tùy chỉnh cho mỗi người",
+      "single_payer": "Một người trả",
+      "singlePayer": "Một người trả",
+      "singlePayerDesc": "Một người trả cho tất cả"
+    }
   }
 }
