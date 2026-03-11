@@ -394,8 +394,8 @@ const addToRecentRestaurants = async (qrData: {
     // 這裡應該從API獲取餐廳資訊，暫時使用模擬數據
     const restaurantInfo = {
       id: qrData.restaurantId,
-      name: `餐廳 ${qrData.restaurantId}`,
-      address: "地址資訊",
+      name: `餐廳 ${qrData.restaurantId}`, // TODO: Replace with API data
+      address: "地址資訊", // TODO: Replace with API data
       lastVisit: Date.now(),
     };
 

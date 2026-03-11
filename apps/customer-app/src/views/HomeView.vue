@@ -310,7 +310,7 @@ onMounted(() => {
 const startQRScan = () => {
   // 檢查設備支援
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    toast.error("您的設備不支援相機功能");
+    toast.error(t("toast.cameraNotSupported"));
     return;
   }
 

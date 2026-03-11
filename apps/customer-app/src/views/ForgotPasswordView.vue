@@ -231,7 +231,7 @@ const handleSubmit = async () => {
     }
   } catch (err) {
     console.error("Forgot password error:", err);
-    error.value = "網路錯誤，請檢查您的網路連線";
+    error.value = t("messages.networkError");
   } finally {
     isLoading.value = false;
   }

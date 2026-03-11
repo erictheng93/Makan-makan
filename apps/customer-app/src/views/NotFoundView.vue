@@ -18,22 +18,24 @@
         </svg>
       </div>
 
-      <h1 class="text-2xl font-bold text-gray-900 mb-4">頁面不存在</h1>
-      <p class="text-gray-600 mb-8">很抱歉，您要查找的頁面不存在或已被移除。</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-4">
+        {{ t("errorBoundary.notFoundTitle") }}
+      </h1>
+      <p class="text-gray-600 mb-8">{{ t("errorBoundary.notFoundMessage") }}</p>
 
       <div class="space-y-4">
         <button
           class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
           @click="goBack"
         >
-          回到上一頁
+          {{ t("common.back") }}
         </button>
 
         <button
           class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
           @click="goHome"
         >
-          回到首頁
+          {{ t("common.home") }}
         </button>
       </div>
     </div>
@@ -42,8 +44,10 @@
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
+const { t } = useI18n();
 
 const goBack = () => {
   window.history.back();
