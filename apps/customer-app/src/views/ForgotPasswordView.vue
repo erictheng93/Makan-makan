@@ -10,9 +10,11 @@
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">忘記密碼</h2>
+        <h2 class="text-3xl font-bold text-gray-900">
+          {{ t("auth.forgotPasswordTitle") }}
+        </h2>
         <p class="mt-2 text-sm text-gray-600">
-          輸入您的 Email 地址，我們將發送重設密碼的連結給您
+          {{ t("auth.forgotPasswordDesc") }}
         </p>
       </div>
 
@@ -40,7 +42,7 @@
               {{ successMessage }}
             </p>
             <p class="text-xs text-green-700 mt-1">
-              請檢查您的郵箱，連結有效期限為 15 分鐘
+              {{ t("auth.checkEmailInfo") }}
             </p>
           </div>
         </div>
@@ -48,7 +50,7 @@
           class="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           @click="$router.push('/login')"
         >
-          返回登入
+          {{ t("auth.backToLogin") }}
         </button>
       </div>
 
@@ -61,7 +63,7 @@
               for="email"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              Email 地址
+              {{ t("auth.emailAddress") }}
             </label>
             <input
               id="email"
@@ -71,7 +73,7 @@
               autocomplete="email"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.email }"
-              placeholder="your@email.com"
+              :placeholder="t('auth.emailPlaceholderForgot')"
             />
             <p v-if="errors.email" class="mt-1 text-sm text-red-600">
               {{ errors.email }}
@@ -129,7 +131,9 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>{{ isLoading ? "發送中..." : "發送重設連結" }}</span>
+              <span>{{
+                isLoading ? t("auth.sending") : t("auth.sendResetLink")
+              }}</span>
             </button>
           </div>
 
@@ -139,7 +143,7 @@
               to="/login"
               class="text-sm text-orange-600 hover:text-orange-700 font-medium"
             >
-              ← 返回登入
+              {{ t("auth.backToLoginArrow") }}
             </router-link>
           </div>
         </form>
@@ -147,11 +151,11 @@
 
       <!-- 提示訊息 -->
       <div class="text-center text-sm text-gray-600">
-        <p>沒有收到郵件？</p>
+        <p>{{ t("auth.noEmailReceived") }}</p>
         <ul class="mt-2 space-y-1 text-xs">
-          <li>• 請檢查垃圾郵件資料夾</li>
-          <li>• 確認 Email 地址是否正確</li>
-          <li>• 等待幾分鐘後再嘗試</li>
+          <li>• {{ t("auth.checkSpam") }}</li>
+          <li>• {{ t("auth.confirmEmailCorrect") }}</li>
+          <li>• {{ t("auth.waitAndRetry") }}</li>
         </ul>
       </div>
     </div>
@@ -161,8 +165,10 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
 const _router = useRouter();
+const { t } = useI18n();
 
 const form = reactive({
   email: "",
@@ -184,10 +190,10 @@ const validateForm = () => {
   // Email 驗證
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!form.email) {
-    errors.email = "請輸入 Email 地址";
+    errors.email = t("auth.emailRequired");
     isValid = false;
   } else if (!emailRegex.test(form.email)) {
-    errors.email = "請輸入有效的 Email 地址";
+    errors.email = t("auth.invalidEmailAddress");
     isValid = false;
   }
 
@@ -219,9 +225,9 @@ const handleSubmit = async () => {
 
     if (data.success) {
       success.value = true;
-      successMessage.value = data.message || "重設連結已發送至您的 Email";
+      successMessage.value = data.message || t("auth.resetLinkSent");
     } else {
-      error.value = data.error || "發送重設連結失敗，請稍後再試";
+      error.value = data.error || t("auth.resetLinkFailed");
     }
   } catch (err) {
     console.error("Forgot password error:", err);

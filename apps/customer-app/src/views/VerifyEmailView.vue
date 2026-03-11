@@ -10,7 +10,9 @@
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">Email 驗證</h2>
+        <h2 class="text-3xl font-bold text-gray-900">
+          {{ t("auth.verifyEmail") }}
+        </h2>
       </div>
 
       <!-- 驗證中 -->
@@ -37,8 +39,10 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        <p class="mt-4 text-lg font-medium text-gray-900">驗證中...</p>
-        <p class="mt-2 text-sm text-gray-600">請稍候，正在驗證您的 Email</p>
+        <p class="mt-4 text-lg font-medium text-gray-900">
+          {{ t("auth.verifying") }}
+        </p>
+        <p class="mt-2 text-sm text-gray-600">{{ t("auth.verifyingDesc") }}</p>
       </div>
 
       <!-- 驗證成功 -->
@@ -61,18 +65,22 @@
               />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-gray-900">Email 驗證成功！</h3>
+          <h3 class="text-2xl font-bold text-gray-900">
+            {{ t("auth.verifySuccess") }}
+          </h3>
           <p class="mt-3 text-gray-600">{{ successMessage }}</p>
 
           <div
             class="mt-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-lg text-left"
           >
-            <p class="text-sm text-green-800 font-medium">您現在可以：</p>
+            <p class="text-sm text-green-800 font-medium">
+              {{ t("auth.verifyNowYouCan") }}
+            </p>
             <ul class="mt-2 text-sm text-green-700 space-y-1">
-              <li>✅ 使用完整的訂餐功能</li>
-              <li>✅ 查看訂單歷史記錄</li>
-              <li>✅ 享有專屬優惠和積分</li>
-              <li>✅ 獲得優先客服支援</li>
+              <li>✅ {{ t("auth.verifyFullOrdering") }}</li>
+              <li>✅ {{ t("auth.verifyManageProfile") }}</li>
+              <li>✅ {{ t("auth.verifyOrderHistory") }}</li>
+              <li>✅ {{ t("auth.verifyExclusive") }}</li>
             </ul>
           </div>
 
@@ -81,13 +89,13 @@
               class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
               @click="handleContinue"
             >
-              開始訂餐
+              {{ t("auth.startOrdering") }}
             </button>
             <button
               class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
               @click="$router.push('/profile')"
             >
-              查看個人資料
+              {{ t("auth.viewProfile") }}
             </button>
           </div>
         </div>
@@ -113,17 +121,21 @@
               />
             </svg>
           </div>
-          <h3 class="text-xl font-bold text-gray-900">驗證失敗</h3>
+          <h3 class="text-xl font-bold text-gray-900">
+            {{ t("auth.verifyFailed") }}
+          </h3>
           <p class="mt-3 text-gray-600">{{ errorMessage }}</p>
 
           <div
             class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg text-left"
           >
-            <p class="text-sm text-yellow-800 font-medium">可能的原因：</p>
+            <p class="text-sm text-yellow-800 font-medium">
+              {{ t("auth.possibleReasons") }}
+            </p>
             <ul class="mt-2 text-sm text-yellow-700 space-y-1">
-              <li>• 驗證連結已過期（有效期 24 小時）</li>
-              <li>• 驗證連結已被使用</li>
-              <li>• 驗證連結格式不正確</li>
+              <li>• {{ t("auth.linkExpired") }}</li>
+              <li>• {{ t("auth.linkUsed") }}</li>
+              <li>• {{ t("auth.linkInvalidReason") }}</li>
             </ul>
           </div>
 
@@ -134,13 +146,13 @@
               :class="{ 'opacity-50 cursor-not-allowed': resending }"
               @click="resendVerification"
             >
-              {{ resending ? "發送中..." : "重新發送驗證郵件" }}
+              {{ resending ? t("auth.sending") : t("auth.resendVerification") }}
             </button>
             <button
               class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
               @click="$router.push('/login')"
             >
-              返回登入
+              {{ t("auth.backToLogin") }}
             </button>
           </div>
         </div>
@@ -153,10 +165,12 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const verifying = ref(true);
 const success = ref(false);
@@ -171,18 +185,18 @@ const verifyEmail = async (token: string) => {
 
     if (data.success) {
       success.value = true;
-      successMessage.value = data.message || "Email 驗證成功！";
+      successMessage.value = data.message || t("auth.verifySuccess");
 
       // If user is logged in, refresh their profile
       if (authStore.isAuthenticated) {
         await authStore.fetchUserProfile();
       }
     } else {
-      errorMessage.value = data.error || "Email 驗證失敗";
+      errorMessage.value = data.error || t("auth.verifyError");
     }
   } catch (err) {
     console.error("Verify email error:", err);
-    errorMessage.value = "驗證過程中發生錯誤，請稍後再試";
+    errorMessage.value = t("auth.verifyError");
   } finally {
     verifying.value = false;
   }
@@ -236,7 +250,7 @@ onMounted(() => {
   const token = route.query.token as string;
 
   if (!token) {
-    errorMessage.value = "缺少驗證 Token";
+    errorMessage.value = t("auth.missingVerifyToken");
     verifying.value = false;
     return;
   }

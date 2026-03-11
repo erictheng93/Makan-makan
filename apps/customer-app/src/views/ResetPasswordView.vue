@@ -10,9 +10,11 @@
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">重設密碼</h2>
+        <h2 class="text-3xl font-bold text-gray-900">
+          {{ t("auth.resetPassword") }}
+        </h2>
         <p v-if="!tokenError && !success" class="mt-2 text-sm text-gray-600">
-          為帳號 <span class="font-medium">{{ maskedEmail }}</span> 設定新密碼
+          {{ tWithParams("auth.resetPasswordDesc", { username: maskedEmail }) }}
         </p>
       </div>
 
@@ -40,7 +42,7 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        <p class="mt-4 text-gray-600">驗證連結中...</p>
+        <p class="mt-4 text-gray-600">{{ t("auth.verifyingLink") }}</p>
       </div>
 
       <!-- Token 錯誤 -->
@@ -60,7 +62,7 @@
             />
           </svg>
           <h3 class="mt-4 text-lg font-medium text-gray-900">
-            連結無效或已過期
+            {{ t("auth.linkInvalid") }}
           </h3>
           <p class="mt-2 text-sm text-gray-600">{{ tokenError }}</p>
           <div class="mt-6 space-y-3">
@@ -68,13 +70,13 @@
               class="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
               @click="$router.push('/forgot-password')"
             >
-              重新發送連結
+              {{ t("auth.resendLink") }}
             </button>
             <button
               class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
               @click="$router.push('/login')"
             >
-              返回登入
+              {{ t("auth.backToLogin") }}
             </button>
           </div>
         </div>
@@ -96,13 +98,15 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">密碼重設成功！</h3>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">
+            {{ t("auth.resetSuccess") }}
+          </h3>
           <p class="mt-2 text-sm text-gray-600">{{ successMessage }}</p>
           <button
             class="mt-6 w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
             @click="$router.push('/login')"
           >
-            前往登入
+            {{ t("auth.goToLogin") }}
           </button>
         </div>
       </div>
@@ -116,7 +120,7 @@
               for="newPassword"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              新密碼
+              {{ t("auth.newPassword") }}
             </label>
             <div class="relative">
               <input
@@ -127,7 +131,7 @@
                 autocomplete="new-password"
                 class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                 :class="{ 'border-red-500': errors.newPassword }"
-                placeholder="至少 6 個字符"
+                :placeholder="t('auth.newPasswordPlaceholder')"
               />
               <button
                 type="button"
@@ -198,7 +202,7 @@
               for="confirmPassword"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              確認密碼
+              {{ t("auth.confirmPassword") }}
             </label>
             <div class="relative">
               <input
@@ -209,7 +213,7 @@
                 autocomplete="new-password"
                 class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                 :class="{ 'border-red-500': errors.confirmPassword }"
-                placeholder="再次輸入密碼"
+                :placeholder="t('auth.confirmPasswordPlaceholder')"
               />
               <button
                 type="button"
@@ -308,7 +312,9 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>{{ isLoading ? "重設中..." : "重設密碼" }}</span>
+              <span>{{
+                isLoading ? t("auth.resetting") : t("auth.resetPassword")
+              }}</span>
             </button>
           </div>
         </form>
@@ -320,9 +326,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
 const _router = useRouter();
 const route = useRoute();
+const { t, tWithParams } = useI18n();
 
 const form = reactive({
   newPassword: "",
@@ -380,11 +388,11 @@ const passwordStrengthTextColor = computed(() => {
 });
 
 const passwordStrengthText = computed(() => {
-  if (passwordStrength.value <= 1) return "弱";
-  if (passwordStrength.value <= 2) return "中等";
-  if (passwordStrength.value <= 3) return "良好";
-  if (passwordStrength.value <= 4) return "強";
-  return "非常強";
+  if (passwordStrength.value <= 1) return t("auth.passwordStrength.weak");
+  if (passwordStrength.value <= 2) return t("auth.passwordStrength.medium");
+  if (passwordStrength.value <= 3) return t("auth.passwordStrength.good");
+  if (passwordStrength.value <= 4) return t("auth.passwordStrength.strong");
+  return t("auth.passwordStrength.veryStrong");
 });
 
 const validateForm = () => {
@@ -394,19 +402,19 @@ const validateForm = () => {
 
   // 新密碼驗證
   if (!form.newPassword) {
-    errors.newPassword = "請輸入新密碼";
+    errors.newPassword = t("auth.passwordRequired");
     isValid = false;
   } else if (form.newPassword.length < 6) {
-    errors.newPassword = "密碼至少需要 6 個字符";
+    errors.newPassword = t("auth.passwordMinLength");
     isValid = false;
   }
 
   // 確認密碼驗證
   if (!form.confirmPassword) {
-    errors.confirmPassword = "請再次輸入密碼";
+    errors.confirmPassword = t("auth.confirmPasswordRequired");
     isValid = false;
   } else if (form.newPassword !== form.confirmPassword) {
-    errors.confirmPassword = "兩次輸入的密碼不一致";
+    errors.confirmPassword = t("auth.passwordMismatch");
     isValid = false;
   }
 
@@ -423,11 +431,11 @@ const verifyToken = async () => {
     if (data.valid) {
       maskedEmail.value = data.email || "";
     } else {
-      tokenError.value = data.error || "Token 無效或已過期";
+      tokenError.value = data.error || t("auth.tokenInvalid");
     }
   } catch (err) {
     console.error("Verify token error:", err);
-    tokenError.value = "驗證 Token 時發生錯誤";
+    tokenError.value = t("auth.tokenVerifyError");
   } finally {
     verifying.value = false;
   }
@@ -459,9 +467,9 @@ const handleSubmit = async () => {
 
     if (data.success) {
       success.value = true;
-      successMessage.value = data.message || "密碼已成功重設，請重新登入";
+      successMessage.value = data.message || t("auth.resetPasswordMessage");
     } else {
-      error.value = data.error || "重設密碼失敗，請稍後再試";
+      error.value = data.error || t("auth.resetPasswordFailed");
     }
   } catch (err) {
     console.error("Reset password error:", err);
@@ -476,7 +484,7 @@ onMounted(() => {
   token.value = route.query.token as string;
 
   if (!token.value) {
-    tokenError.value = "缺少 Token 參數";
+    tokenError.value = t("auth.missingToken");
     verifying.value = false;
     return;
   }
