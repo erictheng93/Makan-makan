@@ -18,6 +18,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+.env.development
 .dev.vars
 
 # IDE files
