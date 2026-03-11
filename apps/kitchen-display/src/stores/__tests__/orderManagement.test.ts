@@ -797,6 +797,99 @@ describe("OrderManagement Store", () => {
     });
   });
 
+  describe("Order Type Filtering", () => {
+    it("should filter orders by orderType 'takeaway'", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { deliveryInfo: { type: "dine_in" } }),
+        createMockOrder(2, { deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(3, { deliveryInfo: { type: "delivery" } }),
+      ];
+
+      store.setFilter("orderTypes", ["takeaway"]);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].deliveryInfo?.type).toBe("takeaway");
+    });
+
+    it("should filter orders by orderType 'delivery'", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { deliveryInfo: { type: "dine_in" } }),
+        createMockOrder(2, { deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(3, { deliveryInfo: { type: "delivery" } }),
+      ];
+
+      store.setFilter("orderTypes", ["delivery"]);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].deliveryInfo?.type).toBe("delivery");
+    });
+
+    it("should filter orders by multiple orderTypes", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { deliveryInfo: { type: "dine_in" } }),
+        createMockOrder(2, { deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(3, { deliveryInfo: { type: "delivery" } }),
+      ];
+
+      store.setFilter("orderTypes", ["takeaway", "delivery"]);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(2);
+      expect(filtered.map((o) => o.deliveryInfo?.type)).toEqual(
+        expect.arrayContaining(["takeaway", "delivery"]),
+      );
+    });
+
+    it("should show all orders when orderTypes filter is empty", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { deliveryInfo: { type: "dine_in" } }),
+        createMockOrder(2, { deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(3, { deliveryInfo: { type: "delivery" } }),
+      ];
+
+      store.setFilter("orderTypes", []);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(3);
+    });
+
+    it("should treat orders without deliveryInfo as dine_in for filtering", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1), // no deliveryInfo — defaults to dine_in
+        createMockOrder(2, { deliveryInfo: { type: "takeaway" } }),
+      ];
+
+      store.setFilter("orderTypes", ["dine_in"]);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe(1);
+    });
+
+    it("should combine orderType filter with status filter", () => {
+      const store = useOrderManagementStore();
+      const orders = [
+        createMockOrder(1, { status: 1, deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(2, { status: 2, deliveryInfo: { type: "takeaway" } }),
+        createMockOrder(3, { status: 1, deliveryInfo: { type: "dine_in" } }),
+      ];
+
+      store.setFilter("orderTypes", ["takeaway"]);
+      store.setFilter("status", [1]);
+      const filtered = store.filterOrders(orders);
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe(1);
+    });
+  });
+
   describe("Edge Cases", () => {
     it("should handle empty orders array", () => {
       const store = useOrderManagementStore();

@@ -724,4 +724,72 @@ describe("OrderCard Component", () => {
       expect(wrapper.text()).toContain("不要蔥");
     });
   });
+
+  describe("Delivery Badge", () => {
+    it("should display dine-in badge (blue) when no deliveryInfo", () => {
+      const order = createMockOrder();
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const html = wrapper.html();
+      expect(html).toContain("bg-blue-100");
+      expect(html).toContain("text-blue-800");
+      expect(wrapper.text()).toContain("內用");
+    });
+
+    it("should display dine-in badge when deliveryInfo.type is 'dine_in'", () => {
+      const order = createMockOrder({
+        deliveryInfo: { type: "dine_in" },
+      });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const html = wrapper.html();
+      expect(html).toContain("bg-blue-100");
+      expect(html).toContain("text-blue-800");
+      expect(wrapper.text()).toContain("內用");
+    });
+
+    it("should display takeaway badge (green) when deliveryInfo.type is 'takeaway'", () => {
+      const order = createMockOrder({
+        deliveryInfo: { type: "takeaway" },
+      });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const html = wrapper.html();
+      expect(html).toContain("bg-green-100");
+      expect(html).toContain("text-green-800");
+      expect(wrapper.text()).toContain("外帶");
+    });
+
+    it("should display delivery badge (amber) when deliveryInfo.type is 'delivery'", () => {
+      const order = createMockOrder({
+        deliveryInfo: { type: "delivery" },
+      });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const html = wrapper.html();
+      expect(html).toContain("bg-amber-100");
+      expect(html).toContain("text-amber-800");
+      expect(wrapper.text()).toContain("外送");
+    });
+
+    it("should handle missing deliveryInfo gracefully (default to dine_in)", () => {
+      const order = createMockOrder({ deliveryInfo: undefined });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      // Should render without errors and default to dine_in badge
+      expect(wrapper.exists()).toBe(true);
+      expect(wrapper.html()).toContain("bg-blue-100");
+      expect(wrapper.text()).toContain("內用");
+    });
+  });
 });

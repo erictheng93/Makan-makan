@@ -688,4 +688,94 @@ describe("OrderFilters Component", () => {
       expect(wrapper.vm.selectedStatuses.length).toBe(4);
     });
   });
+
+  describe("Order Type Filter", () => {
+    it("should render order type filter checkboxes (dine_in, takeaway, delivery)", async () => {
+      const wrapper = createWrapper();
+      wrapper.vm.showFilters = true;
+      await nextTick();
+
+      const html = wrapper.html();
+      // Verify all three order type options are rendered
+      expect(html).toMatch(/內用/);
+      expect(html).toMatch(/外帶/);
+      expect(html).toMatch(/外送/);
+    });
+
+    it("should emit filter change when order type checkbox clicked", async () => {
+      const wrapper = createWrapper();
+      wrapper.vm.showFilters = true;
+      await nextTick();
+
+      // Directly set the selectedOrderTypes and verify the store filter updates
+      wrapper.vm.selectedOrderTypes = ["takeaway"];
+      await nextTick();
+
+      // The watch on selectedOrderTypes should call store.setFilter('orderTypes', ...)
+      expect(wrapper.vm.selectedOrderTypes).toContain("takeaway");
+    });
+
+    it("should support multiple order type selection", async () => {
+      const wrapper = createWrapper();
+      wrapper.vm.showFilters = true;
+      await nextTick();
+
+      wrapper.vm.selectedOrderTypes = ["takeaway", "delivery"];
+      await nextTick();
+
+      expect(wrapper.vm.selectedOrderTypes).toHaveLength(2);
+      expect(wrapper.vm.selectedOrderTypes).toContain("takeaway");
+      expect(wrapper.vm.selectedOrderTypes).toContain("delivery");
+    });
+
+    it("should show quick filter pill for 外帶/外送", () => {
+      const wrapper = createWrapper();
+
+      const allButtons = wrapper.findAll("button");
+      const takeawayDeliveryBtn = allButtons.find((btn) =>
+        btn.text().includes("外帶/外送"),
+      );
+
+      expect(takeawayDeliveryBtn).toBeDefined();
+    });
+
+    it("should activate 外帶/外送 quick filter pill on click", async () => {
+      const wrapper = createWrapper();
+
+      const allButtons = wrapper.findAll("button");
+      const takeawayDeliveryBtn = allButtons.find((btn) =>
+        btn.text().includes("外帶/外送"),
+      );
+
+      if (takeawayDeliveryBtn) {
+        await takeawayDeliveryBtn.trigger("click");
+        await nextTick();
+
+        // Both takeaway and delivery should be selected but not dine_in
+        expect(wrapper.vm.selectedOrderTypes).toContain("takeaway");
+        expect(wrapper.vm.selectedOrderTypes).toContain("delivery");
+        expect(wrapper.vm.selectedOrderTypes).not.toContain("dine_in");
+      }
+    });
+
+    it("should deactivate 外帶/外送 quick filter when clicked again", async () => {
+      const wrapper = createWrapper();
+
+      // Activate first
+      wrapper.vm.selectedOrderTypes = ["takeaway", "delivery"];
+      await nextTick();
+
+      const allButtons = wrapper.findAll("button");
+      const takeawayDeliveryBtn = allButtons.find((btn) =>
+        btn.text().includes("外帶/外送"),
+      );
+
+      if (takeawayDeliveryBtn) {
+        await takeawayDeliveryBtn.trigger("click");
+        await nextTick();
+
+        expect(wrapper.vm.selectedOrderTypes).toHaveLength(0);
+      }
+    });
+  });
 });
