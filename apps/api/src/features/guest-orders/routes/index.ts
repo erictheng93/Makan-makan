@@ -147,7 +147,7 @@ app.post("/", async (c) => {
         notes: item.notes,
       })),
       notes: data.notes,
-      orderType: fulfillmentType,
+      orderType: data.orderType,
       deliveryInfo: {
         type: fulfillmentType,
         address: data.deliveryInfo?.address,

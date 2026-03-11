@@ -150,6 +150,36 @@
       </div>
     </div>
 
+    <!-- Delivery/Takeaway Info -->
+    <div
+      v-if="order.deliveryInfo?.type === 'delivery'"
+      class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+    >
+      <div class="text-sm text-blue-800 space-y-1">
+        <div class="font-medium">&#x1F6F5; 外送資訊</div>
+        <div v-if="order.deliveryInfo.address">
+          &#x1F4CD; {{ order.deliveryInfo.address }}
+        </div>
+        <div v-if="order.deliveryInfo.phone">
+          &#x1F4DE; {{ order.deliveryInfo.phone }}
+        </div>
+        <div
+          v-if="order.deliveryInfo.instructions"
+          class="text-blue-600 italic"
+        >
+          &#x1F4AC; {{ order.deliveryInfo.instructions }}
+        </div>
+      </div>
+    </div>
+    <div
+      v-else-if="order.deliveryInfo?.type === 'takeaway'"
+      class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg"
+    >
+      <div class="text-sm text-green-800 font-medium">
+        &#x1F6CD;&#xFE0F; 外帶訂單 — 請準備打包
+      </div>
+    </div>
+
     <!-- Order Actions -->
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-2">

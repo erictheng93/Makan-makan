@@ -41,7 +41,30 @@ const orderItemStatusSchema = z.enum([
   "delivered",
 ]);
 
-const orderTypeSchema = z.enum(["dine_in", "takeaway", "delivery"]);
+const orderTypeSchema = z.enum(["shop", "table", "seat"]);
+
+const fulfillmentTypeSchema = z.enum(["dine_in", "takeaway", "delivery"]);
+
+const deliveryInfoSchema = z
+  .object({
+    type: fulfillmentTypeSchema,
+    address: z.string().max(200).optional(),
+    phone: z.string().max(20).optional(),
+    instructions: z.string().max(500).optional(),
+    deliveryFee: z.number().min(0).optional(),
+    estimatedDeliveryTime: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.type === "delivery") {
+        return !!data.address && !!data.phone;
+      }
+      return true;
+    },
+    {
+      message: "Address and phone are required for delivery orders",
+    },
+  );
 
 // Customer information schema
 const customerInfoSchema = z
@@ -104,7 +127,8 @@ export const createOrderSchema = z.object({
   customerInfo: customerInfoSchema,
   items: z.array(createOrderItemSchema).min(1).max(50),
   notes: z.string().max(500).optional(),
-  orderType: orderTypeSchema.default("dine_in"),
+  orderType: orderTypeSchema.default("shop"),
+  deliveryInfo: deliveryInfoSchema.optional(),
   scheduledTime: dateStringSchema,
   couponCode: z.string().max(50).optional(),
 });
@@ -161,6 +185,7 @@ export const orderFilterSchema = z.object({
     ])
     .optional(),
   orderType: orderTypeSchema.optional(),
+  fulfillmentType: fulfillmentTypeSchema.optional(),
   tableId: z.string().regex(/^\d+$/).transform(Number).optional(),
   customerId: z.string().regex(/^\d+$/).transform(Number).optional(),
   customerName: z.string().max(100).optional(),
@@ -412,6 +437,7 @@ export const kitchenOrderFilterSchema = z.object({
   preparationTime: z.enum(["overdue", "soon", "normal"]).optional(),
   assignedTo: optionalIdSchema,
   orderType: orderTypeSchema.optional(),
+  fulfillmentType: fulfillmentTypeSchema.optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default("50"),
 });
 
@@ -580,6 +606,9 @@ export const orderSchemas = {
   export: exportOrdersSchema, // For export validation
 };
 
+// Export delivery-related schemas
+export { deliveryInfoSchema, fulfillmentTypeSchema };
+
 // Export input types for TypeScript
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
@@ -589,3 +618,4 @@ export type CouponPreviewInput = z.infer<typeof previewCouponSchema>;
 export type BulkOrderOperationInput = z.infer<typeof bulkOrderOperationSchema>;
 export type AnalyticsQueryInput = z.infer<typeof orderStatsQuerySchema>;
 export type StatsQueryInput = z.infer<typeof orderStatsQuerySchema>;
+export type DeliveryInfoInput = z.infer<typeof deliveryInfoSchema>;

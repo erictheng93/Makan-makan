@@ -59,7 +59,7 @@ export interface CreateOrderData {
   };
   items: OrderItemData[];
   notes?: string;
-  orderType?: "dine_in" | "takeaway" | "delivery";
+  orderType?: "shop" | "table" | "seat";
   orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
@@ -70,6 +70,7 @@ export interface CreateOrderData {
     phone?: string;
     instructions?: string;
     deliveryFee?: number;
+    estimatedDeliveryTime?: number;
   };
 }
 
@@ -131,7 +132,8 @@ export interface OrderQueryFilters {
   restaurantId?: string;
   status?: OrderStatus[];
   paymentStatus?: OrderPaymentStatus[];
-  orderType?: "dine_in" | "takeaway" | "delivery";
+  orderType?: "shop" | "table" | "seat";
+  fulfillmentType?: "dine_in" | "takeaway" | "delivery";
   tableId?: number;
   customerId?: number;
   customerName?: string;

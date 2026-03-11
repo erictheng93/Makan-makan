@@ -117,7 +117,7 @@ const mockOrder = {
   status: "pending" as any, // Use string status for validation
   paymentStatus: OrderPaymentStatus.PENDING,
   paymentMethod: "card",
-  orderType: "dine_in",
+  orderType: "shop",
   notes: "Test order",
   items: [],
   couponCode: undefined,
@@ -141,7 +141,7 @@ const mockCreateOrderData: CreateOrderData = {
     },
   ],
   notes: "Test order",
-  orderType: "dine_in",
+  orderType: "shop",
 };
 
 describe("Orders Feature", () => {
@@ -531,7 +531,7 @@ describe("Orders Feature", () => {
               price: 1000,
             },
           ],
-          orderType: "dine_in",
+          orderType: "shop",
         };
 
         // Act

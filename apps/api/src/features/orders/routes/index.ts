@@ -240,6 +240,7 @@ app.post(
         })),
         notes: data.notes,
         orderType: data.orderType,
+        deliveryInfo: data.deliveryInfo,
         scheduledTime: data.scheduledTime
           ? new Date(data.scheduledTime)
           : undefined,
