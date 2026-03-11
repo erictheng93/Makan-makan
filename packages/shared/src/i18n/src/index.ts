@@ -12,10 +12,10 @@ import type {
   KitchenDisplayMessages,
   TranslationCompletenessCheck,
 } from "./types";
+import { SUPPORTED_LOCALES } from "./types";
 
 // Import locale configurations
 export * from "./types";
-export { SUPPORTED_LOCALES } from "./types";
 
 /**
  * Locale detection and storage utilities
@@ -55,6 +55,8 @@ export class LocaleManager {
             return "ms-MY";
           case "id":
             return "id-ID";
+          case "vi":
+            return "vi-VN";
           case "en":
           default:
             return "en-US";
@@ -90,10 +92,8 @@ export class LocaleManager {
    * Get locale information
    */
   static getLocaleInfo(locale: SupportedLocale): LocaleInfo {
-    const { SUPPORTED_LOCALES } = require("./types");
     return (
-      SUPPORTED_LOCALES.find((l: any) => l.code === locale) ||
-      SUPPORTED_LOCALES[0]
+      SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0]
     );
   }
 
@@ -101,21 +101,13 @@ export class LocaleManager {
    * Check if locale is valid
    */
   static isValidLocale(locale: string): boolean {
-    const validLocales: SupportedLocale[] = [
-      "en-US",
-      "zh-TW",
-      "zh-CN",
-      "ms-MY",
-      "id-ID",
-    ];
-    return validLocales.includes(locale as SupportedLocale);
+    return SUPPORTED_LOCALES.some((l) => l.code === locale);
   }
 
   /**
    * Get available locales for selection UI
    */
   static getAvailableLocales(): LocaleInfo[] {
-    const { SUPPORTED_LOCALES } = require("./types");
     return SUPPORTED_LOCALES;
   }
 }

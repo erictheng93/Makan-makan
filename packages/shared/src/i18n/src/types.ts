@@ -3,7 +3,13 @@
  * Type-safe internationalization system
  */
 
-export type SupportedLocale = "en-US" | "zh-TW" | "zh-CN" | "ms-MY" | "id-ID";
+export type SupportedLocale =
+  | "en-US"
+  | "zh-TW"
+  | "zh-CN"
+  | "ms-MY"
+  | "id-ID"
+  | "vi-VN";
 
 export interface LocaleInfo {
   code: SupportedLocale;
@@ -169,7 +175,38 @@ export interface AdminMessageSchema extends BaseMessageSchema {
 /**
  * Message schemas for different apps
  */
-export type CustomerAppMessages = RestaurantMessageSchema;
+export interface CustomerAppMessages extends BaseMessageSchema {
+  navigation: Record<string, string>;
+  home: Record<string, any>;
+  qrScan: Record<string, string>;
+  menu: Record<string, string>;
+  menuItem: Record<string, string>;
+  customization: Record<string, string>;
+  cart: Record<string, any>;
+  order: Record<string, any>;
+  service: Record<string, any>;
+  payment: Record<string, any>;
+  profile: Record<string, string>;
+  restaurant: Record<string, string>;
+  about: Record<string, any>;
+  privacy: Record<string, any>;
+  terms: Record<string, any>;
+  errors: Record<string, string>;
+  time: Record<string, string>;
+  auth: Record<string, any>;
+  toast: Record<string, string>;
+  orderTracking: Record<string, any>;
+  orderHistory: Record<string, any>;
+  shopCart: Record<string, any>;
+  errorBoundary: Record<string, string>;
+  manualInput: Record<string, string>;
+  qrScanView: Record<string, string>;
+  shopMenu: Record<string, string>;
+  phoneVerification: Record<string, any>;
+  menuItemCard: Record<string, string>;
+  menuItemModal: Record<string, any>;
+  orderItem: Record<string, string>;
+}
 export type AdminDashboardMessages = AdminMessageSchema &
   RestaurantMessageSchema;
 export type KitchenDisplayMessages = RestaurantMessageSchema;
@@ -227,6 +264,16 @@ export const SUPPORTED_LOCALES: LocaleInfo[] = [
     dateFormat: "dd/MM/yyyy",
     currencyCode: "IDR",
     currencySymbol: "Rp",
+  },
+  {
+    code: "vi-VN",
+    name: "Vietnamese",
+    nativeName: "Tiếng Việt",
+    flag: "🇻🇳",
+    direction: "ltr",
+    dateFormat: "dd/MM/yyyy",
+    currencyCode: "VND",
+    currencySymbol: "₫",
   },
 ];
 

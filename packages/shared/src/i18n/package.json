@@ -9,6 +9,10 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./static-messages": {
+      "import": "./dist/static-messages.js",
+      "types": "./dist/static-messages.d.ts"
+    },
     "./locales/*": "./src/locales/*"
   },
   "scripts": {
