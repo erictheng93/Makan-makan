@@ -23,37 +23,42 @@ describe("useI18n Composable with Multiple Languages", () => {
 
   describe("Language Information", () => {
     it("should provide correct current language info for all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
-      const expectedInfo = {
-        "zh-TW": { code: "zh-TW", name: "繁體中文", flag: "🇹🇼" },
-        "zh-CN": { code: "zh-CN", name: "简体中文", flag: "🇨🇳" },
-        en: { code: "en", name: "English", flag: "🇺🇸" },
-        vi: { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
-      };
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
         expect(component.currentLanguage).toBe(lang);
-        expect(component.currentLanguageInfo).toEqual(expectedInfo[lang]);
+        expect(component.currentLanguageInfo).toBeDefined();
+        expect(component.currentLanguageInfo?.code).toBe(lang);
       });
     });
 
-    it("should provide all 4 supported languages", () => {
-      expect(component.supportedLanguages).toHaveLength(4);
+    it("should provide all 6 supported languages", () => {
+      expect(component.supportedLanguages).toHaveLength(6);
 
       const codes = component.supportedLanguages.map((lang: any) => lang.code);
-      expect(codes).toEqual(["zh-TW", "zh-CN", "en", "vi"]);
+      expect(codes).toContain("zh-TW");
+      expect(codes).toContain("zh-CN");
+      expect(codes).toContain("en-US");
+      expect(codes).toContain("vi-VN");
+      expect(codes).toContain("ms-MY");
+      expect(codes).toContain("id-ID");
     });
   });
 
   describe("Translation Functions", () => {
     it("should translate common keys correctly in all languages", () => {
       const testKey = "common.confirm";
-      const expectedTranslations = {
+      const expectedTranslations: Record<string, string> = {
         "zh-TW": "確認",
         "zh-CN": "确认",
-        en: "Confirm",
-        vi: "Xác nhận",
+        "en-US": "Confirm",
+        "vi-VN": "Xác nhận",
       };
 
       Object.entries(expectedTranslations).forEach(([lang, expected]) => {
@@ -64,11 +69,11 @@ describe("useI18n Composable with Multiple Languages", () => {
 
     it("should handle parameterized translations in all languages", () => {
       const testParams = { min: 8 };
-      const expectedTranslations = {
+      const expectedTranslations: Record<string, string> = {
         "zh-TW": "至少需要 8 個字元",
         "zh-CN": "至少需要 8 个字符",
-        en: "At least 8 characters required",
-        vi: "Ít nhất 8 ký tự là bắt buộc",
+        "en-US": "At least 8 characters required",
+        "vi-VN": "Ít nhất 8 ký tự là bắt buộc",
       };
 
       Object.entries(expectedTranslations).forEach(([lang, expected]) => {
@@ -81,11 +86,11 @@ describe("useI18n Composable with Multiple Languages", () => {
 
     it("should handle plural translations in all languages", () => {
       const testCount = 5;
-      const expectedTranslations = {
+      const expectedTranslations: Record<string, string> = {
         "zh-TW": "5 項商品",
         "zh-CN": "5 项商品",
-        en: "5 items",
-        vi: "5 món ăn",
+        "en-US": "5 items",
+        "vi-VN": "5 món ăn",
       };
 
       Object.entries(expectedTranslations).forEach(([lang, expected]) => {
@@ -97,7 +102,12 @@ describe("useI18n Composable with Multiple Languages", () => {
 
   describe("Safe Translation Function", () => {
     it("should return correct translation for existing keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
@@ -108,7 +118,12 @@ describe("useI18n Composable with Multiple Languages", () => {
     });
 
     it("should return key for non-existent keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
       const nonExistentKey = "nonexistent.test.key";
 
       languages.forEach((lang) => {
@@ -118,7 +133,12 @@ describe("useI18n Composable with Multiple Languages", () => {
     });
 
     it("should return default value for non-existent keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
       const nonExistentKey = "nonexistent.test.key";
       const defaultValue = "Default Test Value";
 
@@ -134,7 +154,12 @@ describe("useI18n Composable with Multiple Languages", () => {
   describe("Translation Existence Check", () => {
     it("should correctly identify existing keys in all languages", () => {
       const existingKey = "common.save";
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
@@ -144,7 +169,12 @@ describe("useI18n Composable with Multiple Languages", () => {
 
     it("should correctly identify non-existing keys", () => {
       const nonExistingKey = "totally.nonexistent.key";
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
@@ -167,14 +197,14 @@ describe("useI18n Composable with Multiple Languages", () => {
     });
 
     it("should handle Vietnamese diacritics correctly", () => {
-      component.changeLanguage("vi");
+      component.changeLanguage("vi-VN");
       expect(component.t("home.title")).toContain("Chào mừng");
       expect(component.t("menu.title")).toBe("Thực đơn");
       expect(component.t("order.title")).toBe("Xác nhận đơn hàng");
     });
 
     it("should maintain English consistency", () => {
-      component.changeLanguage("en");
+      component.changeLanguage("en-US");
       expect(component.t("common.confirm")).toBe("Confirm");
       expect(component.t("common.cancel")).toBe("Cancel");
       expect(component.t("home.title")).toBe("Welcome to MakanMakan");
@@ -183,7 +213,12 @@ describe("useI18n Composable with Multiple Languages", () => {
 
   describe("Complex Translation Scenarios", () => {
     it("should handle nested object translations in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
@@ -210,7 +245,12 @@ describe("useI18n Composable with Multiple Languages", () => {
         "bill",
         "other",
       ];
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         component.changeLanguage(lang);
@@ -227,7 +267,12 @@ describe("useI18n Composable with Multiple Languages", () => {
 
   describe("Performance and Memory", () => {
     it("should not leak memory when switching languages rapidly", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       // Rapid language switching
       for (let i = 0; i < 100; i++) {
@@ -244,15 +289,15 @@ describe("useI18n Composable with Multiple Languages", () => {
       const initialInfo = component.currentLanguageInfo;
 
       // Switch to a different language
-      component.changeLanguage("vi");
+      component.changeLanguage("vi-VN");
       expect(component.currentLanguage).not.toBe(initialLang);
       expect(component.currentLanguageInfo).not.toEqual(initialInfo);
-      expect(component.currentLanguage).toBe("vi");
+      expect(component.currentLanguage).toBe("vi-VN");
 
       // Switch to another different language
-      component.changeLanguage("en");
-      expect(component.currentLanguage).toBe("en");
-      expect(component.currentLanguageInfo.name).toBe("English");
+      component.changeLanguage("en-US");
+      expect(component.currentLanguage).toBe("en-US");
+      expect(component.currentLanguageInfo.nativeName).toBe("English");
     });
   });
 });

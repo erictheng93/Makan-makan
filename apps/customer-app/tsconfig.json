@@ -6,6 +6,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "paths": {
       "@/*": ["./src/*"],
+      "@makanmakan/i18n": ["../../packages/shared/src/i18n/src/index.ts"],
+      "@makanmakan/i18n/static-messages": [
+        "../../packages/shared/src/i18n/src/static-messages.ts"
+      ],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
       "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
       "@makanmakan/utils": ["../../packages/utils/src"],
@@ -16,7 +20,8 @@
     "src/**/*",
     "*.config.*",
     "../../packages/shared-types/src/**/*",
-    "../../packages/utils/src/**/*"
+    "../../packages/utils/src/**/*",
+    "../../packages/shared/src/i18n/src/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }

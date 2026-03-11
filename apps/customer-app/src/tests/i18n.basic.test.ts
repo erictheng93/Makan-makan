@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { i18n, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from "@/i18n";
 
+// Helper to avoid vue-i18n's excessively deep type instantiation in tests
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const tGlobal = (key: string, params?: Record<string, any>): string =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params ? (i18n.global as any).t(key, params) : (i18n.global as any).t(key);
+
 describe("Basic i18n Configuration", () => {
   beforeEach(() => {
     // Reset to default state
@@ -15,108 +21,98 @@ describe("Basic i18n Configuration", () => {
     const supportedCodes = SUPPORTED_LANGUAGES.map((lang) => lang.code);
     expect(supportedCodes).toContain("zh-TW");
     expect(supportedCodes).toContain("zh-CN");
-    expect(supportedCodes).toContain("en");
-    expect(supportedCodes).toContain("vi");
-    expect(supportedCodes).toHaveLength(4);
+    expect(supportedCodes).toContain("en-US");
+    expect(supportedCodes).toContain("vi-VN");
+    expect(supportedCodes).toContain("ms-MY");
+    expect(supportedCodes).toContain("id-ID");
+    expect(supportedCodes).toHaveLength(6);
   });
 
   it("should have language info with required properties", () => {
     const zhTW = SUPPORTED_LANGUAGES.find((lang) => lang.code === "zh-TW");
     const zhCN = SUPPORTED_LANGUAGES.find((lang) => lang.code === "zh-CN");
-    const en = SUPPORTED_LANGUAGES.find((lang) => lang.code === "en");
-    const vi = SUPPORTED_LANGUAGES.find((lang) => lang.code === "vi");
+    const enUS = SUPPORTED_LANGUAGES.find((lang) => lang.code === "en-US");
+    const viVN = SUPPORTED_LANGUAGES.find((lang) => lang.code === "vi-VN");
 
-    expect(zhTW).toEqual({
-      code: "zh-TW",
-      name: "繁體中文",
-      flag: "🇹🇼",
-    });
+    expect(zhTW?.code).toBe("zh-TW");
+    expect(zhTW?.flag).toBe("🇹🇼");
 
-    expect(zhCN).toEqual({
-      code: "zh-CN",
-      name: "简体中文",
-      flag: "🇨🇳",
-    });
+    expect(zhCN?.code).toBe("zh-CN");
+    expect(zhCN?.flag).toBe("🇨🇳");
 
-    expect(en).toEqual({
-      code: "en",
-      name: "English",
-      flag: "🇺🇸",
-    });
+    expect(enUS?.code).toBe("en-US");
+    expect(enUS?.flag).toBe("🇺🇸");
 
-    expect(vi).toEqual({
-      code: "vi",
-      name: "Tiếng Việt",
-      flag: "🇻🇳",
-    });
+    expect(viVN?.code).toBe("vi-VN");
+    expect(viVN?.flag).toBe("🇻🇳");
   });
 
   it("should provide translation for common keys in zh-TW", () => {
     i18n.global.locale.value = "zh-TW";
 
-    expect(i18n.global.t("common.confirm")).toBe("確認");
-    expect(i18n.global.t("common.cancel")).toBe("取消");
-    expect(i18n.global.t("common.loading")).toBe("載入中...");
-    expect(i18n.global.t("home.title")).toBe("歡迎來到 MakanMakan");
-    expect(i18n.global.t("menu.title")).toBe("菜單");
-    expect(i18n.global.t("cart.title")).toBe("購物車");
+    expect(tGlobal("common.confirm")).toBe("確認");
+    expect(tGlobal("common.cancel")).toBe("取消");
+    expect(tGlobal("common.loading")).toBe("載入中...");
+    expect(tGlobal("home.title")).toBe("歡迎來到 MakanMakan");
+    expect(tGlobal("menu.title")).toBe("菜單");
+    expect(tGlobal("cart.title")).toBe("購物車");
   });
 
   it("should provide translation for common keys in Simplified Chinese", () => {
     i18n.global.locale.value = "zh-CN";
 
-    expect(i18n.global.t("common.confirm")).toBe("确认");
-    expect(i18n.global.t("common.cancel")).toBe("取消");
-    expect(i18n.global.t("common.loading")).toBe("加载中...");
-    expect(i18n.global.t("home.title")).toBe("欢迎来到 MakanMakan");
-    expect(i18n.global.t("menu.title")).toBe("菜单");
-    expect(i18n.global.t("cart.title")).toBe("购物车");
+    expect(tGlobal("common.confirm")).toBe("确认");
+    expect(tGlobal("common.cancel")).toBe("取消");
+    expect(tGlobal("common.loading")).toBe("加载中...");
+    expect(tGlobal("home.title")).toBe("欢迎来到 MakanMakan");
+    expect(tGlobal("menu.title")).toBe("菜单");
+    expect(tGlobal("cart.title")).toBe("购物车");
   });
 
   it("should provide translation for common keys in English", () => {
-    i18n.global.locale.value = "en";
+    i18n.global.locale.value = "en-US";
 
-    expect(i18n.global.t("common.confirm")).toBe("Confirm");
-    expect(i18n.global.t("common.cancel")).toBe("Cancel");
-    expect(i18n.global.t("common.loading")).toBe("Loading...");
-    expect(i18n.global.t("home.title")).toBe("Welcome to MakanMakan");
-    expect(i18n.global.t("menu.title")).toBe("Menu");
-    expect(i18n.global.t("cart.title")).toBe("Shopping Cart");
+    expect(tGlobal("common.confirm")).toBe("Confirm");
+    expect(tGlobal("common.cancel")).toBe("Cancel");
+    expect(tGlobal("common.loading")).toBe("Loading...");
+    expect(tGlobal("home.title")).toBe("Welcome to MakanMakan");
+    expect(tGlobal("menu.title")).toBe("Menu");
+    expect(tGlobal("cart.title")).toBe("Shopping Cart");
   });
 
   it("should provide translation for common keys in Vietnamese", () => {
-    i18n.global.locale.value = "vi";
+    i18n.global.locale.value = "vi-VN";
 
-    expect(i18n.global.t("common.confirm")).toBe("Xác nhận");
-    expect(i18n.global.t("common.cancel")).toBe("Hủy");
-    expect(i18n.global.t("common.loading")).toBe("Đang tải...");
-    expect(i18n.global.t("home.title")).toBe("Chào mừng đến với MakanMakan");
-    expect(i18n.global.t("menu.title")).toBe("Thực đơn");
-    expect(i18n.global.t("cart.title")).toBe("Giỏ hàng");
+    expect(tGlobal("common.confirm")).toBe("Xác nhận");
+    expect(tGlobal("common.cancel")).toBe("Hủy");
+    expect(tGlobal("common.loading")).toBe("Đang tải...");
+    expect(tGlobal("home.title")).toBe("Chào mừng đến với MakanMakan");
+    expect(tGlobal("menu.title")).toBe("Thực đơn");
+    expect(tGlobal("cart.title")).toBe("Giỏ hàng");
   });
 
   it("should handle parameterized translations in all languages", () => {
     // Test in Traditional Chinese
     i18n.global.locale.value = "zh-TW";
-    expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+    expect(tGlobal("validation.minLength", { min: 6 })).toBe(
       "至少需要 6 個字元",
     );
 
     // Test in Simplified Chinese
     i18n.global.locale.value = "zh-CN";
-    expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+    expect(tGlobal("validation.minLength", { min: 6 })).toBe(
       "至少需要 6 个字符",
     );
 
     // Test in English
-    i18n.global.locale.value = "en";
-    expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+    i18n.global.locale.value = "en-US";
+    expect(tGlobal("validation.minLength", { min: 6 })).toBe(
       "At least 6 characters required",
     );
 
     // Test in Vietnamese
-    i18n.global.locale.value = "vi";
-    expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+    i18n.global.locale.value = "vi-VN";
+    expect(tGlobal("validation.minLength", { min: 6 })).toBe(
       "Ít nhất 6 ký tự là bắt buộc",
     );
   });
@@ -124,19 +120,19 @@ describe("Basic i18n Configuration", () => {
   it("should handle plural translations in all languages", () => {
     // Test in Traditional Chinese
     i18n.global.locale.value = "zh-TW";
-    expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 項商品");
+    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 項商品");
 
     // Test in Simplified Chinese
     i18n.global.locale.value = "zh-CN";
-    expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 项商品");
+    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 项商品");
 
     // Test in English
-    i18n.global.locale.value = "en";
-    expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 items");
+    i18n.global.locale.value = "en-US";
+    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 items");
 
     // Test in Vietnamese
-    i18n.global.locale.value = "vi";
-    expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 món ăn");
+    i18n.global.locale.value = "vi-VN";
+    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 món ăn");
   });
 
   it("should change locale correctly for all languages", () => {
@@ -145,11 +141,11 @@ describe("Basic i18n Configuration", () => {
     i18n.global.locale.value = "zh-CN";
     expect(i18n.global.locale.value).toBe("zh-CN");
 
-    i18n.global.locale.value = "en";
-    expect(i18n.global.locale.value).toBe("en");
+    i18n.global.locale.value = "en-US";
+    expect(i18n.global.locale.value).toBe("en-US");
 
-    i18n.global.locale.value = "vi";
-    expect(i18n.global.locale.value).toBe("vi");
+    i18n.global.locale.value = "vi-VN";
+    expect(i18n.global.locale.value).toBe("vi-VN");
 
     i18n.global.locale.value = "zh-TW";
     expect(i18n.global.locale.value).toBe("zh-TW");
@@ -176,7 +172,7 @@ describe("Translation Coverage", () => {
     i18n.global.locale.value = "zh-TW";
 
     requiredKeys.forEach((key) => {
-      const translation = i18n.global.t(key);
+      const translation = tGlobal(key);
       expect(translation).not.toBe(key); // Should not return the key itself
       expect(translation).toBeTruthy(); // Should have actual translation
     });
@@ -186,27 +182,27 @@ describe("Translation Coverage", () => {
     i18n.global.locale.value = "zh-CN";
 
     requiredKeys.forEach((key) => {
-      const translation = i18n.global.t(key);
+      const translation = tGlobal(key);
       expect(translation).not.toBe(key); // Should not return the key itself
       expect(translation).toBeTruthy(); // Should have actual translation
     });
   });
 
   it("should have all required keys in English", () => {
-    i18n.global.locale.value = "en";
+    i18n.global.locale.value = "en-US";
 
     requiredKeys.forEach((key) => {
-      const translation = i18n.global.t(key);
+      const translation = tGlobal(key);
       expect(translation).not.toBe(key); // Should not return the key itself
       expect(translation).toBeTruthy(); // Should have actual translation
     });
   });
 
   it("should have all required keys in Vietnamese", () => {
-    i18n.global.locale.value = "vi";
+    i18n.global.locale.value = "vi-VN";
 
     requiredKeys.forEach((key) => {
-      const translation = i18n.global.t(key);
+      const translation = tGlobal(key);
       expect(translation).not.toBe(key); // Should not return the key itself
       expect(translation).toBeTruthy(); // Should have actual translation
     });

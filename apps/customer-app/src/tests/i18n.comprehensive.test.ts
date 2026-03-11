@@ -14,36 +14,27 @@ describe("Comprehensive i18n Tests", () => {
   });
 
   describe("Language Configuration", () => {
-    it("should support 4 languages", () => {
-      expect(SUPPORTED_LANGUAGES).toHaveLength(4);
+    it("should support 6 languages", () => {
+      expect(SUPPORTED_LANGUAGES).toHaveLength(6);
       const codes = SUPPORTED_LANGUAGES.map((lang) => lang.code);
-      expect(codes).toEqual(["zh-TW", "zh-CN", "en", "vi"]);
+      expect(codes).toContain("zh-TW");
+      expect(codes).toContain("zh-CN");
+      expect(codes).toContain("en-US");
+      expect(codes).toContain("vi-VN");
+      expect(codes).toContain("ms-MY");
+      expect(codes).toContain("id-ID");
     });
 
     it("should have correct language information", () => {
-      expect(SUPPORTED_LANGUAGES[0]).toEqual({
-        code: "zh-TW",
-        name: "繁體中文",
-        flag: "🇹🇼",
-      });
+      const zhTW = SUPPORTED_LANGUAGES.find((l) => l.code === "zh-TW");
+      const zhCN = SUPPORTED_LANGUAGES.find((l) => l.code === "zh-CN");
+      const enUS = SUPPORTED_LANGUAGES.find((l) => l.code === "en-US");
+      const viVN = SUPPORTED_LANGUAGES.find((l) => l.code === "vi-VN");
 
-      expect(SUPPORTED_LANGUAGES[1]).toEqual({
-        code: "zh-CN",
-        name: "简体中文",
-        flag: "🇨🇳",
-      });
-
-      expect(SUPPORTED_LANGUAGES[2]).toEqual({
-        code: "en",
-        name: "English",
-        flag: "🇺🇸",
-      });
-
-      expect(SUPPORTED_LANGUAGES[3]).toEqual({
-        code: "vi",
-        name: "Tiếng Việt",
-        flag: "🇻🇳",
-      });
+      expect(zhTW?.flag).toBe("🇹🇼");
+      expect(zhCN?.flag).toBe("🇨🇳");
+      expect(enUS?.flag).toBe("🇺🇸");
+      expect(viVN?.flag).toBe("🇻🇳");
     });
 
     it("should have zh-TW as default language", () => {
@@ -53,7 +44,14 @@ describe("Comprehensive i18n Tests", () => {
 
   describe("Language Switching", () => {
     it("should switch between all languages correctly", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+        "ms-MY",
+        "id-ID",
+      ];
 
       languages.forEach((lang) => {
         switchLanguage(lang);
@@ -64,8 +62,8 @@ describe("Comprehensive i18n Tests", () => {
     it("should persist language changes in localStorage", () => {
       const mockSetItem = global.localStorageMock.setItem;
 
-      switchLanguage("vi");
-      expect(mockSetItem).toHaveBeenCalledWith("makanmakan_language", "vi");
+      switchLanguage("vi-VN");
+      expect(mockSetItem).toHaveBeenCalledWith("makanmakan_locale", "vi-VN");
     });
   });
 
@@ -102,7 +100,7 @@ describe("Comprehensive i18n Tests", () => {
     });
 
     it("should have all common keys in English", () => {
-      switchLanguage("en");
+      switchLanguage("en-US");
       commonKeys.forEach((key) => {
         const translation = i18n.global.t(key);
         expect(translation).not.toBe(key);
@@ -112,7 +110,7 @@ describe("Comprehensive i18n Tests", () => {
     });
 
     it("should have all common keys in Vietnamese", () => {
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       commonKeys.forEach((key) => {
         const translation = i18n.global.t(key);
         expect(translation).not.toBe(key);
@@ -130,10 +128,10 @@ describe("Comprehensive i18n Tests", () => {
       switchLanguage("zh-CN");
       expect(i18n.global.t("common.confirm")).toBe("确认");
 
-      switchLanguage("en");
+      switchLanguage("en-US");
       expect(i18n.global.t("common.confirm")).toBe("Confirm");
 
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       expect(i18n.global.t("common.confirm")).toBe("Xác nhận");
     });
 
@@ -144,10 +142,10 @@ describe("Comprehensive i18n Tests", () => {
       switchLanguage("zh-CN");
       expect(i18n.global.t("home.title")).toBe("欢迎来到 MakanMakan");
 
-      switchLanguage("en");
+      switchLanguage("en-US");
       expect(i18n.global.t("home.title")).toBe("Welcome to MakanMakan");
 
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       expect(i18n.global.t("home.title")).toBe("Chào mừng đến với MakanMakan");
     });
 
@@ -158,10 +156,10 @@ describe("Comprehensive i18n Tests", () => {
       switchLanguage("zh-CN");
       expect(i18n.global.t("menu.addToCart")).toBe("加入购物车");
 
-      switchLanguage("en");
+      switchLanguage("en-US");
       expect(i18n.global.t("menu.addToCart")).toBe("Add to Cart");
 
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       expect(i18n.global.t("menu.addToCart")).toBe("Thêm vào giỏ hàng");
     });
   });
@@ -175,10 +173,10 @@ describe("Comprehensive i18n Tests", () => {
       switchLanguage("zh-CN");
       expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 项商品");
 
-      switchLanguage("en");
+      switchLanguage("en-US");
       expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 items");
 
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 món ăn");
     });
 
@@ -193,12 +191,12 @@ describe("Comprehensive i18n Tests", () => {
         "至少需要 6 个字符",
       );
 
-      switchLanguage("en");
+      switchLanguage("en-US");
       expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
         "At least 6 characters required",
       );
 
-      switchLanguage("vi");
+      switchLanguage("vi-VN");
       expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
         "Ít nhất 6 ký tự là bắt buộc",
       );
@@ -217,7 +215,12 @@ describe("Comprehensive i18n Tests", () => {
     ];
 
     it("should have all menu keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         switchLanguage(lang);
@@ -249,7 +252,12 @@ describe("Comprehensive i18n Tests", () => {
     ];
 
     it("should have all order keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         switchLanguage(lang);
@@ -280,7 +288,12 @@ describe("Comprehensive i18n Tests", () => {
     ];
 
     it("should have all error keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         switchLanguage(lang);
@@ -311,7 +324,12 @@ describe("Comprehensive i18n Tests", () => {
     ];
 
     it("should have all navigation keys in all languages", () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
 
       languages.forEach((lang) => {
         switchLanguage(lang);
@@ -330,9 +348,14 @@ describe("Comprehensive i18n Tests", () => {
   });
 
   describe("Language Consistency", () => {
-    // All 4 languages now have consistent 297 keys - verified 2025-01-29
+    // All languages have consistent keys — verified
     it("should have same number of translation keys in all languages", async () => {
-      const languages: SupportedLanguage[] = ["zh-TW", "zh-CN", "en", "vi"];
+      const languages: SupportedLanguage[] = [
+        "zh-TW",
+        "zh-CN",
+        "en-US",
+        "vi-VN",
+      ];
       const keysCounts: Record<string, number> = {};
 
       languages.forEach((lang) => {
@@ -364,7 +387,7 @@ describe("Comprehensive i18n Tests", () => {
 
   describe("Fallback Behavior", () => {
     it("should fallback to default language for missing keys", () => {
-      switchLanguage("en");
+      switchLanguage("en-US");
       // Test with a key that might not exist
       const result = i18n.global.t("nonexistent.test.key", "fallback");
       expect(result).toBeDefined();

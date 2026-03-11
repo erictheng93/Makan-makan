@@ -315,6 +315,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
+      '@makanmakan/i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared/src/i18n
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -12261,7 +12264,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@20.19.28)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.1)
+      vitest: 1.6.1(@types/node@25.0.7)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.1)
 
   '@vitest/ui@3.2.4(vitest@0.34.6)':
     dependencies:
