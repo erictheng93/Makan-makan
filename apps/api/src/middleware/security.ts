@@ -155,60 +155,32 @@ function sanitizeObject(obj: any): any {
  * Enhanced implementation with comprehensive HTML entity encoding
  */
 function sanitizeString(str: string): string {
-  // Apply dangerous pattern removal in a loop to handle nested/recursive bypass attempts
-  // e.g., "<scr<script>ipt>" becomes "<script>" after one pass, so we repeat until stable
-  let sanitized = str;
+  // HTML entity encode ALL special characters first — this is the primary security boundary.
+  // By encoding <, >, ", ', /, `, = etc. BEFORE any pattern removal, no dangerous HTML
+  // construct (script tags, event handlers, etc.) can form from the encoded output.
+  const encoded = encodeHtmlEntities(str);
+
+  // Additional defense-in-depth: remove dangerous patterns from the encoded output.
+  // These operate on already-safe encoded strings, so they're supplementary.
+  let sanitized = encoded;
   let previous: string;
-
-  // Use regex patterns that match obfuscated variants (handles character insertion attacks)
-  // e.g., "<scr<script>ipt>" won't bypass these because they match character-by-character
-  const dangerousTagPatterns = [
-    /<s\s*c\s*r\s*i\s*p\s*t/gi,
-    /<i\s*f\s*r\s*a\s*m\s*e/gi,
-    /<o\s*b\s*j\s*e\s*c\s*t/gi,
-    /<e\s*m\s*b\s*e\s*d/gi,
-    /<a\s*p\s*p\s*l\s*e\s*t/gi,
-  ];
-
   do {
     previous = sanitized;
     sanitized = sanitized
-      // Remove script tags and content (case-insensitive, handles broken tags)
-      .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, "")
-      // Remove dangerous protocol handlers (javascript:, vbscript:, data:text/html, etc.)
-      .replace(
-        /(javascript|vbscript|data:text\/html|data:text\/javascript|data:application\/javascript):/gi,
-        "",
-      )
-      // Remove on* event handlers (onclick, onerror, onload, etc.)
-      .replace(/\bon\w+\s*=/gi, "")
-      // Remove style attributes that could contain expressions
-      .replace(/\s*style\s*=\s*["'][^"']*expression\([^"']*\)["']/gi, "")
-      // Remove import statements
-      .replace(/@import\s+/gi, "")
-      // Remove iframe, object, embed, applet tags and content
-      .replace(
-        /<(iframe|object|embed|applet)[^>]*>[\s\S]*?<\/(iframe|object|embed|applet)>/gi,
-        "",
-      );
-
-    // Remove obfuscated dangerous tags (e.g., <s c r i p t, <i f r a m e)
-    for (const pattern of dangerousTagPatterns) {
-      sanitized = sanitized.replace(pattern, "");
-    }
+      .replace(/(javascript|vbscript|data:text\/html):/gi, "")
+      .replace(/@import\s+/gi, "");
   } while (sanitized !== previous);
 
-  // Then, HTML entity encode ALL special characters for defense in depth
-  // This ensures even if something slips through regex, it's encoded
-  return sanitized.replace(
+  return sanitized;
+}
+
+/** Encode all HTML-significant characters as entities */
+function encodeHtmlEntities(str: string): string {
+  return str.replace(
     // eslint-disable-next-line no-control-regex
     /[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g,
     (char) => {
-      // Comprehensive entity map including extended ASCII
-      const code = char.charCodeAt(0);
-
-      // Standard HTML entities (most common XSS vectors)
-      const standardEntities: { [key: string]: string } = {
+      const standardEntities: Record<string, string> = {
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
@@ -218,9 +190,7 @@ function sanitizeString(str: string): string {
         "`": "&#x60;",
         "=": "&#x3D;",
       };
-
-      // Return standard entity if available, otherwise use numeric entity
-      return standardEntities[char] || `&#${code};`;
+      return standardEntities[char] || `&#${char.charCodeAt(0)};`;
     },
   );
 }
