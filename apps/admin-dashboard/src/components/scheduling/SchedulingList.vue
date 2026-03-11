@@ -194,6 +194,21 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
+                打卡上班
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                打卡下班
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                實際工時
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 狀態
               </th>
               <th
@@ -250,15 +265,46 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ schedule.scheduledHours }} 小時
               </td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono"
+              >
+                {{
+                  formatClockTime(
+                    schedule.clockInTime || schedule.actualStartTime,
+                  )
+                }}
+              </td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono"
+              >
+                {{
+                  formatClockTime(
+                    schedule.clockOutTime || schedule.actualEndTime,
+                  )
+                }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{
+                  schedule.actualHours != null
+                    ? Math.round(schedule.actualHours * 10) / 10 + " h"
+                    : "—"
+                }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'px-3 py-1 text-xs font-medium rounded-full border',
-                    getStatusClass(schedule.status),
-                  ]"
-                >
-                  {{ getStatusLabel(schedule.status) }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-block w-2 h-2 rounded-full"
+                    :class="getClockStatusDotClass(schedule)"
+                  ></span>
+                  <span
+                    :class="[
+                      'px-3 py-1 text-xs font-medium rounded-full border',
+                      getStatusClass(schedule.status),
+                    ]"
+                  >
+                    {{ getStatusLabel(schedule.status) }}
+                  </span>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <div class="flex gap-2">
@@ -655,6 +701,40 @@ const getStatusLabel = (status: string): string => {
     no_show: "缺席",
   };
   return labels[status] || status;
+};
+
+const formatClockTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "—";
+  try {
+    const date = new Date(timeStr);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleTimeString("zh-TW", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return "—";
+  }
+};
+
+const getClockStatusDotClass = (schedule: EmployeeSchedule): string => {
+  const clockedIn = schedule.clockInTime || schedule.actualStartTime;
+  const clockedOut = schedule.clockOutTime || schedule.actualEndTime;
+  // Currently working: clocked in but not out
+  if (clockedIn && !clockedOut) {
+    return "bg-green-500 animate-pulse";
+  }
+  // No-show or late
+  if (schedule.status === "no_show") {
+    return "bg-red-500";
+  }
+  // Completed
+  if (schedule.status === "completed") {
+    return "bg-purple-500";
+  }
+  // Not yet started
+  return "bg-gray-400";
 };
 
 const getStatusClass = (status: string): string => {

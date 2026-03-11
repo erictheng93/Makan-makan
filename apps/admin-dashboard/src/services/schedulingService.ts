@@ -231,6 +231,64 @@ class SchedulingService {
   }
 
   // ========================================
+  // Currently Clocked-In Employees
+  // ========================================
+
+  /**
+   * Get currently clocked-in employees
+   */
+  async getClockedInEmployees(
+    restaurantId: string,
+  ): Promise<EmployeeSchedule[]> {
+    const response = await this.api.get<ApiResponse<EmployeeSchedule[]>>(
+      `/scheduling/${restaurantId}/clocked-in`,
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Get attendance report
+   */
+  async getAttendanceReport(
+    restaurantId: string,
+    startDate: string,
+    endDate: string,
+    employeeId?: number,
+  ): Promise<ApiResponse<any>> {
+    const params: any = { startDate, endDate };
+    if (employeeId) {
+      params.employeeId = employeeId;
+    }
+    const response = await this.api.get<ApiResponse<any>>(
+      `/scheduling/${restaurantId}/attendance-report`,
+      { params },
+    );
+    return response.data;
+  }
+
+  /**
+   * Admin clock-in for employee
+   */
+  async adminClockIn(id: number, notes?: string): Promise<EmployeeSchedule> {
+    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+      `/scheduling/schedules/${id}/admin-clock-in`,
+      { notes },
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Admin clock-out for employee
+   */
+  async adminClockOut(id: number, notes?: string): Promise<EmployeeSchedule> {
+    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+      `/scheduling/schedules/${id}/admin-clock-out`,
+      { notes },
+    );
+    return response.data.data;
+  }
+
+  // ========================================
   // Clock In/Out
   // ========================================
 

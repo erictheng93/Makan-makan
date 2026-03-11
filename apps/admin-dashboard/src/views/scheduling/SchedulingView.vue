@@ -96,6 +96,41 @@
       </div>
     </div>
 
+    <!-- Currently Working Employees -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">目前上班中</h3>
+        <span
+          class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full"
+        >
+          {{ clockedInEmployees.length }} 人
+        </span>
+      </div>
+      <div
+        v-if="clockedInEmployees.length === 0"
+        class="text-center py-4 text-gray-500"
+      >
+        目前沒有員工上班
+      </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div
+          v-for="emp in clockedInEmployees"
+          :key="emp.id"
+          class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg"
+        >
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div>
+            <div class="font-medium text-gray-900">
+              {{ emp.employeeName || `員工 #${emp.employeeId}` }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ formatClockTime(emp.clockInTime || emp.actualStartTime) }} 起
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Error Banner -->
     <div
       v-if="error"
@@ -265,6 +300,7 @@ const schedules = ref<EmployeeSchedule[]>([]);
 const shiftTemplates = ref<ShiftTemplate[]>([]);
 const conflicts = ref<SchedulingConflict[]>([]);
 const swapRequests = ref<SwapRequest[]>([]);
+const clockedInEmployees = ref<EmployeeSchedule[]>([]);
 const showScheduleModal = ref(false);
 const selectedSchedule = ref<EmployeeSchedule | null>(null);
 const showTemplateFormModal = ref(false);
@@ -330,6 +366,7 @@ const refreshData = async () => {
       fetchShiftTemplates(),
       fetchConflicts(),
       fetchSwapRequests(),
+      fetchClockedIn(),
     ]);
   } catch (err) {
     console.error("Failed to refresh data:", err);
@@ -398,6 +435,33 @@ const fetchSwapRequests = async () => {
     console.error("Failed to fetch swap requests:", err);
     // Don't throw - swap requests are optional
     swapRequests.value = [];
+  }
+};
+
+const fetchClockedIn = async () => {
+  try {
+    const response = await schedulingService.getClockedInEmployees(
+      restaurantId.value,
+    );
+    clockedInEmployees.value = response;
+  } catch (err) {
+    console.error("Failed to fetch clocked-in employees:", err);
+    clockedInEmployees.value = [];
+  }
+};
+
+const formatClockTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "—";
+  try {
+    const date = new Date(timeStr);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleTimeString("zh-TW", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return "—";
   }
 };
 
