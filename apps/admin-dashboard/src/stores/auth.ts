@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api } from "@/services/api";
+import { t } from "@/i18n";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
@@ -193,7 +194,7 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (error: any) {
       return {
         success: false,
-        error: error.response?.data?.error?.message || "登入失敗",
+        error: error.response?.data?.error?.message || t("auth.loginFailed"),
       };
     } finally {
       isLoading.value = false;

@@ -3,7 +3,7 @@
     <header class="bg-primary-600 text-white px-4 py-3 border-b shadow-sm">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <h1 class="text-xl font-semibold">收銀系統</h1>
+          <h1 class="text-xl font-semibold">{{ t("cashierLayout.title") }}</h1>
           <div class="text-sm opacity-90">
             {{ restaurantName }}
           </div>
@@ -11,7 +11,7 @@
 
         <div class="flex items-center space-x-4">
           <div class="text-sm">
-            <div>收銀員: {{ userName }}</div>
+            <div>{{ t("cashierLayout.cashier", { name: userName }) }}</div>
             <div>{{ currentDate }}</div>
           </div>
 
@@ -19,7 +19,7 @@
             class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm transition-colors"
             @click="$router.push('/dashboard')"
           >
-            管理介面
+            {{ t("cashierLayout.backToAdmin") }}
           </button>
         </div>
       </div>
@@ -31,14 +31,18 @@
 
     <footer class="bg-gray-50 px-4 py-2 border-t">
       <div class="flex items-center justify-between text-sm text-gray-600">
-        <div>今日總銷售: {{ todayRevenue }}</div>
-        <div>今日訂單數: {{ todayOrderCount }}</div>
+        <div>{{ t("cashierLayout.todaySales", { amount: todayRevenue }) }}</div>
+        <div>
+          {{ t("cashierLayout.todayOrders", { count: todayOrderCount }) }}
+        </div>
         <div class="flex items-center space-x-2">
           <div
             class="w-2 h-2 rounded-full"
             :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
           />
-          <span>{{ isOnline ? "已連線" : "離線" }}</span>
+          <span>{{
+            isOnline ? t("cashierLayout.online") : t("cashierLayout.offline")
+          }}</span>
         </div>
       </div>
     </footer>
@@ -47,10 +51,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { format } from "date-fns";
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
 

@@ -11,7 +11,9 @@
           <span class="text-white font-bold text-2xl">M</span>
         </div>
         <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
-        <p class="mt-2 text-sm text-gray-600">管理後台 - 重設密碼</p>
+        <p class="mt-2 text-sm text-gray-600">
+          {{ t("auth.resetPasswordSubtitle") }}
+        </p>
       </div>
 
       <!-- Verifying Token -->
@@ -21,7 +23,9 @@
             <div
               class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"
             />
-            <p class="ml-3 text-sm text-blue-800">正在驗證重設連結...</p>
+            <p class="ml-3 text-sm text-blue-800">
+              {{ t("auth.verifyingLink") }}
+            </p>
           </div>
         </div>
       </div>
@@ -36,12 +40,14 @@
               <AlertCircle class="w-6 h-6 text-red-600" />
             </div>
             <div class="ml-4 flex-1">
-              <h3 class="text-lg font-medium text-red-900">連結無效或已過期</h3>
+              <h3 class="text-lg font-medium text-red-900">
+                {{ t("auth.linkInvalid") }}
+              </h3>
               <p class="mt-2 text-sm text-red-700">
                 {{ tokenError }}
               </p>
               <p class="mt-3 text-sm text-red-600">
-                請重新請求密碼重設郵件，或聯絡系統管理員以獲得協助。
+                {{ t("auth.linkInvalidMessage") }}
               </p>
             </div>
           </div>
@@ -52,13 +58,13 @@
             to="/forgot-password"
             class="flex-1 btn-primary text-center"
           >
-            重新發送重設郵件
+            {{ t("auth.resendResetEmail") }}
           </router-link>
           <router-link
             to="/login"
             class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"
           >
-            返回登入
+            {{ t("auth.returnToLogin") }}
           </router-link>
         </div>
       </div>
@@ -73,12 +79,14 @@
               <CheckCircle class="w-6 h-6 text-green-600" />
             </div>
             <div class="ml-4 flex-1">
-              <h3 class="text-lg font-medium text-green-900">密碼重設成功</h3>
+              <h3 class="text-lg font-medium text-green-900">
+                {{ t("auth.resetSuccess") }}
+              </h3>
               <p class="mt-2 text-sm text-green-700">
                 {{ successMessage }}
               </p>
               <p class="mt-3 text-sm text-green-600">
-                現在您可以使用新密碼登入系統了。
+                {{ t("auth.resetSuccessMessage") }}
               </p>
             </div>
           </div>
@@ -86,7 +94,7 @@
 
         <div class="text-center">
           <router-link to="/login" class="w-full btn-primary inline-block">
-            前往登入頁面
+            {{ t("auth.goToLogin") }}
           </router-link>
         </div>
       </div>
@@ -105,7 +113,7 @@
               <User class="w-5 h-5 text-gray-600" />
             </div>
             <div class="ml-3">
-              <p class="text-xs text-gray-500">重設密碼的帳號</p>
+              <p class="text-xs text-gray-500">{{ t("auth.resetAccount") }}</p>
               <p class="text-sm font-medium text-gray-900">{{ maskedEmail }}</p>
             </div>
           </div>
@@ -114,7 +122,9 @@
         <div class="space-y-4">
           <!-- New Password -->
           <div>
-            <label for="new-password" class="form-label">新密碼</label>
+            <label for="new-password" class="form-label">{{
+              t("auth.newPassword")
+            }}</label>
             <div class="relative">
               <input
                 id="new-password"
@@ -124,7 +134,7 @@
                 autocomplete="new-password"
                 class="form-input pr-10"
                 :class="{ 'border-red-500': errors.newPassword }"
-                placeholder="請輸入新密碼（至少6個字符）"
+                :placeholder="t('auth.newPasswordPlaceholder')"
                 :disabled="isLoading"
               />
               <button
@@ -144,7 +154,9 @@
             <!-- Password Strength Indicator -->
             <div v-if="form.newPassword" class="mt-2">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-xs text-gray-600">密碼強度：</span>
+                <span class="text-xs text-gray-600">{{
+                  t("auth.passwordStrength")
+                }}</span>
                 <span
                   class="text-xs font-medium"
                   :class="passwordStrengthTextColor"
@@ -173,7 +185,7 @@
                     class="w-3 h-3 mr-1"
                   />
                   <X v-else class="w-3 h-3 mr-1" />
-                  至少6個字符
+                  {{ t("auth.atLeast6Chars") }}
                 </li>
                 <li
                   class="text-xs flex items-center"
@@ -188,7 +200,7 @@
                     class="w-3 h-3 mr-1"
                   />
                   <X v-else class="w-3 h-3 mr-1" />
-                  至少8個字符（建議）
+                  {{ t("auth.atLeast8Chars") }}
                 </li>
                 <li
                   class="text-xs flex items-center"
@@ -207,7 +219,7 @@
                     class="w-3 h-3 mr-1"
                   />
                   <X v-else class="w-3 h-3 mr-1" />
-                  包含大小寫字母
+                  {{ t("auth.upperLowerCase") }}
                 </li>
                 <li
                   class="text-xs flex items-center"
@@ -222,7 +234,7 @@
                     class="w-3 h-3 mr-1"
                   />
                   <X v-else class="w-3 h-3 mr-1" />
-                  包含數字
+                  {{ t("auth.containsNumber") }}
                 </li>
                 <li
                   class="text-xs flex items-center"
@@ -237,7 +249,7 @@
                     class="w-3 h-3 mr-1"
                   />
                   <X v-else class="w-3 h-3 mr-1" />
-                  包含特殊字符（建議）
+                  {{ t("auth.containsSpecialChar") }}
                 </li>
               </ul>
             </div>
@@ -245,7 +257,9 @@
 
           <!-- Confirm Password -->
           <div>
-            <label for="confirm-password" class="form-label">確認密碼</label>
+            <label for="confirm-password" class="form-label">{{
+              t("auth.confirmPassword")
+            }}</label>
             <div class="relative">
               <input
                 id="confirm-password"
@@ -255,7 +269,7 @@
                 autocomplete="new-password"
                 class="form-input pr-10"
                 :class="{ 'border-red-500': errors.confirmPassword }"
-                placeholder="請再次輸入新密碼"
+                :placeholder="t('auth.confirmPasswordPlaceholder')"
                 :disabled="isLoading"
               />
               <button
@@ -302,9 +316,9 @@
               <div
                 class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"
               />
-              重設中...
+              {{ t("auth.resetting") }}
             </span>
-            <span v-else>重設密碼</span>
+            <span v-else>{{ t("auth.resetPasswordBtn") }}</span>
           </button>
         </div>
       </form>
@@ -322,6 +336,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "@/i18n";
 import {
   Eye,
   EyeOff,
@@ -332,6 +347,7 @@ import {
   X,
 } from "lucide-vue-next";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -372,11 +388,11 @@ const passwordStrength = computed(() => {
 
 const passwordStrengthText = computed(() => {
   const strength = passwordStrength.value;
-  if (strength <= 1) return "弱";
-  if (strength <= 2) return "中等";
-  if (strength <= 3) return "良好";
-  if (strength <= 4) return "強";
-  return "非常強";
+  if (strength <= 1) return t("auth.strengthWeak");
+  if (strength <= 2) return t("auth.strengthMedium");
+  if (strength <= 3) return t("auth.strengthGood");
+  if (strength <= 4) return t("auth.strengthStrong");
+  return t("auth.strengthVeryStrong");
 });
 
 const passwordStrengthColor = computed(() => {
@@ -407,11 +423,11 @@ const verifyToken = async () => {
     if (data.valid) {
       maskedEmail.value = data.email || "";
     } else {
-      tokenError.value = data.error || "Token 無效或已過期";
+      tokenError.value = data.error || t("auth.tokenInvalid");
     }
   } catch (err) {
     console.error("Token verification error:", err);
-    tokenError.value = "驗證 Token 時發生錯誤";
+    tokenError.value = t("auth.tokenVerifyError");
   } finally {
     verifying.value = false;
   }
@@ -422,22 +438,22 @@ const validateForm = () => {
   errors.confirmPassword = "";
 
   if (!form.newPassword) {
-    errors.newPassword = "請輸入新密碼";
+    errors.newPassword = t("auth.newPasswordRequired");
     return false;
   }
 
   if (form.newPassword.length < 6) {
-    errors.newPassword = "密碼至少需要6個字符";
+    errors.newPassword = t("auth.passwordMin6");
     return false;
   }
 
   if (!form.confirmPassword) {
-    errors.confirmPassword = "請確認密碼";
+    errors.confirmPassword = t("auth.confirmPasswordRequired");
     return false;
   }
 
   if (form.newPassword !== form.confirmPassword) {
-    errors.confirmPassword = "兩次輸入的密碼不一致";
+    errors.confirmPassword = t("auth.passwordMismatch");
     return false;
   }
 
@@ -470,18 +486,18 @@ const handleSubmit = async () => {
 
     if (data.success) {
       success.value = true;
-      successMessage.value = data.message || "密碼已成功重設";
+      successMessage.value = data.message || t("auth.passwordResetSuccess");
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } else {
-      error.value = data.error || "重設密碼失敗，請重試";
+      error.value = data.error || t("auth.resetFailed");
     }
   } catch (err) {
     console.error("Reset password error:", err);
-    error.value = "網路錯誤，請檢查您的網路連線";
+    error.value = t("auth.networkError");
   } finally {
     isLoading.value = false;
   }
@@ -491,7 +507,7 @@ onMounted(() => {
   const tokenParam = route.query.token as string;
 
   if (!tokenParam) {
-    tokenError.value = "缺少重設 Token";
+    tokenError.value = t("auth.missingToken");
     verifying.value = false;
     return;
   }

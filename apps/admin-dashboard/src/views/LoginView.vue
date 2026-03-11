@@ -10,13 +10,15 @@
           <span class="text-white font-bold text-2xl">M</span>
         </div>
         <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
-        <p class="mt-2 text-sm text-gray-600">管理後台登入</p>
+        <p class="mt-2 text-sm text-gray-600">{{ t("auth.adminLogin") }}</p>
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="space-y-4">
           <div>
-            <label for="username" class="form-label">帳號</label>
+            <label for="username" class="form-label">{{
+              t("auth.username")
+            }}</label>
             <input
               id="username"
               v-model="form.username"
@@ -25,7 +27,7 @@
               autocomplete="username"
               class="form-input"
               :class="{ 'border-red-500': errors.username }"
-              placeholder="請輸入帳號"
+              :placeholder="t('auth.enterUsername')"
             />
             <p v-if="errors.username" class="mt-1 text-sm text-red-600">
               {{ errors.username }}
@@ -33,7 +35,9 @@
           </div>
 
           <div>
-            <label for="password" class="form-label">密碼</label>
+            <label for="password" class="form-label">{{
+              t("auth.password")
+            }}</label>
             <div class="relative">
               <input
                 id="password"
@@ -43,7 +47,7 @@
                 autocomplete="current-password"
                 class="form-input pr-10"
                 :class="{ 'border-red-500': errors.password }"
-                placeholder="請輸入密碼"
+                :placeholder="t('auth.enterPassword')"
               />
               <button
                 type="button"
@@ -62,7 +66,7 @@
                 to="/forgot-password"
                 class="text-sm font-medium text-primary-600 hover:text-primary-500"
               >
-                忘記密碼？
+                {{ t("auth.forgotPasswordLink") }}
               </router-link>
             </div>
           </div>
@@ -91,9 +95,9 @@
               <div
                 class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"
               />
-              登入中...
+              {{ t("auth.loggingIn") }}
             </span>
-            <span v-else>登入</span>
+            <span v-else>{{ t("auth.login") }}</span>
           </button>
         </div>
       </form>
@@ -111,8 +115,10 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/i18n";
 import { Eye, EyeOff, AlertCircle } from "lucide-vue-next";
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -135,17 +141,17 @@ const validateForm = () => {
   errors.password = "";
 
   if (!form.username.trim()) {
-    errors.username = "請輸入帳號";
+    errors.username = t("auth.enterUsername");
     return false;
   }
 
   if (!form.password) {
-    errors.password = "請輸入密碼";
+    errors.password = t("auth.enterPassword");
     return false;
   }
 
   if (form.password.length < 6) {
-    errors.password = "密碼長度至少6個字元";
+    errors.password = t("auth.passwordMinLength");
     return false;
   }
 
@@ -164,10 +170,10 @@ const handleSubmit = async () => {
     if (result.success) {
       router.push("/dashboard");
     } else {
-      error.value = result.error || "登入失敗";
+      error.value = result.error || t("auth.loginFailed");
     }
   } catch {
-    error.value = "登入過程中發生錯誤";
+    error.value = t("auth.loginError");
   } finally {
     isLoading.value = false;
   }

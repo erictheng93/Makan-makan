@@ -3,11 +3,17 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">儀表板</h1>
-        <p class="text-gray-600">歡迎回來，{{ user?.username }}</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("dashboard.title") }}
+        </h1>
+        <p class="text-gray-600">
+          {{ t("dashboard.welcome", { username: user?.username }) }}
+        </p>
       </div>
       <div class="flex items-center space-x-3">
-        <div class="text-sm text-gray-500">最後更新: {{ lastUpdatedText }}</div>
+        <div class="text-sm text-gray-500">
+          {{ t("dashboard.lastUpdated", { time: lastUpdatedText }) }}
+        </div>
         <button
           :disabled="isLoading"
           class="btn-secondary"
@@ -18,7 +24,7 @@
             class="w-4 h-4 mr-2"
             :class="{ 'animate-spin': isLoading }"
           />
-          重新整理
+          {{ t("dashboard.refresh") }}
         </button>
       </div>
     </div>
@@ -26,28 +32,28 @@
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatsCard
-        title="今日訂單"
+        :title="t('dashboard.todayOrders')"
         :value="todayOrders"
         icon="shopping-cart"
         color="blue"
         :loading="isLoading"
       />
       <StatsCard
-        title="今日營收"
+        :title="t('dashboard.todayRevenue')"
         :value="formatCurrency(todayRevenue)"
         icon="dollar-sign"
         color="green"
         :loading="isLoading"
       />
       <StatsCard
-        title="平均客單價"
+        :title="t('dashboard.averageOrderValue')"
         :value="formatCurrency(averageOrderValue)"
         icon="trending-up"
         color="purple"
         :loading="isLoading"
       />
       <StatsCard
-        title="完成率"
+        :title="t('dashboard.completionRate')"
         :value="formatPercentage(completionRate)"
         icon="check-circle"
         color="orange"
@@ -65,19 +71,24 @@
       <!-- Revenue Chart -->
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">營收趨勢</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("dashboard.revenueTrend") }}
+          </h3>
           <select
             v-model="revenueChartPeriod"
             class="form-input w-auto"
             @change="updateRevenueChart"
           >
-            <option value="daily">今日</option>
-            <option value="weekly">本週</option>
-            <option value="monthly">本月</option>
+            <option value="daily">{{ t("dashboard.today") }}</option>
+            <option value="weekly">{{ t("dashboard.thisWeek") }}</option>
+            <option value="monthly">{{ t("dashboard.thisMonth") }}</option>
           </select>
         </div>
         <!-- 懶加載：只在可見時渲染圖表 -->
-        <LazyChart min-height="300px" loading-text="載入營收圖表...">
+        <LazyChart
+          min-height="300px"
+          :loading-text="t('dashboard.loadingRevenueChart')"
+        >
           <RevenueChart
             :data="revenueChart as any"
             :loading="isLoading"
@@ -89,19 +100,24 @@
       <!-- Orders Chart -->
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">訂單趨勢</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("dashboard.orderTrend") }}
+          </h3>
           <select
             v-model="ordersChartPeriod"
             class="form-input w-auto"
             @change="updateOrdersChart"
           >
-            <option value="daily">今日</option>
-            <option value="weekly">本週</option>
-            <option value="monthly">本月</option>
+            <option value="daily">{{ t("dashboard.today") }}</option>
+            <option value="weekly">{{ t("dashboard.thisWeek") }}</option>
+            <option value="monthly">{{ t("dashboard.thisMonth") }}</option>
           </select>
         </div>
         <!-- 懶加載：只在可見時渲染圖表 -->
-        <LazyChart min-height="300px" loading-text="載入訂單圖表...">
+        <LazyChart
+          min-height="300px"
+          :loading-text="t('dashboard.loadingOrderChart')"
+        >
           <OrdersChart
             :data="ordersChart as any"
             :loading="isLoading"
@@ -116,9 +132,14 @@
       <!-- Top Menu Items -->
       <div class="lg:col-span-2">
         <div class="card p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門菜品</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("dashboard.popularItems") }}
+          </h3>
           <!-- 懶加載：只在可見時渲染 -->
-          <LazyChart min-height="200px" loading-text="載入熱門菜品...">
+          <LazyChart
+            min-height="200px"
+            :loading-text="t('dashboard.loadingPopularItems')"
+          >
             <TopMenuItems :items="topMenuItems as any" :loading="isLoading" />
           </LazyChart>
         </div>
@@ -127,12 +148,14 @@
       <!-- Recent Orders -->
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">最新訂單</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("dashboard.recentOrders") }}
+          </h3>
           <router-link
             to="/dashboard/orders"
             class="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
-            查看全部
+            {{ t("dashboard.viewAll") }}
           </router-link>
         </div>
         <RecentOrders :loading="orderStore.isLoading" />
@@ -141,14 +164,18 @@
 
     <!-- Quick Actions -->
     <div v-if="canAccessAdminFeatures" class="card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("dashboard.quickActions") }}
+      </h3>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <router-link
           to="/dashboard/menu"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Menu class="w-8 h-8 text-primary-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">管理菜單</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.manageMenu")
+          }}</span>
         </router-link>
 
         <router-link
@@ -156,7 +183,9 @@
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Table class="w-8 h-8 text-primary-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">管理桌台</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.manageTables")
+          }}</span>
         </router-link>
 
         <router-link
@@ -164,7 +193,9 @@
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Users class="w-8 h-8 text-primary-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">員工管理</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.manageStaff")
+          }}</span>
         </router-link>
 
         <router-link
@@ -172,7 +203,9 @@
           class="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
         >
           <CreditCard class="w-8 h-8 text-green-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">POS系統</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.posSystem")
+          }}</span>
         </router-link>
 
         <router-link
@@ -180,7 +213,9 @@
           class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
         >
           <Users class="w-8 h-8 text-blue-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">團體訂單</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.groupOrders")
+          }}</span>
         </router-link>
 
         <router-link
@@ -188,7 +223,9 @@
           class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
         >
           <Clock class="w-8 h-8 text-purple-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">候位管理</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.waitingManagement")
+          }}</span>
         </router-link>
 
         <router-link
@@ -196,7 +233,9 @@
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <BarChart3 class="w-8 h-8 text-primary-600 mb-2" />
-          <span class="text-sm font-medium text-gray-900">詳細分析</span>
+          <span class="text-sm font-medium text-gray-900">{{
+            t("dashboard.detailedAnalysis")
+          }}</span>
         </router-link>
       </div>
     </div>
@@ -205,6 +244,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useOrderStore } from "@/stores/order";
@@ -233,6 +273,7 @@ import RealtimeNotificationPanel from "@/components/RealtimeNotificationPanel.vu
 // 🚀 懶加載優化：只加載可見的圖表
 import LazyChart from "@/components/LazyChart.vue";
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
 const orderStore = useOrderStore();
@@ -257,7 +298,7 @@ const revenueChart = computed(() => dashboardStore.revenueChart);
 const ordersChart = computed(() => dashboardStore.ordersChart);
 
 const lastUpdatedText = computed(() => {
-  if (!dashboardStore.lastUpdated) return "從未更新";
+  if (!dashboardStore.lastUpdated) return t("dashboard.neverUpdated");
   return formatDistanceToNow(dashboardStore.lastUpdated, {
     addSuffix: true,
     locale: zhTW,

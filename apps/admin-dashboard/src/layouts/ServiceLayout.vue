@@ -12,7 +12,7 @@
               <span
                 class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium"
               >
-                送菜員
+                {{ t("serviceLayout.roleBadge") }}
               </span>
             </div>
 
@@ -20,11 +20,15 @@
             <div class="hidden sm:flex ml-8 items-center space-x-4">
               <div class="flex items-center text-sm">
                 <div class="w-2 h-2 bg-orange-500 rounded-full mr-2" />
-                <span class="text-gray-600">待配送: {{ pendingCount }}</span>
+                <span class="text-gray-600">{{
+                  t("serviceLayout.pendingDelivery", { count: pendingCount })
+                }}</span>
               </div>
               <div class="flex items-center text-sm">
                 <div class="w-2 h-2 bg-blue-500 rounded-full mr-2" />
-                <span class="text-gray-600">配送中: {{ deliveringCount }}</span>
+                <span class="text-gray-600">{{
+                  t("serviceLayout.delivering", { count: deliveringCount })
+                }}</span>
               </div>
             </div>
           </div>
@@ -50,9 +54,9 @@
               class="hidden sm:flex items-center bg-green-50 px-3 py-1 rounded-full"
             >
               <StarIcon class="h-4 w-4 text-green-600 mr-1" />
-              <span class="text-sm font-medium text-green-800"
-                >今日: {{ todayDelivered }}單</span
-              >
+              <span class="text-sm font-medium text-green-800">{{
+                t("serviceLayout.todayDelivered", { count: todayDelivered })
+              }}</span>
             </div>
 
             <!-- 用戶下拉選單 -->
@@ -83,26 +87,28 @@
                   <p class="text-sm font-medium text-gray-900">
                     {{ currentUser.name }}
                   </p>
-                  <p class="text-sm text-gray-500">送菜員</p>
+                  <p class="text-sm text-gray-500">
+                    {{ t("serviceLayout.roleBadge") }}
+                  </p>
                 </div>
                 <button
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   @click="openProfile"
                 >
-                  個人資料
+                  {{ t("serviceLayout.profile") }}
                 </button>
                 <button
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   @click="openSettings"
                 >
-                  設定
+                  {{ t("serviceLayout.settings") }}
                 </button>
                 <div class="border-t border-gray-200" />
                 <button
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   @click="logout"
                 >
-                  登出
+                  {{ t("serviceLayout.logout") }}
                 </button>
               </div>
             </div>
@@ -126,7 +132,9 @@
         <div
           class="flex items-center justify-between p-4 border-b border-gray-200"
         >
-          <h3 class="text-lg font-semibold text-gray-900">通知</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("serviceLayout.notifications") }}
+          </h3>
           <button
             class="text-gray-400 hover:text-gray-500"
             @click="closeNotifications"
@@ -138,7 +146,9 @@
         <div class="overflow-y-auto h-full pb-20">
           <div v-if="notifications.length === 0" class="p-8 text-center">
             <BellIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p class="text-gray-500">沒有新通知</p>
+            <p class="text-gray-500">
+              {{ t("serviceLayout.noNotifications") }}
+            </p>
           </div>
 
           <div v-else class="divide-y divide-gray-200">
@@ -184,7 +194,7 @@
             class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             @click="markAllAsRead"
           >
-            全部標記為已讀
+            {{ t("serviceLayout.markAllRead") }}
           </button>
         </div>
       </div>
@@ -200,7 +210,9 @@
           class="h-6 w-6 text-red-600 mr-3 flex-shrink-0"
         />
         <div class="flex-1">
-          <h4 class="text-sm font-semibold text-red-800">緊急訂單提醒</h4>
+          <h4 class="text-sm font-semibold text-red-800">
+            {{ t("serviceLayout.urgentOrderAlert") }}
+          </h4>
           <p class="text-sm text-red-700 mt-1">
             {{ urgentOrderAlert.message }}
           </p>
@@ -209,13 +221,13 @@
               class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
               @click="handleUrgentOrder"
             >
-              立即處理
+              {{ t("serviceLayout.handleNow") }}
             </button>
             <button
               class="px-3 py-1 bg-red-200 text-red-800 text-xs rounded hover:bg-red-300 transition-colors"
               @click="dismissUrgentAlert"
             >
-              稍後提醒
+              {{ t("serviceLayout.remindLater") }}
             </button>
           </div>
         </div>
@@ -262,6 +274,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import type { SystemNotification, UrgentOrderAlert } from "@/types";
 import {
@@ -277,6 +290,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();
+const { t } = useI18n();
 const authStore = useAuthStore();
 
 // 響應式狀態
@@ -359,17 +373,17 @@ const openNotifications = () => {
 
 const openProfile = () => {
   showUserMenu.value = false;
-  alert("個人資料功能開發中...");
+  alert(t("serviceLayout.profileWIP"));
 };
 
 const openSettings = () => {
   showUserMenu.value = false;
-  alert("設定功能開發中...");
+  alert(t("serviceLayout.settingsWIP"));
 };
 
 const logout = () => {
   showUserMenu.value = false;
-  if (confirm("確定要登出嗎？")) {
+  if (confirm(t("auth.confirmLogout"))) {
     authStore.logout();
     router.push("/login");
   }
@@ -424,12 +438,13 @@ const formatNotificationTime = (dateTime: string) => {
     (now.getTime() - time.getTime()) / (1000 * 60),
   );
 
-  if (diffInMinutes < 1) return "剛剛";
-  if (diffInMinutes < 60) return `${diffInMinutes} 分鐘前`;
+  if (diffInMinutes < 1) return t("serviceLayout.justNow");
+  if (diffInMinutes < 60)
+    return t("serviceLayout.minutesAgo", { count: diffInMinutes });
   const hours = Math.floor(diffInMinutes / 60);
-  if (hours < 24) return `${hours} 小時前`;
+  if (hours < 24) return t("serviceLayout.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days} 天前`;
+  return t("serviceLayout.daysAgo", { count: days });
 };
 
 const handleUrgentOrder = () => {

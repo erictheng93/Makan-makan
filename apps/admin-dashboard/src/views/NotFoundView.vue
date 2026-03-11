@@ -14,19 +14,21 @@
 
         <!-- 標題和描述 -->
         <div class="space-y-4">
-          <h2 class="text-3xl font-bold text-gray-900">頁面不存在</h2>
+          <h2 class="text-3xl font-bold text-gray-900">
+            {{ t("notFound.title") }}
+          </h2>
           <p class="text-lg text-gray-600">
-            抱歉，您要找的頁面不存在或已被移除
+            {{ t("notFound.description") }}
           </p>
           <p class="text-sm text-gray-500">
-            請檢查網址是否正確，或使用下方導航回到主要功能頁面
+            {{ t("notFound.instruction") }}
           </p>
         </div>
 
         <!-- 請求的路徑信息 -->
         <div class="bg-gray-100 rounded-lg p-4">
           <div class="text-sm text-gray-600">
-            <p class="font-medium mb-2">您嘗試訪問的路徑:</p>
+            <p class="font-medium mb-2">{{ t("notFound.attemptedPath") }}</p>
             <code
               class="bg-white px-3 py-1 rounded border text-red-600 break-all"
             >
@@ -37,7 +39,9 @@
 
         <!-- 快速導航 -->
         <div class="space-y-4">
-          <h3 class="text-lg font-medium text-gray-900">快速導航</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("notFound.quickNav") }}
+          </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               v-for="link in navigationLinks"
@@ -65,7 +69,7 @@
             @click="goBack"
           >
             <ArrowLeftIcon class="h-4 w-4 mr-2" />
-            返回上一頁
+            {{ t("notFound.goBack") }}
           </button>
 
           <button
@@ -73,7 +77,7 @@
             @click="goHome"
           >
             <HomeIcon class="h-4 w-4 mr-2" />
-            回到首頁
+            {{ t("notFound.goHome") }}
           </button>
         </div>
 
@@ -85,10 +89,10 @@
             </div>
             <div class="ml-3">
               <h3 class="text-sm font-medium text-blue-800">
-                無法找到您要的內容？
+                {{ t("notFound.cantFind") }}
               </h3>
               <div class="mt-2 text-sm text-blue-700">
-                <p class="mb-3">嘗試搜索您需要的功能：</p>
+                <p class="mb-3">{{ t("notFound.trySearch") }}</p>
                 <div class="relative">
                   <MagnifyingGlassIcon
                     class="absolute left-3 top-3 h-4 w-4 text-gray-400"
@@ -96,7 +100,7 @@
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="搜索功能、訂單、菜品等..."
+                    :placeholder="t('notFound.searchPlaceholder')"
                     class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     @keyup.enter="performSearch"
                   />
@@ -105,7 +109,7 @@
                   class="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   @click="performSearch"
                 >
-                  搜索
+                  {{ t("notFound.search") }}
                 </button>
               </div>
             </div>
@@ -115,7 +119,7 @@
         <!-- 聯絡支援 -->
         <div class="border-t border-gray-200 pt-6">
           <p class="text-sm text-gray-500 mb-3">
-            如果問題持續存在，請聯絡技術支援
+            {{ t("notFound.persistentIssue") }}
           </p>
           <div class="flex justify-center space-x-6 text-sm">
             <a
@@ -123,14 +127,14 @@
               class="text-blue-600 hover:text-blue-800 transition-colors flex items-center"
             >
               <EnvelopeIcon class="h-4 w-4 mr-1" />
-              技術支援
+              {{ t("notFound.techSupport") }}
             </a>
             <a
               href="tel:+60123456789"
               class="text-blue-600 hover:text-blue-800 transition-colors flex items-center"
             >
               <PhoneIcon class="h-4 w-4 mr-1" />
-              聯絡電話
+              {{ t("notFound.contactPhone") }}
             </a>
           </div>
         </div>
@@ -147,6 +151,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import {
   QuestionMarkCircleIcon,
@@ -169,6 +174,7 @@ import {
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 const authStore = useAuthStore();
 
 // 響應式數據
@@ -182,34 +188,44 @@ const navigationLinks = computed(() => {
 
   const allLinks = [
     {
-      name: "儀表板",
+      name: t("nav.dashboard"),
       path: "/dashboard",
       icon: ChartBarIcon,
       roles: [0, 1, 2, 3, 4],
     },
     {
-      name: "訂單管理",
+      name: t("nav.orders"),
       path: "/orders",
       icon: ShoppingBagIcon,
       roles: [0, 1, 3],
     },
-    { name: "菜單管理", path: "/menu", icon: CakeIcon, roles: [0, 1] },
+    { name: t("nav.menu"), path: "/menu", icon: CakeIcon, roles: [0, 1] },
     {
-      name: "桌台管理",
+      name: t("nav.tables"),
       path: "/tables",
       icon: TableCellsIcon,
       roles: [0, 1, 3],
     },
-    { name: "員工管理", path: "/users", icon: UserGroupIcon, roles: [0, 1] },
-    { name: "數據分析", path: "/analytics", icon: ChartBarIcon, roles: [0, 1] },
     {
-      name: "廚房顯示",
+      name: t("nav.users"),
+      path: "/users",
+      icon: UserGroupIcon,
+      roles: [0, 1],
+    },
+    {
+      name: t("nav.analytics"),
+      path: "/analytics",
+      icon: ChartBarIcon,
+      roles: [0, 1],
+    },
+    {
+      name: t("nav.kitchen"),
       path: "/kitchen",
       icon: FireIcon,
       roles: [0, 1, 2],
     },
     {
-      name: "收銀台",
+      name: t("nav.cashier"),
       path: "/cashier",
       icon: CalculatorIcon,
       roles: [0, 1, 4],
@@ -267,9 +283,7 @@ const performSearch = () => {
   }
 
   // 如果沒有匹配的關鍵字，顯示提示
-  alert(
-    `沒有找到與「${searchQuery.value}」相關的功能，請嘗試其他關鍵字或使用上方的快速導航。`,
-  );
+  alert(t("notFound.noSearchResult", { query: searchQuery.value }));
 };
 
 // 生命周期

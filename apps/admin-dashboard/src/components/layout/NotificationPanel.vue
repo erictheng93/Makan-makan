@@ -8,7 +8,9 @@
     >
       <div class="flex items-center space-x-2">
         <Bell class="w-5 h-5 text-gray-600" />
-        <h3 class="text-sm font-semibold text-gray-900">通知</h3>
+        <h3 class="text-sm font-semibold text-gray-900">
+          {{ t("notification.title") }}
+        </h3>
         <span
           v-if="unreadCount > 0"
           class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[1.25rem] text-center"
@@ -34,14 +36,14 @@
           class="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
           @click="markAllAsRead"
         >
-          全部已讀
+          {{ t("notification.markAllRead") }}
         </button>
         <button
           :disabled="notifications.length === 0"
           class="text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
           @click="clearAll"
         >
-          清除所有
+          {{ t("notification.clearAll") }}
         </button>
       </div>
       <div class="flex items-center space-x-2">
@@ -68,7 +70,9 @@
     <div class="max-h-96 overflow-y-auto">
       <div v-if="notifications.length === 0" class="p-8 text-center">
         <Bell class="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p class="text-gray-500 text-sm">沒有新通知</p>
+        <p class="text-gray-500 text-sm">
+          {{ t("notification.noNotifications") }}
+        </p>
       </div>
 
       <div v-else class="divide-y divide-gray-100">
@@ -127,13 +131,21 @@
                   v-if="notification.data.orderNumber"
                   class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-800"
                 >
-                  訂單 #{{ notification.data.orderNumber }}
+                  {{
+                    t("notification.orderBadge", {
+                      orderNumber: notification.data.orderNumber,
+                    })
+                  }}
                 </span>
                 <span
                   v-if="notification.data.tableNumber"
                   class="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 ml-1"
                 >
-                  桌號 {{ notification.data.tableNumber }}
+                  {{
+                    t("notification.tableBadge", {
+                      tableNumber: notification.data.tableNumber,
+                    })
+                  }}
                 </span>
               </div>
 
@@ -147,20 +159,20 @@
                   class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
                   @click.stop="handleOrderAction(notification, 'deliver')"
                 >
-                  開始配送
+                  {{ t("notification.startDelivery") }}
                 </button>
                 <button
                   v-if="notification.type === 'order_urgent'"
                   class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
                   @click.stop="handleOrderAction(notification, 'prioritize')"
                 >
-                  優先處理
+                  {{ t("notification.prioritize") }}
                 </button>
                 <button
                   class="text-xs bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 transition-colors"
                   @click.stop="markAsRead(notification.id)"
                 >
-                  標記已讀
+                  {{ t("notification.markRead") }}
                 </button>
               </div>
             </div>
@@ -175,12 +187,14 @@
       class="p-3 bg-gray-50 border-t border-gray-200"
     >
       <div class="flex items-center justify-between text-xs text-gray-500">
-        <span>共 {{ notifications.length }} 條通知</span>
+        <span>{{
+          t("notification.totalCount", { count: notifications.length })
+        }}</span>
         <button
           class="text-blue-600 hover:text-blue-800 transition-colors"
           @click="showAllNotifications"
         >
-          查看全部 →
+          {{ t("notification.viewAll") }}
         </button>
       </div>
     </div>
@@ -189,6 +203,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useNotificationStore } from "@/stores/notification";
 import { useRouter } from "vue-router";
 import { format } from "date-fns";
@@ -207,6 +222,7 @@ defineEmits<{
   close: [];
 }>();
 
+const { t } = useI18n();
 const notificationStore = useNotificationStore();
 const router = useRouter();
 
@@ -233,7 +249,7 @@ const markAllAsRead = () => {
 };
 
 const clearAll = () => {
-  if (confirm("確定要清除所有通知嗎？")) {
+  if (confirm(t("notification.clearConfirm"))) {
     notificationStore.clearAll();
   }
 };
@@ -283,7 +299,7 @@ const handleOrderAction = (notification: any, action: string) => {
     router.push("/service");
   } else if (action === "prioritize") {
     // 優先處理邏輯
-    alert("已將訂單標記為優先處理");
+    alert(t("notification.prioritized"));
     markAsRead(notification.id);
   }
 };
@@ -343,9 +359,10 @@ const formatTime = (dateTime: Date) => {
   const diff = now.getTime() - dateTime.getTime();
   const minutes = Math.floor(diff / (1000 * 60));
 
-  if (minutes < 1) return "剛剛";
-  if (minutes < 60) return `${minutes} 分鐘前`;
-  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} 小時前`;
+  if (minutes < 1) return t("notification.justNow");
+  if (minutes < 60) return t("notification.minutesAgo", { count: minutes });
+  if (minutes < 24 * 60)
+    return t("notification.hoursAgo", { count: Math.floor(minutes / 60) });
 
   return format(dateTime, "MM/dd HH:mm", { locale: zhTW });
 };

@@ -3,7 +3,9 @@
     <header class="bg-gray-800 px-6 py-4 border-b border-gray-700">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <h1 class="text-2xl font-bold text-primary-400">廚房顯示系統</h1>
+          <h1 class="text-2xl font-bold text-primary-400">
+            {{ t("kitchenLayout.title") }}
+          </h1>
           <div class="flex items-center space-x-2 text-sm text-gray-300">
             <Clock class="w-4 h-4" />
             <span>{{ currentTime }}</span>
@@ -12,7 +14,9 @@
 
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-300">待處理訂單</span>
+            <span class="text-sm text-gray-300">{{
+              t("kitchenLayout.pendingOrders")
+            }}</span>
             <span
               class="bg-red-600 text-white px-3 py-1 rounded-full text-lg font-bold"
             >
@@ -21,7 +25,7 @@
           </div>
 
           <button class="btn-secondary" @click="$router.push('/dashboard')">
-            返回管理介面
+            {{ t("kitchenLayout.backToAdmin") }}
           </button>
         </div>
       </div>
@@ -35,10 +39,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import { Clock } from "lucide-vue-next";
 import { useOrderStore } from "@/stores/order";
 import { format } from "date-fns";
 
+const { t } = useI18n();
 const orderStore = useOrderStore();
 const currentTime = ref("");
 const pendingOrdersCount = computed(() => orderStore.pendingOrdersCount);

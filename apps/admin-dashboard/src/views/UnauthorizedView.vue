@@ -11,8 +11,12 @@
 
         <!-- 標題和描述 -->
         <div>
-          <h2 class="mt-6 text-3xl font-bold text-gray-900">存取被拒絕</h2>
-          <p class="mt-2 text-sm text-gray-600">抱歉，您沒有權限存取此頁面</p>
+          <h2 class="mt-6 text-3xl font-bold text-gray-900">
+            {{ t("unauthorized.title") }}
+          </h2>
+          <p class="mt-2 text-sm text-gray-600">
+            {{ t("unauthorized.description") }}
+          </p>
         </div>
 
         <!-- 錯誤詳情 -->
@@ -22,9 +26,11 @@
               <ExclamationTriangleIcon class="h-5 w-5 text-red-400" />
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">權限不足</h3>
+              <h3 class="text-sm font-medium text-red-800">
+                {{ t("unauthorized.permissionDenied") }}
+              </h3>
               <div class="mt-2 text-sm text-red-700">
-                <p>您目前的角色無法存取此功能。如需協助，請聯絡系統管理員。</p>
+                <p>{{ t("unauthorized.permissionMessage") }}</p>
               </div>
             </div>
           </div>
@@ -32,14 +38,16 @@
 
         <!-- 用戶資訊 -->
         <div v-if="currentUser" class="bg-gray-100 rounded-md p-4">
-          <h4 class="text-sm font-medium text-gray-900 mb-2">當前登入資訊</h4>
+          <h4 class="text-sm font-medium text-gray-900 mb-2">
+            {{ t("unauthorized.currentLoginInfo") }}
+          </h4>
           <div class="text-sm text-gray-600 space-y-1">
             <div class="flex justify-between">
-              <span>用戶名:</span>
+              <span>{{ t("unauthorized.usernameLabel") }}</span>
               <span class="font-medium">{{ currentUser.username }}</span>
             </div>
             <div class="flex justify-between">
-              <span>角色:</span>
+              <span>{{ t("unauthorized.roleLabel") }}</span>
               <span class="font-medium">{{
                 getRoleText(currentUser.role)
               }}</span>
@@ -48,7 +56,7 @@
               v-if="(currentUser as any).restaurantName"
               class="flex justify-between"
             >
-              <span>餐廳:</span>
+              <span>{{ t("unauthorized.restaurantLabel") }}</span>
               <span class="font-medium">{{
                 (currentUser as any).restaurantName
               }}</span>
@@ -64,7 +72,7 @@
             </div>
             <div class="ml-3">
               <h3 class="text-sm font-medium text-blue-800">
-                您可以使用的功能
+                {{ t("unauthorized.availableFeatures") }}
               </h3>
               <div class="mt-2 text-sm text-blue-700">
                 <ul class="list-disc list-inside space-y-1">
@@ -87,7 +95,7 @@
             @click="goBack"
           >
             <ArrowLeftIcon class="h-4 w-4 mr-2" />
-            返回上一頁
+            {{ t("unauthorized.goBack") }}
           </button>
 
           <button
@@ -95,13 +103,15 @@
             @click="goToDashboard"
           >
             <HomeIcon class="h-4 w-4 mr-2" />
-            回到首頁
+            {{ t("unauthorized.goHome") }}
           </button>
         </div>
 
         <!-- 聯絡資訊 -->
         <div class="text-center">
-          <p class="text-xs text-gray-500">如有疑問，請聯絡系統管理員</p>
+          <p class="text-xs text-gray-500">
+            {{ t("unauthorized.contactAdmin") }}
+          </p>
           <p class="text-xs text-blue-600 mt-1">
             <a
               href="mailto:admin@makanmakan.com"
@@ -119,6 +129,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import {
   ShieldExclamationIcon,
@@ -129,6 +140,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();
+const { t } = useI18n();
 const authStore = useAuthStore();
 
 // 計算屬性
@@ -139,52 +151,52 @@ const availablePermissions = computed(() => {
   const permissions: Record<number, string[]> = {
     0: [
       // Admin
-      "系統管理",
-      "用戶管理",
-      "餐廳管理",
-      "數據分析",
-      "所有功能",
+      t("unauthorized.permissions.systemManagement"),
+      t("unauthorized.permissions.userManagement"),
+      t("unauthorized.permissions.restaurantManagement"),
+      t("unauthorized.permissions.dataAnalysis"),
+      t("unauthorized.permissions.allFeatures"),
     ],
     1: [
       // Owner
-      "餐廳管理",
-      "員工管理",
-      "菜單管理",
-      "訂單管理",
-      "數據分析",
+      t("unauthorized.permissions.restaurantManagement"),
+      t("unauthorized.permissions.staffManagement"),
+      t("unauthorized.permissions.menuManagement"),
+      t("unauthorized.permissions.orderManagement"),
+      t("unauthorized.permissions.dataAnalysis"),
     ],
     2: [
       // Chef
-      "廚房顯示系統",
-      "訂單處理",
-      "菜單查看",
+      t("unauthorized.permissions.kitchenDisplay"),
+      t("unauthorized.permissions.orderProcessing"),
+      t("unauthorized.permissions.menuView"),
     ],
     3: [
       // Service
-      "訂單管理",
-      "桌台管理",
-      "送餐服務",
+      t("unauthorized.permissions.orderManagement"),
+      t("unauthorized.permissions.tableManagement"),
+      t("unauthorized.permissions.deliveryService"),
     ],
     4: [
       // Cashier
-      "收銀台",
-      "訂單結帳",
-      "付款處理",
+      t("unauthorized.permissions.cashier"),
+      t("unauthorized.permissions.orderCheckout"),
+      t("unauthorized.permissions.paymentProcessing"),
     ],
   };
-  return permissions[role!] || ["基本功能"];
+  return permissions[role!] || [t("unauthorized.permissions.basicFeatures")];
 });
 
 // 方法
 const getRoleText = (role: number) => {
   const roles: Record<number, string> = {
-    0: "系統管理員",
-    1: "店主",
-    2: "廚師",
-    3: "送菜員",
-    4: "收銀員",
+    0: t("unauthorized.roles.admin"),
+    1: t("unauthorized.roles.owner"),
+    2: t("unauthorized.roles.chef"),
+    3: t("unauthorized.roles.service"),
+    4: t("unauthorized.roles.cashier"),
   };
-  return roles[role] || "未知角色";
+  return roles[role] || t("unauthorized.roles.unknown");
 };
 
 const goBack = () => {

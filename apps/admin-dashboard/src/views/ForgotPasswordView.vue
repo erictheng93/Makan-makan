@@ -11,7 +11,9 @@
           <span class="text-white font-bold text-2xl">M</span>
         </div>
         <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
-        <p class="mt-2 text-sm text-gray-600">管理後台 - 忘記密碼</p>
+        <p class="mt-2 text-sm text-gray-600">
+          {{ t("auth.forgotPasswordSubtitle") }}
+        </p>
       </div>
 
       <!-- Success State -->
@@ -24,12 +26,14 @@
               <CheckCircle class="w-6 h-6 text-green-600" />
             </div>
             <div class="ml-4 flex-1">
-              <h3 class="text-lg font-medium text-green-900">郵件已發送</h3>
+              <h3 class="text-lg font-medium text-green-900">
+                {{ t("auth.emailSent") }}
+              </h3>
               <p class="mt-2 text-sm text-green-700">
                 {{ successMessage }}
               </p>
               <p class="mt-3 text-sm text-green-600">
-                請檢查您的電子郵件收件箱，並點擊重設密碼連結。如果您沒有收到郵件，請檢查垃圾郵件資料夾。
+                {{ t("auth.emailSentMessage") }}
               </p>
             </div>
           </div>
@@ -40,7 +44,7 @@
             to="/login"
             class="text-sm font-medium text-primary-600 hover:text-primary-500"
           >
-            ← 返回登入頁面
+            {{ t("auth.backToLogin") }}
           </router-link>
         </div>
       </div>
@@ -54,7 +58,7 @@
               <Info class="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
               <div>
                 <p class="text-sm text-blue-800">
-                  請輸入您註冊時使用的電子郵件地址。我們將向您發送密碼重設連結。
+                  {{ t("auth.forgotPasswordInstruction") }}
                 </p>
               </div>
             </div>
@@ -62,7 +66,7 @@
 
           <!-- Email Input -->
           <div>
-            <label for="email" class="form-label">電子郵件</label>
+            <label for="email" class="form-label">{{ t("auth.email") }}</label>
             <input
               id="email"
               v-model="form.email"
@@ -71,7 +75,7 @@
               autocomplete="email"
               class="form-input"
               :class="{ 'border-red-500': emailError }"
-              placeholder="請輸入電子郵件地址"
+              :placeholder="t('auth.enterEmail')"
               :disabled="isLoading"
             />
             <p v-if="emailError" class="mt-1 text-sm text-red-600">
@@ -105,9 +109,9 @@
               <div
                 class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"
               />
-              發送中...
+              {{ t("auth.sending") }}
             </span>
-            <span v-else>發送重設密碼郵件</span>
+            <span v-else>{{ t("auth.sendResetEmail") }}</span>
           </button>
 
           <!-- Back to Login -->
@@ -116,7 +120,7 @@
               to="/login"
               class="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
-              ← 返回登入頁面
+              {{ t("auth.backToLogin") }}
             </router-link>
           </div>
         </div>
@@ -134,7 +138,10 @@
 
 <script setup lang="ts">
 import { ref, reactive } from "vue";
+import { useI18n } from "@/i18n";
 import { CheckCircle, AlertCircle, Info } from "lucide-vue-next";
+
+const { t } = useI18n();
 
 const isLoading = ref(false);
 const success = ref(false);
@@ -150,14 +157,14 @@ const validateForm = () => {
   emailError.value = "";
 
   if (!form.email.trim()) {
-    emailError.value = "請輸入電子郵件地址";
+    emailError.value = t("auth.emailRequired");
     return false;
   }
 
   // Email format validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(form.email)) {
-    emailError.value = "請輸入有效的電子郵件格式";
+    emailError.value = t("auth.invalidEmail");
     return false;
   }
 
@@ -189,13 +196,13 @@ const handleSubmit = async () => {
 
     if (data.success) {
       success.value = true;
-      successMessage.value = data.message || "密碼重設郵件已發送";
+      successMessage.value = data.message || t("auth.resetEmailSent");
     } else {
-      error.value = data.error || "發送失敗，請稍後再試";
+      error.value = data.error || t("auth.sendFailed");
     }
   } catch (err) {
     console.error("Forgot password error:", err);
-    error.value = "網路錯誤，請檢查您的網路連線";
+    error.value = t("auth.networkError");
   } finally {
     isLoading.value = false;
   }

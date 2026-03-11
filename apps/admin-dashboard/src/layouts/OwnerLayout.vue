@@ -10,7 +10,9 @@
               <BuildingStorefrontIcon class="h-8 w-8 text-purple-600" />
             </div>
             <div class="ml-4">
-              <h1 class="text-xl font-bold text-gray-900">店主管理中心</h1>
+              <h1 class="text-xl font-bold text-gray-900">
+                {{ t("ownerLayout.title") }}
+              </h1>
               <p class="text-sm text-gray-600">
                 {{ currentRestaurant?.name || "MakanMakan" }}
               </p>
@@ -38,7 +40,9 @@
               class="flex items-center space-x-2 px-3 py-1 bg-green-100 rounded-full"
             >
               <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span class="text-sm font-medium text-green-800">營業中</span>
+              <span class="text-sm font-medium text-green-800">{{
+                t("ownerLayout.open")
+              }}</span>
             </div>
 
             <!-- 用戶資訊 -->
@@ -93,7 +97,9 @@
           @click.stop
         >
           <div class="p-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">系統通知</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("ownerLayout.systemNotifications") }}
+            </h3>
           </div>
           <div class="overflow-y-auto max-h-80">
             <div
@@ -141,6 +147,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   BuildingStorefrontIcon,
   BellIcon,
@@ -153,18 +160,39 @@ import {
   ChartPieIcon,
 } from "@heroicons/vue/24/outline";
 
+const { t } = useI18n();
 const activeTab = ref("overview");
 const showNotifications = ref(false);
 const unreadNotifications = ref(3);
 const currentRestaurant = ref({ name: "MakanMakan 旗艦店" });
 
 const tabs = [
-  { key: "overview", label: "總覽儀表板", icon: ChartPieIcon },
-  { key: "analytics", label: "營運分析", icon: ChartBarIcon },
-  { key: "staff", label: "員工管理", icon: UsersIcon },
-  { key: "finance", label: "財務報表", icon: CurrencyDollarIcon },
-  { key: "operations", label: "營運管理", icon: ClipboardDocumentIcon },
-  { key: "settings", label: "店鋪設定", icon: Cog6ToothIcon },
+  {
+    key: "overview",
+    label: t("ownerLayout.tabs.overview"),
+    icon: ChartPieIcon,
+  },
+  {
+    key: "analytics",
+    label: t("ownerLayout.tabs.operations"),
+    icon: ChartBarIcon,
+  },
+  { key: "staff", label: t("ownerLayout.tabs.staff"), icon: UsersIcon },
+  {
+    key: "finance",
+    label: t("ownerLayout.tabs.finance"),
+    icon: CurrencyDollarIcon,
+  },
+  {
+    key: "operations",
+    label: t("ownerLayout.tabs.management"),
+    icon: ClipboardDocumentIcon,
+  },
+  {
+    key: "settings",
+    label: t("ownerLayout.tabs.settings"),
+    icon: Cog6ToothIcon,
+  },
 ];
 
 const notifications = ref([
