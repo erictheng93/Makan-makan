@@ -542,7 +542,8 @@
     "nextPage": "Trang sau",
     "pageInfo": "Trang {current} / {total} ({count} bản ghi)",
     "confirmCancelOrder": "Bạn có chắc chắn muốn hủy đơn hàng này?",
-    "confirmLogout": "Bạn có chắc chắn muốn đăng xuất?"
+    "confirmLogout": "Bạn có chắc chắn muốn đăng xuất?",
+    "customerCancelled": "Khách hàng chủ động hủy"
   },
   "shopCart": {
     "title": "Giỏ hàng",

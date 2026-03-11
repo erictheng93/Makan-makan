@@ -88,7 +88,7 @@
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          預估 {{ estimatedTime }}
+          {{ t("time.estimated") }} {{ estimatedTime }}
         </div>
       </div>
     </div>
@@ -98,6 +98,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { formatDateTime } from "@/utils/format";
+import { useI18n } from "@/composables/useI18n";
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps<{

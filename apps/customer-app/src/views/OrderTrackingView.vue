@@ -242,13 +242,13 @@
           <div class="border-t border-gray-100 pt-4 mt-4">
             <div class="space-y-2">
               <div class="flex justify-between text-sm text-gray-600">
-                <span>小計</span>
+                <span>{{ t("common.subtotal") }}</span>
                 <span>${{ formatPrice(order.totalAmount) }}</span>
               </div>
               <div
                 class="flex justify-between text-lg font-semibold text-gray-900"
               >
-                <span>總計</span>
+                <span>{{ t("common.total") }}</span>
                 <span>${{ formatPrice(order.totalAmount) }}</span>
               </div>
             </div>
@@ -352,7 +352,11 @@ const handleWebSocketMessage = (message: WebSocketMessage) => {
       }
 
       // 顯示狀態更新通知
-      toast.info(`訂單狀態已更新：${getStatusTitle(orderMessage.status)}`);
+      toast.info(
+        tWithParams("toast.orderStatusUpdated", {
+          status: getStatusTitle(orderMessage.status),
+        }),
+      );
     }
   }
 };

@@ -542,7 +542,8 @@
     "nextPage": "Seterusnya",
     "pageInfo": "Halaman {current} / {total} ({count} rekod)",
     "confirmCancelOrder": "Adakah anda pasti mahu membatalkan pesanan ini?",
-    "confirmLogout": "Adakah anda pasti mahu log keluar?"
+    "confirmLogout": "Adakah anda pasti mahu log keluar?",
+    "customerCancelled": "Pelanggan membatalkan"
   },
   "shopCart": {
     "title": "Troli Beli-belah",

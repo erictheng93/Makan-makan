@@ -542,7 +542,8 @@
     "nextPage": "下一页",
     "pageInfo": "第 {current} / {total} 页（共 {count} 笔）",
     "confirmCancelOrder": "确定要取消这个订单吗？",
-    "confirmLogout": "确定要退出登录吗？"
+    "confirmLogout": "确定要退出登录吗？",
+    "customerCancelled": "客户主动取消"
   },
   "shopCart": {
     "title": "购物车",

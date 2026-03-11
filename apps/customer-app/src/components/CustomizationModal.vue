@@ -14,7 +14,9 @@
           <div class="w-8 h-1 bg-gray-300 rounded-full" />
         </div>
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">選擇規格</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("customization.title") }}
+          </h3>
           <button
             class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
             @click="$emit('close')"
@@ -41,7 +43,7 @@
           <!-- 尺寸選擇 -->
           <div v-if="item?.options?.sizes?.length">
             <h4 class="text-base font-medium text-gray-900 mb-3">
-              尺寸 <span class="text-red-500">*</span>
+              {{ t("customization.size") }} <span class="text-red-500">*</span>
             </h4>
             <div class="space-y-2">
               <label
@@ -116,7 +118,9 @@
 
           <!-- 客製化選項 -->
           <div v-if="item?.options?.customizations?.length">
-            <h4 class="text-base font-medium text-gray-900 mb-3">客製化選項</h4>
+            <h4 class="text-base font-medium text-gray-900 mb-3">
+              {{ t("customization.options") }}
+            </h4>
             <div class="space-y-3">
               <div
                 v-for="option in item.options.customizations"
@@ -126,9 +130,9 @@
                   <span class="font-medium text-gray-900">{{
                     option.name
                   }}</span>
-                  <span v-if="option.required" class="text-xs text-red-500"
-                    >必選</span
-                  >
+                  <span v-if="option.required" class="text-xs text-red-500">{{
+                    t("customization.required")
+                  }}</span>
                 </div>
 
                 <!-- 單選選項 -->
@@ -264,7 +268,9 @@
 
           <!-- 加購項目 -->
           <div v-if="item?.options?.addOns?.length">
-            <h4 class="text-base font-medium text-gray-900 mb-3">加購項目</h4>
+            <h4 class="text-base font-medium text-gray-900 mb-3">
+              {{ t("customization.addOns") }}
+            </h4>
             <div class="space-y-2">
               <label
                 v-for="addOn in item.options.addOns"
@@ -330,7 +336,9 @@
       <!-- 底部價格和確認按鈕 -->
       <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
-          <span class="text-lg font-medium text-gray-900">總價</span>
+          <span class="text-lg font-medium text-gray-900">{{
+            t("customization.totalPrice")
+          }}</span>
           <span class="text-xl font-bold text-gray-900">
             ${{ formatPrice(totalPrice) }}
           </span>
@@ -340,7 +348,7 @@
           class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-2xl transition-colors"
           @click="handleConfirm"
         >
-          確認選擇
+          {{ t("customization.confirmSelection") }}
         </button>
       </div>
     </div>
@@ -350,10 +358,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { formatPrice } from "@/utils/format";
+import { useI18n } from "@/composables/useI18n";
 import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps<{

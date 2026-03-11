@@ -542,7 +542,8 @@
     "nextPage": "Selanjutnya",
     "pageInfo": "Halaman {current} / {total} ({count} catatan)",
     "confirmCancelOrder": "Apakah Anda yakin ingin membatalkan pesanan ini?",
-    "confirmLogout": "Apakah Anda yakin ingin keluar?"
+    "confirmLogout": "Apakah Anda yakin ingin keluar?",
+    "customerCancelled": "Pelanggan membatalkan"
   },
   "shopCart": {
     "title": "Keranjang Belanja",

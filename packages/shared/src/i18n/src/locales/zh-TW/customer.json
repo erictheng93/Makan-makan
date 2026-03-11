@@ -542,7 +542,8 @@
     "nextPage": "下一頁",
     "pageInfo": "第 {current} / {total} 頁 （共 {count} 筆）",
     "confirmCancelOrder": "確定要取消這個訂單嗎？",
-    "confirmLogout": "確定要登出嗎？"
+    "confirmLogout": "確定要登出嗎？",
+    "customerCancelled": "客戶主動取消"
   },
   "shopCart": {
     "title": "購物車",

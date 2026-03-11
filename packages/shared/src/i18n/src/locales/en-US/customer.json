@@ -542,7 +542,8 @@
     "nextPage": "Next",
     "pageInfo": "Page {current} / {total} ({count} records)",
     "confirmCancelOrder": "Are you sure you want to cancel this order?",
-    "confirmLogout": "Are you sure you want to logout?"
+    "confirmLogout": "Are you sure you want to logout?",
+    "customerCancelled": "Customer cancelled"
   },
   "shopCart": {
     "title": "Shopping Cart",

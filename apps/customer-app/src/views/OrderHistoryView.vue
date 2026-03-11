@@ -342,7 +342,10 @@ const cancelOrder = async (orderId: number) => {
   if (!confirm(t("orderHistory.confirmCancelOrder"))) return;
 
   try {
-    await customerOrderApi.cancelOrder(orderId, "客戶主動取消");
+    await customerOrderApi.cancelOrder(
+      orderId,
+      t("orderHistory.customerCancelled"),
+    );
     await loadOrders();
   } catch (error) {
     console.error("Failed to cancel order:", error);

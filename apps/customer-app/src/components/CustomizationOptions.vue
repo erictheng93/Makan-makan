@@ -3,7 +3,7 @@
     <!-- 尺寸選擇 -->
     <div v-if="item.options?.sizes?.length">
       <h4 class="text-base font-medium text-gray-900 mb-3">
-        尺寸 <span class="text-red-500">*</span>
+        {{ t("customization.size") }} <span class="text-red-500">*</span>
       </h4>
       <div class="grid grid-cols-2 gap-3">
         <label
@@ -178,7 +178,9 @@
 
     <!-- 加購項目 -->
     <div v-if="item.options?.addOns?.length">
-      <h4 class="text-base font-medium text-gray-900 mb-3">加購項目</h4>
+      <h4 class="text-base font-medium text-gray-900 mb-3">
+        {{ t("customization.addOns") }}
+      </h4>
       <div class="space-y-2">
         <label
           v-for="addOn in item.options.addOns"
@@ -239,10 +241,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { formatPrice } from "@/utils/format";
+import { useI18n } from "@/composables/useI18n";
 import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps<{
