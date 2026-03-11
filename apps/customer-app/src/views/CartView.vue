@@ -174,16 +174,24 @@
                       isMinimumOrderMet ? 'text-green-800' : 'text-yellow-800',
                     ]"
                   >
-                    最低消費：${{ formatPrice(minimumOrderAmount) }}
+                    {{
+                      tWithParams("cart.minimumOrderNote", {
+                        amount: formatPrice(minimumOrderAmount),
+                      })
+                    }}
                   </p>
                   <p
                     v-if="!isMinimumOrderMet"
                     class="text-sm text-yellow-600 mt-1"
                   >
-                    還需加點 ${{ formatPrice(minimumOrderShortfall) }} 才能下單
+                    {{
+                      tWithParams("cart.minimumOrderShortfall", {
+                        amount: formatPrice(minimumOrderShortfall),
+                      })
+                    }}
                   </p>
                   <p v-else class="text-sm text-green-600 mt-1">
-                    已達到最低消費標準 ✓
+                    {{ t("cart.minimumOrderMet") }}
                   </p>
                 </div>
               </div>
@@ -552,9 +560,11 @@
             class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"
           />
           <span v-if="isSubmitting">{{ t("order.placeOrder") }}...</span>
-          <span v-else-if="!isMinimumOrderMet && minimumOrderEnabled"
-            >還需加點 ${{ formatPrice(minimumOrderShortfall) }}</span
-          >
+          <span v-else-if="!isMinimumOrderMet && minimumOrderEnabled">{{
+            tWithParams("cart.minimumOrderShortfall", {
+              amount: formatPrice(minimumOrderShortfall),
+            })
+          }}</span>
           <span v-else
             >{{ t("order.placeOrder") }} · ${{ formatPrice(totalAmount) }}</span
           >
@@ -568,7 +578,11 @@
           class="mt-2 text-center"
         >
           <p class="text-sm text-yellow-600">
-            最低消費：${{ formatPrice(minimumOrderAmount) }}
+            {{
+              tWithParams("cart.minimumOrderNote", {
+                amount: formatPrice(minimumOrderAmount),
+              })
+            }}
           </p>
         </div>
 
@@ -597,7 +611,11 @@
     <ConfirmationModal
       :show="showConfirmation"
       :title="t('order.placeOrder')"
-      :message="`您即將提交總額 $${formatPrice(totalAmount)} 的訂單，確定要繼續嗎？`"
+      :message="
+        tWithParams('cart.confirmOrderMessage', {
+          amount: formatPrice(totalAmount),
+        })
+      "
       :confirm-text="t('common.confirm')"
       :cancel-text="t('common.cancel')"
       @confirm="submitOrder"
@@ -630,7 +648,7 @@ const props = defineProps<{
 // Composables
 const router = useRouter();
 const toast = useToast();
-const { t } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const cartStore = useCartStore();
 
 // State
@@ -698,14 +716,14 @@ const { mutate: createOrder } = useMutation({
   mutationFn: (orderData: CreateOrderRequest) =>
     orderApi.createOrder(orderData),
   onSuccess: (order) => {
-    toast.success("訂單提交成功！");
+    toast.success(t("toast.orderSubmitSuccess"));
     cartStore.clearCart();
     router.push(
       `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${order.id}`,
     );
   },
   onError: (error: any) => {
-    toast.error(error?.message || "訂單提交失敗，請重試");
+    toast.error(error?.message || t("toast.orderSubmitFailed"));
     isSubmitting.value = false;
   },
 });
@@ -774,14 +792,16 @@ const handleRemoveItem = (itemId: string) => {
   const item = cartStore.getItemById(itemId);
   if (item) {
     cartStore.removeItem(itemId);
-    toast.success(`已移除 ${item.menuItem.name}`);
+    toast.success(
+      tWithParams("toast.itemRemoved", { name: item.menuItem.name }),
+    );
   }
 };
 
 const handleSubmitOrder = () => {
   // 驗證必要資訊
   if (cartStore.isEmpty) {
-    toast.warning("購物車不能為空");
+    toast.warning(t("toast.cartCannotBeEmpty"));
     return;
   }
 
@@ -801,24 +821,24 @@ const validateCouponCode = (
   code: string,
 ): { isValid: boolean; error?: string } => {
   if (!code || typeof code !== "string") {
-    return { isValid: false, error: "請輸入優惠券代碼" };
+    return { isValid: false, error: t("toast.couponCodeRequired") };
   }
 
   const trimmedCode = code.trim();
 
   if (trimmedCode.length === 0) {
-    return { isValid: false, error: "請輸入優惠券代碼" };
+    return { isValid: false, error: t("toast.couponCodeRequired") };
   }
 
   if (trimmedCode.length > 50) {
-    return { isValid: false, error: "優惠券代碼不能超過50個字符" };
+    return { isValid: false, error: t("toast.couponCodeTooLong") };
   }
 
   // Allow alphanumeric characters, hyphens, and underscores only
   if (!/^[A-Za-z0-9\-_]+$/.test(trimmedCode)) {
     return {
       isValid: false,
-      error: "優惠券代碼只能包含字母、數字、連字符和下劃線",
+      error: t("toast.couponCodeInvalidChars"),
     };
   }
 
@@ -866,20 +886,23 @@ const validateCoupon = async () => {
       // 驗證成功
       appliedCoupon.value = result.data.coupon;
       couponDiscountAmount.value = result.data.discountAmount || 0;
-      couponValidationMessage.value = `優惠券已套用！節省 $${formatPrice(couponDiscountAmount.value)}`;
+      couponValidationMessage.value = tWithParams("toast.couponApplied", {
+        amount: formatPrice(couponDiscountAmount.value),
+      });
       couponValidationError.value = false;
     } else {
       // 驗證失敗
       appliedCoupon.value = null;
       couponDiscountAmount.value = 0;
-      couponValidationMessage.value = result.data?.error || "優惠券驗證失敗";
+      couponValidationMessage.value =
+        result.data?.error || t("toast.couponFailed");
       couponValidationError.value = true;
     }
   } catch (error) {
     console.error("Coupon validation error:", error);
     appliedCoupon.value = null;
     couponDiscountAmount.value = 0;
-    couponValidationMessage.value = "驗證過程中發生錯誤，請稍後再試";
+    couponValidationMessage.value = t("toast.couponValidationError");
     couponValidationError.value = true;
   } finally {
     isValidatingCoupon.value = false;
@@ -952,7 +975,7 @@ const formatCouponDiscount = (coupon: any) => {
 const formatCouponExpiry = (dateString: any) => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString("zh-TW", {
+    return date.toLocaleDateString(currentLanguage.value, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -1005,8 +1028,8 @@ const submitOrder = async () => {
     // 提交訂單
     createOrder(orderData);
   } catch (error) {
-    console.error("提交訂單失敗:", error);
-    toast.error("訂單提交失敗，請重試");
+    console.error("submitOrder failed:", error);
+    toast.error(t("toast.orderSubmitFailed"));
     isSubmitting.value = false;
   }
 };
