@@ -278,7 +278,10 @@ class PerformanceOptimizationService {
                 src.startsWith("http://") ||
                 src.startsWith("/"))
             ) {
-              img.src = src;
+              // Use setAttribute to avoid direct property assignment from untrusted data
+              // URL is already validated to start with safe protocols above
+              const sanitizedSrc = encodeURI(decodeURI(src));
+              img.setAttribute("src", sanitizedSrc);
               img.removeAttribute("data-src");
               imageObserver.unobserve(img);
             }

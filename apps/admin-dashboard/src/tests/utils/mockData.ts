@@ -10,6 +10,13 @@ import type {
   GroupOrderSplitBill,
 } from "@/composables/useRealtimeGroupOrders";
 
+// Use cryptographically secure random number generation to satisfy CodeQL
+function secureRandom(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] / (0xffffffff + 1);
+}
+
 // 創建模擬群組訂單
 export function createMockGroupOrder(
   id?: string,
@@ -21,7 +28,7 @@ export function createMockGroupOrder(
     id: id || `group-${Date.now()}`,
     shareCode:
       options.shareCode ||
-      `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      `PARTY-${secureRandom().toString(36).substr(2, 6).toUpperCase()}`,
     status: options.status || "active",
     restaurantId: options.restaurantId || "1",
     members: options.members || [
@@ -61,19 +68,20 @@ export function createMockMember(
   return {
     id: id || `member-${Date.now()}`,
     sessionId:
-      options.sessionId || `session-${Math.random().toString(36).substr(2, 8)}`,
-    name: name || `測試用戶${Math.floor(Math.random() * 100)}`,
+      options.sessionId ||
+      `session-${secureRandom().toString(36).substr(2, 8)}`,
+    name: name || `測試用戶${Math.floor(secureRandom() * 100)}`,
     phone:
       options.phone ||
-      `09${Math.floor(Math.random() * 100000000)
+      `09${Math.floor(secureRandom() * 100000000)
         .toString()
         .padStart(8, "0")}`,
     role,
-    joinedAt: options.joinedAt || now - Math.floor(Math.random() * 3600000),
+    joinedAt: options.joinedAt || now - Math.floor(secureRandom() * 3600000),
     lastActiveAt: options.lastActiveAt || now,
     isOnline: options.isOnline !== undefined ? options.isOnline : true,
-    totalAmount: options.totalAmount || Math.floor(Math.random() * 100) + 20,
-    itemCount: options.itemCount || Math.floor(Math.random() * 5) + 1,
+    totalAmount: options.totalAmount || Math.floor(secureRandom() * 100) + 20,
+    itemCount: options.itemCount || Math.floor(secureRandom() * 5) + 1,
     paymentStatus: options.paymentStatus || "unpaid",
     ...options,
   };
@@ -99,29 +107,29 @@ export function createMockCartItem(
   ];
 
   const now = Date.now();
-  const quantity = options.quantity || Math.floor(Math.random() * 3) + 1;
-  const unitPrice = options.unitPrice || Math.floor(Math.random() * 50) + 15;
+  const quantity = options.quantity || Math.floor(secureRandom() * 3) + 1;
+  const unitPrice = options.unitPrice || Math.floor(secureRandom() * 50) + 15;
 
   return {
-    id: id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    id: id || `item-${Date.now()}-${secureRandom().toString(36).substr(2, 4)}`,
     memberId: memberId || "member-1",
-    menuItemId: options.menuItemId || Math.floor(Math.random() * 1000) + 1,
+    menuItemId: options.menuItemId || Math.floor(secureRandom() * 1000) + 1,
     menuItemName:
       options.menuItemName ||
-      menuItems[Math.floor(Math.random() * menuItems.length)],
+      menuItems[Math.floor(secureRandom() * menuItems.length)],
     quantity,
     unitPrice,
     totalPrice: options.totalPrice || quantity * unitPrice,
     customizations: options.customizations || {
       spicy: ["不辣", "微辣", "小辣", "中辣", "大辣"][
-        Math.floor(Math.random() * 5)
+        Math.floor(secureRandom() * 5)
       ],
-      size: ["小份", "正常", "大份"][Math.floor(Math.random() * 3)],
+      size: ["小份", "正常", "大份"][Math.floor(secureRandom() * 3)],
     },
     specialInstructions:
       options.specialInstructions ||
-      (Math.random() > 0.7 ? "請不要加蔥" : undefined),
-    addedAt: options.addedAt || now - Math.floor(Math.random() * 1800000),
+      (secureRandom() > 0.7 ? "請不要加蔥" : undefined),
+    addedAt: options.addedAt || now - Math.floor(secureRandom() * 1800000),
     updatedAt: options.updatedAt || now,
     version: options.version || 1,
     ...options,
@@ -134,7 +142,7 @@ export function createMockSplitBill(
   memberId?: string,
   options: Partial<GroupOrderSplitBill> = {},
 ): GroupOrderSplitBill {
-  const subtotal = options.subtotal || Math.floor(Math.random() * 80) + 30;
+  const subtotal = options.subtotal || Math.floor(secureRandom() * 80) + 30;
   const taxRate = 0.06;
   const serviceChargeRate = 0.1;
 
@@ -148,13 +156,15 @@ export function createMockSplitBill(
     Math.round((subtotal + taxAmount + serviceCharge) * 100) / 100;
 
   return {
-    id: id || `split-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    id: id || `split-${Date.now()}-${secureRandom().toString(36).substr(2, 4)}`,
     memberId: memberId || "member-1",
     subtotal,
     taxAmount,
     serviceCharge,
     totalAmount,
-    items: options.items || [`item-${Math.random().toString(36).substr(2, 4)}`],
+    items: options.items || [
+      `item-${secureRandom().toString(36).substr(2, 4)}`,
+    ],
     paymentStatus: options.paymentStatus || "pending",
     paymentMethod: options.paymentMethod,
     paidAt: options.paidAt,

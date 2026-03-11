@@ -187,7 +187,17 @@ export class ResendEmailProvider implements EmailProvider {
           to: params.to,
           subject: params.subject,
           html: params.html,
-          text: params.text || params.html.replaceAll(/<[^>]*>/g, ""),
+          text:
+            params.text ||
+            (() => {
+              let result = params.html;
+              let prev;
+              do {
+                prev = result;
+                result = result.replaceAll(/<[^>]*>/g, "");
+              } while (result !== prev);
+              return result;
+            })(),
         }),
       });
 
@@ -781,7 +791,13 @@ export class NotificationService extends BaseService {
           errors.push("SMS provider not configured");
         } else {
           // Strip HTML for SMS
-          const smsBody = body.replaceAll(/<[^>]*>/g, "").trim();
+          let smsBody = body;
+          let prevBody;
+          do {
+            prevBody = smsBody;
+            smsBody = smsBody.replaceAll(/<[^>]*>/g, "");
+          } while (smsBody !== prevBody);
+          smsBody = smsBody.trim();
           const result = await this.smsProvider.sendSMS({
             to: payload.recipientPhone,
             body: smsBody,

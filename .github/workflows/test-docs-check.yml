@@ -11,6 +11,11 @@ on:
       - 'tests/**'
       - 'docs/testing/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   check-test-docs:
     runs-on: ubuntu-latest

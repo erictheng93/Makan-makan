@@ -14,9 +14,7 @@ console.log("Generating bcrypt hashes...\n");
 for (const [password, _] of Object.entries(passwords)) {
   const hash = bcrypt.hashSync(password, 10);
   passwords[password] = hash;
-  console.log(
-    `${password.slice(0, 2)}${"*".repeat(password.length - 2)}: ${hash}`,
-  );
+  console.log(`${"*".repeat(password.length)}: ${hash}`);
 }
 
 console.log("\n\nSQL Update Statements:");

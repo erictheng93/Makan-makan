@@ -208,10 +208,11 @@ export class PrinterDriverFactory {
         const devices = await this.scanConnectionType(connectionType, options);
         return devices;
       } catch (error) {
-        console.error(
-          `Failed to scan ${String(connectionType).replace(/[\r\n\t]/g, " ")} printers:`,
-          error,
+        const safeConnectionType = String(connectionType).replace(
+          /[\r\n\t]/g,
+          " ",
         );
+        console.error("Failed to scan %s printers:", safeConnectionType, error);
         return [];
       }
     });

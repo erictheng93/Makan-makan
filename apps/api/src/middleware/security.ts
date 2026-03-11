@@ -159,6 +159,17 @@ function sanitizeString(str: string): string {
   // e.g., "<scr<script>ipt>" becomes "<script>" after one pass, so we repeat until stable
   let sanitized = str;
   let previous: string;
+
+  // Use regex patterns that match obfuscated variants (handles character insertion attacks)
+  // e.g., "<scr<script>ipt>" won't bypass these because they match character-by-character
+  const dangerousTagPatterns = [
+    /<s\s*c\s*r\s*i\s*p\s*t/gi,
+    /<i\s*f\s*r\s*a\s*m\s*e/gi,
+    /<o\s*b\s*j\s*e\s*c\s*t/gi,
+    /<e\s*m\s*b\s*e\s*d/gi,
+    /<a\s*p\s*p\s*l\s*e\s*t/gi,
+  ];
+
   do {
     previous = sanitized;
     sanitized = sanitized
@@ -170,17 +181,21 @@ function sanitizeString(str: string): string {
         "",
       )
       // Remove on* event handlers (onclick, onerror, onload, etc.)
-      .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "")
-      .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, "")
+      .replace(/\bon\w+\s*=/gi, "")
       // Remove style attributes that could contain expressions
       .replace(/\s*style\s*=\s*["'][^"']*expression\([^"']*\)["']/gi, "")
       // Remove import statements
       .replace(/@import\s+/gi, "")
-      // Remove iframe, object, embed tags
+      // Remove iframe, object, embed, applet tags and content
       .replace(
         /<(iframe|object|embed|applet)[^>]*>[\s\S]*?<\/(iframe|object|embed|applet)>/gi,
         "",
       );
+
+    // Remove obfuscated dangerous tags (e.g., <s c r i p t, <i f r a m e)
+    for (const pattern of dangerousTagPatterns) {
+      sanitized = sanitized.replace(pattern, "");
+    }
   } while (sanitized !== previous);
 
   // Then, HTML entity encode ALL special characters for defense in depth

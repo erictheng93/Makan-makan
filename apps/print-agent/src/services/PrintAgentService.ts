@@ -174,7 +174,8 @@ export class PrintAgentService {
       const existing = this.printerService.getDevice(device.id);
       if (existing) {
         console.log(
-          `Printer ${sanitizeForLog(device.name)} already registered`,
+          "Printer %s already registered",
+          sanitizeForLog(device.name),
         );
         return true;
       }
@@ -191,12 +192,15 @@ export class PrintAgentService {
       });
 
       console.log(
-        `✅ Registered printer: ${sanitizeForLog(device.name)} (${sanitizeForLog(device.brand)})`,
+        "Registered printer: %s (%s)",
+        sanitizeForLog(device.name),
+        sanitizeForLog(device.brand),
       );
       return true;
     } catch (error) {
       console.error(
-        `❌ Failed to register printer ${sanitizeForLog(device.name)}:`,
+        "Failed to register printer %s:",
+        sanitizeForLog(device.name),
         error,
       );
       return false;
@@ -206,11 +210,12 @@ export class PrintAgentService {
   async unregisterPrinter(deviceId: string): Promise<boolean> {
     try {
       await this.printerService.unregisterPrinter(deviceId);
-      console.log(`🗑️  Unregistered printer: ${sanitizeForLog(deviceId)}`);
+      console.log("Unregistered printer: %s", sanitizeForLog(deviceId));
       return true;
     } catch (error) {
       console.error(
-        `❌ Failed to unregister printer ${sanitizeForLog(deviceId)}:`,
+        "Failed to unregister printer %s:",
+        sanitizeForLog(deviceId),
         error,
       );
       return false;

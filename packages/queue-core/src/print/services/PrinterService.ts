@@ -181,12 +181,10 @@ export class PrinterService {
 
       this.emit("device_unregistered", { deviceId });
     } catch (error) {
-      console.warn(
-        `Error unregistering printer ${String(deviceId)
-          .replace(/[\r\n\t]/g, " ")
-          .slice(0, 500)}:`,
-        error,
-      );
+      const safeDeviceId = String(deviceId)
+        .replace(/[\r\n\t]/g, " ")
+        .slice(0, 500);
+      console.warn("Error unregistering printer %s:", safeDeviceId, error);
     }
   }
 
