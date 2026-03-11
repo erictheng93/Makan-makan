@@ -6,9 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { ref } from "vue";
 import OrderCard from "../OrderCard.vue";
-import { useSettingsStore } from "@/stores/settings";
 import type { KitchenOrder, KitchenOrderItem } from "@/types";
 
 // Mock icons

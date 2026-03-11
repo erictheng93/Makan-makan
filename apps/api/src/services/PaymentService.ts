@@ -16,8 +16,6 @@ import {
   RefundResult,
   PaymentStatus,
   WebhookResult,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  PaymentTransaction,
   CountryCode,
 } from "@makanmakan/shared-types";
 

@@ -154,7 +154,13 @@ export class PrinterDriverFactory {
   }): Promise<PrinterDevice | null> {
     try {
       const address = this.formatConnectionAddress(connectionInfo);
-      console.log(`Detecting printer at ${connectionInfo.type}:${address}`);
+      console.log(
+        `Detecting printer at ${String(connectionInfo.type).replace(/[\r\n\t]/g, " ")}:${String(
+          address,
+        )
+          .replace(/[\r\n\t]/g, " ")
+          .slice(0, 500)}`,
+      );
 
       // 嘗試連接並查詢設備資訊
       const deviceInfo = await this.queryDeviceInfo(connectionInfo);
@@ -202,7 +208,10 @@ export class PrinterDriverFactory {
         const devices = await this.scanConnectionType(connectionType, options);
         return devices;
       } catch (error) {
-        console.error(`Failed to scan ${connectionType} printers:`, error);
+        console.error(
+          `Failed to scan ${String(connectionType).replace(/[\r\n\t]/g, " ")} printers:`,
+          error,
+        );
         return [];
       }
     });

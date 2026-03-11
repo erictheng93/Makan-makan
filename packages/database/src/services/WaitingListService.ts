@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import type {
   WaitingListEntry,

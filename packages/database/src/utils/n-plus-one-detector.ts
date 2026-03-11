@@ -121,7 +121,7 @@ export class N1Detector {
     queries: QueryLog[],
   ): N1DetectionResult {
     const queryCount = queries.length;
-    let severity: "low" | "medium" | "high" | "critical" = "low";
+    let severity: "low" | "medium" | "high" | "critical";
     let suggestion = "";
 
     if (queryCount >= this.threshold.critical) {

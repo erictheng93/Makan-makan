@@ -3,7 +3,7 @@
  * 測試 RealtimeSession 的訊息廣播功能
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { RealtimeEventType } from "@makanmakan/shared-types";
 import type {
   RealtimeEvent,
@@ -304,7 +304,7 @@ describe("Broadcast Logic", () => {
   describe("Event History for Broadcast", () => {
     it("should add broadcast events to history", () => {
       const eventHistory: RealtimeEvent[] = [];
-      const maxHistorySize = 100;
+      const _maxHistorySize = 100;
 
       const event: RealtimeEvent = {
         type: RealtimeEventType.NEW_ORDER,

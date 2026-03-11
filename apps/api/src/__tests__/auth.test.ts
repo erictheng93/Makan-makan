@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import authFeature from "../features/authentication";
-import { createMockContext, mockEnv } from "./setup";
+import { mockEnv } from "./setup";
 
 // Use the feature routes
 const authRouter = authFeature.routes;
-import * as bcrypt from "bcryptjs";
 
 // Mock @makanmakan/database to provide AuthService
 vi.mock("@makanmakan/database", async (importOriginal) => {

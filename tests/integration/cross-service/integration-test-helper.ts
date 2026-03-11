@@ -13,7 +13,7 @@
  * - Performance tracking across services
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+// vitest imports available for consumers of this helper
 
 export interface ServiceConfig {
   api: {

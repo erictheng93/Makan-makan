@@ -9,7 +9,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -32,7 +31,8 @@ if (!options.name) {
 }
 
 const featureName = options.name;
-const featureType = options.type || "simple";
+// featureType reserved for future template selection
+void (options.type || "simple");
 
 // Validate feature name
 if (!/^[a-z-]+$/.test(featureName)) {
@@ -90,9 +90,7 @@ if (!fs.existsSync(templatePath)) {
 
 // Copy template directory
 function copyTemplate(src, dest) {
-  if (!fs.existsSync(dest)) {
-    fs.mkdirSync(dest, { recursive: true });
-  }
+  fs.mkdirSync(dest, { recursive: true });
 
   const items = fs.readdirSync(src);
 
@@ -132,7 +130,7 @@ try {
 
   // Create package.json scripts entry
   const packageJsonPath = path.join(__dirname, "../../package.json");
-  if (fs.existsSync(packageJsonPath)) {
+  try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
     if (!packageJson.scripts) {
@@ -147,6 +145,8 @@ try {
 
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     console.log("📝 Updated package.json with feature scripts");
+  } catch (e) {
+    console.warn("⚠️ Could not update package.json:", e.message);
   }
 
   console.log("✅ Feature module created successfully!");

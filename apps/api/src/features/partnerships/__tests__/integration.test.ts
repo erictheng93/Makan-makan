@@ -3,14 +3,14 @@
  * 特約商店 API 整合測試
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 
 describe("Partnership API Integration Tests", () => {
   let authToken: string;
-  let testPartnershipId: string;
-  let testPlanId: string;
-  let testMemberId: string;
-  const baseUrl = "http://localhost:8787/api/v1";
+  let _testPartnershipId: string;
+  let _testPlanId: string;
+  let _testMemberId: string;
+  const _baseUrl = "http://localhost:8787/api/v1";
 
   beforeAll(async () => {
     // Login as shop owner to get auth token
@@ -89,7 +89,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("GET /partnerships/:id/statistics - should get partnership statistics", async () => {
-      const partnershipId = "test-partnership-id";
+      const _partnershipId = "test-partnership-id";
 
       const expectedResponse = {
         success: true,
@@ -107,8 +107,8 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("PUT /partnerships/:id - should update partnership", async () => {
-      const partnershipId = "test-partnership-id";
-      const updateData = {
+      const _partnershipId = "test-partnership-id";
+      const _updateData = {
         contactPhone: "987654321",
         status: "active",
       };
@@ -116,7 +116,7 @@ describe("Partnership API Integration Tests", () => {
       const expectedResponse = {
         success: true,
         data: {
-          id: partnershipId,
+          id: _partnershipId,
           contactPhone: "987654321",
           status: "active",
           updatedAt: expect.any(Number),
@@ -127,7 +127,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("DELETE /partnerships/:id - should delete partnership (Admin only)", async () => {
-      const partnershipId = "test-partnership-id";
+      const _partnershipId = "test-partnership-id";
 
       const expectedResponse = {
         success: true,
@@ -168,7 +168,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("POST /partnerships/plans/validate - should validate plan and calculate discount", async () => {
-      const validationData = {
+      const _validationData = {
         planId: "test-plan-id",
         memberId: "test-member-id",
         orderAmount: 200,
@@ -192,7 +192,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("POST /partnerships/plans/validate - should reject invalid plan", async () => {
-      const validationData = {
+      const _validationData = {
         planId: "test-plan-id",
         memberId: "test-member-id",
         orderAmount: 50, // Below minimum
@@ -210,7 +210,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("GET /partnerships/plans - should list plans with filters", async () => {
-      const filters = {
+      const _filters = {
         partnershipId: "test-partnership-id",
         restaurantId: "test-restaurant-id",
         isActive: "true",
@@ -227,8 +227,8 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("PUT /partnerships/plans/:planId - should update plan", async () => {
-      const planId = "test-plan-id";
-      const updateData = {
+      const _planId = "test-plan-id";
+      const _updateData = {
         discountValue: 20,
         minOrderAmount: 150,
       };
@@ -236,7 +236,7 @@ describe("Partnership API Integration Tests", () => {
       const expectedResponse = {
         success: true,
         data: {
-          id: planId,
+          id: _planId,
           discountValue: 20,
           minOrderAmount: 150,
           updatedAt: expect.any(Number),
@@ -275,7 +275,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("GET /partnerships/members - should list members with filters", async () => {
-      const filters = {
+      const _filters = {
         partnershipId: "test-partnership-id",
         status: "pending",
       };
@@ -363,7 +363,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("GET /partnerships/usage - should list usage logs with filters", async () => {
-      const filters = {
+      const _filters = {
         partnershipId: "test-partnership-id",
         status: "completed",
       };
@@ -467,7 +467,7 @@ describe("Partnership API Integration Tests", () => {
 
   describe("Validation Tests", () => {
     it("should validate required fields", async () => {
-      const invalidData = {
+      const _invalidData = {
         partnerName: "Test",
         // Missing required fields
       };
@@ -481,7 +481,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("should validate email format", async () => {
-      const invalidEmail = {
+      const _invalidEmail = {
         email: "not-an-email",
       };
 
@@ -494,7 +494,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("should validate discount value range", async () => {
-      const invalidDiscount = {
+      const _invalidDiscount = {
         discountValue: -10, // Negative value
       };
 
@@ -507,7 +507,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("should validate date range", async () => {
-      const invalidDates = {
+      const _invalidDates = {
         contractStartDate: Date.now(),
         contractEndDate: Date.now() - 86400000, // End before start
       };
@@ -523,7 +523,7 @@ describe("Partnership API Integration Tests", () => {
 
   describe("Business Logic Tests", () => {
     it("should prevent duplicate partner codes", async () => {
-      const duplicateCode = {
+      const _duplicateCode = {
         partnerCode: "EXISTING-CODE",
       };
 
@@ -584,7 +584,7 @@ describe("Partnership API Integration Tests", () => {
 
   describe("Edge Cases and Error Handling", () => {
     it("should handle non-existent partnership ID", async () => {
-      const nonExistentId = "non-existent-uuid";
+      const _nonExistentId = "non-existent-uuid";
 
       const expectedResponse = {
         success: false,
@@ -595,7 +595,7 @@ describe("Partnership API Integration Tests", () => {
     });
 
     it("should handle expired contracts", async () => {
-      const expiredPartnership = {
+      const _expiredPartnership = {
         contractEndDate: Date.now() - 86400000, // Yesterday
       };
 

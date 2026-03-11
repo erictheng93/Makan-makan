@@ -191,7 +191,7 @@ describe("Role Validation", () => {
 
   describe("Auth Payload Validation", () => {
     it("should validate complete auth payload", () => {
-      const authPayload: RealtimeAuthPayload = createTestAuthPayload(
+      const _authPayload: RealtimeAuthPayload = createTestAuthPayload(
         "customer",
         "table-001",
         "restaurant-123",

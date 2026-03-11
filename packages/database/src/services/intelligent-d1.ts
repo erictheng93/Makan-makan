@@ -1,8 +1,5 @@
-import { drizzle } from "drizzle-orm/d1";
-import { eq, and, or, desc, asc, count, sql } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import { BaseService } from "./base";
-import * as schema from "../schema";
 
 /**
  * Intelligent D1 Database Service with Predictive Optimization
@@ -644,7 +641,7 @@ export class IntelligentD1Service extends BaseService {
   }
 
   private updatePopularityScores(): void {
-    for (const [signature, metadata] of this.queryAnalytics) {
+    for (const [_signature, metadata] of this.queryAnalytics) {
       metadata.popularityScore = this.calculatePopularityScore(metadata);
     }
   }

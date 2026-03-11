@@ -1,5 +1,5 @@
 // Kitchen Display - KitchenStats Component 測試
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 
 /**

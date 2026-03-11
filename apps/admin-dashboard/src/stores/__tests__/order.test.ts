@@ -34,15 +34,6 @@ function createMockOrder(id: number, status: OrderStatus): Order {
   };
 }
 
-// Helper: 設置 store 的只讀狀態
-function setStoreState<T>(store: any, key: string, value: T) {
-  Object.defineProperty(store, key, {
-    value,
-    writable: true,
-    configurable: true,
-  });
-}
-
 describe("Order Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());

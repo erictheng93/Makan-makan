@@ -7,7 +7,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import couponsRoutes from "../routes";
-import { CouponsService } from "../services/CouponsService";
 
 // Mock CouponsService
 const mockCouponsService = {

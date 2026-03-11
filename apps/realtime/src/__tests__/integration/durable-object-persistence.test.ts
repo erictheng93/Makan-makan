@@ -19,7 +19,7 @@ import type {
 import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
-const EventTypes = {
+const _EventTypes = {
   ORDER_CREATED: RealtimeEventType.NEW_ORDER,
   ORDER_STATUS_CHANGED: RealtimeEventType.ORDER_STATUS_UPDATE,
 } as const;

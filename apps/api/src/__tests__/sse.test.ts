@@ -43,8 +43,8 @@ describe("SSE Routes", () => {
         }),
       });
 
-      // Mock context with authenticated user
-      const mockContext = createMockContext({
+      // Mock context with authenticated user (used for setting up the test environment)
+      createMockContext({
         get: vi.fn().mockImplementation((key: string) => {
           if (key === "user") return mockUser;
           return null;

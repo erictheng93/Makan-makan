@@ -1,4 +1,4 @@
-import { eq, desc, count, and, sql } from "drizzle-orm";
+import { eq, desc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   qrCodes,

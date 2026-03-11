@@ -700,7 +700,7 @@ describe("Multi-Client Integration Tests", () => {
       );
 
       const result1 = manager.connect(auth);
-      const result2 = manager.connect(auth);
+      const _result2 = manager.connect(auth);
 
       // Room is full
       const resultFull = manager.connect(auth);

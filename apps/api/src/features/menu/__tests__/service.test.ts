@@ -955,7 +955,7 @@ describe("MenuService", () => {
         pagination: {},
       });
 
-      const result = await menuService.deleteCategory(1);
+      await menuService.deleteCategory(1);
 
       // Category was found and processed
       expect(mockDbService.getCategory).toHaveBeenCalled();

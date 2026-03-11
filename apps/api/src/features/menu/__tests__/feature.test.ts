@@ -117,7 +117,7 @@ const mockMenuStructure: MenuStructure = {
   menuItems: [mockMenuItem],
 };
 
-const mockMenuAnalytics: MenuAnalytics = {
+const _mockMenuAnalytics: MenuAnalytics = {
   totalItems: 10,
   availableItems: 8,
   featuredItems: 3,
@@ -156,7 +156,7 @@ const mockMenuAnalytics: MenuAnalytics = {
   },
 };
 
-const mockPopularityMetrics: PopularityMetrics = {
+const _mockPopularityMetrics: PopularityMetrics = {
   mostOrdered: [mockMenuItem],
   mostViewed: [mockMenuItem],
   highestRated: [mockMenuItem],
@@ -188,7 +188,7 @@ const mockEnv: Env = {
 };
 
 // Mock user for authentication tests
-const mockUser = {
+const _mockUser = {
   id: mockUserId,
   username: "testuser",
   fullName: "Test User",

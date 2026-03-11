@@ -3,7 +3,7 @@
  * 測試 RealtimeSession 的事件過濾和路由邏輯
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { RealtimeEventType } from "@makanmakan/shared-types";
 import type {
   RealtimeEvent,
@@ -28,7 +28,7 @@ interface ConnectionInfo {
 }
 
 // Factory function to create ConnectionInfo with proper types
-function createConnectionInfo(
+function _createConnectionInfo(
   id: string,
   type: "customer" | "admin" | "kitchen",
   roomId: string,

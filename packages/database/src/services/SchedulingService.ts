@@ -12,8 +12,6 @@ import {
   sql,
   desc,
   asc,
-  or,
-  inArray,
   isNull,
   isNotNull,
 } from "drizzle-orm";
@@ -22,10 +20,8 @@ import { BaseService, type CloudflareEnv } from "./base";
 import {
   shiftTemplates,
   employeeSchedules,
-  schedulingRules,
   schedulingConflicts,
   scheduleSwapRequests,
-  employeeAvailability,
   users,
   leaveRequests,
 } from "../schema";

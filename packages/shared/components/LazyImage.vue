@@ -142,21 +142,29 @@ const currentSrc = computed(() => {
   if (!props.src) return "";
 
   // Add quality and progressive parameters if it's a Cloudflare Images URL
-  if (
-    props.src.includes("imagedelivery.net") ||
-    props.src.includes("images.cloudflare.com")
-  ) {
+  // Use URL parsing to validate hostname instead of substring matching
+  try {
     const url = new URL(props.src);
+    const hostname = url.hostname;
+    const isCloudflareImages =
+      hostname === "imagedelivery.net" ||
+      hostname.endsWith(".imagedelivery.net") ||
+      hostname === "images.cloudflare.com" ||
+      hostname.endsWith(".images.cloudflare.com");
 
-    if (props.quality && props.quality !== 85) {
-      url.searchParams.set("quality", props.quality.toString());
+    if (isCloudflareImages) {
+      if (props.quality && props.quality !== 85) {
+        url.searchParams.set("quality", props.quality.toString());
+      }
+
+      if (props.progressive) {
+        url.searchParams.set("format", "auto");
+      }
+
+      return url.toString();
     }
-
-    if (props.progressive) {
-      url.searchParams.set("format", "auto");
-    }
-
-    return url.toString();
+  } catch {
+    // Invalid URL, return as-is
   }
 
   return props.src;

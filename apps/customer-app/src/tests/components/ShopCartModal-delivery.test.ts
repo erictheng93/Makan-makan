@@ -206,7 +206,7 @@ describe("ShopCartModal – delivery features", () => {
     await phoneInput.setValue("0912345678");
 
     // Click checkout button
-    const checkoutBtn =
+    const _checkoutBtn =
       wrapper.find("button[disabled]") || wrapper.findAll("button").at(-1);
     // Find the checkout button by its text content
     const buttons = wrapper.findAll("button");

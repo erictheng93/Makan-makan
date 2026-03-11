@@ -113,7 +113,7 @@ export class AnthropicProvider extends BaseLLMProvider {
     const startTime = Date.now();
 
     try {
-      const response = await this.chat({
+      await this.chat({
         prompt: 'Hello! Please respond with "OK".',
         maxTokens: 10,
         temperature: 0,

@@ -341,7 +341,7 @@ router.post("/check/:tenantId", async (c) => {
 
     // Perform health check
     const startTime = Date.now();
-    let status: HealthStatus = "down";
+    let status: HealthStatus;
     let responseTimeMs = 0;
     let details: Record<string, unknown> = {};
 

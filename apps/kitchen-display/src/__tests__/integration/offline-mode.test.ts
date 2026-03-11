@@ -131,7 +131,7 @@ describe("Offline Mode Integration", () => {
     });
 
     it("should merge server data with cached data", () => {
-      const cachedOrders = [{ id: "1", orderNumber: "ORD-001", status: 1 }];
+      const _cachedOrders = [{ id: "1", orderNumber: "ORD-001", status: 1 }];
 
       const serverOrders = [
         { id: "1", orderNumber: "ORD-001", status: 2 },

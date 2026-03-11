@@ -7,8 +7,8 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Forgot Password Flow", () => {
   const testEmail = "test-user@example.com";
-  const testPassword = "Test@1234";
-  const newPassword = "NewPass@5678";
+  const _testPassword = "Test@1234";
+  const _newPassword = "NewPass@5678";
 
   test.beforeEach(async ({ page }) => {
     // Navigate to login page
@@ -162,7 +162,7 @@ test.describe("Reset Password Flow", () => {
   test("should show password strength indicator", async ({ page }) => {
     // For this test, we'll use a valid mock URL
     // In real scenario, this would require a valid token from backend
-    await page.goto("/reset-password?token=${mockToken}");
+    await page.goto(`/reset-password?token=${"mockToken"}`);
 
     // Wait for page to load (may show token error, but form should still be visible for testing)
     await page.waitForTimeout(2000);

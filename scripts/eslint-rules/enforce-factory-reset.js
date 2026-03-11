@@ -127,7 +127,6 @@ module.exports = {
             messageId: "missingReset",
             fix(fixer) {
               // 嘗試在文件開頭添加 beforeEach
-              const sourceCode = context.getSourceCode();
               const programBody = node.body;
 
               // 找到第一個 describe 或 test 塊

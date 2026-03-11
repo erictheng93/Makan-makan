@@ -5,7 +5,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
-import { ref } from "vue";
 import RealtimeMonitorPanel from "../RealtimeMonitorPanel.vue";
 
 // Hoist the mock response before vi.mock
@@ -107,7 +106,7 @@ describe("RealtimeMonitorPanel", () => {
   describe("資料獲取", () => {
     it("掛載時應該獲取資料", async () => {
       const { api } = await import("@/services/api");
-      const wrapper = createWrapper();
+      createWrapper();
       await flushPromises();
 
       expect(api.get).toHaveBeenCalledWith(

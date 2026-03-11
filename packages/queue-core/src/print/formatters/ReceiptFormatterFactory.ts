@@ -336,12 +336,16 @@ export class ReceiptFormatterFactory {
     countryCode: CountryCode,
     region: RegionConfig,
   ): IReceiptFormatter {
-    const FormatterClass = this.formatters.get(countryCode);
-
-    if (!FormatterClass) {
-      throw new Error(`No formatter found for country code: ${countryCode}`);
+    // Validate countryCode against registered formatters (allowlist)
+    if (!this.formatters.has(countryCode)) {
+      throw new Error(
+        `No formatter found for country code: ${String(countryCode)
+          .replace(/[\r\n\t]/g, " ")
+          .slice(0, 10)}`,
+      );
     }
 
+    const FormatterClass = this.formatters.get(countryCode)!;
     return new FormatterClass(region, countryCode);
   }
 

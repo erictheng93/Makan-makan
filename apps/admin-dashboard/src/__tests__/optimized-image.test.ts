@@ -14,7 +14,6 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import OptimizedImage from "@/components/OptimizedImage.vue";
 import {
-  getFormatSupport,
   getBestFormat,
   buildCloudflareImageURL,
   calculateOptimalQuality,

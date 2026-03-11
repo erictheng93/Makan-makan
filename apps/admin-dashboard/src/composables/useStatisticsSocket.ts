@@ -1,5 +1,12 @@
 // Server-Sent Events (SSE) composable for real-time statistics updates
 import { ref, onMounted, onUnmounted } from "vue";
+
+/** Sanitize values for safe logging (prevent log injection) */
+function sanitizeForLog(value: unknown): string {
+  return String(value)
+    .replace(/[\r\n\t]/g, " ")
+    .slice(0, 500);
+}
 import { statisticsService } from "@/services/statisticsService";
 
 export interface StatisticsSocketEvent {
@@ -187,7 +194,7 @@ export function useStatisticsSocket(
         break;
 
       default:
-        console.log("Unknown message type:", message.type);
+        console.log("Unknown message type:", sanitizeForLog(message.type));
     }
   };
 

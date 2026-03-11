@@ -1,14 +1,6 @@
 import { eq, and, gte, lte, sql, desc, asc, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
-import {
-  coupons,
-  couponUsage,
-  couponDistributions,
-  couponTemplates,
-  orders,
-  menuItems as menuItemsTable,
-  categories,
-} from "../schema";
+import { coupons, couponUsage, menuItems as menuItemsTable } from "../schema";
 import type {
   DiscountType,
   DistributionType,

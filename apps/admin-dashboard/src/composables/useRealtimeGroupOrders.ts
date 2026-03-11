@@ -1,4 +1,11 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
+
+/** Sanitize values for safe logging (prevent log injection) */
+function sanitizeForLog(value: unknown): string {
+  return String(value)
+    .replace(/[\r\n\t]/g, " ")
+    .slice(0, 500);
+}
 import { useRealtime, type SSEMessage } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
 
@@ -286,7 +293,10 @@ export function useRealtimeGroupOrders() {
         break;
 
       default:
-        console.log("Unhandled WebSocket message:", message);
+        console.log(
+          "Unhandled WebSocket message:",
+          sanitizeForLog(JSON.stringify(message)),
+        );
     }
   };
 
@@ -321,7 +331,10 @@ export function useRealtimeGroupOrders() {
     // 生成通知
     createNotification(event, groupOrder);
 
-    console.log("Group order event received:", event);
+    console.log(
+      "Group order event received:",
+      sanitizeForLog(JSON.stringify(event)),
+    );
   };
 
   const handleGroupOrderJoined = (message: any): void => {
@@ -340,7 +353,10 @@ export function useRealtimeGroupOrders() {
   };
 
   const handleWebSocketError = (message: any): void => {
-    console.error("WebSocket error message:", message);
+    console.error(
+      "WebSocket error message:",
+      sanitizeForLog(JSON.stringify(message)),
+    );
 
     createNotification({
       type: "error",

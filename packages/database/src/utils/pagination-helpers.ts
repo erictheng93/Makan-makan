@@ -15,7 +15,6 @@ import {
   calculatePaginationMeta,
   normalizePaginationParams,
   getPaginationOffsetLimit,
-  DEFAULT_PAGINATION_CONFIG,
   encodeCursor,
   decodeCursor,
 } from "@makanmakan/shared-types";

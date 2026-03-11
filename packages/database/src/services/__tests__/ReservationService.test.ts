@@ -345,15 +345,6 @@ const createMockDB = () => {
   };
 };
 
-// Mock BaseService
-class MockBaseService {
-  protected db: any;
-
-  constructor(db: any, env?: any) {
-    this.db = db;
-  }
-}
-
 // ========================================
 // Setup
 // ========================================

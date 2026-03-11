@@ -51,9 +51,9 @@ export class ErrorSanitizer {
     // Email addresses in error contexts
     /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
 
-    // Cloudflare/internal service URLs
-    /https?:\/\/[\w-]+\.workers\.dev/gi,
-    /https?:\/\/[\w-]+\.cloudflareworkers\.com/gi,
+    // Cloudflare/internal service URLs (anchored with word boundary to prevent partial matches)
+    /\bhttps?:\/\/[\w-]+\.workers\.dev\b/gi,
+    /\bhttps?:\/\/[\w-]+\.cloudflareworkers\.com\b/gi,
   ];
 
   // Safe generic messages for different error types

@@ -9,7 +9,7 @@
  * - Batch operations and counters
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Note: query-cache and connection-manager are mocked globally in setup.ts
 

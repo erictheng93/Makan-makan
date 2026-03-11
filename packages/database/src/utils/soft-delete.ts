@@ -11,7 +11,7 @@
  * @since 2025-12-06
  */
 
-import { sql, isNull, lte, and, eq, type SQL } from "drizzle-orm";
+import { sql, isNull, lte, and, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 

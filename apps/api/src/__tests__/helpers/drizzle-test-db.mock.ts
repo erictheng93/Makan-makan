@@ -5,8 +5,6 @@
  * This allows tests to run on Windows without C++ build tools
  */
 
-import { vi } from "vitest";
-
 /**
  * Create a mock test database that doesn't require better-sqlite3
  * This is a pure JavaScript implementation for environments without C++ compilers

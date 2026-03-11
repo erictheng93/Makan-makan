@@ -122,8 +122,8 @@ export function createDrizzleTestDB() {
       const tableName = extractTableName(sql);
       const isInsert = /INSERT\s+INTO/i.test(sql);
       const isSelect = /SELECT/i.test(sql);
-      const isUpdate = /UPDATE/i.test(sql);
-      const isDelete = /DELETE/i.test(sql);
+      const _isUpdate = /UPDATE/i.test(sql);
+      const _isDelete = /DELETE/i.test(sql);
       const isReturning = /RETURNING/i.test(sql);
       console.log("[MockDB] Flags:", { tableName, isInsert, isReturning });
 

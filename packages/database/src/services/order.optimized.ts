@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, count, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, desc, count, sql, gte, lte, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   orders,
@@ -6,7 +6,6 @@ import {
   menuItems,
   restaurants,
   tables,
-  users,
   ORDER_STATUS,
 } from "../schema";
 import type {
@@ -372,10 +371,6 @@ export class OrderServiceOptimized extends BaseService {
         // Build batch update query
         if (menuItemUpdates.length > 0) {
           const ids = menuItemUpdates.map((u) => u.id);
-          const quantityMap = new Map(
-            menuItemUpdates.map((u) => [u.id, u.quantity]),
-          );
-
           await tx.run(sql`
             UPDATE menu_items
             SET

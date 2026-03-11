@@ -69,11 +69,11 @@ describe("monitoring-layout", () => {
 
     it("should categorize widgets correctly", () => {
       const overview = WIDGET_TYPES.filter((w) => w.category === "overview");
-      const performance = WIDGET_TYPES.filter(
+      const _performance = WIDGET_TYPES.filter(
         (w) => w.category === "performance",
       );
       const alerts = WIDGET_TYPES.filter((w) => w.category === "alerts");
-      const metrics = WIDGET_TYPES.filter((w) => w.category === "metrics");
+      const _metrics = WIDGET_TYPES.filter((w) => w.category === "metrics");
       const charts = WIDGET_TYPES.filter((w) => w.category === "charts");
 
       expect(overview.length).toBeGreaterThan(0);

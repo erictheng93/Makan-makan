@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { ref, computed, nextTick } from "vue";
+import { ref, computed } from "vue";
 
 // Mock vue-toastification
 const mockToast = {
@@ -90,8 +90,8 @@ function createMockUseEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
   const recordingMode = ref(false);
   const recordingKeys = ref<string[]>([]);
   const pressedKeys = ref(new Set<string>());
-  const keySequence = ref<string[]>([]);
-  const lastKeyTime = ref(0);
+  const _keySequence = ref<string[]>([]);
+  const _lastKeyTime = ref(0);
   const executionHistory = ref<ShortcutExecution[]>([]);
 
   const visualFeedback = ref<{

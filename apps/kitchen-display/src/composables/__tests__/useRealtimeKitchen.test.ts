@@ -67,7 +67,7 @@ describe("useRealtimeKitchen Composable", () => {
     });
 
     it("should reconnect on connection loss", async () => {
-      const ws = new WebSocket("ws://localhost/kitchen/1");
+      const _ws = new WebSocket("ws://localhost/kitchen/1");
 
       // Simulate connection loss
       mockWsInstance.readyState = WS_CLOSED;

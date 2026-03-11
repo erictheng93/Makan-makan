@@ -793,7 +793,7 @@ describe("Connection Stress Integration Tests", () => {
       expect(manager.getConnectionCount()).toBe(100);
 
       // Disconnect half
-      const allConnections = Array.from(
+      const _allConnections = Array.from(
         { length: 50 },
         (_, i) => `stress_${i + 1}_${Date.now()}`,
       );

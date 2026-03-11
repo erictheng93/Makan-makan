@@ -147,7 +147,6 @@ export class AuthService extends BaseService {
         );
       }
       const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小時
-      const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7天
 
       const accessToken = sign(
         {

@@ -402,7 +402,7 @@ class ContextualAudioService {
     volume = Math.max(0.1, Math.min(1.0, volume));
 
     // Repeat calculation
-    let repeat = 1;
+    let repeat: number;
     switch (profile.characteristics.repeatBehavior) {
       case "reduced":
         repeat = urgency === "critical" ? 2 : 1;

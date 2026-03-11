@@ -155,27 +155,33 @@ function sanitizeObject(obj: any): any {
  * Enhanced implementation with comprehensive HTML entity encoding
  */
 function sanitizeString(str: string): string {
-  // First, strip out any dangerous protocol handlers and script tags
-  const sanitized = str
-    // Remove script tags and content (case-insensitive, handles broken tags)
-    .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, "")
-    // Remove dangerous protocol handlers (javascript:, vbscript:, data:text/html, etc.)
-    .replace(
-      /(javascript|vbscript|data:text\/html|data:text\/javascript|data:application\/javascript):/gi,
-      "",
-    )
-    // Remove on* event handlers (onclick, onerror, onload, etc.)
-    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, "")
-    // Remove style attributes that could contain expressions
-    .replace(/\s*style\s*=\s*["'][^"']*expression\([^"']*\)["']/gi, "")
-    // Remove import statements
-    .replace(/@import\s+/gi, "")
-    // Remove iframe, object, embed tags
-    .replace(
-      /<(iframe|object|embed|applet)[^>]*>[\s\S]*?<\/(iframe|object|embed|applet)>/gi,
-      "",
-    );
+  // Apply dangerous pattern removal in a loop to handle nested/recursive bypass attempts
+  // e.g., "<scr<script>ipt>" becomes "<script>" after one pass, so we repeat until stable
+  let sanitized = str;
+  let previous: string;
+  do {
+    previous = sanitized;
+    sanitized = sanitized
+      // Remove script tags and content (case-insensitive, handles broken tags)
+      .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, "")
+      // Remove dangerous protocol handlers (javascript:, vbscript:, data:text/html, etc.)
+      .replace(
+        /(javascript|vbscript|data:text\/html|data:text\/javascript|data:application\/javascript):/gi,
+        "",
+      )
+      // Remove on* event handlers (onclick, onerror, onload, etc.)
+      .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "")
+      .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, "")
+      // Remove style attributes that could contain expressions
+      .replace(/\s*style\s*=\s*["'][^"']*expression\([^"']*\)["']/gi, "")
+      // Remove import statements
+      .replace(/@import\s+/gi, "")
+      // Remove iframe, object, embed tags
+      .replace(
+        /<(iframe|object|embed|applet)[^>]*>[\s\S]*?<\/(iframe|object|embed|applet)>/gi,
+        "",
+      );
+  } while (sanitized !== previous);
 
   // Then, HTML entity encode ALL special characters for defense in depth
   // This ensures even if something slips through regex, it's encoded

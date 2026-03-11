@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 import {
   useThrottledRealtime,
   KITCHEN_THROTTLE_CONFIG,

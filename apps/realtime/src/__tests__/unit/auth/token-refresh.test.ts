@@ -3,7 +3,7 @@
  * 測試 JWT token 刷新和過期處理邏輯
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
 
 // JWT token structure
@@ -420,12 +420,10 @@ describe("Token Refresh", () => {
       const token = createMockToken(60);
       let activeRefresh: JWTToken | null = null;
 
-      // First refresh
-      if (!activeRefresh) {
-        activeRefresh = refreshToken(token, 3600);
-      }
+      // First refresh - perform the refresh since none is active
+      activeRefresh = refreshToken(token, 3600);
 
-      // Second concurrent refresh should use same result
+      // Second concurrent refresh should use same result (activeRefresh is already set)
       const secondRefresh = activeRefresh;
 
       expect(secondRefresh).toBe(activeRefresh);

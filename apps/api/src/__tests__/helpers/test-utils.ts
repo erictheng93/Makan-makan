@@ -6,10 +6,8 @@
  */
 
 import { Hono } from "hono";
-import type { AuthUser } from "../../middleware/auth";
 import type { Env } from "../../types/env";
 import { vi } from "vitest";
-import { createMockD1Database } from "../setup";
 import { sign } from "jsonwebtoken";
 import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
 
@@ -2425,19 +2423,4 @@ export function generateTestToken(payload?: {
   const jwtSecret = "test-jwt-secret-for-testing-only";
 
   return sign(tokenPayload, jwtSecret, { expiresIn: "24h" });
-}
-
-// Create mock database using pure JavaScript mock (no better-sqlite3 required)
-async function createMockSQLiteDatabase(filename: string) {
-  // Use pure JavaScript mock to avoid better-sqlite3 compilation issues on Windows
-  const { createDrizzleTestDB } = await import("./drizzle-test-db");
-
-  // Create a D1-compatible mock database that Drizzle can use
-  const d1Mock = createDrizzleTestDB();
-
-  // Add close method (no-op for mock)
-  return {
-    ...d1Mock,
-    close: async () => {},
-  };
 }

@@ -6,8 +6,7 @@
  * 服務層測試在 feature.test.ts 中
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect } from "vitest";
 import type { Context } from "hono";
 
 // Test helper functions from routes

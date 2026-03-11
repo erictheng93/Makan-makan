@@ -396,7 +396,7 @@ describe("Scheduling Edge Cases Tests", () => {
         "http://localhost/scheduling/1/schedules?page=1&limit=20",
       );
       const res = await app.fetch(req, { DB: {} });
-      const data = await res.json();
+      await res.json();
 
       expect(res.status).toBe(200);
       // Service should filter by employeeId

@@ -3,7 +3,7 @@
  * Comprehensive test suite for notification service
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   NotificationService,
   ResendEmailProvider,
@@ -894,7 +894,7 @@ describe("NotificationService", () => {
     });
 
     it("每個模板都應該有必需的屬性", () => {
-      for (const [category, template] of Object.entries(
+      for (const [_category, template] of Object.entries(
         notificationTemplates,
       )) {
         expect(template.body).toBeDefined();

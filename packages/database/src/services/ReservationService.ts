@@ -1,15 +1,4 @@
-import {
-  eq,
-  and,
-  desc,
-  asc,
-  gte,
-  lte,
-  between,
-  inArray,
-  sql,
-  count as sqlCount,
-} from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import type {
   Reservation,
@@ -46,7 +35,6 @@ export class ReservationService extends BaseService {
     data: CreateReservationRequest,
   ): Promise<ReservationResponse> {
     try {
-      const reservationDateTime = `${data.reservationDate} ${data.reservationTime}`;
       const now = Date.now();
 
       // 1. 驗證輸入
@@ -100,7 +88,7 @@ export class ReservationService extends BaseService {
       };
 
       // 6. 寫入資料庫
-      const result = await this.db.run(sql`
+      await this.db.run(sql`
         INSERT INTO reservations (
           id, restaurant_id, customer_id, customer_name, customer_phone, customer_email,
           party_size, reservation_date, reservation_time, duration_minutes,
@@ -718,7 +706,7 @@ export class ReservationService extends BaseService {
     request: AvailabilityRequest,
   ): Promise<AvailabilityResponse> {
     try {
-      const { restaurantId, date, partySize, duration = 90 } = request;
+      const { restaurantId, date, partySize } = request;
 
       // 查詢該日所有時段
       const slots = (await this.db.all(sql`
@@ -779,8 +767,7 @@ export class ReservationService extends BaseService {
     request: TableAssignmentRequest,
   ): Promise<TableAssignmentResult | null> {
     try {
-      const { restaurantId, partySize, reservationTime, specialRequests } =
-        request;
+      const { restaurantId, partySize, specialRequests } = request;
 
       // 1. 查詢可用桌位
       const availableTables = (await this.db.all(sql`

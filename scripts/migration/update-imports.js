@@ -86,9 +86,15 @@ tsFiles.forEach((filePath) => {
     const relativePath = path.relative(apiSrcPath, filePath);
     const content = fs.readFileSync(filePath, "utf8");
 
+    // Escape user-provided pattern for safe regex construction
+    const escapedFromPattern = fromPattern.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+
     // Find import statements that match the pattern
     const importRegex = new RegExp(
-      `import\\s+.*?from\\s+['"\`]([^'"\`]*${fromPattern.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}[^'"\`]*)['"\`]`,
+      `import\\s+.*?from\\s+['"\`]([^'"\`]*${escapedFromPattern}[^'"\`]*)['"\`]`,
       "gm",
     );
 
@@ -104,7 +110,7 @@ tsFiles.forEach((filePath) => {
 
       // Replace the pattern in the import path
       const newImportPath = importPath.replace(
-        new RegExp(fromPattern.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&"), "g"),
+        new RegExp(escapedFromPattern, "g"),
         toPattern,
       );
 

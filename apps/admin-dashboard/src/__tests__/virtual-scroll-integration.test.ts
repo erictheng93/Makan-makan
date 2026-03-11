@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ref, nextTick } from "vue";
-import { mount } from "@vue/test-utils";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 
 describe("Virtual Scroll Integration Tests", () => {
@@ -10,12 +9,16 @@ describe("Virtual Scroll Integration Tests", () => {
         Array.from({ length: 100 }, (_, i) => ({ id: i, name: `Item ${i}` })),
       );
 
-      const { visibleItems, totalHeight, offsetY, containerRef } =
-        useVirtualScroll(items, {
-          itemHeight: 50,
-          buffer: 5,
-          containerHeight: 500,
-        });
+      const {
+        visibleItems,
+        totalHeight,
+        offsetY,
+        containerRef: _containerRef,
+      } = useVirtualScroll(items, {
+        itemHeight: 50,
+        buffer: 5,
+        containerHeight: 500,
+      });
 
       // Initial state - should show first items + buffer
       expect(visibleItems.value.length).toBeGreaterThan(0);

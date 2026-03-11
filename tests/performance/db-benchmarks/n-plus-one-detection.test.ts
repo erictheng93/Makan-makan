@@ -240,7 +240,7 @@ describe("N+1 Query Detection", () => {
       await tester.measureQuery(`INSERT INTO orders (...) VALUES (...)`, []);
 
       // 5. Create order items (multiple inserts)
-      for (const itemId of menuItemIds) {
+      for (const _itemId of menuItemIds) {
         await tester.measureQuery(
           `INSERT INTO order_items (...) VALUES (...)`,
           [],

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { createRouter, createWebHistory } from "vue-router";
 import QueueView from "@/views/QueueView.vue";
 
 // Mock services with proper factory functions

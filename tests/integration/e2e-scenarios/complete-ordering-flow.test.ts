@@ -92,9 +92,9 @@ describe("Complete Ordering Flow - E2E Test", () => {
 
   afterAll(async () => {
     // Close all WebSocket connections
-    if (customerWs) customerWs.close();
-    if (kitchenWs) kitchenWs.close();
-    if (adminWs) adminWs.close();
+    customerWs?.close();
+    kitchenWs?.close();
+    adminWs?.close();
 
     await helper.cleanup();
 

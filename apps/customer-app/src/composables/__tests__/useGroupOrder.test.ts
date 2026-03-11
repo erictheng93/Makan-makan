@@ -98,7 +98,8 @@ describe("useGroupOrder", () => {
       });
       mockApi.post.mockResolvedValueOnce({ token: "ws_token_123" });
 
-      const { createGroupOrder, groupOrder } = useGroupOrder(mockOptions);
+      const { createGroupOrder, groupOrder: _groupOrder } =
+        useGroupOrder(mockOptions);
 
       const result = await createGroupOrder();
 

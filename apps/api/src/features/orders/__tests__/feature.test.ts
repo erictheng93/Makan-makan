@@ -5,15 +5,7 @@
  * 測試策略：直接替換內部服務實例，避免依賴 vi.mock() 的複雜行為
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-  MockedFunction,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Hono } from "hono";
 import type { Env } from "../../../shared/types";
 import { OrdersService } from "../services/OrdersService";

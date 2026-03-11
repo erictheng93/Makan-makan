@@ -174,7 +174,7 @@ export class LocalPrintService {
     router.get("/print/:jobId", async (req, res) => {
       try {
         const { jobId } = req.params;
-        const job = this.printAgentService.getJobStatus(jobId);
+        const job = await this.printAgentService.getJobStatus(jobId);
 
         if (job) {
           res.json({

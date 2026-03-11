@@ -313,7 +313,7 @@ describe("Kitchen Routes - Unit Tests", () => {
 
     it("should allow admin access to any restaurant", () => {
       const user = { id: 1, role: 0, restaurantId: null };
-      const requestedRestaurantId = 999;
+      const _requestedRestaurantId = 999;
 
       const hasPermission = user.role === 0; // Admin
 

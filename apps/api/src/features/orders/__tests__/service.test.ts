@@ -3,13 +3,9 @@
  * 訂單服務層測試 - 提升覆蓋率
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
-import {
-  OrderStatus,
-  OrderPaymentStatus,
-  OrderPaymentMethod,
-} from "@makanmakan/shared-types";
+import { OrderStatus } from "@makanmakan/shared-types";
 
 // Mock dependencies
 vi.mock("@makanmakan/database", () => ({

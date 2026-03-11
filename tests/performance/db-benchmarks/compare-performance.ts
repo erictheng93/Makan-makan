@@ -5,12 +5,8 @@
  * Usage: ts-node compare-performance.ts [--fail-on-regression]
  */
 
-import {
-  DatabasePerformanceTester,
-  PerformanceBaselineManager,
-} from "./db-performance-tester";
+import { PerformanceBaselineManager } from "./db-performance-tester";
 import { createBaseline } from "./create-baseline";
-import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 
 interface RegressionConfig {
   warningThreshold: number; // Percentage increase that triggers warning
@@ -114,7 +110,6 @@ async function comparePerformance(config: RegressionConfig = DEFAULT_CONFIG) {
   console.log();
 
   // Overall result
-  const totalQueries = comparison.length;
   const passed = failures === 0;
 
   if (passed && warnings === 0) {

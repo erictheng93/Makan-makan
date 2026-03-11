@@ -272,7 +272,12 @@ class PerformanceOptimizationService {
             const img = entry.target as HTMLImageElement;
             const src = img.getAttribute("data-src");
 
-            if (src) {
+            if (
+              src &&
+              (src.startsWith("https://") ||
+                src.startsWith("http://") ||
+                src.startsWith("/"))
+            ) {
               img.src = src;
               img.removeAttribute("data-src");
               imageObserver.unobserve(img);

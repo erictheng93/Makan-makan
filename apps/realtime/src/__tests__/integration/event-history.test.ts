@@ -33,10 +33,7 @@ const EventTypes = {
   ORDER_STATUS_CHANGED: RealtimeEventType.ORDER_STATUS_UPDATE,
   CART_UPDATED: RealtimeEventType.MENU_ITEM_UPDATE,
 } as const;
-import {
-  createTestAuthPayload,
-  MockWebSocketPair,
-} from "../helpers/test-utils";
+import { MockWebSocketPair } from "../helpers/test-utils";
 
 // Event History Item
 interface EventHistoryItem {

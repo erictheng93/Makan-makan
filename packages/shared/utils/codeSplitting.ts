@@ -23,8 +23,8 @@ export function lazyComponent(
   options: LazyComponentOptions = {},
 ): Component {
   const {
-    loading,
-    error,
+    loading: _loading,
+    error: _error,
     delay = 200,
     timeout = 30000,
     suspensible = true,

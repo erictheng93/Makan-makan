@@ -3,7 +3,6 @@ import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import OrderTypeLandingView from "@/views/OrderTypeLandingView.vue";
 import { menuApi } from "@/services/menuApi";
-import { useRouter } from "vue-router";
 import { useShopCartStore } from "@/stores/shopCart";
 
 // Mock menuApi

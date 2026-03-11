@@ -9,7 +9,6 @@ import {
   randomEmail,
   randomPhone,
   currentTimestamp,
-  randomChoice,
 } from "./base.factory";
 
 /**

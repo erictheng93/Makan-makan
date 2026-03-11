@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, like, or, count, inArray } from "drizzle-orm";
+import { eq, and, asc, count, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
 

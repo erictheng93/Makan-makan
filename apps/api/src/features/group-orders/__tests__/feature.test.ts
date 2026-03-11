@@ -3,7 +3,7 @@
  * Comprehensive test suite for group orders functionality
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { CreateGroupOrderRequest, JoinGroupRequest } from "../types";

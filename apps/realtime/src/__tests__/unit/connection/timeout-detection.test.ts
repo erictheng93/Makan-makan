@@ -234,7 +234,7 @@ describe("Timeout Detection", () => {
     });
 
     it("should handle heartbeat interval scheduling", () => {
-      const connection = createMockConnection();
+      const _connection = createMockConnection();
       const heartbeats: number[] = [];
 
       // Simulate heartbeat every 30 seconds
@@ -360,7 +360,7 @@ describe("Timeout Detection", () => {
 
   describe("Grace Period Handling", () => {
     it("should allow reconnection within grace period", () => {
-      const connection = createMockConnection();
+      const _connection = createMockConnection();
       const disconnectTime = Date.now();
 
       // Simulate disconnection
@@ -376,7 +376,7 @@ describe("Timeout Detection", () => {
     });
 
     it("should not allow reconnection after grace period", () => {
-      const connection = createMockConnection();
+      const _connection = createMockConnection();
       const disconnectTime = Date.now();
 
       // Simulate disconnection
@@ -392,7 +392,7 @@ describe("Timeout Detection", () => {
     });
 
     it("should handle edge case at grace period boundary", () => {
-      const connection = createMockConnection();
+      const _connection = createMockConnection();
       const disconnectTime = Date.now();
 
       // Exactly at grace period

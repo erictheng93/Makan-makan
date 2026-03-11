@@ -3,18 +3,7 @@
  * 特約商店服務層 - 管理院校/機構合作夥伴關係
  */
 
-import {
-  eq,
-  and,
-  gte,
-  lte,
-  sql,
-  desc,
-  or,
-  like,
-  inArray,
-  isNull,
-} from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, or, like } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { paginateWithCursor } from "../utils/pagination-helpers";
@@ -23,9 +12,6 @@ import {
   partnershipPlans,
   verifiedMembers,
   partnershipUsageLogs,
-  orders,
-  restaurants,
-  users,
   type Partnership,
   type NewPartnership,
   type PartnershipPlan,

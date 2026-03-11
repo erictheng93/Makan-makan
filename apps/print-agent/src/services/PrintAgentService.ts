@@ -16,6 +16,12 @@ import type {
 } from "@makanmakan/shared-types";
 import { LocalPrintServiceConfig } from "../LocalPrintService";
 
+/** Sanitize user-provided values for safe logging (strip newlines and control chars) */
+function sanitizeForLog(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\r\n\t\x00-\x1f\x7f-\x9f]/g, "");
+}
+
 export class PrintAgentService {
   private printerService: PrinterService;
   private driverFactory: PrinterDriverFactory;
@@ -106,7 +112,11 @@ export class PrintAgentService {
 
       return response;
     } catch (error) {
-      console.error("Print job creation failed:", error);
+      const errorMsg =
+        error instanceof Error
+          ? sanitizeForLog(error.message)
+          : "Unknown error";
+      console.error("Print job creation failed:", errorMsg);
       return {
         success: false,
         error: {
@@ -163,7 +173,9 @@ export class PrintAgentService {
       // Check if device is already registered
       const existing = this.printerService.getDevice(device.id);
       if (existing) {
-        console.log(`Printer ${device.name} already registered`);
+        console.log(
+          `Printer ${sanitizeForLog(device.name)} already registered`,
+        );
         return true;
       }
 
@@ -178,10 +190,15 @@ export class PrintAgentService {
         isDefault: false,
       });
 
-      console.log(`✅ Registered printer: ${device.name} (${device.brand})`);
+      console.log(
+        `✅ Registered printer: ${sanitizeForLog(device.name)} (${sanitizeForLog(device.brand)})`,
+      );
       return true;
     } catch (error) {
-      console.error(`❌ Failed to register printer ${device.name}:`, error);
+      console.error(
+        `❌ Failed to register printer ${sanitizeForLog(device.name)}:`,
+        error,
+      );
       return false;
     }
   }
@@ -189,10 +206,13 @@ export class PrintAgentService {
   async unregisterPrinter(deviceId: string): Promise<boolean> {
     try {
       await this.printerService.unregisterPrinter(deviceId);
-      console.log(`🗑️  Unregistered printer: ${deviceId}`);
+      console.log(`🗑️  Unregistered printer: ${sanitizeForLog(deviceId)}`);
       return true;
     } catch (error) {
-      console.error(`❌ Failed to unregister printer ${deviceId}:`, error);
+      console.error(
+        `❌ Failed to unregister printer ${sanitizeForLog(deviceId)}:`,
+        error,
+      );
       return false;
     }
   }

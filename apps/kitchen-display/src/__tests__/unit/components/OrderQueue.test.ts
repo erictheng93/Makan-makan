@@ -1,5 +1,5 @@
 // Kitchen Display - OrderQueue Component 測試
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { ref, watch } from "vue";
 

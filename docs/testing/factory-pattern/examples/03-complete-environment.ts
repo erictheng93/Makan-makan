@@ -70,8 +70,8 @@ describe("範例 3: 完整測試環境", () => {
     const testData = buildCompleteRestaurantData();
 
     // 1. 顧客選擇菜單
-    const customer = testData.customers[0];
-    const selectedItems = testData.menuItems.slice(0, 3);
+    const _customer = testData.customers[0];
+    const _selectedItems = testData.menuItems.slice(0, 3);
 
     // 2. 下訂單
     const newOrder = testData.orders[0];

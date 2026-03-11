@@ -163,7 +163,7 @@ describe("Broadcast Integration Tests", () => {
     });
 
     it("應該廣播到正確的餐廳房間", async () => {
-      const event: NewOrderEvent = {
+      const _event: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: "evt_123",
         timestamp: Date.now(),
@@ -417,14 +417,11 @@ describe("Broadcast Integration Tests", () => {
         mockEnv.REALTIME_SESSION.idFromName("restaurant:rest_1");
       const durableObjectStub = mockEnv.REALTIME_SESSION.get(durableObjectId);
 
-      const response = await durableObjectStub.fetch(
-        "http://localhost/broadcast",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(invalidEvent),
-        },
-      );
+      await durableObjectStub.fetch("http://localhost/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidEvent),
+      });
 
       // Even invalid events are recorded in history for this mock
       // In real implementation, validation would reject it

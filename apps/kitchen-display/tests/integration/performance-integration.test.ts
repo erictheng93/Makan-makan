@@ -8,7 +8,7 @@ import { performanceService } from "@/services/performanceService";
 import type { PerformanceMetric } from "@/types";
 
 // Store original PerformanceObserver for restoration
-const originalPerformanceObserver = global.PerformanceObserver;
+const _originalPerformanceObserver = global.PerformanceObserver;
 
 // Mock PerformanceObserver
 const mockPerformanceObserver = vi.fn().mockImplementation((callback) => ({
@@ -470,7 +470,7 @@ describe("Performance Integration Tests", () => {
       await nextTick();
 
       // Should display metric cards (or at least mount successfully)
-      const metricCards = wrapper.findAll('[data-testid="metric-card"]');
+      const _metricCards = wrapper.findAll('[data-testid="metric-card"]');
       // Component may not have this exact data-testid, just verify it mounted
       expect(wrapper.exists()).toBe(true);
     });
@@ -628,7 +628,7 @@ describe("Performance Integration Tests", () => {
       // The recordUserInteraction mock adds metrics with name "interaction_order_card_click"
       // Verify that the metric was recorded by checking the metrics directly
       const allMetrics = performanceService.metrics.value;
-      const interactionMetric = allMetrics.find(
+      const _interactionMetric = allMetrics.find(
         (m: any) =>
           m &&
           m.name &&

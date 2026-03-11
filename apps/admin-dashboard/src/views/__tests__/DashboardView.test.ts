@@ -9,7 +9,7 @@ import { setActivePinia, createPinia } from "pinia";
 import DashboardView from "../DashboardView.vue";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useAuthStore } from "@/stores/auth";
-import { useOrderStore } from "@/stores/order";
+// useOrderStore available if needed for future tests
 
 // Mock child components
 vi.mock("@/components/dashboard/StatsCard.vue", () => ({

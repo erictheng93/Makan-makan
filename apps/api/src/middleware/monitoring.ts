@@ -194,7 +194,7 @@ export function healthCheckMiddleware(
       const healthStatus = await monitoringService.getHealthStatus();
 
       // 設置適當的 HTTP 狀態碼
-      let httpStatus = 200;
+      let httpStatus: number;
       switch (healthStatus.overall) {
         case "warning":
           httpStatus = 200; // 仍然可服務，但有警告

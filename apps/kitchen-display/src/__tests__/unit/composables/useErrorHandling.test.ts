@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { ref, computed, nextTick } from "vue";
+import { ref, computed } from "vue";
 
 // Mock vue-toastification
 const mockToast = {

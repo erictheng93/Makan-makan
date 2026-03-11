@@ -3,7 +3,7 @@
  * 認證中間件測試
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import { sign } from "hono/jwt";
 import {
@@ -13,7 +13,6 @@ import {
   blacklistToken,
   optionalAuth,
   requireAuth,
-  AuthUser,
 } from "../auth";
 
 // Mock environment

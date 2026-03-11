@@ -6,8 +6,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Hono } from "hono";
-import type { Env } from "../../../types/env";
 
 // Mock PartnershipService
 const mockService = {
@@ -91,15 +89,6 @@ const createMockD1 = () => ({
   batch: vi.fn().mockResolvedValue([]),
 });
 
-// Mock environment
-const mockEnv: Partial<Env> = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-jwt-secret",
-  DB: createMockD1() as any,
-  CACHE_KV: {} as any,
-  TOKEN_BLACKLIST: {} as any,
-};
-
 // Mock user
 const mockUser = {
   id: 1,
@@ -107,14 +96,6 @@ const mockUser = {
   role: 1,
   restaurantId: 1,
   email: "test@example.com",
-};
-
-const mockAdminUser = {
-  id: 999,
-  username: "admin",
-  role: 0,
-  restaurantId: null,
-  email: "admin@example.com",
 };
 
 describe("Partnership Routes - Unit Tests", () => {

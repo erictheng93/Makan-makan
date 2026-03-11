@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 
 // Mock vue-toastification
 vi.mock("vue-toastification", () => ({

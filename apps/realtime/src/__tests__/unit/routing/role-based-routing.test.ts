@@ -7,7 +7,7 @@
  * (same pattern as event-filtering.test.ts).
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
 import { createTestAuthPayload, getStringRole } from "../../helpers/test-utils";
 

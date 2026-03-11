@@ -16,7 +16,7 @@ import {
   beforeAll,
   afterAll,
 } from "vitest";
-import { ref, defineComponent, h, nextTick } from "vue";
+import { ref, defineComponent, h } from "vue";
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { createTestingPinia } from "@pinia/testing";
 
@@ -737,7 +737,7 @@ describe("實時群組訂單集成測試", () => {
         const ws = await waitForWebSocketOpen();
 
         // 記錄初始連接嘗試次數
-        const initialAttempts = ws.connectionAttempts;
+        const _initialAttempts = ws.connectionAttempts;
 
         // 模擬連接斷開
         ws.close();

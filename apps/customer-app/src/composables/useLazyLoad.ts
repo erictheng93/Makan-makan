@@ -178,8 +178,17 @@ export function useResponsiveImage() {
       fit = "scale-down",
     } = options;
 
-    // Check if it's a Cloudflare Images URL
-    if (url.includes("imagedelivery.net")) {
+    // Check if it's a Cloudflare Images URL using URL parsing for hostname validation
+    let parsedHostname: string;
+    try {
+      parsedHostname = new URL(url).hostname;
+    } catch {
+      return url;
+    }
+    if (
+      parsedHostname === "imagedelivery.net" ||
+      parsedHostname.endsWith(".imagedelivery.net")
+    ) {
       // Cloudflare Images format: /cdn-cgi/imagedelivery/{account_hash}/{id}/{variant}
       const parts = url.split("/");
       const baseUrl = parts.slice(0, -1).join("/");

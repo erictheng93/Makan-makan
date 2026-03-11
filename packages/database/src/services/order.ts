@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, count, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, desc, count, sql, gte, lte, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   orders,
@@ -6,7 +6,6 @@ import {
   menuItems,
   restaurants,
   tables,
-  users,
   ORDER_STATUS,
 } from "../schema";
 import type {

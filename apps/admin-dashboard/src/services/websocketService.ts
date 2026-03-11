@@ -42,6 +42,13 @@ const DEFAULT_CONFIG: Required<WebSocketConfig> = {
   heartbeatTimeout: 10000,
 };
 
+/** Sanitize values for safe logging (prevent log injection) */
+function sanitizeForLog(value: unknown): string {
+  return String(value)
+    .replace(/[\r\n\t]/g, " ")
+    .slice(0, 500);
+}
+
 class WebSocketService {
   private ws: WebSocket | null = null;
   private connectionStatus = ref<ConnectionStatus>("disconnected");
@@ -190,13 +197,13 @@ class WebSocketService {
 
     // 連接確認
     if (event.type === RealtimeEventType.CONNECTION_ACK) {
-      console.log("✅ Connection acknowledged:", event.data);
+      console.log("✅ Connection acknowledged:", sanitizeForLog(event.data));
       return;
     }
 
     // 錯誤事件
     if (event.type === RealtimeEventType.ERROR) {
-      console.error("❌ Server error:", event.data);
+      console.error("❌ Server error:", sanitizeForLog(event.data));
       return;
     }
 

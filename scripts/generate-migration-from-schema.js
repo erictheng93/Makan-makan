@@ -124,14 +124,12 @@ function generateCreateTable(tableName, schema, isNew = false) {
   let sql = `CREATE TABLE IF NOT EXISTS ${newTableName} (\n`;
 
   const columns = [];
-  let primaryKey = null;
 
   for (const col of schema) {
     let colDef = `    ${col.name} ${mapSqliteType(col.type)}`;
 
     // PRIMARY KEY
     if (col.pk === 1) {
-      primaryKey = col.name;
       colDef += " PRIMARY KEY";
       if (col.name === "id" && mapSqliteType(col.type) === "INTEGER") {
         colDef += " AUTOINCREMENT";

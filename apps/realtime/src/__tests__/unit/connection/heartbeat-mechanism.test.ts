@@ -345,7 +345,7 @@ describe("Heartbeat Mechanism", () => {
 
   describe("連接保活機制", () => {
     it("應該定期檢查所有連接的心跳狀態", () => {
-      const HEARTBEAT_CHECK_INTERVAL = 30000;
+      const _HEARTBEAT_CHECK_INTERVAL = 30000;
       const connections = new Map([
         ["conn-1", { ws: mockWebSocket, lastHeartbeat: Date.now() - 70000 }], // Timed out
         ["conn-2", { ws: mockWebSocket, lastHeartbeat: Date.now() - 30000 }], // Healthy

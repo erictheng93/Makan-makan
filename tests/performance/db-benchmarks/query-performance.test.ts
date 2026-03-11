@@ -11,10 +11,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import {
-  DatabasePerformanceTester,
-  PerformanceBaselineManager,
-} from "./db-performance-tester";
+import { DatabasePerformanceTester } from "./db-performance-tester";
 import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 
 describe("Database Query Performance Benchmarks", () => {

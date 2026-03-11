@@ -145,7 +145,7 @@ describe("Connection Pool Management", () => {
     });
 
     it("應該在連接關閉時清理資源", () => {
-      const connInfo = connections.get(mockWebSocket)!;
+      const _connInfo = connections.get(mockWebSocket)!;
 
       const cleanup = () => {
         mockWebSocket.close();

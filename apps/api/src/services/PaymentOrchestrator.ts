@@ -9,8 +9,6 @@ import {
   CountryCode,
   PaymentMethod,
   CountryPaymentConfig,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  PaymentTransaction,
 } from "@makanmakan/shared-types";
 
 interface PaymentOrchestratorConfig {

@@ -3,7 +3,7 @@
  * 訪客令牌認證中間件測試
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { generateGuestToken } from "../../../middleware/guestAuth";
 
 describe("Guest Auth Middleware", () => {

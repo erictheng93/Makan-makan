@@ -6,9 +6,8 @@
  */
 
 import { z } from "zod";
-import { eq, and, desc, sql, count, sum, avg } from "drizzle-orm";
+import { eq, and, sql, count, sum, avg } from "drizzle-orm";
 import { BaseService, CloudflareEnv } from "./base";
-import { getCurrentTimestamp } from "../utils/timestamp";
 import {
   cashRegisters,
   cashShifts,

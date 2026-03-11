@@ -37,6 +37,13 @@ export interface ConnectionStatus {
 
 type MessageHandler = (data: unknown) => void;
 
+/** Sanitize values for safe logging (prevent log injection) */
+function sanitizeForLog(value: unknown): string {
+  return String(value)
+    .replace(/[\r\n\t]/g, " ")
+    .slice(0, 500);
+}
+
 /**
  * Monitoring WebSocket Service Class
  */
@@ -228,7 +235,10 @@ class MonitoringWebSocketService {
           // Heartbeat response
           break;
         default:
-          console.log("[MonitoringWS] Unknown message type:", message.type);
+          console.log(
+            "[MonitoringWS] Unknown message type:",
+            sanitizeForLog(message.type),
+          );
       }
 
       // Trigger custom handlers
@@ -253,7 +263,10 @@ class MonitoringWebSocketService {
     // Add to alerts list (keep last 50)
     this.alerts.value = [alert, ...this.alerts.value].slice(0, 50);
 
-    console.log("[MonitoringWS] New alert:", alert);
+    console.log(
+      "[MonitoringWS] New alert:",
+      sanitizeForLog(JSON.stringify(alert)),
+    );
   }
 
   /**

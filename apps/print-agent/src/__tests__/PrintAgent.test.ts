@@ -4,15 +4,7 @@
  * Comprehensive tests for the print agent service
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  beforeAll,
-  afterAll,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { LocalPrintService } from "../LocalPrintService";
 import { createDefaultConfig } from "../config/defaults";
 import type { PrintRequest } from "@makanmakan/shared-types";

@@ -54,20 +54,6 @@ vi.mock("@makanmakan/database", () => ({
   }),
 }));
 
-// Helper to parse URL query params
-const parseQueryParams = (url: string): Record<string, string> => {
-  const queryString = url.split("?")[1] || "";
-  const params: Record<string, string> = {};
-  if (queryString) {
-    queryString.split("&").forEach((pair) => {
-      const [key, value] = pair.split("=");
-      if (key)
-        params[decodeURIComponent(key)] = decodeURIComponent(value || "");
-    });
-  }
-  return params;
-};
-
 // Mock middleware with proper query parameter handling
 vi.mock("../../../shared/middleware", () => ({
   authMiddleware: vi.fn((c, next) => {

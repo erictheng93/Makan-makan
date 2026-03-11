@@ -5,15 +5,7 @@
  * Tests module interactions, data flow, and cross-module functionality
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  beforeAll,
-  afterAll,
-} from "vitest";
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest";
 import {
   createTestApp,
   createTestDB,
@@ -682,7 +674,7 @@ describe("Core Modules Integration Tests", () => {
       const orderData = await createCompleteOrder();
 
       // 2. Verify order appears in all relevant modules
-      const analyticsResponse = await app.request(
+      await app.request(
         `/api/v1/analytics/dashboard?restaurantId=${testRestaurantId}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },

@@ -451,7 +451,7 @@ describe("ErrorReportingService", () => {
 
     it("should be a no-op for non-existent error id", () => {
       service.reportError(new Error("existing"));
-      const initialState = JSON.stringify(service.errorReports.value);
+      const _initialState = JSON.stringify(service.errorReports.value);
 
       service.resolveError("non_existent_id");
 

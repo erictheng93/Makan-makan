@@ -18,7 +18,6 @@ import {
   menuItems,
   users,
   tables,
-  restaurants,
   categories,
 } from "../schema";
 
@@ -573,11 +572,7 @@ export class AnalyticsService extends BaseService {
   async getDashboardData(restaurantId: string): Promise<DashboardData> {
     try {
       // If no restaurantId provided (e.g., system admin), return empty data
-      if (
-        !restaurantId ||
-        restaurantId === undefined ||
-        restaurantId === null
-      ) {
+      if (!restaurantId) {
         return {
           summary: {
             todayRevenue: 0,
@@ -1006,9 +1001,7 @@ export class AnalyticsService extends BaseService {
     projections: any[];
   }> {
     try {
-      const { restaurantId } = filters;
       const revenueData = await this.getRevenueAnalytics(filters);
-      const orderAnalytics = await this.getOrderAnalytics(filters);
       const menuAnalytics = await this.getMenuAnalytics(filters);
 
       const totalRevenue = revenueData.reduce(

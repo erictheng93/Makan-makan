@@ -1,16 +1,6 @@
-import {
-  eq,
-  and,
-  desc,
-  asc,
-  like,
-  or,
-  count,
-  isNull,
-  isNotNull,
-} from "drizzle-orm";
+import { eq, and, desc, asc, like, or, count, isNotNull } from "drizzle-orm";
 import { BaseService } from "./base";
-import { tables, restaurants, orders, seats } from "../schema";
+import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
 
 export interface CreateTableData {

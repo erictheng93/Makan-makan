@@ -402,7 +402,7 @@ function cli() {
         process.exit(1);
       }
 
-      const status = recordModuleMigration(moduleName, {
+      recordModuleMigration(moduleName, {
         name: moduleName,
         status: statusValue,
         progress,

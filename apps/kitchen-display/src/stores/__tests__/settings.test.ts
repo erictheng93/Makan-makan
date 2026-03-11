@@ -52,7 +52,7 @@ describe("Settings Store", () => {
 
   describe("Setting Updates", () => {
     it("should update language setting", () => {
-      let language = "zh-TW";
+      let language: string;
 
       language = "en-US";
 
@@ -60,7 +60,7 @@ describe("Settings Store", () => {
     });
 
     it("should update theme setting", () => {
-      let theme = "light";
+      let theme: string;
 
       theme = "dark";
 
@@ -68,7 +68,7 @@ describe("Settings Store", () => {
     });
 
     it("should update sound settings", () => {
-      let soundEnabled = true;
+      let soundEnabled: boolean;
 
       soundEnabled = false;
 
@@ -76,7 +76,7 @@ describe("Settings Store", () => {
     });
 
     it("should update volume level", () => {
-      let volume = 0.7;
+      let volume: number;
 
       volume = 0.5;
 
@@ -141,11 +141,14 @@ describe("Settings Store", () => {
 
   describe("Reset Settings", () => {
     it("should reset to default values", () => {
-      let settings = {
+      let settings: { language: string; theme: string; volume: number };
+
+      const initial = {
         language: "en-US",
         theme: "dark",
         volume: 0.3,
       };
+      settings = initial;
 
       const defaults = {
         language: "zh-TW",

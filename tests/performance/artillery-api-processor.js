@@ -3,6 +3,7 @@
  * 提供自定義函式用於認證、數據生成和測試邏輯
  */
 
+const crypto = require("crypto");
 const API_BASE_URL = process.env.API_URL || "http://localhost:8787";
 
 /**
@@ -163,7 +164,6 @@ function generateOrderData(context, events, done) {
  * 生成隨機菜品數據
  */
 function generateMenuItemData(context, events, done) {
-  const timestamp = Date.now();
   const random = Math.floor(Math.random() * 10000);
 
   context.vars.menuItemData = {
@@ -186,14 +186,14 @@ function generateMenuItemData(context, events, done) {
  */
 function generateUserData(context, events, done) {
   const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
+  const random = crypto.randomInt(10000);
 
   context.vars.userData = {
     username: `testuser_${timestamp}_${random}`,
     password: "testpass123",
     name: `測試用戶 ${random}`,
     email: `test_${timestamp}_${random}@example.com`,
-    role: Math.floor(Math.random() * 3) + 2, // 角色 2-4
+    role: crypto.randomInt(3) + 2, // 角色 2-4
     restaurantId: context.vars.restaurantId || "1",
     isActive: true,
   };

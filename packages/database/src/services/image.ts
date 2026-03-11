@@ -1,4 +1,4 @@
-import { eq, desc, count, and, sql, between, inArray } from "drizzle-orm";
+import { eq, desc, count, and, sql, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   images,

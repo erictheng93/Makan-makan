@@ -32,13 +32,20 @@ const defaultOptions: Partial<LazyLoadOptions> = {
 const processImageUrl = (src: string, options: LazyLoadOptions): string => {
   if (!src) return src;
 
-  // Handle Cloudflare Images URLs
+  // Handle Cloudflare Images URLs - use URL parsing for hostname validation
+  let url: URL;
+  try {
+    url = new URL(src);
+  } catch {
+    return src;
+  }
+  const hostname = url.hostname;
   if (
-    src.includes("imagedelivery.net") ||
-    src.includes("images.cloudflare.com")
+    hostname === "imagedelivery.net" ||
+    hostname.endsWith(".imagedelivery.net") ||
+    hostname === "images.cloudflare.com" ||
+    hostname.endsWith(".images.cloudflare.com")
   ) {
-    const url = new URL(src);
-
     if (options.quality && options.quality !== 85) {
       url.searchParams.set("quality", options.quality.toString());
     }

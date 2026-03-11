@@ -6,7 +6,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Env } from "../../../shared/types";
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
 import type { UserRole } from "../../../shared/constants";
 
 // Mock services

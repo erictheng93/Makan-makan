@@ -383,12 +383,13 @@ describe("Customers API Integration Tests", () => {
     });
 
     it("應該處理負數分頁參數", () => {
-      const negativePage = -1;
-      const negativeLimit = -10;
+      // Simulate sanitizing negative pagination params to safe defaults
+      const rawPage = -1 as number;
+      const rawLimit = -10 as number;
 
       // 應該使用預設值或最小值
-      const page = negativePage > 0 ? negativePage : 1;
-      const limit = negativeLimit > 0 ? negativeLimit : 20;
+      const page = rawPage > 0 ? rawPage : 1;
+      const limit = rawLimit > 0 ? rawLimit : 20;
 
       expect(page).toBe(1);
       expect(limit).toBe(20);

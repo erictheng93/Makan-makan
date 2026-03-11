@@ -119,7 +119,7 @@ export function useKitchenViewWithSSE(restaurantId: string) {
   watch(latestCancelledOrder, (cancelMessage) => {
     if (!cancelMessage) return;
 
-    const { orderId, reason, timestamp } = cancelMessage.data;
+    const { orderId, reason, timestamp: _timestamp } = cancelMessage.data;
 
     // Remove from orders list
     const orderIndex = orders.value.findIndex((order) => order.id === orderId);

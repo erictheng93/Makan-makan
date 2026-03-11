@@ -196,8 +196,6 @@ export class RegionManager {
 
   formatCurrency(amount: number, country: CountryCode): string {
     const region = this.getRegion(country);
-    const { currency } = region.numberFormat;
-
     const formatter = new Intl.NumberFormat(region.locale, {
       style: "currency",
       currency: region.currency,

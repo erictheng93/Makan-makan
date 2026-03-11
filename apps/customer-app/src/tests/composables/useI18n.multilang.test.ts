@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createApp, ref } from "vue";
+import { createApp } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { i18n, switchLanguage } from "@/i18n";
+import { i18n } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n";
 
 describe("useI18n Composable with Multiple Languages", () => {

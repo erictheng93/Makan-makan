@@ -284,7 +284,7 @@ function transformRecord(record: any, mapping: FieldMapping): any {
   if (mapping.type === "tables") {
     // Wrap the record in the table key
     const result: Record<string, any> = {};
-    for (const [alias, val] of Object.entries(mapping.fields!)) {
+    for (const [alias, _val] of Object.entries(mapping.fields!)) {
       if (alias === mapping.primaryTableKey) {
         result[alias] = record;
       } else {

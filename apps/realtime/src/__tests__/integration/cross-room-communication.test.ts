@@ -24,10 +24,7 @@ const EventTypes = {
   KITCHEN_QUEUE_UPDATE: RealtimeEventType.KITCHEN_QUEUE_UPDATE,
   TABLE_STATUS_UPDATE: RealtimeEventType.TABLE_STATUS_UPDATE,
 } as const;
-import {
-  createTestAuthPayload,
-  MockWebSocketPair,
-} from "../helpers/test-utils";
+import { MockWebSocketPair } from "../helpers/test-utils";
 
 // Mock Room Manager 模擬跨房間通訊
 interface RoomConnection {
