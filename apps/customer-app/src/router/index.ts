@@ -238,7 +238,7 @@ router.beforeEach(async (to, from, next) => {
   // 設置頁面標題
   const titleKey = to.meta?.titleKey as string;
   if (titleKey) {
-    document.title = i18n.global.t(titleKey) as string;
+    document.title = (i18n.global as any).t(titleKey) as string;
   }
 
   // 獲取認證狀態
@@ -295,7 +295,9 @@ router.beforeEach(async (to, from, next) => {
         name: "Error",
         query: {
           code: "400",
-          message: i18n.global.t("errors.invalidRestaurantOrTable") as string,
+          message: (i18n.global as any).t(
+            "errors.invalidRestaurantOrTable",
+          ) as string,
         },
       });
       return;
@@ -317,7 +319,7 @@ router.onError((error) => {
     name: "Error",
     query: {
       code: "500",
-      message: i18n.global.t("errors.routeLoadFailed") as string,
+      message: (i18n.global as any).t("errors.routeLoadFailed") as string,
     },
   });
 });
