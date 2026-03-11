@@ -292,7 +292,7 @@ const dietaryTags = computed(() => {
   if (dietary?.halal) {
     tags.push({
       key: "halal",
-      label: "清真",
+      label: t("menu.halal"),
       class: "bg-blue-100 text-blue-800",
     });
   }
