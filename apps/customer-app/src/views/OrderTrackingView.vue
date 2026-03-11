@@ -345,7 +345,16 @@ const {
   refetch,
 } = useQuery({
   queryKey: ["order", props.orderId],
-  queryFn: () => orderApi.getOrder(props.orderId),
+  queryFn: () => {
+    const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+    const hasGuestToken = !!localStorage.getItem("guest_auth_token");
+
+    // If guest, use guest tracking endpoint
+    if (!hasCustomerToken && hasGuestToken) {
+      return orderApi.getGuestOrder(props.orderId);
+    }
+    return orderApi.getOrder(props.orderId);
+  },
   refetchInterval: 30 * 1000, // 30秒輪詢
   refetchOnWindowFocus: true,
 });

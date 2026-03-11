@@ -413,7 +413,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useShopCartStore } from "@/stores/shopCart";
 import { formatPrice } from "@/utils/format";
-import axios from "axios";
+import { apiClient } from "@/services/api";
 
 const props = defineProps<{
   show: boolean;
@@ -495,40 +495,42 @@ const handleCheckout = async () => {
       },
     };
 
-    // 提交訂單
-    const response = await axios.post("/api/v1/orders", orderData);
+    // Use guest endpoint if no customer auth token
+    const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+    const endpoint = hasCustomerToken
+      ? "/api/v1/orders"
+      : "/api/v1/orders/guest";
 
-    if (response.data.success && response.data.order) {
-      const orderId = response.data.order.id;
+    // Use apiClient for automatic token injection
+    const orderResult = await apiClient.post(endpoint, orderData);
+    // apiClient unwraps response.data.data, so orderResult IS the order object
+    const orderId = orderResult.id;
 
-      // 清空購物車
-      shopCartStore.clearCart();
+    // 清空購物車
+    shopCartStore.clearCart();
 
-      // 顯示成功訊息
-      toast.success("訂單已送出！");
+    // 顯示成功訊息
+    toast.success("訂單已送出！");
 
-      // 關閉彈窗
-      emit("close");
+    // 關閉彈窗
+    emit("close");
 
-      // 導航到訂單追蹤頁面（需要創建店家專用的追蹤頁面）
-      router.push({
-        name: "OrderTracking",
-        params: {
-          restaurantId: props.restaurantId,
-          tableId: 0, // 店家模式使用 0 或特殊值
-          orderId,
-        },
-        query: {
-          type: "shop",
-          phone: props.phoneLastDigits,
-        },
-      });
-    } else {
-      throw new Error("訂單建立失敗");
-    }
+    // 導航到訂單追蹤頁面
+    router.push({
+      name: "OrderTracking",
+      params: {
+        restaurantId: props.restaurantId,
+        tableId: 0, // 店家模式使用 0 或特殊值
+        orderId,
+      },
+      query: {
+        type: "shop",
+        phone: props.phoneLastDigits,
+      },
+    });
   } catch (error: any) {
     console.error("結帳失敗:", error);
-    toast.error(error.response?.data?.message || "訂單送出失敗，請稍後再試");
+    toast.error(error.message || "訂單送出失敗，請稍後再試");
   } finally {
     isSubmitting.value = false;
   }

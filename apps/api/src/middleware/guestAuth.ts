@@ -15,9 +15,17 @@ export interface GuestTokenData {
   createdAt: number;
 }
 
+export interface GuestSessionData {
+  restaurantId: string;
+  phoneLastDigits: string;
+  createdAt: number;
+  orderId?: string; // Set after order is created
+}
+
 declare module "hono" {
   interface ContextVariableMap {
     guestOrder: GuestTokenData;
+    guestSession: GuestSessionData;
   }
 }
 
@@ -63,6 +71,48 @@ export const guestTokenAuth = async (
     await next();
   } catch (error) {
     console.error("Guest token auth error:", error);
+    return c.json({ success: false, error: "Authentication failed" }, 401);
+  }
+};
+
+/**
+ * Guest session auth middleware for pre-order sessions.
+ * Unlike guestTokenAuth, this does NOT require orderId.
+ * Used for guest order creation flow.
+ */
+export const guestSessionAuth = async (
+  c: Context<{ Bindings: Env }>,
+  next: Next,
+) => {
+  const authHeader = c.req.header("Authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer gt_")) {
+    return c.json(
+      { success: false, error: "Missing or invalid guest token" },
+      401,
+    );
+  }
+
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+  try {
+    const kvKey = `guest_token:${token}`;
+    const tokenData = (await c.env.CACHE_KV.get(
+      kvKey,
+      "json",
+    )) as GuestSessionData | null;
+
+    if (!tokenData) {
+      return c.json(
+        { success: false, error: "Guest token expired or invalid" },
+        401,
+      );
+    }
+
+    c.set("guestSession", tokenData);
+    await next();
+  } catch (error) {
+    console.error("Guest session auth error:", error);
     return c.json({ success: false, error: "Authentication failed" }, 401);
   }
 };
