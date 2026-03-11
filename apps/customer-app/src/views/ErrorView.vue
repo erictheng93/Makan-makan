@@ -17,9 +17,11 @@
         </svg>
       </div>
 
-      <h1 class="text-3xl font-bold text-gray-900 mb-4">發生錯誤</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">
+        {{ t("errors.general") }}
+      </h1>
       <p class="text-gray-600 mb-8">
-        {{ errorMessage || "很抱歉，系統發生了未預期的錯誤。" }}
+        {{ errorMessage || t("errors.generalDesc") }}
       </p>
 
       <div class="space-y-4">
@@ -27,14 +29,14 @@
           class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
           @click="retry"
         >
-          重新嘗試
+          {{ t("errorView.retry") }}
         </button>
 
         <button
           class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
           @click="goHome"
         >
-          回到首頁
+          {{ t("errorView.goHome") }}
         </button>
       </div>
     </div>
@@ -44,9 +46,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 
 const errorMessage = ref((route.query.message as string) || "");
 

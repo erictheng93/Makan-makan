@@ -21,7 +21,9 @@
             />
           </svg>
         </button>
-        <h1 class="text-lg font-semibold text-gray-900">手機驗證</h1>
+        <h1 class="text-lg font-semibold text-gray-900">
+          {{ t("phoneVerification.title") }}
+        </h1>
         <div class="w-6"></div>
       </div>
     </header>
@@ -89,9 +91,11 @@
                 </svg>
               </div>
               <h3 class="text-xl font-semibold text-gray-900 mb-2">
-                請輸入手機號碼後3位
+                {{ t("phoneVerification.enterLastDigits") }}
               </h3>
-              <p class="text-sm text-gray-600">用於識別您的訂單</p>
+              <p class="text-sm text-gray-600">
+                {{ t("phoneVerification.forIdentification") }}
+              </p>
             </div>
 
             <!-- Error Message -->
@@ -123,7 +127,7 @@
                 for="phone"
                 class="block text-sm font-medium text-gray-700 mb-2"
               >
-                手機後3位
+                {{ t("phoneVerification.lastDigits") }}
               </label>
               <div class="relative">
                 <input
@@ -132,7 +136,7 @@
                   type="tel"
                   maxlength="3"
                   pattern="[0-9]{3}"
-                  placeholder="請輸入3位數字"
+                  :placeholder="t('phoneVerification.placeholder')"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl font-semibold tracking-widest"
                   :class="{ 'border-red-300': errorMessage }"
                   @input="validateInput"
@@ -140,7 +144,7 @@
                 />
               </div>
               <p class="mt-2 text-xs text-gray-500 text-center">
-                例如：手機號 0912345678，請輸入 678
+                {{ t("phoneVerification.example") }}
               </p>
             </div>
 
@@ -150,7 +154,9 @@
               class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               @click="handleVerify"
             >
-              <span v-if="!isLoading">開始點餐</span>
+              <span v-if="!isLoading">{{
+                t("phoneVerification.startOrdering")
+              }}</span>
               <span v-else class="flex items-center justify-center">
                 <svg
                   class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -172,7 +178,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                驗證中...
+                {{ t("phoneVerification.verifyingStatus") }}
               </span>
             </button>
           </div>
@@ -196,8 +202,12 @@
                 />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">驗證成功！</h3>
-            <p class="text-sm text-gray-600 mb-4">正在為您準備菜單...</p>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">
+              {{ t("toast.verificationSuccess") }}
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">
+              {{ t("toast.preparingMenu") }}
+            </p>
             <div class="flex justify-center">
               <div
                 class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
@@ -224,10 +234,10 @@
             </svg>
             <div>
               <h4 class="text-sm font-semibold text-blue-900 mb-1">
-                為什麼需要手機驗證？
+                {{ t("phoneVerification.whyNeeded") }}
               </h4>
               <p class="text-xs text-blue-700">
-                輸入手機後3位可以幫助我們快速識別您的訂單，讓您在取餐時更加便捷。
+                {{ t("phoneVerification.whyNeededDesc") }}
               </p>
             </div>
           </div>
@@ -241,6 +251,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import { useI18n } from "@/composables/useI18n";
 import type { Restaurant } from "@makanmakan/shared-types";
 
 const props = defineProps<{
@@ -249,6 +260,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const { t } = useI18n();
 const restaurant = ref<Restaurant | null>(null);
 const phoneLastDigits = ref("");
 const errorMessage = ref("");
@@ -277,7 +289,7 @@ const loadRestaurant = async () => {
       );
 
       if (!verifyResponse.data.valid) {
-        throw new Error("無效的 QR Code");
+        throw new Error(t("toast.invalidQRCode"));
       }
 
       restaurant.value = verifyResponse.data.restaurant;
@@ -291,12 +303,14 @@ const loadRestaurant = async () => {
 
     // Check if shop mode is enabled
     if (!restaurant.value?.enableShopMode) {
-      throw new Error("此餐廳未啟用店家模式");
+      throw new Error(t("toast.shopModeNotEnabled"));
     }
   } catch (error: any) {
     console.error("Failed to load restaurant:", error);
     errorMessage.value =
-      error.response?.data?.message || error.message || "載入餐廳資料失敗";
+      error.response?.data?.message ||
+      error.message ||
+      t("toast.restaurantLoadFailed");
 
     // Redirect to error page after 3 seconds
     setTimeout(() => {
@@ -324,7 +338,7 @@ const handleVerify = async () => {
 
     // Simple validation - just check format
     if (!/^\d{3}$/.test(phoneLastDigits.value)) {
-      throw new Error("請輸入正確的手機後3位數字");
+      throw new Error(t("toast.phoneVerifyError"));
     }
 
     // Mark as verified
@@ -362,7 +376,7 @@ const handleVerify = async () => {
     }, 1000);
   } catch (error: any) {
     console.error("Verification failed:", error);
-    errorMessage.value = error.message || "驗證失敗，請重試";
+    errorMessage.value = error.message || t("errors.general");
     isVerified.value = false;
   } finally {
     isLoading.value = false;

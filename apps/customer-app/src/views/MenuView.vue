@@ -27,9 +27,11 @@
 
             <div class="flex-1 text-center">
               <h1 class="font-semibold text-gray-900">
-                {{ restaurant?.name || "載入中..." }}
+                {{ restaurant?.name || t("common.loading") }}
               </h1>
-              <p class="text-sm text-gray-500">桌號 {{ tableId }}</p>
+              <p class="text-sm text-gray-500">
+                {{ t("orderTracking.tableNumber") }} {{ tableId }}
+              </p>
             </div>
 
             <button
@@ -90,7 +92,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
         />
-        <p class="text-gray-600">正在載入菜單...</p>
+        <p class="text-gray-600">{{ t("shopMenu.loadingMenu") }}</p>
       </div>
 
       <!-- 錯誤狀態 -->
@@ -112,7 +114,9 @@
             />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">載入失敗</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{ t("shopMenu.loadFailed") }}
+        </h3>
         <p class="text-gray-600 mb-4">
           {{ error }}
         </p>
@@ -120,7 +124,7 @@
           class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           @click="() => refetch()"
         >
-          重新載入
+          {{ t("shopMenu.reload") }}
         </button>
       </div>
 
@@ -200,7 +204,7 @@
             v-if="getItemsByCategory(category.id).length === 0"
             class="py-8 text-center text-gray-500"
           >
-            <p>此分類暫無可用菜品</p>
+            <p>{{ t("shopMenu.noItemsInCategory") }}</p>
           </div>
         </section>
 
@@ -253,7 +257,7 @@
           >
             <span class="text-sm font-bold">{{ cartStore.itemCount }}</span>
           </div>
-          <span>查看購物車</span>
+          <span>{{ t("shopMenu.viewCart") }}</span>
         </div>
         <div class="text-lg font-bold">
           ${{ formatPrice(cartStore.subtotal) }}
@@ -308,7 +312,7 @@ const props = defineProps<{
 // Composables
 const router = useRouter();
 const toast = useToast();
-const { t } = useI18n();
+const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
 const cartStore = useCartStore();
 
@@ -412,7 +416,12 @@ const handleAddToCart = (data: {
 }) => {
   cartStore.addItem(data.item, data.quantity, data.customizations, data.notes);
 
-  toast.success(`已加入 ${data.item.name} x${data.quantity}`);
+  toast.success(
+    tWithParams("toast.itemAdded", {
+      name: data.item.name,
+      quantity: data.quantity,
+    }),
+  );
 
   // 關閉彈窗
   showItemModal.value = false;

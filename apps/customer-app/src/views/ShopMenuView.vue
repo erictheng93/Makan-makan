@@ -28,7 +28,7 @@
             <div class="flex-1 text-center">
               <div class="flex items-center justify-center">
                 <h1 class="font-semibold text-gray-900">
-                  {{ restaurant?.name || "載入中..." }}
+                  {{ restaurant?.name || t("common.loading") }}
                 </h1>
                 <span
                   v-if="shopCartStore.fulfillmentType"
@@ -41,12 +41,14 @@
                 >
                   {{
                     shopCartStore.fulfillmentType === "delivery"
-                      ? "🛵 外送"
-                      : "🛍️ 外帶"
+                      ? t("shopCart.delivery")
+                      : t("shopCart.takeaway")
                   }}
                 </span>
               </div>
-              <p class="text-sm text-gray-500">店家點餐</p>
+              <p class="text-sm text-gray-500">
+                {{ t("shopMenu.shopOrdering") }}
+              </p>
             </div>
 
             <button
@@ -105,7 +107,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
         />
-        <p class="text-gray-600">正在載入菜單...</p>
+        <p class="text-gray-600">{{ t("shopMenu.loadingMenu") }}</p>
       </div>
 
       <!-- 錯誤狀態 -->
@@ -127,7 +129,9 @@
             />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">載入失敗</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{ t("shopMenu.loadFailed") }}
+        </h3>
         <p class="text-gray-600 mb-4">
           {{ error }}
         </p>
@@ -135,7 +139,7 @@
           class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           @click="() => refetch()"
         >
-          重新載入
+          {{ t("shopMenu.reload") }}
         </button>
       </div>
 
@@ -146,7 +150,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="搜尋菜品..."
+            :placeholder="t('shopMenu.searchPlaceholder')"
             class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
           <svg
@@ -166,7 +170,9 @@
 
         <!-- 推薦菜品 -->
         <section v-if="featuredItems.length > 0" class="mb-8">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">🌟 推薦菜品</h2>
+          <h2 class="text-xl font-bold text-gray-900 mb-4">
+            {{ t("shopMenu.recommended") }}
+          </h2>
           <div class="grid gap-4">
             <MenuItemCard
               v-for="item in featuredItems"
@@ -213,7 +219,7 @@
             v-if="getItemsByCategory(category.id).length === 0"
             class="py-8 text-center text-gray-500"
           >
-            <p>此分類暫無可用菜品</p>
+            <p>{{ t("shopMenu.noItemsInCategory") }}</p>
           </div>
         </section>
 
@@ -239,8 +245,10 @@
               />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">找不到相關菜品</h3>
-          <p class="text-gray-600">試試其他關鍵字</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">
+            {{ t("shopMenu.noResults") }}
+          </h3>
+          <p class="text-gray-600">{{ t("shopMenu.tryOtherKeywords") }}</p>
         </div>
       </div>
     </main>
@@ -260,7 +268,7 @@
           >
             <span class="text-sm font-bold">{{ shopCartStore.itemCount }}</span>
           </div>
-          <span>查看購物車</span>
+          <span>{{ t("shopMenu.viewCart") }}</span>
         </div>
         <div class="text-lg font-bold">
           ${{ formatPrice(shopCartStore.subtotal) }}
@@ -301,6 +309,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/composables/useI18n";
 import { useAppStore } from "@/stores/app";
 import { useShopCartStore } from "@/stores/shopCart";
 import MenuItemCard from "@/components/MenuItemCard.vue";
@@ -323,6 +332,7 @@ const props = defineProps<{
 // Composables
 const router = useRouter();
 const toast = useToast();
+const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
 const shopCartStore = useShopCartStore();
 
@@ -432,7 +442,12 @@ const handleAddToCart = (data: {
     data.notes,
   );
 
-  toast.success(`已加入 ${data.item.name} x${data.quantity}`);
+  toast.success(
+    tWithParams("toast.itemAdded", {
+      name: data.item.name,
+      quantity: data.quantity,
+    }),
+  );
 
   // 關閉彈窗
   showItemModal.value = false;

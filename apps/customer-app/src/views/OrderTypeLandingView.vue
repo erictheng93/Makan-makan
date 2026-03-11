@@ -13,7 +13,7 @@
       <div v-else-if="error" class="text-center py-12">
         <p class="text-red-500 mb-4">{{ error }}</p>
         <button class="text-indigo-600 underline" @click="fetchRestaurant">
-          重試
+          {{ t("common.retry") }}
         </button>
       </div>
 
@@ -43,7 +43,9 @@
           </p>
         </div>
 
-        <p class="text-sm font-semibold text-gray-500 mb-3">請選擇取餐方式</p>
+        <p class="text-sm font-semibold text-gray-500 mb-3">
+          {{ t("orderTypeLanding.selectMethod") }}
+        </p>
         <div class="flex flex-col gap-3">
           <button
             :class="[
@@ -56,8 +58,12 @@
           >
             <span class="text-3xl">🛍️</span>
             <div class="flex-1">
-              <div class="font-semibold text-gray-900">外帶 Takeaway</div>
-              <div class="text-xs text-gray-500">到店自取</div>
+              <div class="font-semibold text-gray-900">
+                {{ t("orderTypeLanding.takeaway") }}
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ t("orderTypeLanding.takeawayDesc") }}
+              </div>
             </div>
             <svg
               v-if="selectedType === 'takeaway'"
@@ -85,8 +91,12 @@
           >
             <span class="text-3xl">🛵</span>
             <div class="flex-1">
-              <div class="font-semibold text-gray-900">外送 Delivery</div>
-              <div class="text-xs text-gray-500">送到指定地址</div>
+              <div class="font-semibold text-gray-900">
+                {{ t("orderTypeLanding.delivery") }}
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ t("orderTypeLanding.deliveryDesc") }}
+              </div>
             </div>
             <svg
               v-if="selectedType === 'delivery'"
@@ -108,7 +118,7 @@
           class="w-full mt-6 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="handleContinue"
         >
-          繼續
+          {{ t("orderTypeLanding.continue") }}
         </button>
       </div>
     </div>
@@ -118,6 +128,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 import { useShopCartStore } from "@/stores/shopCart";
 import { menuApi } from "@/services/menuApi";
 
@@ -125,6 +136,7 @@ const props = defineProps<{ restaurantId: string }>();
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 const shopCartStore = useShopCartStore();
 
 const selectedType = ref<"takeaway" | "delivery">("takeaway");
@@ -143,7 +155,7 @@ async function fetchRestaurant() {
     const res = await menuApi.getRestaurant(props.restaurantId);
     restaurant.value = res;
   } catch {
-    error.value = "無法載入餐廳資訊";
+    error.value = t("toast.restaurantLoadFailed");
   } finally {
     isLoading.value = false;
   }
