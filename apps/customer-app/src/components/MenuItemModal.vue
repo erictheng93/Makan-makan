@@ -67,7 +67,7 @@
             <span
               class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-medium px-3 py-1 rounded-full"
             >
-              ⭐ 招牌推薦
+              {{ t("menuItemModal.featured") }}
             </span>
           </div>
         </div>
@@ -134,7 +134,9 @@
 
           <!-- 數量選擇 -->
           <div class="flex items-center justify-between py-4">
-            <span class="text-base font-medium text-gray-900">數量</span>
+            <span class="text-base font-medium text-gray-900">{{
+              t("menuItemModal.quantity")
+            }}</span>
             <div class="flex items-center space-x-3">
               <button
                 :disabled="quantity <= 1"
@@ -187,12 +189,12 @@
           <!-- 備註 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              備註（選填）
+              {{ t("menuItemModal.notesLabel") }}
             </label>
             <textarea
               v-model="notes"
               rows="3"
-              placeholder="有什麼特別需求嗎？例如：不要辣、少冰等..."
+              :placeholder="t('menuItemModal.notesPlaceholder')"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
             />
           </div>
@@ -221,12 +223,15 @@ import type {
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 import CustomizationOptions from "./CustomizationOptions.vue";
+import { useI18n } from "@/composables/useI18n";
 
 // Props
 const props = defineProps<{
   show: boolean;
   item?: MenuItem;
 }>();
+
+const { t } = useI18n();
 
 // Emits
 const emits = defineEmits<{
@@ -271,7 +276,7 @@ const dietaryTags = computed(() => {
   if (dietary?.vegetarian) {
     tags.push({
       key: "vegetarian",
-      label: "素食",
+      label: t("menu.vegetarian"),
       class: "bg-green-100 text-green-800",
     });
   }
@@ -279,7 +284,7 @@ const dietaryTags = computed(() => {
   if (dietary?.vegan) {
     tags.push({
       key: "vegan",
-      label: "純素",
+      label: t("menu.vegan"),
       class: "bg-green-100 text-green-800",
     });
   }
@@ -295,7 +300,7 @@ const dietaryTags = computed(() => {
   if (dietary?.glutenFree) {
     tags.push({
       key: "gluten-free",
-      label: "無麩質",
+      label: t("menu.glutenFree"),
       class: "bg-yellow-100 text-yellow-800",
     });
   }
@@ -308,11 +313,11 @@ const currentPrice = computed(() => {
 });
 
 const buttonText = computed(() => {
-  if (!props.item?.isAvailable) return "暫不供應";
-  if (isOutOfStock.value) return "售完";
+  if (!props.item?.isAvailable) return t("menuItemModal.unavailable");
+  if (isOutOfStock.value) return t("menuItemModal.soldOut");
 
   const total = currentPrice.value * quantity.value;
-  return `加入購物車 · $${formatPrice(total)}`;
+  return t("menuItemModal.addToCart").replace("${price}", formatPrice(total));
 });
 
 // Methods

@@ -8,7 +8,7 @@
       v-if="isFeatured"
       class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-medium px-3 py-1 text-center"
     >
-      ⭐ 招牌推薦
+      {{ t("menuItemCard.featured") }}
     </div>
 
     <div class="p-4">
@@ -119,7 +119,11 @@
               <span
                 class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full"
               >
-                {{ !item.isAvailable ? "暫不供應" : "售完" }}
+                {{
+                  !item.isAvailable
+                    ? t("menuItemCard.unavailable")
+                    : t("menuItemCard.soldOut")
+                }}
               </span>
             </div>
 
@@ -143,7 +147,7 @@
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span>加入</span>
+              <span>{{ t("menuItemCard.addToCart") }}</span>
             </button>
 
             <!-- 客製化按鈕 -->
@@ -153,7 +157,7 @@
               class="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               @click="handleCustomize"
             >
-              選擇規格
+              {{ t("menuItemCard.selectSpec") }}
             </button>
           </div>
 
@@ -175,7 +179,11 @@
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
               />
             </svg>
-            <span>{{ item.orderCount }} 人點過</span>
+            <span>{{
+              tWithParams("menuItemCard.orderedCount", {
+                count: item.orderCount,
+              })
+            }}</span>
           </div>
         </div>
       </div>
@@ -190,6 +198,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
+import { useI18n } from "@/composables/useI18n";
 
 // Props
 const props = defineProps<{
@@ -209,6 +218,8 @@ const emits = defineEmits<{
   ];
   "view-details": [item: MenuItem];
 }>();
+
+const { t, tWithParams } = useI18n();
 
 // Computed
 const isOutOfStock = computed(() => {
@@ -231,7 +242,7 @@ const dietaryTags = computed(() => {
   if (dietary?.vegetarian) {
     tags.push({
       key: "vegetarian",
-      label: "素食",
+      label: t("menu.vegetarian"),
       class: "bg-green-100 text-green-800",
     });
   }
@@ -239,7 +250,7 @@ const dietaryTags = computed(() => {
   if (dietary?.vegan) {
     tags.push({
       key: "vegan",
-      label: "純素",
+      label: t("menu.vegan"),
       class: "bg-green-100 text-green-800",
     });
   }
@@ -255,7 +266,7 @@ const dietaryTags = computed(() => {
   if (dietary?.glutenFree) {
     tags.push({
       key: "gluten-free",
-      label: "無麩質",
+      label: t("menu.glutenFree"),
       class: "bg-yellow-100 text-yellow-800",
     });
   }

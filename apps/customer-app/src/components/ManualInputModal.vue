@@ -8,7 +8,9 @@
       <!-- 標題區域 -->
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">輸入餐廳資訊</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("manualInput.title") }}
+          </h3>
           <button
             class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
             @click="$emit('update:show', false)"
@@ -38,13 +40,13 @@
             for="restaurant-id"
             class="block text-sm font-medium text-gray-700 mb-2"
           >
-            餐廳ID
+            {{ t("manualInput.restaurantId") }}
           </label>
           <input
             id="restaurant-id"
             v-model="form.restaurantId"
             type="number"
-            placeholder="請輸入餐廳ID"
+            :placeholder="t('manualInput.restaurantIdPlaceholder')"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             :class="{ 'border-red-500': errors.restaurantId }"
           />
@@ -59,13 +61,13 @@
             for="table-id"
             class="block text-sm font-medium text-gray-700 mb-2"
           >
-            桌號
+            {{ t("manualInput.tableNumber") }}
           </label>
           <input
             id="table-id"
             v-model="form.tableId"
             type="number"
-            placeholder="請輸入桌號"
+            :placeholder="t('manualInput.tableNumberPlaceholder')"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             :class="{ 'border-red-500': errors.tableId }"
           />
@@ -91,8 +93,8 @@
               />
             </svg>
             <div class="text-sm text-blue-800">
-              <p class="font-medium mb-1">找不到餐廳和桌號資訊？</p>
-              <p>請聯繫餐廳服務人員，或使用桌上的QR Code掃描進入。</p>
+              <p class="font-medium mb-1">{{ t("manualInput.helpTitle") }}</p>
+              <p>{{ t("manualInput.helpDesc") }}</p>
             </div>
           </div>
         </div>
@@ -109,7 +111,7 @@
             v-if="loading"
             class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
           />
-          {{ loading ? "驗證中..." : "確認" }}
+          {{ loading ? t("manualInput.verifying") : t("common.confirm") }}
         </button>
 
         <button
@@ -117,7 +119,7 @@
           class="w-full bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
           @click="$emit('update:show', false)"
         >
-          取消
+          {{ t("common.cancel") }}
         </button>
       </div>
     </div>
@@ -126,6 +128,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/composables/useI18n";
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps<{
@@ -166,20 +171,20 @@ const validateForm = () => {
 
   // 驗證餐廳ID
   if (!form.value.restaurantId) {
-    errors.value.restaurantId = "請輸入餐廳ID";
+    errors.value.restaurantId = t("manualInput.restaurantIdRequired");
   } else if (!/^\d+$/.test(form.value.restaurantId)) {
-    errors.value.restaurantId = "餐廳ID必須為數字";
+    errors.value.restaurantId = t("manualInput.restaurantIdNumeric");
   } else if (parseInt(form.value.restaurantId) <= 0) {
-    errors.value.restaurantId = "餐廳ID必須大於0";
+    errors.value.restaurantId = t("manualInput.restaurantIdPositive");
   }
 
   // 驗證桌號
   if (!form.value.tableId) {
-    errors.value.tableId = "請輸入桌號";
+    errors.value.tableId = t("manualInput.tableNumberRequired");
   } else if (!/^\d+$/.test(form.value.tableId)) {
-    errors.value.tableId = "桌號必須為數字";
+    errors.value.tableId = t("manualInput.tableNumberNumeric");
   } else if (parseInt(form.value.tableId) <= 0) {
-    errors.value.tableId = "桌號必須大於0";
+    errors.value.tableId = t("manualInput.tableNumberPositive");
   }
 };
 

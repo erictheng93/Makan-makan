@@ -41,7 +41,7 @@
       <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0 mr-2">
           <h4 class="text-sm font-medium text-gray-900">
-            {{ item.menuItem?.name || "未知商品" }}
+            {{ item.menuItem?.name || t("orderItem.unknownItem") }}
           </h4>
 
           <!-- 客製化資訊 -->
@@ -54,7 +54,8 @@
           <!-- 備註 -->
           <div v-if="item.notes" class="mt-1">
             <p class="text-xs text-gray-600">
-              <span class="font-medium">備註：</span>{{ item.notes }}
+              <span class="font-medium">{{ t("orderItem.notes") }}</span
+              >{{ item.notes }}
             </p>
           </div>
 
@@ -91,12 +92,15 @@
 import { computed } from "vue";
 import { formatPrice } from "@/utils/format";
 import type { OrderItem } from "@makanmakan/shared-types";
+import { useI18n } from "@/composables/useI18n";
 
 // Props
 const props = defineProps<{
   item: OrderItem;
   showStatus?: boolean;
 }>();
+
+const { t } = useI18n();
 
 // Computed
 const itemTotal = computed(() => {
@@ -129,17 +133,18 @@ const customizationText = computed(() => {
   return parts.join(", ");
 });
 
+const statusMap = computed(() => ({
+  0: t("orderItem.statusPending"),
+  1: t("orderItem.statusPreparing"),
+  2: t("orderItem.statusReady"),
+  3: t("orderItem.statusServed"),
+}));
+
 const statusText = computed(() => {
   if (!props.showStatus || props.item.status === undefined) return "";
-
-  const statusMap = {
-    0: "待處理",
-    1: "製作中",
-    2: "準備完成",
-    3: "已送達",
-  };
-
-  return statusMap[props.item.status as keyof typeof statusMap] || "未知";
+  return (
+    statusMap.value[props.item.status as keyof typeof statusMap.value] || ""
+  );
 });
 
 const statusClasses = computed(() => {

@@ -140,7 +140,7 @@
         <div v-if="showNotesInput" class="mt-3">
           <textarea
             :value="item.notes || ''"
-            placeholder="備註..."
+            :placeholder="t('cart.notes')"
             rows="2"
             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
             @input="updateNotes(($event.target as HTMLTextAreaElement).value)"
@@ -165,7 +165,10 @@
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
             />
           </svg>
-          <span>{{ showNotesInput ? "收起" : "新增" }}備註</span>
+          <span
+            >{{ showNotesInput ? t("cart.hideNotes") : t("cart.addNotes")
+            }}{{ t("cart.notes") }}</span
+          >
         </button>
       </div>
     </div>
@@ -176,6 +179,7 @@
 import { ref, computed } from "vue";
 import { formatPrice } from "@/utils/format";
 import type { CartItem } from "@makanmakan/shared-types";
+import { useI18n } from "@/composables/useI18n";
 
 // Props
 const props = defineProps<{
@@ -188,6 +192,8 @@ const emits = defineEmits<{
   "update-notes": [itemId: string, notes: string];
   remove: [itemId: string];
 }>();
+
+const { t } = useI18n();
 
 // State
 const showNotesInput = ref(!!props.item.notes);

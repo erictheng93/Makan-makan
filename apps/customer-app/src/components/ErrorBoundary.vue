@@ -39,14 +39,14 @@
           class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
           @click="handleRetry"
         >
-          重新載入
+          {{ t("errorBoundary.reload") }}
         </button>
 
         <button
           class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
           @click="handleGoHome"
         >
-          回到首頁
+          {{ t("errorBoundary.goHome") }}
         </button>
       </div>
 
@@ -55,7 +55,7 @@
         <summary
           class="cursor-pointer text-sm text-gray-500 hover:text-gray-700"
         >
-          顯示錯誤詳情
+          {{ t("errorBoundary.showDetails") }}
         </summary>
         <div class="mt-2 p-3 bg-gray-100 rounded-lg">
           <pre
@@ -67,12 +67,14 @@
 
       <!-- 回報問題 -->
       <div class="mt-6 pt-6 border-t border-gray-200">
-        <p class="text-sm text-gray-500 mb-2">問題持續發生？</p>
+        <p class="text-sm text-gray-500 mb-2">
+          {{ t("errorBoundary.persistentIssue") }}
+        </p>
         <button
           class="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
           @click="handleReportError"
         >
-          回報問題
+          {{ t("errorBoundary.reportIssue") }}
         </button>
       </div>
     </div>
@@ -85,9 +87,11 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
 // Composables
 const router = useRouter();
+const { t } = useI18n();
 
 // State
 const hasError = ref(false);
@@ -98,49 +102,49 @@ const errorInfo = ref<any>(null);
 const isDevelopment = computed(() => import.meta.env.DEV);
 
 const errorTitle = computed(() => {
-  if (!error.value) return "發生錯誤";
+  if (!error.value) return t("errorBoundary.defaultTitle");
 
   // 根據不同錯誤類型返回適當的標題
   if (error.value.name === "ChunkLoadError") {
-    return "載入失敗";
+    return t("errorBoundary.defaultTitle");
   }
 
   if (error.value.name === "NetworkError") {
-    return "網路連接問題";
+    return t("errorBoundary.networkErrorTitle");
   }
 
   if (error.value.message?.includes("Loading chunk")) {
-    return "載入失敗";
+    return t("errorBoundary.defaultTitle");
   }
 
-  return "應用程式錯誤";
+  return t("errorBoundary.defaultTitle");
 });
 
 const errorMessage = computed(() => {
-  if (!error.value) return "發生未預期的錯誤，請重新載入頁面。";
+  if (!error.value) return t("errorBoundary.defaultMessage");
 
   // 根據不同錯誤類型返回適當的訊息
   if (
     error.value.name === "ChunkLoadError" ||
     error.value.message?.includes("Loading chunk")
   ) {
-    return "應用程式更新中，請重新載入頁面以取得最新版本。";
+    return t("errorBoundary.defaultMessage");
   }
 
   if (error.value.name === "NetworkError") {
-    return "網路連接有問題，請檢查您的網路連接並重試。";
+    return t("errorBoundary.networkErrorMessage");
   }
 
   if (error.value.message?.includes("fetch")) {
-    return "無法連接到伺服器，請檢查網路連接或稍後再試。";
+    return t("errorBoundary.networkErrorMessage");
   }
 
   // 生產環境不顯示具體錯誤訊息
   if (!isDevelopment.value) {
-    return "發生未預期的錯誤，我們正在處理這個問題。";
+    return t("errorBoundary.defaultMessage");
   }
 
-  return error.value.message || "未知錯誤";
+  return error.value.message || t("errorBoundary.defaultTitle");
 });
 
 const errorDetails = computed(() => {
@@ -212,14 +216,14 @@ const handleReportError = () => {
     navigator.clipboard
       .writeText(JSON.stringify(errorReport, null, 2))
       .then(() => {
-        alert("錯誤報告已複製到剪貼板，請貼上至問題回報表單中。");
+        alert(t("toast.errorReportCopied"));
       })
       .catch(() => {
         // 降級處理
-        prompt("請複製以下錯誤報告並回報給我們：", JSON.stringify(errorReport));
+        prompt(t("errorBoundary.copyErrorReport"), JSON.stringify(errorReport));
       });
   } else {
-    prompt("請複製以下錯誤報告並回報給我們：", JSON.stringify(errorReport));
+    prompt(t("errorBoundary.copyErrorReport"), JSON.stringify(errorReport));
   }
 };
 
