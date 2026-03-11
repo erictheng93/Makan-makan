@@ -1,13 +1,7 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
-
-/** Sanitize values for safe logging (prevent log injection) */
-function sanitizeForLog(value: unknown): string {
-  return String(value)
-    .replace(/[\r\n\t]/g, " ")
-    .slice(0, 500);
-}
 import { useRealtime, type SSEMessage } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
+import { sanitizeForLog } from "@/utils/sanitize";
 
 // Type definitions for group orders
 export interface GroupOrderMember {

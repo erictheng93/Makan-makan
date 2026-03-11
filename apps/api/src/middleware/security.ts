@@ -174,25 +174,21 @@ function sanitizeString(str: string): string {
   return sanitized;
 }
 
-/** Encode all HTML-significant characters as entities */
+/** Map of HTML-significant characters to their entity representations */
+const HTML_ENTITIES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#x27;",
+  "/": "&#x2F;",
+  "`": "&#x60;",
+  "=": "&#x3D;",
+};
+
+/** Encode HTML-significant characters as entities */
 function encodeHtmlEntities(str: string): string {
-  return str.replace(
-    // eslint-disable-next-line no-control-regex
-    /[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g,
-    (char) => {
-      const standardEntities: Record<string, string> = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#x27;",
-        "/": "&#x2F;",
-        "`": "&#x60;",
-        "=": "&#x3D;",
-      };
-      return standardEntities[char] || `&#${char.charCodeAt(0)};`;
-    },
-  );
+  return str.replace(/[&<>"'/`=]/g, (char) => HTML_ENTITIES[char] || char);
 }
 
 /**

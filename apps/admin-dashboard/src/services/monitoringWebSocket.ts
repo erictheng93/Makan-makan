@@ -37,12 +37,7 @@ export interface ConnectionStatus {
 
 type MessageHandler = (data: unknown) => void;
 
-/** Sanitize values for safe logging (prevent log injection) */
-function sanitizeForLog(value: unknown): string {
-  return String(value)
-    .replace(/[\r\n\t]/g, " ")
-    .slice(0, 500);
-}
+import { sanitizeForLog } from "@/utils/sanitize";
 
 /**
  * Monitoring WebSocket Service Class

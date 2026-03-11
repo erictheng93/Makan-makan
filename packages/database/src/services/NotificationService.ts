@@ -6,6 +6,17 @@
 import { BaseService, type CloudflareEnv } from "./base";
 import type { D1Database } from "@cloudflare/workers-types";
 
+/** Strip all HTML tags from a string, looping until stable to handle nested fragments */
+function stripHtmlTags(html: string): string {
+  let result = html;
+  let prev;
+  do {
+    prev = result;
+    result = result.replaceAll(/<[^>]*>/g, "");
+  } while (result !== prev);
+  return result;
+}
+
 // ========================================
 // Types
 // ========================================
@@ -187,17 +198,7 @@ export class ResendEmailProvider implements EmailProvider {
           to: params.to,
           subject: params.subject,
           html: params.html,
-          text:
-            params.text ||
-            (() => {
-              let result = params.html;
-              let prev;
-              do {
-                prev = result;
-                result = result.replaceAll(/<[^>]*>/g, "");
-              } while (result !== prev);
-              return result;
-            })(),
+          text: params.text || stripHtmlTags(params.html),
         }),
       });
 
@@ -791,13 +792,7 @@ export class NotificationService extends BaseService {
           errors.push("SMS provider not configured");
         } else {
           // Strip HTML for SMS
-          let smsBody = body;
-          let prevBody;
-          do {
-            prevBody = smsBody;
-            smsBody = smsBody.replaceAll(/<[^>]*>/g, "");
-          } while (smsBody !== prevBody);
-          smsBody = smsBody.trim();
+          const smsBody = stripHtmlTags(body).trim();
           const result = await this.smsProvider.sendSMS({
             to: payload.recipientPhone,
             body: smsBody,

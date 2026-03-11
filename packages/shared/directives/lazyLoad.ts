@@ -1,4 +1,5 @@
 import type { DirectiveBinding, ObjectDirective } from "vue";
+import { isCloudflareImagesHostname } from "../utils/cloudflareImages";
 
 interface LazyLoadOptions {
   src: string;
@@ -39,13 +40,7 @@ const processImageUrl = (src: string, options: LazyLoadOptions): string => {
   } catch {
     return src;
   }
-  const hostname = url.hostname;
-  if (
-    hostname === "imagedelivery.net" ||
-    hostname.endsWith(".imagedelivery.net") ||
-    hostname === "images.cloudflare.com" ||
-    hostname.endsWith(".images.cloudflare.com")
-  ) {
+  if (isCloudflareImagesHostname(url.hostname)) {
     if (options.quality && options.quality !== 85) {
       url.searchParams.set("quality", options.quality.toString());
     }

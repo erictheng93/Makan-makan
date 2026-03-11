@@ -178,7 +178,7 @@ export function useResponsiveImage() {
       fit = "scale-down",
     } = options;
 
-    // Check if it's a Cloudflare Images URL using URL parsing for hostname validation
+    // Check if it's a Cloudflare Images URL
     let parsedHostname: string;
     try {
       parsedHostname = new URL(url).hostname;

@@ -42,12 +42,7 @@ const DEFAULT_CONFIG: Required<WebSocketConfig> = {
   heartbeatTimeout: 10000,
 };
 
-/** Sanitize values for safe logging (prevent log injection) */
-function sanitizeForLog(value: unknown): string {
-  return String(value)
-    .replace(/[\r\n\t]/g, " ")
-    .slice(0, 500);
-}
+import { sanitizeForLog } from "@/utils/sanitize";
 
 class WebSocketService {
   private ws: WebSocket | null = null;

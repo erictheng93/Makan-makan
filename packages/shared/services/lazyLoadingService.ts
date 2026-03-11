@@ -1,3 +1,5 @@
+import { isCloudflareImagesHostname } from "../utils/cloudflareImages";
+
 interface ImageMetadata {
   src: string;
   alt?: string;
@@ -172,13 +174,7 @@ export class LazyLoadingService {
     } catch {
       return src;
     }
-    const hostname = url.hostname;
-    if (
-      hostname === "imagedelivery.net" ||
-      hostname.endsWith(".imagedelivery.net") ||
-      hostname === "images.cloudflare.com" ||
-      hostname.endsWith(".images.cloudflare.com")
-    ) {
+    if (isCloudflareImagesHostname(url.hostname)) {
       // Add quality parameter
       const quality = options?.quality || this.config.defaultQuality;
       url.searchParams.set("quality", quality.toString());

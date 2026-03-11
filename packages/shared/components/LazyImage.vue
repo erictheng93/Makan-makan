@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { isCloudflareImagesHostname } from "../utils/cloudflareImages";
 
 interface Props {
   src: string;
@@ -145,14 +146,7 @@ const currentSrc = computed(() => {
   // Use URL parsing to validate hostname instead of substring matching
   try {
     const url = new URL(props.src);
-    const hostname = url.hostname;
-    const isCloudflareImages =
-      hostname === "imagedelivery.net" ||
-      hostname.endsWith(".imagedelivery.net") ||
-      hostname === "images.cloudflare.com" ||
-      hostname.endsWith(".images.cloudflare.com");
-
-    if (isCloudflareImages) {
+    if (isCloudflareImagesHostname(url.hostname)) {
       if (props.quality && props.quality !== 85) {
         url.searchParams.set("quality", props.quality.toString());
       }
