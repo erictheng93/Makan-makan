@@ -4,39 +4,45 @@ import { router } from "./router";
 import App from "./App.vue";
 import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
-import i18n from "./i18n/plugin";
+import { initI18n } from "./i18n";
 import "./assets/css/main.css";
 
-const app = createApp(App);
-const pinia = createPinia();
+async function bootstrap() {
+  // Load translations before creating the app so t() works on first render
+  await initI18n();
 
-app.use(pinia);
-app.use(router);
-app.use(i18n);
+  const app = createApp(App);
+  const pinia = createPinia();
 
-// 註冊全局組件
-app.component("ErrorDisplay", ErrorDisplay);
+  app.use(pinia);
+  app.use(router);
 
-// 設置全局錯誤處理
-setupGlobalErrorHandler();
+  // 註冊全局組件
+  app.component("ErrorDisplay", ErrorDisplay);
 
-// 全局錯誤處理 (Vue 特定錯誤)
-app.config.errorHandler = (error: any, instance, info) => {
-  console.error("Vue error:", error, info);
+  // 設置全局錯誤處理
+  setupGlobalErrorHandler();
 
-  // 使用錯誤處理器處理 Vue 錯誤
-  errorHandler.handleError(error, {
-    type: "vue_error",
-    component: instance?.$?.type?.name || "unknown",
-    errorInfo: info,
-  });
-};
+  // 全局錯誤處理 (Vue 特定錯誤)
+  app.config.errorHandler = (error: any, instance, info) => {
+    console.error("Vue error:", error, info);
 
-// 全局警告處理 (開發模式)
-if (import.meta.env.DEV) {
-  app.config.warnHandler = (msg, _instance, trace) => {
-    console.warn("Vue warning:", msg, trace);
+    // 使用錯誤處理器處理 Vue 錯誤
+    errorHandler.handleError(error, {
+      type: "vue_error",
+      component: instance?.$?.type?.name || "unknown",
+      errorInfo: info,
+    });
   };
+
+  // 全局警告處理 (開發模式)
+  if (import.meta.env.DEV) {
+    app.config.warnHandler = (msg, _instance, trace) => {
+      console.warn("Vue warning:", msg, trace);
+    };
+  }
+
+  app.mount("#app");
 }
 
-app.mount("#app");
+bootstrap();

@@ -108,9 +108,12 @@ const fetchRestaurants = async () => {
   try {
     const response = await api.get<RestaurantItem[]>("/restaurants");
     if (response.data.success && response.data.data) {
-      restaurants.value = Array.isArray(response.data.data)
-        ? response.data.data
-        : [];
+      // Handle both direct array and nested {success, data: [...]} response formats
+      const payload = response.data.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : ((payload as any)?.data ?? []);
+      restaurants.value = Array.isArray(list) ? list : [];
     }
   } catch (error) {
     console.error("Failed to fetch restaurants:", error);
