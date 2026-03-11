@@ -56,19 +56,7 @@ onErrorCaptured((error: Error) => {
   return false;
 });
 
-// PWA 更新提示
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then(() => {
-        console.log("Service Worker 註冊成功");
-      })
-      .catch(() => {
-        console.log("Service Worker 註冊失敗");
-      });
-  });
-}
+// PWA Service Worker is managed by VitePWA plugin (registerType: "autoUpdate")
 </script>
 
 <style>

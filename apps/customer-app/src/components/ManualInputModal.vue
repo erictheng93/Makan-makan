@@ -2,7 +2,7 @@
   <div
     v-if="show"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-    @click.self="$emit('close')"
+    @click.self="$emit('update:show', false)"
   >
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full" @click.stop>
       <!-- 標題區域 -->
@@ -11,7 +11,7 @@
           <h3 class="text-lg font-semibold text-gray-900">輸入餐廳資訊</h3>
           <button
             class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-            @click="$emit('close')"
+            @click="$emit('update:show', false)"
           >
             <svg
               class="w-5 h-5"
@@ -115,7 +115,7 @@
         <button
           :disabled="loading"
           class="w-full bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
-          @click="$emit('close')"
+          @click="$emit('update:show', false)"
         >
           取消
         </button>
@@ -135,8 +135,8 @@ const props = defineProps<{
 
 // Emits
 const emits = defineEmits<{
-  close: [];
-  confirm: [data: { restaurantId: string; tableId: number }];
+  "update:show": [value: boolean];
+  "restaurant-selected": [data: { restaurantId: string; tableId: number }];
 }>();
 
 // State
@@ -191,10 +191,11 @@ const handleConfirm = () => {
   validateForm();
 
   if (isFormValid.value) {
-    emits("confirm", {
+    emits("restaurant-selected", {
       restaurantId: form.value.restaurantId,
       tableId: parseInt(form.value.tableId),
     });
+    emits("update:show", false);
   }
 };
 

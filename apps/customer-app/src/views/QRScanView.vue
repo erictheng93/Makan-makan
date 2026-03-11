@@ -67,7 +67,6 @@
       <video
         ref="videoElement"
         class="w-full h-screen object-cover"
-        autoplay
         muted
         playsinline
       />

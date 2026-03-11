@@ -626,7 +626,7 @@ export class PWAPerformanceManager {
     this.swOptimizer = new ServiceWorkerOptimizer();
     this.dbOptimizer = new IndexedDBOptimizer();
     this.syncOptimizer = new BackgroundSyncOptimizer();
-    this.optimizedStorage = {};
+    this.optimizedStorage = _optimizedOfflineStorage;
   }
 
   async initializeOptimizations(): Promise<void> {
