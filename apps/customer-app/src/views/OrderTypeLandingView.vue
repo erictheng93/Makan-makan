@@ -12,7 +12,7 @@
 
       <div v-else-if="error" class="text-center py-12">
         <p class="text-red-500 mb-4">{{ error }}</p>
-        <button @click="fetchRestaurant" class="text-indigo-600 underline">
+        <button class="text-indigo-600 underline" @click="fetchRestaurant">
           重試
         </button>
       </div>
@@ -46,13 +46,13 @@
         <p class="text-sm font-semibold text-gray-500 mb-3">請選擇取餐方式</p>
         <div class="flex flex-col gap-3">
           <button
-            @click="selectedType = 'takeaway'"
             :class="[
               'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
               selectedType === 'takeaway'
                 ? 'border-green-500 bg-green-50'
                 : 'border-gray-200 bg-white hover:border-gray-300',
             ]"
+            @click="selectedType = 'takeaway'"
           >
             <span class="text-3xl">🛍️</span>
             <div class="flex-1">
@@ -75,13 +75,13 @@
 
           <button
             v-if="deliveryEnabled"
-            @click="selectedType = 'delivery'"
             :class="[
               'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
               selectedType === 'delivery'
                 ? 'border-amber-500 bg-amber-50'
                 : 'border-gray-200 bg-white hover:border-gray-300',
             ]"
+            @click="selectedType = 'delivery'"
           >
             <span class="text-3xl">🛵</span>
             <div class="flex-1">
@@ -104,9 +104,9 @@
         </div>
 
         <button
-          @click="handleContinue"
           :disabled="!selectedType"
           class="w-full mt-6 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          @click="handleContinue"
         >
           繼續
         </button>
@@ -142,7 +142,7 @@ async function fetchRestaurant() {
   try {
     const res = await menuApi.getRestaurant(props.restaurantId);
     restaurant.value = res;
-  } catch (e) {
+  } catch {
     error.value = "無法載入餐廳資訊";
   } finally {
     isLoading.value = false;
