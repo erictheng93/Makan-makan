@@ -11,7 +11,7 @@
           <span class="text-white font-bold text-2xl">M</span>
         </div>
         <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
-        <p class="mt-2 text-sm text-gray-600">會員登入</p>
+        <p class="mt-2 text-sm text-gray-600">{{ t("auth.memberLogin") }}</p>
       </div>
 
       <!-- 登入表單 -->
@@ -23,7 +23,7 @@
               for="username"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              帳號
+              {{ t("auth.username") }}
             </label>
             <input
               id="username"
@@ -33,7 +33,7 @@
               autocomplete="username"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.username }"
-              placeholder="請輸入帳號"
+              :placeholder="t('auth.usernamePlaceholder')"
             />
             <p v-if="errors.username" class="mt-1 text-sm text-red-600">
               {{ errors.username }}
@@ -46,7 +46,7 @@
               for="password"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              密碼
+              {{ t("auth.password") }}
             </label>
             <div class="relative">
               <input
@@ -57,7 +57,7 @@
                 autocomplete="current-password"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-12"
                 :class="{ 'border-red-500': errors.password }"
-                placeholder="請輸入密碼"
+                :placeholder="t('auth.passwordPlaceholder')"
               />
               <button
                 type="button"
@@ -111,7 +111,7 @@
               to="/forgot-password"
               class="text-sm font-medium text-orange-600 hover:text-orange-500"
             >
-              忘記密碼？
+              {{ t("auth.forgotPassword") }}
             </router-link>
           </div>
 
@@ -148,21 +148,21 @@
               <div
                 class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"
               />
-              登入中...
+              {{ t("auth.loggingIn") }}
             </span>
-            <span v-else>登入</span>
+            <span v-else>{{ t("auth.login") }}</span>
           </button>
         </form>
 
         <!-- 註冊連結 -->
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
-            還沒有帳號？
+            {{ t("auth.noAccount") }}
             <router-link
               to="/register"
               class="font-medium text-orange-600 hover:text-orange-500"
             >
-              立即註冊
+              {{ t("auth.registerNow") }}
             </router-link>
           </p>
         </div>
@@ -173,7 +173,7 @@
             to="/menu"
             class="text-sm text-gray-500 hover:text-gray-700"
           >
-            以訪客身分繼續瀏覽
+            {{ t("auth.guestBrowse") }}
           </router-link>
         </div>
       </div>
@@ -192,9 +192,11 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const showPassword = ref(false);
 const isLoading = ref(false);
@@ -215,17 +217,17 @@ const validateForm = () => {
   errors.password = "";
 
   if (!form.username.trim()) {
-    errors.username = "請輸入帳號";
+    errors.username = t("auth.usernameRequired");
     return false;
   }
 
   if (!form.password) {
-    errors.password = "請輸入密碼";
+    errors.password = t("auth.passwordRequired");
     return false;
   }
 
   if (form.password.length < 6) {
-    errors.password = "密碼至少需要6個字符";
+    errors.password = t("auth.passwordMinLength");
     return false;
   }
 
@@ -250,10 +252,10 @@ const handleSubmit = async () => {
         router.push("/orders");
       }
     } else {
-      error.value = result.error || "登入失敗";
+      error.value = result.error || t("auth.loginFailed");
     }
   } catch {
-    error.value = "登入過程中發生錯誤";
+    error.value = t("auth.loginError");
   } finally {
     isLoading.value = false;
   }

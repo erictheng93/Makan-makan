@@ -11,7 +11,7 @@
           <span class="text-white font-bold text-2xl">M</span>
         </div>
         <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
-        <p class="mt-2 text-sm text-gray-600">會員註冊</p>
+        <p class="mt-2 text-sm text-gray-600">{{ t("auth.memberRegister") }}</p>
       </div>
 
       <!-- 註冊表單 -->
@@ -23,7 +23,7 @@
               for="username"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              帳號 <span class="text-red-500">*</span>
+              {{ t("auth.username") }} <span class="text-red-500">*</span>
             </label>
             <input
               id="username"
@@ -33,7 +33,7 @@
               autocomplete="username"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.username }"
-              placeholder="請輸入帳號"
+              :placeholder="t('auth.usernamePlaceholder')"
             />
             <p v-if="errors.username" class="mt-1 text-sm text-red-600">
               {{ errors.username }}
@@ -46,7 +46,7 @@
               for="fullName"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              姓名 <span class="text-red-500">*</span>
+              {{ t("auth.displayName") }} <span class="text-red-500">*</span>
             </label>
             <input
               id="fullName"
@@ -56,7 +56,7 @@
               autocomplete="name"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.fullName }"
-              placeholder="請輸入姓名"
+              :placeholder="t('auth.displayNamePlaceholder')"
             />
             <p v-if="errors.fullName" class="mt-1 text-sm text-red-600">
               {{ errors.fullName }}
@@ -69,7 +69,7 @@
               for="password"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              密碼 <span class="text-red-500">*</span>
+              {{ t("auth.password") }} <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input
@@ -80,7 +80,7 @@
                 autocomplete="new-password"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-12"
                 :class="{ 'border-red-500': errors.password }"
-                placeholder="請輸入密碼（至少6個字符）"
+                :placeholder="t('auth.passwordPlaceholderWithMin')"
               />
               <button
                 type="button"
@@ -134,7 +134,8 @@
               for="confirmPassword"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              確認密碼 <span class="text-red-500">*</span>
+              {{ t("auth.confirmPassword") }}
+              <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input
@@ -145,7 +146,7 @@
                 autocomplete="new-password"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-12"
                 :class="{ 'border-red-500': errors.confirmPassword }"
-                placeholder="請再次輸入密碼"
+                :placeholder="t('auth.confirmPasswordPlaceholder')"
               />
               <button
                 type="button"
@@ -199,7 +200,7 @@
               for="email"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              Email
+              {{ t("auth.email") }}
             </label>
             <input
               id="email"
@@ -208,7 +209,7 @@
               autocomplete="email"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.email }"
-              placeholder="請輸入Email（選填）"
+              :placeholder="t('auth.emailPlaceholder')"
             />
             <p v-if="errors.email" class="mt-1 text-sm text-red-600">
               {{ errors.email }}
@@ -221,7 +222,7 @@
               for="phone"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              手機號碼
+              {{ t("auth.phone") }}
             </label>
             <input
               id="phone"
@@ -230,7 +231,7 @@
               autocomplete="tel"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               :class="{ 'border-red-500': errors.phone }"
-              placeholder="請輸入手機號碼（選填）"
+              :placeholder="t('auth.phonePlaceholder')"
             />
             <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
               {{ errors.phone }}
@@ -270,21 +271,21 @@
               <div
                 class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"
               />
-              註冊中...
+              {{ t("auth.registering") }}
             </span>
-            <span v-else>註冊</span>
+            <span v-else>{{ t("auth.register") }}</span>
           </button>
         </form>
 
         <!-- 登入連結 -->
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
-            已經有帳號？
+            {{ t("auth.hasAccount") }}
             <router-link
               to="/login"
               class="font-medium text-orange-600 hover:text-orange-500"
             >
-              立即登入
+              {{ t("auth.loginNow") }}
             </router-link>
           </p>
         </div>
@@ -295,7 +296,7 @@
             to="/menu"
             class="text-sm text-gray-500 hover:text-gray-700"
           >
-            以訪客身分繼續瀏覽
+            {{ t("auth.guestBrowse") }}
           </router-link>
         </div>
       </div>
@@ -314,9 +315,11 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
@@ -354,34 +357,34 @@ const validateForm = () => {
 
   // 驗證帳號
   if (!form.username.trim()) {
-    errors.username = "請輸入帳號";
+    errors.username = t("auth.usernameRequired");
     isValid = false;
   } else if (form.username.length < 3) {
-    errors.username = "帳號至少需要3個字符";
+    errors.username = t("auth.usernameMinLength");
     isValid = false;
   }
 
   // 驗證姓名
   if (!form.fullName.trim()) {
-    errors.fullName = "請輸入姓名";
+    errors.fullName = t("auth.displayNameRequired");
     isValid = false;
   }
 
   // 驗證密碼
   if (!form.password) {
-    errors.password = "請輸入密碼";
+    errors.password = t("auth.passwordRequired");
     isValid = false;
   } else if (form.password.length < 6) {
-    errors.password = "密碼至少需要6個字符";
+    errors.password = t("auth.passwordMinLength");
     isValid = false;
   }
 
   // 驗證確認密碼
   if (!form.confirmPassword) {
-    errors.confirmPassword = "請再次輸入密碼";
+    errors.confirmPassword = t("auth.confirmPasswordRequired");
     isValid = false;
   } else if (form.password !== form.confirmPassword) {
-    errors.confirmPassword = "兩次輸入的密碼不一致";
+    errors.confirmPassword = t("auth.passwordMismatch");
     isValid = false;
   }
 
@@ -389,7 +392,7 @@ const validateForm = () => {
   if (form.email && form.email.trim()) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
-      errors.email = "請輸入有效的Email格式";
+      errors.email = t("auth.invalidEmail");
       isValid = false;
     }
   }
@@ -398,7 +401,7 @@ const validateForm = () => {
   if (form.phone && form.phone.trim()) {
     const phoneRegex = /^[0-9]{10,11}$/;
     if (!phoneRegex.test(form.phone.replace(/[-\s]/g, ""))) {
-      errors.phone = "請輸入有效的手機號碼";
+      errors.phone = t("auth.invalidPhone");
       isValid = false;
     }
   }
@@ -427,10 +430,10 @@ const handleSubmit = async () => {
       // 註冊成功後自動登入並跳轉到訂單頁面
       router.push("/orders");
     } else {
-      error.value = result.error || "註冊失敗";
+      error.value = result.error || t("auth.registerFailed");
     }
   } catch {
-    error.value = "註冊過程中發生錯誤";
+    error.value = t("auth.registerError");
   } finally {
     isLoading.value = false;
   }
