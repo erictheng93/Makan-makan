@@ -33,7 +33,7 @@
                   ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
             ]"
-            :title="item.disabled ? 'Select a restaurant first' : ''"
+            :title="item.disabled ? t('nav.selectRestaurantFirst') : ''"
           >
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
             <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
@@ -68,6 +68,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
+import { useI18n } from "@/i18n";
 import {
   Home,
   ShoppingCart,
@@ -102,6 +103,7 @@ defineEmits<{
 
 const route = useRoute();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const user = computed(() => authStore.user);
 
@@ -118,42 +120,42 @@ const navigationItems = computed(() => {
     {
       name: "platform",
       path: "/dashboard/platform",
-      label: "Platform Overview",
+      label: t("nav.platform"),
       icon: Globe,
       visible: authStore.isAdminRole,
     },
     {
       name: "dashboard",
       path: "/dashboard",
-      label: "儀表板",
+      label: t("nav.dashboard"),
       icon: Home,
       visible: true,
     },
     {
       name: "orders",
       path: "/dashboard/orders",
-      label: "訂單管理",
+      label: t("nav.orders"),
       icon: ShoppingCart,
       visible: authStore.canManageOrders,
     },
     {
       name: "menu",
       path: "/dashboard/menu",
-      label: "菜單管理",
+      label: t("nav.menu"),
       icon: Menu,
       visible: authStore.canManageMenu,
     },
     {
       name: "tables",
       path: "/dashboard/tables",
-      label: "桌台管理",
+      label: t("nav.tables"),
       icon: Table,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "reservations",
       path: "/dashboard/reservations",
-      label: "訂位管理",
+      label: t("nav.reservations"),
       icon: BookOpen,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -165,7 +167,7 @@ const navigationItems = computed(() => {
     {
       name: "waiting-list",
       path: "/dashboard/waiting-list",
-      label: "候位列表",
+      label: t("nav.waitingList"),
       icon: ClipboardList,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -177,49 +179,49 @@ const navigationItems = computed(() => {
     {
       name: "users",
       path: "/dashboard/users",
-      label: "員工管理",
+      label: t("nav.users"),
       icon: Users,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "scheduling",
       path: "/dashboard/scheduling",
-      label: "員工排班",
+      label: t("nav.scheduling"),
       icon: Calendar,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "leaves",
       path: "/dashboard/leaves",
-      label: "請假管理",
+      label: t("nav.leaves"),
       icon: CalendarCheck,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "coupons",
       path: "/dashboard/coupons",
-      label: "優惠券管理",
+      label: t("nav.coupons"),
       icon: TicketIcon,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "analytics",
       path: "/dashboard/analytics",
-      label: "數據分析",
+      label: t("nav.analytics"),
       icon: BarChart3,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "ai-analytics",
       path: "/dashboard/ai-analytics/insights",
-      label: "AI 洞察",
+      label: t("nav.aiInsights"),
       icon: Sparkles,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "pos",
       path: "/dashboard/pos",
-      label: "POS系統",
+      label: t("nav.pos"),
       icon: CreditCard,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -230,7 +232,7 @@ const navigationItems = computed(() => {
     {
       name: "group-orders",
       path: "/dashboard/group-orders",
-      label: "團體訂單",
+      label: t("nav.groupOrders"),
       icon: Users,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -242,7 +244,7 @@ const navigationItems = computed(() => {
     {
       name: "queue",
       path: "/dashboard/queue",
-      label: "候位管理",
+      label: t("nav.queue"),
       icon: Clock,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -253,28 +255,28 @@ const navigationItems = computed(() => {
     {
       name: "monitoring",
       path: "/dashboard/monitoring",
-      label: "系統監控",
+      label: t("nav.monitoring"),
       icon: Activity,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "settings",
       path: "/dashboard/settings",
-      label: "系統設定",
+      label: t("nav.settings"),
       icon: Settings,
       visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "kitchen",
       path: "/kitchen",
-      label: "廚房顯示",
+      label: t("nav.kitchen"),
       icon: ChefHat,
       visible: authStore.canViewKitchen,
     },
     {
       name: "cashier",
       path: "/cashier",
-      label: "收銀台",
+      label: t("nav.cashier"),
       icon: Calculator,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -297,13 +299,13 @@ const isActiveRoute = (path: string) => {
 };
 
 const getRoleLabel = (role?: UserRole) => {
-  const roleLabels: Record<number, string> = {
-    [UserRole.ADMIN]: "系統管理員",
-    [UserRole.OWNER]: "店主",
-    [UserRole.CHEF]: "廚師",
-    [UserRole.SERVICE]: "服務員",
-    [UserRole.CASHIER]: "收銀員",
+  const roleKeys: Record<number, string> = {
+    [UserRole.ADMIN]: "header.roles.admin",
+    [UserRole.OWNER]: "header.roles.owner",
+    [UserRole.CHEF]: "header.roles.chef",
+    [UserRole.SERVICE]: "header.roles.service",
+    [UserRole.CASHIER]: "header.roles.cashier",
   };
-  return role !== undefined ? roleLabels[role] : "";
+  return role !== undefined ? t(roleKeys[role]) : "";
 };
 </script>

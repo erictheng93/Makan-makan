@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
+import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
 
 const routes: RouteRecordRaw[] = [
@@ -8,19 +9,19 @@ const routes: RouteRecordRaw[] = [
     path: "/login",
     name: "Login",
     component: () => import("@/views/LoginView.vue"),
-    meta: { requiresAuth: false, title: "登入" },
+    meta: { requiresAuth: false, titleKey: "pages.login" },
   },
   {
     path: "/forgot-password",
     name: "ForgotPassword",
     component: () => import("@/views/ForgotPasswordView.vue"),
-    meta: { requiresAuth: false, title: "忘記密碼" },
+    meta: { requiresAuth: false, titleKey: "pages.forgotPassword" },
   },
   {
     path: "/reset-password",
     name: "ResetPassword",
     component: () => import("@/views/ResetPasswordView.vue"),
-    meta: { requiresAuth: false, title: "重設密碼" },
+    meta: { requiresAuth: false, titleKey: "pages.resetPassword" },
   },
   {
     path: "/",
@@ -32,7 +33,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/layouts/DefaultLayout.vue"),
     meta: {
       requiresAuth: true,
-      title: "儀表板",
+      titleKey: "pages.dashboard",
       roles: [
         UserRole.ADMIN,
         UserRole.OWNER,
@@ -52,7 +53,7 @@ const routes: RouteRecordRaw[] = [
         name: "PlatformOverview",
         component: () => import("@/views/PlatformOverview.vue"),
         meta: {
-          title: "Platform Overview",
+          titleKey: "pages.platformOverview",
           roles: [UserRole.ADMIN],
         },
       },
@@ -61,7 +62,7 @@ const routes: RouteRecordRaw[] = [
         name: "Orders",
         component: () => import("@/views/OrdersView.vue"),
         meta: {
-          title: "訂單管理",
+          titleKey: "pages.orders",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -75,7 +76,7 @@ const routes: RouteRecordRaw[] = [
         name: "Menu",
         component: () => import("@/views/MenuView.vue"),
         meta: {
-          title: "菜單管理",
+          titleKey: "pages.menu",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -84,7 +85,7 @@ const routes: RouteRecordRaw[] = [
         name: "Tables",
         component: () => import("@/views/TablesView.vue"),
         meta: {
-          title: "桌台管理",
+          titleKey: "pages.tables",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -93,7 +94,7 @@ const routes: RouteRecordRaw[] = [
         name: "Users",
         component: () => import("@/views/UsersView.vue"),
         meta: {
-          title: "員工管理",
+          titleKey: "pages.users",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -102,7 +103,7 @@ const routes: RouteRecordRaw[] = [
         name: "Analytics",
         component: () => import("@/views/AnalyticsView.vue"),
         meta: {
-          title: "數據分析",
+          titleKey: "pages.analytics",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -111,7 +112,7 @@ const routes: RouteRecordRaw[] = [
         name: "Settings",
         component: () => import("@/views/SettingsView.vue"),
         meta: {
-          title: "系統設定",
+          titleKey: "pages.settings",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -120,7 +121,7 @@ const routes: RouteRecordRaw[] = [
         name: "Coupons",
         component: () => import("@/views/CouponsView.vue"),
         meta: {
-          title: "優惠券管理",
+          titleKey: "pages.coupons",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -129,7 +130,7 @@ const routes: RouteRecordRaw[] = [
         name: "POS",
         component: () => import("@/views/POSView.vue"),
         meta: {
-          title: "POS系統",
+          titleKey: "pages.pos",
           roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
         },
       },
@@ -138,7 +139,7 @@ const routes: RouteRecordRaw[] = [
         name: "GroupOrders",
         component: () => import("@/views/GroupOrdersView.vue"),
         meta: {
-          title: "團體訂單",
+          titleKey: "pages.groupOrders",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -152,7 +153,7 @@ const routes: RouteRecordRaw[] = [
         name: "Queue",
         component: () => import("@/views/QueueView.vue"),
         meta: {
-          title: "候位管理",
+          titleKey: "pages.queue",
           roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
         },
       },
@@ -161,7 +162,7 @@ const routes: RouteRecordRaw[] = [
         name: "AIProviderConfig",
         component: () => import("@/views/ai-analytics/AIProviderConfig.vue"),
         meta: {
-          title: "AI 配置",
+          titleKey: "pages.aiConfig",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -170,7 +171,7 @@ const routes: RouteRecordRaw[] = [
         name: "AIInsightsDashboard",
         component: () => import("@/views/ai-analytics/AIInsightsDashboard.vue"),
         meta: {
-          title: "AI 洞察",
+          titleKey: "pages.aiInsights",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -180,7 +181,7 @@ const routes: RouteRecordRaw[] = [
         component: () =>
           import("@/views/ai-analytics/ProductAnalyticsView.vue"),
         meta: {
-          title: "產品分析",
+          titleKey: "pages.productAnalysis",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -190,7 +191,7 @@ const routes: RouteRecordRaw[] = [
         name: "Scheduling",
         component: () => import("@/views/scheduling/SchedulingView.vue"),
         meta: {
-          title: "員工排班",
+          titleKey: "pages.scheduling",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -200,7 +201,7 @@ const routes: RouteRecordRaw[] = [
         name: "Leaves",
         component: () => import("@/views/LeaveView.vue"),
         meta: {
-          title: "請假管理",
+          titleKey: "pages.leaves",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -210,7 +211,7 @@ const routes: RouteRecordRaw[] = [
         name: "Reservations",
         component: () => import("@/views/ReservationView.vue"),
         meta: {
-          title: "訂位管理",
+          titleKey: "pages.reservations",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -225,7 +226,7 @@ const routes: RouteRecordRaw[] = [
         name: "WaitingList",
         component: () => import("@/views/WaitingListView.vue"),
         meta: {
-          title: "候位管理",
+          titleKey: "pages.waitingList",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -240,7 +241,7 @@ const routes: RouteRecordRaw[] = [
         name: "Monitoring",
         component: () => import("@/views/MonitoringView.vue"),
         meta: {
-          title: "系統監控",
+          titleKey: "pages.monitoring",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
@@ -252,7 +253,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/layouts/KitchenLayout.vue"),
     meta: {
       requiresAuth: true,
-      title: "廚房顯示",
+      titleKey: "pages.kitchen",
       roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
     },
     children: [
@@ -269,7 +270,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/layouts/CashierLayout.vue"),
     meta: {
       requiresAuth: true,
-      title: "收銀台",
+      titleKey: "pages.cashier",
       roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
     },
     children: [
@@ -286,7 +287,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/layouts/ServiceLayout.vue"),
     meta: {
       requiresAuth: true,
-      title: "送菜系統",
+      titleKey: "pages.service",
       roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
     },
     children: [
@@ -303,7 +304,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/layouts/OwnerLayout.vue"),
     meta: {
       requiresAuth: true,
-      title: "店主管理",
+      titleKey: "pages.owner",
       roles: [UserRole.ADMIN, UserRole.OWNER],
     },
     children: [
@@ -318,13 +319,13 @@ const routes: RouteRecordRaw[] = [
     path: "/unauthorized",
     name: "Unauthorized",
     component: () => import("@/views/UnauthorizedView.vue"),
-    meta: { requiresAuth: false, title: "無權限" },
+    meta: { requiresAuth: false, titleKey: "pages.unauthorized" },
   },
   {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFoundView.vue"),
-    meta: { requiresAuth: false, title: "頁面不存在" },
+    meta: { requiresAuth: false, titleKey: "pages.notFound" },
   },
 ];
 
@@ -385,8 +386,10 @@ router.beforeEach(async (to, _, next) => {
     }
   }
 
-  // 設置頁面標題
-  document.title = `${to.meta.title || "MakanMakan"} - 管理後台`;
+  // Set page title using i18n
+  const titleKey = to.meta.titleKey as string | undefined;
+  const pageTitle = titleKey ? t(titleKey) : "MakanMakan";
+  document.title = `${pageTitle} - ${t("pages.adminSuffix")}`;
 
   next();
 });
