@@ -45,6 +45,14 @@ export const orderApi = {
   },
 
   /**
+   * 獲取訪客訂單詳情 (uses guest token)
+   */
+  async getGuestOrder(orderId: number): Promise<Order> {
+    const response = await apiClient.get<Order>(`/orders/guest/${orderId}`);
+    return response;
+  },
+
+  /**
    * 獲取訂單追蹤資訊
    */
   async getOrderTracking(orderId: number): Promise<OrderTrackingInfo> {

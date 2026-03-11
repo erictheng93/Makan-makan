@@ -330,6 +330,24 @@ const handleVerify = async () => {
     // Mark as verified
     isVerified.value = true;
 
+    // Get guest token for later order submission
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const guestTokenResponse = await axios.post(
+        `${apiBaseUrl}/api/v1/auth/guest-token`,
+        {
+          restaurantId: props.restaurantId,
+          phoneLastDigits: phoneLastDigits.value,
+        },
+      );
+      if (guestTokenResponse.data.success && guestTokenResponse.data.token) {
+        localStorage.setItem("guest_auth_token", guestTokenResponse.data.token);
+      }
+    } catch (err) {
+      console.warn("Failed to get guest token:", err);
+      // Non-blocking - continue to menu even if token fails
+    }
+
     // Navigate to shop menu with phone digits
     setTimeout(() => {
       router.push({

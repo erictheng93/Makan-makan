@@ -65,6 +65,12 @@ class ApiClient {
         const token = localStorage.getItem("customer_auth_token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          // Fallback to guest token for shop ordering
+          const guestToken = localStorage.getItem("guest_auth_token");
+          if (guestToken) {
+            config.headers.Authorization = `Bearer ${guestToken}`;
+          }
         }
 
         // 添加請求 ID
@@ -160,6 +166,7 @@ class ApiClient {
     // 清除認證資訊 (customer tokens)
     localStorage.removeItem("customer_auth_token");
     localStorage.removeItem("customer_refresh_token");
+    localStorage.removeItem("guest_auth_token");
 
     // 可以在這裡添加重定向到登入頁面的邏輯
     // window.location.href = '/login'

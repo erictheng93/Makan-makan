@@ -10,6 +10,11 @@ import {
   validateQuery,
   validateParams,
 } from "../../../shared/middleware";
+import {
+  guestSessionAuth,
+  guestTokenAuth,
+} from "../../../middleware/guestAuth";
+import type { GuestSessionData } from "../../../middleware/guestAuth";
 import { OrdersService } from "../services/OrdersService";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
@@ -143,6 +148,145 @@ async function broadcastOrderUpdate(
     // Don't throw error as this is non-critical functionality
   }
 }
+
+/**
+ * Create guest order (no JWT required, uses guest token)
+ * POST /api/v1/orders/guest
+ */
+app.post(
+  "/guest",
+  guestSessionAuth,
+  validateBody(orderSchemas.createOrder),
+  async (c) => {
+    try {
+      const guestSession: GuestSessionData = c.get("guestSession");
+      const data: CreateOrderInput = c.get("validatedBody");
+      const ordersService = new OrdersService(c.env);
+
+      logger.info("Creating guest order", {
+        restaurantId: data.restaurantId,
+        phoneLastDigits: guestSession.phoneLastDigits,
+      });
+
+      // Verify restaurant matches token
+      if (data.restaurantId !== guestSession.restaurantId) {
+        return c.json({ success: false, error: "Restaurant mismatch" }, 403);
+      }
+
+      // Build order data (no customerId for guests)
+      const createOrderData: import("../types").CreateOrderData = {
+        restaurantId: data.restaurantId,
+        tableId: data.tableId,
+        customerInfo: {
+          name: data.customerName,
+          phone: data.customerPhone,
+        },
+        items: data.items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          price: item.price,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: data.notes,
+        orderType: data.orderType,
+        isGuestOrder: true,
+      };
+
+      const order = await ordersService.createOrder(createOrderData);
+
+      // Update KV token to include orderId for tracking
+      const authHeader = c.req.header("Authorization")!;
+      const token = authHeader.substring(7);
+      await c.env.CACHE_KV.put(
+        `guest_token:${token}`,
+        JSON.stringify({
+          ...guestSession,
+          orderId: String(order.id),
+        }),
+        { expirationTtl: 14400 },
+      );
+
+      // Broadcast new order to kitchen and management
+      c.executionCtx?.waitUntil(
+        broadcastOrderUpdate(
+          c.env,
+          order.id,
+          order,
+          data.restaurantId,
+          [0, 1, 2], // Admin, Owner, Chef
+        ),
+      );
+
+      return c.json(
+        {
+          success: true,
+          data: order,
+          guestToken: token,
+        },
+        201,
+      );
+    } catch (error) {
+      logger.error(
+        "Create guest order error",
+        error instanceof Error ? error : undefined,
+        {},
+      );
+
+      const isClientError =
+        error instanceof Error &&
+        (error.message.includes("not available") ||
+          error.message.includes("not found") ||
+          error.message.includes("not exist") ||
+          error.message.includes("Invalid") ||
+          error.message.includes("required"));
+
+      return c.json(
+        {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to create guest order",
+        },
+        isClientError ? 400 : 500,
+      );
+    }
+  },
+);
+
+/**
+ * Get guest order status (uses guest token)
+ * GET /api/v1/orders/guest/:id
+ */
+app.get("/guest/:id", guestTokenAuth, async (c) => {
+  try {
+    const ordersService = new OrdersService(c.env);
+    const order = await ordersService.getOrder(
+      parseInt(c.req.param("id")),
+      true,
+    );
+
+    if (!order) {
+      return c.json({ success: false, error: "Order not found" }, 404);
+    }
+
+    return c.json({ success: true, data: order });
+  } catch (error) {
+    logger.error(
+      "Get guest order error",
+      error instanceof Error ? error : undefined,
+      {},
+    );
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to fetch order",
+      },
+      500,
+    );
+  }
+});
 
 /**
  * Preview coupon discount effect (without creating order)

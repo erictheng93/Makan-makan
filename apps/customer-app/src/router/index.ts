@@ -73,6 +73,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: "訂單詳情",
       requiresAuth: true,
+      allowGuestToken: true,
     },
   },
   {
@@ -246,6 +247,16 @@ router.beforeEach(async (to, from, next) => {
 
   // 檢查需要認證的路由
   if (requiresAuth) {
+    // Allow guest token holders to access routes with allowGuestToken meta
+    const allowGuestToken = to.meta.allowGuestToken as boolean;
+    const hasGuestToken = !!localStorage.getItem("guest_auth_token");
+
+    if (allowGuestToken && hasGuestToken) {
+      // Guest token is sufficient for this route
+      next();
+      return;
+    }
+
     if (!authStore.isAuthenticated) {
       // 未登入，重定向到登入頁
       next({
