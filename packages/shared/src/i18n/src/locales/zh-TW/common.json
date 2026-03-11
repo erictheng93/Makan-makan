@@ -13,6 +13,8 @@
     "loading": "載入中...",
     "success": "成功",
     "error": "錯誤",
+    "warning": "警告",
+    "info": "資訊",
     "yes": "是",
     "no": "否",
     "active": "啟用",
@@ -27,7 +29,22 @@
     "description": "說明",
     "status": "狀態",
     "date": "日期",
-    "time": "時間"
+    "time": "時間",
+    "retry": "重試",
+    "home": "首頁",
+    "menu": "菜單",
+    "cart": "購物車",
+    "order": "訂單",
+    "subtotal": "小計",
+    "quantity": "數量",
+    "price": "價格",
+    "filter": "篩選",
+    "sort": "排序",
+    "clear": "清除",
+    "apply": "套用",
+    "reset": "重設",
+    "off": "折扣",
+    "loadingApp": "載入中..."
   },
   "validation": {
     "required": "此欄位為必填",
@@ -36,7 +53,10 @@
     "passwordConfirm": "密碼不一致",
     "minLength": "至少需要 {min} 個字元",
     "maxLength": "最多允許 {max} 個字元",
-    "invalidFormat": "格式錯誤"
+    "invalidFormat": "格式錯誤",
+    "phone": "請輸入有效的電話號碼",
+    "numeric": "請輸入數字",
+    "positiveNumber": "請輸入正數"
   },
   "messages": {
     "saveSuccess": "儲存成功",
@@ -45,8 +65,18 @@
     "deleteSuccess": "刪除成功",
     "deleteError": "刪除失敗",
     "loadError": "載入資料失敗",
-    "networkError": "網路錯誤",
+    "networkError": "網路錯誤，請檢查您的網路連線",
     "permissionDenied": "權限不足",
     "sessionExpired": "登入已過期，請重新登入"
+  },
+  "time": {
+    "now": "現在",
+    "minutes": "分鐘",
+    "hours": "小時",
+    "days": "天",
+    "ago": "前",
+    "later": "後",
+    "estimated": "預估",
+    "actual": "實際"
   }
 }

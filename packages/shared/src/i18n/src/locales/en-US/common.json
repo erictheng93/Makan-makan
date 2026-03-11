@@ -13,6 +13,8 @@
     "loading": "Loading...",
     "success": "Success",
     "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
     "yes": "Yes",
     "no": "No",
     "active": "Active",
@@ -27,7 +29,22 @@
     "description": "Description",
     "status": "Status",
     "date": "Date",
-    "time": "Time"
+    "time": "Time",
+    "retry": "Retry",
+    "home": "Home",
+    "menu": "Menu",
+    "cart": "Cart",
+    "order": "Order",
+    "subtotal": "Subtotal",
+    "quantity": "Quantity",
+    "price": "Price",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "apply": "Apply",
+    "reset": "Reset",
+    "off": "off",
+    "loadingApp": "Loading..."
   },
   "validation": {
     "required": "This field is required",
@@ -36,7 +53,10 @@
     "passwordConfirm": "Passwords do not match",
     "minLength": "Minimum {min} characters required",
     "maxLength": "Maximum {max} characters allowed",
-    "invalidFormat": "Invalid format"
+    "invalidFormat": "Invalid format",
+    "phone": "Please enter a valid phone number",
+    "numeric": "Please enter numbers only",
+    "positiveNumber": "Please enter a positive number"
   },
   "messages": {
     "saveSuccess": "Saved successfully",
@@ -45,8 +65,18 @@
     "deleteSuccess": "Deleted successfully",
     "deleteError": "Delete failed",
     "loadError": "Failed to load data",
-    "networkError": "Network error occurred",
+    "networkError": "Network error. Please check your connection.",
     "permissionDenied": "Permission denied",
     "sessionExpired": "Session expired. Please login again."
+  },
+  "time": {
+    "now": "Now",
+    "minutes": "minutes",
+    "hours": "hours",
+    "days": "days",
+    "ago": "ago",
+    "later": "later",
+    "estimated": "estimated",
+    "actual": "actual"
   }
 }
