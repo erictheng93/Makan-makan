@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "Profil",
+    "pageTitle": "Pusat Pribadi",
     "name": "Nama",
     "email": "Email",
     "phone": "Telepon",
@@ -238,7 +239,14 @@
     "notifications": "Pengaturan Notifikasi",
     "orderHistory": "Riwayat Pesanan",
     "favorites": "Favorit",
-    "logout": "Keluar"
+    "logout": "Keluar",
+    "notSet": "Belum diatur",
+    "quickActions": "Tindakan Cepat",
+    "viewOrderHistory": "Lihat riwayat pesanan",
+    "browseMenu": "Jelajahi Menu",
+    "viewRestaurantMenu": "Lihat menu restoran",
+    "accountSettings": "Pengaturan Akun",
+    "logoutAccount": "Keluar Akun"
   },
   "errors": {
     "general": "Terjadi Kesalahan",
@@ -420,7 +428,9 @@
     "linkUsed": "Tautan ini sudah pernah digunakan",
     "linkInvalidReason": "Format tautan tidak valid",
     "resendVerification": "Kirim Ulang Email Verifikasi",
-    "missingVerifyToken": "Token verifikasi tidak ada"
+    "missingVerifyToken": "Token verifikasi tidak ada",
+    "resendVerificationSuccess": "Email verifikasi telah dikirim ulang. Silakan periksa kotak masuk Anda.",
+    "resendFailed": "Gagal mengirim. Silakan coba lagi nanti."
   },
   "toast": {
     "orderSubmitSuccess": "Pesanan berhasil dikirim!",

@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "個人資料",
+    "pageTitle": "個人中心",
     "name": "姓名",
     "email": "電子郵件",
     "phone": "電話",
@@ -238,7 +239,14 @@
     "notifications": "通知設定",
     "orderHistory": "訂單歷史",
     "favorites": "我的最愛",
-    "logout": "登出"
+    "logout": "登出",
+    "notSet": "未設置",
+    "quickActions": "快速操作",
+    "viewOrderHistory": "查看訂單歷史記錄",
+    "browseMenu": "瀏覽菜單",
+    "viewRestaurantMenu": "查看餐廳菜單",
+    "accountSettings": "帳號設定",
+    "logoutAccount": "登出帳號"
   },
   "errors": {
     "general": "發生錯誤",
@@ -420,7 +428,9 @@
     "linkUsed": "此連結已被使用過",
     "linkInvalidReason": "連結格式不正確",
     "resendVerification": "重新發送驗證郵件",
-    "missingVerifyToken": "缺少驗證 Token"
+    "missingVerifyToken": "缺少驗證 Token",
+    "resendVerificationSuccess": "驗證郵件已重新發送，請檢查您的郵箱",
+    "resendFailed": "發送失敗，請稍後再試"
   },
   "toast": {
     "orderSubmitSuccess": "訂單提交成功！",

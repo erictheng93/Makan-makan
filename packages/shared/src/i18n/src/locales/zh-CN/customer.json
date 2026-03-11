@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "个人资料",
+    "pageTitle": "个人中心",
     "name": "姓名",
     "email": "电子邮件",
     "phone": "电话",
@@ -238,7 +239,14 @@
     "notifications": "通知设置",
     "orderHistory": "订单历史",
     "favorites": "我的收藏",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "notSet": "未设置",
+    "quickActions": "快速操作",
+    "viewOrderHistory": "查看订单历史记录",
+    "browseMenu": "浏览菜单",
+    "viewRestaurantMenu": "查看餐厅菜单",
+    "accountSettings": "账号设置",
+    "logoutAccount": "退出账号"
   },
   "errors": {
     "general": "发生错误",
@@ -420,7 +428,9 @@
     "linkUsed": "此链接已被使用过",
     "linkInvalidReason": "链接格式不正确",
     "resendVerification": "重新发送验证邮件",
-    "missingVerifyToken": "缺少验证 Token"
+    "missingVerifyToken": "缺少验证 Token",
+    "resendVerificationSuccess": "验证邮件已重新发送，请检查您的邮箱",
+    "resendFailed": "发送失败，请稍后再试"
   },
   "toast": {
     "orderSubmitSuccess": "订单提交成功！",

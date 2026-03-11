@@ -225,13 +225,13 @@ const resendVerification = async () => {
     const data = await response.json();
 
     if (data.success) {
-      alert("驗證郵件已重新發送，請檢查您的郵箱");
+      alert(t("auth.resendVerificationSuccess"));
     } else {
-      alert(data.error || "發送失敗，請稍後再試");
+      alert(data.error || t("auth.resendFailed"));
     }
   } catch (err) {
     console.error("Resend verification error:", err);
-    alert("發送失敗，請檢查網路連線");
+    alert(t("messages.networkError"));
   } finally {
     resending.value = false;
   }

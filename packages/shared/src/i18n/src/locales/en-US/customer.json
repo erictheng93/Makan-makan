@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "Profile",
+    "pageTitle": "My Profile",
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
@@ -238,7 +239,14 @@
     "notifications": "Notification Settings",
     "orderHistory": "Order History",
     "favorites": "Favorites",
-    "logout": "Logout"
+    "logout": "Logout",
+    "notSet": "Not set",
+    "quickActions": "Quick Actions",
+    "viewOrderHistory": "View order history",
+    "browseMenu": "Browse Menu",
+    "viewRestaurantMenu": "View restaurant menu",
+    "accountSettings": "Account Settings",
+    "logoutAccount": "Sign Out"
   },
   "errors": {
     "general": "An Error Occurred",
@@ -420,7 +428,9 @@
     "linkUsed": "This link has already been used",
     "linkInvalidReason": "Invalid link format",
     "resendVerification": "Resend Verification Email",
-    "missingVerifyToken": "Missing verification token"
+    "missingVerifyToken": "Missing verification token",
+    "resendVerificationSuccess": "Verification email resent. Please check your inbox.",
+    "resendFailed": "Failed to send. Please try again later."
   },
   "toast": {
     "orderSubmitSuccess": "Order submitted successfully!",

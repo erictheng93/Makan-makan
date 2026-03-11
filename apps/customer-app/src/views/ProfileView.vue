@@ -23,13 +23,15 @@
                 />
               </svg>
             </router-link>
-            <h1 class="text-2xl font-bold text-gray-900">個人中心</h1>
+            <h1 class="text-2xl font-bold text-gray-900">
+              {{ t("profile.pageTitle") }}
+            </h1>
           </div>
           <button
             class="text-sm text-gray-600 hover:text-red-600"
             @click="handleLogout"
           >
-            登出
+            {{ t("profile.logout") }}
           </button>
         </div>
       </div>
@@ -81,7 +83,9 @@
                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
-                <span class="text-sm font-medium text-gray-600">帳號</span>
+                <span class="text-sm font-medium text-gray-600">{{
+                  t("auth.username")
+                }}</span>
               </div>
               <div class="flex-1 text-gray-900">{{ profile.username }}</div>
             </div>
@@ -102,7 +106,9 @@
                     d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span class="text-sm font-medium text-gray-600">姓名</span>
+                <span class="text-sm font-medium text-gray-600">{{
+                  t("auth.displayName")
+                }}</span>
               </div>
               <div class="flex-1 text-gray-900">{{ profile.fullName }}</div>
             </div>
@@ -126,7 +132,7 @@
                 <span class="text-sm font-medium text-gray-600">Email</span>
               </div>
               <div class="flex-1 text-gray-900">
-                {{ profile.email || "未設置" }}
+                {{ profile.email || t("profile.notSet") }}
               </div>
             </div>
 
@@ -146,10 +152,12 @@
                     d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                   />
                 </svg>
-                <span class="text-sm font-medium text-gray-600">手機號碼</span>
+                <span class="text-sm font-medium text-gray-600">{{
+                  t("auth.phone")
+                }}</span>
               </div>
               <div class="flex-1 text-gray-900">
-                {{ profile.phone || "未設置" }}
+                {{ profile.phone || t("profile.notSet") }}
               </div>
             </div>
           </div>
@@ -157,7 +165,9 @@
 
         <!-- Quick Actions -->
         <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("profile.quickActions") }}
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <router-link
               to="/orders"
@@ -177,8 +187,12 @@
                 />
               </svg>
               <div>
-                <p class="font-medium text-gray-900">我的訂單</p>
-                <p class="text-sm text-gray-500">查看訂單歷史記錄</p>
+                <p class="font-medium text-gray-900">
+                  {{ t("orderHistory.title") }}
+                </p>
+                <p class="text-sm text-gray-500">
+                  {{ t("profile.viewOrderHistory") }}
+                </p>
               </div>
             </router-link>
 
@@ -200,8 +214,12 @@
                 />
               </svg>
               <div>
-                <p class="font-medium text-gray-900">瀏覽菜單</p>
-                <p class="text-sm text-gray-500">查看餐廳菜單</p>
+                <p class="font-medium text-gray-900">
+                  {{ t("profile.browseMenu") }}
+                </p>
+                <p class="text-sm text-gray-500">
+                  {{ t("profile.viewRestaurantMenu") }}
+                </p>
               </div>
             </router-link>
           </div>
@@ -209,7 +227,9 @@
 
         <!-- Account Actions -->
         <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">帳號設定</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("profile.accountSettings") }}
+          </h3>
           <div class="space-y-2">
             <button
               class="w-full flex items-center justify-center px-4 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition"
@@ -228,7 +248,7 @@
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
-              登出帳號
+              {{ t("profile.logoutAccount") }}
             </button>
           </div>
         </div>
@@ -242,9 +262,11 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { customerOrderApi } from "@/services/customerOrderApi";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const isLoading = ref(false);
 const profile = ref({
@@ -284,7 +306,7 @@ const loadProfile = async () => {
 
 // 登出
 const handleLogout = async () => {
-  if (!confirm("確定要登出嗎？")) return;
+  if (!confirm(t("orderHistory.confirmLogout"))) return;
 
   await authStore.logout();
   router.push("/login");

@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "Profil",
+    "pageTitle": "Pusat Peribadi",
     "name": "Nama",
     "email": "E-mel",
     "phone": "Telefon",
@@ -238,7 +239,14 @@
     "notifications": "Tetapan Pemberitahuan",
     "orderHistory": "Sejarah Pesanan",
     "favorites": "Kegemaran",
-    "logout": "Log Keluar"
+    "logout": "Log Keluar",
+    "notSet": "Belum ditetapkan",
+    "quickActions": "Tindakan Pantas",
+    "viewOrderHistory": "Lihat sejarah pesanan",
+    "browseMenu": "Layari Menu",
+    "viewRestaurantMenu": "Lihat menu restoran",
+    "accountSettings": "Tetapan Akaun",
+    "logoutAccount": "Log Keluar Akaun"
   },
   "errors": {
     "general": "Ralat Berlaku",
@@ -420,7 +428,9 @@
     "linkUsed": "Pautan ini telah digunakan",
     "linkInvalidReason": "Format pautan tidak sah",
     "resendVerification": "Hantar Semula E-mel Pengesahan",
-    "missingVerifyToken": "Token pengesahan tiada"
+    "missingVerifyToken": "Token pengesahan tiada",
+    "resendVerificationSuccess": "E-mel pengesahan telah dihantar semula. Sila semak peti masuk anda.",
+    "resendFailed": "Gagal menghantar. Sila cuba lagi kemudian."
   },
   "toast": {
     "orderSubmitSuccess": "Pesanan berjaya dihantar!",

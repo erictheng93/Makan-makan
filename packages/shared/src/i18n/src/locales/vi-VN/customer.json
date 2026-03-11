@@ -230,6 +230,7 @@
   },
   "profile": {
     "title": "Hồ sơ",
+    "pageTitle": "Trung tâm cá nhân",
     "name": "Tên",
     "email": "Email",
     "phone": "Điện thoại",
@@ -238,7 +239,14 @@
     "notifications": "Cài đặt thông báo",
     "orderHistory": "Lịch sử đơn hàng",
     "favorites": "Yêu thích",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "notSet": "Chưa đặt",
+    "quickActions": "Thao tác nhanh",
+    "viewOrderHistory": "Xem lịch sử đơn hàng",
+    "browseMenu": "Duyệt thực đơn",
+    "viewRestaurantMenu": "Xem thực đơn nhà hàng",
+    "accountSettings": "Cài đặt tài khoản",
+    "logoutAccount": "Đăng xuất tài khoản"
   },
   "errors": {
     "general": "Đã xảy ra lỗi",
@@ -420,7 +428,9 @@
     "linkUsed": "Liên kết này đã được sử dụng",
     "linkInvalidReason": "Định dạng liên kết không chính xác",
     "resendVerification": "Gửi lại email xác minh",
-    "missingVerifyToken": "Thiếu token xác minh"
+    "missingVerifyToken": "Thiếu token xác minh",
+    "resendVerificationSuccess": "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư.",
+    "resendFailed": "Gửi thất bại. Vui lòng thử lại sau."
   },
   "toast": {
     "orderSubmitSuccess": "Đặt hàng thành công!",
