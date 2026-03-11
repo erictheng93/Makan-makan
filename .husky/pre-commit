@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # 運行 lint-staged 檢查
 pnpm lint-staged
 
