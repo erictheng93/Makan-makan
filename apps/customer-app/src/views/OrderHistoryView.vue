@@ -5,20 +5,22 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-6">
           <div class="flex items-center">
-            <h1 class="text-2xl font-bold text-gray-900">我的訂單</h1>
+            <h1 class="text-2xl font-bold text-gray-900">
+              {{ t("orderHistory.title") }}
+            </h1>
           </div>
           <div class="flex items-center space-x-4">
             <router-link
               to="/profile"
               class="text-sm text-gray-600 hover:text-orange-600"
             >
-              個人中心
+              {{ t("orderHistory.personalCenter") }}
             </router-link>
             <button
               class="text-sm text-gray-600 hover:text-red-600"
               @click="handleLogout"
             >
-              登出
+              {{ t("orderHistory.logout") }}
             </button>
           </div>
         </div>
@@ -32,28 +34,28 @@
           <!-- Status Filter -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              訂單狀態
+              {{ t("orderHistory.statusFilter") }}
             </label>
             <select
               v-model="filters.status"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               @change="loadOrders"
             >
-              <option value="">全部狀態</option>
-              <option value="0">待確認</option>
-              <option value="1">已確認</option>
-              <option value="2">準備中</option>
-              <option value="3">已完成</option>
-              <option value="4">已送達</option>
-              <option value="5">已付款</option>
-              <option value="6">已取消</option>
+              <option value="">{{ t("orderHistory.allStatus") }}</option>
+              <option value="0">{{ t("orderHistory.statusPending") }}</option>
+              <option value="1">{{ t("orderHistory.statusConfirmed") }}</option>
+              <option value="2">{{ t("orderHistory.statusPreparing") }}</option>
+              <option value="3">{{ t("orderHistory.statusCompleted") }}</option>
+              <option value="4">{{ t("orderHistory.statusServed") }}</option>
+              <option value="5">{{ t("orderHistory.statusPaid") }}</option>
+              <option value="6">{{ t("orderHistory.statusCancelled") }}</option>
             </select>
           </div>
 
           <!-- Date From -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              開始日期
+              {{ t("orderHistory.startDate") }}
             </label>
             <input
               v-model="filters.dateFrom"
@@ -66,7 +68,7 @@
           <!-- Date To -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              結束日期
+              {{ t("orderHistory.endDate") }}
             </label>
             <input
               v-model="filters.dateTo"
@@ -83,7 +85,7 @@
             class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
             @click="resetFilters"
           >
-            重置篩選
+            {{ t("orderHistory.resetFilter") }}
           </button>
         </div>
       </div>
@@ -113,14 +115,18 @@
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
           />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">暫無訂單</h3>
-        <p class="mt-1 text-sm text-gray-500">您還沒有任何訂單記錄</p>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">
+          {{ t("orderHistory.noOrders") }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ t("orderHistory.noOrdersDesc") }}
+        </p>
         <div class="mt-6">
           <router-link
             to="/menu"
             class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
           >
-            開始點餐
+            {{ t("orderHistory.startOrdering") }}
           </router-link>
         </div>
       </div>
@@ -151,13 +157,15 @@
 
                 <!-- Restaurant Name -->
                 <p v-if="order.restaurant" class="text-sm text-gray-600 mb-1">
-                  <span class="font-medium">餐廳：</span>
+                  <span class="font-medium">{{
+                    t("orderHistory.restaurant")
+                  }}</span>
                   {{ order.restaurant.name }}
                 </p>
 
                 <!-- Table Info -->
                 <p v-if="order.table" class="text-sm text-gray-600 mb-1">
-                  <span class="font-medium">桌號：</span>
+                  <span class="font-medium">{{ t("orderHistory.table") }}</span>
                   {{ order.table.number }}
                 </p>
 
@@ -168,7 +176,11 @@
 
                 <!-- Items Count -->
                 <p v-if="order.items" class="text-sm text-gray-500 mt-2">
-                  共 {{ order.items.length }} 項商品
+                  {{
+                    tWithParams("orderHistory.itemCount", {
+                      count: order.items.length,
+                    })
+                  }}
                 </p>
               </div>
 
@@ -181,9 +193,11 @@
                   v-if="order.paymentStatus === 1"
                   class="text-sm text-green-600 mt-1"
                 >
-                  已付款
+                  {{ t("orderHistory.paid") }}
                 </p>
-                <p v-else class="text-sm text-gray-500 mt-1">待付款</p>
+                <p v-else class="text-sm text-gray-500 mt-1">
+                  {{ t("orderHistory.unpaid") }}
+                </p>
               </div>
             </div>
 
@@ -195,14 +209,14 @@
                 class="px-4 py-2 text-sm font-medium text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition"
                 @click.stop="viewOrderDetail(order.id)"
               >
-                查看詳情
+                {{ t("orderHistory.viewDetails") }}
               </button>
               <button
                 v-if="order.status === 0"
                 class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                 @click.stop="cancelOrder(order.id)"
               >
-                取消訂單
+                {{ t("orderTracking.cancelOrder") }}
               </button>
             </div>
           </div>
@@ -219,12 +233,17 @@
           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           @click="changePage(pagination.page - 1)"
         >
-          上一頁
+          {{ t("orderHistory.prevPage") }}
         </button>
 
         <span class="text-sm text-gray-700">
-          第 {{ pagination.page }} / {{ pagination.totalPages }} 頁 （共
-          {{ pagination.total }} 筆）
+          {{
+            tWithParams("orderHistory.pageInfo", {
+              current: pagination.page,
+              total: pagination.totalPages,
+              count: pagination.total,
+            })
+          }}
         </span>
 
         <button
@@ -232,7 +251,7 @@
           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           @click="changePage(pagination.page + 1)"
         >
-          下一頁
+          {{ t("orderHistory.nextPage") }}
         </button>
       </div>
     </div>
@@ -240,14 +259,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/composables/useI18n";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import type { Order } from "@makanmakan/shared-types";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t, tWithParams } = useI18n();
 
 const orders = ref<Order[]>([]);
 const isLoading = ref(false);
@@ -318,20 +339,20 @@ const viewOrderDetail = (orderId: number) => {
 
 // 取消訂單
 const cancelOrder = async (orderId: number) => {
-  if (!confirm("確定要取消這個訂單嗎？")) return;
+  if (!confirm(t("orderHistory.confirmCancelOrder"))) return;
 
   try {
     await customerOrderApi.cancelOrder(orderId, "客戶主動取消");
     await loadOrders();
   } catch (error) {
     console.error("Failed to cancel order:", error);
-    alert("取消訂單失敗，請稍後再試");
+    alert(t("toast.cancelOrderFailed"));
   }
 };
 
 // 登出
 const handleLogout = async () => {
-  if (!confirm("確定要登出嗎？")) return;
+  if (!confirm(t("orderHistory.confirmLogout"))) return;
 
   await authStore.logout();
   router.push("/login");
@@ -351,18 +372,21 @@ const getStatusClass = (status: number) => {
   return classes[status] || "bg-gray-100 text-gray-800";
 };
 
-// 獲取狀態文字
+// 獲取狀態文字 (computed for reactivity when language changes)
+const statusTexts = computed(
+  (): Record<number, string> => ({
+    0: t("orderHistory.statusPending"),
+    1: t("orderHistory.statusConfirmed"),
+    2: t("orderHistory.statusPreparing"),
+    3: t("orderHistory.statusCompleted"),
+    4: t("orderHistory.statusServed"),
+    5: t("orderHistory.statusPaid"),
+    6: t("orderHistory.statusCancelled"),
+  }),
+);
+
 const getStatusText = (status: number) => {
-  const texts: Record<number, string> = {
-    0: "待確認",
-    1: "已確認",
-    2: "準備中",
-    3: "已完成",
-    4: "已送達",
-    5: "已付款",
-    6: "已取消",
-  };
-  return texts[status] || "未知";
+  return statusTexts.value[status] || t("orderHistory.statusUnknown");
 };
 
 // 格式化金額

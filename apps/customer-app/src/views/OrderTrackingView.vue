@@ -24,9 +24,11 @@
           </button>
 
           <div class="flex-1 text-center">
-            <h1 class="text-lg font-semibold text-gray-900">訂單追蹤</h1>
+            <h1 class="text-lg font-semibold text-gray-900">
+              {{ t("orderTracking.title") }}
+            </h1>
             <p class="text-sm text-gray-500">
-              訂單編號: {{ order?.orderNumber }}
+              {{ t("orderTracking.orderNumber") }} {{ order?.orderNumber }}
             </p>
           </div>
 
@@ -43,7 +45,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
         />
-        <p class="text-gray-600">載入訂單資訊中...</p>
+        <p class="text-gray-600">{{ t("orderTracking.loadingOrder") }}</p>
       </div>
 
       <!-- 錯誤狀態 -->
@@ -65,7 +67,9 @@
             />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">載入失敗</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{ t("orderTracking.loadFailed") }}
+        </h3>
         <p class="text-gray-600 mb-4">
           {{ error }}
         </p>
@@ -73,7 +77,7 @@
           class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           @click="() => refetch()"
         >
-          重新載入
+          {{ t("orderTracking.reload") }}
         </button>
       </div>
 
@@ -105,7 +109,7 @@
           <!-- 進度條 -->
           <div class="mb-6">
             <div class="flex justify-between text-xs text-gray-500 mb-2">
-              <span>訂單進度</span>
+              <span>{{ t("orderTracking.orderProgress") }}</span>
               <span>{{ getProgressPercentage(order.status) }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
@@ -135,7 +139,11 @@
                 />
               </svg>
               <span class="text-sm font-medium text-indigo-900">
-                預估還需 {{ estimatedTime }} 分鐘
+                {{
+                  tWithParams("orderTracking.estimatedMinutes", {
+                    minutes: estimatedTime,
+                  })
+                }}
               </span>
             </div>
           </div>
@@ -143,7 +151,9 @@
 
         <!-- 時間軸 -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">訂單時間軸</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("orderTracking.orderTimeline") }}
+          </h3>
 
           <div class="space-y-4">
             <TimelineItem
@@ -166,37 +176,49 @@
 
         <!-- 訂單詳情 -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">訂單詳情</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("orderTracking.orderDetails") }}
+          </h3>
 
           <!-- 基本資訊 -->
           <div class="space-y-3 mb-6">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">訂單編號</span>
+              <span class="text-gray-600">{{
+                t("orderTracking.orderNumber")
+              }}</span>
               <span class="font-medium text-gray-900">{{
                 order.orderNumber
               }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">下單時間</span>
+              <span class="text-gray-600">{{
+                t("orderTracking.orderTime")
+              }}</span>
               <span class="font-medium text-gray-900">{{
                 formatDateTime(order.createdAt)
               }}</span>
             </div>
             <div v-if="order.customerName" class="flex justify-between text-sm">
-              <span class="text-gray-600">顧客姓名</span>
+              <span class="text-gray-600">{{
+                t("orderTracking.customerName")
+              }}</span>
               <span class="font-medium text-gray-900">{{
                 order.customerName
               }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">桌號</span>
+              <span class="text-gray-600">{{
+                t("orderTracking.tableNumber")
+              }}</span>
               <span class="font-medium text-gray-900">{{ tableId }}</span>
             </div>
           </div>
 
           <!-- 餐點列表 -->
           <div class="border-t border-gray-100 pt-4">
-            <h4 class="font-medium text-gray-900 mb-3">訂購餐點</h4>
+            <h4 class="font-medium text-gray-900 mb-3">
+              {{ t("orderTracking.orderedItems") }}
+            </h4>
             <div class="space-y-3">
               <OrderItemCard
                 v-for="item in order.items"
@@ -208,7 +230,9 @@
 
           <!-- 訂單備註 -->
           <div v-if="order.notes" class="border-t border-gray-100 pt-4 mt-4">
-            <h4 class="font-medium text-gray-900 mb-2">訂單備註</h4>
+            <h4 class="font-medium text-gray-900 mb-2">
+              {{ t("orderTracking.orderNotes") }}
+            </h4>
             <p class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
               {{ order.notes }}
             </p>
@@ -239,7 +263,7 @@
             class="w-full bg-white border-2 border-red-200 text-red-600 font-semibold py-3 px-4 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors"
             @click="showCancelConfirmation = true"
           >
-            取消訂單
+            {{ t("orderTracking.cancelOrder") }}
           </button>
 
           <!-- 繼續點餐按鈕 -->
@@ -247,7 +271,7 @@
             class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
             @click="router.push(`/restaurant/${restaurantId}/table/${tableId}`)"
           >
-            繼續點餐
+            {{ t("orderTracking.continueOrdering") }}
           </button>
         </div>
       </div>
@@ -256,10 +280,10 @@
     <!-- 取消訂單確認對話框 -->
     <ConfirmationModal
       :show="showCancelConfirmation"
-      title="確認取消訂單"
-      message="確定要取消這個訂單嗎？此操作無法撤銷。"
-      confirm-text="確認取消"
-      cancel-text="保留訂單"
+      :title="t('orderTracking.confirmCancel')"
+      :message="t('orderTracking.confirmCancelMessage')"
+      :confirm-text="t('orderTracking.confirmCancelBtn')"
+      :cancel-text="t('orderTracking.keepOrder')"
       :is-destructive="true"
       @confirm="handleCancelOrder"
       @cancel="showCancelConfirmation = false"
@@ -286,6 +310,7 @@ import { useRouter } from "vue-router";
 import { useQuery, useMutation } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useWebSocket } from "@/composables/useWebSocket";
+import { useI18n } from "@/composables/useI18n";
 import TimelineItem from "@/components/TimelineItem.vue";
 import OrderItemCard from "@/components/OrderItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
@@ -310,6 +335,7 @@ const props = defineProps<{
 // Composables
 const router = useRouter();
 const toast = useToast();
+const { t, tWithParams } = useI18n();
 
 // State
 const showCancelConfirmation = ref(false);
@@ -363,11 +389,11 @@ const {
 const { mutate: cancelOrder } = useMutation({
   mutationFn: () => orderApi.cancelOrder(props.orderId),
   onSuccess: () => {
-    toast.success("訂單已取消");
+    toast.success(t("toast.orderCancelled"));
     refetch();
   },
   onError: (error: any) => {
-    toast.error(error?.message || "取消訂單失敗");
+    toast.error(error?.message || t("toast.cancelOrderFailed"));
   },
 });
 
@@ -387,36 +413,36 @@ const orderTimeline = computed(() => {
   const timeline = [
     {
       status: 0,
-      title: "訂單已建立",
-      description: "您的訂單已成功提交",
+      title: t("orderTracking.timeline.created"),
+      description: t("orderTracking.timeline.createdDesc"),
       time: order.value.createdAt,
       completed: true,
     },
     {
       status: 1,
-      title: "訂單已確認",
-      description: "餐廳已確認您的訂單",
+      title: t("orderTracking.timeline.confirmed"),
+      description: t("orderTracking.timeline.confirmedDesc"),
       time: order.value.confirmedAt,
       completed: order.value.status >= 1,
     },
     {
       status: 2,
-      title: "正在製作",
-      description: "廚房正在精心製作您的餐點",
+      title: t("orderTracking.timeline.preparing"),
+      description: t("orderTracking.timeline.preparingDesc"),
       time: null,
       completed: order.value.status >= 2,
     },
     {
       status: 3,
-      title: "準備完成",
-      description: "餐點已製作完成",
+      title: t("orderTracking.timeline.ready"),
+      description: t("orderTracking.timeline.readyDesc"),
       time: order.value.readyAt,
       completed: order.value.status >= 3,
     },
     {
       status: 4,
-      title: "已送達",
-      description: "請享用您的美食",
+      title: t("orderTracking.timeline.served"),
+      description: t("orderTracking.timeline.servedDesc"),
       time: order.value.deliveredAt,
       completed: order.value.status >= 4,
     },
@@ -426,8 +452,8 @@ const orderTimeline = computed(() => {
   if (order.value.status === 6) {
     timeline.push({
       status: 6,
-      title: "訂單已取消",
-      description: "此訂單已被取消",
+      title: t("orderTracking.timeline.cancelled"),
+      description: t("orderTracking.timeline.cancelledDesc"),
       time: order.value.updatedAt,
       completed: true,
     });
@@ -435,6 +461,27 @@ const orderTimeline = computed(() => {
 
   return timeline;
 });
+
+// Status maps as computed for reactivity when language changes
+const statusTitles = computed(() => ({
+  0: t("orderTracking.status.pending"),
+  1: t("orderTracking.status.confirmed"),
+  2: t("orderTracking.status.preparing"),
+  3: t("orderTracking.status.ready"),
+  4: t("orderTracking.status.served"),
+  5: t("orderTracking.status.paid"),
+  6: t("orderTracking.status.cancelled"),
+}));
+
+const statusDescriptions = computed(() => ({
+  0: t("orderTracking.statusDesc.pending"),
+  1: t("orderTracking.statusDesc.confirmed"),
+  2: t("orderTracking.statusDesc.preparing"),
+  3: t("orderTracking.statusDesc.ready"),
+  4: t("orderTracking.statusDesc.served"),
+  5: t("orderTracking.statusDesc.paid"),
+  6: t("orderTracking.statusDesc.cancelled"),
+}));
 
 // Methods
 const getStatusIcon = (status: OrderStatus) => {
@@ -464,29 +511,13 @@ const getStatusColor = (status: OrderStatus) => {
 };
 
 const getStatusTitle = (status: OrderStatus) => {
-  const titles = {
-    0: "等待確認",
-    1: "訂單已確認",
-    2: "正在製作",
-    3: "準備完成",
-    4: "已送達",
-    5: "已完成",
-    6: "已取消",
-  };
-  return titles[status] || "未知狀態";
+  return statusTitles.value[status] || t("orderTracking.status.unknown");
 };
 
 const getStatusDescription = (status: OrderStatus) => {
-  const descriptions = {
-    0: "餐廳正在確認您的訂單",
-    1: "餐廳已接受您的訂單，準備開始製作",
-    2: "廚房正在精心製作您的餐點",
-    3: "您的餐點已製作完成，請稍候送達",
-    4: "餐點已送達，請享用美食",
-    5: "訂單已完成，感謝您的光顧",
-    6: "此訂單已被取消",
-  };
-  return descriptions[status] || "訂單狀態未知";
+  return (
+    statusDescriptions.value[status] || t("orderTracking.statusDesc.unknown")
+  );
 };
 
 const getProgressPercentage = (status: OrderStatus) => {
@@ -504,11 +535,11 @@ const getProgressPercentage = (status: OrderStatus) => {
 
 const getConnectionMessage = (status: string) => {
   const messages: Record<string, string> = {
-    connecting: "正在連接...",
-    disconnected: "連接已斷開，正在重新連接...",
-    error: "連接發生錯誤",
+    connecting: t("orderTracking.connecting"),
+    disconnected: t("orderTracking.reconnecting"),
+    error: t("orderTracking.connectionError"),
   };
-  return messages[status] || "連接狀態未知";
+  return messages[status] || t("orderTracking.connectionUnknown");
 };
 
 const handleCancelOrder = () => {
