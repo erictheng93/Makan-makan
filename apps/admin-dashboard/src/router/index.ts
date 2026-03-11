@@ -48,6 +48,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/DashboardView.vue"),
       },
       {
+        path: "platform",
+        name: "PlatformOverview",
+        component: () => import("@/views/PlatformOverview.vue"),
+        meta: {
+          title: "Platform Overview",
+          roles: [UserRole.ADMIN],
+        },
+      },
+      {
         path: "orders",
         name: "Orders",
         component: () => import("@/views/OrdersView.vue"),
@@ -354,6 +363,14 @@ router.beforeEach(async (to, _, next) => {
       `Access denied to route: ${routeName} for role: ${authStore.userRole}`,
     );
     return next("/unauthorized");
+  }
+
+  // Admin without restaurant context → redirect to platform overview
+  const platformRoutes = ["PlatformOverview", "Monitoring", "Settings"];
+  if (authStore.isAdminRole && !authStore.hasRestaurantContext) {
+    if (routeName && !platformRoutes.includes(routeName)) {
+      return next("/dashboard/platform");
+    }
   }
 
   // 備用：檢查 meta.roles（向後兼容）

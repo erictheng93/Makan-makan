@@ -17,6 +17,9 @@
       </div>
 
       <div class="flex items-center space-x-4">
+        <!-- Restaurant Selector (Admin only) -->
+        <RestaurantSelector />
+
         <!-- Notifications -->
         <button
           class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -122,6 +125,7 @@ import { useSSE } from "@/composables/useSSE";
 import { useI18n } from "@/i18n";
 import { UserRole } from "@/types";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
+import RestaurantSelector from "@/components/layout/RestaurantSelector.vue";
 import {
   Menu,
   Bell,

@@ -3,7 +3,7 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  restaurantId: string;
+  restaurantId: string | null;
   createdAt: string;
   updatedAt: string;
 }

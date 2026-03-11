@@ -9,9 +9,40 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("auth_token"));
   const isLoading = ref(false);
 
+  // Admin restaurant context (sessionStorage-backed for per-tab isolation)
+  const selectedRestaurantId = ref<string | null>(
+    sessionStorage.getItem("admin_selected_restaurant_id"),
+  );
+  const selectedRestaurantName = ref<string | null>(
+    sessionStorage.getItem("admin_selected_restaurant_name"),
+  );
+
   const isAuthenticated = computed(() => !!user.value && !!token.value);
   const userRole = computed(() => user.value?.role);
-  const restaurantId = computed(() => user.value?.restaurantId);
+  const isAdminRole = computed(() => user.value?.role === UserRole.ADMIN);
+  const hasRestaurantContext = computed(() => restaurantId.value !== null);
+
+  // For admin: use selected restaurant; for others: use their bound restaurant
+  const restaurantId = computed(() => {
+    if (isAdminRole.value) {
+      return selectedRestaurantId.value;
+    }
+    return user.value?.restaurantId ?? null;
+  });
+
+  const selectRestaurant = (id: string, name: string) => {
+    selectedRestaurantId.value = id;
+    selectedRestaurantName.value = name;
+    sessionStorage.setItem("admin_selected_restaurant_id", id);
+    sessionStorage.setItem("admin_selected_restaurant_name", name);
+  };
+
+  const clearRestaurant = () => {
+    selectedRestaurantId.value = null;
+    selectedRestaurantName.value = null;
+    sessionStorage.removeItem("admin_selected_restaurant_id");
+    sessionStorage.removeItem("admin_selected_restaurant_name");
+  };
 
   const hasPermission = (requiredRole: UserRole | UserRole[]) => {
     if (!user.value) return false;
@@ -73,7 +104,9 @@ export const useAuthStore = defineStore("auth", () => {
 
     switch (user.value.role) {
       case UserRole.ADMIN:
-        return "/dashboard";
+        return selectedRestaurantId.value
+          ? "/dashboard"
+          : "/dashboard/platform";
       case UserRole.OWNER:
         return "/owner";
       case UserRole.CHEF:
@@ -106,6 +139,7 @@ export const useAuthStore = defineStore("auth", () => {
         UserRole.SERVICE,
         UserRole.CASHIER,
       ],
+      PlatformOverview: [UserRole.ADMIN],
       Orders: [
         UserRole.ADMIN,
         UserRole.OWNER,
@@ -174,6 +208,7 @@ export const useAuthStore = defineStore("auth", () => {
     } finally {
       user.value = null;
       token.value = null;
+      clearRestaurant();
       localStorage.removeItem("auth_token");
       api.setAuthToken(null);
     }
@@ -221,6 +256,9 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     userRole,
     restaurantId,
+    isAdminRole,
+    hasRestaurantContext,
+    selectedRestaurantName: readonly(selectedRestaurantName),
     hasPermission,
     canAccessAdminFeatures,
     canManageOrders,
@@ -234,6 +272,8 @@ export const useAuthStore = defineStore("auth", () => {
     canManageSettings,
     getDefaultRoute,
     canAccessRoute,
+    selectRestaurant,
+    clearRestaurant,
     login,
     logout,
     checkAuth,

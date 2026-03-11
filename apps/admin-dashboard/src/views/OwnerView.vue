@@ -510,7 +510,9 @@ const loadDashboardData = async () => {
     isLoading.value = true;
     error.value = null;
 
-    const data = await ownerService.getDashboardData(authStore.restaurantId);
+    const data = await ownerService.getDashboardData(
+      authStore.restaurantId ?? undefined,
+    );
 
     // 更新 KPI 指標
     kpiMetrics.value = [

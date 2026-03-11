@@ -324,7 +324,7 @@ export function useAdminRealtime() {
    * 開始監聽
    */
   const startListening = () => {
-    if (!authStore.user?.restaurantId) {
+    if (!authStore.restaurantId) {
       console.warn("No restaurant ID, cannot start realtime listening");
       return;
     }
@@ -414,13 +414,13 @@ export function useAdminRealtime() {
    * 連接到 WebSocket
    */
   const connect = async () => {
-    if (!authStore.user?.restaurantId) {
+    if (!authStore.restaurantId) {
       console.warn("No restaurant ID, cannot connect");
       return;
     }
 
     try {
-      await wsService.connect(authStore.user.restaurantId.toString());
+      await wsService.connect(authStore.restaurantId.toString());
       startListening();
     } catch (error) {
       console.error("Failed to connect to realtime service:", error);
@@ -523,20 +523,29 @@ export function useAdminRealtime() {
       soundEnabled.value = savedSoundEnabled === "true";
     }
 
-    // 自動連接
-    if (authStore.isAuthenticated && authStore.user?.restaurantId) {
+    // 自動連接（only if restaurant context exists）
+    if (authStore.isAuthenticated && authStore.restaurantId) {
       await connect();
     }
 
-    // 監聽認證狀態變化
+    // 監聽認證狀態及餐廳上下文變化
     watch(
       () => authStore.isAuthenticated,
       (isAuth) => {
-        if (isAuth && authStore.user?.restaurantId) {
+        if (isAuth && authStore.restaurantId) {
           connect();
         } else {
           disconnect();
         }
+      },
+    );
+
+    // Reconnect when restaurant context changes (admin switching restaurants)
+    watch(
+      () => authStore.restaurantId,
+      (newId, oldId) => {
+        if (oldId) disconnect();
+        if (newId && authStore.isAuthenticated) connect();
       },
     );
   });

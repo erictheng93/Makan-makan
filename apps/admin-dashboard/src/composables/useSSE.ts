@@ -16,7 +16,11 @@ export function useSSE() {
   const orderStore = useOrderStore();
 
   const connect = () => {
-    if (!authStore.isAuthenticated || eventSource.value) {
+    if (
+      !authStore.isAuthenticated ||
+      !authStore.restaurantId ||
+      eventSource.value
+    ) {
       return;
     }
 
