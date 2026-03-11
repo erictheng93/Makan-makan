@@ -38,7 +38,7 @@ config.global.directives = {
 // Mock localStorage with proper implementation
 const localStorageMock = {
   getItem: vi.fn((key: string) => {
-    if (key === "makanmakan_language") return "zh-TW";
+    if (key === "makanmakan_locale") return "zh-TW";
     return null;
   }),
   setItem: vi.fn(),

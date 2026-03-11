@@ -72,7 +72,7 @@ describe("useI18n Composable with Multiple Languages", () => {
       const expectedTranslations: Record<string, string> = {
         "zh-TW": "至少需要 8 個字元",
         "zh-CN": "至少需要 8 个字符",
-        "en-US": "At least 8 characters required",
+        "en-US": "Minimum 8 characters required",
         "vi-VN": "Ít nhất 8 ký tự là bắt buộc",
       };
 
@@ -89,7 +89,7 @@ describe("useI18n Composable with Multiple Languages", () => {
       const expectedTranslations: Record<string, string> = {
         "zh-TW": "5 項商品",
         "zh-CN": "5 项商品",
-        "en-US": "5 items",
+        "en-US": "5 item(s)",
         "vi-VN": "5 món ăn",
       };
 

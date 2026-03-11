@@ -107,7 +107,7 @@ describe("Basic i18n Configuration", () => {
     // Test in English
     i18n.global.locale.value = "en-US";
     expect(tGlobal("validation.minLength", { min: 6 })).toBe(
-      "At least 6 characters required",
+      "Minimum 6 characters required",
     );
 
     // Test in Vietnamese
@@ -128,7 +128,7 @@ describe("Basic i18n Configuration", () => {
 
     // Test in English
     i18n.global.locale.value = "en-US";
-    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 items");
+    expect(tGlobal("cart.itemCount", { count: 3 })).toBe("3 item(s)");
 
     // Test in Vietnamese
     i18n.global.locale.value = "vi-VN";

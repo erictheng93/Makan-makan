@@ -174,7 +174,7 @@ describe("Comprehensive i18n Tests", () => {
       expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 项商品");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 items");
+      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 item(s)");
 
       switchLanguage("vi-VN");
       expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 món ăn");
@@ -193,7 +193,7 @@ describe("Comprehensive i18n Tests", () => {
 
       switchLanguage("en-US");
       expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
-        "At least 6 characters required",
+        "Minimum 6 characters required",
       );
 
       switchLanguage("vi-VN");
@@ -355,6 +355,8 @@ describe("Comprehensive i18n Tests", () => {
         "zh-CN",
         "en-US",
         "vi-VN",
+        "ms-MY",
+        "id-ID",
       ];
       const keysCounts: Record<string, number> = {};
 
