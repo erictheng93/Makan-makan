@@ -274,6 +274,18 @@ export const createAvailabilitySchema = z
     { message: "Invalid availability configuration for selected type" },
   );
 
+// Attendance Report Query Schema
+export const attendanceReportQuerySchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  employeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
+// Admin Clock In/Out Schema
+export const adminClockSchema = z.object({
+  notes: z.string().max(500).optional(),
+});
+
 // Query Parameter Schemas
 export const scheduleFiltersSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
@@ -424,6 +436,10 @@ export const schedulingSchemas = {
   acceptSwapRequest: acceptSwapRequestSchema,
   approveSwapRequest: approveSwapRequestSchema,
   rejectSwapRequest: rejectSwapRequestSchema,
+
+  // Attendance Report
+  attendanceReportQuery: attendanceReportQuerySchema,
+  adminClock: adminClockSchema,
 
   // Availability
   createAvailability: createAvailabilitySchema,

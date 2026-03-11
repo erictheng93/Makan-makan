@@ -74,8 +74,10 @@ export interface EmployeeSchedule {
   endTime: string;
   breakDurationMinutes: number;
   scheduledHours: number;
-  actualStartTime: string | null;
-  actualEndTime: string | null;
+  clockInTime: string | null; // ISO timestamp from DB
+  clockOutTime: string | null; // ISO timestamp from DB
+  actualStartTime: string | null; // Alias for clockInTime
+  actualEndTime: string | null; // Alias for clockOutTime
   actualHours: number | null;
   overtimeHours: number | null;
   status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show";
@@ -314,6 +316,17 @@ export interface DailyStats {
   completedSchedules: number;
   totalHours: number;
   totalEmployees: number;
+  clockedIn: number;
+  currentlyWorking: number;
+  totalActualHours: number;
+  totalOvertimeHours: number;
+  statusBreakdown?: {
+    scheduled: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+  };
 }
 
 export interface WeeklySummary {

@@ -553,6 +553,257 @@ app.post(
 );
 
 // ========================================
+// Currently Clocked-In & Attendance Reports
+// ========================================
+
+// GET /:restaurantId/clocked-in - Get currently clocked-in employees
+app.get(
+  "/:restaurantId/clocked-in",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get("validatedParams");
+      const service = new SchedulingService(c.env.DB, c.env);
+
+      const employees = await service.getClockedInEmployees(restaurantId);
+
+      return c.json(
+        createSuccessResponse(
+          employees,
+          `Found ${employees.length} currently clocked-in employees`,
+        ),
+        HTTP_STATUS.OK,
+      );
+    } catch (error) {
+      console.error("Get clocked-in employees error:", error);
+      return c.json(
+        createErrorResponse("Failed to fetch clocked-in employees"),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+);
+
+// GET /:restaurantId/attendance-report - Get attendance report
+app.get(
+  "/:restaurantId/attendance-report",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.attendanceReportQuery),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get("validatedParams");
+      const { startDate, endDate, employeeId } = c.get("validatedQuery");
+      const service = new SchedulingService(c.env.DB, c.env);
+
+      const report = await service.getAttendanceReport(restaurantId, {
+        startDate,
+        endDate,
+        employeeId,
+      });
+
+      return c.json(
+        createSuccessResponse(
+          report,
+          "Attendance report retrieved successfully",
+        ),
+        HTTP_STATUS.OK,
+      );
+    } catch (error) {
+      console.error("Get attendance report error:", error);
+      return c.json(
+        createErrorResponse("Failed to fetch attendance report"),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+);
+
+// GET /:restaurantId/attendance-report/export - Export attendance report as CSV
+app.get(
+  "/:restaurantId/attendance-report/export",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(schedulingSchemas.restaurantIdParam),
+  validateQuery(schedulingSchemas.attendanceReportQuery),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get("validatedParams");
+      const { startDate, endDate, employeeId } = c.get("validatedQuery");
+      const service = new SchedulingService(c.env.DB, c.env);
+
+      const report = await service.getAttendanceReport(restaurantId, {
+        startDate,
+        endDate,
+        employeeId,
+      });
+
+      // Build CSV
+      const headers = [
+        "Employee Name",
+        "Date",
+        "Scheduled Start",
+        "Scheduled End",
+        "Clock In",
+        "Clock Out",
+        "Scheduled Hours",
+        "Actual Hours",
+        "Overtime",
+        "Status",
+      ];
+
+      const rows = report.records.map((r) => {
+        const clockIn = r.clockInTime
+          ? new Date(r.clockInTime).toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+        const clockOut = r.clockOutTime
+          ? new Date(r.clockOutTime).toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+
+        return [
+          `"${r.employeeId}"`,
+          `"${r.workDate}"`,
+          `"${r.startTime}"`,
+          `"${r.endTime}"`,
+          `"${clockIn}"`,
+          `"${clockOut}"`,
+          `"${r.scheduledHours}"`,
+          `"${r.actualHours || 0}"`,
+          `"${r.overtimeHours || 0}"`,
+          `"${r.status}"`,
+        ].join(",");
+      });
+
+      const csv = [headers.join(","), ...rows].join("\n");
+      const filename = `attendance-report-${startDate}-to-${endDate}.csv`;
+
+      return new Response(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      });
+    } catch (error) {
+      console.error("Export attendance report error:", error);
+      return c.json(
+        createErrorResponse("Failed to export attendance report"),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+);
+
+// POST /schedules/:id/admin-clock-in - Admin clock-in for employee
+app.post(
+  "/schedules/:id/admin-clock-in",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(schedulingSchemas.scheduleIdParam),
+  validateBody(schedulingSchemas.adminClock),
+  async (c) => {
+    try {
+      const { id } = c.get("validatedParams");
+      const { notes } = c.get("validatedBody");
+      const service = new SchedulingService(c.env.DB, c.env);
+
+      // Get the schedule to find the employee ID
+      const existingSchedule = await service.getSchedule(id);
+      if (!existingSchedule) {
+        return c.json(
+          createErrorResponse("Schedule not found"),
+          HTTP_STATUS.NOT_FOUND,
+        );
+      }
+
+      const schedule = await service.clockIn(
+        {
+          scheduleId: id,
+          employeeId: existingSchedule.employeeId,
+          clockInTime: new Date(),
+          notes,
+        },
+        true, // isAdmin
+      );
+
+      return c.json(
+        createSuccessResponse(schedule, "Admin clock-in successful"),
+        HTTP_STATUS.OK,
+      );
+    } catch (error) {
+      console.error("Admin clock-in error:", error);
+      return c.json(
+        createErrorResponse(
+          error instanceof Error ? error.message : "Failed to admin clock-in",
+        ),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+);
+
+// POST /schedules/:id/admin-clock-out - Admin clock-out for employee
+app.post(
+  "/schedules/:id/admin-clock-out",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  validateParams(schedulingSchemas.scheduleIdParam),
+  validateBody(schedulingSchemas.adminClock),
+  async (c) => {
+    try {
+      const { id } = c.get("validatedParams");
+      const { notes } = c.get("validatedBody");
+      const service = new SchedulingService(c.env.DB, c.env);
+
+      // Get the schedule to find the employee ID
+      const existingSchedule = await service.getSchedule(id);
+      if (!existingSchedule) {
+        return c.json(
+          createErrorResponse("Schedule not found"),
+          HTTP_STATUS.NOT_FOUND,
+        );
+      }
+
+      const schedule = await service.clockOut(
+        {
+          scheduleId: id,
+          employeeId: existingSchedule.employeeId,
+          clockOutTime: new Date(),
+          notes,
+        },
+        true, // isAdmin
+      );
+
+      return c.json(
+        createSuccessResponse(schedule, "Admin clock-out successful"),
+        HTTP_STATUS.OK,
+      );
+    } catch (error) {
+      console.error("Admin clock-out error:", error);
+      return c.json(
+        createErrorResponse(
+          error instanceof Error ? error.message : "Failed to admin clock-out",
+        ),
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+);
+
+// ========================================
 // Swap Requests
 // ========================================
 

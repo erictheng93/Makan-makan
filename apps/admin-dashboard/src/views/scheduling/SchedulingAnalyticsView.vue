@@ -98,103 +98,199 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { schedulingService } from "@/services/schedulingService";
 import WorkHoursChart from "@/components/charts/WorkHoursChart.vue";
 import ShiftDistributionChart from "@/components/charts/ShiftDistributionChart.vue";
 import TrendChart from "@/components/charts/TrendChart.vue";
+
+const authStore = useAuthStore();
+const loading = ref(false);
 
 // 快速統計數據
 const quickStats = ref([
   {
     icon: "👥",
     label: "活躍員工",
-    value: "48",
-    change: "+12%",
-    changeIcon: "↗",
+    value: "—",
+    change: "",
+    changeIcon: "",
     trend: "positive",
     color: "#3b82f6",
   },
   {
     icon: "⏰",
     label: "總排班時數",
-    value: "1,245h",
-    change: "+8.5%",
-    changeIcon: "↗",
+    value: "—",
+    change: "",
+    changeIcon: "",
     trend: "positive",
     color: "#10b981",
   },
   {
     icon: "📅",
     label: "本週排班",
-    value: "156",
-    change: "-3.2%",
-    changeIcon: "↘",
-    trend: "negative",
+    value: "—",
+    change: "",
+    changeIcon: "",
+    trend: "positive",
     color: "#f59e0b",
   },
   {
     icon: "⚡",
-    label: "換班請求",
-    value: "12",
-    change: "+25%",
-    changeIcon: "↗",
-    trend: "warning",
+    label: "目前上班中",
+    value: "—",
+    change: "",
+    changeIcon: "",
+    trend: "positive",
     color: "#ef4444",
   },
 ]);
 
 // 數據洞察
-const insights = ref([
-  {
-    id: 1,
-    icon: "📈",
-    title: "工時分布不均",
-    description:
-      "部分員工工時超過平均值 20%，建議重新調配班次以達到更好的工作平衡",
-    color: "#3b82f6",
-  },
-  {
-    id: 2,
-    icon: "⚠️",
-    title: "週末人力不足",
-    description: "週末班次填補率僅 75%，需要增加週末排班或考慮激勵措施",
-    color: "#f59e0b",
-  },
-  {
-    id: 3,
-    icon: "💡",
-    title: "夜班優化建議",
-    description: "夜班員工流動率較高，建議提供額外津貼或調整工作時長",
-    color: "#10b981",
-  },
-  {
-    id: 4,
-    icon: "🎯",
-    title: "高效時段分析",
-    description:
-      "午班時段 (12:00-20:00) 效率最高，可以考慮增加此時段的人力配置",
-    color: "#8b5cf6",
-  },
-]);
+const insights = ref<
+  Array<{
+    id: number;
+    icon: string;
+    title: string;
+    description: string;
+    color: string;
+  }>
+>([]);
+
+/**
+ * Fetch analytics data from the API
+ */
+const fetchAnalyticsData = async () => {
+  try {
+    loading.value = true;
+    const restaurantId = authStore.user?.restaurantId || "";
+    if (!restaurantId) return;
+
+    // Fetch daily stats for today
+    const today = new Date().toISOString().split("T")[0];
+    const dailyStats = await schedulingService.getDailyStats(
+      restaurantId,
+      today,
+    );
+
+    // Fetch weekly stats
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(monday.getDate() - ((dayOfWeek + 6) % 7));
+    const weekStart = monday.toISOString().split("T")[0];
+    const weeklyStats = await schedulingService.getWeeklySummary(
+      restaurantId,
+      weekStart,
+    );
+
+    // Update quick stats with real data
+    quickStats.value = [
+      {
+        icon: "👥",
+        label: "活躍員工",
+        value: String(dailyStats.totalEmployees || 0),
+        change: "",
+        changeIcon: "",
+        trend: "positive",
+        color: "#3b82f6",
+      },
+      {
+        icon: "⏰",
+        label: "總排班時數",
+        value: `${Math.round(dailyStats.totalHours || 0)}h`,
+        change: "",
+        changeIcon: "",
+        trend: "positive",
+        color: "#10b981",
+      },
+      {
+        icon: "📅",
+        label: "本週排班",
+        value: String(weeklyStats.totalSchedules || 0),
+        change: "",
+        changeIcon: "",
+        trend: "positive",
+        color: "#f59e0b",
+      },
+      {
+        icon: "⚡",
+        label: "目前上班中",
+        value: String((dailyStats as any).currentlyWorking || 0),
+        change: "",
+        changeIcon: "",
+        trend: "positive",
+        color: "#ef4444",
+      },
+    ];
+
+    // Generate data-driven insights
+    const generatedInsights: typeof insights.value = [];
+    const noShowCount = (dailyStats as any).statusBreakdown?.noShow || 0;
+    if (noShowCount > 0) {
+      generatedInsights.push({
+        id: 1,
+        icon: "⚠️",
+        title: "今日缺席提醒",
+        description: `今日有 ${noShowCount} 位員工缺席，請檢查並安排替補人力`,
+        color: "#ef4444",
+      });
+    }
+
+    const overtimeHours = (dailyStats as any).totalOvertimeHours || 0;
+    if (overtimeHours > 0) {
+      generatedInsights.push({
+        id: 2,
+        icon: "📈",
+        title: "加班時數提醒",
+        description: `今日累計加班 ${Math.round(overtimeHours * 10) / 10} 小時，請留意勞動法規限制`,
+        color: "#f59e0b",
+      });
+    }
+
+    const cancelledCount = (dailyStats as any).statusBreakdown?.cancelled || 0;
+    if (cancelledCount > 0) {
+      generatedInsights.push({
+        id: 3,
+        icon: "💡",
+        title: "班次取消統計",
+        description: `今日有 ${cancelledCount} 個班次被取消，可能需要重新調配人力`,
+        color: "#3b82f6",
+      });
+    }
+
+    if (generatedInsights.length === 0) {
+      generatedInsights.push({
+        id: 4,
+        icon: "🎯",
+        title: "營運狀況良好",
+        description: "今日排班正常運行中，暫無異常狀況",
+        color: "#10b981",
+      });
+    }
+
+    insights.value = generatedInsights;
+  } catch (error) {
+    console.error("Failed to fetch analytics data:", error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // 刷新所有數據
 const refreshAllData = () => {
-  console.log("Refreshing all data...");
-  // 觸發所有圖表的數據刷新
-  window.location.reload();
+  fetchAnalyticsData();
 };
 
 // 匯出報告
 const exportReport = () => {
-  console.log("Exporting report...");
-
-  // 準備報告數據
   const reportData = {
     generated: new Date().toISOString(),
     stats: quickStats.value,
     insights: insights.value,
   };
 
-  // 轉換為 JSON 並下載
   const dataStr = JSON.stringify(reportData, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -214,7 +310,7 @@ const viewInsightDetail = (insight: any) => {
 };
 
 onMounted(() => {
-  console.log("Scheduling Analytics View mounted");
+  fetchAnalyticsData();
 });
 </script>
 

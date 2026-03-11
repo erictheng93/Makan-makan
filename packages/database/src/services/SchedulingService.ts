@@ -14,6 +14,8 @@ import {
   asc,
   or,
   inArray,
+  isNull,
+  isNotNull,
 } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import { BaseService, type CloudflareEnv } from "./base";
@@ -596,13 +598,16 @@ export class SchedulingService extends BaseService {
   // Clock In/Out
   // ========================================
 
-  async clockIn(data: ClockInData): Promise<EmployeeSchedule> {
+  async clockIn(
+    data: ClockInData,
+    isAdmin?: boolean,
+  ): Promise<EmployeeSchedule> {
     const schedule = await this.getSchedule(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }
 
-    if (schedule.employeeId !== data.employeeId) {
+    if (!isAdmin && schedule.employeeId !== data.employeeId) {
       throw new Error("Unauthorized");
     }
 
@@ -624,13 +629,16 @@ export class SchedulingService extends BaseService {
     return updated as EmployeeSchedule;
   }
 
-  async clockOut(data: ClockOutData): Promise<EmployeeSchedule> {
+  async clockOut(
+    data: ClockOutData,
+    isAdmin?: boolean,
+  ): Promise<EmployeeSchedule> {
     const schedule = await this.getSchedule(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }
 
-    if (schedule.employeeId !== data.employeeId) {
+    if (!isAdmin && schedule.employeeId !== data.employeeId) {
       throw new Error("Unauthorized");
     }
 
@@ -661,6 +669,115 @@ export class SchedulingService extends BaseService {
       .returning();
 
     return updated as EmployeeSchedule;
+  }
+
+  // ========================================
+  // Clock-In Reports & Queries
+  // ========================================
+
+  /**
+   * Get currently clocked-in employees for a given date
+   */
+  async getClockedInEmployees(
+    restaurantId: string,
+    date?: string,
+  ): Promise<EmployeeSchedule[]> {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+
+    const results = await this.db
+      .select()
+      .from(employeeSchedules)
+      .where(
+        and(
+          eq(employeeSchedules.restaurantId, restaurantId),
+          eq(employeeSchedules.workDate, targetDate),
+          isNotNull(employeeSchedules.clockInTime),
+          isNull(employeeSchedules.clockOutTime),
+        ),
+      );
+
+    return results as EmployeeSchedule[];
+  }
+
+  /**
+   * Get attendance report for a date range
+   */
+  async getAttendanceReport(
+    restaurantId: string,
+    options: {
+      startDate: string;
+      endDate: string;
+      employeeId?: number;
+    },
+  ): Promise<{
+    records: EmployeeSchedule[];
+    summary: {
+      totalScheduled: number;
+      totalPresent: number;
+      totalAbsent: number;
+      totalLate: number;
+      totalHoursWorked: number;
+      totalOvertimeHours: number;
+      attendanceRate: number;
+    };
+  }> {
+    const conditions = [
+      eq(employeeSchedules.restaurantId, restaurantId),
+      gte(employeeSchedules.workDate, options.startDate),
+      lte(employeeSchedules.workDate, options.endDate),
+    ];
+
+    if (options.employeeId) {
+      conditions.push(eq(employeeSchedules.employeeId, options.employeeId));
+    }
+
+    const results = await this.db
+      .select()
+      .from(employeeSchedules)
+      .where(and(...conditions))
+      .orderBy(desc(employeeSchedules.workDate));
+
+    const records = results as EmployeeSchedule[];
+
+    // Calculate summary
+    const totalScheduled = records.length;
+    const totalPresent = records.filter(
+      (r) =>
+        r.status === "confirmed" || r.status === "completed" || r.clockInTime,
+    ).length;
+    const totalAbsent = records.filter((r) => r.status === "no_show").length;
+    // Late = clocked in after scheduled start time
+    const totalLate = records.filter((r) => {
+      if (!r.clockInTime || !r.startTime) return false;
+      const clockIn = new Date(r.clockInTime);
+      const [hours, minutes] = r.startTime.split(":").map(Number);
+      const scheduledStart = new Date(r.workDate);
+      scheduledStart.setHours(hours, minutes, 0, 0);
+      return clockIn.getTime() > scheduledStart.getTime();
+    }).length;
+    const totalHoursWorked = records.reduce(
+      (sum, r) => sum + (r.actualHours || 0),
+      0,
+    );
+    const totalOvertimeHours = records.reduce(
+      (sum, r) => sum + (r.overtimeHours || 0),
+      0,
+    );
+    const attendanceRate =
+      totalScheduled > 0 ? (totalPresent / totalScheduled) * 100 : 0;
+
+    return {
+      records,
+      summary: {
+        totalScheduled,
+        totalPresent,
+        totalAbsent,
+        totalLate,
+        totalHoursWorked: Math.round(totalHoursWorked * 100) / 100,
+        totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+        attendanceRate: Math.round(attendanceRate * 10) / 10,
+      },
+    };
   }
 
   // ========================================
@@ -1724,11 +1841,31 @@ export class SchedulingService extends BaseService {
         )
         .groupBy(shiftTemplates.shiftType);
 
+      // Get clock-in metrics
+      const [clockMetrics] = await this.db
+        .select({
+          clockedIn: sql<number>`SUM(CASE WHEN ${employeeSchedules.clockInTime} IS NOT NULL THEN 1 ELSE 0 END)`,
+          currentlyWorking: sql<number>`SUM(CASE WHEN ${employeeSchedules.clockInTime} IS NOT NULL AND ${employeeSchedules.clockOutTime} IS NULL THEN 1 ELSE 0 END)`,
+          totalActualHours: sql<number>`COALESCE(SUM(${employeeSchedules.actualHours}), 0)`,
+          totalOvertimeHours: sql<number>`COALESCE(SUM(${employeeSchedules.overtimeHours}), 0)`,
+        })
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, restaurantId),
+            eq(employeeSchedules.workDate, date),
+          ),
+        );
+
       return {
         date,
         totalSchedules: Number(scheduleStats.totalSchedules),
         totalEmployees: Number(scheduleStats.totalEmployees),
         totalHours: Number(scheduleStats.totalHours),
+        clockedIn: Number(clockMetrics.clockedIn),
+        currentlyWorking: Number(clockMetrics.currentlyWorking),
+        totalActualHours: Number(clockMetrics.totalActualHours),
+        totalOvertimeHours: Number(clockMetrics.totalOvertimeHours),
         statusBreakdown: {
           scheduled: Number(scheduleStats.scheduled),
           confirmed: Number(scheduleStats.confirmed),
