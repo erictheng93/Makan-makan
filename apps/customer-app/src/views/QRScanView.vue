@@ -22,7 +22,9 @@
               />
             </svg>
           </button>
-          <h1 class="text-white font-semibold text-lg">掃描QR碼</h1>
+          <h1 class="text-white font-semibold text-lg">
+            {{ t("qrScanView.title") }}
+          </h1>
           <button
             v-if="flashSupported"
             class="w-10 h-10 bg-black bg-opacity-30 rounded-full flex items-center justify-center text-white hover:bg-opacity-50 transition-colors"
@@ -114,14 +116,16 @@
           <p class="text-white text-lg font-medium mb-2">
             {{ scanStatus }}
           </p>
-          <p class="text-white text-opacity-75 text-sm">請將QR碼對準掃描框內</p>
+          <p class="text-white text-opacity-75 text-sm">
+            {{ t("qrScanView.instruction") }}
+          </p>
 
           <!-- 手動輸入選項 -->
           <button
             class="mt-6 text-white text-opacity-75 underline hover:text-opacity-100 transition-opacity"
             @click="showManualInput = true"
           >
-            無法掃描？點此手動輸入
+            {{ t("qrScanView.manualInputLink") }}
           </button>
         </div>
       </div>
@@ -147,7 +151,7 @@
           />
         </svg>
         <div class="flex-1">
-          <p class="font-medium">掃描失敗</p>
+          <p class="font-medium">{{ t("qrScanView.scanFailed") }}</p>
           <p class="text-sm text-red-100 mt-1">
             {{ error }}
           </p>
@@ -182,7 +186,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"
         />
-        <p>正在處理...</p>
+        <p>{{ t("qrScanView.processing") }}</p>
       </div>
     </div>
 
@@ -205,22 +209,25 @@ import {
   validateQRData,
   getQRTypeDescription,
 } from "@/utils/qr-parser";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const toast = useToast();
+const { t, tWithParams } = useI18n();
 
 const videoElement = ref<HTMLVideoElement>();
 const qrReader = ref<BrowserQRCodeReader>();
 const stream = ref<MediaStream>();
 const isLoading = ref(false);
 const error = ref<string>("");
-const scanStatus = ref("正在啟動相機...");
+const scanStatus = ref("");
 const flashSupported = ref(false);
 const flashOn = ref(false);
 const showManualInput = ref(false);
 const scanLineAnimation = ref("animate-bounce");
 
 onMounted(async () => {
+  scanStatus.value = t("qrScanView.startingCamera");
   await initializeCamera();
   startScanning();
 });
@@ -232,7 +239,7 @@ onUnmounted(() => {
 const initializeCamera = async () => {
   try {
     isLoading.value = true;
-    scanStatus.value = "正在啟動相機...";
+    scanStatus.value = t("qrScanView.startingCamera");
 
     // 檢查相機權限
     const constraints = {
@@ -255,7 +262,7 @@ const initializeCamera = async () => {
     const capabilities = track.getCapabilities();
     flashSupported.value = "torch" in capabilities;
 
-    scanStatus.value = "請對準QR碼";
+    scanStatus.value = t("qrScanView.aimAtQR");
   } catch (err) {
     console.error("相機初始化失敗:", err);
     handleCameraError(err);
@@ -285,32 +292,36 @@ const startScanning = () => {
     )
     .catch((err) => {
       console.error("開始掃描失敗:", err);
-      setError("掃描功能啟動失敗");
+      setError(t("toast.scanFailed"));
     });
 };
 
 const handleQRCodeDetected = async (qrContent: string) => {
   try {
     isLoading.value = true;
-    scanStatus.value = "處理QR碼中...";
+    scanStatus.value = t("qrScanView.processing");
 
     // 使用增強版 QR parser 解析
     const qrData = parseQRContent(qrContent);
 
     if (!qrData) {
-      throw new Error("無效的QR碼格式");
+      throw new Error(t("toast.invalidQRFormat"));
     }
 
     // 驗證 QR 資料
     if (!validateQRData(qrData)) {
-      throw new Error("QR碼資料驗證失敗");
+      throw new Error(t("toast.qrValidationFailed"));
     }
 
     // 根據 QR 類型進行不同的處理
     switch (qrData.type) {
       case "shop":
         // 店家 QR - 導航到取餐方式選擇頁面
-        toast.success(`掃描到${getQRTypeDescription(qrData.type)}！`);
+        toast.success(
+          tWithParams("toast.scanTypeDetected", {
+            type: getQRTypeDescription(qrData.type),
+          }),
+        );
         router.push({
           name: "OrderTypeLanding",
           params: {
@@ -328,7 +339,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
           restaurantId: qrData.restaurantId,
           tableId: qrData.tableId!,
         });
-        toast.success("掃描成功！");
+        toast.success(t("toast.scanSuccess"));
         router.push({
           name: "RestaurantMenu",
           params: {
@@ -344,7 +355,11 @@ const handleQRCodeDetected = async (qrContent: string) => {
           restaurantId: qrData.restaurantId,
           tableId: qrData.tableId!,
         });
-        toast.success(`掃描到${getQRTypeDescription(qrData.type)}！`);
+        toast.success(
+          tWithParams("toast.scanTypeDetected", {
+            type: getQRTypeDescription(qrData.type),
+          }),
+        );
         router.push({
           name: "RestaurantMenu",
           params: {
@@ -358,12 +373,12 @@ const handleQRCodeDetected = async (qrContent: string) => {
         break;
 
       default:
-        throw new Error("不支援的QR碼類型");
+        throw new Error(t("toast.unsupportedQRType"));
     }
   } catch (err) {
     console.error("QR碼處理失敗:", err);
-    setError(err instanceof Error ? err.message : "處理QR碼時發生錯誤");
-    scanStatus.value = "請重新對準QR碼";
+    setError(err instanceof Error ? err.message : t("toast.qrProcessError"));
+    scanStatus.value = t("qrScanView.aimAtQR");
   } finally {
     isLoading.value = false;
   }
@@ -416,19 +431,19 @@ const toggleFlash = async () => {
     flashOn.value = !flashOn.value;
   } catch (error) {
     console.error("切換閃光燈失敗:", error);
-    toast.error("無法切換閃光燈");
+    toast.error(t("toast.flashToggleFailed"));
   }
 };
 
 const handleCameraError = (err: any) => {
-  let message = "相機存取失敗";
+  let message = t("toast.cameraAccessFailed");
 
   if (err.name === "NotAllowedError") {
-    message = "請允許相機權限以使用掃描功能";
+    message = t("toast.cameraPermissionRequired");
   } else if (err.name === "NotFoundError") {
-    message = "找不到可用的相機";
+    message = t("toast.noCameraFound");
   } else if (err.name === "NotSupportedError") {
-    message = "您的瀏覽器不支援相機功能";
+    message = t("toast.browserNoCamera");
   }
 
   setError(message);

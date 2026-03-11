@@ -26,7 +26,9 @@
             <!-- Header -->
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">購物車</h2>
+                <h2 class="text-xl font-bold text-gray-900">
+                  {{ t("shopCart.title") }}
+                </h2>
                 <button
                   class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
                   @click="emit('close')"
@@ -69,7 +71,7 @@
                     />
                   </svg>
                 </div>
-                <p class="text-gray-600">購物車是空的</p>
+                <p class="text-gray-600">{{ t("shopCart.empty") }}</p>
               </div>
 
               <!-- Non-empty cart content -->
@@ -77,7 +79,7 @@
                 <!-- Fulfillment Type Toggle -->
                 <div class="mb-4">
                   <p class="text-sm font-semibold text-gray-700 mb-2">
-                    取餐方式
+                    {{ t("shopCart.pickupMethod") }}
                   </p>
                   <div class="flex gap-2">
                     <button
@@ -89,7 +91,7 @@
                       ]"
                       @click="shopCartStore.setFulfillmentType('takeaway')"
                     >
-                      🛍️ 外帶
+                      {{ t("shopCart.takeaway") }}
                     </button>
                     <button
                       v-if="deliveryEnabled"
@@ -101,7 +103,7 @@
                       ]"
                       @click="shopCartStore.setFulfillmentType('delivery')"
                     >
-                      🛵 外送
+                      {{ t("shopCart.delivery") }}
                     </button>
                   </div>
                 </div>
@@ -112,35 +114,35 @@
                   class="mb-4 space-y-3"
                 >
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1"
-                      >外送地址 *</label
-                    >
+                    <label class="block text-xs text-gray-500 mb-1">{{
+                      t("shopCart.deliveryAddress")
+                    }}</label>
                     <input
                       v-model="deliveryAddress"
                       type="text"
-                      placeholder="請輸入外送地址..."
+                      :placeholder="t('shopCart.deliveryAddressPlaceholder')"
                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1"
-                      >聯絡電話 *</label
-                    >
+                    <label class="block text-xs text-gray-500 mb-1">{{
+                      t("shopCart.contactPhone")
+                    }}</label>
                     <input
                       v-model="deliveryPhone"
                       type="tel"
-                      placeholder="0912-345-678"
+                      :placeholder="t('shopCart.contactPhonePlaceholder')"
                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1"
-                      >配送備註</label
-                    >
+                    <label class="block text-xs text-gray-500 mb-1">{{
+                      t("shopCart.deliveryNotes")
+                    }}</label>
                     <input
                       v-model="deliveryInstructions"
                       type="text"
-                      placeholder="大樓密碼、放門口..."
+                      :placeholder="t('shopCart.deliveryNotesPlaceholder')"
                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
@@ -151,8 +153,12 @@
                   v-if="shopCartStore.fulfillmentType === 'takeaway'"
                   class="mb-4 p-3 bg-gray-50 rounded-lg"
                 >
-                  <p class="text-xs text-gray-500">預計取餐時間</p>
-                  <p class="font-semibold text-sm">約 15-20 分鐘</p>
+                  <p class="text-xs text-gray-500">
+                    {{ t("shopCart.estimatedPickup") }}
+                  </p>
+                  <p class="font-semibold text-sm">
+                    {{ t("shopCart.estimatedTime") }}
+                  </p>
                 </div>
 
                 <!-- Cart Items List -->
@@ -177,7 +183,8 @@
                           class="mt-2 space-y-1 text-sm text-gray-500"
                         >
                           <p v-if="item.customizations.size">
-                            尺寸: {{ item.customizations.size.name }}
+                            {{ t("customization.size") }}:
+                            {{ item.customizations.size.name }}
                           </p>
                           <p
                             v-if="
@@ -185,7 +192,7 @@
                               item.customizations.options.length > 0
                             "
                           >
-                            選項:
+                            {{ t("customization.options") }}:
                             {{
                               item.customizations.options
                                 .map((o) => o.choiceName)
@@ -198,7 +205,7 @@
                               item.customizations.addOns.length > 0
                             "
                           >
-                            加購:
+                            {{ t("customization.addOns") }}:
                             {{
                               item.customizations.addOns
                                 .map((a) => a.name)
@@ -212,7 +219,7 @@
                           v-if="item.notes"
                           class="mt-2 text-sm text-gray-500 italic"
                         >
-                          備註: {{ item.notes }}
+                          {{ t("shopCart.notes") }} {{ item.notes }}
                         </p>
                       </div>
 
@@ -310,7 +317,7 @@
                 v-if="shopCartStore.fulfillmentType === 'delivery'"
                 class="flex justify-between text-sm text-gray-500"
               >
-                <span>小計</span>
+                <span>{{ t("shopCart.subtotal") }}</span>
                 <span>NT$ {{ formatPrice(shopCartStore.subtotal) }}</span>
               </div>
               <div
@@ -320,11 +327,11 @@
                 "
                 class="flex justify-between text-sm text-gray-500"
               >
-                <span>外送費</span>
+                <span>{{ t("shopCart.deliveryFee") }}</span>
                 <span>NT$ {{ formatPrice(shopCartStore.deliveryFee) }}</span>
               </div>
               <div class="flex justify-between font-bold text-lg">
-                <span>合計</span>
+                <span>{{ t("shopCart.total") }}</span>
                 <span class="text-gray-900"
                   >NT$ {{ formatPrice(shopCartStore.totalWithDelivery) }}</span
                 >
@@ -346,7 +353,11 @@
                       d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <span>取餐號碼: ···{{ phoneLastDigits }}</span>
+                  <span
+                    >{{ t("shopCart.pickupNumber") }} ···{{
+                      phoneLastDigits
+                    }}</span
+                  >
                 </div>
               </div>
 
@@ -373,7 +384,7 @@
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  確認訂單
+                  {{ t("shopCart.confirmOrder") }}
                 </span>
                 <span v-else class="flex items-center justify-center">
                   <svg
@@ -396,7 +407,7 @@
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  處理中...
+                  {{ t("shopCart.processing") }}
                 </span>
               </button>
             </div>
@@ -414,6 +425,7 @@ import { useToast } from "vue-toastification";
 import { useShopCartStore } from "@/stores/shopCart";
 import { formatPrice } from "@/utils/format";
 import { apiClient } from "@/services/api";
+import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps<{
   show: boolean;
@@ -427,6 +439,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const toast = useToast();
+const { t } = useI18n();
 const shopCartStore = useShopCartStore();
 const isSubmitting = ref(false);
 
@@ -446,14 +459,14 @@ const handleCheckout = async () => {
   // Validate delivery fields before submitting
   if (shopCartStore.fulfillmentType === "delivery") {
     if (!deliveryAddress.value.trim()) {
-      toast.error("請輸入外送地址");
+      toast.error(t("toast.deliveryAddressRequired"));
       return;
     }
     if (
       !deliveryPhone.value.trim() ||
       deliveryPhone.value.replace(/\D/g, "").length < 8
     ) {
-      toast.error("請輸入有效的聯絡電話");
+      toast.error(t("toast.invalidPhoneNumber"));
       return;
     }
     shopCartStore.setDeliveryInfo({
@@ -510,7 +523,7 @@ const handleCheckout = async () => {
     shopCartStore.clearCart();
 
     // 顯示成功訊息
-    toast.success("訂單已送出！");
+    toast.success(t("toast.orderSent"));
 
     // 關閉彈窗
     emit("close");
@@ -530,7 +543,7 @@ const handleCheckout = async () => {
     });
   } catch (error: any) {
     console.error("結帳失敗:", error);
-    toast.error(error.message || "訂單送出失敗，請稍後再試");
+    toast.error(error.message || t("toast.orderSendFailed"));
   } finally {
     isSubmitting.value = false;
   }
