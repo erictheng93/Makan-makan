@@ -9,7 +9,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"
         />
-        <p class="mt-4 text-gray-600">載入中...</p>
+        <p class="mt-4 text-gray-600">{{ t("common.loadingApp") }}</p>
       </div>
     </div>
 
@@ -32,9 +32,11 @@ import { RouterView } from "vue-router";
 import { useToast } from "vue-toastification";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
 import { useAppStore } from "@/stores/app";
+import { useI18n } from "@/composables/useI18n";
 
 const appStore = useAppStore();
 const toast = useToast();
+const { t } = useI18n();
 const isLoading = ref(true);
 
 // 應用初始化
@@ -43,7 +45,7 @@ onMounted(async () => {
     await appStore.initialize();
   } catch (error) {
     console.error("應用初始化失敗:", error);
-    toast.error("應用載入失敗，請刷新頁面重試");
+    toast.error(t("toast.appLoadFailed"));
   } finally {
     isLoading.value = false;
   }
@@ -52,7 +54,7 @@ onMounted(async () => {
 // 全域錯誤處理
 onErrorCaptured((error: Error) => {
   console.error("Vue錯誤:", error);
-  toast.error("發生未預期的錯誤");
+  toast.error(t("toast.unexpectedError"));
   return false;
 });
 
