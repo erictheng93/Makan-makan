@@ -1,4 +1,6 @@
 import { ref, computed } from "vue";
+import type { Messages } from "./types";
+import zhTWMessages from "./locales/zh-TW";
 
 /**
  * i18n 多語言系統
@@ -19,10 +21,8 @@ export interface LocaleConfig {
   dateTimeFormat: string;
 }
 
-// 翻譯消息接口
-export interface Messages {
-  [key: string]: string | Messages;
-}
+// 翻譯消息接口 — re-exported from types.ts to avoid circular dependency
+export type { Messages } from "./types";
 
 // 支持的語言列表
 export const SUPPORTED_LOCALES: LocaleConfig[] = [
@@ -85,9 +85,9 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
 // 當前語言
 const currentLocale = ref<Locale>("zh-TW");
 
-// 翻譯消息存儲
+// 翻譯消息存儲 — zh-TW is loaded statically as the required fallback
 const messages = ref<Record<Locale, Messages>>({
-  "zh-TW": {},
+  "zh-TW": zhTWMessages,
   "zh-CN": {},
   "en-US": {},
   "ja-JP": {},
@@ -271,13 +271,7 @@ export async function initI18n(): Promise<void> {
     targetLocale = "id-ID";
   }
 
-  // 加載預設語言包（繁體中文）
-  try {
-    const zhTW = await import("./locales/zh-TW");
-    setLocaleMessages("zh-TW", zhTW.default);
-  } catch (error) {
-    console.error("Failed to load default locale (zh-TW):", error);
-  }
+  // zh-TW is already loaded statically via import at module top level
 
   // 如果目標語言不是繁體中文，加載目標語言包
   if (targetLocale !== "zh-TW") {

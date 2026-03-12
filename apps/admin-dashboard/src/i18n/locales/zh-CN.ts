@@ -1,4 +1,4 @@
-import { Messages } from "../index";
+import type { Messages } from "../types";
 
 /**
  * 简体中文
