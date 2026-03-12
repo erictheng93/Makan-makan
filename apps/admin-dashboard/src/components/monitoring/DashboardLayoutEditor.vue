@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/i18n";
 // import { VueDraggable } from 'vue-draggable-plus' // Reserved for drag-and-drop functionality
 import {
   PlusIcon,
@@ -43,6 +44,8 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+const { t } = useI18n();
+
 // State
 const localLayout = ref<DashboardLayout>({ ...props.modelValue });
 const showWidgetPicker = ref(false);
@@ -68,13 +71,13 @@ const widgetsByCategory = computed(() => {
   return categories;
 });
 
-const categoryLabels: Record<string, string> = {
-  overview: "總覽",
-  performance: "性能",
-  alerts: "警報",
-  metrics: "指標",
-  charts: "圖表",
-};
+const categoryLabels = computed<Record<string, string>>(() => ({
+  overview: t("dashboardEditor.categoryOverview"),
+  performance: t("dashboardEditor.categoryPerformance"),
+  alerts: t("dashboardEditor.categoryAlerts"),
+  metrics: t("dashboardEditor.categoryMetrics"),
+  charts: t("dashboardEditor.categoryCharts"),
+}));
 
 // Watch
 watch(
@@ -174,13 +177,13 @@ function handleCancel() {
             @click="showWidgetPicker = true"
           >
             <PlusIcon class="w-4 h-4" />
-            新增小部件
+            {{ t("dashboardEditor.addWidget") }}
           </button>
           <button
             class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             @click="showPresetPicker = true"
           >
-            載入預設
+            {{ t("dashboardEditor.loadPreset") }}
           </button>
         </div>
 
@@ -189,13 +192,13 @@ function handleCancel() {
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
             @click="handleCancel"
           >
-            取消
+            {{ t("common.cancel") }}
           </button>
           <button
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             @click="handleSave"
           >
-            保存佈局
+            {{ t("dashboardEditor.saveLayout") }}
           </button>
         </div>
       </div>
@@ -222,7 +225,11 @@ function handleCancel() {
           <div v-if="editMode" class="flex items-center gap-1">
             <button
               class="p-1 text-gray-500 hover:text-gray-700 rounded"
-              :title="widget.locked ? '解鎖' : '鎖定'"
+              :title="
+                widget.locked
+                  ? t('dashboardEditor.unlock')
+                  : t('dashboardEditor.lock')
+              "
               @click.stop="toggleWidgetLock(widget.id)"
             >
               <LockClosedIcon v-if="widget.locked" class="w-4 h-4" />
@@ -230,14 +237,14 @@ function handleCancel() {
             </button>
             <button
               class="p-1 text-gray-500 hover:text-gray-700 rounded"
-              title="配置"
+              :title="t('dashboardEditor.configure')"
               @click.stop="configureWidget(widget.id)"
             >
               <Cog6ToothIcon class="w-4 h-4" />
             </button>
             <button
               class="p-1 text-red-500 hover:text-red-700 rounded"
-              title="移除"
+              :title="t('dashboardEditor.remove')"
               @click.stop="removeWidget(widget.id)"
             >
               <XMarkIcon class="w-4 h-4" />
@@ -266,8 +273,8 @@ function handleCancel() {
         class="col-span-full flex flex-col items-center justify-center py-16 text-gray-400"
       >
         <ArrowsPointingOutIcon class="w-16 h-16 mb-4" />
-        <p class="text-lg font-medium">還沒有小部件</p>
-        <p class="text-sm mt-2">點擊「新增小部件」來開始自定義您的儀表板</p>
+        <p class="text-lg font-medium">{{ t("dashboardEditor.noWidgets") }}</p>
+        <p class="text-sm mt-2">{{ t("dashboardEditor.noWidgetsHint") }}</p>
       </div>
     </div>
 
@@ -284,7 +291,9 @@ function handleCancel() {
           <div
             class="flex items-center justify-between p-6 border-b border-gray-200"
           >
-            <h2 class="text-xl font-semibold text-gray-900">選擇小部件</h2>
+            <h2 class="text-xl font-semibold text-gray-900">
+              {{ t("dashboardEditor.selectWidget") }}
+            </h2>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="showWidgetPicker = false"
@@ -313,7 +322,8 @@ function handleCancel() {
                     {{ widget.description }}
                   </p>
                   <p class="text-xs text-blue-600 mt-2">
-                    默認大小: {{ widget.defaultSize }}
+                    {{ t("dashboardEditor.defaultSize") }}:
+                    {{ widget.defaultSize }}
                   </p>
                 </button>
               </div>
@@ -334,7 +344,9 @@ function handleCancel() {
           <div
             class="flex items-center justify-between p-6 border-b border-gray-200"
           >
-            <h2 class="text-xl font-semibold text-gray-900">選擇預設佈局</h2>
+            <h2 class="text-xl font-semibold text-gray-900">
+              {{ t("dashboardEditor.selectPresetLayout") }}
+            </h2>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="showPresetPicker = false"
@@ -353,7 +365,11 @@ function handleCancel() {
               <p class="font-medium text-gray-900">{{ preset.name }}</p>
               <p class="text-sm text-gray-600 mt-2">{{ preset.description }}</p>
               <p class="text-xs text-gray-500 mt-2">
-                {{ preset.layout.widgets.length }} 個小部件
+                {{
+                  t("dashboardEditor.widgetCount", {
+                    count: preset.layout.widgets.length,
+                  })
+                }}
               </p>
             </button>
           </div>

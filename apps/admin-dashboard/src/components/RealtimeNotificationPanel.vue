@@ -23,7 +23,11 @@
       <button
         class="sound-toggle"
         :class="{ muted: !soundEnabled }"
-        :title="soundEnabled ? '靜音' : '開啟音效'"
+        :title="
+          soundEnabled
+            ? t('realtimeNotification.mute')
+            : t('realtimeNotification.unmute')
+        "
         @click="toggleSound"
       >
         <span v-if="soundEnabled">🔔</span>
@@ -34,18 +38,18 @@
     <!-- 訂單通知面板 -->
     <div v-show="activeTab === 'orders'" class="notification-content">
       <div class="content-header">
-        <h3>訂單通知</h3>
+        <h3>{{ t("realtimeNotification.orderNotifications") }}</h3>
         <button
           v-if="orderNotifications.length > 0"
           class="clear-button"
           @click="handleClearOrders"
         >
-          清除所有
+          {{ t("realtimeNotification.clearAll") }}
         </button>
       </div>
 
       <div v-if="orderNotifications.length === 0" class="empty-state">
-        <p>沒有新的訂單通知</p>
+        <p>{{ t("realtimeNotification.noOrderNotifications") }}</p>
       </div>
 
       <div v-else class="notification-list">
@@ -77,7 +81,7 @@
     <!-- 廚房統計面板 -->
     <div v-show="activeTab === 'kitchen'" class="notification-content">
       <div class="content-header">
-        <h3>廚房狀態</h3>
+        <h3>{{ t("realtimeNotification.kitchenStatus") }}</h3>
         <span class="last-updated">{{
           formatTime(kitchenStats.lastUpdated)
         }}</span>
@@ -87,7 +91,9 @@
         <div class="stat-card pending">
           <div class="stat-icon">⏳</div>
           <div class="stat-content">
-            <div class="stat-label">待處理</div>
+            <div class="stat-label">
+              {{ t("realtimeNotification.pending") }}
+            </div>
             <div class="stat-value">{{ kitchenStats.pendingItems }}</div>
           </div>
         </div>
@@ -95,7 +101,9 @@
         <div class="stat-card cooking">
           <div class="stat-icon">🍳</div>
           <div class="stat-content">
-            <div class="stat-label">烹飪中</div>
+            <div class="stat-label">
+              {{ t("realtimeNotification.cooking") }}
+            </div>
             <div class="stat-value">{{ kitchenStats.cookingItems }}</div>
           </div>
         </div>
@@ -103,7 +111,9 @@
         <div class="stat-card ready">
           <div class="stat-icon">✅</div>
           <div class="stat-content">
-            <div class="stat-label">已完成</div>
+            <div class="stat-label">
+              {{ t("realtimeNotification.completed") }}
+            </div>
             <div class="stat-value">{{ kitchenStats.readyItems }}</div>
           </div>
         </div>
@@ -111,8 +121,16 @@
         <div class="stat-card time">
           <div class="stat-icon">⏱️</div>
           <div class="stat-content">
-            <div class="stat-label">平均等待</div>
-            <div class="stat-value">{{ kitchenStats.averageWaitTime }}分</div>
+            <div class="stat-label">
+              {{ t("realtimeNotification.averageWait") }}
+            </div>
+            <div class="stat-value">
+              {{
+                t("realtimeNotification.minutesShort", {
+                  value: kitchenStats.averageWaitTime,
+                })
+              }}
+            </div>
           </div>
         </div>
       </div>
@@ -121,18 +139,18 @@
     <!-- 菜單警示面板 -->
     <div v-show="activeTab === 'menu'" class="notification-content">
       <div class="content-header">
-        <h3>菜單警示</h3>
+        <h3>{{ t("realtimeNotification.menuAlerts") }}</h3>
         <button
           v-if="menuAlerts.length > 0"
           class="clear-button"
           @click="handleClearMenuAlerts"
         >
-          清除
+          {{ t("realtimeNotification.clear") }}
         </button>
       </div>
 
       <div v-if="activeMenuAlerts.length === 0" class="empty-state">
-        <p>所有菜單項目正常供應</p>
+        <p>{{ t("realtimeNotification.allMenuItemsAvailable") }}</p>
       </div>
 
       <div v-else class="notification-list">
@@ -147,9 +165,13 @@
             <div class="item-title">{{ alert.menuItemName }}</div>
             <div class="item-meta">
               <span v-if="!alert.isAvailable" class="status unavailable">
-                {{ alert.reason || "暫時售罄" }}
+                {{
+                  alert.reason || t("realtimeNotification.temporarilySoldOut")
+                }}
               </span>
-              <span v-else class="status available">已恢復供應</span>
+              <span v-else class="status available">{{
+                t("realtimeNotification.backInStock")
+              }}</span>
               <span class="time">{{ formatTime(alert.timestamp) }}</span>
             </div>
           </div>
@@ -160,18 +182,18 @@
     <!-- 系統通知面板 -->
     <div v-show="activeTab === 'system'" class="notification-content">
       <div class="content-header">
-        <h3>系統通知</h3>
+        <h3>{{ t("realtimeNotification.systemNotifications") }}</h3>
         <button
           v-if="systemAlerts.length > 0"
           class="clear-button"
           @click="handleClearSystemAlerts"
         >
-          全部已讀
+          {{ t("realtimeNotification.markAllRead") }}
         </button>
       </div>
 
       <div v-if="systemAlerts.length === 0" class="empty-state">
-        <p>沒有系統通知</p>
+        <p>{{ t("realtimeNotification.noSystemNotifications") }}</p>
       </div>
 
       <div v-else class="notification-list">
@@ -199,6 +221,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import { useAdminRealtime } from "@/composables/useAdminRealtime";
 import type {
   OrderNotification,
@@ -230,6 +253,8 @@ const {
   clearSystemAlerts,
 } = useAdminRealtime();
 
+const { t } = useI18n();
+
 // ========================================
 // 本地狀態
 // ========================================
@@ -243,22 +268,22 @@ const activeTab = ref<"orders" | "kitchen" | "menu" | "system">("orders");
 const tabs = computed(() => [
   {
     id: "orders" as const,
-    label: "訂單",
+    label: t("realtimeNotification.tabOrders"),
     badge: unreadOrderCount.value,
   },
   {
     id: "kitchen" as const,
-    label: "廚房",
+    label: t("realtimeNotification.tabKitchen"),
     badge: 0,
   },
   {
     id: "menu" as const,
-    label: "菜單",
+    label: t("realtimeNotification.tabMenu"),
     badge: activeMenuAlerts.value.length,
   },
   {
     id: "system" as const,
-    label: "系統",
+    label: t("realtimeNotification.tabSystem"),
     badge: unreadAlertCount.value,
   },
 ]);
@@ -276,17 +301,17 @@ const connectionStatusClass = computed(() => {
 const connectionStatusText = computed(() => {
   switch (connectionStatus.value) {
     case "connected":
-      return "已連接";
+      return t("realtimeNotification.statusConnected");
     case "connecting":
-      return "連接中...";
+      return t("realtimeNotification.statusConnecting");
     case "reconnecting":
-      return "重新連接中...";
+      return t("realtimeNotification.statusReconnecting");
     case "disconnected":
-      return "未連接";
+      return t("realtimeNotification.statusDisconnected");
     case "error":
-      return "連接錯誤";
+      return t("realtimeNotification.statusError");
     default:
-      return "未知狀態";
+      return t("realtimeNotification.statusUnknown");
   }
 });
 
@@ -304,9 +329,10 @@ const formatTime = (timestamp: number): string => {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(minutes / 60);
 
-  if (minutes < 1) return "剛剛";
-  if (minutes < 60) return `${minutes}分鐘前`;
-  if (hours < 24) return `${hours}小時前`;
+  if (minutes < 1) return t("realtimeNotification.justNow");
+  if (minutes < 60)
+    return t("realtimeNotification.minutesAgo", { count: minutes });
+  if (hours < 24) return t("realtimeNotification.hoursAgo", { count: hours });
 
   return date.toLocaleString("zh-TW", {
     month: "2-digit",

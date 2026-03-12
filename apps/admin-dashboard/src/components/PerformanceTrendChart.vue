@@ -2,7 +2,7 @@
   <div class="performance-trend-chart">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">
-        {{ title }}
+        {{ title || t("performanceChart.title") }}
       </h3>
       <div class="flex items-center space-x-2">
         <!-- 圖表類型切換 -->
@@ -10,9 +10,9 @@
           v-model="chartType"
           class="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="line">線圖</option>
-          <option value="bar">柱狀圖</option>
-          <option value="area">面積圖</option>
+          <option value="line">{{ t("performanceChart.lineChart") }}</option>
+          <option value="bar">{{ t("performanceChart.barChart") }}</option>
+          <option value="area">{{ t("performanceChart.areaChart") }}</option>
         </select>
 
         <!-- 指標切換 -->
@@ -20,10 +20,16 @@
           v-model="selectedMetric"
           class="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="completion_rate">完成率</option>
-          <option value="avg_prep_time">平均時間</option>
-          <option value="revenue">營收</option>
-          <option value="total_orders">訂單數量</option>
+          <option value="completion_rate">
+            {{ t("performanceChart.completionRate") }}
+          </option>
+          <option value="avg_prep_time">
+            {{ t("performanceChart.avgPrepTime") }}
+          </option>
+          <option value="revenue">{{ t("performanceChart.revenue") }}</option>
+          <option value="total_orders">
+            {{ t("performanceChart.totalOrders") }}
+          </option>
         </select>
       </div>
     </div>
@@ -45,7 +51,7 @@
           <div
             class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"
           />
-          <span class="text-sm text-gray-600">載入中...</span>
+          <span class="text-sm text-gray-600">{{ t("common.loading") }}</span>
         </div>
       </div>
 
@@ -56,7 +62,7 @@
       >
         <div class="text-center">
           <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400 mb-2" />
-          <p class="text-gray-500">暫無數據</p>
+          <p class="text-gray-500">{{ t("common.noData") }}</p>
         </div>
       </div>
     </div>
@@ -66,7 +72,10 @@
       <div class="flex items-center space-x-4">
         <div v-if="averageValue !== null" class="flex items-center">
           <span class="w-3 h-3 bg-blue-500 rounded-full mr-1" />
-          <span>平均值: {{ formatValue(averageValue, selectedMetric) }}</span>
+          <span
+            >{{ t("performanceChart.average") }}:
+            {{ formatValue(averageValue, selectedMetric) }}</span
+          >
         </div>
         <div v-if="trendDirection" class="flex items-center">
           <ArrowTrendingUpIcon
@@ -81,7 +90,10 @@
             v-if="trendDirection === 'stable'"
             class="w-4 h-4 text-gray-500 mr-1"
           />
-          <span>趨勢: {{ getTrendText(trendDirection) }}</span>
+          <span
+            >{{ t("performanceChart.trend") }}:
+            {{ getTrendText(trendDirection) }}</span
+          >
         </div>
       </div>
       <div class="flex items-center space-x-2">
@@ -89,13 +101,17 @@
           class="text-blue-600 hover:text-blue-800 underline"
           @click="toggleFullscreen"
         >
-          {{ isFullscreen ? "退出全屏" : "全屏顯示" }}
+          {{
+            isFullscreen
+              ? t("performanceChart.exitFullscreen")
+              : t("performanceChart.fullscreen")
+          }}
         </button>
         <button
           class="text-green-600 hover:text-green-800 underline"
           @click="exportChart"
         >
-          匯出圖片
+          {{ t("performanceChart.exportImage") }}
         </button>
       </div>
     </div>
@@ -104,6 +120,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useI18n } from "@/i18n";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -146,8 +163,10 @@ interface Props {
   isLoading?: boolean;
 }
 
+const { t } = useI18n();
+
 const props = withDefaults(defineProps<Props>(), {
-  title: "績效趨勢圖",
+  title: undefined,
   width: 800,
   height: 400,
   isLoading: false,
@@ -355,10 +374,10 @@ const updateChart = () => {
 // 輔助函數
 const getMetricLabel = (metric: string) => {
   const labels: Record<string, string> = {
-    completion_rate: "完成率 (%)",
-    avg_prep_time: "平均時間 (分鐘)",
-    revenue: "營收 (RM)",
-    total_orders: "訂單數量",
+    completion_rate: t("performanceChart.completionRatePercent"),
+    avg_prep_time: t("performanceChart.avgPrepTimeMinutes"),
+    revenue: t("performanceChart.revenueRM"),
+    total_orders: t("performanceChart.totalOrders"),
   };
   return labels[metric] || metric;
 };
@@ -378,11 +397,11 @@ const formatValue = (value: number, metric: string) => {
     case "completion_rate":
       return `${value.toFixed(1)}%`;
     case "avg_prep_time":
-      return `${Math.round(value)}分鐘`;
+      return t("performanceChart.minutesValue", { value: Math.round(value) });
     case "revenue":
       return `RM${value.toFixed(2)}`;
     case "total_orders":
-      return `${value}筆`;
+      return t("performanceChart.ordersValue", { value });
     default:
       return value.toString();
   }
@@ -390,9 +409,9 @@ const formatValue = (value: number, metric: string) => {
 
 const getTrendText = (direction: string) => {
   const texts: Record<string, string> = {
-    up: "上升",
-    down: "下降",
-    stable: "穩定",
+    up: t("performanceChart.trendUp"),
+    down: t("performanceChart.trendDown"),
+    stable: t("performanceChart.trendStable"),
   };
   return texts[direction] || direction;
 };

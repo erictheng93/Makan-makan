@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useI18n } from "vue-i18n";
+import { useI18n } from "@/i18n";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -76,16 +76,16 @@ const activeFiltersCount = computed(() => {
 const timeRangeOptions: Array<{ value: TimeRange; label: string }> = [
   { value: "last15minutes", label: t("monitoring.performance.last15Minutes") },
   { value: "last1hour", label: t("monitoring.performance.lastHour") },
-  { value: "last6hours", label: "最近 6 小時" },
+  { value: "last6hours", label: t("advancedFilter.last6Hours") },
   { value: "last24hours", label: t("monitoring.performance.last24Hours") },
   { value: "last7days", label: t("monitoring.performance.last7Days") },
-  { value: "last30days", label: "最近 30 天" },
+  { value: "last30days", label: t("advancedFilter.last30Days") },
   { value: "custom", label: t("monitoring.performance.custom") },
 ];
 
 // Component type options
 const componentOptions: Array<{ value: ComponentType; label: string }> = [
-  { value: "all", label: "全部組件" },
+  { value: "all", label: t("advancedFilter.allComponents") },
   { value: "api", label: t("monitoring.components.api") },
   { value: "database", label: t("monitoring.components.database") },
   { value: "cache", label: t("monitoring.components.cache") },
@@ -101,7 +101,7 @@ const severityOptions: Array<{
   label: string;
   color: string;
 }> = [
-  { value: "all", label: "全部級別", color: "gray" },
+  { value: "all", label: t("advancedFilter.allSeverities"), color: "gray" },
   { value: "info", label: t("monitoring.alerts.severity.info"), color: "blue" },
   {
     value: "warning",
@@ -122,7 +122,7 @@ const severityOptions: Array<{
 
 // Status options
 const statusOptions: Array<{ value: AlertStatus; label: string }> = [
-  { value: "all", label: "全部狀態" },
+  { value: "all", label: t("advancedFilter.allStatuses") },
   { value: "active", label: t("monitoring.alerts.status.active") },
   { value: "acknowledged", label: t("monitoring.alerts.status.acknowledged") },
   { value: "resolved", label: t("monitoring.alerts.status.resolved") },
@@ -242,7 +242,9 @@ function toggleStatus(status: AlertStatus) {
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <FunnelIcon class="w-5 h-5 text-gray-500" />
-          <h3 class="text-sm font-medium text-gray-900">快速篩選</h3>
+          <h3 class="text-sm font-medium text-gray-900">
+            {{ t("advancedFilter.quickFilter") }}
+          </h3>
           <span
             v-if="activeFiltersCount > 0"
             class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
@@ -255,7 +257,7 @@ function toggleStatus(status: AlertStatus) {
           class="text-sm text-gray-600 hover:text-gray-900"
           @click="handleReset"
         >
-          重置篩選
+          {{ t("advancedFilter.resetFilter") }}
         </button>
       </div>
 
@@ -283,12 +285,12 @@ function toggleStatus(status: AlertStatus) {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
           <MagnifyingGlassIcon class="w-4 h-4 inline mr-1" />
-          關鍵字搜索
+          {{ t("advancedFilter.keywordSearch") }}
         </label>
         <input
           v-model="localFilter.searchKeyword"
           type="text"
-          placeholder="搜索警報訊息、組件名稱或 ID..."
+          :placeholder="t('advancedFilter.searchPlaceholder')"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
@@ -296,7 +298,7 @@ function toggleStatus(status: AlertStatus) {
       <!-- 時間範圍 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          時間範圍
+          {{ t("advancedFilter.timeRange") }}
         </label>
         <select
           v-model="localFilter.timeRange"
@@ -319,12 +321,12 @@ function toggleStatus(status: AlertStatus) {
           <input
             type="datetime-local"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="開始時間"
+            :placeholder="t('advancedFilter.startTime')"
           />
           <input
             type="datetime-local"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="結束時間"
+            :placeholder="t('advancedFilter.endTime')"
           />
         </div>
       </div>
@@ -332,7 +334,7 @@ function toggleStatus(status: AlertStatus) {
       <!-- 組件篩選 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          組件類型
+          {{ t("advancedFilter.componentType") }}
         </label>
         <div class="flex flex-wrap gap-2">
           <button
@@ -358,7 +360,7 @@ function toggleStatus(status: AlertStatus) {
       <!-- 嚴重程度 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          嚴重程度
+          {{ t("advancedFilter.severity") }}
         </label>
         <div class="flex flex-wrap gap-2">
           <button
@@ -384,7 +386,7 @@ function toggleStatus(status: AlertStatus) {
       <!-- 狀態篩選 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          警報狀態
+          {{ t("advancedFilter.alertStatus") }}
         </label>
         <div class="flex flex-wrap gap-2">
           <button
@@ -412,7 +414,11 @@ function toggleStatus(status: AlertStatus) {
         class="text-sm text-blue-600 hover:text-blue-800"
         @click="showAdvanced = !showAdvanced"
       >
-        {{ showAdvanced ? "隱藏" : "顯示" }}高級選項
+        {{
+          showAdvanced
+            ? t("advancedFilter.hideAdvanced")
+            : t("advancedFilter.showAdvanced")
+        }}
       </button>
 
       <!-- 高級選項 -->
@@ -420,7 +426,7 @@ function toggleStatus(status: AlertStatus) {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              最小響應時間 (ms)
+              {{ t("advancedFilter.minResponseTime") }}
             </label>
             <input
               v-model.number="localFilter.minResponseTime"
@@ -430,7 +436,7 @@ function toggleStatus(status: AlertStatus) {
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              最大響應時間 (ms)
+              {{ t("advancedFilter.maxResponseTime") }}
             </label>
             <input
               v-model.number="localFilter.maxResponseTime"
@@ -447,7 +453,9 @@ function toggleStatus(status: AlertStatus) {
               type="checkbox"
               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
-            <span class="ml-2 text-sm text-gray-700">包含已解決的警報</span>
+            <span class="ml-2 text-sm text-gray-700">{{
+              t("advancedFilter.includeResolved")
+            }}</span>
           </label>
           <label class="flex items-center">
             <input
@@ -455,7 +463,9 @@ function toggleStatus(status: AlertStatus) {
               type="checkbox"
               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
-            <span class="ml-2 text-sm text-gray-700">包含已靜音的警報</span>
+            <span class="ml-2 text-sm text-gray-700">{{
+              t("advancedFilter.includeMuted")
+            }}</span>
           </label>
           <label class="flex items-center">
             <input
@@ -463,7 +473,9 @@ function toggleStatus(status: AlertStatus) {
               type="checkbox"
               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
-            <span class="ml-2 text-sm text-gray-700">按組件分組</span>
+            <span class="ml-2 text-sm text-gray-700">{{
+              t("advancedFilter.groupByComponent")
+            }}</span>
           </label>
         </div>
       </div>
@@ -478,7 +490,7 @@ function toggleStatus(status: AlertStatus) {
         @click="showSaveDialog = true"
       >
         <BookmarkIcon class="w-4 h-4" />
-        保存篩選器
+        {{ t("advancedFilter.saveFilter") }}
       </button>
 
       <div class="flex gap-2">
@@ -486,7 +498,7 @@ function toggleStatus(status: AlertStatus) {
           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
           @click="handleReset"
         >
-          重置
+          {{ t("common.reset") }}
         </button>
         <button
           :disabled="!isValidFilter"
@@ -498,7 +510,7 @@ function toggleStatus(status: AlertStatus) {
           ]"
           @click="handleApply"
         >
-          應用篩選
+          {{ t("advancedFilter.applyFilter") }}
         </button>
       </div>
     </div>
@@ -510,28 +522,30 @@ function toggleStatus(status: AlertStatus) {
       @click.self="showSaveDialog = false"
     >
       <div class="bg-white rounded-lg p-6 w-96">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">保存篩選器</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("advancedFilter.saveFilter") }}
+        </h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              篩選器名稱 *
+              {{ t("advancedFilter.filterName") }} *
             </label>
             <input
               v-model="filterName"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="例如：嚴重 API 錯誤"
+              :placeholder="t('advancedFilter.filterNamePlaceholder')"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              描述（可選）
+              {{ t("advancedFilter.descriptionOptional") }}
             </label>
             <textarea
               v-model="filterDescription"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="說明此篩選器的用途..."
+              :placeholder="t('advancedFilter.descriptionPlaceholder')"
             />
           </div>
         </div>
@@ -540,7 +554,7 @@ function toggleStatus(status: AlertStatus) {
             class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
             @click="showSaveDialog = false"
           >
-            取消
+            {{ t("common.cancel") }}
           </button>
           <button
             :disabled="!filterName.trim()"
@@ -552,7 +566,7 @@ function toggleStatus(status: AlertStatus) {
             ]"
             @click="handleSave"
           >
-            保存
+            {{ t("common.save") }}
           </button>
         </div>
       </div>

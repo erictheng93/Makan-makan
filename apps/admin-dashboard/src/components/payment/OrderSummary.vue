@@ -2,7 +2,7 @@
   <div class="order-summary">
     <!-- Header -->
     <div class="summary-header">
-      <h3 class="summary-title">訂單摘要</h3>
+      <h3 class="summary-title">{{ t("orderSummary.title") }}</h3>
       <div v-if="loading" class="header-loading">
         <div class="loading-spinner"></div>
       </div>
@@ -37,22 +37,24 @@
           </svg>
         </div>
         <div class="restaurant-details">
-          <p class="restaurant-name">{{ order.restaurantName || "餐廳" }}</p>
+          <p class="restaurant-name">
+            {{ order.restaurantName || t("orderSummary.restaurant") }}
+          </p>
           <p v-if="order.tableNumber" class="table-info">
-            桌號: {{ order.tableNumber }}
+            {{ t("orderSummary.tableNumber") }}: {{ order.tableNumber }}
           </p>
         </div>
       </div>
 
       <!-- Order ID -->
       <div class="order-id-section">
-        <div class="order-id-label">訂單編號</div>
+        <div class="order-id-label">{{ t("orderSummary.orderId") }}</div>
         <div class="order-id-value">{{ order.id }}</div>
       </div>
 
       <!-- Order Items -->
       <div v-if="order.items && order.items.length > 0" class="order-items">
-        <h4 class="items-title">點餐內容</h4>
+        <h4 class="items-title">{{ t("orderSummary.orderItems") }}</h4>
 
         <div class="items-list">
           <div
@@ -82,7 +84,7 @@
 
               <!-- Special Instructions -->
               <div v-if="item.notes" class="item-notes">
-                <span class="notes-label">備註:</span>
+                <span class="notes-label">{{ t("orderSummary.notes") }}:</span>
                 <span class="notes-text">{{ item.notes }}</span>
               </div>
             </div>
@@ -97,7 +99,7 @@
       <!-- Price Breakdown -->
       <div class="price-breakdown">
         <div class="breakdown-row subtotal-row">
-          <span class="breakdown-label">小計</span>
+          <span class="breakdown-label">{{ t("orderSummary.subtotal") }}</span>
           <span class="breakdown-value">{{
             formatCurrency(order.subtotal, order.currency)
           }}</span>
@@ -105,7 +107,9 @@
 
         <div v-if="order.tax && order.tax > 0" class="breakdown-row tax-row">
           <span class="breakdown-label"
-            >稅費 ({{ getTaxRate(order.country) }}%)</span
+            >{{ t("orderSummary.tax") }} ({{
+              getTaxRate(order.country)
+            }}%)</span
           >
           <span class="breakdown-value">{{
             formatCurrency(order.tax, order.currency)
@@ -116,7 +120,9 @@
           v-if="order.serviceFee && order.serviceFee > 0"
           class="breakdown-row service-row"
         >
-          <span class="breakdown-label">服務費</span>
+          <span class="breakdown-label">{{
+            t("orderSummary.serviceFee")
+          }}</span>
           <span class="breakdown-value">{{
             formatCurrency(order.serviceFee, order.currency)
           }}</span>
@@ -126,7 +132,9 @@
           v-if="order.deliveryFee && order.deliveryFee > 0"
           class="breakdown-row delivery-row"
         >
-          <span class="breakdown-label">外送費</span>
+          <span class="breakdown-label">{{
+            t("orderSummary.deliveryFee")
+          }}</span>
           <span class="breakdown-value">{{
             formatCurrency(order.deliveryFee, order.currency)
           }}</span>
@@ -136,7 +144,9 @@
           v-if="order.discount && order.discount > 0"
           class="breakdown-row discount-row"
         >
-          <span class="breakdown-label text-green-600">折扣</span>
+          <span class="breakdown-label text-green-600">{{
+            t("orderSummary.discount")
+          }}</span>
           <span class="breakdown-value text-green-600"
             >-{{ formatCurrency(order.discount, order.currency) }}</span
           >
@@ -146,7 +156,7 @@
       <!-- Total -->
       <div class="total-section">
         <div class="total-row">
-          <span class="total-label">總計</span>
+          <span class="total-label">{{ t("orderSummary.total") }}</span>
           <span class="total-amount">{{
             formatCurrency(order.total, order.currency)
           }}</span>
@@ -155,7 +165,9 @@
 
       <!-- Payment Method Display -->
       <div v-if="selectedPaymentMethod" class="payment-method-display">
-        <div class="payment-method-label">支付方式</div>
+        <div class="payment-method-label">
+          {{ t("orderSummary.paymentMethod") }}
+        </div>
         <div class="payment-method-info">
           <div class="payment-method-icon">
             <component
@@ -186,7 +198,7 @@
             ></path>
           </svg>
         </div>
-        <p class="security-text">您的支付信息受到 SSL 加密保護</p>
+        <p class="security-text">{{ t("orderSummary.securityNotice") }}</p>
       </div>
     </div>
 
@@ -207,13 +219,13 @@
           ></path>
         </svg>
       </div>
-      <p class="empty-text">無法載入訂單信息</p>
+      <p class="empty-text">{{ t("orderSummary.loadError") }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Removed unused computed import
+import { useI18n } from "@/i18n";
 import type {
   PaymentMethod,
   CountryCode,
@@ -259,6 +271,8 @@ withDefaults(defineProps<Props>(), {
   loading: false,
 });
 
+const { t } = useI18n();
+
 // Computed
 const formatCurrency = (amount: number, currency: CurrencyCode): string => {
   const formatters = {
@@ -292,15 +306,15 @@ const getTaxRate = (country: CountryCode): number => {
 
 const getPaymentMethodName = (method: PaymentMethod): string => {
   const names: Record<PaymentMethod, string> = {
-    credit_card: "信用卡",
-    debit_card: "金融卡",
-    bank_transfer: "銀行轉帳",
-    digital_wallet: "數位錢包",
-    cash: "現金",
+    credit_card: t("orderSummary.paymentMethods.creditCard"),
+    debit_card: t("orderSummary.paymentMethods.debitCard"),
+    bank_transfer: t("orderSummary.paymentMethods.bankTransfer"),
+    digital_wallet: t("orderSummary.paymentMethods.digitalWallet"),
+    cash: t("orderSummary.paymentMethods.cash"),
     ecpay: "ECPay",
-    newebpay: "藍新金流",
+    newebpay: t("orderSummary.paymentMethods.newebpay"),
     line_pay: "LINE Pay",
-    unipay: "統一支付",
+    unipay: t("orderSummary.paymentMethods.unipay"),
     fpx: "FPX",
     touch_n_go: "Touch 'n Go",
     touch_n_go_direct: "Touch 'n Go Direct",

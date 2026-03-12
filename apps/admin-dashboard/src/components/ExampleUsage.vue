@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4 p-6">
-    <h2 class="text-xl font-bold">錯誤處理系統示例</h2>
+    <h2 class="text-xl font-bold">{{ t("exampleUsage.title") }}</h2>
 
     <!-- ErrorDisplay 組件自動處理全局錯誤 -->
     <ErrorDisplay
@@ -13,32 +13,34 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- API 錯誤測試 -->
       <div class="bg-white rounded-lg shadow p-4">
-        <h3 class="font-semibold mb-3">API 錯誤處理測試</h3>
+        <h3 class="font-semibold mb-3">{{ t("exampleUsage.apiErrorTest") }}</h3>
         <div class="space-y-2">
           <button
             class="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             @click="testNetworkError"
           >
-            測試網絡錯誤
+            {{ t("exampleUsage.testNetworkError") }}
           </button>
           <button
             class="w-full px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
             @click="testAPIError"
           >
-            測試 API 錯誤
+            {{ t("exampleUsage.testAPIError") }}
           </button>
           <button
             class="w-full px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
             @click="testAuthError"
           >
-            測試認證錯誤
+            {{ t("exampleUsage.testAuthError") }}
           </button>
         </div>
       </div>
 
       <!-- SSE 連接測試 -->
       <div class="bg-white rounded-lg shadow p-4">
-        <h3 class="font-semibold mb-3">SSE 連接測試</h3>
+        <h3 class="font-semibold mb-3">
+          {{ t("exampleUsage.sseConnectionTest") }}
+        </h3>
         <div class="space-y-2">
           <div class="flex items-center space-x-2">
             <div
@@ -48,27 +50,37 @@
               ]"
             />
             <span class="text-sm">
-              {{ sseStatus.isConnected ? "已連接" : "已斷開" }}
+              {{
+                sseStatus.isConnected
+                  ? t("exampleUsage.connected")
+                  : t("exampleUsage.disconnected")
+              }}
             </span>
           </div>
           <button
             class="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             @click="toggleSSE"
           >
-            {{ sseStatus.isConnected ? "斷開 SSE" : "連接 SSE" }}
+            {{
+              sseStatus.isConnected
+                ? t("exampleUsage.disconnectSSE")
+                : t("exampleUsage.connectSSE")
+            }}
           </button>
           <button
             class="w-full px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
             @click="forceSSEReconnect"
           >
-            強制重連 SSE
+            {{ t("exampleUsage.forceReconnectSSE") }}
           </button>
         </div>
       </div>
 
       <!-- 離線模式測試 -->
       <div class="bg-white rounded-lg shadow p-4">
-        <h3 class="font-semibold mb-3">離線模式測試</h3>
+        <h3 class="font-semibold mb-3">
+          {{ t("exampleUsage.offlineModeTest") }}
+        </h3>
         <div class="space-y-2">
           <div class="flex items-center space-x-2">
             <div
@@ -78,20 +90,22 @@
               ]"
             />
             <span class="text-sm">
-              {{ isOnline ? "在線" : "離線" }}
+              {{
+                isOnline ? t("exampleUsage.online") : t("exampleUsage.offline")
+              }}
             </span>
           </div>
           <button
             class="w-full px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
             @click="simulateOffline"
           >
-            模擬離線狀態
+            {{ t("exampleUsage.simulateOffline") }}
           </button>
           <button
             class="w-full px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
             @click="testOfflineRequest"
           >
-            測試離線請求
+            {{ t("exampleUsage.testOfflineRequest") }}
           </button>
         </div>
       </div>
@@ -99,7 +113,7 @@
 
     <!-- 錯誤日誌顯示 -->
     <div class="bg-gray-50 rounded-lg p-4">
-      <h3 class="font-semibold mb-3">錯誤日誌</h3>
+      <h3 class="font-semibold mb-3">{{ t("exampleUsage.errorLogs") }}</h3>
       <div class="max-h-64 overflow-y-auto space-y-1">
         <div
           v-for="(log, index) in errorLogs"
@@ -125,7 +139,7 @@
           v-if="errorLogs.length === 0"
           class="text-gray-500 text-center py-4"
         >
-          暫無錯誤日誌
+          {{ t("exampleUsage.noErrorLogs") }}
         </div>
       </div>
 
@@ -133,7 +147,7 @@
         class="mt-2 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
         @click="clearErrorLogs"
       >
-        清空日誌
+        {{ t("exampleUsage.clearLogs") }}
       </button>
     </div>
   </div>
@@ -141,9 +155,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 import { useStatisticsSSE } from "@/composables/useStatisticsSSE";
 import { api } from "@/services/api";
+
+const { t } = useI18n();
 
 // SSE 連接狀態
 const sse = useStatisticsSSE({ autoConnect: false });
@@ -175,7 +192,7 @@ const testNetworkError = async () => {
     KitchenErrorHandler.handleAPIError(error, {
       context: "Manual network error test",
     });
-    addErrorLog("network", "high", "網絡連接失敗");
+    addErrorLog("network", "high", t("exampleUsage.networkFailed"));
   }
 };
 
@@ -184,7 +201,7 @@ const testAPIError = async () => {
     // 發送一個會失敗的 API 請求
     await api.get("/non-existent-endpoint");
   } catch {
-    addErrorLog("api", "medium", "API 端點不存在");
+    addErrorLog("api", "medium", t("exampleUsage.apiEndpointNotFound"));
   }
 };
 
@@ -203,7 +220,7 @@ const testAuthError = async () => {
     KitchenErrorHandler.handleAPIError(error, {
       context: "Manual auth error test",
     });
-    addErrorLog("permission", "high", "認證令牌已過期");
+    addErrorLog("permission", "high", t("exampleUsage.tokenExpired"));
   }
 };
 
@@ -220,7 +237,7 @@ const toggleSSE = () => {
 
 const forceSSEReconnect = () => {
   sse.reconnect();
-  addErrorLog("sse", "low", "SSE 強制重連");
+  addErrorLog("sse", "low", t("exampleUsage.sseForceReconnect"));
 };
 
 // 離線模式測試
@@ -238,7 +255,9 @@ const simulateOffline = () => {
   addErrorLog(
     "network",
     "medium",
-    isOnline.value ? "網絡已恢復" : "網絡已斷開",
+    isOnline.value
+      ? t("exampleUsage.networkRestored")
+      : t("exampleUsage.networkDisconnected"),
   );
 };
 
@@ -250,10 +269,10 @@ const testOfflineRequest = async () => {
         offlineStrategy: "queue",
       } as any);
     } catch {
-      addErrorLog("network", "medium", "離線請求已排隊");
+      addErrorLog("network", "medium", t("exampleUsage.offlineRequestQueued"));
     }
   } else {
-    addErrorLog("info", "low", "當前處於在線狀態");
+    addErrorLog("info", "low", t("exampleUsage.currentlyOnline"));
   }
 };
 
