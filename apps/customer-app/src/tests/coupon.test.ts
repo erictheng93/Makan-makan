@@ -42,6 +42,9 @@ const mockCartStore: any = {
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    tWithParams: (key: string) => key,
+    safeT: (key: string) => key,
+    tPlural: (key: string) => key,
   }),
 }));
 
@@ -251,7 +254,10 @@ describe("Coupon Functionality in CartView", () => {
 
       // Check if success message is displayed (the component uses text-green-600 for success)
       // The success message appears when couponValidationMessage is set and couponValidationError is false
-      expect(wrapper.vm.couponValidationMessage).toContain("優惠券已套用");
+      // useI18n is mocked to return keys as-is, so tWithParams("toast.couponApplied", ...) returns "toast.couponApplied"
+      expect(wrapper.vm.couponValidationMessage).toContain(
+        "toast.couponApplied",
+      );
       expect(wrapper.vm.couponValidationError).toBe(false);
     });
 

@@ -31,8 +31,11 @@ describe("Core Modules Integration Tests", () => {
     app = await createTestApp(db); // Pass db to createTestApp so they share the same instance
 
     // Create test restaurant and user
-    testRestaurantId = "test-restaurant-1";
+    // testRestaurantId is a string "1" to match the auto-assigned integer id in the test DB
+    // (test DB uses INTEGER AUTOINCREMENT for restaurants.id, so first record gets id=1)
+    // Using "1" ensures String(restaurantId) = "1" and loose equality 1 == "1" works in mock queries
     testUserId = 1;
+    testRestaurantId = String(testUserId);
     // Generate a valid JWT token for testing
     authToken = generateTestToken({
       id: testUserId,
@@ -73,7 +76,10 @@ describe("Core Modules Integration Tests", () => {
     }
 
     // Create test restaurant after cleanup
-    // Note: publicId is used by OrderService to query restaurants
+    // Note: test-utils.ts creates the test DB with the old schema:
+    //   restaurants.id = INTEGER AUTOINCREMENT, public_id = TEXT, created_at = TEXT
+    // This is the in-memory test DB schema (not the production migration schema)
+    const nowIso = new Date().toISOString();
     await db
       .prepare(
         `
@@ -82,8 +88,8 @@ describe("Core Modules Integration Tests", () => {
     `,
       )
       .bind(
-        1, // Use numeric id for database
-        testRestaurantId, // publicId must match restaurantId used in orders
+        testUserId, // Use numeric id (INTEGER PK in test DB schema)
+        testRestaurantId, // public_id = "test-restaurant-1" for any public-id lookups
         "Test Restaurant",
         "Casual Dining",
         "Restaurant",
@@ -92,12 +98,13 @@ describe("Core Modules Integration Tests", () => {
         "012-3456789",
         "test@restaurant.com",
         1, // isAvailable = true
-        new Date().toISOString(),
-        new Date().toISOString(),
+        nowIso,
+        nowIso,
       )
       .run();
 
     // Create test user after cleanup
+    // test-utils.ts users table: id = INTEGER AUTOINCREMENT, created_at = TEXT
     await db
       .prepare(
         `
@@ -112,10 +119,10 @@ describe("Core Modules Integration Tests", () => {
         "Test User", // fullName is required (NOT NULL)
         "hashedpassword", // Placeholder password hash
         0, // Admin role
-        testRestaurantId, // restaurant_id is now TEXT
+        testRestaurantId, // restaurant_id references the public_id
         1, // isActive = true
-        new Date().toISOString(),
-        new Date().toISOString(),
+        nowIso,
+        nowIso,
       )
       .run();
   });
@@ -215,7 +222,7 @@ describe("Core Modules Integration Tests", () => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId, // Validation schema expects number
+          restaurantId: 1, // createTableSchema requires z.number().int().positive()
           number: "A1",
           capacity: 4,
           isActive: true,
@@ -370,7 +377,7 @@ describe("Core Modules Integration Tests", () => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId, // Validation schema expects number
+          restaurantId: 1, // createTableSchema requires z.number().int().positive()
           number: "B2",
           capacity: 2,
           isActive: true,
@@ -398,7 +405,7 @@ describe("Core Modules Integration Tests", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          restaurantId: testRestaurantId, // Queue validation expects number
+          restaurantId: testUserId, // Queue service queries eq(restaurants.id, ...) — test DB seeds restaurant with id=testUserId (INTEGER)
           customerName: "排隊客戶",
           customerPhone: "012-9876543",
           partySize: 2,
@@ -549,7 +556,7 @@ describe("Core Modules Integration Tests", () => {
             email: `user${roleData.role}@test.com`,
             fullName: roleData.name,
             role: roleData.role,
-            restaurantId: testRestaurantId, // Validation schema expects number
+            restaurantId: testUserId, // createUserSchema expects z.number().int().positive()
             password: "Test@123456", // Updated to meet strong password requirements
           }),
         });
@@ -805,7 +812,7 @@ describe("Core Modules Integration Tests", () => {
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
-        restaurantId: testRestaurantId, // Validation schema expects number
+        restaurantId: testUserId, // createTableSchema requires z.number().int().positive()
         number: "T1",
         capacity: 4,
         isActive: true,

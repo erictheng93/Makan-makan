@@ -417,9 +417,12 @@ describe("實時群組訂單集成測試", () => {
       onLine: true,
     });
 
-    // Mock crypto.randomUUID
+    // Mock crypto.randomUUID while preserving all other crypto methods
+    // (including getRandomValues which is used by mockData utilities)
+    const originalCrypto = global.crypto;
     vi.stubGlobal("crypto", {
-      ...global.crypto,
+      getRandomValues: originalCrypto?.getRandomValues?.bind(originalCrypto),
+      subtle: originalCrypto?.subtle,
       randomUUID: () => Math.random().toString(36).substring(2),
     });
   });

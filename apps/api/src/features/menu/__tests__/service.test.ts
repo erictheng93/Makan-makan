@@ -262,7 +262,7 @@ describe("MenuService", () => {
       const result = await menuService.getMenuItem(1);
 
       expect(result?.categoryId).toBe(1);
-      expect(result?.restaurantId).toBe(1);
+      expect(result?.restaurantId).toBe("1"); // transformMenuItem always returns restaurantId as string
     });
 
     it("should handle errors", async () => {

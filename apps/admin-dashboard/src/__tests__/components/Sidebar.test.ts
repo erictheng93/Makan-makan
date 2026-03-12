@@ -150,15 +150,19 @@ describe("Sidebar Component", () => {
     it("should apply active styles to child routes", () => {
       const wrapper = createWrapper({ path: "/dashboard/orders" });
 
-      // Dashboard parent should still be considered active
+      // When on /dashboard/orders, the "orders" nav item should be active,
+      // NOT the dashboard item. The isActiveRoute function for /dashboard
+      // only returns true for an exact /dashboard path match to avoid
+      // the dashboard item being highlighted on all sub-pages.
       const links = wrapper.findAll("a");
       const dashboardLink = links.find((link) =>
         link.text().includes("儀表板"),
       );
 
       if (dashboardLink) {
-        // Dashboard is active because /dashboard/orders starts with /dashboard
-        expect(dashboardLink.classes()).toContain("bg-primary-50");
+        // Dashboard is NOT active when on a child route like /dashboard/orders
+        // because the component uses exact matching for the /dashboard path.
+        expect(dashboardLink.classes()).not.toContain("bg-primary-50");
       }
     });
 

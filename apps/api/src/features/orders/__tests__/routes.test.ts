@@ -21,7 +21,7 @@ describe("Orders Routes Unit Tests", () => {
     describe("Create Order Endpoint Schema", () => {
       it("should validate complete order creation request", () => {
         const validRequest = {
-          restaurantId: 1,
+          restaurantId: "1", // Schema requires z.string().min(1)
           tableId: 5,
           customerName: "John Doe",
           customerPhone: "+60123456789",
@@ -31,7 +31,7 @@ describe("Orders Routes Unit Tests", () => {
             { menuItemId: 2, quantity: 1, price: 2000 },
           ],
           notes: "Birthday celebration",
-          orderType: "dine_in",
+          orderType: "shop", // Valid orderType values: "shop" | "table" | "seat"
           couponCode: "SAVE10",
         };
 
@@ -41,7 +41,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should validate minimal order creation request", () => {
         const minimalRequest = {
-          restaurantId: 1,
+          restaurantId: "1", // Schema requires z.string().min(1)
           items: [{ menuItemId: 1, quantity: 1 }],
         };
 
@@ -51,7 +51,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should reject order with no items", () => {
         const invalidRequest = {
-          restaurantId: 1,
+          restaurantId: "1",
           items: [],
         };
 
@@ -61,7 +61,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should reject order with invalid restaurant ID", () => {
         const invalidRequest = {
-          restaurantId: 0,
+          restaurantId: "", // Empty string fails z.string().min(1)
           items: [{ menuItemId: 1, quantity: 1 }],
         };
 
@@ -71,7 +71,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should reject order with invalid item quantity", () => {
         const invalidRequest = {
-          restaurantId: 1,
+          restaurantId: "1",
           items: [{ menuItemId: 1, quantity: 0 }],
         };
 
@@ -81,7 +81,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should validate order with scheduled time", () => {
         const scheduledOrder = {
-          restaurantId: 1,
+          restaurantId: "1",
           items: [{ menuItemId: 1, quantity: 1 }],
           scheduledTime: "2025-12-25T18:00:00Z",
         };
@@ -91,10 +91,12 @@ describe("Orders Routes Unit Tests", () => {
       });
 
       it("should validate all order types", () => {
-        const types = ["dine_in", "takeaway", "delivery"];
+        // Valid orderType values: "shop" | "table" | "seat"
+        // Note: "dine_in"/"takeaway"/"delivery" are fulfillmentType values, not orderType
+        const types = ["shop", "table", "seat"];
         types.forEach((orderType) => {
           const request = {
-            restaurantId: 1,
+            restaurantId: "1",
             items: [{ menuItemId: 1, quantity: 1 }],
             orderType,
           };
@@ -185,7 +187,7 @@ describe("Orders Routes Unit Tests", () => {
     describe("Coupon Preview Endpoint Schema", () => {
       it("should validate coupon preview request", () => {
         const request = {
-          restaurantId: 1,
+          restaurantId: "1", // previewCouponSchema requires z.string().min(1)
           couponCode: "SUMMER20",
           orderAmount: 5000,
         };
@@ -196,7 +198,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should validate coupon preview with menu items", () => {
         const request = {
-          restaurantId: 1,
+          restaurantId: "1", // previewCouponSchema requires z.string().min(1)
           couponCode: "ITEM10",
           orderAmount: 3000,
           menuItems: [
@@ -211,7 +213,7 @@ describe("Orders Routes Unit Tests", () => {
 
       it("should reject coupon preview with zero amount", () => {
         const request = {
-          restaurantId: 1,
+          restaurantId: "1",
           couponCode: "TEST",
           orderAmount: 0,
         };
@@ -625,13 +627,14 @@ describe("Orders Routes Unit Tests", () => {
 
   describe("Request Data Transformation", () => {
     describe("Filter Query Transformation", () => {
-      it("should transform string restaurantId to number", () => {
+      it("should preserve string restaurantId in filter schema", () => {
+        // orderFilterSchema uses z.string().optional() — no numeric transform
         const query = { restaurantId: "123" };
         const result = orderSchemas.orderFilters.safeParse(query);
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(typeof result.data.restaurantId).toBe("number");
-          expect(result.data.restaurantId).toBe(123);
+          expect(typeof result.data.restaurantId).toBe("string");
+          expect(result.data.restaurantId).toBe("123");
         }
       });
 
@@ -709,8 +712,9 @@ describe("Orders Routes Unit Tests", () => {
       });
 
       it("should provide error codes for validation failures", () => {
+        // restaurantId schema is z.string().min(1) — empty string is invalid
         const invalidData = {
-          restaurantId: "not-a-number",
+          restaurantId: "", // Empty string fails min(1)
           items: [{ menuItemId: 1, quantity: 1 }],
         };
 

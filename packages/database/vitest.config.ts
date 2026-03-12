@@ -7,9 +7,18 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./src/services/__tests__/setup.ts"],
     include: ["src/**/__tests__/**/*.test.{js,ts}", "src/**/*.test.{js,ts}"],
-    exclude: ["node_modules/", "dist/"],
+    exclude: [
+      "node_modules/",
+      "dist/",
+      // Excluded: fully superseded by the 8 dedicated split files
+      // (GroupOrderService.create/join/info/cart/split/payment/member/cleanup)
+      // Running both causes OOM due to the monolithic file's heavy mock setup
+      "src/services/__tests__/GroupOrderService.test.ts",
+    ],
     // Memory optimization settings - use forks for better isolation
     pool: "forks",
+    // Vitest 4 flat format (poolOptions removed)
+    execArgv: ["--max-old-space-size=6144", "--expose-gc"],
     maxWorkers: 1,
     isolate: false,
     // Run test files sequentially to prevent memory issues
@@ -19,7 +28,6 @@ export default defineConfig({
     // Sequence tests to avoid race conditions
     sequence: {
       shuffle: false,
-      groupOrder: "database",
     },
     // Increase test timeout for slower tests
     testTimeout: 30000,

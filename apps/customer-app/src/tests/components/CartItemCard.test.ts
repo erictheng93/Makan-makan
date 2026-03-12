@@ -218,12 +218,12 @@ describe("CartItemCard.vue", () => {
 
   describe("備註功能", () => {
     it("應該顯示備註切換按鈕", () => {
-      // Find the toggle button by its text content (contains "備註")
+      // Find the toggle button by its text content (contains "Notes")
       const buttons = wrapper.findAll("button");
-      const toggleBtn = buttons.find((btn) => btn.text().includes("備註"));
+      const toggleBtn = buttons.find((btn) => btn.text().includes("Notes"));
       expect(toggleBtn).toBeTruthy();
-      // When notes exist, button shows "收起備註"
-      expect(toggleBtn?.text()).toContain("收起");
+      // When notes exist, button shows "Hide" + "Notes"
+      expect(toggleBtn?.text()).toContain("Hide");
     });
 
     it("當有備註時應該自動顯示備註輸入框", () => {
@@ -247,12 +247,12 @@ describe("CartItemCard.vue", () => {
       // Find toggle button by text content
       const findToggleBtn = () => {
         const buttons = newWrapper.findAll("button");
-        return buttons.find((btn) => btn.text().includes("備註"));
+        return buttons.find((btn) => btn.text().includes("Notes"));
       };
 
-      // Initially should show "新增備註" and textarea should be hidden
+      // Initially should show "Add" + "Notes" and textarea should be hidden
       let toggleBtn = findToggleBtn();
-      expect(toggleBtn?.text()).toContain("新增");
+      expect(toggleBtn?.text()).toContain("Add");
 
       let textarea = newWrapper.find("textarea");
       expect(textarea.exists()).toBe(false);

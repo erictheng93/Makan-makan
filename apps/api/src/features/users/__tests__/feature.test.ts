@@ -40,32 +40,65 @@ describe("Users Feature Module", () => {
 
       test("owner can only manage restaurant staff", () => {
         const ownerUser = userFactory.buildShopOwner(1);
+        // Use the restaurantId directly from the factory (may be number or string)
+        // so the strict === comparison in canManageUser matches the type stored in the user
+        const ownerRestaurantId = ownerUser.restaurantId as any;
 
         // Can manage staff in same restaurant
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.CHEF, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.CHEF,
+            ownerRestaurantId,
+          ),
         ).toBe(true);
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.SERVICE, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.SERVICE,
+            ownerRestaurantId,
+          ),
         ).toBe(true);
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.CASHIER, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.CASHIER,
+            ownerRestaurantId,
+          ),
         ).toBe(true);
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.CUSTOMER, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.CUSTOMER,
+            ownerRestaurantId,
+          ),
         ).toBe(true);
 
         // Cannot manage other owners or admins
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.ADMIN, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.ADMIN,
+            ownerRestaurantId,
+          ),
         ).toBe(false);
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.OWNER, "1"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.OWNER,
+            ownerRestaurantId,
+          ),
         ).toBe(false);
 
-        // Cannot manage staff in different restaurant
+        // Cannot manage staff in different restaurant (use a different value of same type)
+        const otherRestaurantId =
+          typeof ownerUser.restaurantId === "number" ? 2 : "2";
         expect(
-          usersService.canManageUser(ownerUser, USER_ROLES.CHEF, "2"),
+          usersService.canManageUser(
+            ownerUser,
+            USER_ROLES.CHEF,
+            otherRestaurantId as any,
+          ),
         ).toBe(false);
       });
 

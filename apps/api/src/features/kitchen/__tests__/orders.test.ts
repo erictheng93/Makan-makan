@@ -10,6 +10,7 @@ import { OrderStatus } from "@makanmakan/shared-types";
 
 // Mock OrdersService with hoisted mock for flexibility
 const mockGetOrders = vi.hoisted(() => vi.fn());
+const mockGetDailyStats = vi.hoisted(() => vi.fn());
 
 // Default mock data
 const mockOrdersData = {
@@ -57,6 +58,7 @@ vi.mock("../../orders/services/OrdersService", () => {
   return {
     OrdersService: class MockOrdersService {
       getOrders = mockGetOrders;
+      getDailyStats = mockGetDailyStats;
     },
   };
 });
@@ -72,8 +74,12 @@ describe("KitchenService Orders", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set default mock return value
+    // Set default mock return values
     mockGetOrders.mockResolvedValue(mockOrdersData);
+    mockGetDailyStats.mockResolvedValue({
+      completedToday: 0,
+      cancelledToday: 0,
+    });
     kitchenService = new KitchenService(mockEnv);
   });
 

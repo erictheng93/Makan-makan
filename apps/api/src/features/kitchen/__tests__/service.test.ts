@@ -14,11 +14,15 @@ const mockGetOrders = vi.hoisted(() =>
     pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
   }),
 );
+const mockGetDailyStats = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ completedToday: 0, cancelledToday: 0 }),
+);
 
 vi.mock("../../orders/services/OrdersService", () => {
   return {
     OrdersService: class MockOrdersService {
       getOrders = mockGetOrders;
+      getDailyStats = mockGetDailyStats;
     },
   };
 });

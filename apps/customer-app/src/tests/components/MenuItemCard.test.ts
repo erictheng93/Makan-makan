@@ -102,13 +102,13 @@ describe("MenuItemCard.vue", () => {
   describe("特色標籤", () => {
     it("當 isFeatured 為 true 時應該顯示特色標籤", async () => {
       await wrapper.setProps({ isFeatured: true });
-      expect(wrapper.text()).toContain("⭐ 招牌推薦");
+      expect(wrapper.text()).toContain("⭐ Featured");
       expect(wrapper.classes()).toContain("ring-2");
       expect(wrapper.classes()).toContain("ring-indigo-500");
     });
 
     it("當 isFeatured 為 false 時不應該顯示特色標籤", () => {
-      expect(wrapper.text()).not.toContain("⭐ 招牌推薦");
+      expect(wrapper.text()).not.toContain("⭐ Featured");
       expect(wrapper.classes()).not.toContain("ring-2");
     });
   });
@@ -135,7 +135,7 @@ describe("MenuItemCard.vue", () => {
 
   describe("飲食標籤", () => {
     it("應該顯示清真標籤", () => {
-      expect(wrapper.text()).toContain("清真");
+      expect(wrapper.text()).toContain("Halal");
       const halalTag = wrapper.find(".bg-blue-100.text-blue-800");
       expect(halalTag.exists()).toBe(true);
     });
@@ -148,7 +148,7 @@ describe("MenuItemCard.vue", () => {
         },
       });
 
-      expect(wrapper.text()).toContain("素食");
+      expect(wrapper.text()).toContain("Vegetarian");
       const vegetarianTag = wrapper.find(".bg-green-100.text-green-800");
       expect(vegetarianTag.exists()).toBe(true);
     });
@@ -160,7 +160,7 @@ describe("MenuItemCard.vue", () => {
         item: { ...mockMenuItem, inventoryCount: 0 },
       });
 
-      expect(wrapper.text()).toContain("售完");
+      expect(wrapper.text()).toContain("Sold Out");
       const addButton = wrapper.find('button[data-testid="add-to-cart-btn"]');
       expect(addButton.exists()).toBe(false);
     });
@@ -170,7 +170,7 @@ describe("MenuItemCard.vue", () => {
         item: { ...mockMenuItem, isAvailable: false },
       });
 
-      expect(wrapper.text()).toContain("暫不供應");
+      expect(wrapper.text()).toContain("Unavailable");
     });
   });
 
@@ -181,13 +181,13 @@ describe("MenuItemCard.vue", () => {
       });
 
       const addButton = wrapper.find("button");
-      expect(addButton.text()).toContain("加入");
+      expect(addButton.text()).toContain("Add");
       expect(addButton.classes()).toContain("bg-indigo-600");
     });
 
     it("有客製化選項時應該顯示選擇規格按鈕", () => {
       const customizeButton = wrapper.find("button");
-      expect(customizeButton.text()).toContain("選擇規格");
+      expect(customizeButton.text()).toContain("Select Options");
       expect(customizeButton.classes()).toContain("border-indigo-600");
     });
 
@@ -248,7 +248,7 @@ describe("MenuItemCard.vue", () => {
 
   describe("人氣指標", () => {
     it("應該顯示訂購次數當 orderCount > 0", () => {
-      expect(wrapper.text()).toContain("256 人點過");
+      expect(wrapper.text()).toContain("256 people ordered");
 
       // 檢查心形圖標
       const svgElements = wrapper.findAll("svg");

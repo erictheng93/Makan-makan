@@ -91,7 +91,7 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      expect(wrapper.text()).toContain("無法載入餐廳資訊");
+      expect(wrapper.text()).toContain("Unable to load restaurant information");
     });
 
     it("should show retry button on error", async () => {
@@ -104,7 +104,7 @@ describe("OrderTypeLandingView", () => {
 
       const retryButton = wrapper.find("button");
       expect(retryButton.exists()).toBe(true);
-      expect(retryButton.text()).toContain("重試");
+      expect(retryButton.text()).toContain("Retry");
     });
 
     it("should retry fetching restaurant when retry button is clicked", async () => {
@@ -116,7 +116,7 @@ describe("OrderTypeLandingView", () => {
       await flushPromises();
 
       // Should be in error state
-      expect(wrapper.text()).toContain("無法載入餐廳資訊");
+      expect(wrapper.text()).toContain("Unable to load restaurant information");
 
       // Click retry
       const retryButton = wrapper.find("button");
@@ -174,7 +174,7 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      expect(wrapper.text()).toContain("外帶 Takeaway");
+      expect(wrapper.text()).toContain("Takeaway");
     });
 
     it("should hide delivery button when enableDelivery is false", async () => {
@@ -183,7 +183,7 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      expect(wrapper.text()).not.toContain("外送 Delivery");
+      expect(wrapper.text()).not.toContain("Delivery");
     });
 
     it("should show delivery button when enableDelivery is true", async () => {
@@ -194,7 +194,7 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      expect(wrapper.text()).toContain("外送 Delivery");
+      expect(wrapper.text()).toContain("Delivery");
     });
 
     it("should select takeaway by default", async () => {
@@ -208,7 +208,7 @@ describe("OrderTypeLandingView", () => {
       // Takeaway button should have selected styling (green border)
       const buttons = wrapper.findAll("button");
       const takeawayBtn = buttons.find((btn) =>
-        btn.text().includes("外帶 Takeaway"),
+        btn.text().includes("Takeaway"),
       );
       expect(takeawayBtn?.classes()).toContain("border-green-500");
     });
@@ -223,7 +223,7 @@ describe("OrderTypeLandingView", () => {
 
       const buttons = wrapper.findAll("button");
       const deliveryBtn = buttons.find((btn) =>
-        btn.text().includes("外送 Delivery"),
+        btn.text().includes("Delivery"),
       );
       await deliveryBtn?.trigger("click");
 
@@ -274,20 +274,22 @@ describe("OrderTypeLandingView", () => {
       await flushPromises();
 
       const store = useShopCartStore();
-      const setDeliveryFeeSpy = vi.spyOn(store, "setDeliveryFee");
 
       // Select delivery
       const buttons = wrapper.findAll("button");
       const deliveryBtn = buttons.find((btn) =>
-        btn.text().includes("外送 Delivery"),
+        btn.text().includes("Delivery"),
       );
       await deliveryBtn?.trigger("click");
+      await wrapper.vm.$nextTick();
 
       // Click continue
       const continueButton = wrapper.find("button.bg-indigo-600");
       await continueButton.trigger("click");
+      await wrapper.vm.$nextTick();
 
-      expect(setDeliveryFeeSpy).toHaveBeenCalledWith(5000);
+      // Verify the delivery fee was set on the store state
+      expect(store.deliveryFee).toBe(5000);
     });
   });
 });

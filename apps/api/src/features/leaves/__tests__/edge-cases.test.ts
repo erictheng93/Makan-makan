@@ -130,7 +130,7 @@ describe("Leaves Edge Cases Tests", () => {
       const { createLeaveRequestSchema } =
         await import("../schemas/validation");
       const result = createLeaveRequestSchema.safeParse({
-        restaurantId: "1",
+        restaurantId: "S-20250120-001",
         employeeId: 1,
         leaveTypeId: 1,
         startDate: "2025-01-20",

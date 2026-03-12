@@ -228,7 +228,7 @@ describe("Authentication Validation Schemas", () => {
     it("should accept optional restaurantId", () => {
       const result = authSchemas.register.safeParse({
         ...validRegister,
-        restaurantId: 1,
+        restaurantId: "S-20241225-001",
       });
       expect(result.success).toBe(true);
     });

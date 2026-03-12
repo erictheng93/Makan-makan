@@ -407,7 +407,7 @@ describe("Authentication Routes", () => {
           password: "StaffPass123!",
           confirmPassword: "StaffPass123!",
           role: 2,
-          restaurantId: "test-restaurant-1",
+          restaurantId: "S-20241225-001",
         }),
       });
 
@@ -456,7 +456,7 @@ describe("Authentication Routes", () => {
           password: "StaffPass123!",
           confirmPassword: "StaffPass123!",
           role: 2,
-          restaurantId: "test-restaurant-1",
+          restaurantId: "S-20241225-001",
         }),
       });
 

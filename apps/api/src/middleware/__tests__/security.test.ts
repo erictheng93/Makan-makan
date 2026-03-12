@@ -217,7 +217,7 @@ describe("Input Sanitization Middleware", () => {
     expect(result.url).not.toContain("javascript:");
   });
 
-  it("should sanitize event handlers", async () => {
+  it("should sanitize event handlers by HTML-encoding surrounding characters", async () => {
     const req = new Request("http://localhost/test", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -227,7 +227,11 @@ describe("Input Sanitization Middleware", () => {
     const res = await app.request(req, { env: mockEnv } as any);
     const result = (await res.json()) as any;
 
-    expect(result.html).not.toContain("onerror");
+    // The sanitizer HTML-encodes <, >, ", = characters, neutralizing the event handler.
+    // The tag brackets and attribute delimiters are encoded so the browser cannot parse
+    // the string as HTML — the raw "<img" string is no longer present.
+    expect(result.html).not.toContain("<img");
+    expect(result.html).toContain("&lt;");
   });
 
   it("should encode HTML entities", async () => {

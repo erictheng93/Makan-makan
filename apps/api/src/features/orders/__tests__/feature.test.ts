@@ -534,7 +534,7 @@ describe("Orders Feature", () => {
         if (result.success) {
           expect(result.data.restaurantId).toBe("1");
           expect(result.data.items).toHaveLength(1);
-          expect(result.data.orderType).toBe("dine_in");
+          expect(result.data.orderType).toBe("shop"); // Schema default and valid orderType values are "shop" | "table" | "seat"
         }
       });
 

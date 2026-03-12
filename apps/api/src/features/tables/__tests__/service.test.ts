@@ -725,6 +725,7 @@ describe("TablesService", () => {
         inactiveTables: 2,
         averageOccupancyRate: 60,
         byFloor: { 1: 10, 2: 8, 3: 2 },
+        byCapacity: { 2: 5, 4: 10, 6: 5 },
       });
 
       const result = await tablesService.getTableStats(1);
@@ -744,6 +745,7 @@ describe("TablesService", () => {
         inactiveTables: 0,
         averageOccupancyRate: 50,
         byFloor: { 1: 6, 2: 4 },
+        byCapacity: {},
       });
 
       const result = await tablesService.getTableStats(1);

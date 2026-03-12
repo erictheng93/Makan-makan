@@ -56,7 +56,7 @@ describe("Group Orders E2E Tests", () => {
       id: 2,
       username: "owner",
       role: 1,
-      restaurantId: "1",
+      restaurantId: 1, // Must match transformed restaurantId (number) from statisticsQuerySchema
     });
 
     // Seed test data
@@ -215,7 +215,7 @@ describe("Group Orders E2E Tests", () => {
     );
 
     console.log("[E2E Setup] Created test data:", {
-      restaurantId: testRestaurantId,
+      restaurantId: Number(testRestaurantId),
       tableId: testTableId,
       categoryId: testCategoryId,
       menuItemId: testMenuItemId,
@@ -231,7 +231,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
           maxMembers: 6,
           expirationHours: 2,
@@ -265,7 +265,7 @@ describe("Group Orders E2E Tests", () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -303,7 +303,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
           maxMembers: 4,
         }),
@@ -441,7 +441,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -581,7 +581,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -711,7 +711,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -812,7 +812,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -908,7 +908,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -1003,7 +1003,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -1154,7 +1154,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -1259,7 +1259,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
         }),
       });
@@ -1331,7 +1331,7 @@ describe("Group Orders E2E Tests", () => {
             Authorization: `Bearer ${ownerToken}`,
           },
           body: JSON.stringify({
-            restaurantId: testRestaurantId,
+            restaurantId: Number(testRestaurantId),
             tableId: testTableId,
           }),
         });
@@ -1414,7 +1414,7 @@ describe("Group Orders E2E Tests", () => {
           Authorization: `Bearer ${ownerToken}`,
         },
         body: JSON.stringify({
-          restaurantId: testRestaurantId,
+          restaurantId: Number(testRestaurantId),
           tableId: testTableId,
           maxMembers: 3,
         }),

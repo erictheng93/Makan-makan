@@ -40,12 +40,12 @@ describe("Orders Validation Schemas", () => {
   describe("createOrderSchema", () => {
     it("should validate valid order data", () => {
       const validData = {
-        restaurantId: 1,
+        restaurantId: "1",
         tableId: 1,
         customerName: "John Doe",
         customerPhone: "+1234567890",
         items: [{ menuItemId: 1, quantity: 2, price: 1000 }],
-        orderType: "dine_in",
+        orderType: "shop", // Valid values: "shop" | "table" | "seat"
       };
       const result = createOrderSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -53,7 +53,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject negative restaurantId", () => {
       const invalidData = {
-        restaurantId: -1,
+        restaurantId: "",
         items: [{ menuItemId: 1, quantity: 1 }],
       };
       const result = createOrderSchema.safeParse(invalidData);
@@ -62,7 +62,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject empty items array", () => {
       const invalidData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [],
       };
       const result = createOrderSchema.safeParse(invalidData);
@@ -72,7 +72,7 @@ describe("Orders Validation Schemas", () => {
     it("should reject items exceeding max limit", () => {
       const items = Array(51).fill({ menuItemId: 1, quantity: 1 });
       const invalidData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items,
       };
       const result = createOrderSchema.safeParse(invalidData);
@@ -81,7 +81,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should validate order with customizations", () => {
       const validData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [
           {
             menuItemId: 1,
@@ -109,17 +109,18 @@ describe("Orders Validation Schemas", () => {
             },
           },
         ],
-        orderType: "dine_in",
+        orderType: "table", // Valid values: "shop" | "table" | "seat"
       };
       const result = createOrderSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });
 
     it("should validate all order types", () => {
-      const orderTypes = ["dine_in", "takeaway", "delivery"];
+      // Valid orderType values are "shop" | "table" | "seat" (not fulfillmentType values)
+      const orderTypes = ["shop", "table", "seat"];
       orderTypes.forEach((orderType) => {
         const data = {
-          restaurantId: 1,
+          restaurantId: "1",
           items: [{ menuItemId: 1, quantity: 1 }],
           orderType,
         };
@@ -130,7 +131,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject invalid order type", () => {
       const invalidData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [{ menuItemId: 1, quantity: 1 }],
         orderType: "invalid_type",
       };
@@ -140,7 +141,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should validate scheduled time", () => {
       const validData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [{ menuItemId: 1, quantity: 1 }],
         scheduledTime: "2025-12-25T12:00:00Z",
       };
@@ -150,7 +151,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should validate customer info object", () => {
       const validData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [{ menuItemId: 1, quantity: 1 }],
         customerInfo: {
           name: "John",
@@ -165,7 +166,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject quantity exceeding max", () => {
       const invalidData = {
-        restaurantId: 1,
+        restaurantId: "1",
         items: [{ menuItemId: 1, quantity: 100 }],
       };
       const result = createOrderSchema.safeParse(invalidData);
@@ -295,7 +296,7 @@ describe("Orders Validation Schemas", () => {
       const result = orderFilterSchema.safeParse({ restaurantId: "1" });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.restaurantId).toBe(1);
+        expect(result.data.restaurantId).toBe("1");
       }
     });
 
@@ -395,7 +396,7 @@ describe("Orders Validation Schemas", () => {
   describe("previewCouponSchema", () => {
     it("should validate coupon preview request", () => {
       const result = previewCouponSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "1",
         couponCode: "SAVE10",
         orderAmount: 2000,
       });
@@ -404,7 +405,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should validate with menu items", () => {
       const result = previewCouponSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "1",
         couponCode: "SAVE10",
         orderAmount: 2000,
         menuItems: [
@@ -417,7 +418,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject empty coupon code", () => {
       const result = previewCouponSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "1",
         couponCode: "",
         orderAmount: 2000,
       });
@@ -426,7 +427,7 @@ describe("Orders Validation Schemas", () => {
 
     it("should reject negative order amount", () => {
       const result = previewCouponSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "1",
         couponCode: "SAVE10",
         orderAmount: -100,
       });

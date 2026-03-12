@@ -72,53 +72,59 @@ describe("SettingsView – 外帶/外送設定 section", () => {
   });
 
   // 1. Section heading
+  // The i18n key settings.delivery.title renders as "外帶 / 外送設定" (with spaces)
   it("should render delivery settings section heading '外帶/外送設定'", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
+    // The heading uses t("settings.delivery.title") which renders as "外帶 / 外送設定"
     const heading = wrapper
       .findAll("h3")
-      .find((h) => h.text().includes("外帶/外送設定"));
+      .find((h) => h.text().includes("外帶"));
 
     expect(heading).toBeDefined();
-    expect(heading!.text()).toContain("外帶/外送設定");
+    expect(heading!.text()).toContain("外帶");
+    expect(heading!.text()).toContain("外送設定");
   });
 
   // 2. enableTakeaway toggle
+  // The i18n key settings.delivery.enableTakeaway renders as "啟用外帶"
   it("should display enableTakeaway toggle switch", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
     // The toggle is a checkbox input with v-model bound to deliverySettings.enableTakeaway
+    // The container has classes: flex items-center justify-between p-3 bg-gray-50 rounded-lg
     const checkboxes = wrapper.findAll('input[type="checkbox"]');
-    // First checkbox in the delivery section is enableTakeaway
     const takeawayCheckbox = checkboxes.find((c) => {
       const container = c.element.closest(".flex.items-center.justify-between");
-      return container?.textContent?.includes("啟用外帶服務");
+      return container?.textContent?.includes("啟用外帶");
     });
 
     expect(takeawayCheckbox).toBeDefined();
   });
 
   // 3. enableDelivery toggle
+  // The i18n key settings.delivery.enableDelivery renders as "啟用外送"
   it("should display enableDelivery toggle switch", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
     const checkboxes = wrapper.findAll('input[type="checkbox"]');
     const deliveryCheckbox = checkboxes.find((c) => {
       const container = c.element.closest(".flex.items-center.justify-between");
-      return container?.textContent?.includes("啟用外送服務");
+      return container?.textContent?.includes("啟用外送");
     });
 
     expect(deliveryCheckbox).toBeDefined();
   });
 
   // 4. Delivery fee input
+  // The i18n key settings.delivery.deliveryFee renders as "外送費用"
   it("should display delivery fee input field", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
-    // Look for the number input that is surrounded by the "外送費設定" label
+    // Look for the number input surrounded by the "外送費用" label
     const deliveryFeeLabel = wrapper
       .findAll("label")
-      .find((l) => l.text().includes("外送費設定"));
+      .find((l) => l.text().includes("外送費用"));
     expect(deliveryFeeLabel).toBeDefined();
 
     // Find number input within the same parent container
@@ -130,12 +136,13 @@ describe("SettingsView – 外帶/外送設定 section", () => {
   });
 
   // 5. Prep time min/max inputs
+  // The i18n key settings.delivery.estimatedPrepTime renders as "預估備餐時間"
   it("should display prep time min and max inputs", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
     const prepTimeLabel = wrapper
       .findAll("label")
-      .find((l) => l.text().includes("預估外帶準備時間"));
+      .find((l) => l.text().includes("預估備餐時間"));
     expect(prepTimeLabel).toBeDefined();
 
     const prepContainer = prepTimeLabel!.element.closest(
@@ -153,7 +160,7 @@ describe("SettingsView – 外帶/外送設定 section", () => {
     // it is always editable. This test verifies the current behaviour.
     const deliveryFeeLabel = wrapper
       .findAll("label")
-      .find((l) => l.text().includes("外送費設定"));
+      .find((l) => l.text().includes("外送費用"));
     const feeContainer = deliveryFeeLabel!.element.closest(
       ".border.border-gray-200",
     );
@@ -166,12 +173,13 @@ describe("SettingsView – 外帶/外送設定 section", () => {
     expect(feeInput!.disabled).toBe(false);
   });
 
-  // 7. Helper text "設為 0 即為免費外送"
-  it("should show helper text '設為 0 即為免費外送'", async () => {
+  // 7. Helper text for free delivery
+  // The i18n key settings.delivery.freeDeliveryHint renders as "設定 0 表示免運費"
+  it("should show helper text for free delivery hint", async () => {
     const wrapper = await mountAndOpenOrdersTab();
 
     const html = wrapper.html();
-    expect(html).toContain("設為 0 即為免費外送");
+    expect(html).toContain("設定 0 表示免運費");
   });
 
   // 8. Delivery settings bound to component state
@@ -179,10 +187,11 @@ describe("SettingsView – 外帶/外送設定 section", () => {
     const wrapper = await mountAndOpenOrdersTab();
 
     // Find the enableTakeaway checkbox — initial value is true
+    // The label text is "啟用外帶" (rendered by t("settings.delivery.enableTakeaway"))
     const checkboxes = wrapper.findAll('input[type="checkbox"]');
     const takeawayCheckbox = checkboxes.find((c) => {
       const container = c.element.closest(".flex.items-center.justify-between");
-      return container?.textContent?.includes("啟用外帶服務");
+      return container?.textContent?.includes("啟用外帶");
     });
 
     expect(takeawayCheckbox).toBeDefined();
@@ -190,18 +199,20 @@ describe("SettingsView – 外帶/外送設定 section", () => {
     expect((takeawayCheckbox!.element as HTMLInputElement).checked).toBe(true);
 
     // Find the enableDelivery checkbox — initial value is false
+    // The label text is "啟用外送" (rendered by t("settings.delivery.enableDelivery"))
     const deliveryCheckbox = checkboxes.find((c) => {
       const container = c.element.closest(".flex.items-center.justify-between");
-      return container?.textContent?.includes("啟用外送服務");
+      return container?.textContent?.includes("啟用外送");
     });
     expect(deliveryCheckbox).toBeDefined();
     // Default: enableDelivery = false
     expect((deliveryCheckbox!.element as HTMLInputElement).checked).toBe(false);
 
     // Default delivery fee = 0
+    // The label text is "外送費用" (rendered by t("settings.delivery.deliveryFee"))
     const deliveryFeeLabel = wrapper
       .findAll("label")
-      .find((l) => l.text().includes("外送費設定"));
+      .find((l) => l.text().includes("外送費用"));
     const feeContainer = deliveryFeeLabel!.element.closest(
       ".border.border-gray-200",
     );
@@ -247,7 +258,7 @@ describe("SettingsView – 外帶/外送設定 section", () => {
 
     const deliveryFeeLabel = wrapper
       .findAll("label")
-      .find((l) => l.text().includes("外送費設定"));
+      .find((l) => l.text().includes("外送費用"));
     const feeContainer = deliveryFeeLabel!.element.closest(
       ".border.border-gray-200",
     );

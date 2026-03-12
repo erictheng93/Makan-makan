@@ -26,6 +26,7 @@ const mockDatabaseAnalyticsService = {
   getCustomerAnalytics: vi.fn(),
   getOrderAnalytics: vi.fn(),
   getFinancialReport: vi.fn(),
+  getRealtimeDashboard: vi.fn(),
 };
 
 // Mock cache service
@@ -90,6 +91,13 @@ describe("Analytics Feature Tests", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockCacheService.get.mockResolvedValue(null); // Default: no cache
+
+    // Default mock for getRealtimeDashboard (used by getRealtimeData)
+    mockDatabaseAnalyticsService.getRealtimeDashboard.mockResolvedValue({
+      activeOrders: 5,
+      kitchenQueue: 3,
+      occupiedTables: 8,
+    });
 
     const { default: analyticsRoutes } = await import("../routes/index");
     app = new Hono();

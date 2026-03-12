@@ -155,7 +155,7 @@ describe("TimelineItem.vue", () => {
         estimatedTime: "15-20 分鐘",
       });
 
-      expect(wrapper.text()).toContain("預估 15-20 分鐘");
+      expect(wrapper.text()).toContain("estimated 15-20 分鐘");
     });
 
     it("非進行中狀態不應該顯示預估時間", async () => {
@@ -164,11 +164,11 @@ describe("TimelineItem.vue", () => {
         estimatedTime: "15-20 分鐘",
       });
 
-      expect(wrapper.text()).not.toContain("預估 15-20 分鐘");
+      expect(wrapper.text()).not.toContain("estimated 15-20 分鐘");
     });
 
     it("沒有預估時間時不應該顯示", () => {
-      expect(wrapper.text()).not.toContain("預估");
+      expect(wrapper.text()).not.toContain("estimated");
     });
   });
 

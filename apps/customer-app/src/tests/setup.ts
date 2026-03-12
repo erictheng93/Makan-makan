@@ -1,9 +1,16 @@
 import { vi } from "vitest";
 import { config } from "@vue/test-utils";
+import { i18n } from "@/i18n";
 
 // ============================================================
 // Vue Test Utils Global Configuration
 // ============================================================
+
+/**
+ * Register i18n plugin globally so all component tests can call useI18n()
+ * without hitting "Need to install with app.use function"
+ */
+config.global.plugins = [i18n];
 
 /**
  * Configure global directives for Vue Test Utils

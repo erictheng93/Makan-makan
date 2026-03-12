@@ -86,7 +86,7 @@ describe("ShopCartModal – delivery features", () => {
     const wrapper = mountModal();
 
     const text = wrapper.text();
-    expect(text).toContain("外帶");
+    expect(text).toContain("Takeaway");
     wrapper.unmount();
   });
 
@@ -99,7 +99,7 @@ describe("ShopCartModal – delivery features", () => {
     const wrapper = mountModal();
 
     const text = wrapper.text();
-    expect(text).toContain("外送");
+    expect(text).toContain("Delivery");
     wrapper.unmount();
   });
 
@@ -112,8 +112,8 @@ describe("ShopCartModal – delivery features", () => {
 
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
-    expect(text).toContain("外送地址");
-    expect(text).toContain("聯絡電話");
+    expect(text).toContain("Delivery Address");
+    expect(text).toContain("Contact Phone");
     wrapper.unmount();
   });
 
@@ -139,8 +139,8 @@ describe("ShopCartModal – delivery features", () => {
 
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
-    expect(text).toContain("預計取餐時間");
-    expect(text).toContain("約 15-20 分鐘");
+    expect(text).toContain("Estimated Pickup Time");
+    expect(text).toContain("Approx. 15-20 minutes");
     wrapper.unmount();
   });
 
@@ -154,8 +154,8 @@ describe("ShopCartModal – delivery features", () => {
 
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
-    expect(text).toContain("小計");
-    expect(text).toContain("外送費");
+    expect(text).toContain("Subtotal");
+    expect(text).toContain("Delivery Fee");
     wrapper.unmount();
   });
 
@@ -170,9 +170,9 @@ describe("ShopCartModal – delivery features", () => {
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
     // Subtotal line should still appear for delivery
-    expect(text).toContain("小計");
+    expect(text).toContain("Subtotal");
     // But delivery fee line should be hidden
-    expect(text).not.toContain("外送費");
+    expect(text).not.toContain("Delivery Fee");
     wrapper.unmount();
   });
 
@@ -210,10 +210,14 @@ describe("ShopCartModal – delivery features", () => {
       wrapper.find("button[disabled]") || wrapper.findAll("button").at(-1);
     // Find the checkout button by its text content
     const buttons = wrapper.findAll("button");
-    const checkoutButton = buttons.find((b) => b.text().includes("確認訂單"));
+    const checkoutButton = buttons.find((b) =>
+      b.text().includes("Confirm Order"),
+    );
     await checkoutButton?.trigger("click");
 
-    expect(mockToastError).toHaveBeenCalledWith("請輸入外送地址");
+    expect(mockToastError).toHaveBeenCalledWith(
+      "Please enter a delivery address",
+    );
     wrapper.unmount();
   });
 
@@ -232,10 +236,14 @@ describe("ShopCartModal – delivery features", () => {
 
     // Click checkout button
     const buttons = wrapper.findAll("button");
-    const checkoutButton = buttons.find((b) => b.text().includes("確認訂單"));
+    const checkoutButton = buttons.find((b) =>
+      b.text().includes("Confirm Order"),
+    );
     await checkoutButton?.trigger("click");
 
-    expect(mockToastError).toHaveBeenCalledWith("請輸入有效的聯絡電話");
+    expect(mockToastError).toHaveBeenCalledWith(
+      "Please enter a valid phone number",
+    );
     wrapper.unmount();
   });
 
@@ -262,7 +270,9 @@ describe("ShopCartModal – delivery features", () => {
 
     // Click checkout button
     const buttons = wrapper.findAll("button");
-    const checkoutButton = buttons.find((b) => b.text().includes("確認訂單"));
+    const checkoutButton = buttons.find((b) =>
+      b.text().includes("Confirm Order"),
+    );
     await checkoutButton?.trigger("click");
 
     expect(setDeliveryInfoSpy).toHaveBeenCalledWith({
@@ -296,7 +306,9 @@ describe("ShopCartModal – delivery features", () => {
 
     // Click checkout button
     const buttons = wrapper.findAll("button");
-    const checkoutButton = buttons.find((b) => b.text().includes("確認訂單"));
+    const checkoutButton = buttons.find((b) =>
+      b.text().includes("Confirm Order"),
+    );
     await checkoutButton?.trigger("click");
 
     // Wait for async operations

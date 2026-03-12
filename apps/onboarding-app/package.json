@@ -8,6 +8,9 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --fix",
     "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-onboarding-staging",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-onboarding"

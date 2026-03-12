@@ -697,7 +697,7 @@ describe("Authentication Feature", () => {
           password: "StrongPass123!",
           confirmPassword: "StrongPass123!",
           role: 2,
-          restaurantId: "test-restaurant-1",
+          restaurantId: "S-20241225-001",
         };
 
         const result = authSchemas.register.safeParse(validData);

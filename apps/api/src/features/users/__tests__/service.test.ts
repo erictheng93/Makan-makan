@@ -92,7 +92,7 @@ const mockUser = {
   fullName: "Test User",
   phone: "1234567890",
   role: USER_ROLES.CHEF,
-  restaurantId: 1,
+  restaurantId: "1",
   isActive: true,
   isVerified: true,
   preferences: { theme: "dark" },
@@ -114,14 +114,14 @@ const mockOwnerUser = {
   id: 101,
   username: "owner",
   role: USER_ROLES.OWNER,
-  restaurantId: 1,
+  restaurantId: "1",
 };
 
 const mockChefUser = {
   id: 102,
   username: "chef",
   role: USER_ROLES.CHEF,
-  restaurantId: 1,
+  restaurantId: "1",
 };
 
 describe("UsersService", () => {
@@ -200,22 +200,22 @@ describe("UsersService", () => {
 
   describe("canViewUser", () => {
     it("admin can view all users", () => {
-      const targetUser = { id: 200, restaurantId: 5 };
+      const targetUser = { id: 200, restaurantId: "5" };
       expect(usersService.canViewUser(mockAdminUser, targetUser)).toBe(true);
     });
 
     it("user can view themselves", () => {
-      const sameUser = { id: 102, restaurantId: 1 };
+      const sameUser = { id: 102, restaurantId: "1" };
       expect(usersService.canViewUser(mockChefUser, sameUser)).toBe(true);
     });
 
     it("owner can view users in same restaurant", () => {
-      const targetUser = { id: 200, restaurantId: 1 };
+      const targetUser = { id: 200, restaurantId: "1" };
       expect(usersService.canViewUser(mockOwnerUser, targetUser)).toBe(true);
     });
 
     it("owner cannot view users in different restaurant", () => {
-      const targetUser = { id: 200, restaurantId: 2 };
+      const targetUser = { id: 200, restaurantId: "2" };
       expect(usersService.canViewUser(mockOwnerUser, targetUser)).toBe(false);
     });
 
@@ -231,7 +231,7 @@ describe("UsersService", () => {
         usersService.canUpdateUser(mockAdminUser, {
           id: 200,
           role: USER_ROLES.OWNER,
-          restaurantId: 5,
+          restaurantId: "5",
         }),
       ).toBe(true);
     });
@@ -241,7 +241,7 @@ describe("UsersService", () => {
         usersService.canUpdateUser(mockChefUser, {
           id: 102,
           role: USER_ROLES.CHEF,
-          restaurantId: 1,
+          restaurantId: "1",
         }),
       ).toBe(true);
     });
@@ -251,7 +251,7 @@ describe("UsersService", () => {
         usersService.canUpdateUser(mockOwnerUser, {
           id: 200,
           role: USER_ROLES.CHEF,
-          restaurantId: 1,
+          restaurantId: "1",
         }),
       ).toBe(true);
     });
@@ -261,7 +261,7 @@ describe("UsersService", () => {
         usersService.canUpdateUser(mockOwnerUser, {
           id: 200,
           role: USER_ROLES.ADMIN,
-          restaurantId: 1,
+          restaurantId: "1",
         }),
       ).toBe(false);
     });
@@ -429,7 +429,7 @@ describe("UsersService", () => {
     });
 
     it("should return 403 when access denied", async () => {
-      const targetUser = { ...mockUser, restaurantId: 2 }; // Different restaurant
+      const targetUser = { ...mockUser, restaurantId: "2" }; // Different restaurant
       mockUserService.getUserById.mockResolvedValue(targetUser);
 
       const result = await usersService.getUserById(mockOwnerUser, 1);
@@ -440,7 +440,7 @@ describe("UsersService", () => {
     });
 
     it("user can view themselves", async () => {
-      const selfUser = { ...mockUser, id: 102, restaurantId: 1 };
+      const selfUser = { ...mockUser, id: 102, restaurantId: "1" };
       mockUserService.getUserById.mockResolvedValue(selfUser);
 
       const result = await usersService.getUserById(mockChefUser, 102);
@@ -808,7 +808,7 @@ describe("UsersService", () => {
       mockUserService.getUserById.mockResolvedValue({
         ...mockUser,
         role: USER_ROLES.CHEF,
-        restaurantId: 1,
+        restaurantId: "1",
       });
       mockUserService.resetPassword.mockResolvedValue(true);
 

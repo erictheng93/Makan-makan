@@ -277,6 +277,7 @@ class SharedDataStore {
         order_number TEXT NOT NULL UNIQUE,
         status TEXT NOT NULL DEFAULT 'pending',
         order_type TEXT DEFAULT 'table',
+        order_source TEXT DEFAULT 'direct',
         subtotal REAL NOT NULL,
         tax_amount REAL NOT NULL DEFAULT 0,
         service_charge REAL NOT NULL DEFAULT 0,
@@ -1125,6 +1126,8 @@ async function runMigrations(db: TestDB) {
       notes TEXT,
       internalNotes TEXT,
       couponCode TEXT,
+      orderSource TEXT DEFAULT 'direct',
+      orderType TEXT DEFAULT 'table',
       estimatedPrepTime INTEGER,
       actualPrepTime INTEGER,
       confirmedAt DATETIME,
@@ -2272,11 +2275,14 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                     );
 
                     // Filter records in memory using both camelCase and snake_case column names
+                    // Use loose equality (==) to handle numeric/string id comparisons
+                    // (e.g., SQLite returns integer 1 but service queries with string "1")
                     records = allRecords.filter((record: any) => {
                       // Try camelCase first, then snake_case
+                      // eslint-disable-next-line eqeqeq
                       return (
-                        record[columnName!] === filterValue ||
-                        record[snakeCaseColName] === filterValue
+                        record[columnName!] == filterValue ||
+                        record[snakeCaseColName] == filterValue
                       );
                     });
                   } else {
