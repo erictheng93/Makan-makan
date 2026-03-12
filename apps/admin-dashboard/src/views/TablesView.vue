@@ -3,8 +3,10 @@
     <!-- 頁面標題和操作 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">桌台管理</h1>
-        <p class="text-gray-600">管理餐廳桌台和 QR 碼</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("tables.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("tables.subtitle") }}</p>
       </div>
       <div class="flex space-x-4">
         <button
@@ -12,14 +14,14 @@
           @click="generateAllQRCodes"
         >
           <PhotoIcon class="h-4 w-4 mr-2" />
-          批量生成 QR 碼
+          {{ t("tables.batchGenerateQR") }}
         </button>
         <button
           class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="showTableModal = true"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增桌台
+          {{ t("tables.addTable") }}
         </button>
       </div>
     </div>
@@ -32,7 +34,9 @@
             <CheckCircleIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">可用桌台</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("tables.stats.available") }}
+            </h3>
             <p class="text-2xl font-bold text-green-600">
               {{ stats.available }}
             </p>
@@ -46,7 +50,9 @@
             <UserGroupIcon class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">使用中</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("tables.stats.occupied") }}
+            </h3>
             <p class="text-2xl font-bold text-red-600">
               {{ stats.occupied }}
             </p>
@@ -60,7 +66,9 @@
             <ClockIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">已預約</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("tables.stats.reserved") }}
+            </h3>
             <p class="text-2xl font-bold text-yellow-600">
               {{ stats.reserved }}
             </p>
@@ -74,7 +82,9 @@
             <WrenchIcon class="h-6 w-6 text-gray-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">維護中</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("tables.stats.maintenance") }}
+            </h3>
             <p class="text-2xl font-bold text-gray-600">
               {{ stats.maintenance }}
             </p>
@@ -94,7 +104,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜索桌台號碼或位置..."
+              :placeholder="t('tables.searchPlaceholder')"
               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -102,21 +112,25 @@
             v-model="statusFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有狀態</option>
-            <option value="available">可用</option>
-            <option value="occupied">使用中</option>
-            <option value="reserved">已預約</option>
-            <option value="maintenance">維護中</option>
+            <option value="">{{ t("tables.filter.allStatus") }}</option>
+            <option value="available">
+              {{ t("tables.status.available") }}
+            </option>
+            <option value="occupied">{{ t("tables.status.occupied") }}</option>
+            <option value="reserved">{{ t("tables.status.reserved") }}</option>
+            <option value="maintenance">
+              {{ t("tables.status.maintenance") }}
+            </option>
           </select>
           <select
             v-model="capacityFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有容量</option>
-            <option value="2">2人桌</option>
-            <option value="4">4人桌</option>
-            <option value="6">6人桌</option>
-            <option value="8">8人桌以上</option>
+            <option value="">{{ t("tables.filter.allCapacity") }}</option>
+            <option value="2">{{ t("tables.filter.seats2") }}</option>
+            <option value="4">{{ t("tables.filter.seats4") }}</option>
+            <option value="6">{{ t("tables.filter.seats6") }}</option>
+            <option value="8">{{ t("tables.filter.seats8plus") }}</option>
           </select>
         </div>
       </div>
@@ -140,7 +154,7 @@
                 class="w-3 h-3 rounded-full mr-3"
               />
               <h3 class="text-lg font-semibold text-gray-900">
-                桌號 {{ table.tableNumber }}
+                {{ t("tables.tableNumber") }} {{ table.tableNumber }}
               </h3>
             </div>
             <span
@@ -154,11 +168,17 @@
           <div class="space-y-2 mb-4">
             <div class="flex items-center text-sm text-gray-600">
               <UserGroupIcon class="h-4 w-4 mr-2" />
-              <span>容量: {{ table.capacity }} 人</span>
+              <span
+                >{{ t("tables.capacity") }}: {{ table.capacity }}
+                {{ t("tables.people") }}</span
+              >
             </div>
             <div class="flex items-center text-sm text-gray-600">
               <MapPinIcon class="h-4 w-4 mr-2" />
-              <span>位置: {{ table.location || "未設定" }}</span>
+              <span
+                >{{ t("tables.location") }}:
+                {{ table.location || t("tables.notSet") }}</span
+              >
             </div>
             <div
               v-if="table.currentOrderId"
@@ -395,6 +415,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -408,6 +429,8 @@ import {
   WrenchIcon,
 } from "@heroicons/vue/24/outline";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
+
+const { t } = useI18n();
 
 // 響應式數據
 const searchQuery = ref("");

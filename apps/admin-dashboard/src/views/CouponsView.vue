@@ -3,8 +3,10 @@
     <!-- 標題和操作按鈕 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">優惠券管理</h1>
-        <p class="text-gray-600">創建和管理優惠券與促銷活動</p>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("coupons.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("coupons.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-4">
         <button
@@ -12,7 +14,7 @@
           @click="showCreateModal = true"
         >
           <PlusIcon class="w-5 h-5 inline mr-2" />
-          創建優惠券
+          {{ t("coupons.create") }}
         </button>
       </div>
     </div>
@@ -25,7 +27,7 @@
             <TicketIcon class="w-6 h-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-600">總優惠券數</p>
+            <p class="text-sm text-gray-600">{{ t("coupons.stats.total") }}</p>
             <p class="text-2xl font-bold text-gray-900">{{ stats.total }}</p>
           </div>
         </div>
@@ -36,7 +38,7 @@
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-600">已使用</p>
+            <p class="text-sm text-gray-600">{{ t("coupons.stats.used") }}</p>
             <p class="text-2xl font-bold text-gray-900">{{ stats.used }}</p>
           </div>
         </div>
@@ -47,7 +49,7 @@
             <ClockIcon class="w-6 h-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-600">進行中</p>
+            <p class="text-sm text-gray-600">{{ t("coupons.stats.active") }}</p>
             <p class="text-2xl font-bold text-gray-900">{{ stats.active }}</p>
           </div>
         </div>
@@ -58,7 +60,9 @@
             <CurrencyDollarIcon class="w-6 h-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-600">總節省金額</p>
+            <p class="text-sm text-gray-600">
+              {{ t("coupons.stats.totalSavings") }}
+            </p>
             <p class="text-2xl font-bold text-gray-900">
               RM{{ formatMoney(stats.totalSavings) }}
             </p>
@@ -71,42 +75,48 @@
     <div class="bg-white rounded-lg shadow mb-6 p-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >搜索</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("coupons.filters.search")
+          }}</label>
           <input
             v-model="filters.search"
             type="text"
-            placeholder="搜索優惠券代碼或名稱..."
+            :placeholder="t('coupons.filters.searchPlaceholder')"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >狀態</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("coupons.filters.status")
+          }}</label>
           <select
             v-model="filters.status"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">全部狀態</option>
-            <option value="active">進行中</option>
-            <option value="expired">已過期</option>
-            <option value="exhausted">已用完</option>
-            <option value="inactive">已停用</option>
+            <option value="">{{ t("coupons.filters.allStatus") }}</option>
+            <option value="active">{{ t("coupons.filters.active") }}</option>
+            <option value="expired">{{ t("coupons.filters.expired") }}</option>
+            <option value="exhausted">
+              {{ t("coupons.filters.exhausted") }}
+            </option>
+            <option value="inactive">
+              {{ t("coupons.filters.inactive") }}
+            </option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >折扣類型</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("coupons.filters.discountType")
+          }}</label>
           <select
             v-model="filters.discountType"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">全部類型</option>
-            <option value="percentage">百分比折扣</option>
-            <option value="fixed">固定金額</option>
+            <option value="">{{ t("coupons.filters.allTypes") }}</option>
+            <option value="percentage">
+              {{ t("coupons.filters.percentage") }}
+            </option>
+            <option value="fixed">{{ t("coupons.filters.fixed") }}</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -114,7 +124,7 @@
             class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             @click="resetFilters"
           >
-            重置篩選
+            {{ t("coupons.filters.reset") }}
           </button>
         </div>
       </div>
@@ -129,32 +139,32 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                優惠券資訊
+                {{ t("coupons.table.couponInfo") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                折扣
+                {{ t("coupons.table.discount") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                使用情況
+                {{ t("coupons.table.usage") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                有效期
+                {{ t("coupons.table.validity") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                狀態
+                {{ t("coupons.table.status") }}
               </th>
               <th
                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                操作
+                {{ t("coupons.table.actions") }}
               </th>
             </tr>
           </thead>
@@ -183,7 +193,11 @@
                   <span v-if="coupon.discountType === 'percentage'">
                     {{ coupon.discountValue }}%
                     <span v-if="coupon.maxDiscountAmount" class="text-gray-500">
-                      (最高 RM{{ formatMoney(coupon.maxDiscountAmount) }})
+                      ({{
+                        t("coupons.table.maxDiscount", {
+                          amount: formatMoney(coupon.maxDiscountAmount),
+                        })
+                      }})
                     </span>
                   </span>
                   <span v-else>
@@ -194,7 +208,11 @@
                   v-if="coupon.minOrderAmount > 0"
                   class="text-xs text-gray-500"
                 >
-                  最低消費 RM{{ formatMoney(coupon.minOrderAmount) }}
+                  {{
+                    t("coupons.table.minOrder", {
+                      amount: formatMoney(coupon.minOrderAmount),
+                    })
+                  }}
                 </div>
               </td>
               <td class="px-6 py-4">
@@ -204,7 +222,9 @@
                     <span v-if="coupon.usageLimit" class="text-gray-500"
                       >/ {{ coupon.usageLimit }}</span
                     >
-                    <span v-else class="text-gray-500">/ 無限制</span>
+                    <span v-else class="text-gray-500"
+                      >/ {{ t("coupons.table.unlimited") }}</span
+                    >
                   </div>
                   <div
                     v-if="coupon.usageLimit"
@@ -225,7 +245,11 @@
                     {{ formatDate(coupon.validFrom) }}
                   </div>
                   <div class="text-gray-500">
-                    至 {{ formatDate(coupon.validTo) }}
+                    {{
+                      t("coupons.table.validTo", {
+                        date: formatDate(coupon.validTo),
+                      })
+                    }}
                   </div>
                 </div>
               </td>
@@ -245,33 +269,33 @@
                     class="text-indigo-600 hover:text-indigo-900 text-sm"
                     @click="viewCouponStats(coupon)"
                   >
-                    統計
+                    {{ t("coupons.actions.stats") }}
                   </button>
                   <button
                     class="text-blue-600 hover:text-blue-900 text-sm"
                     @click="editCoupon(coupon)"
                   >
-                    編輯
+                    {{ t("coupons.actions.edit") }}
                   </button>
                   <button
                     v-if="coupon.isActive"
                     class="text-yellow-600 hover:text-yellow-900 text-sm"
                     @click="deactivateCoupon(coupon)"
                   >
-                    停用
+                    {{ t("coupons.actions.deactivate") }}
                   </button>
                   <button
                     v-else
                     class="text-green-600 hover:text-green-900 text-sm"
                     @click="activateCoupon(coupon)"
                   >
-                    啟用
+                    {{ t("coupons.actions.activate") }}
                   </button>
                   <button
                     class="text-red-600 hover:text-red-900 text-sm"
                     @click="deleteCoupon(coupon)"
                   >
-                    刪除
+                    {{ t("coupons.actions.delete") }}
                   </button>
                 </div>
               </td>
@@ -290,14 +314,14 @@
             class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             @click="currentPage--"
           >
-            上一頁
+            {{ t("coupons.pagination.previous") }}
           </button>
           <button
             :disabled="currentPage >= totalPages"
             class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             @click="currentPage++"
           >
-            下一頁
+            {{ t("coupons.pagination.next") }}
           </button>
         </div>
         <div
@@ -305,15 +329,19 @@
         >
           <div>
             <p class="text-sm text-gray-700">
-              顯示第 <span class="font-medium">{{ startIndex }}</span> 到
-              <span class="font-medium">{{ endIndex }}</span> 項， 共
-              <span class="font-medium">{{ totalCoupons }}</span> 項結果
+              {{
+                t("coupons.pagination.showing", {
+                  start: startIndex,
+                  end: endIndex,
+                  total: totalCoupons,
+                })
+              }}
             </p>
           </div>
           <div>
             <nav
               class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-              aria-label="分頁"
+              :aria-label="t('coupons.pagination.label')"
             >
               <button
                 :disabled="currentPage === 1"
@@ -402,6 +430,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import {
   PlusIcon,
   TicketIcon,
@@ -414,6 +443,8 @@ import {
 
 // Components
 import { useAsyncModals } from "@/composables/useAsyncModals";
+
+const { t } = useI18n();
 
 // 異步加載 Modal 組件
 const { CouponFormModal, CouponStatsModal } = useAsyncModals();
@@ -490,7 +521,7 @@ const fetchCoupons = async () => {
     if (!response.ok) throw new Error("Failed to fetch coupons");
     couponsData.value = await response.json();
   } catch (error) {
-    toast.error("獲取優惠券列表失敗");
+    toast.error(t("coupons.messages.fetchFailed"));
     console.error("Failed to fetch coupons:", error);
   } finally {
     isLoading.value = false;
@@ -551,13 +582,13 @@ const getCouponStatusText = (coupon: Coupon) => {
   const validTo = new Date(coupon.validTo);
 
   if (!coupon.isActive) {
-    return "已停用";
+    return t("coupons.status.inactive");
   } else if (now > validTo) {
-    return "已過期";
+    return t("coupons.status.expired");
   } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return "已用完";
+    return t("coupons.status.exhausted");
   } else {
-    return "進行中";
+    return t("coupons.status.active");
   }
 };
 
@@ -596,7 +627,7 @@ const handleSaveCoupon = async (couponData: any) => {
       );
 
       if (!response.ok) throw new Error("Failed to update coupon");
-      toast.success("優惠券更新成功");
+      toast.success(t("coupons.messages.updateSuccess"));
     } else {
       // Create new coupon
       const response = await fetch("/api/v1/coupons", {
@@ -608,13 +639,17 @@ const handleSaveCoupon = async (couponData: any) => {
       });
 
       if (!response.ok) throw new Error("Failed to create coupon");
-      toast.success("優惠券創建成功");
+      toast.success(t("coupons.messages.createSuccess"));
     }
 
     await fetchCoupons();
     closeModal();
   } catch (error) {
-    toast.error("操作失敗：" + (error as Error).message);
+    toast.error(
+      t("coupons.messages.operationFailed", {
+        message: (error as Error).message,
+      }),
+    );
   }
 };
 
@@ -628,7 +663,7 @@ const viewCouponStats = async (coupon: Coupon) => {
     couponStats.value = result.data.stats;
     showStatsModal.value = true;
   } catch {
-    toast.error("無法獲取統計數據");
+    toast.error(t("coupons.messages.statsFailed"));
   }
 };
 
@@ -640,10 +675,10 @@ const deactivateCoupon = async (coupon: Coupon) => {
 
     if (!response.ok) throw new Error("Failed to deactivate coupon");
 
-    toast.success("優惠券已停用");
+    toast.success(t("coupons.messages.deactivateSuccess"));
     await fetchCoupons();
   } catch {
-    toast.error("停用失敗");
+    toast.error(t("coupons.messages.deactivateFailed"));
   }
 };
 
@@ -659,15 +694,15 @@ const activateCoupon = async (coupon: Coupon) => {
 
     if (!response.ok) throw new Error("Failed to activate coupon");
 
-    toast.success("優惠券已啟用");
+    toast.success(t("coupons.messages.activateSuccess"));
     await fetchCoupons();
   } catch {
-    toast.error("啟用失敗");
+    toast.error(t("coupons.messages.activateFailed"));
   }
 };
 
 const deleteCoupon = async (coupon: Coupon) => {
-  if (!confirm(`確定要刪除優惠券 "${coupon.name}" 嗎？此操作無法復原。`)) {
+  if (!confirm(t("coupons.messages.deleteConfirm", { name: coupon.name }))) {
     return;
   }
 
@@ -678,10 +713,10 @@ const deleteCoupon = async (coupon: Coupon) => {
 
     if (!response.ok) throw new Error("Failed to delete coupon");
 
-    toast.success("優惠券已刪除");
+    toast.success(t("coupons.messages.deleteSuccess"));
     await fetchCoupons();
   } catch {
-    toast.error("刪除失敗");
+    toast.error(t("coupons.messages.deleteFailed"));
   }
 };
 

@@ -3,8 +3,8 @@
     <!-- 頁面標題和操作 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">菜單管理</h1>
-        <p class="text-gray-600">管理餐廳菜單分類和菜品</p>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t("menu.title") }}</h1>
+        <p class="text-gray-600">{{ t("menu.subtitle") }}</p>
       </div>
       <div class="flex space-x-4">
         <button
@@ -12,14 +12,14 @@
           @click="showCategoryModal = true"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增分類
+          {{ t("menu.addCategory") }}
         </button>
         <button
           class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="showMenuItemModal = true"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增菜品
+          {{ t("menu.addItem") }}
         </button>
       </div>
     </div>
@@ -35,7 +35,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜索菜品名稱..."
+              :placeholder="t('menu.searchPlaceholder')"
               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -43,7 +43,7 @@
             v-model="categoryFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有分類</option>
+            <option value="">{{ t("menu.allCategories") }}</option>
             <option
               v-for="category in categories"
               :key="category.id"
@@ -56,9 +56,9 @@
             v-model="statusFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有狀態</option>
-            <option value="active">啟用</option>
-            <option value="inactive">停用</option>
+            <option value="">{{ t("menu.allStatus") }}</option>
+            <option value="active">{{ t("menu.statusActive") }}</option>
+            <option value="inactive">{{ t("menu.statusInactive") }}</option>
           </select>
         </div>
       </div>
@@ -126,14 +126,14 @@
                     : 'bg-red-100 text-red-800',
                 ]"
               >
-                {{ item.isAvailable ? "供應中" : "已售完" }}
+                {{ item.isAvailable ? t("menu.available") : t("menu.soldOut") }}
               </span>
             </div>
             <div v-if="item.isFeatured" class="absolute top-2 left-2">
               <span
                 class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium"
               >
-                推薦
+                {{ t("menu.featured") }}
               </span>
             </div>
           </div>
@@ -160,7 +160,7 @@
               <div class="flex space-x-2">
                 <button
                   class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                  title="編輯"
+                  :title="t('common.edit')"
                   @click="editMenuItem(item)"
                 >
                   <PencilIcon class="h-4 w-4" />
@@ -172,7 +172,11 @@
                       ? 'text-gray-400 hover:text-red-600'
                       : 'text-gray-400 hover:text-green-600',
                   ]"
-                  :title="item.isAvailable ? '停用' : '啟用'"
+                  :title="
+                    item.isAvailable
+                      ? t('menu.statusInactive')
+                      : t('menu.statusActive')
+                  "
                   @click="toggleMenuItemStatus(item)"
                 >
                   <component
@@ -182,7 +186,7 @@
                 </button>
                 <button
                   class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                  title="刪除"
+                  :title="t('common.delete')"
                   @click="deleteMenuItem(item)"
                 >
                   <TrashIcon class="h-4 w-4" />
@@ -197,14 +201,16 @@
     <!-- 空狀態 -->
     <div v-if="filteredMenuItems.length === 0" class="text-center py-12">
       <CakeIcon class="mx-auto h-12 w-12 text-gray-400" />
-      <h3 class="mt-2 text-sm font-medium text-gray-900">暫無菜品</h3>
-      <p class="mt-1 text-sm text-gray-500">開始添加您的第一道菜品</p>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">
+        {{ t("menu.empty.title") }}
+      </h3>
+      <p class="mt-1 text-sm text-gray-500">{{ t("menu.empty.subtitle") }}</p>
       <button
         class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         @click="showMenuItemModal = true"
       >
         <PlusIcon class="h-4 w-4 mr-2" />
-        新增菜品
+        {{ t("menu.addItem") }}
       </button>
     </div>
 
@@ -218,14 +224,17 @@
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
-              {{ editingCategory ? "編輯分類" : "新增分類" }}
+              {{
+                editingCategory ? t("menu.editCategory") : t("menu.addCategory")
+              }}
             </h3>
 
             <form @submit.prevent="saveCategory">
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    分類名稱 <span class="text-red-500">*</span>
+                    {{ t("menu.form.categoryName") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model="categoryForm.name"
@@ -236,9 +245,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >英文名稱</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.nameEn")
+                  }}</label>
                   <input
                     v-model="categoryForm.nameEn"
                     type="text"
@@ -247,9 +256,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >描述</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.description")
+                  }}</label>
                   <textarea
                     v-model="categoryForm.description"
                     rows="3"
@@ -258,9 +267,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >排序順序</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.sortOrder")
+                  }}</label>
                   <input
                     v-model.number="categoryForm.sortOrder"
                     type="number"
@@ -276,13 +285,15 @@
                   class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   @click="closeCategoryModal"
                 >
-                  取消
+                  {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {{ editingCategory ? "更新" : "新增" }}
+                  {{
+                    editingCategory ? t("menu.form.update") : t("menu.form.add")
+                  }}
                 </button>
               </div>
             </form>
@@ -303,14 +314,15 @@
         >
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
-              {{ editingMenuItem ? "編輯菜品" : "新增菜品" }}
+              {{ editingMenuItem ? t("menu.editItem") : t("menu.addItem") }}
             </h3>
 
             <form @submit.prevent="saveMenuItem">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    菜品名稱 <span class="text-red-500">*</span>
+                    {{ t("menu.form.itemName") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model="menuItemForm.name"
@@ -321,9 +333,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >英文名稱</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.nameEn")
+                  }}</label>
                   <input
                     v-model="menuItemForm.nameEn"
                     type="text"
@@ -333,7 +345,8 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    價格 (RM) <span class="text-red-500">*</span>
+                    {{ t("menu.form.price") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model.number="menuItemForm.price"
@@ -347,14 +360,17 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    分類 <span class="text-red-500">*</span>
+                    {{ t("menu.form.category") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <select
                     v-model="menuItemForm.categoryId"
                     required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">選擇分類</option>
+                    <option value="">
+                      {{ t("menu.form.selectCategory") }}
+                    </option>
                     <option
                       v-for="category in categories"
                       :key="category.id"
@@ -366,9 +382,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >圖片 URL</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.imageUrl")
+                  }}</label>
                   <input
                     v-model="menuItemForm.imageUrl"
                     type="url"
@@ -377,9 +393,9 @@
                 </div>
 
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >描述</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.description")
+                  }}</label>
                   <textarea
                     v-model="menuItemForm.description"
                     rows="3"
@@ -388,9 +404,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >排序順序</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("menu.form.sortOrder")
+                  }}</label>
                   <input
                     v-model.number="menuItemForm.sortOrder"
                     type="number"
@@ -406,7 +422,9 @@
                       type="checkbox"
                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span class="ml-2 text-sm text-gray-700">推薦菜品</span>
+                    <span class="ml-2 text-sm text-gray-700">{{
+                      t("menu.form.featuredItem")
+                    }}</span>
                   </label>
                   <label class="flex items-center">
                     <input
@@ -414,7 +432,9 @@
                       type="checkbox"
                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span class="ml-2 text-sm text-gray-700">可供應</span>
+                    <span class="ml-2 text-sm text-gray-700">{{
+                      t("menu.form.isAvailable")
+                    }}</span>
                   </label>
                 </div>
               </div>
@@ -425,13 +445,15 @@
                   class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   @click="closeMenuItemModal"
                 >
-                  取消
+                  {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {{ editingMenuItem ? "更新" : "新增" }}
+                  {{
+                    editingMenuItem ? t("menu.form.update") : t("menu.form.add")
+                  }}
                 </button>
               </div>
             </form>
@@ -444,6 +466,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
 import OptimizedImage from "@/components/OptimizedImage.vue";
 import {
@@ -455,6 +478,8 @@ import {
   EyeSlashIcon,
   CakeIcon,
 } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 // 虛擬滾動配置
 const MENU_ITEM_HEIGHT = 330; // 每個菜品卡片的高度 (圖片 192px + 內容 138px)
@@ -639,7 +664,7 @@ const getMenuItemsInCategory = (categoryId: number) => {
 
 const getCategoryName = (categoryId: number) => {
   const category = categories.value.find((c) => c.id === categoryId);
-  return category ? category.name : "未知分類";
+  return category ? category.name : t("menu.unknownCategory");
 };
 
 const editMenuItem = (item: any) => {
@@ -649,7 +674,7 @@ const editMenuItem = (item: any) => {
 };
 
 const deleteMenuItem = async (item: any) => {
-  if (confirm(`確定要刪除菜品「${item.name}」嗎？`)) {
+  if (confirm(t("menu.confirms.deleteItem", { name: item.name }))) {
     const index = menuItems.value.findIndex((i) => i.id === item.id);
     if (index > -1) {
       menuItems.value.splice(index, 1);

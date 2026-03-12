@@ -3,15 +3,17 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">訂位管理</h1>
-        <p class="text-gray-600 mt-1">管理餐廳訂位與預約</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("reservation.title") }}
+        </h1>
+        <p class="text-gray-600 mt-1">{{ t("reservation.subtitle") }}</p>
       </div>
       <button
         class="btn-primary inline-flex items-center"
         @click="showCreateDialog = true"
       >
         <Plus class="w-5 h-5 mr-2" />
-        建立訂位
+        {{ t("reservation.create") }}
       </button>
     </div>
 
@@ -23,7 +25,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">總訂位數</p>
+            <p class="text-sm text-gray-600">
+              {{ t("reservation.stats.total") }}
+            </p>
             <p class="text-3xl font-bold text-gray-900 mt-2">
               {{ stats.totalReservations }}
             </p>
@@ -37,7 +41,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">已確認</p>
+            <p class="text-sm text-gray-600">
+              {{ t("reservation.stats.confirmed") }}
+            </p>
             <p class="text-3xl font-bold text-green-600 mt-2">
               {{ stats.confirmedCount }}
             </p>
@@ -51,7 +57,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">已完成</p>
+            <p class="text-sm text-gray-600">
+              {{ t("reservation.stats.completed") }}
+            </p>
             <p class="text-3xl font-bold text-purple-600 mt-2">
               {{ stats.completedCount }}
             </p>
@@ -65,7 +73,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">未到店率</p>
+            <p class="text-sm text-gray-600">
+              {{ t("reservation.stats.noShowRate") }}
+            </p>
             <p class="text-3xl font-bold text-orange-600 mt-2">
               {{ (stats.noShowRate * 100).toFixed(1) }}%
             </p>
@@ -81,9 +91,9 @@
     <div class="card p-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >日期</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("reservation.filter.date")
+          }}</label>
           <input
             v-model="filters.date"
             type="date"
@@ -93,34 +103,48 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >狀態</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("reservation.filter.status")
+          }}</label>
           <select
             v-model="filters.status"
             class="form-input"
             @change="loadReservations"
           >
-            <option value="">全部狀態</option>
-            <option value="pending">待確認</option>
-            <option value="confirmed">已確認</option>
-            <option value="arrived">已到店</option>
-            <option value="seated">已入座</option>
-            <option value="completed">已完成</option>
-            <option value="cancelled">已取消</option>
-            <option value="no_show">未到店</option>
+            <option value="">{{ t("reservation.filter.allStatus") }}</option>
+            <option value="pending">
+              {{ t("reservation.statusText.pending") }}
+            </option>
+            <option value="confirmed">
+              {{ t("reservation.statusText.confirmed") }}
+            </option>
+            <option value="arrived">
+              {{ t("reservation.statusText.arrived") }}
+            </option>
+            <option value="seated">
+              {{ t("reservation.statusText.seated") }}
+            </option>
+            <option value="completed">
+              {{ t("reservation.statusText.completed") }}
+            </option>
+            <option value="cancelled">
+              {{ t("reservation.statusText.cancelled") }}
+            </option>
+            <option value="no_show">
+              {{ t("reservation.statusText.no_show") }}
+            </option>
           </select>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >電話號碼</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("reservation.customerPhone")
+          }}</label>
           <input
             v-model="filters.phone"
             type="tel"
             class="form-input"
-            placeholder="輸入電話號碼"
+            :placeholder="t('reservation.filter.enterPhone')"
             @keyup.enter="loadReservations"
           />
         </div>
@@ -128,11 +152,11 @@
         <div class="flex items-end space-x-2">
           <button class="btn-primary flex-1" @click="loadReservations">
             <Search class="w-4 h-4 mr-2" />
-            搜尋
+            {{ t("common.search") }}
           </button>
           <button class="btn-secondary flex-1" @click="resetFilters">
             <RotateCcw class="w-4 h-4 mr-2" />
-            重置
+            {{ t("common.reset") }}
           </button>
         </div>
       </div>
@@ -147,37 +171,39 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                確認碼
+                {{ t("reservation.confirmationCode") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                客戶資訊
+                {{
+                  t("reservation.customerInfo") || t("reservation.customerName")
+                }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                預訂時間
+                {{ t("reservation.datetime") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                人數
+                {{ t("reservation.partySize") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                狀態
+                {{ t("reservation.status") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                特殊要求
+                {{ t("reservation.specialRequests") }}
               </th>
               <th
                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                操作
+                {{ t("common.actions") }}
               </th>
             </tr>
           </thead>
@@ -210,7 +236,7 @@
             <tr v-else-if="reservations.length === 0">
               <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                 <Calendar class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p>暫無訂位記錄</p>
+                <p>{{ t("reservation.noRecords") }}</p>
               </td>
             </tr>
             <tr
@@ -238,7 +264,7 @@
                 {{ reservation.reservationTime }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ reservation.partySize }} 人
+                {{ reservation.partySize }} {{ t("reservation.people") }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
@@ -256,7 +282,7 @@
               >
                 <button
                   class="text-blue-600 hover:text-blue-900"
-                  title="查看詳情"
+                  :title="t('reservation.viewDetail')"
                   @click="viewDetail(reservation)"
                 >
                   <Eye class="w-5 h-5" />
@@ -264,7 +290,7 @@
                 <button
                   v-if="reservation.status === 'pending'"
                   class="text-green-600 hover:text-green-900"
-                  title="確認訂位"
+                  :title="t('reservation.confirmReservation')"
                   @click="confirmReservation(reservation.id)"
                 >
                   <CheckCircle class="w-5 h-5" />
@@ -272,7 +298,7 @@
                 <button
                   v-if="reservation.status === 'confirmed'"
                   class="text-purple-600 hover:text-purple-900"
-                  title="標記到店"
+                  :title="t('reservation.markArrived')"
                   @click="markArrived(reservation.id)"
                 >
                   <UserCheck class="w-5 h-5" />
@@ -280,7 +306,7 @@
                 <button
                   v-if="reservation.status === 'arrived'"
                   class="text-indigo-600 hover:text-indigo-900"
-                  title="標記入座"
+                  :title="t('reservation.markSeated')"
                   @click="markSeated(reservation.id)"
                 >
                   <CheckCheck class="w-5 h-5" />
@@ -288,7 +314,7 @@
                 <button
                   v-if="['pending', 'confirmed'].includes(reservation.status)"
                   class="text-red-600 hover:text-red-900"
-                  title="取消訂位"
+                  :title="t('reservation.cancelReservation')"
                   @click="cancelReservation(reservation.id)"
                 >
                   <XCircle class="w-5 h-5" />
@@ -313,7 +339,7 @@
               loadReservations();
             "
           >
-            上一頁
+            {{ t("reservation.pagination.previous") }}
           </button>
           <button
             :disabled="pagination.page * pagination.limit >= pagination.total"
@@ -323,7 +349,7 @@
               loadReservations();
             "
           >
-            下一頁
+            {{ t("reservation.pagination.next") }}
           </button>
         </div>
         <div
@@ -331,17 +357,16 @@
         >
           <div>
             <p class="text-sm text-gray-700">
-              顯示第
-              <span class="font-medium">{{
-                (pagination.page - 1) * pagination.limit + 1
-              }}</span>
-              到
-              <span class="font-medium">{{
-                Math.min(pagination.page * pagination.limit, pagination.total)
-              }}</span>
-              筆，共
-              <span class="font-medium">{{ pagination.total }}</span>
-              筆結果
+              {{
+                t("reservation.pagination.showing", {
+                  start: (pagination.page - 1) * pagination.limit + 1,
+                  end: Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.total,
+                  ),
+                  total: pagination.total,
+                })
+              }}
             </p>
           </div>
           <div>
@@ -430,13 +455,13 @@
                     as="h3"
                     class="text-lg font-medium leading-6 text-gray-900 mb-4"
                   >
-                    建立訂位
+                    {{ t("reservation.create") }}
                   </DialogTitle>
                   <div class="space-y-4">
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >客戶姓名 *</label
+                        >{{ t("reservation.customerNameRequired") }}</label
                       >
                       <input
                         v-model="form.customerName"
@@ -447,7 +472,7 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >電話號碼 *</label
+                        >{{ t("reservation.customerPhoneRequired") }}</label
                       >
                       <input
                         v-model="form.customerPhone"
@@ -458,7 +483,7 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >電子郵件</label
+                        >{{ t("reservation.customerEmail") }}</label
                       >
                       <input
                         v-model="form.customerEmail"
@@ -470,7 +495,7 @@
                       <div>
                         <label
                           class="block text-sm font-medium text-gray-700 mb-1"
-                          >預訂日期 *</label
+                          >{{ t("reservation.reservationDate") }}</label
                         >
                         <input
                           v-model="formDate"
@@ -481,7 +506,7 @@
                       <div>
                         <label
                           class="block text-sm font-medium text-gray-700 mb-1"
-                          >預訂時間 *</label
+                          >{{ t("reservation.reservationTime") }}</label
                         >
                         <input
                           v-model="formTime"
@@ -494,7 +519,7 @@
                       <div>
                         <label
                           class="block text-sm font-medium text-gray-700 mb-1"
-                          >用餐人數 *</label
+                          >{{ t("reservation.partySizeRequired") }}</label
                         >
                         <input
                           v-model.number="form.partySize"
@@ -507,7 +532,7 @@
                       <div>
                         <label
                           class="block text-sm font-medium text-gray-700 mb-1"
-                          >用餐時長（分鐘）</label
+                          >{{ t("reservation.durationLabel") }}</label
                         >
                         <input
                           v-model.number="form.durationMinutes"
@@ -522,13 +547,15 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >特殊要求</label
+                        >{{ t("reservation.specialRequests") }}</label
                       >
                       <textarea
                         v-model="form.specialRequests"
                         rows="3"
                         class="form-input"
-                        placeholder="例如：兒童椅、過敏原資訊等"
+                        :placeholder="
+                          t('reservation.specialRequestsPlaceholder')
+                        "
                       ></textarea>
                     </div>
                   </div>
@@ -541,17 +568,19 @@
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
                     @click="createReservation"
                   >
-                    <span v-if="!submitting">確認建立</span>
+                    <span v-if="!submitting">{{
+                      t("reservation.confirmCreate")
+                    }}</span>
                     <span v-else class="flex items-center justify-center">
                       <Loader2 class="animate-spin w-4 h-4 mr-2" />
-                      建立中...
+                      {{ t("reservation.creating") }}
                     </span>
                   </button>
                   <button
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
                     @click="showCreateDialog = false"
                   >
-                    取消
+                    {{ t("common.cancel") }}
                   </button>
                 </div>
               </DialogPanel>
@@ -599,22 +628,22 @@
                     as="h3"
                     class="text-lg font-medium leading-6 text-gray-900 mb-4"
                   >
-                    訂位詳情
+                    {{ t("reservation.detail") }}
                   </DialogTitle>
                   <div v-if="selectedReservation" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >確認碼</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.confirmationCode")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900 font-mono">
                           {{ selectedReservation.confirmationCode }}
                         </p>
                       </div>
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >狀態</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.status")
+                        }}</label>
                         <p class="mt-1">
                           <span
                             :class="
@@ -627,58 +656,60 @@
                         </p>
                       </div>
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >客戶姓名</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.customerName")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
                           {{ selectedReservation.customerName }}
                         </p>
                       </div>
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >電話號碼</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.customerPhone")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
                           {{ selectedReservation.customerPhone }}
                         </p>
                       </div>
                       <div class="col-span-2">
-                        <label class="text-sm font-medium text-gray-500"
-                          >預訂時間</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.datetime")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
                           {{ selectedReservation.reservationDate }}
                           {{ selectedReservation.reservationTime }}
                         </p>
                       </div>
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >用餐人數</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.partySize")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
-                          {{ selectedReservation.partySize }} 人
+                          {{ selectedReservation.partySize }}
+                          {{ t("reservation.people") }}
                         </p>
                       </div>
                       <div>
-                        <label class="text-sm font-medium text-gray-500"
-                          >用餐時長</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.duration")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
-                          {{ selectedReservation.durationMinutes }} 分鐘
+                          {{ selectedReservation.durationMinutes }}
+                          {{ t("reservation.minutes") }}
                         </p>
                       </div>
                       <div class="col-span-2">
-                        <label class="text-sm font-medium text-gray-500"
-                          >特殊要求</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.specialRequests")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
                           {{ selectedReservation.specialRequests || "--" }}
                         </p>
                       </div>
                       <div class="col-span-2">
-                        <label class="text-sm font-medium text-gray-500"
-                          >備註</label
-                        >
+                        <label class="text-sm font-medium text-gray-500">{{
+                          t("reservation.notes")
+                        }}</label>
                         <p class="mt-1 text-sm text-gray-900">
                           {{ selectedReservation.notes || "--" }}
                         </p>
@@ -693,7 +724,7 @@
                     class="btn-secondary w-full sm:w-auto"
                     @click="showDetailDialog = false"
                   >
-                    關閉
+                    {{ t("common.close") }}
                   </button>
                 </div>
               </DialogPanel>
@@ -730,6 +761,7 @@ import {
   Loader2,
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
 import type {
@@ -740,6 +772,7 @@ import type {
 
 const toast = useToast();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 // State
 const loading = ref(false);
@@ -802,7 +835,7 @@ async function loadReservations() {
     pagination.total = reservations.value.length;
   } catch (error) {
     console.error("Load reservations error:", error);
-    toast.error("載入訂位列表失敗");
+    toast.error(t("reservation.loadError"));
   } finally {
     loading.value = false;
   }
@@ -833,7 +866,7 @@ async function createReservation() {
     !formTime.value ||
     !form.partySize
   ) {
-    toast.warning("請填寫必填欄位");
+    toast.warning(t("common.fillRequired"));
     return;
   }
 
@@ -852,14 +885,14 @@ async function createReservation() {
     };
 
     await ReservationService.createReservation(request);
-    toast.success("建立訂位成功");
+    toast.success(t("reservation.createSuccess"));
     showCreateDialog.value = false;
     resetForm();
     await loadReservations();
     await loadStats();
   } catch (error: any) {
     console.error("Create reservation error:", error);
-    toast.error(error.response?.data?.error || "建立訂位失敗");
+    toast.error(error.response?.data?.error || t("reservation.createError"));
   } finally {
     submitting.value = false;
   }
@@ -869,16 +902,16 @@ async function createReservation() {
  * Confirm reservation
  */
 async function confirmReservation(id: string) {
-  if (!confirm("確定要確認此訂位嗎？")) return;
+  if (!confirm(t("reservation.confirmPrompt"))) return;
 
   try {
     await ReservationService.confirmReservation(id);
-    toast.success("確認訂位成功");
+    toast.success(t("reservation.confirmSuccess"));
     await loadReservations();
     await loadStats();
   } catch (error: any) {
     console.error("Confirm reservation error:", error);
-    toast.error(error.response?.data?.error || "確認訂位失敗");
+    toast.error(error.response?.data?.error || t("reservation.confirmError"));
   }
 }
 
@@ -888,12 +921,12 @@ async function confirmReservation(id: string) {
 async function markArrived(id: string) {
   try {
     await ReservationService.markArrived(id);
-    toast.success("標記到店成功");
+    toast.success(t("reservation.arrivedSuccess"));
     await loadReservations();
     await loadStats();
   } catch (error: any) {
     console.error("Mark arrived error:", error);
-    toast.error(error.response?.data?.error || "標記到店失敗");
+    toast.error(error.response?.data?.error || t("reservation.arrivedError"));
   }
 }
 
@@ -903,12 +936,12 @@ async function markArrived(id: string) {
 async function markSeated(id: string) {
   try {
     await ReservationService.markSeated(id);
-    toast.success("標記入座成功");
+    toast.success(t("reservation.seatedSuccess"));
     await loadReservations();
     await loadStats();
   } catch (error: any) {
     console.error("Mark seated error:", error);
-    toast.error(error.response?.data?.error || "標記入座失敗");
+    toast.error(error.response?.data?.error || t("reservation.seatedError"));
   }
 }
 
@@ -916,16 +949,16 @@ async function markSeated(id: string) {
  * Cancel reservation
  */
 async function cancelReservation(id: string) {
-  if (!confirm("確定要取消此訂位嗎？")) return;
+  if (!confirm(t("reservation.cancelPrompt"))) return;
 
   try {
     await ReservationService.cancelReservation(id);
-    toast.success("取消訂位成功");
+    toast.success(t("reservation.cancelSuccess"));
     await loadReservations();
     await loadStats();
   } catch (error: any) {
     console.error("Cancel reservation error:", error);
-    toast.error(error.response?.data?.error || "取消訂位失敗");
+    toast.error(error.response?.data?.error || t("reservation.cancelError"));
   }
 }
 
@@ -966,16 +999,9 @@ function resetForm() {
  * Get status text
  */
 function getStatusText(status: string): string {
-  const statusMap: Record<string, string> = {
-    pending: "待確認",
-    confirmed: "已確認",
-    arrived: "已到店",
-    seated: "已入座",
-    completed: "已完成",
-    cancelled: "已取消",
-    no_show: "未到店",
-  };
-  return statusMap[status] || status;
+  const key = `reservation.statusText.${status}`;
+  const result = t(key);
+  return result === key ? status : result;
 }
 
 /**

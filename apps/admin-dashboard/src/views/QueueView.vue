@@ -3,16 +3,18 @@
     <!-- 標題區 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">候位管理系統</h1>
-        <p class="text-gray-600">智能候位管理與座位分配</p>
+        <h1 class="text-3xl font-bold text-gray-900">{{ t("queue.title") }}</h1>
+        <p class="text-gray-600">{{ t("queue.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-4">
         <!-- 快速狀態 -->
         <div class="bg-green-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-green-800 font-medium">
-            候位中: {{ currentWaiting }}
+            {{ t("queue.waitingCount") }}: {{ currentWaiting }}
           </p>
-          <p class="text-xs text-green-600">平均等待: {{ avgWaitTime }}分鐘</p>
+          <p class="text-xs text-green-600">
+            {{ t("queue.avgWait") }}: {{ avgWaitTime }}{{ t("queue.minutes") }}
+          </p>
         </div>
 
         <!-- 功能按鈕 -->
@@ -20,21 +22,21 @@
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="openQueueSettings"
         >
-          候位設定
+          {{ t("queue.queueSettings") }}
         </button>
 
         <button
           class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           @click="openDisplaySettings"
         >
-          顯示設定
+          {{ t("queue.displaySettings") }}
         </button>
 
         <button
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           @click="callNextCustomer"
         >
-          呼叫下一位
+          {{ t("queue.callNext") }}
         </button>
       </div>
     </div>
@@ -47,7 +49,9 @@
             <UsersIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">候位中</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("queue.waitingCount") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ currentWaiting }}
             </p>
@@ -61,9 +65,11 @@
             <ClockIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">平均等待</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("queue.avgWait") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
-              {{ avgWaitTime }}分
+              {{ avgWaitTime }}{{ t("queue.minutesShort") }}
             </p>
           </div>
         </div>
@@ -75,7 +81,9 @@
             <BuildingStorefrontIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">可用桌位</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("queue.availableSeats") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ availableTables }}
             </p>
@@ -89,7 +97,9 @@
             <ChartBarIcon class="h-6 w-6 text-orange-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">今日服務</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("queue.todayServed") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ todayServed }}
             </p>
@@ -103,7 +113,9 @@
             <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">超時候位</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("queue.overdueQueue") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ overdueQueue }}
             </p>
@@ -119,17 +131,23 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">候位佇列</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("queue.queueList") }}
+              </h2>
               <div class="flex items-center space-x-4">
                 <!-- 篩選器 -->
                 <select
                   v-model="queueFilter"
                   class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">全部</option>
-                  <option value="waiting">候位中</option>
-                  <option value="called">已叫號</option>
-                  <option value="no_show">未到場</option>
+                  <option value="">{{ t("queue.filterAll") }}</option>
+                  <option value="waiting">
+                    {{ t("queue.status.waiting") }}
+                  </option>
+                  <option value="called">{{ t("queue.status.called") }}</option>
+                  <option value="no_show">
+                    {{ t("queue.status.noShow") }}
+                  </option>
                 </select>
 
                 <button
@@ -173,7 +191,9 @@
                       <h3 class="text-lg font-medium text-gray-900">
                         {{
                           queueItem.customerName ||
-                          `顧客 ${queueItem.queueNumber}`
+                          t("queue.customerNumber", {
+                            number: queueItem.queueNumber,
+                          })
                         }}
                       </h3>
                       <span
@@ -186,10 +206,16 @@
 
                     <div class="flex items-center mt-1 text-sm text-gray-500">
                       <UsersIcon class="w-4 h-4 mr-1" />
-                      <span>{{ queueItem.partySize }} 人</span>
+                      <span
+                        >{{ queueItem.partySize }} {{ t("queue.people") }}</span
+                      >
                       <span class="mx-2">·</span>
                       <ClockIcon class="w-4 h-4 mr-1" />
-                      <span>等待 {{ getWaitTime(queueItem.joinedAt) }}分</span>
+                      <span
+                        >{{ t("queue.waitingFor") }}
+                        {{ getWaitTime(queueItem.joinedAt)
+                        }}{{ t("queue.minutesShort") }}</span
+                      >
 
                       <span
                         v-if="queueItem.tablePreferences?.length"
@@ -218,10 +244,13 @@
                   <!-- 預估等待時間 -->
                   <div class="text-right">
                     <p class="text-sm font-medium text-gray-900">
-                      預估: {{ calculateEstimatedWait(index) }}分
+                      {{ t("queue.estimated") }}:
+                      {{ calculateEstimatedWait(index)
+                      }}{{ t("queue.minutesShort") }}
                     </p>
                     <p class="text-xs text-gray-500">
-                      {{ formatTime(queueItem.joinedAt) }} 加入
+                      {{ formatTime(queueItem.joinedAt) }}
+                      {{ t("queue.joined") }}
                     </p>
                   </div>
 
@@ -232,7 +261,7 @@
                       class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                       @click.stop="callCustomer(queueItem)"
                     >
-                      呼叫
+                      {{ t("queue.call") }}
                     </button>
 
                     <button
@@ -240,14 +269,14 @@
                       class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
                       @click.stop="seatCustomer(queueItem)"
                     >
-                      安排座位
+                      {{ t("queue.assignSeat") }}
                     </button>
 
                     <button
                       class="px-3 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors"
                       @click.stop="editQueueItem(queueItem)"
                     >
-                      編輯
+                      {{ t("queue.edit") }}
                     </button>
                   </div>
                 </div>
@@ -262,11 +291,14 @@
                   v-if="queueItem.specialRequests"
                   class="text-xs text-gray-600"
                 >
-                  <span class="font-medium">特殊需求:</span>
+                  <span class="font-medium"
+                    >{{ t("queue.specialRequests") }}:</span
+                  >
                   {{ queueItem.specialRequests }}
                 </p>
                 <p v-if="queueItem.notes" class="text-xs text-gray-600 mt-1">
-                  <span class="font-medium">備註:</span> {{ queueItem.notes }}
+                  <span class="font-medium">{{ t("queue.notes") }}:</span>
+                  {{ queueItem.notes }}
                 </p>
               </div>
             </div>
@@ -275,9 +307,9 @@
             <div v-if="filteredQueue.length === 0" class="p-12 text-center">
               <UsersIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                尚無候位顧客
+                {{ t("queue.noCustomers") }}
               </h3>
-              <p class="text-gray-500">目前沒有顧客在候位佇列</p>
+              <p class="text-gray-500">{{ t("queue.noCustomersHint") }}</p>
             </div>
           </div>
         </div>
@@ -288,7 +320,9 @@
         <div class="bg-white rounded-lg shadow mb-6">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">桌位狀態</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("queue.tableStatus") }}
+              </h2>
               <div class="flex space-x-2">
                 <button
                   class="px-3 py-1 bg-green-100 text-green-800 rounded text-sm"
@@ -297,7 +331,7 @@
                   }"
                   @click="toggleTableView('available')"
                 >
-                  可用 ({{ availableTables }})
+                  {{ t("queue.available") }} ({{ availableTables }})
                 </button>
                 <button
                   class="px-3 py-1 bg-red-100 text-red-800 rounded text-sm"
@@ -306,7 +340,7 @@
                   }"
                   @click="toggleTableView('occupied')"
                 >
-                  使用中({{ occupiedTables }})
+                  {{ t("queue.occupied") }}({{ occupiedTables }})
                 </button>
                 <button
                   class="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm"
@@ -315,7 +349,7 @@
                   }"
                   @click="toggleTableView('all')"
                 >
-                  全部
+                  {{ t("queue.all") }}
                 </button>
               </div>
             </div>
@@ -336,7 +370,7 @@
                 <div class="text-center">
                   <div class="font-bold text-lg">{{ table.number }}</div>
                   <div class="text-sm text-gray-600">
-                    {{ table.capacity }}人座
+                    {{ table.capacity }}{{ t("queue.seats") }}
                   </div>
 
                   <!-- 狀態標籤 -->
@@ -354,7 +388,9 @@
                     v-if="table.occupiedSince"
                     class="text-xs text-gray-500 mt-1"
                   >
-                    已用 {{ getOccupiedTime(table.occupiedSince) }}分
+                    {{ t("queue.usedFor") }}
+                    {{ getOccupiedTime(table.occupiedSince)
+                    }}{{ t("queue.minutesShort") }}
                   </div>
                 </div>
 
@@ -375,7 +411,9 @@
         <!-- 快速操作面板 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("queue.quickActions") }}
+            </h3>
 
             <div class="grid grid-cols-2 gap-4">
               <!-- 手動加入候位 -->
@@ -384,9 +422,9 @@
                 @click="addToQueue"
               >
                 <PlusIcon class="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                <span class="text-sm font-medium text-gray-700"
-                  >手動加入候位</span
-                >
+                <span class="text-sm font-medium text-gray-700">{{
+                  t("queue.manualAdd")
+                }}</span>
               </button>
 
               <!-- 清潔桌位 -->
@@ -396,9 +434,9 @@
                 @click="cleanTable(selectedTable)"
               >
                 <SparklesIcon class="w-6 h-6 text-orange-600 mx-auto mb-2" />
-                <span class="text-sm font-medium text-orange-800"
-                  >清潔桌位</span
-                >
+                <span class="text-sm font-medium text-orange-800">{{
+                  t("queue.cleanTable")
+                }}</span>
               </button>
 
               <!-- 發送通知 -->
@@ -407,9 +445,9 @@
                 @click="sendNotification"
               >
                 <BellIcon class="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                <span class="text-sm font-medium text-purple-800"
-                  >發送通知</span
-                >
+                <span class="text-sm font-medium text-purple-800">{{
+                  t("queue.sendNotification")
+                }}</span>
               </button>
 
               <!-- 統計報表 -->
@@ -420,7 +458,9 @@
                 <DocumentChartBarIcon
                   class="w-6 h-6 text-gray-600 mx-auto mb-2"
                 />
-                <span class="text-sm font-medium text-gray-800">統計報表</span>
+                <span class="text-sm font-medium text-gray-800">{{
+                  t("queue.statsReport")
+                }}</span>
               </button>
             </div>
 
@@ -429,7 +469,9 @@
               class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg"
             >
               <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-gray-900">智慧分配</h4>
+                <h4 class="font-medium text-gray-900">
+                  {{ t("queue.smartAssignment") }}
+                </h4>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input
                     v-model="autoAssignment"
@@ -444,7 +486,9 @@
               </div>
               <p class="text-sm text-gray-600">
                 {{
-                  autoAssignment ? "已啟用自動座位分配" : "已關閉自動座位分配"
+                  autoAssignment
+                    ? t("queue.autoAssignEnabled")
+                    : t("queue.autoAssignDisabled")
                 }}
               </p>
             </div>
@@ -462,7 +506,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">加入候位</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("queue.addToQueue") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeAddDialog"
@@ -473,66 +519,76 @@
 
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >顧客姓名</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.customerName")
+              }}</label>
               <input
                 v-model="newQueueItem.customerName"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入顧客姓名（可選）"
+                :placeholder="t('queue.customerNamePlaceholder')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >聯絡電話</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.contactPhone")
+              }}</label>
               <input
                 v-model="newQueueItem.customerPhone"
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入聯絡電話"
+                :placeholder="t('queue.contactPhonePlaceholder')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >用餐人數</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.partySize")
+              }}</label>
               <select
                 v-model.number="newQueueItem.partySize"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option v-for="n in 12" :key="n" :value="n">{{ n }} 人</option>
+                <option v-for="n in 12" :key="n" :value="n">
+                  {{ n }} {{ t("queue.people") }}
+                </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >桌位偏好</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.tablePreference")
+              }}</label>
               <select
                 v-model="newQueueItem.tablePreferences"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">無偏好</option>
-                <option value="window">靠窗</option>
-                <option value="corner">角落</option>
-                <option value="center">中央區域</option>
-                <option value="quiet">安靜區域</option>
+                <option value="">{{ t("queue.preferences.none") }}</option>
+                <option value="window">
+                  {{ t("queue.preferences.window") }}
+                </option>
+                <option value="corner">
+                  {{ t("queue.preferences.corner") }}
+                </option>
+                <option value="center">
+                  {{ t("queue.preferences.center") }}
+                </option>
+                <option value="quiet">
+                  {{ t("queue.preferences.quiet") }}
+                </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >特殊需求</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.specialRequests")
+              }}</label>
               <textarea
                 v-model="newQueueItem.specialRequests"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="兒童座椅、輪椅通道等（可選）"
+                :placeholder="t('queue.specialRequestsPlaceholder')"
               />
             </div>
 
@@ -543,9 +599,9 @@
                   type="checkbox"
                   class="rounded border-gray-300 text-yellow-600 shadow-sm focus:border-yellow-300 focus:ring focus:ring-yellow-200 focus:ring-opacity-50"
                 />
-                <span class="ml-2 text-sm text-gray-700"
-                  >VIP 顧客（優先安排）</span
-                >
+                <span class="ml-2 text-sm text-gray-700">{{
+                  t("queue.vipCustomer")
+                }}</span>
               </label>
             </div>
           </div>
@@ -555,14 +611,14 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeAddDialog"
             >
-              取消
+              {{ t("queue.cancel") }}
             </button>
             <button
               :disabled="!canAddToQueue"
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="submitAddToQueue"
             >
-              加入候位
+              {{ t("queue.addToQueueBtn") }}
             </button>
           </div>
         </div>
@@ -578,7 +634,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">安排座位</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("queue.assignSeat") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeSeatDialog"
@@ -590,34 +648,43 @@
           <div v-if="selectedQueueItem" class="space-y-4">
             <!-- 顧客資訊 -->
             <div class="bg-gray-50 p-4 rounded-lg">
-              <h4 class="font-medium text-gray-900 mb-2">顧客資訊</h4>
+              <h4 class="font-medium text-gray-900 mb-2">
+                {{ t("queue.customerInfo") }}
+              </h4>
               <div class="text-sm space-y-1">
                 <p>
-                  <span class="text-gray-600">號碼:</span>
+                  <span class="text-gray-600">{{ t("queue.number") }}:</span>
                   {{ selectedQueueItem.queueNumber }}
                 </p>
                 <p>
-                  <span class="text-gray-600">姓名:</span>
-                  {{ selectedQueueItem.customerName || "未提供" }}
+                  <span class="text-gray-600">{{ t("queue.name") }}:</span>
+                  {{ selectedQueueItem.customerName || t("queue.notProvided") }}
                 </p>
                 <p>
-                  <span class="text-gray-600">人數:</span>
-                  {{ selectedQueueItem.partySize }} 人
+                  <span class="text-gray-600"
+                    >{{ t("queue.partyCount") }}:</span
+                  >
+                  {{ selectedQueueItem.partySize }} {{ t("queue.people") }}
                 </p>
                 <p v-if="selectedQueueItem.tablePreferences?.length">
-                  <span class="text-gray-600">偏好:</span>
+                  <span class="text-gray-600"
+                    >{{ t("queue.preference") }}:</span
+                  >
                   {{ selectedQueueItem.tablePreferences.join(", ") }}
                 </p>
                 <p>
-                  <span class="text-gray-600">等待時間:</span>
-                  {{ getWaitTime(selectedQueueItem.joinedAt) }} 分鐘
+                  <span class="text-gray-600">{{ t("queue.waitTime") }}:</span>
+                  {{ getWaitTime(selectedQueueItem.joinedAt) }}
+                  {{ t("queue.minutes") }}
                 </p>
               </div>
             </div>
 
             <!-- 推薦桌位 -->
             <div>
-              <h4 class="font-medium text-gray-900 mb-3">推薦桌位</h4>
+              <h4 class="font-medium text-gray-900 mb-3">
+                {{ t("queue.recommendedTables") }}
+              </h4>
               <div class="grid grid-cols-2 gap-3">
                 <div
                   v-for="table in recommendedTables"
@@ -631,12 +698,16 @@
                   @click="seatAssignment.tableId = table.id"
                 >
                   <div class="text-center">
-                    <div class="font-bold">桌號 {{ table.number }}</div>
+                    <div class="font-bold">
+                      {{
+                        t("queue.tableNumberLabel", { number: table.number })
+                      }}
+                    </div>
                     <div class="text-sm text-gray-600">
-                      {{ table.capacity }}人座
+                      {{ table.capacity }}{{ t("queue.seats") }}
                     </div>
                     <div class="text-xs text-green-600 mt-1">
-                      適配度 {{ table.matchScore }}%
+                      {{ t("queue.matchScore") }} {{ table.matchScore }}%
                     </div>
                   </div>
                 </div>
@@ -645,14 +716,14 @@
 
             <!-- 備註 -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >額外備註</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("queue.additionalNotes")
+              }}</label>
               <textarea
                 v-model="seatAssignment.notes"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="座位安排備註..."
+                :placeholder="t('queue.seatNotesPlaceholder')"
               />
             </div>
           </div>
@@ -662,14 +733,14 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeSeatDialog"
             >
-              取消
+              {{ t("queue.cancel") }}
             </button>
             <button
               :disabled="!seatAssignment.tableId"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="confirmSeatAssignment"
             >
-              確認安排
+              {{ t("queue.confirmAssignment") }}
             </button>
           </div>
         </div>
@@ -697,6 +768,9 @@ import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon
 import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // 使用候位類型定義 - 已從 queueService 導入
 // QueueItem 現在來自模組導出
@@ -960,13 +1034,13 @@ const getQueueNumberColor = (status: string) => {
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    waiting: "候位中",
-    called: "已叫號",
-    notified: "已通知",
-    seated: "已入座",
-    no_show: "未到場",
-    cancelled: "已取消",
-    expired: "已過期",
+    waiting: t("queue.status.waiting"),
+    called: t("queue.status.called"),
+    notified: t("queue.status.notified"),
+    seated: t("queue.status.seated"),
+    no_show: t("queue.status.noShow"),
+    cancelled: t("queue.status.cancelled"),
+    expired: t("queue.status.expired"),
   };
   return texts[status] || status;
 };
@@ -1006,10 +1080,10 @@ const getTableStatusTextColor = (status: string) => {
 
 const getTableStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    available: "可用",
-    occupied: "使用中",
-    reserved: "已預訂",
-    cleaning: "清潔中",
+    available: t("queue.tableStatusText.available"),
+    occupied: t("queue.tableStatusText.occupied"),
+    reserved: t("queue.tableStatusText.reserved"),
+    cleaning: t("queue.tableStatusText.cleaning"),
   };
   return texts[status] || status;
 };
@@ -1043,7 +1117,7 @@ const refreshQueue = async () => {
     queueItems.value = queueData;
     queueStatus.value = statusData;
   } catch (err) {
-    error.value = "刷新候位失敗";
+    error.value = t("queue.alerts.refreshFailed");
     console.error("Failed to refresh queue:", err);
   } finally {
     loading.value = false;
@@ -1067,13 +1141,15 @@ const callNextCustomer = async () => {
         queueItems.value[index] = result.data;
       }
       alert(
-        `已呼叫 ${result.data.customerName || `號碼 ${result.data.queueNumber}`}`,
+        t("queue.alerts.called", {
+          name: result.data.customerName || result.data.queueNumber,
+        }),
       );
     } else {
-      alert(result.error || "呼叫失敗");
+      alert(result.error || t("queue.alerts.callFailed"));
     }
   } catch (err) {
-    alert("呼叫顧客失敗，請重試");
+    alert(t("queue.alerts.callRetry"));
     console.error("Failed to call next customer:", err);
   }
 };
@@ -1095,13 +1171,15 @@ const callCustomer = async (queueItem: QueueItem) => {
         queueItems.value[index] = result.data;
       }
       alert(
-        `已呼叫 ${queueItem.customerName || `號碼 ${queueItem.queueNumber}`}`,
+        t("queue.alerts.called", {
+          name: queueItem.customerName || queueItem.queueNumber,
+        }),
       );
     } else {
-      alert(result.error || "呼叫失敗");
+      alert(result.error || t("queue.alerts.callFailed"));
     }
   } catch (_error) {
-    alert("呼叫失敗，請重試");
+    alert(t("queue.alerts.callRetry"));
     console.error("Failed to call customer:", error);
   }
 };
@@ -1154,16 +1232,19 @@ const submitAddToQueue = async () => {
     if (result.success && result.data) {
       closeAddDialog();
       alert(
-        `已新增至候位：${result.data.queueNumber}，預估等待 ${result.data.estimatedWaitMinutes} 分鐘`,
+        t("queue.alerts.addedToQueue", {
+          number: result.data.queueNumber,
+          minutes: result.data.estimatedWaitMinutes,
+        }),
       );
 
       // 刷新候位列表
       await refreshQueue();
     } else {
-      alert(result.error || "加入候位失敗");
+      alert(result.error || t("queue.alerts.addFailed"));
     }
   } catch (_error) {
-    alert("加入候位失敗，請重試");
+    alert(t("queue.alerts.addRetry"));
     console.error("Failed to add to queue:", error);
   } finally {
     loading.value = false;
@@ -1206,19 +1287,19 @@ const confirmSeatAssignment = async () => {
       }
 
       closeSeatDialog();
-      alert("座位安排完成");
+      alert(t("queue.alerts.seatSuccess"));
     } else {
-      alert(result.error || "座位安排失敗");
+      alert(result.error || t("queue.alerts.seatFailed"));
     }
   } catch (_error) {
-    alert("座位安排失敗，請重試");
+    alert(t("queue.alerts.seatRetry"));
     console.error("Failed to seat customer:", error);
   }
 };
 
 const editQueueItem = (queueItem: QueueItem) => {
   console.log("Edit queue item:", queueItem.id);
-  alert("編輯功能開發中..");
+  alert(t("queue.alerts.editInDev"));
 };
 
 const cleanTable = async (table: Table) => {
@@ -1231,38 +1312,38 @@ const cleanTable = async (table: Table) => {
     setTimeout(() => {
       table.status = "available";
       table.cleaningStatus = "clean";
-      alert(`桌號 ${table.number} 清潔完成，可供候位顧客`);
+      alert(t("queue.alerts.cleanDone", { number: table.number }));
     }, 3000);
 
-    alert(`開始清潔桌號 ${table.number}`);
+    alert(t("queue.alerts.cleanStart", { number: table.number }));
   } catch (_error) {
-    alert("清潔操作失敗");
+    alert(t("queue.alerts.cleanFailed"));
   }
 };
 
 const sendNotification = () => {
-  alert("發送通知功能開發中..");
+  alert(t("queue.alerts.notifyInDev"));
 };
 
 const generateReport = () => {
-  alert("統計報表功能開發中..");
+  alert(t("queue.alerts.reportInDev"));
 };
 
 const toggleAutoAssignment = () => {
   console.log("Auto assignment:", autoAssignment.value);
   if (autoAssignment.value) {
-    alert("已啟用智慧分配");
+    alert(t("queue.alerts.autoAssignOn"));
   } else {
-    alert("已關閉智慧分配");
+    alert(t("queue.alerts.autoAssignOff"));
   }
 };
 
 const openQueueSettings = () => {
-  alert("候位設定功能開發中..");
+  alert(t("queue.alerts.settingsInDev"));
 };
 
 const openDisplaySettings = () => {
-  alert("顯示設定功能開發中..");
+  alert(t("queue.alerts.displayInDev"));
 };
 
 // 監聽即時更新

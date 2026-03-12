@@ -3,8 +3,10 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">候位管理</h1>
-        <p class="text-gray-600 mt-1">管理餐廳候位隊列</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("waitingList.title") }}
+        </h1>
+        <p class="text-gray-600 mt-1">{{ t("waitingList.subtitle") }}</p>
       </div>
       <div class="flex space-x-3">
         <button
@@ -12,7 +14,7 @@
           @click="showAddDialog = true"
         >
           <Plus class="w-5 h-5 mr-2" />
-          新增候位
+          {{ t("waitingList.addCustomer") }}
         </button>
         <button
           :disabled="batchCalling"
@@ -20,10 +22,10 @@
           @click="batchCallNext"
         >
           <Bell class="w-5 h-5 mr-2" />
-          <span v-if="!batchCalling">叫號下一組</span>
+          <span v-if="!batchCalling">{{ t("waitingList.callNext") }}</span>
           <span v-else class="flex items-center">
             <Loader2 class="animate-spin w-4 h-4 mr-2" />
-            叫號中...
+            {{ t("waitingList.calling") }}
           </span>
         </button>
       </div>
@@ -37,7 +39,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">等待中</p>
+            <p class="text-sm text-gray-600">
+              {{ t("waitingList.stats.waiting") }}
+            </p>
             <p class="text-3xl font-bold text-orange-600 mt-2">
               {{ queueStatus.totalWaiting }}
             </p>
@@ -51,7 +55,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">平均等待</p>
+            <p class="text-sm text-gray-600">
+              {{ t("waitingList.stats.avgWait") }}
+            </p>
             <p class="text-3xl font-bold text-blue-600 mt-2">
               {{ queueStatus.averageWaitMinutes
               }}<span class="text-lg">min</span>
@@ -66,7 +72,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">可用桌位</p>
+            <p class="text-sm text-gray-600">
+              {{ t("waitingList.stats.availableTables") }}
+            </p>
             <p class="text-3xl font-bold text-green-600 mt-2">
               {{ queueStatus.availableTables }}
             </p>
@@ -80,7 +88,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">今日總數</p>
+            <p class="text-sm text-gray-600">
+              {{ t("waitingList.stats.todayTotal") }}
+            </p>
             <p class="text-3xl font-bold text-purple-600 mt-2">
               {{ estimatedTodayTotal }}
             </p>
@@ -96,33 +106,45 @@
     <div class="card p-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >狀態</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("waitingList.filter.status")
+          }}</label>
           <select
             v-model="filters.status"
             class="form-input"
             @change="loadWaitingList"
           >
-            <option value="">全部狀態</option>
-            <option value="waiting">等待中</option>
-            <option value="called">已叫號</option>
-            <option value="confirmed">已確認</option>
-            <option value="seated">已入座</option>
-            <option value="cancelled">已取消</option>
-            <option value="expired">已過號</option>
+            <option value="">{{ t("waitingList.filter.allStatus") }}</option>
+            <option value="waiting">
+              {{ t("waitingList.statusText.waiting") }}
+            </option>
+            <option value="called">
+              {{ t("waitingList.statusText.called") }}
+            </option>
+            <option value="confirmed">
+              {{ t("waitingList.statusText.confirmed") }}
+            </option>
+            <option value="seated">
+              {{ t("waitingList.statusText.seated") }}
+            </option>
+            <option value="cancelled">
+              {{ t("waitingList.statusText.cancelled") }}
+            </option>
+            <option value="expired">
+              {{ t("waitingList.statusText.expired") }}
+            </option>
           </select>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >電話號碼</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("waitingList.filter.phone")
+          }}</label>
           <input
             v-model="filters.phone"
             type="tel"
             class="form-input"
-            placeholder="輸入電話號碼"
+            :placeholder="t('waitingList.filter.enterPhone')"
             @keyup.enter="loadWaitingList"
           />
         </div>
@@ -130,15 +152,15 @@
         <div class="flex items-end space-x-2 col-span-2">
           <button class="btn-primary flex-1" @click="loadWaitingList">
             <Search class="w-4 h-4 mr-2" />
-            搜尋
+            {{ t("common.search") }}
           </button>
           <button class="btn-secondary flex-1" @click="resetFilters">
             <RotateCcw class="w-4 h-4 mr-2" />
-            重置
+            {{ t("common.reset") }}
           </button>
           <button class="btn-secondary flex-1" @click="loadWaitingList">
             <RefreshCw class="w-4 h-4 mr-2" />
-            重新整理
+            {{ t("common.refresh") }}
           </button>
         </div>
       </div>
@@ -149,7 +171,9 @@
       <div
         class="px-6 py-4 border-b border-gray-200 flex items-center justify-between"
       >
-        <h2 class="text-lg font-medium text-gray-900">候位隊列</h2>
+        <h2 class="text-lg font-medium text-gray-900">
+          {{ t("waitingList.queue") }}
+        </h2>
         <div class="flex rounded-lg shadow-sm">
           <button
             :class="[
@@ -196,7 +220,7 @@
           class="py-12 text-center text-gray-500"
         >
           <Users class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-          <p>暫無候位隊列</p>
+          <p>{{ t("waitingList.noQueue") }}</p>
         </div>
         <div
           v-else
@@ -246,14 +270,18 @@
               </div>
               <div class="flex items-center text-sm text-gray-600">
                 <Users class="w-4 h-4 mr-2 text-gray-400" />
-                <span>{{ entry.partySize }} 人</span>
+                <span>{{ entry.partySize }} {{ t("waitingList.people") }}</span>
               </div>
               <div
                 v-if="entry.estimatedWaitMinutes"
                 class="flex items-center text-sm text-gray-600"
               >
                 <Clock class="w-4 h-4 mr-2 text-gray-400" />
-                <span>預估等待 {{ entry.estimatedWaitMinutes }} 分鐘</span>
+                <span>{{
+                  t("waitingList.estimatedWaitMinutes", {
+                    minutes: entry.estimatedWaitMinutes,
+                  })
+                }}</span>
               </div>
             </div>
 
@@ -264,7 +292,7 @@
                 @click="callCustomer(entry)"
               >
                 <Bell class="w-4 h-4 mr-1" />
-                叫號
+                {{ t("waitingList.call") }}
               </button>
               <button
                 v-if="entry.status === 'called' || entry.status === 'confirmed'"
@@ -272,7 +300,7 @@
                 @click="markSeated(entry.id)"
               >
                 <CheckCircle class="w-4 h-4 mr-1" />
-                入座
+                {{ t("waitingList.seat") }}
               </button>
               <button
                 v-if="entry.status === 'called'"
@@ -280,14 +308,14 @@
                 @click="markExpired(entry.id)"
               >
                 <XCircle class="w-4 h-4 mr-1" />
-                過號
+                {{ t("waitingList.expire") }}
               </button>
               <button
                 v-if="['waiting', 'called'].includes(entry.status)"
                 class="btn-sm btn-secondary flex-1"
                 @click="cancelEntry(entry)"
               >
-                取消
+                {{ t("waitingList.cancel") }}
               </button>
             </div>
           </div>
@@ -302,37 +330,37 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                號碼
+                {{ t("waitingList.queueNumber") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                客戶資訊
+                {{ t("waitingList.customerInfo") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                人數
+                {{ t("waitingList.partySize") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                等待時間
+                {{ t("waitingList.waitTime") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                狀態
+                {{ t("common.status") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                加入時間
+                {{ t("waitingList.joinedAt") }}
               </th>
               <th
                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                操作
+                {{ t("common.actions") }}
               </th>
             </tr>
           </thead>
@@ -365,7 +393,7 @@
             <tr v-else-if="waitingList.length === 0">
               <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                 <Users class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p>暫無候位隊列</p>
+                <p>{{ t("waitingList.noQueue") }}</p>
               </td>
             </tr>
             <tr
@@ -387,10 +415,11 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ entry.partySize }} 人
+                {{ entry.partySize }} {{ t("waitingList.people") }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ entry.estimatedWaitMinutes || "--" }} 分鐘
+                {{ entry.estimatedWaitMinutes || "--" }}
+                {{ t("reservation.minutes") }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
@@ -409,7 +438,7 @@
                 <button
                   v-if="entry.status === 'waiting'"
                   class="text-blue-600 hover:text-blue-900"
-                  title="叫號"
+                  :title="t('waitingList.call')"
                   @click="callCustomer(entry)"
                 >
                   <Bell class="w-5 h-5" />
@@ -419,7 +448,7 @@
                     entry.status === 'called' || entry.status === 'confirmed'
                   "
                   class="text-green-600 hover:text-green-900"
-                  title="入座"
+                  :title="t('waitingList.seat')"
                   @click="markSeated(entry.id)"
                 >
                   <CheckCircle class="w-5 h-5" />
@@ -427,7 +456,7 @@
                 <button
                   v-if="entry.status === 'called'"
                   class="text-red-600 hover:text-red-900"
-                  title="過號"
+                  :title="t('waitingList.expire')"
                   @click="markExpired(entry.id)"
                 >
                   <XCircle class="w-5 h-5" />
@@ -435,7 +464,7 @@
                 <button
                   v-if="['waiting', 'called'].includes(entry.status)"
                   class="text-gray-600 hover:text-gray-900"
-                  title="取消"
+                  :title="t('waitingList.cancel')"
                   @click="cancelEntry(entry)"
                 >
                   <Trash2 class="w-5 h-5" />
@@ -451,9 +480,16 @@
           class="px-6 py-4 flex items-center justify-between border-t border-gray-200"
         >
           <div class="text-sm text-gray-700">
-            顯示第 {{ (pagination.page - 1) * pagination.limit + 1 }} 到
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }}
-            筆，共 {{ pagination.total }} 筆結果
+            {{
+              t("waitingList.pagination.showing", {
+                start: (pagination.page - 1) * pagination.limit + 1,
+                end: Math.min(
+                  pagination.page * pagination.limit,
+                  pagination.total,
+                ),
+                total: pagination.total,
+              })
+            }}
           </div>
           <div>
             <nav
@@ -525,13 +561,13 @@
                     as="h3"
                     class="text-lg font-medium leading-6 text-gray-900 mb-4"
                   >
-                    新增候位
+                    {{ t("waitingList.addCustomer") }}
                   </DialogTitle>
                   <div class="space-y-4">
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >客戶姓名 *</label
+                        >{{ t("waitingList.customerNameRequired") }}</label
                       >
                       <input
                         v-model="form.customerName"
@@ -542,7 +578,7 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >電話號碼 *</label
+                        >{{ t("waitingList.customerPhoneRequired") }}</label
                       >
                       <input
                         v-model="form.customerPhone"
@@ -553,7 +589,7 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >用餐人數 *</label
+                        >{{ t("waitingList.partySizeRequired") }}</label
                       >
                       <input
                         v-model.number="form.partySize"
@@ -566,13 +602,13 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >備註</label
+                        >{{ t("waitingList.notes") }}</label
                       >
                       <textarea
                         v-model="form.notes"
                         rows="3"
                         class="form-input"
-                        placeholder="特殊需求或備註"
+                        :placeholder="t('waitingList.notesPlaceholder')"
                       ></textarea>
                     </div>
                     <div
@@ -583,16 +619,25 @@
                         <Info class="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
                         <div class="text-sm">
                           <p class="font-medium text-blue-900 mb-1">
-                            預估等待時間：{{
-                              estimatedWait.estimatedWaitMinutes
+                            {{
+                              t("waitingList.estimatedWaitMinutes", {
+                                minutes: estimatedWait.estimatedWaitMinutes,
+                              })
                             }}
-                            分鐘
                           </p>
                           <p class="text-blue-700">
-                            前方還有 {{ estimatedWait.partiesAhead }} 組
+                            {{
+                              t("waitingList.partiesAhead", {
+                                count: estimatedWait.partiesAhead,
+                              })
+                            }}
                           </p>
                           <p class="text-blue-700">
-                            可用桌位：{{ estimatedWait.availableTables }} 個
+                            {{
+                              t("waitingList.availableTablesCount", {
+                                count: estimatedWait.availableTables,
+                              })
+                            }}
                           </p>
                         </div>
                       </div>
@@ -607,17 +652,19 @@
                     class="btn-primary w-full sm:ml-3 sm:w-auto disabled:opacity-50"
                     @click="addToQueue"
                   >
-                    <span v-if="!submitting">確認加入</span>
+                    <span v-if="!submitting">{{
+                      t("waitingList.confirmAdd")
+                    }}</span>
                     <span v-else class="flex items-center justify-center">
                       <Loader2 class="animate-spin w-4 h-4 mr-2" />
-                      處理中...
+                      {{ t("waitingList.processing") }}
                     </span>
                   </button>
                   <button
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
                     @click="showAddDialog = false"
                   >
-                    取消
+                    {{ t("common.cancel") }}
                   </button>
                 </div>
               </DialogPanel>
@@ -665,7 +712,7 @@
                     as="h3"
                     class="text-lg font-medium leading-6 text-gray-900 mb-4"
                   >
-                    叫號
+                    {{ t("waitingList.callCustomer") }}
                   </DialogTitle>
                   <div v-if="selectedEntry" class="space-y-4">
                     <div class="bg-gray-50 rounded-lg p-4">
@@ -682,30 +729,34 @@
                           {{ selectedEntry.customerPhone }}
                         </p>
                         <p class="text-sm text-gray-600">
-                          {{ selectedEntry.partySize }} 人
+                          {{ selectedEntry.partySize }}
+                          {{ t("waitingList.people") }}
                         </p>
                       </div>
                     </div>
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-1"
-                        >指定桌位 *</label
+                        >{{ t("waitingList.assignTableRequired") }}</label
                       >
                       <select v-model="callForm.tableId" class="form-input">
-                        <option :value="null">請選擇桌位</option>
+                        <option :value="null">
+                          {{ t("waitingList.selectTable") }}
+                        </option>
                         <option
                           v-for="table in availableTables"
                           :key="table.id"
                           :value="table.id"
                         >
-                          {{ table.number }} ({{ table.capacity }}人)
+                          {{ table.number }} ({{ table.capacity
+                          }}{{ t("waitingList.people") }})
                         </option>
                       </select>
                     </div>
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-700 mb-2"
-                        >通知方式</label
+                        >{{ t("waitingList.notificationMethod") }}</label
                       >
                       <div class="space-y-2">
                         <label class="flex items-center">
@@ -715,9 +766,9 @@
                             value="sms"
                             class="form-radio"
                           />
-                          <span class="ml-2 text-sm text-gray-700"
-                            >簡訊通知</span
-                          >
+                          <span class="ml-2 text-sm text-gray-700">{{
+                            t("waitingList.sms")
+                          }}</span>
                         </label>
                         <label class="flex items-center">
                           <input
@@ -726,9 +777,9 @@
                             value="display"
                             class="form-radio"
                           />
-                          <span class="ml-2 text-sm text-gray-700"
-                            >顯示螢幕</span
-                          >
+                          <span class="ml-2 text-sm text-gray-700">{{
+                            t("waitingList.display")
+                          }}</span>
                         </label>
                         <label class="flex items-center">
                           <input
@@ -737,9 +788,9 @@
                             value="both"
                             class="form-radio"
                           />
-                          <span class="ml-2 text-sm text-gray-700"
-                            >兩者皆是</span
-                          >
+                          <span class="ml-2 text-sm text-gray-700">{{
+                            t("waitingList.both")
+                          }}</span>
                         </label>
                       </div>
                     </div>
@@ -754,17 +805,19 @@
                     @click="confirmCall"
                   >
                     <Bell class="w-4 h-4 mr-2" />
-                    <span v-if="!calling">確認叫號</span>
+                    <span v-if="!calling">{{
+                      t("waitingList.confirmCallBtn")
+                    }}</span>
                     <span v-else class="flex items-center justify-center">
                       <Loader2 class="animate-spin w-4 h-4 mr-2" />
-                      叫號中...
+                      {{ t("waitingList.calling") }}
                     </span>
                   </button>
                   <button
                     class="btn-secondary mt-3 w-full sm:mt-0 sm:w-auto"
                     @click="showCallDialog = false"
                   >
-                    取消
+                    {{ t("common.cancel") }}
                   </button>
                 </div>
               </DialogPanel>
@@ -808,6 +861,7 @@ import {
   Info,
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 import { format } from "date-fns";
@@ -820,6 +874,7 @@ import type {
 
 const toast = useToast();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 // State
 const loading = ref(false);
@@ -891,7 +946,7 @@ async function loadWaitingList() {
     pagination.total = waitingList.value.length;
   } catch (error) {
     console.error("Load waiting list error:", error);
-    toast.error("載入候位列表失敗");
+    toast.error(t("waitingList.loadError"));
   } finally {
     loading.value = false;
   }
@@ -915,7 +970,7 @@ async function loadQueueStatus() {
  */
 async function addToQueue() {
   if (!form.customerName || !form.customerPhone || !form.partySize) {
-    toast.warning("請填寫必填欄位");
+    toast.warning(t("common.fillRequired"));
     return;
   }
 
@@ -930,14 +985,14 @@ async function addToQueue() {
     };
 
     await WaitingListService.joinWaitingList(request);
-    toast.success("加入候位成功");
+    toast.success(t("waitingList.addSuccess"));
     showAddDialog.value = false;
     resetForm();
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Add to queue error:", error);
-    toast.error(error.response?.data?.error || "加入候位失敗");
+    toast.error(error.response?.data?.error || t("waitingList.addError"));
   } finally {
     submitting.value = false;
   }
@@ -959,7 +1014,7 @@ function callCustomer(entry: WaitingListEntry) {
  */
 async function confirmCall() {
   if (!callForm.tableId) {
-    toast.warning("請選擇桌位");
+    toast.warning(t("waitingList.selectTableRequired"));
     return;
   }
 
@@ -969,13 +1024,13 @@ async function confirmCall() {
       tableId: callForm.tableId,
     });
 
-    toast.success("叫號成功");
+    toast.success(t("waitingList.callSuccess"));
     showCallDialog.value = false;
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Call waiting error:", error);
-    toast.error(error.response?.data?.error || "叫號失敗");
+    toast.error(error.response?.data?.error || t("waitingList.callError"));
   } finally {
     calling.value = false;
   }
@@ -988,12 +1043,12 @@ async function batchCallNext() {
   batchCalling.value = true;
   try {
     await WaitingListService.batchCall(restaurantId.value, 1);
-    toast.success("叫號成功");
+    toast.success(t("waitingList.callSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Batch call error:", error);
-    toast.error(error.response?.data?.error || "叫號失敗");
+    toast.error(error.response?.data?.error || t("waitingList.callError"));
   } finally {
     batchCalling.value = false;
   }
@@ -1005,12 +1060,12 @@ async function batchCallNext() {
 async function markSeated(id: string) {
   try {
     await WaitingListService.markSeated(id);
-    toast.success("標記入座成功");
+    toast.success(t("waitingList.seatSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Mark seated error:", error);
-    toast.error(error.response?.data?.error || "標記入座失敗");
+    toast.error(error.response?.data?.error || t("waitingList.seatedError"));
   }
 }
 
@@ -1018,16 +1073,16 @@ async function markSeated(id: string) {
  * Mark expired
  */
 async function markExpired(id: string) {
-  if (!confirm("確定要標記為過號嗎？")) return;
+  if (!confirm(t("waitingList.expirePrompt"))) return;
 
   try {
     await WaitingListService.expireWaiting(id);
-    toast.success("標記過號成功");
+    toast.success(t("waitingList.expireSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Mark expired error:", error);
-    toast.error(error.response?.data?.error || "標記過號失敗");
+    toast.error(error.response?.data?.error || t("waitingList.expireError"));
   }
 }
 
@@ -1035,16 +1090,16 @@ async function markExpired(id: string) {
  * Cancel entry
  */
 async function cancelEntry(entry: WaitingListEntry) {
-  if (!confirm("確定要取消此候位嗎？")) return;
+  if (!confirm(t("waitingList.cancelPrompt"))) return;
 
   try {
     await WaitingListService.cancelWaiting(entry.id, entry.customerPhone);
-    toast.success("取消候位成功");
+    toast.success(t("waitingList.cancelSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
   } catch (error: any) {
     console.error("Cancel entry error:", error);
-    toast.error(error.response?.data?.error || "取消候位失敗");
+    toast.error(error.response?.data?.error || t("waitingList.cancelError"));
   }
 }
 
@@ -1088,15 +1143,9 @@ function formatTime(date: string | Date | number): string {
  * Get status text
  */
 function getStatusText(status: string): string {
-  const statusMap: Record<string, string> = {
-    waiting: "等待中",
-    called: "已叫號",
-    confirmed: "已確認",
-    seated: "已入座",
-    cancelled: "已取消",
-    expired: "已過號",
-  };
-  return statusMap[status] || status;
+  const key = `waitingList.statusText.${status}`;
+  const result = t(key);
+  return result === key ? status : result;
 }
 
 /**

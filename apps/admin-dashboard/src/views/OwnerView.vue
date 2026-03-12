@@ -44,7 +44,9 @@
 
     <!-- 快速操作面板 -->
     <div class="bg-white rounded-lg shadow-sm p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("owner.quickActions") }}
+      </h2>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <button
           v-for="action in quickActions"
@@ -65,10 +67,12 @@
       <!-- 實時訂單狀態 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">實時訂單</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("owner.realtimeOrders") }}
+          </h3>
           <div class="flex items-center text-sm text-gray-500">
             <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
-            即時更新
+            {{ t("owner.liveUpdate") }}
           </div>
         </div>
         <div class="space-y-3">
@@ -79,9 +83,11 @@
           >
             <div>
               <p class="font-medium text-gray-900">
-                桌號 {{ order.tableNumber }}
+                {{ t("owner.tableNumber") }} {{ order.tableNumber }}
               </p>
-              <p class="text-sm text-gray-600">{{ order.items }} 項商品</p>
+              <p class="text-sm text-gray-600">
+                {{ t("owner.itemCount", { count: order.items }) }}
+              </p>
             </div>
             <div class="text-right">
               <span
@@ -106,7 +112,9 @@
 
       <!-- 員工動態 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">員工動態</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("owner.staffActivity") }}
+        </h3>
         <div class="space-y-3">
           <div
             v-for="staff in staffActivity"
@@ -135,7 +143,7 @@
               <p class="text-sm font-medium text-gray-900">
                 {{ staff.performance }}%
               </p>
-              <p class="text-xs text-gray-500">效率</p>
+              <p class="text-xs text-gray-500">{{ t("owner.efficiency") }}</p>
             </div>
           </div>
         </div>
@@ -143,27 +151,31 @@
 
       <!-- 財務摘要 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">今日財務</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("owner.todayFinance") }}
+        </h3>
         <div class="space-y-4">
           <div class="flex justify-between items-center">
-            <span class="text-gray-600">營業額</span>
+            <span class="text-gray-600">{{ t("owner.revenue") }}</span>
             <span class="font-bold text-green-600"
               >NT$ {{ todayRevenue.toLocaleString() }}</span
             >
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-600">訂單數</span>
+            <span class="text-gray-600">{{ t("owner.orderCount") }}</span>
             <span class="font-medium text-gray-900">{{ todayOrders }}</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-600">平均客單價</span>
+            <span class="text-gray-600">{{ t("owner.avgOrderValue") }}</span>
             <span class="font-medium text-gray-900"
               >NT$ {{ Math.round(todayRevenue / todayOrders) }}</span
             >
           </div>
           <div class="pt-3 border-t border-gray-200">
             <div class="flex justify-between items-center">
-              <span class="text-gray-600">預估月收入</span>
+              <span class="text-gray-600">{{
+                t("owner.estimatedMonthly")
+              }}</span>
               <span class="font-bold text-purple-600"
                 >NT$ {{ (todayRevenue * 30).toLocaleString() }}</span
               >
@@ -178,25 +190,29 @@
       <!-- 營業額趨勢 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">營業額趨勢</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("owner.revenueTrend") }}
+          </h3>
           <select
             v-model="revenueTimeRange"
             class="text-sm border border-gray-300 rounded-md px-3 py-1"
           >
-            <option value="7d">最近 7 天</option>
-            <option value="30d">最近 30 天</option>
-            <option value="3m">最近 3 個月</option>
+            <option value="7d">{{ t("owner.timeRange.7d") }}</option>
+            <option value="30d">{{ t("owner.timeRange.30d") }}</option>
+            <option value="3m">{{ t("owner.timeRange.3m") }}</option>
           </select>
         </div>
         <div class="h-64 flex items-center justify-center text-gray-500">
           <ChartBarIcon class="w-12 h-12 mr-2" />
-          營業額趨勢圖表 (Chart.js 整合)
+          {{ t("owner.chartPlaceholder") }}
         </div>
       </div>
 
       <!-- 熱門商品 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門商品分析</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("owner.popularItems") }}
+        </h3>
         <div class="space-y-3">
           <div
             v-for="item in popularItems"
@@ -221,7 +237,9 @@
               </div>
             </div>
             <div class="text-right">
-              <p class="font-medium text-gray-900">{{ item.sales }} 份</p>
+              <p class="font-medium text-gray-900">
+                {{ t("owner.salesCount", { count: item.sales }) }}
+              </p>
               <p class="text-sm text-gray-600">
                 NT$ {{ item.revenue.toLocaleString() }}
               </p>
@@ -233,7 +251,9 @@
 
     <!-- 系統健康狀態 -->
     <div class="bg-white rounded-lg shadow-sm p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">系統狀態監控</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("owner.systemHealth") }}
+      </h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div
           v-for="system in systemHealth"
@@ -264,7 +284,7 @@
             <p class="text-sm font-medium text-gray-900">
               {{ system.uptime }}
             </p>
-            <p class="text-xs text-gray-500">運行時間</p>
+            <p class="text-xs text-gray-500">{{ t("owner.uptime") }}</p>
           </div>
         </div>
       </div>
@@ -277,7 +297,9 @@
     >
       <div class="flex items-center mb-4">
         <ExclamationTriangleIcon class="w-6 h-6 text-red-600 mr-2" />
-        <h3 class="text-lg font-semibold text-red-900">緊急狀況</h3>
+        <h3 class="text-lg font-semibold text-red-900">
+          {{ t("owner.emergency") }}
+        </h3>
       </div>
       <div class="space-y-3">
         <div
@@ -301,13 +323,13 @@
               class="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
               @click="handleEmergencyAlert(alert.id, 'resolve')"
             >
-              處理完成
+              {{ t("owner.resolve") }}
             </button>
             <button
               class="px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
               @click="handleEmergencyAlert(alert.id, 'escalate')"
             >
-              升級處理
+              {{ t("owner.escalate") }}
             </button>
           </div>
         </div>
@@ -318,6 +340,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
@@ -337,11 +360,13 @@ import {
 import { ownerService } from "@/services/ownerService";
 import { useAuthStore } from "@/stores/auth";
 
+const { t } = useI18n();
+
 // KPI 指標
 const kpiMetrics = ref([
   {
     key: "revenue",
-    label: "今日營業額",
+    label: t("owner.kpi.todayRevenue"),
     value: "NT$ 45,680",
     change: "+12.5%",
     trend: "up",
@@ -352,7 +377,7 @@ const kpiMetrics = ref([
   },
   {
     key: "orders",
-    label: "今日訂單數",
+    label: t("owner.kpi.todayOrders"),
     value: "127",
     change: "+8.2%",
     trend: "up",
@@ -363,9 +388,9 @@ const kpiMetrics = ref([
   },
   {
     key: "staff",
-    label: "在線員工",
+    label: t("owner.kpi.onlineStaff"),
     value: "8/10",
-    change: "正常",
+    change: t("owner.kpi.normal"),
     trend: "stable",
     trendIcon: MinusIcon,
     icon: UsersIcon,
@@ -374,7 +399,7 @@ const kpiMetrics = ref([
   },
   {
     key: "efficiency",
-    label: "整體效率",
+    label: t("owner.kpi.overallEfficiency"),
     value: "94%",
     change: "+2.1%",
     trend: "up",
@@ -387,12 +412,32 @@ const kpiMetrics = ref([
 
 // 快速操作
 const quickActions = ref([
-  { key: "add-staff", label: "新增員工", icon: UserPlusIcon },
-  { key: "update-menu", label: "更新菜單", icon: DocumentTextIcon },
-  { key: "view-reports", label: "查看報表", icon: ClipboardDocumentListIcon },
-  { key: "system-settings", label: "系統設定", icon: Cog6ToothIcon },
-  { key: "send-notification", label: "發送通知", icon: BellIcon },
-  { key: "emergency", label: "緊急處理", icon: ExclamationTriangleIcon },
+  { key: "add-staff", label: t("owner.actions.addStaff"), icon: UserPlusIcon },
+  {
+    key: "update-menu",
+    label: t("owner.actions.updateMenu"),
+    icon: DocumentTextIcon,
+  },
+  {
+    key: "view-reports",
+    label: t("owner.actions.viewReports"),
+    icon: ClipboardDocumentListIcon,
+  },
+  {
+    key: "system-settings",
+    label: t("owner.actions.systemSettings"),
+    icon: Cog6ToothIcon,
+  },
+  {
+    key: "send-notification",
+    label: t("owner.actions.sendNotification"),
+    icon: BellIcon,
+  },
+  {
+    key: "emergency",
+    label: t("owner.actions.emergency"),
+    icon: ExclamationTriangleIcon,
+  },
 ]);
 
 // 實時訂單
@@ -490,13 +535,13 @@ const emergencyAlerts = ref([
 ]);
 
 const getStatusText = (status: string) => {
-  const statusMap = {
-    new: "新訂單",
-    preparing: "製作中",
-    ready: "待送餐",
-    delivered: "已送達",
+  const statusMap: Record<string, string> = {
+    new: t("owner.status.new"),
+    preparing: t("owner.status.preparing"),
+    ready: t("owner.status.ready"),
+    delivered: t("owner.status.delivered"),
   };
-  return statusMap[status as keyof typeof statusMap] || status;
+  return statusMap[status] || status;
 };
 
 // Duplicate function declarations removed - see implementations below
@@ -518,7 +563,7 @@ const loadDashboardData = async () => {
     kpiMetrics.value = [
       {
         key: "revenue",
-        label: "今日營業額",
+        label: t("owner.kpi.todayRevenue"),
         value: `NT$ ${data.today_overview.total_revenue.toLocaleString()}`,
         change: "+12.5%", // 可以從 API 獲取
         trend: "up",
@@ -529,7 +574,7 @@ const loadDashboardData = async () => {
       },
       {
         key: "orders",
-        label: "今日訂單數",
+        label: t("owner.kpi.todayOrders"),
         value: data.today_overview.total_orders.toString(),
         change: "+8.2%",
         trend: "up",
@@ -540,9 +585,9 @@ const loadDashboardData = async () => {
       },
       {
         key: "staff",
-        label: "在線員工",
+        label: t("owner.kpi.onlineStaff"),
         value: `${data.staff_status.online_staff}/${data.staff_status.total_staff}`,
-        change: "正常",
+        change: t("owner.kpi.normal"),
         trend: "stable",
         trendIcon: MinusIcon,
         icon: UsersIcon,
@@ -551,7 +596,7 @@ const loadDashboardData = async () => {
       },
       {
         key: "efficiency",
-        label: "整體效率",
+        label: t("owner.kpi.overallEfficiency"),
         value: `${Math.round((data.staff_status.avg_chef_efficiency + data.staff_status.avg_service_efficiency) / 2)}%`,
         change: "+2.1%",
         trend: "up",
@@ -585,7 +630,7 @@ const loadDashboardData = async () => {
     }));
   } catch (err) {
     console.error("Error loading dashboard data:", err);
-    error.value = err instanceof Error ? err.message : "加載數據失敗";
+    error.value = err instanceof Error ? err.message : t("owner.loadFailed");
   } finally {
     isLoading.value = false;
   }
@@ -596,7 +641,7 @@ const handleQuickAction = async (action: string) => {
     await ownerService.handleQuickAction(action);
   } catch (err) {
     console.error("Error handling quick action:", err);
-    alert("操作失敗，請稍後再試");
+    alert(t("owner.operationFailed"));
   }
 };
 
@@ -613,7 +658,7 @@ const handleEmergencyAlert = async (alertId: number, action: string) => {
     }
   } catch (err) {
     console.error("Error handling emergency alert:", err);
-    alert("操作失敗，請稍後再試");
+    alert(t("owner.operationFailed"));
   }
 };
 

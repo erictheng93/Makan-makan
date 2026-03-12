@@ -3,30 +3,34 @@
     <!-- 增強版 POS 系統標題 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">POS 系統</h1>
-        <p class="text-gray-600">完整收銷售點管理系統</p>
+        <h1 class="text-3xl font-bold text-gray-900">{{ t("pos.title") }}</h1>
+        <p class="text-gray-600">{{ t("pos.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-6">
         <!-- 收銀櫃狀態 -->
         <div class="bg-green-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-green-800 font-medium">
-            收銀櫃: {{ currentRegister?.name || "未選擇" }}
+            {{ t("pos.register") }}:
+            {{ currentRegister?.name || t("pos.notSelected") }}
           </p>
           <p class="text-xs text-green-600">
-            餘額: RM{{ formatMoney(currentRegister?.currentBalance || 0) }}
+            {{ t("pos.balance") }}: RM{{
+              formatMoney(currentRegister?.currentBalance || 0)
+            }}
           </p>
         </div>
 
         <!-- 班次資訊 -->
         <div class="bg-blue-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-blue-800 font-medium">
-            班次: {{ currentShift?.name || "未開始" }}
+            {{ t("pos.shift") }}:
+            {{ currentShift?.name || t("pos.notStarted") }}
           </p>
           <p class="text-xs text-blue-600">
             {{
               currentShift
                 ? `${formatTime(currentShift.startTime || "")} - ${formatTime(currentShift.endTime || "")}`
-                : "請開始班次"
+                : t("pos.pleaseStartShift")
             }}
           </p>
         </div>
@@ -38,28 +42,28 @@
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
             @click="startShift"
           >
-            開始班次
+            {{ t("pos.startShift") }}
           </button>
           <button
             v-else
             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             @click="endShift"
           >
-            結束班次
+            {{ t("pos.endShift") }}
           </button>
 
           <button
             class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
             @click="openRegisterManagement"
           >
-            收銀櫃管理
+            {{ t("pos.registerManagement") }}
           </button>
 
           <button
             class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
             @click="openPromotionsDialog"
           >
-            促銷管理
+            {{ t("pos.promotionManagement") }}
           </button>
         </div>
       </div>
@@ -70,10 +74,12 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-blue-100">
-            <CashIcon class="h-6 w-6 text-blue-600" />
+            <BanknotesIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">今日營收</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("pos.todayRevenue") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               RM{{ formatMoney(todayStats.revenue) }}
             </p>
@@ -87,7 +93,9 @@
             <ShoppingCartIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">訂單數量</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("pos.orderCount") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ todayStats.orders }}
             </p>
@@ -101,7 +109,9 @@
             <UserGroupIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">活躍收銀櫃</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("pos.activeRegisters") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ registers.filter((r) => r.status === "active").length }}
             </p>
@@ -115,9 +125,11 @@
             <ClockIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">平均服務時間</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("pos.avgServiceTime") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
-              {{ todayStats.avgServiceTime }}分鐘
+              {{ todayStats.avgServiceTime }}{{ t("pos.minutes") }}
             </p>
           </div>
         </div>
@@ -132,12 +144,14 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">收銀櫃列表</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("pos.registerList") }}
+              </h2>
               <button
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 @click="createRegister"
               >
-                新增收銀櫃
+                {{ t("pos.addRegister") }}
               </button>
             </div>
           </div>
@@ -167,17 +181,23 @@
 
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">當前餘額:</span>
+                    <span class="text-gray-600"
+                      >{{ t("pos.currentBalance") }}:</span
+                    >
                     <span class="font-semibold"
                       >RM{{ formatMoney(register.currentBalance) }}</span
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">今日交易:</span>
+                    <span class="text-gray-600"
+                      >{{ t("pos.todayTransactions") }}:</span
+                    >
                     <span>{{ register.todayTransactions }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">最後活動:</span>
+                    <span class="text-gray-600"
+                      >{{ t("pos.lastActivity") }}:</span
+                    >
                     <span>{{ formatTime(register.lastActivity) }}</span>
                   </div>
                 </div>
@@ -188,21 +208,21 @@
                     class="flex-1 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                     @click.stop="activateRegister(register.id)"
                   >
-                    啟用
+                    {{ t("pos.activate") }}
                   </button>
                   <button
                     v-else
                     class="flex-1 py-2 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors"
                     @click.stop="deactivateRegister(register.id)"
                   >
-                    停用
+                    {{ t("pos.deactivate") }}
                   </button>
 
                   <button
                     class="flex-1 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
                     @click.stop="openCashMovement(register)"
                   >
-                    現金管理
+                    {{ t("pos.cashManagement") }}
                   </button>
                 </div>
               </div>
@@ -214,13 +234,15 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">最近交易</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("pos.recentTransactions") }}
+              </h2>
               <div class="flex space-x-2">
                 <button
                   class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition-colors"
                   @click="exportTransactions"
                 >
-                  匯出
+                  {{ t("pos.export") }}
                 </button>
                 <button
                   class="p-2 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
@@ -290,9 +312,9 @@
             >
               <DocumentTextIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                尚無交易記錄
+                {{ t("pos.noTransactions") }}
               </h3>
-              <p class="text-gray-500">開始使用 POS 系統後會顯示交易記錄</p>
+              <p class="text-gray-500">{{ t("pos.noTransactionsHint") }}</p>
             </div>
           </div>
         </div>
@@ -303,25 +325,27 @@
         <!-- 快速收款 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">快速收款</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("pos.quickPayment") }}
+            </h3>
 
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >訂單編號</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("pos.orderNumber")
+                }}</label>
                 <input
                   v-model="quickPayment.orderNumber"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="輸入訂單編號"
+                  :placeholder="t('pos.orderNumberPlaceholder')"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >金額</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("pos.amount")
+                }}</label>
                 <div class="relative">
                   <span class="absolute left-3 top-3 text-gray-500">RM</span>
                   <input
@@ -336,18 +360,22 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >付款方式</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("pos.paymentMethod")
+                }}</label>
                 <select
                   v-model="quickPayment.paymentMethod"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">請選擇</option>
-                  <option value="cash">現金</option>
-                  <option value="card">信用卡</option>
-                  <option value="digital_wallet">電子錢包</option>
-                  <option value="bank_transfer">銀行轉帳</option>
+                  <option value="">{{ t("pos.selectMethod") }}</option>
+                  <option value="cash">{{ t("pos.methods.cash") }}</option>
+                  <option value="card">{{ t("pos.methods.card") }}</option>
+                  <option value="digital_wallet">
+                    {{ t("pos.methods.digitalWallet") }}
+                  </option>
+                  <option value="bank_transfer">
+                    {{ t("pos.methods.bankTransfer") }}
+                  </option>
                 </select>
               </div>
 
@@ -356,7 +384,7 @@
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 @click="processQuickPayment"
               >
-                確認付款
+                {{ t("pos.confirmPayment") }}
               </button>
             </div>
           </div>
@@ -366,12 +394,14 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-gray-900">活躍促銷</h3>
+              <h3 class="text-lg font-semibold text-gray-900">
+                {{ t("pos.activePromotions") }}
+              </h3>
               <button
                 class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 @click="openPromotionsDialog"
               >
-                管理促銷
+                {{ t("pos.managePromotions") }}
               </button>
             </div>
 
@@ -404,7 +434,7 @@
                 v-if="activePromotions.length === 0"
                 class="text-center py-4"
               >
-                <p class="text-sm text-gray-500">暫無活躍促銷</p>
+                <p class="text-sm text-gray-500">{{ t("pos.noPromotions") }}</p>
               </div>
             </div>
           </div>
@@ -414,34 +444,40 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-gray-900">今日班次</h3>
+              <h3 class="text-lg font-semibold text-gray-900">
+                {{ t("pos.todayShift") }}
+              </h3>
               <button
                 class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 @click="generateShiftReport"
               >
-                產生報告
+                {{ t("pos.generateReport") }}
               </button>
             </div>
 
             <div v-if="currentShift" class="space-y-3">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">開始時間:</span>
+                <span class="text-gray-600">{{ t("pos.startTime") }}:</span>
                 <span class="font-medium">{{
                   formatTime(currentShift.startTime)
                 }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">工作時數:</span>
-                <span class="font-medium">{{ getShiftDuration() }}小時</span>
+                <span class="text-gray-600">{{ t("pos.workHours") }}:</span>
+                <span class="font-medium"
+                  >{{ getShiftDuration() }}{{ t("pos.hours") }}</span
+                >
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">處理訂單:</span>
+                <span class="text-gray-600"
+                  >{{ t("pos.processedOrders") }}:</span
+                >
                 <span class="font-medium">{{
                   currentShift.processedOrders
                 }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">總營收:</span>
+                <span class="text-gray-600">{{ t("pos.totalRevenue") }}:</span>
                 <span class="font-medium text-green-600"
                   >RM{{ formatMoney(currentShift.totalRevenue) }}</span
                 >
@@ -449,12 +485,12 @@
             </div>
 
             <div v-else class="text-center py-4">
-              <p class="text-sm text-gray-500 mb-3">尚未開始班次</p>
+              <p class="text-sm text-gray-500 mb-3">{{ t("pos.noShift") }}</p>
               <button
                 class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 @click="startShift"
               >
-                開始班次
+                {{ t("pos.startShift") }}
               </button>
             </div>
           </div>
@@ -474,7 +510,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">現金管理</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("pos.cashManagement") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeCashMovementDialog"
@@ -485,25 +523,25 @@
 
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >操作類型</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("pos.operationType")
+              }}</label>
               <select
                 v-model="cashMovement.type"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">請選擇</option>
-                <option value="cash_in">現金存入</option>
-                <option value="cash_out">現金支出</option>
-                <option value="drawer_count">金額調整</option>
-                <option value="refund">退款</option>
+                <option value="">{{ t("pos.selectMethod") }}</option>
+                <option value="cash_in">{{ t("pos.cashIn") }}</option>
+                <option value="cash_out">{{ t("pos.cashOut") }}</option>
+                <option value="drawer_count">{{ t("pos.drawerCount") }}</option>
+                <option value="refund">{{ t("pos.refund") }}</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >金額</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("pos.amount")
+              }}</label>
               <div class="relative">
                 <span class="absolute left-3 top-3 text-gray-500">RM</span>
                 <input
@@ -518,14 +556,14 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >說明</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("pos.description")
+              }}</label>
               <textarea
                 v-model="cashMovement.description"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入操作說明"
+                :placeholder="t('pos.descriptionPlaceholder')"
               />
             </div>
           </div>
@@ -535,14 +573,14 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeCashMovementDialog"
             >
-              取消
+              {{ t("pos.cancel") }}
             </button>
             <button
               :disabled="!canProcessCashMovement"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="processCashMovement"
             >
-              確認操作
+              {{ t("pos.confirmOperation") }}
             </button>
           </div>
         </div>
@@ -560,7 +598,9 @@
           class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">促銷活動管理</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("pos.promotionManagementTitle") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closePromotionsDialog"
@@ -574,7 +614,7 @@
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               @click="createPromotion"
             >
-              新增促銷活動
+              {{ t("pos.addPromotion") }}
             </button>
           </div>
 
@@ -594,7 +634,7 @@
                       : 'bg-gray-100 text-gray-800',
                   ]"
                 >
-                  {{ promotion.isActive ? "已啟用" : "已暫停" }}
+                  {{ promotion.isActive ? t("pos.enabled") : t("pos.paused") }}
                 </span>
               </div>
               <p class="text-sm text-gray-600 mb-3">
@@ -615,7 +655,7 @@
                     class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition-colors"
                     @click="editPromotion(promotion)"
                   >
-                    編輯
+                    {{ t("pos.edit") }}
                   </button>
                   <button
                     :class="[
@@ -626,7 +666,7 @@
                     ]"
                     @click="togglePromotion(promotion)"
                   >
-                    {{ promotion.isActive ? "暫停" : "啟用" }}
+                    {{ promotion.isActive ? t("pos.pause") : t("pos.enable") }}
                   </button>
                 </div>
               </div>
@@ -652,6 +692,9 @@ import {
 import PlusIcon from "@heroicons/vue/24/solid/PlusIcon";
 import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // 類型定義
 interface CashRegister {
@@ -826,9 +869,9 @@ const getRegisterStatusClass = (status: string) => {
 
 const getRegisterStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    active: "啟用中",
-    inactive: "已停用",
-    maintenance: "維護中",
+    active: t("pos.registerStatus.active"),
+    inactive: t("pos.registerStatus.inactive"),
+    maintenance: t("pos.registerStatus.maintenance"),
   };
   return texts[status] || status;
 };
@@ -857,11 +900,11 @@ const getTransactionIcon = (type: string) => {
 
 const getTransactionTypeText = (type: string) => {
   const texts: Record<string, string> = {
-    sale: "銷售付款",
-    refund: "退款",
-    cash_in: "現金存入",
-    cash_out: "現金支出",
-    drawer_count: "金額調整",
+    sale: t("pos.transactionType.sale"),
+    refund: t("pos.transactionType.refund"),
+    cash_in: t("pos.transactionType.cashIn"),
+    cash_out: t("pos.transactionType.cashOut"),
+    drawer_count: t("pos.transactionType.drawerCount"),
   };
   return texts[type] || type;
 };
@@ -871,7 +914,7 @@ const selectRegister = (register: CashRegister) => {
 };
 
 const createRegister = () => {
-  const name = prompt("輸入新現金櫃名稱:");
+  const name = prompt(t("pos.prompts.registerName"));
   if (name) {
     const newRegister: CashRegister = {
       id: `reg_${Date.now()}`,
@@ -902,7 +945,7 @@ const deactivateRegister = async (registerId: string) => {
 };
 
 const startShift = () => {
-  const startingCash = prompt("輸入起始現金金額:");
+  const startingCash = prompt(t("pos.prompts.startingCash"));
   if (startingCash && !isNaN(parseFloat(startingCash))) {
     currentShift.value = {
       id: `shift_${Date.now()}`,
@@ -919,7 +962,7 @@ const startShift = () => {
 };
 
 const endShift = () => {
-  if (currentShift.value && confirm("確認結束當前班次?")) {
+  if (currentShift.value && confirm(t("pos.confirms.endShift"))) {
     currentShift.value.endTime = new Date().toISOString();
     currentShift.value.status = "ended";
     currentShift.value = null;
@@ -973,9 +1016,9 @@ const processQuickPayment = async () => {
       paymentMethod: "",
     };
 
-    alert("付款處理成功");
+    alert(t("pos.alerts.paymentSuccess"));
   } catch {
-    alert("付款失敗，請重試");
+    alert(t("pos.alerts.paymentFailed"));
   }
 };
 
@@ -1015,9 +1058,9 @@ const processCashMovement = async () => {
     currentRegister.value.lastActivity = new Date().toISOString();
 
     closeCashMovementDialog();
-    alert("現金操作處理成功");
+    alert(t("pos.alerts.cashSuccess"));
   } catch {
-    alert("操作失敗，請重試");
+    alert(t("pos.alerts.operationFailed"));
   }
 };
 
@@ -1030,7 +1073,7 @@ const closePromotionsDialog = () => {
 };
 
 const createPromotion = () => {
-  const title = prompt("輸入促銷活動名稱:");
+  const title = prompt(t("pos.prompts.promotionName"));
   if (title) {
     const newPromotion: Promotion = {
       id: `promo_${Date.now()}`,
@@ -1076,11 +1119,11 @@ const refreshTransactions = () => {
 };
 
 const exportTransactions = () => {
-  alert("匯出交易記錄功能開發中...");
+  alert(t("pos.alerts.exportInDev"));
 };
 
 const generateShiftReport = () => {
-  alert("產生班次報告功能開發中...");
+  alert(t("pos.alerts.reportInDev"));
 };
 
 // 生命週期

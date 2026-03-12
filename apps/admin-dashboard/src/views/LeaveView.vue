@@ -3,8 +3,8 @@
     <!-- 頁面標題 -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">{{ $t("leaves.title") }}</h1>
-        <p class="page-subtitle">{{ $t("leaves.subtitle") }}</p>
+        <h1 class="page-title">{{ t("leaves.title") }}</h1>
+        <p class="page-subtitle">{{ t("leaves.subtitle") }}</p>
       </div>
       <button class="btn-request-leave" @click="openRequestDialog">
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
@@ -12,7 +12,7 @@
             d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
           />
         </svg>
-        {{ $t("leaves.request.new") }}
+        {{ t("leaves.request.new") }}
       </button>
     </div>
 
@@ -25,7 +25,7 @@
         :class="{ active: currentTab === tab.value }"
         @click="currentTab = tab.value"
       >
-        {{ $t(tab.label) }}
+        {{ t(tab.label) }}
         <span v-if="tab.count" class="tab-count">{{ tab.count }}</span>
       </button>
     </div>
@@ -36,7 +36,7 @@
       <div v-show="currentTab === 'my-leaves'">
         <!-- 餘額卡片 -->
         <div class="balances-section">
-          <h3 class="section-title">{{ $t("leaves.balance.title") }}</h3>
+          <h3 class="section-title">{{ t("leaves.balance.title") }}</h3>
           <div class="balance-grid">
             <LeaveBalanceCard
               v-for="balance in balances"
@@ -49,7 +49,7 @@
 
         <!-- 請假記錄 -->
         <div class="requests-section">
-          <h3 class="section-title">{{ $t("leaves.request.myRequests") }}</h3>
+          <h3 class="section-title">{{ t("leaves.request.myRequests") }}</h3>
           <LeaveRequestList
             :requests="myRequests"
             :leave-types="leaveTypes"
@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useRoute, useRouter } from "vue-router";
 import LeaveBalanceCard from "@/components/leaves/LeaveBalanceCard.vue";
 import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
@@ -108,6 +109,7 @@ import type {
   LeaveRequest,
 } from "@makanmakan/shared-types";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -238,21 +240,19 @@ const handleSubmitRequest = async (formData: any) => {
     if (response.ok) {
       await loadData();
       closeRequestDialog();
-      // 顯示成功訊息
-      alert("請假申請提交成功！");
+      alert(t("leaveActions.submitSuccess"));
     } else {
-      // 顯示錯誤訊息
-      alert("請假申請提交失敗");
+      alert(t("leaveActions.submitFailed"));
     }
   } catch (error) {
     console.error("Failed to submit leave request:", error);
-    alert("請假申請提交失敗");
+    alert(t("leaveActions.submitFailed"));
   }
 };
 
 // 取消請假申請
 const handleCancelRequest = async (requestId: number) => {
-  if (!confirm("確定要取消此請假申請嗎？")) return;
+  if (!confirm(t("leaveActions.cancelConfirm"))) return;
 
   try {
     const restaurantId = route.params.restaurantId || 1;
@@ -268,19 +268,19 @@ const handleCancelRequest = async (requestId: number) => {
 
     if (response.ok) {
       await loadData();
-      alert("已取消請假申請");
+      alert(t("leaveActions.cancelSuccess"));
     } else {
-      alert("取消失敗");
+      alert(t("leaveActions.cancelFailed"));
     }
   } catch (error) {
     console.error("Failed to cancel request:", error);
-    alert("取消失敗");
+    alert(t("leaveActions.cancelFailed"));
   }
 };
 
 // 批准請假申請
 const handleApproveRequest = async (requestId: number) => {
-  if (!confirm("確定要批准此請假申請嗎？")) return;
+  if (!confirm(t("leaveActions.approveConfirm"))) return;
 
   try {
     const restaurantId = route.params.restaurantId || 1;
@@ -296,19 +296,19 @@ const handleApproveRequest = async (requestId: number) => {
 
     if (response.ok) {
       await loadData();
-      alert("已批准請假申請");
+      alert(t("leaveActions.approveSuccess"));
     } else {
-      alert("批准失敗");
+      alert(t("leaveActions.approveFailed"));
     }
   } catch (error) {
     console.error("Failed to approve request:", error);
-    alert("批准失敗");
+    alert(t("leaveActions.approveFailed"));
   }
 };
 
 // 拒絕請假申請
 const handleRejectRequest = async (requestId: number) => {
-  const reason = prompt("請輸入拒絕原因：");
+  const reason = prompt(t("leaveActions.rejectPrompt"));
   if (!reason) return;
 
   try {
@@ -327,13 +327,13 @@ const handleRejectRequest = async (requestId: number) => {
 
     if (response.ok) {
       await loadData();
-      alert("已拒絕請假申請");
+      alert(t("leaveActions.rejectSuccess"));
     } else {
-      alert("拒絕失敗");
+      alert(t("leaveActions.rejectFailed"));
     }
   } catch (error) {
     console.error("Failed to reject request:", error);
-    alert("拒絕失敗");
+    alert(t("leaveActions.rejectFailed"));
   }
 };
 

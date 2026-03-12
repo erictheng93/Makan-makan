@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import type { ProductAnalysis } from "@makanmakan/ai-analytics";
 
@@ -17,6 +18,7 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
 
+const { t } = useI18n();
 const { getTrafficDrivers, getBestsellers, getProfitLeaders } =
   useAIAnalytics();
 
@@ -33,37 +35,37 @@ const trafficDrivers = ref<ProductAnalysis[]>([]);
 const bestsellers = ref<ProductAnalysis[]>([]);
 const profitLeaders = ref<ProductAnalysis[]>([]);
 
-const timeRangeOptions = [
-  { value: "7d", label: "過去 7 天" },
-  { value: "14d", label: "過去 14 天" },
-  { value: "30d", label: "過去 30 天" },
-  { value: "90d", label: "過去 90 天" },
-];
+const timeRangeOptions = computed(() => [
+  { value: "7d", label: t("aiAnalytics.last7Days") },
+  { value: "14d", label: t("aiAnalytics.last14Days") },
+  { value: "30d", label: t("aiAnalytics.last30Days") },
+  { value: "90d", label: t("aiAnalytics.last90Days") },
+]);
 
 // Tab configurations
-const tabs = [
+const tabs = computed(() => [
   {
     id: "traffic",
-    label: "引流產品",
+    label: t("productAnalytics.trafficDrivers"),
     icon: UserGroupIcon,
-    description: "帶來新客戶的產品",
+    description: t("productAnalytics.trafficDriversDesc"),
     color: "indigo",
   },
   {
     id: "bestsellers",
-    label: "熱銷產品",
+    label: t("productAnalytics.bestsellers"),
     icon: FireIcon,
-    description: "銷量最高的產品",
+    description: t("productAnalytics.bestsellersDesc"),
     color: "orange",
   },
   {
     id: "profit",
-    label: "利潤最大",
+    label: t("productAnalytics.profitLeaders"),
     icon: CurrencyDollarIcon,
-    description: "最賺錢的產品",
+    description: t("productAnalytics.profitLeadersDesc"),
     color: "green",
   },
-];
+]);
 
 // Current tab data
 const currentProducts = computed(() => {
@@ -97,7 +99,7 @@ const loadData = async () => {
   } catch (err) {
     console.error("Failed to load product analytics:", err);
     errorMessage.value =
-      err instanceof Error ? err.message : "載入產品分析失敗，請稍後再試";
+      err instanceof Error ? err.message : t("productAnalytics.loadFailed");
   } finally {
     isRefreshing.value = false;
   }
@@ -145,9 +147,11 @@ const getTrendColor = (trend: number) => {
           <div>
             <div class="flex items-center space-x-3 mb-2">
               <ChartBarIcon class="w-8 h-8 text-indigo-600" />
-              <h1 class="text-3xl font-bold text-gray-900">產品分析</h1>
+              <h1 class="text-3xl font-bold text-gray-900">
+                {{ t("productAnalytics.title") }}
+              </h1>
             </div>
-            <p class="text-gray-600">深度分析產品表現，優化菜單策略</p>
+            <p class="text-gray-600">{{ t("productAnalytics.subtitle") }}</p>
           </div>
         </div>
 
@@ -160,19 +164,19 @@ const getTrendColor = (trend: number) => {
               to="/dashboard/ai-analytics/insights"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
             >
-              AI 洞察
+              {{ t("aiAnalytics.navInsights") }}
             </router-link>
             <router-link
               to="/dashboard/ai-analytics/products"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white"
             >
-              產品分析
+              {{ t("aiAnalytics.navProducts") }}
             </router-link>
             <router-link
               to="/dashboard/ai-analytics/config"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
             >
-              AI 配置
+              {{ t("aiAnalytics.navConfig") }}
             </router-link>
           </div>
 
@@ -263,13 +267,15 @@ const getTrendColor = (trend: number) => {
             class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
           />
           <div class="flex-1">
-            <h3 class="text-red-900 font-semibold mb-1">載入數據時發生錯誤</h3>
+            <h3 class="text-red-900 font-semibold mb-1">
+              {{ t("productAnalytics.loadError") }}
+            </h3>
             <p class="text-red-700 text-sm mb-3">{{ errorMessage }}</p>
             <button
               class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
               @click="loadData()"
             >
-              重試
+              {{ t("aiAnalytics.retry") }}
             </button>
           </div>
         </div>
@@ -284,7 +290,9 @@ const getTrendColor = (trend: number) => {
           <ArrowPathIcon
             class="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4"
           />
-          <div class="text-gray-600 font-medium">載入產品分析...</div>
+          <div class="text-gray-600 font-medium">
+            {{ t("productAnalytics.loading") }}
+          </div>
         </div>
       </div>
 
@@ -326,7 +334,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">首選次數</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.firstPickCount")
+                }}</span>
                 <span class="font-semibold text-gray-900">{{
                   product.firstItemInOrderCount
                 }}</span>
@@ -334,7 +344,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">轉換率</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.conversionRate")
+                }}</span>
                 <span class="font-semibold text-indigo-600">{{
                   formatPercent(product.conversionRate)
                 }}</span>
@@ -342,7 +354,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">加購率</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.cartAdditionRate")
+                }}</span>
                 <span class="font-semibold text-purple-600">{{
                   formatPercent(product.cartAdditionRate)
                 }}</span>
@@ -354,7 +368,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">總訂單</span>
+                <span class="text-sm text-gray-600">{{
+                  t("aiAnalytics.totalOrders")
+                }}</span>
                 <span class="font-semibold text-gray-900">{{
                   product.totalOrders
                 }}</span>
@@ -362,7 +378,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">總營收</span>
+                <span class="text-sm text-gray-600">{{
+                  t("aiAnalytics.totalRevenue")
+                }}</span>
                 <span class="font-semibold text-green-600">{{
                   formatCurrency(product.totalRevenue)
                 }}</span>
@@ -370,7 +388,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">平均客單價</span>
+                <span class="text-sm text-gray-600">{{
+                  t("aiAnalytics.avgOrderValue")
+                }}</span>
                 <span class="font-semibold text-blue-600">{{
                   formatCurrency(product.averageOrderValue)
                 }}</span>
@@ -382,7 +402,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">總利潤</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.totalProfit")
+                }}</span>
                 <span class="font-semibold text-green-600">{{
                   formatCurrency(product.totalProfit)
                 }}</span>
@@ -390,7 +412,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">利潤率</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.profitMargin")
+                }}</span>
                 <span class="font-semibold text-emerald-600">
                   {{
                     product.profitMargin
@@ -402,7 +426,9 @@ const getTrendColor = (trend: number) => {
               <div
                 class="flex items-center justify-between py-2 border-b border-gray-100"
               >
-                <span class="text-sm text-gray-600">單價</span>
+                <span class="text-sm text-gray-600">{{
+                  t("productAnalytics.unitPrice")
+                }}</span>
                 <span class="font-semibold text-gray-900">{{
                   formatCurrency(product.unitPrice)
                 }}</span>
@@ -411,7 +437,9 @@ const getTrendColor = (trend: number) => {
 
             <!-- Common Metrics -->
             <div class="flex items-center justify-between py-2">
-              <span class="text-sm text-gray-600">趨勢</span>
+              <span class="text-sm text-gray-600">{{
+                t("productAnalytics.trend")
+              }}</span>
               <div
                 class="flex items-center space-x-1"
                 :class="getTrendColor(product.trendScore)"
@@ -447,12 +475,12 @@ const getTrendColor = (trend: number) => {
             >
               {{
                 category === "traffic-driver"
-                  ? "引流"
+                  ? t("productAnalytics.categoryTraffic")
                   : category === "bestseller"
-                    ? "熱銷"
+                    ? t("productAnalytics.categoryBestseller")
                     : category === "profit-leader"
-                      ? "高利潤"
-                      : "待改進"
+                      ? t("productAnalytics.categoryProfit")
+                      : t("productAnalytics.categoryUnderperformer")
               }}
             </span>
           </div>
@@ -467,8 +495,12 @@ const getTrendColor = (trend: number) => {
       <!-- No Data State -->
       <div v-else class="text-center py-20">
         <ChartBarIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <div class="text-gray-600 font-medium mb-2">暫無產品數據</div>
-        <div class="text-sm text-gray-500">請確保有足夠的訂單數據進行分析</div>
+        <div class="text-gray-600 font-medium mb-2">
+          {{ t("productAnalytics.noData") }}
+        </div>
+        <div class="text-sm text-gray-500">
+          {{ t("productAnalytics.noDataHint") }}
+        </div>
       </div>
 
       <!-- Summary Cards -->
@@ -485,17 +517,19 @@ const getTrendColor = (trend: number) => {
             >
               <ShoppingCartIcon class="w-6 h-6 text-white" />
             </div>
-            <div class="font-semibold text-blue-900">分析見解</div>
+            <div class="font-semibold text-blue-900">
+              {{ t("productAnalytics.analysisInsight") }}
+            </div>
           </div>
           <p class="text-sm text-blue-800 leading-relaxed">
             <template v-if="activeTab === 'traffic'">
-              引流產品幫助您吸引新客戶。考慮搭配高利潤產品進行促銷。
+              {{ t("productAnalytics.insightTraffic") }}
             </template>
             <template v-else-if="activeTab === 'bestsellers'">
-              熱銷產品是您的核心競爭力。確保庫存充足，維持品質穩定。
+              {{ t("productAnalytics.insightBestsellers") }}
             </template>
             <template v-else>
-              高利潤產品提升整體盈利能力。可通過推薦或套餐增加銷量。
+              {{ t("productAnalytics.insightProfit") }}
             </template>
           </p>
         </div>
@@ -509,17 +543,19 @@ const getTrendColor = (trend: number) => {
             >
               <SparklesIcon class="w-6 h-6 text-white" />
             </div>
-            <div class="font-semibold text-purple-900">優化建議</div>
+            <div class="font-semibold text-purple-900">
+              {{ t("productAnalytics.optimizationTips") }}
+            </div>
           </div>
           <p class="text-sm text-purple-800 leading-relaxed">
             <template v-if="activeTab === 'traffic'">
-              將引流產品放置在菜單顯眼位置，優化產品圖片和描述。
+              {{ t("productAnalytics.tipTraffic") }}
             </template>
             <template v-else-if="activeTab === 'bestsellers'">
-              分析熱銷產品的成功要素，複製到其他產品上。
+              {{ t("productAnalytics.tipBestsellers") }}
             </template>
             <template v-else>
-              優化成本控制，考慮價格策略調整以最大化利潤。
+              {{ t("productAnalytics.tipProfit") }}
             </template>
           </p>
         </div>
@@ -533,17 +569,19 @@ const getTrendColor = (trend: number) => {
             >
               <ArrowTrendingUpIcon class="w-6 h-6 text-white" />
             </div>
-            <div class="font-semibold text-green-900">行動方案</div>
+            <div class="font-semibold text-green-900">
+              {{ t("productAnalytics.actionPlan") }}
+            </div>
           </div>
           <p class="text-sm text-green-800 leading-relaxed">
             <template v-if="activeTab === 'traffic'">
-              創建「引流產品 + 高利潤產品」套餐，提升整體利潤率。
+              {{ t("productAnalytics.actionTraffic") }}
             </template>
             <template v-else-if="activeTab === 'bestsellers'">
-              考慮推出熱銷產品的變體或升級版本，擴大產品線。
+              {{ t("productAnalytics.actionBestsellers") }}
             </template>
             <template v-else>
-              培訓員工重點推薦高利潤產品，設置銷售獎勵機制。
+              {{ t("productAnalytics.actionProfit") }}
             </template>
           </p>
         </div>

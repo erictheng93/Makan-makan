@@ -7,7 +7,7 @@
         @click="goBack"
       >
         <ArrowLeftIcon class="h-5 w-5 mr-2" />
-        返回桌台列表
+        {{ t("tableDetail.backToList") }}
       </button>
     </div>
 
@@ -16,7 +16,7 @@
       <div class="flex justify-between items-start">
         <div>
           <h1 class="text-2xl font-bold text-gray-900 mb-2">
-            桌號 {{ table.tableNumber }}
+            {{ t("tableDetail.tableNumber", { number: table.tableNumber }) }}
           </h1>
           <div class="flex items-center space-x-4">
             <span
@@ -28,7 +28,11 @@
             <span
               class="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full"
             >
-              {{ table.qrMode === "table" ? "桌子模式" : "座位模式" }}
+              {{
+                table.qrMode === "table"
+                  ? t("tableDetail.tableMode")
+                  : t("tableDetail.seatMode")
+              }}
             </span>
           </div>
         </div>
@@ -38,13 +42,13 @@
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             @click="showEditModal = true"
           >
-            編輯桌台
+            {{ t("tableDetail.editTable") }}
           </button>
           <button
             class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
             @click="showModeSwitchModal = true"
           >
-            切換模式
+            {{ t("tableDetail.switchMode") }}
           </button>
         </div>
       </div>
@@ -52,23 +56,37 @@
       <!-- 桌台詳細資訊 -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <div>
-          <div class="text-sm text-gray-600">容量</div>
-          <div class="text-lg font-semibold">{{ table.capacity }} 人</div>
+          <div class="text-sm text-gray-600">
+            {{ t("tableDetail.capacity") }}
+          </div>
+          <div class="text-lg font-semibold">
+            {{ t("tableDetail.capacityValue", { count: table.capacity }) }}
+          </div>
         </div>
         <div>
-          <div class="text-sm text-gray-600">位置</div>
+          <div class="text-sm text-gray-600">
+            {{ t("tableDetail.location") }}
+          </div>
           <div class="text-lg font-semibold">
-            {{ table.location || "未設定" }}
+            {{ table.location || t("tableDetail.locationNotSet") }}
           </div>
         </div>
         <div v-if="table.qrMode === 'seat'">
-          <div class="text-sm text-gray-600">座位數量</div>
-          <div class="text-lg font-semibold">{{ seats.length }} 個</div>
+          <div class="text-sm text-gray-600">
+            {{ t("tableDetail.seatCount") }}
+          </div>
+          <div class="text-lg font-semibold">
+            {{ t("tableDetail.seatCountValue", { count: seats.length }) }}
+          </div>
         </div>
         <div>
-          <div class="text-sm text-gray-600">使用次數</div>
+          <div class="text-sm text-gray-600">
+            {{ t("tableDetail.usageCount") }}
+          </div>
           <div class="text-lg font-semibold">
-            {{ table.totalUsage || 0 }} 次
+            {{
+              t("tableDetail.usageCountValue", { count: table.totalUsage || 0 })
+            }}
           </div>
         </div>
       </div>
@@ -87,7 +105,9 @@
 
     <!-- 桌子 QR 碼（桌子模式） -->
     <div v-else class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-xl font-bold text-gray-900 mb-4">桌台 QR 碼</h2>
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        {{ t("tableDetail.qrCode.title") }}
+      </h2>
 
       <div class="flex flex-col items-center">
         <div class="p-6 bg-gray-50 rounded-lg">
@@ -96,7 +116,9 @@
           >
             <div class="text-center">
               <QRCodeIcon class="mx-auto h-24 w-24 text-gray-400 mb-2" />
-              <p class="text-sm text-gray-500">QR 碼預覽</p>
+              <p class="text-sm text-gray-500">
+                {{ t("tableDetail.qrCode.preview") }}
+              </p>
               <p class="text-xs text-gray-400 mt-2 break-all px-4">
                 {{ table.qrCode }}
               </p>
@@ -109,19 +131,19 @@
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             @click="downloadQRCode"
           >
-            下載 QR 碼
+            {{ t("tableDetail.qrCode.download") }}
           </button>
           <button
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             @click="printQRCode"
           >
-            列印 QR 碼
+            {{ t("tableDetail.qrCode.print") }}
           </button>
           <button
             class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
             @click="regenerateQRCode"
           >
-            重新生成
+            {{ t("tableDetail.qrCode.regenerate") }}
           </button>
         </div>
       </div>
@@ -139,7 +161,9 @@
         >
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-semibold">切換 QR 模式</h3>
+              <h3 class="text-lg font-semibold">
+                {{ t("tableDetail.modeSwitch.title") }}
+              </h3>
               <button
                 class="text-gray-400 hover:text-gray-600"
                 @click="showModeSwitchModal = false"
@@ -150,9 +174,11 @@
 
             <div class="mb-6">
               <p class="text-sm text-gray-600">
-                當前模式:
+                {{ t("tableDetail.modeSwitch.currentMode") }}
                 <span class="font-semibold">{{
-                  table.qrMode === "table" ? "桌子模式" : "座位模式"
+                  table.qrMode === "table"
+                    ? t("tableDetail.tableMode")
+                    : t("tableDetail.seatMode")
                 }}</span>
               </p>
             </div>
@@ -168,14 +194,14 @@
                 class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 @click="showModeSwitchModal = false"
               >
-                取消
+                {{ t("tableDetail.modeSwitch.cancel") }}
               </button>
               <button
                 type="button"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 @click="switchQRMode"
               >
-                切換模式
+                {{ t("tableDetail.modeSwitch.confirm") }}
               </button>
             </div>
           </div>
@@ -187,12 +213,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useRouter, useRoute } from "vue-router";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
 
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
@@ -235,13 +263,13 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    available: "可用",
-    occupied: "使用中",
-    reserved: "已預約",
-    maintenance: "維護中",
+  const keys: Record<string, string> = {
+    available: "tableDetail.status.available",
+    occupied: "tableDetail.status.occupied",
+    reserved: "tableDetail.status.reserved",
+    maintenance: "tableDetail.status.maintenance",
   };
-  return texts[status] || status;
+  return keys[status] ? t(keys[status]) : status;
 };
 
 const loadSeats = async () => {
@@ -271,15 +299,15 @@ const loadSeats = async () => {
 
 const switchQRMode = async () => {
   if (table.value.status === "occupied") {
-    alert("桌台使用中，無法切換模式");
+    alert(t("tableDetail.confirm.occupiedError"));
     return;
   }
 
-  if (
-    !confirm(
-      `確定要切換到${newQRMode.value === "table" ? "桌子模式" : "座位模式"}嗎？`,
-    )
-  ) {
+  const modeName =
+    newQRMode.value === "table"
+      ? t("tableDetail.tableMode")
+      : t("tableDetail.seatMode");
+  if (!confirm(t("tableDetail.confirm.switchMode", { mode: modeName }))) {
     return;
   }
 
@@ -298,33 +326,33 @@ const switchQRMode = async () => {
       await loadSeats();
     }
 
-    alert("模式切換成功");
+    alert(t("tableDetail.confirm.switchSuccess"));
   } catch (error) {
     console.error("Failed to switch QR mode:", error);
-    alert("模式切換失敗");
+    alert(t("tableDetail.confirm.switchFailed"));
   }
 };
 
 const downloadQRCode = () => {
-  alert("QR 碼下載功能開發中...");
+  alert(t("tableDetail.confirm.downloadInProgress"));
 };
 
 const printQRCode = () => {
-  alert("QR 碼列印功能開發中...");
+  alert(t("tableDetail.confirm.printInProgress"));
 };
 
 const regenerateQRCode = async () => {
-  if (!confirm("確定要重新生成 QR 碼嗎？")) {
+  if (!confirm(t("tableDetail.confirm.regenerateConfirm"))) {
     return;
   }
 
   try {
     // TODO: 調用 API 重新生成 QR
     console.log("Regenerating QR code for table:", table.value.id);
-    alert("QR 碼已重新生成");
+    alert(t("tableDetail.confirm.regenerateSuccess"));
   } catch (error) {
     console.error("Failed to regenerate QR code:", error);
-    alert("重新生成 QR 碼失敗");
+    alert(t("tableDetail.confirm.regenerateFailed"));
   }
 };
 

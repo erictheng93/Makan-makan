@@ -5,8 +5,10 @@
       class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
     >
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">數據分析</h1>
-        <p class="text-gray-600">餐廳經營數據和趨勢分析</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("analytics.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("analytics.subtitle") }}</p>
       </div>
       <div class="mt-4 sm:mt-0 flex items-center space-x-4">
         <select
@@ -14,18 +16,18 @@
           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           @change="updateData"
         >
-          <option value="today">今天</option>
-          <option value="week">本週</option>
-          <option value="month">本月</option>
-          <option value="quarter">本季</option>
-          <option value="year">本年</option>
+          <option value="today">{{ t("analytics.period.today") }}</option>
+          <option value="week">{{ t("analytics.period.week") }}</option>
+          <option value="month">{{ t("analytics.period.month") }}</option>
+          <option value="quarter">{{ t("analytics.period.quarter") }}</option>
+          <option value="year">{{ t("analytics.period.year") }}</option>
         </select>
         <button
           class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           @click="exportReport"
         >
           <DocumentArrowDownIcon class="h-4 w-4 mr-2" />
-          匯出報表
+          {{ t("analytics.exportReport") }}
         </button>
       </div>
     </div>
@@ -39,7 +41,9 @@
             <CurrencyDollarIcon class="h-8 w-8 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-500">總營收</p>
+            <p class="text-sm text-gray-500">
+              {{ t("analytics.metrics.totalRevenue") }}
+            </p>
             <p class="text-2xl font-bold text-gray-900">
               RM{{ formatMoney(metrics.totalRevenue) }}
             </p>
@@ -54,7 +58,8 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.revenueChange) }}% vs 上期
+              {{ Math.abs(metrics.revenueChange) }}%
+              {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
         </div>
@@ -67,7 +72,9 @@
             <ShoppingBagIcon class="h-8 w-8 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-500">訂單數量</p>
+            <p class="text-sm text-gray-500">
+              {{ t("analytics.metrics.totalOrders") }}
+            </p>
             <p class="text-2xl font-bold text-gray-900">
               {{ metrics.totalOrders }}
             </p>
@@ -82,7 +89,8 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.ordersChange) }}% vs 上期
+              {{ Math.abs(metrics.ordersChange) }}%
+              {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
         </div>
@@ -95,7 +103,9 @@
             <CalculatorIcon class="h-8 w-8 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-500">平均客單價</p>
+            <p class="text-sm text-gray-500">
+              {{ t("analytics.metrics.averageOrderValue") }}
+            </p>
             <p class="text-2xl font-bold text-gray-900">
               RM{{ formatMoney(metrics.averageOrderValue) }}
             </p>
@@ -110,7 +120,8 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.aovChange) }}% vs 上期
+              {{ Math.abs(metrics.aovChange) }}%
+              {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
         </div>
@@ -123,7 +134,9 @@
             <TableCellsIcon class="h-8 w-8 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm text-gray-500">桌台使用率</p>
+            <p class="text-sm text-gray-500">
+              {{ t("analytics.metrics.tableUtilization") }}
+            </p>
             <p class="text-2xl font-bold text-gray-900">
               {{ metrics.tableUtilization }}%
             </p>
@@ -138,7 +151,8 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.tableChange) }}% vs 上期
+              {{ Math.abs(metrics.tableChange) }}%
+              {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
         </div>
@@ -149,21 +163,29 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       <!-- 營收趨勢圖 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">營收趨勢</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("analytics.charts.revenueTrend") }}
+        </h3>
         <div
           class="h-64 flex items-center justify-center bg-gray-50 rounded-lg"
         >
           <div class="text-center">
             <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400 mb-2" />
-            <p class="text-gray-500">營收趨勢圖表</p>
-            <p class="text-sm text-gray-400">圖表功能開發中...</p>
+            <p class="text-gray-500">
+              {{ t("analytics.charts.revenueTrendChart") }}
+            </p>
+            <p class="text-sm text-gray-400">
+              {{ t("analytics.charts.chartInDev") }}
+            </p>
           </div>
         </div>
       </div>
 
       <!-- 訂單狀態分布 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">訂單狀態分布</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("analytics.charts.orderStatusDist") }}
+        </h3>
         <div class="h-64">
           <div class="grid grid-cols-2 gap-4 h-full">
             <div
@@ -193,7 +215,9 @@
       <!-- 熱門菜品 -->
       <div class="bg-white rounded-lg shadow">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門菜品</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("analytics.popularItems.title") }}
+          </h3>
           <div class="space-y-4">
             <div
               v-for="(item, index) in popularItems"
@@ -212,7 +236,13 @@
                   <p class="text-sm font-medium text-gray-900">
                     {{ item.name }}
                   </p>
-                  <p class="text-sm text-gray-500">{{ item.orders }} 份訂購</p>
+                  <p class="text-sm text-gray-500">
+                    {{
+                      t("analytics.popularItems.ordersCount", {
+                        count: item.orders,
+                      })
+                    }}
+                  </p>
                 </div>
               </div>
               <div class="text-right">
@@ -236,7 +266,9 @@
       <!-- 營業時段分析 -->
       <div class="bg-white rounded-lg shadow">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">營業時段分析</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            {{ t("analytics.businessHours.title") }}
+          </h3>
           <div class="space-y-4">
             <div
               v-for="period in businessHours"
@@ -257,9 +289,9 @@
                     class="h-2 rounded-full"
                   />
                 </div>
-                <span class="text-sm text-gray-600 w-16"
-                  >{{ period.orders }} 單</span
-                >
+                <span class="text-sm text-gray-600 w-16">{{
+                  t("analytics.businessHours.orders", { count: period.orders })
+                }}</span>
               </div>
             </div>
           </div>
@@ -270,7 +302,9 @@
     <!-- 詳細報表 -->
     <div class="mt-8 bg-white rounded-lg shadow">
       <div class="p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">詳細營業報表</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("analytics.detailedReport.title") }}
+        </h3>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -278,27 +312,27 @@
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  日期
+                  {{ t("analytics.detailedReport.date") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  訂單數
+                  {{ t("analytics.detailedReport.orders") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  營收
+                  {{ t("analytics.detailedReport.revenue") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  平均客單價
+                  {{ t("analytics.detailedReport.averageOrder") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  桌台使用率
+                  {{ t("analytics.detailedReport.tableUtilization") }}
                 </th>
               </tr>
             </thead>
@@ -334,6 +368,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -345,6 +380,8 @@ import {
   ArrowTrendingDownIcon,
   ClockIcon,
 } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 // 響應式數據
 const selectedPeriod = ref("today");
@@ -362,10 +399,22 @@ const metrics = ref({
 });
 
 const orderStatusData = ref([
-  { name: "已完成", count: 89, color: "bg-green-500" },
-  { name: "製作中", count: 23, color: "bg-blue-500" },
-  { name: "待確認", count: 15, color: "bg-yellow-500" },
-  { name: "已取消", count: 7, color: "bg-red-500" },
+  {
+    name: t("analytics.orderStatus.completed"),
+    count: 89,
+    color: "bg-green-500",
+  },
+  {
+    name: t("analytics.orderStatus.preparing"),
+    count: 23,
+    color: "bg-blue-500",
+  },
+  {
+    name: t("analytics.orderStatus.pending"),
+    count: 15,
+    color: "bg-yellow-500",
+  },
+  { name: t("analytics.orderStatus.cancelled"), count: 7, color: "bg-red-500" },
 ]);
 
 const popularItems = ref([
@@ -444,7 +493,7 @@ const updateData = () => {
 };
 
 const exportReport = () => {
-  alert("報表匯出功能開發中...");
+  alert(t("analytics.exportInDev"));
 };
 
 onMounted(() => {

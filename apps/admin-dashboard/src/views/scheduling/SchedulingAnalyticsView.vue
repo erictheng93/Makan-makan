@@ -5,18 +5,18 @@
       <div class="header-content">
         <h1 class="page-title">
           <span class="title-icon">📊</span>
-          排班數據分析
+          {{ t("schedulingAnalytics.title") }}
         </h1>
-        <p class="page-subtitle">全面掌握排班數據與員工工作狀態</p>
+        <p class="page-subtitle">{{ t("schedulingAnalytics.subtitle") }}</p>
       </div>
       <div class="header-actions">
         <button class="action-btn refresh-btn" @click="refreshAllData">
           <span class="btn-icon">🔄</span>
-          刷新數據
+          {{ t("schedulingAnalytics.refreshData") }}
         </button>
         <button class="action-btn export-btn" @click="exportReport">
           <span class="btn-icon">📥</span>
-          匯出報告
+          {{ t("schedulingAnalytics.exportReport") }}
         </button>
       </div>
     </div>
@@ -62,7 +62,7 @@
         <div class="analysis-panel">
           <h3 class="panel-title">
             <span class="icon">💡</span>
-            數據洞察
+            {{ t("schedulingAnalytics.dataInsights") }}
           </h3>
           <div class="insights-grid">
             <div
@@ -85,7 +85,7 @@
                   class="view-detail-btn"
                   @click="viewInsightDetail(insight)"
                 >
-                  查看詳情
+                  {{ t("schedulingAnalytics.viewDetails") }}
                 </button>
               </div>
             </div>
@@ -98,12 +98,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import WorkHoursChart from "@/components/charts/WorkHoursChart.vue";
 import ShiftDistributionChart from "@/components/charts/ShiftDistributionChart.vue";
 import TrendChart from "@/components/charts/TrendChart.vue";
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 const loading = ref(false);
 
@@ -111,7 +113,7 @@ const loading = ref(false);
 const quickStats = ref([
   {
     icon: "👥",
-    label: "活躍員工",
+    label: t("schedulingAnalytics.activeEmployees"),
     value: "—",
     change: "",
     changeIcon: "",
@@ -120,7 +122,7 @@ const quickStats = ref([
   },
   {
     icon: "⏰",
-    label: "總排班時數",
+    label: t("schedulingAnalytics.totalScheduledHours"),
     value: "—",
     change: "",
     changeIcon: "",
@@ -129,7 +131,7 @@ const quickStats = ref([
   },
   {
     icon: "📅",
-    label: "本週排班",
+    label: t("schedulingAnalytics.weeklySchedules"),
     value: "—",
     change: "",
     changeIcon: "",
@@ -138,7 +140,7 @@ const quickStats = ref([
   },
   {
     icon: "⚡",
-    label: "目前上班中",
+    label: t("schedulingAnalytics.currentlyOnDuty"),
     value: "—",
     change: "",
     changeIcon: "",
@@ -189,7 +191,7 @@ const fetchAnalyticsData = async () => {
     quickStats.value = [
       {
         icon: "👥",
-        label: "活躍員工",
+        label: t("schedulingAnalytics.activeEmployees"),
         value: String(dailyStats.totalEmployees || 0),
         change: "",
         changeIcon: "",
@@ -198,7 +200,7 @@ const fetchAnalyticsData = async () => {
       },
       {
         icon: "⏰",
-        label: "總排班時數",
+        label: t("schedulingAnalytics.totalScheduledHours"),
         value: `${Math.round(dailyStats.totalHours || 0)}h`,
         change: "",
         changeIcon: "",
@@ -207,7 +209,7 @@ const fetchAnalyticsData = async () => {
       },
       {
         icon: "📅",
-        label: "本週排班",
+        label: t("schedulingAnalytics.weeklySchedules"),
         value: String(weeklyStats.totalSchedules || 0),
         change: "",
         changeIcon: "",
@@ -216,7 +218,7 @@ const fetchAnalyticsData = async () => {
       },
       {
         icon: "⚡",
-        label: "目前上班中",
+        label: t("schedulingAnalytics.currentlyOnDuty"),
         value: String((dailyStats as any).currentlyWorking || 0),
         change: "",
         changeIcon: "",
@@ -232,8 +234,10 @@ const fetchAnalyticsData = async () => {
       generatedInsights.push({
         id: 1,
         icon: "⚠️",
-        title: "今日缺席提醒",
-        description: `今日有 ${noShowCount} 位員工缺席，請檢查並安排替補人力`,
+        title: t("schedulingAnalytics.insightAbsenceTitle"),
+        description: t("schedulingAnalytics.insightAbsenceDesc", {
+          count: noShowCount,
+        }),
         color: "#ef4444",
       });
     }
@@ -243,8 +247,10 @@ const fetchAnalyticsData = async () => {
       generatedInsights.push({
         id: 2,
         icon: "📈",
-        title: "加班時數提醒",
-        description: `今日累計加班 ${Math.round(overtimeHours * 10) / 10} 小時，請留意勞動法規限制`,
+        title: t("schedulingAnalytics.insightOvertimeTitle"),
+        description: t("schedulingAnalytics.insightOvertimeDesc", {
+          hours: Math.round(overtimeHours * 10) / 10,
+        }),
         color: "#f59e0b",
       });
     }
@@ -254,8 +260,10 @@ const fetchAnalyticsData = async () => {
       generatedInsights.push({
         id: 3,
         icon: "💡",
-        title: "班次取消統計",
-        description: `今日有 ${cancelledCount} 個班次被取消，可能需要重新調配人力`,
+        title: t("schedulingAnalytics.insightCancelledTitle"),
+        description: t("schedulingAnalytics.insightCancelledDesc", {
+          count: cancelledCount,
+        }),
         color: "#3b82f6",
       });
     }
@@ -264,8 +272,8 @@ const fetchAnalyticsData = async () => {
       generatedInsights.push({
         id: 4,
         icon: "🎯",
-        title: "營運狀況良好",
-        description: "今日排班正常運行中，暫無異常狀況",
+        title: t("schedulingAnalytics.insightAllGoodTitle"),
+        description: t("schedulingAnalytics.insightAllGoodDesc"),
         color: "#10b981",
       });
     }
@@ -306,7 +314,9 @@ const exportReport = () => {
 // 查看洞察詳情
 const viewInsightDetail = (insight: any) => {
   console.log("Viewing insight:", insight);
-  alert(`查看洞察詳情：\n\n${insight.title}\n\n${insight.description}`);
+  alert(
+    `${t("schedulingAnalytics.viewInsightDetail")}:\n\n${insight.title}\n\n${insight.description}`,
+  );
 };
 
 onMounted(() => {

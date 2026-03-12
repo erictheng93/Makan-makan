@@ -3,21 +3,23 @@
     <!-- 頁面標題 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">系統設定</h1>
-        <p class="text-gray-600">管理餐廳系統配置和偏好設定</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("settings.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("settings.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-3">
         <button
           class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           @click="resetToDefaults"
         >
-          重置預設
+          {{ t("settings.resetDefaults") }}
         </button>
         <button
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="saveSettings"
         >
-          儲存設定
+          {{ t("settings.saveSettings") }}
         </button>
       </div>
     </div>
@@ -45,12 +47,14 @@
     <div v-show="activeTab === 'general'" class="space-y-8">
       <!-- 餐廳資訊 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">餐廳基本資訊</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.general.restaurantInfo") }}
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >餐廳名稱</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.general.restaurantName")
+            }}</label>
             <input
               v-model="settings.restaurant.name"
               type="text"
@@ -58,9 +62,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >聯絡電話</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.general.contactPhone")
+            }}</label>
             <input
               v-model="settings.restaurant.phone"
               type="tel"
@@ -68,9 +72,9 @@
             />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >餐廳地址</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.general.restaurantAddress")
+            }}</label>
             <textarea
               v-model="settings.restaurant.address"
               rows="3"
@@ -78,16 +82,16 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >營業時間</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.general.businessHours")
+            }}</label>
             <div class="flex items-center space-x-2">
               <input
                 v-model="settings.restaurant.openTime"
                 type="time"
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <span class="text-gray-500">至</span>
+              <span class="text-gray-500">{{ t("settings.general.to") }}</span>
               <input
                 v-model="settings.restaurant.closeTime"
                 type="time"
@@ -96,17 +100,25 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >時區</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.general.timezone")
+            }}</label>
             <select
               v-model="settings.restaurant.timezone"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="Asia/Kuala_Lumpur">馬來西亞 (UTC+8)</option>
-              <option value="Asia/Singapore">新加坡 (UTC+8)</option>
-              <option value="Asia/Bangkok">泰國 (UTC+7)</option>
-              <option value="Asia/Jakarta">印尼 (UTC+7)</option>
+              <option value="Asia/Kuala_Lumpur">
+                {{ t("settings.general.timezones.malaysia") }}
+              </option>
+              <option value="Asia/Singapore">
+                {{ t("settings.general.timezones.singapore") }}
+              </option>
+              <option value="Asia/Bangkok">
+                {{ t("settings.general.timezones.thailand") }}
+              </option>
+              <option value="Asia/Jakarta">
+                {{ t("settings.general.timezones.indonesia") }}
+              </option>
             </select>
           </div>
         </div>
@@ -114,12 +126,18 @@
 
       <!-- 系統偏好 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">系統偏好</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.general.systemPreferences") }}
+        </h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900">語言設定</label>
-              <p class="text-sm text-gray-500">選擇系統顯示語言</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.general.language")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.general.languageDesc") }}
+              </p>
             </div>
             <select
               v-model="settings.system.language"
@@ -135,38 +153,50 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900">貨幣單位</label>
-              <p class="text-sm text-gray-500">設定價格顯示的貨幣單位</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.general.currency")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.general.currencyDesc") }}
+              </p>
             </div>
             <select
               v-model="settings.system.currency"
               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="MYR">馬來西亞令吉 (RM)</option>
-              <option value="SGD">新加坡元 (S$)</option>
-              <option value="USD">美元 (US$)</option>
-              <option value="THB">泰銖 (฿)</option>
+              <option value="MYR">
+                {{ t("settings.general.currencies.myr") }}
+              </option>
+              <option value="SGD">
+                {{ t("settings.general.currencies.sgd") }}
+              </option>
+              <option value="USD">
+                {{ t("settings.general.currencies.usd") }}
+              </option>
+              <option value="THB">
+                {{ t("settings.general.currencies.thb") }}
+              </option>
             </select>
           </div>
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >自動登出時間</label
-              >
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.general.autoLogout")
+              }}</label>
               <p class="text-sm text-gray-500">
-                無操作後自動登出的時間（分鐘）
+                {{ t("settings.general.autoLogoutDesc") }}
               </p>
             </div>
             <select
               v-model.number="settings.system.autoLogoutMinutes"
               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="30">30 分鐘</option>
-              <option value="60">1 小時</option>
-              <option value="120">2 小時</option>
-              <option value="240">4 小時</option>
-              <option value="0">永不登出</option>
+              <option value="30">{{ t("settings.general.minutes30") }}</option>
+              <option value="60">{{ t("settings.general.hour1") }}</option>
+              <option value="120">{{ t("settings.general.hours2") }}</option>
+              <option value="240">{{ t("settings.general.hours4") }}</option>
+              <option value="0">{{ t("settings.general.neverLogout") }}</option>
             </select>
           </div>
         </div>
@@ -177,14 +207,18 @@
     <div v-show="activeTab === 'orders'" class="space-y-8">
       <!-- 訂單流程 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">訂單處理設定</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.orders.title") }}
+        </h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >自動確認訂單</label
-              >
-              <p class="text-sm text-gray-500">新訂單自動進入製作流程</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.orders.autoConfirm")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.orders.autoConfirmDesc") }}
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -200,10 +234,12 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >訂單準備時間提醒</label
-              >
-              <p class="text-sm text-gray-500">超過預估時間發送提醒</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.orders.prepTimeAlert")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.orders.prepTimeAlertDesc") }}
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -218,9 +254,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >預設準備時間（分鐘）</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.orders.defaultPrepTime")
+            }}</label>
             <input
               v-model.number="settings.orders.defaultPreparationTime"
               type="number"
@@ -234,10 +270,12 @@
           <div class="border-t border-gray-200 pt-4">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <label class="text-sm font-medium text-gray-900"
-                  >啟用最低消費</label
-                >
-                <p class="text-sm text-gray-500">設定餐廳最低消費金額限制</p>
+                <label class="text-sm font-medium text-gray-900">{{
+                  t("settings.orders.enableMinOrder")
+                }}</label>
+                <p class="text-sm text-gray-500">
+                  {{ t("settings.orders.enableMinOrderDesc") }}
+                </p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input
@@ -254,7 +292,9 @@
             <div v-if="settings.orders.minimumOrderEnabled" class="space-y-3">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  最低消費金額 ({{ settings.system.currency }})
+                  {{ t("settings.orders.minOrderAmount") }} ({{
+                    settings.system.currency
+                  }})
                 </label>
                 <div class="flex items-center space-x-2">
                   <span class="text-gray-500">RM</span>
@@ -269,7 +309,7 @@
                   />
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
-                  設定為 0 表示停用最低消費限制
+                  {{ t("settings.orders.minOrderHint") }}
                 </p>
               </div>
 
@@ -289,9 +329,11 @@
                     />
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-blue-800">提醒</p>
+                    <p class="text-sm font-medium text-blue-800">
+                      {{ t("settings.orders.reminder") }}
+                    </p>
                     <p class="text-sm text-blue-700">
-                      客戶訂單未達最低消費時將無法下單，系統會自動提示客戶需要加點的金額。
+                      {{ t("settings.orders.minOrderWarning") }}
                     </p>
                   </div>
                 </div>
@@ -300,17 +342,17 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >訂單保留天數</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.orders.retentionDays")
+            }}</label>
             <select
               v-model.number="settings.orders.retentionDays"
               class="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="30">30 天</option>
-              <option value="90">90 天</option>
-              <option value="180">180 天</option>
-              <option value="365">1 年</option>
+              <option value="30">30 {{ t("settings.days") }}</option>
+              <option value="90">90 {{ t("settings.days") }}</option>
+              <option value="180">180 {{ t("settings.days") }}</option>
+              <option value="365">1 {{ t("settings.year") }}</option>
             </select>
           </div>
         </div>
@@ -318,9 +360,11 @@
 
       <!-- 外帶/外送設定 -->
       <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <h3 class="text-lg font-bold text-gray-900 mb-1">外帶/外送設定</h3>
+        <h3 class="text-lg font-bold text-gray-900 mb-1">
+          {{ t("settings.delivery.title") }}
+        </h3>
         <p class="text-sm text-gray-500 mb-4">
-          管理餐廳的外帶取餐和外送服務設定
+          {{ t("settings.delivery.subtitle") }}
         </p>
 
         <!-- Enable Takeaway -->
@@ -328,9 +372,11 @@
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2"
         >
           <div>
-            <div class="font-semibold text-sm">🛍️ 啟用外帶服務</div>
+            <div class="font-semibold text-sm">
+              🛍️ {{ t("settings.delivery.enableTakeaway") }}
+            </div>
             <div class="text-xs text-gray-500">
-              允許顧客透過 Shop QR 選擇外帶
+              {{ t("settings.delivery.enableTakeawayDesc") }}
             </div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
@@ -350,8 +396,12 @@
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-4"
         >
           <div>
-            <div class="font-semibold text-sm">🛵 啟用外送服務</div>
-            <div class="text-xs text-gray-500">允許顧客選擇外送到指定地址</div>
+            <div class="font-semibold text-sm">
+              🛵 {{ t("settings.delivery.enableDelivery") }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ t("settings.delivery.enableDeliveryDesc") }}
+            </div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
@@ -367,7 +417,9 @@
 
         <!-- Delivery Fee -->
         <div class="border border-gray-200 rounded-lg p-3 mb-3">
-          <label class="block font-semibold text-sm mb-2">外送費設定</label>
+          <label class="block font-semibold text-sm mb-2">{{
+            t("settings.delivery.deliveryFee")
+          }}</label>
           <div class="flex items-center gap-2">
             <span class="text-gray-500 text-sm">NT$</span>
             <input
@@ -378,14 +430,16 @@
               class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <p class="text-xs text-gray-400 mt-1">設為 0 即為免費外送</p>
+          <p class="text-xs text-gray-400 mt-1">
+            {{ t("settings.delivery.freeDeliveryHint") }}
+          </p>
         </div>
 
         <!-- Estimated Prep Time -->
         <div class="border border-gray-200 rounded-lg p-3">
-          <label class="block font-semibold text-sm mb-2"
-            >預估外帶準備時間</label
-          >
+          <label class="block font-semibold text-sm mb-2">{{
+            t("settings.delivery.estimatedPrepTime")
+          }}</label>
           <div class="flex items-center gap-2">
             <input
               v-model.number="deliverySettings.estimatedPrepTimeMin"
@@ -402,19 +456,23 @@
               max="120"
               class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <span class="text-gray-500 text-sm">分鐘</span>
+            <span class="text-gray-500 text-sm">{{
+              t("settings.minutes")
+            }}</span>
           </div>
         </div>
       </div>
 
       <!-- 桌台設定 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">桌台管理設定</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.tables.title") }}
+        </h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >桌台編號前綴</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.tables.prefix")
+            }}</label>
             <input
               v-model="settings.tables.prefix"
               type="text"
@@ -426,10 +484,12 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >自動清理桌台</label
-              >
-              <p class="text-sm text-gray-500">訂單完成後自動清理桌台狀態</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.tables.autoClean")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.tables.autoCleanDesc") }}
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -444,9 +504,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >清理延遲時間（分鐘）</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.tables.cleanDelay")
+            }}</label>
             <input
               v-model.number="settings.tables.cleanDelay"
               type="number"
@@ -466,10 +526,10 @@
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-lg font-semibold text-gray-900">
-              店家 QR Code 設定
+              {{ t("settings.qrcode.shopTitle") }}
             </h3>
             <p class="text-sm text-gray-500 mt-1">
-              為沒有桌號的攤位（如小吃攤、鷄排攤）提供店家級別 QR Code
+              {{ t("settings.qrcode.shopDesc") }}
             </p>
           </div>
         </div>
@@ -478,11 +538,11 @@
         <div class="border-b border-gray-200 pb-4 mb-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >啟用店家模式</label
-              >
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.qrcode.enableShopMode")
+              }}</label>
               <p class="text-sm text-gray-500">
-                啟用後顧客可以掃描店家 QR Code 直接點餐，無需桌號
+                {{ t("settings.qrcode.enableShopModeDesc") }}
               </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -503,39 +563,43 @@
         <div v-if="shopQR.enabled" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              店家顯示名稱
+              {{ t("settings.qrcode.displayName") }}
             </label>
             <input
               v-model="shopQR.settings.displayName"
               type="text"
               maxlength="50"
-              placeholder="例如：鷄排攤"
+              :placeholder="t('settings.qrcode.displayNameExample')"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <p class="text-xs text-gray-500 mt-1">此名稱將顯示在掃描後的頁面</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("settings.qrcode.displayNameHint") }}
+            </p>
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              掃描說明
+              {{ t("settings.qrcode.instructions") }}
             </label>
             <textarea
               v-model="shopQR.settings.instructions"
               rows="2"
               maxlength="100"
-              placeholder="例如：掃描QR碼開始點餐"
+              :placeholder="t('settings.qrcode.instructionsExample')"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <p class="text-xs text-gray-500 mt-1">向顧客說明如何使用</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("settings.qrcode.instructionsHint") }}
+            </p>
           </div>
 
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >需要手機驗證</label
-              >
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.qrcode.requirePhone")
+              }}</label>
               <p class="text-sm text-gray-500">
-                要求顧客輸入手機號碼後3位以識別訂單
+                {{ t("settings.qrcode.requirePhoneDesc") }}
               </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -557,7 +621,9 @@
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="saveShopSettings"
             >
-              <span v-if="!isSavingShopSettings">儲存設定</span>
+              <span v-if="!isSavingShopSettings">{{
+                t("settings.qrcode.saveSettings")
+              }}</span>
               <span v-else class="flex items-center">
                 <svg
                   class="animate-spin h-4 w-4 mr-2"
@@ -579,7 +645,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                儲存中...
+                {{ t("settings.qrcode.saving") }}
               </span>
             </button>
           </div>
@@ -588,7 +654,9 @@
 
       <!-- QR Code 管理 -->
       <div v-if="shopQR.enabled" class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">QR Code 管理</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.qrcode.management") }}
+        </h3>
 
         <!-- 沒有 QR Code 時 -->
         <div v-if="!shopQR.qrCode" class="text-center py-8">
@@ -609,13 +677,17 @@
               />
             </svg>
           </div>
-          <p class="text-gray-600 mb-4">尚未生成店家 QR Code</p>
+          <p class="text-gray-600 mb-4">
+            {{ t("settings.qrcode.notGenerated") }}
+          </p>
           <button
             :disabled="isGeneratingQR"
             class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="generateShopQR"
           >
-            <span v-if="!isGeneratingQR">生成 QR Code</span>
+            <span v-if="!isGeneratingQR">{{
+              t("settings.qrcode.generateQR")
+            }}</span>
             <span v-else class="flex items-center">
               <svg
                 class="animate-spin h-4 w-4 mr-2"
@@ -637,7 +709,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              生成中...
+              {{ t("settings.qrcode.generating") }}
             </span>
           </button>
         </div>
@@ -694,7 +766,7 @@
                   </code>
                   <button
                     class="px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                    title="複製"
+                    :title="t('settings.qrcode.copy')"
                     @click="copyQRCode"
                   >
                     <svg
@@ -715,9 +787,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >版本</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                  t("settings.qrcode.version")
+                }}</label>
                 <p class="text-sm text-gray-600">v{{ shopQR.version }}</p>
               </div>
 
@@ -737,10 +809,11 @@
                     />
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-blue-800">使用說明</p>
+                    <p class="text-sm font-medium text-blue-800">
+                      {{ t("settings.qrcode.usageGuide") }}
+                    </p>
                     <p class="text-sm text-blue-700">
-                      顧客掃描此 QR Code
-                      後將進入店家點餐流程，無需選擇桌號。訂單會以手機號碼後3位作為識別。
+                      {{ t("settings.qrcode.usageGuideText") }}
                     </p>
                   </div>
                 </div>
@@ -766,7 +839,7 @@
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                       />
                     </svg>
-                    下載 QR Code
+                    {{ t("settings.qrcode.downloadQR") }}
                   </span>
                 </button>
 
@@ -789,7 +862,7 @@
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                       />
                     </svg>
-                    重新生成
+                    {{ t("settings.qrcode.regenerate") }}
                   </span>
                   <span v-else class="flex items-center">
                     <svg
@@ -812,7 +885,7 @@
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    重新生成中...
+                    {{ t("settings.qrcode.regenerating") }}
                   </span>
                 </button>
               </div>
@@ -834,11 +907,11 @@
                     />
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-yellow-800">注意</p>
+                    <p class="text-sm font-medium text-yellow-800">
+                      {{ t("settings.qrcode.warning") }}
+                    </p>
                     <p class="text-sm text-yellow-700">
-                      重新生成 QR Code 將更新版本號，舊 QR Code
-                      將繼續有效（除非您停用店家模式）。建議在 QR Code
-                      洩露或安全性顧慮時才重新生成。
+                      {{ t("settings.qrcode.warningText") }}
                     </p>
                   </div>
                 </div>
@@ -853,14 +926,18 @@
     <div v-show="activeTab === 'notifications'" class="space-y-8">
       <!-- 音效通知 -->
       <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">音效通知設定</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("settings.notifications.soundTitle") }}
+        </h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm font-medium text-gray-900"
-                >啟用音效通知</label
-              >
-              <p class="text-sm text-gray-500">新訂單和狀態變更音效提醒</p>
+              <label class="text-sm font-medium text-gray-900">{{
+                t("settings.notifications.enableSound")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.notifications.enableSoundDesc") }}
+              </p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input
@@ -879,9 +956,9 @@
             class="ml-6 space-y-3"
           >
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >音量</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("settings.notifications.volume")
+              }}</label>
               <input
                 v-model.number="settings.notifications.sound.volume"
                 type="range"
@@ -897,32 +974,48 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >新訂單音效</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("settings.notifications.newOrderSound")
+              }}</label>
               <select
                 v-model="settings.notifications.sound.newOrder"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="bell">鈴聲</option>
-                <option value="chime">風鈴</option>
-                <option value="notification">提示音</option>
-                <option value="custom">自訂</option>
+                <option value="bell">
+                  {{ t("settings.notifications.sounds.bell") }}
+                </option>
+                <option value="chime">
+                  {{ t("settings.notifications.sounds.chime") }}
+                </option>
+                <option value="notification">
+                  {{ t("settings.notifications.sounds.notification") }}
+                </option>
+                <option value="custom">
+                  {{ t("settings.notifications.sounds.custom") }}
+                </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >完成音效</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("settings.notifications.completeSound")
+              }}</label>
               <select
                 v-model="settings.notifications.sound.complete"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="success">成功音</option>
-                <option value="ding">叮聲</option>
-                <option value="chime">風鈴</option>
-                <option value="custom">自訂</option>
+                <option value="success">
+                  {{ t("settings.notifications.sounds.success") }}
+                </option>
+                <option value="ding">
+                  {{ t("settings.notifications.sounds.ding") }}
+                </option>
+                <option value="chime">
+                  {{ t("settings.notifications.sounds.chime") }}
+                </option>
+                <option value="custom">
+                  {{ t("settings.notifications.sounds.custom") }}
+                </option>
               </select>
             </div>
           </div>
@@ -932,14 +1025,18 @@
 
     <!-- 桌面通知 -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">桌面通知設定</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("settings.notifications.desktopTitle") }}
+      </h3>
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <label class="text-sm font-medium text-gray-900"
-              >啟用桌面通知</label
-            >
-            <p class="text-sm text-gray-500">在瀏覽器中顯示通知提醒</p>
+            <label class="text-sm font-medium text-gray-900">{{
+              t("settings.notifications.enableDesktop")
+            }}</label>
+            <p class="text-sm text-gray-500">
+              {{ t("settings.notifications.enableDesktopDesc") }}
+            </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
@@ -958,9 +1055,9 @@
           class="ml-6 space-y-3"
         >
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >通知持續時間（秒）</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{
+              t("settings.notifications.duration")
+            }}</label>
             <input
               v-model.number="settings.notifications.desktop.duration"
               type="number"
@@ -978,12 +1075,14 @@
   <div v-show="activeTab === 'security'" class="space-y-8">
     <!-- 密碼政策 -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">密碼安全政策</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("settings.security.passwordTitle") }}
+      </h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >密碼最小長度</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("settings.security.minLength")
+          }}</label>
           <input
             v-model.number="settings.security.password.minLength"
             type="number"
@@ -995,10 +1094,12 @@
 
         <div class="flex items-center justify-between">
           <div>
-            <label class="text-sm font-medium text-gray-900"
-              >需要包含數字</label
-            >
-            <p class="text-sm text-gray-500">密碼必須包含至少一個數字</p>
+            <label class="text-sm font-medium text-gray-900">{{
+              t("settings.security.requireNumbers")
+            }}</label>
+            <p class="text-sm text-gray-500">
+              {{ t("settings.security.requireNumbersDesc") }}
+            </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
@@ -1014,10 +1115,12 @@
 
         <div class="flex items-center justify-between">
           <div>
-            <label class="text-sm font-medium text-gray-900"
-              >需要包含符號</label
-            >
-            <p class="text-sm text-gray-500">密碼必須包含特殊字符</p>
+            <label class="text-sm font-medium text-gray-900">{{
+              t("settings.security.requireSymbols")
+            }}</label>
+            <p class="text-sm text-gray-500">
+              {{ t("settings.security.requireSymbolsDesc") }}
+            </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
@@ -1032,18 +1135,18 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >密碼過期天數</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("settings.security.expireDays")
+          }}</label>
           <select
             v-model.number="settings.security.password.expireDays"
             class="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="0">永不過期</option>
-            <option value="30">30 天</option>
-            <option value="60">60 天</option>
-            <option value="90">90 天</option>
-            <option value="180">180 天</option>
+            <option value="0">{{ t("settings.security.neverExpire") }}</option>
+            <option value="30">30 {{ t("settings.days") }}</option>
+            <option value="60">60 {{ t("settings.days") }}</option>
+            <option value="90">90 {{ t("settings.days") }}</option>
+            <option value="180">180 {{ t("settings.days") }}</option>
           </select>
         </div>
       </div>
@@ -1051,12 +1154,14 @@
 
     <!-- 登入安全 -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">登入安全設定</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {{ t("settings.security.loginTitle") }}
+      </h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >最大登入嘗試次數</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("settings.security.maxAttempts")
+          }}</label>
           <input
             v-model.number="settings.security.login.maxAttempts"
             type="number"
@@ -1067,9 +1172,9 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2"
-            >鎖定時間（分鐘）</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{
+            t("settings.security.lockoutMinutes")
+          }}</label>
           <input
             v-model.number="settings.security.login.lockoutMinutes"
             type="number"
@@ -1081,10 +1186,12 @@
 
         <div class="flex items-center justify-between">
           <div>
-            <label class="text-sm font-medium text-gray-900"
-              >記錄登入記錄</label
-            >
-            <p class="text-sm text-gray-500">記錄所有登入和登出活動</p>
+            <label class="text-sm font-medium text-gray-900">{{
+              t("settings.security.logActivity")
+            }}</label>
+            <p class="text-sm text-gray-500">
+              {{ t("settings.security.logActivityDesc") }}
+            </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input
@@ -1113,7 +1220,7 @@
   >
     <div class="flex items-center">
       <CheckCircleIcon class="h-5 w-5 mr-2" />
-      <span>設定已成功儲存</span>
+      <span>{{ t("settings.savedSuccess") }}</span>
     </div>
   </div>
 </template>
@@ -1122,15 +1229,18 @@
 import { ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // 分頁選項
 const tabs = [
-  { id: "general", name: "基本設定" },
-  { id: "orders", name: "訂單設定" },
-  { id: "qrcode", name: "QR Code" },
-  { id: "notifications", name: "通知設定" },
-  { id: "security", name: "安全設定" },
-  { id: "integrations", name: "外送平台" },
+  { id: "general", name: t("settings.tabs.general") },
+  { id: "orders", name: t("settings.tabs.orders") },
+  { id: "qrcode", name: t("settings.tabs.qrcode") },
+  { id: "notifications", name: t("settings.tabs.notifications") },
+  { id: "security", name: t("settings.tabs.security") },
+  { id: "integrations", name: t("settings.tabs.integrations") },
 ];
 
 const activeTab = ref("general");
@@ -1233,12 +1343,12 @@ const saveSettings = async () => {
     }, 3000);
   } catch (error) {
     console.error("Failed to save settings:", error);
-    alert("儲存設定失敗，請稍後再試");
+    alert(t("settings.alerts.saveFailed"));
   }
 };
 
 const resetToDefaults = () => {
-  if (confirm("確定要將所有設定重置為預設值嗎？此操作無法恢復。")) {
+  if (confirm(t("settings.confirms.resetDefaults"))) {
     Object.assign(settings, defaultSettings);
   }
 };
@@ -1301,14 +1411,18 @@ const handleToggleShopMode = async () => {
     );
 
     if (response.ok) {
-      alert(shopQR.enabled ? "店家模式已啟用" : "店家模式已停用");
+      alert(
+        shopQR.enabled
+          ? t("settings.alerts.shopModeEnabled")
+          : t("settings.alerts.shopModeDisabled"),
+      );
       await loadShopQRInfo();
     } else {
       throw new Error("Failed to toggle shop mode");
     }
   } catch (error) {
     console.error("Failed to toggle shop mode:", error);
-    alert("操作失敗，請稍後再試");
+    alert(t("settings.alerts.operationFailed"));
     // 恢復原狀態
     shopQR.enabled = !shopQR.enabled;
   }
@@ -1334,13 +1448,13 @@ const saveShopSettings = async () => {
     );
 
     if (response.ok) {
-      alert("設定已儲存");
+      alert(t("settings.alerts.settingsSaved"));
     } else {
       throw new Error("Failed to save settings");
     }
   } catch (error) {
     console.error("Failed to save shop settings:", error);
-    alert("儲存失敗，請稍後再試");
+    alert(t("settings.alerts.saveFailed"));
   } finally {
     isSavingShopSettings.value = false;
   }
@@ -1366,20 +1480,20 @@ const generateShopQR = async () => {
       shopQR.qrCode = data.qrCode;
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
-      alert("QR Code 已生成");
+      alert(t("settings.alerts.qrGenerated"));
     } else {
       throw new Error("Failed to generate QR code");
     }
   } catch (error) {
     console.error("Failed to generate shop QR:", error);
-    alert("生成失敗，請稍後再試");
+    alert(t("settings.alerts.generateFailed"));
   } finally {
     isGeneratingQR.value = false;
   }
 };
 
 const regenerateShopQR = async () => {
-  if (!confirm("確定要重新生成 QR Code 嗎？這將更新版本號。")) {
+  if (!confirm(t("settings.confirms.regenerateQR"))) {
     return;
   }
 
@@ -1402,13 +1516,13 @@ const regenerateShopQR = async () => {
       shopQR.qrCode = data.qrCode;
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
-      alert(`QR Code 已重新生成（版本 ${data.version}）`);
+      alert(t("settings.alerts.qrRegenerated", { version: data.version }));
     } else {
       throw new Error("Failed to regenerate QR code");
     }
   } catch (error) {
     console.error("Failed to regenerate shop QR:", error);
-    alert("重新生成失敗，請稍後再試");
+    alert(t("settings.alerts.regenerateFailed"));
   } finally {
     isRegeneratingQR.value = false;
   }
@@ -1417,7 +1531,7 @@ const regenerateShopQR = async () => {
 const copyQRCode = () => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(shopQR.qrCode).then(() => {
-      alert("已複製到剪貼簿");
+      alert(t("settings.alerts.copied"));
     });
   }
 };
@@ -1429,7 +1543,7 @@ const downloadQRCode = () => {
     link.download = `shop-qr-${shopQR.qrCode}.png`;
     link.click();
   } else {
-    alert("無法下載 QR Code");
+    alert(t("settings.alerts.downloadFailed"));
   }
 };
 

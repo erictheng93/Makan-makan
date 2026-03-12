@@ -3,15 +3,15 @@
     <!-- 頁面標題和操作 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">員工管理</h1>
-        <p class="text-gray-600">管理餐廳員工帳戶和權限</p>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t("users.title") }}</h1>
+        <p class="text-gray-600">{{ t("users.subtitle") }}</p>
       </div>
       <button
         class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         @click="showUserModal = true"
       >
         <PlusIcon class="h-4 w-4 mr-2" />
-        新增員工
+        {{ t("users.addEmployee") }}
       </button>
     </div>
 
@@ -23,7 +23,9 @@
             <CrownIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">店主</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("users.stats.owner") }}
+            </h3>
             <p class="text-xl font-bold text-purple-600">
               {{ stats.owner }}
             </p>
@@ -37,7 +39,9 @@
             <ChefHatIcon class="h-6 w-6 text-orange-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">廚師</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("users.stats.chef") }}
+            </h3>
             <p class="text-xl font-bold text-orange-600">
               {{ stats.chef }}
             </p>
@@ -51,7 +55,9 @@
             <TruckIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">送菜員</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("users.stats.service") }}
+            </h3>
             <p class="text-xl font-bold text-green-600">
               {{ stats.service }}
             </p>
@@ -65,7 +71,9 @@
             <CalculatorIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">收銀</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("users.stats.cashier") }}
+            </h3>
             <p class="text-xl font-bold text-blue-600">
               {{ stats.cashier }}
             </p>
@@ -79,7 +87,9 @@
             <UserGroupIcon class="h-6 w-6 text-gray-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">總員工</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("users.stats.total") }}
+            </h3>
             <p class="text-xl font-bold text-gray-600">
               {{ stats.total }}
             </p>
@@ -99,7 +109,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜索員工姓名或用戶名..."
+              :placeholder="t('users.search.placeholder')"
               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -107,20 +117,20 @@
             v-model="roleFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有角色</option>
-            <option value="1">店主 (Owner)</option>
-            <option value="2">廚師 (Chef)</option>
-            <option value="3">送菜員 (Service)</option>
-            <option value="4">收銀員 (Cashier)</option>
+            <option value="">{{ t("users.search.allRoles") }}</option>
+            <option value="1">{{ t("users.search.ownerRole") }}</option>
+            <option value="2">{{ t("users.search.chefRole") }}</option>
+            <option value="3">{{ t("users.search.serviceRole") }}</option>
+            <option value="4">{{ t("users.search.cashierRole") }}</option>
           </select>
           <select
             v-model="statusFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">所有狀態</option>
-            <option value="active">活躍</option>
-            <option value="inactive">停用</option>
-            <option value="suspended">暫停</option>
+            <option value="">{{ t("users.search.allStatuses") }}</option>
+            <option value="active">{{ t("users.status.active") }}</option>
+            <option value="inactive">{{ t("users.status.inactive") }}</option>
+            <option value="suspended">{{ t("users.status.suspended") }}</option>
           </select>
         </div>
       </div>
@@ -136,37 +146,37 @@
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  員工資訊
+                  {{ t("users.table.info") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  用戶名
+                  {{ t("users.table.username") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  角色
+                  {{ t("users.table.role") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  狀態
+                  {{ t("users.table.status") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  最後登入
+                  {{ t("users.table.lastLogin") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  加入日期
+                  {{ t("users.table.joinDate") }}
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  操作
+                  {{ t("users.table.actions") }}
                 </th>
               </tr>
             </thead>
@@ -209,7 +219,7 @@
                               {{ user.fullName || user.username }}
                             </div>
                             <div class="text-sm text-gray-500">
-                              {{ user.email || "未設定 Email" }}
+                              {{ user.email || t("users.table.noEmail") }}
                             </div>
                           </div>
                         </div>
@@ -245,7 +255,7 @@
                         {{
                           user.lastLoginAt
                             ? formatDateTime(user.lastLoginAt)
-                            : "從未登入"
+                            : t("users.table.neverLoggedIn")
                         }}
                       </td>
                       <td
@@ -261,27 +271,27 @@
                             class="text-indigo-600 hover:text-indigo-900"
                             @click="editUser(user)"
                           >
-                            編輯
+                            {{ t("users.actions.edit") }}
                           </button>
                           <button
                             class="text-green-600 hover:text-green-900"
                             @click="resetPassword(user)"
                           >
-                            重置密碼
+                            {{ t("users.actions.resetPassword") }}
                           </button>
                           <button
                             v-if="user.status === 'active'"
                             class="text-red-600 hover:text-red-900"
                             @click="toggleUserStatus(user)"
                           >
-                            停用
+                            {{ t("users.actions.disable") }}
                           </button>
                           <button
                             v-else
                             class="text-green-600 hover:text-green-900"
                             @click="toggleUserStatus(user)"
                           >
-                            啟用
+                            {{ t("users.actions.enable") }}
                           </button>
                         </div>
                       </td>
@@ -295,14 +305,18 @@
           <!-- 空狀態 -->
           <div v-if="filteredUsers.length === 0" class="text-center py-12">
             <UserGroupIcon class="mx-auto h-12 w-12 text-gray-400" />
-            <h3 class="mt-2 text-sm font-medium text-gray-900">暫無員工</h3>
-            <p class="mt-1 text-sm text-gray-500">開始添加您的第一位員工</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">
+              {{ t("users.empty.title") }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {{ t("users.empty.description") }}
+            </p>
             <button
               class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               @click="showUserModal = true"
             >
               <PlusIcon class="h-4 w-4 mr-2" />
-              新增員工
+              {{ t("users.addEmployee") }}
             </button>
           </div>
         </div>
@@ -319,14 +333,19 @@
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
-              {{ editingUser ? "編輯員工" : "新增員工" }}
+              {{
+                editingUser
+                  ? t("users.modal.editTitle")
+                  : t("users.modal.addTitle")
+              }}
             </h3>
 
             <form @submit.prevent="saveUser">
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    用戶名 <span class="text-red-500">*</span>
+                    {{ t("users.modal.usernameLabel") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model="userForm.username"
@@ -339,7 +358,8 @@
 
                 <div v-if="!editingUser">
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    密碼 <span class="text-red-500">*</span>
+                    {{ t("users.modal.passwordLabel") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model="userForm.password"
@@ -350,9 +370,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >全名</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("users.modal.fullNameLabel")
+                  }}</label>
                   <input
                     v-model="userForm.fullName"
                     type="text"
@@ -373,32 +393,43 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    角色 <span class="text-red-500">*</span>
+                    {{ t("users.modal.roleLabel") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <select
                     v-model.number="userForm.role"
                     required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">選擇角色</option>
-                    <option value="1">店主 (Owner)</option>
-                    <option value="2">廚師 (Chef)</option>
-                    <option value="3">送菜員 (Service)</option>
-                    <option value="4">收銀員 (Cashier)</option>
+                    <option value="">{{ t("users.modal.selectRole") }}</option>
+                    <option value="1">{{ t("users.search.ownerRole") }}</option>
+                    <option value="2">{{ t("users.search.chefRole") }}</option>
+                    <option value="3">
+                      {{ t("users.search.serviceRole") }}
+                    </option>
+                    <option value="4">
+                      {{ t("users.search.cashierRole") }}
+                    </option>
                   </select>
                 </div>
 
                 <div v-if="editingUser">
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >狀態</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("users.modal.statusLabel")
+                  }}</label>
                   <select
                     v-model="userForm.status"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="active">活躍</option>
-                    <option value="inactive">停用</option>
-                    <option value="suspended">暫停</option>
+                    <option value="active">
+                      {{ t("users.status.active") }}
+                    </option>
+                    <option value="inactive">
+                      {{ t("users.status.inactive") }}
+                    </option>
+                    <option value="suspended">
+                      {{ t("users.status.suspended") }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -409,13 +440,15 @@
                   class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   @click="closeUserModal"
                 >
-                  取消
+                  {{ t("users.modal.cancel") }}
                 </button>
                 <button
                   type="submit"
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {{ editingUser ? "更新" : "新增" }}
+                  {{
+                    editingUser ? t("users.modal.update") : t("users.modal.add")
+                  }}
                 </button>
               </div>
             </form>
@@ -428,6 +461,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import {
   PlusIcon,
@@ -444,6 +478,8 @@ import {
 const CrownIcon = StarIcon; // Crown icon placeholder
 const ChefHatIcon = UserIcon; // Chef hat icon placeholder
 const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
+
+const { t } = useI18n();
 
 // Type definitions
 interface User {
@@ -608,13 +644,13 @@ const getRoleBadgeClass = (role: number) => {
 };
 
 const getRoleText = (role: number) => {
-  const texts: Record<number, string> = {
-    1: "店主",
-    2: "廚師",
-    3: "送菜員",
-    4: "收銀員",
+  const keys: Record<number, string> = {
+    1: "users.roles.owner",
+    2: "users.roles.chef",
+    3: "users.roles.service",
+    4: "users.roles.cashier",
   };
-  return texts[role] || "未知";
+  return keys[role] ? t(keys[role]) : t("users.roles.unknown");
 };
 
 const getStatusBadgeClass = (status: string) => {
@@ -627,12 +663,12 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    active: "活躍",
-    inactive: "停用",
-    suspended: "暫停",
+  const keys: Record<string, string> = {
+    active: "users.status.active",
+    inactive: "users.status.inactive",
+    suspended: "users.status.suspended",
   };
-  return texts[status] || status;
+  return keys[status] ? t(keys[status]) : status;
 };
 
 const formatDateTime = (dateTime: string) => {
@@ -657,20 +693,23 @@ const editUser = (user: User) => {
 };
 
 const resetPassword = async (user: User) => {
-  if (
-    confirm(
-      `確定要重置 ${user.username} 的密碼嗎？新密碼將會發送到用戶 Email。`,
-    )
-  ) {
-    alert("密碼重置郵件已發送！");
+  if (confirm(t("users.confirm.resetPassword", { username: user.username }))) {
+    alert(t("users.confirm.resetPasswordSuccess"));
   }
 };
 
 const toggleUserStatus = async (user: User) => {
   const newStatus = user.status === "active" ? "inactive" : "active";
-  const action = newStatus === "active" ? "啟用" : "停用";
+  const action =
+    newStatus === "active"
+      ? t("users.actions.enable")
+      : t("users.actions.disable");
 
-  if (confirm(`確定要${action}用戶 ${user.username} 嗎？`)) {
+  if (
+    confirm(
+      t("users.confirm.toggleStatus", { action, username: user.username }),
+    )
+  ) {
     const index = users.value.findIndex((u) => u.id === user.id);
     if (index > -1) {
       users.value[index].status = newStatus;

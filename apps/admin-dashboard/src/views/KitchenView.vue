@@ -3,9 +3,12 @@
     <!-- 廚房顯示屏標題 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">廚房顯示系統</h1>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("kitchen.title") }}
+        </h1>
         <p class="text-gray-600">
-          {{ currentTime }} | 待處理訂單: {{ pendingOrders.length }} 份
+          {{ currentTime }} |
+          {{ t("kitchen.pendingOrders", { count: pendingOrders.length }) }}
         </p>
       </div>
       <div class="flex items-center space-x-4">
@@ -17,7 +20,11 @@
           <ArrowPathIcon
             :class="['h-4 w-4 mr-2', isAutoRefresh && 'animate-spin']"
           />
-          {{ isAutoRefresh ? "自動刷新中" : "手動刷新" }}
+          {{
+            isAutoRefresh
+              ? t("kitchen.autoRefreshing")
+              : t("kitchen.manualRefresh")
+          }}
         </button>
 
         <button
@@ -30,7 +37,7 @@
           @click="toggleSound"
         >
           <SpeakerWaveIcon class="h-4 w-4 mr-2" />
-          {{ soundEnabled ? "音效開啟" : "音效關閉" }}
+          {{ soundEnabled ? t("kitchen.soundOn") : t("kitchen.soundOff") }}
         </button>
         <div class="flex items-center">
           <input
@@ -39,9 +46,9 @@
             type="checkbox"
             class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <label for="auto-refresh" class="ml-2 text-sm text-gray-700"
-            >自動刷新 (10秒)</label
-          >
+          <label for="auto-refresh" class="ml-2 text-sm text-gray-700">{{
+            t("kitchen.autoRefreshLabel")
+          }}</label>
         </div>
       </div>
     </div>
@@ -53,7 +60,9 @@
         <div class="flex items-center">
           <ClockIcon class="h-8 w-8 text-yellow-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-yellow-800">待確認</p>
+            <p class="text-sm font-medium text-yellow-800">
+              {{ t("kitchen.stats.pending") }}
+            </p>
             <p class="text-2xl font-bold text-yellow-900">
               {{ orderStats.pending }}
             </p>
@@ -65,7 +74,9 @@
         <div class="flex items-center">
           <PlayIcon class="h-8 w-8 text-blue-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-blue-800">製作中</p>
+            <p class="text-sm font-medium text-blue-800">
+              {{ t("kitchen.stats.preparing") }}
+            </p>
             <p class="text-2xl font-bold text-blue-900">
               {{ orderStats.preparing }}
             </p>
@@ -77,7 +88,9 @@
         <div class="flex items-center">
           <CheckCircleIcon class="h-8 w-8 text-green-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-green-800">待取餐</p>
+            <p class="text-sm font-medium text-green-800">
+              {{ t("kitchen.stats.ready") }}
+            </p>
             <p class="text-2xl font-bold text-green-900">
               {{ orderStats.ready }}
             </p>
@@ -89,9 +102,11 @@
         <div class="flex items-center">
           <ChartBarIcon class="h-8 w-8 text-purple-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-purple-800">平均完成時間</p>
+            <p class="text-sm font-medium text-purple-800">
+              {{ t("kitchen.stats.avgTime") }}
+            </p>
             <p class="text-2xl font-bold text-purple-900">
-              {{ avgCompletionTime }}分
+              {{ avgCompletionTime }}{{ t("kitchen.minutesShort") }}
             </p>
           </div>
         </div>
@@ -101,10 +116,14 @@
     <!-- 廚房績效指標 -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900">今日廚房績效</h2>
+        <h2 class="text-xl font-semibold text-gray-900">
+          {{ t("kitchen.performance.title") }}
+        </h2>
         <div class="flex items-center space-x-4">
           <div class="text-center">
-            <p class="text-sm text-gray-600">效率評分</p>
+            <p class="text-sm text-gray-600">
+              {{ t("kitchen.performance.efficiencyScore") }}
+            </p>
             <p
               class="text-lg font-bold"
               :class="getEfficiencyColor(efficiencyScore)"
@@ -113,7 +132,9 @@
             </p>
           </div>
           <div class="text-center">
-            <p class="text-sm text-gray-600">準時率</p>
+            <p class="text-sm text-gray-600">
+              {{ t("kitchen.performance.onTimeRate") }}
+            </p>
             <p
               class="text-lg font-bold"
               :class="getEfficiencyColor(onTimeRate)"
@@ -122,9 +143,11 @@
             </p>
           </div>
           <div class="text-center">
-            <p class="text-sm text-gray-600">今日完成</p>
+            <p class="text-sm text-gray-600">
+              {{ t("kitchen.performance.todayCompleted") }}
+            </p>
             <p class="text-lg font-bold text-green-600">
-              {{ todayCompleted }}單
+              {{ todayCompleted }}{{ t("kitchen.ordersUnit") }}
             </p>
           </div>
         </div>
@@ -134,7 +157,9 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <div class="flex justify-between text-sm mb-1">
-            <span class="text-gray-600">製作速度</span>
+            <span class="text-gray-600">{{
+              t("kitchen.performance.preparationSpeed")
+            }}</span>
             <span class="font-medium">{{ preparationSpeed }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -147,7 +172,9 @@
 
         <div>
           <div class="flex justify-between text-sm mb-1">
-            <span class="text-gray-600">品質評分</span>
+            <span class="text-gray-600">{{
+              t("kitchen.performance.qualityScore")
+            }}</span>
             <span class="font-medium">{{ qualityScore }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -160,7 +187,9 @@
 
         <div>
           <div class="flex justify-between text-sm mb-1">
-            <span class="text-gray-600">工作負載</span>
+            <span class="text-gray-600">{{
+              t("kitchen.performance.workload")
+            }}</span>
             <span class="font-medium">{{ workload }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -202,7 +231,7 @@
                 {{ order.orderNumber }}
               </h3>
               <p class="text-sm text-gray-600">
-                桌號: {{ order.tableNumber || "N/A" }}
+                {{ t("kitchen.tableNumber") }}: {{ order.tableNumber || "N/A" }}
               </p>
             </div>
           </div>
@@ -272,28 +301,28 @@
             class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             @click="confirmOrder(order)"
           >
-            確認訂單
+            {{ t("kitchen.actions.confirmOrder") }}
           </button>
           <button
             v-else-if="order.status === 'confirmed'"
             class="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors font-medium"
             @click="startCooking(order)"
           >
-            開始製作
+            {{ t("kitchen.actions.startCooking") }}
           </button>
           <button
             v-else-if="order.status === 'preparing'"
             class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
             @click="markReady(order)"
           >
-            製作完成
+            {{ t("kitchen.actions.markReady") }}
           </button>
           <button
             v-else-if="order.status === 'ready'"
             class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors font-medium"
             @click="markServed(order)"
           >
-            已送達
+            {{ t("kitchen.actions.markServed") }}
           </button>
 
           <!-- 緊急/延遲處理按鈕 -->
@@ -317,7 +346,9 @@
             <div class="flex items-center">
               <ClockIcon class="w-4 h-4 text-gray-500 mr-2" />
               <span class="text-gray-600"
-                >預計還需: {{ calculateEstimatedTime(order) }}分鐘</span
+                >{{ t("kitchen.estimatedTime") }}:
+                {{ calculateEstimatedTime(order)
+                }}{{ t("kitchen.minutes") }}</span
               >
             </div>
             <div v-if="order.status === 'preparing'" class="flex items-center">
@@ -350,7 +381,8 @@
             class="flex items-center text-xs text-gray-500"
           >
             <span
-              >目標完成時間: {{ formatTime(order.estimatedReadyTime) }}</span
+              >{{ t("kitchen.targetTime") }}:
+              {{ formatTime(order.estimatedReadyTime) }}</span
             >
           </div>
         </div>
@@ -361,9 +393,9 @@
     <div v-if="kitchenOrders.length === 0" class="text-center py-12">
       <CheckCircleIcon class="mx-auto h-16 w-16 text-gray-400 mb-4" />
       <h3 class="text-xl font-medium text-gray-900 mb-2">
-        太棒了！所有訂單都已完成
+        {{ t("kitchen.empty.title") }}
       </h3>
-      <p class="text-gray-500">等待新的訂單...</p>
+      <p class="text-gray-500">{{ t("kitchen.empty.subtitle") }}</p>
     </div>
 
     <!-- 通知音效 -->
@@ -375,6 +407,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 // import VirtualOrderGrid from '../../../kitchen-display/src/components/VirtualOrderGrid.vue'
 import {
   ArrowPathIcon,
@@ -386,6 +419,8 @@ import {
   ChartBarIcon,
   SpeakerWaveIcon,
 } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 // 響應式數據
 const currentTime = ref("");
@@ -625,7 +660,9 @@ const getPriorityBadgeClass = (priority: string) => {
 };
 
 const getPriorityText = (priority: string) => {
-  return priority === "high" ? "緊急" : "普通";
+  return priority === "high"
+    ? t("kitchen.priority.high")
+    : t("kitchen.priority.normal");
 };
 
 const getTimeElapsed = (createdAt: string) => {
@@ -635,10 +672,11 @@ const getTimeElapsed = (createdAt: string) => {
     (now.getTime() - created.getTime()) / (1000 * 60),
   );
 
-  if (diffInMinutes < 1) return "剛下單";
-  if (diffInMinutes < 60) return `${diffInMinutes} 分鐘前`;
+  if (diffInMinutes < 1) return t("kitchen.time.justOrdered");
+  if (diffInMinutes < 60)
+    return t("kitchen.time.minutesAgo", { minutes: diffInMinutes });
   const hours = Math.floor(diffInMinutes / 60);
-  return `${hours} 小時前`;
+  return t("kitchen.time.hoursAgo", { hours });
 };
 
 const formatTime = (dateTime: string) => {

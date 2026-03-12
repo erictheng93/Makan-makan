@@ -3,21 +3,28 @@
     <!-- 送菜員控制台標題 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">送菜服務台</h1>
-        <p class="text-gray-600">管理餐點配送和桌台服務</p>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("serviceView.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("serviceView.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-4">
         <!-- 個人績效 -->
         <div class="bg-green-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-green-800 font-medium">
-            今日配送: {{ todayDelivered }}單
+            {{ t("serviceView.todayDelivered") }}: {{ todayDelivered
+            }}{{ t("serviceView.orders") }}
           </p>
-          <p class="text-xs text-green-600">效率: {{ deliveryEfficiency }}%</p>
+          <p class="text-xs text-green-600">
+            {{ t("serviceView.efficiency") }}: {{ deliveryEfficiency }}%
+          </p>
         </div>
 
         <!-- 當前時間 -->
         <div class="text-right">
-          <p class="text-sm text-gray-500">當前時間</p>
+          <p class="text-sm text-gray-500">
+            {{ t("serviceView.currentTime") }}
+          </p>
           <p class="text-lg font-semibold">
             {{ currentTime }}
           </p>
@@ -29,7 +36,7 @@
           @click="refreshOrders"
         >
           <ArrowPathIcon class="h-4 w-4 mr-2" />
-          刷新
+          {{ t("serviceView.refresh") }}
         </button>
       </div>
     </div>
@@ -40,7 +47,9 @@
         <div class="flex items-center">
           <TruckIcon class="h-8 w-8 text-orange-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-orange-800">待配送</p>
+            <p class="text-sm font-medium text-orange-800">
+              {{ t("serviceView.readyForDelivery") }}
+            </p>
             <p class="text-2xl font-bold text-orange-900">
               {{ orderStats.readyForDelivery }}
             </p>
@@ -52,7 +61,9 @@
         <div class="flex items-center">
           <MapIcon class="h-8 w-8 text-blue-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-blue-800">配送中</p>
+            <p class="text-sm font-medium text-blue-800">
+              {{ t("serviceView.delivering") }}
+            </p>
             <p class="text-2xl font-bold text-blue-900">
               {{ orderStats.delivering }}
             </p>
@@ -64,7 +75,9 @@
         <div class="flex items-center">
           <CheckCircleIcon class="h-8 w-8 text-green-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-green-800">已送達</p>
+            <p class="text-sm font-medium text-green-800">
+              {{ t("serviceView.delivered") }}
+            </p>
             <p class="text-2xl font-bold text-green-900">
               {{ orderStats.delivered }}
             </p>
@@ -76,9 +89,11 @@
         <div class="flex items-center">
           <ClockIcon class="h-8 w-8 text-purple-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-purple-800">平均配送時間</p>
+            <p class="text-sm font-medium text-purple-800">
+              {{ t("serviceView.avgDeliveryTime") }}
+            </p>
             <p class="text-2xl font-bold text-purple-900">
-              {{ avgDeliveryTime }}分
+              {{ avgDeliveryTime }}{{ t("serviceView.minutes") }}
             </p>
           </div>
         </div>
@@ -92,20 +107,22 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">待配送訂單</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("serviceView.pendingOrders") }}
+              </h2>
               <div class="flex items-center space-x-3">
                 <!-- 桌台篩選 -->
                 <select
                   v-model="selectedTable"
                   class="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">所有桌台</option>
+                  <option value="">{{ t("serviceView.allTables") }}</option>
                   <option
                     v-for="table in availableTables"
                     :key="table"
                     :value="table"
                   >
-                    桌號 {{ table }}
+                    {{ t("serviceView.tableNumber", { number: table }) }}
                   </option>
                 </select>
 
@@ -114,9 +131,13 @@
                   v-model="selectedPriority"
                   class="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">所有優先級</option>
-                  <option value="high">緊急</option>
-                  <option value="normal">普通</option>
+                  <option value="">{{ t("serviceView.allPriority") }}</option>
+                  <option value="high">
+                    {{ t("serviceView.priority.high") }}
+                  </option>
+                  <option value="normal">
+                    {{ t("serviceView.priority.normal") }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -149,8 +170,10 @@
                         <p class="text-sm text-gray-600">
                           {{
                             order.orderType === "dine_in"
-                              ? `桌號 ${order.tableNumber}`
-                              : "外帶/外送"
+                              ? t("serviceView.tableNumber", {
+                                  number: order.tableNumber,
+                                })
+                              : t("serviceView.takeawayDelivery")
                           }}
                         </p>
                       </div>
@@ -253,14 +276,14 @@
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm whitespace-nowrap"
                     @click="startDelivery(order)"
                   >
-                    開始配送
+                    {{ t("serviceView.startDelivery") }}
                   </button>
                   <button
                     v-else-if="order.status === 'delivering'"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap"
                     @click="completeDelivery(order)"
                   >
-                    確認送達
+                    {{ t("serviceView.confirmDelivery") }}
                   </button>
 
                   <!-- 輔助按鈕 -->
@@ -268,13 +291,13 @@
                     class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-xs"
                     @click="contactCustomer(order)"
                   >
-                    聯絡客戶
+                    {{ t("serviceView.contactCustomer") }}
                   </button>
                   <button
                     class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs"
                     @click="reportIssue(order)"
                   >
-                    回報問題
+                    {{ t("serviceView.reportIssue") }}
                   </button>
                 </div>
               </div>
@@ -284,9 +307,9 @@
             <div v-if="filteredOrders.length === 0" class="p-12 text-center">
               <CheckCircleIcon class="mx-auto h-16 w-16 text-gray-400 mb-4" />
               <h3 class="text-xl font-medium text-gray-900 mb-2">
-                沒有待配送的訂單
+                {{ t("serviceView.noOrders") }}
               </h3>
-              <p class="text-gray-500">所有餐點都已送達！</p>
+              <p class="text-gray-500">{{ t("serviceView.allDelivered") }}</p>
             </div>
           </div>
         </div>
@@ -298,7 +321,9 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              我的配送中訂單 ({{ myActiveDeliveries.length }})
+              {{ t("serviceView.myDeliveries") }} ({{
+                myActiveDeliveries.length
+              }})
             </h3>
 
             <div v-if="myActiveDeliveries.length > 0" class="space-y-3">
@@ -312,10 +337,15 @@
                     {{ delivery.orderNumber }}
                   </p>
                   <p class="text-sm text-gray-600">
-                    桌號 {{ delivery.tableNumber }}
+                    {{
+                      t("serviceView.tableNumber", {
+                        number: delivery.tableNumber,
+                      })
+                    }}
                   </p>
                   <p class="text-xs text-blue-600">
-                    開始時間: {{ formatTime(delivery.deliveryStartTime) }}
+                    {{ t("serviceView.startTime") }}:
+                    {{ formatTime(delivery.deliveryStartTime) }}
                   </p>
                 </div>
                 <div class="text-right">
@@ -326,7 +356,7 @@
                     class="mt-1 px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                     @click="completeDelivery(delivery)"
                   >
-                    送達
+                    {{ t("serviceView.delivered") }}
                   </button>
                 </div>
               </div>
@@ -334,7 +364,9 @@
 
             <div v-else class="text-center py-6">
               <TruckIcon class="mx-auto h-8 w-8 text-gray-400 mb-2" />
-              <p class="text-gray-500 text-sm">目前沒有配送中的訂單</p>
+              <p class="text-gray-500 text-sm">
+                {{ t("serviceView.noActiveDeliveries") }}
+              </p>
             </div>
           </div>
         </div>
@@ -343,32 +375,40 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              今日個人績效
+              {{ t("serviceView.todayPerformance") }}
             </h3>
 
             <div class="space-y-4">
               <!-- 績效指標 -->
               <div class="grid grid-cols-2 gap-4">
                 <div class="text-center p-3 bg-green-50 rounded">
-                  <p class="text-sm text-green-600">完成配送</p>
+                  <p class="text-sm text-green-600">
+                    {{ t("serviceView.completedDeliveries") }}
+                  </p>
                   <p class="text-2xl font-bold text-green-800">
                     {{ todayStats.completed }}
                   </p>
                 </div>
                 <div class="text-center p-3 bg-blue-50 rounded">
-                  <p class="text-sm text-blue-600">平均時間</p>
+                  <p class="text-sm text-blue-600">
+                    {{ t("serviceView.avgTime") }}
+                  </p>
                   <p class="text-2xl font-bold text-blue-800">
-                    {{ todayStats.avgTime }}分
+                    {{ todayStats.avgTime }}{{ t("serviceView.minutes") }}
                   </p>
                 </div>
                 <div class="text-center p-3 bg-purple-50 rounded">
-                  <p class="text-sm text-purple-600">準時率</p>
+                  <p class="text-sm text-purple-600">
+                    {{ t("serviceView.onTimeRate") }}
+                  </p>
                   <p class="text-2xl font-bold text-purple-800">
                     {{ todayStats.onTimeRate }}%
                   </p>
                 </div>
                 <div class="text-center p-3 bg-yellow-50 rounded">
-                  <p class="text-sm text-yellow-600">客戶評價</p>
+                  <p class="text-sm text-yellow-600">
+                    {{ t("serviceView.customerRating") }}
+                  </p>
                   <p class="text-2xl font-bold text-yellow-800">
                     {{ todayStats.rating }}/5
                   </p>
@@ -378,7 +418,9 @@
               <!-- 效率進度條 -->
               <div>
                 <div class="flex justify-between text-sm mb-1">
-                  <span class="text-gray-600">服務效率</span>
+                  <span class="text-gray-600">{{
+                    t("serviceView.serviceEfficiency")
+                  }}</span>
                   <span class="font-medium">{{ deliveryEfficiency }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -400,7 +442,7 @@
             <!-- 今日時間軸 -->
             <div class="mt-6">
               <h4 class="text-sm font-medium text-gray-900 mb-3">
-                今日配送時間軸
+                {{ t("serviceView.todayTimeline") }}
               </h4>
               <div class="space-y-2 max-h-48 overflow-y-auto">
                 <div
@@ -414,7 +456,7 @@
                   }}</span>
                   <span class="ml-2 font-medium">{{ record.orderNumber }}</span>
                   <span class="ml-auto text-gray-500 text-xs"
-                    >{{ record.duration }}分</span
+                    >{{ record.duration }}{{ t("serviceView.minutes") }}</span
                   >
                 </div>
               </div>
@@ -433,7 +475,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">聯絡客戶</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("serviceView.contactCustomer") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeContactDialog"
@@ -444,14 +488,18 @@
 
           <div v-if="selectedOrderForContact" class="space-y-4">
             <div>
-              <p class="text-sm text-gray-600">訂單編號</p>
+              <p class="text-sm text-gray-600">
+                {{ t("serviceView.orderNumber") }}
+              </p>
               <p class="font-medium">
                 {{ selectedOrderForContact.orderNumber }}
               </p>
             </div>
 
             <div v-if="selectedOrderForContact.customerInfo">
-              <p class="text-sm text-gray-600">客戶信息</p>
+              <p class="text-sm text-gray-600">
+                {{ t("serviceView.customerInfo") }}
+              </p>
               <p class="font-medium">
                 {{ selectedOrderForContact.customerInfo.name }}
               </p>
@@ -468,13 +516,13 @@
                 class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 @click="makePhoneCall"
               >
-                撥打電話
+                {{ t("serviceView.makeCall") }}
               </button>
               <button
                 class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 @click="sendMessage"
               >
-                發送訊息
+                {{ t("serviceView.sendMessage") }}
               </button>
             </div>
           </div>
@@ -491,7 +539,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">回報問題</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("serviceView.reportIssue") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeIssueDialog"
@@ -502,32 +552,44 @@
 
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >問題類型</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                t("serviceView.issueType")
+              }}</label>
               <select
                 v-model="issueData.type"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">請選擇問題類型</option>
-                <option value="wrong_order">訂單錯誤</option>
-                <option value="missing_items">缺少餐點</option>
-                <option value="quality_issue">餐點品質問題</option>
-                <option value="customer_unavailable">客戶無法聯絡</option>
-                <option value="access_issue">無法到達桌台</option>
-                <option value="other">其他問題</option>
+                <option value="">{{ t("serviceView.selectIssueType") }}</option>
+                <option value="wrong_order">
+                  {{ t("serviceView.issues.wrongOrder") }}
+                </option>
+                <option value="missing_items">
+                  {{ t("serviceView.issues.missingItems") }}
+                </option>
+                <option value="quality_issue">
+                  {{ t("serviceView.issues.qualityIssue") }}
+                </option>
+                <option value="customer_unavailable">
+                  {{ t("serviceView.issues.customerUnavailable") }}
+                </option>
+                <option value="access_issue">
+                  {{ t("serviceView.issues.accessIssue") }}
+                </option>
+                <option value="other">
+                  {{ t("serviceView.issues.other") }}
+                </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >問題描述</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                t("serviceView.issueDescription")
+              }}</label>
               <textarea
                 v-model="issueData.description"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="請詳細描述遇到的問題..."
+                :placeholder="t('serviceView.issueDescPlaceholder')"
               />
             </div>
 
@@ -536,14 +598,14 @@
                 class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
                 @click="closeIssueDialog"
               >
-                取消
+                {{ t("serviceView.cancel") }}
               </button>
               <button
                 :disabled="!issueData.type || !issueData.description"
                 class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 @click="submitIssue"
               >
-                回報問題
+                {{ t("serviceView.submitIssue") }}
               </button>
             </div>
           </div>
@@ -566,6 +628,9 @@ import {
   UserIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // Type definitions
 interface CustomerInfo {
@@ -838,7 +903,10 @@ const closeIssueDialog = () => {
 const makePhoneCall = () => {
   if (selectedOrderForContact.value?.customerInfo?.phone) {
     alert(
-      `撥打電話給 ${selectedOrderForContact.value.customerInfo.name}: ${selectedOrderForContact.value.customerInfo.phone}`,
+      t("serviceView.alerts.calling", {
+        name: selectedOrderForContact.value.customerInfo.name,
+        phone: selectedOrderForContact.value.customerInfo.phone,
+      }),
     );
   }
   closeContactDialog();
@@ -846,7 +914,11 @@ const makePhoneCall = () => {
 
 const sendMessage = () => {
   if (selectedOrderForContact.value?.customerInfo?.phone) {
-    alert(`發送簡訊給 ${selectedOrderForContact.value.customerInfo.name}`);
+    alert(
+      t("serviceView.alerts.messaging", {
+        name: selectedOrderForContact.value.customerInfo.name,
+      }),
+    );
   }
   closeContactDialog();
 };
@@ -855,7 +927,10 @@ const submitIssue = () => {
   if (!issueData.value.type || !issueData.value.description) return;
 
   alert(
-    `問題已回報：\n類型：${getIssueTypeText(issueData.value.type)}\n描述：${issueData.value.description}`,
+    t("serviceView.alerts.issueReported", {
+      type: getIssueTypeText(issueData.value.type),
+      description: issueData.value.description,
+    }),
   );
   closeIssueDialog();
 };
@@ -886,7 +961,9 @@ const getPriorityBadgeClass = (priority: string) => {
 };
 
 const getPriorityText = (priority: string) => {
-  return priority === "high" ? "緊急" : "普通";
+  return priority === "high"
+    ? t("serviceView.priority.high")
+    : t("serviceView.priority.normal");
 };
 
 const getTimeElapsed = (dateTime: string) => {
@@ -896,10 +973,11 @@ const getTimeElapsed = (dateTime: string) => {
     (now.getTime() - time.getTime()) / (1000 * 60),
   );
 
-  if (diffInMinutes < 1) return "剛準備好";
-  if (diffInMinutes < 60) return `${diffInMinutes} 分鐘前`;
+  if (diffInMinutes < 1) return t("serviceView.justReady");
+  if (diffInMinutes < 60)
+    return t("serviceView.minutesAgo", { minutes: diffInMinutes });
   const hours = Math.floor(diffInMinutes / 60);
-  return `${hours} 小時前`;
+  return t("serviceView.hoursAgo", { hours });
 };
 
 const getDeliveryDuration = (startTime: string | null | undefined) => {
@@ -909,7 +987,7 @@ const getDeliveryDuration = (startTime: string | null | undefined) => {
   const diffInMinutes = Math.floor(
     (now.getTime() - start.getTime()) / (1000 * 60),
   );
-  return `${diffInMinutes} 分鐘`;
+  return `${diffInMinutes} ${t("serviceView.minutes")}`;
 };
 
 const formatTime = (dateTime: string | Date | null | undefined) => {
@@ -923,12 +1001,12 @@ const formatTime = (dateTime: string | Date | null | undefined) => {
 
 const getIssueTypeText = (type: string) => {
   const types: Record<string, string> = {
-    wrong_order: "訂單錯誤",
-    missing_items: "缺少餐點",
-    quality_issue: "餐點品質問題",
-    customer_unavailable: "客戶無法聯絡",
-    access_issue: "無法到達桌台",
-    other: "其他問題",
+    wrong_order: t("serviceView.issues.wrongOrder"),
+    missing_items: t("serviceView.issues.missingItems"),
+    quality_issue: t("serviceView.issues.qualityIssue"),
+    customer_unavailable: t("serviceView.issues.customerUnavailable"),
+    access_issue: t("serviceView.issues.accessIssue"),
+    other: t("serviceView.issues.other"),
   };
   return types[type] || type;
 };

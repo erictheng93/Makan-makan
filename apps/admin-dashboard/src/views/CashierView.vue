@@ -3,14 +3,16 @@
     <!-- 收銀台標題 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">收銀台</h1>
-        <p class="text-gray-600">處理訂單結帳和付款</p>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("cashier.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("cashier.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-6">
         <!-- 班次資訊 -->
         <div class="bg-blue-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-blue-800 font-medium">
-            班次: {{ currentShift.name }}
+            {{ t("cashier.shift") }}: {{ currentShift.name }}
           </p>
           <p class="text-xs text-blue-600">
             {{ currentShift.startTime }} - {{ currentShift.endTime }}
@@ -19,7 +21,9 @@
 
         <!-- 今日業績 -->
         <div class="text-right">
-          <p class="text-sm text-gray-500">今日業績</p>
+          <p class="text-sm text-gray-500">
+            {{ t("cashier.todayPerformance") }}
+          </p>
           <p class="text-lg font-semibold text-green-600">
             RM{{ formatMoney(todayRevenue) }}
           </p>
@@ -27,7 +31,7 @@
 
         <!-- 現在時間 -->
         <div class="text-right">
-          <p class="text-sm text-gray-500">當前時間</p>
+          <p class="text-sm text-gray-500">{{ t("cashier.currentTime") }}</p>
           <p class="text-lg font-semibold">
             {{ currentTime }}
           </p>
@@ -39,13 +43,13 @@
             class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
             @click="openShiftReport"
           >
-            班次報告
+            {{ t("cashier.shiftReport") }}
           </button>
           <button
             class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
             @click="openRefundDialog"
           >
-            退款處理
+            {{ t("cashier.refundProcess") }}
           </button>
         </div>
       </div>
@@ -57,7 +61,9 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">待結帳訂單</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("cashier.pendingOrders") }}
+              </h2>
               <div class="flex items-center space-x-4">
                 <div class="relative">
                   <MagnifyingGlassIcon
@@ -66,7 +72,7 @@
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="搜索訂單編號或桌號..."
+                    :placeholder="t('cashier.searchPlaceholder')"
                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -116,7 +122,9 @@
                     <div class="flex items-center mt-1 text-sm text-gray-500">
                       <MapPinIcon class="w-4 h-4 mr-1" />
                       <span>{{
-                        order.tableNumber ? `桌號 ${order.tableNumber}` : "外帶"
+                        order.tableNumber
+                          ? `${t("cashier.tableNumber")} ${order.tableNumber}`
+                          : t("cashier.takeaway")
                       }}</span>
                       <span class="mx-2">•</span>
                       <ClockIcon class="w-4 h-4 mr-1" />
@@ -129,7 +137,7 @@
                     RM{{ formatMoney(order.totalAmount) }}
                   </p>
                   <p class="text-sm text-gray-500">
-                    {{ order.items.length }} 項商品
+                    {{ t("cashier.itemCount", { count: order.items.length }) }}
                   </p>
                 </div>
               </div>
@@ -139,9 +147,9 @@
             <div v-if="filteredOrders.length === 0" class="p-12 text-center">
               <ShoppingBagIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                暫無待結帳訂單
+                {{ t("cashier.noPendingOrders") }}
               </h3>
-              <p class="text-gray-500">所有訂單都已完成結帳</p>
+              <p class="text-gray-500">{{ t("cashier.allOrdersCompleted") }}</p>
             </div>
           </div>
         </div>
@@ -153,7 +161,11 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              {{ selectedOrder ? "訂單詳情" : "選擇訂單" }}
+              {{
+                selectedOrder
+                  ? t("cashier.orderDetails")
+                  : t("cashier.selectOrder")
+              }}
             </h3>
 
             <div v-if="selectedOrder">
@@ -172,23 +184,29 @@
                 </div>
                 <div class="text-sm text-gray-600 space-y-1">
                   <div class="flex justify-between">
-                    <span>桌號:</span>
-                    <span>{{ selectedOrder.tableNumber || "外帶" }}</span>
+                    <span>{{ t("cashier.tableNumber") }}:</span>
+                    <span>{{
+                      selectedOrder.tableNumber || t("cashier.takeaway")
+                    }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span>下單時間:</span>
+                    <span>{{ t("cashier.orderTime") }}:</span>
                     <span>{{ formatDateTime(selectedOrder.createdAt) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span>客戶:</span>
-                    <span>{{ selectedOrder.customerName || "客戶" }}</span>
+                    <span>{{ t("cashier.customer") }}:</span>
+                    <span>{{
+                      selectedOrder.customerName || t("cashier.customer")
+                    }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- 商品清單 -->
               <div class="mb-6">
-                <h5 class="font-medium text-gray-900 mb-3">商品清單</h5>
+                <h5 class="font-medium text-gray-900 mb-3">
+                  {{ t("cashier.itemList") }}
+                </h5>
                 <div class="space-y-2">
                   <div
                     v-for="item in selectedOrder.items"
@@ -209,15 +227,15 @@
               <!-- 金額計算 -->
               <div class="border-t border-gray-200 pt-4 space-y-2">
                 <div class="flex justify-between text-sm">
-                  <span>小計:</span>
+                  <span>{{ t("cashier.subtotal") }}:</span>
                   <span>RM{{ formatMoney(selectedOrder.subtotal) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span>服務費 (10%):</span>
+                  <span>{{ t("cashier.serviceCharge") }}:</span>
                   <span>RM{{ formatMoney(selectedOrder.serviceCharge) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span>稅費 (6%):</span>
+                  <span>{{ t("cashier.tax") }}:</span>
                   <span>RM{{ formatMoney(selectedOrder.taxAmount) }}</span>
                 </div>
                 <div
@@ -226,9 +244,11 @@
                 >
                   <div class="flex justify-between">
                     <span v-if="selectedOrder.couponCode">
-                      優惠券 ({{ selectedOrder.couponCode }}):
+                      {{ t("cashier.coupon") }} ({{
+                        selectedOrder.couponCode
+                      }}):
                     </span>
-                    <span v-else>折扣:</span>
+                    <span v-else>{{ t("cashier.discount") }}:</span>
                     <span
                       >-RM{{ formatMoney(selectedOrder.discountAmount) }}</span
                     >
@@ -237,7 +257,7 @@
                 <div
                   class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200"
                 >
-                  <span>總計:</span>
+                  <span>{{ t("cashier.total") }}:</span>
                   <span>RM{{ formatMoney(selectedOrder.totalAmount) }}</span>
                 </div>
               </div>
@@ -247,7 +267,7 @@
               <CursorArrowRaysIcon
                 class="mx-auto h-12 w-12 text-gray-400 mb-2"
               />
-              <p class="text-gray-500">請選擇要結帳的訂單</p>
+              <p class="text-gray-500">{{ t("cashier.pleaseSelectOrder") }}</p>
             </div>
           </div>
         </div>
@@ -255,7 +275,9 @@
         <!-- 付款方式選擇 -->
         <div v-if="selectedOrder" class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">付款方式</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("cashier.paymentMethod") }}
+            </h3>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
               <button
@@ -276,9 +298,9 @@
 
             <!-- 現金付款輸入 -->
             <div v-if="selectedPaymentMethod === 'cash'" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >客戶給付金額</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.amountReceived")
+              }}</label>
               <div class="relative">
                 <span class="absolute left-3 top-3 text-gray-500">RM</span>
                 <input
@@ -295,13 +317,13 @@
                 class="mt-2 p-3 bg-gray-50 rounded-lg"
               >
                 <div class="flex justify-between text-sm">
-                  <span>應收:</span>
+                  <span>{{ t("cashier.amountDue") }}:</span>
                   <span class="font-medium"
                     >RM{{ formatMoney(selectedOrder.totalAmount) }}</span
                   >
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span>實收:</span>
+                  <span>{{ t("cashier.received") }}:</span>
                   <span class="font-medium"
                     >RM{{ formatMoney(cashReceived) }}</span
                   >
@@ -309,7 +331,7 @@
                 <div
                   class="flex justify-between text-lg font-bold mt-1 pt-1 border-t border-gray-200"
                 >
-                  <span>找零:</span>
+                  <span>{{ t("cashier.change") }}:</span>
                   <span
                     :class="change >= 0 ? 'text-green-600' : 'text-red-600'"
                   >
@@ -326,7 +348,7 @@
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
                 @click="processPayment"
               >
-                確認收款
+                {{ t("cashier.confirmPayment") }}
               </button>
 
               <div class="grid grid-cols-2 gap-3">
@@ -334,13 +356,13 @@
                   class="py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
                   @click="applyDiscount"
                 >
-                  套用折扣
+                  {{ t("cashier.applyDiscount") }}
                 </button>
                 <button
                   class="py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
                   @click="printReceipt"
                 >
-                  列印收據
+                  {{ t("cashier.printReceipt") }}
                 </button>
               </div>
             </div>
@@ -360,7 +382,9 @@
           class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">班次報告</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("cashier.shiftReport") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeShiftReport"
@@ -373,24 +397,45 @@
             <!-- 班次基本資訊 -->
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-blue-50 p-4 rounded-lg">
-                <h4 class="font-medium text-blue-900 mb-2">班次資訊</h4>
+                <h4 class="font-medium text-blue-900 mb-2">
+                  {{ t("cashier.shiftInfo") }}
+                </h4>
                 <div class="text-sm text-blue-800 space-y-1">
-                  <p>班次: {{ shiftReport.name }}</p>
+                  <p>{{ t("cashier.shift") }}: {{ shiftReport.name }}</p>
                   <p>
-                    時間: {{ shiftReport.startTime }} -
+                    {{ t("cashier.time") }}: {{ shiftReport.startTime }} -
                     {{ shiftReport.endTime }}
                   </p>
-                  <p>收銀員: {{ shiftReport.cashierName }}</p>
+                  <p>
+                    {{ t("cashier.cashierName") }}:
+                    {{ shiftReport.cashierName }}
+                  </p>
                 </div>
               </div>
               <div class="bg-green-50 p-4 rounded-lg">
-                <h4 class="font-medium text-green-900 mb-2">盈收總計</h4>
+                <h4 class="font-medium text-green-900 mb-2">
+                  {{ t("cashier.revenueTotal") }}
+                </h4>
                 <div class="text-sm text-green-800 space-y-1">
-                  <p>現金: RM{{ formatMoney(shiftReport.cashTotal) }}</p>
-                  <p>刷卡: RM{{ formatMoney(shiftReport.cardTotal) }}</p>
-                  <p>電子支付: RM{{ formatMoney(shiftReport.digitalTotal) }}</p>
+                  <p>
+                    {{ t("cashier.cash") }}: RM{{
+                      formatMoney(shiftReport.cashTotal)
+                    }}
+                  </p>
+                  <p>
+                    {{ t("cashier.card") }}: RM{{
+                      formatMoney(shiftReport.cardTotal)
+                    }}
+                  </p>
+                  <p>
+                    {{ t("cashier.digitalPayment") }}: RM{{
+                      formatMoney(shiftReport.digitalTotal)
+                    }}
+                  </p>
                   <p class="font-bold text-lg pt-1 border-t border-green-200">
-                    總計: RM{{ formatMoney(shiftReport.totalRevenue) }}
+                    {{ t("cashier.total") }}: RM{{
+                      formatMoney(shiftReport.totalRevenue)
+                    }}
                   </p>
                 </div>
               </div>
@@ -398,22 +443,30 @@
 
             <!-- 交易明細 -->
             <div>
-              <h4 class="font-medium text-gray-900 mb-3">交易明細</h4>
+              <h4 class="font-medium text-gray-900 mb-3">
+                {{ t("cashier.transactionDetails") }}
+              </h4>
               <div class="grid grid-cols-3 gap-4 text-center">
                 <div class="bg-gray-50 p-3 rounded">
-                  <p class="text-sm text-gray-600">總訂單數</p>
+                  <p class="text-sm text-gray-600">
+                    {{ t("cashier.totalOrders") }}
+                  </p>
                   <p class="text-2xl font-bold text-gray-900">
                     {{ shiftReport.totalOrders }}
                   </p>
                 </div>
                 <div class="bg-gray-50 p-3 rounded">
-                  <p class="text-sm text-gray-600">平均客單價</p>
+                  <p class="text-sm text-gray-600">
+                    {{ t("cashier.avgOrderValue") }}
+                  </p>
                   <p class="text-2xl font-bold text-gray-900">
                     RM{{ formatMoney(shiftReport.avgOrderValue) }}
                   </p>
                 </div>
                 <div class="bg-gray-50 p-3 rounded">
-                  <p class="text-sm text-gray-600">退款次數</p>
+                  <p class="text-sm text-gray-600">
+                    {{ t("cashier.refundCount") }}
+                  </p>
                   <p class="text-2xl font-bold text-gray-900">
                     {{ shiftReport.refundCount }}
                   </p>
@@ -423,19 +476,23 @@
 
             <!-- 現金盤點 -->
             <div class="bg-yellow-50 p-4 rounded-lg">
-              <h4 class="font-medium text-yellow-900 mb-3">現金盤點</h4>
+              <h4 class="font-medium text-yellow-900 mb-3">
+                {{ t("cashier.cashCount") }}
+              </h4>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-yellow-800 mb-1"
-                    >系統記錄金額</label
+                  <label
+                    class="block text-sm font-medium text-yellow-800 mb-1"
+                    >{{ t("cashier.systemAmount") }}</label
                   >
                   <div class="text-lg font-bold text-yellow-900">
                     RM{{ formatMoney(shiftReport.systemCashAmount) }}
                   </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-yellow-800 mb-1"
-                    >實際盤點金額</label
+                  <label
+                    class="block text-sm font-medium text-yellow-800 mb-1"
+                    >{{ t("cashier.actualAmount") }}</label
                   >
                   <input
                     v-model.number="actualCashAmount"
@@ -457,10 +514,14 @@
                 <p class="text-sm font-medium">
                   {{
                     cashDifference === 0
-                      ? "盤點符合"
+                      ? t("cashier.cashMatch")
                       : cashDifference > 0
-                        ? `現金多 RM${formatMoney(Math.abs(cashDifference))}`
-                        : `現金少 RM${formatMoney(Math.abs(cashDifference))}`
+                        ? t("cashier.cashOver", {
+                            amount: formatMoney(Math.abs(cashDifference)),
+                          })
+                        : t("cashier.cashShort", {
+                            amount: formatMoney(Math.abs(cashDifference)),
+                          })
                   }}
                 </p>
               </div>
@@ -472,19 +533,19 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeShiftReport"
             >
-              關閉
+              {{ t("common.close") }}
             </button>
             <button
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               @click="printShiftReport"
             >
-              列印報告
+              {{ t("cashier.printReport") }}
             </button>
             <button
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               @click="endShift"
             >
-              結束班次
+              {{ t("cashier.endShift") }}
             </button>
           </div>
         </div>
@@ -500,7 +561,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">退款處理</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("cashier.refundProcess") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeRefundDialog"
@@ -511,21 +574,21 @@
 
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >訂單編號</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.orderNumber")
+              }}</label>
               <input
                 v-model="refundData.orderNumber"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入訂單編號"
+                :placeholder="t('cashier.enterOrderNumber')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >退款金額</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.refundAmount")
+              }}</label>
               <div class="relative">
                 <span class="absolute left-3 top-3 text-gray-500">RM</span>
                 <input
@@ -540,31 +603,39 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >退款原因</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.refundReason")
+              }}</label>
               <select
                 v-model="refundData.reason"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">請選擇原因</option>
-                <option value="quality_issue">菜品品質問題</option>
-                <option value="wrong_order">上錯菜</option>
-                <option value="customer_change">客戶改變主意</option>
-                <option value="service_issue">服務問題</option>
-                <option value="other">其他原因</option>
+                <option value="">{{ t("cashier.selectReason") }}</option>
+                <option value="quality_issue">
+                  {{ t("cashier.reasons.qualityIssue") }}
+                </option>
+                <option value="wrong_order">
+                  {{ t("cashier.reasons.wrongOrder") }}
+                </option>
+                <option value="customer_change">
+                  {{ t("cashier.reasons.customerChange") }}
+                </option>
+                <option value="service_issue">
+                  {{ t("cashier.reasons.serviceIssue") }}
+                </option>
+                <option value="other">{{ t("cashier.reasons.other") }}</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >備註</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.notes")
+              }}</label>
               <textarea
                 v-model="refundData.notes"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="選填備註資訊"
+                :placeholder="t('cashier.optionalNotes')"
               />
             </div>
           </div>
@@ -574,14 +645,14 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeRefundDialog"
             >
-              取消
+              {{ t("common.cancel") }}
             </button>
             <button
               :disabled="!canProcessRefund"
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="processRefund"
             >
-              確認退款
+              {{ t("cashier.confirmRefund") }}
             </button>
           </div>
         </div>
@@ -596,22 +667,28 @@
           class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 text-center"
         >
           <CheckCircleIcon class="mx-auto h-16 w-16 text-green-600 mb-4" />
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">收款成功！</h3>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">
+            {{ t("cashier.paymentSuccess") }}
+          </h3>
           <p class="text-gray-600 mb-6">
-            訂單 {{ completedOrder?.orderNumber }} 已完成結帳
+            {{
+              t("cashier.orderCompleted", {
+                orderNumber: completedOrder?.orderNumber,
+              })
+            }}
           </p>
           <div class="space-y-3">
             <button
               class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               @click="printFinalReceipt"
             >
-              列印收據
+              {{ t("cashier.printReceipt") }}
             </button>
             <button
               class="w-full py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closePaymentSuccess"
             >
-              完成
+              {{ t("cashier.done") }}
             </button>
           </div>
         </div>
@@ -639,6 +716,9 @@ import {
   DevicePhoneMobileIcon,
   BuildingLibraryIcon,
 } from "@heroicons/vue/24/solid";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // Type definitions
 interface OrderItem {
@@ -717,12 +797,20 @@ const refundData = ref({
 });
 
 // 付款方式
-const paymentMethods = [
-  { id: "cash", name: "現金", icon: BanknotesIcon },
-  { id: "card", name: "刷卡", icon: CreditCardIcon },
-  { id: "digital_wallet", name: "電子錢包", icon: DevicePhoneMobileIcon },
-  { id: "bank_transfer", name: "銀行轉帳", icon: BuildingLibraryIcon },
-];
+const paymentMethods = computed(() => [
+  { id: "cash", name: t("cashier.paymentMethods.cash"), icon: BanknotesIcon },
+  { id: "card", name: t("cashier.paymentMethods.card"), icon: CreditCardIcon },
+  {
+    id: "digital_wallet",
+    name: t("cashier.paymentMethods.digitalWallet"),
+    icon: DevicePhoneMobileIcon,
+  },
+  {
+    id: "bank_transfer",
+    name: t("cashier.paymentMethods.bankTransfer"),
+    icon: BuildingLibraryIcon,
+  },
+]);
 
 // 模擬待結帳訂單
 const orders = ref([
@@ -906,9 +994,9 @@ const getOrderStatusClass = (status: string) => {
 
 const getOrderStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    ready: "待取餐",
-    served: "已送達",
-    completed: "已完成",
+    ready: t("cashier.orderStatus.ready"),
+    served: t("cashier.orderStatus.served"),
+    completed: t("cashier.orderStatus.completed"),
   };
   return texts[status] || status;
 };
@@ -933,14 +1021,14 @@ const processPayment = async () => {
     }
   } catch (error) {
     console.error("Payment processing error:", error);
-    alert("支付處理失敗，請重試");
+    alert(t("cashier.alerts.paymentFailed"));
   }
 };
 
 const applyDiscount = () => {
   if (!selectedOrder.value) return;
 
-  const discountPercent = prompt("請輸入折扣百分比 (例如: 10 表示 10% 折扣)");
+  const discountPercent = prompt(t("cashier.prompts.discountPercent"));
   if (discountPercent && !isNaN(parseFloat(discountPercent))) {
     const discount =
       (selectedOrder.value.subtotal +
@@ -959,11 +1047,15 @@ const applyDiscount = () => {
 };
 
 const printReceipt = () => {
-  alert("收據列印功能開發中...");
+  alert(t("cashier.alerts.printInDev"));
 };
 
 const printFinalReceipt = () => {
-  alert(`正在列印 ${completedOrder.value?.orderNumber} 的收據...`);
+  alert(
+    t("cashier.alerts.printing", {
+      orderNumber: completedOrder.value?.orderNumber,
+    }),
+  );
   closePaymentSuccess();
 };
 
@@ -983,12 +1075,12 @@ const closeShiftReport = () => {
 };
 
 const printShiftReport = () => {
-  alert("正在列印班次報告...");
+  alert(t("cashier.alerts.printingShiftReport"));
 };
 
 const endShift = () => {
-  if (confirm("確定要結束當前班次嗎？結束後將無法再進行修改。")) {
-    alert("班次已結束，資料已保存。");
+  if (confirm(t("cashier.confirms.endShift"))) {
+    alert(t("cashier.alerts.shiftEnded"));
     closeShiftReport();
   }
 };
@@ -1012,7 +1104,11 @@ const processRefund = async () => {
   try {
     // 模擬退款處理
     alert(
-      `退款處理成功：\n訂單: ${refundData.value.orderNumber}\n金額: RM${formatMoney(refundData.value.amount)}\n原因: ${getRefundReasonText(refundData.value.reason)}`,
+      t("cashier.alerts.refundSuccess", {
+        orderNumber: refundData.value.orderNumber,
+        amount: formatMoney(refundData.value.amount),
+        reason: getRefundReasonText(refundData.value.reason),
+      }),
     );
 
     // 更新統計數據
@@ -1023,17 +1119,17 @@ const processRefund = async () => {
     closeRefundDialog();
   } catch (error) {
     console.error("Refund processing error:", error);
-    alert("退款處理失敗，請重試");
+    alert(t("cashier.alerts.refundFailed"));
   }
 };
 
 const getRefundReasonText = (reason: string) => {
   const reasons: Record<string, string> = {
-    quality_issue: "菜品品質問題",
-    wrong_order: "上錯菜",
-    customer_change: "客戶改變主意",
-    service_issue: "服務問題",
-    other: "其他原因",
+    quality_issue: t("cashier.reasons.qualityIssue"),
+    wrong_order: t("cashier.reasons.wrongOrder"),
+    customer_change: t("cashier.reasons.customerChange"),
+    service_issue: t("cashier.reasons.serviceIssue"),
+    other: t("cashier.reasons.other"),
   };
   return reasons[reason] || reason;
 };

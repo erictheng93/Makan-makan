@@ -3,16 +3,20 @@
     <!-- 標題區域 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">團體訂單</h1>
-        <p class="text-gray-600">管理多人共享訂單與分帳功能</p>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("groupOrders.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("groupOrders.subtitle") }}</p>
       </div>
       <div class="flex items-center space-x-4">
         <!-- 即時統計 -->
         <div class="bg-blue-100 px-4 py-2 rounded-lg">
           <p class="text-sm text-blue-800 font-medium">
-            活躍訂單: {{ activeGroupOrders }}
+            {{ t("groupOrders.activeOrders") }}: {{ activeGroupOrders }}
           </p>
-          <p class="text-xs text-blue-600">今日總數: {{ todayGroupOrders }}</p>
+          <p class="text-xs text-blue-600">
+            {{ t("groupOrders.todayTotal") }}: {{ todayGroupOrders }}
+          </p>
         </div>
 
         <!-- 功能按鈕 -->
@@ -20,14 +24,14 @@
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           @click="createGroupOrder"
         >
-          建立團體訂單
+          {{ t("groupOrders.createOrder") }}
         </button>
 
         <button
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="generateShareCode"
         >
-          生成分享碼
+          {{ t("groupOrders.generateShareCode") }}
         </button>
       </div>
     </div>
@@ -40,7 +44,9 @@
             <UserGroupIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">活躍訂單</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("groupOrders.activeOrders") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ activeGroupOrders }}
             </p>
@@ -54,7 +60,9 @@
             <ShareIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">分享次數</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("groupOrders.shareCount") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ totalShares }}
             </p>
@@ -68,7 +76,9 @@
             <CreditCardIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">分帳訂單</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("groupOrders.splitBillOrders") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ splitBillOrders }}
             </p>
@@ -82,9 +92,11 @@
             <ClockIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">平均完成時間</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("groupOrders.avgCompletionTime") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
-              {{ avgCompletionTime }}分
+              {{ avgCompletionTime }}{{ t("groupOrders.minutes") }}
             </p>
           </div>
         </div>
@@ -98,7 +110,9 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">團體訂單列表</h2>
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ t("groupOrders.orderList") }}
+              </h2>
               <div class="flex items-center space-x-4">
                 <!-- 搜尋篩選 -->
                 <div class="relative">
@@ -108,7 +122,7 @@
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="搜索訂單或分享碼..."
+                    :placeholder="t('groupOrders.searchPlaceholder')"
                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -117,11 +131,19 @@
                   v-model="statusFilter"
                   class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">全部狀態</option>
-                  <option value="active">進行中</option>
-                  <option value="ready_to_pay">準備結帳</option>
-                  <option value="completed">已完成</option>
-                  <option value="cancelled">已取消</option>
+                  <option value="">{{ t("groupOrders.allStatus") }}</option>
+                  <option value="active">
+                    {{ t("groupOrders.status.active") }}
+                  </option>
+                  <option value="ready_to_pay">
+                    {{ t("groupOrders.status.readyToPay") }}
+                  </option>
+                  <option value="completed">
+                    {{ t("groupOrders.status.completed") }}
+                  </option>
+                  <option value="cancelled">
+                    {{ t("groupOrders.status.cancelled") }}
+                  </option>
                 </select>
 
                 <button
@@ -168,8 +190,10 @@
                         <MapPinIcon class="w-4 h-4 mr-1" />
                         <span>{{
                           groupOrder.tableNumber
-                            ? `桌號 ${groupOrder.tableNumber}`
-                            : "外帶"
+                            ? t("groupOrders.tableNumber", {
+                                number: groupOrder.tableNumber,
+                              })
+                            : t("groupOrders.takeaway")
                         }}</span>
                         <span class="mx-2">·</span>
                         <ClockIcon class="w-4 h-4 mr-1" />
@@ -181,27 +205,33 @@
                   <!-- 成員與金額信息 -->
                   <div class="grid grid-cols-2 gap-4 mb-4">
                     <div class="bg-blue-50 p-3 rounded-lg">
-                      <p class="text-sm text-blue-800 font-medium">參與成員</p>
+                      <p class="text-sm text-blue-800 font-medium">
+                        {{ t("groupOrders.members") }}
+                      </p>
                       <div class="flex items-center mt-1">
                         <span class="text-2xl font-bold text-blue-900">{{
                           groupOrder.memberCount
                         }}</span>
-                        <span class="text-sm text-blue-600 ml-2">人</span>
+                        <span class="text-sm text-blue-600 ml-2">{{
+                          t("groupOrders.people")
+                        }}</span>
                       </div>
                       <div class="text-xs text-blue-600 mt-1">
-                        主揪: {{ groupOrder.hostName }}
+                        {{ t("groupOrders.host") }}: {{ groupOrder.hostName }}
                       </div>
                     </div>
 
                     <div class="bg-green-50 p-3 rounded-lg">
-                      <p class="text-sm text-green-800 font-medium">訂單總額</p>
+                      <p class="text-sm text-green-800 font-medium">
+                        {{ t("groupOrders.orderTotal") }}
+                      </p>
                       <div class="flex items-center mt-1">
                         <span class="text-2xl font-bold text-green-900"
                           >RM{{ formatMoney(groupOrder.totalAmount) }}</span
                         >
                       </div>
                       <div class="text-xs text-green-600 mt-1">
-                        {{ groupOrder.itemCount }} 項商品
+                        {{ groupOrder.itemCount }} {{ t("groupOrders.items") }}
                       </div>
                     </div>
                   </div>
@@ -237,7 +267,9 @@
                     <!-- 付款信息 -->
                     <div class="text-right">
                       <div class="flex items-center text-sm">
-                        <span class="text-gray-500">已付款</span>
+                        <span class="text-gray-500">{{
+                          t("groupOrders.paid")
+                        }}</span>
                         <span class="ml-1 font-medium"
                           >{{ groupOrder.paidMembers }}/{{
                             groupOrder.memberCount
@@ -263,7 +295,7 @@
                     class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
                     @click.stop="shareGroupOrder(groupOrder)"
                   >
-                    分享
+                    {{ t("groupOrders.share") }}
                   </button>
 
                   <button
@@ -271,14 +303,14 @@
                     class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
                     @click.stop="processSplitBill(groupOrder)"
                   >
-                    分帳結算
+                    {{ t("groupOrders.splitBill") }}
                   </button>
 
                   <button
                     class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
                     @click.stop="viewGroupOrderDetails(groupOrder)"
                   >
-                    詳情
+                    {{ t("groupOrders.details") }}
                   </button>
                 </div>
               </div>
@@ -291,9 +323,9 @@
             >
               <UserGroupIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 class="text-lg font-medium text-gray-900 mb-2">
-                尚無團體訂單
+                {{ t("groupOrders.noOrders") }}
               </h3>
-              <p class="text-gray-500">建立第一個團體訂單開始使用</p>
+              <p class="text-gray-500">{{ t("groupOrders.noOrdersHint") }}</p>
             </div>
           </div>
         </div>
@@ -305,7 +337,11 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              {{ selectedGroupOrder ? "訂單詳情" : "選擇訂單" }}
+              {{
+                selectedGroupOrder
+                  ? t("groupOrders.orderDetails")
+                  : t("groupOrders.selectOrder")
+              }}
             </h3>
 
             <div v-if="selectedGroupOrder">
@@ -318,14 +354,14 @@
                   <div class="flex items-center space-x-2">
                     <button
                       class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                      :title="'複製分享碼'"
+                      :title="t('groupOrders.copyShareCode')"
                       @click="copyShareCode(selectedGroupOrder.shareCode)"
                     >
                       <DocumentDuplicateIcon class="w-4 h-4" />
                     </button>
                     <button
                       class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
-                      :title="'生成QR碼'"
+                      :title="t('groupOrders.generateQR')"
                       @click="generateQRCode(selectedGroupOrder)"
                     >
                       <QrCodeIcon class="w-4 h-4" />
@@ -335,7 +371,9 @@
 
                 <div class="grid grid-cols-2 gap-3 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">狀態:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.statusLabel") }}:</span
+                    >
                     <span
                       :class="getStatusClass(selectedGroupOrder.status)"
                       class="px-2 py-1 text-xs font-medium rounded-full"
@@ -344,15 +382,24 @@
                     </span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">桌號:</span>
-                    <span>{{ selectedGroupOrder.tableNumber || "外帶" }}</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.tableLabel") }}:</span
+                    >
+                    <span>{{
+                      selectedGroupOrder.tableNumber ||
+                      t("groupOrders.takeaway")
+                    }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">建立時間:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.createdTime") }}:</span
+                    >
                     <span>{{ formatTime(selectedGroupOrder.createdAt) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">主揪:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.hostLabel") }}:</span
+                    >
                     <span>{{ selectedGroupOrder.hostName }}</span>
                   </div>
                 </div>
@@ -361,7 +408,9 @@
               <!-- 成員列表 -->
               <div class="mb-6">
                 <h5 class="font-medium text-gray-900 mb-3">
-                  參與成員 ({{ selectedGroupOrder.members.length }})
+                  {{ t("groupOrders.members") }} ({{
+                    selectedGroupOrder.members.length
+                  }})
                 </h5>
                 <div class="space-y-2">
                   <div
@@ -383,7 +432,8 @@
                           {{ member.name }}
                         </p>
                         <p class="text-xs text-gray-500">
-                          {{ member.itemCount }} 項商品・RM{{
+                          {{ member.itemCount }}
+                          {{ t("groupOrders.items") }}・RM{{
                             formatMoney(member.totalAmount)
                           }}
                         </p>
@@ -412,13 +462,17 @@
               <div class="border-t border-gray-200 pt-4">
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">小計小計:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.subtotal") }}:</span
+                    >
                     <span
                       >RM{{ formatMoney(selectedGroupOrder.subtotal) }}</span
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">服務費:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.serviceCharge") }}:</span
+                    >
                     <span
                       >RM{{
                         formatMoney(selectedGroupOrder.serviceCharge)
@@ -426,7 +480,9 @@
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">稅費:</span>
+                    <span class="text-gray-600"
+                      >{{ t("groupOrders.tax") }}:</span
+                    >
                     <span
                       >RM{{ formatMoney(selectedGroupOrder.taxAmount) }}</span
                     >
@@ -434,7 +490,7 @@
                   <div
                     class="flex justify-between font-bold text-lg pt-2 border-t border-gray-200"
                   >
-                    <span>總計:</span>
+                    <span>{{ t("groupOrders.total") }}:</span>
                     <span class="text-green-600"
                       >RM{{ formatMoney(selectedGroupOrder.totalAmount) }}</span
                     >
@@ -447,7 +503,9 @@
               <CursorArrowRaysIcon
                 class="mx-auto h-12 w-12 text-gray-400 mb-2"
               />
-              <p class="text-gray-500">點選一個團體訂單查看詳情</p>
+              <p class="text-gray-500">
+                {{ t("groupOrders.selectOrderHint") }}
+              </p>
             </div>
           </div>
         </div>
@@ -455,35 +513,37 @@
         <!-- 快速操作 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("groupOrders.quickActions") }}
+            </h3>
 
             <div class="space-y-3">
               <button
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                 @click="createGroupOrder"
               >
-                建立團體訂單
+                {{ t("groupOrders.createOrder") }}
               </button>
 
               <button
                 class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 @click="joinGroupOrder"
               >
-                加入訂單
+                {{ t("groupOrders.joinOrder") }}
               </button>
 
               <button
                 class="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 @click="generateShareCode"
               >
-                生成分享碼
+                {{ t("groupOrders.generateShareCode") }}
               </button>
 
               <button
                 class="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 @click="exportGroupOrderReport"
               >
-                匯出報表
+                {{ t("groupOrders.exportReport") }}
               </button>
             </div>
           </div>
@@ -492,13 +552,17 @@
         <!-- 統計圖表 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">使用統計</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("groupOrders.usageStats") }}
+            </h3>
 
             <div class="space-y-4">
               <!-- 每日訂單數量 -->
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">今日訂單</span>
+                  <span class="text-gray-600">{{
+                    t("groupOrders.todayOrders")
+                  }}</span>
                   <span class="font-medium">{{ todayGroupOrders }}</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -512,8 +576,12 @@
               <!-- 平均成員數 -->
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">平均成員數</span>
-                  <span class="font-medium">3.2人</span>
+                  <span class="text-gray-600">{{
+                    t("groupOrders.avgMembers")
+                  }}</span>
+                  <span class="font-medium"
+                    >3.2{{ t("groupOrders.people") }}</span
+                  >
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
@@ -526,7 +594,9 @@
               <!-- 分帳完成率 -->
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">分帳完成率</span>
+                  <span class="text-gray-600">{{
+                    t("groupOrders.splitBillRate")
+                  }}</span>
                   <span class="font-medium">87%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -551,7 +621,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">建立團體訂單</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("groupOrders.createOrder") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeCreateDialog"
@@ -562,52 +634,52 @@
 
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >桌號</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("groupOrders.tableNumberLabel")
+              }}</label>
               <input
                 v-model="newGroupOrder.tableNumber"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入桌號（可選）"
+                :placeholder="t('groupOrders.tableNumberPlaceholder')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >主揪人姓名</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("groupOrders.hostNameLabel")
+              }}</label>
               <input
                 v-model="newGroupOrder.hostName"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="輸入主揪人姓名"
+                :placeholder="t('groupOrders.hostNamePlaceholder')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >預計人數</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("groupOrders.expectedMembers")
+              }}</label>
               <input
                 v-model.number="newGroupOrder.expectedMembers"
                 type="number"
                 min="2"
                 max="20"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="預計參與人數"
+                :placeholder="t('groupOrders.expectedMembersPlaceholder')"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2"
-                >備註</label
-              >
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("groupOrders.notesLabel")
+              }}</label>
               <textarea
                 v-model="newGroupOrder.notes"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="如有需要可新增備註（可選）"
+                :placeholder="t('groupOrders.notesPlaceholder')"
               />
             </div>
           </div>
@@ -617,14 +689,14 @@
               class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
               @click="closeCreateDialog"
             >
-              取消
+              {{ t("groupOrders.cancel") }}
             </button>
             <button
               :disabled="!canCreateGroupOrder"
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="submitCreateGroupOrder"
             >
-              建立訂單
+              {{ t("groupOrders.createOrderBtn") }}
             </button>
           </div>
         </div>
@@ -640,7 +712,9 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">分享訂單</h3>
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("groupOrders.shareOrder") }}
+            </h3>
             <button
               class="text-gray-400 hover:text-gray-600"
               @click="closeShareDialog"
@@ -662,7 +736,9 @@
 
             <!-- 分享資訊 -->
             <div>
-              <p class="text-sm text-gray-600 mb-2">分享碼</p>
+              <p class="text-sm text-gray-600 mb-2">
+                {{ t("groupOrders.shareCode") }}
+              </p>
               <div class="flex items-center space-x-2">
                 <input
                   :value="shareData.shareCode"
@@ -673,14 +749,16 @@
                   class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   @click="copyShareCode(shareData.shareCode)"
                 >
-                  複製
+                  {{ t("groupOrders.copy") }}
                 </button>
               </div>
             </div>
 
             <!-- 分享連結 -->
             <div>
-              <p class="text-sm text-gray-600 mb-2">分享連結</p>
+              <p class="text-sm text-gray-600 mb-2">
+                {{ t("groupOrders.shareLink") }}
+              </p>
               <div class="flex items-center space-x-2">
                 <input
                   :value="shareData.shareUrl"
@@ -691,7 +769,7 @@
                   class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   @click="copyShareUrl"
                 >
-                  複製
+                  {{ t("groupOrders.copy") }}
                 </button>
               </div>
             </div>
@@ -708,7 +786,7 @@
                 class="py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 @click="shareToWechat"
               >
-                微信
+                {{ t("groupOrders.wechat") }}
               </button>
             </div>
           </div>
@@ -733,6 +811,9 @@ import {
 } from "@heroicons/vue/24/outline";
 import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // 類別定義
 interface GroupOrderMember {
@@ -944,19 +1025,19 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    active: "進行中",
-    ready_to_pay: "準備結帳",
-    completed: "已完成",
-    cancelled: "已取消",
+    active: t("groupOrders.status.active"),
+    ready_to_pay: t("groupOrders.status.readyToPay"),
+    completed: t("groupOrders.status.completed"),
+    cancelled: t("groupOrders.status.cancelled"),
   };
   return texts[status] || status;
 };
 
 const getPaymentStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    unpaid: "未付款",
-    pending: "處理中",
-    paid: "已付款",
+    unpaid: t("groupOrders.paymentStatus.unpaid"),
+    pending: t("groupOrders.paymentStatus.pending"),
+    paid: t("groupOrders.paymentStatus.paid"),
   };
   return texts[status] || status;
 };
@@ -1037,9 +1118,9 @@ const submitCreateGroupOrder = async () => {
     // 自動分享已建立的訂單
     shareGroupOrder(newGroup);
 
-    alert(`團體訂單已建立！\n分享碼: ${shareCode}`);
+    alert(t("groupOrders.alerts.orderCreated", { shareCode }));
   } catch (_error) {
-    alert("建立訂單失敗，請重試");
+    alert(t("groupOrders.alerts.createFailed"));
   }
 };
 
@@ -1058,51 +1139,54 @@ const closeShareDialog = () => {
 const copyShareCode = async (shareCode: string) => {
   try {
     await navigator.clipboard.writeText(shareCode);
-    alert("分享碼已複製");
+    alert(t("groupOrders.alerts.shareCodeCopied"));
   } catch (_error) {
-    alert("複製失敗，請手動複製");
+    alert(t("groupOrders.alerts.copyFailed"));
   }
 };
 
 const copyShareUrl = async () => {
   try {
     await navigator.clipboard.writeText(shareData.value.shareUrl);
-    alert("分享連結已複製");
+    alert(t("groupOrders.alerts.shareLinkCopied"));
   } catch (_error) {
-    alert("複製失敗，請手動複製");
+    alert(t("groupOrders.alerts.copyFailed"));
   }
 };
 
 const shareToWhatsApp = () => {
-  const text = `一起來點餐！\n訂單分享碼: ${shareData.value.shareCode}\n連結: ${shareData.value.shareUrl}`;
+  const text = t("groupOrders.whatsappMessage", {
+    shareCode: shareData.value.shareCode,
+    shareUrl: shareData.value.shareUrl,
+  });
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 };
 
 const shareToWechat = () => {
-  alert("微信分享功能開發中..");
+  alert(t("groupOrders.alerts.wechatInDev"));
 };
 
 const generateQRCode = (groupOrder: GroupOrder) => {
   console.log("Generate QR code for:", groupOrder.shareCode);
-  alert("QR碼生成功能開發中...");
+  alert(t("groupOrders.alerts.qrInDev"));
 };
 
 const joinGroupOrder = () => {
-  const shareCode = prompt("請輸入團體分享碼:");
+  const shareCode = prompt(t("groupOrders.prompts.enterShareCode"));
   if (shareCode) {
     console.log("Join group order:", shareCode);
-    alert("加入訂單功能開發中..");
+    alert(t("groupOrders.alerts.joinInDev"));
   }
 };
 
 const generateShareCode = () => {
   const shareCode = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-  alert(`新分享碼已生成: ${shareCode}`);
+  alert(t("groupOrders.alerts.shareCodeGenerated", { shareCode }));
 };
 
 const processSplitBill = (groupOrder: GroupOrder) => {
   console.log("Process split bill for:", groupOrder.id);
-  alert("分帳結算功能開發中..");
+  alert(t("groupOrders.alerts.splitBillInDev"));
 };
 
 const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
@@ -1111,7 +1195,7 @@ const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
 };
 
 const exportGroupOrderReport = () => {
-  alert("匯出報表功能開發中..");
+  alert(t("groupOrders.alerts.exportInDev"));
 };
 
 // 生命週期

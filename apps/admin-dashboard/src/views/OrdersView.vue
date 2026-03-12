@@ -8,7 +8,9 @@
             <ClockIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">待確認</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("orders.stats.pending") }}
+            </h3>
             <p class="text-2xl font-bold text-yellow-600">
               {{ stats.pending }}
             </p>
@@ -22,7 +24,9 @@
             <ShoppingBagIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">製作中</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("orders.stats.preparing") }}
+            </h3>
             <p class="text-2xl font-bold text-blue-600">
               {{ stats.preparing }}
             </p>
@@ -36,7 +40,9 @@
             <CheckCircleIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">已完成</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("orders.stats.completed") }}
+            </h3>
             <p class="text-2xl font-bold text-green-600">
               {{ stats.completed }}
             </p>
@@ -50,7 +56,9 @@
             <XCircleIcon class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">已取消</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("orders.stats.cancelled") }}
+            </h3>
             <p class="text-2xl font-bold text-red-600">
               {{ stats.cancelled }}
             </p>
@@ -73,7 +81,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="搜索訂單編號或客戶姓名"
+                :placeholder="t('orders.searchPlaceholder')"
                 class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -82,32 +90,40 @@
               v-model="statusFilter"
               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">所有狀態</option>
-              <option value="pending">待確認</option>
-              <option value="confirmed">已確認</option>
-              <option value="preparing">製作中</option>
-              <option value="ready">待取餐</option>
-              <option value="served">已送達</option>
-              <option value="completed">已完成</option>
-              <option value="cancelled">已取消</option>
+              <option value="">{{ t("orders.filter.allStatus") }}</option>
+              <option value="pending">{{ t("orders.status.pending") }}</option>
+              <option value="confirmed">
+                {{ t("orders.status.confirmed") }}
+              </option>
+              <option value="preparing">
+                {{ t("orders.status.preparing") }}
+              </option>
+              <option value="ready">{{ t("orders.status.ready") }}</option>
+              <option value="served">{{ t("orders.status.served") }}</option>
+              <option value="completed">
+                {{ t("orders.status.completed") }}
+              </option>
+              <option value="cancelled">
+                {{ t("orders.status.cancelled") }}
+              </option>
             </select>
 
             <select
               v-model="typeFilter"
               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">所有類型</option>
-              <option value="dine_in">內用</option>
-              <option value="takeaway">外帶</option>
-              <option value="delivery">外送</option>
+              <option value="">{{ t("orders.filter.allTypes") }}</option>
+              <option value="dine_in">{{ t("orders.type.dineIn") }}</option>
+              <option value="takeaway">{{ t("orders.type.takeaway") }}</option>
+              <option value="delivery">{{ t("orders.type.delivery") }}</option>
             </select>
 
             <select
               v-model="sourceFilter"
               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">所有來源</option>
-              <option value="direct">自家訂單</option>
+              <option value="">{{ t("orders.filter.allSources") }}</option>
+              <option value="direct">{{ t("orders.source.direct") }}</option>
               <option value="uber_eats">Uber Eats</option>
               <option value="foodpanda">Foodpanda</option>
             </select>
@@ -118,7 +134,7 @@
             @click="refreshOrders"
           >
             <ArrowPathIcon class="h-4 w-4 mr-2" />
-            刷新
+            {{ t("orders.refresh") }}
           </button>
         </div>
       </div>
@@ -127,21 +143,23 @@
     <!-- 訂單列表 -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-6">訂單列表</h2>
+        <h2 class="text-xl font-semibold text-gray-900 mb-6">
+          {{ t("orders.orderList") }}
+        </h2>
 
         <!-- 表格標題 -->
         <div
           class="grid grid-cols-9 gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider mb-4 rounded-t-lg"
         >
-          <div>訂單編號</div>
-          <div>桌號</div>
-          <div>客戶</div>
-          <div>類型</div>
-          <div>來源</div>
-          <div>狀態</div>
-          <div>總金額</div>
-          <div>下單時間</div>
-          <div>操作</div>
+          <div>{{ t("orders.columns.orderNumber") }}</div>
+          <div>{{ t("orders.columns.tableNumber") }}</div>
+          <div>{{ t("orders.columns.customer") }}</div>
+          <div>{{ t("orders.columns.type") }}</div>
+          <div>{{ t("orders.columns.source") }}</div>
+          <div>{{ t("orders.columns.status") }}</div>
+          <div>{{ t("orders.columns.total") }}</div>
+          <div>{{ t("orders.columns.orderTime") }}</div>
+          <div>{{ t("orders.columns.actions") }}</div>
         </div>
 
         <!-- 虛擬滾動訂單列表 (已修復 TypeScript 類型問題) -->
@@ -195,7 +213,9 @@
                   >
                     {{ getSourceText(order.orderSource) }}
                   </span>
-                  <span v-else class="text-xs text-gray-400">自家</span>
+                  <span v-else class="text-xs text-gray-400">{{
+                    t("orders.source.direct")
+                  }}</span>
                 </div>
                 <div>
                   <span
@@ -217,21 +237,21 @@
                       class="text-blue-600 hover:text-blue-900"
                       @click="viewOrderDetails(order)"
                     >
-                      查看
+                      {{ t("orders.actions.view") }}
                     </button>
                     <button
                       v-if="canUpdateStatus(order.status)"
                       class="text-green-600 hover:text-green-900"
                       @click="updateOrderStatus(order)"
                     >
-                      更新
+                      {{ t("orders.actions.update") }}
                     </button>
                     <button
                       v-if="canCancel(order.status)"
                       class="text-red-600 hover:text-red-900"
                       @click="cancelOrder(order)"
                     >
-                      取消
+                      {{ t("orders.actions.cancel") }}
                     </button>
                   </div>
                 </div>
@@ -248,7 +268,9 @@
               <div
                 class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"
               />
-              <span class="ml-2 text-sm text-gray-600">載入中...</span>
+              <span class="ml-2 text-sm text-gray-600">{{
+                t("common.loading")
+              }}</span>
             </div>
           </div>
         </div>
@@ -256,8 +278,12 @@
         <!-- 空狀態 -->
         <div v-if="filteredOrders.length === 0" class="text-center py-12">
           <ShoppingBagIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <h3 class="mt-2 text-sm font-medium text-gray-900">暫無訂單</h3>
-          <p class="mt-1 text-sm text-gray-500">等待客戶下單</p>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">
+            {{ t("orders.empty.title") }}
+          </h3>
+          <p class="mt-1 text-sm text-gray-500">
+            {{ t("orders.empty.subtitle") }}
+          </p>
         </div>
       </div>
     </div>
@@ -274,7 +300,8 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2">
                 <h3 class="text-lg font-semibold">
-                  訂單詳情 - {{ getOrderNumber(selectedOrder) }}
+                  {{ t("orders.orderDetail") }} -
+                  {{ getOrderNumber(selectedOrder) }}
                 </h3>
                 <span
                   v-if="
@@ -306,33 +333,33 @@
             <div class="space-y-4">
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
-                    >桌號</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700">{{
+                    t("orders.columns.tableNumber")
+                  }}</label>
                   <p class="text-sm text-gray-900">
                     {{ getTableNumber(selectedOrder) }}
                   </p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
-                    >客戶姓名</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700">{{
+                    t("orders.detail.customerName")
+                  }}</label>
                   <p class="text-sm text-gray-900">
                     {{ getCustomerName(selectedOrder) }}
                   </p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
-                    >訂單類型</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700">{{
+                    t("orders.detail.orderType")
+                  }}</label>
                   <p class="text-sm text-gray-900">
                     {{ getTypeText(getOrderType(selectedOrder)) }}
                   </p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
-                    >訂單狀態</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700">{{
+                    t("orders.detail.orderStatus")
+                  }}</label>
                   <p class="text-sm text-gray-900">
                     {{ getStatusText(selectedOrder.status) }}
                   </p>
@@ -350,10 +377,12 @@
                 <h4
                   class="font-semibold text-amber-800 mb-3 flex items-center gap-1"
                 >
-                  <span>📦</span> 外送資訊
+                  <span>📦</span> {{ t("orders.detail.deliveryInfo") }}
                 </h4>
                 <div class="grid grid-cols-[80px_1fr] gap-y-2 text-sm">
-                  <span class="text-gray-500">類型</span>
+                  <span class="text-gray-500">{{
+                    t("orders.detail.type")
+                  }}</span>
                   <span class="font-medium">
                     {{
                       selectedOrder.deliveryInfo.type === "delivery"
@@ -362,19 +391,27 @@
                     }}
                   </span>
                   <template v-if="selectedOrder.deliveryInfo.address">
-                    <span class="text-gray-500">地址</span>
+                    <span class="text-gray-500">{{
+                      t("orders.detail.address")
+                    }}</span>
                     <span>{{ selectedOrder.deliveryInfo.address }}</span>
                   </template>
                   <template v-if="selectedOrder.deliveryInfo.phone">
-                    <span class="text-gray-500">電話</span>
+                    <span class="text-gray-500">{{
+                      t("orders.detail.phone")
+                    }}</span>
                     <span>{{ selectedOrder.deliveryInfo.phone }}</span>
                   </template>
                   <template v-if="selectedOrder.deliveryInfo.instructions">
-                    <span class="text-gray-500">備註</span>
+                    <span class="text-gray-500">{{
+                      t("orders.detail.notes")
+                    }}</span>
                     <span>{{ selectedOrder.deliveryInfo.instructions }}</span>
                   </template>
                   <template v-if="selectedOrder.deliveryInfo.deliveryFee">
-                    <span class="text-gray-500">外送費</span>
+                    <span class="text-gray-500">{{
+                      t("orders.detail.deliveryFee")
+                    }}</span>
                     <span class="font-semibold"
                       >NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span
                     >
@@ -383,9 +420,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >訂單項目</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("orders.detail.orderItems")
+                }}</label>
                 <div class="border rounded-lg divide-y">
                   <div
                     v-for="item in selectedOrder.items"
@@ -398,7 +435,7 @@
                           {{ getMenuItemName(item) }}
                         </p>
                         <p class="text-sm text-gray-500">
-                          數量: {{ item.quantity }}
+                          {{ t("orders.detail.quantity") }}: {{ item.quantity }}
                         </p>
                       </div>
                       <p class="font-medium">RM{{ getItemTotalPrice(item) }}</p>
@@ -412,11 +449,11 @@
                   v-if="selectedOrder?.deliveryInfo?.deliveryFee"
                   class="flex justify-between text-sm text-gray-500 mb-2"
                 >
-                  <span>外送費</span>
+                  <span>{{ t("orders.detail.deliveryFee") }}</span>
                   <span>NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span>
                 </div>
                 <div class="flex justify-between text-lg font-semibold">
-                  <span>總金額</span>
+                  <span>{{ t("orders.detail.totalAmount") }}</span>
                   <span>RM{{ selectedOrder.totalAmount }}</span>
                 </div>
               </div>
@@ -430,6 +467,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import type { Order } from "@/types";
@@ -444,6 +482,7 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 
+const { t } = useI18n();
 const orderStore = useOrderStore();
 
 // 響應式數據
@@ -458,8 +497,11 @@ const isLoading = ref(false);
 const getOrderNumber = (order: Order) =>
   `ORD-${order.id.toString().padStart(6, "0")}`;
 const getTableNumber = (order: Order) =>
-  order.tableId ? `T${order.tableId.toString().padStart(2, "0")}` : "外帶";
-const getCustomerName = (order: Order) => order.customerInfo?.name || "客人";
+  order.tableId
+    ? `T${order.tableId.toString().padStart(2, "0")}`
+    : t("orders.type.takeaway");
+const getCustomerName = (order: Order) =>
+  order.customerInfo?.name || t("orders.defaultCustomer");
 const getOrderType = (order: Order) => (order.tableId ? "dine_in" : "takeaway");
 
 const getSourceClass = (source: string) => {
@@ -476,7 +518,7 @@ const getSourceText = (source: string) => {
     uber_eats: "Uber Eats",
     foodpanda: "Foodpanda",
     grabfood: "GrabFood",
-    direct: "自家",
+    direct: t("orders.source.direct"),
   };
   return texts[source] || source;
 };
@@ -568,7 +610,9 @@ const updateOrderStatus = async (order: Order) => {
 };
 
 const cancelOrder = async (order: Order) => {
-  if (confirm(`確定要取消訂單 ${getOrderNumber(order)} 嗎？`)) {
+  if (
+    confirm(t("orders.confirms.cancelOrder", { number: getOrderNumber(order) }))
+  ) {
     await orderStore.updateOrderStatus(order.id, OrderStatus.CANCELLED);
   }
 };
@@ -607,13 +651,13 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    pending: "待確認",
-    confirmed: "已確認",
-    preparing: "製作中",
-    ready: "待取餐",
-    served: "已送達",
-    completed: "已完成",
-    cancelled: "已取消",
+    pending: t("orders.status.pending"),
+    confirmed: t("orders.status.confirmed"),
+    preparing: t("orders.status.preparing"),
+    ready: t("orders.status.ready"),
+    served: t("orders.status.served"),
+    completed: t("orders.status.completed"),
+    cancelled: t("orders.status.cancelled"),
   };
   return texts[status] || status;
 };
@@ -629,9 +673,9 @@ const getTypeClass = (type: string) => {
 
 const getTypeText = (type: string) => {
   const texts: Record<string, string> = {
-    dine_in: "內用",
-    takeaway: "外帶",
-    delivery: "外送",
+    dine_in: t("orders.type.dineIn"),
+    takeaway: t("orders.type.takeaway"),
+    delivery: t("orders.type.delivery"),
   };
   return texts[type] || type;
 };

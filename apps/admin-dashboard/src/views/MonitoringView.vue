@@ -5,9 +5,11 @@
       <div class="mb-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">系統??��</h1>
+            <h1 class="text-3xl font-bold text-gray-900">
+              {{ t("monitoring.title") }}
+            </h1>
             <p class="mt-2 text-sm text-gray-600">
-              ?��???��系統?�康?�?�、性能?��??�警??
+              {{ t("monitoring.subtitle") }}
             </p>
           </div>
 
@@ -26,7 +28,11 @@
                 :is="autoRefresh ? CheckCircleIcon : XCircleIcon"
                 class="w-4 h-4 mr-2"
               />
-              {{ autoRefresh ? "?��??�新" : "?��??�新" }}
+              {{
+                autoRefresh
+                  ? t("monitoring.actions.autoRefresh")
+                  : t("monitoring.actions.manualRefresh")
+              }}
             </button>
 
             <!-- Refresh button -->
@@ -38,7 +44,11 @@
               <ArrowPathIcon
                 :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]"
               />
-              {{ loading ? "?�新�?.." : "立即?�新" }}
+              {{
+                loading
+                  ? t("monitoring.actions.refreshing")
+                  : t("monitoring.actions.refresh")
+              }}
             </button>
           </div>
         </div>
@@ -50,7 +60,9 @@
           <div
             class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
           ></div>
-          <p class="mt-4 text-gray-600">載入??��?��?�?..</p>
+          <p class="mt-4 text-gray-600">
+            {{ t("monitoring.misc.loadingData") }}
+          </p>
         </div>
       </div>
 
@@ -80,7 +92,7 @@
                     <div>
                       <div class="flex items-center">
                         <h2 class="text-2xl font-bold text-gray-900">
-                          ?��??�康?�??
+                          {{ t("monitoring.health.overall") }}
                         </h2>
                         <span
                           :class="[
@@ -94,7 +106,9 @@
 
                       <div class="mt-3 flex items-center space-x-6">
                         <div>
-                          <div class="text-sm text-gray-500 mb-1">?�康?�數</div>
+                          <div class="text-sm text-gray-500 mb-1">
+                            {{ t("monitoring.health.score") }}
+                          </div>
                           <div class="flex items-baseline">
                             <span class="text-4xl font-bold text-gray-900">
                               {{ healthScore }}
@@ -105,7 +119,7 @@
 
                         <div>
                           <div class="text-sm text-gray-500 mb-1">
-                            系統?��??��?
+                            {{ t("monitoring.misc.uptime") }}
                           </div>
                           <div class="text-lg font-semibold text-gray-900">
                             {{ formatUptime(overview?.uptime || 0) }}
@@ -113,7 +127,9 @@
                         </div>
 
                         <div>
-                          <div class="text-sm text-gray-500 mb-1">?�後更??</div>
+                          <div class="text-sm text-gray-500 mb-1">
+                            {{ t("monitoring.misc.lastUpdate") }}
+                          </div>
                           <div class="text-lg font-semibold text-gray-900">
                             {{ formatLastUpdate(lastUpdateTime) }}
                           </div>
@@ -125,7 +141,7 @@
                         <div
                           class="flex justify-between text-sm text-gray-600 mb-1"
                         >
-                          <span>系統健康度</span>
+                          <span>{{ t("monitoring.misc.systemHealth") }}</span>
                           <span>{{ healthScore }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
@@ -144,7 +160,7 @@
                     <div class="flex-shrink-0">
                       <HealthScoreGauge
                         :score="healthScore"
-                        label="?�康?�數"
+                        :label="t('monitoring.health.score')"
                         :size="200"
                       />
                     </div>
@@ -157,7 +173,9 @@
 
         <!-- Key Metrics Cards -->
         <div class="mb-8">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">?�鍵?��?</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            {{ t("monitoring.keyMetrics.title") }}
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div
               v-for="metric in keyMetricsCards"
@@ -222,7 +240,9 @@
 
         <!-- Components Status Grid -->
         <div class="mb-8">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">系統組件狀態</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            {{ t("monitoring.components.title") }}
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div
               v-for="component in componentsStatus"
@@ -247,7 +267,7 @@
                 <!-- Health Indicator -->
                 <div class="mb-3">
                   <div class="flex justify-between text-xs text-gray-600 mb-1">
-                    <span>健康度</span>
+                    <span>{{ t("monitoring.components.healthScore") }}</span>
                     <span>{{ component.healthScore }}/100</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2">
@@ -264,16 +284,23 @@
                 <!-- Component Details -->
                 <div class="text-xs text-gray-500 space-y-1">
                   <div v-if="component.latency !== undefined">
-                    延遲: {{ Math.round(component.latency) }}ms
+                    {{ t("monitoring.components.latency") }}:
+                    {{ Math.round(component.latency) }}ms
                   </div>
                   <div v-if="component.errorRate !== undefined">
-                    ?�誤?? {{ (component.errorRate * 100).toFixed(2) }}%
+                    {{ t("monitoring.components.errorRate") }}:
+                    {{ (component.errorRate * 100).toFixed(2) }}%
                   </div>
                   <div v-if="component.issues.length > 0">
-                    ?��?: {{ component.issues.length }} ??
+                    {{
+                      t("monitoring.components.issueCount", {
+                        count: component.issues.length,
+                      })
+                    }}
                   </div>
                   <div>
-                    ?�後檢?? {{ formatRelativeTime(component.lastCheck) }}
+                    {{ t("monitoring.components.lastCheck") }}:
+                    {{ formatRelativeTime(component.lastCheck) }}
                   </div>
                 </div>
 
@@ -283,7 +310,7 @@
                   class="mt-3 pt-3 border-t border-gray-200"
                 >
                   <div class="text-xs font-medium text-red-600 mb-1">
-                    ?�現?��?:
+                    {{ t("monitoring.components.issuesFound") }}
                   </div>
                   <ul class="text-xs text-red-600 space-y-1">
                     <li
@@ -291,7 +318,7 @@
                       :key="idx"
                       class="truncate"
                     >
-                      ??{{ issue }}
+                      {{ issue }}
                     </li>
                   </ul>
                 </div>
@@ -341,13 +368,15 @@
               <!-- Alert Rules Tab -->
               <div v-if="activeTab === 'alerts'" class="space-y-4">
                 <div class="flex justify-between items-center mb-4">
-                  <h3 class="text-lg font-medium text-gray-900">警報規�?</h3>
+                  <h3 class="text-lg font-medium text-gray-900">
+                    {{ t("monitoring.alerts.title") }}
+                  </h3>
                   <button
                     class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                     @click="showCreateAlertDialog = true"
                   >
                     <PlusIcon class="w-4 h-4 mr-2" />
-                    ?��?規�?
+                    {{ t("monitoring.misc.createAlertRule") }}
                   </button>
                 </div>
 
@@ -372,7 +401,11 @@
                                 : 'bg-gray-100 text-gray-800',
                             ]"
                           >
-                            {{ rule.isActive ? "?�用" : "?�用" }}
+                            {{
+                              rule.isActive
+                                ? t("monitoring.misc.enabled")
+                                : t("monitoring.misc.disabled")
+                            }}
                           </span>
                           <span
                             :class="[
@@ -389,9 +422,12 @@
                         <div
                           class="mt-2 flex items-center text-xs text-gray-500 space-x-4"
                         >
-                          <span>觸發次數: {{ rule.triggerCount }}</span>
+                          <span
+                            >{{ t("monitoring.misc.triggerCount") }}:
+                            {{ rule.triggerCount }}</span
+                          >
                           <span v-if="rule.lastTriggered">
-                            ?�後觸??
+                            {{ t("monitoring.misc.lastTriggered") }}:
                             {{ formatRelativeTime(rule.lastTriggered) }}
                           </span>
                         </div>
@@ -420,10 +456,10 @@
                 <div v-else class="text-center py-12">
                   <BellIcon class="mx-auto h-12 w-12 text-gray-400" />
                   <h3 class="mt-2 text-sm font-medium text-gray-900">
-                    沒�?警報規�?
+                    {{ t("monitoring.misc.noAlertRules") }}
                   </h3>
                   <p class="mt-1 text-sm text-gray-500">
-                    ?��??�建警報規�?來監?�系統�???
+                    {{ t("monitoring.misc.createAlertRuleHint") }}
                   </p>
                   <div class="mt-6">
                     <button
@@ -431,7 +467,7 @@
                       @click="showCreateAlertDialog = true"
                     >
                       <PlusIcon class="w-4 h-4 mr-2" />
-                      ?��?警報規�?
+                      {{ t("monitoring.misc.createAlertRule") }}
                     </button>
                   </div>
                 </div>
@@ -440,15 +476,23 @@
               <!-- Performance Report Tab -->
               <div v-if="activeTab === 'performance'" class="space-y-6">
                 <div class="flex justify-between items-center mb-4">
-                  <h3 class="text-lg font-medium text-gray-900">?�能?��?</h3>
+                  <h3 class="text-lg font-medium text-gray-900">
+                    {{ t("monitoring.performance.title") }}
+                  </h3>
                   <select
                     v-model="reportDays"
                     class="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                     @change="loadPerformanceReport"
                   >
-                    <option :value="1">過去 1 天</option>
-                    <option :value="7">過去 7 天</option>
-                    <option :value="30">過去 30 天</option>
+                    <option :value="1">
+                      {{ t("monitoring.performance.last1Day") }}
+                    </option>
+                    <option :value="7">
+                      {{ t("monitoring.performance.last7Days") }}
+                    </option>
+                    <option :value="30">
+                      {{ t("monitoring.performance.last30Days") }}
+                    </option>
                   </select>
                 </div>
 
@@ -456,11 +500,13 @@
                   <!-- API Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
                     <h4 class="text-md font-medium text-gray-900 mb-4">
-                      API ?�能
+                      {{ t("monitoring.performance.api.title") }}
                     </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
-                        <dt class="text-sm text-gray-500">總�?求數</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.api.totalRequests") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.apiPerformance.totalRequests.toLocaleString()
@@ -468,7 +514,11 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">平�??��??��?</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{
+                            t("monitoring.performance.api.averageResponseTime")
+                          }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.apiPerformance.averageResponseTime.toFixed(
@@ -478,7 +528,9 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">P95 ?��??��?</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.api.p95ResponseTime") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.apiPerformance.p95ResponseTime.toFixed(
@@ -488,7 +540,9 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">錯誤率</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.api.errorRate") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.apiPerformance.errorRate }}
                         </dd>
@@ -499,11 +553,15 @@
                   <!-- Database Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
                     <h4 class="text-md font-medium text-gray-900 mb-4">
-                      資�?庫性能
+                      {{ t("monitoring.performance.database.title") }}
                     </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
-                        <dt class="text-sm text-gray-500">總查詢數</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{
+                            t("monitoring.performance.database.totalQueries")
+                          }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.databasePerformance.totalQueries.toLocaleString()
@@ -511,7 +569,13 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">平�??�詢?��?</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{
+                            t(
+                              "monitoring.performance.database.averageQueryTime",
+                            )
+                          }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.databasePerformance.averageQueryTime.toFixed(
@@ -521,7 +585,9 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">?�查詢數</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.database.slowQueries") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.databasePerformance.slowQueries
@@ -529,7 +595,11 @@
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">查詢錯誤率</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{
+                            t("monitoring.performance.database.queryErrorRate")
+                          }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{
                             performanceReport.databasePerformance.queryErrorRate
@@ -542,29 +612,37 @@
                   <!-- Cache Performance -->
                   <div class="bg-gray-50 rounded-lg p-6">
                     <h4 class="text-md font-medium text-gray-900 mb-4">
-                      快�??�能
+                      {{ t("monitoring.performance.cache.title") }}
                     </h4>
                     <dl class="grid grid-cols-2 gap-4">
                       <div>
-                        <dt class="text-sm text-gray-500">命中率</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.cache.hitRate") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.hitRate }}
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">快取總數</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.cache.totalKeys") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.totalKeys }}
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">快�?大�?</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.cache.totalSize") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.totalSize }}
                         </dd>
                       </div>
                       <div>
-                        <dt class="text-sm text-gray-500">?��??��?</dt>
+                        <dt class="text-sm text-gray-500">
+                          {{ t("monitoring.performance.cache.expiringKeys") }}
+                        </dt>
                         <dd class="text-lg font-semibold text-gray-900">
                           {{ performanceReport.cachePerformance.expiringKeys }}
                         </dd>
@@ -580,13 +658,13 @@
                     <!-- Multi-metric comparison chart -->
                     <div class="bg-gray-50 rounded-lg p-6">
                       <h4 class="text-md font-medium text-gray-900 mb-4">
-                        ?�能趨勢對�?（�?�?4小�?�?
+                        {{ t("monitoring.performance.charts.trendComparison") }}
                       </h4>
                       <div class="h-80">
                         <MultiMetricChart
                           :series="multiMetricChartSeries"
                           unit="ms"
-                          y-axis-label="回應時間 (毫秒)"
+                          :y-axis-label="t('monitoring.misc.responseTimeUnit')"
                         />
                       </div>
                     </div>
@@ -594,11 +672,11 @@
                     <!-- Cache hit rate trend -->
                     <div class="bg-gray-50 rounded-lg p-6">
                       <h4 class="text-md font-medium text-gray-900 mb-4">
-                        快取命中率趨勢（過去4小時）
+                        {{ t("monitoring.performance.charts.cacheHitRate") }}
                       </h4>
                       <div class="h-64">
                         <MetricTrendChart
-                          label="快取命中率"
+                          :label="t('monitoring.performance.cache.hitRate')"
                           color="#8b5cf6"
                           :data="cacheHitRateTrendData"
                           fill-color="rgba(139, 92, 246, 0.1)"
@@ -619,7 +697,9 @@
                       </div>
                       <div class="ml-3">
                         <h3 class="text-sm font-medium text-blue-800">
-                          優化建議
+                          {{
+                            t("monitoring.performance.recommendations.title")
+                          }}
                         </h3>
                         <div class="mt-2 text-sm text-blue-700">
                           <ul class="list-disc list-inside space-y-1">
@@ -641,14 +721,16 @@
                 <div v-else class="text-center py-12">
                   <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400" />
                   <h3 class="mt-2 text-sm font-medium text-gray-900">
-                    載入?�能?��?�?..
+                    {{ t("monitoring.performance.recommendations.loading") }}
                   </h3>
                 </div>
               </div>
 
               <!-- Errors Tab -->
               <div v-if="activeTab === 'errors'" class="space-y-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">?�誤?��?</h3>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                  {{ t("monitoring.errors.title") }}
+                </h3>
 
                 <div
                   v-if="overview?.topErrors && overview.topErrors.length > 0"
@@ -657,13 +739,13 @@
                   <!-- Error bar chart -->
                   <div class="bg-gray-50 rounded-lg p-6">
                     <h4 class="text-md font-medium text-gray-900 mb-4">
-                      ?�誤類�?統�?
+                      {{ t("monitoring.errors.statistics") }}
                     </h4>
                     <div class="h-80">
                       <MetricBarChart
                         :data="errorBarChartData"
-                        title="錯誤次數"
-                        unit="次"
+                        :title="t('monitoring.errors.errorCount')"
+                        :unit="t('monitoring.misc.chartUnit')"
                         :horizontal="true"
                       />
                     </div>
@@ -671,7 +753,9 @@
 
                   <!-- Error list -->
                   <div class="space-y-3">
-                    <h4 class="text-md font-medium text-gray-900">錯誤詳情</h4>
+                    <h4 class="text-md font-medium text-gray-900">
+                      {{ t("monitoring.errors.details") }}
+                    </h4>
                     <div
                       v-for="error in overview.topErrors"
                       :key="error.type"
@@ -683,7 +767,8 @@
                             {{ error.type }}
                           </h4>
                           <p class="text-sm text-gray-500 mt-1">
-                            ?��?次數: {{ error.count }}
+                            {{ t("monitoring.errors.occurredTimes") }}:
+                            {{ error.count }}
                           </p>
                         </div>
                         <ExclamationTriangleIcon class="w-6 h-6 text-red-500" />
@@ -695,9 +780,11 @@
                 <div v-else class="text-center py-12">
                   <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
                   <h3 class="mt-2 text-sm font-medium text-gray-900">
-                    ?�無?�誤記�?
+                    {{ t("monitoring.errors.noErrors") }}
                   </h3>
-                  <p class="mt-1 text-sm text-gray-500">系統?��?�?��</p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    {{ t("monitoring.errors.systemRunningNormally") }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -707,21 +794,24 @@
     </div>
 
     <!-- Create Alert Rule Dialog (Placeholder) -->
-    <!-- This would be a full modal component in production -->
     <div
       v-if="showCreateAlertDialog"
       class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
       @click.self="showCreateAlertDialog = false"
     >
       <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">?��?警報規�?</h3>
-        <p class="text-sm text-gray-500 mb-4">此�??�即將推??..</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("monitoring.misc.createAlertRule") }}
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">
+          {{ t("monitoring.misc.comingSoon") }}
+        </p>
         <div class="flex justify-end">
           <button
             class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             @click="showCreateAlertDialog = false"
           >
-            ?��?
+            {{ t("monitoring.misc.close") }}
           </button>
         </div>
       </div>
@@ -732,6 +822,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -767,6 +858,7 @@ import AlertNotificationPanel from "@/components/monitoring/AlertNotificationPan
 import { monitoringWebSocket } from "@/services/monitoringWebSocket";
 
 const toast = useToast();
+const { t } = useI18n();
 
 // ============================================================================
 // State
@@ -805,19 +897,19 @@ const healthScore = computed(() => {
 const tabs = computed(() => [
   {
     id: "alerts",
-    name: "警報規�?",
+    name: t("monitoring.tabs.alerts"),
     icon: BellIcon,
     badge: alertRules.value.length,
   },
   {
     id: "performance",
-    name: "?�能?��?",
+    name: t("monitoring.tabs.performance"),
     icon: ChartBarIcon,
     badge: null,
   },
   {
     id: "errors",
-    name: "?�誤?��?",
+    name: t("monitoring.tabs.errors"),
     icon: ExclamationTriangleIcon,
     badge: overview.value?.topErrors?.length || 0,
   },
@@ -829,7 +921,7 @@ const keyMetricsCards = computed(() => {
   return [
     {
       id: "requests",
-      name: "每�??��?求數",
+      name: t("monitoring.keyMetrics.requestsPerMinute"),
       value: overview.value.keyMetrics.requestsPerMinute,
       trend: "+12%",
       trendIcon: ArrowTrendingUpIcon,
@@ -840,7 +932,7 @@ const keyMetricsCards = computed(() => {
     },
     {
       id: "response",
-      name: "平�??��??��?",
+      name: t("monitoring.keyMetrics.averageResponseTime"),
       value: overview.value.keyMetrics.averageResponseTime,
       trend: "-5%",
       trendIcon: ArrowTrendingDownIcon,
@@ -851,7 +943,7 @@ const keyMetricsCards = computed(() => {
     },
     {
       id: "cache",
-      name: "快取命中率",
+      name: t("monitoring.keyMetrics.cacheHitRate"),
       value: overview.value.keyMetrics.cacheHitRate,
       trend: "+3%",
       trendIcon: ArrowTrendingUpIcon,
@@ -862,7 +954,7 @@ const keyMetricsCards = computed(() => {
     },
     {
       id: "errors",
-      name: "活�??�誤",
+      name: t("monitoring.keyMetrics.activeErrors"),
       value: overview.value.keyMetrics.activeErrors,
       trend: "stable",
       trendIcon: MinusIcon,
@@ -917,7 +1009,7 @@ const performanceChartData = computed(() => {
 
 const multiMetricChartSeries = computed(() => [
   {
-    label: "API ?��??��?",
+    label: t("monitoring.performance.charts.apiResponseTime"),
     data: performanceChartData.value.map((d) => ({
       timestamp: d.timestamp,
       value: d.apiResponseTime,
@@ -926,7 +1018,7 @@ const multiMetricChartSeries = computed(() => [
     fillColor: "rgba(59, 130, 246, 0.1)",
   },
   {
-    label: "資料庫查詢時間",
+    label: t("monitoring.performance.charts.dbQueryTime"),
     data: performanceChartData.value.map((d) => ({
       timestamp: d.timestamp,
       value: d.dbQueryTime,
@@ -962,10 +1054,10 @@ async function refreshAllData() {
   try {
     await Promise.all([loadOverview(), loadMetrics(), loadAlertRules()]);
     lastUpdateTime.value = Date.now();
-    toast.success("數據已更新");
+    toast.success(t("monitoring.notifications.dataUpdated"));
   } catch (error) {
     console.error("Failed to refresh data:", error);
-    toast.error("重新整理數據失敗");
+    toast.error(t("monitoring.notifications.updateFailed"));
   } finally {
     loading.value = false;
   }
@@ -1003,7 +1095,7 @@ async function loadPerformanceReport() {
     });
   } catch (error) {
     console.error("Failed to load performance report:", error);
-    toast.error("載入性能報告失敗");
+    toast.error(t("monitoring.notifications.performanceReportFailed"));
   }
 }
 
@@ -1013,23 +1105,27 @@ async function toggleAlertRule(rule: AlertRule) {
       isActive: !rule.isActive,
     });
     await loadAlertRules();
-    toast.success(rule.isActive ? "警報規則已停用" : "警報規則已啟用");
+    toast.success(
+      rule.isActive
+        ? t("monitoring.alerts.messages.disabled")
+        : t("monitoring.alerts.messages.enabled"),
+    );
   } catch (error) {
     console.error("Failed to toggle alert rule:", error);
-    toast.error("更新警報規則失敗");
+    toast.error(t("monitoring.notifications.updateFailed"));
   }
 }
 
 async function deleteAlert(id: string) {
-  if (!confirm("確定要刪除這個警報規則嗎?")) return;
+  if (!confirm(t("monitoring.alerts.messages.deleteConfirm"))) return;
 
   try {
     await monitoringService.deleteAlertRule(id);
     await loadAlertRules();
-    toast.success("警報規則已刪除");
+    toast.success(t("monitoring.alerts.messages.deleted"));
   } catch (error) {
     console.error("Failed to delete alert rule:", error);
-    toast.error("刪除警報規則失敗");
+    toast.error(t("monitoring.notifications.updateFailed"));
   }
 }
 
@@ -1037,10 +1133,10 @@ function toggleAutoRefresh() {
   autoRefresh.value = !autoRefresh.value;
   if (autoRefresh.value) {
     startAutoRefresh();
-    toast.info("已啟用自動更新");
+    toast.info(t("monitoring.notifications.autoRefreshEnabled"));
   } else {
     stopAutoRefresh();
-    toast.info("已停用自動更新");
+    toast.info(t("monitoring.notifications.autoRefreshDisabled"));
   }
 }
 
@@ -1092,13 +1188,13 @@ function getHealthBadgeColor(status: HealthStatusType) {
 }
 
 function getHealthStatusText(status: HealthStatusType) {
-  const textMap = {
-    healthy: "?�康",
-    warning: "警�?",
-    critical: "?��?",
-    down: "?��?",
+  const keyMap: Record<string, string> = {
+    healthy: "monitoring.statusText.healthy",
+    warning: "monitoring.statusText.warning",
+    critical: "monitoring.statusText.critical",
+    down: "monitoring.statusText.down",
   };
-  return textMap[status] || "?�知";
+  return t(keyMap[status] || "monitoring.statusText.unknown");
 }
 
 function getHealthScoreColor(score: number) {
@@ -1118,23 +1214,23 @@ function getComponentStatusColor(status: HealthStatusType) {
 }
 
 function getComponentStatusText(status: HealthStatusType) {
-  const textMap = {
-    healthy: "健康",
-    warning: "警告",
-    critical: "嚴重",
-    down: "停機",
+  const keyMap: Record<string, string> = {
+    healthy: "monitoring.statusText.healthy",
+    warning: "monitoring.statusText.warning",
+    critical: "monitoring.statusText.critical",
+    down: "monitoring.statusText.stopped",
   };
-  return textMap[status] || "未知";
+  return t(keyMap[status] || "monitoring.statusText.unknown");
 }
 
 function getComponentDisplayName(name: string) {
-  const nameMap: Record<string, string> = {
-    api: "API 服務",
-    database: "資料庫",
-    cache: "快取服務",
-    external: "外部服務",
+  const keyMap: Record<string, string> = {
+    api: "monitoring.components.api",
+    database: "monitoring.components.database",
+    cache: "monitoring.components.cache",
+    external: "monitoring.components.external",
   };
-  return nameMap[name] || name;
+  return keyMap[name] ? t(keyMap[name]) : name;
 }
 
 function calculateComponentHealthScore(component: any): number {
@@ -1163,13 +1259,13 @@ function getAlertSeverityBadgeColor(severity: string) {
 }
 
 function getAlertSeverityText(severity: string) {
-  const textMap: Record<string, string> = {
-    info: "資�?",
-    warning: "警�?",
-    critical: "?��?",
-    fatal: "?�命",
+  const keyMap: Record<string, string> = {
+    info: "monitoring.alerts.severity.info",
+    warning: "monitoring.alerts.severity.warning",
+    critical: "monitoring.alerts.severity.critical",
+    fatal: "monitoring.alerts.severity.fatal",
   };
-  return textMap[severity] || "?�知";
+  return t(keyMap[severity] || "monitoring.statusText.unknown");
 }
 
 function formatUptime(seconds: number) {
@@ -1203,7 +1299,7 @@ function connectWebSocket() {
     }
   } catch (error) {
     console.error("[MonitoringView] Failed to connect WebSocket:", error);
-    toast.error("連接到警報系統失敗");
+    toast.error(t("monitoring.notifications.connectionFailed"));
   }
 }
 
@@ -1214,16 +1310,16 @@ function disconnectWebSocket() {
 
 function handleAcknowledgeAlert(alertId: string) {
   monitoringWebSocket.acknowledgeAlert(alertId);
-  toast.success("警報已確認");
+  toast.success(t("monitoring.notifications.alertAcknowledged"));
 }
 
 function handleClearAllAlerts() {
   monitoringWebSocket.clearAllAlerts();
-  toast.info("已清除所有警報");
+  toast.info(t("monitoring.notifications.alertsCleared"));
 }
 
 function handleReconnectWebSocket() {
-  toast.info("重新連線中...");
+  toast.info(t("monitoring.notifications.reconnecting"));
   connectWebSocket();
 }
 
@@ -1242,7 +1338,7 @@ onMounted(async () => {
     ]);
   } catch (error) {
     console.error("Failed to initialize monitoring view:", error);
-    toast.error("載入??��?��?失�?");
+    toast.error(t("monitoring.notifications.loadingFailed"));
   } finally {
     initialLoading.value = false;
   }

@@ -3,9 +3,11 @@
     <!-- 頁面標題和操作 -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">員工排班管理</h1>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("scheduling.managementTitle") }}
+        </h1>
         <p class="text-gray-600">
-          管理員工工作班表、查看排班衝突、審核換班申請
+          {{ t("scheduling.managementSubtitle") }}
         </p>
       </div>
       <div class="flex space-x-4">
@@ -15,21 +17,21 @@
           @click="refreshData"
         >
           <ArrowPathIcon class="h-4 w-4 mr-2" />
-          刷新
+          {{ t("common.refresh") }}
         </button>
         <button
           class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           @click="showCreateTemplateModal"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增班別模板
+          {{ t("scheduling.addTemplate") }}
         </button>
         <button
           class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="showCreateScheduleModal"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增排班
+          {{ t("scheduling.createSchedule") }}
         </button>
       </div>
     </div>
@@ -42,7 +44,9 @@
             <CalendarIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">本月排班</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("scheduling.monthlySchedules") }}
+            </h3>
             <p class="text-xl font-bold text-blue-600">
               {{ schedules.length }}
             </p>
@@ -56,7 +60,9 @@
             <CalendarIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">班別模板</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("shiftTemplates.title") }}
+            </h3>
             <p class="text-xl font-bold text-green-600">
               {{ shiftTemplates.length }}
             </p>
@@ -70,7 +76,9 @@
             <ExclamationTriangleIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">待處理衝突</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("scheduling.pendingConflicts") }}
+            </h3>
             <p class="text-xl font-bold text-yellow-600">
               {{ conflicts.length }}
             </p>
@@ -87,7 +95,9 @@
             <ArrowPathIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-semibold text-gray-900">待審核換班</h3>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ t("scheduling.pendingSwaps") }}
+            </h3>
             <p class="text-xl font-bold text-purple-600">
               {{ swapRequests.filter((r) => r.status === "pending").length }}
             </p>
@@ -99,18 +109,22 @@
     <!-- Currently Working Employees -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">目前上班中</h3>
+        <h3 class="text-lg font-semibold text-gray-900">
+          {{ t("scheduling.currentlyWorking") }}
+        </h3>
         <span
           class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full"
         >
-          {{ clockedInEmployees.length }} 人
+          {{
+            t("scheduling.peopleCount", { count: clockedInEmployees.length })
+          }}
         </span>
       </div>
       <div
         v-if="clockedInEmployees.length === 0"
         class="text-center py-4 text-gray-500"
       >
-        目前沒有員工上班
+        {{ t("scheduling.noEmployeesWorking") }}
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <div
@@ -121,10 +135,17 @@
           <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <div>
             <div class="font-medium text-gray-900">
-              {{ emp.employeeName || `員工 #${emp.employeeId}` }}
+              {{
+                emp.employeeName ||
+                t("scheduling.employeeNumber", { id: emp.employeeId })
+              }}
             </div>
             <div class="text-xs text-gray-500">
-              {{ formatClockTime(emp.clockInTime || emp.actualStartTime) }} 起
+              {{
+                t("scheduling.since", {
+                  time: formatClockTime(emp.clockInTime || emp.actualStartTime),
+                })
+              }}
             </div>
           </div>
         </div>
@@ -256,7 +277,7 @@
         <div
           class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
         ></div>
-        <p class="mt-4 text-gray-700 font-medium">載入中...</p>
+        <p class="mt-4 text-gray-700 font-medium">{{ t("common.loading") }}</p>
       </div>
     </div>
   </div>
@@ -264,6 +285,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import type {
@@ -288,6 +310,9 @@ import SchedulingConflicts from "@/components/scheduling/SchedulingConflicts.vue
 import SwapRequests from "@/components/scheduling/SwapRequests.vue";
 import ScheduleFormModal from "@/components/scheduling/ScheduleFormModal.vue";
 import ShiftTemplateFormModal from "@/components/scheduling/ShiftTemplateFormModal.vue";
+
+// i18n
+const { t } = useI18n();
 
 // Auth
 const authStore = useAuthStore();
@@ -323,28 +348,33 @@ const getIconComponent = (icon: string) => {
 
 // Tabs
 const tabs = computed(() => [
-  { id: "calendar", label: "日曆視圖", icon: "calendar", badge: null },
+  {
+    id: "calendar",
+    label: t("scheduling.calendarView"),
+    icon: "calendar",
+    badge: null,
+  },
   {
     id: "list",
-    label: "清單視圖",
+    label: t("scheduling.listView"),
     icon: "list",
     badge: schedules.value.length || null,
   },
   {
     id: "templates",
-    label: "班別模板",
+    label: t("shiftTemplates.title"),
     icon: "templates",
     badge: shiftTemplates.value.length || null,
   },
   {
     id: "conflicts",
-    label: "衝突警告",
+    label: t("scheduling.conflictWarnings"),
     icon: "conflicts",
     badge: conflicts.value.filter((c) => c.severity === "error").length || null,
   },
   {
     id: "swaps",
-    label: "換班申請",
+    label: t("swapRequests.title"),
     icon: "swaps",
     badge:
       swapRequests.value.filter((r) => r.status === "pending").length || null,
@@ -498,7 +528,7 @@ const handleEditSchedule = (schedule: EmployeeSchedule) => {
 };
 
 const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
-  if (confirm(`確定要刪除此排班嗎？`)) {
+  if (confirm(t("scheduling.confirmDeleteSchedule"))) {
     try {
       loading.value = true;
       await schedulingService.deleteSchedule(schedule.id);
@@ -508,7 +538,7 @@ const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
       console.error("Failed to delete schedule:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to delete schedule";
-      alert("刪除排班失敗，請稍後再試");
+      alert(t("scheduling.deleteScheduleFailed"));
     } finally {
       loading.value = false;
     }
@@ -536,7 +566,7 @@ const handleSaveSchedule = async (scheduleData: any) => {
     console.error("Failed to save schedule:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to save schedule";
-    alert("儲存排班失敗，請稍後再試");
+    alert(t("scheduling.saveScheduleFailed"));
   } finally {
     loading.value = false;
   }
@@ -577,14 +607,14 @@ const handleSaveTemplate = async (templateData: any) => {
     console.error("Failed to save template:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to save template";
-    alert("儲存班別模板失敗，請稍後再試");
+    alert(t("scheduling.saveTemplateFailed"));
   } finally {
     loading.value = false;
   }
 };
 
 const handleDeleteTemplate = async (template: ShiftTemplate) => {
-  if (confirm(`確定要刪除班別模板「${template.name}」嗎？`)) {
+  if (confirm(t("scheduling.confirmDeleteTemplate", { name: template.name }))) {
     try {
       loading.value = true;
       await schedulingService.deleteShiftTemplate(template.id);
@@ -594,7 +624,7 @@ const handleDeleteTemplate = async (template: ShiftTemplate) => {
       console.error("Failed to delete template:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to delete template";
-      alert("刪除班別模板失敗，請稍後再試");
+      alert(t("scheduling.deleteTemplateFailed"));
     } finally {
       loading.value = false;
     }
@@ -605,11 +635,11 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
   // Get current user ID from auth store
   const userId = authStore.user?.id;
   if (!userId) {
-    alert("無法取得使用者資訊");
+    alert(t("scheduling.cannotGetUserInfo"));
     return;
   }
 
-  const resolutionNotes = prompt("請輸入解決方案說明：");
+  const resolutionNotes = prompt(t("scheduling.enterResolutionNotes"));
   if (resolutionNotes) {
     try {
       loading.value = true;
@@ -624,7 +654,7 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
       console.error("Failed to resolve conflict:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to resolve conflict";
-      alert("解決衝突失敗，請稍後再試");
+      alert(t("scheduling.resolveConflictFailed"));
     } finally {
       loading.value = false;
     }
@@ -632,11 +662,11 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
 };
 
 const handleApproveSwap = async (request: SwapRequest) => {
-  if (confirm(`確定要核准此換班申請嗎？`)) {
+  if (confirm(t("swapRequests.actions.approveConfirm"))) {
     // Get current manager ID from auth store
     const managerId = authStore.user?.id;
     if (!managerId) {
-      alert("無法取得管理員資訊");
+      alert(t("scheduling.cannotGetManagerInfo"));
       return;
     }
 
@@ -649,7 +679,7 @@ const handleApproveSwap = async (request: SwapRequest) => {
       console.error("Failed to approve swap request:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to approve swap";
-      alert("核准換班申請失敗，請稍後再試");
+      alert(t("scheduling.approveSwapFailed"));
     } finally {
       loading.value = false;
     }
@@ -657,12 +687,12 @@ const handleApproveSwap = async (request: SwapRequest) => {
 };
 
 const handleRejectSwap = async (request: SwapRequest) => {
-  const reason = prompt("請輸入拒絕原因：");
+  const reason = prompt(t("scheduling.enterRejectReason"));
   if (reason) {
     // Get current manager ID from auth store
     const managerId = authStore.user?.id;
     if (!managerId) {
-      alert("無法取得管理員資訊");
+      alert(t("scheduling.cannotGetManagerInfo"));
       return;
     }
 
@@ -675,7 +705,7 @@ const handleRejectSwap = async (request: SwapRequest) => {
       console.error("Failed to reject swap request:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to reject swap";
-      alert("拒絕換班申請失敗，請稍後再試");
+      alert(t("scheduling.rejectSwapFailed"));
     } finally {
       loading.value = false;
     }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import type { LLMProvider } from "@makanmakan/ai-analytics";
 
@@ -12,6 +13,7 @@ import {
 } from "@heroicons/vue/24/outline";
 import ShieldCheckIcon from "@heroicons/vue/24/outline/ShieldCheckIcon";
 
+const { t } = useI18n();
 const { getConfig, saveConfig, testProvider, getAvailableModels } =
   useAIAnalytics();
 
@@ -38,41 +40,43 @@ const saveError = ref<string | null>(null);
 const restaurantId = ref("rest_123");
 
 // Provider options with descriptions
-const providers = [
+const providers = computed(() => [
   {
     value: "anthropic",
     label: "Anthropic Claude",
-    description: "強大的推理能力，適合深度分析",
+    description: t("aiConfig.providerAnthropicDesc"),
     icon: "🤖",
   },
   {
     value: "openai",
     label: "OpenAI GPT",
-    description: "通用性強，生態完善",
+    description: t("aiConfig.providerOpenaiDesc"),
     icon: "✨",
   },
   {
     value: "google",
     label: "Google Gemini",
-    description: "多模態支持，快速響應",
+    description: t("aiConfig.providerGoogleDesc"),
     icon: "🔮",
   },
   {
     value: "deepseek",
     label: "DeepSeek",
-    description: "成本效益高，中文友好",
+    description: t("aiConfig.providerDeepseekDesc"),
     icon: "🚀",
   },
   {
     value: "custom",
-    label: "自定義 Provider",
-    description: "OpenAI 兼容的自定義服務",
+    label: t("aiConfig.providerCustom"),
+    description: t("aiConfig.providerCustomDesc"),
     icon: "⚙️",
   },
-];
+]);
 
 const selectedProvider = computed(() =>
-  providers.find((p) => p.value === form.value.provider),
+  providers.value.find(
+    (p: { value: string }) => p.value === form.value.provider,
+  ),
 );
 
 // Load configuration on mount
@@ -104,7 +108,10 @@ const loadAvailableModels = async () => {
 // Test connection
 const handleTestConnection = async () => {
   if (!form.value.apiKey) {
-    testResult.value = { success: false, error: "請輸入 API Key" };
+    testResult.value = {
+      success: false,
+      error: t("aiConfig.pleaseEnterApiKey"),
+    };
     return;
   }
 
@@ -125,7 +132,7 @@ const handleTestConnection = async () => {
 // Save configuration
 const handleSaveConfig = async () => {
   if (!form.value.apiKey) {
-    saveError.value = "請輸入 API Key";
+    saveError.value = t("aiConfig.pleaseEnterApiKey");
     return;
   }
 
@@ -148,11 +155,12 @@ const handleSaveConfig = async () => {
         saveSuccess.value = false;
       }, 3000);
     } else {
-      saveError.value = result.message || "保存配置失敗";
+      saveError.value = result.message || t("aiConfig.saveFailed");
     }
   } catch (err) {
     console.error("Save config error:", err);
-    saveError.value = err instanceof Error ? err.message : "保存配置時發生錯誤";
+    saveError.value =
+      err instanceof Error ? err.message : t("aiConfig.saveError");
   } finally {
     isSaving.value = false;
   }
@@ -166,9 +174,11 @@ const handleSaveConfig = async () => {
       <div class="mb-8">
         <div class="flex items-center space-x-3 mb-2">
           <SparklesIcon class="w-8 h-8 text-indigo-600" />
-          <h1 class="text-3xl font-bold text-gray-900">AI 分析配置</h1>
+          <h1 class="text-3xl font-bold text-gray-900">
+            {{ t("aiConfig.title") }}
+          </h1>
         </div>
-        <p class="text-gray-600 mb-4">配置您的 AI Provider，開啟智能業務分析</p>
+        <p class="text-gray-600 mb-4">{{ t("aiConfig.subtitle") }}</p>
 
         <!-- Quick Navigation -->
         <div
@@ -178,19 +188,19 @@ const handleSaveConfig = async () => {
             to="/dashboard/ai-analytics/insights"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
           >
-            AI 洞察
+            {{ t("aiAnalytics.navInsights") }}
           </router-link>
           <router-link
             to="/dashboard/ai-analytics/products"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"
           >
-            產品分析
+            {{ t("aiAnalytics.navProducts") }}
           </router-link>
           <router-link
             to="/dashboard/ai-analytics/config"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white"
           >
-            AI 配置
+            {{ t("aiAnalytics.navConfig") }}
           </router-link>
         </div>
       </div>
@@ -202,7 +212,7 @@ const handleSaveConfig = async () => {
         <!-- Provider Selection -->
         <div class="p-8 border-b border-gray-100">
           <label class="block text-sm font-semibold text-gray-900 mb-4">
-            選擇 AI Provider
+            {{ t("aiConfig.selectProvider") }}
           </label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
@@ -266,19 +276,19 @@ const handleSaveConfig = async () => {
               <input
                 v-model="form.apiKey"
                 type="password"
-                placeholder="請輸入 API Key"
+                :placeholder="t('aiConfig.enterApiKey')"
                 class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
             <p class="text-xs text-gray-500 mt-2">
-              您的 API Key 將使用 AES-256 加密存儲
+              {{ t("aiConfig.apiKeyEncrypted") }}
             </p>
           </div>
 
           <!-- Model Selection -->
           <div v-if="availableModels.length > 0">
             <label class="block text-sm font-semibold text-gray-900 mb-2">
-              模型選擇
+              {{ t("aiConfig.modelSelection") }}
             </label>
             <select
               v-model="form.model"
@@ -327,7 +337,11 @@ const handleSaveConfig = async () => {
                 class="font-semibold"
                 :class="testResult.success ? 'text-green-900' : 'text-red-900'"
               >
-                {{ testResult.success ? "連接成功" : "連接失敗" }}
+                {{
+                  testResult.success
+                    ? t("aiConfig.connectionSuccess")
+                    : t("aiConfig.connectionFailed")
+                }}
               </div>
               <div
                 class="text-sm"
@@ -335,8 +349,8 @@ const handleSaveConfig = async () => {
               >
                 {{
                   testResult.success
-                    ? `響應延遲: ${testResult.latency}ms`
-                    : testResult.error || "請檢查 API Key 和網絡連接"
+                    ? t("aiConfig.responseLatency", { ms: testResult.latency })
+                    : testResult.error || t("aiConfig.checkApiKeyAndNetwork")
                 }}
               </div>
             </div>
@@ -348,7 +362,9 @@ const handleSaveConfig = async () => {
             class="rounded-xl p-4 bg-green-50 border border-green-200 flex items-center space-x-3 animate-fade-in"
           >
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
-            <div class="text-green-900 font-semibold">配置已成功保存</div>
+            <div class="text-green-900 font-semibold">
+              {{ t("aiConfig.saveSuccess") }}
+            </div>
           </div>
 
           <!-- Save Error Message -->
@@ -358,7 +374,9 @@ const handleSaveConfig = async () => {
           >
             <XCircleIcon class="w-6 h-6 text-red-600" />
             <div class="flex-1">
-              <div class="text-red-900 font-semibold mb-1">保存失敗</div>
+              <div class="text-red-900 font-semibold mb-1">
+                {{ t("aiConfig.saveFailed") }}
+              </div>
               <div class="text-red-700 text-sm">{{ saveError }}</div>
             </div>
           </div>
@@ -374,7 +392,9 @@ const handleSaveConfig = async () => {
                 class="w-5 h-5 inline mr-2"
                 :class="{ 'animate-spin': isTesting }"
               />
-              {{ isTesting ? "測試中..." : "測試連接" }}
+              {{
+                isTesting ? t("aiConfig.testing") : t("aiConfig.testConnection")
+              }}
             </button>
 
             <button
@@ -382,7 +402,7 @@ const handleSaveConfig = async () => {
               class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/30"
               @click="handleSaveConfig"
             >
-              {{ isSaving ? "保存中..." : "保存配置" }}
+              {{ isSaving ? t("aiConfig.saving") : t("aiConfig.saveConfig") }}
             </button>
           </div>
         </div>
@@ -392,21 +412,27 @@ const handleSaveConfig = async () => {
       <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <div class="text-sm font-semibold text-gray-900 mb-1">
-            🔒 安全加密
+            🔒 {{ t("aiConfig.infoEncryption") }}
           </div>
-          <div class="text-xs text-gray-600">API Key 使用 AES-256 加密存儲</div>
+          <div class="text-xs text-gray-600">
+            {{ t("aiConfig.infoEncryptionDesc") }}
+          </div>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <div class="text-sm font-semibold text-gray-900 mb-1">
-            📊 使用追蹤
+            📊 {{ t("aiConfig.infoTracking") }}
           </div>
-          <div class="text-xs text-gray-600">自動記錄 Token 使用量和成本</div>
+          <div class="text-xs text-gray-600">
+            {{ t("aiConfig.infoTrackingDesc") }}
+          </div>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <div class="text-sm font-semibold text-gray-900 mb-1">
-            ⚡ 智能緩存
+            ⚡ {{ t("aiConfig.infoCaching") }}
           </div>
-          <div class="text-xs text-gray-600">6 小時緩存減少 API 調用</div>
+          <div class="text-xs text-gray-600">
+            {{ t("aiConfig.infoCachingDesc") }}
+          </div>
         </div>
       </div>
     </div>
