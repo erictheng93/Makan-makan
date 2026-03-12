@@ -47,6 +47,121 @@ const zhTW: Messages = {
     retry: "重試",
   },
 
+  // 菜單管理
+  menu: {
+    title: "菜單管理",
+    subtitle: "管理餐廳菜品與分類",
+    addCategory: "新增分類",
+    addItem: "新增菜品",
+    searchPlaceholder: "搜尋菜品名稱...",
+    allCategories: "全部分類",
+    allStatus: "全部狀態",
+    statusActive: "上架中",
+    statusInactive: "已下架",
+    available: "供應中",
+    soldOut: "已售完",
+    featured: "精選",
+    unknownCategory: "未知分類",
+    editCategory: "編輯分類",
+    editItem: "編輯菜品",
+    empty: {
+      title: "尚無菜品",
+      subtitle: "點擊上方按鈕新增菜品",
+    },
+    form: {
+      categoryName: "分類名稱",
+      nameEn: "英文名稱",
+      description: "說明",
+      sortOrder: "排序",
+      update: "更新",
+      add: "新增",
+      itemName: "菜品名稱",
+      price: "價格",
+      category: "分類",
+      selectCategory: "選擇分類",
+      imageUrl: "圖片網址",
+      featuredItem: "精選菜品",
+      isAvailable: "供應中",
+    },
+    confirms: {
+      deleteItem: "確定要刪除「{name}」嗎？",
+    },
+  },
+
+  // 訂單管理
+  orders: {
+    stats: {
+      pending: "待處理",
+      preparing: "準備中",
+      completed: "已完成",
+      cancelled: "已取消",
+    },
+    searchPlaceholder: "搜尋訂單編號或客戶...",
+    filter: {
+      allStatus: "全部狀態",
+      allTypes: "全部類型",
+      allSources: "全部來源",
+    },
+    status: {
+      pending: "待確認",
+      confirmed: "已確認",
+      preparing: "準備中",
+      ready: "待取餐",
+      served: "已出餐",
+      completed: "已完成",
+      cancelled: "已取消",
+    },
+    type: {
+      dineIn: "內用",
+      takeaway: "外帶",
+      delivery: "外送",
+    },
+    source: {
+      direct: "現場",
+    },
+    refresh: "重新整理",
+    orderList: "訂單列表",
+    columns: {
+      orderNumber: "訂單編號",
+      tableNumber: "桌號",
+      customer: "客戶",
+      type: "類型",
+      source: "來源",
+      status: "狀態",
+      total: "金額",
+      orderTime: "下單時間",
+      actions: "操作",
+    },
+    empty: {
+      title: "暫無訂單",
+      subtitle: "目前沒有符合條件的訂單",
+    },
+    orderDetail: "訂單詳情",
+    detail: {
+      customerName: "客戶名稱",
+      orderType: "訂單類型",
+      orderStatus: "訂單狀態",
+      deliveryInfo: "外送資訊",
+      type: "類型",
+      address: "地址",
+      phone: "電話",
+      notes: "備註",
+      deliveryFee: "外送費",
+      orderItems: "訂單項目",
+      quantity: "數量",
+      totalAmount: "總金額",
+    },
+    actions: {
+      view: "查看",
+      update: "更新",
+      cancel: "取消",
+    },
+    confirms: {
+      cancelOrder: "確定要取消訂單 {number} 嗎？",
+    },
+    defaultCustomer: "匿名客戶",
+  },
+
   // 桌台管理
   tables: {
     title: "桌台管理",
@@ -1224,6 +1339,7 @@ const zhTW: Messages = {
     service: "送菜系統",
     owner: "店主管理",
     selectRestaurantFirst: "請先選擇餐廳",
+    accountManagement: "帳號管理",
   },
 
   // 頁面標題
@@ -1250,6 +1366,7 @@ const zhTW: Messages = {
     reservations: "訂位管理",
     waitingList: "候位管理",
     monitoring: "系統監控",
+    accountManagement: "帳號管理",
     kitchen: "廚房顯示",
     cashier: "收銀台",
     service: "送菜系統",
@@ -3480,6 +3597,77 @@ const zhTW: Messages = {
     networkDisconnected: "網絡已斷開",
     offlineRequestQueued: "離線請求已排隊",
     currentlyOnline: "當前處於在線狀態",
+  },
+
+  // 帳號管理
+  accountManagement: {
+    title: "帳號管理",
+    tabOwners: "店主帳號",
+    tabAdmins: "管理員帳號",
+    // Form sections
+    accountInfo: "帳號資訊",
+    restaurantBinding: "餐廳綁定",
+    permissionConfirm: "權限確認",
+    // Form fields
+    username: "用戶名",
+    usernamePlaceholder: "3-50 個字元",
+    password: "密碼",
+    passwordPlaceholder: "至少 8 個字元，包含大小寫、數字及特殊字元",
+    fullName: "全名",
+    fullNamePlaceholder: "姓名",
+    email: "Email",
+    emailPlaceholder: "user{'@'}example.com",
+    phone: "聯絡電話",
+    phonePlaceholder: "選填",
+    // Restaurant binding
+    restaurant: "所屬餐廳",
+    selectRestaurant: "選擇餐廳",
+    createNewRestaurant: "＋ 新增餐廳",
+    restaurantName: "餐廳名稱",
+    restaurantNamePlaceholder: "新餐廳名稱",
+    restaurantAddress: "餐廳地址",
+    restaurantAddressPlaceholder: "餐廳地址",
+    // Permissions info
+    permissionNote: "此帳號建立後將擁有以下權限：",
+    ownerPermissions: {
+      manageMenu: "管理餐廳菜單",
+      manageOrders: "查看及管理訂單",
+      manageEmployees: "管理員工（廚師、服務員、收銀員）",
+      viewAnalytics: "查看營業數據分析",
+      manageSettings: "管理餐廳設定",
+    },
+    // Actions
+    submitOwner: "建立店主帳號",
+    submitAdmin: "建立管理員帳號",
+    submitting: "建立中...",
+    // Table
+    existingOwners: "現有店主列表",
+    existingAdmins: "現有管理員列表",
+    ownerName: "店主",
+    adminName: "管理員",
+    restaurantCol: "餐廳",
+    emailCol: "Email",
+    statusCol: "狀態",
+    createdAtCol: "建立日期",
+    noOwners: "尚無店主帳號",
+    noAdmins: "尚無其他管理員帳號",
+    // Status badges
+    statusActive: "啟用",
+    statusInactive: "停用",
+    // Messages
+    createOwnerSuccess: "店主帳號建立成功",
+    createAdminSuccess: "管理員帳號建立成功",
+    createError: "建立失敗，請稍後再試",
+    // Validation
+    usernameRequired: "請輸入用戶名",
+    usernameLength: "用戶名需 3-50 個字元",
+    passwordRequired: "請輸入密碼",
+    passwordStrength: "密碼需至少 8 個字元，包含大小寫字母、數字及特殊字元",
+    fullNameRequired: "請輸入全名",
+    emailRequired: "請輸入 Email",
+    emailInvalid: "請輸入有效的 Email",
+    restaurantRequired: "請選擇或新增餐廳",
+    newRestaurantNameRequired: "請輸入餐廳名稱",
   },
 };
 

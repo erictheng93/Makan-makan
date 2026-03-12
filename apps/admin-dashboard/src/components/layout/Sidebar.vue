@@ -90,6 +90,7 @@ import {
   ClipboardList,
   Activity,
   Globe,
+  UserPlus,
 } from "lucide-vue-next";
 
 interface Props {
@@ -108,7 +109,12 @@ const { t } = useI18n();
 const user = computed(() => authStore.user);
 
 // Platform-level routes that don't require restaurant context
-const platformItemNames = new Set(["platform", "monitoring", "settings"]);
+const platformItemNames = new Set([
+  "platform",
+  "monitoring",
+  "settings",
+  "account-management",
+]);
 
 const needsRestaurantContext = computed(
   () => authStore.isAdminRole && !authStore.hasRestaurantContext,
@@ -251,6 +257,13 @@ const navigationItems = computed(() => {
         UserRole.OWNER,
         UserRole.SERVICE,
       ]),
+    },
+    {
+      name: "account-management",
+      path: "/dashboard/account-management",
+      label: t("nav.accountManagement"),
+      icon: UserPlus,
+      visible: authStore.isAdminRole,
     },
     {
       name: "monitoring",

@@ -226,3 +226,28 @@ export interface SystemNotification {
 export interface UrgentOrderAlert {
   message: string;
 }
+
+// Account Management Types (platform-level accounts)
+export interface CreateAccountRequest {
+  username: string;
+  password: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  restaurantId?: number;
+  newRestaurantName?: string;
+  newRestaurantAddress?: string;
+}
+
+export interface PlatformUser {
+  id: number;
+  username: string;
+  fullName?: string;
+  email: string;
+  role: UserRole;
+  restaurantId: string | null;
+  restaurantName?: string;
+  status?: string;
+  createdAt: string;
+}

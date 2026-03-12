@@ -235,6 +235,16 @@ const routes: RouteRecordRaw[] = [
           ],
         },
       },
+      // Account management (Admin only - platform level)
+      {
+        path: "account-management",
+        name: "AccountManagement",
+        component: () => import("@/views/AccountManagementView.vue"),
+        meta: {
+          titleKey: "pages.accountManagement",
+          roles: [UserRole.ADMIN],
+        },
+      },
       // System monitoring
       {
         path: "monitoring",
@@ -367,7 +377,12 @@ router.beforeEach(async (to, _, next) => {
   }
 
   // Admin without restaurant context → redirect to platform overview
-  const platformRoutes = ["PlatformOverview", "Monitoring", "Settings"];
+  const platformRoutes = [
+    "PlatformOverview",
+    "Monitoring",
+    "Settings",
+    "AccountManagement",
+  ];
   if (authStore.isAdminRole && !authStore.hasRestaurantContext) {
     if (routeName && !platformRoutes.includes(routeName)) {
       return next("/dashboard/platform");
