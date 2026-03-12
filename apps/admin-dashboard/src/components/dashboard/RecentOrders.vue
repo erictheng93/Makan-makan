@@ -25,7 +25,7 @@
       class="text-center py-8 text-gray-500"
     >
       <ShoppingCart class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-      <p>暫無最新訂單</p>
+      <p>{{ t("dashboard.recentOrdersPanel.empty") }}</p>
     </div>
 
     <div v-else class="space-y-2">
@@ -58,14 +58,21 @@
               </span>
             </div>
             <div class="flex items-center space-x-2 mt-1">
-              <p class="text-xs text-gray-500">桌號 {{ order.tableNumber }}</p>
+              <p class="text-xs text-gray-500">
+                {{ t("dashboard.recentOrdersPanel.table") }}
+                {{ order.tableNumber }}
+              </p>
               <span class="text-gray-300">•</span>
               <p class="text-xs text-gray-500">
                 {{ formatTime(order.createdAt) }}
               </p>
               <span v-if="order.itemCount" class="text-gray-300">•</span>
               <p v-if="order.itemCount" class="text-xs text-gray-500">
-                {{ order.itemCount }} 項商品
+                {{
+                  t("dashboard.recentOrdersPanel.items", {
+                    count: order.itemCount,
+                  })
+                }}
               </p>
             </div>
           </div>
@@ -90,7 +97,11 @@
         class="text-sm text-primary-600 hover:text-primary-700 font-medium"
         @click="$emit('showMore')"
       >
-        查看更多訂單 ({{ orders.length - maxOrders }} 筆)
+        {{
+          t("dashboard.recentOrdersPanel.showMore", {
+            count: orders.length - maxOrders,
+          })
+        }}
       </button>
     </div>
   </div>
@@ -98,6 +109,7 @@
 
 <script setup lang="ts">
 // Remove unused computed import
+import { useI18n } from "@/i18n";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import {
@@ -145,6 +157,8 @@ defineEmits<{
   showMore: [];
 }>();
 
+const { t } = useI18n();
+
 const getStatusColor = (status: OrderStatus) => {
   const colorMap = {
     pending: {
@@ -188,15 +202,10 @@ const getStatusIcon = (status: OrderStatus) => {
 };
 
 const getStatusText = (status: OrderStatus) => {
-  const textMap = {
-    pending: "待確認",
-    confirmed: "已確認",
-    preparing: "製作中",
-    ready: "待取餐",
-    completed: "已完成",
-    cancelled: "已取消",
-  };
-  return textMap[status] || "未知";
+  return (
+    t(`dashboard.recentOrdersPanel.status.${status}`) ||
+    t("dashboard.recentOrdersPanel.status.unknown")
+  );
 };
 
 const formatTime = (dateString: string) => {

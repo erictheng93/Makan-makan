@@ -42,6 +42,78 @@ const zhTW: Messages = {
     hideDetails: "隱藏詳情",
     viewDetails: "檢視詳情",
     submitting: "送出中...",
+    update: "更新",
+  },
+
+  // 桌台管理
+  tables: {
+    title: "桌台管理",
+    subtitle: "管理餐廳桌台與 QR 碼",
+    addTable: "新增桌台",
+    editTable: "編輯桌台",
+    batchGenerateQR: "批量生成 QR 碼",
+    searchPlaceholder: "搜尋桌台號碼、名稱或位置...",
+    tableNumber: "桌號",
+    capacity: "容量",
+    people: "人",
+    location: "位置",
+    notSet: "未設定",
+    order: "訂單",
+    viewQR: "查看 QR 碼",
+    stats: {
+      available: "可用",
+      occupied: "使用中",
+      reserved: "已預約",
+      maintenance: "維護中",
+    },
+    status: {
+      available: "可用",
+      occupied: "使用中",
+      reserved: "已預約",
+      maintenance: "維護中",
+    },
+    statusAction: {
+      available: "使用",
+      occupied: "清理",
+      reserved: "入座",
+      maintenance: "修復",
+      change: "變更",
+    },
+    filter: {
+      allStatus: "全部狀態",
+      allCapacity: "全部容量",
+      seats2: "2 人座",
+      seats4: "4 人座",
+      seats6: "6 人座",
+      seats8plus: "8 人以上",
+    },
+    form: {
+      tableNumber: "桌台號碼",
+      tableName: "桌台名稱",
+      capacity: "容量",
+      persons: "{count} 人",
+      location: "位置描述",
+      locationPlaceholder: "例如: 靠窗位置、角落、中央區域",
+      status: "狀態",
+    },
+    empty: {
+      title: "暫無桌台",
+      subtitle: "開始添加您的第一張桌台",
+    },
+    qrModal: {
+      title: "桌號 {number} QR 碼",
+      preview: "QR 碼預覽",
+      download: "下載 QR 碼",
+      print: "列印 QR 碼",
+    },
+    confirm: {
+      regenerateAllQR: "確定要為所有桌台重新生成 QR 碼嗎？",
+    },
+    alert: {
+      qrGenerated: "QR 碼生成完成！",
+      downloadInProgress: "QR 碼下載功能開發中...",
+      printInProgress: "QR 碼列印功能開發中...",
+    },
   },
 
   // 排班系統
@@ -243,6 +315,28 @@ const zhTW: Messages = {
       evening: "晚班",
       night: "夜班",
       fullDay: "全天",
+    },
+
+    // ShiftTemplatesList component keys
+    management: "班別模板管理",
+    totalCount: "共 {count} 個班別模板",
+    addTemplate: "新增模板",
+    loading: "載入班別模板中...",
+    empty: {
+      title: "尚無班別模板",
+      subtitle: "點擊「新增模板」按鈕開始建立班別模板",
+    },
+    addFirstTemplate: "新增第一個模板",
+    editTemplate: "編輯模板",
+    deleteTemplate: "刪除模板",
+    startTime: "開始時間",
+    endTime: "結束時間",
+    hours: "小時",
+    usageCount: "使用中: {count} 次",
+    defaultTemplate: "預設模板",
+    useTemplate: "使用此模板",
+    confirm: {
+      delete: "確定要刪除班別模板「{name}」嗎？此操作無法復原。",
     },
   },
 
@@ -1014,6 +1108,26 @@ const zhTW: Messages = {
         confirmDelete: "確定要刪除此佈局嗎？",
       },
     },
+
+    // Alert Notification Panel
+    alertPanel: {
+      title: "即時警報",
+      reconnect: "重新連線",
+      muteSound: "關閉聲音",
+      enableSound: "開啟聲音",
+      clearAll: "清除全部",
+      currentValue: "目前值",
+      threshold: "閾值",
+      acknowledged: "已確認",
+      noAlerts: "沒有警報",
+      systemNormal: "系統正常運作",
+      connected: "已連接到警報系統",
+      reconnecting: "重新連線中 (嘗試 {attempts})",
+      disconnected: "未連線",
+      justNow: "剛才",
+      minutesAgo: "{count} 分鐘前",
+      hoursAgo: "{count} 小時前",
+    },
   },
 
   // 頁面標題與導航
@@ -1208,6 +1322,21 @@ const zhTW: Messages = {
     waitingManagement: "候位管理",
     detailedAnalysis: "詳細分析",
     neverUpdated: "從未更新",
+    recentOrdersPanel: {
+      empty: "暫無最新訂單",
+      table: "桌號",
+      items: "{count} 項商品",
+      showMore: "查看更多訂單 ({count} 筆)",
+      status: {
+        pending: "待確認",
+        confirmed: "已確認",
+        preparing: "製作中",
+        ready: "待取餐",
+        completed: "已完成",
+        cancelled: "已取消",
+        unknown: "未知",
+      },
+    },
   },
 
   // 未找到頁面
@@ -1944,6 +2073,12 @@ const zhTW: Messages = {
     },
     confirms: {
       endShift: "確認結束當前班次?",
+    },
+    defaults: {
+      locationPending: "待設定",
+      morningShift: "早班",
+      orderPayment: "訂單 {orderNumber} 付款",
+      newPromotion: "新增活動",
     },
   },
 

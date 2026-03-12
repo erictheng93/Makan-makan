@@ -42,6 +42,79 @@ const enUS: Messages = {
     hideDetails: "Hide Details",
     viewDetails: "View Details",
     submitting: "Submitting...",
+    update: "Update",
+  },
+
+  // Table Management
+  tables: {
+    title: "Table Management",
+    subtitle: "Manage restaurant tables and QR codes",
+    addTable: "Add Table",
+    editTable: "Edit Table",
+    batchGenerateQR: "Batch Generate QR",
+    searchPlaceholder: "Search table number, name or location...",
+    tableNumber: "Table",
+    capacity: "Capacity",
+    people: "people",
+    location: "Location",
+    notSet: "Not set",
+    order: "Order",
+    viewQR: "View QR Code",
+    stats: {
+      available: "Available",
+      occupied: "Occupied",
+      reserved: "Reserved",
+      maintenance: "Maintenance",
+    },
+    status: {
+      available: "Available",
+      occupied: "Occupied",
+      reserved: "Reserved",
+      maintenance: "Maintenance",
+    },
+    statusAction: {
+      available: "Occupy",
+      occupied: "Clear",
+      reserved: "Seat",
+      maintenance: "Repair",
+      change: "Change",
+    },
+    filter: {
+      allStatus: "All Status",
+      allCapacity: "All Capacity",
+      seats2: "2 Seats",
+      seats4: "4 Seats",
+      seats6: "6 Seats",
+      seats8plus: "8+ Seats",
+    },
+    form: {
+      tableNumber: "Table Number",
+      tableName: "Table Name",
+      capacity: "Capacity",
+      persons: "{count} persons",
+      location: "Location Description",
+      locationPlaceholder: "e.g. Window seat, Corner, Center area",
+      status: "Status",
+    },
+    empty: {
+      title: "No Tables",
+      subtitle: "Start adding your first table",
+    },
+    qrModal: {
+      title: "Table {number} QR Code",
+      preview: "QR Code Preview",
+      download: "Download QR",
+      print: "Print QR",
+    },
+    confirm: {
+      regenerateAllQR:
+        "Are you sure you want to regenerate QR codes for all tables?",
+    },
+    alert: {
+      qrGenerated: "QR codes generated successfully!",
+      downloadInProgress: "QR code download feature coming soon...",
+      printInProgress: "QR code print feature coming soon...",
+    },
   },
 
   // Scheduling system
@@ -236,6 +309,29 @@ const enUS: Messages = {
       evening: "Evening",
       night: "Night",
       fullDay: "Full Day",
+    },
+
+    // ShiftTemplatesList component keys
+    management: "Shift Template Management",
+    totalCount: "{count} shift templates total",
+    addTemplate: "Add Template",
+    loading: "Loading shift templates...",
+    empty: {
+      title: "No Shift Templates",
+      subtitle: 'Click the "Add Template" button to create a shift template',
+    },
+    addFirstTemplate: "Add First Template",
+    editTemplate: "Edit Template",
+    deleteTemplate: "Delete Template",
+    startTime: "Start Time",
+    endTime: "End Time",
+    hours: "hours",
+    usageCount: "In use: {count} times",
+    defaultTemplate: "Default Template",
+    useTemplate: "Use This Template",
+    confirm: {
+      delete:
+        'Are you sure you want to delete the shift template "{name}"? This action cannot be undone.',
     },
   },
 
@@ -998,6 +1094,26 @@ const enUS: Messages = {
         confirmDelete: "Are you sure you want to delete this layout?",
       },
     },
+
+    // Alert Notification Panel
+    alertPanel: {
+      title: "Live Alerts",
+      reconnect: "Reconnect",
+      muteSound: "Mute Sound",
+      enableSound: "Enable Sound",
+      clearAll: "Clear All",
+      currentValue: "Current Value",
+      threshold: "Threshold",
+      acknowledged: "Acknowledged",
+      noAlerts: "No Alerts",
+      systemNormal: "System operating normally",
+      connected: "Connected to alert system",
+      reconnecting: "Reconnecting (attempt {attempts})",
+      disconnected: "Disconnected",
+      justNow: "Just now",
+      minutesAgo: "{count} minutes ago",
+      hoursAgo: "{count} hours ago",
+    },
   },
 
   // Page title and navigation
@@ -1191,6 +1307,21 @@ const enUS: Messages = {
     waitingManagement: "Waiting List",
     detailedAnalysis: "Detailed Analysis",
     neverUpdated: "Never updated",
+    recentOrdersPanel: {
+      empty: "No recent orders",
+      table: "Table",
+      items: "{count} items",
+      showMore: "View more orders ({count})",
+      status: {
+        pending: "Pending",
+        confirmed: "Confirmed",
+        preparing: "Preparing",
+        ready: "Ready",
+        completed: "Completed",
+        cancelled: "Cancelled",
+        unknown: "Unknown",
+      },
+    },
   },
 
   // Not Found page
@@ -1938,6 +2069,12 @@ const enUS: Messages = {
     },
     confirms: {
       endShift: "Confirm end current shift?",
+    },
+    defaults: {
+      locationPending: "To be set",
+      morningShift: "Morning Shift",
+      orderPayment: "Order {orderNumber} payment",
+      newPromotion: "New promotion",
     },
   },
 

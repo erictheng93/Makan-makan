@@ -185,7 +185,7 @@
               class="flex items-center text-sm text-gray-600"
             >
               <DocumentTextIcon class="h-4 w-4 mr-2" />
-              <span>訂單: #{{ table.currentOrderId }}</span>
+              <span>{{ t("tables.order") }}: #{{ table.currentOrderId }}</span>
             </div>
           </div>
 
@@ -206,13 +206,13 @@
               class="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               @click="viewQRCode(table)"
             >
-              查看 QR 碼
+              {{ t("tables.viewQR") }}
             </button>
             <button
               class="px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               @click="editTable(table)"
             >
-              編輯
+              {{ t("common.edit") }}
             </button>
             <button
               :class="getStatusButtonClass(table.status)"
@@ -231,14 +231,18 @@
         class="col-span-full text-center py-12"
       >
         <TableCellsIcon class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900">暫無桌台</h3>
-        <p class="mt-1 text-sm text-gray-500">開始添加您的第一張桌台</p>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">
+          {{ t("tables.empty.title") }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ t("tables.empty.subtitle") }}
+        </p>
         <button
           class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           @click="showTableModal = true"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          新增桌台
+          {{ t("tables.addTable") }}
         </button>
       </div>
     </div>
@@ -255,14 +259,15 @@
         >
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">
-              {{ editingTable ? "編輯桌台" : "新增桌台" }}
+              {{ editingTable ? t("tables.editTable") : t("tables.addTable") }}
             </h3>
 
             <form @submit.prevent="saveTable">
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    桌台號碼 <span class="text-red-500">*</span>
+                    {{ t("tables.form.tableNumber") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model="tableForm.tableNumber"
@@ -273,9 +278,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >桌台名稱</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("tables.form.tableName")
+                  }}</label>
                   <input
                     v-model="tableForm.tableName"
                     type="text"
@@ -285,45 +290,64 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    容量 <span class="text-red-500">*</span>
+                    {{ t("tables.form.capacity") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <select
                     v-model.number="tableForm.capacity"
                     required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="2">2 人</option>
-                    <option value="4">4 人</option>
-                    <option value="6">6 人</option>
-                    <option value="8">8 人</option>
-                    <option value="10">10 人</option>
+                    <option value="2">
+                      {{ t("tables.form.persons", { count: 2 }) }}
+                    </option>
+                    <option value="4">
+                      {{ t("tables.form.persons", { count: 4 }) }}
+                    </option>
+                    <option value="6">
+                      {{ t("tables.form.persons", { count: 6 }) }}
+                    </option>
+                    <option value="8">
+                      {{ t("tables.form.persons", { count: 8 }) }}
+                    </option>
+                    <option value="10">
+                      {{ t("tables.form.persons", { count: 10 }) }}
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >位置描述</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("tables.form.location")
+                  }}</label>
                   <input
                     v-model="tableForm.location"
                     type="text"
-                    placeholder="例如: 靠窗位置、角落、中央區域"
+                    :placeholder="t('tables.form.locationPlaceholder')"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >狀態</label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                    t("tables.form.status")
+                  }}</label>
                   <select
                     v-model="tableForm.status"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="available">可用</option>
-                    <option value="occupied">使用中</option>
-                    <option value="reserved">已預約</option>
-                    <option value="maintenance">維護中</option>
+                    <option value="available">
+                      {{ t("tables.status.available") }}
+                    </option>
+                    <option value="occupied">
+                      {{ t("tables.status.occupied") }}
+                    </option>
+                    <option value="reserved">
+                      {{ t("tables.status.reserved") }}
+                    </option>
+                    <option value="maintenance">
+                      {{ t("tables.status.maintenance") }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -342,13 +366,13 @@
                   class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   @click="closeTableModal"
                 >
-                  取消
+                  {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {{ editingTable ? "更新" : "新增" }}
+                  {{ editingTable ? t("common.update") : t("common.add") }}
                 </button>
               </div>
             </form>
@@ -367,7 +391,11 @@
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
           <div class="p-6 text-center">
             <h3 class="text-lg font-semibold mb-4">
-              桌號 {{ selectedTable?.tableNumber }} QR 碼
+              {{
+                t("tables.qrModal.title", {
+                  number: selectedTable?.tableNumber,
+                })
+              }}
             </h3>
 
             <div class="mb-6">
@@ -377,7 +405,9 @@
                 >
                   <div class="text-center">
                     <PhotoIcon class="mx-auto h-16 w-16 text-gray-400 mb-2" />
-                    <p class="text-sm text-gray-500">QR 碼預覽</p>
+                    <p class="text-sm text-gray-500">
+                      {{ t("tables.qrModal.preview") }}
+                    </p>
                     <p class="text-xs text-gray-400 mt-1">
                       {{ selectedTable?.qrCode }}
                     </p>
@@ -391,19 +421,19 @@
                 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 @click="downloadQRCode"
               >
-                下載 QR 碼
+                {{ t("tables.qrModal.download") }}
               </button>
               <button
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 @click="printQRCode"
               >
-                列印 QR 碼
+                {{ t("tables.qrModal.print") }}
               </button>
               <button
                 class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 @click="showQRModal = false"
               >
-                關閉
+                {{ t("common.close") }}
               </button>
             </div>
           </div>
@@ -568,13 +598,8 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    available: "可用",
-    occupied: "使用中",
-    reserved: "已預約",
-    maintenance: "維護中",
-  };
-  return texts[status] || status;
+  const key = `tables.status.${status}`;
+  return t(key) || status;
 };
 
 const getStatusButtonClass = (status: string) => {
@@ -588,21 +613,16 @@ const getStatusButtonClass = (status: string) => {
 };
 
 const getStatusButtonText = (status: string) => {
-  const texts: Record<string, string> = {
-    available: "使用",
-    occupied: "清理",
-    reserved: "入座",
-    maintenance: "修復",
-  };
-  return texts[status] || "變更";
+  const key = `tables.statusAction.${status}`;
+  return t(key) || t("tables.statusAction.change");
 };
 
 const generateAllQRCodes = async () => {
-  if (confirm("確定要為所有桌台重新生成 QR 碼嗎？")) {
+  if (confirm(t("tables.confirm.regenerateAllQR"))) {
     tables.value.forEach((table) => {
       table.qrCode = `QR_REST1_${table.tableNumber}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     });
-    alert("QR 碼生成完成！");
+    alert(t("tables.alert.qrGenerated"));
   }
 };
 
@@ -677,11 +697,11 @@ const saveTable = async () => {
 };
 
 const downloadQRCode = () => {
-  alert("QR 碼下載功能開發中...");
+  alert(t("tables.alert.downloadInProgress"));
 };
 
 const printQRCode = () => {
-  alert("QR 碼列印功能開發中...");
+  alert(t("tables.alert.printInProgress"));
 };
 
 onMounted(() => {

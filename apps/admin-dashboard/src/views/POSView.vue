@@ -923,7 +923,7 @@ const createRegister = () => {
       currentBalance: 0,
       todayTransactions: 0,
       lastActivity: new Date().toISOString(),
-      location: "待設定",
+      location: t("pos.defaults.locationPending"),
     };
     registers.value.push(newRegister);
   }
@@ -949,7 +949,7 @@ const startShift = () => {
   if (startingCash && !isNaN(parseFloat(startingCash))) {
     currentShift.value = {
       id: `shift_${Date.now()}`,
-      name: "早班",
+      name: t("pos.defaults.morningShift"),
       startTime: new Date().toISOString(),
       registerId: currentRegister.value?.id || "reg_001",
       operatorId: 1,
@@ -989,7 +989,9 @@ const processQuickPayment = async () => {
       registerId: currentRegister.value!.id,
       type: "sale",
       amount: quickPayment.value.amount,
-      description: `訂單 ${quickPayment.value.orderNumber} 付款`,
+      description: t("pos.defaults.orderPayment", {
+        orderNumber: quickPayment.value.orderNumber,
+      }),
       createdAt: new Date().toISOString(),
       operatorId: 1,
     };
@@ -1078,7 +1080,7 @@ const createPromotion = () => {
     const newPromotion: Promotion = {
       id: `promo_${Date.now()}`,
       title,
-      description: "新增活動",
+      description: t("pos.defaults.newPromotion"),
       discountType: "percentage",
       discountValue: 10,
       isActive: false,

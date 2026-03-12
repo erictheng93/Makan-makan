@@ -9,10 +9,12 @@
           <div class="p-2 bg-purple-100 rounded-lg">
             <QueueListIcon class="h-6 w-6 text-purple-600" />
           </div>
-          <h2 class="text-2xl font-bold text-gray-900">班別模板管理</h2>
+          <h2 class="text-2xl font-bold text-gray-900">
+            {{ t("shiftTemplates.management") }}
+          </h2>
         </div>
         <p v-if="!loading" class="text-sm text-gray-600">
-          共 {{ templates.length }} 個班別模板
+          {{ t("shiftTemplates.totalCount", { count: templates.length }) }}
         </p>
       </div>
       <button
@@ -20,7 +22,7 @@
         @click="$emit('add')"
       >
         <PlusIcon class="h-5 w-5" />
-        <span>新增模板</span>
+        <span>{{ t("shiftTemplates.addTemplate") }}</span>
       </button>
     </div>
 
@@ -29,7 +31,7 @@
       <div
         class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
       ></div>
-      <p class="text-gray-600">載入班別模板中...</p>
+      <p class="text-gray-600">{{ t("shiftTemplates.loading") }}</p>
     </div>
 
     <!-- Empty State -->
@@ -42,14 +44,16 @@
           <QueueListIcon class="h-16 w-16 text-gray-400" />
         </div>
       </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-3">尚無班別模板</h3>
-      <p class="text-gray-600 mb-8">點擊「新增模板」按鈕開始建立班別模板</p>
+      <h3 class="text-xl font-bold text-gray-900 mb-3">
+        {{ t("shiftTemplates.empty.title") }}
+      </h3>
+      <p class="text-gray-600 mb-8">{{ t("shiftTemplates.empty.subtitle") }}</p>
       <button
         class="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
         @click="$emit('add')"
       >
         <PlusIcon class="h-5 w-5" />
-        <span>新增第一個模板</span>
+        <span>{{ t("shiftTemplates.addFirstTemplate") }}</span>
       </button>
     </div>
 
@@ -82,7 +86,7 @@
           <div class="flex items-center gap-2">
             <button
               class="p-2 rounded-lg hover:bg-blue-50 transition-colors group"
-              title="編輯模板"
+              :title="t('shiftTemplates.editTemplate')"
               @click="$emit('edit', template)"
             >
               <PencilIcon
@@ -91,7 +95,7 @@
             </button>
             <button
               class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
-              title="刪除模板"
+              :title="t('shiftTemplates.deleteTemplate')"
               @click="handleDelete(template)"
             >
               <TrashIcon
@@ -112,7 +116,7 @@
               <div class="flex flex-col min-w-0">
                 <span
                   class="text-xs font-semibold text-gray-500 uppercase tracking-wide"
-                  >開始時間</span
+                  >{{ t("shiftTemplates.startTime") }}</span
                 >
                 <span class="text-base font-bold text-blue-600 font-mono">{{
                   template.startTime
@@ -126,7 +130,7 @@
               <div class="flex flex-col min-w-0">
                 <span
                   class="text-xs font-semibold text-gray-500 uppercase tracking-wide"
-                  >結束時間</span
+                  >{{ t("shiftTemplates.endTime") }}</span
                 >
                 <span class="text-base font-bold text-blue-600 font-mono">{{
                   template.endTime
@@ -151,10 +155,8 @@
             >
               <PlayIcon class="h-4 w-4 text-gray-500" />
               <span class="text-gray-900"
-                >{{
-                  calculateDuration(template.startTime, template.endTime)
-                }}
-                小時</span
+                >{{ calculateDuration(template.startTime, template.endTime) }}
+                {{ t("shiftTemplates.hours") }}</span
               >
             </div>
           </div>
@@ -176,14 +178,18 @@
           <div class="flex items-center gap-3 pt-4 border-t border-gray-200">
             <div class="flex items-center gap-2 text-xs text-gray-600">
               <ChartBarIcon class="h-4 w-4 text-gray-500" />
-              <span>使用中: {{ template.usageCount || 0 }} 次</span>
+              <span>{{
+                t("shiftTemplates.usageCount", {
+                  count: template.usageCount || 0,
+                })
+              }}</span>
             </div>
             <div
               v-if="template.isDefault"
               class="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-bold border border-yellow-200"
             >
               <StarIcon class="h-3 w-3 fill-current" />
-              <span>預設模板</span>
+              <span>{{ t("shiftTemplates.defaultTemplate") }}</span>
             </div>
           </div>
         </div>
@@ -200,7 +206,7 @@
             @click="$emit('use', template)"
           >
             <CheckIcon class="h-5 w-5" />
-            <span>使用此模板</span>
+            <span>{{ t("shiftTemplates.useTemplate") }}</span>
           </button>
         </div>
       </div>
@@ -209,6 +215,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "@/i18n";
 import type { ShiftTemplate } from "@/types/scheduling";
 import {
   QueueListIcon,
@@ -231,6 +238,8 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   loading: false,
 });
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   add: [];
@@ -257,7 +266,7 @@ const calculateDuration = (startTime: string, endTime: string): number => {
 };
 
 const handleDelete = (template: ShiftTemplate) => {
-  if (confirm(`確定要刪除班別模板「${template.name}」嗎？此操作無法復原。`)) {
+  if (confirm(t("shiftTemplates.confirm.delete", { name: template.name }))) {
     emit("delete", template);
   }
 };
