@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-// import { useI18n } from 'vue-i18n' // Reserved for future translations
+import { useI18n } from "@/i18n";
 import {
   XMarkIcon,
   DocumentArrowDownIcon,
@@ -36,8 +36,7 @@ const emit = defineEmits<{
   exported: [filename: string];
 }>();
 
-// I18n - Reserved for future translations
-// const { t: _t } = useI18n()
+const { t } = useI18n();
 
 // State
 const exportOptions = ref<ExportOptions>({
@@ -56,20 +55,20 @@ const formatIcons: Record<ExportFormat, any> = {
 };
 
 // Format labels
-const formatLabels: Record<ExportFormat, string> = {
-  csv: "CSV (逗號分隔值)",
-  excel: "Excel (xlsx)",
-  pdf: "PDF (可攜式文件)",
-};
+const formatLabels = computed<Record<ExportFormat, string>>(() => ({
+  csv: t("exportReport.formatCsv"),
+  excel: t("exportReport.formatExcel"),
+  pdf: t("exportReport.formatPdf"),
+}));
 
 // Data type labels
-const dataTypeLabels: Record<ExportDataType, string> = {
-  alerts: "警報記錄",
-  performance: "性能指標",
-  errors: "錯誤日誌",
-  health: "健康狀態",
-  all: "完整數據",
-};
+const dataTypeLabels = computed<Record<ExportDataType, string>>(() => ({
+  alerts: t("exportReport.dataTypeAlerts"),
+  performance: t("exportReport.dataTypePerformance"),
+  errors: t("exportReport.dataTypeErrors"),
+  health: t("exportReport.dataTypeHealth"),
+  all: t("exportReport.dataTypeAll"),
+}));
 
 // Computed
 const formatOptions: ExportFormat[] = ["csv", "excel", "pdf"];
@@ -128,11 +127,11 @@ async function handleExport() {
       }, 1000);
     } else {
       console.error("Export failed:", result.error);
-      alert(`導出失敗：${result.error}`);
+      alert(t("exportReport.exportFailed", { error: result.error }));
     }
   } catch (error) {
     console.error("Export error:", error);
-    alert("導出時發生錯誤");
+    alert(t("exportReport.exportError"));
   } finally {
     isExporting.value = false;
     exportProgress.value = 0;
@@ -162,7 +161,9 @@ function handleClose() {
         >
           <div class="flex items-center gap-3">
             <DocumentArrowDownIcon class="w-6 h-6 text-blue-600" />
-            <h2 class="text-xl font-semibold text-gray-900">導出監控報告</h2>
+            <h2 class="text-xl font-semibold text-gray-900">
+              {{ t("exportReport.title") }}
+            </h2>
           </div>
           <button
             :disabled="isExporting"
@@ -177,7 +178,9 @@ function handleClose() {
         <div class="p-6 space-y-6">
           <!-- 快速範本 -->
           <div>
-            <h3 class="text-sm font-medium text-gray-900 mb-3">快速範本</h3>
+            <h3 class="text-sm font-medium text-gray-900 mb-3">
+              {{ t("exportReport.quickTemplates") }}
+            </h3>
             <div class="grid grid-cols-2 gap-3">
               <button
                 v-for="template in REPORT_TEMPLATES"
@@ -211,12 +214,14 @@ function handleClose() {
 
           <!-- 自定義選項 -->
           <div class="border-t border-gray-200 pt-6">
-            <h3 class="text-sm font-medium text-gray-900 mb-4">自定義選項</h3>
+            <h3 class="text-sm font-medium text-gray-900 mb-4">
+              {{ t("exportReport.customOptions") }}
+            </h3>
 
             <!-- 格式選擇 -->
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                導出格式
+                {{ t("exportReport.exportFormat") }}
               </label>
               <div class="grid grid-cols-3 gap-3">
                 <button
@@ -244,7 +249,7 @@ function handleClose() {
             <!-- 數據類型 -->
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                數據類型
+                {{ t("exportReport.dataType") }}
               </label>
               <select
                 v-model="exportOptions.dataType"
@@ -264,7 +269,7 @@ function handleClose() {
             <div class="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  開始日期
+                  {{ t("exportReport.startDate") }}
                 </label>
                 <input
                   v-model="exportOptions.startDate"
@@ -274,7 +279,7 @@ function handleClose() {
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  結束日期
+                  {{ t("exportReport.endDate") }}
                 </label>
                 <input
                   v-model="exportOptions.endDate"
@@ -292,7 +297,9 @@ function handleClose() {
                   type="checkbox"
                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span class="ml-2 text-sm text-gray-700">包含摘要統計</span>
+                <span class="ml-2 text-sm text-gray-700">{{
+                  t("exportReport.includeSummary")
+                }}</span>
               </label>
               <label class="flex items-center">
                 <input
@@ -300,7 +307,9 @@ function handleClose() {
                   type="checkbox"
                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span class="ml-2 text-sm text-gray-700">包含詳細數據</span>
+                <span class="ml-2 text-sm text-gray-700">{{
+                  t("exportReport.includeDetails")
+                }}</span>
               </label>
               <label class="flex items-center">
                 <input
@@ -310,12 +319,12 @@ function handleClose() {
                   :disabled="exportOptions.format !== 'pdf'"
                 />
                 <span class="ml-2 text-sm text-gray-700">
-                  包含圖表
+                  {{ t("exportReport.includeCharts") }}
                   <span
                     v-if="exportOptions.format !== 'pdf'"
                     class="text-gray-400"
                   >
-                    (僅 PDF)
+                    ({{ t("exportReport.pdfOnly") }})
                   </span>
                 </span>
               </label>
@@ -326,22 +335,30 @@ function handleClose() {
               v-if="exportOptions.format === 'pdf' && exportOptions.pdfOptions"
               class="mt-4 p-4 bg-gray-50 rounded-lg"
             >
-              <h4 class="text-sm font-medium text-gray-900 mb-3">PDF 選項</h4>
+              <h4 class="text-sm font-medium text-gray-900 mb-3">
+                {{ t("exportReport.pdfOptions") }}
+              </h4>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm text-gray-700 mb-1">方向</label>
+                  <label class="block text-sm text-gray-700 mb-1">{{
+                    t("exportReport.orientation")
+                  }}</label>
                   <select
                     v-model="exportOptions.pdfOptions.orientation"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
-                    <option value="portrait">直向</option>
-                    <option value="landscape">橫向</option>
+                    <option value="portrait">
+                      {{ t("exportReport.portrait") }}
+                    </option>
+                    <option value="landscape">
+                      {{ t("exportReport.landscape") }}
+                    </option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-sm text-gray-700 mb-1"
-                    >頁面大小</label
-                  >
+                  <label class="block text-sm text-gray-700 mb-1">{{
+                    t("exportReport.pageSize")
+                  }}</label>
                   <select
                     v-model="exportOptions.pdfOptions.pageSize"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -359,7 +376,9 @@ function handleClose() {
                     type="checkbox"
                     class="w-4 h-4 text-blue-600 border-gray-300 rounded"
                   />
-                  <span class="ml-2 text-sm text-gray-700">包含頁碼</span>
+                  <span class="ml-2 text-sm text-gray-700">{{
+                    t("exportReport.includePageNumbers")
+                  }}</span>
                 </label>
               </div>
             </div>
@@ -367,18 +386,22 @@ function handleClose() {
 
           <!-- 預覽信息 -->
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-blue-900 mb-2">導出預覽</h4>
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+              {{ t("exportReport.exportPreview") }}
+            </h4>
             <div class="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p class="text-blue-700">記錄數</p>
+                <p class="text-blue-700">{{ t("exportReport.recordCount") }}</p>
                 <p class="font-medium text-blue-900">{{ data.length }}</p>
               </div>
               <div>
-                <p class="text-blue-700">估計大小</p>
+                <p class="text-blue-700">
+                  {{ t("exportReport.estimatedSize") }}
+                </p>
                 <p class="font-medium text-blue-900">{{ estimatedSize }}</p>
               </div>
               <div>
-                <p class="text-blue-700">格式</p>
+                <p class="text-blue-700">{{ t("exportReport.format") }}</p>
                 <p class="font-medium text-blue-900 uppercase">
                   {{ exportOptions.format }}
                 </p>
@@ -391,7 +414,7 @@ function handleClose() {
             <div
               class="flex items-center justify-between text-sm text-gray-700"
             >
-              <span>正在導出...</span>
+              <span>{{ t("exportReport.exporting") }}</span>
               <span>{{ exportProgress }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
@@ -412,7 +435,7 @@ function handleClose() {
             class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
             @click="handleClose"
           >
-            取消
+            {{ t("common.cancel") }}
           </button>
           <button
             :disabled="!canExport"
@@ -425,7 +448,11 @@ function handleClose() {
             @click="handleExport"
           >
             <DocumentArrowDownIcon class="w-4 h-4" />
-            {{ isExporting ? "導出中..." : "導出報告" }}
+            {{
+              isExporting
+                ? t("exportReport.exportingBtn")
+                : t("exportReport.exportBtn")
+            }}
           </button>
         </div>
       </div>

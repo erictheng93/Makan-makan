@@ -7,10 +7,14 @@
           <div class="p-2 bg-yellow-100 rounded-lg">
             <ExclamationTriangleIcon class="h-6 w-6 text-yellow-600" />
           </div>
-          <h3 class="text-xl font-bold text-gray-900">排班衝突警告</h3>
+          <h3 class="text-xl font-bold text-gray-900">
+            {{ t("schedulingConflicts.title") }}
+          </h3>
         </div>
         <p v-if="!loading" class="text-sm text-gray-600">
-          共 {{ conflicts.length }} 個衝突需要處理
+          {{
+            t("schedulingConflicts.conflictCount", { count: conflicts.length })
+          }}
         </p>
       </div>
 
@@ -53,7 +57,7 @@
       <div
         class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"
       ></div>
-      <p class="text-gray-600">載入衝突資料中...</p>
+      <p class="text-gray-600">{{ t("schedulingConflicts.loading") }}</p>
     </div>
 
     <!-- Empty State -->
@@ -63,12 +67,16 @@
           <CheckCircleIcon class="h-16 w-16 text-green-600" />
         </div>
       </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">沒有排班衝突</h3>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">
+        {{ t("schedulingConflicts.noConflicts") }}
+      </h3>
       <p class="text-sm text-gray-600">
         {{
           selectedSeverity === "all"
-            ? "所有排班都正常,沒有發現衝突"
-            : `沒有 ${getSeverityLabel(selectedSeverity)} 級別的衝突`
+            ? t("schedulingConflicts.allNormal")
+            : t("schedulingConflicts.noConflictsForSeverity", {
+                severity: getSeverityLabel(selectedSeverity),
+              })
         }}
       </p>
     </div>
@@ -119,15 +127,24 @@
             <div class="flex flex-wrap gap-4 text-xs text-gray-600">
               <div v-if="conflict.employeeId" class="flex items-center gap-2">
                 <UserIcon class="h-4 w-4 text-gray-500" />
-                <span>影響員工: {{ conflict.employeeId }}</span>
+                <span
+                  >{{ t("schedulingConflicts.affectedEmployee") }}:
+                  {{ conflict.employeeId }}</span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <CalendarIcon class="h-4 w-4 text-gray-500" />
-                <span>檢測時間: {{ formatDate(conflict.createdAt) }}</span>
+                <span
+                  >{{ t("schedulingConflicts.detectedAt") }}:
+                  {{ formatDate(conflict.createdAt) }}</span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <ClipboardDocumentListIcon class="h-4 w-4 text-gray-500" />
-                <span>狀態: {{ getStatusLabel(conflict.status) }}</span>
+                <span
+                  >{{ t("common.status") }}:
+                  {{ getStatusLabel(conflict.status) }}</span
+                >
               </div>
             </div>
           </div>
@@ -140,7 +157,7 @@
               @click="handleResolve(conflict)"
             >
               <CheckIcon class="h-4 w-4" />
-              <span>標記為已解決</span>
+              <span>{{ t("schedulingConflicts.markResolved") }}</span>
             </button>
             <button
               class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
@@ -148,14 +165,14 @@
               @click="handleIgnore(conflict)"
             >
               <EyeSlashIcon class="h-4 w-4" />
-              <span>忽略</span>
+              <span>{{ t("schedulingConflicts.ignore") }}</span>
             </button>
             <button
               class="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-semibold"
               @click="showDetails(conflict)"
             >
               <InformationCircleIcon class="h-4 w-4" />
-              <span>查看詳情</span>
+              <span>{{ t("common.viewDetails") }}</span>
             </button>
           </div>
         </div>
@@ -166,6 +183,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { SchedulingConflict } from "@/types/scheduling";
 import {
   ExclamationTriangleIcon,
@@ -194,36 +212,38 @@ const emit = defineEmits<{
   resolve: [conflict: SchedulingConflict];
 }>();
 
+const { t } = useI18n();
+
 // State
 const selectedSeverity = ref<string>("all");
 
 // Filters with icon components
-const severityFilters = [
+const severityFilters = computed(() => [
   {
     value: "all",
-    label: "全部",
+    label: t("schedulingConflicts.all"),
     icon: ChartBarIcon,
     iconClass: "text-gray-500",
   },
   {
     value: "error",
-    label: "錯誤",
+    label: t("schedulingConflicts.error"),
     icon: XCircleIcon,
     iconClass: "text-red-500",
   },
   {
     value: "warning",
-    label: "警告",
+    label: t("schedulingConflicts.warning"),
     icon: ExclamationCircleIcon,
     iconClass: "text-yellow-500",
   },
   {
     value: "info",
-    label: "資訊",
+    label: t("schedulingConflicts.info"),
     icon: InformationCircleIcon,
     iconClass: "text-blue-500",
   },
-];
+]);
 
 // Computed
 const filteredConflicts = computed(() => {
@@ -268,35 +288,35 @@ const getSeverityDotClass = (severity: string) => {
 
 // Label Methods
 const getSeverityLabel = (severity: string) => {
-  const labels: Record<string, string> = {
-    error: "錯誤",
-    warning: "警告",
-    info: "資訊",
+  const keyMap: Record<string, string> = {
+    error: "schedulingConflicts.error",
+    warning: "schedulingConflicts.warning",
+    info: "schedulingConflicts.info",
   };
-  return labels[severity] || severity;
+  return keyMap[severity] ? t(keyMap[severity]) : severity;
 };
 
 const getConflictTypeLabel = (type: string) => {
-  const labels: Record<string, string> = {
-    overlapping_shifts: "班次重疊",
-    insufficient_rest: "休息時間不足",
-    max_hours_exceeded: "超時工作",
-    consecutive_days_exceeded: "連續工作天數過多",
-    skill_mismatch: "技能不匹配",
-    leave_conflict: "請假衝突",
-    availability_conflict: "可用性衝突",
+  const keyMap: Record<string, string> = {
+    overlapping_shifts: "schedulingConflicts.typeOverlapping",
+    insufficient_rest: "schedulingConflicts.typeInsufficientRest",
+    max_hours_exceeded: "schedulingConflicts.typeMaxHours",
+    consecutive_days_exceeded: "schedulingConflicts.typeConsecutiveDays",
+    skill_mismatch: "schedulingConflicts.typeSkillMismatch",
+    leave_conflict: "schedulingConflicts.typeLeaveConflict",
+    availability_conflict: "schedulingConflicts.typeAvailability",
   };
-  return labels[type] || type;
+  return keyMap[type] ? t(keyMap[type]) : type;
 };
 
 const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    unresolved: "未解決",
-    acknowledged: "已確認",
-    resolved: "已解決",
-    ignored: "已忽略",
+  const keyMap: Record<string, string> = {
+    unresolved: "schedulingConflicts.statusUnresolved",
+    acknowledged: "schedulingConflicts.statusAcknowledged",
+    resolved: "schedulingConflicts.statusResolved",
+    ignored: "schedulingConflicts.statusIgnored",
   };
-  return labels[status] || status;
+  return keyMap[status] ? t(keyMap[status]) : status;
 };
 
 const formatDate = (dateString: string | Date) => {

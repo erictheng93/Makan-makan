@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
+import { t } from "@/i18n";
 import type {
   PaymentRequest,
   PaymentResult,
@@ -141,7 +142,7 @@ export const usePaymentStore = defineStore("payment", () => {
       await loadPaymentMethods(request.country);
     } catch (error) {
       console.error("Payment initialization failed:", error);
-      setError("初始化支付失敗");
+      setError(t("paymentStore.initFailed"));
     }
   };
 
@@ -321,7 +322,7 @@ export const usePaymentStore = defineStore("payment", () => {
       }
     } catch (error) {
       console.error("Failed to load payment methods:", error);
-      setError("載入支付方式失敗");
+      setError(t("paymentStore.loadMethodsFailed"));
     } finally {
       state.value.loading.methods = false;
     }
@@ -401,34 +402,34 @@ export const usePaymentStore = defineStore("payment", () => {
     const errors: Record<string, string> = {};
 
     if (!request.orderId) {
-      errors.orderId = "訂單 ID 不能為空";
+      errors.orderId = t("paymentStore.validation.orderIdRequired");
     }
 
     if (!request.restaurantId) {
-      errors.restaurantId = "餐廳 ID 無效";
+      errors.restaurantId = t("paymentStore.validation.restaurantIdInvalid");
     }
 
     if (!request.amount || request.amount <= 0) {
-      errors.amount = "金額必須大於 0";
+      errors.amount = t("paymentStore.validation.amountPositive");
     }
 
     if (!request.currency) {
-      errors.currency = "必須指定貨幣類型";
+      errors.currency = t("paymentStore.validation.currencyRequired");
     }
 
     if (!request.country) {
-      errors.country = "必須指定國家";
+      errors.country = t("paymentStore.validation.countryRequired");
     }
 
     if (!request.method) {
-      errors.method = "必須選擇支付方式";
+      errors.method = t("paymentStore.validation.methodRequired");
     }
 
     if (
       request.customerInfo?.email &&
       !isValidEmail(request.customerInfo.email)
     ) {
-      errors.email = "電子郵件格式無效";
+      errors.email = t("paymentStore.validation.emailInvalid");
     }
 
     return {

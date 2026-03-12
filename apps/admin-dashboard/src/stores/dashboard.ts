@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { DashboardStats, ChartData } from "@/types";
 import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
+import { t } from "@/i18n";
 
 export const useDashboardStore = defineStore("dashboard", () => {
   const stats = ref<DashboardStats | null>(null);
@@ -27,7 +28,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     to: string;
   }) => {
     if (!authStore.restaurantId) {
-      error.value = "餐廳 ID 不存在";
+      error.value = t("dashboardStore.restaurantIdMissing");
       return;
     }
 
@@ -52,10 +53,13 @@ export const useDashboardStore = defineStore("dashboard", () => {
         stats.value = response.data.data;
         lastUpdated.value = new Date();
       } else {
-        error.value = response.data.error?.message || "獲取數據失敗";
+        error.value =
+          response.data.error?.message || t("dashboardStore.fetchDataFailed");
       }
     } catch (err: any) {
-      error.value = err.response?.data?.error?.message || "獲取儀表板數據失敗";
+      error.value =
+        err.response?.data?.error?.message ||
+        t("dashboardStore.fetchDashboardFailed");
       console.error("Dashboard fetch error:", err);
     } finally {
       isLoading.value = false;

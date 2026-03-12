@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { Order } from "@/types";
 import { OrderStatus } from "@/types";
 import { api } from "@/services/api";
+import { t } from "@/i18n";
 
 export const useOrderStore = defineStore("order", () => {
   const orders = ref<Order[]>([]);
@@ -77,7 +78,8 @@ export const useOrderStore = defineStore("order", () => {
         orders.value = response.data.data;
       }
     } catch (err: any) {
-      error.value = err.response?.data?.error?.message || "獲取訂單失敗";
+      error.value =
+        err.response?.data?.error?.message || t("orderStore.fetchFailed");
     } finally {
       isLoading.value = false;
     }
@@ -101,7 +103,8 @@ export const useOrderStore = defineStore("order", () => {
       }
       return false;
     } catch (err: any) {
-      error.value = err.response?.data?.error || "更新訂單狀態失敗";
+      error.value =
+        err.response?.data?.error || t("orderStore.updateStatusFailed");
       return false;
     }
   };
@@ -184,7 +187,8 @@ export const useOrderStore = defineStore("order", () => {
       }
       return false;
     } catch (err: any) {
-      error.value = err.response?.data?.error?.message || "取消訂單失敗";
+      error.value =
+        err.response?.data?.error?.message || t("orderStore.cancelFailed");
       return false;
     }
   };

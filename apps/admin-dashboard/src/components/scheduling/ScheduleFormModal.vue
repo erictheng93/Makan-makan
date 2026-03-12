@@ -2,7 +2,11 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>{{ schedule ? "編輯排班" : "新增排班" }}</h2>
+        <h2>
+          {{
+            schedule ? t("scheduleForm.editTitle") : t("scheduleForm.addTitle")
+          }}
+        </h2>
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
@@ -11,7 +15,7 @@
           <!-- Employee Selection -->
           <div class="form-group">
             <label class="form-label">
-              員工 <span class="required">*</span>
+              {{ t("scheduleForm.employee") }} <span class="required">*</span>
             </label>
             <select
               v-model="formData.employeeId"
@@ -19,7 +23,7 @@
               :disabled="loading || !!schedule"
               required
             >
-              <option value="">請選擇員工</option>
+              <option value="">{{ t("scheduleForm.selectEmployee") }}</option>
               <option
                 v-for="emp in availableEmployees"
                 :key="emp.id"
@@ -28,13 +32,15 @@
                 {{ emp.fullName }}
               </option>
             </select>
-            <p v-if="schedule" class="form-hint">編輯模式下無法更改員工</p>
+            <p v-if="schedule" class="form-hint">
+              {{ t("scheduleForm.cannotChangeEmployee") }}
+            </p>
           </div>
 
           <!-- Date Selection -->
           <div class="form-group">
             <label class="form-label">
-              排班日期 <span class="required">*</span>
+              {{ t("scheduleForm.workDate") }} <span class="required">*</span>
             </label>
             <input
               v-model="formData.workDate"
@@ -48,14 +54,15 @@
           <!-- Shift Template Selection -->
           <div class="form-group">
             <label class="form-label">
-              班別模板 <span class="optional">(選填)</span>
+              {{ t("scheduleForm.shiftTemplate") }}
+              <span class="optional">({{ t("scheduleForm.optional") }})</span>
             </label>
             <select
               v-model="formData.shiftTemplateId"
               class="form-control"
               @change="handleTemplateChange"
             >
-              <option value="">自訂時間</option>
+              <option value="">{{ t("scheduleForm.customTime") }}</option>
               <option
                 v-for="template in shiftTemplates"
                 :key="template.id"
@@ -71,7 +78,8 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">
-                開始時間 <span class="required">*</span>
+                {{ t("scheduleForm.startTime") }}
+                <span class="required">*</span>
               </label>
               <input
                 v-model="formData.startTime"
@@ -83,7 +91,7 @@
 
             <div class="form-group">
               <label class="form-label">
-                結束時間 <span class="required">*</span>
+                {{ t("scheduleForm.endTime") }} <span class="required">*</span>
               </label>
               <input
                 v-model="formData.endTime"
@@ -97,7 +105,8 @@
           <!-- Break Duration -->
           <div class="form-group">
             <label class="form-label">
-              休息時間（分鐘） <span class="optional">(選填)</span>
+              {{ t("scheduleForm.breakDuration") }}
+              <span class="optional">({{ t("scheduleForm.optional") }})</span>
             </label>
             <input
               v-model.number="formData.breakDurationMinutes"
@@ -111,7 +120,9 @@
 
           <!-- Scheduled Hours (Auto-calculated) -->
           <div class="form-group">
-            <label class="form-label"> 預計工時 </label>
+            <label class="form-label">
+              {{ t("scheduleForm.scheduledHours") }}
+            </label>
             <input
               :value="calculatedHours"
               type="text"
@@ -123,26 +134,28 @@
           <!-- Notes -->
           <div class="form-group">
             <label class="form-label">
-              備註 <span class="optional">(選填)</span>
+              {{ t("scheduleForm.notes") }}
+              <span class="optional">({{ t("scheduleForm.optional") }})</span>
             </label>
             <textarea
               v-model="formData.notes"
               class="form-control"
               rows="3"
-              placeholder="排班備註..."
+              :placeholder="t('scheduleForm.notesPlaceholder')"
             ></textarea>
           </div>
 
           <!-- Manager Notes (Admin/Owner only) -->
           <div class="form-group">
             <label class="form-label">
-              管理備註 <span class="optional">(選填)</span>
+              {{ t("scheduleForm.managerNotes") }}
+              <span class="optional">({{ t("scheduleForm.optional") }})</span>
             </label>
             <textarea
               v-model="formData.managerNotes"
               class="form-control"
               rows="2"
-              placeholder="管理員備註..."
+              :placeholder="t('scheduleForm.managerNotesPlaceholder')"
             ></textarea>
           </div>
 
@@ -156,7 +169,7 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" @click="$emit('close')">
-          取消
+          {{ t("common.cancel") }}
         </button>
         <button
           type="button"
@@ -164,7 +177,7 @@
           :disabled="loading"
           @click="handleSubmit"
         >
-          {{ loading ? "儲存中..." : "儲存" }}
+          {{ loading ? t("scheduleForm.saving") : t("common.save") }}
         </button>
       </div>
     </div>
@@ -173,6 +186,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import type {
@@ -192,6 +206,8 @@ const emit = defineEmits<{
   save: [data: CreateScheduleData | UpdateScheduleData];
   close: [];
 }>();
+
+const { t } = useI18n();
 
 // Auth
 const authStore = useAuthStore();
@@ -267,7 +283,7 @@ const handleDateChange = async () => {
     }
   } catch (err) {
     console.error("Failed to fetch available employees:", err);
-    error.value = "無法載入可用員工列表";
+    error.value = t("scheduleForm.loadEmployeesError");
   } finally {
     loading.value = false;
   }
@@ -293,22 +309,22 @@ const validateForm = (): boolean => {
   error.value = null;
 
   if (!formData.employeeId) {
-    error.value = "請選擇員工";
+    error.value = t("scheduleForm.errorSelectEmployee");
     return false;
   }
 
   if (!formData.workDate) {
-    error.value = "請選擇排班日期";
+    error.value = t("scheduleForm.errorSelectDate");
     return false;
   }
 
   if (!formData.startTime || !formData.endTime) {
-    error.value = "請設定開始和結束時間";
+    error.value = t("scheduleForm.errorSetTime");
     return false;
   }
 
   if (formData.scheduledHours <= 0) {
-    error.value = "預計工時必須大於 0";
+    error.value = t("scheduleForm.errorPositiveHours");
     return false;
   }
 
@@ -339,7 +355,8 @@ const handleSubmit = async () => {
     emit("save", scheduleData);
   } catch (err) {
     console.error("Form submission error:", err);
-    error.value = err instanceof Error ? err.message : "表單提交失敗";
+    error.value =
+      err instanceof Error ? err.message : t("scheduleForm.submitError");
   } finally {
     loading.value = false;
   }
