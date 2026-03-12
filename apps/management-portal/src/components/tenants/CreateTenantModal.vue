@@ -21,12 +21,13 @@ const form = ref<CreateTenantRequest>({
   contactEmail: "",
   contactPhone: "",
   subdomain: "",
-  planId: "standard",
+  licenseTier: "standard",
 });
 
 // 表單錯誤
 const errors = ref<Record<string, string>>({});
 const submitting = ref(false);
+const submitError = ref("");
 
 // 方案選項
 const planOptions = [
@@ -57,9 +58,10 @@ watch(
         contactEmail: "",
         contactPhone: "",
         subdomain: "",
-        planId: "standard",
+        licenseTier: "standard",
       };
       errors.value = {};
+      submitError.value = "";
     }
   },
 );
@@ -90,11 +92,14 @@ const handleSubmit = async () => {
   if (!validate()) return;
 
   submitting.value = true;
+  submitError.value = "";
   try {
     await tenantsStore.createTenant(form.value);
     emit("success");
   } catch (e) {
     console.error("創建租戶失敗:", e);
+    submitError.value =
+      e instanceof Error ? e.message : "創建租戶失敗，請稍後再試";
   } finally {
     submitting.value = false;
   }
@@ -207,13 +212,13 @@ const handleSubmit = async () => {
                   class="flex items-start p-3 border rounded-lg cursor-pointer transition-colors"
                   :class="{
                     'border-primary-500 bg-primary-50':
-                      form.planId === plan.value,
+                      form.licenseTier === plan.value,
                     'border-gray-200 hover:border-gray-300':
-                      form.planId !== plan.value,
+                      form.licenseTier !== plan.value,
                   }"
                 >
                   <input
-                    v-model="form.planId"
+                    v-model="form.licenseTier"
                     type="radio"
                     :value="plan.value"
                     class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500"
@@ -230,6 +235,14 @@ const handleSubmit = async () => {
               </div>
             </div>
           </form>
+
+          <!-- 錯誤提示 -->
+          <div
+            v-if="submitError"
+            class="mx-6 mb-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+          >
+            {{ submitError }}
+          </div>
 
           <!-- 操作按鈕 -->
           <div

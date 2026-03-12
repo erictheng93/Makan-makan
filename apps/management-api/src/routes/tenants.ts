@@ -31,7 +31,8 @@ const createTenantSchema = z.object({
     .regex(
       /^[a-z0-9-]+$/,
       "Subdomain must be lowercase alphanumeric with hyphens",
-    ),
+    )
+    .optional(),
   customDomain: z.string().optional(),
   licenseTier: z.enum(["standard", "professional", "enterprise"]),
 });
@@ -145,10 +146,24 @@ router.post("/", async (c) => {
     const body = await c.req.json();
     const validated = createTenantSchema.parse(body);
 
+    // Auto-generate subdomain from businessName if not provided
+    let subdomain = validated.subdomain;
+    if (!subdomain) {
+      const base = validated.businessName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 20);
+      const suffix = Math.random().toString(36).substring(2, 5);
+      subdomain = base ? `${base}-${suffix}` : `tenant-${suffix}`;
+    }
+
     // Check subdomain availability
-    const existing = await tenantService.getTenantBySubdomain(
-      validated.subdomain,
-    );
+    const existing = await tenantService.getTenantBySubdomain(subdomain);
     if (existing) {
       return c.json(
         {
@@ -160,9 +175,10 @@ router.post("/", async (c) => {
       );
     }
 
-    const tenant = await tenantService.createTenant(
-      validated as CreateTenantRequest,
-    );
+    const tenant = await tenantService.createTenant({
+      ...validated,
+      subdomain,
+    } as CreateTenantRequest);
 
     return c.json(
       {

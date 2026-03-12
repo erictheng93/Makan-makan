@@ -43,7 +43,7 @@ export interface Tenant {
   customDomain?: string;
   deployedVersion?: string;
   status: TenantStatus;
-  planId?: string;
+  licenseTier?: LicenseTier;
   cfAccountId?: string;
   createdAt: string;
   activatedAt?: string;
@@ -160,7 +160,7 @@ export interface CreateTenantRequest {
   contactEmail: string;
   contactPhone?: string;
   subdomain?: string;
-  planId?: string;
+  licenseTier: LicenseTier;
 }
 
 /**
