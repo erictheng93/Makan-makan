@@ -5,9 +5,11 @@
       class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
     >
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">統計面板</h1>
+        <h1 class="text-3xl font-bold text-gray-900">
+          {{ t("statisticsDashboard.title") }}
+        </h1>
         <p class="text-gray-600 mt-1">
-          實時統計數據、平均製作時間、完成率統計和績效趨勢
+          {{ t("statisticsDashboard.subtitle") }}
         </p>
       </div>
       <div class="mt-4 sm:mt-0 flex items-center space-x-4">
@@ -32,7 +34,9 @@
                 }"
               />
             </div>
-            <span class="ml-2 text-sm text-gray-700">自動刷新</span>
+            <span class="ml-2 text-sm text-gray-700">{{
+              t("statisticsDashboard.autoRefresh")
+            }}</span>
           </label>
         </div>
 
@@ -45,7 +49,7 @@
             class="h-4 w-4 mr-2"
             :class="{ 'animate-spin': statisticsService.isLoading.value }"
           />
-          刷新
+          {{ t("statisticsDashboard.refresh") }}
         </button>
 
         <button
@@ -53,7 +57,7 @@
           @click="handleExport"
         >
           <DocumentArrowDownIcon class="h-4 w-4 mr-2" />
-          匯出
+          {{ t("statisticsDashboard.export") }}
         </button>
       </div>
     </div>
@@ -64,9 +68,10 @@
         <div class="flex items-center text-sm text-gray-500">
           <ClockIcon class="h-4 w-4 mr-1" />
           <span v-if="statisticsService.lastUpdated.value">
-            最後更新：{{ formatDateTime(statisticsService.lastUpdated.value) }}
+            {{ t("statisticsDashboard.lastUpdate") }}:
+            {{ formatDateTime(statisticsService.lastUpdated.value) }}
           </span>
-          <span v-else>尚未載入數據</span>
+          <span v-else>{{ t("statisticsDashboard.noDataLoaded") }}</span>
         </div>
 
         <!-- WebSocket 連線狀態 -->
@@ -92,7 +97,7 @@
           class="text-blue-600 hover:text-blue-800 text-sm underline"
           @click="reconnect"
         >
-          重新連線
+          {{ t("statisticsDashboard.reconnect") }}
         </button>
       </div>
     </div>
@@ -101,16 +106,16 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <!-- 待處理訂單 -->
       <StatCard
-        title="待處理訂單"
+        :title="t('statisticsDashboard.pendingOrders')"
         :value="statisticsService.dashboardData.realtime_stats.pending_orders"
         icon="QueueListIcon"
         color="yellow"
-        :subtitle="`${statisticsService.dashboardData.realtime_stats.preparing_orders} 製作中`"
+        :subtitle="`${statisticsService.dashboardData.realtime_stats.preparing_orders} ${t('statisticsDashboard.preparing')}`"
       />
 
       <!-- 完成率 -->
       <StatCard
-        title="今日完成率"
+        :title="t('statisticsDashboard.completionRateToday')"
         :value="`${statisticsService.completionRateToday}%`"
         icon="CheckCircleIcon"
         :color="
@@ -120,12 +125,12 @@
               ? 'yellow'
               : 'red'
         "
-        :subtitle="`${statisticsService.dashboardData.realtime_stats.completed_today}/${statisticsService.dashboardData.realtime_stats.total_today} 訂單`"
+        :subtitle="`${statisticsService.dashboardData.realtime_stats.completed_today}/${statisticsService.dashboardData.realtime_stats.total_today} ${t('statisticsDashboard.ordersUnit')}`"
       />
 
       <!-- 平均製作時間 -->
       <StatCard
-        title="平均製作時間"
+        :title="t('statisticsDashboard.avgPrepTime')"
         :value="
           statisticsService.formatTime(
             statisticsService.dashboardData.kpis.avg_preparation_time,
@@ -139,12 +144,12 @@
               ? 'yellow'
               : 'red'
         "
-        :subtitle="'目標: 20分鐘以內'"
+        :subtitle="t('statisticsDashboard.targetTime')"
       />
 
       <!-- 效率評分 -->
       <StatCard
-        title="效率評分"
+        :title="t('statisticsDashboard.efficiencyScore')"
         :value="`${statisticsService.dashboardData.kpis.efficiency_score}分`"
         icon="ChartBarIcon"
         :color="
@@ -154,7 +159,7 @@
               ? 'yellow'
               : 'red'
         "
-        :subtitle="'綜合效率指標'"
+        :subtitle="t('statisticsDashboard.compositeEfficiency')"
       />
     </div>
 
@@ -162,10 +167,14 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
       <!-- 系統負載 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">系統負載</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("statisticsDashboard.systemLoad") }}
+        </h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">廚房容量</span>
+            <span class="text-sm text-gray-600">{{
+              t("statisticsDashboard.kitchenCapacity")
+            }}</span>
             <span class="text-sm font-medium"
               >{{
                 statisticsService.dashboardData.system_load.active_orders
@@ -188,7 +197,9 @@
             />
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-gray-600">負載程度</span>
+            <span class="text-gray-600">{{
+              t("statisticsDashboard.loadLevel")
+            }}</span>
             <span
               :class="
                 statisticsService
@@ -206,14 +217,18 @@
 
       <!-- 緊急訂單 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">緊急訂單</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("statisticsDashboard.urgentOrders") }}
+        </h3>
         <div class="space-y-3">
           <div
             v-if="statisticsService.urgentOrders.length === 0"
             class="text-center py-4"
           >
             <CheckCircleIcon class="mx-auto h-8 w-8 text-green-500 mb-2" />
-            <p class="text-sm text-gray-500">沒有緊急訂單</p>
+            <p class="text-sm text-gray-500">
+              {{ t("statisticsDashboard.noUrgentOrders") }}
+            </p>
           </div>
           <div v-else>
             <div
@@ -225,11 +240,15 @@
                 <p class="text-sm font-medium text-gray-900">
                   #{{ order.order_number }}
                 </p>
-                <p class="text-xs text-gray-500">桌號 {{ order.table_id }}</p>
+                <p class="text-xs text-gray-500">
+                  {{ t("statisticsDashboard.tableNumber") }}
+                  {{ order.table_id }}
+                </p>
               </div>
               <div class="text-right">
                 <p class="text-sm font-medium text-red-600">
-                  {{ order.elapsed_minutes }}分鐘
+                  {{ order.elapsed_minutes
+                  }}{{ t("statisticsDashboard.minutes") }}
                 </p>
                 <p class="text-xs text-gray-500">
                   {{ order.status }}
@@ -242,7 +261,9 @@
 
       <!-- 今日營收 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">今日營收</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("statisticsDashboard.todayRevenue") }}
+        </h3>
         <div class="space-y-3">
           <div class="text-3xl font-bold text-green-600">
             {{
@@ -252,7 +273,9 @@
             }}
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-gray-600">平均客單價</span>
+            <span class="text-gray-600">{{
+              t("statisticsDashboard.avgOrderValue")
+            }}</span>
             <span class="font-medium">{{
               statisticsService.formatCurrency(
                 statisticsService.averageOrderValue,
@@ -260,12 +283,12 @@
             }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-gray-600">每小時訂單</span>
+            <span class="text-gray-600">{{
+              t("statisticsDashboard.ordersPerHour")
+            }}</span>
             <span class="font-medium"
-              >{{
-                statisticsService.dashboardData.kpis.orders_per_hour
-              }}
-              筆</span
+              >{{ statisticsService.dashboardData.kpis.orders_per_hour }}
+              {{ t("statisticsDashboard.ordersUnit") }}</span
             >
           </div>
         </div>
@@ -276,7 +299,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       <!-- 每小時完成率 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">每小時完成率</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          {{ t("statisticsDashboard.hourlyCompletionRate") }}
+        </h3>
         <div class="space-y-3">
           <div
             v-for="hour in statisticsService.dashboardData
@@ -310,7 +335,7 @@
       <!-- 分類平均時間 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          各分類平均製作時間
+          {{ t("statisticsDashboard.categoryAvgTime") }}
         </h3>
         <div class="space-y-3">
           <div
@@ -323,7 +348,8 @@
                 category.category_name
               }}</span>
               <span class="text-xs text-gray-500 ml-2"
-                >({{ category.item_count }} 品項)</span
+                >({{ category.item_count }}
+                {{ t("statisticsDashboard.items") }})</span
               >
             </div>
             <div class="text-right">
@@ -337,7 +363,8 @@
                       : 'text-red-600'
                 "
               >
-                {{ Math.round(category.avg_time_minutes) }}分鐘
+                {{ Math.round(category.avg_time_minutes)
+                }}{{ t("statisticsDashboard.minutes") }}
               </span>
             </div>
           </div>
@@ -349,7 +376,7 @@
     <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
       <PerformanceTrendChart
         :data="statisticsService.dashboardData.performance_trend"
-        title="績效趨勢（最近7天）"
+        :title="t('statisticsDashboard.performanceTrend')"
         :is-loading="statisticsService.isLoading.value"
       />
     </div>
@@ -358,7 +385,9 @@
     <div class="bg-white rounded-lg shadow-sm mb-8">
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">詳細趨勢數據</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("statisticsDashboard.detailedTrend") }}
+          </h3>
           <div class="flex items-center">
             <div
               :class="`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -383,10 +412,10 @@
               />
               {{
                 statisticsService.performanceTrendDirection === "up"
-                  ? "上升趨勢"
+                  ? t("statisticsDashboard.trendUp")
                   : statisticsService.performanceTrendDirection === "down"
-                    ? "下降趨勢"
-                    : "穩定趨勢"
+                    ? t("statisticsDashboard.trendDown")
+                    : t("statisticsDashboard.trendStable")
               }}
             </div>
           </div>
@@ -399,32 +428,32 @@
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  日期
+                  {{ t("statisticsDashboard.colDate") }}
                 </th>
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  總訂單
+                  {{ t("statisticsDashboard.colTotalOrders") }}
                 </th>
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  已完成
+                  {{ t("statisticsDashboard.colCompleted") }}
                 </th>
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  完成率
+                  {{ t("statisticsDashboard.colCompletionRate") }}
                 </th>
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  平均時間
+                  {{ t("statisticsDashboard.colAvgTime") }}
                 </th>
                 <th
                   class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  營收
+                  {{ t("statisticsDashboard.colRevenue") }}
                 </th>
               </tr>
             </thead>
@@ -481,7 +510,8 @@
                           : 'text-red-600'
                     }`"
                   >
-                    {{ Math.round(trend.avg_prep_time || 0) }}分鐘
+                    {{ Math.round(trend.avg_prep_time || 0)
+                    }}{{ t("statisticsDashboard.minutes") }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">
@@ -498,7 +528,9 @@
             class="text-center py-8"
           >
             <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p class="text-gray-500">暫無趨勢數據</p>
+            <p class="text-gray-500">
+              {{ t("statisticsDashboard.noTrendData") }}
+            </p>
           </div>
         </div>
       </div>
@@ -507,7 +539,9 @@
     <!-- 活躍訂單列表 -->
     <div class="bg-white rounded-lg shadow-sm p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        活躍訂單 ({{ statisticsService.totalActiveOrders }})
+        {{ t("statisticsDashboard.activeOrders") }} ({{
+          statisticsService.totalActiveOrders
+        }})
       </h3>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -516,37 +550,37 @@
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                訂單號
+                {{ t("statisticsDashboard.colOrderNo") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                顧客
+                {{ t("statisticsDashboard.colCustomer") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                桌號
+                {{ t("statisticsDashboard.colTable") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                類型
+                {{ t("statisticsDashboard.colType") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                狀態
+                {{ t("statisticsDashboard.colStatus") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                等待時間
+                {{ t("statisticsDashboard.colWaitTime") }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                金額
+                {{ t("statisticsDashboard.colAmount") }}
               </th>
             </tr>
           </thead>
@@ -561,7 +595,7 @@
                 #{{ order.order_number }}
               </td>
               <td class="px-4 py-3 text-sm text-gray-900">
-                {{ order.customer_name || "匿名" }}
+                {{ order.customer_name || t("statisticsDashboard.anonymous") }}
               </td>
               <td class="px-4 py-3 text-sm text-gray-900">
                 {{ order.table_id || "-" }}
@@ -598,7 +632,9 @@
           class="text-center py-8"
         >
           <CheckCircleIcon class="mx-auto h-12 w-12 text-green-500 mb-4" />
-          <p class="text-gray-500">目前沒有活躍訂單</p>
+          <p class="text-gray-500">
+            {{ t("statisticsDashboard.noActiveOrders") }}
+          </p>
         </div>
       </div>
     </div>
@@ -607,7 +643,10 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from "vue";
+import { useI18n } from "@/i18n";
 import { statisticsService } from "@/services/statisticsService";
+
+const { t } = useI18n();
 import useStatisticsSSE from "@/composables/useStatisticsSSE";
 import StatCard from "@/components/StatCard.vue";
 import PerformanceTrendChart from "@/components/PerformanceTrendChart.vue";
@@ -636,11 +675,19 @@ const {
 // SSE 連線狀態指示
 const connectionStatus = computed(() => {
   if (isConnected.value)
-    return { text: "已連線", color: "text-green-600", icon: WifiIcon };
+    return {
+      text: t("statisticsDashboard.connected"),
+      color: "text-green-600",
+      icon: WifiIcon,
+    };
   if (isConnecting.value)
-    return { text: "連線中...", color: "text-yellow-600", icon: ArrowPathIcon };
+    return {
+      text: t("statisticsDashboard.connecting"),
+      color: "text-yellow-600",
+      icon: ArrowPathIcon,
+    };
   return {
-    text: "未連線",
+    text: t("statisticsDashboard.disconnected"),
     color: "text-red-600",
     icon: ExclamationTriangleIcon,
   };
@@ -702,11 +749,11 @@ const formatDate = (dateString: string) => {
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
-    pending: "待確認",
-    preparing: "製作中",
-    ready: "待取餐",
-    completed: "已完成",
-    cancelled: "已取消",
+    pending: t("statisticsDashboard.statusPending"),
+    preparing: t("statisticsDashboard.statusPreparing"),
+    ready: t("statisticsDashboard.statusReady"),
+    completed: t("statisticsDashboard.statusCompleted"),
+    cancelled: t("statisticsDashboard.statusCancelled"),
   };
   return statusMap[status] || status;
 };

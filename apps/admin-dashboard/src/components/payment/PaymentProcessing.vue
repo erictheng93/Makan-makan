@@ -30,28 +30,30 @@
       </div>
 
       <div class="state-content">
-        <h2 class="state-title">處理付款中</h2>
+        <h2 class="state-title">{{ t("payment.processing.title") }}</h2>
         <p class="state-description">
-          正在安全地處理您的支付請求，請勿關閉瀏覽器...
+          {{ t("payment.processing.description") }}
         </p>
 
         <div class="processing-steps">
           <div class="processing-step" :class="{ active: processingStep >= 1 }">
             <div class="step-dot"></div>
-            <span>驗證支付資訊</span>
+            <span>{{ t("payment.processing.stepVerify") }}</span>
           </div>
           <div class="processing-step" :class="{ active: processingStep >= 2 }">
             <div class="step-dot"></div>
-            <span>連接支付網關</span>
+            <span>{{ t("payment.processing.stepGateway") }}</span>
           </div>
           <div class="processing-step" :class="{ active: processingStep >= 3 }">
             <div class="step-dot"></div>
-            <span>確認交易</span>
+            <span>{{ t("payment.processing.stepConfirm") }}</span>
           </div>
         </div>
 
         <div v-if="transactionId" class="transaction-info">
-          <p class="transaction-label">交易編號</p>
+          <p class="transaction-label">
+            {{ t("payment.processing.transactionId") }}
+          </p>
           <p class="transaction-id">{{ transactionId }}</p>
         </div>
       </div>
@@ -79,34 +81,44 @@
       </div>
 
       <div class="state-content">
-        <h2 class="state-title text-green-700">支付成功！</h2>
+        <h2 class="state-title text-green-700">
+          {{ t("payment.processing.successTitle") }}
+        </h2>
         <p class="state-description">
-          您的支付已成功處理，訂單確認信息將發送至您的電子郵件。
+          {{ t("payment.processing.successDescription") }}
         </p>
 
         <div class="success-details">
           <div class="detail-row">
-            <span class="detail-label">交易編號</span>
+            <span class="detail-label">{{
+              t("payment.processing.transactionId")
+            }}</span>
             <span class="detail-value font-mono">{{ transactionId }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">支付時間</span>
+            <span class="detail-label">{{
+              t("payment.processing.paymentTime")
+            }}</span>
             <span class="detail-value">{{ formatDateTime(new Date()) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">支付狀態</span>
+            <span class="detail-label">{{
+              t("payment.processing.paymentStatus")
+            }}</span>
             <span class="detail-value">
-              <span class="status-badge success">已完成</span>
+              <span class="status-badge success">{{
+                t("payment.processing.completed")
+              }}</span>
             </span>
           </div>
         </div>
 
         <div class="success-actions">
           <button class="btn btn-primary" @click="handleContinue">
-            繼續購物
+            {{ t("payment.processing.continueShopping") }}
           </button>
           <button class="btn btn-secondary" @click="handleViewOrder">
-            查看訂單
+            {{ t("payment.processing.viewOrder") }}
           </button>
         </div>
       </div>
@@ -133,19 +145,22 @@
       </div>
 
       <div class="state-content">
-        <h2 class="state-title text-red-700">支付失敗</h2>
+        <h2 class="state-title text-red-700">
+          {{ t("payment.processing.errorTitle") }}
+        </h2>
         <p class="state-description">
-          {{
-            errorMessage ||
-            "很抱歉，您的支付處理過程中遇到問題。請檢查支付信息後重試。"
-          }}
+          {{ errorMessage || t("payment.processing.errorDescription") }}
         </p>
 
         <div v-if="errorDetails" class="error-details">
           <details class="error-accordion">
-            <summary class="error-summary">查看詳細錯誤信息</summary>
+            <summary class="error-summary">
+              {{ t("payment.processing.viewErrorDetails") }}
+            </summary>
             <div class="error-content">
-              <p class="error-code">錯誤代碼: {{ errorDetails.code }}</p>
+              <p class="error-code">
+                {{ t("payment.processing.errorCode") }}: {{ errorDetails.code }}
+              </p>
               <p class="error-message">{{ errorDetails.message }}</p>
             </div>
           </details>
@@ -177,22 +192,24 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              重試中...
+              {{ t("payment.processing.retrying") }}
             </span>
-            <span v-else>重新支付</span>
+            <span v-else>{{ t("payment.processing.retryPayment") }}</span>
           </button>
           <button class="btn btn-secondary" @click="handleCancel">
-            取消訂單
+            {{ t("payment.processing.cancelOrder") }}
           </button>
         </div>
 
         <div class="help-links">
-          <p class="help-text">需要幫助？</p>
-          <a href="#" class="help-link" @click="handleContactSupport"
-            >聯繫客服</a
-          >
+          <p class="help-text">{{ t("payment.processing.needHelp") }}</p>
+          <a href="#" class="help-link" @click="handleContactSupport">{{
+            t("payment.processing.contactSupport")
+          }}</a>
           <span class="help-divider">|</span>
-          <a href="#" class="help-link" @click="handleViewFaq">常見問題</a>
+          <a href="#" class="help-link" @click="handleViewFaq">{{
+            t("payment.processing.faq")
+          }}</a>
         </div>
       </div>
     </div>
@@ -221,14 +238,16 @@
       </div>
 
       <div class="state-content">
-        <h2 class="state-title text-gray-700">支付已取消</h2>
+        <h2 class="state-title text-gray-700">
+          {{ t("payment.processing.cancelledTitle") }}
+        </h2>
         <p class="state-description">
-          您已取消此次支付，如需重新下單請返回商品頁面。
+          {{ t("payment.processing.cancelledDescription") }}
         </p>
 
         <div class="cancelled-actions">
           <button class="btn btn-primary" @click="handleReturnToShopping">
-            返回購物
+            {{ t("payment.processing.returnToShopping") }}
           </button>
         </div>
       </div>
@@ -238,6 +257,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 
 // Types
 interface ErrorDetails {
@@ -269,6 +289,8 @@ interface Emits {
 }
 
 const emit = defineEmits<Emits>();
+
+const { t } = useI18n();
 
 // Reactive state
 const processingStep = ref(1);

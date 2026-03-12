@@ -68,7 +68,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 interface CalendarDay {
   date: string;
@@ -87,7 +90,15 @@ const props = defineProps<Props>();
 
 const currentDate = ref(new Date());
 
-const weekdays = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+const weekdays = computed(() => [
+  t("weekdays.short.sunday"),
+  t("weekdays.short.monday"),
+  t("weekdays.short.tuesday"),
+  t("weekdays.short.wednesday"),
+  t("weekdays.short.thursday"),
+  t("weekdays.short.friday"),
+  t("weekdays.short.saturday"),
+]);
 
 const currentMonth = computed(() => {
   return currentDate.value.toLocaleDateString("zh-TW", {

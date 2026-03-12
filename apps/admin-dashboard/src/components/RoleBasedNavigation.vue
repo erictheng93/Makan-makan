@@ -47,11 +47,11 @@
               class="text-sm border border-gray-300 rounded-md px-3 py-1 bg-white"
               @change="handleRoleSwitch"
             >
-              <option value="">切換檢視角色</option>
-              <option value="owner">店主檢視</option>
-              <option value="chef">廚師檢視</option>
-              <option value="service">送菜員檢視</option>
-              <option value="cashier">收銀員檢視</option>
+              <option value="">{{ t("roleNav.switchRole") }}</option>
+              <option value="owner">{{ t("roleNav.ownerView") }}</option>
+              <option value="chef">{{ t("roleNav.chefView") }}</option>
+              <option value="service">{{ t("roleNav.serviceView") }}</option>
+              <option value="cashier">{{ t("roleNav.cashierView") }}</option>
             </select>
           </div>
 
@@ -113,7 +113,7 @@
                   @click="handleLogout"
                 >
                   <ArrowRightOnRectangleIcon class="w-4 h-4 mr-3" />
-                  登出
+                  {{ t("roleNav.logout") }}
                 </button>
               </div>
             </div>
@@ -146,6 +146,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useRouter } from "vue-router";
 import {
   BuildingStorefrontIcon,
@@ -164,6 +165,7 @@ import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 
 const router = useRouter();
+const { t } = useI18n();
 const authStore = useAuthStore();
 
 const showNotifications = ref(false);
@@ -171,10 +173,10 @@ const showUserMenu = ref(false);
 const unreadNotifications = ref(2);
 
 // 導航項目定義
-const allNavItems = [
+const allNavItems = computed(() => [
   {
     name: "dashboard",
-    label: "總覽",
+    label: t("roleNav.dashboard"),
     href: "/dashboard",
     icon: HomeIcon,
     roles: [
@@ -187,83 +189,88 @@ const allNavItems = [
   },
   {
     name: "owner",
-    label: "店主中心",
+    label: t("roleNav.ownerCenter"),
     href: "/owner",
     icon: BuildingStorefrontIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
     name: "orders",
-    label: "訂單管理",
+    label: t("roleNav.orderManagement"),
     href: "/dashboard/orders",
     icon: ShoppingCartIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE, UserRole.CASHIER],
   },
   {
     name: "menu",
-    label: "菜單管理",
+    label: t("roleNav.menuManagement"),
     href: "/dashboard/menu",
     icon: DocumentTextIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
     name: "tables",
-    label: "桌台管理",
+    label: t("roleNav.tableManagement"),
     href: "/dashboard/tables",
     icon: TableCellsIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
     name: "kitchen",
-    label: "廚房顯示",
+    label: t("roleNav.kitchenDisplay"),
     href: "/kitchen",
     icon: HomeIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
   },
   {
     name: "service",
-    label: "送菜系統",
+    label: t("roleNav.serviceSystem"),
     href: "/service",
     icon: HomeIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
   },
   {
     name: "cashier",
-    label: "收銀台",
+    label: t("roleNav.cashier"),
     href: "/cashier",
     icon: HomeIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
   },
   {
     name: "analytics",
-    label: "數據分析",
+    label: t("roleNav.analytics"),
     href: "/dashboard/analytics",
     icon: ChartBarIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
     name: "users",
-    label: "員工管理",
+    label: t("roleNav.userManagement"),
     href: "/dashboard/users",
     icon: UsersIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
     name: "settings",
-    label: "系統設定",
+    label: t("roleNav.systemSettings"),
     href: "/dashboard/settings",
     icon: Cog6ToothIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
-];
+]);
 
 // 用戶菜單項目
 const userMenuItems = computed(() => {
   const items = [
-    { name: "profile", label: "個人資料", href: "/profile", icon: UserIcon },
+    {
+      name: "profile",
+      label: t("roleNav.profile"),
+      href: "/profile",
+      icon: UserIcon,
+    },
     {
       name: "settings",
-      label: "偏好設定",
+      label: t("roleNav.preferences"),
       href: "/preferences",
       icon: Cog6ToothIcon,
     },
@@ -281,22 +288,26 @@ const userMenuItems = computed(() => {
 const visibleNavItems = computed(() => {
   if (!authStore.user) return [];
 
-  return allNavItems.filter((item) => authStore.hasPermission(item.roles));
+  return allNavItems.value.filter((item) =>
+    authStore.hasPermission(item.roles),
+  );
 });
 
 // 角色顯示名稱
 const roleDisplayName = computed(() => {
   if (!authStore.user) return "";
 
-  const roleNames: Record<number, string> = {
-    [UserRole.ADMIN]: "系統管理員",
-    [UserRole.OWNER]: "店主",
-    [UserRole.CHEF]: "廚師",
-    [UserRole.SERVICE]: "送菜員",
-    [UserRole.CASHIER]: "收銀員",
+  const roleKeys: Record<number, string> = {
+    [UserRole.ADMIN]: "roleNav.roles.admin",
+    [UserRole.OWNER]: "roleNav.roles.owner",
+    [UserRole.CHEF]: "roleNav.roles.chef",
+    [UserRole.SERVICE]: "roleNav.roles.service",
+    [UserRole.CASHIER]: "roleNav.roles.cashier",
   };
 
-  return roleNames[authStore.user.role] || "未知角色";
+  return roleKeys[authStore.user.role]
+    ? t(roleKeys[authStore.user.role])
+    : t("roleNav.roles.unknown");
 });
 
 // 角色顏色樣式

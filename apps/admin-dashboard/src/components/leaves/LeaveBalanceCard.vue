@@ -8,7 +8,9 @@
           :style="{ backgroundColor: balance.leaveType?.color || '#3B82F6' }"
         />
         <div class="type-details">
-          <h3 class="type-name">{{ balance.leaveType?.name || "未知假別" }}</h3>
+          <h3 class="type-name">
+            {{ balance.leaveType?.name || t("leaves.balance.unknownType") }}
+          </h3>
           <p class="type-code">{{ balance.leaveType?.code }}</p>
         </div>
       </div>
@@ -17,7 +19,7 @@
         <span class="remaining-days">
           {{ formatDays(balance.remainingDays) }}
         </span>
-        <span class="days-label">{{ $t("leaves.balance.daysRemaining") }}</span>
+        <span class="days-label">{{ t("leaves.balance.daysRemaining") }}</span>
       </div>
     </div>
 
@@ -34,10 +36,10 @@
       </div>
       <div class="progress-labels">
         <span class="label-used">
-          {{ $t("leaves.balance.used") }}: {{ formatDays(balance.usedDays) }}
+          {{ t("leaves.balance.used") }}: {{ formatDays(balance.usedDays) }}
         </span>
         <span class="label-total">
-          {{ $t("leaves.balance.total") }}: {{ formatDays(balance.totalDays) }}
+          {{ t("leaves.balance.total") }}: {{ formatDays(balance.totalDays) }}
         </span>
       </div>
     </div>
@@ -45,15 +47,15 @@
     <!-- 詳細資訊 -->
     <div v-if="showDetails" class="details-section">
       <div class="detail-row">
-        <span class="detail-label">{{ $t("leaves.balance.pending") }}:</span>
+        <span class="detail-label">{{ t("leaves.balance.pending") }}:</span>
         <span class="detail-value">{{ formatDays(balance.pendingDays) }}</span>
       </div>
       <div v-if="balance.leaveType?.allowCarryover" class="detail-row">
-        <span class="detail-label">{{ $t("leaves.balance.carryover") }}:</span>
+        <span class="detail-label">{{ t("leaves.balance.carryover") }}:</span>
         <span class="detail-value">
           {{ formatDays(balance.carryoverDays || 0) }}
           <span v-if="balance.carryoverExpiresAt" class="expiry-note">
-            ({{ $t("leaves.balance.expiresOn") }}:
+            ({{ t("leaves.balance.expiresOn") }}:
             {{ formatDate(balance.carryoverExpiresAt) }})
           </span>
         </span>
@@ -72,11 +74,11 @@
             d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
           />
         </svg>
-        {{ $t("leaves.balance.requestLeave") }}
+        {{ t("leaves.balance.requestLeave") }}
       </button>
 
       <button class="btn-secondary" @click="showDetails = !showDetails">
-        {{ showDetails ? $t("common.hideDetails") : $t("common.showDetails") }}
+        {{ showDetails ? t("common.hideDetails") : t("common.showDetails") }}
       </button>
     </div>
   </div>
@@ -84,7 +86,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { LeaveBalance } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 interface Props {
   balance: LeaveBalance;

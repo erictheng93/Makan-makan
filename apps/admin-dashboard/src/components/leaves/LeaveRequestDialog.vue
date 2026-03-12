@@ -5,7 +5,7 @@
         <!-- 對話框標題 -->
         <div class="dialog-header">
           <h2 class="dialog-title">
-            {{ $t("leaves.request.title") }}
+            {{ t("leaves.request.title") }}
           </h2>
           <button class="btn-close" @click="handleClose">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
@@ -23,7 +23,7 @@
           <!-- 請假類型選擇 -->
           <div class="form-group">
             <label class="form-label required">
-              {{ $t("leaves.request.leaveType") }}
+              {{ t("leaves.request.leaveType") }}
             </label>
             <select
               v-model="formData.leaveTypeId"
@@ -32,15 +32,15 @@
               required
             >
               <option value="">
-                {{ $t("leaves.request.selectLeaveType") }}
+                {{ t("leaves.request.selectLeaveType") }}
               </option>
               <option
                 v-for="type in leaveTypes"
                 :key="type.id"
                 :value="type.id"
               >
-                {{ type.name }} ({{ $t("leaves.balance.remaining") }}:
-                {{ getTypeBalance(type.id) }} {{ $t("leaves.balance.days") }})
+                {{ type.name }} ({{ t("leaves.balance.remaining") }}:
+                {{ getTypeBalance(type.id) }} {{ t("leaves.balance.days") }})
               </option>
             </select>
             <span v-if="errors.leaveTypeId" class="error-message">
@@ -52,7 +52,7 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label required">
-                {{ $t("leaves.request.startDate") }}
+                {{ t("leaves.request.startDate") }}
               </label>
               <input
                 v-model="formData.startDate"
@@ -70,7 +70,7 @@
 
             <div class="form-group">
               <label class="form-label">
-                {{ $t("leaves.request.startPeriod") }}
+                {{ t("leaves.request.startPeriod") }}
               </label>
               <select
                 v-model="formData.startPeriod"
@@ -78,9 +78,9 @@
                 :disabled="!selectedLeaveType?.allowHalfDay"
                 @change="calculateDuration"
               >
-                <option value="full">{{ $t("leaves.request.fullDay") }}</option>
-                <option value="am">{{ $t("leaves.request.morning") }}</option>
-                <option value="pm">{{ $t("leaves.request.afternoon") }}</option>
+                <option value="full">{{ t("leaves.request.fullDay") }}</option>
+                <option value="am">{{ t("leaves.request.morning") }}</option>
+                <option value="pm">{{ t("leaves.request.afternoon") }}</option>
               </select>
             </div>
           </div>
@@ -89,7 +89,7 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label required">
-                {{ $t("leaves.request.endDate") }}
+                {{ t("leaves.request.endDate") }}
               </label>
               <input
                 v-model="formData.endDate"
@@ -107,7 +107,7 @@
 
             <div class="form-group">
               <label class="form-label">
-                {{ $t("leaves.request.endPeriod") }}
+                {{ t("leaves.request.endPeriod") }}
               </label>
               <select
                 v-model="formData.endPeriod"
@@ -118,9 +118,9 @@
                 "
                 @change="calculateDuration"
               >
-                <option value="full">{{ $t("leaves.request.fullDay") }}</option>
-                <option value="am">{{ $t("leaves.request.morning") }}</option>
-                <option value="pm">{{ $t("leaves.request.afternoon") }}</option>
+                <option value="full">{{ t("leaves.request.fullDay") }}</option>
+                <option value="am">{{ t("leaves.request.morning") }}</option>
+                <option value="pm">{{ t("leaves.request.afternoon") }}</option>
               </select>
             </div>
           </div>
@@ -135,22 +135,22 @@
               />
             </svg>
             <span>
-              {{ $t("leaves.request.totalDuration") }}:
+              {{ t("leaves.request.totalDuration") }}:
               <strong>{{ calculatedDays }}</strong>
-              {{ $t("leaves.balance.days") }}
+              {{ t("leaves.balance.days") }}
             </span>
           </div>
 
           <!-- 請假原因 -->
           <div class="form-group">
             <label class="form-label required">
-              {{ $t("leaves.request.reason") }}
+              {{ t("leaves.request.reason") }}
             </label>
             <textarea
               v-model="formData.reason"
               class="form-textarea"
               :class="{ error: errors.reason }"
-              :placeholder="$t('leaves.request.reasonPlaceholder')"
+              :placeholder="t('leaves.request.reasonPlaceholder')"
               rows="4"
               required
               maxlength="500"
@@ -171,9 +171,9 @@
             class="form-group"
           >
             <label class="form-label">
-              {{ $t("leaves.request.attachments") }}
+              {{ t("leaves.request.attachments") }}
               <span class="label-note">
-                ({{ $t("leaves.request.required") }})
+                ({{ t("leaves.request.required") }})
               </span>
             </label>
             <div class="file-upload-area">
@@ -195,9 +195,9 @@
                     d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.413V13H5.5z"
                   />
                 </svg>
-                <p>{{ $t("leaves.request.uploadPrompt") }}</p>
+                <p>{{ t("leaves.request.uploadPrompt") }}</p>
                 <p class="file-format-note">
-                  {{ $t("leaves.request.formatNote") }}
+                  {{ t("leaves.request.formatNote") }}
                 </p>
               </div>
             </div>
@@ -246,7 +246,7 @@
           <!-- 操作按鈕 -->
           <div class="dialog-actions">
             <button type="button" class="btn-cancel" @click="handleClose">
-              {{ $t("common.cancel") }}
+              {{ t("common.cancel") }}
             </button>
             <button
               type="submit"
@@ -254,7 +254,7 @@
               :disabled="isSubmitting || !isFormValid"
             >
               <span v-if="!isSubmitting">
-                {{ $t("leaves.request.submit") }}
+                {{ t("leaves.request.submit") }}
               </span>
               <span v-else class="loading-spinner">
                 <svg class="spinner" viewBox="0 0 24 24">
@@ -268,7 +268,7 @@
                     fill="none"
                   />
                 </svg>
-                {{ $t("common.submitting") }}
+                {{ t("common.submitting") }}
               </span>
             </button>
           </div>
@@ -280,7 +280,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/i18n";
 import type { LeaveType, LeaveBalance } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 interface Props {
   isOpen: boolean;
@@ -366,7 +369,7 @@ const calculateDuration = () => {
   const end = new Date(formData.value.endDate);
 
   if (end < start) {
-    errors.value.endDate = "結束日期不能早於開始日期";
+    errors.value.endDate = t("leaves.errors.endBeforeStart");
     calculatedDays.value = 0;
     return;
   }
@@ -396,10 +399,15 @@ const checkBalance = () => {
   );
   if (balance && calculatedDays.value > balance.remainingDays) {
     warnings.value.push(
-      `剩餘天數不足！您還有 ${balance.remainingDays} 天，但申請了 ${calculatedDays.value} 天`,
+      t("leaves.warnings.insufficientBalance", {
+        remaining: balance.remainingDays,
+        requested: calculatedDays.value,
+      }),
     );
   } else {
-    warnings.value = warnings.value.filter((w) => !w.includes("剩餘天數不足"));
+    warnings.value = warnings.value.filter(
+      (w) => !w.includes(t("leaves.warnings.insufficientTag")),
+    );
   }
 };
 
@@ -415,10 +423,15 @@ const checkNoticeRequirement = () => {
 
   if (noticeDays < selectedLeaveType.value.minNoticeDays) {
     warnings.value.push(
-      `此假別需要提前 ${selectedLeaveType.value.minNoticeDays} 天申請，但您只提前了 ${noticeDays} 天`,
+      t("leaves.warnings.noticeRequired", {
+        required: selectedLeaveType.value.minNoticeDays,
+        actual: noticeDays,
+      }),
     );
   } else {
-    warnings.value = warnings.value.filter((w) => !w.includes("提前"));
+    warnings.value = warnings.value.filter(
+      (w) => !w.includes(t("leaves.warnings.noticeTag")),
+    );
   }
 };
 
@@ -444,19 +457,19 @@ const handleSubmit = async () => {
   errors.value = {};
 
   if (!formData.value.leaveTypeId) {
-    errors.value.leaveTypeId = "請選擇請假類型";
+    errors.value.leaveTypeId = t("leaves.errors.selectLeaveType");
   }
 
   if (!formData.value.startDate) {
-    errors.value.startDate = "請選擇開始日期";
+    errors.value.startDate = t("leaves.errors.selectStartDate");
   }
 
   if (!formData.value.endDate) {
-    errors.value.endDate = "請選擇結束日期";
+    errors.value.endDate = t("leaves.errors.selectEndDate");
   }
 
   if (formData.value.reason.trim().length < 10) {
-    errors.value.reason = "請假原因至少需要 10 個字元";
+    errors.value.reason = t("leaves.errors.reasonMinLength");
   }
 
   if (Object.keys(errors.value).length > 0) {

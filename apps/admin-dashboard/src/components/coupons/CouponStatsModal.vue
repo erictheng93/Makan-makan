@@ -9,7 +9,7 @@
         <!-- Modal Header -->
         <div class="flex items-center justify-between pb-4 border-b">
           <h3 class="text-lg font-semibold text-gray-900">
-            優惠券統計 - {{ coupon?.name }}
+            {{ t("couponStats.title") }} - {{ coupon?.name }}
           </h3>
           <button
             class="text-gray-400 hover:text-gray-600"
@@ -23,23 +23,31 @@
         <div class="mt-6 bg-gray-50 rounded-lg p-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 class="text-sm font-medium text-gray-700 mb-2">優惠券資訊</h4>
+              <h4 class="text-sm font-medium text-gray-700 mb-2">
+                {{ t("couponStats.couponInfo") }}
+              </h4>
               <div class="space-y-1">
                 <p class="text-sm">
-                  <span class="font-medium">代碼:</span> {{ coupon?.code }}
+                  <span class="font-medium">{{ t("couponStats.code") }}:</span>
+                  {{ coupon?.code }}
                 </p>
                 <p class="text-sm">
-                  <span class="font-medium">名稱:</span> {{ coupon?.name }}
+                  <span class="font-medium">{{ t("couponStats.name") }}:</span>
+                  {{ coupon?.name }}
                 </p>
                 <p class="text-sm">
-                  <span class="font-medium">折扣:</span>
+                  <span class="font-medium"
+                    >{{ t("couponStats.discount") }}:</span
+                  >
                   <span v-if="coupon?.discountType === 'percentage'">
                     {{ coupon?.discountValue }}%
                     <span
                       v-if="coupon?.maxDiscountAmount"
                       class="text-gray-500"
                     >
-                      (最高 RM{{ formatMoney(coupon?.maxDiscountAmount) }})
+                      ({{ t("couponStats.maxDiscount") }} RM{{
+                        formatMoney(coupon?.maxDiscountAmount)
+                      }})
                     </span>
                   </span>
                   <span v-else>
@@ -49,18 +57,22 @@
               </div>
             </div>
             <div>
-              <h4 class="text-sm font-medium text-gray-700 mb-2">有效期</h4>
+              <h4 class="text-sm font-medium text-gray-700 mb-2">
+                {{ t("couponStats.validityPeriod") }}
+              </h4>
               <div class="space-y-1">
                 <p class="text-sm">
-                  <span class="font-medium">開始:</span>
+                  <span class="font-medium">{{ t("couponStats.start") }}:</span>
                   {{ formatDateTime(coupon?.validFrom) }}
                 </p>
                 <p class="text-sm">
-                  <span class="font-medium">結束:</span>
+                  <span class="font-medium">{{ t("couponStats.end") }}:</span>
                   {{ formatDateTime(coupon?.validTo) }}
                 </p>
                 <p class="text-sm">
-                  <span class="font-medium">狀態:</span>
+                  <span class="font-medium"
+                    >{{ t("couponStats.statusLabel") }}:</span
+                  >
                   <span :class="getStatusClass(coupon)">{{
                     getStatusText(coupon)
                   }}</span>
@@ -74,18 +86,22 @@
         <div v-if="stats" class="mt-6 space-y-6">
           <!-- Key Metrics -->
           <div>
-            <h4 class="text-md font-medium text-gray-900 mb-4">關鍵指標</h4>
+            <h4 class="text-md font-medium text-gray-900 mb-4">
+              {{ t("couponStats.keyMetrics") }}
+            </h4>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div class="bg-blue-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-blue-600">
                   {{ stats.totalUsed || 0 }}
                 </div>
-                <div class="text-sm text-blue-700">總使用次數</div>
+                <div class="text-sm text-blue-700">
+                  {{ t("couponStats.totalUsed") }}
+                </div>
                 <div
                   v-if="coupon?.usageLimit"
                   class="text-xs text-blue-600 mt-1"
                 >
-                  剩餘:
+                  {{ t("couponStats.remaining") }}:
                   {{ Math.max(0, coupon.usageLimit - (stats.totalUsed || 0)) }}
                 </div>
               </div>
@@ -94,21 +110,27 @@
                 <div class="text-2xl font-bold text-green-600">
                   RM{{ formatMoney(stats.totalDiscount || 0) }}
                 </div>
-                <div class="text-sm text-green-700">總折扣金額</div>
+                <div class="text-sm text-green-700">
+                  {{ t("couponStats.totalDiscount") }}
+                </div>
               </div>
 
               <div class="bg-purple-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-purple-600">
                   RM{{ formatMoney(stats.avgDiscount || 0) }}
                 </div>
-                <div class="text-sm text-purple-700">平均折扣</div>
+                <div class="text-sm text-purple-700">
+                  {{ t("couponStats.avgDiscount") }}
+                </div>
               </div>
 
               <div class="bg-orange-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-orange-600">
                   {{ usageRate }}%
                 </div>
-                <div class="text-sm text-orange-700">使用率</div>
+                <div class="text-sm text-orange-700">
+                  {{ t("couponStats.usageRate") }}
+                </div>
                 <div
                   v-if="coupon?.usageLimit"
                   class="w-full bg-orange-200 rounded-full h-2 mt-2"
@@ -124,17 +146,23 @@
 
           <!-- Usage Timeline -->
           <div v-if="stats.lastUsed">
-            <h4 class="text-md font-medium text-gray-900 mb-4">使用時間線</h4>
+            <h4 class="text-md font-medium text-gray-900 mb-4">
+              {{ t("couponStats.usageTimeline") }}
+            </h4>
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-medium text-gray-700">最後使用時間</p>
+                  <p class="text-sm font-medium text-gray-700">
+                    {{ t("couponStats.lastUsed") }}
+                  </p>
                   <p class="text-sm text-gray-600">
                     {{ formatDateTime(stats.lastUsed) }}
                   </p>
                 </div>
                 <div class="text-right">
-                  <p class="text-sm font-medium text-gray-700">創建時間</p>
+                  <p class="text-sm font-medium text-gray-700">
+                    {{ t("couponStats.createdAt") }}
+                  </p>
                   <p class="text-sm text-gray-600">
                     {{ formatDateTime(coupon?.createdAt) }}
                   </p>
@@ -145,17 +173,19 @@
 
           <!-- Performance Insights -->
           <div>
-            <h4 class="text-md font-medium text-gray-900 mb-4">效能洞察</h4>
+            <h4 class="text-md font-medium text-gray-900 mb-4">
+              {{ t("couponStats.performanceInsights") }}
+            </h4>
             <div class="space-y-3">
               <!-- Success Rate -->
               <div class="bg-white border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
                     <h5 class="text-sm font-medium text-gray-800">
-                      優惠券效果
+                      {{ t("couponStats.couponEffect") }}
                     </h5>
                     <p class="text-xs text-gray-600">
-                      基於使用頻率和折扣金額評估
+                      {{ t("couponStats.effectDescription") }}
                     </p>
                   </div>
                   <div class="flex items-center">
@@ -179,7 +209,9 @@
                 v-if="getRecommendations().length > 0"
                 class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
               >
-                <h5 class="text-sm font-medium text-yellow-800 mb-2">建議</h5>
+                <h5 class="text-sm font-medium text-yellow-800 mb-2">
+                  {{ t("couponStats.recommendations") }}
+                </h5>
                 <ul class="space-y-1">
                   <li
                     v-for="recommendation in getRecommendations()"
@@ -199,7 +231,9 @@
           <div
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"
           ></div>
-          <p class="mt-2 text-sm text-gray-600">載入統計數據中...</p>
+          <p class="mt-2 text-sm text-gray-600">
+            {{ t("couponStats.loading") }}
+          </p>
         </div>
 
         <!-- Modal Footer -->
@@ -209,7 +243,7 @@
             class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             @click="$emit('close')"
           >
-            關閉
+            {{ t("common.close") }}
           </button>
         </div>
       </div>
@@ -219,12 +253,15 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import {
   XMarkIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   XCircleIcon,
 } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 interface Coupon {
   id: number;
@@ -304,18 +341,19 @@ const getStatusText = (coupon: Coupon | undefined) => {
   const validTo = new Date(coupon.validTo);
 
   if (!coupon.isActive) {
-    return "已停用";
+    return t("couponStats.status.inactive");
   } else if (now > validTo) {
-    return "已過期";
+    return t("couponStats.status.expired");
   } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return "已用完";
+    return t("couponStats.status.exhausted");
   } else {
-    return "進行中";
+    return t("couponStats.status.active");
   }
 };
 
 const getPerformanceRating = () => {
-  if (!props.stats?.totalUsed || !props.coupon) return "無數據";
+  if (!props.stats?.totalUsed || !props.coupon)
+    return t("couponStats.rating.noData");
 
   const usage = props.stats.totalUsed;
   const avgDiscount = props.stats.avgDiscount || 0;
@@ -350,42 +388,53 @@ const getPerformanceRating = () => {
     score += 20; // Unlimited usage gets partial score
   }
 
-  if (score >= 70) return "優秀";
-  else if (score >= 50) return "良好";
-  else if (score >= 30) return "一般";
-  else return "需改進";
+  if (score >= 70) return t("couponStats.rating.excellent");
+  else if (score >= 50) return t("couponStats.rating.good");
+  else if (score >= 30) return t("couponStats.rating.average");
+  else return t("couponStats.rating.needsImprovement");
+};
+
+const getPerformanceScore = () => {
+  if (!props.stats?.totalUsed || !props.coupon) return -1;
+  const usage = props.stats.totalUsed;
+  const avgDiscount = props.stats.avgDiscount || 0;
+  let score = 0;
+  if (usage >= 50) score += 40;
+  else if (usage >= 20) score += 30;
+  else if (usage >= 10) score += 20;
+  else if (usage >= 5) score += 10;
+  if (avgDiscount >= 2000) score += 30;
+  else if (avgDiscount >= 1000) score += 25;
+  else if (avgDiscount >= 500) score += 20;
+  else if (avgDiscount >= 200) score += 15;
+  if (props.coupon.usageLimit) {
+    const rate = usageRate.value;
+    if (rate >= 80) score += 30;
+    else if (rate >= 60) score += 25;
+    else if (rate >= 40) score += 20;
+    else if (rate >= 20) score += 15;
+    else if (rate >= 10) score += 10;
+  } else {
+    score += 20;
+  }
+  return score;
 };
 
 const getPerformanceClass = () => {
-  const rating = getPerformanceRating();
-  switch (rating) {
-    case "優秀":
-      return "text-green-600";
-    case "良好":
-      return "text-blue-600";
-    case "一般":
-      return "text-yellow-600";
-    case "需改進":
-      return "text-red-600";
-    default:
-      return "text-gray-600";
-  }
+  const score = getPerformanceScore();
+  if (score >= 70) return "text-green-600";
+  if (score >= 50) return "text-blue-600";
+  if (score >= 30) return "text-yellow-600";
+  if (score >= 0) return "text-red-600";
+  return "text-gray-600";
 };
 
 const getPerformanceIcon = () => {
-  const rating = getPerformanceRating();
-  switch (rating) {
-    case "優秀":
-      return CheckCircleIcon;
-    case "良好":
-      return CheckCircleIcon;
-    case "一般":
-      return ExclamationTriangleIcon;
-    case "需改進":
-      return XCircleIcon;
-    default:
-      return ExclamationTriangleIcon;
-  }
+  const score = getPerformanceScore();
+  if (score >= 50) return CheckCircleIcon;
+  if (score >= 30) return ExclamationTriangleIcon;
+  if (score >= 0) return XCircleIcon;
+  return ExclamationTriangleIcon;
 };
 
 const getRecommendations = () => {
@@ -400,25 +449,25 @@ const getRecommendations = () => {
 
   // Usage-based recommendations
   if (props.stats.totalUsed < 5) {
-    recommendations.push("使用次數較低，考慮調整折扣力度或推廣策略");
+    recommendations.push(t("couponStats.recommend.lowUsage"));
   }
 
   // Time-based recommendations
   if (daysLeft < 7 && daysLeft > 0) {
-    recommendations.push("優惠券即將過期，建議加強推廣");
+    recommendations.push(t("couponStats.recommend.expiringSoon"));
   }
 
   // Usage rate recommendations
   if (props.coupon.usageLimit && usageRate.value < 20) {
-    recommendations.push("使用率偏低，可考慮延長有效期或增加推廣力度");
+    recommendations.push(t("couponStats.recommend.lowRate"));
   } else if (props.coupon.usageLimit && usageRate.value > 80) {
-    recommendations.push("使用率很高，可考慮增加使用次數限制");
+    recommendations.push(t("couponStats.recommend.highRate"));
   }
 
   // Discount optimization
   if (props.stats.avgDiscount < 500) {
     // Less than RM5
-    recommendations.push("平均折扣金額較低，可考慮提高折扣值以增加吸引力");
+    recommendations.push(t("couponStats.recommend.lowDiscount"));
   }
 
   return recommendations;

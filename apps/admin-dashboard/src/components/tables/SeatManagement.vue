@@ -3,8 +3,12 @@
     <!-- 座位管理標題 -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h2 class="text-xl font-bold text-gray-900">座位管理</h2>
-        <p class="text-sm text-gray-600">桌號: {{ tableNumber }} | 座位模式</p>
+        <h2 class="text-xl font-bold text-gray-900">
+          {{ t("seatManagement.title") }}
+        </h2>
+        <p class="text-sm text-gray-600">
+          {{ t("seatManagement.tableInfo", { tableNumber }) }}
+        </p>
       </div>
       <div class="flex space-x-3">
         <button
@@ -12,14 +16,14 @@
           @click="showBatchCreateModal = true"
         >
           <PlusIcon class="h-4 w-4 mr-2" />
-          批量新增座位
+          {{ t("seatManagement.batchCreate") }}
         </button>
         <button
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
           @click="regenerateAllQR"
         >
           <QRCodeIcon class="h-4 w-4 mr-2" />
-          重新生成 QR
+          {{ t("seatManagement.regenerateQR") }}
         </button>
       </div>
     </div>
@@ -43,7 +47,8 @@
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-semibold">
-                座位詳情: {{ selectedSeat?.seatNumber }}
+                {{ t("seatManagement.seatDetail") }}:
+                {{ selectedSeat?.seatNumber }}
               </h3>
               <button
                 class="text-gray-400 hover:text-gray-600"
@@ -58,7 +63,7 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    座位號碼
+                    {{ t("seatManagement.seatNumber") }}
                   </label>
                   <input
                     v-model="seatForm.seatNumber"
@@ -68,7 +73,7 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    座位名稱
+                    {{ t("seatManagement.seatName") }}
                   </label>
                   <input
                     v-model="seatForm.seatName"
@@ -80,12 +85,12 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  位置描述
+                  {{ t("seatManagement.positionDesc") }}
                 </label>
                 <input
                   v-model="seatForm.position"
                   type="text"
-                  placeholder="例如: 靠窗、走道旁"
+                  :placeholder="t('seatManagement.positionPlaceholder')"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -98,16 +103,20 @@
                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label for="isActive" class="ml-2 text-sm text-gray-700">
-                  啟用此座位
+                  {{ t("seatManagement.enableSeat") }}
                 </label>
               </div>
 
               <!-- 座位狀態資訊 -->
               <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-gray-900 mb-2">座位狀態</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-2">
+                  {{ t("seatManagement.seatStatus") }}
+                </h4>
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span class="text-gray-600">狀態:</span>
+                    <span class="text-gray-600"
+                      >{{ t("seatManagement.statusLabel") }}:</span
+                    >
                     <span
                       :class="
                         selectedSeat?.isOccupied
@@ -116,23 +125,33 @@
                       "
                       class="ml-2 font-medium"
                     >
-                      {{ selectedSeat?.isOccupied ? "已佔用" : "可用" }}
+                      {{
+                        selectedSeat?.isOccupied
+                          ? t("seatManagement.occupied")
+                          : t("seatManagement.available")
+                      }}
                     </span>
                   </div>
                   <div>
-                    <span class="text-gray-600">使用次數:</span>
+                    <span class="text-gray-600"
+                      >{{ t("seatManagement.usageCount") }}:</span
+                    >
                     <span class="ml-2 font-medium">{{
                       selectedSeat?.totalUsage
                     }}</span>
                   </div>
                   <div v-if="selectedSeat?.currentOrderId" class="col-span-2">
-                    <span class="text-gray-600">當前訂單:</span>
+                    <span class="text-gray-600"
+                      >{{ t("seatManagement.currentOrder") }}:</span
+                    >
                     <span class="ml-2 font-medium"
                       >#{{ selectedSeat.currentOrderId }}</span
                     >
                   </div>
                   <div v-if="selectedSeat?.occupiedBy" class="col-span-2">
-                    <span class="text-gray-600">使用者:</span>
+                    <span class="text-gray-600"
+                      >{{ t("seatManagement.occupiedBy") }}:</span
+                    >
                     <span class="ml-2 font-medium">{{
                       selectedSeat.occupiedBy
                     }}</span>
@@ -164,13 +183,13 @@
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   @click="releaseSeat"
                 >
-                  釋放座位
+                  {{ t("seatManagement.releaseSeat") }}
                 </button>
                 <button
                   class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
                   @click="regenerateSeatQR"
                 >
-                  重新生成 QR
+                  {{ t("seatManagement.regenerateQR") }}
                 </button>
               </div>
               <div class="space-x-2">
@@ -178,13 +197,13 @@
                   class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   @click="deleteSeat"
                 >
-                  刪除座位
+                  {{ t("seatManagement.deleteSeat") }}
                 </button>
                 <button
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   @click="updateSeat"
                 >
-                  更新座位
+                  {{ t("seatManagement.updateSeat") }}
                 </button>
               </div>
             </div>
@@ -202,13 +221,16 @@
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
           <div class="p-6">
-            <h3 class="text-lg font-semibold mb-4">批量新增座位</h3>
+            <h3 class="text-lg font-semibold mb-4">
+              {{ t("seatManagement.batchCreate") }}
+            </h3>
 
             <form @submit.prevent="batchCreateSeats">
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    座位數量 <span class="text-red-500">*</span>
+                    {{ t("seatManagement.seatCount") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     v-model.number="batchForm.count"
@@ -222,31 +244,39 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    編號風格 <span class="text-red-500">*</span>
+                    {{ t("seatManagement.numberingStyle") }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <select
                     v-model="batchForm.numberingStyle"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="numeric">數字 (01, 02, 03...)</option>
-                    <option value="alphabetic">字母 (A, B, C...)</option>
-                    <option value="custom">自訂</option>
+                    <option value="numeric">
+                      {{ t("seatManagement.numeric") }}
+                    </option>
+                    <option value="alphabetic">
+                      {{ t("seatManagement.alphabetic") }}
+                    </option>
+                    <option value="custom">
+                      {{ t("seatManagement.custom") }}
+                    </option>
                   </select>
                 </div>
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    編號前綴
+                    {{ t("seatManagement.prefix") }}
                   </label>
                   <input
                     v-model="batchForm.prefix"
                     type="text"
-                    placeholder="例如: S"
+                    :placeholder="t('seatManagement.prefixPlaceholder')"
                     maxlength="10"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                   <p class="text-xs text-gray-500 mt-1">
-                    預覽: {{ batchForm.prefix }}01, {{ batchForm.prefix }}02...
+                    {{ t("seatManagement.preview") }}: {{ batchForm.prefix }}01,
+                    {{ batchForm.prefix }}02...
                   </p>
                 </div>
               </div>
@@ -257,13 +287,13 @@
                   class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   @click="showBatchCreateModal = false"
                 >
-                  取消
+                  {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  創建
+                  {{ t("seatManagement.create") }}
                 </button>
               </div>
             </form>
@@ -276,7 +306,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "@/i18n";
 import { PlusIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatGrid from "./SeatGrid.vue";
 
@@ -376,7 +409,7 @@ const updateSeat = async () => {
     emit("update");
   } catch (error) {
     console.error("Failed to update seat:", error);
-    alert("更新座位失敗");
+    alert(t("seatManagement.alerts.updateFailed"));
   }
 };
 
@@ -385,11 +418,17 @@ const deleteSeat = async () => {
   if (!selectedSeat.value) return;
 
   if (selectedSeat.value.isOccupied) {
-    alert("無法刪除正在使用的座位");
+    alert(t("seatManagement.alerts.cannotDeleteOccupied"));
     return;
   }
 
-  if (!confirm(`確定要刪除座位 ${selectedSeat.value.seatNumber} 嗎？`)) {
+  if (
+    !confirm(
+      t("seatManagement.alerts.deleteConfirm", {
+        seat: selectedSeat.value.seatNumber,
+      }),
+    )
+  ) {
     return;
   }
 
@@ -402,7 +441,7 @@ const deleteSeat = async () => {
     emit("update");
   } catch (error) {
     console.error("Failed to delete seat:", error);
-    alert("刪除座位失敗");
+    alert(t("seatManagement.alerts.deleteFailed"));
   }
 };
 
@@ -410,7 +449,13 @@ const deleteSeat = async () => {
 const releaseSeat = async () => {
   if (!selectedSeat.value) return;
 
-  if (!confirm(`確定要釋放座位 ${selectedSeat.value.seatNumber} 嗎？`)) {
+  if (
+    !confirm(
+      t("seatManagement.alerts.releaseConfirm", {
+        seat: selectedSeat.value.seatNumber,
+      }),
+    )
+  ) {
     return;
   }
 
@@ -422,7 +467,7 @@ const releaseSeat = async () => {
     closeSeatModal();
   } catch (error) {
     console.error("Failed to release seat:", error);
-    alert("釋放座位失敗");
+    alert(t("seatManagement.alerts.releaseFailed"));
   }
 };
 
@@ -431,7 +476,11 @@ const regenerateSeatQR = async () => {
   if (!selectedSeat.value) return;
 
   if (
-    !confirm(`確定要重新生成座位 ${selectedSeat.value.seatNumber} 的 QR 碼嗎？`)
+    !confirm(
+      t("seatManagement.alerts.regenerateConfirm", {
+        seat: selectedSeat.value.seatNumber,
+      }),
+    )
   ) {
     return;
   }
@@ -441,10 +490,10 @@ const regenerateSeatQR = async () => {
     console.log("Regenerating QR for seat:", selectedSeat.value.id);
 
     emit("update");
-    alert("QR 碼已重新生成");
+    alert(t("seatManagement.alerts.regenerateSuccess"));
   } catch (error) {
     console.error("Failed to regenerate QR:", error);
-    alert("重新生成 QR 碼失敗");
+    alert(t("seatManagement.alerts.regenerateFailed"));
   }
 };
 
@@ -459,16 +508,20 @@ const batchCreateSeats = async () => {
 
     showBatchCreateModal.value = false;
     emit("update");
-    alert(`成功創建 ${batchForm.value.count} 個座位`);
+    alert(
+      t("seatManagement.alerts.batchCreateSuccess", {
+        count: batchForm.value.count,
+      }),
+    );
   } catch (error) {
     console.error("Failed to batch create seats:", error);
-    alert("批量創建座位失敗");
+    alert(t("seatManagement.alerts.batchCreateFailed"));
   }
 };
 
 // 重新生成所有 QR
 const regenerateAllQR = async () => {
-  if (!confirm("確定要重新生成所有座位的 QR 碼嗎？")) {
+  if (!confirm(t("seatManagement.alerts.regenerateAllConfirm"))) {
     return;
   }
 
@@ -477,10 +530,10 @@ const regenerateAllQR = async () => {
     console.log("Regenerating all QR codes for table:", props.tableId);
 
     emit("update");
-    alert("所有 QR 碼已重新生成");
+    alert(t("seatManagement.alerts.regenerateAllSuccess"));
   } catch (error) {
     console.error("Failed to regenerate all QR codes:", error);
-    alert("重新生成 QR 碼失敗");
+    alert(t("seatManagement.alerts.regenerateFailed"));
   }
 };
 </script>

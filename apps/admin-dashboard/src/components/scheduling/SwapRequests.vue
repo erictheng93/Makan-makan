@@ -7,12 +7,14 @@
           <div class="p-2 bg-indigo-100 rounded-lg">
             <ArrowPathIcon class="h-6 w-6 text-indigo-600" />
           </div>
-          <h2 class="text-2xl font-bold text-gray-900">換班申請管理</h2>
+          <h2 class="text-2xl font-bold text-gray-900">
+            {{ t("swapRequests.title") }}
+          </h2>
         </div>
         <p v-if="!loading" class="text-sm text-gray-600">
-          共 {{ requests.length }} 筆申請
+          {{ t("swapRequests.totalRequests", { count: requests.length }) }}
           <span v-if="pendingCount > 0" class="text-yellow-600 font-bold">
-            ({{ pendingCount }} 筆待處理)
+            ({{ t("swapRequests.pendingCount", { count: pendingCount }) }})
           </span>
         </p>
       </div>
@@ -56,7 +58,7 @@
       <div
         class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
       ></div>
-      <p class="text-gray-600">載入換班申請中...</p>
+      <p class="text-gray-600">{{ t("swapRequests.loading") }}</p>
     </div>
 
     <!-- Empty State -->
@@ -72,15 +74,17 @@
       <h3 class="text-xl font-bold text-gray-900 mb-3">
         {{
           selectedStatus === "all"
-            ? "暫無換班申請"
-            : `暫無${getStatusLabel(selectedStatus)}的申請`
+            ? t("swapRequests.noRequests")
+            : t("swapRequests.noRequestsWithStatus", {
+                status: getStatusLabel(selectedStatus),
+              })
         }}
       </h3>
       <p class="text-sm text-gray-600">
         {{
           selectedStatus === "all"
-            ? "當員工提交換班申請時,將會顯示在這裡"
-            : "切換篩選器查看其他狀態的申請"
+            ? t("swapRequests.noRequestsHint")
+            : t("swapRequests.switchFilterHint")
         }}
       </p>
     </div>
@@ -122,7 +126,7 @@
               <h4
                 class="text-xs font-bold text-gray-700 uppercase tracking-wide"
               >
-                申請人
+                {{ t("swapRequests.form.requester") }}
               </h4>
             </div>
             <div class="flex items-center gap-3">
@@ -132,7 +136,7 @@
               <span
                 class="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-md text-xs font-semibold"
               >
-                {{ request.requesterRole || "員工" }}
+                {{ request.requesterRole || t("swapRequests.defaultRole") }}
               </span>
             </div>
           </div>
@@ -149,7 +153,7 @@
                 <div class="flex justify-between items-center mb-2">
                   <span
                     class="text-xs font-bold text-gray-500 uppercase tracking-wide"
-                    >原班次</span
+                    >{{ t("swapRequests.form.originalShift") }}</span
                   >
                   <span class="text-xs font-semibold text-gray-700">
                     {{
@@ -170,7 +174,9 @@
                 class="flex lg:flex-col items-center justify-center gap-1 text-blue-600"
               >
                 <ArrowPathIcon class="h-8 w-8 lg:rotate-0 rotate-90" />
-                <span class="text-xs font-bold uppercase">換班</span>
+                <span class="text-xs font-bold uppercase">{{
+                  t("swapRequests.swap")
+                }}</span>
               </div>
 
               <!-- Target Shift -->
@@ -180,7 +186,7 @@
                 <div class="flex justify-between items-center mb-2">
                   <span
                     class="text-xs font-bold text-gray-500 uppercase tracking-wide"
-                    >目標班次</span
+                    >{{ t("swapRequests.form.targetShift") }}</span
                   >
                   <span class="text-xs font-semibold text-gray-700">
                     {{
@@ -207,7 +213,7 @@
               <h4
                 class="text-xs font-bold text-gray-700 uppercase tracking-wide"
               >
-                換班對象
+                {{ t("swapRequests.details.swapWith") }}
               </h4>
             </div>
             <div class="flex items-center gap-3">
@@ -217,7 +223,9 @@
               <span
                 class="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-md text-xs font-semibold"
               >
-                {{ request.targetEmployeeRole || "員工" }}
+                {{
+                  request.targetEmployeeRole || t("swapRequests.defaultRole")
+                }}
               </span>
             </div>
           </div>
@@ -232,7 +240,7 @@
               <h4
                 class="text-xs font-bold text-gray-700 uppercase tracking-wide"
               >
-                申請原因
+                {{ t("swapRequests.form.reason") }}
               </h4>
             </div>
             <p class="text-sm text-gray-700 leading-relaxed">
@@ -250,7 +258,7 @@
               <h4
                 class="text-xs font-bold text-gray-700 uppercase tracking-wide"
               >
-                處理回覆
+                {{ t("swapRequests.responseNote") }}
               </h4>
             </div>
             <div class="space-y-2">
@@ -260,7 +268,11 @@
               <div
                 class="flex flex-col sm:flex-row sm:justify-between gap-2 pt-2 border-t border-gray-200 text-xs text-gray-600"
               >
-                <span>由 {{ request.respondedBy || "管理員" }} 處理</span>
+                <span>{{
+                  t("swapRequests.processedBy", {
+                    name: request.respondedBy || t("swapRequests.admin"),
+                  })
+                }}</span>
                 <span>{{
                   request.respondedAt ? formatDate(request.respondedAt) : "-"
                 }}</span>
@@ -279,14 +291,14 @@
             @click="handleReject(request)"
           >
             <XMarkIcon class="h-5 w-5" />
-            <span>拒絕</span>
+            <span>{{ t("swapRequests.reject") }}</span>
           </button>
           <button
             class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-green-700 transition-all hover:-translate-y-0.5 hover:shadow text-sm font-bold"
             @click="handleApprove(request)"
           >
             <CheckIcon class="h-5 w-5" />
-            <span>核准</span>
+            <span>{{ t("swapRequests.approve") }}</span>
           </button>
         </div>
       </div>
@@ -296,7 +308,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { SwapRequest } from "@/types/scheduling";
+
+const { t } = useI18n();
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -332,32 +347,32 @@ const emit = defineEmits<{
 const selectedStatus = ref<string>("all");
 
 // Filters
-const statusFilters = [
+const statusFilters = computed(() => [
   {
     value: "all",
-    label: "全部",
+    label: t("swapRequests.filterAll"),
     icon: ChartBarIcon,
     iconClass: "text-gray-500",
   },
   {
     value: "pending",
-    label: "待處理",
+    label: t("swapRequests.status.pending"),
     icon: ClockIcon,
     iconClass: "text-yellow-500",
   },
   {
     value: "approved",
-    label: "已核准",
+    label: t("swapRequests.status.approved"),
     icon: CheckCircleIcon,
     iconClass: "text-green-500",
   },
   {
     value: "rejected",
-    label: "已拒絕",
+    label: t("swapRequests.status.rejected"),
     icon: XCircleIcon,
     iconClass: "text-red-500",
   },
-];
+]);
 
 // Computed
 const filteredRequests = computed(() => {
@@ -409,13 +424,9 @@ const getStatusIconComponent = (status: string) => {
 
 // Label Methods
 const getStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
-    pending: "待處理",
-    approved: "已核准",
-    rejected: "已拒絕",
-    cancelled: "已取消",
-  };
-  return labels[status] || status;
+  const key = `swapRequests.status.${status}`;
+  const translated = t(key);
+  return translated !== key ? translated : status;
 };
 
 const formatDate = (dateString: string | Date): string => {
@@ -433,20 +444,28 @@ const formatShiftDate = (dateString: string): string => {
   const date = new Date(dateString);
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
-  const weekday = weekdays[date.getDay()];
+  const dayNames = [
+    t("weekdays.mini.sunday"),
+    t("weekdays.mini.monday"),
+    t("weekdays.mini.tuesday"),
+    t("weekdays.mini.wednesday"),
+    t("weekdays.mini.thursday"),
+    t("weekdays.mini.friday"),
+    t("weekdays.mini.saturday"),
+  ];
+  const weekday = dayNames[date.getDay()];
   return `${month}/${day} (${weekday})`;
 };
 
 // Event Handlers
 const handleApprove = (request: SwapRequest) => {
-  if (confirm(`確定要核准 ${request.requesterName} 的換班申請嗎？`)) {
+  if (confirm(t("swapRequests.actions.approveConfirm"))) {
     emit("approve", request);
   }
 };
 
 const handleReject = (request: SwapRequest) => {
-  if (confirm(`確定要拒絕 ${request.requesterName} 的換班申請嗎？`)) {
+  if (confirm(t("swapRequests.actions.rejectConfirm"))) {
     emit("reject", request);
   }
 };

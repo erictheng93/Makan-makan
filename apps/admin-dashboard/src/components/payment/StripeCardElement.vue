@@ -34,10 +34,10 @@
       <div v-if="!cardError" class="payment-hints">
         <div class="security-info">
           <LockClosedIcon class="security-icon" />
-          <span>您的支付資訊經過加密保護</span>
+          <span>{{ t("payment.stripe.encryptionNotice") }}</span>
         </div>
         <div class="accepted-cards">
-          <span class="hint-text">接受的卡片：</span>
+          <span class="hint-text">{{ t("payment.stripe.acceptedCards") }}</span>
           <div class="card-icons">
             <div class="card-icon visa">VISA</div>
             <div class="card-icon mastercard">MC</div>
@@ -52,14 +52,14 @@
     <div v-if="show3DSecure" class="secure-verification">
       <div class="verification-header">
         <ShieldCheckIcon class="verification-icon" />
-        <h3>安全驗證</h3>
+        <h3>{{ t("payment.stripe.securityVerification") }}</h3>
       </div>
       <p class="verification-message">
-        您的銀行要求額外驗證。請完成驗證後，您的付款將自動處理。
+        {{ t("payment.stripe.verificationMessage") }}
       </p>
       <div class="verification-loading">
         <LoadingSpinner />
-        <span>正在進行安全驗證...</span>
+        <span>{{ t("payment.stripe.verifying") }}</span>
       </div>
     </div>
 
@@ -72,11 +72,11 @@
     >
       <span v-if="isProcessing" class="pay-loading">
         <LoadingSpinner size="sm" />
-        處理中...
+        {{ t("payment.stripe.processing") }}
       </span>
       <span v-else class="pay-content">
         <CreditCardIcon class="pay-icon" />
-        確認付款 {{ formatAmount }}
+        {{ t("payment.stripe.confirmPayment") }} {{ formatAmount }}
       </span>
     </button>
 
@@ -84,7 +84,7 @@
     <div v-if="isDevelopment && showTestCards" class="test-cards">
       <div class="test-cards-header">
         <button class="test-toggle" @click="showTestCards = !showTestCards">
-          測試卡片
+          {{ t("payment.stripe.testCards") }}
           <ChevronDownIcon
             class="toggle-icon"
             :class="{ rotated: showTestCards }"
@@ -109,6 +109,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { useI18n } from "@/i18n";
 import {
   loadStripe,
   type Stripe,
@@ -157,6 +158,8 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
+const { t } = useI18n();
+
 // Stripe 實例
 let stripe: Stripe | null = null;
 let elements: StripeElements | null = null;
@@ -197,32 +200,32 @@ const isDevelopment = computed(() => {
 });
 
 // 測試卡片資料
-const testCards = [
+const testCards = computed(() => [
   {
     number: "4242 4242 4242 4242",
     expiry: "12/34",
     cvc: "123",
-    description: "成功支付 (Visa)",
+    description: t("payment.stripe.testCardSuccess"),
   },
   {
     number: "4000 0000 0000 0002",
     expiry: "12/34",
     cvc: "123",
-    description: "卡片被拒絕",
+    description: t("payment.stripe.testCardDeclined"),
   },
   {
     number: "4000 0000 0000 9995",
     expiry: "12/34",
     cvc: "123",
-    description: "餘額不足",
+    description: t("payment.stripe.testCardInsufficientFunds"),
   },
   {
     number: "4000 0025 0000 3155",
     expiry: "12/34",
     cvc: "123",
-    description: "需要 3D Secure",
+    description: t("payment.stripe.testCard3DS"),
   },
-];
+]);
 
 // Stripe 外觀主題
 const getStripeTheme = () => {
@@ -358,15 +361,16 @@ const handlePayment = async () => {
     if (error) {
       // 處理特定錯誤
       if (error.code === "card_declined") {
-        cardError.value = "您的卡片被拒絕，請嘗試其他卡片或聯繫銀行";
+        cardError.value = t("payment.stripe.errors.cardDeclined");
       } else if (error.code === "expired_card") {
-        cardError.value = "卡片已過期，請使用有效卡片";
+        cardError.value = t("payment.stripe.errors.expiredCard");
       } else if (error.code === "insufficient_funds") {
-        cardError.value = "卡片餘額不足，請使用其他支付方式";
+        cardError.value = t("payment.stripe.errors.insufficientFunds");
       } else if (error.code === "incorrect_cvc") {
-        cardError.value = "CVC 安全碼錯誤，請重新輸入";
+        cardError.value = t("payment.stripe.errors.incorrectCvc");
       } else {
-        cardError.value = error.message || "支付處理失敗";
+        cardError.value =
+          error.message || t("payment.stripe.errors.processingFailed");
       }
 
       emit("payment-error", cardError.value);
@@ -381,7 +385,7 @@ const handlePayment = async () => {
     }
   } catch (error) {
     console.error("Payment error:", error);
-    emit("payment-error", "支付過程中發生錯誤，請重試");
+    emit("payment-error", t("payment.stripe.errors.paymentError"));
   } finally {
     isProcessing.value = false;
     show3DSecure.value = false;
@@ -390,12 +394,12 @@ const handlePayment = async () => {
 };
 
 // 填入測試卡片資料
-const fillTestCard = (testCard: (typeof testCards)[0]) => {
+const fillTestCard = (testCard: (typeof testCards.value)[0]) => {
   if (cardElement) {
     // 注意: Stripe Elements 不支援程式化填入資料
     // 這裡只是提供測試卡片號碼給開發者參考
     navigator.clipboard.writeText(testCard.number.replace(/\s/g, ""));
-    alert(`測試卡片號碼已複製到剪貼板: ${testCard.number}`);
+    alert(t("payment.stripe.testCardCopied", { number: testCard.number }));
   }
 };
 

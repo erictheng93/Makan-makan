@@ -17,24 +17,28 @@
         </svg>
       </div>
       <div class="info-title">
-        <h3 class="title-text">銀行轉帳資訊</h3>
-        <p class="title-description">請使用以下銀行資訊完成轉帳</p>
+        <h3 class="title-text">{{ t("payment.bankTransfer.title") }}</h3>
+        <p class="title-description">
+          {{ t("payment.bankTransfer.subtitle") }}
+        </p>
       </div>
     </div>
 
     <div class="transfer-details">
       <!-- Bank Information -->
       <div class="bank-details-section">
-        <h4 class="section-title">收款銀行資訊</h4>
+        <h4 class="section-title">{{ t("payment.bankTransfer.bankInfo") }}</h4>
 
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">銀行名稱</span>
+            <span class="detail-label">{{
+              t("payment.bankTransfer.bankName")
+            }}</span>
             <div class="detail-value-container">
               <span class="detail-value">{{ bankInfo.bankName }}</span>
               <button
                 class="copy-button"
-                :title="'複製 ' + bankInfo.bankName"
+                :title="t('payment.bankTransfer.copyBankName')"
                 @click="copyToClipboard(bankInfo.bankName)"
               >
                 <svg
@@ -55,14 +59,16 @@
           </div>
 
           <div class="detail-item">
-            <span class="detail-label">銀行代碼</span>
+            <span class="detail-label">{{
+              t("payment.bankTransfer.bankCode")
+            }}</span>
             <div class="detail-value-container">
               <span class="detail-value font-mono">{{
                 bankInfo.bankCode
               }}</span>
               <button
                 class="copy-button"
-                title="複製銀行代碼"
+                :title="t('payment.bankTransfer.copyBankCode')"
                 @click="copyToClipboard(bankInfo.bankCode)"
               >
                 <svg
@@ -83,14 +89,16 @@
           </div>
 
           <div class="detail-item">
-            <span class="detail-label">帳戶號碼</span>
+            <span class="detail-label">{{
+              t("payment.bankTransfer.accountNumber")
+            }}</span>
             <div class="detail-value-container">
               <span class="detail-value font-mono">{{
                 bankInfo.accountNumber
               }}</span>
               <button
                 class="copy-button"
-                title="複製帳戶號碼"
+                :title="t('payment.bankTransfer.copyAccountNumber')"
                 @click="copyToClipboard(bankInfo.accountNumber)"
               >
                 <svg
@@ -111,12 +119,14 @@
           </div>
 
           <div class="detail-item">
-            <span class="detail-label">戶名</span>
+            <span class="detail-label">{{
+              t("payment.bankTransfer.accountName")
+            }}</span>
             <div class="detail-value-container">
               <span class="detail-value">{{ bankInfo.accountName }}</span>
               <button
                 class="copy-button"
-                title="複製戶名"
+                :title="t('payment.bankTransfer.copyAccountName')"
                 @click="copyToClipboard(bankInfo.accountName)"
               >
                 <svg
@@ -140,14 +150,18 @@
 
       <!-- Transfer Instructions -->
       <div class="instructions-section">
-        <h4 class="section-title">轉帳說明</h4>
+        <h4 class="section-title">
+          {{ t("payment.bankTransfer.instructions") }}
+        </h4>
         <div class="instructions-list">
           <div class="instruction-item">
             <div class="instruction-step">1</div>
             <div class="instruction-content">
-              <p class="instruction-title">使用網路銀行或 ATM 轉帳</p>
+              <p class="instruction-title">
+                {{ t("payment.bankTransfer.step1Title") }}
+              </p>
               <p class="instruction-description">
-                登入您的網路銀行或前往 ATM 進行轉帳
+                {{ t("payment.bankTransfer.step1Desc") }}
               </p>
             </div>
           </div>
@@ -155,9 +169,11 @@
           <div class="instruction-item">
             <div class="instruction-step">2</div>
             <div class="instruction-content">
-              <p class="instruction-title">輸入收款資訊</p>
+              <p class="instruction-title">
+                {{ t("payment.bankTransfer.step2Title") }}
+              </p>
               <p class="instruction-description">
-                請確實輸入上方提供的銀行代碼、帳戶號碼和戶名
+                {{ t("payment.bankTransfer.step2Desc") }}
               </p>
             </div>
           </div>
@@ -165,11 +181,12 @@
           <div class="instruction-item">
             <div class="instruction-step">3</div>
             <div class="instruction-content">
-              <p class="instruction-title">備註訂單編號</p>
+              <p class="instruction-title">
+                {{ t("payment.bankTransfer.step3Title") }}
+              </p>
               <p class="instruction-description">
-                在備註欄填寫訂單編號：<span class="highlight-text">{{
-                  orderReference
-                }}</span>
+                {{ t("payment.bankTransfer.step3Desc")
+                }}<span class="highlight-text">{{ orderReference }}</span>
               </p>
             </div>
           </div>
@@ -177,9 +194,11 @@
           <div class="instruction-item">
             <div class="instruction-step">4</div>
             <div class="instruction-content">
-              <p class="instruction-title">完成轉帳並保留收據</p>
+              <p class="instruction-title">
+                {{ t("payment.bankTransfer.step4Title") }}
+              </p>
               <p class="instruction-description">
-                轉帳完成後請保留轉帳收據，以備查驗
+                {{ t("payment.bankTransfer.step4Desc") }}
               </p>
             </div>
           </div>
@@ -202,21 +221,25 @@
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.996-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
             ></path>
           </svg>
-          <span class="notice-title">重要提醒</span>
+          <span class="notice-title">{{
+            t("payment.bankTransfer.importantNotice")
+          }}</span>
         </div>
         <div class="notice-content">
           <ul class="notice-list">
-            <li>轉帳完成後，系統需要 1-3 個工作天確認入帳</li>
-            <li>請務必在備註欄填寫正確的訂單編號，以加速處理時間</li>
-            <li>如轉帳超過 {{ processingTime }} 小時仍未確認，請聯絡客服</li>
-            <li>轉帳手續費由客戶自行承擔</li>
+            <li>{{ t("payment.bankTransfer.notice1") }}</li>
+            <li>{{ t("payment.bankTransfer.notice2") }}</li>
+            <li>
+              {{ t("payment.bankTransfer.notice3", { hours: processingTime }) }}
+            </li>
+            <li>{{ t("payment.bankTransfer.notice4") }}</li>
           </ul>
         </div>
       </div>
 
       <!-- QR Code (if available) -->
       <div v-if="showQRCode && bankInfo.qrCode" class="qr-section">
-        <h4 class="section-title">快速轉帳 QR Code</h4>
+        <h4 class="section-title">{{ t("payment.bankTransfer.qrTitle") }}</h4>
         <div class="qr-container">
           <div class="qr-code">
             <img
@@ -226,7 +249,7 @@
             />
           </div>
           <p class="qr-description">
-            使用您的銀行 App 掃描此 QR Code 可快速完成轉帳
+            {{ t("payment.bankTransfer.qrDescription") }}
           </p>
         </div>
       </div>
@@ -248,7 +271,7 @@
             d="M5 13l4 4L19 7"
           ></path>
         </svg>
-        <span>已複製到剪貼板</span>
+        <span>{{ t("payment.bankTransfer.copied") }}</span>
       </div>
     </Transition>
   </div>
@@ -256,6 +279,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import type { CountryCode } from "@makanmakan/shared-types";
 
 // Props
@@ -269,6 +293,8 @@ const props = withDefaults(defineProps<Props>(), {
   orderReference: "ORDER_123456789",
   showQRCode: true,
 });
+
+const { t } = useI18n();
 
 // Reactive state
 const showCopyToast = ref(false);

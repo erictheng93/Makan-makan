@@ -3,15 +3,15 @@
     <!-- 過濾器 -->
     <div class="filters">
       <select v-model="statusFilter" class="filter-select">
-        <option value="">{{ $t("leaves.list.allStatus") }}</option>
-        <option value="pending">{{ $t("leaves.status.pending") }}</option>
-        <option value="approved">{{ $t("leaves.status.approved") }}</option>
-        <option value="rejected">{{ $t("leaves.status.rejected") }}</option>
-        <option value="cancelled">{{ $t("leaves.status.cancelled") }}</option>
+        <option value="">{{ t("leaves.list.allStatus") }}</option>
+        <option value="pending">{{ t("leaves.status.pending") }}</option>
+        <option value="approved">{{ t("leaves.status.approved") }}</option>
+        <option value="rejected">{{ t("leaves.status.rejected") }}</option>
+        <option value="cancelled">{{ t("leaves.status.cancelled") }}</option>
       </select>
 
       <select v-model="typeFilter" class="filter-select">
-        <option value="">{{ $t("leaves.list.allTypes") }}</option>
+        <option value="">{{ t("leaves.list.allTypes") }}</option>
         <option v-for="type in leaveTypes" :key="type.id" :value="type.id">
           {{ type.name }}
         </option>
@@ -21,7 +21,7 @@
         v-model="searchQuery"
         type="search"
         class="search-input"
-        :placeholder="$t('leaves.list.search')"
+        :placeholder="t('leaves.list.search')"
       />
     </div>
 
@@ -39,11 +39,11 @@
             <span class="request-date">
               {{ formatDate(request.startDate) }} -
               {{ formatDate(request.endDate) }} ({{ request.daysCount }}
-              {{ $t("leaves.balance.days") }})
+              {{ t("leaves.balance.days") }})
             </span>
           </div>
           <span :class="`status-badge status-${request.status}`">
-            {{ $t(`leaves.status.${request.status}`) }}
+            {{ t(`leaves.status.${request.status}`) }}
           </span>
         </div>
 
@@ -61,7 +61,7 @@
             >
               <span class="approver">{{ approval.approverName }}</span>
               <span :class="`approval-status ${approval.status}`">
-                {{ $t(`leaves.approval.${approval.status}`) }}
+                {{ t(`leaves.approval.${approval.status}`) }}
               </span>
             </div>
           </div>
@@ -73,13 +73,13 @@
             class="btn-cancel"
             @click="$emit('cancel', request.id)"
           >
-            {{ $t("common.cancel") }}
+            {{ t("common.cancel") }}
           </button>
           <button
             class="btn-details"
             @click="$emit('view-details', request.id)"
           >
-            {{ $t("common.viewDetails") }}
+            {{ t("common.viewDetails") }}
           </button>
         </div>
       </div>
@@ -94,14 +94,17 @@
           clip-rule="evenodd"
         />
       </svg>
-      <p>{{ $t("leaves.list.noRequests") }}</p>
+      <p>{{ t("leaves.list.noRequests") }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 interface Props {
   requests: LeaveRequest[];

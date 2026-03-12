@@ -1,20 +1,28 @@
 <template>
   <div class="seat-grid">
     <div class="flex justify-between items-center mb-6">
-      <h3 class="text-lg font-semibold text-gray-900">座位視圖</h3>
+      <h3 class="text-lg font-semibold text-gray-900">
+        {{ t("seatGrid.title") }}
+      </h3>
       <div class="flex items-center space-x-4">
         <div class="flex items-center space-x-2">
           <div class="flex items-center">
             <div class="w-4 h-4 bg-green-500 rounded mr-2" />
-            <span class="text-sm text-gray-600">可用</span>
+            <span class="text-sm text-gray-600">{{
+              t("seatGrid.available")
+            }}</span>
           </div>
           <div class="flex items-center ml-4">
             <div class="w-4 h-4 bg-red-500 rounded mr-2" />
-            <span class="text-sm text-gray-600">已佔用</span>
+            <span class="text-sm text-gray-600">{{
+              t("seatGrid.occupied")
+            }}</span>
           </div>
           <div class="flex items-center ml-4">
             <div class="w-4 h-4 bg-gray-300 rounded mr-2" />
-            <span class="text-sm text-gray-600">不可用</span>
+            <span class="text-sm text-gray-600">{{
+              t("seatGrid.unavailable")
+            }}</span>
           </div>
         </div>
       </div>
@@ -55,9 +63,13 @@
 
         <!-- 座位資訊 -->
         <div v-if="showDetails" class="mt-2 text-xs text-gray-500">
-          <div v-if="seat.currentOrderId">訂單: #{{ seat.currentOrderId }}</div>
-          <div v-if="seat.occupiedBy">用餐者: {{ seat.occupiedBy }}</div>
-          <div>使用次數: {{ seat.totalUsage }}</div>
+          <div v-if="seat.currentOrderId">
+            {{ t("seatGrid.order") }}: #{{ seat.currentOrderId }}
+          </div>
+          <div v-if="seat.occupiedBy">
+            {{ t("seatGrid.diner") }}: {{ seat.occupiedBy }}
+          </div>
+          <div>{{ t("seatGrid.usageCount") }}: {{ seat.totalUsage }}</div>
         </div>
       </div>
     </div>
@@ -68,8 +80,10 @@
       class="text-center py-12 bg-gray-50 rounded-lg"
     >
       <ChairIcon class="mx-auto h-12 w-12 text-gray-400" />
-      <h3 class="mt-2 text-sm font-medium text-gray-900">暫無座位</h3>
-      <p class="mt-1 text-sm text-gray-500">此桌台尚未配置座位</p>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">
+        {{ t("seatGrid.noSeats") }}
+      </h3>
+      <p class="mt-1 text-sm text-gray-500">{{ t("seatGrid.noSeatsHint") }}</p>
     </div>
 
     <!-- 座位統計 -->
@@ -78,19 +92,21 @@
         <div class="text-2xl font-bold text-green-600">
           {{ stats.available }}
         </div>
-        <div class="text-sm text-gray-600">可用座位</div>
+        <div class="text-sm text-gray-600">
+          {{ t("seatGrid.availableSeats") }}
+        </div>
       </div>
       <div class="bg-red-50 rounded-lg p-4">
         <div class="text-2xl font-bold text-red-600">
           {{ stats.occupied }}
         </div>
-        <div class="text-sm text-gray-600">已佔用</div>
+        <div class="text-sm text-gray-600">{{ t("seatGrid.occupied") }}</div>
       </div>
       <div class="bg-gray-50 rounded-lg p-4">
         <div class="text-2xl font-bold text-gray-600">
           {{ stats.inactive }}
         </div>
-        <div class="text-sm text-gray-600">不可用</div>
+        <div class="text-sm text-gray-600">{{ t("seatGrid.unavailable") }}</div>
       </div>
     </div>
   </div>
@@ -98,7 +114,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 interface Seat {
   id: number;

@@ -29,7 +29,7 @@
         <!-- 推薦標籤 -->
         <div v-if="method.recommended" class="recommended-badge">
           <StarIcon class="badge-icon" />
-          推薦
+          {{ t("payment.recommended") }}
         </div>
 
         <!-- 方法圖標 -->
@@ -85,11 +85,13 @@
       class="no-methods"
     >
       <CreditCardIcon class="no-methods-icon" />
-      <h3 class="no-methods-title">暫無可用的支付方式</h3>
-      <p class="no-methods-description">請稍後再試，或聯繫客服協助</p>
+      <h3 class="no-methods-title">{{ t("payment.noMethodsTitle") }}</h3>
+      <p class="no-methods-description">
+        {{ t("payment.noMethodsDescription") }}
+      </p>
       <button class="retry-button" @click="$emit('retry')">
         <ArrowPathIcon class="retry-icon" />
-        重新載入
+        {{ t("payment.reload") }}
       </button>
     </div>
 
@@ -97,13 +99,15 @@
     <div v-if="selectedMethodDetails && !loading" class="method-explanation">
       <div class="explanation-header">
         <InformationCircleIcon class="info-icon" />
-        <h4>{{ selectedMethodDetails.displayName }} 說明</h4>
+        <h4>
+          {{ selectedMethodDetails.displayName }} {{ t("payment.explanation") }}
+        </h4>
       </div>
       <div class="explanation-content">
         <p>{{ selectedMethodDetails.fullDescription }}</p>
 
         <div v-if="selectedMethodDetails.steps" class="payment-steps-preview">
-          <h5>付款流程：</h5>
+          <h5>{{ t("payment.paymentProcess") }}</h5>
           <ol class="steps-list">
             <li v-for="step in selectedMethodDetails.steps" :key="step">
               {{ step }}
@@ -112,7 +116,7 @@
         </div>
 
         <div v-if="selectedMethodDetails.requirements" class="requirements">
-          <h5>所需資訊：</h5>
+          <h5>{{ t("payment.requiredInfo") }}</h5>
           <ul class="requirements-list">
             <li v-for="req in selectedMethodDetails.requirements" :key="req">
               {{ req }}
@@ -135,6 +139,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   CreditCardIcon,
   ClockIcon,
@@ -178,6 +183,8 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
+const { t } = useI18n();
+
 // 內部狀態
 const selectedMethod = ref<PaymentMethod | undefined>(props.selectedMethod);
 
@@ -198,89 +205,104 @@ interface PaymentMethodDetails {
   requirements?: string[];
 }
 
-const paymentMethodsConfig: Record<
-  PaymentMethod,
-  Omit<PaymentMethodDetails, "id">
-> = {
+const paymentMethodsConfig = computed<
+  Record<PaymentMethod, Omit<PaymentMethodDetails, "id">>
+>(() => ({
   credit_card: {
-    displayName: "信用卡",
-    description: "使用 Visa、MasterCard 等信用卡付款",
-    fullDescription:
-      "支援所有主要信用卡品牌，包括 Visa、MasterCard、American Express 等。付款過程安全可靠，支援 3D Secure 驗證。",
+    displayName: t("payment.methods.creditCard.name"),
+    description: t("payment.methods.creditCard.description"),
+    fullDescription: t("payment.methods.creditCard.fullDescription"),
     iconComponent: CreditCardIconSolid,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["3d_secure", "auto_retry", "refund"],
     recommended: true,
     disabled: false,
     steps: [
-      "輸入信用卡資訊",
-      "驗證卡片有效性",
-      "完成 3D Secure 驗證（如需要）",
-      "確認付款",
+      t("payment.methods.creditCard.steps.enterInfo"),
+      t("payment.methods.creditCard.steps.verifyCard"),
+      t("payment.methods.creditCard.steps.complete3DS"),
+      t("payment.methods.creditCard.steps.confirmPayment"),
     ],
-    requirements: ["有效的信用卡", "卡片到期日", "CVC 安全碼"],
+    requirements: [
+      t("payment.methods.creditCard.requirements.validCard"),
+      t("payment.methods.creditCard.requirements.expiryDate"),
+      t("payment.methods.creditCard.requirements.cvc"),
+    ],
   },
 
   debit_card: {
-    displayName: "金融卡",
-    description: "使用銀行金融卡直接扣款",
-    fullDescription:
-      "直接從您的銀行帳戶扣款，無需信用額度。支援大部分銀行發行的金融卡。",
+    displayName: t("payment.methods.debitCard.name"),
+    description: t("payment.methods.debitCard.description"),
+    fullDescription: t("payment.methods.debitCard.fullDescription"),
     iconComponent: CreditCardIconSolid,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["3d_secure", "refund"],
     recommended: false,
     disabled: false,
-    steps: ["輸入金融卡資訊", "驗證卡片和帳戶餘額", "完成銀行驗證", "確認扣款"],
-    requirements: ["有效的金融卡", "充足的帳戶餘額", "PIN 碼或簡訊驗證"],
+    steps: [
+      t("payment.methods.debitCard.steps.enterInfo"),
+      t("payment.methods.debitCard.steps.verifyBalance"),
+      t("payment.methods.debitCard.steps.bankVerify"),
+      t("payment.methods.debitCard.steps.confirmDebit"),
+    ],
+    requirements: [
+      t("payment.methods.debitCard.requirements.validCard"),
+      t("payment.methods.debitCard.requirements.sufficientBalance"),
+      t("payment.methods.debitCard.requirements.pinOrSms"),
+    ],
   },
 
   bank_transfer: {
-    displayName: "銀行轉帳",
-    description: "透過網路銀行或 ATM 轉帳付款",
-    fullDescription:
-      "提供轉帳資訊，您可以透過網路銀行、ATM 或臨櫃完成轉帳。適合喜歡傳統付款方式的用戶。",
+    displayName: t("payment.methods.bankTransfer.name"),
+    description: t("payment.methods.bankTransfer.description"),
+    fullDescription: t("payment.methods.bankTransfer.fullDescription"),
     iconComponent: BuildingLibraryIcon,
-    processingTime: "1-3 個工作天",
+    processingTime: t("payment.processingTime.oneToThreeDays"),
     features: ["manual_verify"],
     recommended: false,
     disabled: false,
     steps: [
-      "取得轉帳資訊",
-      "使用網銀或 ATM 轉帳",
-      "保留轉帳憑證",
-      "等待轉帳確認",
+      t("payment.methods.bankTransfer.steps.getInfo"),
+      t("payment.methods.bankTransfer.steps.transfer"),
+      t("payment.methods.bankTransfer.steps.keepReceipt"),
+      t("payment.methods.bankTransfer.steps.waitConfirm"),
     ],
-    requirements: ["銀行帳戶", "網路銀行或 ATM 卡", "轉帳手續費"],
+    requirements: [
+      t("payment.methods.bankTransfer.requirements.bankAccount"),
+      t("payment.methods.bankTransfer.requirements.onlineBanking"),
+      t("payment.methods.bankTransfer.requirements.transferFee"),
+    ],
   },
 
   digital_wallet: {
-    displayName: "數位錢包",
-    description: "使用行動支付 App 快速付款",
-    fullDescription:
-      "支援各種數位錢包應用程式，如 Apple Pay、Google Pay、Samsung Pay 等。快速便捷，無需輸入卡片資訊。",
+    displayName: t("payment.methods.digitalWallet.name"),
+    description: t("payment.methods.digitalWallet.description"),
+    fullDescription: t("payment.methods.digitalWallet.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["biometric", "quick_pay"],
     recommended: true,
     disabled: false,
     steps: [
-      "選擇數位錢包",
-      "使用指紋或Face ID驗證",
-      "確認付款金額",
-      "完成付款",
+      t("payment.methods.digitalWallet.steps.selectWallet"),
+      t("payment.methods.digitalWallet.steps.biometricVerify"),
+      t("payment.methods.digitalWallet.steps.confirmAmount"),
+      t("payment.methods.digitalWallet.steps.completePayment"),
     ],
-    requirements: ["支援的手機", "已設定數位錢包", "生物識別或密碼"],
+    requirements: [
+      t("payment.methods.digitalWallet.requirements.supportedPhone"),
+      t("payment.methods.digitalWallet.requirements.walletSetup"),
+      t("payment.methods.digitalWallet.requirements.biometricOrPassword"),
+    ],
   },
 
   // 台灣特定
   ecpay: {
-    displayName: "綠界支付",
-    description: "台灣本地綜合支付平台",
-    fullDescription:
-      "綠界科技提供的整合支付服務，支援信用卡、ATM 轉帳、超商代碼等多種付款方式。",
+    displayName: t("payment.methods.ecpay.name"),
+    description: t("payment.methods.ecpay.description"),
+    fullDescription: t("payment.methods.ecpay.fullDescription"),
     iconComponent: BanknotesIcon,
-    processingTime: "即時至3天",
+    processingTime: t("payment.processingTime.instantToThreeDays"),
     features: ["multi_method", "convenience_store"],
     recommended: true,
     disabled: false,
@@ -288,11 +310,10 @@ const paymentMethodsConfig: Record<
 
   line_pay: {
     displayName: "LINE Pay",
-    description: "使用 LINE 應用程式付款",
-    fullDescription:
-      "LINE 官方支付服務，可使用 LINE Points 或綁定的信用卡付款。",
+    description: t("payment.methods.linePay.description"),
+    fullDescription: t("payment.methods.linePay.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["app_based", "points_reward"],
     recommended: false,
     disabled: false,
@@ -301,11 +322,10 @@ const paymentMethodsConfig: Record<
   // 馬來西亞特定
   fpx: {
     displayName: "FPX",
-    description: "馬來西亞銀行直接扣款",
-    fullDescription:
-      "Financial Process Exchange，馬來西亞央行推出的即時銀行轉帳系統。",
+    description: t("payment.methods.fpx.description"),
+    fullDescription: t("payment.methods.fpx.fullDescription"),
     iconComponent: BuildingLibraryIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["bank_direct", "real_time"],
     recommended: true,
     disabled: false,
@@ -313,10 +333,10 @@ const paymentMethodsConfig: Record<
 
   touch_n_go: {
     displayName: "Touch 'n Go",
-    description: "馬來西亞電子錢包",
-    fullDescription: "馬來西亞最受歡迎的電子錢包之一，廣泛用於交通和日常消費。",
+    description: t("payment.methods.touchNGo.description"),
+    fullDescription: t("payment.methods.touchNGo.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["ewallet", "qr_code"],
     recommended: true,
     disabled: false,
@@ -324,10 +344,10 @@ const paymentMethodsConfig: Record<
 
   grab_pay: {
     displayName: "GrabPay",
-    description: "Grab 應用程式內建錢包",
-    fullDescription: "Grab 提供的數位錢包服務，在東南亞地區廣泛使用。",
+    description: t("payment.methods.grabPay.description"),
+    fullDescription: t("payment.methods.grabPay.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["app_based", "rewards"],
     recommended: false,
     disabled: false,
@@ -336,11 +356,10 @@ const paymentMethodsConfig: Record<
   // 越南特定
   momo: {
     displayName: "MoMo",
-    description: "越南領先的電子錢包",
-    fullDescription:
-      "MoMo 是越南最大的電子錢包平台之一，提供安全便捷的付款體驗。",
+    description: t("payment.methods.momo.description"),
+    fullDescription: t("payment.methods.momo.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["ewallet", "qr_code", "bank_link"],
     recommended: true,
     disabled: false,
@@ -348,11 +367,10 @@ const paymentMethodsConfig: Record<
 
   zalo_pay: {
     displayName: "ZaloPay",
-    description: "Zalo 生態系統的支付服務",
-    fullDescription:
-      "ZaloPay 是 Zalo 公司推出的數位錢包，在越南具有廣泛的用戶基礎。",
+    description: t("payment.methods.zaloPay.description"),
+    fullDescription: t("payment.methods.zaloPay.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["social_pay", "qr_code"],
     recommended: false,
     disabled: false,
@@ -360,10 +378,10 @@ const paymentMethodsConfig: Record<
 
   viet_qr: {
     displayName: "VietQR",
-    description: "越南統一 QR 碼支付",
-    fullDescription: "越南國家支付公司推出的 QR 碼支付標準，支援所有參與銀行。",
+    description: t("payment.methods.vietQR.description"),
+    fullDescription: t("payment.methods.vietQR.fullDescription"),
     iconComponent: QrCodeIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["qr_code", "universal", "bank_support"],
     recommended: true,
     disabled: false,
@@ -371,32 +389,32 @@ const paymentMethodsConfig: Record<
 
   vnpay: {
     displayName: "VNPay",
-    description: "越南綜合支付平台",
-    fullDescription: "越南領先的支付閘道，支援多種銀行和支付方式。",
+    description: t("payment.methods.vnpay.description"),
+    fullDescription: t("payment.methods.vnpay.fullDescription"),
     iconComponent: BanknotesIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["multi_bank", "comprehensive"],
     recommended: false,
     disabled: false,
   },
 
   newebpay: {
-    displayName: "藍新金流",
-    description: "台灣藍新金流支付",
-    fullDescription: "台灣知名的第三方支付服務，支援多種付款方式。",
+    displayName: t("payment.methods.newebpay.name"),
+    description: t("payment.methods.newebpay.description"),
+    fullDescription: t("payment.methods.newebpay.fullDescription"),
     iconComponent: CreditCardIconSolid,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["multi_payment"],
     recommended: false,
     disabled: false,
   },
 
   unipay: {
-    displayName: "統一支付",
-    description: "統一集團支付服務",
-    fullDescription: "統一集團旗下的支付服務，整合多種支付管道。",
+    displayName: t("payment.methods.unipay.name"),
+    description: t("payment.methods.unipay.description"),
+    fullDescription: t("payment.methods.unipay.fullDescription"),
     iconComponent: CreditCardIconSolid,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["unified"],
     recommended: false,
     disabled: false,
@@ -404,32 +422,32 @@ const paymentMethodsConfig: Record<
 
   touch_n_go_direct: {
     displayName: "Touch 'n Go Direct",
-    description: "Touch 'n Go 直接付款",
-    fullDescription: "Touch 'n Go 電子錢包直接付款，無需 QR 碼掃描。",
+    description: t("payment.methods.touchNGoDirect.description"),
+    fullDescription: t("payment.methods.touchNGoDirect.fullDescription"),
     iconComponent: DevicePhoneMobileIcon,
-    processingTime: "即時",
+    processingTime: t("payment.processingTime.instant"),
     features: ["direct_payment"],
     recommended: false,
     disabled: false,
   },
 
   cash: {
-    displayName: "現金付款",
-    description: "到店現金付款",
-    fullDescription: "到餐廳現場使用現金付款。適合不方便線上付款的顧客。",
+    displayName: t("payment.methods.cash.name"),
+    description: t("payment.methods.cash.description"),
+    fullDescription: t("payment.methods.cash.fullDescription"),
     iconComponent: BanknotesIcon,
-    processingTime: "到店時",
+    processingTime: t("payment.processingTime.atStore"),
     features: ["in_person"],
     recommended: false,
     disabled: false,
   },
-};
+}));
 
 // 計算可用方式的詳細資訊
 const availableMethodsWithDetails = computed(() => {
   return props.availableMethods
     .map((method) => {
-      const config = paymentMethodsConfig[method];
+      const config = paymentMethodsConfig.value[method];
       return {
         id: method,
         ...config,
@@ -476,50 +494,57 @@ const getRecommendedForCountry = (
 };
 
 const getFeatureLabel = (feature: string): string => {
-  const labels: Record<string, string> = {
-    "3d_secure": "3D安全驗證",
-    auto_retry: "自動重試",
-    refund: "支援退款",
-    biometric: "生物識別",
-    quick_pay: "快速付款",
-    multi_method: "多種方式",
-    convenience_store: "超商代碼",
-    app_based: "App付款",
-    points_reward: "點數回饋",
-    bank_direct: "銀行直扣",
-    real_time: "即時到帳",
-    ewallet: "電子錢包",
-    qr_code: "QR碼",
-    rewards: "回饋優惠",
-    bank_link: "銀行連結",
-    social_pay: "社交支付",
-    universal: "通用標準",
-    bank_support: "銀行支援",
-    multi_bank: "多銀行",
-    comprehensive: "綜合平台",
-    manual_verify: "人工核實",
-    in_person: "現場付款",
+  const featureKeys: Record<string, string> = {
+    "3d_secure": "payment.features.3dSecure",
+    auto_retry: "payment.features.autoRetry",
+    refund: "payment.features.refund",
+    biometric: "payment.features.biometric",
+    quick_pay: "payment.features.quickPay",
+    multi_method: "payment.features.multiMethod",
+    convenience_store: "payment.features.convenienceStore",
+    app_based: "payment.features.appBased",
+    points_reward: "payment.features.pointsReward",
+    bank_direct: "payment.features.bankDirect",
+    real_time: "payment.features.realTime",
+    ewallet: "payment.features.ewallet",
+    qr_code: "payment.features.qrCode",
+    rewards: "payment.features.rewards",
+    bank_link: "payment.features.bankLink",
+    social_pay: "payment.features.socialPay",
+    universal: "payment.features.universal",
+    bank_support: "payment.features.bankSupport",
+    multi_bank: "payment.features.multiBank",
+    comprehensive: "payment.features.comprehensive",
+    manual_verify: "payment.features.manualVerify",
+    in_person: "payment.features.inPerson",
+    multi_payment: "payment.features.multiPayment",
+    unified: "payment.features.unified",
+    direct_payment: "payment.features.directPayment",
   };
 
-  return labels[feature] || feature;
+  return featureKeys[feature] ? t(featureKeys[feature]) : feature;
 };
 
 const getRegionalHintTitle = (): string => {
-  const titles = {
-    TW: "台灣用戶推薦",
-    MY: "馬來西亞用戶推薦",
-    VN: "越南用戶推薦",
+  const titleKeys: Record<string, string> = {
+    TW: "payment.regional.twTitle",
+    MY: "payment.regional.myTitle",
+    VN: "payment.regional.vnTitle",
   };
-  return titles[props.country] || "推薦支付方式";
+  return titleKeys[props.country]
+    ? t(titleKeys[props.country])
+    : t("payment.regional.defaultTitle");
 };
 
 const getRegionalHintMessage = (): string => {
-  const messages = {
-    TW: "信用卡和綠界支付在台灣使用最為廣泛，LINE Pay 也很受歡迎。",
-    MY: "FPX 銀行轉帳和 Touch 'n Go 電子錢包是馬來西亞用戶的首選。",
-    VN: "MoMo 和 VietQR 是越南最受歡迎的電子支付方式。",
+  const messageKeys: Record<string, string> = {
+    TW: "payment.regional.twMessage",
+    MY: "payment.regional.myMessage",
+    VN: "payment.regional.vnMessage",
   };
-  return messages[props.country] || "選擇最適合您的支付方式。";
+  return messageKeys[props.country]
+    ? t(messageKeys[props.country])
+    : t("payment.regional.defaultMessage");
 };
 
 // 生命週期

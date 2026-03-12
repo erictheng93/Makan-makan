@@ -8,7 +8,11 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900">
-              {{ isEditing ? "編輯優惠券" : "建立優惠券" }}
+              {{
+                isEditing
+                  ? t("couponForm.editTitle")
+                  : t("couponForm.createTitle")
+              }}
             </h3>
             <button
               class="text-gray-400 hover:text-gray-600 transition-colors"
@@ -22,25 +26,29 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- 基本資訊 -->
               <div class="md:col-span-2">
-                <h4 class="text-sm font-medium text-gray-900 mb-4">基本資訊</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-4">
+                  {{ t("couponForm.basicInfo") }}
+                </h4>
               </div>
 
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  優惠券名稱 <span class="text-red-500">*</span>
+                  {{ t("couponForm.couponName") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.name"
                   type="text"
                   required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="例：新用戶九折優惠"
+                  :placeholder="t('couponForm.couponNamePlaceholder')"
                 />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  優惠券代碼 <span class="text-red-500">*</span>
+                  {{ t("couponForm.couponCode") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.code"
@@ -54,47 +62,53 @@
                   @input="form.code = form.code.toUpperCase()"
                 />
                 <p v-if="isEditing" class="text-xs text-gray-500 mt-1">
-                  優惠券代碼無法修改
+                  {{ t("couponForm.codeReadonly") }}
                 </p>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  折扣類型 <span class="text-red-500">*</span>
+                  {{ t("couponForm.discountType") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <select
                   v-model="form.discountType"
                   required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">選擇類型</option>
-                  <option value="percentage">百分比折扣</option>
-                  <option value="fixed">固定金額折扣</option>
+                  <option value="">{{ t("couponForm.selectType") }}</option>
+                  <option value="percentage">
+                    {{ t("couponForm.percentageDiscount") }}
+                  </option>
+                  <option value="fixed">
+                    {{ t("couponForm.fixedDiscount") }}
+                  </option>
                 </select>
               </div>
 
               <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >描述</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("couponForm.descriptionLabel")
+                }}</label>
                 <textarea
                   v-model="form.description"
                   rows="3"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="優惠券的詳細說明..."
+                  :placeholder="t('couponForm.descriptionPlaceholder')"
                 />
               </div>
 
               <!-- 折扣設定 -->
               <div class="md:col-span-2">
                 <h4 class="text-sm font-medium text-gray-900 mb-4 mt-6">
-                  折扣設定
+                  {{ t("couponForm.discountSettings") }}
                 </h4>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  折扣值 <span class="text-red-500">*</span>
+                  {{ t("couponForm.discountValue") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
                   <input
@@ -116,9 +130,9 @@
               </div>
 
               <div v-if="form.discountType === 'percentage'">
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >最大折扣金額</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("couponForm.maxDiscountAmount")
+                }}</label>
                 <div class="relative">
                   <input
                     v-model.number="form.maxDiscountAmount"
@@ -133,14 +147,14 @@
                   </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
-                  留空則不限制最大折扣金額
+                  {{ t("couponForm.maxDiscountHint") }}
                 </p>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >最低消費金額</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("couponForm.minOrderAmount")
+                }}</label>
                 <div class="relative">
                   <input
                     v-model.number="form.minOrderAmount"
@@ -154,52 +168,55 @@
                     RM
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">0表示無最低消費限制</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ t("couponForm.minOrderHint") }}
+                </p>
               </div>
 
               <!-- 使用限制 -->
               <div class="md:col-span-2">
                 <h4 class="text-sm font-medium text-gray-900 mb-4 mt-6">
-                  使用限制
+                  {{ t("couponForm.usageLimits") }}
                 </h4>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >總使用次數限制</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("couponForm.totalUsageLimit")
+                }}</label>
                 <input
                   v-model.number="form.usageLimit"
                   type="number"
                   min="1"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="留空表示無限制"
+                  :placeholder="t('couponForm.unlimitedPlaceholder')"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2"
-                  >每人使用次數限制</label
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("couponForm.perUserLimit")
+                }}</label>
                 <input
                   v-model.number="form.usageLimitPerUser"
                   type="number"
                   min="1"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="留空表示無限制"
+                  :placeholder="t('couponForm.unlimitedPlaceholder')"
                 />
               </div>
 
               <!-- 有效期設定 -->
               <div class="md:col-span-2">
                 <h4 class="text-sm font-medium text-gray-900 mb-4 mt-6">
-                  有效期設定
+                  {{ t("couponForm.validitySettings") }}
                 </h4>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  開始日期 <span class="text-red-500">*</span>
+                  {{ t("couponForm.startDate") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.validFrom"
@@ -211,7 +228,8 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  結束日期 <span class="text-red-500">*</span>
+                  {{ t("couponForm.endDate") }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.validTo"
@@ -224,7 +242,7 @@
               <!-- 狀態設定 -->
               <div class="md:col-span-2">
                 <h4 class="text-sm font-medium text-gray-900 mb-4 mt-6">
-                  狀態設定
+                  {{ t("couponForm.statusSettings") }}
                 </h4>
                 <div class="flex items-center space-x-6">
                   <label class="flex items-center">
@@ -233,7 +251,9 @@
                       type="checkbox"
                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
                     />
-                    <span class="ml-2 text-sm text-gray-700">啟用優惠券</span>
+                    <span class="ml-2 text-sm text-gray-700">{{
+                      t("couponForm.enableCoupon")
+                    }}</span>
                   </label>
                   <label class="flex items-center">
                     <input
@@ -241,11 +261,13 @@
                       type="checkbox"
                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
                     />
-                    <span class="ml-2 text-sm text-gray-700">對客戶可見</span>
+                    <span class="ml-2 text-sm text-gray-700">{{
+                      t("couponForm.visibleToCustomers")
+                    }}</span>
                   </label>
                 </div>
                 <p class="text-xs text-gray-500 mt-2">
-                  停用的優惠券無法使用，隱藏的優惠券客戶無法看到但可以透過代碼使用
+                  {{ t("couponForm.statusHint") }}
                 </p>
               </div>
             </div>
@@ -255,7 +277,9 @@
               v-if="form.name && form.discountType && form.discountValue"
               class="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200"
             >
-              <h4 class="text-sm font-medium text-gray-900 mb-2">優惠券預覽</h4>
+              <h4 class="text-sm font-medium text-gray-900 mb-2">
+                {{ t("couponForm.preview") }}
+              </h4>
               <div
                 class="bg-white rounded-lg p-4 border border-indigo-300 shadow-sm"
               >
@@ -275,15 +299,22 @@
                   <div class="text-right">
                     <div class="text-lg font-bold text-indigo-600">
                       <span v-if="form.discountType === 'percentage'">
-                        {{ form.discountValue }}% 折扣
+                        {{ form.discountValue }}% {{ t("couponForm.discount") }}
                         <span
                           v-if="form.maxDiscountAmount"
                           class="text-xs text-gray-500 block"
                         >
-                          最多 RM{{ form.maxDiscountAmount }}
+                          {{
+                            t("couponForm.maxRM", {
+                              amount: form.maxDiscountAmount,
+                            })
+                          }}
                         </span>
                       </span>
-                      <span v-else>RM{{ form.discountValue }} 折扣</span>
+                      <span v-else
+                        >RM{{ form.discountValue }}
+                        {{ t("couponForm.discount") }}</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -291,14 +322,19 @@
                   class="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500 space-y-1"
                 >
                   <div v-if="form.minOrderAmount > 0">
-                    最低消費：RM{{ form.minOrderAmount }}
+                    {{ t("couponForm.minSpend") }}: RM{{ form.minOrderAmount }}
                   </div>
                   <div v-if="form.validFrom && form.validTo">
-                    有效期：{{ formatDisplayDate(form.validFrom) }} -
+                    {{ t("couponForm.validity") }}:
+                    {{ formatDisplayDate(form.validFrom) }} -
                     {{ formatDisplayDate(form.validTo) }}
                   </div>
                   <div v-if="form.usageLimitPerUser">
-                    每人限用 {{ form.usageLimitPerUser }} 次
+                    {{
+                      t("couponForm.perUserLimitPreview", {
+                        count: form.usageLimitPerUser,
+                      })
+                    }}
                   </div>
                 </div>
               </div>
@@ -311,7 +347,7 @@
                 class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 @click="$emit('close')"
               >
-                取消
+                {{ t("common.cancel") }}
               </button>
               <button
                 type="submit"
@@ -338,10 +374,14 @@
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  處理中...
+                  {{ t("couponForm.processing") }}
                 </span>
                 <span v-else>
-                  {{ isEditing ? "更新" : "建立" }}
+                  {{
+                    isEditing
+                      ? t("couponForm.update")
+                      : t("couponForm.createBtn")
+                  }}
                 </span>
               </button>
             </div>
@@ -354,7 +394,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
+
+const { t } = useI18n();
 
 // Props
 interface Props {

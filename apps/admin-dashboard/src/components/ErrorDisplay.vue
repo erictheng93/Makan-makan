@@ -14,7 +14,9 @@
           class="text-yellow-100 hover:text-white underline"
           @click="showPendingRequests = !showPendingRequests"
         >
-          {{ pendingRequests }} 個待處理請求
+          {{
+            t("errorDisplay.pendingRequestsCount", { count: pendingRequests })
+          }}
         </button>
       </div>
     </div>
@@ -39,7 +41,7 @@
         class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded hover:bg-opacity-30"
         @click="handleReconnect"
       >
-        重連
+        {{ t("errorDisplay.reconnect") }}
       </button>
     </div>
 
@@ -50,7 +52,9 @@
     >
       <div class="p-4 bg-yellow-50 border-b border-yellow-200">
         <div class="flex items-center justify-between">
-          <h3 class="font-semibold text-gray-900">待處理請求</h3>
+          <h3 class="font-semibold text-gray-900">
+            {{ t("errorDisplay.pendingRequests") }}
+          </h3>
           <button
             class="text-gray-400 hover:text-gray-600"
             @click="showPendingRequests = false"
@@ -58,7 +62,9 @@
             <XMarkIcon class="w-5 h-5" />
           </button>
         </div>
-        <p class="text-sm text-gray-600 mt-1">這些請求將在網絡恢復後自動重試</p>
+        <p class="text-sm text-gray-600 mt-1">
+          {{ t("errorDisplay.pendingRequestsHint") }}
+        </p>
       </div>
       <div class="max-h-64 overflow-y-auto">
         <div
@@ -77,7 +83,9 @@
             </div>
             <div class="flex items-center space-x-2">
               <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-              <span class="text-xs text-gray-500">等待中</span>
+              <span class="text-xs text-gray-500">{{
+                t("errorDisplay.waiting")
+              }}</span>
             </div>
           </div>
         </div>
@@ -93,7 +101,9 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
             <ExclamationTriangleIcon class="w-5 h-5 text-red-600" />
-            <h3 class="font-semibold text-red-900">系統異常</h3>
+            <h3 class="font-semibold text-red-900">
+              {{ t("errorDisplay.systemError") }}
+            </h3>
           </div>
           <button
             class="text-red-400 hover:text-red-600"
@@ -105,32 +115,32 @@
       </div>
       <div class="p-4">
         <p class="text-sm text-gray-700 mb-4">
-          檢測到系統出現異常，您可以嘗試以下恢復操作：
+          {{ t("errorDisplay.recoveryHint") }}
         </p>
         <div class="space-y-2">
           <button
             class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md"
             @click="handleClearCache"
           >
-            🗑️ 清理本地緩存
+            🗑️ {{ t("errorDisplay.clearCache") }}
           </button>
           <button
             class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md"
             @click="handleRefreshPage"
           >
-            🔄 刷新頁面
+            🔄 {{ t("errorDisplay.refreshPage") }}
           </button>
           <button
             class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md"
             @click="handleResetSettings"
           >
-            ⚙️ 重置設定
+            ⚙️ {{ t("errorDisplay.resetSettings") }}
           </button>
           <button
             class="w-full text-left px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-md text-blue-700"
             @click="handleReportProblem"
           >
-            📝 回報問題
+            📝 {{ t("errorDisplay.reportProblem") }}
           </button>
         </div>
       </div>
@@ -143,7 +153,9 @@
     >
       <div class="p-3 bg-gray-800 border-b border-gray-700">
         <div class="flex items-center justify-between">
-          <h3 class="font-semibold text-sm">錯誤統計 (開發模式)</h3>
+          <h3 class="font-semibold text-sm">
+            {{ t("errorDisplay.errorStats") }}
+          </h3>
           <button
             class="text-gray-400 hover:text-gray-200"
             @click="showErrorStats = false"
@@ -163,14 +175,14 @@
         </div>
         <hr class="border-gray-700" />
         <div class="flex justify-between">
-          <span>總計:</span>
+          <span>{{ t("errorDisplay.total") }}:</span>
           <span class="font-mono font-bold">{{ totalErrors }}</span>
         </div>
         <button
           class="w-full mt-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
           @click="clearErrorStats"
         >
-          清除統計
+          {{ t("errorDisplay.clearStats") }}
         </button>
       </div>
     </div>
@@ -179,6 +191,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   WifiIcon,
   ExclamationTriangleIcon,
@@ -200,6 +213,8 @@ const props = withDefaults(defineProps<Props>(), {
   enableRecoveryPanel: true,
   position: "top-right",
 });
+
+const { t } = useI18n();
 
 // 響應式狀態
 const isConnected = ref(navigator.onLine);
@@ -234,19 +249,21 @@ const connectionStatusClass = computed(() => {
 
 const connectionStatusText = computed(() => {
   if (isConnected.value && isSSEConnected.value) {
-    return "連接正常";
+    return t("errorDisplay.connectionNormal");
   } else if (isConnected.value) {
-    return "實時連接中斷";
+    return t("errorDisplay.realtimeDisconnected");
   } else {
-    return "網絡已斷開";
+    return t("errorDisplay.networkDisconnected");
   }
 });
 
 const offlineMessage = computed(() => {
   if (pendingRequests.value > 0) {
-    return `離線模式 - ${pendingRequests.value} 個請求等待處理`;
+    return t("errorDisplay.offlineWithPending", {
+      count: pendingRequests.value,
+    });
   }
-  return "離線模式 - 某些功能可能受限";
+  return t("errorDisplay.offlineMode");
 });
 
 const canReconnect = computed(() => {
@@ -285,10 +302,10 @@ const handleClearCache = () => {
       errorHandler.clearCache();
     }
 
-    alert("緩存已清理，請刷新頁面");
+    alert(t("errorDisplay.cacheClearedAlert"));
   } catch (error) {
     console.error("清理緩存失敗:", error);
-    alert("清理緩存失敗");
+    alert(t("errorDisplay.cacheCleanFailed"));
   }
 };
 
@@ -297,9 +314,7 @@ const handleRefreshPage = () => {
 };
 
 const handleResetSettings = () => {
-  if (
-    confirm("確定要重置所有設定嗎？這將清除您的偏好設定但不會影響登入狀態。")
-  ) {
+  if (confirm(t("errorDisplay.resetSettingsConfirm"))) {
     const authToken = localStorage.getItem("auth_token");
     localStorage.clear();
     if (authToken) {
@@ -322,7 +337,7 @@ const handleReportProblem = () => {
 
   // 在實際應用中，這裡應該打開問題回報表單或發送錯誤報告
   console.log("錯誤報告信息:", errorInfo);
-  alert("錯誤報告功能尚未實現。請聯繫技術支援。");
+  alert(t("errorDisplay.reportNotImplemented"));
 };
 
 const clearErrorStats = () => {

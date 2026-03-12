@@ -4,7 +4,7 @@
     <div class="panel-header">
       <h3 class="panel-title">
         <span class="title-icon">⏰</span>
-        <span>打卡系統</span>
+        <span>{{ t("clockInOut.title") }}</span>
       </h3>
       <div class="current-time">
         <span class="time-icon">🕒</span>
@@ -19,19 +19,19 @@
           {{ getStatusLabel(todaySchedule.status) }}
         </div>
         <div class="schedule-date">
-          今天 {{ formatDate(todaySchedule.workDate) }}
+          {{ t("clockInOut.today") }} {{ formatDate(todaySchedule.workDate) }}
         </div>
       </div>
 
       <div class="schedule-details">
         <div class="detail-row">
-          <span class="detail-label">排班時間:</span>
+          <span class="detail-label">{{ t("clockInOut.scheduledTime") }}:</span>
           <span class="detail-value">
             {{ todaySchedule.startTime }} - {{ todaySchedule.endTime }}
           </span>
         </div>
         <div v-if="todaySchedule.shiftTemplate" class="detail-row">
-          <span class="detail-label">班別:</span>
+          <span class="detail-label">{{ t("clockInOut.shift") }}:</span>
           <span class="detail-value">
             <span
               class="shift-badge"
@@ -46,9 +46,12 @@
           </span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">預計工時:</span>
+          <span class="detail-label"
+            >{{ t("clockInOut.estimatedHours") }}:</span
+          >
           <span class="detail-value"
-            >{{ todaySchedule.scheduledHours }} 小時</span
+            >{{ todaySchedule.scheduledHours }}
+            {{ t("clockInOut.hoursUnit") }}</span
           >
         </div>
       </div>
@@ -60,18 +63,21 @@
       >
         <div v-if="todaySchedule.actualStartTime" class="status-row">
           <span class="status-icon">✓</span>
-          <span class="status-label">上班打卡:</span>
+          <span class="status-label">{{ t("clockInOut.clockInTime") }}:</span>
           <span class="status-time">{{ todaySchedule.actualStartTime }}</span>
         </div>
         <div v-if="todaySchedule.actualEndTime" class="status-row">
           <span class="status-icon">✓</span>
-          <span class="status-label">下班打卡:</span>
+          <span class="status-label">{{ t("clockInOut.clockOutTime") }}:</span>
           <span class="status-time">{{ todaySchedule.actualEndTime }}</span>
         </div>
         <div v-if="todaySchedule.actualHours" class="status-row">
           <span class="status-icon">📊</span>
-          <span class="status-label">實際工時:</span>
-          <span class="status-time">{{ todaySchedule.actualHours }} 小時</span>
+          <span class="status-label">{{ t("clockInOut.actualHours") }}:</span>
+          <span class="status-time"
+            >{{ todaySchedule.actualHours }}
+            {{ t("clockInOut.hoursUnit") }}</span
+          >
         </div>
       </div>
 
@@ -84,7 +90,7 @@
           @click="handleClockIn"
         >
           <span class="btn-icon">🟢</span>
-          <span>上班打卡</span>
+          <span>{{ t("clockInOut.clockIn") }}</span>
         </button>
 
         <button
@@ -94,28 +100,32 @@
           @click="handleClockOut"
         >
           <span class="btn-icon">🔴</span>
-          <span>下班打卡</span>
+          <span>{{ t("clockInOut.clockOut") }}</span>
         </button>
 
         <div v-else class="completed-message">
           <span class="completed-icon">✅</span>
-          <span>今日班次已完成</span>
+          <span>{{ t("clockInOut.shiftCompleted") }}</span>
         </div>
       </div>
 
       <!-- Notes Input -->
       <div v-if="showNotesInput" class="notes-input">
-        <label class="notes-label">備註 (選填):</label>
+        <label class="notes-label">{{ t("clockInOut.notesLabel") }}:</label>
         <textarea
           v-model="notes"
           class="notes-textarea"
-          placeholder="輸入打卡備註..."
+          :placeholder="t('clockInOut.notesPlaceholder')"
           rows="2"
           maxlength="200"
         ></textarea>
         <div class="notes-actions">
-          <button class="btn-cancel" @click="cancelNotes">取消</button>
-          <button class="btn-confirm" @click="confirmClock">確認</button>
+          <button class="btn-cancel" @click="cancelNotes">
+            {{ t("common.cancel") }}
+          </button>
+          <button class="btn-confirm" @click="confirmClock">
+            {{ t("common.confirm") }}
+          </button>
         </div>
       </div>
     </div>
@@ -123,14 +133,14 @@
     <!-- No Schedule Card -->
     <div v-else-if="!loading" class="no-schedule-card">
       <div class="no-schedule-icon">📭</div>
-      <h4>今天沒有排班</h4>
-      <p>你今天沒有安排工作班次</p>
+      <h4>{{ t("clockInOut.noSchedule") }}</h4>
+      <p>{{ t("clockInOut.noScheduleHint") }}</p>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <p>處理中...</p>
+      <p>{{ t("clockInOut.processing") }}</p>
     </div>
 
     <!-- Error Message -->
@@ -152,7 +162,7 @@
 
     <!-- Recent Clock Records -->
     <div v-if="recentRecords.length > 0" class="recent-records">
-      <h4 class="records-title">最近打卡記錄</h4>
+      <h4 class="records-title">{{ t("clockInOut.recentRecords") }}</h4>
       <div class="records-list">
         <div
           v-for="record in recentRecords"
@@ -162,10 +172,10 @@
           <div class="record-date">{{ formatDate(record.workDate) }}</div>
           <div class="record-times">
             <span v-if="record.actualStartTime">
-              上班: {{ record.actualStartTime }}
+              {{ t("clockInOut.clockInShort") }}: {{ record.actualStartTime }}
             </span>
             <span v-if="record.actualEndTime">
-              下班: {{ record.actualEndTime }}
+              {{ t("clockInOut.clockOutShort") }}: {{ record.actualEndTime }}
             </span>
           </div>
           <div class="record-hours">{{ record.actualHours || 0 }}h</div>
@@ -177,8 +187,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
+
+const { t } = useI18n();
 import type { EmployeeSchedule } from "@/types/scheduling";
 
 interface Props {
@@ -245,7 +258,7 @@ const fetchTodaySchedule = async () => {
     }
   } catch (err) {
     console.error("Failed to fetch today schedule:", err);
-    error.value = "無法載入今日排班資料";
+    error.value = t("clockInOut.loadError");
   } finally {
     loading.value = false;
   }
@@ -309,7 +322,7 @@ const confirmClock = async () => {
         clockData,
       );
       todaySchedule.value = updated;
-      success.value = "上班打卡成功！";
+      success.value = t("clockInOut.clockInSuccess");
       emit("clockIn", updated);
     } else if (pendingAction.value === "clock-out") {
       const updated = await schedulingService.clockOut(
@@ -317,7 +330,7 @@ const confirmClock = async () => {
         clockData,
       );
       todaySchedule.value = updated;
-      success.value = "下班打卡成功！";
+      success.value = t("clockInOut.clockOutSuccess");
       emit("clockOut", updated);
       fetchRecentRecords(); // Refresh recent records
     }
@@ -330,7 +343,8 @@ const confirmClock = async () => {
     cancelNotes();
   } catch (err) {
     console.error("Clock action failed:", err);
-    error.value = err instanceof Error ? err.message : "打卡失敗，請稍後再試";
+    error.value =
+      err instanceof Error ? err.message : t("clockInOut.clockFailed");
   } finally {
     loading.value = false;
   }
@@ -340,8 +354,16 @@ const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
-  const weekday = weekdays[date.getDay()];
+  const dayNames = [
+    t("weekdays.mini.sunday"),
+    t("weekdays.mini.monday"),
+    t("weekdays.mini.tuesday"),
+    t("weekdays.mini.wednesday"),
+    t("weekdays.mini.thursday"),
+    t("weekdays.mini.friday"),
+    t("weekdays.mini.saturday"),
+  ];
+  const weekday = dayNames[date.getDay()];
   return `${month}/${day} (${weekday})`;
 };
 
@@ -353,14 +375,9 @@ const formatDateISO = (date: Date): string => {
 };
 
 const getStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
-    scheduled: "已排班",
-    confirmed: "已確認",
-    completed: "已完成",
-    cancelled: "已取消",
-    no_show: "缺席",
-  };
-  return labels[status] || status;
+  const key = `status.${status}`;
+  const translated = t(key);
+  return translated !== key ? translated : status;
 };
 
 // Lifecycle

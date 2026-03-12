@@ -13,8 +13,12 @@
         <!-- 步驟 1: 選擇支付方式 -->
         <div v-if="currentStep === 'method'" class="step-content">
           <div class="step-header">
-            <h2 class="step-title">選擇支付方式</h2>
-            <p class="step-description">請選擇您偏好的支付方式</p>
+            <h2 class="step-title">
+              {{ t("payment.form.selectMethodTitle") }}
+            </h2>
+            <p class="step-description">
+              {{ t("payment.form.selectMethodDesc") }}
+            </p>
           </div>
 
           <PaymentMethodSelector
@@ -31,7 +35,7 @@
               :disabled="!selectedPaymentMethod"
               @click="proceedToDetails"
             >
-              繼續
+              {{ t("payment.form.continue") }}
             </button>
           </div>
         </div>
@@ -39,22 +43,24 @@
         <!-- 步驟 2: 輸入支付詳情 -->
         <div v-else-if="currentStep === 'details'" class="step-content">
           <div class="step-header">
-            <h2 class="step-title">支付詳情</h2>
-            <p class="step-description">請輸入支付相關資訊</p>
+            <h2 class="step-title">{{ t("payment.form.detailsTitle") }}</h2>
+            <p class="step-description">{{ t("payment.form.detailsDesc") }}</p>
           </div>
 
           <!-- 客戶資訊表單 -->
           <div class="form-section">
-            <h3 class="section-title">聯絡資訊</h3>
+            <h3 class="section-title">{{ t("payment.form.contactInfo") }}</h3>
             <div class="form-grid">
               <div class="form-field">
-                <label for="customer-name" class="field-label">姓名</label>
+                <label for="customer-name" class="field-label">{{
+                  t("payment.form.name")
+                }}</label>
                 <input
                   id="customer-name"
                   v-model="customerInfo.name"
                   type="text"
                   class="field-input"
-                  placeholder="請輸入您的姓名"
+                  :placeholder="t('payment.form.namePlaceholder')"
                   :class="{ 'field-error': errors.name }"
                 />
                 <span v-if="errors.name" class="error-message">{{
@@ -63,7 +69,9 @@
               </div>
 
               <div class="form-field">
-                <label for="customer-email" class="field-label">電子郵件</label>
+                <label for="customer-email" class="field-label">{{
+                  t("payment.form.email")
+                }}</label>
                 <input
                   id="customer-email"
                   v-model="customerInfo.email"
@@ -79,7 +87,10 @@
 
               <div class="form-field">
                 <label for="customer-phone" class="field-label"
-                  >電話號碼 <span class="field-optional">(選填)</span></label
+                  >{{ t("payment.form.phone") }}
+                  <span class="field-optional"
+                    >({{ t("payment.form.optional") }})</span
+                  ></label
                 >
                 <input
                   id="customer-phone"
@@ -97,7 +108,9 @@
             v-if="selectedPaymentMethod === 'credit_card'"
             class="form-section"
           >
-            <h3 class="section-title">信用卡資訊</h3>
+            <h3 class="section-title">
+              {{ t("payment.form.creditCardInfo") }}
+            </h3>
             <StripeCardElement
               :client-secret="clientSecret"
               :publishable-key="stripePublishableKey"
@@ -115,12 +128,14 @@
             v-else-if="selectedPaymentMethod === 'bank_transfer'"
             class="form-section"
           >
-            <h3 class="section-title">銀行轉帳</h3>
+            <h3 class="section-title">{{ t("payment.form.bankTransfer") }}</h3>
             <BankTransferInfo :country="paymentRequest.country" />
           </div>
 
           <div class="step-actions">
-            <button class="btn btn-secondary" @click="goBack">返回</button>
+            <button class="btn btn-secondary" @click="goBack">
+              {{ t("payment.form.back") }}
+            </button>
             <button
               class="btn btn-primary btn-large"
               :disabled="!canProceedToPayment || processingPayment"
@@ -128,10 +143,10 @@
             >
               <span v-if="processingPayment" class="btn-loading">
                 <LoadingSpinner size="sm" />
-                處理中...
+                {{ t("payment.form.processing") }}
               </span>
               <span v-else>
-                確認付款
+                {{ t("payment.form.confirmPayment") }}
                 {{
                   formatAmount(paymentRequest.amount, paymentRequest.currency)
                 }}
@@ -165,6 +180,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { usePaymentStore } from "@/stores/payment";
 import type {
   PaymentRequest,
@@ -206,6 +222,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 // Composables
+const { t } = useI18n();
 const paymentStore = usePaymentStore();
 
 // Stripe 配置
@@ -238,9 +255,9 @@ const loadingOrder = ref(false);
 
 // 計算屬性
 const paymentSteps = computed(() => [
-  { key: "method", label: "選擇支付方式", icon: "credit-card" },
-  { key: "details", label: "填寫資訊", icon: "edit" },
-  { key: "processing", label: "處理付款", icon: "clock" },
+  { key: "method", label: t("payment.form.stepMethod"), icon: "credit-card" },
+  { key: "details", label: t("payment.form.stepDetails"), icon: "edit" },
+  { key: "processing", label: t("payment.form.stepProcessing"), icon: "clock" },
 ]);
 
 const paymentRequest = computed(
@@ -332,12 +349,15 @@ const processPayment = async () => {
       }
     } else {
       paymentStatus.value = "error";
-      emit("payment-error", result.error?.message || "支付處理失敗");
+      emit(
+        "payment-error",
+        result.error?.message || t("payment.form.paymentFailed"),
+      );
     }
   } catch (error) {
     console.error("Payment processing error:", error);
     paymentStatus.value = "error";
-    emit("payment-error", "支付過程中發生錯誤");
+    emit("payment-error", t("payment.form.paymentError"));
   } finally {
     processingPayment.value = false;
   }
@@ -369,13 +389,13 @@ const validateForm = (): boolean => {
   errors.value = {};
 
   if (!customerInfo.value.name.trim()) {
-    errors.value.name = "請輸入姓名";
+    errors.value.name = t("payment.form.nameRequired");
   }
 
   if (!customerInfo.value.email.trim()) {
-    errors.value.email = "請輸入電子郵件";
+    errors.value.email = t("payment.form.emailRequired");
   } else if (!isValidEmail(customerInfo.value.email)) {
-    errors.value.email = "請輸入有效的電子郵件格式";
+    errors.value.email = t("payment.form.emailInvalid");
   }
 
   return Object.keys(errors.value).length === 0;

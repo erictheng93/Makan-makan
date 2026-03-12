@@ -2,9 +2,9 @@
   <div class="qr-mode-selector">
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-2">
-        QR 碼管理模式 <span class="text-red-500">*</span>
+        {{ t("qrMode.label") }} <span class="text-red-500">*</span>
       </label>
-      <p class="text-xs text-gray-500 mb-4">選擇如何為此桌台生成 QR 碼</p>
+      <p class="text-xs text-gray-500 mb-4">{{ t("qrMode.description") }}</p>
     </div>
 
     <!-- 模式選擇 -->
@@ -34,13 +34,15 @@
                 class="w-2 h-2 bg-white rounded-full"
               />
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">桌子模式</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("qrMode.tableMode") }}
+            </h3>
           </div>
           <TableCellsIcon class="h-8 w-8 text-gray-400" />
         </div>
 
         <p class="text-sm text-gray-600 mb-4">
-          整張桌子共用一個 QR 碼，適合傳統用餐模式
+          {{ t("qrMode.tableModeDesc") }}
         </p>
 
         <!-- 桌子模式圖示 -->
@@ -52,7 +54,9 @@
               >
                 <QRCodeIcon class="h-12 w-12 text-gray-400" />
               </div>
-              <p class="text-xs text-gray-500 mt-2">一桌一碼</p>
+              <p class="text-xs text-gray-500 mt-2">
+                {{ t("qrMode.oneTableOneCode") }}
+              </p>
             </div>
           </div>
         </div>
@@ -60,15 +64,15 @@
         <div class="mt-4 space-y-2">
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            簡單易管理
+            {{ t("qrMode.tableAdvantage1") }}
           </div>
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            適合家庭或團體用餐
+            {{ t("qrMode.tableAdvantage2") }}
           </div>
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            訂單統一管理
+            {{ t("qrMode.tableAdvantage3") }}
           </div>
         </div>
       </div>
@@ -98,13 +102,15 @@
                 class="w-2 h-2 bg-white rounded-full"
               />
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">座位模式</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("qrMode.seatMode") }}
+            </h3>
           </div>
           <UserGroupIcon class="h-8 w-8 text-gray-400" />
         </div>
 
         <p class="text-sm text-gray-600 mb-4">
-          每個座位有獨立 QR 碼，適合個人點餐模式
+          {{ t("qrMode.seatModeDesc") }}
         </p>
 
         <!-- 座位模式圖示 -->
@@ -118,21 +124,23 @@
               <QRCodeIcon class="h-6 w-6 text-gray-400" />
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-2 text-center">一位一碼</p>
+          <p class="text-xs text-gray-500 mt-2 text-center">
+            {{ t("qrMode.oneSeatOneCode") }}
+          </p>
         </div>
 
         <div class="mt-4 space-y-2">
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            獨立點餐結帳
+            {{ t("qrMode.seatAdvantage1") }}
           </div>
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            適合陌生人併桌
+            {{ t("qrMode.seatAdvantage2") }}
           </div>
           <div class="flex items-center text-xs text-gray-600">
             <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            精確座位管理
+            {{ t("qrMode.seatAdvantage3") }}
           </div>
         </div>
       </div>
@@ -143,12 +151,14 @@
       v-if="modelValue === 'seat'"
       class="bg-gray-50 rounded-lg p-6 border border-gray-200"
     >
-      <h4 class="text-sm font-semibold text-gray-900 mb-4">座位配置</h4>
+      <h4 class="text-sm font-semibold text-gray-900 mb-4">
+        {{ t("qrMode.seatConfig") }}
+      </h4>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            座位數量 <span class="text-red-500">*</span>
+            {{ t("qrMode.seatCount") }} <span class="text-red-500">*</span>
           </label>
           <input
             :value="seatConfig.count"
@@ -159,22 +169,22 @@
             @input="updateSeatCount"
           />
           <p class="text-xs text-gray-500 mt-1">
-            將創建 {{ seatConfig.count }} 個座位
+            {{ t("qrMode.willCreate", { count: seatConfig.count }) }}
           </p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            編號風格 <span class="text-red-500">*</span>
+            {{ t("qrMode.numberingStyle") }} <span class="text-red-500">*</span>
           </label>
           <select
             :value="seatConfig.numberingStyle"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             @change="updateNumberingStyle"
           >
-            <option value="numeric">數字 (01, 02, 03...)</option>
-            <option value="alphabetic">字母 (A, B, C...)</option>
-            <option value="custom">自訂編號</option>
+            <option value="numeric">{{ t("qrMode.numeric") }}</option>
+            <option value="alphabetic">{{ t("qrMode.alphabetic") }}</option>
+            <option value="custom">{{ t("qrMode.customNumbering") }}</option>
           </select>
         </div>
       </div>
@@ -182,7 +192,7 @@
       <!-- 預覽 -->
       <div class="mt-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          座位編號預覽
+          {{ t("qrMode.seatNumberPreview") }}
         </label>
         <div class="bg-white rounded-lg p-4 border border-gray-200">
           <div class="flex flex-wrap gap-2">
@@ -197,7 +207,7 @@
               v-if="seatConfig.count > 10"
               class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
             >
-              ...共 {{ seatConfig.count }} 個
+              {{ t("qrMode.totalCount", { count: seatConfig.count }) }}
             </span>
           </div>
         </div>
@@ -211,11 +221,11 @@
           class="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5"
         />
         <div class="text-sm text-yellow-800">
-          <p class="font-medium mb-1">注意事項</p>
+          <p class="font-medium mb-1">{{ t("qrMode.notice") }}</p>
           <ul class="list-disc list-inside space-y-1 text-xs">
-            <li>切換模式將會影響 QR 碼的生成和訂單管理方式</li>
-            <li>切換到座位模式後，將自動創建指定數量的座位</li>
-            <li>已有訂單的桌台無法切換模式</li>
+            <li>{{ t("qrMode.noticeItem1") }}</li>
+            <li>{{ t("qrMode.noticeItem2") }}</li>
+            <li>{{ t("qrMode.noticeItem3") }}</li>
           </ul>
         </div>
       </div>
@@ -225,6 +235,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import {
   TableCellsIcon,
   UserGroupIcon,
@@ -232,6 +243,8 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
+
+const { t } = useI18n();
 
 interface SeatConfig {
   count: number;

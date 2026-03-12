@@ -7,7 +7,11 @@
           <div class="modal-header">
             <h2 class="modal-title">
               <span class="title-icon">🏷️</span>
-              <span>{{ isEditing ? "編輯班別模板" : "新增班別模板" }}</span>
+              <span>{{
+                isEditing
+                  ? t("shiftTemplates.edit")
+                  : t("shiftTemplates.create")
+              }}</span>
             </h2>
             <button class="close-btn" @click="closeModal">✕</button>
           </div>
@@ -17,37 +21,53 @@
             <form @submit.prevent="handleSubmit">
               <!-- Basic Info Section -->
               <div class="form-section">
-                <h3 class="section-title">基本資訊</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.basicInfo") }}
+                </h3>
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label required">班別名稱</label>
+                    <label class="form-label required">{{
+                      t("shiftTemplates.form.name")
+                    }}</label>
                     <input
                       v-model="form.name"
                       type="text"
                       class="form-input"
-                      placeholder="例如: 早班、晚班、大夜班"
+                      :placeholder="t('shiftTemplates.form.namePlaceholder')"
                       maxlength="100"
                       required
                     />
                   </div>
 
                   <div class="form-group">
-                    <label class="form-label">班別類型</label>
+                    <label class="form-label">{{
+                      t("shiftTemplates.form.shiftType")
+                    }}</label>
                     <select v-model="form.shiftType" class="form-select">
-                      <option value="regular">一般班</option>
-                      <option value="split">分段班</option>
-                      <option value="overnight">跨夜班</option>
+                      <option value="regular">
+                        {{ t("shiftTemplates.shiftTypes.regular") }}
+                      </option>
+                      <option value="split">
+                        {{ t("shiftTemplates.shiftTypes.split") }}
+                      </option>
+                      <option value="overnight">
+                        {{ t("shiftTemplates.shiftTypes.overnight") }}
+                      </option>
                     </select>
                   </div>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">描述</label>
+                  <label class="form-label">{{
+                    t("shiftTemplates.form.description")
+                  }}</label>
                   <textarea
                     v-model="form.description"
                     class="form-textarea"
-                    placeholder="班別說明..."
+                    :placeholder="
+                      t('shiftTemplates.form.descriptionPlaceholder')
+                    "
                     rows="2"
                     maxlength="500"
                   ></textarea>
@@ -56,11 +76,15 @@
 
               <!-- Time Section -->
               <div class="form-section">
-                <h3 class="section-title">工作時間</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.workTime") }}
+                </h3>
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label required">開始時間</label>
+                    <label class="form-label required">{{
+                      t("shiftTemplates.form.startTime")
+                    }}</label>
                     <input
                       v-model="form.startTime"
                       type="time"
@@ -70,7 +94,9 @@
                   </div>
 
                   <div class="form-group">
-                    <label class="form-label required">結束時間</label>
+                    <label class="form-label required">{{
+                      t("shiftTemplates.form.endTime")
+                    }}</label>
                     <input
                       v-model="form.endTime"
                       type="time"
@@ -88,7 +114,7 @@
                         type="checkbox"
                         class="form-checkbox"
                       />
-                      <span>含休息時間</span>
+                      <span>{{ t("shiftTemplates.form.includeBreak") }}</span>
                     </label>
                   </div>
                 </div>
@@ -96,7 +122,9 @@
                 <transition name="fade">
                   <div v-if="form.isSplitShift" class="form-row">
                     <div class="form-group">
-                      <label class="form-label">休息開始</label>
+                      <label class="form-label">{{
+                        t("shiftTemplates.form.breakStart")
+                      }}</label>
                       <input
                         v-model="form.breakStartTime"
                         type="time"
@@ -105,7 +133,9 @@
                     </div>
 
                     <div class="form-group">
-                      <label class="form-label">休息結束</label>
+                      <label class="form-label">{{
+                        t("shiftTemplates.form.breakEnd")
+                      }}</label>
                       <input
                         v-model="form.breakEndTime"
                         type="time"
@@ -118,18 +148,24 @@
                 <div class="info-box">
                   <span class="info-icon">ℹ️</span>
                   <span
-                    >預計工時: <strong>{{ calculatedHours }}</strong> 小時</span
+                    >{{ t("shiftTemplates.form.estimatedHours") }}:
+                    <strong>{{ calculatedHours }}</strong>
+                    {{ t("shiftTemplates.form.hoursUnit") }}</span
                   >
                 </div>
               </div>
 
               <!-- Staffing Section -->
               <div class="form-section">
-                <h3 class="section-title">人力需求</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.staffing") }}
+                </h3>
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label required">最少人數</label>
+                    <label class="form-label required">{{
+                      t("shiftTemplates.form.minEmployees")
+                    }}</label>
                     <input
                       v-model.number="form.minEmployees"
                       type="number"
@@ -141,7 +177,9 @@
                   </div>
 
                   <div class="form-group">
-                    <label class="form-label required">最多人數</label>
+                    <label class="form-label required">{{
+                      t("shiftTemplates.form.maxEmployees")
+                    }}</label>
                     <input
                       v-model.number="form.maxEmployees"
                       type="number"
@@ -156,7 +194,9 @@
 
               <!-- Applicable Days Section -->
               <div class="form-section">
-                <h3 class="section-title">適用日期</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.applicableDays") }}
+                </h3>
                 <div class="days-selector">
                   <label
                     v-for="(day, index) in weekdays"
@@ -177,11 +217,15 @@
 
               <!-- Pay Rate Section -->
               <div class="form-section">
-                <h3 class="section-title">薪資設定 (選填)</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.payRate") }}
+                </h3>
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label">時薪 (TWD)</label>
+                    <label class="form-label">{{
+                      t("shiftTemplates.form.hourlyRate")
+                    }}</label>
                     <input
                       v-model.number="form.hourlyRate"
                       type="number"
@@ -193,15 +237,25 @@
                   </div>
 
                   <div class="form-group">
-                    <label class="form-label">加班倍數</label>
+                    <label class="form-label">{{
+                      t("shiftTemplates.form.overtimeMultiplier")
+                    }}</label>
                     <select
                       v-model.number="form.overtimeMultiplier"
                       class="form-select"
                     >
-                      <option :value="1">1.0x (正常)</option>
-                      <option :value="1.34">1.34x (平日加班)</option>
-                      <option :value="1.67">1.67x (休息日加班)</option>
-                      <option :value="2">2.0x (國定假日)</option>
+                      <option :value="1">
+                        1.0x ({{ t("shiftTemplates.overtime.normal") }})
+                      </option>
+                      <option :value="1.34">
+                        1.34x ({{ t("shiftTemplates.overtime.weekday") }})
+                      </option>
+                      <option :value="1.67">
+                        1.67x ({{ t("shiftTemplates.overtime.restDay") }})
+                      </option>
+                      <option :value="2">
+                        2.0x ({{ t("shiftTemplates.overtime.holiday") }})
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -209,11 +263,15 @@
 
               <!-- Appearance Section -->
               <div class="form-section">
-                <h3 class="section-title">外觀設定</h3>
+                <h3 class="section-title">
+                  {{ t("shiftTemplates.sections.appearance") }}
+                </h3>
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label">顏色標記</label>
+                    <label class="form-label">{{
+                      t("shiftTemplates.form.colorLabel")
+                    }}</label>
                     <div class="color-picker">
                       <input
                         v-model="form.colorCode"
@@ -229,7 +287,9 @@
                   </div>
 
                   <div class="form-group">
-                    <label class="form-label">圖示 (選填)</label>
+                    <label class="form-label">{{
+                      t("shiftTemplates.form.icon")
+                    }}</label>
                     <input
                       v-model="form.icon"
                       type="text"
@@ -241,7 +301,9 @@
                 </div>
 
                 <div class="template-preview">
-                  <div class="preview-label">預覽:</div>
+                  <div class="preview-label">
+                    {{ t("shiftTemplates.form.preview") }}:
+                  </div>
                   <div
                     class="preview-badge"
                     :style="{
@@ -251,7 +313,9 @@
                     }"
                   >
                     <span v-if="form.icon">{{ form.icon }}</span>
-                    <span>{{ form.name || "班別名稱" }}</span>
+                    <span>{{
+                      form.name || t("shiftTemplates.form.name")
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -265,7 +329,7 @@
                       type="checkbox"
                       class="form-checkbox"
                     />
-                    <span>啟用此班別模板</span>
+                    <span>{{ t("shiftTemplates.form.isActive") }}</span>
                   </label>
                 </div>
               </div>
@@ -288,7 +352,7 @@
               :disabled="loading"
               @click="closeModal"
             >
-              取消
+              {{ t("common.cancel") }}
             </button>
             <button
               type="button"
@@ -297,7 +361,7 @@
               @click="handleSubmit"
             >
               <span v-if="loading" class="btn-spinner"></span>
-              <span>{{ isEditing ? "儲存" : "新增" }}</span>
+              <span>{{ isEditing ? t("common.save") : t("common.add") }}</span>
             </button>
           </div>
         </div>
@@ -308,7 +372,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/i18n";
 import type { ShiftTemplate } from "@/types/scheduling";
+
+const { t } = useI18n();
 
 interface Props {
   modelValue: boolean;
@@ -326,7 +393,15 @@ const emit = defineEmits<{
 // State
 const loading = ref(false);
 const error = ref<string | null>(null);
-const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+const weekdays = computed(() => [
+  t("weekdays.mini.sunday"),
+  t("weekdays.mini.monday"),
+  t("weekdays.mini.tuesday"),
+  t("weekdays.mini.wednesday"),
+  t("weekdays.mini.thursday"),
+  t("weekdays.mini.friday"),
+  t("weekdays.mini.saturday"),
+]);
 
 // Form data
 const defaultForm = () => ({
@@ -440,17 +515,17 @@ const handleSubmit = async () => {
   error.value = null;
 
   if (!isFormValid.value) {
-    error.value = "請填寫所有必填欄位";
+    error.value = t("common.fillRequired");
     return;
   }
 
   if (form.value.minEmployees > form.value.maxEmployees) {
-    error.value = "最少人數不能大於最多人數";
+    error.value = t("shiftTemplates.errors.minExceedsMax");
     return;
   }
 
   if (applicableDaysArray.value.length === 0) {
-    error.value = "請至少選擇一個適用日期";
+    error.value = t("shiftTemplates.errors.noDaysSelected");
     return;
   }
 
@@ -477,7 +552,7 @@ const handleSubmit = async () => {
     emit("save", submitData);
     closeModal();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : "儲存失敗，請稍後再試";
+    error.value = err instanceof Error ? err.message : t("errors.saveFailed");
   } finally {
     loading.value = false;
   }

@@ -2,9 +2,11 @@
   <div class="space-y-6">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">外送平台串接</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        {{ t("integrations.title") }}
+      </h3>
       <p class="text-sm text-gray-500">
-        連接外送平台以統一管理來自不同平台的訂單和菜單
+        {{ t("integrations.subtitle") }}
       </p>
     </div>
 
@@ -21,20 +23,22 @@
             </div>
             <div>
               <h4 class="font-semibold text-gray-900">Uber Eats</h4>
-              <p class="text-xs text-gray-500">外送平台串接</p>
+              <p class="text-xs text-gray-500">
+                {{ t("integrations.deliveryIntegration") }}
+              </p>
             </div>
           </div>
           <span
             v-if="uberEats.enabled"
             class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium"
           >
-            已連接
+            {{ t("integrations.connected") }}
           </span>
           <span
             v-else
             class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium"
           >
-            未連接
+            {{ t("integrations.notConnected") }}
           </span>
         </div>
 
@@ -42,13 +46,13 @@
         <div v-if="!uberEats.enabled">
           <div v-if="!showConnectForm" class="text-center py-4">
             <p class="text-sm text-gray-500 mb-4">
-              連接 Uber Eats 以自動接收並管理外送訂單
+              {{ t("integrations.connectDescription") }}
             </p>
             <button
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               @click="showConnectForm = true"
             >
-              連接 Uber Eats
+              {{ t("integrations.connectUberEats") }}
             </button>
           </div>
 
@@ -93,13 +97,17 @@
                 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                 @click="connectUberEats"
               >
-                {{ isConnecting ? "連接中..." : "確認連接" }}
+                {{
+                  isConnecting
+                    ? t("integrations.connecting")
+                    : t("integrations.confirmConnect")
+                }}
               </button>
               <button
                 class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 @click="showConnectForm = false"
               >
-                取消
+                {{ t("common.cancel") }}
               </button>
             </div>
           </div>
@@ -109,8 +117,12 @@
         <div v-else class="space-y-4">
           <div class="flex items-center justify-between py-2">
             <div>
-              <p class="text-sm font-medium text-gray-900">自動接單</p>
-              <p class="text-xs text-gray-500">收到平台訂單時自動確認接受</p>
+              <p class="text-sm font-medium text-gray-900">
+                {{ t("integrations.autoAccept") }}
+              </p>
+              <p class="text-xs text-gray-500">
+                {{ t("integrations.autoAcceptDesc") }}
+              </p>
             </div>
             <button
               :class="[
@@ -134,9 +146,11 @@
 
           <div class="flex items-center justify-between py-2">
             <div>
-              <p class="text-sm font-medium text-gray-900">菜單同步</p>
+              <p class="text-sm font-medium text-gray-900">
+                {{ t("integrations.menuSync") }}
+              </p>
               <p class="text-xs text-gray-500">
-                自動將菜單更新同步到 Uber Eats
+                {{ t("integrations.menuSyncDesc") }}
               </p>
             </div>
             <button
@@ -163,10 +177,13 @@
             class="flex items-center justify-between py-2 border-t border-gray-100"
           >
             <div>
-              <p class="text-sm font-medium text-gray-900">手動同步菜單</p>
+              <p class="text-sm font-medium text-gray-900">
+                {{ t("integrations.manualSync") }}
+              </p>
               <p class="text-xs text-gray-500">
                 <template v-if="uberEats.lastMenuSyncAt">
-                  最後同步：{{ formatDate(uberEats.lastMenuSyncAt) }}
+                  {{ t("integrations.lastSync") }}:
+                  {{ formatDate(uberEats.lastMenuSyncAt) }}
                   <span
                     :class="getSyncStatusClass(uberEats.menuSyncStatus)"
                     class="ml-1"
@@ -174,7 +191,7 @@
                     {{ getSyncStatusText(uberEats.menuSyncStatus) }}
                   </span>
                 </template>
-                <template v-else>尚未同步</template>
+                <template v-else>{{ t("integrations.notSynced") }}</template>
               </p>
             </div>
             <button
@@ -182,7 +199,11 @@
               class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               @click="syncMenu"
             >
-              {{ isSyncing ? "同步中..." : "立即同步" }}
+              {{
+                isSyncing
+                  ? t("integrations.syncing")
+                  : t("integrations.syncNow")
+              }}
             </button>
           </div>
 
@@ -191,7 +212,7 @@
               class="text-sm text-red-600 hover:text-red-700 font-medium"
               @click="confirmDisconnect = true"
             >
-              斷開連接
+              {{ t("integrations.disconnect") }}
             </button>
           </div>
         </div>
@@ -208,18 +229,20 @@
             </div>
             <div>
               <h4 class="font-semibold text-gray-900">Foodpanda</h4>
-              <p class="text-xs text-gray-500">外送平台串接</p>
+              <p class="text-xs text-gray-500">
+                {{ t("integrations.deliveryIntegration") }}
+              </p>
             </div>
           </div>
           <span
             class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium"
           >
-            即將推出
+            {{ t("integrations.comingSoon") }}
           </span>
         </div>
         <div class="text-center py-4">
           <p class="text-sm text-gray-500">
-            Foodpanda 串接功能即將推出，敬請期待
+            {{ t("integrations.foodpandaComingSoon") }}
           </p>
         </div>
       </div>
@@ -228,7 +251,9 @@
     <!-- Webhook Logs -->
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex items-center justify-between mb-4">
-        <h4 class="font-semibold text-gray-900">Webhook 紀錄</h4>
+        <h4 class="font-semibold text-gray-900">
+          {{ t("integrations.webhookLogs") }}
+        </h4>
         <button
           class="text-sm text-blue-600 hover:text-blue-700"
           @click="
@@ -236,13 +261,15 @@
             if (showLogs) loadWebhookLogs();
           "
         >
-          {{ showLogs ? "收起" : "展開" }}
+          {{ showLogs ? t("integrations.collapse") : t("integrations.expand") }}
         </button>
       </div>
 
       <div v-if="showLogs">
         <div v-if="webhookLogs.length === 0" class="text-center py-6">
-          <p class="text-sm text-gray-500">暫無 webhook 紀錄</p>
+          <p class="text-sm text-gray-500">
+            {{ t("integrations.noWebhookLogs") }}
+          </p>
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
@@ -251,27 +278,27 @@
                 <th
                   class="px-4 py-2 text-left text-xs font-medium text-gray-500"
                 >
-                  時間
+                  {{ t("integrations.logTime") }}
                 </th>
                 <th
                   class="px-4 py-2 text-left text-xs font-medium text-gray-500"
                 >
-                  平台
+                  {{ t("integrations.logPlatform") }}
                 </th>
                 <th
                   class="px-4 py-2 text-left text-xs font-medium text-gray-500"
                 >
-                  事件
+                  {{ t("integrations.logEvent") }}
                 </th>
                 <th
                   class="px-4 py-2 text-left text-xs font-medium text-gray-500"
                 >
-                  狀態
+                  {{ t("integrations.logStatus") }}
                 </th>
                 <th
                   class="px-4 py-2 text-left text-xs font-medium text-gray-500"
                 >
-                  錯誤
+                  {{ t("integrations.logError") }}
                 </th>
               </tr>
             </thead>
@@ -310,24 +337,29 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
       <div class="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">確認斷開連接</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+          {{ t("integrations.confirmDisconnectTitle") }}
+        </h3>
         <p class="text-sm text-gray-600 mb-4">
-          斷開 Uber Eats
-          連接後，將無法再接收來自該平台的訂單。已存在的訂單不受影響。
+          {{ t("integrations.confirmDisconnectDesc") }}
         </p>
         <div class="flex items-center justify-end space-x-3">
           <button
             class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             @click="confirmDisconnect = false"
           >
-            取消
+            {{ t("common.cancel") }}
           </button>
           <button
             :disabled="isDisconnecting"
             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
             @click="disconnectUberEats"
           >
-            {{ isDisconnecting ? "斷開中..." : "確認斷開" }}
+            {{
+              isDisconnecting
+                ? t("integrations.disconnecting")
+                : t("integrations.confirmDisconnect")
+            }}
           </button>
         </div>
       </div>
@@ -350,8 +382,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { apiClient } from "@/services/api";
+
+const { t } = useI18n();
 
 const authStore = useAuthStore();
 
@@ -422,7 +457,7 @@ async function connectUberEats() {
     !connectForm.clientSecret ||
     !connectForm.storeId
   ) {
-    showMsg("error", "請填寫所有欄位");
+    showMsg("error", t("integrations.alerts.fillAllFields"));
     return;
   }
   isConnecting.value = true;
@@ -436,11 +471,14 @@ async function connectUberEats() {
         storeId: connectForm.storeId,
       },
     );
-    showMsg("success", "Uber Eats 連接成功");
+    showMsg("success", t("integrations.alerts.connectSuccess"));
     showConnectForm.value = false;
     await loadIntegration();
   } catch (err: any) {
-    showMsg("error", err?.response?.data?.error || "連接失敗");
+    showMsg(
+      "error",
+      err?.response?.data?.error || t("integrations.alerts.connectFailed"),
+    );
   } finally {
     isConnecting.value = false;
   }
@@ -455,7 +493,7 @@ async function toggleAutoAccept() {
     });
     if (uberEats.config) uberEats.config.autoAcceptOrders = newValue;
   } catch {
-    showMsg("error", "更新設定失敗");
+    showMsg("error", t("integrations.alerts.updateFailed"));
   }
 }
 
@@ -468,7 +506,7 @@ async function toggleMenuSync() {
     });
     if (uberEats.config) uberEats.config.menuSyncEnabled = newValue;
   } catch {
-    showMsg("error", "更新設定失敗");
+    showMsg("error", t("integrations.alerts.updateFailed"));
   }
 }
 
@@ -479,10 +517,13 @@ async function syncMenu() {
     await apiClient.post(
       `/api/v1/integrations/${restaurantId}/uber_eats/menu-sync`,
     );
-    showMsg("success", "菜單同步已觸發");
+    showMsg("success", t("integrations.alerts.syncTriggered"));
     await loadIntegration();
   } catch (err: any) {
-    showMsg("error", err?.response?.data?.error || "同步失敗");
+    showMsg(
+      "error",
+      err?.response?.data?.error || t("integrations.alerts.syncFailed"),
+    );
   } finally {
     isSyncing.value = false;
   }
@@ -498,9 +539,9 @@ async function disconnectUberEats() {
     uberEats.lastMenuSyncAt = null;
     uberEats.menuSyncStatus = null;
     confirmDisconnect.value = false;
-    showMsg("success", "已斷開 Uber Eats 連接");
+    showMsg("success", t("integrations.alerts.disconnectSuccess"));
   } catch {
-    showMsg("error", "斷開連接失敗");
+    showMsg("error", t("integrations.alerts.disconnectFailed"));
   } finally {
     isDisconnecting.value = false;
   }
@@ -547,9 +588,9 @@ function getSyncStatusClass(status?: string | null) {
 function getSyncStatusText(status?: string | null) {
   const texts: Record<string, string> = {
     idle: "",
-    syncing: "(同步中)",
-    success: "(成功)",
-    error: "(失敗)",
+    syncing: `(${t("integrations.syncStatus.syncing")})`,
+    success: `(${t("integrations.syncStatus.success")})`,
+    error: `(${t("integrations.syncStatus.error")})`,
   };
   return texts[status || "idle"] || "";
 }
@@ -565,9 +606,9 @@ function getLogStatusClass(status: string) {
 
 function getLogStatusText(status: string) {
   const texts: Record<string, string> = {
-    received: "已接收",
-    processed: "已處理",
-    failed: "失敗",
+    received: t("integrations.logStatusText.received"),
+    processed: t("integrations.logStatusText.processed"),
+    failed: t("integrations.logStatusText.failed"),
   };
   return texts[status] || status;
 }

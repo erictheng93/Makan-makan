@@ -13,7 +13,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜尋員工姓名..."
+              :placeholder="t('scheduling.filters.searchEmployee')"
               class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <button
@@ -35,7 +35,9 @@
               type="date"
               class="border-none outline-none text-sm"
             />
-            <span class="text-gray-400 text-sm">至</span>
+            <span class="text-gray-400 text-sm">{{
+              t("scheduling.filters.to")
+            }}</span>
             <input
               v-model="endDate"
               type="date"
@@ -51,11 +53,11 @@
             v-model="statusFilter"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">全部狀態</option>
-            <option value="scheduled">已排班</option>
-            <option value="confirmed">已確認</option>
-            <option value="completed">已完成</option>
-            <option value="cancelled">已取消</option>
+            <option value="">{{ t("scheduling.filters.allStatus") }}</option>
+            <option value="scheduled">{{ t("status.scheduled") }}</option>
+            <option value="confirmed">{{ t("status.confirmed") }}</option>
+            <option value="completed">{{ t("status.completed") }}</option>
+            <option value="cancelled">{{ t("status.cancelled") }}</option>
           </select>
 
           <!-- Actions -->
@@ -68,7 +70,11 @@
                 @click="showBatchMenu = !showBatchMenu"
               >
                 <ClipboardDocumentListIcon class="h-4 w-4" />
-                <span>批量操作 ({{ selectedItems.length }})</span>
+                <span
+                  >{{ t("scheduling.batch.title") }} ({{
+                    selectedItems.length
+                  }})</span
+                >
               </button>
 
               <!-- Batch Menu -->
@@ -81,21 +87,21 @@
                   @click="batchConfirm"
                 >
                   <CheckIcon class="h-4 w-4" />
-                  <span>批量確認</span>
+                  <span>{{ t("scheduling.batch.confirmAll") }}</span>
                 </button>
                 <button
                   class="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
                   @click="batchCancel"
                 >
                   <XMarkIcon class="h-4 w-4" />
-                  <span>批量取消</span>
+                  <span>{{ t("scheduling.batch.cancelAll") }}</span>
                 </button>
                 <button
                   class="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
                   @click="batchExport"
                 >
                   <ArrowDownTrayIcon class="h-4 w-4" />
-                  <span>匯出選中</span>
+                  <span>{{ t("scheduling.batch.exportSelected") }}</span>
                 </button>
               </div>
             </div>
@@ -106,7 +112,7 @@
               @click="handleExport"
             >
               <ArrowDownTrayIcon class="h-4 w-4" />
-              <span>匯出報表</span>
+              <span>{{ t("scheduling.exportReport") }}</span>
             </button>
           </div>
         </div>
@@ -118,7 +124,7 @@
       <div
         class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
       ></div>
-      <p class="mt-4 text-gray-600">載入排班清單中...</p>
+      <p class="mt-4 text-gray-600">{{ t("scheduling.loadingList") }}</p>
     </div>
 
     <!-- Empty State -->
@@ -127,8 +133,10 @@
       class="text-center py-12 bg-white rounded-lg shadow"
     >
       <CalendarIcon class="h-16 w-16 text-gray-400 mx-auto mb-4" />
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">尚無排班資料</h3>
-      <p class="text-gray-600">點擊上方「新增排班」按鈕開始建立員工班表</p>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        {{ t("scheduling.noData") }}
+      </h3>
+      <p class="text-gray-600">{{ t("scheduling.noDataHint") }}</p>
     </div>
 
     <!-- Schedules Table -->
@@ -150,7 +158,7 @@
                 @click="toggleSort('workDate')"
               >
                 <div class="flex items-center gap-2">
-                  <span>日期</span>
+                  <span>{{ t("scheduling.columns.date") }}</span>
                   <span v-if="sortBy === 'workDate'" class="text-blue-600">
                     {{ sortOrder === "asc" ? "↑" : "↓" }}
                   </span>
@@ -161,7 +169,7 @@
                 @click="toggleSort('employeeName')"
               >
                 <div class="flex items-center gap-2">
-                  <span>員工</span>
+                  <span>{{ t("scheduling.columns.employee") }}</span>
                   <span v-if="sortBy === 'employeeName'" class="text-blue-600">
                     {{ sortOrder === "asc" ? "↑" : "↓" }}
                   </span>
@@ -170,19 +178,19 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                班別
+                {{ t("scheduling.columns.shift") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                時間
+                {{ t("scheduling.columns.time") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 @click="toggleSort('scheduledHours')"
               >
                 <div class="flex items-center gap-2">
-                  <span>工時</span>
+                  <span>{{ t("scheduling.columns.hours") }}</span>
                   <span
                     v-if="sortBy === 'scheduledHours'"
                     class="text-blue-600"
@@ -194,27 +202,27 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                打卡上班
+                {{ t("scheduling.columns.clockIn") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                打卡下班
+                {{ t("scheduling.columns.clockOut") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                實際工時
+                {{ t("scheduling.columns.actualHours") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                狀態
+                {{ t("scheduling.columns.status") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                操作
+                {{ t("common.actions") }}
               </th>
             </tr>
           </thead>
@@ -263,7 +271,7 @@
                 {{ schedule.startTime }} - {{ schedule.endTime }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ schedule.scheduledHours }} 小時
+                {{ schedule.scheduledHours }} {{ t("scheduling.hoursUnit") }}
               </td>
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono"
@@ -310,14 +318,14 @@
                 <div class="flex gap-2">
                   <button
                     class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="編輯"
+                    :title="t('common.edit')"
                     @click="$emit('edit', schedule)"
                   >
                     <PencilIcon class="h-4 w-4" />
                   </button>
                   <button
                     class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                    title="刪除"
+                    :title="t('common.delete')"
                     @click="$emit('delete', schedule)"
                   >
                     <TrashIcon class="h-4 w-4" />
@@ -335,15 +343,20 @@
         class="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50"
       >
         <div class="text-sm text-gray-700">
-          顯示 {{ startIndex + 1 }}-{{ endIndex }} 共
-          {{ filteredSchedules.length }} 筆
+          {{
+            t("scheduling.pagination.showing", {
+              start: startIndex + 1,
+              end: endIndex,
+              total: filteredSchedules.length,
+            })
+          }}
         </div>
 
         <div class="flex items-center gap-2">
           <button
             class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="currentPage === 1"
-            title="第一頁"
+            :title="t('scheduling.pagination.firstPage')"
             @click="goToPage(1)"
           >
             ««
@@ -382,7 +395,7 @@
           <button
             class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="currentPage === totalPages"
-            title="最後一頁"
+            :title="t('scheduling.pagination.lastPage')"
             @click="goToPage(totalPages)"
           >
             »»
@@ -393,10 +406,18 @@
           v-model.number="pageSize"
           class="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option :value="10">10 筆/頁</option>
-          <option :value="20">20 筆/頁</option>
-          <option :value="50">50 筆/頁</option>
-          <option :value="100">100 筆/頁</option>
+          <option :value="10">
+            10 / {{ t("scheduling.pagination.page") }}
+          </option>
+          <option :value="20">
+            20 / {{ t("scheduling.pagination.page") }}
+          </option>
+          <option :value="50">
+            50 / {{ t("scheduling.pagination.page") }}
+          </option>
+          <option :value="100">
+            100 / {{ t("scheduling.pagination.page") }}
+          </option>
         </select>
       </div>
     </div>
@@ -405,7 +426,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/i18n";
 import type { EmployeeSchedule } from "@/types/scheduling";
+
+const { t } = useI18n();
 import {
   MagnifyingGlassIcon,
   CalendarIcon,
@@ -590,7 +614,11 @@ const batchConfirm = () => {
   if (selectedItems.value.length === 0) return;
 
   if (
-    confirm(`確定要將 ${selectedItems.value.length} 筆排班標記為已確認嗎？`)
+    confirm(
+      t("scheduling.batch.confirmAction", {
+        count: selectedItems.value.length,
+      }),
+    )
   ) {
     emit("batchUpdate", selectedItems.value, "confirm");
     selectedItems.value = [];
@@ -601,7 +629,13 @@ const batchConfirm = () => {
 const batchCancel = () => {
   if (selectedItems.value.length === 0) return;
 
-  if (confirm(`確定要取消 ${selectedItems.value.length} 筆排班嗎？`)) {
+  if (
+    confirm(
+      t("scheduling.batch.cancelConfirm", {
+        count: selectedItems.value.length,
+      }),
+    )
+  ) {
     emit("batchUpdate", selectedItems.value, "cancel");
     selectedItems.value = [];
     showBatchMenu.value = false;
@@ -616,7 +650,7 @@ const batchExport = () => {
   );
   exportToCSV(
     selectedSchedules,
-    `排班資料_選中_${new Date().toISOString().split("T")[0]}.csv`,
+    `${t("scheduling.exportFilename")}_${t("scheduling.exportSelected")}_${new Date().toISOString().split("T")[0]}.csv`,
   );
   showBatchMenu.value = false;
 };
@@ -625,33 +659,41 @@ const batchExport = () => {
 const handleExport = () => {
   exportToCSV(
     filteredSchedules.value,
-    `排班資料_${new Date().toISOString().split("T")[0]}.csv`,
+    `${t("scheduling.exportFilename")}_${new Date().toISOString().split("T")[0]}.csv`,
   );
 };
 
 const exportToCSV = (data: EmployeeSchedule[], filename: string) => {
   if (data.length === 0) {
-    alert("沒有資料可匯出");
+    alert(t("scheduling.noExportData"));
     return;
   }
 
   const headers = [
-    "日期",
-    "星期",
-    "員工",
-    "班別",
-    "開始時間",
-    "結束時間",
-    "工時",
-    "狀態",
+    t("scheduling.columns.date"),
+    t("scheduling.columns.weekday"),
+    t("scheduling.columns.employee"),
+    t("scheduling.columns.shift"),
+    t("scheduling.columns.startTime"),
+    t("scheduling.columns.endTime"),
+    t("scheduling.columns.hours"),
+    t("scheduling.columns.status"),
   ];
   const rows = data.map((schedule) => {
     const date = new Date(schedule.workDate);
-    const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+    const dayNames = [
+      t("weekdays.mini.sunday"),
+      t("weekdays.mini.monday"),
+      t("weekdays.mini.tuesday"),
+      t("weekdays.mini.wednesday"),
+      t("weekdays.mini.thursday"),
+      t("weekdays.mini.friday"),
+      t("weekdays.mini.saturday"),
+    ];
 
     return [
       schedule.workDate,
-      weekdays[date.getDay()],
+      dayNames[date.getDay()],
       schedule.employeeName || "",
       schedule.shiftTemplate?.name || "-",
       schedule.startTime,
@@ -687,20 +729,23 @@ const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
-  const weekday = weekdays[date.getDay()];
+  const dayNames = [
+    t("weekdays.mini.sunday"),
+    t("weekdays.mini.monday"),
+    t("weekdays.mini.tuesday"),
+    t("weekdays.mini.wednesday"),
+    t("weekdays.mini.thursday"),
+    t("weekdays.mini.friday"),
+    t("weekdays.mini.saturday"),
+  ];
+  const weekday = dayNames[date.getDay()];
   return `${month}/${day} (${weekday})`;
 };
 
 const getStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
-    scheduled: "已排班",
-    confirmed: "已確認",
-    completed: "已完成",
-    cancelled: "已取消",
-    no_show: "缺席",
-  };
-  return labels[status] || status;
+  const key = `status.${status}`;
+  const translated = t(key);
+  return translated !== key ? translated : status;
 };
 
 const formatClockTime = (timeStr: string | null | undefined): string => {
