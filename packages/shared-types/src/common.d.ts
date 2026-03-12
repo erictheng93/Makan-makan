@@ -23,6 +23,14 @@ export interface BaseEntity {
     createdAt: string;
     updatedAt: string;
 }
+/**
+ * Base entity for UUID-based tables (like restaurants)
+ */
+export interface UUIDEntity {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+}
 export declare enum Status {
     INACTIVE = 0,
     ACTIVE = 1

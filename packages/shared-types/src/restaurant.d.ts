@@ -1,5 +1,5 @@
-import { BaseEntity, Status, BusinessHours } from './common';
-export interface Restaurant extends BaseEntity {
+import { UUIDEntity, Status, BusinessHours } from "./common";
+export interface Restaurant extends UUIDEntity {
     name: string;
     type?: string;
     category?: string;

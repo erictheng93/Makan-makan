@@ -2,10 +2,10 @@
  * 熱敏打印機系統類型定義
  * 支援多品牌打印機和多國發票格式
  */
-import type { CountryCode, CurrencyCode } from './payment';
-export type PrinterBrand = 'epson' | 'star' | 'citizen' | 'generic';
-export type PrinterConnection = 'usb' | 'network' | 'serial' | 'bluetooth';
-export type PrinterStatus = 'online' | 'offline' | 'error' | 'paper_out' | 'cover_open';
+import type { CountryCode, CurrencyCode } from "./payment";
+export type PrinterBrand = "epson" | "star" | "citizen" | "generic";
+export type PrinterConnection = "usb" | "network" | "serial" | "bluetooth";
+export type PrinterStatus = "online" | "offline" | "error" | "paper_out" | "cover_open";
 export interface PrinterDevice {
     id: string;
     name: string;
@@ -33,9 +33,9 @@ export interface PaperSize {
     height: number;
     name: string;
 }
-export type PrintJobStatus = 'pending' | 'printing' | 'completed' | 'failed' | 'cancelled' | 'paused';
-export type PrintJobType = 'receipt' | 'order' | 'report' | 'test';
-export type PrintJobPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type PrintJobStatus = "pending" | "printing" | "completed" | "failed" | "cancelled" | "paused";
+export type PrintJobType = "receipt" | "order" | "report" | "test";
+export type PrintJobPriority = "low" | "normal" | "high" | "urgent";
 export interface PrintJob {
     id: string;
     type: PrintJobType;
@@ -53,7 +53,7 @@ export interface PrintJob {
     cancelledAt?: Date;
     error?: PrintError;
     metadata?: {
-        restaurantId?: number;
+        restaurantId?: string;
         orderId?: string;
         userId?: string;
         country?: CountryCode;
@@ -83,9 +83,9 @@ export interface ReceiptHeader {
     restaurantInfo: PrinterRestaurantInfo;
     transactionInfo: TransactionInfo;
     logo?: {
-        type: 'image' | 'text';
+        type: "image" | "text";
         data: string;
-        alignment: 'left' | 'center' | 'right';
+        alignment: "left" | "center" | "right";
     };
 }
 export interface PrinterRestaurantInfo {
@@ -143,7 +143,7 @@ export interface TaxBreakdown {
 }
 export interface DiscountInfo {
     name: string;
-    type: 'percentage' | 'fixed';
+    type: "percentage" | "fixed";
     value: number;
     amount: number;
 }
@@ -168,12 +168,12 @@ export interface ReceiptFooter {
 }
 export interface QRCodeInfo {
     data: string;
-    size: 'small' | 'medium' | 'large';
+    size: "small" | "medium" | "large";
     label?: string;
 }
 export interface BarcodeInfo {
     data: string;
-    format: 'CODE128' | 'CODE39' | 'EAN13' | 'EAN8';
+    format: "CODE128" | "CODE39" | "EAN13" | "EAN8";
     label?: string;
 }
 export interface ContactInfo {
@@ -185,13 +185,13 @@ export interface ContactInfo {
         handle: string;
     }[];
 }
-export type CommandType = 'text' | 'line' | 'cut' | 'feed' | 'image' | 'barcode' | 'qrcode' | 'drawer' | 'buzzer' | 'raw';
+export type CommandType = "text" | "line" | "cut" | "feed" | "image" | "barcode" | "qrcode" | "drawer" | "buzzer" | "raw";
 export interface PrintCommand {
     type: CommandType;
     data: any;
     options?: {
-        alignment?: 'left' | 'center' | 'right';
-        font?: 'normal' | 'bold' | 'large';
+        alignment?: "left" | "center" | "right";
+        font?: "normal" | "bold" | "large";
         underline?: boolean;
         doubleHeight?: boolean;
         doubleWidth?: boolean;
@@ -209,7 +209,7 @@ export interface RegionConfig {
         thousand: string;
         currency: {
             symbol: string;
-            position: 'before' | 'after';
+            position: "before" | "after";
             space: boolean;
         };
     };
@@ -227,7 +227,7 @@ export interface TaxConfig {
 export interface LegalConfig {
     requiresTaxNumber: boolean;
     requiresLicense: boolean;
-    invoiceFormat: 'simple' | 'detailed' | 'government';
+    invoiceFormat: "simple" | "detailed" | "government";
     retentionPeriod: number;
     electronicInvoice: boolean;
 }
@@ -294,7 +294,7 @@ export interface LayoutSection {
     show: boolean;
     order: number;
     spacing: number;
-    alignment: 'left' | 'center' | 'right';
+    alignment: "left" | "center" | "right";
     fields: string[];
 }
 export interface TemplateStyles {
@@ -310,12 +310,12 @@ export interface TemplateStyles {
         item: number;
     };
     borders: {
-        style: 'none' | 'dashed' | 'solid';
+        style: "none" | "dashed" | "solid";
         sections: string[];
     };
 }
 export interface FontStyle {
-    size: 'normal' | 'large';
+    size: "normal" | "large";
     bold: boolean;
     underline: boolean;
     doubleHeight: boolean;
@@ -327,7 +327,7 @@ export interface PrintRequest {
     priority?: PrintJobPriority;
     deviceId?: string;
     templateId?: string;
-    restaurantId?: number;
+    restaurantId?: string;
     userId?: string;
     data: {
         order: OrderData;
@@ -382,7 +382,7 @@ export interface PrintStatusResponse {
     error?: PrintError;
     completedAt?: Date;
 }
-export type PrinterEventType = 'device_connected' | 'device_disconnected' | 'device_error' | 'job_started' | 'job_completed' | 'job_failed' | 'paper_low' | 'paper_out' | 'cover_open';
+export type PrinterEventType = "device_connected" | "device_disconnected" | "device_error" | "job_started" | "job_completed" | "job_failed" | "paper_low" | "paper_out" | "cover_open";
 export interface PrinterEvent {
     type: PrinterEventType;
     timestamp: Date;
@@ -394,7 +394,7 @@ export interface PrinterEvent {
 export interface PrinterDriverConfig {
     brand: PrinterBrand;
     encoding: string;
-    commandSet: 'esc-pos' | 'star-prnt' | 'citizen';
+    commandSet: "esc-pos" | "star-prnt" | "citizen";
     features: {
         cutter: boolean;
         drawer: boolean;

@@ -3,27 +3,31 @@
  *
  * Automatically deduplicates Axios requests with same URL, method, and params
  */
-import { RequestDeduplicator } from './request-deduplication';
-const DEDUP_KEY_SYMBOL = Symbol('dedupKey');
-const DEDUP_SKIP_SYMBOL = Symbol('dedupSkip');
+import { RequestDeduplicator, } from "./request-deduplication";
+const DEDUP_KEY_SYMBOL = Symbol("dedupKey");
+const DEDUP_SKIP_SYMBOL = Symbol("dedupSkip");
 /**
  * Generate cache key from Axios request config
  */
 function generateRequestKey(config) {
-    const { method = 'get', url = '', params, data } = config;
+    const { method = "get", url = "", params, data } = config;
     // Normalize method to lowercase
     const normalizedMethod = method.toLowerCase();
     // Sort params for consistent keys
     const sortedParams = params
-        ? JSON.stringify(Object.keys(params).sort().reduce((acc, key) => {
+        ? JSON.stringify(Object.keys(params)
+            .sort()
+            .reduce((acc, key) => {
             acc[key] = params[key];
             return acc;
         }, {}))
-        : '';
+        : "";
     // For POST/PUT/PATCH, include body in key (but limit size)
-    const bodyKey = (normalizedMethod === 'post' || normalizedMethod === 'put' || normalizedMethod === 'patch')
+    const bodyKey = normalizedMethod === "post" ||
+        normalizedMethod === "put" ||
+        normalizedMethod === "patch"
         ? JSON.stringify(data).slice(0, 500) // Limit body to 500 chars for key
-        : '';
+        : "";
     return `${normalizedMethod}:${url}:${sortedParams}:${bodyKey}`;
 }
 /**
@@ -44,7 +48,7 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
         cacheDuration: 5000,
         maxCacheSize: 100,
         debug: false,
-        ...options
+        ...options,
     });
     // Request interceptor - add deduplication
     const requestInterceptor = axiosInstance.interceptors.request.use((config) => {
@@ -79,7 +83,7 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
         if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
             return originalGet.call(this, url, config);
         }
-        const dedupKey = generateRequestKey({ ...config, method: 'get', url });
+        const dedupKey = generateRequestKey({ ...config, method: "get", url });
         const ttl = extendedConfig.dedupTTL;
         return deduplicator.dedupe(dedupKey, () => originalGet.call(this, url, config), { ttl });
     };
@@ -89,7 +93,12 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
         if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
             return originalPost.call(this, url, data, config);
         }
-        const dedupKey = generateRequestKey({ ...config, method: 'post', url, data });
+        const dedupKey = generateRequestKey({
+            ...config,
+            method: "post",
+            url,
+            data,
+        });
         const ttl = extendedConfig.dedupTTL ?? 1000; // Shorter TTL for POST (1s)
         return deduplicator.dedupe(dedupKey, () => originalPost.call(this, url, data, config), { ttl });
     };
@@ -99,7 +108,12 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
         if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
             return originalPut.call(this, url, data, config);
         }
-        const dedupKey = generateRequestKey({ ...config, method: 'put', url, data });
+        const dedupKey = generateRequestKey({
+            ...config,
+            method: "put",
+            url,
+            data,
+        });
         const ttl = extendedConfig.dedupTTL ?? 1000;
         return deduplicator.dedupe(dedupKey, () => originalPut.call(this, url, data, config), { ttl });
     };
@@ -109,7 +123,12 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
         if (extendedConfig[DEDUP_SKIP_SYMBOL]) {
             return originalPatch.call(this, url, data, config);
         }
-        const dedupKey = generateRequestKey({ ...config, method: 'patch', url, data });
+        const dedupKey = generateRequestKey({
+            ...config,
+            method: "patch",
+            url,
+            data,
+        });
         const ttl = extendedConfig.dedupTTL ?? 1000;
         return deduplicator.dedupe(dedupKey, () => originalPatch.call(this, url, data, config), { ttl });
     };
@@ -137,7 +156,7 @@ export function installAxiosDeduplication(axiosInstance, options = {}) {
  */
 export function skipDedup() {
     return {
-        [DEDUP_SKIP_SYMBOL]: true
+        [DEDUP_SKIP_SYMBOL]: true,
     };
 }
 /**
@@ -148,7 +167,7 @@ export function skipDedup() {
  */
 export function withDedupTTL(ttl) {
     return {
-        dedupTTL: ttl
+        dedupTTL: ttl,
     };
 }
 /**

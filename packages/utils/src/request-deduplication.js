@@ -27,7 +27,7 @@ export class RequestDeduplicator {
             cacheDuration: options.cacheDuration ?? 5000,
             maxCacheSize: options.maxCacheSize ?? 100,
             debug: options.debug ?? false,
-            keyGenerator: options.keyGenerator ?? ((...args) => JSON.stringify(args))
+            keyGenerator: options.keyGenerator ?? ((...args) => JSON.stringify(args)),
         };
         // Periodic cleanup of expired entries
         setInterval(() => this.cleanup(), this.options.cacheDuration);
@@ -43,7 +43,7 @@ export class RequestDeduplicator {
         const ttl = options?.ttl ?? this.options.cacheDuration;
         // Check if request is already in-flight
         const cached = this.cache.get(cacheKey);
-        if (cached && (now - cached.timestamp) < ttl) {
+        if (cached && now - cached.timestamp < ttl) {
             cached.subscribers++;
             if (this.options.debug) {
                 console.log(`[RequestDedup] Cache HIT for key: ${cacheKey} (subscribers: ${cached.subscribers})`);
@@ -55,7 +55,7 @@ export class RequestDeduplicator {
         }
         // Execute request and cache promise
         const promise = requestFn()
-            .then(result => {
+            .then((result) => {
             // Keep successful result briefly for additional subscribers
             setTimeout(() => {
                 this.cache.delete(cacheKey);
@@ -65,7 +65,7 @@ export class RequestDeduplicator {
             }, ttl);
             return result;
         })
-            .catch(error => {
+            .catch((error) => {
             // Remove failed request immediately so it can be retried
             this.cache.delete(cacheKey);
             if (this.options.debug) {
@@ -80,7 +80,7 @@ export class RequestDeduplicator {
         this.cache.set(cacheKey, {
             promise,
             timestamp: now,
-            subscribers: 1
+            subscribers: 1,
         });
         return promise;
     }
@@ -143,8 +143,8 @@ export class RequestDeduplicator {
             entries: entries.map(([key, entry]) => ({
                 key,
                 age: Date.now() - entry.timestamp,
-                subscribers: entry.subscribers
-            }))
+                subscribers: entry.subscribers,
+            })),
         };
     }
     /**
@@ -261,5 +261,5 @@ export async function batchDedupe(requests, options) {
     for (const key of keyedRequests.keys()) {
         resultMap.set(key, uniqueResults[index++]);
     }
-    return requests.map(request => resultMap.get(request.toString()));
+    return requests.map((request) => resultMap.get(request.toString()));
 }

@@ -84,7 +84,12 @@ async function fetchOverview() {
     );
 
     if (response.data.success && response.data.data) {
-      overview.value = response.data.data;
+      // Defensive: handle double-wrapped cache responses
+      const payload = response.data.data;
+      overview.value =
+        payload && typeof payload === "object" && !("success" in payload)
+          ? payload
+          : ((payload as any)?.data ?? payload);
       lastRefresh.value = new Date();
       emit("refresh");
     } else {

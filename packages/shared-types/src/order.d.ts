@@ -1,5 +1,14 @@
-import { BaseEntity } from './common';
-import { MenuItem } from './menu';
+import { BaseEntity } from "./common";
+import { MenuItem } from "./menu";
+export type PlatformSource = "direct" | "uber_eats" | "foodpanda" | "grabfood";
+export interface DeliveryInfo {
+    type: "dine_in" | "takeaway" | "delivery";
+    address?: string;
+    phone?: string;
+    instructions?: string;
+    deliveryFee?: number;
+    estimatedDeliveryTime?: number;
+}
 export interface CustomerInfo {
     name?: string;
     phone?: string;
@@ -33,7 +42,7 @@ export interface CustomerProfile {
     preferences?: Record<string, unknown>;
 }
 export interface Order extends BaseEntity {
-    restaurantId: number;
+    restaurantId: string;
     tableId: number;
     customerId?: number;
     orderNumber: string;
@@ -60,6 +69,8 @@ export interface Order extends BaseEntity {
     cancelledAt?: string;
     rating?: number;
     reviewComment?: string;
+    orderSource?: PlatformSource;
+    deliveryInfo?: DeliveryInfo;
     items?: OrderItem[];
     restaurant?: RestaurantInfo;
     table?: TableInfo;
@@ -79,7 +90,7 @@ export declare enum OrderPaymentStatus {
     PAID = 1,
     FAILED = 2
 }
-export type OrderPaymentMethod = 'cash' | 'card' | 'online' | 'ewallet';
+export type OrderPaymentMethod = "cash" | "card" | "online" | "ewallet";
 export interface OrderItem extends BaseEntity {
     orderId: number;
     menuItemId: number;
@@ -120,7 +131,7 @@ export interface SelectedCustomizations {
     specialInstructions?: string;
 }
 export interface CreateOrderRequest {
-    restaurantId: number;
+    restaurantId: string;
     tableId: number;
     customerName?: string;
     customerPhone?: string;
@@ -155,6 +166,7 @@ export interface OrderFilters {
     customerPhone?: string;
     dateFrom?: string;
     dateTo?: string;
+    orderSource?: PlatformSource[];
 }
 export interface OrderStats {
     totalOrders: number;
@@ -178,7 +190,7 @@ export interface CartItem {
 }
 export interface CartState {
     items: CartItem[];
-    restaurantId?: number;
+    restaurantId?: string;
     tableId?: number;
     total: number;
     itemCount: number;
@@ -193,7 +205,7 @@ export interface CustomizationOption {
 export interface CustomizationGroup {
     id: string;
     name: string;
-    type: 'single' | 'multiple';
+    type: "single" | "multiple";
     required?: boolean;
     multiple?: boolean;
     options: CustomizationOption[];

@@ -3,8 +3,8 @@
  *
  * Comprehensive error tracking with context, breadcrumbs, and reporting
  */
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type ErrorCategory = 'network' | 'validation' | 'database' | 'authentication' | 'business' | 'system' | 'unknown';
+export type ErrorSeverity = "low" | "medium" | "high" | "critical";
+export type ErrorCategory = "network" | "validation" | "database" | "authentication" | "business" | "system" | "unknown";
 export interface ErrorContext {
     /**
      * User information
@@ -43,7 +43,7 @@ export interface ErrorBreadcrumb {
     timestamp: number;
     category: string;
     message: string;
-    level: 'debug' | 'info' | 'warning' | 'error';
+    level: "debug" | "info" | "warning" | "error";
     data?: Record<string, any>;
 }
 export interface TrackedError {
@@ -115,11 +115,11 @@ export declare class ErrorTracker {
     /**
      * Set user context
      */
-    setUser(user: ErrorContext['user']): void;
+    setUser(user: ErrorContext["user"]): void;
     /**
      * Add breadcrumb for debugging
      */
-    addBreadcrumb(breadcrumb: Omit<ErrorBreadcrumb, 'timestamp'>): void;
+    addBreadcrumb(breadcrumb: Omit<ErrorBreadcrumb, "timestamp">): void;
     /**
      * Capture an error
      */

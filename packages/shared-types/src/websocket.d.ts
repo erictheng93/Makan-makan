@@ -1,14 +1,14 @@
-import { OrderStatus, OrderItemStatus, Order } from './order';
+import { OrderStatus, OrderItemStatus, Order } from "./order";
 export interface OrderUpdateData {
     order: Partial<Order>;
-    restaurantId: number;
+    restaurantId: string;
     status?: OrderStatus;
     previousStatus?: OrderStatus;
     estimatedTime?: number;
     message?: string;
 }
 export interface RestaurantStatusData {
-    restaurantId: number;
+    restaurantId: string;
     isOpen: boolean;
     capacity?: number;
     currentOrders?: number;
@@ -18,15 +18,15 @@ export interface NotificationData {
     id: string;
     title: string;
     message: string;
-    type: 'info' | 'success' | 'warning' | 'error';
+    type: "info" | "success" | "warning" | "error";
     timestamp: number;
     actionUrl?: string;
     persistUntilRead?: boolean;
 }
 export interface MenuUpdateData {
-    restaurantId: number;
+    restaurantId: string;
     menuItemId: number;
-    action: 'added' | 'updated' | 'removed' | 'availability_changed';
+    action: "added" | "updated" | "removed" | "availability_changed";
     isAvailable?: boolean;
     price?: number;
     name?: string;
@@ -38,79 +38,79 @@ export interface BaseWebSocketMessage {
     id?: string;
 }
 export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
-    type: 'ORDER_STATUS_UPDATE';
+    type: "ORDER_STATUS_UPDATE";
     orderId: number;
     status: OrderStatus;
     estimatedTime?: number;
     message?: string;
 }
 export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
-    type: 'ORDER_ITEM_STATUS_UPDATE';
+    type: "ORDER_ITEM_STATUS_UPDATE";
     orderId: number;
     orderItemId: number;
     status: OrderItemStatus;
 }
 export interface NewOrderMessage extends BaseWebSocketMessage {
-    type: 'NEW_ORDER';
+    type: "NEW_ORDER";
     orderId: number;
-    restaurantId: number;
+    restaurantId: string;
     tableId: number;
     totalAmount: number;
     itemCount: number;
 }
 export interface SystemNotificationMessage extends BaseWebSocketMessage {
-    type: 'SYSTEM_NOTIFICATION';
-    level: 'info' | 'warning' | 'error';
+    type: "SYSTEM_NOTIFICATION";
+    level: "info" | "warning" | "error";
     title: string;
     message: string;
     actionUrl?: string;
 }
 export interface TableStatusUpdateMessage extends BaseWebSocketMessage {
-    type: 'TABLE_STATUS_UPDATE';
+    type: "TABLE_STATUS_UPDATE";
     tableId: number;
-    status: 'available' | 'occupied' | 'reserved';
+    status: "available" | "occupied" | "reserved";
     customerCount?: number;
 }
 export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
-    type: 'MENU_AVAILABILITY_UPDATE';
+    type: "MENU_AVAILABILITY_UPDATE";
     menuItemId: number;
     isAvailable: boolean;
     inventoryCount?: number;
 }
 export interface KitchenDisplayUpdateMessage extends BaseWebSocketMessage {
-    type: 'KITCHEN_DISPLAY_UPDATE';
+    type: "KITCHEN_DISPLAY_UPDATE";
     orderId: number;
-    action: 'add' | 'update' | 'remove';
-    priority?: 'normal' | 'high' | 'urgent';
+    action: "add" | "update" | "remove";
+    priority?: "normal" | "high" | "urgent";
 }
 export interface PongMessage extends BaseWebSocketMessage {
-    type: 'pong';
+    type: "pong";
 }
 export interface OrderUpdateMessage extends BaseWebSocketMessage {
-    type: 'order_update';
+    type: "order_update";
     data: OrderUpdateData;
 }
 export interface RestaurantStatusUpdateMessage extends BaseWebSocketMessage {
-    type: 'restaurant_status_update';
+    type: "restaurant_status_update";
     data: RestaurantStatusData;
 }
 export interface NotificationMessage extends BaseWebSocketMessage {
-    type: 'notification';
+    type: "notification";
     data: NotificationData;
 }
 export interface MenuUpdateMessage extends BaseWebSocketMessage {
-    type: 'menu_update';
+    type: "menu_update";
     data: MenuUpdateData;
 }
 export type WebSocketMessage = OrderStatusUpdateMessage | OrderItemStatusUpdateMessage | NewOrderMessage | SystemNotificationMessage | TableStatusUpdateMessage | MenuAvailabilityUpdateMessage | KitchenDisplayUpdateMessage | PongMessage | OrderUpdateMessage | RestaurantStatusUpdateMessage | NotificationMessage | MenuUpdateMessage;
 export interface WebSocketConnectionState {
-    status: 'connecting' | 'connected' | 'disconnected' | 'error';
+    status: "connecting" | "connected" | "disconnected" | "error";
     lastConnected?: number;
     reconnectAttempts: number;
     maxReconnectAttempts: number;
 }
 export interface WebSocketSubscriptionOptions {
-    restaurantId: number;
+    restaurantId: string;
     userRole?: string;
     tableId?: number;
     filters?: {

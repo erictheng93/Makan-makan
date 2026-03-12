@@ -1,10 +1,10 @@
-export type CountryCode = 'TW' | 'MY' | 'VN';
-export type CurrencyCode = 'TWD' | 'MYR' | 'VND';
-export type PaymentMethod = 'credit_card' | 'debit_card' | 'bank_transfer' | 'digital_wallet' | 'cash' | 'ecpay' | 'newebpay' | 'line_pay' | 'unipay' | 'fpx' | 'touch_n_go' | 'touch_n_go_direct' | 'grab_pay' | 'momo' | 'zalo_pay' | 'viet_qr' | 'vnpay';
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded' | 'partial_refunded';
+export type CountryCode = "TW" | "MY" | "VN";
+export type CurrencyCode = "TWD" | "MYR" | "VND";
+export type PaymentMethod = "credit_card" | "debit_card" | "bank_transfer" | "digital_wallet" | "cash" | "ecpay" | "newebpay" | "line_pay" | "unipay" | "fpx" | "touch_n_go" | "touch_n_go_direct" | "grab_pay" | "momo" | "zalo_pay" | "viet_qr" | "vnpay";
+export type PaymentStatus = "pending" | "processing" | "completed" | "failed" | "cancelled" | "refunded" | "partial_refunded";
 export interface PaymentRequest {
     orderId: string;
-    restaurantId: number;
+    restaurantId: string;
     country: CountryCode;
     currency: CurrencyCode;
     amount: number;
@@ -42,7 +42,7 @@ export interface RefundResult {
     success: boolean;
     refundId: string;
     amount: number;
-    status: 'pending' | 'completed' | 'failed';
+    status: "pending" | "completed" | "failed";
     error?: {
         code: string;
         message: string;

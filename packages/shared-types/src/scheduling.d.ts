@@ -3,32 +3,32 @@
  * Shared type definitions for employee work scheduling management
  */
 export declare const SHIFT_TYPES: readonly ["regular", "split", "overnight"];
-export type ShiftType = typeof SHIFT_TYPES[number];
+export type ShiftType = (typeof SHIFT_TYPES)[number];
 export declare const SCHEDULE_STATUSES: readonly ["scheduled", "confirmed", "completed", "cancelled", "no_show"];
-export type ScheduleStatus = typeof SCHEDULE_STATUSES[number];
+export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
 export declare const CONFLICT_TYPES: readonly ["overlapping_shifts", "insufficient_rest", "max_hours_exceeded", "consecutive_days_exceeded", "skill_mismatch", "leave_conflict", "availability_conflict"];
-export type ConflictType = typeof CONFLICT_TYPES[number];
+export type ConflictType = (typeof CONFLICT_TYPES)[number];
 export declare const CONFLICT_SEVERITIES: readonly ["error", "warning", "info"];
-export type ConflictSeverity = typeof CONFLICT_SEVERITIES[number];
+export type ConflictSeverity = (typeof CONFLICT_SEVERITIES)[number];
 export declare const CONFLICT_STATUSES: readonly ["unresolved", "acknowledged", "resolved", "ignored"];
-export type ConflictStatus = typeof CONFLICT_STATUSES[number];
+export type ConflictStatus = (typeof CONFLICT_STATUSES)[number];
 export declare const SWAP_REQUEST_TYPES: readonly ["swap", "cover", "drop", "open"];
-export type SwapRequestType = typeof SWAP_REQUEST_TYPES[number];
+export type SwapRequestType = (typeof SWAP_REQUEST_TYPES)[number];
 export declare const SWAP_REQUEST_URGENCY: readonly ["low", "normal", "high", "urgent"];
-export type SwapRequestUrgency = typeof SWAP_REQUEST_URGENCY[number];
+export type SwapRequestUrgency = (typeof SWAP_REQUEST_URGENCY)[number];
 export declare const SWAP_REQUEST_STATUSES: readonly ["pending", "accepted", "approved", "rejected", "cancelled", "expired"];
-export type SwapRequestStatus = typeof SWAP_REQUEST_STATUSES[number];
+export type SwapRequestStatus = (typeof SWAP_REQUEST_STATUSES)[number];
 export declare const RULE_TYPES: readonly ["max_hours_per_day", "max_hours_per_week", "min_rest_period", "max_consecutive_days", "skill_requirement", "availability_check"];
-export type RuleType = typeof RULE_TYPES[number];
+export type RuleType = (typeof RULE_TYPES)[number];
 export declare const AVAILABILITY_TYPES: readonly ["preferred", "unavailable", "flexible"];
-export type AvailabilityType = typeof AVAILABILITY_TYPES[number];
+export type AvailabilityType = (typeof AVAILABILITY_TYPES)[number];
 /**
  * Shift Template - 班別模板
  * Reusable shift patterns (e.g., morning shift, evening shift)
  */
 export interface ShiftTemplate {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     name: string;
     description?: string;
     shiftType: ShiftType;
@@ -59,7 +59,7 @@ export interface ShiftTemplate {
  */
 export interface EmployeeSchedule {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     employeeId: number;
     shiftTemplateId?: number;
     workDate: string;
@@ -93,7 +93,7 @@ export interface EmployeeSchedule {
  */
 export interface SchedulingRule {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     name: string;
     description?: string;
     ruleType: RuleType;
@@ -115,7 +115,7 @@ export interface SchedulingRule {
  */
 export interface SchedulingConflict {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     conflictType: ConflictType;
     severity: ConflictSeverity;
     message: string;
@@ -137,7 +137,7 @@ export interface SchedulingConflict {
  */
 export interface ScheduleSwapRequest {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     requesterEmployeeId: number;
     requesterScheduleId: number;
     targetEmployeeId?: number;
@@ -174,7 +174,7 @@ export interface ScheduleSwapRequest {
  */
 export interface EmployeeAvailability {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     employeeId: number;
     availabilityType: AvailabilityType;
     dayOfWeek?: number;
@@ -192,7 +192,7 @@ export interface EmployeeAvailability {
  * Shift Template API Payloads
  */
 export interface CreateShiftTemplateRequest {
-    restaurantId: number;
+    restaurantId: string;
     name: string;
     description?: string;
     shiftType: ShiftType;
@@ -220,7 +220,7 @@ export interface UpdateShiftTemplateRequest extends Partial<CreateShiftTemplateR
  * Employee Schedule API Payloads
  */
 export interface CreateScheduleRequest {
-    restaurantId: number;
+    restaurantId: string;
     employeeId: number;
     shiftTemplateId?: number;
     workDate: string;
@@ -237,7 +237,7 @@ export interface UpdateScheduleRequest extends Partial<CreateScheduleRequest> {
     updatedBy: number;
 }
 export interface BulkCreateScheduleRequest {
-    restaurantId: number;
+    restaurantId: string;
     shiftTemplateId: number;
     employeeIds: number[];
     dateRange: {
@@ -266,7 +266,7 @@ export interface ClockOutRequest {
  * Swap Request API Payloads
  */
 export interface CreateSwapRequestRequest {
-    restaurantId: number;
+    restaurantId: string;
     requesterEmployeeId: number;
     requesterScheduleId: number;
     targetEmployeeId?: number;
@@ -288,7 +288,7 @@ export interface RejectSwapRequestRequest {
  * Filter & Query Types
  */
 export interface ScheduleFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     employeeId?: number;
     shiftTemplateId?: number;
     startDate?: string;
@@ -298,7 +298,7 @@ export interface ScheduleFilters {
     limit?: number;
 }
 export interface ConflictFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     conflictType?: ConflictType;
     severity?: ConflictSeverity;
     status?: ConflictStatus;
@@ -309,7 +309,7 @@ export interface ConflictFilters {
     limit?: number;
 }
 export interface SwapRequestFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     requestType?: SwapRequestType;
     status?: SwapRequestStatus;
     requesterEmployeeId?: number;
@@ -330,7 +330,7 @@ export interface ConflictCheckResult {
  * Available Employees Query
  */
 export interface AvailableEmployeesRequest {
-    restaurantId: number;
+    restaurantId: string;
     date: string;
     shiftTemplateId?: number;
 }
@@ -338,14 +338,14 @@ export interface AvailableEmployee {
     id: number;
     fullName: string;
     role: number;
-    availability: 'available' | 'on_leave' | 'scheduled';
+    availability: "available" | "on_leave" | "scheduled";
     reason?: string;
 }
 /**
  * Schedule Statistics
  */
 export interface ScheduleStatistics {
-    restaurantId: number;
+    restaurantId: string;
     period: {
         startDate: string;
         endDate: string;
@@ -369,7 +369,7 @@ export interface ScheduleStatistics {
 export interface EmployeeWeeklyHours {
     employeeId: number;
     employeeName: string;
-    restaurantId: number;
+    restaurantId: string;
     yearWeek: string;
     shiftsCount: number;
     totalHours: number;
@@ -380,20 +380,20 @@ export interface EmployeeWeeklyHours {
  * Daily Staffing Coverage
  */
 export interface DailyStaffingCoverage {
-    restaurantId: number;
+    restaurantId: string;
     workDate: string;
     shiftType: ShiftType;
     shiftName: string;
     scheduledCount: number;
     minEmployees: number;
     maxEmployees: number;
-    staffingStatus: 'understaffed' | 'optimal' | 'overstaffed';
+    staffingStatus: "understaffed" | "optimal" | "overstaffed";
 }
 /**
  * Weekly Schedule Summary
  */
 export interface WeeklyScheduleSummary {
-    restaurantId: number;
+    restaurantId: string;
     workDate: string;
     weekNumber: number;
     year: number;

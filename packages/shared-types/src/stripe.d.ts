@@ -6,13 +6,13 @@ export interface StripeConfig {
     applicationFee?: number;
     testMode: boolean;
     apiVersion: string;
-    country: 'TW' | 'MY' | 'VN';
-    currency: 'TWD' | 'MYR' | 'VND';
+    country: "TW" | "MY" | "VN";
+    currency: "TWD" | "MYR" | "VND";
     paymentMethodTypes: string[];
     automaticTax: boolean;
-    requireAuthentication: 'automatic' | 'always' | 'never';
-    captureMethod: 'automatic' | 'manual';
-    confirmationMethod: 'automatic' | 'manual';
+    requireAuthentication: "automatic" | "always" | "never";
+    captureMethod: "automatic" | "manual";
+    confirmationMethod: "automatic" | "manual";
     locale?: string;
     minimumAmount: number;
     maximumAmount: number;
@@ -32,8 +32,8 @@ export interface StripePaymentIntentOptions {
     amount: number;
     currency: string;
     paymentMethodTypes?: string[];
-    captureMethod?: 'automatic' | 'manual';
-    confirmationMethod?: 'automatic' | 'manual';
+    captureMethod?: "automatic" | "manual";
+    confirmationMethod?: "automatic" | "manual";
     description?: string;
     metadata?: Record<string, string>;
     customerEmail?: string;
@@ -44,7 +44,7 @@ export interface StripePaymentIntentOptions {
     applicationFeeAmount?: number;
     transferGroup?: string;
     onBehalfOf?: string;
-    setupFutureUsage?: 'on_session' | 'off_session';
+    setupFutureUsage?: "on_session" | "off_session";
     returnUrl?: string;
     automaticTax?: {
         enabled: boolean;
@@ -52,7 +52,7 @@ export interface StripePaymentIntentOptions {
 }
 export interface StripeWebhookEvent {
     id: string;
-    object: 'event';
+    object: "event";
     type: string;
     created: number;
     data: {
@@ -67,7 +67,7 @@ export interface StripeWebhookEvent {
     };
 }
 export interface StripeErrorDetails {
-    type: 'card_error' | 'invalid_request_error' | 'api_error' | 'authentication_error' | 'rate_limit_error';
+    type: "card_error" | "invalid_request_error" | "api_error" | "authentication_error" | "rate_limit_error";
     code?: string;
     decline_code?: string;
     param?: string;
@@ -109,8 +109,8 @@ export declare const STRIPE_CURRENCY_UNITS: {
     readonly VND: 1;
 };
 export interface StripeCountryConfig {
-    country: 'TW' | 'MY' | 'VN';
-    currency: 'TWD' | 'MYR' | 'VND';
+    country: "TW" | "MY" | "VN";
+    currency: "TWD" | "MYR" | "VND";
     supportedMethods: string[];
     minimumAmount: number;
     maximumAmount: number;

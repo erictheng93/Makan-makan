@@ -1,5 +1,5 @@
-import { PaginationParams, PaginatedResponse as PaginationPaginatedResponse } from './pagination';
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+import { PaginationParams, PaginatedResponse as PaginationPaginatedResponse } from "./pagination";
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export declare enum ApiErrorCode {
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
     INVALID_REQUEST = "INVALID_REQUEST",
@@ -62,7 +62,7 @@ export interface FileUploadResponse {
     variants?: Record<string, string>;
 }
 export interface BulkOperationRequest<T = any> {
-    operation: 'create' | 'update' | 'delete';
+    operation: "create" | "update" | "delete";
     items: T[];
     options?: {
         continueOnError?: boolean;
@@ -83,7 +83,7 @@ export interface BulkOperationResponse<T = any> {
     };
 }
 export interface HealthCheckResponse {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     timestamp: string;
     version: string;
     checks: {

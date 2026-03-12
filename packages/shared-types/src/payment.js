@@ -14,16 +14,25 @@ export class PaymentProvider {
         // 暫時使用固定匯率（實際應該動態取得）
         const rates = {
             TWD: 31.0, // 1 USD = 31 TWD
-            MYR: 4.7, // 1 USD = 4.7 MYR  
-            VND: 24000 // 1 USD = 24000 VND
+            MYR: 4.7, // 1 USD = 4.7 MYR
+            VND: 24000, // 1 USD = 24000 VND
         };
         return Math.round(amount * (rates[toCurrency] / rates[fromCurrency]));
     }
     formatAmount(amount, currency) {
         const formatters = {
-            TWD: new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }),
-            MYR: new Intl.NumberFormat('ms-MY', { style: 'currency', currency: 'MYR' }),
-            VND: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
+            TWD: new Intl.NumberFormat("zh-TW", {
+                style: "currency",
+                currency: "TWD",
+            }),
+            MYR: new Intl.NumberFormat("ms-MY", {
+                style: "currency",
+                currency: "MYR",
+            }),
+            VND: new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+            }),
         };
         return formatters[currency].format(amount);
     }

@@ -96,46 +96,46 @@ INSERT OR REPLACE INTO users (
 ) VALUES
 -- 系統管理員
 (1, 'admin', 'admin@makanmakan.com', '0912345678', '系統管理員',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   0, NULL, 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 阿嬤的味道 員工
-(2, 'grandma_owner', 'owner@grandma-taste.com', '0923456789', '林阿嬤',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+(2, 'grandmaShop', 'owner@grandma-taste.com', '0923456789', '林阿嬤',
+  '$2a$10$SiXTnPv8.OpdS2zGEfy/SucfiX8BLGuoLuRk2Ydf1nckayt0EoeZe',
   1, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (3, 'grandma_chef1', 'chef1@grandma-taste.com', '0934567890', '陳大廚',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   2, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (4, 'grandma_service1', 'service1@grandma-taste.com', '0945678901', '小明',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   3, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (5, 'grandma_cashier1', 'cashier1@grandma-taste.com', '0956789012', '小美',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   4, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 櫻花亭 員工
-(6, 'sakura_owner', 'owner@sakura-tei.com', '0967890123', '田中太郎',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+(6, 'japanShop', 'owner@sakura-tei.com', '0967890123', '田中太郎',
+  '$2a$10$z3lVrb1iPoT30Rv2kcHGrefO.pGPzfPYodAAdfF6rk.PJkWLJGlR6',
   1, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (7, 'sakura_chef1', 'chef1@sakura-tei.com', '0978901234', '佐藤健',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   2, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (8, 'sakura_chef2', 'chef2@sakura-tei.com', '0989012345', '山田花子',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   2, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 暹羅風味 員工
-(9, 'siam_owner', 'owner@siam-flavor.com', '0990123456', 'Somchai',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+(9, 'thaiShop', 'owner@siam-flavor.com', '0990123456', 'Somchai',
+  '$2a$10$IptiqF4NGJ3RwvtPDV85E.4CCBMe05sb8HLRZgwgjbe2OAZ9l1CSu',
   1, '019469a0-0003-7000-8000-000000000003', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (10, 'siam_chef1', 'chef1@siam-flavor.com', '0901234567', 'Niran',
-  '$2b$10$rQZ5xK5K5K5K5K5K5K5K5OZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq',
+  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
   2, '019469a0-0003-7000-8000-000000000003', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000);
 
 -- ============================================================================
@@ -581,12 +581,12 @@ INSERT OR REPLACE INTO orders (
 -- ============================================================================
 -- 8. 訂單項目 (Order Items)
 -- ============================================================================
--- 注意: order_items 表的時間戳欄位仍使用 created_at / updated_at（無 _ms 後綴）
+-- 注意: order_items 表的時間戳欄位已更新為 created_at_ms / updated_at_ms
 
 INSERT OR REPLACE INTO order_items (
   id, order_id, menu_item_id, quantity, unit_price, total_price,
   item_snapshot, customizations, status, notes,
-  created_at, updated_at
+  created_at_ms, updated_at_ms
 ) VALUES
 -- 訂單 1 項目 (阿嬤的味道)
 (1, 1, 1, 2, 45, 90, '{"name":"滷肉飯","category":"招牌小吃"}', '{"size":{"id":"s1","name":"小碗"}}', 'served', NULL, unixepoch('now') * 1000 - 86400000, unixepoch('now') * 1000 - 86400000),
@@ -681,9 +681,9 @@ SELECT status, COUNT(*) as count FROM orders GROUP BY status;
 --   --config=./apps/api/wrangler.toml
 --
 -- 測試帳號:
--- - 系統管理員: admin / password123
--- - 阿嬤的味道店主: grandma_owner / password123
--- - 櫻花亭店主: sakura_owner / password123
--- - 暹羅風味店主: siam_owner / password123
+-- - 系統管理員: admin / admin123
+-- - 阿嬤的味道店主: grandmaShop / grandma123
+-- - 櫻花亭店主: japanShop / japan123
+-- - 暹羅風味店主: thaiShop / siam123
 --
 -- ============================================================================

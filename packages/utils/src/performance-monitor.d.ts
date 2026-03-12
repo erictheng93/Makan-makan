@@ -6,7 +6,7 @@
 export interface PerformanceMetric {
     name: string;
     value: number;
-    unit: 'ms' | 'bytes' | 'count' | 'score';
+    unit: "ms" | "bytes" | "count" | "score";
     timestamp: number;
     tags?: Record<string, string>;
 }
@@ -40,7 +40,7 @@ export interface ResourceTiming {
     name: string;
     duration: number;
     size?: number;
-    type: 'script' | 'stylesheet' | 'image' | 'fetch' | 'xmlhttprequest' | 'other';
+    type: "script" | "stylesheet" | "image" | "fetch" | "xmlhttprequest" | "other";
 }
 export interface PerformanceReport {
     webVitals: WebVitals;
@@ -90,7 +90,7 @@ export declare class PerformanceMonitor {
     /**
      * Track custom metric
      */
-    trackMetric(metric: Omit<PerformanceMetric, 'timestamp'>): void;
+    trackMetric(metric: Omit<PerformanceMetric, "timestamp">): void;
     /**
      * Measure function execution time
      */

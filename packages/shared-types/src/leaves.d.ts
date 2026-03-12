@@ -3,18 +3,18 @@
  * Shared type definitions for employee leave/time-off management
  */
 export declare const LEAVE_STATUSES: readonly ["draft", "pending", "approved", "rejected", "cancelled", "withdrawn"];
-export type LeaveStatus = typeof LEAVE_STATUSES[number];
+export type LeaveStatus = (typeof LEAVE_STATUSES)[number];
 export declare const LEAVE_ACCRUAL_TYPES: readonly ["yearly", "monthly", "per_service_year", "manual"];
-export type LeaveAccrualType = typeof LEAVE_ACCRUAL_TYPES[number];
+export type LeaveAccrualType = (typeof LEAVE_ACCRUAL_TYPES)[number];
 export declare const HALF_DAY_TYPES: readonly ["morning", "afternoon"];
-export type HalfDayType = typeof HALF_DAY_TYPES[number];
+export type HalfDayType = (typeof HALF_DAY_TYPES)[number];
 /**
  * Leave Type - 假期類型
  * Defines different types of leave available (annual, sick, personal, etc.)
  */
 export interface LeaveType {
     id: number;
-    restaurantId?: number;
+    restaurantId?: string;
     code: string;
     name: string;
     description?: string;
@@ -76,7 +76,7 @@ export interface LeaveBalance {
  */
 export interface LeaveRequest {
     id: number;
-    restaurantId: number;
+    restaurantId: string;
     employeeId: number;
     leaveTypeId: number;
     startDate: string;
@@ -110,7 +110,7 @@ export interface LeaveRequest {
         level: number;
         approverId: number;
         approverName: string;
-        status: 'pending' | 'approved' | 'rejected';
+        status: "pending" | "approved" | "rejected";
         decidedAt?: Date | string;
     }>;
     submittedAt: Date | string;
@@ -134,8 +134,8 @@ export interface LeaveApprovalRecord {
     approverId: number;
     approverName?: string;
     approverRole: number;
-    action: 'approve' | 'reject';
-    decision: 'approved' | 'rejected' | 'pending';
+    action: "approve" | "reject";
+    decision: "approved" | "rejected" | "pending";
     comments?: string;
     decidedAt?: Date | string;
     createdAt: Date | string;
@@ -144,7 +144,7 @@ export interface LeaveApprovalRecord {
  * Leave Type API Payloads
  */
 export interface CreateLeaveTypeRequest {
-    restaurantId?: number;
+    restaurantId?: string;
     code: string;
     name: string;
     description?: string;
@@ -176,7 +176,7 @@ export interface UpdateLeaveTypeRequest extends Partial<CreateLeaveTypeRequest> 
  * Leave Request API Payloads
  */
 export interface CreateLeaveRequestRequest {
-    restaurantId: number;
+    restaurantId: string;
     employeeId: number;
     leaveTypeId: number;
     startDate: string;
@@ -230,7 +230,7 @@ export interface InitializeLeaveBalancesRequest {
  * Filter & Query Types
  */
 export interface LeaveRequestFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     employeeId?: number;
     leaveTypeId?: number;
     status?: LeaveStatus;
@@ -241,13 +241,13 @@ export interface LeaveRequestFilters {
     limit?: number;
 }
 export interface LeaveBalanceFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     employeeId?: number;
     leaveTypeId?: number;
     year?: number;
 }
 export interface LeaveTypeFilters {
-    restaurantId?: number;
+    restaurantId?: string;
     isActive?: boolean;
     isSystemDefined?: boolean;
 }
@@ -278,7 +278,7 @@ export interface LeaveConflictCheckResult {
  * Leave Statistics
  */
 export interface LeaveStatistics {
-    restaurantId: number;
+    restaurantId: string;
     period: {
         startDate: string;
         endDate: string;
@@ -319,7 +319,7 @@ export interface EmployeeLeaveSummary {
  * Team Leave Calendar
  */
 export interface TeamLeaveCalendar {
-    restaurantId: number;
+    restaurantId: string;
     date: string;
     onLeave: Array<{
         employeeId: number;

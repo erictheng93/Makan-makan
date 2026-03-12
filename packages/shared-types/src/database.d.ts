@@ -32,18 +32,18 @@ export interface D1BatchResult {
 export interface DatabaseConfig {
     name: string;
     binding: string;
-    environment: 'local' | 'staging' | 'production';
+    environment: "local" | "staging" | "production";
 }
 export interface QueryOptions {
     limit?: number;
     offset?: number;
     orderBy?: string;
-    orderDirection?: 'ASC' | 'DESC';
+    orderDirection?: "ASC" | "DESC";
     where?: Record<string, any>;
     joins?: Array<{
         table: string;
         on: string;
-        type?: 'INNER' | 'LEFT' | 'RIGHT';
+        type?: "INNER" | "LEFT" | "RIGHT";
     }>;
 }
 export interface MigrationStatus {

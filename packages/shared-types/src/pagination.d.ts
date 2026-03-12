@@ -26,7 +26,7 @@ export interface PaginationParams {
      * Sort order
      * @default "desc"
      */
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
     /**
      * Search query
      */
@@ -107,7 +107,7 @@ export interface CursorPaginationParams {
      * Direction of pagination
      * @default "forward"
      */
-    direction?: 'forward' | 'backward';
+    direction?: "forward" | "backward";
 }
 /**
  * Cursor-based pagination metadata
@@ -195,7 +195,7 @@ export interface PaginationConfig {
      * Default sort order
      * @default "desc"
      */
-    defaultSortOrder: 'asc' | 'desc';
+    defaultSortOrder: "asc" | "desc";
 }
 /**
  * Default pagination configuration
@@ -215,7 +215,7 @@ export declare function validatePaginationParams(params: PaginationParams, confi
 /**
  * Normalize pagination parameters with defaults
  */
-export declare function normalizePaginationParams(params: PaginationParams, config?: PaginationConfig): Required<Omit<PaginationParams, 'search' | 'filters'>> & Pick<PaginationParams, 'search' | 'filters'>;
+export declare function normalizePaginationParams(params: PaginationParams, config?: PaginationConfig): Required<Omit<PaginationParams, "search" | "filters">> & Pick<PaginationParams, "search" | "filters">;
 /**
  * Generate SQL OFFSET and LIMIT from pagination params
  */

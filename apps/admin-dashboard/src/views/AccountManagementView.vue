@@ -143,7 +143,12 @@ async function fetchRestaurants() {
   try {
     const response = await api.get<Restaurant[]>("/restaurants");
     if (response.data?.success && response.data.data) {
-      restaurants.value = response.data.data;
+      const payload = response.data.data;
+      restaurants.value = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as any)?.data)
+          ? (payload as any).data
+          : [];
     }
   } catch (e) {
     console.error("Failed to fetch restaurants:", e);
@@ -157,7 +162,12 @@ async function fetchOwners() {
       params: { role: 1 },
     });
     if (response.data?.success && response.data.data) {
-      owners.value = response.data.data;
+      const payload = response.data.data;
+      owners.value = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as any)?.data)
+          ? (payload as any).data
+          : [];
     }
   } catch (e) {
     console.error("Failed to fetch owners:", e);
@@ -173,7 +183,12 @@ async function fetchAdmins() {
       params: { role: 0 },
     });
     if (response.data?.success && response.data.data) {
-      admins.value = response.data.data;
+      const payload = response.data.data;
+      admins.value = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as any)?.data)
+          ? (payload as any).data
+          : [];
     }
   } catch (e) {
     console.error("Failed to fetch admins:", e);

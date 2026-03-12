@@ -3,8 +3,8 @@
  *
  * Automatically deduplicates Axios requests with same URL, method, and params
  */
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { type RequestDeduplicationOptions } from './request-deduplication';
+import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import { type RequestDeduplicationOptions } from "./request-deduplication";
 /**
  * Install request deduplication interceptor on Axios instance
  *

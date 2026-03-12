@@ -1,10 +1,10 @@
-import { BaseEntity, Status, UserRole } from './common';
+import { BaseEntity, Status, UserRole } from "./common";
 export { UserRole };
 export interface User extends BaseEntity {
     email: string;
     name: string;
     role: UserRole;
-    restaurantId?: number;
+    restaurantId?: string;
     phone?: string;
     address?: string;
     status: Status;
@@ -15,11 +15,11 @@ export interface CreateUserRequest {
     password: string;
     name: string;
     role: UserRole;
-    restaurantId?: number;
+    restaurantId?: string;
     phone?: string;
     address?: string;
 }
-export interface UpdateUserRequest extends Partial<Omit<CreateUserRequest, 'password'>> {
+export interface UpdateUserRequest extends Partial<Omit<CreateUserRequest, "password">> {
     currentPassword?: string;
     newPassword?: string;
 }

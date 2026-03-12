@@ -12,7 +12,7 @@ export var ReservationStatus;
     ReservationStatus["SEATED"] = "seated";
     ReservationStatus["COMPLETED"] = "completed";
     ReservationStatus["CANCELLED"] = "cancelled";
-    ReservationStatus["NO_SHOW"] = "no_show"; // 未到店
+    ReservationStatus["NO_SHOW"] = "no_show";
 })(ReservationStatus || (ReservationStatus = {}));
 // ==========================================
 // Waiting List Types - 候位系統
@@ -28,7 +28,7 @@ export var WaitingStatus;
     WaitingStatus["SEATED"] = "seated";
     WaitingStatus["CANCELLED"] = "cancelled";
     WaitingStatus["EXPIRED"] = "expired";
-    WaitingStatus["NO_SHOW"] = "no_show"; // 未到
+    WaitingStatus["NO_SHOW"] = "no_show";
 })(WaitingStatus || (WaitingStatus = {}));
 // ==========================================
 // Notification Types - 通知

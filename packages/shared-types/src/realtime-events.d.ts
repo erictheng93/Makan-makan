@@ -4,12 +4,12 @@
  * 此檔案定義了所有 WebSocket 即時通訊的事件型別，
  * 確保前端、後端和即時服務之間的型別安全。
  */
-import type { OrderStatus, OrderItemStatus } from './order';
-import type { MenuItem } from './menu';
+import type { OrderStatus, OrderItemStatus } from "./order";
+import type { MenuItem } from "./menu";
 /**
  * WebSocket 連線的房間類型
  */
-export type RoomType = 'customer' | 'kitchen' | 'admin' | 'restaurant';
+export type RoomType = "customer" | "kitchen" | "admin" | "restaurant";
 /**
  * 房間 ID 格式
  * - customer: tableId (e.g., "T1") 或 restaurantId (e.g., "R123")
@@ -29,7 +29,7 @@ export interface RealtimeAuthPayload {
     /** 餐廳 ID */
     restaurantId: string;
     /** 使用者角色 */
-    role: 'customer' | 'staff' | 'admin';
+    role: "customer" | "staff" | "admin";
     /** 桌號 ID（顧客連線時使用） */
     tableId?: string;
     /** 座位 ID（座位級別連線時使用） */
@@ -219,11 +219,11 @@ export interface KitchenItemStatusEvent extends BaseRealtimeEvent {
         /** 菜單項目名稱 */
         menuItemName: string;
         /** 狀態 */
-        status: 'pending' | 'cooking' | 'ready' | 'served';
+        status: "pending" | "cooking" | "ready" | "served";
         /** 桌號名稱 */
         tableName?: string;
         /** 優先級 */
-        priority?: 'normal' | 'high' | 'urgent';
+        priority?: "normal" | "high" | "urgent";
         /** 等待時間（分鐘） */
         waitingTime?: number;
     };
@@ -257,7 +257,7 @@ export interface TableStatusUpdateEvent extends BaseRealtimeEvent {
         /** 桌號名稱 */
         tableName: string;
         /** 狀態 */
-        status: 'available' | 'occupied' | 'reserved' | 'cleaning';
+        status: "available" | "occupied" | "reserved" | "cleaning";
         /** 顧客數量 */
         customerCount?: number;
         /** 當前訂單 ID */
@@ -275,11 +275,11 @@ export interface TableCallServiceEvent extends BaseRealtimeEvent {
         /** 桌號名稱 */
         tableName: string;
         /** 服務類型 */
-        serviceType: 'water' | 'utensils' | 'help' | 'bill' | 'other';
+        serviceType: "water" | "utensils" | "help" | "bill" | "other";
         /** 備註 */
         notes?: string;
         /** 緊急程度 */
-        urgency: 'low' | 'normal' | 'high';
+        urgency: "low" | "normal" | "high";
     };
 }
 /**
@@ -309,7 +309,7 @@ export interface MenuItemUpdateEvent extends BaseRealtimeEvent {
         /** 菜單項目 ID */
         menuItemId: number;
         /** 更新動作 */
-        action: 'added' | 'updated' | 'removed';
+        action: "added" | "updated" | "removed";
         /** 菜單項目資料（新增或更新時） */
         menuItem?: Partial<MenuItem>;
     };
@@ -323,7 +323,7 @@ export interface SystemNotificationEvent extends BaseRealtimeEvent {
         /** 通知 ID */
         notificationId: string;
         /** 通知等級 */
-        level: 'info' | 'success' | 'warning' | 'error';
+        level: "info" | "success" | "warning" | "error";
         /** 標題 */
         title: string;
         /** 訊息內容 */
@@ -461,7 +461,7 @@ export declare function isRestaurantStatusUpdateEvent(event: RealtimeEvent): eve
  */
 export interface RealtimeConnectionState {
     /** 連線狀態 */
-    status: 'connecting' | 'connected' | 'disconnecting' | 'disconnected' | 'error';
+    status: "connecting" | "connected" | "disconnecting" | "disconnected" | "error";
     /** 連線 ID */
     connectionId?: string;
     /** 房間類型 */
@@ -482,7 +482,7 @@ export interface RealtimeConnectionState {
  */
 export interface ClientMessage {
     /** 訊息類型 */
-    type: 'ping' | 'subscribe' | 'unsubscribe';
+    type: "ping" | "subscribe" | "unsubscribe";
     /** 時間戳 */
     timestamp: number;
     /** 附加資料 */

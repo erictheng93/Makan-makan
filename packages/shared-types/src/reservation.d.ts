@@ -84,8 +84,8 @@ export interface ReservationFilters {
     confirmationCode?: string;
     page?: number;
     limit?: number;
-    sortBy?: 'createdAt' | 'reservationDate' | 'reservationTime';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "createdAt" | "reservationDate" | "reservationTime";
+    sortOrder?: "asc" | "desc";
 }
 /**
  * 訂位回應（含桌位資訊）
@@ -181,7 +181,7 @@ export interface JoinWaitingListRequest {
     customerName: string;
     customerPhone: string;
     partySize: number;
-    preferredTableType?: '2-person' | '4-person' | '6-person+';
+    preferredTableType?: "2-person" | "4-person" | "6-person+";
     notes?: string;
 }
 /**

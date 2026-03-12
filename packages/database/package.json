@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup",
-    "dev": "tsup && tsup --watch --no-clean",
+    "dev": "tsup --no-clean && tsup --watch --no-clean",
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest --watch",

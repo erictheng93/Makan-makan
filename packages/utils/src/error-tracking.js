@@ -37,7 +37,7 @@ export class ErrorTracker {
             sampleRate: options.sampleRate ?? 1.0,
             debug: options.debug ?? false,
             beforeSend: options.beforeSend,
-            onError: options.onError
+            onError: options.onError,
         };
         if (this.options.enabled) {
             this.setupGlobalHandlers();
@@ -49,7 +49,7 @@ export class ErrorTracker {
     setContext(context) {
         this.context = {
             ...this.context,
-            ...context
+            ...context,
         };
     }
     /**
@@ -64,14 +64,14 @@ export class ErrorTracker {
     addBreadcrumb(breadcrumb) {
         this.breadcrumbs.push({
             ...breadcrumb,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         });
         // Keep only last N breadcrumbs
         if (this.breadcrumbs.length > this.options.maxBreadcrumbs) {
             this.breadcrumbs.shift();
         }
         if (this.options.debug) {
-            console.log('[ErrorTracker] Breadcrumb:', breadcrumb);
+            console.log("[ErrorTracker] Breadcrumb:", breadcrumb);
         }
     }
     /**
@@ -79,13 +79,13 @@ export class ErrorTracker {
      */
     captureError(error, options = {}) {
         if (!this.options.enabled) {
-            return '';
+            return "";
         }
         // Sample rate check
         if (Math.random() > this.options.sampleRate) {
-            return '';
+            return "";
         }
-        const errorObj = typeof error === 'string' ? new Error(error) : error;
+        const errorObj = typeof error === "string" ? new Error(error) : error;
         const errorId = this.generateErrorId(errorObj);
         const now = Date.now();
         // Check if error already exists
@@ -97,7 +97,7 @@ export class ErrorTracker {
                 ...existing,
                 occurrenceCount: existing.occurrenceCount + 1,
                 lastOccurrence: now,
-                breadcrumbs: [...this.breadcrumbs]
+                breadcrumbs: [...this.breadcrumbs],
             };
         }
         else {
@@ -112,14 +112,14 @@ export class ErrorTracker {
                 category: options.category ?? this.categorizeError(errorObj),
                 context: {
                     ...this.context,
-                    ...options.context
+                    ...options.context,
                 },
                 breadcrumbs: [...this.breadcrumbs],
                 timestamp: now,
                 resolved: false,
                 occurrenceCount: 1,
                 firstOccurrence: now,
-                lastOccurrence: now
+                lastOccurrence: now,
             };
         }
         // Apply beforeSend hook
@@ -134,12 +134,12 @@ export class ErrorTracker {
         this.errors.set(errorId, trackedError);
         // Report error
         if (this.options.onError) {
-            Promise.resolve(this.options.onError(trackedError)).catch(err => {
-                console.error('[ErrorTracker] Failed to report error:', err);
+            Promise.resolve(this.options.onError(trackedError)).catch((err) => {
+                console.error("[ErrorTracker] Failed to report error:", err);
             });
         }
         if (this.options.debug) {
-            console.log('[ErrorTracker] Captured error:', trackedError);
+            console.log("[ErrorTracker] Captured error:", trackedError);
         }
         return errorId;
     }
@@ -148,19 +148,19 @@ export class ErrorTracker {
      */
     captureException(error, context) {
         return this.captureError(error, {
-            severity: 'high',
-            category: 'system',
-            context
+            severity: "high",
+            category: "system",
+            context,
         });
     }
     /**
      * Capture message (non-error)
      */
-    captureMessage(message, severity = 'low', context) {
+    captureMessage(message, severity = "low", context) {
         return this.captureError(new Error(message), {
             severity,
-            category: 'unknown',
-            context
+            category: "unknown",
+            context,
         });
     }
     /**
@@ -206,7 +206,7 @@ export class ErrorTracker {
             low: 0,
             medium: 0,
             high: 0,
-            critical: 0
+            critical: 0,
         };
         const byCategory = {
             network: 0,
@@ -215,43 +215,45 @@ export class ErrorTracker {
             authentication: 0,
             business: 0,
             system: 0,
-            unknown: 0
+            unknown: 0,
         };
-        errors.forEach(error => {
+        errors.forEach((error) => {
             bySeverity[error.severity]++;
             byCategory[error.category]++;
         });
         return {
             total: errors.length,
-            unresolved: errors.filter(e => !e.resolved).length,
+            unresolved: errors.filter((e) => !e.resolved).length,
             bySeverity,
             byCategory,
-            breadcrumbCount: this.breadcrumbs.length
+            breadcrumbCount: this.breadcrumbs.length,
         };
     }
     /**
      * Generate unique error ID
      */
     generateErrorId(error) {
-        const stack = error.stack || '';
-        const firstLine = stack.split('\n')[1] || error.message;
-        return `${error.name}:${error.message}:${firstLine}`.replace(/\s+/g, '_').slice(0, 100);
+        const stack = error.stack || "";
+        const firstLine = stack.split("\n")[1] || error.message;
+        return `${error.name}:${error.message}:${firstLine}`
+            .replace(/\s+/g, "_")
+            .slice(0, 100);
     }
     /**
      * Categorize error severity
      */
     categorizeSeverity(error) {
         const message = error.message.toLowerCase();
-        if (message.includes('critical') || message.includes('fatal')) {
-            return 'critical';
+        if (message.includes("critical") || message.includes("fatal")) {
+            return "critical";
         }
-        if (message.includes('network') || message.includes('timeout')) {
-            return 'medium';
+        if (message.includes("network") || message.includes("timeout")) {
+            return "medium";
         }
-        if (message.includes('validation') || message.includes('invalid')) {
-            return 'low';
+        if (message.includes("validation") || message.includes("invalid")) {
+            return "low";
         }
-        return 'medium';
+        return "medium";
     }
     /**
      * Categorize error type
@@ -259,52 +261,60 @@ export class ErrorTracker {
     categorizeError(error) {
         const message = error.message.toLowerCase();
         const name = error.name.toLowerCase();
-        if (message.includes('network') || message.includes('fetch') || name.includes('networkerror')) {
-            return 'network';
+        if (message.includes("network") ||
+            message.includes("fetch") ||
+            name.includes("networkerror")) {
+            return "network";
         }
-        if (message.includes('validation') || message.includes('invalid') || name.includes('validationerror')) {
-            return 'validation';
+        if (message.includes("validation") ||
+            message.includes("invalid") ||
+            name.includes("validationerror")) {
+            return "validation";
         }
-        if (message.includes('database') || message.includes('sql') || name.includes('databaseerror')) {
-            return 'database';
+        if (message.includes("database") ||
+            message.includes("sql") ||
+            name.includes("databaseerror")) {
+            return "database";
         }
-        if (message.includes('auth') || message.includes('unauthorized') || name.includes('autherror')) {
-            return 'authentication';
+        if (message.includes("auth") ||
+            message.includes("unauthorized") ||
+            name.includes("autherror")) {
+            return "authentication";
         }
-        return 'unknown';
+        return "unknown";
     }
     /**
      * Setup global error handlers
      */
     setupGlobalHandlers() {
-        if (typeof window === 'undefined') {
+        if (typeof window === "undefined") {
             return;
         }
         // Capture unhandled errors
         if (this.options.captureConsoleErrors) {
-            window.addEventListener('error', (event) => {
+            window.addEventListener("error", (event) => {
                 this.captureError(event.error || event.message, {
-                    severity: 'high',
-                    category: 'system',
+                    severity: "high",
+                    category: "system",
                     context: {
                         extra: {
                             filename: event.filename,
                             lineno: event.lineno,
-                            colno: event.colno
-                        }
-                    }
+                            colno: event.colno,
+                        },
+                    },
                 });
             });
         }
         // Capture unhandled promise rejections
         if (this.options.captureUnhandledRejections) {
-            window.addEventListener('unhandledrejection', (event) => {
+            window.addEventListener("unhandledrejection", (event) => {
                 const error = event.reason instanceof Error
                     ? event.reason
                     : new Error(String(event.reason));
                 this.captureError(error, {
-                    severity: 'high',
-                    category: 'system'
+                    severity: "high",
+                    category: "system",
                 });
             });
         }

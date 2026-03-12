@@ -2,9 +2,9 @@
  * Multi-tenant Backup System Types
  * Enterprise-grade backup for MakanMakan platform
  */
-export type BackupStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
-export type BackupType = 'full' | 'incremental' | 'differential';
-export type StorageProvider = 'r2' | 'kv' | 'external';
+export type BackupStatus = "pending" | "in_progress" | "completed" | "failed" | "cancelled";
+export type BackupType = "full" | "incremental" | "differential";
+export type StorageProvider = "r2" | "kv" | "external";
 export interface BackupConfiguration {
     id: string;
     restaurant_id: string;
@@ -71,7 +71,7 @@ export interface RestoreOperation {
     restaurant_id: string;
     backup_id: string;
     status: BackupStatus;
-    restore_type: 'full' | 'selective';
+    restore_type: "full" | "selective";
     target_tables?: string[];
     overwrite_existing: boolean;
     started_at: string;
@@ -103,7 +103,7 @@ export interface BackupSchedule {
 }
 export interface BackupMetrics {
     restaurant_id: string;
-    period: 'hour' | 'day' | 'week' | 'month';
+    period: "hour" | "day" | "week" | "month";
     total_backups: number;
     successful_backups: number;
     failed_backups: number;
@@ -111,13 +111,13 @@ export interface BackupMetrics {
     average_backup_duration: number;
     storage_usage_bytes: number;
     cost_estimation: number;
-    performance_trend: 'improving' | 'stable' | 'degrading';
+    performance_trend: "improving" | "stable" | "degrading";
 }
 export interface BackupAlert {
     id: string;
     restaurant_id: string;
-    alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    alert_type: "backup_failed" | "storage_quota_exceeded" | "schedule_missed" | "restoration_completed" | "performance_degraded";
+    severity: "low" | "medium" | "high" | "critical";
     title: string;
     message: string;
     related_backup_id?: string;
@@ -152,13 +152,13 @@ export interface ListBackupsQuery {
     date_to?: string;
     page?: number;
     limit?: number;
-    sort_by?: 'created_at' | 'file_size' | 'duration';
-    sort_order?: 'asc' | 'desc';
+    sort_by?: "created_at" | "file_size" | "duration";
+    sort_order?: "asc" | "desc";
 }
 export interface RestoreBackupRequest {
     restaurant_id: string;
     backup_id: string;
-    restore_type: 'full' | 'selective';
+    restore_type: "full" | "selective";
     target_tables?: string[];
     overwrite_existing: boolean;
     safety_confirmation: {
@@ -168,7 +168,7 @@ export interface RestoreBackupRequest {
     };
 }
 export interface BackupSystemHealth {
-    overall_status: 'healthy' | 'warning' | 'critical';
+    overall_status: "healthy" | "warning" | "critical";
     total_restaurants: number;
     active_configurations: number;
     running_backups: number;
@@ -201,7 +201,7 @@ export type BackupPermissions = {
 export interface BackupAuditLog {
     id: string;
     restaurant_id: string;
-    action: 'backup_created' | 'backup_deleted' | 'restore_initiated' | 'schedule_modified' | 'configuration_updated';
+    action: "backup_created" | "backup_deleted" | "restore_initiated" | "schedule_modified" | "configuration_updated";
     details: Record<string, any>;
     performed_by: string;
     ip_address: string;

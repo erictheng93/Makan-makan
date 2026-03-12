@@ -5,11 +5,11 @@
 /**
  * QR 碼管理模式
  */
-export type QRMode = 'table' | 'seat';
+export type QRMode = "table" | "seat";
 /**
  * 座位編號風格
  */
-export type SeatNumberingStyle = 'numeric' | 'alphabetic' | 'custom';
+export type SeatNumberingStyle = "numeric" | "alphabetic" | "custom";
 /**
  * 座位布局配置
  */
@@ -49,7 +49,7 @@ export interface Seat {
 export interface SeatWithDetails extends Seat {
     tableName?: string;
     tableNumber: string;
-    restaurantId: number;
+    restaurantId: string;
     restaurantName: string;
 }
 /**
@@ -113,8 +113,8 @@ export interface SeatFilters {
 export interface SeatQueryOptions extends SeatFilters {
     page?: number;
     limit?: number;
-    sortBy?: 'seatNumber' | 'totalUsage' | 'createdAt';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "seatNumber" | "totalUsage" | "createdAt";
+    sortOrder?: "asc" | "desc";
 }
 /**
  * 座位統計資訊

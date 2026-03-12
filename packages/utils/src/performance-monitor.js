@@ -35,9 +35,9 @@ export class PerformanceMonitor {
             trackResources: options.trackResources ?? true,
             sampleRate: options.sampleRate ?? 1.0,
             debug: options.debug ?? false,
-            onReport: options.onReport
+            onReport: options.onReport,
         };
-        if (this.options.enabled && typeof window !== 'undefined') {
+        if (this.options.enabled && typeof window !== "undefined") {
             this.setupMonitoring();
         }
     }
@@ -49,11 +49,11 @@ export class PerformanceMonitor {
             return;
         const fullMetric = {
             ...metric,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         };
         this.metrics.push(fullMetric);
         if (this.options.debug) {
-            console.log('[PerformanceMonitor] Metric:', fullMetric);
+            console.log("[PerformanceMonitor] Metric:", fullMetric);
         }
     }
     /**
@@ -67,8 +67,8 @@ export class PerformanceMonitor {
             this.trackMetric({
                 name,
                 value: duration,
-                unit: 'ms',
-                tags
+                unit: "ms",
+                tags,
             });
             return result;
         }
@@ -77,8 +77,8 @@ export class PerformanceMonitor {
             this.trackMetric({
                 name: `${name}_error`,
                 value: duration,
-                unit: 'ms',
-                tags
+                unit: "ms",
+                tags,
             });
             throw error;
         }
@@ -99,17 +99,17 @@ export class PerformanceMonitor {
             return;
         try {
             performance.measure(name, startMark, endMark);
-            const measure = performance.getEntriesByName(name, 'measure')[0];
+            const measure = performance.getEntriesByName(name, "measure")[0];
             if (measure) {
                 this.trackMetric({
                     name,
                     value: measure.duration,
-                    unit: 'ms'
+                    unit: "ms",
                 });
             }
         }
         catch (error) {
-            console.warn('[PerformanceMonitor] Failed to measure:', error);
+            console.warn("[PerformanceMonitor] Failed to measure:", error);
         }
     }
     /**
@@ -130,12 +130,12 @@ export class PerformanceMonitor {
     getResourceTimings() {
         if (!this.options.trackResources)
             return [];
-        const resources = performance.getEntriesByType('resource');
-        return resources.map(resource => ({
+        const resources = performance.getEntriesByType("resource");
+        return resources.map((resource) => ({
             name: resource.name,
             duration: resource.duration,
             size: resource.transferSize,
-            type: this.categorizeResource(resource)
+            type: this.categorizeResource(resource),
         }));
     }
     /**
@@ -148,7 +148,7 @@ export class PerformanceMonitor {
             customMetrics: this.getMetrics(),
             timestamp: Date.now(),
             url: window.location.href,
-            userAgent: navigator.userAgent
+            userAgent: navigator.userAgent,
         };
     }
     /**
@@ -165,7 +165,7 @@ export class PerformanceMonitor {
             await this.options.onReport(report);
         }
         catch (error) {
-            console.error('[PerformanceMonitor] Failed to send report:', error);
+            console.error("[PerformanceMonitor] Failed to send report:", error);
         }
     }
     /**
@@ -194,7 +194,7 @@ export class PerformanceMonitor {
             this.trackResourceMetrics();
         }
         // Send report on page unload
-        window.addEventListener('beforeunload', () => {
+        window.addEventListener("beforeunload", () => {
             this.sendReport();
         });
         // Send report periodically (every 30 seconds)
@@ -207,44 +207,65 @@ export class PerformanceMonitor {
      */
     trackWebVitalsMetrics() {
         // Use PerformanceObserver for Web Vitals
-        if ('PerformanceObserver' in window) {
+        if ("PerformanceObserver" in window) {
             this.observer = new PerformanceObserver((list) => {
                 for (const entry of list.getEntries()) {
-                    if (entry.entryType === 'largest-contentful-paint') {
+                    if (entry.entryType === "largest-contentful-paint") {
                         this.webVitals.LCP = entry.startTime;
-                        this.trackMetric({ name: 'LCP', value: entry.startTime, unit: 'ms' });
+                        this.trackMetric({
+                            name: "LCP",
+                            value: entry.startTime,
+                            unit: "ms",
+                        });
                     }
-                    if (entry.entryType === 'first-input') {
+                    if (entry.entryType === "first-input") {
                         const fidEntry = entry;
                         this.webVitals.FID = fidEntry.processingStart - fidEntry.startTime;
-                        this.trackMetric({ name: 'FID', value: this.webVitals.FID, unit: 'ms' });
+                        this.trackMetric({
+                            name: "FID",
+                            value: this.webVitals.FID,
+                            unit: "ms",
+                        });
                     }
-                    if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
+                    if (entry.entryType === "layout-shift" &&
+                        !entry.hadRecentInput) {
                         const currentCLS = (this.webVitals.CLS || 0) + entry.value;
                         this.webVitals.CLS = currentCLS;
-                        this.trackMetric({ name: 'CLS', value: currentCLS, unit: 'score' });
+                        this.trackMetric({ name: "CLS", value: currentCLS, unit: "score" });
                     }
-                    if (entry.entryType === 'paint' && entry.name === 'first-contentful-paint') {
+                    if (entry.entryType === "paint" &&
+                        entry.name === "first-contentful-paint") {
                         this.webVitals.FCP = entry.startTime;
-                        this.trackMetric({ name: 'FCP', value: entry.startTime, unit: 'ms' });
+                        this.trackMetric({
+                            name: "FCP",
+                            value: entry.startTime,
+                            unit: "ms",
+                        });
                     }
                 }
             });
             try {
-                this.observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift', 'paint'] });
+                this.observer.observe({
+                    entryTypes: [
+                        "largest-contentful-paint",
+                        "first-input",
+                        "layout-shift",
+                        "paint",
+                    ],
+                });
             }
             catch (e) {
-                console.warn('[PerformanceMonitor] Failed to observe:', e);
+                console.warn("[PerformanceMonitor] Failed to observe:", e);
             }
         }
         // Track TTFB from Navigation Timing
         if (performance.timing) {
             const ttfb = performance.timing.responseStart - performance.timing.requestStart;
             this.webVitals.TTFB = ttfb;
-            this.trackMetric({ name: 'TTFB', value: ttfb, unit: 'ms' });
+            this.trackMetric({ name: "TTFB", value: ttfb, unit: "ms" });
         }
         // Track TTI (Time to Interactive)
-        if ('PerformanceLongTaskTiming' in window) {
+        if ("PerformanceLongTaskTiming" in window) {
             this.trackTimeToInteractive();
         }
     }
@@ -253,28 +274,28 @@ export class PerformanceMonitor {
      */
     trackResourceMetrics() {
         // Track resource load times
-        window.addEventListener('load', () => {
+        window.addEventListener("load", () => {
             const resources = this.getResourceTimings();
             // Track slow resources
-            resources.forEach(resource => {
+            resources.forEach((resource) => {
                 if (resource.duration > 1000) {
                     this.trackMetric({
-                        name: 'slow_resource',
+                        name: "slow_resource",
                         value: resource.duration,
-                        unit: 'ms',
+                        unit: "ms",
                         tags: {
                             resource: resource.name,
-                            type: resource.type
-                        }
+                            type: resource.type,
+                        },
                     });
                 }
             });
             // Track total bundle size
             const totalSize = resources.reduce((sum, r) => sum + (r.size || 0), 0);
             this.trackMetric({
-                name: 'total_bundle_size',
+                name: "total_bundle_size",
                 value: totalSize,
-                unit: 'bytes'
+                unit: "bytes",
             });
         });
     }
@@ -290,9 +311,9 @@ export class PerformanceMonitor {
             }
         });
         try {
-            longTaskObserver.observe({ entryTypes: ['longtask'] });
+            longTaskObserver.observe({ entryTypes: ["longtask"] });
         }
-        catch (e) {
+        catch {
             // Long tasks not supported
         }
         // Check TTI after 10 seconds
@@ -300,7 +321,7 @@ export class PerformanceMonitor {
             const now = performance.now();
             if (now - lastLongTaskEnd >= 5000) {
                 this.webVitals.TTI = lastLongTaskEnd;
-                this.trackMetric({ name: 'TTI', value: lastLongTaskEnd, unit: 'ms' });
+                this.trackMetric({ name: "TTI", value: lastLongTaskEnd, unit: "ms" });
             }
             longTaskObserver.disconnect();
         }, 10000);
@@ -311,17 +332,17 @@ export class PerformanceMonitor {
     categorizeResource(resource) {
         const name = resource.name.toLowerCase();
         const initiatorType = resource.initiatorType;
-        if (initiatorType === 'script' || name.endsWith('.js'))
-            return 'script';
-        if (initiatorType === 'link' || name.endsWith('.css'))
-            return 'stylesheet';
-        if (initiatorType === 'img' || /\.(jpg|jpeg|png|gif|webp|svg)/.test(name))
-            return 'image';
-        if (initiatorType === 'fetch')
-            return 'fetch';
-        if (initiatorType === 'xmlhttprequest')
-            return 'xmlhttprequest';
-        return 'other';
+        if (initiatorType === "script" || name.endsWith(".js"))
+            return "script";
+        if (initiatorType === "link" || name.endsWith(".css"))
+            return "stylesheet";
+        if (initiatorType === "img" || /\.(jpg|jpeg|png|gif|webp|svg)/.test(name))
+            return "image";
+        if (initiatorType === "fetch")
+            return "fetch";
+        if (initiatorType === "xmlhttprequest")
+            return "xmlhttprequest";
+        return "other";
     }
 }
 /**

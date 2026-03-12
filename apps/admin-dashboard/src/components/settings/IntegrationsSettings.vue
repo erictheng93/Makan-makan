@@ -440,7 +440,12 @@ async function loadIntegration() {
       menuSyncStatus: string | null;
     }>(`/api/v1/integrations/${restaurantId}/uber_eats`);
     if (response.data?.data) {
-      const data = response.data.data;
+      // Defensive: handle double-wrapped cache responses
+      const raw = response.data.data;
+      const data =
+        raw && typeof raw === "object" && !("success" in raw)
+          ? raw
+          : ((raw as any)?.data ?? raw);
       uberEats.enabled = data.enabled;
       uberEats.config = data.config;
       uberEats.lastMenuSyncAt = data.lastMenuSyncAt;

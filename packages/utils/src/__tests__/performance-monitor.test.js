@@ -60,7 +60,7 @@ describe("PerformanceMonitor", () => {
       try {
         monitor.clear();
         monitor.disconnect();
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors in tests
       }
     }
