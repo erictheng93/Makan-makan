@@ -436,10 +436,10 @@ export function smartCacheMiddleware(
       });
 
       if (cached) {
-        // Cache hit - return cached response
+        // Cache hit - return cached response as-is (it's the full response object)
+        // Spread it to avoid double-wrapping
         return c.json({
-          success: true,
-          data: cached,
+          ...(cached as Record<string, unknown>),
           cached: true,
           cache_hit: true,
         });

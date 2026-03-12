@@ -75,7 +75,14 @@ export const useOrderStore = defineStore("order", () => {
       );
 
       if (response.data.success && response.data.data) {
-        orders.value = response.data.data;
+        // Defensive: handle double-wrapped cache responses where
+        // response.data.data may be {success, data: Order[], ...} instead of Order[]
+        const payload = response.data.data;
+        orders.value = Array.isArray(payload)
+          ? payload
+          : Array.isArray((payload as any)?.data)
+            ? (payload as any).data
+            : [];
       }
     } catch (err: any) {
       error.value =
