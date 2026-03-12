@@ -23,7 +23,7 @@
       class="text-center py-8 text-gray-500"
     >
       <Package class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-      <p>暫無熱門菜品數據</p>
+      <p>{{ t("charts.topMenuItems.noData") }}</p>
     </div>
 
     <div v-else class="space-y-1">
@@ -55,7 +55,9 @@
               </span>
             </div>
             <div class="flex items-center space-x-2 mt-1">
-              <p class="text-xs text-gray-500">售出 {{ item.quantity }} 份</p>
+              <p class="text-xs text-gray-500">
+                {{ t("charts.topMenuItems.sold", { count: item.quantity }) }}
+              </p>
               <span class="text-gray-300">•</span>
               <p class="text-xs text-green-600 font-medium">
                 ${{ item.revenue.toLocaleString() }}
@@ -70,7 +72,9 @@
               <p class="text-sm font-semibold text-gray-900">
                 {{ item.quantity }}
               </p>
-              <p class="text-xs text-gray-500">份數</p>
+              <p class="text-xs text-gray-500">
+                {{ t("charts.topMenuItems.quantity") }}
+              </p>
             </div>
 
             <div class="w-16">
@@ -95,9 +99,16 @@
       class="pt-4 border-t border-gray-100"
     >
       <div class="flex items-center justify-between text-sm">
-        <span class="text-gray-600">總計熱門菜品</span>
+        <span class="text-gray-600">{{
+          t("charts.topMenuItems.totalLabel")
+        }}</span>
         <span class="font-medium text-gray-900">
-          {{ totalQuantity }} 份 / ${{ totalRevenue.toLocaleString() }}
+          {{
+            t("charts.topMenuItems.totalValue", {
+              quantity: totalQuantity,
+              revenue: totalRevenue.toLocaleString(),
+            })
+          }}
         </span>
       </div>
     </div>
@@ -107,6 +118,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Package } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 interface TopMenuItem {
   id: string;

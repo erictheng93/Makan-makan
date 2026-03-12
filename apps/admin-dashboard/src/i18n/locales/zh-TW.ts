@@ -43,6 +43,8 @@ const zhTW: Messages = {
     viewDetails: "檢視詳情",
     submitting: "送出中...",
     update: "更新",
+    loadFailed: "載入失敗",
+    retry: "重試",
   },
 
   // 桌台管理
@@ -120,6 +122,15 @@ const zhTW: Messages = {
   scheduling: {
     title: "員工排班",
     calendar: "行事曆檢視",
+    calendarView: {
+      goToToday: "回到今天",
+      loading: "載入日曆中...",
+      today: "今天",
+      scheduleCount: "{count} 個排班",
+      legendToday: "今天",
+      legendHasSchedule: "有排班",
+      legendWeekend: "週末",
+    },
     list: "列表檢視",
     createSchedule: "建立排班",
     editSchedule: "編輯排班",
@@ -526,6 +537,36 @@ const zhTW: Messages = {
       stable: "持平",
       items: "個",
       loadFailed: "載入數據失敗",
+    },
+    ordersChart: {
+      noData: "暫無訂單數據",
+      completed: "已完成",
+      pending: "處理中",
+      cancelled: "已取消",
+      orderCount: "訂單數量",
+      totalOrders: "總計: {count} 筆訂單",
+      periodDaily: "時段",
+      periodWeekly: "日期",
+      periodMonthly: "日期",
+      periodDefault: "時間",
+    },
+    revenueChart: {
+      noData: "暫無營收數據",
+      revenue: "營收",
+      amount: "金額 (TWD)",
+      revenueValue: "營收: {value}",
+      dateLabel: "日期: {date}",
+      periodDaily: "時段",
+      periodWeekly: "日期",
+      periodMonthly: "日期",
+      periodDefault: "時間",
+    },
+    topMenuItems: {
+      noData: "暫無熱門菜品數據",
+      sold: "售出 {count} 份",
+      quantity: "份數",
+      totalLabel: "總計熱門菜品",
+      totalValue: "{quantity} 份 / ${revenue}",
     },
   },
 
@@ -1357,6 +1398,7 @@ const zhTW: Messages = {
     contactPhone: "聯絡電話",
     noSearchResult:
       "沒有找到與「{query}」相關的功能，請嘗試其他關鍵字或使用上方的快速導航。",
+    errorCode: "錯誤代碼",
   },
 
   // 無權限頁面
@@ -1448,6 +1490,7 @@ const zhTW: Messages = {
     title: "店主管理中心",
     systemNotifications: "系統通知",
     open: "營業中",
+    ownerInitial: "店",
     tabs: {
       overview: "總覽儀表板",
       operations: "營運分析",

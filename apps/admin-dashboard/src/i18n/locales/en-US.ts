@@ -43,6 +43,8 @@ const enUS: Messages = {
     viewDetails: "View Details",
     submitting: "Submitting...",
     update: "Update",
+    loadFailed: "Load Failed",
+    retry: "Retry",
   },
 
   // Table Management
@@ -121,6 +123,15 @@ const enUS: Messages = {
   scheduling: {
     title: "Employee Scheduling",
     calendar: "Calendar View",
+    calendarView: {
+      goToToday: "Go to Today",
+      loading: "Loading calendar...",
+      today: "Today",
+      scheduleCount: "{count} schedules",
+      legendToday: "Today",
+      legendHasSchedule: "Has Schedule",
+      legendWeekend: "Weekend",
+    },
     list: "List View",
     createSchedule: "Create Schedule",
     editSchedule: "Edit Schedule",
@@ -517,6 +528,36 @@ const enUS: Messages = {
       stable: "Stable",
       items: "items",
       loadFailed: "Failed to load data",
+    },
+    ordersChart: {
+      noData: "No order data available",
+      completed: "Completed",
+      pending: "Pending",
+      cancelled: "Cancelled",
+      orderCount: "Order Count",
+      totalOrders: "Total: {count} orders",
+      periodDaily: "Time Slot",
+      periodWeekly: "Date",
+      periodMonthly: "Date",
+      periodDefault: "Time",
+    },
+    revenueChart: {
+      noData: "No revenue data available",
+      revenue: "Revenue",
+      amount: "Amount (TWD)",
+      revenueValue: "Revenue: {value}",
+      dateLabel: "Date: {date}",
+      periodDaily: "Time Slot",
+      periodWeekly: "Date",
+      periodMonthly: "Date",
+      periodDefault: "Time",
+    },
+    topMenuItems: {
+      noData: "No popular menu data available",
+      sold: "Sold {count} servings",
+      quantity: "Qty",
+      totalLabel: "Total Popular Items",
+      totalValue: "{quantity} servings / ${revenue}",
     },
   },
 
@@ -1344,6 +1385,7 @@ const enUS: Messages = {
     contactPhone: "Contact Phone",
     noSearchResult:
       'No results found for "{query}". Please try other keywords or use the quick navigation above.',
+    errorCode: "Error Code",
   },
 
   // Unauthorized page
@@ -1436,6 +1478,7 @@ const enUS: Messages = {
     title: "Owner Management Center",
     systemNotifications: "System Notifications",
     open: "Open",
+    ownerInitial: "O",
     tabs: {
       overview: "Overview Dashboard",
       operations: "Operations Analytics",

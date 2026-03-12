@@ -43,6 +43,8 @@ const idID: Messages = {
     viewDetails: "Lihat Detail",
     submitting: "Mengirim...",
     update: "Perbarui",
+    loadFailed: "Gagal memuat",
+    retry: "Coba lagi",
   },
 
   // Manajemen Meja
@@ -121,6 +123,15 @@ const idID: Messages = {
   scheduling: {
     title: "Jadwal Kerja Karyawan",
     calendar: "Tampilan Kalender",
+    calendarView: {
+      goToToday: "Ke Hari Ini",
+      loading: "Memuat kalender...",
+      today: "Hari ini",
+      scheduleCount: "{count} jadwal",
+      legendToday: "Hari ini",
+      legendHasSchedule: "Ada Jadwal",
+      legendWeekend: "Akhir Pekan",
+    },
     list: "Tampilan Daftar",
     createSchedule: "Buat Jadwal",
     editSchedule: "Edit Jadwal",
@@ -521,6 +532,36 @@ const idID: Messages = {
       stable: "Stabil",
       items: "item",
       loadFailed: "Gagal memuat data",
+    },
+    ordersChart: {
+      noData: "Tidak ada data pesanan",
+      completed: "Selesai",
+      pending: "Diproses",
+      cancelled: "Dibatalkan",
+      orderCount: "Jumlah Pesanan",
+      totalOrders: "Total: {count} pesanan",
+      periodDaily: "Slot Waktu",
+      periodWeekly: "Tanggal",
+      periodMonthly: "Tanggal",
+      periodDefault: "Waktu",
+    },
+    revenueChart: {
+      noData: "Tidak ada data pendapatan",
+      revenue: "Pendapatan",
+      amount: "Jumlah (TWD)",
+      revenueValue: "Pendapatan: {value}",
+      dateLabel: "Tanggal: {date}",
+      periodDaily: "Slot Waktu",
+      periodWeekly: "Tanggal",
+      periodMonthly: "Tanggal",
+      periodDefault: "Waktu",
+    },
+    topMenuItems: {
+      noData: "Tidak ada data menu populer",
+      sold: "Terjual {count} porsi",
+      quantity: "Jumlah",
+      totalLabel: "Total Menu Populer",
+      totalValue: "{quantity} porsi / ${revenue}",
     },
   },
 
@@ -1359,6 +1400,7 @@ const idID: Messages = {
     contactPhone: "Telepon Kontak",
     noSearchResult:
       'Tidak ditemukan fitur terkait "{query}". Silakan coba kata kunci lain atau gunakan navigasi cepat di atas.',
+    errorCode: "Kode Error",
   },
 
   unauthorized: {
@@ -1445,6 +1487,7 @@ const idID: Messages = {
     title: "Pusat Manajemen Pemilik",
     systemNotifications: "Notifikasi Sistem",
     open: "Buka",
+    ownerInitial: "P",
     tabs: {
       overview: "Dasbor Gambaran",
       operations: "Analisis Operasional",

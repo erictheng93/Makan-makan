@@ -19,7 +19,7 @@
     >
       <div class="text-center">
         <BarChart3 class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <p>暫無訂單數據</p>
+        <p>{{ t("charts.ordersChart.noData") }}</p>
       </div>
     </div>
 
@@ -39,6 +39,9 @@ import {
   Legend,
 } from "chart.js";
 import { BarChart3 } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 ChartJS.register(
   CategoryScale,
@@ -98,7 +101,7 @@ const createChart = async () => {
       labels,
       datasets: [
         {
-          label: "已完成",
+          label: t("charts.ordersChart.completed"),
           data: completedData,
           backgroundColor: "rgba(34, 197, 94, 0.8)",
           borderColor: "rgb(34, 197, 94)",
@@ -107,7 +110,7 @@ const createChart = async () => {
           borderSkipped: false,
         },
         {
-          label: "處理中",
+          label: t("charts.ordersChart.pending"),
           data: pendingData,
           backgroundColor: "rgba(251, 191, 36, 0.8)",
           borderColor: "rgb(251, 191, 36)",
@@ -116,7 +119,7 @@ const createChart = async () => {
           borderSkipped: false,
         },
         {
-          label: "已取消",
+          label: t("charts.ordersChart.cancelled"),
           data: cancelledData,
           backgroundColor: "rgba(239, 68, 68, 0.8)",
           borderColor: "rgb(239, 68, 68)",
@@ -158,7 +161,7 @@ const createChart = async () => {
           display: true,
           title: {
             display: true,
-            text: "訂單數量",
+            text: t("charts.ordersChart.orderCount"),
             font: {
               size: 12,
               weight: "bold",
@@ -197,7 +200,9 @@ const createChart = async () => {
             afterBody: function (context) {
               const dataIndex = context[0].dataIndex;
               const dataPoint = props.data[dataIndex];
-              return `總計: ${dataPoint.total} 筆訂單`;
+              return t("charts.ordersChart.totalOrders", {
+                count: dataPoint.total,
+              });
             },
           },
         },
@@ -223,13 +228,13 @@ const createChart = async () => {
 const getPeriodLabel = () => {
   switch (props.period) {
     case "daily":
-      return "時段";
+      return t("charts.ordersChart.periodDaily");
     case "weekly":
-      return "日期";
+      return t("charts.ordersChart.periodWeekly");
     case "monthly":
-      return "日期";
+      return t("charts.ordersChart.periodMonthly");
     default:
-      return "時間";
+      return t("charts.ordersChart.periodDefault");
   }
 };
 

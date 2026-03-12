@@ -43,12 +43,23 @@ const zhCN: Messages = {
     viewDetails: "查看详情",
     submitting: "提交中...",
     update: "更新",
+    loadFailed: "加载失败",
+    retry: "重试",
   },
 
   // 排班系统
   scheduling: {
     title: "员工排班",
     calendar: "日历视图",
+    calendarView: {
+      goToToday: "回到今天",
+      loading: "加载日历中...",
+      today: "今天",
+      scheduleCount: "{count} 个排班",
+      legendToday: "今天",
+      legendHasSchedule: "有排班",
+      legendWeekend: "周末",
+    },
     list: "列表视图",
     createSchedule: "创建排班",
     editSchedule: "编辑排班",
@@ -443,6 +454,36 @@ const zhCN: Messages = {
       stable: "持平",
       items: "个",
       loadFailed: "加载数据失败",
+    },
+    ordersChart: {
+      noData: "暂无订单数据",
+      completed: "已完成",
+      pending: "处理中",
+      cancelled: "已取消",
+      orderCount: "订单数量",
+      totalOrders: "总计: {count} 笔订单",
+      periodDaily: "时段",
+      periodWeekly: "日期",
+      periodMonthly: "日期",
+      periodDefault: "时间",
+    },
+    revenueChart: {
+      noData: "暂无营收数据",
+      revenue: "营收",
+      amount: "金额 (TWD)",
+      revenueValue: "营收: {value}",
+      dateLabel: "日期: {date}",
+      periodDaily: "时段",
+      periodWeekly: "日期",
+      periodMonthly: "日期",
+      periodDefault: "时间",
+    },
+    topMenuItems: {
+      noData: "暂无热门菜品数据",
+      sold: "售出 {count} 份",
+      quantity: "份数",
+      totalLabel: "总计热门菜品",
+      totalValue: "{quantity} 份 / ${revenue}",
     },
   },
 
@@ -1268,6 +1309,7 @@ const zhCN: Messages = {
     contactPhone: "联系电话",
     noSearchResult:
       "没有找到与「{query}」相关的功能，请尝试其他关键字或使用上方的快速导航。",
+    errorCode: "错误代码",
   },
 
   unauthorized: {
@@ -1354,6 +1396,7 @@ const zhCN: Messages = {
     title: "店主管理中心",
     systemNotifications: "系统通知",
     open: "营业中",
+    ownerInitial: "店",
     tabs: {
       overview: "概览仪表板",
       operations: "运营分析",

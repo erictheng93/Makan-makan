@@ -50,7 +50,9 @@
               <div
                 class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center"
               >
-                <span class="text-sm font-medium text-white">店</span>
+                <span class="text-sm font-medium text-white">{{
+                  t("ownerLayout.ownerInitial")
+                }}</span>
               </div>
             </div>
           </div>

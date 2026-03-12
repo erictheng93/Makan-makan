@@ -43,12 +43,23 @@ const jaJP: Messages = {
     viewDetails: "詳細を確認",
     submitting: "送信中...",
     update: "更新",
+    loadFailed: "読み込み失敗",
+    retry: "再試行",
   },
 
   // スケジュールシステム
   scheduling: {
     title: "従業員シフト",
     calendar: "カレンダー表示",
+    calendarView: {
+      goToToday: "今日に戻る",
+      loading: "カレンダー読み込み中...",
+      today: "今日",
+      scheduleCount: "{count} 件のシフト",
+      legendToday: "今日",
+      legendHasSchedule: "シフトあり",
+      legendWeekend: "週末",
+    },
     list: "リスト表示",
     createSchedule: "シフト作成",
     editSchedule: "シフト編集",
@@ -445,6 +456,36 @@ const jaJP: Messages = {
       stable: "安定",
       items: "件",
       loadFailed: "データの読み込みに失敗しました",
+    },
+    ordersChart: {
+      noData: "注文データがありません",
+      completed: "完了",
+      pending: "処理中",
+      cancelled: "キャンセル",
+      orderCount: "注文数",
+      totalOrders: "合計: {count} 件の注文",
+      periodDaily: "時間帯",
+      periodWeekly: "日付",
+      periodMonthly: "日付",
+      periodDefault: "時間",
+    },
+    revenueChart: {
+      noData: "売上データがありません",
+      revenue: "売上",
+      amount: "金額 (TWD)",
+      revenueValue: "売上: {value}",
+      dateLabel: "日付: {date}",
+      periodDaily: "時間帯",
+      periodWeekly: "日付",
+      periodMonthly: "日付",
+      periodDefault: "時間",
+    },
+    topMenuItems: {
+      noData: "人気メニューデータがありません",
+      sold: "{count} 食販売",
+      quantity: "数量",
+      totalLabel: "人気メニュー合計",
+      totalValue: "{quantity} 食 / ${revenue}",
     },
   },
 
@@ -1283,6 +1324,7 @@ const jaJP: Messages = {
     contactPhone: "お問い合わせ電話",
     noSearchResult:
       "「{query}」に関連する機能が見つかりませんでした。他のキーワードを試すか、上のクイックナビゲーションをご利用ください。",
+    errorCode: "エラーコード",
   },
 
   unauthorized: {
@@ -1369,6 +1411,7 @@ const jaJP: Messages = {
     title: "オーナー管理センター",
     systemNotifications: "システム通知",
     open: "営業中",
+    ownerInitial: "店",
     tabs: {
       overview: "概要ダッシュボード",
       operations: "運営分析",

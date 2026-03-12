@@ -18,7 +18,7 @@
           @click="goToToday"
         >
           <CalendarIcon class="h-4 w-4" />
-          <span>回到今天</span>
+          <span>{{ t("scheduling.calendarView.goToToday") }}</span>
         </button>
       </div>
 
@@ -36,7 +36,9 @@
       <div
         class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
       ></div>
-      <p class="mt-4 text-gray-600">載入日曆中...</p>
+      <p class="mt-4 text-gray-600">
+        {{ t("scheduling.calendarView.loading") }}
+      </p>
     </div>
 
     <!-- Calendar Grid -->
@@ -82,7 +84,7 @@
                 v-if="day.isToday"
                 class="text-xs px-1.5 py-0.5 bg-blue-600 text-white rounded"
               >
-                今天
+                {{ t("scheduling.calendarView.today") }}
               </span>
             </div>
 
@@ -94,7 +96,11 @@
                 ]"
               >
                 <ClipboardDocumentListIcon class="h-3 w-3" />
-                <span>{{ day.scheduleCount }} 個排班</span>
+                <span>{{
+                  t("scheduling.calendarView.scheduleCount", {
+                    count: day.scheduleCount,
+                  })
+                }}</span>
               </div>
             </div>
           </div>
@@ -108,15 +114,21 @@
         <div
           class="w-4 h-4 bg-blue-50 ring-2 ring-blue-500 ring-inset rounded"
         ></div>
-        <span class="text-gray-700">今天</span>
+        <span class="text-gray-700">{{
+          t("scheduling.calendarView.legendToday")
+        }}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 bg-green-100 rounded"></div>
-        <span class="text-gray-700">有排班</span>
+        <span class="text-gray-700">{{
+          t("scheduling.calendarView.legendHasSchedule")
+        }}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 bg-gray-50 rounded border border-gray-200"></div>
-        <span class="text-gray-700">週末</span>
+        <span class="text-gray-700">{{
+          t("scheduling.calendarView.legendWeekend")
+        }}</span>
       </div>
     </div>
   </div>
@@ -124,7 +136,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { EmployeeSchedule } from "@/types/scheduling";
+
+const { t } = useI18n();
 import {
   ChevronLeftIcon,
   ChevronRightIcon,

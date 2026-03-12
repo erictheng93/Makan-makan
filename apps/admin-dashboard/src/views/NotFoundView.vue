@@ -141,7 +141,9 @@
 
         <!-- 系統狀態 -->
         <div class="text-xs text-gray-400">
-          <p>錯誤代碼: 404 | {{ new Date().toISOString() }}</p>
+          <p>
+            {{ t("notFound.errorCode") }}: 404 | {{ new Date().toISOString() }}
+          </p>
         </div>
       </div>
     </div>

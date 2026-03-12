@@ -58,13 +58,15 @@
           />
         </svg>
       </div>
-      <h4 class="text-sm font-semibold text-red-800 mb-1">載入失敗</h4>
+      <h4 class="text-sm font-semibold text-red-800 mb-1">
+        {{ t("common.loadFailed") }}
+      </h4>
       <p class="text-xs text-red-600 mb-3">{{ state.error.message }}</p>
       <button
         class="text-sm text-red-600 hover:text-red-700 font-medium"
         @click="reset"
       >
-        重試
+        {{ t("common.retry") }}
       </button>
     </div>
 
@@ -87,6 +89,9 @@ import {
   CHART_LAZY_CONFIG,
   type LazyComponentOptions,
 } from "@/composables/useLazyComponent";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 // ============================================================================
 // Props

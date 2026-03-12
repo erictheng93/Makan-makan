@@ -356,7 +356,7 @@
                 <div
                   class="bg-blue-500 h-1 rounded-full transition-all duration-300"
                   :style="{
-                    width: `${Math.min(100, ((getTimeElapsed(order.createdAt).includes('分鐘前') ? parseInt(getTimeElapsed(order.createdAt)) : 0) / calculateEstimatedTime(order)) * 100)}%`,
+                    width: `${Math.min(100, (getMinutesElapsed(order.createdAt) / calculateEstimatedTime(order)) * 100)}%`,
                   }"
                 />
               </div>
@@ -365,9 +365,7 @@
                   Math.min(
                     100,
                     Math.round(
-                      ((getTimeElapsed(order.createdAt).includes("分鐘前")
-                        ? parseInt(getTimeElapsed(order.createdAt))
-                        : 0) /
+                      (getMinutesElapsed(order.createdAt) /
                         calculateEstimatedTime(order)) *
                         100,
                     ),
@@ -665,12 +663,14 @@ const getPriorityText = (priority: string) => {
     : t("kitchen.priority.normal");
 };
 
-const getTimeElapsed = (createdAt: string) => {
+const getMinutesElapsed = (createdAt: string) => {
   const now = new Date();
   const created = new Date(createdAt);
-  const diffInMinutes = Math.floor(
-    (now.getTime() - created.getTime()) / (1000 * 60),
-  );
+  return Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
+};
+
+const getTimeElapsed = (createdAt: string) => {
+  const diffInMinutes = getMinutesElapsed(createdAt);
 
   if (diffInMinutes < 1) return t("kitchen.time.justOrdered");
   if (diffInMinutes < 60)

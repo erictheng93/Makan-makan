@@ -19,7 +19,7 @@
     >
       <div class="text-center">
         <BarChart3 class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <p>暫無營收數據</p>
+        <p>{{ t("charts.revenueChart.noData") }}</p>
       </div>
     </div>
 
@@ -41,6 +41,9 @@ import {
   Filler,
 } from "chart.js";
 import { BarChart3 } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 ChartJS.register(
   CategoryScale,
@@ -97,7 +100,7 @@ const createChart = async () => {
       labels,
       datasets: [
         {
-          label: "營收",
+          label: t("charts.revenueChart.revenue"),
           data: values,
           borderColor: "rgb(59, 130, 246)",
           backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -145,7 +148,7 @@ const createChart = async () => {
           display: true,
           title: {
             display: true,
-            text: "金額 (TWD)",
+            text: t("charts.revenueChart.amount"),
             font: {
               size: 12,
               weight: "bold",
@@ -179,8 +182,10 @@ const createChart = async () => {
               const value = context.parsed.y ?? 0;
               const dataPoint = props.data[context.dataIndex];
               return [
-                `營收: $${value.toLocaleString()}`,
-                `日期: ${dataPoint.date}`,
+                t("charts.revenueChart.revenueValue", {
+                  value: `$${value.toLocaleString()}`,
+                }),
+                t("charts.revenueChart.dateLabel", { date: dataPoint.date }),
               ];
             },
           },
@@ -200,13 +205,13 @@ const createChart = async () => {
 const getPeriodLabel = () => {
   switch (props.period) {
     case "daily":
-      return "時段";
+      return t("charts.revenueChart.periodDaily");
     case "weekly":
-      return "日期";
+      return t("charts.revenueChart.periodWeekly");
     case "monthly":
-      return "日期";
+      return t("charts.revenueChart.periodMonthly");
     default:
-      return "時間";
+      return t("charts.revenueChart.periodDefault");
   }
 };
 

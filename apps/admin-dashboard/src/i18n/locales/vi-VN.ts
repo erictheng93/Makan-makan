@@ -43,12 +43,23 @@ const viVN: Messages = {
     viewDetails: "Xem chi tiết",
     submitting: "Đang gửi...",
     update: "Cập nhật",
+    loadFailed: "Tải thất bại",
+    retry: "Thử lại",
   },
 
   // Hệ thống lịch làm việc
   scheduling: {
     title: "Lịch Làm Việc Nhân Viên",
     calendar: "Xem lịch",
+    calendarView: {
+      goToToday: "Về hôm nay",
+      loading: "Đang tải lịch...",
+      today: "Hôm nay",
+      scheduleCount: "{count} ca làm",
+      legendToday: "Hôm nay",
+      legendHasSchedule: "Có lịch",
+      legendWeekend: "Cuối tuần",
+    },
     list: "Xem danh sách",
     createSchedule: "Tạo lịch làm việc",
     editSchedule: "Chỉnh sửa lịch",
@@ -444,6 +455,36 @@ const viVN: Messages = {
       stable: "Ổn định",
       items: "mục",
       loadFailed: "Tải dữ liệu thất bại",
+    },
+    ordersChart: {
+      noData: "Không có dữ liệu đơn hàng",
+      completed: "Hoàn thành",
+      pending: "Đang xử lý",
+      cancelled: "Đã hủy",
+      orderCount: "Số đơn hàng",
+      totalOrders: "Tổng cộng: {count} đơn hàng",
+      periodDaily: "Khung giờ",
+      periodWeekly: "Ngày",
+      periodMonthly: "Ngày",
+      periodDefault: "Thời gian",
+    },
+    revenueChart: {
+      noData: "Không có dữ liệu doanh thu",
+      revenue: "Doanh thu",
+      amount: "Số tiền (TWD)",
+      revenueValue: "Doanh thu: {value}",
+      dateLabel: "Ngày: {date}",
+      periodDaily: "Khung giờ",
+      periodWeekly: "Ngày",
+      periodMonthly: "Ngày",
+      periodDefault: "Thời gian",
+    },
+    topMenuItems: {
+      noData: "Không có dữ liệu món ăn phổ biến",
+      sold: "Đã bán {count} phần",
+      quantity: "Số lượng",
+      totalLabel: "Tổng món ăn phổ biến",
+      totalValue: "{quantity} phần / ${revenue}",
     },
   },
 
@@ -1281,6 +1322,7 @@ const viVN: Messages = {
     contactPhone: "Số điện thoại liên hệ",
     noSearchResult:
       'Không tìm thấy tính năng liên quan đến "{query}". Vui lòng thử từ khóa khác hoặc sử dụng điều hướng nhanh ở trên.',
+    errorCode: "Mã lỗi",
   },
 
   unauthorized: {
@@ -1367,6 +1409,7 @@ const viVN: Messages = {
     title: "Trung tâm quản lý chủ cửa hàng",
     systemNotifications: "Thông báo hệ thống",
     open: "Đang mở cửa",
+    ownerInitial: "CH",
     tabs: {
       overview: "Bảng tổng quan",
       operations: "Phân tích vận hành",
