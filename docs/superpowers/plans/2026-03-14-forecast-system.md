@@ -29,7 +29,7 @@ apps/api/src/features/forecast/
 ├── index.ts                     — ForecastModule class (FeatureModule pattern)
 ├── routes/index.ts              — 4 API endpoints (generate, get, accuracy, alerts)
 ├── schemas/validation.ts        — Zod schemas for request validation
-├── services/ForecastService.ts  — Core prediction logic + KV caching
+├── services/ForecastService.ts  — Core prediction logic + KV caching + stale fallback
 ├── types/index.ts               — TypeScript interfaces
 └── __tests__/
     ├── ForecastService.test.ts  — Service unit tests
@@ -40,7 +40,14 @@ apps/api/src/features/forecast/
 
 ```
 apps/api/src/
-└── index.ts                     — (modify) import + mount forecast feature
+├── index.ts                     — (modify) import + mount forecast feature
+└── scheduled.ts                 — (modify) add forecast cron warmup handler
+```
+
+### Wrangler config
+
+```
+apps/api/wrangler.toml           — (modify) add cron trigger for daily forecast warmup
 ```
 
 ### Admin Dashboard (apps/admin-dashboard/src/)
@@ -48,11 +55,12 @@ apps/api/src/
 ```
 apps/admin-dashboard/src/
 ├── views/forecast/
-│   └── ForecastView.vue         — Main forecast page
+│   └── ForecastView.vue         — Main forecast page (tabs: forecast, accuracy)
 ├── components/forecast/
 │   ├── ForecastTable.vue        — Item prediction table with confidence + trend
-│   ├── ForecastAlerts.vue       — Alert badges panel
-│   └── ForecastDatePicker.vue   — Date range selector (tomorrow/week/custom)
+│   ├── ForecastAlerts.vue       — Alert badges panel (high_demand, low_stock, unusual_spike)
+│   ├── ForecastDatePicker.vue   — Date range selector (tomorrow/week/custom)
+│   └── ForecastAccuracyTab.vue  — Accuracy report (predicted vs actual table)
 ├── services/
 │   └── forecastApi.ts           — API client for /api/v1/forecast/*
 └── router/index.ts              — (modify) add forecast route
@@ -667,52 +675,94 @@ export class ForecastService implements IForecastService {
     restaurantId: string,
     options: GenerateForecastOptions,
   ): Promise<ForecastResult[]> {
-    const { startDate, endDate, type = "item_level" } = options;
+    const { startDate, endDate, type = "item_level", useAI = false } = options;
     const dates = this.getDateRange(startDate, endDate);
     const results: ForecastResult[] = [];
 
     for (const date of dates) {
-      const weekday = new Date(date).getDay(); // 0=Sunday
-      const historicalData = await this.getHistoricalSales(
-        restaurantId,
-        date,
-        weekday,
-      );
+      try {
+        const weekday = new Date(date).getDay(); // 0=Sunday
+        const historicalData = await this.getHistoricalSales(
+          restaurantId,
+          date,
+          weekday,
+        );
 
-      const items: ForecastItemResult[] = [];
-      for (const [menuItemId, weeklyData] of Object.entries(historicalData)) {
-        const item = this.calculatePrediction(Number(menuItemId), weeklyData);
-        if (item) items.push(item);
+        const items: ForecastItemResult[] = [];
+        for (const [menuItemId, weeklyData] of Object.entries(historicalData)) {
+          const item = this.calculatePrediction(Number(menuItemId), weeklyData);
+          if (item) items.push(item);
+        }
+
+        // AI enhancement stub (Phase 2)
+        // When useAI is true and ai-analytics package is integrated,
+        // pass items through AIInsightsService.enhanceForecast() here.
+        // For now, statistical results are returned as-is.
+        const generatedBy = useAI ? "statistical" : "statistical"; // Phase 2: 'ai_enhanced'
+
+        const metadata: ForecastMetadata = {
+          dataSourceDays: HISTORICAL_WEEKS * 7,
+          model: useAI ? "wma+ai" : "weighted_moving_average",
+          weights: WEIGHTS,
+          generatedAt: new Date().toISOString(),
+        };
+
+        const forecast: ForecastResult = {
+          date,
+          type,
+          items,
+          generatedBy,
+          metadata,
+        };
+
+        results.push(forecast);
+
+        // Cache in D1
+        await this.saveForecastToDb(restaurantId, forecast);
+
+        // Cache in KV
+        const kvKey = `forecast:${restaurantId}:${date}:${type}`;
+        await this.kv.put(kvKey, JSON.stringify([forecast]), {
+          expirationTtl: KV_TTL_SECONDS,
+        });
+      } catch (error) {
+        // Stale cache fallback: return expired cache with stale flag
+        const kvKey = `forecast:${restaurantId}:${date}:${type}`;
+        const staleResult = await this.getStaleCache(restaurantId, date, type);
+        if (staleResult) {
+          staleResult.stale = true;
+          results.push(staleResult);
+        } else {
+          throw error; // No stale cache available, propagate
+        }
       }
-
-      const metadata: ForecastMetadata = {
-        dataSourceDays: HISTORICAL_WEEKS * 7,
-        model: "weighted_moving_average",
-        weights: WEIGHTS,
-        generatedAt: new Date().toISOString(),
-      };
-
-      const forecast: ForecastResult = {
-        date,
-        type,
-        items,
-        generatedBy: "statistical",
-        metadata,
-      };
-
-      results.push(forecast);
-
-      // Cache in D1
-      await this.saveForecastToDb(restaurantId, forecast);
-
-      // Cache in KV
-      const kvKey = `forecast:${restaurantId}:${date}:${type}`;
-      await this.kv.put(kvKey, JSON.stringify([forecast]), {
-        expirationTtl: KV_TTL_SECONDS,
-      });
     }
 
     return results;
+  }
+
+  private async getStaleCache(
+    restaurantId: string,
+    date: string,
+    type: string,
+  ): Promise<ForecastResult | null> {
+    const dbResult = await this.db
+      .prepare(
+        "SELECT data, metadata, generated_by FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = ? LIMIT 1",
+      )
+      .bind(restaurantId, date, type)
+      .first<{ data: string; metadata: string; generated_by: string }>();
+
+    if (!dbResult) return null;
+
+    return {
+      date,
+      type: type as "item_level" | "ingredient_level",
+      items: JSON.parse(dbResult.data) || [],
+      generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
+      metadata: JSON.parse(dbResult.metadata),
+      stale: true,
+    };
   }
 
   async getForecast(
@@ -793,6 +843,24 @@ export class ForecastService implements IForecastService {
 
     if (!forecasts.results.length) return [];
 
+    // Build menu item name lookup
+    const menuItemIds = new Set<number>();
+    for (const f of forecasts.results) {
+      const data = JSON.parse(f.data) || {};
+      for (const id of Object.keys(data)) menuItemIds.add(Number(id));
+    }
+    const nameMap = new Map<number, string>();
+    if (menuItemIds.size > 0) {
+      const placeholders = [...menuItemIds].map(() => "?").join(",");
+      const names = await this.db
+        .prepare(
+          `SELECT id, name FROM menu_items WHERE id IN (${placeholders})`,
+        )
+        .bind(...menuItemIds)
+        .all<{ id: number; name: string }>();
+      for (const row of names.results) nameMap.set(row.id, row.name);
+    }
+
     // Get actual sales for same date range
     const actuals = await this.db
       .prepare(
@@ -837,9 +905,12 @@ export class ForecastService implements IForecastService {
             ? (Math.abs(actual - pred.predicted) / pred.predicted) * 100
             : 0;
 
+        // Get menu item name from actuals data or lookup
+        const menuItemName = nameMap.get(menuItemId) || `Item #${menuItemId}`;
+
         accuracyItems.push({
           menuItemId,
-          menuItemName: "", // Populated from join if needed
+          menuItemName,
           predicted: pred.predicted,
           actual,
           deviation: Math.round(deviation * 10) / 10,
@@ -871,6 +942,18 @@ export class ForecastService implements IForecastService {
     for (const item of forecasts[0].items) {
       const menuItem = inventoryMap.get(item.menuItemId);
       if (!menuItem) continue;
+
+      // High demand alert (predicted > threshold, e.g., top 20% by volume)
+      if (item.predicted > 30 && item.confidence >= 0.7) {
+        alerts.push({
+          type: "high_demand",
+          menuItemId: item.menuItemId,
+          menuItemName: item.menuItemName,
+          message: `明日預估高需求：${Math.ceil(item.predicted)} 份，請提前備料`,
+          severity: item.predicted > 50 ? "warning" : "info",
+          data: { predicted: item.predicted, confidence: item.confidence },
+        });
+      }
 
       // Low stock alert (skip if inventoryCount is null = unlimited)
       if (
@@ -1262,6 +1345,131 @@ git add apps/api/src/features/forecast/routes/index.ts
 git commit -m "feat(forecast): add API route handlers"
 ```
 
+### Task 6b: Write route integration tests
+
+**Files:**
+
+- Create: `apps/api/src/features/forecast/__tests__/routes.test.ts`
+
+- [ ] **Step 1: Write route integration tests**
+
+```typescript
+// apps/api/src/features/forecast/__tests__/routes.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Hono } from "hono";
+import routes from "../routes";
+
+// Mock auth middleware to pass through
+vi.mock("../../../middleware/auth", () => ({
+  authMiddleware: vi.fn((c: any, next: any) => next()),
+  requireRole: () => vi.fn((c: any, next: any) => next()),
+}));
+
+vi.mock("../../../middleware/validation", () => ({
+  validateBody: () =>
+    vi.fn((c: any, next: any) => {
+      c.set("validatedBody", {
+        startDate: "2026-03-15",
+        endDate: "2026-03-15",
+        type: "item_level",
+        useAI: false,
+      });
+      return next();
+    }),
+  validateQuery: () =>
+    vi.fn((c: any, next: any) => {
+      c.set("validatedQuery", { date: "2026-03-15" });
+      return next();
+    }),
+  validateParams: () =>
+    vi.fn((c: any, next: any) => {
+      c.set("validatedParams", { restaurantId: "test-restaurant" });
+      return next();
+    }),
+}));
+
+// Mock ForecastService
+vi.mock("../services/ForecastService", () => ({
+  ForecastService: vi.fn().mockImplementation(() => ({
+    generateForecast: vi
+      .fn()
+      .mockResolvedValue([
+        {
+          date: "2026-03-15",
+          type: "item_level",
+          items: [],
+          generatedBy: "statistical",
+          metadata: {},
+        },
+      ]),
+    getForecast: vi
+      .fn()
+      .mockResolvedValue([
+        {
+          date: "2026-03-15",
+          type: "item_level",
+          items: [],
+          generatedBy: "statistical",
+          metadata: {},
+        },
+      ]),
+    getAccuracy: vi.fn().mockResolvedValue([]),
+    getAlerts: vi.fn().mockResolvedValue([]),
+  })),
+}));
+
+describe("Forecast Routes", () => {
+  let app: Hono;
+
+  beforeEach(() => {
+    app = new Hono();
+    app.route("/forecast", routes);
+  });
+
+  it("POST /:restaurantId/generate returns 200", async () => {
+    const res = await app.request("/forecast/test-restaurant/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate: "2026-03-15", endDate: "2026-03-15" }),
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("GET /:restaurantId returns 200", async () => {
+    const res = await app.request("/forecast/test-restaurant?date=2026-03-15");
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("GET /:restaurantId/accuracy returns 200", async () => {
+    const res = await app.request(
+      "/forecast/test-restaurant/accuracy?startDate=2026-03-01&endDate=2026-03-14",
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("GET /:restaurantId/alerts returns 200", async () => {
+    const res = await app.request("/forecast/test-restaurant/alerts");
+    expect(res.status).toBe(200);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests**
+
+Run: `pnpm test -- apps/api/src/features/forecast/__tests__/routes.test.ts`
+Expected: All tests PASS
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/api/src/features/forecast/__tests__/routes.test.ts
+git commit -m "test(forecast): add route integration tests"
+```
+
 ### Task 7: Create ForecastModule + register in main app
 
 **Files:**
@@ -1350,7 +1558,7 @@ apiV1.route("/forecast", forecastFeature.routes);
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `pnpm typecheck --filter=@makanmakan/api`
+Run: `pnpm --filter @makanmakan/api typecheck`
 Expected: No TypeScript errors
 
 - [ ] **Step 4: Commit**
@@ -1358,6 +1566,75 @@ Expected: No TypeScript errors
 ```bash
 git add apps/api/src/features/forecast/index.ts apps/api/src/index.ts
 git commit -m "feat(forecast): register forecast feature module in main API"
+```
+
+### Task 7b: Add cron warmup for daily forecast generation
+
+**Files:**
+
+- Modify: `apps/api/wrangler.toml`
+- Modify: `apps/api/src/index.ts` (scheduled handler)
+
+- [ ] **Step 1: Add cron trigger to wrangler.toml**
+
+In `apps/api/wrangler.toml`, add a new cron entry for forecast warmup at 02:30 AM UTC (after token cleanup at 02:00):
+
+```toml
+crons = [
+  "0 2 * * *",   # Daily token cleanup
+  "0 3 * * 0",   # Weekly log cleanup
+  "30 2 * * *"   # Daily forecast warmup
+]
+```
+
+- [ ] **Step 2: Add forecast warmup handler to scheduled event**
+
+In `apps/api/src/index.ts`, inside the `scheduled` handler, add after the existing cron blocks:
+
+```typescript
+// Daily forecast warmup at 2:30 AM UTC
+if (event.cron === "30 2 * * *") {
+  console.log("[Cron] Running daily forecast warmup...");
+  const { ForecastService } =
+    await import("./features/forecast/services/ForecastService");
+  const forecastService = new ForecastService(env.DB, env.CACHE_KV);
+
+  // Get active restaurants
+  const restaurants = await env.DB.prepare(
+    "SELECT id FROM restaurants WHERE is_active = 1 AND deleted_at_ms IS NULL",
+  ).all<{ id: string }>();
+
+  const tomorrow = new Date(Date.now() + 86400000);
+  const dayAfter = new Date(Date.now() + 2 * 86400000);
+  const day3 = new Date(Date.now() + 3 * 86400000);
+  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+  let successCount = 0;
+  for (const restaurant of restaurants.results) {
+    try {
+      await forecastService.generateForecast(restaurant.id, {
+        startDate: formatDate(tomorrow),
+        endDate: formatDate(day3),
+      });
+      successCount++;
+    } catch (error) {
+      console.error(
+        `[Cron] Forecast warmup failed for restaurant ${restaurant.id}:`,
+        error,
+      );
+    }
+  }
+  console.log(
+    `[Cron] Forecast warmup complete: ${successCount}/${restaurants.results.length} restaurants`,
+  );
+}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/api/wrangler.toml apps/api/src/index.ts
+git commit -m "feat(forecast): add daily cron warmup for forecast generation"
 ```
 
 ---
@@ -1449,21 +1726,583 @@ git commit -m "feat(admin): add forecast API client"
 
 - [ ] **Step 1: Write ForecastDatePicker component**
 
-A date range selector with quick-pick buttons (tomorrow, this week, custom range).
+```vue
+<!-- apps/admin-dashboard/src/components/forecast/ForecastDatePicker.vue -->
+<template>
+  <div class="flex items-center gap-3">
+    <div class="flex rounded-lg border border-gray-300 overflow-hidden">
+      <button
+        v-for="preset in presets"
+        :key="preset.key"
+        class="px-4 py-2 text-sm font-medium transition-colors"
+        :class="
+          selectedPreset === preset.key
+            ? 'bg-blue-600 text-white'
+            : 'bg-white text-gray-700 hover:bg-gray-50'
+        "
+        @click="selectPreset(preset.key)"
+      >
+        {{ preset.label }}
+      </button>
+    </div>
+    <div v-if="selectedPreset === 'custom'" class="flex items-center gap-2">
+      <input
+        type="date"
+        :value="startDate"
+        class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        @input="
+          $emit('update:startDate', ($event.target as HTMLInputElement).value)
+        "
+      />
+      <span class="text-gray-500">~</span>
+      <input
+        type="date"
+        :value="endDate"
+        class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        @input="
+          $emit('update:endDate', ($event.target as HTMLInputElement).value)
+        "
+      />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+
+const props = defineProps<{
+  startDate: string;
+  endDate: string;
+}>();
+
+const emit = defineEmits<{
+  "update:startDate": [value: string];
+  "update:endDate": [value: string];
+}>();
+
+const selectedPreset = ref("tomorrow");
+
+const presets = [
+  { key: "tomorrow", label: "明日" },
+  { key: "week", label: "本週" },
+  { key: "custom", label: "自訂" },
+];
+
+function formatDate(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+function selectPreset(key: string) {
+  selectedPreset.value = key;
+  const today = new Date();
+  if (key === "tomorrow") {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    emit("update:startDate", formatDate(tomorrow));
+    emit("update:endDate", formatDate(tomorrow));
+  } else if (key === "week") {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
+    emit("update:startDate", formatDate(tomorrow));
+    emit("update:endDate", formatDate(endOfWeek));
+  }
+}
+</script>
+```
 
 - [ ] **Step 2: Write ForecastTable component**
 
-A table showing menu item name, predicted quantity, confidence bar, trend arrow/percentage.
+```vue
+<!-- apps/admin-dashboard/src/components/forecast/ForecastTable.vue -->
+<template>
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+          >
+            {{ t("forecast.menuItem") }}
+          </th>
+          <th
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+          >
+            {{ t("forecast.predicted") }}
+          </th>
+          <th
+            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+          >
+            {{ t("forecast.confidence") }}
+          </th>
+          <th
+            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+          >
+            {{ t("forecast.trend") }}
+          </th>
+          <th
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+          >
+            {{ t("forecast.historicalAvg") }}
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <tr
+          v-for="item in items"
+          :key="item.menuItemId"
+          class="hover:bg-gray-50"
+        >
+          <td
+            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+          >
+            {{ item.menuItemName }}
+          </td>
+          <td
+            class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold"
+          >
+            {{ Math.ceil(item.predicted) }}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center justify-center gap-2">
+              <div class="w-20 bg-gray-200 rounded-full h-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="confidenceColor(item.confidence)"
+                  :style="{ width: `${item.confidence * 100}%` }"
+                ></div>
+              </div>
+              <span class="text-xs text-gray-500"
+                >{{ Math.round(item.confidence * 100) }}%</span
+              >
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-center">
+            <span
+              class="inline-flex items-center gap-1 text-sm font-medium"
+              :class="{
+                'text-green-600': item.trend === 'up',
+                'text-red-600': item.trend === 'down',
+                'text-gray-500': item.trend === 'stable',
+              }"
+            >
+              <span v-if="item.trend === 'up'">↑</span>
+              <span v-else-if="item.trend === 'down'">↓</span>
+              <span v-else>→</span>
+              {{ Math.abs(item.trendPercent).toFixed(1) }}%
+            </span>
+          </td>
+          <td
+            class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500"
+          >
+            {{ item.historicalAvg.toFixed(1) }}
+          </td>
+        </tr>
+        <tr v-if="items.length === 0">
+          <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+            {{ t("forecast.noData") }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from "vue-i18n";
+import type { ForecastItemResult } from "@/services/types/forecast";
+
+const { t } = useI18n();
+
+defineProps<{
+  items: ForecastItemResult[];
+}>();
+
+function confidenceColor(confidence: number): string {
+  if (confidence >= 0.8) return "bg-green-500";
+  if (confidence >= 0.5) return "bg-yellow-500";
+  return "bg-red-500";
+}
+</script>
+```
 
 - [ ] **Step 3: Write ForecastAlerts component**
 
-Alert badge panel showing high_demand, low_stock, unusual_spike alerts sorted by severity.
+```vue
+<!-- apps/admin-dashboard/src/components/forecast/ForecastAlerts.vue -->
+<template>
+  <div v-if="alerts.length > 0" class="space-y-3">
+    <div
+      v-for="(alert, index) in alerts"
+      :key="index"
+      class="flex items-start gap-3 p-4 rounded-lg border"
+      :class="alertStyles[alert.severity]"
+    >
+      <div class="flex-shrink-0 mt-0.5">
+        <ExclamationTriangleIcon
+          v-if="alert.severity === 'critical'"
+          class="h-5 w-5 text-red-600"
+        />
+        <ExclamationCircleIcon
+          v-else-if="alert.severity === 'warning'"
+          class="h-5 w-5 text-yellow-600"
+        />
+        <InformationCircleIcon v-else class="h-5 w-5 text-blue-600" />
+      </div>
+      <div class="flex-1">
+        <div class="flex items-center gap-2">
+          <span
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+            :class="typeStyles[alert.type]"
+          >
+            {{ typeLabels[alert.type] }}
+          </span>
+          <span class="text-sm font-medium text-gray-900">
+            {{ alert.menuItemName }}
+          </span>
+        </div>
+        <p class="mt-1 text-sm text-gray-600">{{ alert.message }}</p>
+      </div>
+    </div>
+  </div>
+  <div v-else class="text-center py-6 text-gray-500 text-sm">
+    {{ t("forecast.noAlerts") }}
+  </div>
+</template>
 
-- [ ] **Step 4: Write ForecastView (main page)**
+<script setup lang="ts">
+import { useI18n } from "vue-i18n";
+import {
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  InformationCircleIcon,
+} from "@heroicons/vue/24/outline";
+import type { ForecastAlert } from "@/services/types/forecast";
 
-Compose the above components. Loads forecast data on mount, refreshes on date change, shows loading states.
+const { t } = useI18n();
 
-- [ ] **Step 5: Commit**
+defineProps<{
+  alerts: ForecastAlert[];
+}>();
+
+const alertStyles: Record<string, string> = {
+  critical: "bg-red-50 border-red-200",
+  warning: "bg-yellow-50 border-yellow-200",
+  info: "bg-blue-50 border-blue-200",
+};
+
+const typeStyles: Record<string, string> = {
+  high_demand: "bg-orange-100 text-orange-800",
+  low_stock: "bg-red-100 text-red-800",
+  unusual_spike: "bg-purple-100 text-purple-800",
+};
+
+const typeLabels: Record<string, string> = {
+  high_demand: "高需求",
+  low_stock: "庫存不足",
+  unusual_spike: "異常波動",
+};
+</script>
+```
+
+- [ ] **Step 4: Write ForecastAccuracyTab component**
+
+```vue
+<!-- apps/admin-dashboard/src/components/forecast/ForecastAccuracyTab.vue -->
+<template>
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">
+        {{ t("forecast.accuracyReport") }}
+      </h3>
+      <p class="text-sm text-gray-500">
+        {{ t("forecast.accuracyDescription") }}
+      </p>
+    </div>
+    <div v-if="loading" class="flex justify-center py-12">
+      <div
+        class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+      ></div>
+    </div>
+    <table v-else class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+          >
+            菜品
+          </th>
+          <th
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+          >
+            預測量
+          </th>
+          <th
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+          >
+            實際量
+          </th>
+          <th
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+          >
+            偏差 %
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <tr
+          v-for="item in items"
+          :key="item.menuItemId"
+          class="hover:bg-gray-50"
+        >
+          <td class="px-6 py-4 text-sm font-medium text-gray-900">
+            {{ item.menuItemName }}
+          </td>
+          <td class="px-6 py-4 text-sm text-right text-gray-700">
+            {{ item.predicted }}
+          </td>
+          <td class="px-6 py-4 text-sm text-right text-gray-700">
+            {{ item.actual }}
+          </td>
+          <td
+            class="px-6 py-4 text-sm text-right font-medium"
+            :class="deviationColor(item.deviation)"
+          >
+            {{ item.deviation.toFixed(1) }}%
+          </td>
+        </tr>
+        <tr v-if="items.length === 0">
+          <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+            {{ t("forecast.noAccuracyData") }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from "vue-i18n";
+import type { ForecastAccuracyItem } from "@/services/types/forecast";
+
+const { t } = useI18n();
+
+defineProps<{
+  items: ForecastAccuracyItem[];
+  loading: boolean;
+}>();
+
+function deviationColor(deviation: number): string {
+  if (deviation <= 10) return "text-green-600";
+  if (deviation <= 25) return "text-yellow-600";
+  return "text-red-600";
+}
+</script>
+```
+
+- [ ] **Step 5: Write ForecastView (main page)**
+
+```vue
+<!-- apps/admin-dashboard/src/views/forecast/ForecastView.vue -->
+<template>
+  <div class="forecast-view">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("forecast.title") }}
+        </h1>
+        <p class="text-gray-600">{{ t("forecast.subtitle") }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button
+          class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          :disabled="loading"
+          @click="loadForecast"
+        >
+          <ArrowPathIcon class="h-4 w-4 mr-2" />
+          {{ t("common.refresh") }}
+        </button>
+        <button
+          class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          :disabled="generating"
+          @click="generateForecast"
+        >
+          <span v-if="generating" class="animate-spin mr-2">⏳</span>
+          {{ t("forecast.generate") }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Stale data warning -->
+    <div
+      v-if="isStale"
+      class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800"
+    >
+      ⚠️ {{ t("forecast.staleWarning") }}
+    </div>
+
+    <!-- Date Picker -->
+    <div class="mb-6">
+      <ForecastDatePicker
+        :start-date="startDate"
+        :end-date="endDate"
+        @update:start-date="startDate = $event"
+        @update:end-date="endDate = $event"
+      />
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="flex gap-6">
+        <button
+          class="pb-3 text-sm font-medium border-b-2 transition-colors"
+          :class="
+            activeTab === 'forecast'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          "
+          @click="activeTab = 'forecast'"
+        >
+          {{ t("forecast.forecastTab") }}
+        </button>
+        <button
+          class="pb-3 text-sm font-medium border-b-2 transition-colors"
+          :class="
+            activeTab === 'accuracy'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          "
+          @click="
+            activeTab = 'accuracy';
+            loadAccuracy();
+          "
+        >
+          {{ t("forecast.accuracyTab") }}
+        </button>
+      </nav>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-16">
+      <div
+        class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"
+      ></div>
+    </div>
+
+    <!-- Forecast Tab -->
+    <template v-else-if="activeTab === 'forecast'">
+      <ForecastAlerts :alerts="alerts" class="mb-6" />
+      <ForecastTable :items="forecastItems" />
+    </template>
+
+    <!-- Accuracy Tab -->
+    <template v-else-if="activeTab === 'accuracy'">
+      <ForecastAccuracyTab :items="accuracyItems" :loading="accuracyLoading" />
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { ArrowPathIcon } from "@heroicons/vue/24/outline";
+import { forecastApi } from "@/services/forecastApi";
+import { useAuthStore } from "@/stores/auth";
+import ForecastDatePicker from "@/components/forecast/ForecastDatePicker.vue";
+import ForecastTable from "@/components/forecast/ForecastTable.vue";
+import ForecastAlerts from "@/components/forecast/ForecastAlerts.vue";
+import ForecastAccuracyTab from "@/components/forecast/ForecastAccuracyTab.vue";
+import type {
+  ForecastItemResult,
+  ForecastAccuracyItem,
+  ForecastAlert,
+} from "@/services/types/forecast";
+
+const { t } = useI18n();
+const authStore = useAuthStore();
+
+const loading = ref(false);
+const generating = ref(false);
+const accuracyLoading = ref(false);
+const isStale = ref(false);
+const activeTab = ref<"forecast" | "accuracy">("forecast");
+
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+const startDate = ref(tomorrow.toISOString().split("T")[0]);
+const endDate = ref(tomorrow.toISOString().split("T")[0]);
+
+const forecastItems = ref<ForecastItemResult[]>([]);
+const alerts = ref<ForecastAlert[]>([]);
+const accuracyItems = ref<ForecastAccuracyItem[]>([]);
+
+const restaurantId = computed(() => authStore.currentRestaurantId || "");
+
+async function loadForecast() {
+  if (!restaurantId.value) return;
+  loading.value = true;
+  try {
+    const forecasts = await forecastApi.getForecast(restaurantId.value, {
+      startDate: startDate.value,
+      endDate: endDate.value,
+    });
+    forecastItems.value = forecasts.flatMap((f) => f.items);
+    isStale.value = forecasts.some((f) => f.stale);
+
+    const alertsData = await forecastApi.getAlerts(restaurantId.value);
+    alerts.value = alertsData;
+  } catch (error) {
+    console.error("Failed to load forecast:", error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function generateForecast() {
+  if (!restaurantId.value) return;
+  generating.value = true;
+  try {
+    await forecastApi.generate(restaurantId.value, {
+      startDate: startDate.value,
+      endDate: endDate.value,
+    });
+    await loadForecast();
+  } catch (error) {
+    console.error("Failed to generate forecast:", error);
+  } finally {
+    generating.value = false;
+  }
+}
+
+async function loadAccuracy() {
+  if (!restaurantId.value) return;
+  accuracyLoading.value = true;
+  try {
+    // Load accuracy for past 7 days
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+    accuracyItems.value = await forecastApi.getAccuracy(restaurantId.value, {
+      startDate: start.toISOString().split("T")[0],
+      endDate: end.toISOString().split("T")[0],
+    });
+  } catch (error) {
+    console.error("Failed to load accuracy:", error);
+  } finally {
+    accuracyLoading.value = false;
+  }
+}
+
+watch([startDate, endDate], () => {
+  if (activeTab.value === "forecast") loadForecast();
+});
+
+onMounted(() => loadForecast());
+</script>
+```
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add apps/admin-dashboard/src/views/forecast/ apps/admin-dashboard/src/components/forecast/
