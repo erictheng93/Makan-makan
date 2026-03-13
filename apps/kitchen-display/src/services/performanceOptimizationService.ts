@@ -1,5 +1,23 @@
 import { ref, computed } from "vue";
 
+/**
+ * Validates that a URL string is safe to use as an image src.
+ * Only allows http(s) URLs with valid hostnames and same-origin relative paths.
+ */
+function isAllowedImageSrc(src: string): boolean {
+  // Relative paths starting with "/" but not "//" (protocol-relative)
+  if (src.startsWith("/") && !src.startsWith("//")) {
+    return true;
+  }
+
+  try {
+    const url = new URL(src);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 interface PerformanceMetrics {
   bundleSize: number;
   loadTime: number;
@@ -272,12 +290,7 @@ class PerformanceOptimizationService {
             const img = entry.target as HTMLImageElement;
             const src = img.getAttribute("data-src");
 
-            if (
-              src &&
-              (src.startsWith("https://") ||
-                src.startsWith("http://") ||
-                src.startsWith("/"))
-            ) {
+            if (src && isAllowedImageSrc(src)) {
               img.src = src;
               img.removeAttribute("data-src");
               imageObserver.unobserve(img);
