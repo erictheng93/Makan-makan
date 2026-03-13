@@ -62,6 +62,7 @@ apps/admin-dashboard/src/
 │   ├── ForecastDatePicker.vue   — Date range selector (tomorrow/week/custom)
 │   └── ForecastAccuracyTab.vue  — Accuracy report (predicted vs actual table)
 ├── services/
+│   ├── types/forecast.ts        — Frontend type definitions (mirrors API types)
 │   └── forecastApi.ts           — API client for /api/v1/forecast/*
 └── router/index.ts              — (modify) add forecast route
 ```
@@ -225,11 +226,6 @@ Add to `packages/database/src/schema/index.ts`:
 ```typescript
 // After existing exports:
 export * from "./forecast";
-export {
-  forecastCacheRelations,
-  ingredientDefinitionsRelations,
-  menuItemIngredientsRelations,
-} from "./forecast";
 ```
 
 - [ ] **Step 3: Generate migration**
@@ -515,8 +511,12 @@ describe("ForecastService", () => {
       expect(results[0].items).toHaveLength(1);
       const item = results[0].items[0];
       expect(item.menuItemId).toBe(1);
-      // Weighted: 50*0.4 + 40*0.3 + 45*0.2 + 35*0.1 = 20 + 12 + 9 + 3.5 = 44.5
-      expect(item.predicted).toBeCloseTo(44.5, 0);
+      // WMA base: 50*0.4 + 40*0.3 + 45*0.2 + 35*0.1 = 44.5
+      // Trend: recentAvg=(50+40)/2=45, olderAvg=(45+35)/2=40
+      //   trendPercent = ((45-40)/40)*100 = 12.5%
+      //   adjusted = 44.5 * (1 + 0.125 * 0.5) = 44.5 * 1.0625 = 47.28
+      //   rounded to 1 decimal = 47.3
+      expect(item.predicted).toBeCloseTo(47.3, 0);
       expect(item.confidence).toBeGreaterThan(0);
       expect(item.confidence).toBeLessThanOrEqual(1);
     });
@@ -624,6 +624,76 @@ describe("ForecastService", () => {
       // Should have unusual_spike (100 vs avg 50) but NOT low_stock
       const lowStockAlerts = alerts.filter((a) => a.type === "low_stock");
       expect(lowStockAlerts).toHaveLength(0);
+    });
+  });
+
+  describe("generateForecast — partial data", () => {
+    it("should re-normalize weights when only 1 week of data exists", async () => {
+      mockDb.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({
+            results: [
+              {
+                menu_item_id: 1,
+                item_name: "雞排",
+                quantity_sum: 30,
+                order_date: "2026-03-08",
+              },
+            ],
+          }),
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
+      });
+
+      const results = await service.generateForecast("restaurant-1", {
+        startDate: "2026-03-15",
+        endDate: "2026-03-15",
+      });
+
+      const item = results[0].items[0];
+      // With 1 week: weightedSum = 30 * 0.4 = 12, weightTotal = 0.4
+      // Re-normalized: 12 / 0.4 = 30 (returns the raw value, not 12)
+      // Trend: recentAvg=30, olderAvg=30 (falls back), trendPercent=0
+      // adjustedPredicted = 30 * 1.0 = 30
+      expect(item.predicted).toBeCloseTo(30, 0);
+    });
+  });
+
+  describe("getForecast — D1 fallback", () => {
+    it("should reconstruct items array from D1 dictionary format", async () => {
+      // KV miss
+      mockKV.get.mockResolvedValue(null);
+      // D1 hit with dict-format data
+      mockDb.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue({
+            data: JSON.stringify({
+              "1": { predicted: 45, confidence: 0.8, trend: "up" },
+            }),
+            metadata: JSON.stringify({
+              dataSourceDays: 28,
+              model: "wma",
+              weights: {},
+              generatedAt: "2026-03-14T02:00:00Z",
+            }),
+            generated_by: "statistical",
+            expires_at_ms: Date.now() + 86400000,
+          }),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
+      });
+
+      const results = await service.getForecast(
+        "restaurant-1",
+        "2026-03-15",
+        "2026-03-15",
+      );
+
+      expect(results).toHaveLength(1);
+      expect(Array.isArray(results[0].items)).toBe(true);
+      expect(results[0].items[0].menuItemId).toBe(1);
+      expect(results[0].items[0].predicted).toBe(45);
     });
   });
 });
@@ -755,10 +825,28 @@ export class ForecastService implements IForecastService {
 
     if (!dbResult) return null;
 
+    // Reconstruct items array from stored dictionary format
+    const dataDict =
+      (JSON.parse(dbResult.data) as Record<
+        string,
+        { predicted: number; confidence: number; trend: string }
+      >) || {};
+    const items: ForecastItemResult[] = Object.entries(dataDict).map(
+      ([id, v]) => ({
+        menuItemId: Number(id),
+        menuItemName: "",
+        predicted: v.predicted,
+        confidence: v.confidence,
+        trend: v.trend as "up" | "down" | "stable",
+        trendPercent: 0,
+        historicalAvg: 0,
+      }),
+    );
+
     return {
       date,
       type: type as "item_level" | "ingredient_level",
-      items: JSON.parse(dbResult.data) || [],
+      items,
       generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
       metadata: JSON.parse(dbResult.metadata),
       stale: true,
@@ -801,10 +889,29 @@ export class ForecastService implements IForecastService {
         dbResult &&
         (!dbResult.expires_at_ms || dbResult.expires_at_ms > Date.now())
       ) {
+        // D1 stores data as { menuItemId: { predicted, confidence, trend } }
+        // Must reconstruct ForecastItemResult[] from the dictionary
+        const dataDict =
+          (JSON.parse(dbResult.data) as Record<
+            string,
+            { predicted: number; confidence: number; trend: string }
+          >) || {};
+        const items: ForecastItemResult[] = Object.entries(dataDict).map(
+          ([id, v]) => ({
+            menuItemId: Number(id),
+            menuItemName: "", // Not stored in cache; populated by caller if needed
+            predicted: v.predicted,
+            confidence: v.confidence,
+            trend: v.trend as "up" | "down" | "stable",
+            trendPercent: 0, // Not stored in cache
+            historicalAvg: 0, // Not stored in cache
+          }),
+        );
+
         const forecast: ForecastResult = {
           date,
           type: type as "item_level" | "ingredient_level",
-          items: JSON.parse(dbResult.data) || [],
+          items,
           generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
           metadata: JSON.parse(dbResult.metadata),
         };
@@ -1041,7 +1148,11 @@ export class ForecastService implements IForecastService {
     const { name, weeklySales } = data;
     if (weeklySales.length === 0) return null;
 
-    // Weighted moving average
+    // Weighted moving average with re-normalization for partial data.
+    // When fewer than 4 weeks are available, weights are re-normalized so
+    // predictions scale correctly. E.g., with only week-1 data (weight 0.4),
+    // predicted = sales * 0.4 / 0.4 = sales (not sales * 0.4).
+    // This prevents under-predicting for new items with limited history.
     const weightKeys = Object.keys(WEIGHTS).map(Number);
     let weightedSum = 0;
     let weightTotal = 0;
@@ -1391,28 +1502,24 @@ vi.mock("../../../middleware/validation", () => ({
 // Mock ForecastService
 vi.mock("../services/ForecastService", () => ({
   ForecastService: vi.fn().mockImplementation(() => ({
-    generateForecast: vi
-      .fn()
-      .mockResolvedValue([
-        {
-          date: "2026-03-15",
-          type: "item_level",
-          items: [],
-          generatedBy: "statistical",
-          metadata: {},
-        },
-      ]),
-    getForecast: vi
-      .fn()
-      .mockResolvedValue([
-        {
-          date: "2026-03-15",
-          type: "item_level",
-          items: [],
-          generatedBy: "statistical",
-          metadata: {},
-        },
-      ]),
+    generateForecast: vi.fn().mockResolvedValue([
+      {
+        date: "2026-03-15",
+        type: "item_level",
+        items: [],
+        generatedBy: "statistical",
+        metadata: {},
+      },
+    ]),
+    getForecast: vi.fn().mockResolvedValue([
+      {
+        date: "2026-03-15",
+        type: "item_level",
+        items: [],
+        generatedBy: "statistical",
+        metadata: {},
+      },
+    ]),
     getAccuracy: vi.fn().mockResolvedValue([]),
     getAlerts: vi.fn().mockResolvedValue([]),
   })),
@@ -1641,13 +1748,63 @@ git commit -m "feat(forecast): add daily cron warmup for forecast generation"
 
 ## Chunk 4: Admin Dashboard UI
 
-### Task 8: Create forecast API client
+### Task 8: Create forecast API client + frontend types
 
 **Files:**
 
+- Create: `apps/admin-dashboard/src/services/types/forecast.ts`
 - Create: `apps/admin-dashboard/src/services/forecastApi.ts`
 
-- [ ] **Step 1: Write API client**
+- [ ] **Step 1: Write frontend forecast types**
+
+```typescript
+// apps/admin-dashboard/src/services/types/forecast.ts
+
+export interface ForecastItemResult {
+  menuItemId: number;
+  menuItemName: string;
+  predicted: number;
+  confidence: number;
+  trend: "up" | "down" | "stable";
+  trendPercent: number;
+  historicalAvg: number;
+}
+
+export interface ForecastResult {
+  date: string;
+  type: "item_level" | "ingredient_level";
+  items: ForecastItemResult[];
+  generatedBy: "statistical" | "ai_enhanced";
+  metadata: ForecastMetadata;
+  stale?: boolean;
+}
+
+export interface ForecastMetadata {
+  dataSourceDays: number;
+  model: string;
+  weights: Record<string, number>;
+  generatedAt: string;
+}
+
+export interface ForecastAccuracyItem {
+  menuItemId: number;
+  menuItemName: string;
+  predicted: number;
+  actual: number;
+  deviation: number;
+}
+
+export interface ForecastAlert {
+  type: "high_demand" | "low_stock" | "unusual_spike";
+  menuItemId: number;
+  menuItemName: string;
+  message: string;
+  severity: "info" | "warning" | "critical";
+  data?: Record<string, unknown>;
+}
+```
+
+- [ ] **Step 2: Write API client**
 
 ```typescript
 // apps/admin-dashboard/src/services/forecastApi.ts
