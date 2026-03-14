@@ -204,10 +204,18 @@ export class ErrorHandler {
       severity = ErrorSeverity.HIGH;
       message = "網絡連接錯誤，請檢查您的網絡連接";
     } else if (error?.response) {
-      // API 錯誤
+      // API 錯誤 — unified format: { success: false, error: { code, message } }
       type = ErrorType.API;
       code = error.response.status;
-      message = error.response.data?.error?.message || "服務器錯誤";
+      const apiError = error.response.data?.error;
+      if (typeof apiError === "object" && apiError !== null) {
+        message = apiError.message || "服務器錯誤";
+      } else if (typeof apiError === "string") {
+        // Backward compatibility: un-migrated routes may still return error as string
+        message = apiError || "服務器錯誤";
+      } else {
+        message = "服務器錯誤";
+      }
 
       if (typeof code === "number" && code >= 500) {
         severity = ErrorSeverity.HIGH;
