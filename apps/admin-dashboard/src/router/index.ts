@@ -108,6 +108,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "forecast",
+        name: "Forecast",
+        component: () => import("@/views/forecast/ForecastView.vue"),
+        meta: {
+          titleKey: "pages.forecast",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
         path: "settings",
         name: "Settings",
         component: () => import("@/views/SettingsView.vue"),
