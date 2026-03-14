@@ -96,6 +96,27 @@
           </svg>
           <span>{{ t("home.manualInput") }}</span>
         </button>
+
+        <!-- 探索美食按鈕 -->
+        <router-link
+          to="/discover"
+          class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <span>{{ t("home.discoverFood") }}</span>
+        </router-link>
       </div>
 
       <!-- 最近使用的餐廳 -->

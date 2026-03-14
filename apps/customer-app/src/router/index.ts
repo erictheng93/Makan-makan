@@ -195,6 +195,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/discover",
+    name: "Discover",
+    component: () => import("@/views/DiscoveryView.vue"),
+    meta: {
+      titleKey: "navigation.discover",
+    },
+  },
+  {
     path: "/error",
     name: "Error",
     component: () => import("@/views/ErrorView.vue"),
