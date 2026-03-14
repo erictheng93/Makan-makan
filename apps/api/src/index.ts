@@ -91,11 +91,10 @@ import partnershipsRoutes from "./features/partnerships/routes";
 import guestOrdersRoutes from "./features/guest-orders";
 import integrationsFeature from "./features/integrations";
 import forecastFeature from "./features/forecast";
+import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
-import {
-  ErrorSanitizer,
-  createSafeErrorResponse,
-} from "./utils/errorSanitizer";
+import { ErrorSanitizer } from "./utils/errorSanitizer";
+import { ApiError } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
 
 // 創建主應用
@@ -228,42 +227,62 @@ app.use("*", monitoringStatsMiddleware()); // Twelfth: Monitoring stats
 // Sets up tenant context based on deployment mode (SaaS vs Independent)
 app.use("*", tenantContextMiddleware); // Thirteenth: Tenant context
 
-// 錯誤處理中間件 - SECURITY ENHANCED
+// Unified error handler — single formatter for ALL thrown errors
 app.onError((err, c) => {
-  // Log the original error securely and get sanitized version
-  const sanitized = ErrorSanitizer.logAndSanitize(err, "GLOBAL_ERROR_HANDLER");
+  // Log the original error server-side
+  console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err);
 
-  // 開發環境顯示稍微詳細的錯誤但仍然是安全的
-  if (c.env.NODE_ENV === "development") {
+  if (err instanceof ApiError) {
     return c.json(
       {
         success: false,
-        error: sanitized.message,
-        code: sanitized.code,
-        type: sanitized.type,
-        timestamp: new Date().toISOString(),
-        // Only in development: add request ID for debugging (use timestamp-based ID)
-        requestId: `req_${Date.now()}_${(Date.now() % 100000).toString(36)}`,
+        error: {
+          code: err.code,
+          message: ErrorSanitizer.sanitizeMessage(err.message),
+          ...(err.details !== undefined && { details: err.details }),
+        },
       },
-      500,
+      err.status as any,
     );
   }
 
-  // 生產環境完全安全的錯誤響應
-  return c.json(createSafeErrorResponse(err, 500), 500);
-});
+  // Non-ApiError: auto-classify via ErrorSanitizer
+  const sanitized = ErrorSanitizer.sanitizeError(err);
 
-// 404 處理
-app.notFound((c) => {
+  const STATUS_MAP: Record<string, number> = {
+    validation: 400,
+    authentication: 401,
+    authorization: 403,
+    not_found: 404,
+    rate_limit: 429,
+    server_error: 500,
+  };
+  const status = STATUS_MAP[sanitized.type] ?? 500;
+
   return c.json(
     {
       success: false,
-      error: "API endpoint not found",
-      path: c.req.path,
+      error: {
+        code: sanitized.code ?? "INTERNAL_ERROR",
+        message: sanitized.message,
+      },
     },
-    404,
+    status as any,
   );
 });
+
+app.notFound((c) =>
+  c.json(
+    {
+      success: false,
+      error: {
+        code: "ROUTE_NOT_FOUND",
+        message: `API endpoint not found: ${c.req.method} ${c.req.path}`,
+      },
+    },
+    404,
+  ),
+);
 
 // 基本健康檢查端點（向後兼容）
 app.get("/health", healthCheckMiddleware(), (c) =>
@@ -343,6 +362,7 @@ app.get("/info", (c) => {
       partnerships: "/api/v1/partnerships",
       guestOrders: "/api/v1/guest-orders",
       integrations: "/api/v1/integrations",
+      ingredients: "/api/v1/ingredients",
       health: "/health",
       docs: "/docs",
     },
@@ -391,6 +411,7 @@ apiV1.use("/customers/*", authMiddleware);
 apiV1.use("/leaves/*", authMiddleware);
 apiV1.use("/scheduling/*", authMiddleware);
 apiV1.use("/forecast/*", authMiddleware);
+apiV1.use("/ingredients/*", authMiddleware);
 apiV1.use("/notifications/*", authMiddleware);
 apiV1.use("/partnerships/*", authMiddleware);
 // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
@@ -439,6 +460,7 @@ apiV1.route("/customers", customersRouter);
 apiV1.route("/leaves", leavesFeature.routes);
 apiV1.route("/scheduling", schedulingFeature.routes);
 apiV1.route("/forecast", forecastFeature.routes);
+apiV1.route("/ingredients", ingredientsFeature.routes);
 apiV1.route("/discovery", discoveryFeature.routes);
 apiV1.route("/notifications", notificationsRoutes);
 // 掛載 API 路由
