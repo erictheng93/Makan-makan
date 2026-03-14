@@ -24,6 +24,7 @@ export * from "./platform-integrations";
 export * from "./platform-orders";
 export * from "./platform-menu-mappings";
 export * from "./platform-webhook-logs";
+export * from "./forecast";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -90,6 +91,11 @@ export {
 export { platformIntegrationsRelations } from "./platform-integrations";
 export { platformOrdersRelations } from "./platform-orders";
 export { platformMenuMappingsRelations } from "./platform-menu-mappings";
+export {
+  forecastCacheRelations,
+  ingredientDefinitionsRelations,
+  menuItemIngredientsRelations,
+} from "./forecast";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
