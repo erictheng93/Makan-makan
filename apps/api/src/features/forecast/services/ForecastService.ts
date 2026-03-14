@@ -51,7 +51,7 @@ export class ForecastService implements IForecastService {
           if (item) items.push(item);
         }
 
-        const generatedBy = useAI ? "statistical" : "statistical"; // Phase 2: 'ai_enhanced'
+        const generatedBy = useAI ? "ai_enhanced" : "statistical";
 
         const metadata: ForecastMetadata = {
           dataSourceDays: HISTORICAL_WEEKS * 7,
@@ -349,6 +349,81 @@ export class ForecastService implements IForecastService {
             item.predicted > item.historicalAvg * 2 ? "warning" : "info",
         });
       }
+    }
+
+    // --- Ingredient-level alerts ---
+    try {
+      const ingredientForecasts = await this.db
+        .prepare(
+          "SELECT data FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = 'ingredient_level' LIMIT 1",
+        )
+        .bind(restaurantId, tomorrow)
+        .first<{ data: string }>();
+
+      if (ingredientForecasts) {
+        const ingredients = JSON.parse(ingredientForecasts.data) as Array<{
+          ingredientId: number;
+          ingredientName: string;
+          unit: string;
+          predictedQuantity: number;
+          currentStock?: number;
+        }>;
+
+        for (const ing of ingredients) {
+          if (ing.currentStock === undefined || ing.currentStock === null)
+            continue;
+
+          // Procurement needed: predicted > currentStock
+          if (ing.predictedQuantity > ing.currentStock) {
+            const gap =
+              Math.round((ing.predictedQuantity - ing.currentStock) * 100) /
+              100;
+            const ratio =
+              ing.currentStock > 0
+                ? ing.predictedQuantity / ing.currentStock
+                : 10;
+            alerts.push({
+              type: "procurement_needed",
+              menuItemId: 0,
+              menuItemName: "",
+              ingredientId: ing.ingredientId,
+              ingredientName: ing.ingredientName,
+              message: `${ing.ingredientName} 需採購：預測需要 ${ing.predictedQuantity} ${ing.unit}，庫存僅 ${ing.currentStock} ${ing.unit}，缺口 ${gap} ${ing.unit}`,
+              severity: ratio > 2 ? "critical" : "warning",
+              data: {
+                predicted: ing.predictedQuantity,
+                currentStock: ing.currentStock,
+                gap,
+                unit: ing.unit,
+              },
+            });
+          }
+
+          // Excess stock: currentStock > predicted × 3
+          if (
+            ing.currentStock > ing.predictedQuantity * 3 &&
+            ing.predictedQuantity > 0
+          ) {
+            alerts.push({
+              type: "excess_stock",
+              menuItemId: 0,
+              menuItemName: "",
+              ingredientId: ing.ingredientId,
+              ingredientName: ing.ingredientName,
+              message: `${ing.ingredientName} 庫存過量：庫存 ${ing.currentStock} ${ing.unit}，預測僅需 ${ing.predictedQuantity} ${ing.unit}`,
+              severity: "info",
+              data: {
+                predicted: ing.predictedQuantity,
+                currentStock: ing.currentStock,
+                unit: ing.unit,
+              },
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Ingredient alert generation error:", error);
+      // Don't fail the whole alert generation if ingredient alerts fail
     }
 
     return alerts.sort((a, b) => {

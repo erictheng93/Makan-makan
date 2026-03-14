@@ -6,12 +6,15 @@ export type {
   ForecastAccuracyItem,
   ForecastAlert,
   GenerateForecastRequest,
+  IngredientForecastItem,
+  IngredientForecastResult,
 } from "@makanmakan/shared-types";
 
 import type {
   ForecastResult,
   ForecastAccuracyItem,
   ForecastAlert,
+  IngredientForecastResult,
 } from "@makanmakan/shared-types";
 
 // API-only types (service internals)
@@ -40,4 +43,16 @@ export interface IForecastService {
     endDate: string,
   ): Promise<ForecastAccuracyItem[]>;
   getAlerts(restaurantId: string): Promise<ForecastAlert[]>;
+}
+
+export interface IIngredientForecastService {
+  generateIngredientForecast(
+    restaurantId: string,
+    options: { startDate: string; endDate: string; useAI?: boolean },
+  ): Promise<IngredientForecastResult[]>;
+  getIngredientForecast(
+    restaurantId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<IngredientForecastResult[]>;
 }

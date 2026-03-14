@@ -2,20 +2,19 @@ import { Context, Next } from "hono";
 import { z } from "zod";
 import type { Env } from "../types/env";
 
-// 通用驗證錯誤處理
-export const handleValidationError = (error: z.ZodError) => {
-  const errors = error.errors.map((err) => ({
-    field: err.path.join("."),
-    message: err.message,
-    code: err.code,
-  }));
-
-  return {
-    success: false,
-    error: "Validation failed",
-    details: errors,
-  };
-};
+// Format Zod errors into unified error shape
+const formatValidationError = (error: z.ZodError) => ({
+  success: false as const,
+  error: {
+    code: "VALIDATION_ERROR",
+    message: "Validation failed",
+    details: error.errors.map((err) => ({
+      field: err.path.join("."),
+      message: err.message,
+      code: err.code,
+    })),
+  },
+});
 
 // 請求體驗證中間件
 export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
@@ -29,10 +28,16 @@ export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(handleValidationError(error), 400);
+        return c.json(formatValidationError(error), 400);
       }
 
-      return c.json({ success: false, error: "Invalid JSON body" }, 400);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_JSON", message: "Invalid JSON body" },
+        },
+        400,
+      );
     }
   };
 };
@@ -48,10 +53,16 @@ export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(handleValidationError(error), 400);
+        return c.json(formatValidationError(error), 400);
       }
 
-      return c.json({ success: false, error: "Invalid query parameters" }, 400);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_QUERY", message: "Invalid query parameters" },
+        },
+        400,
+      );
     }
   };
 };
@@ -67,10 +78,16 @@ export const validateParams = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(handleValidationError(error), 400);
+        return c.json(formatValidationError(error), 400);
       }
 
-      return c.json({ success: false, error: "Invalid path parameters" }, 400);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_PARAMS", message: "Invalid path parameters" },
+        },
+        400,
+      );
     }
   };
 };

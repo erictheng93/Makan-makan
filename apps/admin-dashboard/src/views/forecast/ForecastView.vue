@@ -73,6 +73,20 @@
         >
           {{ t("forecast.accuracyTab") }}
         </button>
+        <button
+          class="pb-3 text-sm font-medium border-b-2 transition-colors"
+          :class="
+            activeTab === 'ingredients'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          "
+          @click="
+            activeTab = 'ingredients';
+            loadIngredientForecast();
+          "
+        >
+          {{ t("forecast.ingredientTab") }}
+        </button>
       </nav>
     </div>
 
@@ -93,6 +107,25 @@
     <template v-else-if="activeTab === 'accuracy'">
       <ForecastAccuracyTab :items="accuracyItems" :loading="accuracyLoading" />
     </template>
+
+    <!-- Ingredient Forecast Tab -->
+    <template v-else-if="activeTab === 'ingredients'">
+      <div v-if="ingredientLoading" class="flex justify-center py-16">
+        <div
+          class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"
+        ></div>
+      </div>
+      <template v-else>
+        <IngredientForecastTable
+          :items="ingredientForecastItems"
+          class="mb-6"
+        />
+        <ProcurementList
+          :items="ingredientForecastItems"
+          :ingredient-details="ingredientDetailsMap"
+        />
+      </template>
+    </template>
   </div>
 </template>
 
@@ -101,15 +134,19 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ArrowPathIcon } from "@heroicons/vue/24/outline";
 import { forecastApi } from "@/services/forecastApi";
+import { ingredientApi } from "@/services/ingredientApi";
 import { useAuthStore } from "@/stores/auth";
 import ForecastDatePicker from "@/components/forecast/ForecastDatePicker.vue";
 import ForecastTable from "@/components/forecast/ForecastTable.vue";
 import ForecastAlerts from "@/components/forecast/ForecastAlerts.vue";
 import ForecastAccuracyTab from "@/components/forecast/ForecastAccuracyTab.vue";
+import IngredientForecastTable from "@/components/forecast/IngredientForecastTable.vue";
+import ProcurementList from "@/components/forecast/ProcurementList.vue";
 import type {
   ForecastItemResult,
   ForecastAccuracyItem,
   ForecastAlert,
+  IngredientForecastItem,
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
@@ -118,8 +155,9 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const generating = ref(false);
 const accuracyLoading = ref(false);
+const ingredientLoading = ref(false);
 const isStale = ref(false);
-const activeTab = ref<"forecast" | "accuracy">("forecast");
+const activeTab = ref<"forecast" | "accuracy" | "ingredients">("forecast");
 
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -129,6 +167,10 @@ const endDate = ref(tomorrow.toISOString().split("T")[0]);
 const forecastItems = ref<ForecastItemResult[]>([]);
 const alerts = ref<ForecastAlert[]>([]);
 const accuracyItems = ref<ForecastAccuracyItem[]>([]);
+const ingredientForecastItems = ref<IngredientForecastItem[]>([]);
+const ingredientDetailsMap = ref(
+  new Map<number, { supplier: string | null; costPerUnit: number | null }>(),
+);
 
 const restaurantId = computed(() => authStore.restaurantId || "");
 
@@ -160,6 +202,11 @@ async function generateForecast() {
       startDate: startDate.value,
       endDate: endDate.value,
     });
+    // Also generate ingredient forecast
+    await forecastApi.generateIngredientForecast(restaurantId.value, {
+      startDate: startDate.value,
+      endDate: endDate.value,
+    });
     await loadForecast();
   } catch (error) {
     console.error("Failed to generate forecast:", error);
@@ -172,7 +219,6 @@ async function loadAccuracy() {
   if (!restaurantId.value) return;
   accuracyLoading.value = true;
   try {
-    // Load accuracy for past 7 days
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 7);
@@ -187,8 +233,44 @@ async function loadAccuracy() {
   }
 }
 
+async function loadIngredientForecast() {
+  if (!restaurantId.value) return;
+  ingredientLoading.value = true;
+  try {
+    const forecasts = await forecastApi.getIngredientForecast(
+      restaurantId.value,
+      {
+        startDate: startDate.value,
+        endDate: endDate.value,
+      },
+    );
+    ingredientForecastItems.value = forecasts.flatMap((f) => f.ingredients);
+
+    // Load ingredient details for procurement list
+    const result = await ingredientApi.list(restaurantId.value, {
+      limit: 500,
+    });
+    const detailsMap = new Map<
+      number,
+      { supplier: string | null; costPerUnit: number | null }
+    >();
+    for (const ing of result.items) {
+      detailsMap.set(ing.id, {
+        supplier: ing.supplier,
+        costPerUnit: ing.costPerUnit,
+      });
+    }
+    ingredientDetailsMap.value = detailsMap;
+  } catch (error) {
+    console.error("Failed to load ingredient forecast:", error);
+  } finally {
+    ingredientLoading.value = false;
+  }
+}
+
 watch([startDate, endDate], () => {
   if (activeTab.value === "forecast") loadForecast();
+  else if (activeTab.value === "ingredients") loadIngredientForecast();
 });
 
 onMounted(() => loadForecast());

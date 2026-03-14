@@ -26,7 +26,7 @@
             {{ typeLabels[alert.type] }}
           </span>
           <span class="text-sm font-medium text-gray-900">
-            {{ alert.menuItemName }}
+            {{ alert.ingredientName || alert.menuItemName }}
           </span>
         </div>
         <p class="mt-1 text-sm text-gray-600">{{ alert.message }}</p>
@@ -63,11 +63,15 @@ const typeStyles: Record<string, string> = {
   high_demand: "bg-orange-100 text-orange-800",
   low_stock: "bg-red-100 text-red-800",
   unusual_spike: "bg-purple-100 text-purple-800",
+  procurement_needed: "bg-amber-100 text-amber-800",
+  excess_stock: "bg-teal-100 text-teal-800",
 };
 
 const typeLabels: Record<string, string> = {
   high_demand: t("forecast.alertHighDemand"),
   low_stock: t("forecast.alertLowStock"),
   unusual_spike: t("forecast.alertUnusualSpike"),
+  procurement_needed: t("forecast.alertProcurementNeeded"),
+  excess_stock: t("forecast.alertExcessStock"),
 };
 </script>

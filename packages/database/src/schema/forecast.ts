@@ -60,6 +60,7 @@ export const ingredientDefinitions = sqliteTable(
     costPerUnit: real("cost_per_unit"),
     supplier: text("supplier"),
     minStockLevel: real("min_stock_level"),
+    currentStock: real("current_stock"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
@@ -83,11 +84,12 @@ export const ingredientDefinitions = sqliteTable(
 
 export const ingredientDefinitionsRelations = relations(
   ingredientDefinitions,
-  ({ one }) => ({
+  ({ one, many }) => ({
     restaurant: one(restaurants, {
       fields: [ingredientDefinitions.restaurantId],
       references: [restaurants.id],
     }),
+    menuItemIngredients: many(menuItemIngredients),
   }),
 );
 

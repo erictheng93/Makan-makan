@@ -36,6 +36,15 @@ export const accuracyQuerySchema = z
     message: "startDate must be before or equal to endDate",
   });
 
+export const ingredientForecastQuerySchema = z
+  .object({
+    startDate: dateStringSchema,
+    endDate: dateStringSchema,
+  })
+  .refine((data) => data.startDate <= data.endDate, {
+    message: "startDate must be before or equal to endDate",
+  });
+
 export const restaurantIdParamSchema = z.object({
   restaurantId: z.string().min(1, "restaurantId is required"),
 });

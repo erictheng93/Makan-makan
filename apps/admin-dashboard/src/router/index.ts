@@ -108,6 +108,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "ingredients",
+        name: "Ingredients",
+        component: () => import("@/views/ingredients/IngredientsView.vue"),
+        meta: {
+          titleKey: "pages.ingredients",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
         path: "forecast",
         name: "Forecast",
         component: () => import("@/views/forecast/ForecastView.vue"),

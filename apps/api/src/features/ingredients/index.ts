@@ -3,10 +3,10 @@ import type { Env, FeatureModule } from "../../shared/types";
 import { ConsoleLogger } from "../../core/monitoring";
 import routes from "./routes";
 
-const FEATURE_NAME = "forecast";
+const FEATURE_NAME = "ingredients";
 const FEATURE_VERSION = "1.0.0";
 
-class ForecastModule implements FeatureModule {
+class IngredientsModule implements FeatureModule {
   public readonly name = FEATURE_NAME;
   public readonly version = FEATURE_VERSION;
   public readonly routes: Hono<{ Bindings: Env }>;
@@ -32,27 +32,26 @@ class ForecastModule implements FeatureModule {
       status: "healthy",
       timestamp: new Date().toISOString(),
       features: {
-        statisticalForecast: true,
-        aiEnhanced: true,
-        ingredientForecast: true,
-        prepAlerts: true,
-        accuracyTracking: true,
+        ingredientCrud: true,
+        recipeCrud: true,
+        bulkImport: true,
+        stockTracking: true,
       },
     };
   }
 }
 
-export { ForecastModule };
+export { IngredientsModule };
 
-let instance: ForecastModule | null = null;
-export function createForecastModule(): ForecastModule {
-  if (!instance) instance = new ForecastModule();
+let instance: IngredientsModule | null = null;
+export function createIngredientsModule(): IngredientsModule {
+  if (!instance) instance = new IngredientsModule();
   return instance;
 }
 
 export default {
   get routes() {
-    return createForecastModule().routes;
+    return createIngredientsModule().routes;
   },
-  getHealthStatus: () => createForecastModule().getHealthStatus(),
+  getHealthStatus: () => createIngredientsModule().getHealthStatus(),
 };

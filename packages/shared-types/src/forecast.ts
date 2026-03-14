@@ -35,12 +35,19 @@ export interface ForecastAccuracyItem {
 }
 
 export interface ForecastAlert {
-  type: "high_demand" | "low_stock" | "unusual_spike";
+  type:
+    | "high_demand"
+    | "low_stock"
+    | "unusual_spike"
+    | "procurement_needed"
+    | "excess_stock";
   menuItemId: number;
   menuItemName: string;
   message: string;
   severity: "info" | "warning" | "critical";
   data?: Record<string, unknown>;
+  ingredientId?: number;
+  ingredientName?: string;
 }
 
 export interface GenerateForecastRequest {

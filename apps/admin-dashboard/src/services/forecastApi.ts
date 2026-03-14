@@ -4,6 +4,7 @@ import type {
   ForecastAccuracyItem,
   ForecastAlert,
   GenerateForecastRequest,
+  IngredientForecastResult,
 } from "@makanmakan/shared-types";
 
 export const forecastApi = {
@@ -53,5 +54,27 @@ export const forecastApi = {
       `/forecast/${restaurantId}/alerts`,
     );
     return res.data.data!.alerts;
+  },
+
+  async getIngredientForecast(
+    restaurantId: string,
+    params: { startDate: string; endDate: string },
+  ): Promise<IngredientForecastResult[]> {
+    const res = await api.get<{ forecasts: IngredientForecastResult[] }>(
+      `/forecast/${restaurantId}/ingredient-forecast`,
+      params,
+    );
+    return res.data.data!.forecasts;
+  },
+
+  async generateIngredientForecast(
+    restaurantId: string,
+    params: { startDate: string; endDate: string; useAI?: boolean },
+  ): Promise<IngredientForecastResult[]> {
+    const res = await api.post<{ forecasts: IngredientForecastResult[] }>(
+      `/forecast/${restaurantId}/generate`,
+      { ...params, type: "ingredient_level" },
+    );
+    return res.data.data!.forecasts;
   },
 };

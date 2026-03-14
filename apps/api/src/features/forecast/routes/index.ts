@@ -6,10 +6,12 @@ import {
   validateParams,
 } from "../../../middleware/validation";
 import { ForecastService } from "../services/ForecastService";
+import { IngredientForecastService } from "../services/IngredientForecastService";
 import {
   generateForecastSchema,
   getForecastQuerySchema,
   accuracyQuerySchema,
+  ingredientForecastQuerySchema,
   restaurantIdParamSchema,
 } from "../schemas/validation";
 import type { Env } from "../../../shared/types";
@@ -28,6 +30,25 @@ routes.post(
       const { restaurantId } = c.get("validatedParams");
       const body = c.get("validatedBody");
       const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
+
+      // Delegate to IngredientForecastService when type is ingredient_level
+      if (body.type === "ingredient_level") {
+        const ingredientService = new IngredientForecastService(
+          c.env.DB,
+          c.env.CACHE_KV,
+          service,
+          c.env.ENCRYPTION_KEY,
+        );
+        const forecasts = await ingredientService.generateIngredientForecast(
+          restaurantId,
+          body,
+        );
+        return c.json({
+          success: true,
+          data: { forecasts },
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const forecasts = await service.generateForecast(restaurantId, body);
 
@@ -127,6 +148,51 @@ routes.get(
               error instanceof Error
                 ? error.message
                 : "Failed to get forecast accuracy",
+          },
+        },
+        500,
+      );
+    }
+  },
+);
+
+// GET /api/v1/forecast/:restaurantId/ingredient-forecast
+routes.get(
+  "/:restaurantId/ingredient-forecast",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateParams(restaurantIdParamSchema),
+  validateQuery(ingredientForecastQuerySchema),
+  async (c) => {
+    try {
+      const { restaurantId } = c.get("validatedParams");
+      const { startDate, endDate } = c.get("validatedQuery");
+      const forecastService = new ForecastService(c.env.DB, c.env.CACHE_KV);
+      const service = new IngredientForecastService(
+        c.env.DB,
+        c.env.CACHE_KV,
+        forecastService,
+        c.env.ENCRYPTION_KEY,
+      );
+
+      const forecasts = await service.getIngredientForecast(
+        restaurantId,
+        startDate,
+        endDate,
+      );
+
+      return c.json({ success: true, data: { forecasts } });
+    } catch (error) {
+      console.error("Get ingredient forecast error:", error);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "INGREDIENT_FORECAST_FAILED",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to get ingredient forecast",
           },
         },
         500,

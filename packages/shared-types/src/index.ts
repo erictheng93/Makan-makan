@@ -21,3 +21,4 @@ export * from "./reservation";
 export * from "./schema-json-types";
 export * from "./platform";
 export * from "./forecast";
+export * from "./ingredient";
