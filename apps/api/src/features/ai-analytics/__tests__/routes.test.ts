@@ -1,0 +1,615 @@
+// apps/api/src/features/ai-analytics/__tests__/routes.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Hono } from "hono";
+import routes from "../routes";
+
+// Mock AIAnalyticsService — configurable per test
+const mockServiceInstance = {
+  getConfig: vi.fn().mockResolvedValue(null),
+  saveConfig: vi.fn().mockResolvedValue(undefined),
+  testProvider: vi.fn().mockResolvedValue({
+    success: true,
+    latencyMs: 250,
+    model: "claude-3-haiku-20240307",
+  }),
+  generateReport: vi.fn().mockResolvedValue({
+    summary: "Test summary",
+    insights: ["Insight 1"],
+    recommendations: ["Rec 1"],
+    metadata: {
+      generatedAt: "2026-03-14T00:00:00Z",
+      processingTimeMs: 1500,
+      tokensUsed: 500,
+      model: "claude-3-haiku-20240307",
+    },
+  }),
+  getTrafficDrivers: vi.fn().mockResolvedValue([]),
+  getBestsellers: vi.fn().mockResolvedValue([]),
+  getProfitLeaders: vi.fn().mockResolvedValue([]),
+  analyzeProducts: vi.fn().mockResolvedValue([]),
+  getUsageStats: vi.fn().mockResolvedValue([]),
+};
+
+vi.mock("../services/AIAnalyticsService", () => ({
+  AIAnalyticsService: vi.fn(function () {
+    return mockServiceInstance;
+  }),
+}));
+
+// Static methods need to be on the mock constructor
+import { AIAnalyticsService } from "../services/AIAnalyticsService";
+vi.mocked(AIAnalyticsService).getAvailableModels = vi
+  .fn()
+  .mockReturnValue(["claude-3-haiku-20240307", "claude-3-sonnet-20240229"]);
+vi.mocked(AIAnalyticsService).getDefaultModel = vi
+  .fn()
+  .mockReturnValue("claude-3-haiku-20240307");
+
+const mockEnv = {
+  DB: {},
+  CACHE_KV: {},
+  JWT_SECRET: "test-jwt-secret-key-for-testing-only",
+  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
+};
+
+// Helper to create app with a preset userRole
+function createApp(userRole: number) {
+  const app = new Hono<{
+    Bindings: typeof mockEnv;
+    Variables: { userId: string; userRole: number };
+  }>();
+
+  // Inject variables middleware
+  app.use("*", async (c, next) => {
+    c.set("userId", "user-123");
+    c.set("userRole", userRole);
+    await next();
+  });
+
+  app.route("/ai-analytics", routes);
+  return app;
+}
+
+describe("AI Analytics Routes", () => {
+  let adminApp: ReturnType<typeof createApp>;
+  let ownerApp: ReturnType<typeof createApp>;
+  let staffApp: ReturnType<typeof createApp>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Reset service mocks to defaults
+    mockServiceInstance.getConfig.mockResolvedValue(null);
+    mockServiceInstance.saveConfig.mockResolvedValue(undefined);
+    mockServiceInstance.testProvider.mockResolvedValue({
+      success: true,
+      latencyMs: 250,
+      model: "claude-3-haiku-20240307",
+    });
+    mockServiceInstance.generateReport.mockResolvedValue({
+      summary: "Test summary",
+      insights: [],
+      recommendations: [],
+      metadata: {
+        generatedAt: "2026-03-14T00:00:00Z",
+        processingTimeMs: 1500,
+        tokensUsed: 500,
+        model: "claude-3-haiku-20240307",
+      },
+    });
+    mockServiceInstance.getTrafficDrivers.mockResolvedValue([]);
+    mockServiceInstance.getBestsellers.mockResolvedValue([]);
+    mockServiceInstance.getProfitLeaders.mockResolvedValue([]);
+    mockServiceInstance.analyzeProducts.mockResolvedValue([]);
+    mockServiceInstance.getUsageStats.mockResolvedValue([]);
+
+    adminApp = createApp(0);
+    ownerApp = createApp(1);
+    staffApp = createApp(2);
+  });
+
+  // ─── GET /config/:restaurantId ─────────────────────────────────
+
+  describe("GET /config/:restaurantId", () => {
+    it("should return 200 with null config when none exists (role 0)", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean; config: null };
+      expect(json.success).toBe(true);
+      expect(json.config).toBeNull();
+    });
+
+    it("should return availableProviders list when config is null", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      const json = (await res.json()) as {
+        availableProviders: string[];
+        config: null;
+      };
+      expect(Array.isArray(json.availableProviders)).toBe(true);
+      expect(json.availableProviders).toContain("anthropic");
+      expect(json.availableProviders).toContain("openai");
+    });
+
+    it("should mask apiKeyEncrypted as *** in response (role 0)", async () => {
+      mockServiceInstance.getConfig.mockResolvedValue({
+        id: 1,
+        restaurantId: "restaurant-123",
+        provider: "anthropic",
+        apiKeyEncrypted: "iv:encrypted-key-data",
+        model: "claude-3-haiku-20240307",
+        customBaseUrl: null,
+        enabled: true,
+        createdAt: "2026-03-01T00:00:00Z",
+        updatedAt: "2026-03-14T00:00:00Z",
+      });
+
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        config: { apiKeyEncrypted: string };
+      };
+      expect(json.config.apiKeyEncrypted).toBe("***");
+    });
+
+    it("should allow role 1 (owner) to access config", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await ownerApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+    });
+
+    it("should return 403 for role 2 (staff)", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await staffApp.fetch(req, mockEnv);
+      expect(res.status).toBe(403);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("Unauthorized");
+    });
+
+    it("should return 403 for role 3", async () => {
+      const app = createApp(3);
+      const req = new Request(
+        "http://localhost/ai-analytics/config/restaurant-123",
+      );
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ─── POST /config ───────────────────────────────────────────────
+
+  describe("POST /config", () => {
+    const validPayload = {
+      restaurantId: "restaurant-123",
+      provider: "openai",
+      apiKey: "sk-valid-api-key-1234",
+    };
+
+    it("should return 200 on successful config save (role 0)", async () => {
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean; message: string };
+      expect(json.success).toBe(true);
+      expect(json.message).toContain("saved successfully");
+    });
+
+    it("should return 400 when testProvider returns failure", async () => {
+      mockServiceInstance.testProvider.mockResolvedValueOnce({
+        success: false,
+        error: "Invalid API key",
+      });
+
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toContain("Provider test failed");
+    });
+
+    it("should return 500 when saveConfig throws", async () => {
+      mockServiceInstance.saveConfig.mockRejectedValueOnce(
+        new Error("DB error"),
+      );
+
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+    });
+
+    it("should return 403 for role 2 (RBAC)", async () => {
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await staffApp.fetch(req, mockEnv);
+      expect(res.status).toBe(403);
+    });
+
+    it("should return 400 for invalid JSON body (zValidator)", async () => {
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openai",
+          // missing required restaurantId and apiKey
+        }),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(400);
+    });
+
+    it("should include testResult latency and model in response", async () => {
+      const req = new Request("http://localhost/ai-analytics/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      const json = (await res.json()) as {
+        testResult: { latency: number; model: string };
+      };
+      expect(json.testResult).toBeDefined();
+      expect(json.testResult.latency).toBe(250);
+      expect(json.testResult.model).toBe("claude-3-haiku-20240307");
+    });
+  });
+
+  // ─── POST /test-provider ────────────────────────────────────────
+
+  describe("POST /test-provider", () => {
+    const validPayload = {
+      provider: "anthropic",
+      apiKey: "sk-ant-valid-key-1234",
+    };
+
+    it("should return test result when provider responds", async () => {
+      const req = new Request("http://localhost/ai-analytics/test-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(true);
+    });
+
+    it("should return failure result when service throws", async () => {
+      mockServiceInstance.testProvider.mockRejectedValueOnce(
+        new Error("Network error"),
+      );
+
+      const req = new Request("http://localhost/ai-analytics/test-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200); // Errors are returned as 200 with success: false
+      const json = (await res.json()) as {
+        success: boolean;
+        provider: string;
+        error: string;
+      };
+      expect(json.success).toBe(false);
+      expect(json.provider).toBe("anthropic");
+    });
+
+    it("should return 400 for invalid body (missing apiKey)", async () => {
+      const req = new Request("http://localhost/ai-analytics/test-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "openai" }),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(400);
+    });
+
+    it("should be accessible without RBAC restriction", async () => {
+      const req = new Request("http://localhost/ai-analytics/test-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await staffApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200); // No role check on this endpoint
+    });
+  });
+
+  // ─── GET /models/:provider ──────────────────────────────────────
+
+  describe("GET /models/:provider", () => {
+    it("should return models list for a valid provider", async () => {
+      const req = new Request("http://localhost/ai-analytics/models/anthropic");
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        provider: string;
+        models: string[];
+        defaultModel: string;
+      };
+      expect(json.success).toBe(true);
+      expect(json.provider).toBe("anthropic");
+      expect(Array.isArray(json.models)).toBe(true);
+      expect(json.defaultModel).toBeDefined();
+    });
+
+    it("should be accessible to any role (no RBAC)", async () => {
+      const req = new Request("http://localhost/ai-analytics/models/openai");
+      const res = await staffApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+    });
+
+    it("should return provider in response matching path param", async () => {
+      const req = new Request("http://localhost/ai-analytics/models/deepseek");
+      const res = await adminApp.fetch(req, mockEnv);
+      const json = (await res.json()) as { provider: string };
+      expect(json.provider).toBe("deepseek");
+    });
+  });
+
+  // ─── POST /generate ─────────────────────────────────────────────
+
+  describe("POST /generate", () => {
+    const validPayload = {
+      restaurantId: "restaurant-123",
+      timeRange: { range: "30d" },
+    };
+
+    it("should return 200 with report (role 0)", async () => {
+      const req = new Request("http://localhost/ai-analytics/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        report: object;
+        cached: boolean;
+      };
+      expect(json.success).toBe(true);
+      expect(json.report).toBeDefined();
+      expect(json.cached).toBe(false);
+    });
+
+    it("should return 200 with report (role 1)", async () => {
+      const req = new Request("http://localhost/ai-analytics/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await ownerApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+    });
+
+    it("should return 403 for role 2 (RBAC)", async () => {
+      const req = new Request("http://localhost/ai-analytics/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await staffApp.fetch(req, mockEnv);
+      expect(res.status).toBe(403);
+    });
+
+    it("should return 500 when generateReport throws", async () => {
+      mockServiceInstance.generateReport.mockRejectedValueOnce(
+        new Error("AI provider not configured"),
+      );
+
+      const req = new Request("http://localhost/ai-analytics/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validPayload),
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean; error: string };
+      expect(json.success).toBe(false);
+      expect(json.error).toContain("AI provider not configured");
+    });
+
+    it("should return 400 for invalid body (zValidator)", async () => {
+      const req = new Request("http://localhost/ai-analytics/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: "restaurant-123" }), // missing timeRange
+      });
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── GET /products/traffic-drivers/:restaurantId ─────────────────
+
+  describe("GET /products/traffic-drivers/:restaurantId", () => {
+    it("should return 200 with empty products array", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/products/traffic-drivers/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        products: unknown[];
+      };
+      expect(json.success).toBe(true);
+      expect(Array.isArray(json.products)).toBe(true);
+    });
+
+    it("should return 500 when service throws", async () => {
+      mockServiceInstance.getTrafficDrivers.mockRejectedValueOnce(
+        new Error("DB error"),
+      );
+
+      const req = new Request(
+        "http://localhost/ai-analytics/products/traffic-drivers/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(false);
+    });
+  });
+
+  // ─── GET /products/bestsellers/:restaurantId ────────────────────
+
+  describe("GET /products/bestsellers/:restaurantId", () => {
+    it("should return 200 with products array", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/products/bestsellers/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        products: unknown[];
+      };
+      expect(json.success).toBe(true);
+    });
+
+    it("should return 500 when service throws", async () => {
+      mockServiceInstance.getBestsellers.mockRejectedValueOnce(
+        new Error("Query failed"),
+      );
+
+      const req = new Request(
+        "http://localhost/ai-analytics/products/bestsellers/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /products/profit-leaders/:restaurantId ──────────────────
+
+  describe("GET /products/profit-leaders/:restaurantId", () => {
+    it("should return 200 with products array", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/products/profit-leaders/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        products: unknown[];
+      };
+      expect(json.success).toBe(true);
+    });
+
+    it("should return 500 when service throws", async () => {
+      mockServiceInstance.getProfitLeaders.mockRejectedValueOnce(
+        new Error("Query failed"),
+      );
+
+      const req = new Request(
+        "http://localhost/ai-analytics/products/profit-leaders/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /products/analysis/:restaurantId ───────────────────────
+
+  describe("GET /products/analysis/:restaurantId", () => {
+    it("should return 200 with products array", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/products/analysis/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        products: unknown[];
+      };
+      expect(json.success).toBe(true);
+    });
+
+    it("should return 500 when service throws", async () => {
+      mockServiceInstance.analyzeProducts.mockRejectedValueOnce(
+        new Error("Analysis failed"),
+      );
+
+      const req = new Request(
+        "http://localhost/ai-analytics/products/analysis/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /usage/:restaurantId ────────────────────────────────────
+
+  describe("GET /usage/:restaurantId", () => {
+    it("should return 200 with empty usage array", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/usage/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        usage: unknown[];
+      };
+      expect(json.success).toBe(true);
+      expect(Array.isArray(json.usage)).toBe(true);
+    });
+
+    it("should accept optional startDate and endDate query params", async () => {
+      const req = new Request(
+        "http://localhost/ai-analytics/usage/restaurant-123?startDate=2026-01-01&endDate=2026-03-14",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+    });
+
+    it("should return 500 when service throws", async () => {
+      mockServiceInstance.getUsageStats.mockRejectedValueOnce(
+        new Error("DB error"),
+      );
+
+      const req = new Request(
+        "http://localhost/ai-analytics/usage/restaurant-123",
+      );
+      const res = await adminApp.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(false);
+    });
+  });
+});
