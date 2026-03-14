@@ -3,12 +3,9 @@
  * Standardized response helpers for API responses
  */
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-  timestamp: string;
+export function createSuccessResponse<T>(
+  data: T,
+  message?: string,
   meta?: {
     pagination?: {
       page: number;
@@ -17,24 +14,10 @@ export interface ApiResponse<T = any> {
       totalPages: number;
     };
     [key: string]: any;
-  };
-}
-
-export interface ErrorResponse {
-  success: false;
-  error: string;
-  details?: any;
-  timestamp: string;
-  code?: number;
-}
-
-export function createSuccessResponse<T>(
-  data: T,
-  message?: string,
-  meta?: ApiResponse<T>["meta"],
-): ApiResponse<T> {
+  },
+) {
   return {
-    success: true,
+    success: true as const,
     data,
     message,
     timestamp: new Date().toISOString(),
@@ -42,17 +25,19 @@ export function createSuccessResponse<T>(
   };
 }
 
-export function createErrorResponse(
-  error: string,
-  code?: number,
-  details?: any,
-): ErrorResponse {
+/**
+ * Create a unified error response.
+ * Returns { success: false, error: { code, message } } shape.
+ */
+export function createErrorResponse(message: string, code?: number | string) {
+  const errorCode =
+    typeof code === "number" ? `HTTP_${code}` : code || "INTERNAL_ERROR";
   return {
-    success: false,
-    error,
-    timestamp: new Date().toISOString(),
-    ...(code && { code }),
-    ...(details && { details }),
+    success: false as const,
+    error: {
+      code: errorCode,
+      message,
+    },
   };
 }
 
@@ -65,6 +50,6 @@ export function createPaginatedResponse<T>(
     totalPages: number;
   },
   message?: string,
-): ApiResponse<T[]> {
+) {
   return createSuccessResponse(data, message, { pagination });
 }

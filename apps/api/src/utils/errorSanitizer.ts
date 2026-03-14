@@ -296,18 +296,10 @@ export class ErrorSanitizer {
   }
 }
 
-// Convenience functions for common use cases
-export function sanitizeErrorMessage(message: string): string {
-  return ErrorSanitizer.sanitizeMessage(message);
-}
-
+// Convenience function for creating safe error responses
 export function createSafeErrorResponse(
   error: unknown,
   statusCode: number = 500,
 ) {
   return ErrorSanitizer.createErrorResponse(error, statusCode);
-}
-
-export function logAndSanitizeError(error: unknown, context: string = "API") {
-  return ErrorSanitizer.logAndSanitize(error, context);
 }
