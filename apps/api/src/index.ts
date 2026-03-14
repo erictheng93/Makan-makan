@@ -475,6 +475,43 @@ export default {
         console.log("[Cron] Running weekly log cleanup...");
         await cleanupOldLogs(env);
       }
+
+      // Daily forecast warmup at 2:30 AM UTC
+      if (event.cron === "30 2 * * *") {
+        console.log("[Cron] Running daily forecast warmup...");
+        const { ForecastService } =
+          await import("./features/forecast/services/ForecastService");
+        const forecastService = new ForecastService(env.DB, env.CACHE_KV);
+
+        // Get active restaurants
+        const restaurants = await env.DB.prepare(
+          "SELECT id FROM restaurants WHERE is_active = 1 AND deleted_at_ms IS NULL",
+        ).all<{ id: string }>();
+
+        const tomorrow = new Date(Date.now() + 86400000);
+        const dayAfter = new Date(Date.now() + 2 * 86400000);
+        const day3 = new Date(Date.now() + 3 * 86400000);
+        const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+        let successCount = 0;
+        for (const restaurant of restaurants.results) {
+          try {
+            await forecastService.generateForecast(restaurant.id, {
+              startDate: formatDate(tomorrow),
+              endDate: formatDate(day3),
+            });
+            successCount++;
+          } catch (error) {
+            console.error(
+              `[Cron] Forecast warmup failed for restaurant ${restaurant.id}:`,
+              error,
+            );
+          }
+        }
+        console.log(
+          `[Cron] Forecast warmup complete: ${successCount}/${restaurants.results.length} restaurants`,
+        );
+      }
     } catch (error) {
       console.error("[Cron] Scheduled task error:", error);
 

@@ -222,7 +222,8 @@ dataset = "makanmakan-metrics-prod"
 # Weekly on Sunday at 3:00 AM UTC: Clean old password change logs
 crons = [
   "0 2 * * *",   # Daily token cleanup
-  "0 3 * * 0"    # Weekly log cleanup
+  "0 3 * * 0",   # Weekly log cleanup
+  "30 2 * * *"   # Daily forecast warmup
 ]
 
 # ========================================
