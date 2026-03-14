@@ -26,53 +26,34 @@ routes.post(
   validateParams(restaurantIdParamSchema),
   validateBody(generateForecastSchema),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const body = c.get("validatedBody");
-      const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
+    const { restaurantId } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
 
-      // Delegate to IngredientForecastService when type is ingredient_level
-      if (body.type === "ingredient_level") {
-        const ingredientService = new IngredientForecastService(
-          c.env.DB,
-          c.env.CACHE_KV,
-          service,
-          c.env.ENCRYPTION_KEY,
-        );
-        const forecasts = await ingredientService.generateIngredientForecast(
-          restaurantId,
-          body,
-        );
-        return c.json({
-          success: true,
-          data: { forecasts },
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const forecasts = await service.generateForecast(restaurantId, body);
-
+    // Delegate to IngredientForecastService when type is ingredient_level
+    if (body.type === "ingredient_level") {
+      const ingredientService = new IngredientForecastService(
+        c.env.DB,
+        c.env.CACHE_KV,
+        service,
+        c.env.ENCRYPTION_KEY,
+      );
+      const forecasts = await ingredientService.generateIngredientForecast(
+        restaurantId,
+        body,
+      );
       return c.json({
         success: true,
         data: { forecasts },
-        timestamp: new Date().toISOString(),
       });
-    } catch (error) {
-      console.error("Generate forecast error:", error);
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "FORECAST_GENERATE_FAILED",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to generate forecast",
-          },
-        },
-        500,
-      );
     }
+
+    const forecasts = await service.generateForecast(restaurantId, body);
+
+    return c.json({
+      success: true,
+      data: { forecasts },
+    });
   },
 );
 
@@ -84,36 +65,21 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   validateQuery(getForecastQuerySchema),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const query = c.get("validatedQuery");
-      const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
+    const { restaurantId } = c.get("validatedParams");
+    const query = c.get("validatedQuery");
+    const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
 
-      const startDate = query.date || query.startDate!;
-      const endDate = query.date || query.endDate!;
+    const startDate = query.date || query.startDate!;
+    const endDate = query.date || query.endDate!;
 
-      const forecasts = await service.getForecast(
-        restaurantId,
-        startDate,
-        endDate,
-        query.type,
-      );
+    const forecasts = await service.getForecast(
+      restaurantId,
+      startDate,
+      endDate,
+      query.type,
+    );
 
-      return c.json({ success: true, data: { forecasts } });
-    } catch (error) {
-      console.error("Get forecast error:", error);
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "FORECAST_GET_FAILED",
-            message:
-              error instanceof Error ? error.message : "Failed to get forecast",
-          },
-        },
-        500,
-      );
-    }
+    return c.json({ success: true, data: { forecasts } });
   },
 );
 
@@ -125,34 +91,17 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   validateQuery(accuracyQuerySchema),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const { startDate, endDate } = c.get("validatedQuery");
-      const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
+    const { restaurantId } = c.get("validatedParams");
+    const { startDate, endDate } = c.get("validatedQuery");
+    const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
 
-      const accuracy = await service.getAccuracy(
-        restaurantId,
-        startDate,
-        endDate,
-      );
+    const accuracy = await service.getAccuracy(
+      restaurantId,
+      startDate,
+      endDate,
+    );
 
-      return c.json({ success: true, data: { accuracy } });
-    } catch (error) {
-      console.error("Get accuracy error:", error);
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "FORECAST_ACCURACY_FAILED",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to get forecast accuracy",
-          },
-        },
-        500,
-      );
-    }
+    return c.json({ success: true, data: { accuracy } });
   },
 );
 
@@ -164,40 +113,23 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   validateQuery(ingredientForecastQuerySchema),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const { startDate, endDate } = c.get("validatedQuery");
-      const forecastService = new ForecastService(c.env.DB, c.env.CACHE_KV);
-      const service = new IngredientForecastService(
-        c.env.DB,
-        c.env.CACHE_KV,
-        forecastService,
-        c.env.ENCRYPTION_KEY,
-      );
+    const { restaurantId } = c.get("validatedParams");
+    const { startDate, endDate } = c.get("validatedQuery");
+    const forecastService = new ForecastService(c.env.DB, c.env.CACHE_KV);
+    const service = new IngredientForecastService(
+      c.env.DB,
+      c.env.CACHE_KV,
+      forecastService,
+      c.env.ENCRYPTION_KEY,
+    );
 
-      const forecasts = await service.getIngredientForecast(
-        restaurantId,
-        startDate,
-        endDate,
-      );
+    const forecasts = await service.getIngredientForecast(
+      restaurantId,
+      startDate,
+      endDate,
+    );
 
-      return c.json({ success: true, data: { forecasts } });
-    } catch (error) {
-      console.error("Get ingredient forecast error:", error);
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "INGREDIENT_FORECAST_FAILED",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to get ingredient forecast",
-          },
-        },
-        500,
-      );
-    }
+    return c.json({ success: true, data: { forecasts } });
   },
 );
 
@@ -208,29 +140,12 @@ routes.get(
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
+    const { restaurantId } = c.get("validatedParams");
+    const service = new ForecastService(c.env.DB, c.env.CACHE_KV);
 
-      const alerts = await service.getAlerts(restaurantId);
+    const alerts = await service.getAlerts(restaurantId);
 
-      return c.json({ success: true, data: { alerts } });
-    } catch (error) {
-      console.error("Get alerts error:", error);
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "FORECAST_ALERTS_FAILED",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to get forecast alerts",
-          },
-        },
-        500,
-      );
-    }
+    return c.json({ success: true, data: { alerts } });
   },
 );
 

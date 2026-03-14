@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import routes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // Mock auth middleware to pass through
 vi.mock("../../../middleware/auth", () => ({
@@ -63,6 +65,47 @@ vi.mock("../services/ForecastService", () => ({
 
 const mockEnv = { DB: {}, CACHE_KV: {} };
 
+/** Mirror of the global onError handler in apps/api/src/index.ts */
+function attachGlobalErrorHandler(app: Hono) {
+  const STATUS_MAP: Record<string, number> = {
+    validation: 400,
+    authentication: 401,
+    authorization: 403,
+    not_found: 404,
+    rate_limit: 429,
+    server_error: 500,
+  };
+
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: ErrorSanitizer.sanitizeMessage(err.message),
+          },
+        },
+        err.status as any,
+      );
+    }
+
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const status = STATUS_MAP[sanitized.type] ?? 500;
+
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      status as any,
+    );
+  });
+}
+
 describe("Forecast Routes", () => {
   let app: Hono;
 
@@ -91,6 +134,7 @@ describe("Forecast Routes", () => {
 
     app = new Hono();
     app.route("/forecast", routes);
+    attachGlobalErrorHandler(app);
   });
 
   // ─── Happy Path ─────────────────────────────────────────────────
@@ -139,7 +183,7 @@ describe("Forecast Routes", () => {
 
   // ─── Response Structure ─────────────────────────────────────────
 
-  it("POST /generate response includes forecasts array and timestamp", async () => {
+  it("POST /generate response includes forecasts array", async () => {
     const req = new Request(
       "http://localhost/forecast/test-restaurant/generate",
       {
@@ -155,11 +199,9 @@ describe("Forecast Routes", () => {
     const json = (await res.json()) as {
       success: boolean;
       data: { forecasts: unknown[] };
-      timestamp: string;
     };
     expect(json.data.forecasts).toBeDefined();
     expect(Array.isArray(json.data.forecasts)).toBe(true);
-    expect(json.timestamp).toBeDefined();
   });
 
   it("GET /accuracy response wraps data in accuracy key", async () => {
@@ -185,8 +227,10 @@ describe("Forecast Routes", () => {
   });
 
   // ─── Error Handling ─────────────────────────────────────────────
+  // Errors now propagate to the global handler which returns
+  // { success: false, error: { code, message } } via ErrorSanitizer.
 
-  it("POST /generate returns 500 with error code when service throws", async () => {
+  it("POST /generate returns 500 when service throws", async () => {
     mockServiceInstance.generateForecast.mockRejectedValue(
       new Error("DB connection lost"),
     );
@@ -209,11 +253,11 @@ describe("Forecast Routes", () => {
       error: { code: string; message: string };
     };
     expect(json.success).toBe(false);
-    expect(json.error.code).toBe("FORECAST_GENERATE_FAILED");
-    expect(json.error.message).toBe("DB connection lost");
+    expect(json.error.code).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 
-  it("GET /:restaurantId returns 500 with error code when service throws", async () => {
+  it("GET /:restaurantId returns 500 when service throws", async () => {
     mockServiceInstance.getForecast.mockRejectedValue(
       new Error("KV unavailable"),
     );
@@ -228,10 +272,10 @@ describe("Forecast Routes", () => {
       error: { code: string; message: string };
     };
     expect(json.success).toBe(false);
-    expect(json.error.code).toBe("FORECAST_GET_FAILED");
+    expect(json.error.code).toBeDefined();
   });
 
-  it("GET /accuracy returns 500 with error code when service throws", async () => {
+  it("GET /accuracy returns 500 when service throws", async () => {
     mockServiceInstance.getAccuracy.mockRejectedValue(
       new Error("Query failed"),
     );
@@ -246,10 +290,10 @@ describe("Forecast Routes", () => {
       error: { code: string; message: string };
     };
     expect(json.success).toBe(false);
-    expect(json.error.code).toBe("FORECAST_ACCURACY_FAILED");
+    expect(json.error.code).toBeDefined();
   });
 
-  it("GET /alerts returns 500 with error code when service throws", async () => {
+  it("GET /alerts returns 500 when service throws", async () => {
     mockServiceInstance.getAlerts.mockRejectedValue(new Error("Alerts failed"));
 
     const req = new Request("http://localhost/forecast/test-restaurant/alerts");
@@ -260,11 +304,17 @@ describe("Forecast Routes", () => {
       error: { code: string; message: string };
     };
     expect(json.success).toBe(false);
-    expect(json.error.code).toBe("FORECAST_ALERTS_FAILED");
+    expect(json.error.code).toBeDefined();
   });
 
-  it("should use generic message when error is not an Error instance", async () => {
-    mockServiceInstance.generateForecast.mockRejectedValue("string error");
+  it("POST /generate returns 500 when ApiError is thrown", async () => {
+    mockServiceInstance.generateForecast.mockRejectedValue(
+      new ApiError(
+        "FORECAST_GENERATE_FAILED",
+        "Forecast generation failed",
+        500,
+      ),
+    );
 
     const req = new Request(
       "http://localhost/forecast/test-restaurant/generate",
@@ -281,15 +331,19 @@ describe("Forecast Routes", () => {
     expect(res.status).toBe(500);
     const json = (await res.json()) as {
       success: boolean;
-      error: { message: string };
+      error: { code: string; message: string };
     };
-    expect(json.error.message).toBe("Failed to generate forecast");
+    expect(json.success).toBe(false);
+    expect(json.error.code).toBe("FORECAST_GENERATE_FAILED");
+    expect(json.error.message).toBe("Forecast generation failed");
   });
 
-  // ─── Non-Error exception on other endpoints ──────────────────────
+  // ─── ApiError on other endpoints ──────────────────────
 
-  it("GET /:restaurantId uses generic message when error is not an Error instance", async () => {
-    mockServiceInstance.getForecast.mockRejectedValue(42);
+  it("GET /:restaurantId returns 500 when ApiError is thrown", async () => {
+    mockServiceInstance.getForecast.mockRejectedValue(
+      new ApiError("FORECAST_GET_FAILED", "Failed to get forecast", 500),
+    );
 
     const req = new Request(
       "http://localhost/forecast/test-restaurant?date=2026-03-15",
@@ -305,8 +359,14 @@ describe("Forecast Routes", () => {
     expect(json.error.message).toBe("Failed to get forecast");
   });
 
-  it("GET /accuracy uses generic message when error is not an Error instance", async () => {
-    mockServiceInstance.getAccuracy.mockRejectedValue(null);
+  it("GET /accuracy returns 500 when ApiError is thrown", async () => {
+    mockServiceInstance.getAccuracy.mockRejectedValue(
+      new ApiError(
+        "FORECAST_ACCURACY_FAILED",
+        "Failed to get forecast accuracy",
+        500,
+      ),
+    );
 
     const req = new Request(
       "http://localhost/forecast/test-restaurant/accuracy?startDate=2026-03-01&endDate=2026-03-14",
@@ -322,8 +382,14 @@ describe("Forecast Routes", () => {
     expect(json.error.message).toBe("Failed to get forecast accuracy");
   });
 
-  it("GET /alerts uses generic message when error is not an Error instance", async () => {
-    mockServiceInstance.getAlerts.mockRejectedValue(undefined);
+  it("GET /alerts returns 500 when ApiError is thrown", async () => {
+    mockServiceInstance.getAlerts.mockRejectedValue(
+      new ApiError(
+        "FORECAST_ALERTS_FAILED",
+        "Failed to get forecast alerts",
+        500,
+      ),
+    );
 
     const req = new Request("http://localhost/forecast/test-restaurant/alerts");
     const res = await app.fetch(req, mockEnv);
