@@ -83,7 +83,7 @@ describe("Forecast Routes", () => {
     );
     const res = await app.fetch(req, mockEnv);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = (await res.json()) as { success: boolean };
     expect(json.success).toBe(true);
   });
 
@@ -93,7 +93,7 @@ describe("Forecast Routes", () => {
     );
     const res = await app.fetch(req, mockEnv);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = (await res.json()) as { success: boolean };
     expect(json.success).toBe(true);
   });
 
