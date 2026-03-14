@@ -135,33 +135,6 @@ class OrdersModule implements FeatureModule {
       c.res.headers.set("X-Feature-Module", FEATURE_NAME);
       c.res.headers.set("X-Feature-Version", FEATURE_VERSION);
     });
-
-    // Error handling middleware
-    this.routes.onError((error, c) => {
-      this.logger.error(
-        "Unhandled error in orders feature",
-        error instanceof Error ? error : undefined,
-        {
-          path: c.req.path,
-          method: c.req.method,
-          timestamp: new Date().toISOString(),
-        },
-      );
-
-      // Return standardized error response
-      return c.json(
-        {
-          success: false,
-          error: {
-            message: error.message,
-            code: "ORDERS_FEATURE_ERROR",
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        500,
-      );
-    });
   }
 
   /**

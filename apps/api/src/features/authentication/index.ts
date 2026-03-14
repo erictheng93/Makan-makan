@@ -86,26 +86,6 @@ class AuthenticationModule implements FeatureModule {
       }
     });
 
-    // Add error handling middleware specific to authentication
-    this.routes.onError((err, c) => {
-      this.logger.error("Authentication error", err as Error, {
-        method: c.req.method,
-        path: c.req.path,
-        userAgent: c.req.header("User-Agent"),
-        ipAddress: c.req.header("CF-Connecting-IP"),
-      });
-
-      // Don't expose sensitive error details in authentication
-      return c.json(
-        {
-          success: false,
-          error: "Authentication service error",
-          timestamp: new Date().toISOString(),
-        },
-        500,
-      );
-    });
-
     // Add health check endpoint
     this.routes.get("/health", async (c) => {
       try {
