@@ -28,7 +28,13 @@ export const authMiddleware = async (
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return c.json(
-        { success: false, error: "Missing or invalid authorization header" },
+        {
+          success: false,
+          error: {
+            code: "MISSING_AUTH_HEADER",
+            message: "Missing or invalid authorization header",
+          },
+        },
         401,
       );
     }
@@ -41,7 +47,13 @@ export const authMiddleware = async (
         "JWT_SECRET is not set or too short (minimum 32 characters required)",
       );
       return c.json(
-        { success: false, error: "Server configuration error" },
+        {
+          success: false,
+          error: {
+            code: "SERVER_CONFIG_ERROR",
+            message: "Server configuration error",
+          },
+        },
         500,
       );
     }
@@ -51,7 +63,13 @@ export const authMiddleware = async (
       const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
       if (blacklisted) {
         return c.json(
-          { success: false, error: "Token has been invalidated" },
+          {
+            success: false,
+            error: {
+              code: "TOKEN_BLACKLISTED",
+              message: "Token has been invalidated",
+            },
+          },
           401,
         );
       }
@@ -60,7 +78,13 @@ export const authMiddleware = async (
     const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
 
     if (!decoded || typeof decoded !== "object") {
-      return c.json({ success: false, error: "Invalid token" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_INVALID", message: "Invalid token" },
+        },
+        401,
+      );
     }
 
     // Enhanced JWT validation checks
@@ -68,29 +92,59 @@ export const authMiddleware = async (
 
     // Check token expiration
     if (!decoded.exp || decoded.exp <= now) {
-      return c.json({ success: false, error: "Token has expired" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_EXPIRED", message: "Token has expired" },
+        },
+        401,
+      );
     }
 
     // Check token issued at time (prevent future tokens)
     if (decoded.iat && decoded.iat > now + 60) {
       // Allow 60 second clock skew
-      return c.json({ success: false, error: "Token issued in future" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_FUTURE", message: "Token issued in future" },
+        },
+        401,
+      );
     }
 
     // Check not before claim
     if (decoded.nbf && decoded.nbf > now + 60) {
       // Allow 60 second clock skew
-      return c.json({ success: false, error: "Token not yet valid" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_INVALID", message: "Token not yet valid" },
+        },
+        401,
+      );
     }
 
     // Validate required claims
     if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
-      return c.json({ success: false, error: "Invalid token claims" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_INVALID", message: "Invalid token claims" },
+        },
+        401,
+      );
     }
 
     // Validate role is within expected range (0-4)
     if (decoded.role < 0 || decoded.role > 4) {
-      return c.json({ success: false, error: "Invalid role in token" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_INVALID", message: "Invalid role in token" },
+        },
+        401,
+      );
     }
 
     // Check token age (reject tokens older than 24 hours without refresh)
@@ -98,7 +152,13 @@ export const authMiddleware = async (
     const maxTokenAge = 24 * 60 * 60; // 24 hours
     if (tokenAge > maxTokenAge) {
       return c.json(
-        { success: false, error: "Token too old, please refresh" },
+        {
+          success: false,
+          error: {
+            code: "TOKEN_EXPIRED",
+            message: "Token too old, please refresh",
+          },
+        },
         401,
       );
     }
@@ -129,7 +189,13 @@ export const authMiddleware = async (
       "name" in error &&
       error.name === "JwtTokenExpired"
     ) {
-      return c.json({ success: false, error: "Token has expired" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_EXPIRED", message: "Token has expired" },
+        },
+        401,
+      );
     }
     if (
       error &&
@@ -137,9 +203,21 @@ export const authMiddleware = async (
       "name" in error &&
       error.name === "JwtTokenInvalid"
     ) {
-      return c.json({ success: false, error: "Invalid token format" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "TOKEN_INVALID", message: "Invalid token format" },
+        },
+        401,
+      );
     }
-    return c.json({ success: false, error: "Authentication failed" }, 401);
+    return c.json(
+      {
+        success: false,
+        error: { code: "TOKEN_INVALID", message: "Authentication failed" },
+      },
+      401,
+    );
   }
 };
 
@@ -149,11 +227,26 @@ export const requireRole = (allowedRoles: number[]) => {
     const user = c.get("user");
 
     if (!user) {
-      return c.json({ success: false, error: "Authentication required" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        },
+        401,
+      );
     }
 
     if (!allowedRoles.includes(user.role)) {
-      return c.json({ success: false, error: "Insufficient permissions" }, 403);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "INSUFFICIENT_ROLE",
+            message: "Insufficient permissions",
+          },
+        },
+        403,
+      );
     }
 
     await next();
@@ -169,7 +262,13 @@ export const requireRestaurantAccess = (
     const restaurantId = c.req.param(restaurantIdParam);
 
     if (!user) {
-      return c.json({ success: false, error: "Authentication required" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        },
+        401,
+      );
     }
 
     // 管理員可以存取所有餐廳
@@ -181,7 +280,13 @@ export const requireRestaurantAccess = (
     // 檢查是否有餐廳存取權限
     if (!user.restaurantId || user.restaurantId !== restaurantId) {
       return c.json(
-        { success: false, error: "Access denied to this restaurant" },
+        {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Access denied to this restaurant",
+          },
+        },
         403,
       );
     }
