@@ -80,10 +80,12 @@ export class DiscoveryService {
       }
     }
 
-    // Merge tag matches not already in prefix results
+    // Merge tag matches not already in prefix results (cap at 50 to stay within D1's 100-param limit)
     const prefixIds = new Set(queryResult.results.map((r) => r.menu_item_id));
     if (tagMatches.length > 0) {
-      const missingIds = tagMatches.filter((id) => !prefixIds.has(id));
+      const missingIds = tagMatches
+        .filter((id) => !prefixIds.has(id))
+        .slice(0, 50);
       if (missingIds.length > 0) {
         const placeholders = missingIds.map(() => "?").join(",");
         const tagResults = await this.db
@@ -93,7 +95,8 @@ export class DiscoveryService {
                     r.business_hours, dsi.supports_takeaway, dsi.supports_delivery, dsi.tags
              FROM dish_search_index dsi
              JOIN restaurants r ON dsi.restaurant_id = r.id
-             WHERE dsi.is_available = 1 AND dsi.menu_item_id IN (${placeholders})`,
+             WHERE dsi.is_available = 1 AND dsi.menu_item_id IN (${placeholders})
+             LIMIT 50`,
           )
           .bind(...missingIds)
           .all<any>();
@@ -236,8 +239,15 @@ export class DiscoveryService {
       imageUrl: row.logo_url,
     }));
 
-    // Cache district results in KV
-    if (filters.district) {
+    // Cache district results in KV (only when no secondary filters and page=1 to avoid partial cache)
+    if (
+      filters.district &&
+      !filters.openNow &&
+      !filters.takeaway &&
+      !filters.delivery &&
+      !filters.priceRange &&
+      page === 1
+    ) {
       const kvKey = `search:restaurants:district:${filters.district}`;
       await this.kv.put(kvKey, JSON.stringify(restaurants), {
         expirationTtl: KV_RESTAURANT_TTL,
@@ -320,7 +330,8 @@ export class DiscoveryService {
       )
       .all<any>();
 
-    let dishCount = 0;
+    // Build batch statements (D1 supports up to 100 per batch)
+    const stmts: D1PreparedStatement[] = [];
     for (const item of items.results) {
       const isAvailable =
         item.is_available && !item.deleted_at_ms && !item.restaurant_deleted;
@@ -330,30 +341,36 @@ export class DiscoveryService {
         ...(item.keywords ? JSON.parse(item.keywords) : []),
       ];
 
-      await this.db
-        .prepare(
-          `INSERT OR REPLACE INTO dish_search_index
-           (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(
-          item.menu_item_id,
-          item.restaurant_id,
-          item.name,
-          normalized,
-          item.category_name,
-          item.price,
-          isAvailable ? 1 : 0,
-          JSON.stringify(tags),
-          item.district,
-          item.restaurant_type,
-          item.supports_takeaway ? 1 : 0,
-          item.supports_delivery ? 1 : 0,
-          Date.now(),
-        )
-        .run();
-      dishCount++;
+      stmts.push(
+        this.db
+          .prepare(
+            `INSERT OR REPLACE INTO dish_search_index
+             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            item.menu_item_id,
+            item.restaurant_id,
+            item.name,
+            normalized,
+            item.category_name,
+            item.price,
+            isAvailable ? 1 : 0,
+            JSON.stringify(tags),
+            item.district,
+            item.restaurant_type,
+            item.supports_takeaway ? 1 : 0,
+            item.supports_delivery ? 1 : 0,
+            Date.now(),
+          ),
+      );
     }
+
+    // Execute in batches of 100
+    for (let i = 0; i < stmts.length; i += 100) {
+      await this.db.batch(stmts.slice(i, i + 100));
+    }
+    const dishCount = stmts.length;
 
     await this.db
       .prepare(
@@ -376,7 +393,12 @@ export class DiscoveryService {
 
     const tagIndex: Record<
       string,
-      { menuItemId: number; restaurantId: string; dishName: string; price: number }[]
+      {
+        menuItemId: number;
+        restaurantId: string;
+        dishName: string;
+        price: number;
+      }[]
     > = {};
     for (const row of allTags.results) {
       const tags: string[] = row.tags ? JSON.parse(row.tags) : [];
@@ -396,7 +418,11 @@ export class DiscoveryService {
     });
 
     const duration_ms = Date.now() - start;
-    return { dishes: dishCount, restaurants: items.results.length, duration_ms };
+    return {
+      dishes: dishCount,
+      restaurants: items.results.length,
+      duration_ms,
+    };
   }
 
   // --- Private helpers ---
@@ -415,6 +441,7 @@ export class DiscoveryService {
     if (filters.takeaway) parts.push("ta");
     if (filters.delivery) parts.push("dl");
     parts.push(`p:${filters.page || 1}`);
+    parts.push(`l:${filters.limit || 20}`);
     return parts.join(":");
   }
 
