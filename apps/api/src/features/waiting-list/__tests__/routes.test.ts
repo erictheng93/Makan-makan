@@ -134,7 +134,8 @@ describe("Waiting List Routes", () => {
     // Inject a default staff user into context
     app.use("/*", async (c, next) => {
       c.set("user", {
-        id: "user-001",
+        id: 1,
+        username: "testuser",
         role: 1,
         restaurantId: "restaurant-001",
       } as AuthUser);
@@ -583,7 +584,8 @@ describe("Waiting List Routes", () => {
       const appWithDiffRestaurant = new Hono();
       appWithDiffRestaurant.use("/*", async (c, next) => {
         c.set("user", {
-          id: "user-002",
+          id: 2,
+          username: "testuser2",
           role: 1,
           restaurantId: "restaurant-001",
         } as AuthUser);
@@ -657,7 +659,8 @@ describe("Waiting List Routes", () => {
       const appWithDiffRestaurant = new Hono();
       appWithDiffRestaurant.use("/*", async (c, next) => {
         c.set("user", {
-          id: "user-002",
+          id: 2,
+          username: "testuser2",
           role: 1,
           restaurantId: "restaurant-001",
         } as AuthUser);
@@ -730,7 +733,8 @@ describe("Waiting List Routes", () => {
       const appWithDiffRestaurant = new Hono();
       appWithDiffRestaurant.use("/*", async (c, next) => {
         c.set("user", {
-          id: "user-002",
+          id: 2,
+          username: "testuser2",
           role: 1,
           restaurantId: "restaurant-001",
         } as AuthUser);
@@ -801,7 +805,8 @@ describe("Waiting List Routes", () => {
       const appWithDiffRestaurant = new Hono();
       appWithDiffRestaurant.use("/*", async (c, next) => {
         c.set("user", {
-          id: "user-002",
+          id: 2,
+          username: "testuser2",
           role: 1,
           restaurantId: "restaurant-001",
         } as AuthUser);
@@ -823,10 +828,11 @@ describe("Waiting List Routes", () => {
       const appAdmin = new Hono();
       appAdmin.use("/*", async (c, next) => {
         c.set("user", {
-          id: "admin-001",
+          id: 999,
+          username: "admin",
           role: 0,
           restaurantId: undefined,
-        } as unknown as AuthUser);
+        } as AuthUser);
         await next();
       });
       const routesModule = await import("../routes/index");
@@ -896,10 +902,11 @@ describe("Waiting List Routes", () => {
       const appAdmin = new Hono();
       appAdmin.use("/*", async (c, next) => {
         c.set("user", {
-          id: "admin-001",
+          id: 999,
+          username: "admin",
           role: 0,
           restaurantId: undefined,
-        } as unknown as AuthUser);
+        } as AuthUser);
         await next();
       });
       const routesModule = await import("../routes/index");

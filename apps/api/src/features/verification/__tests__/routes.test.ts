@@ -220,7 +220,7 @@ describe("Verification Routes", () => {
       );
     });
 
-    it("has rate limit middleware wired for /forgot-password (call recorded before clearAllMocks)", () => {
+    it("has rate limit middleware wired for /forgot-password (call recorded before clearAllMocks)", async () => {
       // rateLimitMiddleware is invoked at module-load time for route registration.
       // Because vi.clearAllMocks() runs in beforeEach (after module load), we verify
       // by triggering a fresh request and asserting the pass-through mock still works.
@@ -239,9 +239,8 @@ describe("Verification Routes", () => {
           method: "email",
         }),
       });
-      return app.fetch(req, mockEnv).then((res) => {
-        expect(res.status).toBe(200);
-      });
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
     });
   });
 

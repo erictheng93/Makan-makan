@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { isOpenNow } from "../utils/isOpenNow";
+import type { BusinessHours } from "../types";
 
 describe("isOpenNow", () => {
   const businessHours = {
@@ -101,7 +102,7 @@ describe("isOpenNow - midnight crossing and missing business_hours edge cases", 
   it("should return false when business_hours JSON string is passed as raw string", () => {
     // business_hours stored as JSON string (before parsing) — not a plain object
     const rawJsonString =
-      '{"monday":{"open":"09:00","close":"21:00"}}' as unknown as object;
+      '{"monday":{"open":"09:00","close":"21:00"}}' as unknown as BusinessHours;
     // When raw string is passed, isOpenNow should treat day lookup as missing → false
     expect(
       isOpenNow(rawJsonString, "Asia/Taipei", new Date("2026-03-16T04:00:00Z")),

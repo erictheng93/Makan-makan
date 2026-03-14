@@ -282,6 +282,7 @@ describe("AIAnalyticsService", () => {
       const { testProvider } = await import("@makanmakan/ai-analytics");
       vi.mocked(testProvider).mockResolvedValueOnce({
         success: false,
+        provider: "openai",
         error: "Invalid API key",
       });
 
