@@ -110,7 +110,7 @@ import type {
   ForecastItemResult,
   ForecastAccuracyItem,
   ForecastAlert,
-} from "@/services/types/forecast";
+} from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 const authStore = useAuthStore();

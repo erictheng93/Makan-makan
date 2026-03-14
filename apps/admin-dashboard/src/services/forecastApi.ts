@@ -1,27 +1,21 @@
-import api from "./api";
+import { api } from "./api";
 import type {
   ForecastResult,
   ForecastAccuracyItem,
   ForecastAlert,
-} from "./types/forecast";
-
-export interface ForecastResponse<T> {
-  success: boolean;
-  data: T;
-}
+  GenerateForecastRequest,
+} from "@makanmakan/shared-types";
 
 export const forecastApi = {
   async generate(
     restaurantId: string,
-    params: {
-      startDate: string;
-      endDate: string;
-      type?: string;
-      useAI?: boolean;
-    },
+    params: GenerateForecastRequest,
   ): Promise<ForecastResult[]> {
-    const res = await api.post(`/forecast/${restaurantId}/generate`, params);
-    return res.data.data.forecasts;
+    const res = await api.post<{ forecasts: ForecastResult[] }>(
+      `/forecast/${restaurantId}/generate`,
+      params,
+    );
+    return res.data.data!.forecasts;
   },
 
   async getForecast(
@@ -33,8 +27,11 @@ export const forecastApi = {
       type?: string;
     },
   ): Promise<ForecastResult[]> {
-    const res = await api.get(`/forecast/${restaurantId}`, { params });
-    return res.data.data.forecasts;
+    const res = await api.get<{ forecasts: ForecastResult[] }>(
+      `/forecast/${restaurantId}`,
+      params,
+    );
+    return res.data.data!.forecasts;
   },
 
   async getAccuracy(
@@ -44,12 +41,17 @@ export const forecastApi = {
       endDate: string;
     },
   ): Promise<ForecastAccuracyItem[]> {
-    const res = await api.get(`/forecast/${restaurantId}/accuracy`, { params });
-    return res.data.data.accuracy;
+    const res = await api.get<{ accuracy: ForecastAccuracyItem[] }>(
+      `/forecast/${restaurantId}/accuracy`,
+      params,
+    );
+    return res.data.data!.accuracy;
   },
 
   async getAlerts(restaurantId: string): Promise<ForecastAlert[]> {
-    const res = await api.get(`/forecast/${restaurantId}/alerts`);
-    return res.data.data.alerts;
+    const res = await api.get<{ alerts: ForecastAlert[] }>(
+      `/forecast/${restaurantId}/alerts`,
+    );
+    return res.data.data!.alerts;
   },
 };

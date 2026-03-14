@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import type { ForecastItemResult } from "@/services/types/forecast";
+import type { ForecastItemResult } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 

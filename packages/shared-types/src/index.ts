@@ -20,3 +20,4 @@ export * from "./realtime-events";
 export * from "./reservation";
 export * from "./schema-json-types";
 export * from "./platform";
+export * from "./forecast";

@@ -45,7 +45,7 @@ import {
   ExclamationCircleIcon,
   InformationCircleIcon,
 } from "@heroicons/vue/24/outline";
-import type { ForecastAlert } from "@/services/types/forecast";
+import type { ForecastAlert } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 
