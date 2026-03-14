@@ -492,19 +492,14 @@ describe("Admin Routes — GET /:restaurantId/webhook-logs", () => {
     mockDrizzleDb.select.mockReturnValue(makeSelectChainWith([]));
   });
 
-  // Note: In Hono, dynamic route /:restaurantId/:platform registered earlier
-  // takes precedence over /:restaurantId/webhook-logs. The route returns 404
-  // because getIntegration("rest-1", "webhook-logs") returns null.
-  // This test documents the current routing behavior.
-  it("returns 404 for /webhook-logs path due to dynamic route shadowing", async () => {
-    mockIntegrationService.getIntegration.mockResolvedValue(null);
-
+  it("returns 200 with webhook logs data", async () => {
     const req = new Request(
       "http://localhost/integrations/rest-1/webhook-logs",
     );
     const res = await app.fetch(req, mockEnv);
 
-    // The /:restaurantId/:platform route catches this before the webhook-logs route
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { data: unknown[] };
+    expect(json.data).toBeDefined();
   });
 });

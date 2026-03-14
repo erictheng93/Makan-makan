@@ -27,6 +27,32 @@ adminRoutes.get("/:restaurantId", async (c) => {
   return c.json({ data: integrations });
 });
 
+// GET /:restaurantId/webhook-logs — list webhook logs
+// Registered before /:restaurantId/:platform to avoid being shadowed by the dynamic segment
+adminRoutes.get("/:restaurantId/webhook-logs", async (c) => {
+  const restaurantId = c.req.param("restaurantId");
+  const platform = c.req.query("platform") as PlatformType | undefined;
+  const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 50;
+  const offset = c.req.query("offset") ? parseInt(c.req.query("offset")!) : 0;
+
+  const db = drizzle(c.env.DB);
+
+  const conditions = [eq(platformWebhookLogs.restaurantId, restaurantId)];
+  if (platform) {
+    conditions.push(eq(platformWebhookLogs.platform, platform));
+  }
+
+  const logs = await db
+    .select()
+    .from(platformWebhookLogs)
+    .where(and(...conditions))
+    .orderBy(desc(platformWebhookLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  return c.json({ data: logs });
+});
+
 // GET /:restaurantId/:platform — get specific integration details
 adminRoutes.get("/:restaurantId/:platform", async (c) => {
   const restaurantId = c.req.param("restaurantId");
@@ -108,31 +134,6 @@ adminRoutes.get("/:restaurantId/:platform/orders", async (c) => {
   const orders = await service.getPlatformOrders(restaurantId, filters);
 
   return c.json({ data: orders });
-});
-
-// GET /:restaurantId/webhook-logs — list webhook logs
-adminRoutes.get("/:restaurantId/webhook-logs", async (c) => {
-  const restaurantId = c.req.param("restaurantId");
-  const platform = c.req.query("platform") as PlatformType | undefined;
-  const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 50;
-  const offset = c.req.query("offset") ? parseInt(c.req.query("offset")!) : 0;
-
-  const db = drizzle(c.env.DB);
-
-  const conditions = [eq(platformWebhookLogs.restaurantId, restaurantId)];
-  if (platform) {
-    conditions.push(eq(platformWebhookLogs.platform, platform));
-  }
-
-  const logs = await db
-    .select()
-    .from(platformWebhookLogs)
-    .where(and(...conditions))
-    .orderBy(desc(platformWebhookLogs.createdAt))
-    .limit(limit)
-    .offset(offset);
-
-  return c.json({ data: logs });
 });
 
 export default adminRoutes;
