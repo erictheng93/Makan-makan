@@ -12,6 +12,7 @@ import { Hono } from "hono";
 import type { Context, Next } from "hono";
 import type { Env } from "../../../shared/types";
 import { mockEnv, mockUser, mockAdminUser } from "../../../__tests__/setup";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // Import the factory function instead of the pre-built routes
 import {
@@ -27,10 +28,6 @@ vi.mock("../../../utils/errorSanitizer", () => ({
   ErrorSanitizer: {
     logAndSanitize: vi.fn(),
   },
-  createSafeErrorResponse: vi.fn(() => ({
-    success: false,
-    error: "Internal server error",
-  })),
 }));
 
 // Mock core modules
@@ -188,6 +185,15 @@ describe("Authentication Routes", () => {
       // @ts-ignore
       c.env = mockEnv;
       await next();
+    });
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          { success: false, error: err.message },
+          err.status as any,
+        );
+      }
+      return c.json({ success: false, error: "Internal server error" }, 500);
     });
 
     app.route("/auth", authRoutes);
@@ -376,6 +382,15 @@ describe("Authentication Routes", () => {
         c.env = mockEnv;
         await next();
       });
+      app.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: err.message },
+            err.status as any,
+          );
+        }
+        return c.json({ success: false, error: "Internal server error" }, 500);
+      });
       app.route("/auth", authRoutes);
     });
 
@@ -440,6 +455,15 @@ describe("Authentication Routes", () => {
         // @ts-ignore
         c.env = mockEnv;
         await next();
+      });
+      app.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: err.message },
+            err.status as any,
+          );
+        }
+        return c.json({ success: false, error: "Internal server error" }, 500);
       });
       app.route("/auth", authRoutes);
 
@@ -678,6 +702,15 @@ describe("Authentication Routes", () => {
         // @ts-ignore
         c.env = mockEnv;
         await next();
+      });
+      app.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: err.message },
+            err.status as any,
+          );
+        }
+        return c.json({ success: false, error: "Internal server error" }, 500);
       });
       app.route("/auth", authRoutes);
 
@@ -986,6 +1019,15 @@ describe("Authentication Routes", () => {
         c.env = mockEnv;
         await next();
       });
+      app.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: err.message },
+            err.status as any,
+          );
+        }
+        return c.json({ success: false, error: "Internal server error" }, 500);
+      });
       app.route("/auth", authRoutes);
     });
 
@@ -1034,6 +1076,15 @@ describe("Authentication Routes", () => {
         // @ts-ignore
         c.env = mockEnv;
         await next();
+      });
+      app.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: err.message },
+            err.status as any,
+          );
+        }
+        return c.json({ success: false, error: "Internal server error" }, 500);
       });
       app.route("/auth", authRoutes);
     });

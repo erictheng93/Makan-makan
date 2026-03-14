@@ -18,11 +18,12 @@ import {
   blacklistToken as defaultBlacklistToken,
   requireRole as defaultRequireRole,
 } from "../../../shared/middleware";
-import {
-  ErrorSanitizer,
-  createSafeErrorResponse,
-} from "../../../utils/errorSanitizer";
 import { ConsoleLogger } from "../../../core/monitoring";
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from "../../../middleware/validation";
 
 // Import service and validation schemas
 import { AuthService as DefaultAuthService } from "../services/AuthService";
@@ -130,113 +131,93 @@ export function createAuthRoutes(
   const authRoutes = new Hono<{ Bindings: Env }>();
 
   // User Login - POST /login
-  authRoutes.post(
-    "/login",
-    zValidator("json", authSchemas.login),
-    async (c) => {
-      try {
-        const requestData = c.req.valid("json");
-        const { deviceInfo, location } = extractRequestInfo(c);
+  authRoutes.post("/login", validateBody(authSchemas.login), async (c) => {
+    const requestData = c.get("validatedBody");
+    const { deviceInfo, location } = extractRequestInfo(c);
 
-        // Transform request data to LoginData format
-        const loginData: LoginData = {
-          username: requestData.username,
-          password: requestData.password,
-          deviceInfo,
-          location,
-        };
+    // Transform request data to LoginData format
+    const loginData: LoginData = {
+      username: requestData.username,
+      password: requestData.password,
+      deviceInfo,
+      location,
+    };
 
-        // Initialize auth service
-        const authService = AuthService(c.env);
-        const result = await authService.login(loginData);
+    // Initialize auth service
+    const authService = AuthService(c.env);
+    const result = await authService.login(loginData);
 
-        if (!result.success) {
-          return c.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            HTTP_STATUS.UNAUTHORIZED,
-          );
-        }
+    if (!result.success) {
+      return c.json(
+        {
+          success: false,
+          error: result.error,
+        },
+        HTTP_STATUS.UNAUTHORIZED,
+      );
+    }
 
-        return c.json(
-          {
-            success: true,
-            data: {
-              token: result.tokens?.accessToken,
-              refreshToken: result.tokens?.refreshToken,
-              expiresAt: result.tokens?.expiresAt,
-              user: result.user,
-            },
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_LOGIN");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    },
-  );
+    return c.json(
+      {
+        success: true,
+        data: {
+          token: result.tokens?.accessToken,
+          refreshToken: result.tokens?.refreshToken,
+          expiresAt: result.tokens?.expiresAt,
+          user: result.user,
+        },
+      },
+      HTTP_STATUS.OK,
+    );
+  });
 
   // Public Customer Registration - POST /register (for customers only)
   authRoutes.post(
     "/register",
-    zValidator("json", authSchemas.customerRegister),
+    validateBody(authSchemas.customerRegister),
     async (c) => {
-      try {
-        const requestData = c.req.valid("json");
-        // Device info and location tracking can be added in future if needed
+      const requestData = c.get("validatedBody");
+      // Device info and location tracking can be added in future if needed
 
-        // Transform request data to RegisterData format
-        const registerData: RegisterData = {
-          username: requestData.username,
-          fullName: requestData.fullName,
-          email: requestData.email,
-          phone: requestData.phone,
-          password: requestData.password,
-          role: 5 as UserRole, // Always customer role for public registration
-          restaurantId: undefined, // Customers are not associated with specific restaurants
-        };
+      // Transform request data to RegisterData format
+      const registerData: RegisterData = {
+        username: requestData.username,
+        fullName: requestData.fullName,
+        email: requestData.email,
+        phone: requestData.phone,
+        password: requestData.password,
+        role: 5 as UserRole, // Always customer role for public registration
+        restaurantId: undefined, // Customers are not associated with specific restaurants
+      };
 
-        // Initialize auth service
-        const authService = AuthService(c.env);
-        const result = await authService.register(registerData, undefined);
+      // Initialize auth service
+      const authService = AuthService(c.env);
+      const result = await authService.register(registerData, undefined);
 
-        if (!result.success) {
-          const statusCode = result.error?.includes("already exists")
-            ? HTTP_STATUS.CONFLICT
-            : HTTP_STATUS.BAD_REQUEST;
-          return c.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            statusCode,
-          );
-        }
-
-        // Auto-login after registration
+      if (!result.success) {
+        const statusCode = result.error?.includes("already exists")
+          ? HTTP_STATUS.CONFLICT
+          : HTTP_STATUS.BAD_REQUEST;
         return c.json(
           {
-            success: true,
-            data: {
-              user: result.user,
-              tokens: result.tokens,
-            },
+            success: false,
+            error: result.error,
           },
-          HTTP_STATUS.CREATED,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_PUBLIC_REGISTER");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          statusCode,
         );
       }
+
+      // Auto-login after registration
+      return c.json(
+        {
+          success: true,
+          data: {
+            user: result.user,
+            tokens: result.tokens,
+          },
+        },
+        HTTP_STATUS.CREATED,
+      );
     },
   );
 
@@ -244,77 +225,69 @@ export function createAuthRoutes(
   authRoutes.post(
     "/register-staff",
     authMiddleware,
-    zValidator("json", authSchemas.register),
+    validateBody(authSchemas.register),
     async (c) => {
-      try {
-        const currentUser = c.get("user");
+      const currentUser = c.get("user");
 
-        // Only admin or shop owner can register new staff users
-        if (currentUser.role !== 0 && currentUser.role !== 1) {
-          return c.json(
-            {
-              success: false,
-              error: "Insufficient permissions",
-            },
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-
-        const requestData = c.req.valid("json");
-
-        // Validate role permissions
-        if (currentUser.role === 1 && requestData.role < 2) {
-          return c.json(
-            {
-              success: false,
-              error: "Shop owners can only create staff accounts",
-            },
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-
-        // Transform request data to RegisterData format
-        const registerData: RegisterData = {
-          username: requestData.username,
-          fullName: requestData.fullName,
-          email: requestData.email,
-          phone: requestData.phone,
-          password: requestData.password,
-          role: requestData.role as UserRole,
-          restaurantId: requestData.restaurantId,
-        };
-
-        // Initialize auth service
-        const authService = AuthService(c.env);
-        const result = await authService.register(registerData, currentUser.id);
-
-        if (!result.success) {
-          const statusCode = result.error?.includes("already exists")
-            ? HTTP_STATUS.CONFLICT
-            : HTTP_STATUS.BAD_REQUEST;
-          return c.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            statusCode,
-          );
-        }
-
+      // Only admin or shop owner can register new staff users
+      if (currentUser.role !== 0 && currentUser.role !== 1) {
         return c.json(
           {
-            success: true,
-            data: result.user,
+            success: false,
+            error: "Insufficient permissions",
           },
-          HTTP_STATUS.CREATED,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_REGISTER");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          HTTP_STATUS.FORBIDDEN,
         );
       }
+
+      const requestData = c.get("validatedBody");
+
+      // Validate role permissions
+      if (currentUser.role === 1 && requestData.role < 2) {
+        return c.json(
+          {
+            success: false,
+            error: "Shop owners can only create staff accounts",
+          },
+          HTTP_STATUS.FORBIDDEN,
+        );
+      }
+
+      // Transform request data to RegisterData format
+      const registerData: RegisterData = {
+        username: requestData.username,
+        fullName: requestData.fullName,
+        email: requestData.email,
+        phone: requestData.phone,
+        password: requestData.password,
+        role: requestData.role as UserRole,
+        restaurantId: requestData.restaurantId,
+      };
+
+      // Initialize auth service
+      const authService = AuthService(c.env);
+      const result = await authService.register(registerData, currentUser.id);
+
+      if (!result.success) {
+        const statusCode = result.error?.includes("already exists")
+          ? HTTP_STATUS.CONFLICT
+          : HTTP_STATUS.BAD_REQUEST;
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          statusCode,
+        );
+      }
+
+      return c.json(
+        {
+          success: true,
+          data: result.user,
+        },
+        HTTP_STATUS.CREATED,
+      );
     },
   );
 
@@ -323,99 +296,79 @@ export function createAuthRoutes(
     "/refresh",
     zValidator("header", authSchemas.refreshTokenHeader),
     async (c) => {
-      try {
-        const headers = c.req.valid("header");
-        const refreshToken = headers["x-refresh-token"];
+      const headers = c.req.valid("header");
+      const refreshToken = headers["x-refresh-token"];
 
-        if (!refreshToken) {
-          return c.json(
-            {
-              success: false,
-              error: "Refresh token is required",
-            },
-            HTTP_STATUS.BAD_REQUEST,
-          );
-        }
-
-        // Initialize auth service
-        const authService = AuthService(c.env);
-        const result = await authService.refreshToken(refreshToken);
-
-        if (!result.success) {
-          return c.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            HTTP_STATUS.UNAUTHORIZED,
-          );
-        }
-
+      if (!refreshToken) {
         return c.json(
           {
-            success: true,
-            data: {
-              token: result.tokens?.accessToken,
-              refreshToken: result.tokens?.refreshToken,
-              expiresAt: result.tokens?.expiresAt,
-              user: result.user,
-            },
+            success: false,
+            error: "Refresh token is required",
           },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_REFRESH_TOKEN");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          HTTP_STATUS.BAD_REQUEST,
         );
       }
+
+      // Initialize auth service
+      const authService = AuthService(c.env);
+      const result = await authService.refreshToken(refreshToken);
+
+      if (!result.success) {
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          HTTP_STATUS.UNAUTHORIZED,
+        );
+      }
+
+      return c.json(
+        {
+          success: true,
+          data: {
+            token: result.tokens?.accessToken,
+            refreshToken: result.tokens?.refreshToken,
+            expiresAt: result.tokens?.expiresAt,
+            user: result.user,
+          },
+        },
+        HTTP_STATUS.OK,
+      );
     },
   );
 
   // User Logout - POST /logout
   authRoutes.post("/logout", authMiddleware, async (c) => {
-    try {
-      const user = c.get("user");
-      const authHeader = c.req.header("Authorization");
+    const user = c.get("user");
+    const authHeader = c.req.header("Authorization");
 
-      let token: string | undefined;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
+    let token: string | undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
 
-        // Add token to blacklist
-        try {
-          await blacklistToken(c, token);
-        } catch (error) {
-          ErrorSanitizer.logAndSanitize(error, "AUTH_TOKEN_BLACKLIST");
-        }
-      }
+      // Add token to blacklist
+      await blacklistToken(c, token);
+    }
 
-      // Initialize auth service
-      const authService = AuthService(c.env);
-      const success = await authService.logout(user.id, token);
+    // Initialize auth service
+    const authService = AuthService(c.env);
+    const success = await authService.logout(user.id, token);
 
-      if (success) {
-        return c.json(
-          {
-            success: true,
-            message: "Logout successful",
-          },
-          HTTP_STATUS.OK,
-        );
-      } else {
-        return c.json(
-          {
-            success: false,
-            error: "Logout failed",
-          },
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "AUTH_LOGOUT");
+    if (success) {
       return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
+        {
+          success: true,
+          message: "Logout successful",
+        },
+        HTTP_STATUS.OK,
+      );
+    } else {
+      return c.json(
+        {
+          success: false,
+          error: "Logout failed",
+        },
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
     }
@@ -423,100 +376,84 @@ export function createAuthRoutes(
 
   // Get Current User Info - GET /me
   authRoutes.get("/me", authMiddleware, async (c) => {
-    try {
-      const _user = c.get("user");
+    const _user = c.get("user");
 
-      // Initialize auth service
-      const authService = AuthService(c.env);
+    // Initialize auth service
+    const authService = AuthService(c.env);
 
-      const authHeader = c.req.header("Authorization");
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return c.json(
-          {
-            success: false,
-            error: "Authorization token required",
-          },
-          HTTP_STATUS.UNAUTHORIZED,
-        );
-      }
-
-      const token = authHeader.substring(7);
-      const validation = await authService.validateToken(token);
-
-      if (!validation.valid) {
-        return c.json(
-          {
-            success: false,
-            error: validation.error || "Invalid token",
-          },
-          HTTP_STATUS.UNAUTHORIZED,
-        );
-      }
-
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return c.json(
         {
-          success: true,
-          data: validation.user,
+          success: false,
+          error: "Authorization token required",
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "AUTH_USER_INFO");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        HTTP_STATUS.UNAUTHORIZED,
       );
     }
+
+    const token = authHeader.substring(7);
+    const validation = await authService.validateToken(token);
+
+    if (!validation.valid) {
+      return c.json(
+        {
+          success: false,
+          error: validation.error || "Invalid token",
+        },
+        HTTP_STATUS.UNAUTHORIZED,
+      );
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: validation.user,
+      },
+      HTTP_STATUS.OK,
+    );
   });
 
   // Get User Profile - GET /profile/:id
   authRoutes.get(
     "/profile/:id",
     authMiddleware,
-    zValidator("param", authSchemas.userIdParam),
+    validateParams(authSchemas.userIdParam),
     async (c) => {
-      try {
-        const currentUser = c.get("user");
-        const { id: userId } = c.req.valid("param");
+      const currentUser = c.get("user");
+      const { id: userId } = c.get("validatedParams");
 
-        // Users can only view their own profile unless they are admin
-        if (currentUser.role !== 0 && currentUser.id !== userId) {
-          return c.json(
-            {
-              success: false,
-              error: "Insufficient permissions",
-            },
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-
-        const authService = AuthService(c.env);
-        const profile = await authService.getUserProfile(userId);
-
-        if (!profile) {
-          return c.json(
-            {
-              success: false,
-              error: "User not found",
-            },
-            HTTP_STATUS.NOT_FOUND,
-          );
-        }
-
+      // Users can only view their own profile unless they are admin
+      if (currentUser.role !== 0 && currentUser.id !== userId) {
         return c.json(
           {
-            success: true,
-            data: profile,
+            success: false,
+            error: "Insufficient permissions",
           },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_GET_PROFILE");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          HTTP_STATUS.FORBIDDEN,
         );
       }
+
+      const authService = AuthService(c.env);
+      const profile = await authService.getUserProfile(userId);
+
+      if (!profile) {
+        return c.json(
+          {
+            success: false,
+            error: "User not found",
+          },
+          HTTP_STATUS.NOT_FOUND,
+        );
+      }
+
+      return c.json(
+        {
+          success: true,
+          data: profile,
+        },
+        HTTP_STATUS.OK,
+      );
     },
   );
 
@@ -524,179 +461,35 @@ export function createAuthRoutes(
   authRoutes.put(
     "/profile/:id",
     authMiddleware,
-    zValidator("param", authSchemas.userIdParam),
-    zValidator("json", authSchemas.updateProfile),
+    validateParams(authSchemas.userIdParam),
+    validateBody(authSchemas.updateProfile),
     async (c) => {
-      try {
-        const currentUser = c.get("user");
-        const { id: userId } = c.req.valid("param");
-        const updateData = c.req.valid("json");
+      const currentUser = c.get("user");
+      const { id: userId } = c.get("validatedParams");
+      const updateData = c.get("validatedBody");
 
-        // Users can only update their own profile unless they are admin
-        if (currentUser.role !== 0 && currentUser.id !== userId) {
-          return c.json(
-            {
-              success: false,
-              error: "Insufficient permissions",
-            },
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-
-        const authService = AuthService(c.env);
-        const updatedUser = await authService.updateUserProfile(
-          userId,
-          updateData,
-        );
-
-        if (!updatedUser) {
-          return c.json(
-            {
-              success: false,
-              error: "Failed to update profile",
-            },
-            HTTP_STATUS.BAD_REQUEST,
-          );
-        }
-
-        return c.json(
-          {
-            success: true,
-            data: updatedUser,
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_UPDATE_PROFILE");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    },
-  );
-
-  // Change Password - POST /change-password
-  authRoutes.post(
-    "/change-password",
-    authMiddleware,
-    zValidator("json", authSchemas.changePassword),
-    async (c) => {
-      try {
-        const user = c.get("user");
-        const { currentPassword, newPassword } = c.req.valid("json");
-
-        const authService = AuthService(c.env);
-        const result = await authService.changePassword(
-          user.id,
-          currentPassword,
-          newPassword,
-        );
-
-        if (!result.success) {
-          return c.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            HTTP_STATUS.BAD_REQUEST,
-          );
-        }
-
-        return c.json(
-          {
-            success: true,
-            message: "Password changed successfully",
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_CHANGE_PASSWORD");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    },
-  );
-
-  // Get User Sessions - GET /sessions
-  authRoutes.get("/sessions", authMiddleware, async (c) => {
-    try {
-      const user = c.get("user");
-
-      const authService = AuthService(c.env);
-      const sessions = await authService.getUserSessions(user.id);
-
-      return c.json(
-        {
-          success: true,
-          data: sessions,
-        },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "AUTH_GET_SESSIONS");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
-  });
-
-  // Terminate Session - DELETE /sessions/:sessionId
-  authRoutes.delete(
-    "/sessions/:sessionId",
-    authMiddleware,
-    zValidator("param", authSchemas.sessionIdParam),
-    async (c) => {
-      try {
-        const user = c.get("user");
-        const { sessionId } = c.req.valid("param");
-
-        const authService = AuthService(c.env);
-        const success = await authService.terminateSession(user.id, sessionId);
-
-        if (!success) {
-          return c.json(
-            {
-              success: false,
-              error: "Failed to terminate session",
-            },
-            HTTP_STATUS.BAD_REQUEST,
-          );
-        }
-
-        return c.json(
-          {
-            success: true,
-            message: "Session terminated successfully",
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_TERMINATE_SESSION");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    },
-  );
-
-  // Terminate All Sessions - DELETE /sessions
-  authRoutes.delete("/sessions", authMiddleware, async (c) => {
-    try {
-      const user = c.get("user");
-
-      const authService = AuthService(c.env);
-      const success = await authService.terminateAllSessions(user.id);
-
-      if (!success) {
+      // Users can only update their own profile unless they are admin
+      if (currentUser.role !== 0 && currentUser.id !== userId) {
         return c.json(
           {
             success: false,
-            error: "Failed to terminate sessions",
+            error: "Insufficient permissions",
+          },
+          HTTP_STATUS.FORBIDDEN,
+        );
+      }
+
+      const authService = AuthService(c.env);
+      const updatedUser = await authService.updateUserProfile(
+        userId,
+        updateData,
+      );
+
+      if (!updatedUser) {
+        return c.json(
+          {
+            success: false,
+            error: "Failed to update profile",
           },
           HTTP_STATUS.BAD_REQUEST,
         );
@@ -705,108 +498,186 @@ export function createAuthRoutes(
       return c.json(
         {
           success: true,
-          message: "All sessions terminated successfully",
+          data: updatedUser,
         },
         HTTP_STATUS.OK,
       );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "AUTH_TERMINATE_ALL_SESSIONS");
+    },
+  );
+
+  // Change Password - POST /change-password
+  authRoutes.post(
+    "/change-password",
+    authMiddleware,
+    validateBody(authSchemas.changePassword),
+    async (c) => {
+      const user = c.get("user");
+      const { currentPassword, newPassword } = c.get("validatedBody");
+
+      const authService = AuthService(c.env);
+      const result = await authService.changePassword(
+        user.id,
+        currentPassword,
+        newPassword,
+      );
+
+      if (!result.success) {
+        return c.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
       return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        {
+          success: true,
+          message: "Password changed successfully",
+        },
+        HTTP_STATUS.OK,
+      );
+    },
+  );
+
+  // Get User Sessions - GET /sessions
+  authRoutes.get("/sessions", authMiddleware, async (c) => {
+    const user = c.get("user");
+
+    const authService = AuthService(c.env);
+    const sessions = await authService.getUserSessions(user.id);
+
+    return c.json(
+      {
+        success: true,
+        data: sessions,
+      },
+      HTTP_STATUS.OK,
+    );
+  });
+
+  // Terminate Session - DELETE /sessions/:sessionId
+  authRoutes.delete(
+    "/sessions/:sessionId",
+    authMiddleware,
+    validateParams(authSchemas.sessionIdParam),
+    async (c) => {
+      const user = c.get("user");
+      const { sessionId } = c.get("validatedParams");
+
+      const authService = AuthService(c.env);
+      const success = await authService.terminateSession(user.id, sessionId);
+
+      if (!success) {
+        return c.json(
+          {
+            success: false,
+            error: "Failed to terminate session",
+          },
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      return c.json(
+        {
+          success: true,
+          message: "Session terminated successfully",
+        },
+        HTTP_STATUS.OK,
+      );
+    },
+  );
+
+  // Terminate All Sessions - DELETE /sessions
+  authRoutes.delete("/sessions", authMiddleware, async (c) => {
+    const user = c.get("user");
+
+    const authService = AuthService(c.env);
+    const success = await authService.terminateAllSessions(user.id);
+
+    if (!success) {
+      return c.json(
+        {
+          success: false,
+          error: "Failed to terminate sessions",
+        },
+        HTTP_STATUS.BAD_REQUEST,
       );
     }
+
+    return c.json(
+      {
+        success: true,
+        message: "All sessions terminated successfully",
+      },
+      HTTP_STATUS.OK,
+    );
   });
 
   // Forgot Password - POST /forgot-password (placeholder)
   authRoutes.post(
     "/forgot-password",
-    zValidator("json", authSchemas.forgotPassword),
+    validateBody(authSchemas.forgotPassword),
     async (c) => {
-      try {
-        const requestData = c.req.valid("json");
+      const requestData = c.get("validatedBody");
 
-        const authService = AuthService(c.env);
-        const result = await authService.requestPasswordReset(
-          requestData.email || requestData.username || "",
-        );
+      const authService = AuthService(c.env);
+      const result = await authService.requestPasswordReset(
+        requestData.email || requestData.username || "",
+      );
 
-        return c.json(
-          {
-            success: result.success,
-            message: result.success
-              ? "Password reset email sent"
-              : result.error,
-          },
-          result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_FORGOT_PASSWORD");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
+      return c.json(
+        {
+          success: result.success,
+          message: result.success ? "Password reset email sent" : result.error,
+        },
+        result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
+      );
     },
   );
 
   // Reset Password - POST /reset-password (placeholder)
   authRoutes.post(
     "/reset-password",
-    zValidator("json", authSchemas.resetPassword),
+    validateBody(authSchemas.resetPassword),
     async (c) => {
-      try {
-        const { token, newPassword } = c.req.valid("json");
+      const { token, newPassword } = c.get("validatedBody");
 
-        const authService = AuthService(c.env);
-        const result = await authService.resetPassword(token, newPassword);
+      const authService = AuthService(c.env);
+      const result = await authService.resetPassword(token, newPassword);
 
-        return c.json(
-          {
-            success: result.success,
-            message: result.success
-              ? "Password reset successfully"
-              : result.error,
-          },
-          result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_RESET_PASSWORD");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
+      return c.json(
+        {
+          success: result.success,
+          message: result.success
+            ? "Password reset successfully"
+            : result.error,
+        },
+        result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
+      );
     },
   );
 
   // Verify Email - POST /verify-email (placeholder)
   authRoutes.post(
     "/verify-email",
-    zValidator("json", authSchemas.verifyEmail),
+    validateBody(authSchemas.verifyEmail),
     async (c) => {
-      try {
-        const { token } = c.req.valid("json");
+      const { token } = c.get("validatedBody");
 
-        const authService = AuthService(c.env);
-        const result = await authService.verifyEmail(token);
+      const authService = AuthService(c.env);
+      const result = await authService.verifyEmail(token);
 
-        return c.json(
-          {
-            success: result.success,
-            message: result.success
-              ? "Email verified successfully"
-              : result.error,
-          },
-          result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_VERIFY_EMAIL");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
+      return c.json(
+        {
+          success: result.success,
+          message: result.success
+            ? "Email verified successfully"
+            : result.error,
+        },
+        result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
+      );
     },
   );
 
@@ -815,28 +686,20 @@ export function createAuthRoutes(
     "/stats",
     authMiddleware,
     requireRole([0]), // Admin only
-    zValidator("query", authSchemas.authStatsQuery),
+    validateQuery(authSchemas.authStatsQuery),
     async (c) => {
-      try {
-        const { timeRange } = c.req.valid("query");
+      const { timeRange } = c.get("validatedQuery");
 
-        const authService = AuthService(c.env);
-        const stats = await authService.getAuthStatistics(timeRange);
+      const authService = AuthService(c.env);
+      const stats = await authService.getAuthStatistics(timeRange);
 
-        return c.json(
-          {
-            success: true,
-            data: stats,
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_GET_STATS");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
+      return c.json(
+        {
+          success: true,
+          data: stats,
+        },
+        HTTP_STATUS.OK,
+      );
     },
   );
 
@@ -845,32 +708,24 @@ export function createAuthRoutes(
     "/security-events",
     authMiddleware,
     requireRole([0]), // Admin only
-    zValidator("query", authSchemas.securityEventsQuery),
+    validateQuery(authSchemas.securityEventsQuery),
     async (c) => {
-      try {
-        const query = c.req.valid("query");
-        const currentUser = c.get("user");
+      const query = c.get("validatedQuery");
+      const currentUser = c.get("user");
 
-        const authService = AuthService(c.env);
-        const events = await authService.getSecurityEvents(
-          currentUser.role === 0 ? undefined : currentUser.id, // Admin sees all, others see only their own
-          query.limit,
-        );
+      const authService = AuthService(c.env);
+      const events = await authService.getSecurityEvents(
+        currentUser.role === 0 ? undefined : currentUser.id, // Admin sees all, others see only their own
+        query.limit,
+      );
 
-        return c.json(
-          {
-            success: true,
-            data: events,
-          },
-          HTTP_STATUS.OK,
-        );
-      } catch (error) {
-        ErrorSanitizer.logAndSanitize(error, "AUTH_GET_SECURITY_EVENTS");
-        return c.json(
-          createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
+      return c.json(
+        {
+          success: true,
+          data: events,
+        },
+        HTTP_STATUS.OK,
+      );
     },
   );
 
@@ -879,65 +734,57 @@ export function createAuthRoutes(
    * POST /api/v1/auth/guest-token
    */
   authRoutes.post("/guest-token", async (c) => {
-    try {
-      const body = await c.req.json();
-      const { restaurantId, phoneLastDigits } = body;
+    const body = await c.req.json();
+    const { restaurantId, phoneLastDigits } = body;
 
-      // Validate inputs
-      if (!restaurantId || typeof restaurantId !== "string") {
-        return c.json(
-          { success: false, error: "restaurantId is required" },
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      if (
-        !phoneLastDigits ||
-        typeof phoneLastDigits !== "string" ||
-        !/^\d{3,4}$/.test(phoneLastDigits)
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "phoneLastDigits must be 3-4 digits",
-          },
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      // Generate guest token
-      const { generateGuestToken } =
-        await import("../../../middleware/guestAuth");
-      const token = generateGuestToken();
-
-      // Store in KV with 4-hour TTL
-      const tokenData = {
-        restaurantId,
-        phoneLastDigits,
-        createdAt: Date.now(),
-      };
-
-      await c.env.CACHE_KV.put(
-        `guest_token:${token}`,
-        JSON.stringify(tokenData),
-        { expirationTtl: 14400 },
-      );
-
+    // Validate inputs
+    if (!restaurantId || typeof restaurantId !== "string") {
       return c.json(
-        {
-          success: true,
-          token,
-          expiresIn: 14400,
-        },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "AUTH_GUEST_TOKEN");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        { success: false, error: "restaurantId is required" },
+        HTTP_STATUS.BAD_REQUEST,
       );
     }
+
+    if (
+      !phoneLastDigits ||
+      typeof phoneLastDigits !== "string" ||
+      !/^\d{3,4}$/.test(phoneLastDigits)
+    ) {
+      return c.json(
+        {
+          success: false,
+          error: "phoneLastDigits must be 3-4 digits",
+        },
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    // Generate guest token
+    const { generateGuestToken } =
+      await import("../../../middleware/guestAuth");
+    const token = generateGuestToken();
+
+    // Store in KV with 4-hour TTL
+    const tokenData = {
+      restaurantId,
+      phoneLastDigits,
+      createdAt: Date.now(),
+    };
+
+    await c.env.CACHE_KV.put(
+      `guest_token:${token}`,
+      JSON.stringify(tokenData),
+      { expirationTtl: 14400 },
+    );
+
+    return c.json(
+      {
+        success: true,
+        token,
+        expiresIn: 14400,
+      },
+      HTTP_STATUS.OK,
+    );
   });
 
   return authRoutes;
