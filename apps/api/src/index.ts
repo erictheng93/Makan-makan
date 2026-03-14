@@ -90,6 +90,7 @@ import verificationFeature from "./features/verification";
 import partnershipsRoutes from "./features/partnerships/routes";
 import guestOrdersRoutes from "./features/guest-orders";
 import integrationsFeature from "./features/integrations";
+import forecastFeature from "./features/forecast";
 import {
   ErrorSanitizer,
   createSafeErrorResponse,
@@ -435,6 +436,7 @@ apiV1.route("/backup", BackupRoutes);
 apiV1.route("/customers", customersRouter);
 apiV1.route("/leaves", leavesFeature.routes);
 apiV1.route("/scheduling", schedulingFeature.routes);
+apiV1.route("/forecast", forecastFeature.routes);
 apiV1.route("/notifications", notificationsRoutes);
 // 掛載 API 路由
 app.route("/api/v1", apiV1);
