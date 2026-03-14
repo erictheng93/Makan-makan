@@ -13,6 +13,15 @@ const WEIGHTS = { 1: 0.4, 2: 0.3, 3: 0.2, 4: 0.1 };
 const KV_TTL_SECONDS = 6 * 60 * 60; // 6 hours
 const HISTORICAL_WEEKS = 4;
 
+interface CachedItemData {
+  predicted: number;
+  confidence: number;
+  trend: string;
+  menuItemName?: string;
+  trendPercent?: number;
+  historicalAvg?: number;
+}
+
 export class ForecastService implements IForecastService {
   constructor(
     private db: D1Database,
@@ -95,19 +104,16 @@ export class ForecastService implements IForecastService {
     if (!dbResult) return null;
 
     const dataDict =
-      (JSON.parse(dbResult.data) as Record<
-        string,
-        { predicted: number; confidence: number; trend: string }
-      >) || {};
+      (JSON.parse(dbResult.data) as Record<string, CachedItemData>) || {};
     const items: ForecastItemResult[] = Object.entries(dataDict).map(
       ([id, v]) => ({
         menuItemId: Number(id),
-        menuItemName: "",
+        menuItemName: v.menuItemName || "",
         predicted: v.predicted,
         confidence: v.confidence,
         trend: v.trend as "up" | "down" | "stable",
-        trendPercent: 0,
-        historicalAvg: 0,
+        trendPercent: v.trendPercent || 0,
+        historicalAvg: v.historicalAvg || 0,
       }),
     );
 
@@ -156,19 +162,16 @@ export class ForecastService implements IForecastService {
         (!dbResult.expires_at_ms || dbResult.expires_at_ms > Date.now())
       ) {
         const dataDict =
-          (JSON.parse(dbResult.data) as Record<
-            string,
-            { predicted: number; confidence: number; trend: string }
-          >) || {};
+          (JSON.parse(dbResult.data) as Record<string, CachedItemData>) || {};
         const items: ForecastItemResult[] = Object.entries(dataDict).map(
           ([id, v]) => ({
             menuItemId: Number(id),
-            menuItemName: "",
+            menuItemName: v.menuItemName || "",
             predicted: v.predicted,
             confidence: v.confidence,
             trend: v.trend as "up" | "down" | "stable",
-            trendPercent: 0,
-            historicalAvg: 0,
+            trendPercent: v.trendPercent || 0,
+            historicalAvg: v.historicalAvg || 0,
           }),
         );
 
@@ -218,14 +221,20 @@ export class ForecastService implements IForecastService {
     }
     const nameMap = new Map<number, string>();
     if (menuItemIds.size > 0) {
-      const placeholders = [...menuItemIds].map(() => "?").join(",");
-      const names = await this.db
-        .prepare(
-          `SELECT id, name FROM menu_items WHERE id IN (${placeholders})`,
-        )
-        .bind(...menuItemIds)
-        .all<{ id: number; name: string }>();
-      for (const row of names.results) nameMap.set(row.id, row.name);
+      // D1 has a 100-parameter binding limit; chunk large sets
+      const idArray = [...menuItemIds];
+      const CHUNK_SIZE = 90;
+      for (let i = 0; i < idArray.length; i += CHUNK_SIZE) {
+        const chunk = idArray.slice(i, i + CHUNK_SIZE);
+        const placeholders = chunk.map(() => "?").join(",");
+        const names = await this.db
+          .prepare(
+            `SELECT id, name FROM menu_items WHERE id IN (${placeholders})`,
+          )
+          .bind(...chunk)
+          .all<{ id: number; name: string }>();
+        for (const row of names.results) nameMap.set(row.id, row.name);
+      }
     }
 
     const actuals = await this.db
@@ -442,15 +451,15 @@ export class ForecastService implements IForecastService {
     restaurantId: string,
     forecast: ForecastResult,
   ): Promise<void> {
-    const dataJson: Record<
-      string,
-      { predicted: number; confidence: number; trend: string }
-    > = {};
+    const dataJson: Record<string, CachedItemData> = {};
     for (const item of forecast.items) {
       dataJson[item.menuItemId] = {
         predicted: item.predicted,
         confidence: item.confidence,
         trend: item.trend,
+        menuItemName: item.menuItemName,
+        trendPercent: item.trendPercent,
+        historicalAvg: item.historicalAvg,
       };
     }
 

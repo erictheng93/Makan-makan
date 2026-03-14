@@ -389,6 +389,7 @@ apiV1.use("/backup/*", authMiddleware);
 apiV1.use("/customers/*", authMiddleware);
 apiV1.use("/leaves/*", authMiddleware);
 apiV1.use("/scheduling/*", authMiddleware);
+apiV1.use("/forecast/*", authMiddleware);
 apiV1.use("/notifications/*", authMiddleware);
 apiV1.use("/partnerships/*", authMiddleware);
 // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)

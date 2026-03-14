@@ -19,22 +19,22 @@
           <th
             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
           >
-            菜品
+            {{ t("forecast.menuItem") }}
           </th>
           <th
             class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
           >
-            預測量
+            {{ t("forecast.predicted") }}
           </th>
           <th
             class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
           >
-            實際量
+            {{ t("forecast.actual") }}
           </th>
           <th
             class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase"
           >
-            偏差 %
+            {{ t("forecast.deviation") }}
           </th>
         </tr>
       </thead>

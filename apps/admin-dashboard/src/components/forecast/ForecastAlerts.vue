@@ -66,8 +66,8 @@ const typeStyles: Record<string, string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  high_demand: "高需求",
-  low_stock: "庫存不足",
-  unusual_spike: "異常波動",
+  high_demand: t("forecast.alertHighDemand"),
+  low_stock: t("forecast.alertLowStock"),
+  unusual_spike: t("forecast.alertUnusualSpike"),
 };
 </script>
