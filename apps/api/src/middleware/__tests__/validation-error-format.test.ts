@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
 import { z } from "zod";
 import { validateBody, validateQuery, validateParams } from "../validation";
+import { ApiError } from "../../shared/utils/api-error";
 
 const testSchema = z.object({
   name: z.string().min(1),
@@ -10,6 +11,28 @@ const testSchema = z.object({
 
 function createApp() {
   const app = new Hono();
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    return c.json(
+      {
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: err.message },
+      },
+      500,
+    );
+  });
   app.post("/test", validateBody(testSchema), (c) =>
     c.json({ success: true, data: c.get("validatedBody") }),
   );
@@ -26,7 +49,7 @@ describe("validation middleware error format", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "VALIDATION_ERROR");
     expect(body.error).toHaveProperty("message", "Validation failed");
@@ -45,7 +68,7 @@ describe("validation middleware error format", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "INVALID_JSON");
     expect(body.error).toHaveProperty("message");

@@ -1,43 +1,39 @@
 /**
  * Validation Middleware
  * Zod-based validation middleware for request validation
+ *
+ * NOTE: This file is NOT actively used — shared/middleware/index.ts
+ * re-exports from ../../middleware/validation.ts instead.
+ * Kept in sync for consistency.
  */
 
 import { Context } from "hono";
 import { z } from "zod";
+import { badRequest } from "../utils/api-error";
+
+// Format Zod details for ApiError
+const formatZodDetails = (error: z.ZodError) =>
+  error.errors.map((err) => ({
+    field: err.path.join("."),
+    message: err.message,
+  }));
 
 export const validateBody = (schema: z.ZodSchema) => {
   return async (c: Context, next: () => Promise<void>) => {
     try {
       const body = await c.req.json();
       const validatedData = schema.parse(body);
-
-      // Store validated data in context
       c.set("validatedBody", validatedData);
-
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(
-          {
-            success: false,
-            error: "Validation failed",
-            details: error.errors.map((err) => ({
-              field: err.path.join("."),
-              message: err.message,
-            })),
-          },
-          400,
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
         );
       }
-
-      return c.json(
-        {
-          success: false,
-          error: "Invalid request body",
-        },
-        400,
-      );
+      throw badRequest("Invalid request body", "INVALID_JSON");
     }
   };
 };
@@ -47,33 +43,17 @@ export const validateParams = (schema: z.ZodSchema) => {
     try {
       const params = c.req.param();
       const validatedData = schema.parse(params);
-
-      // Store validated data in context
       c.set("validatedParams", validatedData);
-
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid parameters",
-            details: error.errors.map((err) => ({
-              field: err.path.join("."),
-              message: err.message,
-            })),
-          },
-          400,
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
         );
       }
-
-      return c.json(
-        {
-          success: false,
-          error: "Invalid request parameters",
-        },
-        400,
-      );
+      throw badRequest("Invalid request parameters", "INVALID_PARAMS");
     }
   };
 };
@@ -83,33 +63,17 @@ export const validateQuery = (schema: z.ZodSchema) => {
     try {
       const query = c.req.query();
       const validatedData = schema.parse(query);
-
-      // Store validated data in context
       c.set("validatedQuery", validatedData);
-
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid query parameters",
-            details: error.errors.map((err) => ({
-              field: err.path.join("."),
-              message: err.message,
-            })),
-          },
-          400,
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
         );
       }
-
-      return c.json(
-        {
-          success: false,
-          error: "Invalid query parameters",
-        },
-        400,
-      );
+      throw badRequest("Invalid query parameters", "INVALID_QUERY");
     }
   };
 };

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import authFeature from "../features/authentication";
+import { ApiError } from "../shared/utils/api-error";
+import { ErrorSanitizer } from "../utils/errorSanitizer";
 import { mockEnv } from "./setup";
 
 // Use the feature routes
@@ -40,6 +42,34 @@ describe("Auth Routes", () => {
 
   beforeEach(() => {
     app = new Hono<{ Bindings: typeof mockEnv }>();
+
+    // Global error handler matching production index.ts
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+              ...(err.details !== undefined && { details: err.details }),
+            },
+          },
+          err.status as any,
+        );
+      }
+      const sanitized = ErrorSanitizer.sanitizeError(err);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: sanitized.code ?? "INTERNAL_ERROR",
+            message: sanitized.message,
+          },
+        },
+        500,
+      );
+    });
 
     // Add middleware to inject mockEnv into context (critical for c.env.DB access)
     app.use("*", async (c, next) => {
@@ -206,7 +236,7 @@ describe("Auth Routes", () => {
       expect(result.success).toBe(false);
       // Check for either auth error or validation error
       if (response.status === 401) {
-        expect(result.error.toLowerCase()).toContain("authorization");
+        expect(result.error.message.toLowerCase()).toContain("authorization");
       }
     });
 
@@ -225,7 +255,7 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
-      expect(result.error.toLowerCase()).toContain("authorization");
+      expect(result.error.message.toLowerCase()).toContain("authorization");
     });
   });
 });

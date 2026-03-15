@@ -14,6 +14,33 @@ import {
   optionalAuth,
   requireAuth,
 } from "../auth";
+import { ApiError } from "../../shared/utils/api-error";
+
+// Helper: add onError handler matching the global handler so thrown ApiErrors are formatted
+function withErrorHandler(app: Hono<any>): void {
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    return c.json(
+      {
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: err.message },
+      },
+      500,
+    );
+  });
+}
 
 // Mock environment
 const createMockEnv = (overrides: any = {}) => ({
@@ -49,6 +76,7 @@ describe("Auth Middleware", () => {
     vi.clearAllMocks();
     mockEnv = createMockEnv();
     app = new Hono<{ Bindings: typeof mockEnv }>();
+    withErrorHandler(app);
 
     // Inject env into context
     app.use("*", async (c, next) => {
@@ -77,7 +105,9 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Missing or invalid authorization header");
+        expect(result.error.message).toBe(
+          "Missing or invalid authorization header",
+        );
       });
 
       it("should reject request with empty Authorization header", async () => {
@@ -88,7 +118,9 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Missing or invalid authorization header");
+        expect(result.error.message).toBe(
+          "Missing or invalid authorization header",
+        );
       });
 
       it("should reject request without Bearer prefix", async () => {
@@ -99,7 +131,9 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Missing or invalid authorization header");
+        expect(result.error.message).toBe(
+          "Missing or invalid authorization header",
+        );
       });
 
       it('should reject request with only "Bearer" without token', async () => {
@@ -127,6 +161,7 @@ describe("Auth Middleware", () => {
 
         // Create app with no JWT_SECRET
         const appNoSecret = new Hono<{ Bindings: typeof mockEnv }>();
+        withErrorHandler(appNoSecret);
         appNoSecret.use("*", async (c, next) => {
           (c as any).env = { ...mockEnv, JWT_SECRET: undefined };
           await next();
@@ -138,7 +173,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(500);
-        expect(result.error).toBe("Server configuration error");
+        expect(result.error.message).toBe("Server configuration error");
       });
 
       it("should return 500 when JWT_SECRET is too short", async () => {
@@ -153,6 +188,7 @@ describe("Auth Middleware", () => {
 
         // Create app with short JWT_SECRET
         const appShortSecret = new Hono<{ Bindings: typeof mockEnv }>();
+        withErrorHandler(appShortSecret);
         appShortSecret.use("*", async (c, next) => {
           (c as any).env = { ...mockEnv, JWT_SECRET: "short" };
           await next();
@@ -164,7 +200,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(500);
-        expect(result.error).toBe("Server configuration error");
+        expect(result.error.message).toBe("Server configuration error");
       });
     });
 
@@ -184,7 +220,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Token has been invalidated");
+        expect(result.error.message).toBe("Token has been invalidated");
         expect(mockEnv.TOKEN_BLACKLIST.get).toHaveBeenCalledWith(
           `token:${token}`,
         );
@@ -198,6 +234,7 @@ describe("Auth Middleware", () => {
 
         // Create app without TOKEN_BLACKLIST
         const appNoBlacklist = new Hono<{ Bindings: typeof mockEnv }>();
+        withErrorHandler(appNoBlacklist);
         appNoBlacklist.use("*", async (c, next) => {
           (c as any).env = { ...mockEnv, TOKEN_BLACKLIST: undefined };
           await next();
@@ -235,7 +272,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toContain("expired");
+        expect(result.error.message).toContain("expired");
       });
 
       it("should reject token without exp claim", async () => {
@@ -319,7 +356,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Token too old, please refresh");
+        expect(result.error.message).toBe("Token too old, please refresh");
       });
     });
 
@@ -337,7 +374,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid token claims");
+        expect(result.error.message).toBe("Invalid token claims");
       });
 
       it("should reject token without username claim", async () => {
@@ -350,7 +387,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid token claims");
+        expect(result.error.message).toBe("Invalid token claims");
       });
 
       it("should reject token without role claim", async () => {
@@ -366,7 +403,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid token claims");
+        expect(result.error.message).toBe("Invalid token claims");
       });
 
       it("should reject token with role as string", async () => {
@@ -382,7 +419,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid token claims");
+        expect(result.error.message).toBe("Invalid token claims");
       });
 
       it("should reject token with invalid role range (negative)", async () => {
@@ -398,7 +435,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid role in token");
+        expect(result.error.message).toBe("Invalid role in token");
       });
 
       it("should reject token with invalid role range (too high)", async () => {
@@ -414,7 +451,7 @@ describe("Auth Middleware", () => {
         const result = (await res.json()) as any;
 
         expect(res.status).toBe(401);
-        expect(result.error).toBe("Invalid role in token");
+        expect(result.error.message).toBe("Invalid role in token");
       });
     });
 
@@ -539,6 +576,7 @@ describe("Auth Middleware", () => {
     it("should reject when no user in context", async () => {
       // Create app without authMiddleware to test requireRole directly
       const appNoAuth = new Hono<{ Bindings: typeof mockEnv }>();
+      withErrorHandler(appNoAuth);
       appNoAuth.use("*", async (c, next) => {
         (c as any).env = mockEnv;
         await next();
@@ -551,7 +589,7 @@ describe("Auth Middleware", () => {
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(401);
-      expect(result.error).toBe("Authentication required");
+      expect(result.error.message).toBe("Authentication required");
     });
 
     it("should reject when user role not in allowed roles", async () => {
@@ -567,7 +605,7 @@ describe("Auth Middleware", () => {
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
-      expect(result.error).toBe("Insufficient permissions");
+      expect(result.error.message).toBe("Insufficient permissions");
     });
 
     it("should allow when user role is in allowed roles", async () => {
@@ -614,6 +652,7 @@ describe("Auth Middleware", () => {
 
     it("should reject when no user in context", async () => {
       const appNoAuth = new Hono<{ Bindings: typeof mockEnv }>();
+      withErrorHandler(appNoAuth);
       appNoAuth.use("*", async (c, next) => {
         (c as any).env = mockEnv;
         await next();
@@ -628,7 +667,7 @@ describe("Auth Middleware", () => {
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(401);
-      expect(result.error).toBe("Authentication required");
+      expect(result.error.message).toBe("Authentication required");
     });
 
     it("should allow admin access to any restaurant", async () => {
@@ -660,7 +699,7 @@ describe("Auth Middleware", () => {
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
-      expect(result.error).toBe("Access denied to this restaurant");
+      expect(result.error.message).toBe("Access denied to this restaurant");
     });
 
     it("should reject when user restaurantId does not match", async () => {
@@ -676,7 +715,7 @@ describe("Auth Middleware", () => {
       const result = (await res.json()) as any;
 
       expect(res.status).toBe(403);
-      expect(result.error).toBe("Access denied to this restaurant");
+      expect(result.error.message).toBe("Access denied to this restaurant");
     });
 
     it("should allow when user restaurantId matches", async () => {
@@ -697,6 +736,7 @@ describe("Auth Middleware", () => {
 
     it("should work with custom restaurantIdParam", async () => {
       const appCustomParam = new Hono<{ Bindings: typeof mockEnv }>();
+      withErrorHandler(appCustomParam);
       appCustomParam.use("*", async (c, next) => {
         (c as any).env = mockEnv;
         await next();

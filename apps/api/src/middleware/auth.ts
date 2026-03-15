@@ -1,6 +1,7 @@
 import { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 import type { Env } from "../types/env";
+import { ApiError, unauthorized, forbidden } from "../shared/utils/api-error";
 
 export interface AuthUser {
   id: number;
@@ -27,15 +28,9 @@ export const authMiddleware = async (
     const authHeader = c.req.header("Authorization");
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "MISSING_AUTH_HEADER",
-            message: "Missing or invalid authorization header",
-          },
-        },
-        401,
+      throw unauthorized(
+        "Missing or invalid authorization header",
+        "MISSING_AUTH_HEADER",
       );
     }
 
@@ -46,14 +41,9 @@ export const authMiddleware = async (
       console.error(
         "JWT_SECRET is not set or too short (minimum 32 characters required)",
       );
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "SERVER_CONFIG_ERROR",
-            message: "Server configuration error",
-          },
-        },
+      throw new ApiError(
+        "SERVER_CONFIG_ERROR",
+        "Server configuration error",
         500,
       );
     }
@@ -62,29 +52,14 @@ export const authMiddleware = async (
     if (c.env.TOKEN_BLACKLIST) {
       const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
       if (blacklisted) {
-        return c.json(
-          {
-            success: false,
-            error: {
-              code: "TOKEN_BLACKLISTED",
-              message: "Token has been invalidated",
-            },
-          },
-          401,
-        );
+        throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
       }
     }
 
     const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
 
     if (!decoded || typeof decoded !== "object") {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_INVALID", message: "Invalid token" },
-        },
-        401,
-      );
+      throw unauthorized("Invalid token", "TOKEN_INVALID");
     }
 
     // Enhanced JWT validation checks
@@ -92,75 +67,36 @@ export const authMiddleware = async (
 
     // Check token expiration
     if (!decoded.exp || decoded.exp <= now) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_EXPIRED", message: "Token has expired" },
-        },
-        401,
-      );
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
     }
 
     // Check token issued at time (prevent future tokens)
     if (decoded.iat && decoded.iat > now + 60) {
       // Allow 60 second clock skew
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_FUTURE", message: "Token issued in future" },
-        },
-        401,
-      );
+      throw unauthorized("Token issued in future", "TOKEN_FUTURE");
     }
 
     // Check not before claim
     if (decoded.nbf && decoded.nbf > now + 60) {
       // Allow 60 second clock skew
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_INVALID", message: "Token not yet valid" },
-        },
-        401,
-      );
+      throw unauthorized("Token not yet valid", "TOKEN_INVALID");
     }
 
     // Validate required claims
     if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_INVALID", message: "Invalid token claims" },
-        },
-        401,
-      );
+      throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 
     // Validate role is within expected range (0-4)
     if (decoded.role < 0 || decoded.role > 4) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_INVALID", message: "Invalid role in token" },
-        },
-        401,
-      );
+      throw unauthorized("Invalid role in token", "TOKEN_INVALID");
     }
 
     // Check token age (reject tokens older than 24 hours without refresh)
     const tokenAge = now - (decoded.iat || 0);
     const maxTokenAge = 24 * 60 * 60; // 24 hours
     if (tokenAge > maxTokenAge) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "TOKEN_EXPIRED",
-            message: "Token too old, please refresh",
-          },
-        },
-        401,
-      );
+      throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
     }
 
     // Check if token is about to expire (recommend refresh within 1 hour)
@@ -181,21 +117,17 @@ export const authMiddleware = async (
 
     await next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
-    // 提供更詳細的錯誤資訊用於調試 (但不暴露給客戶端)
+    // Re-throw ApiError as-is (already handled by global error handler)
+    if (error instanceof ApiError) throw error;
+
+    // Classify JWT library errors
     if (
       error &&
       typeof error === "object" &&
       "name" in error &&
       error.name === "JwtTokenExpired"
     ) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_EXPIRED", message: "Token has expired" },
-        },
-        401,
-      );
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
     }
     if (
       error &&
@@ -203,21 +135,9 @@ export const authMiddleware = async (
       "name" in error &&
       error.name === "JwtTokenInvalid"
     ) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "TOKEN_INVALID", message: "Invalid token format" },
-        },
-        401,
-      );
+      throw unauthorized("Invalid token format", "TOKEN_INVALID");
     }
-    return c.json(
-      {
-        success: false,
-        error: { code: "TOKEN_INVALID", message: "Authentication failed" },
-      },
-      401,
-    );
+    throw unauthorized("Authentication failed", "TOKEN_INVALID");
   }
 };
 
@@ -227,26 +147,11 @@ export const requireRole = (allowedRoles: number[]) => {
     const user = c.get("user");
 
     if (!user) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "Authentication required" },
-        },
-        401,
-      );
+      throw unauthorized("Authentication required", "UNAUTHORIZED");
     }
 
     if (!allowedRoles.includes(user.role)) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "INSUFFICIENT_ROLE",
-            message: "Insufficient permissions",
-          },
-        },
-        403,
-      );
+      throw forbidden("Insufficient permissions", "INSUFFICIENT_ROLE");
     }
 
     await next();
@@ -262,13 +167,7 @@ export const requireRestaurantAccess = (
     const restaurantId = c.req.param(restaurantIdParam);
 
     if (!user) {
-      return c.json(
-        {
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "Authentication required" },
-        },
-        401,
-      );
+      throw unauthorized("Authentication required", "UNAUTHORIZED");
     }
 
     // 管理員可以存取所有餐廳
@@ -279,16 +178,7 @@ export const requireRestaurantAccess = (
 
     // 檢查是否有餐廳存取權限
     if (!user.restaurantId || user.restaurantId !== restaurantId) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message: "Access denied to this restaurant",
-          },
-        },
-        403,
-      );
+      throw forbidden("Access denied to this restaurant", "FORBIDDEN");
     }
 
     await next();

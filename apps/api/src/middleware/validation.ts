@@ -1,20 +1,15 @@
 import { Context, Next } from "hono";
 import { z } from "zod";
 import type { Env } from "../types/env";
+import { ApiError, badRequest } from "../shared/utils/api-error";
 
-// Format Zod errors into unified error shape
-const formatValidationError = (error: z.ZodError) => ({
-  success: false as const,
-  error: {
-    code: "VALIDATION_ERROR",
-    message: "Validation failed",
-    details: error.errors.map((err) => ({
-      field: err.path.join("."),
-      message: err.message,
-      code: err.code,
-    })),
-  },
-});
+// Format Zod errors into details array for ApiError
+const formatZodDetails = (error: z.ZodError) =>
+  error.errors.map((err) => ({
+    field: err.path.join("."),
+    message: err.message,
+    code: err.code,
+  }));
 
 // 請求體驗證中間件
 export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
@@ -28,16 +23,14 @@ export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(formatValidationError(error), 400);
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
+        );
       }
 
-      return c.json(
-        {
-          success: false,
-          error: { code: "INVALID_JSON", message: "Invalid JSON body" },
-        },
-        400,
-      );
+      throw badRequest("Invalid JSON body", "INVALID_JSON");
     }
   };
 };
@@ -53,16 +46,14 @@ export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(formatValidationError(error), 400);
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
+        );
       }
 
-      return c.json(
-        {
-          success: false,
-          error: { code: "INVALID_QUERY", message: "Invalid query parameters" },
-        },
-        400,
-      );
+      throw badRequest("Invalid query parameters", "INVALID_QUERY");
     }
   };
 };
@@ -78,16 +69,14 @@ export const validateParams = <T = any>(schema: z.ZodType<T, any, any>) => {
       await next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json(formatValidationError(error), 400);
+        throw badRequest(
+          "Validation failed",
+          "VALIDATION_ERROR",
+          formatZodDetails(error),
+        );
       }
 
-      return c.json(
-        {
-          success: false,
-          error: { code: "INVALID_PARAMS", message: "Invalid path parameters" },
-        },
-        400,
-      );
+      throw badRequest("Invalid path parameters", "INVALID_PARAMS");
     }
   };
 };

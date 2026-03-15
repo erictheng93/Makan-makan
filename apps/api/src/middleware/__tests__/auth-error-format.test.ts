@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
+import { ApiError } from "../../shared/utils/api-error";
 
 // Mock hono/jwt before importing auth
 vi.mock("hono/jwt", () => ({
@@ -9,8 +10,35 @@ vi.mock("hono/jwt", () => ({
 import { authMiddleware, requireRole } from "../auth";
 import { verify } from "hono/jwt";
 
+/** Mini onError handler matching the global handler in index.ts */
+function addErrorHandler(app: Hono) {
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    return c.json(
+      {
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: err.message },
+      },
+      500,
+    );
+  });
+}
+
 function createApp() {
   const app = new Hono();
+  addErrorHandler(app);
   app.use("*", async (c, next) => {
     c.env = {
       JWT_SECRET: "a".repeat(32),
@@ -29,7 +57,7 @@ describe("auth middleware error format", () => {
     const app = createApp();
     const res = await app.request("/protected");
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "MISSING_AUTH_HEADER");
     expect(body.error).toHaveProperty("message");
@@ -49,7 +77,7 @@ describe("auth middleware error format", () => {
       headers: { Authorization: "Bearer valid-token" },
     });
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toHaveProperty("code", "TOKEN_EXPIRED");
   });
 });
@@ -57,6 +85,7 @@ describe("auth middleware error format", () => {
 describe("requireRole error format", () => {
   it("should return unified error shape for insufficient permissions", async () => {
     const app = new Hono();
+    addErrorHandler(app);
     app.use("*", async (c, next) => {
       c.env = { JWT_SECRET: "a".repeat(32) } as any;
       c.set("user", { id: 1, username: "test", role: 2 });
@@ -66,7 +95,7 @@ describe("requireRole error format", () => {
 
     const res = await app.request("/admin");
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toHaveProperty("code", "INSUFFICIENT_ROLE");
     expect(body.error).toHaveProperty("message");
   });

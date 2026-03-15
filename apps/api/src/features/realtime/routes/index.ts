@@ -8,10 +8,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS } from "../../../shared/constants";
-import {
-  ErrorSanitizer,
-  createSafeErrorResponse,
-} from "../../../utils/errorSanitizer";
+
 import { ConsoleLogger } from "../../../core/monitoring";
 
 // Import service and validation schemas
@@ -34,51 +31,43 @@ realtimeRoutes.post(
   "/auth/token",
   zValidator("json", realtimeSchemas.webSocketTokenRequest),
   async (c) => {
-    try {
-      const requestData = c.req.valid("json");
+    const requestData = c.req.valid("json");
 
-      // 初始化認證服務
-      const authService = new RealtimeAuthService(c.env);
+    // 初始化認證服務
+    const authService = new RealtimeAuthService(c.env);
 
-      // 生成 WebSocket token
-      const result = await authService.generateWebSocketToken(requestData);
+    // 生成 WebSocket token
+    const result = await authService.generateWebSocketToken(requestData);
 
-      // 檢查是否有錯誤
-      if ("error" in result) {
-        logger.warn("Failed to generate WebSocket token", {
-          error: result.error,
-          request: requestData,
-        });
-
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      logger.info("WebSocket token generated successfully", {
-        roomType: requestData.roomType,
-        roomId: requestData.roomId,
-        restaurantId: requestData.restaurantId,
+    // 檢查是否有錯誤
+    if ("error" in result) {
+      logger.warn("Failed to generate WebSocket token", {
+        error: result.error,
+        request: requestData,
       });
 
       return c.json(
         {
-          success: true,
-          data: result,
+          success: false,
+          error: result.error,
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "REALTIME_TOKEN_GENERATION");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        HTTP_STATUS.BAD_REQUEST,
       );
     }
+
+    logger.info("WebSocket token generated successfully", {
+      roomType: requestData.roomType,
+      roomId: requestData.roomId,
+      restaurantId: requestData.restaurantId,
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: result,
+      },
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -95,40 +84,32 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    try {
-      const { token } = c.req.valid("json");
+    const { token } = c.req.valid("json");
 
-      const authService = new RealtimeAuthService(c.env);
-      const verification = await authService.verifyWebSocketToken(token);
+    const authService = new RealtimeAuthService(c.env);
+    const verification = await authService.verifyWebSocketToken(token);
 
-      if (!verification.valid) {
-        return c.json(
-          {
-            success: false,
-            error: verification.error || "Invalid token",
-            revoked: verification.revoked || false,
-          },
-          HTTP_STATUS.UNAUTHORIZED,
-        );
-      }
-
+    if (!verification.valid) {
       return c.json(
         {
-          success: true,
-          data: {
-            valid: true,
-            payload: verification.payload,
-          },
+          success: false,
+          error: verification.error || "Invalid token",
+          revoked: verification.revoked || false,
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "REALTIME_TOKEN_VERIFICATION");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        HTTP_STATUS.UNAUTHORIZED,
       );
     }
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          valid: true,
+          payload: verification.payload,
+        },
+      },
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -159,41 +140,33 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    try {
-      const { token, reason, revokedBy } = c.req.valid("json");
+    const { token, reason, revokedBy } = c.req.valid("json");
 
-      const authService = new RealtimeAuthService(c.env);
-      const result = await authService.revokeToken(token, reason, revokedBy);
+    const authService = new RealtimeAuthService(c.env);
+    const result = await authService.revokeToken(token, reason, revokedBy);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error || "Failed to revoke token",
-          },
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      logger.info("Token revoked via API", { reason, revokedBy });
-
+    if (!result.success) {
       return c.json(
         {
-          success: true,
-          data: {
-            revoked: true,
-            reason,
-          },
+          success: false,
+          error: result.error || "Failed to revoke token",
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "REALTIME_TOKEN_REVOCATION");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
     }
+
+    logger.info("Token revoked via API", { reason, revokedBy });
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          revoked: true,
+          reason,
+        },
+      },
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -224,50 +197,42 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    try {
-      const { userId, reason, revokedBy } = c.req.valid("json");
+    const { userId, reason, revokedBy } = c.req.valid("json");
 
-      const authService = new RealtimeAuthService(c.env);
-      const result = await authService.revokeUserTokens(
-        userId,
-        reason,
-        revokedBy,
-      );
+    const authService = new RealtimeAuthService(c.env);
+    const result = await authService.revokeUserTokens(
+      userId,
+      reason,
+      revokedBy,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error || "Failed to revoke user tokens",
-          },
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      logger.info("User tokens revoked via API", {
-        userId,
-        count: result.count,
-        reason,
-      });
-
+    if (!result.success) {
       return c.json(
         {
-          success: true,
-          data: {
-            userId,
-            revokedCount: result.count,
-            reason,
-          },
+          success: false,
+          error: result.error || "Failed to revoke user tokens",
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      ErrorSanitizer.logAndSanitize(error, "REALTIME_USER_TOKEN_REVOCATION");
-      return c.json(
-        createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
     }
+
+    logger.info("User tokens revoked via API", {
+      userId,
+      count: result.count,
+      reason,
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          userId,
+          revokedCount: result.count,
+          reason,
+        },
+      },
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -276,24 +241,16 @@ realtimeRoutes.post(
  * GET /auth/blacklist/stats
  */
 realtimeRoutes.get("/auth/blacklist/stats", async (c) => {
-  try {
-    const authService = new RealtimeAuthService(c.env);
-    const stats = await authService.getBlacklistStats();
+  const authService = new RealtimeAuthService(c.env);
+  const stats = await authService.getBlacklistStats();
 
-    return c.json(
-      {
-        success: true,
-        data: stats,
-      },
-      HTTP_STATUS.OK,
-    );
-  } catch (error) {
-    ErrorSanitizer.logAndSanitize(error, "REALTIME_BLACKLIST_STATS");
-    return c.json(
-      createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
-    );
-  }
+  return c.json(
+    {
+      success: true,
+      data: stats,
+    },
+    HTTP_STATUS.OK,
+  );
 });
 
 /**
@@ -301,57 +258,49 @@ realtimeRoutes.get("/auth/blacklist/stats", async (c) => {
  * GET /stats/:roomType/:roomId
  */
 realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
-  try {
-    const roomType = c.req.param("roomType");
-    const roomId = c.req.param("roomId");
+  const roomType = c.req.param("roomType");
+  const roomId = c.req.param("roomId");
 
-    // 驗證 roomType
-    const validRoomTypes = ["customer", "kitchen", "admin", "restaurant"];
-    if (!validRoomTypes.includes(roomType)) {
-      return c.json(
-        {
-          success: false,
-          error: `Invalid room type. Must be one of: ${validRoomTypes.join(", ")}`,
-        },
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    // 調用 Realtime 服務獲取統計
-    const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
-    const response = await fetch(`${realtimeUrl}/stats/${roomType}/${roomId}`);
-
-    if (!response.ok) {
-      logger.warn("Failed to fetch realtime stats", {
-        roomType,
-        roomId,
-        status: response.status,
-      });
-      return c.json(
-        {
-          success: false,
-          error: "Failed to fetch realtime statistics",
-        },
-        response.status as 400 | 404 | 500,
-      );
-    }
-
-    const stats = await response.json();
-
+  // 驗證 roomType
+  const validRoomTypes = ["customer", "kitchen", "admin", "restaurant"];
+  if (!validRoomTypes.includes(roomType)) {
     return c.json(
       {
-        success: true,
-        data: stats,
+        success: false,
+        error: `Invalid room type. Must be one of: ${validRoomTypes.join(", ")}`,
       },
-      HTTP_STATUS.OK,
-    );
-  } catch (error) {
-    ErrorSanitizer.logAndSanitize(error, "REALTIME_STATS_FETCH");
-    return c.json(
-      createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
+
+  // 調用 Realtime 服務獲取統計
+  const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
+  const response = await fetch(`${realtimeUrl}/stats/${roomType}/${roomId}`);
+
+  if (!response.ok) {
+    logger.warn("Failed to fetch realtime stats", {
+      roomType,
+      roomId,
+      status: response.status,
+    });
+    return c.json(
+      {
+        success: false,
+        error: "Failed to fetch realtime statistics",
+      },
+      response.status as 400 | 404 | 500,
+    );
+  }
+
+  const stats = await response.json();
+
+  return c.json(
+    {
+      success: true,
+      data: stats,
+    },
+    HTTP_STATUS.OK,
+  );
 });
 
 /**
@@ -361,77 +310,69 @@ realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
  * 返回所有活躍房間的聚合統計信息
  */
 realtimeRoutes.get("/stats/overview", async (c) => {
-  try {
-    const restaurantId = c.req.query("restaurantId");
+  const restaurantId = c.req.query("restaurantId");
 
-    if (!restaurantId) {
-      return c.json(
-        {
-          success: false,
-          error: "Restaurant ID is required",
-        },
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
-
-    // 並行獲取各房間類型的統計
-    const roomTypes = ["kitchen", "admin", "customer"];
-    const statsPromises = roomTypes.map(async (roomType) => {
-      try {
-        const response = await fetch(
-          `${realtimeUrl}/stats/${roomType}/${restaurantId}`,
-        );
-        if (response.ok) {
-          const data = (await response.json()) as Record<string, unknown>;
-          return { roomType, ...data, status: "active" };
-        }
-        return { roomType, connectionCount: 0, status: "inactive" };
-      } catch {
-        return { roomType, connectionCount: 0, status: "error" };
-      }
-    });
-
-    const roomStats = await Promise.all(statsPromises);
-
-    // 計算總計
-    const totalConnections = roomStats.reduce((sum, room) => {
-      const count =
-        typeof room.connectionCount === "number" ? room.connectionCount : 0;
-      return sum + count;
-    }, 0);
-
-    const overview = {
-      restaurantId,
-      timestamp: new Date().toISOString(),
-      totalConnections,
-      roomStats,
-      health: {
-        status: totalConnections > 0 ? "healthy" : "idle",
-        lastChecked: new Date().toISOString(),
-      },
-    };
-
-    logger.info("Realtime overview fetched", {
-      restaurantId,
-      totalConnections,
-    });
-
+  if (!restaurantId) {
     return c.json(
       {
-        success: true,
-        data: overview,
+        success: false,
+        error: "Restaurant ID is required",
       },
-      HTTP_STATUS.OK,
-    );
-  } catch (error) {
-    ErrorSanitizer.logAndSanitize(error, "REALTIME_OVERVIEW_FETCH");
-    return c.json(
-      createSafeErrorResponse(error, HTTP_STATUS.INTERNAL_SERVER_ERROR),
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
+
+  const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
+
+  // 並行獲取各房間類型的統計
+  const roomTypes = ["kitchen", "admin", "customer"];
+  const statsPromises = roomTypes.map(async (roomType) => {
+    try {
+      const response = await fetch(
+        `${realtimeUrl}/stats/${roomType}/${restaurantId}`,
+      );
+      if (response.ok) {
+        const data = (await response.json()) as Record<string, unknown>;
+        return { roomType, ...data, status: "active" };
+      }
+      return { roomType, connectionCount: 0, status: "inactive" };
+    } catch {
+      return { roomType, connectionCount: 0, status: "error" };
+    }
+  });
+
+  const roomStats = await Promise.all(statsPromises);
+
+  // 計算總計
+  const totalConnections = roomStats.reduce((sum, room) => {
+    const count =
+      typeof room.connectionCount === "number" ? room.connectionCount : 0;
+    return sum + count;
+  }, 0);
+
+  const overview = {
+    restaurantId,
+    timestamp: new Date().toISOString(),
+    totalConnections,
+    roomStats,
+    health: {
+      status: totalConnections > 0 ? "healthy" : "idle",
+      lastChecked: new Date().toISOString(),
+    },
+  };
+
+  logger.info("Realtime overview fetched", {
+    restaurantId,
+    totalConnections,
+  });
+
+  return c.json(
+    {
+      success: true,
+      data: overview,
+    },
+    HTTP_STATUS.OK,
+  );
 });
 
 /**

@@ -204,7 +204,7 @@ export class ErrorSanitizer {
 
       // Generic error with sanitized message
       return {
-        type: defaultType as any,
+        type: defaultType as SanitizedError["type"],
         message: this.sanitizeMessage(message),
         code: "GENERIC_ERROR",
       };
@@ -213,7 +213,7 @@ export class ErrorSanitizer {
     // Handle non-Error objects
     if (typeof error === "string") {
       return {
-        type: defaultType as any,
+        type: defaultType as SanitizedError["type"],
         message: this.sanitizeMessage(error),
         code: "STRING_ERROR",
       };
@@ -221,7 +221,7 @@ export class ErrorSanitizer {
 
     // Handle object errors (like HTTP responses)
     if (typeof error === "object" && error !== null) {
-      const errorObj = error as any;
+      const errorObj = error as Record<string, unknown>;
       if (errorObj.message) {
         return this.sanitizeError(errorObj.message, defaultType);
       }
@@ -235,24 +235,6 @@ export class ErrorSanitizer {
       type: "server_error",
       message: this.GENERIC_MESSAGES.unknown,
       code: "UNKNOWN_ERROR",
-    };
-  }
-
-  /**
-   * Creates a safe error response for API endpoints
-   */
-  public static createErrorResponse(error: unknown, _statusCode: number = 500) {
-    const sanitized = this.sanitizeError(error);
-
-    return {
-      success: false,
-      error: sanitized.message,
-      code: sanitized.code,
-      type: sanitized.type,
-      timestamp: new Date().toISOString(),
-      // Only include requestId in development for debugging
-      // Note: In Workers, use env.NODE_ENV from bindings instead of process.env
-      requestId: Math.random().toString(36).substring(7),
     };
   }
 
@@ -294,12 +276,4 @@ export class ErrorSanitizer {
 
     return false;
   }
-}
-
-// Convenience function for creating safe error responses
-export function createSafeErrorResponse(
-  error: unknown,
-  statusCode: number = 500,
-) {
-  return ErrorSanitizer.createErrorResponse(error, statusCode);
 }

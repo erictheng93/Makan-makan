@@ -347,8 +347,12 @@ export function createAuthRoutes(
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
 
-      // Add token to blacklist
-      await blacklistToken(c, token);
+      // Add token to blacklist (non-critical — don't let failure stop logout)
+      try {
+        await blacklistToken(c, token);
+      } catch {
+        // Swallow blacklist errors — logout should still succeed
+      }
     }
 
     // Initialize auth service

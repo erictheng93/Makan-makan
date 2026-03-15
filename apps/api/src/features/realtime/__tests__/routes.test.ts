@@ -20,15 +20,7 @@ vi.mock("../../../core/monitoring", () => ({
   }),
 }));
 
-vi.mock("../../../utils/errorSanitizer", () => ({
-  ErrorSanitizer: {
-    logAndSanitize: vi.fn(),
-  },
-  createSafeErrorResponse: vi.fn().mockReturnValue({
-    success: false,
-    error: "Internal server error",
-  }),
-}));
+// errorSanitizer no longer used in realtime routes (errors propagate to global handler)
 
 describe("Realtime Routes", () => {
   let app: Hono<{ Bindings: Env }>;
