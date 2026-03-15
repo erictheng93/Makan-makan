@@ -390,6 +390,66 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - Complete audit trail for all operations
 - Role-based access control (RBAC)
 
+## Coding Conventions
+
+### Error Response Format (Enforced)
+
+All API error responses MUST use the unified format:
+
+```typescript
+{
+  success: false,
+  error: {
+    code: string,       // e.g. "NOT_FOUND", "VALIDATION_ERROR"
+    message: string,    // user-safe message (auto-sanitized)
+    details?: unknown   // optional: field-level validation errors
+  }
+}
+```
+
+**How to use:**
+
+- Throw `ApiError` from route handlers/services — the global `app.onError` handler formats it automatically
+- Use factory functions: `notFound()`, `badRequest()`, `unauthorized()`, `forbidden()`, `conflict()` from `shared/utils/api-error.ts`
+- Do NOT write try-catch in route handlers for error formatting — let errors propagate to the global handler
+- Validation middleware and auth middleware already produce this format
+
+**Example:**
+
+```typescript
+import { notFound } from "../../../shared/utils/api-error";
+
+app.get("/:id", async (c) => {
+  const item = await service.getById(id);
+  if (!item) throw notFound("Item not found", "ITEM_NOT_FOUND");
+  return c.json({ success: true, data: item });
+});
+```
+
+### Database Query Pattern (New Features)
+
+New feature services MUST use **Drizzle ORM** for all database queries. Do NOT use raw D1 `db.prepare()` SQL in new code.
+
+**Why:** The codebase has 4 legacy query patterns (raw SQL, BaseService, DB delegation, Drizzle). Drizzle provides type-safe queries derived from the schema — column renames/type changes are caught at compile time. Raw SQL requires manual type assertions that can silently drift.
+
+**How to use:**
+
+```typescript
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and } from "drizzle-orm";
+import { myTable } from "@makanmakan/database";
+
+const db = drizzle(env.DB);
+const results = await db
+  .select()
+  .from(myTable)
+  .where(eq(myTable.restaurantId, id));
+```
+
+**Reference implementation:** `apps/api/src/features/integrations/services/PlatformIntegrationService.ts`
+
+**Existing legacy code:** Raw SQL in existing services (forecast, POS, etc.) is acceptable until those services are individually migrated. Do not refactor them unless you are already modifying that service for other reasons.
+
 ## Error Handling
 
 ### Common Issues
