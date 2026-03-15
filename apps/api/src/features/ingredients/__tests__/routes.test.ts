@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import routes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // Mock auth middleware to pass through
 vi.mock("../../../middleware/auth", () => ({
@@ -109,6 +110,23 @@ describe("Ingredient Routes", () => {
       await next();
     });
     app.route("/", routes);
+
+    // Mirror global error handler for ApiError
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          { success: false, error: { code: err.code, message: err.message } },
+          err.status as any,
+        );
+      }
+      return c.json(
+        {
+          success: false,
+          error: { code: "INTERNAL_ERROR", message: err.message },
+        },
+        500,
+      );
+    });
   });
 
   describe("GET /:restaurantId", () => {

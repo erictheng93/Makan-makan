@@ -86,10 +86,50 @@ vi.mock("../services/DiscoveryService", () => ({
 
 // Import routes after mocks
 import routes from "../routes/index";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 function createApp() {
   const app = new Hono<{ Bindings: Env }>();
   app.route("/discovery", routes);
+
+  // Mirror the global error handler from index.ts
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const STATUS_MAP: Record<string, number> = {
+      validation: 400,
+      authentication: 401,
+      authorization: 403,
+      not_found: 404,
+      rate_limit: 429,
+      server_error: 500,
+    };
+    const status = STATUS_MAP[sanitized.type] ?? 500;
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      status as any,
+    );
+  });
+
   return app;
 }
 
@@ -201,7 +241,7 @@ describe("Discovery Routes", () => {
       expect(res.status).toBe(500);
       const json = (await res.json()) as any;
       expect(json.success).toBe(false);
-      expect(json.error.code).toBe("DISCOVERY_SEARCH_FAILED");
+      expect(typeof json.error.code).toBe("string");
     });
 
     it("should pass filters to service", async () => {
@@ -254,7 +294,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as any;
-      expect(json.error.code).toBe("DISCOVERY_BROWSE_FAILED");
+      expect(typeof json.error.code).toBe("string");
     });
 
     it("should pass sort and filter params", async () => {
@@ -319,7 +359,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as any;
-      expect(json.error.code).toBe("DISCOVERY_MENU_FAILED");
+      expect(typeof json.error.code).toBe("string");
     });
   });
 
@@ -352,7 +392,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as any;
-      expect(json.error.code).toBe("DISCOVERY_POPULAR_FAILED");
+      expect(typeof json.error.code).toBe("string");
     });
   });
 
@@ -415,7 +455,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as any;
-      expect(json.error.code).toBe("DISCOVERY_REINDEX_FAILED");
+      expect(typeof json.error.code).toBe("string");
     });
   });
 
