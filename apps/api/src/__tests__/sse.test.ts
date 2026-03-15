@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import sseFeature from "../features/sse";
 import { createMockContext, mockEnv, mockUser } from "./setup";
 import type { Env } from "../types/env";
+import { ApiError } from "../shared/utils/api-error";
+import { ErrorSanitizer } from "../utils/errorSanitizer";
 
 // Mock auth middleware to bypass JWT verification in tests
 vi.mock("../middleware/auth", () => ({
@@ -69,6 +71,33 @@ describe("SSE Routes", () => {
       const testApp = new Hono<{ Bindings: Env }>();
       testApp.get("/connections", authMiddleware, async (c) => {
         return c.json({ success: true });
+      });
+      testApp.onError((err, c) => {
+        if (err instanceof ApiError) {
+          return c.json(
+            { success: false, error: { code: err.code, message: err.message } },
+            err.status as any,
+          );
+        }
+        const sanitized = ErrorSanitizer.sanitizeError(err);
+        const STATUS_MAP: Record<string, number> = {
+          validation: 400,
+          authentication: 401,
+          authorization: 403,
+          not_found: 404,
+          rate_limit: 429,
+          server_error: 500,
+        };
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: sanitized.code ?? "INTERNAL_ERROR",
+              message: sanitized.message,
+            },
+          },
+          (STATUS_MAP[sanitized.type] ?? 500) as any,
+        );
       });
 
       const req = new Request("http://localhost/connections?restaurant_id=1", {

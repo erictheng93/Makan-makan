@@ -356,7 +356,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/not found|expired/i);
+      expect(data.error.message).toMatch(/not found|expired/i);
     });
 
     it("should reject duplicate member names in the same group", async () => {
@@ -388,7 +388,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/already exists/i);
+      expect(data.error.message).toMatch(/already exists/i);
     });
 
     it("should reject joining when group is full", async () => {
@@ -424,7 +424,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/full/i);
+      expect(data.error.message).toMatch(/full/i);
     });
   });
 
@@ -544,7 +544,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/not found/i);
+      expect(data.error.message).toMatch(/not found/i);
     });
 
     it("should reject adding item with invalid quantity", async () => {
@@ -693,7 +693,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/not found/i);
+      expect(data.error.message).toMatch(/not found/i);
     });
   });
 
@@ -795,7 +795,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/not found|not owned/i);
+      expect(data.error.message).toMatch(/not found|not owned/i);
     });
   });
 
@@ -892,7 +892,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(404);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/not found/i);
+      expect(data.error.message).toMatch(/not found/i);
     });
   });
 
@@ -1400,7 +1400,7 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(403);
       const data = (await response.json()) as any;
       expect(data.success).toBe(false);
-      expect(data.error).toMatch(/access denied/i);
+      expect(data.error.message).toMatch(/access denied/i);
     });
   });
 

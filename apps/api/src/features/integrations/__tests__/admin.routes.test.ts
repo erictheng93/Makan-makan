@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 
@@ -108,6 +110,42 @@ function buildApp(userRole: number | null) {
   }
 
   app.route("/integrations", adminRoutes);
+
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const STATUS_MAP: Record<string, number> = {
+      validation: 400,
+      authentication: 401,
+      authorization: 403,
+      not_found: 404,
+      rate_limit: 429,
+      server_error: 500,
+    };
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      (STATUS_MAP[sanitized.type] ?? 500) as any,
+    );
+  });
+
   return app;
 }
 
@@ -430,9 +468,13 @@ describe("Admin Routes — POST /:restaurantId/:platform/menu-sync", () => {
     const res = await app.fetch(req, mockEnv);
     expect(res.status).toBe(500);
 
-    const json = (await res.json()) as { success: boolean; error: string };
+    const json = (await res.json()) as {
+      success: boolean;
+      error: { code: string; message: string };
+    };
     expect(json.success).toBe(false);
-    expect(json.error).toBe("Sync failed: API down");
+    expect(json.error).toHaveProperty("code");
+    expect(json.error).toHaveProperty("message");
   });
 });
 

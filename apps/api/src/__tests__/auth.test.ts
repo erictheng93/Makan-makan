@@ -205,10 +205,10 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(400);
       expect(result.success).toBe(false);
-      // API uses Zod validation which returns ZodError format
+      // Unified error format: { code, message }
       expect(result.error).toBeDefined();
-      expect(result.error.name).toBe("ZodError");
-      expect(result.error.issues[0].path).toContain("password");
+      expect(result.error).toHaveProperty("code");
+      expect(result.error).toHaveProperty("message");
     });
   });
 

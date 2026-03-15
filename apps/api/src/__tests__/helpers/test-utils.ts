@@ -10,6 +10,8 @@ import type { Env } from "../../types/env";
 import { vi } from "vitest";
 import { sign } from "jsonwebtoken";
 import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
+import { ApiError } from "../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../utils/errorSanitizer";
 
 // Import all feature routes
 import restaurantsFeature from "../../features/restaurants";
@@ -704,6 +706,42 @@ export async function getGlobalTestDB() {
  */
 export async function createTestApp(customDB?: any) {
   const app = new Hono<{ Bindings: Env }>();
+
+  // Add unified error handler matching production index.ts
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const STATUS_MAP: Record<string, number> = {
+      validation: 400,
+      authentication: 401,
+      authorization: 403,
+      not_found: 404,
+      rate_limit: 429,
+      server_error: 500,
+    };
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      (STATUS_MAP[sanitized.type] ?? 500) as any,
+    );
+  });
 
   // Reuse dataStore from customDB if available, otherwise create new one
   let dataStore: SharedDataStore;

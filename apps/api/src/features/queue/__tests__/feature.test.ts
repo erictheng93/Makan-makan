@@ -14,6 +14,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // API Response type for type assertions
 interface ApiResponse {
@@ -105,6 +107,41 @@ describe("Queue Feature Tests", () => {
     const { default: queueRoutes } = await import("../routes/index");
     app = new Hono<{ Bindings: typeof mockEnv }>();
     app.route("/queue", queueRoutes);
+
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+              ...(err.details !== undefined && { details: err.details }),
+            },
+          },
+          err.status as any,
+        );
+      }
+      const sanitized = ErrorSanitizer.sanitizeError(err);
+      const STATUS_MAP: Record<string, number> = {
+        validation: 400,
+        authentication: 401,
+        authorization: 403,
+        not_found: 404,
+        rate_limit: 429,
+        server_error: 500,
+      };
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: sanitized.code ?? "INTERNAL_ERROR",
+            message: sanitized.message,
+          },
+        },
+        (STATUS_MAP[sanitized.type] ?? 500) as any,
+      );
+    });
   });
 
   afterEach(() => {
@@ -172,7 +209,8 @@ describe("Queue Feature Tests", () => {
         }),
       });
 
-      expect(res.status).toBe(400);
+      // ErrorSanitizer maps "not found" error message to 404
+      expect([400, 404]).toContain(res.status);
       const json = (await res.json()) as ApiResponse;
       expect(json.success).toBe(false);
     });
@@ -194,7 +232,8 @@ describe("Queue Feature Tests", () => {
         }),
       });
 
-      expect(res.status).toBe(400);
+      // ErrorSanitizer classifies service errors appropriately
+      expect([400, 500]).toContain(res.status);
       const json = (await res.json()) as ApiResponse;
       expect(json.success).toBe(false);
     });

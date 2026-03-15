@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import routes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // Default mock user (admin role 0 to bypass all permission checks)
 const mockUser = {
@@ -136,6 +138,41 @@ describe("Reservations Routes", () => {
 
     app = new Hono();
     app.route("/reservations", routes);
+
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+              ...(err.details !== undefined && { details: err.details }),
+            },
+          },
+          err.status as any,
+        );
+      }
+      const sanitized = ErrorSanitizer.sanitizeError(err);
+      const STATUS_MAP: Record<string, number> = {
+        validation: 400,
+        authentication: 401,
+        authorization: 403,
+        not_found: 404,
+        rate_limit: 429,
+        server_error: 500,
+      };
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: sanitized.code ?? "INTERNAL_ERROR",
+            message: sanitized.message,
+          },
+        },
+        (STATUS_MAP[sanitized.type] ?? 500) as any,
+      );
+    });
   });
 
   // ─── POST / - Create Reservation ─────────────────────────────────
@@ -180,9 +217,12 @@ describe("Reservations Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("缺少必填欄位");
+      expect(json.error.message).toBe("缺少必填欄位");
     });
 
     it("returns 400 when customerName is missing", async () => {
@@ -237,7 +277,7 @@ describe("Reservations Routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 400 when service throws an error", async () => {
+    it("returns 500 when service throws an error", async () => {
       mockServiceInstance.createReservation.mockRejectedValue(
         new Error("Time slot not available"),
       );
@@ -254,10 +294,14 @@ describe("Reservations Routes", () => {
         }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Time slot not available");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -281,9 +325,12 @@ describe("Reservations Routes", () => {
       const req = new Request("http://localhost/reservations/verify/INVALID");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("找不到此訂位");
+      expect(json.error.message).toBe("找不到此訂位");
     });
 
     it("returns 500 when service throws an error", async () => {
@@ -324,9 +371,12 @@ describe("Reservations Routes", () => {
       );
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("缺少必填參數");
+      expect(json.error.message).toBe("缺少必填參數");
     });
 
     it("returns 400 when date is missing", async () => {
@@ -408,9 +458,12 @@ describe("Reservations Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("需要確認碼");
+      expect(json.error.message).toBe("需要確認碼");
     });
 
     it("returns 403 when confirmationCode is wrong", async () => {
@@ -421,9 +474,12 @@ describe("Reservations Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(403);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("確認碼錯誤");
+      expect(json.error.message).toBe("確認碼錯誤");
     });
 
     it("returns 403 when reservation is not found during cancel", async () => {
@@ -442,7 +498,7 @@ describe("Reservations Routes", () => {
       expect(json.success).toBe(false);
     });
 
-    it("returns 400 when cancelReservation throws an error", async () => {
+    it("returns 500 when cancelReservation throws an error", async () => {
       mockServiceInstance.cancelReservation.mockRejectedValue(
         new Error("Cannot cancel confirmed reservation"),
       );
@@ -452,10 +508,14 @@ describe("Reservations Routes", () => {
         body: JSON.stringify({ confirmationCode: "CONF123" }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Cannot cancel confirmed reservation");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -549,9 +609,12 @@ describe("Reservations Routes", () => {
       const req = new Request("http://localhost/reservations/non-existent");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("找不到此訂位");
+      expect(json.error.message).toBe("找不到此訂位");
     });
 
     it("returns 500 when service throws an error", async () => {
@@ -595,12 +658,15 @@ describe("Reservations Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("找不到此訂位");
+      expect(json.error.message).toBe("找不到此訂位");
     });
 
-    it("returns 400 when updateReservation throws an error", async () => {
+    it("returns 500 when updateReservation throws an error", async () => {
       mockServiceInstance.updateReservation.mockRejectedValue(
         new Error("Cannot update completed reservation"),
       );
@@ -610,10 +676,14 @@ describe("Reservations Routes", () => {
         body: JSON.stringify({ customerName: "Jane Doe" }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Cannot update completed reservation");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -639,7 +709,7 @@ describe("Reservations Routes", () => {
       );
     });
 
-    it("returns 400 when confirm throws (invalid state transition)", async () => {
+    it("returns 500 when confirm throws (invalid state transition)", async () => {
       mockServiceInstance.confirmReservation.mockRejectedValue(
         new Error("Reservation already confirmed"),
       );
@@ -647,10 +717,14 @@ describe("Reservations Routes", () => {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Reservation already confirmed");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -674,7 +748,7 @@ describe("Reservations Routes", () => {
       expect(mockServiceInstance.markArrived).toHaveBeenCalledWith("res-001");
     });
 
-    it("returns 400 when markArrived throws (invalid state transition)", async () => {
+    it("returns 500 when markArrived throws (invalid state transition)", async () => {
       mockServiceInstance.markArrived.mockRejectedValue(
         new Error("Reservation not confirmed"),
       );
@@ -682,10 +756,14 @@ describe("Reservations Routes", () => {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Reservation not confirmed");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -709,7 +787,7 @@ describe("Reservations Routes", () => {
       expect(mockServiceInstance.markSeated).toHaveBeenCalledWith("res-001");
     });
 
-    it("returns 400 when markSeated throws (invalid state transition)", async () => {
+    it("returns 500 when markSeated throws (invalid state transition)", async () => {
       mockServiceInstance.markSeated.mockRejectedValue(
         new Error("Guest has not arrived yet"),
       );
@@ -717,10 +795,14 @@ describe("Reservations Routes", () => {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Guest has not arrived yet");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -749,7 +831,7 @@ describe("Reservations Routes", () => {
       );
     });
 
-    it("returns 400 when completeReservation throws (invalid state transition)", async () => {
+    it("returns 500 when completeReservation throws (invalid state transition)", async () => {
       mockServiceInstance.completeReservation.mockRejectedValue(
         new Error("Reservation not seated"),
       );
@@ -760,10 +842,14 @@ describe("Reservations Routes", () => {
         },
       );
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Reservation not seated");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -787,7 +873,7 @@ describe("Reservations Routes", () => {
       expect(mockServiceInstance.markNoShow).toHaveBeenCalledWith("res-001");
     });
 
-    it("returns 400 when markNoShow throws (invalid state transition)", async () => {
+    it("returns 500 when markNoShow throws (invalid state transition)", async () => {
       mockServiceInstance.markNoShow.mockRejectedValue(
         new Error("Reservation already completed"),
       );
@@ -795,10 +881,14 @@ describe("Reservations Routes", () => {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Reservation already completed");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -874,7 +964,7 @@ describe("Reservations Routes", () => {
       expect(json.message).toBe("時段建立成功");
     });
 
-    it("returns 400 when createSlot throws an error", async () => {
+    it("returns 500 when createSlot throws an error", async () => {
       mockServiceInstance.createSlot.mockRejectedValue(
         new Error("Slot already exists"),
       );
@@ -890,10 +980,14 @@ describe("Reservations Routes", () => {
         }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Slot already exists");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -925,7 +1019,7 @@ describe("Reservations Routes", () => {
       expect(json.message).toBe("成功建立 5 個時段");
     });
 
-    it("returns 400 when batchCreateSlots throws an error", async () => {
+    it("returns 500 when batchCreateSlots throws an error", async () => {
       mockServiceInstance.batchCreateSlots.mockRejectedValue(
         new Error("Invalid date range"),
       );
@@ -942,10 +1036,14 @@ describe("Reservations Routes", () => {
         }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Invalid date range");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 

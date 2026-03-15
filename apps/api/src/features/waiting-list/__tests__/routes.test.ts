@@ -6,6 +6,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // Mock auth middleware to pass through by default
 vi.mock("../../../middleware/auth", () => ({
@@ -35,6 +37,44 @@ vi.mock("@makanmakan/database", () => ({
 }));
 
 const mockEnv = { DB: {}, CACHE_KV: {} };
+
+// Helper to attach the unified error handler to any test app
+function attachOnError(honoApp: Hono): void {
+  honoApp.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const STATUS_MAP: Record<string, number> = {
+      validation: 400,
+      authentication: 401,
+      authorization: 403,
+      not_found: 404,
+      rate_limit: 429,
+      server_error: 500,
+    };
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      (STATUS_MAP[sanitized.type] ?? 500) as any,
+    );
+  });
+}
 
 describe("Waiting List Routes", () => {
   let app: Hono;
@@ -143,6 +183,7 @@ describe("Waiting List Routes", () => {
     });
 
     app.route("/waiting-list", routesModule.default);
+    attachOnError(app);
   });
 
   // ─── POST / - Join Waiting List ──────────────────────────────────
@@ -235,7 +276,7 @@ describe("Waiting List Routes", () => {
       expect(json.message).toContain("A005");
     });
 
-    it("returns 400 when service throws an error", async () => {
+    it("returns 500 when service throws an error", async () => {
       mockServiceInstance.joinWaitingList.mockRejectedValue(
         new Error("Queue is closed"),
       );
@@ -250,10 +291,14 @@ describe("Waiting List Routes", () => {
         }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Queue is closed");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -432,7 +477,7 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("cancelled");
     });
 
-    it("returns 400 when cancel service throws", async () => {
+    it("returns 500 when cancel service throws", async () => {
       mockServiceInstance.getWaitingListEntryById.mockResolvedValue({
         id: "wait-001",
         customerPhone: "0912345678",
@@ -447,10 +492,14 @@ describe("Waiting List Routes", () => {
         body: JSON.stringify({ customerPhone: "0912345678" }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Cannot cancel at this state");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -476,7 +525,7 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("confirmed");
     });
 
-    it("returns 400 when service throws", async () => {
+    it("returns 500 when service throws", async () => {
       mockServiceInstance.confirmWaiting.mockRejectedValue(
         new Error("Invalid state transition"),
       );
@@ -489,10 +538,14 @@ describe("Waiting List Routes", () => {
         },
       );
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Invalid state transition");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -593,6 +646,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appWithDiffRestaurant.route("/waiting-list", routesModule.default);
+      attachOnError(appWithDiffRestaurant);
 
       const req = new Request("http://localhost/waiting-list/wait-001/call", {
         method: "POST",
@@ -619,7 +673,7 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("called");
     });
 
-    it("returns 400 when call service throws", async () => {
+    it("returns 500 when call service throws", async () => {
       mockServiceInstance.callWaiting.mockRejectedValue(
         new Error("Table not available"),
       );
@@ -629,10 +683,14 @@ describe("Waiting List Routes", () => {
         body: JSON.stringify({ tableId: "table-001" }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Table not available");
+      expect(json.error).toHaveProperty("code");
+      expect(json.error).toHaveProperty("message");
     });
   });
 
@@ -668,6 +726,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appWithDiffRestaurant.route("/waiting-list", routesModule.default);
+      attachOnError(appWithDiffRestaurant);
 
       const req = new Request("http://localhost/waiting-list/wait-001/seat", {
         method: "POST",
@@ -694,7 +753,7 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("seated");
     });
 
-    it("returns 400 when service throws", async () => {
+    it("returns 500 when service throws", async () => {
       mockServiceInstance.markSeated.mockRejectedValue(
         new Error("Invalid state"),
       );
@@ -704,7 +763,7 @@ describe("Waiting List Routes", () => {
         body: JSON.stringify({}),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(500);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
@@ -742,6 +801,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appWithDiffRestaurant.route("/waiting-list", routesModule.default);
+      attachOnError(appWithDiffRestaurant);
 
       const req = new Request("http://localhost/waiting-list/wait-001/expire", {
         method: "POST",
@@ -768,7 +828,7 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("expired");
     });
 
-    it("returns 400 when service throws", async () => {
+    it("returns 500 when service throws", async () => {
       mockServiceInstance.expireWaiting.mockRejectedValue(
         new Error("Cannot expire in current state"),
       );
@@ -778,7 +838,7 @@ describe("Waiting List Routes", () => {
         body: JSON.stringify({}),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(500);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
@@ -814,6 +874,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appWithDiffRestaurant.route("/waiting-list", routesModule.default);
+      attachOnError(appWithDiffRestaurant);
 
       const req = new Request(
         "http://localhost/waiting-list/stats/other-restaurant",
@@ -837,6 +898,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appAdmin.route("/waiting-list", routesModule.default);
+      attachOnError(appAdmin);
 
       const req = new Request(
         "http://localhost/waiting-list/stats/any-restaurant",
@@ -911,6 +973,7 @@ describe("Waiting List Routes", () => {
       });
       const routesModule = await import("../routes/index");
       appAdmin.route("/waiting-list", routesModule.default);
+      attachOnError(appAdmin);
 
       const req = new Request("http://localhost/waiting-list/batch-call", {
         method: "POST",

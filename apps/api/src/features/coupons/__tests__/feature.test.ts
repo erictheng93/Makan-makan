@@ -7,6 +7,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import couponsRoutes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // Mock CouponsService
 const mockCouponsService = {
@@ -60,6 +62,43 @@ vi.mock("../../../middleware/validation", () => ({
   },
 }));
 
+function attachOnError(honoApp: Hono): void {
+  honoApp.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details !== undefined && { details: err.details }),
+          },
+        },
+        err.status as any,
+      );
+    }
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const STATUS_MAP: Record<string, number> = {
+      validation: 400,
+      authentication: 401,
+      authorization: 403,
+      not_found: 404,
+      rate_limit: 429,
+      server_error: 500,
+    };
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      (STATUS_MAP[sanitized.type] ?? 500) as any,
+    );
+  });
+}
+
 describe("Coupons Feature Module", () => {
   let app: Hono;
 
@@ -67,6 +106,7 @@ describe("Coupons Feature Module", () => {
     vi.clearAllMocks();
     app = new Hono();
     app.route("/coupons", couponsRoutes);
+    attachOnError(app);
   });
 
   describe("POST /coupons/validate", () => {
@@ -93,6 +133,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/validate", {
         method: "POST",
@@ -134,6 +175,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/validate", {
         method: "POST",
@@ -171,6 +213,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/available/1");
 
@@ -212,6 +255,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/", {
         method: "POST",
@@ -256,6 +300,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/");
 
@@ -294,6 +339,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/bulk", {
         method: "POST",
@@ -326,6 +372,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/bulk", {
         method: "POST",
@@ -336,7 +383,7 @@ describe("Coupons Feature Module", () => {
       expect(res.status).toBe(403);
       const data: any = await res.json();
       expect(data.success).toBe(false);
-      expect(data.error).toContain("Access denied");
+      expect(data.error.message).toContain("Access denied");
     });
   });
 
@@ -377,6 +424,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/1/stats");
 
@@ -412,6 +460,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/analytics/trends");
 
@@ -439,6 +488,7 @@ describe("Coupons Feature Module", () => {
         return next();
       });
       testApp.route("/", couponsRoutes);
+      attachOnError(testApp);
 
       const res = await testApp.request("/validate", {
         method: "POST",
@@ -453,7 +503,8 @@ describe("Coupons Feature Module", () => {
       expect(res.status).toBe(500);
       const data: any = await res.json();
       expect(data.success).toBe(false);
-      expect(data.error).toContain("Database connection failed");
+      expect(data.error).toHaveProperty("code");
+      expect(data.error).toHaveProperty("message");
     });
   });
 });
