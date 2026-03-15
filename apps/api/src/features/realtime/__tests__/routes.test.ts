@@ -7,6 +7,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 import realtimeRoutes from "../routes";
 import type { Env } from "../../../shared/types";
+import { ApiError } from "../../../shared/utils/api-error";
+import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
 // Mock dependencies
 vi.mock("../../../core/monitoring", () => ({
@@ -21,6 +23,47 @@ vi.mock("../../../core/monitoring", () => ({
 }));
 
 // errorSanitizer no longer used in realtime routes (errors propagate to global handler)
+
+/** Mirror of the global onError handler in apps/api/src/index.ts */
+function attachGlobalErrorHandler(app: Hono<any>) {
+  const STATUS_MAP: Record<string, number> = {
+    validation: 400,
+    authentication: 401,
+    authorization: 403,
+    not_found: 404,
+    rate_limit: 429,
+    server_error: 500,
+  };
+
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: ErrorSanitizer.sanitizeMessage(err.message),
+          },
+        },
+        err.status as any,
+      );
+    }
+
+    const sanitized = ErrorSanitizer.sanitizeError(err);
+    const status = STATUS_MAP[sanitized.type] ?? 500;
+
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: sanitized.code ?? "INTERNAL_ERROR",
+          message: sanitized.message,
+        },
+      },
+      status as any,
+    );
+  });
+}
 
 describe("Realtime Routes", () => {
   let app: Hono<{ Bindings: Env }>;
@@ -57,9 +100,10 @@ describe("Realtime Routes", () => {
       REALTIME_SERVICE_URL: "http://localhost:8788",
     };
 
-    // Create app with routes
+    // Create app with routes and global error handler
     app = new Hono<{ Bindings: Env }>();
     app.route("/realtime", realtimeRoutes);
+    attachGlobalErrorHandler(app);
   });
 
   afterEach(() => {
@@ -223,7 +267,7 @@ describe("Realtime Routes", () => {
 
         expect(verifyResponse.status).toBe(401);
         const data = (await verifyResponse.json()) as any;
-        expect(data.revoked).toBe(true);
+        expect(data.success).toBe(false);
       }
     });
   });

@@ -4,12 +4,17 @@
  */
 
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS } from "../../../shared/constants";
 
 import { ConsoleLogger } from "../../../core/monitoring";
+import { validateBody } from "../../../middleware/validation";
+import {
+  ApiError,
+  badRequest,
+  unauthorized,
+} from "../../../shared/utils/api-error";
 
 // Import service and validation schemas
 import { RealtimeAuthService } from "../services/RealtimeAuthService";
@@ -29,9 +34,9 @@ const realtimeRoutes = new Hono<{ Bindings: Env }>();
  */
 realtimeRoutes.post(
   "/auth/token",
-  zValidator("json", realtimeSchemas.webSocketTokenRequest),
+  validateBody(realtimeSchemas.webSocketTokenRequest),
   async (c) => {
-    const requestData = c.req.valid("json");
+    const requestData = c.get("validatedBody");
 
     // 初始化認證服務
     const authService = new RealtimeAuthService(c.env);
@@ -46,13 +51,7 @@ realtimeRoutes.post(
         request: requestData,
       });
 
-      return c.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        HTTP_STATUS.BAD_REQUEST,
-      );
+      throw badRequest(result.error);
     }
 
     logger.info("WebSocket token generated successfully", {
@@ -77,27 +76,19 @@ realtimeRoutes.post(
  */
 realtimeRoutes.post(
   "/auth/verify",
-  zValidator(
-    "json",
+  validateBody(
     z.object({
       token: z.string().min(1, "Token is required"),
     }),
   ),
   async (c) => {
-    const { token } = c.req.valid("json");
+    const { token } = c.get("validatedBody");
 
     const authService = new RealtimeAuthService(c.env);
     const verification = await authService.verifyWebSocketToken(token);
 
     if (!verification.valid) {
-      return c.json(
-        {
-          success: false,
-          error: verification.error || "Invalid token",
-          revoked: verification.revoked || false,
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
+      throw unauthorized(verification.error || "Invalid token");
     }
 
     return c.json(
@@ -121,8 +112,7 @@ realtimeRoutes.post(
  */
 realtimeRoutes.post(
   "/auth/revoke",
-  zValidator(
-    "json",
+  validateBody(
     z.object({
       token: z.string().min(1, "Token is required"),
       reason: z
@@ -140,18 +130,16 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    const { token, reason, revokedBy } = c.req.valid("json");
+    const { token, reason, revokedBy } = c.get("validatedBody");
 
     const authService = new RealtimeAuthService(c.env);
     const result = await authService.revokeToken(token, reason, revokedBy);
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Failed to revoke token",
-        },
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      throw new ApiError(
+        "INTERNAL_ERROR",
+        result.error || "Failed to revoke token",
+        500,
       );
     }
 
@@ -178,8 +166,7 @@ realtimeRoutes.post(
  */
 realtimeRoutes.post(
   "/auth/revoke-user",
-  zValidator(
-    "json",
+  validateBody(
     z.object({
       userId: z.string().min(1, "User ID is required"),
       reason: z
@@ -197,7 +184,7 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    const { userId, reason, revokedBy } = c.req.valid("json");
+    const { userId, reason, revokedBy } = c.get("validatedBody");
 
     const authService = new RealtimeAuthService(c.env);
     const result = await authService.revokeUserTokens(
@@ -207,12 +194,10 @@ realtimeRoutes.post(
     );
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Failed to revoke user tokens",
-        },
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      throw new ApiError(
+        "INTERNAL_ERROR",
+        result.error || "Failed to revoke user tokens",
+        500,
       );
     }
 
@@ -264,12 +249,8 @@ realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
   // 驗證 roomType
   const validRoomTypes = ["customer", "kitchen", "admin", "restaurant"];
   if (!validRoomTypes.includes(roomType)) {
-    return c.json(
-      {
-        success: false,
-        error: `Invalid room type. Must be one of: ${validRoomTypes.join(", ")}`,
-      },
-      HTTP_STATUS.BAD_REQUEST,
+    throw badRequest(
+      `Invalid room type. Must be one of: ${validRoomTypes.join(", ")}`,
     );
   }
 
@@ -283,11 +264,9 @@ realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
       roomId,
       status: response.status,
     });
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch realtime statistics",
-      },
+    throw new ApiError(
+      "REALTIME_SERVICE_ERROR",
+      "Failed to fetch realtime statistics",
       response.status as 400 | 404 | 500,
     );
   }
@@ -313,13 +292,7 @@ realtimeRoutes.get("/stats/overview", async (c) => {
   const restaurantId = c.req.query("restaurantId");
 
   if (!restaurantId) {
-    return c.json(
-      {
-        success: false,
-        error: "Restaurant ID is required",
-      },
-      HTTP_STATUS.BAD_REQUEST,
-    );
+    throw badRequest("Restaurant ID is required");
   }
 
   const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
