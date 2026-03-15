@@ -3,7 +3,6 @@
  */
 
 import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { BackupController } from '../controllers/BackupController'
 import { BackupService } from '../services/BackupService'
@@ -11,6 +10,7 @@ import { BackupConfigService } from '../services/BackupConfigService'
 import { BackupStorageService } from '../services/BackupStorageService'
 import { BackupValidationService } from '../services/BackupValidationService'
 import type { D1Database, R2Bucket, KVNamespace } from '@cloudflare/workers-types'
+import { validateBody, validateQuery } from '../../../middleware/validation'
 
 // Define proper Hono context with backup services
 type ContextVariableMap = {
@@ -124,7 +124,7 @@ export function createBackupRoutes(): Hono<Context> {
    * POST /api/v1/backup/create
    * Create a new backup for a restaurant
    */
-  backup.post('/create', zValidator('json', createBackupSchema), async (c) => {
+  backup.post('/create', validateBody(createBackupSchema), async (c) => {
     const controller = c.get('backupController')
     return await controller.createBackup(c)
   })
@@ -133,7 +133,7 @@ export function createBackupRoutes(): Hono<Context> {
    * GET /api/v1/backup/list
    * List backups for a restaurant with filtering and pagination
    */
-  backup.get('/list', zValidator('query', listBackupsSchema), async (c) => {
+  backup.get('/list', validateQuery(listBackupsSchema), async (c) => {
     const controller = c.get('backupController')
     return await controller.listBackups(c)
   })
@@ -160,7 +160,7 @@ export function createBackupRoutes(): Hono<Context> {
    * POST /api/v1/backup/:id/restore
    * Restore from a backup
    */
-  backup.post('/:id/restore', zValidator('json', restoreBackupSchema), async (c) => {
+  backup.post('/:id/restore', validateBody(restoreBackupSchema), async (c) => {
     const controller = c.get('backupController')
     return await controller.restoreBackup(c)
   })
@@ -191,7 +191,7 @@ export function createBackupRoutes(): Hono<Context> {
    * POST /api/v1/backup/configurations
    * Create or update backup configuration
    */
-  backup.post('/configurations', zValidator('json', configurationSchema), async (c) => {
+  backup.post('/configurations', validateBody(configurationSchema), async (c) => {
     const controller = c.get('backupController')
     return await controller.saveConfiguration(c)
   })
