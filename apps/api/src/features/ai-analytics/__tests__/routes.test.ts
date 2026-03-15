@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import routes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // Mock AIAnalyticsService — configurable per test
 const mockServiceInstance = {
@@ -67,6 +68,30 @@ function createApp(userRole: number) {
   });
 
   app.route("/ai-analytics", routes);
+
+  // Mirror production global error handler
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: { code: err.code, message: err.message },
+        },
+        err.status as any,
+      );
+    }
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: err instanceof Error ? err.message : "Internal server error",
+        },
+      },
+      500,
+    );
+  });
+
   return app;
 }
 
@@ -175,9 +200,12 @@ describe("AI Analytics Routes", () => {
       );
       const res = await staffApp.fetch(req, mockEnv);
       expect(res.status).toBe(403);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Unauthorized");
+      expect(json.error.message).toBe("Unauthorized");
     });
 
     it("should return 403 for role 3", async () => {
@@ -225,9 +253,12 @@ describe("AI Analytics Routes", () => {
       });
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toContain("Provider test failed");
+      expect(json.error.message).toContain("Provider test failed");
     });
 
     it("should return 500 when saveConfig throws", async () => {
@@ -242,7 +273,10 @@ describe("AI Analytics Routes", () => {
       });
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
     });
 
@@ -305,7 +339,7 @@ describe("AI Analytics Routes", () => {
       expect(json.success).toBe(true);
     });
 
-    it("should return failure result when service throws", async () => {
+    it("should return 500 when service throws", async () => {
       mockServiceInstance.testProvider.mockRejectedValueOnce(
         new Error("Network error"),
       );
@@ -316,14 +350,13 @@ describe("AI Analytics Routes", () => {
         body: JSON.stringify(validPayload),
       });
       const res = await adminApp.fetch(req, mockEnv);
-      expect(res.status).toBe(200); // Errors are returned as 200 with success: false
+      expect(res.status).toBe(500);
       const json = (await res.json()) as {
         success: boolean;
-        provider: string;
-        error: string;
+        error: { message: string };
       };
       expect(json.success).toBe(false);
-      expect(json.provider).toBe("anthropic");
+      expect(json.error.message).toContain("Network error");
     });
 
     it("should return 400 for invalid body (missing apiKey)", async () => {
@@ -438,9 +471,12 @@ describe("AI Analytics Routes", () => {
       });
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string; message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toContain("AI provider not configured");
+      expect(json.error.message).toContain("AI provider not configured");
     });
 
     it("should return 400 for invalid body (zValidator)", async () => {
@@ -481,8 +517,12 @@ describe("AI Analytics Routes", () => {
       );
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
+      expect(json.error.message).toContain("DB error");
     });
   });
 
@@ -512,6 +552,8 @@ describe("AI Analytics Routes", () => {
       );
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(false);
     });
   });
 
@@ -541,6 +583,8 @@ describe("AI Analytics Routes", () => {
       );
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(false);
     });
   });
 
@@ -570,6 +614,8 @@ describe("AI Analytics Routes", () => {
       );
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(false);
     });
   });
 
@@ -608,8 +654,12 @@ describe("AI Analytics Routes", () => {
       );
       const res = await adminApp.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
+      expect(json.error.message).toContain("DB error");
     });
   });
 });
