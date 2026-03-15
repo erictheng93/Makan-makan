@@ -17,6 +17,7 @@ import {
   movementsQuerySchema,
 } from "../schemas";
 import type { Env } from "../../../types/env";
+import { badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,42 +32,25 @@ app.post(
   validateParams(shiftParamsSchema),
   validateBody(cashMovementSchema),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const user = c.get("user");
+    const { shiftId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
 
-      const cashMovementService = new CashMovementService(c.env.DB as any);
-      const result = await cashMovementService.processCashMovement(
-        shiftId,
-        data,
-        user.id,
-      );
+    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const result = await cashMovementService.processCashMovement(
+      shiftId,
+      data,
+      user.id,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "現金操作記錄成功",
-      });
-    } catch (error) {
-      console.error("Cash movement error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "現金操作記錄失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "現金操作記錄失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "現金操作記錄成功",
+    });
   },
 );
 
@@ -81,41 +65,24 @@ app.get(
   validateParams(shiftParamsSchema),
   validateQuery(movementsQuerySchema),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
-      const { type, page, limit } = c.get("validatedQuery");
+    const { shiftId } = c.get("validatedParams");
+    const { type, page, limit } = c.get("validatedQuery");
 
-      const cashMovementService = new CashMovementService(c.env.DB as any);
-      const result = await cashMovementService.getCashMovements(shiftId, {
-        type,
-        page,
-        limit,
-      });
+    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const result = await cashMovementService.getCashMovements(shiftId, {
+      type,
+      page,
+      limit,
+    });
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get cash movements error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取現金流動記錄失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取現金流動記錄失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -141,37 +108,20 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
-      const { date } = c.get("validatedQuery");
+    const { registerId } = c.get("validatedParams");
+    const { date } = c.get("validatedQuery");
 
-      const cashMovementService = new CashMovementService(c.env.DB as any);
-      const result = await cashMovementService.getCashCount(registerId, date);
+    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const result = await cashMovementService.getCashCount(registerId, date);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get cash count error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取現金盤點記錄失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取現金盤點記錄失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -189,40 +139,23 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { movementId } = c.get("validatedParams");
-      const user = c.get("user");
+    const { movementId } = c.get("validatedParams");
+    const user = c.get("user");
 
-      const cashMovementService = new CashMovementService(c.env.DB as any);
-      const result = await cashMovementService.approveCashMovement(
-        movementId,
-        user.id,
-      );
+    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const result = await cashMovementService.approveCashMovement(
+      movementId,
+      user.id,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "現金操作已審核通過",
-      });
-    } catch (error) {
-      console.error("Approve cash movement error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "審核現金操作失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "審核現金操作失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "現金操作已審核通過",
+    });
   },
 );
 
@@ -245,42 +178,25 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { movementId } = c.get("validatedParams");
-      const { reason } = c.get("validatedBody");
-      const user = c.get("user");
+    const { movementId } = c.get("validatedParams");
+    const { reason } = c.get("validatedBody");
+    const user = c.get("user");
 
-      const cashMovementService = new CashMovementService(c.env.DB as any);
-      const result = await cashMovementService.rejectCashMovement(
-        movementId,
-        user.id,
-        reason,
-      );
+    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const result = await cashMovementService.rejectCashMovement(
+      movementId,
+      user.id,
+      reason,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "現金操作已拒絕",
-      });
-    } catch (error) {
-      console.error("Reject cash movement error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "拒絕現金操作失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "拒絕現金操作失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "現金操作已拒絕",
+    });
   },
 );
 

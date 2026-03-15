@@ -16,10 +16,8 @@ import { KitchenService } from "../services/KitchenService";
 //   restaurantIdSchema,
 //   orderItemParamsSchema
 // } from '../schemas/validation'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "../../../shared/utils/response";
+import { createSuccessResponse } from "../../../shared/utils/response";
+import { forbidden } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -34,20 +32,17 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
 
   // Validate chef access
   if (!kitchenService.validateChefAccess(user.id, user.role, restaurantId)) {
-    return c.json(
-      createErrorResponse("Access denied. Chef role required.", 403),
-      403,
+    throw forbidden(
+      "Access denied. Chef role required.",
+      "CHEF_ACCESS_REQUIRED",
     );
   }
 
   // Validate restaurant permission
   if (user.restaurantId !== restaurantId) {
-    return c.json(
-      createErrorResponse(
-        "Access denied. Restaurant permission required.",
-        403,
-      ),
-      403,
+    throw forbidden(
+      "Access denied. Restaurant permission required.",
+      "RESTAURANT_ACCESS_DENIED",
     );
   }
 
@@ -143,19 +138,14 @@ app.get("/:restaurantId/orders", authMiddleware, async (c) => {
     !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
     user.restaurantId !== restaurantId
   ) {
-    return c.json(createErrorResponse("Access denied", 403), 403);
+    throw forbidden("Access denied", "ACCESS_DENIED");
   }
 
-  try {
-    const data = await kitchenService.getKitchenOrders(restaurantId, user.id);
+  const data = await kitchenService.getKitchenOrders(restaurantId, user.id);
 
-    return c.json(
-      createSuccessResponse(data, "Kitchen orders retrieved successfully"),
-    );
-  } catch (error: any) {
-    console.error("Failed to fetch kitchen orders:", error);
-    return c.json(createErrorResponse("Failed to fetch orders", 500), 500);
-  }
+  return c.json(
+    createSuccessResponse(data, "Kitchen orders retrieved successfully"),
+  );
 });
 
 /**
@@ -178,28 +168,20 @@ app.put(
       !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
       user.restaurantId !== restaurantId
     ) {
-      return c.json(createErrorResponse("Access denied", 403), 403);
+      throw forbidden("Access denied", "ACCESS_DENIED");
     }
 
-    try {
-      const result = await kitchenService.updateOrderItemStatus(
-        restaurantId,
-        orderId,
-        itemId,
-        statusUpdate,
-        user.id,
-      );
+    const result = await kitchenService.updateOrderItemStatus(
+      restaurantId,
+      orderId,
+      itemId,
+      statusUpdate,
+      user.id,
+    );
 
-      return c.json(
-        createSuccessResponse(result, "Order item status updated successfully"),
-      );
-    } catch (error: any) {
-      console.error("Failed to update order item status:", error);
-      return c.json(
-        createErrorResponse("Failed to update order status", 500),
-        500,
-      );
-    }
+    return c.json(
+      createSuccessResponse(result, "Order item status updated successfully"),
+    );
   },
 );
 
@@ -210,9 +192,9 @@ app.put(
 app.post("/:restaurantId/broadcast-test", authMiddleware, async (c) => {
   // Only allow in non-production environments
   if (c.env.NODE_ENV === "production") {
-    return c.json(
-      createErrorResponse("Test endpoint not available in production", 404),
-      404,
+    throw forbidden(
+      "Test endpoint not available in production",
+      "PRODUCTION_RESTRICTED",
     );
   }
 
@@ -249,7 +231,7 @@ app.get("/:restaurantId/connections", authMiddleware, async (c) => {
     (!kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
       user.restaurantId !== restaurantId)
   ) {
-    return c.json(createErrorResponse("Access denied", 403), 403);
+    throw forbidden("Access denied", "ACCESS_DENIED");
   }
 
   const connectionStatus = kitchenService.getConnectionStatus(restaurantId);

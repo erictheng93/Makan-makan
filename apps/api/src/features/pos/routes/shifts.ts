@@ -19,6 +19,7 @@ import {
   statsQuerySchema,
 } from "../schemas";
 import type { Env } from "../../../types/env";
+import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -32,48 +33,25 @@ app.post(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateBody(startShiftSchema),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
 
-      // 如果不是管理員，操作員必須是自己
-      if (user.role !== 0 && data.operatorId !== user.id) {
-        return c.json(
-          {
-            success: false,
-            error: "只能為自己開班",
-          },
-          403,
-        );
-      }
-
-      const shiftService = new ShiftService(c.env.DB as any);
-      const result = await shiftService.startShift(data);
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Start shift error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "開班失敗",
-        },
-        500,
-      );
+    // 如果不是管理員，操作員必須是自己
+    if (user.role !== 0 && data.operatorId !== user.id) {
+      throw forbidden("只能為自己開班");
     }
+
+    const shiftService = new ShiftService(c.env.DB as any);
+    const result = await shiftService.startShift(data);
+
+    if (!result.success) {
+      throw badRequest(result.error || "開班失敗");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -88,38 +66,21 @@ app.post(
   validateParams(shiftParamsSchema),
   validateBody(endShiftSchema),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const user = c.get("user");
+    const { shiftId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
 
-      const shiftService = new ShiftService(c.env.DB as any);
-      const result = await shiftService.endShift(shiftId, data, user.id);
+    const shiftService = new ShiftService(c.env.DB as any);
+    const result = await shiftService.endShift(shiftId, data, user.id);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("End shift error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "結班失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "結班失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -138,37 +99,20 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
-      const { reason } = c.get("validatedBody");
+    const { shiftId } = c.get("validatedParams");
+    const { reason } = c.get("validatedBody");
 
-      const shiftService = new ShiftService(c.env.DB as any);
-      const result = await shiftService.suspendShift(shiftId, reason);
+    const shiftService = new ShiftService(c.env.DB as any);
+    const result = await shiftService.suspendShift(shiftId, reason);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "班次已暫停",
-      });
-    } catch (error) {
-      console.error("Suspend shift error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "暫停班次失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "暫停班次失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "班次已暫停",
+    });
   },
 );
 
@@ -182,36 +126,19 @@ app.post(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(shiftParamsSchema),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
+    const { shiftId } = c.get("validatedParams");
 
-      const shiftService = new ShiftService(c.env.DB as any);
-      const result = await shiftService.resumeShift(shiftId);
+    const shiftService = new ShiftService(c.env.DB as any);
+    const result = await shiftService.resumeShift(shiftId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "班次已恢復",
-      });
-    } catch (error) {
-      console.error("Resume shift error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "恢復班次失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "恢復班次失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "班次已恢復",
+    });
   },
 );
 
@@ -229,36 +156,19 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
+    const { registerId } = c.get("validatedParams");
 
-      const shiftService = new ShiftService(c.env.DB as any);
-      const result = await shiftService.getCurrentShift(registerId);
+    const shiftService = new ShiftService(c.env.DB as any);
+    const result = await shiftService.getCurrentShift(registerId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get current shift error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取當前班次失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取當前班次失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -272,36 +182,19 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(shiftParamsSchema),
   async (c) => {
-    try {
-      const { shiftId } = c.get("validatedParams");
+    const { shiftId } = c.get("validatedParams");
 
-      const reportService = new ReportService(c.env.DB as any);
-      const result = await reportService.generateShiftReport(shiftId);
+    const reportService = new ReportService(c.env.DB as any);
+    const result = await reportService.generateShiftReport(shiftId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get shift report error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取班次報表失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取班次報表失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -315,70 +208,41 @@ app.get(
   requireRole([0, 1]), // Admin or Owner
   validateQuery(statsQuerySchema),
   async (c) => {
-    try {
-      const user = c.get("user");
-      const query = c.get("validatedQuery");
+    const user = c.get("user");
+    const query = c.get("validatedQuery");
 
-      // 確定餐廳ID
-      let restaurantId: string | undefined;
-      if (query.restaurantId) {
-        restaurantId = String(query.restaurantId);
-        if (user.role === 1 && user.restaurantId !== restaurantId) {
-          return c.json(
-            {
-              success: false,
-              error: "只能查看自己餐廳的統計",
-            },
-            403,
-          );
-        }
-      } else if (user.restaurantId) {
-        restaurantId = user.restaurantId;
-      } else {
-        return c.json(
-          {
-            success: false,
-            error: "需要指定餐廳ID",
-          },
-          400,
-        );
+    // 確定餐廳ID
+    let restaurantId: string | undefined;
+    if (query.restaurantId) {
+      restaurantId = String(query.restaurantId);
+      if (user.role === 1 && user.restaurantId !== restaurantId) {
+        throw forbidden("只能查看自己餐廳的統計");
       }
-
-      const dateRange =
-        query.dateFrom && query.dateTo
-          ? {
-              from: new Date(query.dateFrom),
-              to: new Date(query.dateTo),
-            }
-          : undefined;
-
-      const reportService = new ReportService(c.env.DB as any);
-      const result = await reportService.getShiftStats(restaurantId, dateRange);
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get shift stats error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取班次統計失敗",
-        },
-        500,
-      );
+    } else if (user.restaurantId) {
+      restaurantId = user.restaurantId;
+    } else {
+      throw badRequest("需要指定餐廳ID");
     }
+
+    const dateRange =
+      query.dateFrom && query.dateTo
+        ? {
+            from: new Date(query.dateFrom),
+            to: new Date(query.dateTo),
+          }
+        : undefined;
+
+    const reportService = new ReportService(c.env.DB as any);
+    const result = await reportService.getShiftStats(restaurantId, dateRange);
+
+    if (!result.success) {
+      throw badRequest(result.error || "獲取班次統計失敗");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 

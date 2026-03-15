@@ -88,7 +88,7 @@ webhookRoutes.post("/uber-eats", async (c) => {
 
   const logId = insertedLog.id;
 
-  // Process the order
+  // Process the order — keep internal try/catch to record failure in the log
   try {
     const orderService = new PlatformOrderService(c.env);
     const orderId = await orderService.processWebhook(
@@ -115,7 +115,6 @@ webhookRoutes.post("/uber-eats", async (c) => {
       })
       .where(eq(platformWebhookLogs.id, logId));
 
-    console.error("Webhook processing failed:", error);
     return c.json({ error: "Processing failed" }, 500);
   }
 });

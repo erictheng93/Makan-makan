@@ -51,23 +51,23 @@ routes.post(
   "/forgot-password",
   rateLimitMiddleware(RateLimitPresets.passwordReset),
   async (c) => {
+    const body = await c.req.json();
+    const validation = forgotPasswordSchema.safeParse(body);
+
+    if (!validation.success) {
+      return c.json(
+        {
+          success: false,
+          error: validation.error.errors[0].message,
+        },
+        400,
+      );
+    }
+
+    const { identifier, method } = validation.data;
+    const { ipAddress, userAgent } = getClientInfo(c);
+
     try {
-      const body = await c.req.json();
-      const validation = forgotPasswordSchema.safeParse(body);
-
-      if (!validation.success) {
-        return c.json(
-          {
-            success: false,
-            error: validation.error.errors[0].message,
-          },
-          400,
-        );
-      }
-
-      const { identifier, method } = validation.data;
-      const { ipAddress, userAgent } = getClientInfo(c);
-
       const service = new VerificationService(c.env.DB, c.env);
       const result = await service.requestPasswordReset({
         identifier,
@@ -84,7 +84,6 @@ routes.post(
 
       return c.json(result, result.success ? 200 : 500);
     } catch (error) {
-      console.error("Forgot password error:", error);
       return c.json(
         {
           success: false,
@@ -101,32 +100,33 @@ routes.post(
  * Verify reset token validity
  */
 routes.get("/reset-password/verify", async (c) => {
+  const token = c.req.query("token");
+
+  if (!token) {
+    return c.json(
+      {
+        valid: false,
+        error: "缺少 Token 參數",
+      },
+      400,
+    );
+  }
+
+  const validation = verifyResetTokenSchema.safeParse({ token });
+
+  if (!validation.success) {
+    return c.json(
+      {
+        valid: false,
+        error: validation.error.errors[0].message,
+      },
+      400,
+    );
+  }
+
+  const { ipAddress } = getClientInfo(c);
+
   try {
-    const token = c.req.query("token");
-
-    if (!token) {
-      return c.json(
-        {
-          valid: false,
-          error: "缺少 Token 參數",
-        },
-        400,
-      );
-    }
-
-    const validation = verifyResetTokenSchema.safeParse({ token });
-
-    if (!validation.success) {
-      return c.json(
-        {
-          valid: false,
-          error: validation.error.errors[0].message,
-        },
-        400,
-      );
-    }
-
-    const { ipAddress } = getClientInfo(c);
     const service = new VerificationService(c.env.DB, c.env);
     const result = await service.verifyResetToken({
       token,
@@ -135,7 +135,6 @@ routes.get("/reset-password/verify", async (c) => {
 
     return c.json(result, result.valid ? 200 : 400);
   } catch (error) {
-    console.error("Verify reset token error:", error);
     return c.json(
       {
         valid: false,
@@ -151,23 +150,23 @@ routes.get("/reset-password/verify", async (c) => {
  * Reset password using token
  */
 routes.post("/reset-password", async (c) => {
+  const body = await c.req.json();
+  const validation = resetPasswordSchema.safeParse(body);
+
+  if (!validation.success) {
+    return c.json(
+      {
+        success: false,
+        error: validation.error.errors[0].message,
+      },
+      400,
+    );
+  }
+
+  const { token, newPassword } = validation.data;
+  const { ipAddress, userAgent } = getClientInfo(c);
+
   try {
-    const body = await c.req.json();
-    const validation = resetPasswordSchema.safeParse(body);
-
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.errors[0].message,
-        },
-        400,
-      );
-    }
-
-    const { token, newPassword } = validation.data;
-    const { ipAddress, userAgent } = getClientInfo(c);
-
     const service = new VerificationService(c.env.DB, c.env);
     const result = await service.resetPassword({
       token,
@@ -178,7 +177,6 @@ routes.post("/reset-password", async (c) => {
 
     return c.json(result, result.success ? 200 : 400);
   } catch (error) {
-    console.error("Reset password error:", error);
     return c.json(
       {
         success: false,
@@ -201,36 +199,36 @@ routes.post(
   "/verify-email/send",
   rateLimitMiddleware(RateLimitPresets.emailVerification),
   async (c) => {
+    // Get user from auth middleware (assumed to be set)
+    const user = c.get("user");
+
+    if (!user) {
+      return c.json(
+        {
+          success: false,
+          error: "請先登入",
+        },
+        401,
+      );
+    }
+
+    const body = await c.req.json();
+    const validation = sendEmailVerificationSchema.safeParse(body);
+
+    if (!validation.success) {
+      return c.json(
+        {
+          success: false,
+          error: validation.error.errors[0].message,
+        },
+        400,
+      );
+    }
+
+    const { email } = validation.data;
+    const { ipAddress } = getClientInfo(c);
+
     try {
-      // Get user from auth middleware (assumed to be set)
-      const user = c.get("user");
-
-      if (!user) {
-        return c.json(
-          {
-            success: false,
-            error: "請先登入",
-          },
-          401,
-        );
-      }
-
-      const body = await c.req.json();
-      const validation = sendEmailVerificationSchema.safeParse(body);
-
-      if (!validation.success) {
-        return c.json(
-          {
-            success: false,
-            error: validation.error.errors[0].message,
-          },
-          400,
-        );
-      }
-
-      const { email } = validation.data;
-      const { ipAddress } = getClientInfo(c);
-
       const service = new VerificationService(c.env.DB, c.env);
       const result = await service.sendEmailVerification({
         userId: user.id,
@@ -240,7 +238,6 @@ routes.post(
 
       return c.json(result, result.success ? 200 : 500);
     } catch (error) {
-      console.error("Send email verification error:", error);
       return c.json(
         {
           success: false,
@@ -257,32 +254,33 @@ routes.post(
  * Verify email using token
  */
 routes.get("/verify-email", async (c) => {
+  const token = c.req.query("token");
+
+  if (!token) {
+    return c.json(
+      {
+        success: false,
+        error: "缺少 Token 參數",
+      },
+      400,
+    );
+  }
+
+  const validation = verifyEmailSchema.safeParse({ token });
+
+  if (!validation.success) {
+    return c.json(
+      {
+        success: false,
+        error: validation.error.errors[0].message,
+      },
+      400,
+    );
+  }
+
+  const { ipAddress } = getClientInfo(c);
+
   try {
-    const token = c.req.query("token");
-
-    if (!token) {
-      return c.json(
-        {
-          success: false,
-          error: "缺少 Token 參數",
-        },
-        400,
-      );
-    }
-
-    const validation = verifyEmailSchema.safeParse({ token });
-
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.errors[0].message,
-        },
-        400,
-      );
-    }
-
-    const { ipAddress } = getClientInfo(c);
     const service = new VerificationService(c.env.DB, c.env);
     const result = await service.verifyEmail({
       token,
@@ -291,7 +289,6 @@ routes.get("/verify-email", async (c) => {
 
     return c.json(result, result.success ? 200 : 400);
   } catch (error) {
-    console.error("Verify email error:", error);
     return c.json(
       {
         success: false,
@@ -314,36 +311,36 @@ routes.post(
   "/verify-phone/send",
   rateLimitMiddleware(RateLimitPresets.smsOTP),
   async (c) => {
+    // Get user from auth middleware
+    const user = c.get("user");
+
+    if (!user) {
+      return c.json(
+        {
+          success: false,
+          error: "請先登入",
+        },
+        401,
+      );
+    }
+
+    const body = await c.req.json();
+    const validation = sendPhoneVerificationSchema.safeParse(body);
+
+    if (!validation.success) {
+      return c.json(
+        {
+          success: false,
+          error: validation.error.errors[0].message,
+        },
+        400,
+      );
+    }
+
+    const { phone } = validation.data;
+    const { ipAddress } = getClientInfo(c);
+
     try {
-      // Get user from auth middleware
-      const user = c.get("user");
-
-      if (!user) {
-        return c.json(
-          {
-            success: false,
-            error: "請先登入",
-          },
-          401,
-        );
-      }
-
-      const body = await c.req.json();
-      const validation = sendPhoneVerificationSchema.safeParse(body);
-
-      if (!validation.success) {
-        return c.json(
-          {
-            success: false,
-            error: validation.error.errors[0].message,
-          },
-          400,
-        );
-      }
-
-      const { phone } = validation.data;
-      const { ipAddress } = getClientInfo(c);
-
       const service = new VerificationService(c.env.DB, c.env);
       const result = await service.sendPhoneVerification({
         userId: user.id,
@@ -353,7 +350,6 @@ routes.post(
 
       return c.json(result, result.success ? 200 : 500);
     } catch (error) {
-      console.error("Send phone verification error:", error);
       return c.json(
         {
           success: false,
@@ -370,36 +366,36 @@ routes.post(
  * Verify phone using OTP
  */
 routes.post("/verify-phone", async (c) => {
+  // Get user from auth middleware
+  const user = c.get("user");
+
+  if (!user) {
+    return c.json(
+      {
+        success: false,
+        error: "請先登入",
+      },
+      401,
+    );
+  }
+
+  const body = await c.req.json();
+  const validation = verifyPhoneSchema.safeParse(body);
+
+  if (!validation.success) {
+    return c.json(
+      {
+        success: false,
+        error: validation.error.errors[0].message,
+      },
+      400,
+    );
+  }
+
+  const { phone, otpCode } = validation.data;
+  const { ipAddress } = getClientInfo(c);
+
   try {
-    // Get user from auth middleware
-    const user = c.get("user");
-
-    if (!user) {
-      return c.json(
-        {
-          success: false,
-          error: "請先登入",
-        },
-        401,
-      );
-    }
-
-    const body = await c.req.json();
-    const validation = verifyPhoneSchema.safeParse(body);
-
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.errors[0].message,
-        },
-        400,
-      );
-    }
-
-    const { phone, otpCode } = validation.data;
-    const { ipAddress } = getClientInfo(c);
-
     const service = new VerificationService(c.env.DB, c.env);
     const result = await service.verifyPhone({
       userId: user.id,
@@ -410,7 +406,6 @@ routes.post("/verify-phone", async (c) => {
 
     return c.json(result, result.success ? 200 : 400);
   } catch (error) {
-    console.error("Verify phone error:", error);
     return c.json(
       {
         success: false,

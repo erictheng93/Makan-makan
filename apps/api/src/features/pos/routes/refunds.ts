@@ -13,6 +13,7 @@ import {
 import { RefundService } from "../services/RefundService";
 import { processRefundSchema } from "../schemas";
 import type { Env } from "../../../types/env";
+import { badRequest, notFound } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -26,54 +27,31 @@ app.post(
   requireRole([0, 1]), // Admin or Owner only
   validateBody(processRefundSchema),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const registerId = c.req.header("X-Register-Id");
-      const shiftId = c.req.header("X-Shift-Id");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const registerId = c.req.header("X-Register-Id");
+    const shiftId = c.req.header("X-Shift-Id");
 
-      if (!registerId) {
-        return c.json(
-          {
-            success: false,
-            error: "需要指定收銀機ID",
-          },
-          400,
-        );
-      }
-
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.processRefund(
-        data,
-        registerId,
-        user.id,
-        shiftId,
-      );
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Process refund error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "處理退款失敗",
-        },
-        500,
-      );
+    if (!registerId) {
+      throw badRequest("需要指定收銀機ID");
     }
+
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.processRefund(
+      data,
+      registerId,
+      user.id,
+      shiftId,
+    );
+
+    if (!result.success) {
+      throw badRequest(result.error || "處理退款失敗");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -114,45 +92,28 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
-      const { startDate, endDate, status, orderId, page, limit } =
-        c.get("validatedQuery");
+    const { registerId } = c.get("validatedParams");
+    const { startDate, endDate, status, orderId, page, limit } =
+      c.get("validatedQuery");
 
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.getRefunds(registerId, {
-        startDate,
-        endDate,
-        status,
-        orderId,
-        page,
-        limit,
-      });
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.getRefunds(registerId, {
+      startDate,
+      endDate,
+      status,
+      orderId,
+      page,
+      limit,
+    });
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get refunds error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取退款記錄失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取退款記錄失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -170,36 +131,22 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { refundId } = c.get("validatedParams");
+    const { refundId } = c.get("validatedParams");
 
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.getRefundDetail(refundId);
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.getRefundDetail(refundId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          result.error === "退款記錄不存在" ? 404 : 400,
-        );
+    if (!result.success) {
+      if (result.error === "退款記錄不存在") {
+        throw notFound("退款記錄不存在", "REFUND_NOT_FOUND");
       }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get refund detail error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取退款詳情失敗",
-        },
-        500,
-      );
+      throw badRequest(result.error || "獲取退款詳情失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -217,37 +164,20 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { refundId } = c.get("validatedParams");
-      const user = c.get("user");
+    const { refundId } = c.get("validatedParams");
+    const user = c.get("user");
 
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.approveRefund(refundId, user.id);
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.approveRefund(refundId, user.id);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "退款已審核通過",
-      });
-    } catch (error) {
-      console.error("Approve refund error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "審核退款失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "審核退款失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "退款已審核通過",
+    });
   },
 );
 
@@ -270,42 +200,21 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { refundId } = c.get("validatedParams");
-      const { reason } = c.get("validatedBody");
-      const user = c.get("user");
+    const { refundId } = c.get("validatedParams");
+    const { reason } = c.get("validatedBody");
+    const user = c.get("user");
 
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.rejectRefund(
-        refundId,
-        user.id,
-        reason,
-      );
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.rejectRefund(refundId, user.id, reason);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "退款已拒絕",
-      });
-    } catch (error) {
-      console.error("Reject refund error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "拒絕退款失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "拒絕退款失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "退款已拒絕",
+    });
   },
 );
 
@@ -328,42 +237,21 @@ app.post(
     }),
   ),
   async (c) => {
-    try {
-      const { refundId } = c.get("validatedParams");
-      const { reason } = c.get("validatedBody");
-      const user = c.get("user");
+    const { refundId } = c.get("validatedParams");
+    const { reason } = c.get("validatedBody");
+    const user = c.get("user");
 
-      const refundService = new RefundService(c.env.DB as any);
-      const result = await refundService.cancelRefund(
-        refundId,
-        user.id,
-        reason,
-      );
+    const refundService = new RefundService(c.env.DB as any);
+    const result = await refundService.cancelRefund(refundId, user.id, reason);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "退款已取消",
-      });
-    } catch (error) {
-      console.error("Cancel refund error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "取消退款失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "取消退款失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "退款已取消",
+    });
   },
 );
 

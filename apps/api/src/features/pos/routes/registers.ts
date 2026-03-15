@@ -16,6 +16,11 @@ import {
   registerQuerySchema,
 } from "../schemas";
 import type { Env } from "../../../types/env";
+import {
+  forbidden,
+  badRequest,
+  notFound,
+} from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -29,48 +34,25 @@ app.post(
   requireRole([0, 1]), // Admin or Owner
   validateBody(createRegisterSchema),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
 
-      // 權限檢查：店主只能為自己的餐廳創建收銀機
-      if (user.role === 1 && user.restaurantId !== data.restaurantId) {
-        return c.json(
-          {
-            success: false,
-            error: "只能為自己的餐廳創建收銀機",
-          },
-          403,
-        );
-      }
-
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.createRegister(data, user.id);
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Create register error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "創建收銀機失敗",
-        },
-        500,
-      );
+    // 權限檢查：店主只能為自己的餐廳創建收銀機
+    if (user.role === 1 && user.restaurantId !== data.restaurantId) {
+      throw forbidden("只能為自己的餐廳創建收銀機");
     }
+
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.createRegister(data, user.id);
+
+    if (!result.success) {
+      throw badRequest(result.error || "創建收銀機失敗");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -79,63 +61,34 @@ app.post(
  * GET /registers
  */
 app.get("/", authMiddleware, validateQuery(registerQuerySchema), async (c) => {
-  try {
-    const user = c.get("user");
-    const query = c.get("validatedQuery");
+  const user = c.get("user");
+  const query = c.get("validatedQuery");
 
-    // 確定餐廳ID
-    let restaurantId: string | undefined;
-    if (query.restaurantId) {
-      restaurantId = String(query.restaurantId);
-      // 權限檢查
-      if (user.role === 1 && user.restaurantId !== restaurantId) {
-        return c.json(
-          {
-            success: false,
-            error: "只能查看自己餐廳的收銀機",
-          },
-          403,
-        );
-      }
-    } else if (user.restaurantId) {
-      restaurantId = user.restaurantId;
-    } else {
-      return c.json(
-        {
-          success: false,
-          error: "需要指定餐廳ID",
-        },
-        400,
-      );
+  // 確定餐廳ID
+  let restaurantId: string | undefined;
+  if (query.restaurantId) {
+    restaurantId = String(query.restaurantId);
+    // 權限檢查
+    if (user.role === 1 && user.restaurantId !== restaurantId) {
+      throw forbidden("只能查看自己餐廳的收銀機");
     }
-
-    const registerService = new RegisterService(c.env.DB as any);
-    const result = await registerService.getRegisters(restaurantId!);
-
-    if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        400,
-      );
-    }
-
-    return c.json({
-      success: true,
-      data: result.data,
-    });
-  } catch (error) {
-    console.error("Get registers error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "獲取收銀機列表失敗",
-      },
-      500,
-    );
+  } else if (user.restaurantId) {
+    restaurantId = user.restaurantId;
+  } else {
+    throw badRequest("需要指定餐廳ID");
   }
+
+  const registerService = new RegisterService(c.env.DB as any);
+  const result = await registerService.getRegisters(restaurantId!);
+
+  if (!result.success) {
+    throw badRequest(result.error || "獲取收銀機列表失敗");
+  }
+
+  return c.json({
+    success: true,
+    data: result.data,
+  });
 });
 
 /**
@@ -148,36 +101,22 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(registerParamsSchema),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
+    const { registerId } = c.get("validatedParams");
 
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.getRegisterStatus(registerId);
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.getRegisterStatus(registerId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          result.error === "收銀機不存在" ? 404 : 400,
-        );
+    if (!result.success) {
+      if (result.error === "收銀機不存在") {
+        throw notFound("收銀機不存在", "REGISTER_NOT_FOUND");
       }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get register status error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取收銀機狀態失敗",
-        },
-        500,
-      );
+      throw badRequest(result.error || "獲取收銀機狀態失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -192,37 +131,20 @@ app.put(
   validateParams(registerParamsSchema),
   validateBody(createRegisterSchema.partial()),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
+    const { registerId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
 
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.updateRegister(registerId, data);
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.updateRegister(registerId, data);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Update register error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "更新收銀機失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "更新收銀機失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -236,39 +158,19 @@ app.post(
   requireRole([0, 1]), // Admin or Owner
   validateParams(registerParamsSchema),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
+    const { registerId } = c.get("validatedParams");
 
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.toggleRegisterStatus(
-        registerId,
-        true,
-      );
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.toggleRegisterStatus(registerId, true);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "收銀機已啟用",
-      });
-    } catch (error) {
-      console.error("Activate register error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "啟用收銀機失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "啟用收銀機失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "收銀機已啟用",
+    });
   },
 );
 
@@ -282,39 +184,22 @@ app.post(
   requireRole([0, 1]), // Admin or Owner
   validateParams(registerParamsSchema),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
+    const { registerId } = c.get("validatedParams");
 
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.toggleRegisterStatus(
-        registerId,
-        false,
-      );
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.toggleRegisterStatus(
+      registerId,
+      false,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "收銀機已停用",
-      });
-    } catch (error) {
-      console.error("Deactivate register error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "停用收銀機失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "停用收銀機失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "收銀機已停用",
+    });
   },
 );
 
@@ -328,36 +213,19 @@ app.delete(
   requireRole([0, 1]), // Admin or Owner
   validateParams(registerParamsSchema),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
+    const { registerId } = c.get("validatedParams");
 
-      const registerService = new RegisterService(c.env.DB as any);
-      const result = await registerService.deleteRegister(registerId);
+    const registerService = new RegisterService(c.env.DB as any);
+    const result = await registerService.deleteRegister(registerId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "收銀機已刪除",
-      });
-    } catch (error) {
-      console.error("Delete register error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "刪除收銀機失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "刪除收銀機失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "收銀機已刪除",
+    });
   },
 );
 

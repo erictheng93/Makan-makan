@@ -13,6 +13,7 @@ import {
 import { ReceiptService } from "../services/ReceiptService";
 import { printReceiptSchema, receiptParamsSchema } from "../schemas";
 import type { Env } from "../../../types/env";
+import { badRequest, notFound } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -26,52 +27,25 @@ app.post(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateBody(printReceiptSchema),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const registerId = c.req.header("X-Register-Id");
-      const shiftId = c.req.header("X-Shift-Id");
+    const data = c.get("validatedBody");
+    const registerId = c.req.header("X-Register-Id");
+    const shiftId = c.req.header("X-Shift-Id");
 
-      if (!registerId) {
-        return c.json(
-          {
-            success: false,
-            error: "需要指定收銀機ID",
-          },
-          400,
-        );
-      }
-
-      const receiptService = new ReceiptService(c.env.DB as any);
-      const result = await receiptService.printReceipt(
-        data,
-        registerId,
-        shiftId,
-      );
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Print receipt error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "打印收據失敗",
-        },
-        500,
-      );
+    if (!registerId) {
+      throw badRequest("需要指定收銀機ID");
     }
+
+    const receiptService = new ReceiptService(c.env.DB as any);
+    const result = await receiptService.printReceipt(data, registerId, shiftId);
+
+    if (!result.success) {
+      throw badRequest(result.error || "打印收據失敗");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -85,36 +59,22 @@ app.post(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(receiptParamsSchema),
   async (c) => {
-    try {
-      const { receiptId } = c.get("validatedParams");
+    const { receiptId } = c.get("validatedParams");
 
-      const receiptService = new ReceiptService(c.env.DB as any);
-      const result = await receiptService.reprintReceipt(receiptId);
+    const receiptService = new ReceiptService(c.env.DB as any);
+    const result = await receiptService.reprintReceipt(receiptId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          result.error === "收據不存在" ? 404 : 400,
-        );
+    if (!result.success) {
+      if (result.error === "收據不存在") {
+        throw notFound("收據不存在", "RECEIPT_NOT_FOUND");
       }
-
-      return c.json({
-        success: true,
-        message: "收據重打中",
-      });
-    } catch (error) {
-      console.error("Reprint receipt error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "重打收據失敗",
-        },
-        500,
-      );
+      throw badRequest(result.error || "重打收據失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "收據重打中",
+    });
   },
 );
 
@@ -128,36 +88,19 @@ app.post(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(receiptParamsSchema),
   async (c) => {
-    try {
-      const { receiptId } = c.get("validatedParams");
+    const { receiptId } = c.get("validatedParams");
 
-      const receiptService = new ReceiptService(c.env.DB as any);
-      const result = await receiptService.cancelPrint(receiptId);
+    const receiptService = new ReceiptService(c.env.DB as any);
+    const result = await receiptService.cancelPrint(receiptId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "打印已取消",
-      });
-    } catch (error) {
-      console.error("Cancel print error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "取消打印失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "取消打印失敗");
     }
+
+    return c.json({
+      success: true,
+      message: "打印已取消",
+    });
   },
 );
 
@@ -195,44 +138,27 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { registerId } = c.get("validatedParams");
-      const { startDate, endDate, receiptType, page, limit } =
-        c.get("validatedQuery");
+    const { registerId } = c.get("validatedParams");
+    const { startDate, endDate, receiptType, page, limit } =
+      c.get("validatedQuery");
 
-      const receiptService = new ReceiptService(c.env.DB as any);
-      const result = await receiptService.getReceipts(registerId, {
-        startDate,
-        endDate,
-        receiptType,
-        page,
-        limit,
-      });
+    const receiptService = new ReceiptService(c.env.DB as any);
+    const result = await receiptService.getReceipts(registerId, {
+      startDate,
+      endDate,
+      receiptType,
+      page,
+      limit,
+    });
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          400,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get receipts error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取收據列表失敗",
-        },
-        500,
-      );
+    if (!result.success) {
+      throw badRequest(result.error || "獲取收據列表失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -246,36 +172,22 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(receiptParamsSchema),
   async (c) => {
-    try {
-      const { receiptId } = c.get("validatedParams");
+    const { receiptId } = c.get("validatedParams");
 
-      const receiptService = new ReceiptService(c.env.DB as any);
-      const result = await receiptService.getReceiptDetail(receiptId);
+    const receiptService = new ReceiptService(c.env.DB as any);
+    const result = await receiptService.getReceiptDetail(receiptId);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          result.error === "收據不存在" ? 404 : 400,
-        );
+    if (!result.success) {
+      if (result.error === "收據不存在") {
+        throw notFound("收據不存在", "RECEIPT_NOT_FOUND");
       }
-
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      console.error("Get receipt detail error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "獲取收據詳情失敗",
-        },
-        500,
-      );
+      throw badRequest(result.error || "獲取收據詳情失敗");
     }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 

@@ -12,10 +12,8 @@ import {
 } from "../../../shared/middleware";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "../../../shared/utils";
+import { createSuccessResponse } from "../../../shared/utils";
+import { notFound } from "../../../shared/utils/api-error";
 
 // Import schemas
 import { qrCodeSchemas } from "../schemas/validation";
@@ -38,28 +36,16 @@ app.post(
   ]),
   validateBody(qrCodeSchemas.generate),
   async (c) => {
-    try {
-      const data = c.req.valid("json" as never) as any;
-      const user = c.get("user");
-      const service = new QrCodesService(c.env);
+    const data = c.req.valid("json" as never) as any;
+    const user = c.get("user");
+    const service = new QrCodesService(c.env);
 
-      const qrCode = await service.generateQR(
-        data,
-        user?.id,
-        user?.restaurantId,
-      );
+    const qrCode = await service.generateQR(data, user?.id, user?.restaurantId);
 
-      return c.json(
-        createSuccessResponse(qrCode, "QR code generated successfully"),
-        HTTP_STATUS.CREATED,
-      );
-    } catch (error) {
-      console.error("QR code generation error:", error);
-      return c.json(
-        createErrorResponse("Failed to generate QR code"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(qrCode, "QR code generated successfully"),
+      HTTP_STATUS.CREATED,
+    );
   },
 );
 
@@ -70,28 +56,20 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.bulk),
   async (c) => {
-    try {
-      const data = c.req.valid("json" as never) as any;
-      const user = c.get("user");
-      const service = new QrCodesService(c.env);
+    const data = c.req.valid("json" as never) as any;
+    const user = c.get("user");
+    const service = new QrCodesService(c.env);
 
-      const batch = await service.generateBulkQR(
-        data,
-        user?.id,
-        user?.restaurantId,
-      );
+    const batch = await service.generateBulkQR(
+      data,
+      user?.id,
+      user?.restaurantId,
+    );
 
-      return c.json(
-        createSuccessResponse(batch, "Bulk QR codes generated successfully"),
-        HTTP_STATUS.CREATED,
-      );
-    } catch (error) {
-      console.error("Bulk QR code generation error:", error);
-      return c.json(
-        createErrorResponse("Failed to generate bulk QR codes"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(batch, "Bulk QR codes generated successfully"),
+      HTTP_STATUS.CREATED,
+    );
   },
 );
 
@@ -101,32 +79,21 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    try {
-      const { id } = c.req.valid("param" as never) as any;
-      const service = new QrCodesService(c.env);
+    const { id } = c.req.valid("param" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const result = await service.downloadQR(id);
+    const result = await service.downloadQR(id);
 
-      if (!result) {
-        return c.json(
-          createErrorResponse("QR code not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return new Response(result.data, {
-        headers: {
-          "Content-Type": result.contentType,
-          "Content-Disposition": `attachment; filename="${result.filename}"`,
-        },
-      });
-    } catch (error) {
-      console.error("QR code download error:", error);
-      return c.json(
-        createErrorResponse("Failed to download QR code"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!result) {
+      throw notFound("QR code not found", "QR_CODE_NOT_FOUND");
     }
+
+    return new Response(result.data, {
+      headers: {
+        "Content-Type": result.contentType,
+        "Content-Disposition": `attachment; filename="${result.filename}"`,
+      },
+    });
   },
 );
 
@@ -136,32 +103,21 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.batchParams),
   async (c) => {
-    try {
-      const { batchId } = c.req.valid("param" as never) as any;
-      const service = new QrCodesService(c.env);
+    const { batchId } = c.req.valid("param" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const result = await service.downloadBatch(batchId);
+    const result = await service.downloadBatch(batchId);
 
-      if (!result) {
-        return c.json(
-          createErrorResponse("Batch not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return new Response(result.data, {
-        headers: {
-          "Content-Type": result.contentType,
-          "Content-Disposition": `attachment; filename="${result.filename}"`,
-        },
-      });
-    } catch (error) {
-      console.error("Batch download error:", error);
-      return c.json(
-        createErrorResponse("Failed to download batch"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!result) {
+      throw notFound("Batch not found", "BATCH_NOT_FOUND");
     }
+
+    return new Response(result.data, {
+      headers: {
+        "Content-Type": result.contentType,
+        "Content-Disposition": `attachment; filename="${result.filename}"`,
+      },
+    });
   },
 );
 
@@ -172,24 +128,16 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateQuery(qrCodeSchemas.stats),
   async (c) => {
-    try {
-      const query = c.req.valid("query" as never) as any;
-      const user = c.get("user");
-      const service = new QrCodesService(c.env);
+    const query = c.req.valid("query" as never) as any;
+    const user = c.get("user");
+    const service = new QrCodesService(c.env);
 
-      // Use restaurant ID from query or user context
-      const restaurantId = query.restaurantId || user?.restaurantId;
+    // Use restaurant ID from query or user context
+    const restaurantId = query.restaurantId || user?.restaurantId;
 
-      const stats = await service.getStatistics(restaurantId);
+    const stats = await service.getStatistics(restaurantId);
 
-      return c.json(createSuccessResponse(stats), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("QR code statistics error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch QR code statistics"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(createSuccessResponse(stats), HTTP_STATUS.OK);
   },
 );
 
@@ -201,20 +149,12 @@ app.get(
   authMiddleware,
   validateQuery(qrCodeSchemas.listTemplates),
   async (c) => {
-    try {
-      const query = c.req.valid("query" as never) as any;
-      const service = new QrCodesService(c.env);
+    const query = c.req.valid("query" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const templates = await service.listTemplates(query.category);
+    const templates = await service.listTemplates(query.category);
 
-      return c.json(createSuccessResponse(templates), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Template list error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch templates"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(createSuccessResponse(templates), HTTP_STATUS.OK);
   },
 );
 
@@ -224,27 +164,16 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    try {
-      const { id } = c.req.valid("param" as never) as any;
-      const service = new QrCodesService(c.env);
+    const { id } = c.req.valid("param" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const template = await service.getTemplate(id);
+    const template = await service.getTemplate(id);
 
-      if (!template) {
-        return c.json(
-          createErrorResponse("Template not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(createSuccessResponse(template), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Template get error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch template"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!template) {
+      throw notFound("Template not found", "TEMPLATE_NOT_FOUND");
     }
+
+    return c.json(createSuccessResponse(template), HTTP_STATUS.OK);
   },
 );
 
@@ -255,28 +184,20 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.createTemplate),
   async (c) => {
-    try {
-      const data = c.req.valid("json" as never) as any;
-      const user = c.get("user");
-      const service = new QrCodesService(c.env);
+    const data = c.req.valid("json" as never) as any;
+    const user = c.get("user");
+    const service = new QrCodesService(c.env);
 
-      // Inject createdBy from authenticated user
-      const template = await service.createTemplate({
-        ...data,
-        createdBy: user?.id || 1,
-      });
+    // Inject createdBy from authenticated user
+    const template = await service.createTemplate({
+      ...data,
+      createdBy: user?.id || 1,
+    });
 
-      return c.json(
-        createSuccessResponse(template, "Template created successfully"),
-        HTTP_STATUS.CREATED,
-      );
-    } catch (error) {
-      console.error("Template creation error:", error);
-      return c.json(
-        createErrorResponse("Failed to create template"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(template, "Template created successfully"),
+      HTTP_STATUS.CREATED,
+    );
   },
 );
 
@@ -288,31 +209,20 @@ app.put(
   validateParams(qrCodeSchemas.params),
   validateBody(qrCodeSchemas.updateTemplate),
   async (c) => {
-    try {
-      const { id } = c.req.valid("param" as never) as any;
-      const data = c.req.valid("json" as never) as any;
-      const service = new QrCodesService(c.env);
+    const { id } = c.req.valid("param" as never) as any;
+    const data = c.req.valid("json" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const template = await service.updateTemplate(id, data);
+    const template = await service.updateTemplate(id, data);
 
-      if (!template) {
-        return c.json(
-          createErrorResponse("Template not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(
-        createSuccessResponse(template, "Template updated successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Template update error:", error);
-      return c.json(
-        createErrorResponse("Failed to update template"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!template) {
+      throw notFound("Template not found", "TEMPLATE_NOT_FOUND");
     }
+
+    return c.json(
+      createSuccessResponse(template, "Template updated successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -323,30 +233,19 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    try {
-      const { id } = c.req.valid("param" as never) as any;
-      const service = new QrCodesService(c.env);
+    const { id } = c.req.valid("param" as never) as any;
+    const service = new QrCodesService(c.env);
 
-      const deleted = await service.deleteTemplate(id);
+    const deleted = await service.deleteTemplate(id);
 
-      if (!deleted) {
-        return c.json(
-          createErrorResponse("Template not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(
-        createSuccessResponse(null, "Template deleted successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Template deletion error:", error);
-      return c.json(
-        createErrorResponse("Failed to delete template"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!deleted) {
+      throw notFound("Template not found", "TEMPLATE_NOT_FOUND");
     }
+
+    return c.json(
+      createSuccessResponse(null, "Template deleted successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -361,45 +260,34 @@ app.get(
   "/verify/shop/:qrCode",
   validateParams(qrCodeSchemas.shopQrCode),
   async (c) => {
-    try {
-      const { qrCode } = c.req.valid("param" as never) as any;
+    const { qrCode } = c.req.valid("param" as never) as any;
 
-      // Import RestaurantsService dynamically to avoid circular dependencies
-      const { RestaurantsService } =
-        await import("../../restaurants/services/RestaurantsService");
-      const restaurantsService = new RestaurantsService(
-        c.env.DB,
-        c.env,
-        c.env.CACHE_KV,
-      );
+    // Import RestaurantsService dynamically to avoid circular dependencies
+    const { RestaurantsService } =
+      await import("../../restaurants/services/RestaurantsService");
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
 
-      const result = await restaurantsService.verifyShopQrCode(qrCode);
+    const result = await restaurantsService.verifyShopQrCode(qrCode);
 
-      if (!result.valid) {
-        return c.json(
-          createErrorResponse("Invalid or expired QR code"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(
-        createSuccessResponse(
-          {
-            valid: true,
-            restaurantId: result.restaurantId,
-            restaurant: result.restaurant,
-          },
-          "QR code verified successfully",
-        ),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Shop QR code verification error:", error);
-      return c.json(
-        createErrorResponse("Failed to verify QR code"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!result.valid) {
+      throw notFound("Invalid or expired QR code", "QR_CODE_INVALID");
     }
+
+    return c.json(
+      createSuccessResponse(
+        {
+          valid: true,
+          restaurantId: result.restaurantId,
+          restaurant: result.restaurant,
+        },
+        "QR code verified successfully",
+      ),
+      HTTP_STATUS.OK,
+    );
   },
 );
 

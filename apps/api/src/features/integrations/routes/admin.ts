@@ -108,14 +108,8 @@ adminRoutes.post("/:restaurantId/:platform/menu-sync", async (c) => {
   const platform = c.req.param("platform") as PlatformType;
 
   const service = new PlatformMenuSyncService(c.env);
-
-  try {
-    await service.syncMenu(restaurantId, platform);
-    return c.json({ success: true, message: "Menu sync completed" });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return c.json({ success: false, error: errorMessage }, 500);
-  }
+  await service.syncMenu(restaurantId, platform);
+  return c.json({ success: true, message: "Menu sync completed" });
 });
 
 // GET /:restaurantId/:platform/orders — list platform orders

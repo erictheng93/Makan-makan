@@ -8,10 +8,7 @@ import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { validateBody } from "../../../shared/middleware";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "../../../shared/utils";
+import { createSuccessResponse } from "../../../shared/utils";
 import { z } from "zod";
 
 // Import service
@@ -72,36 +69,29 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(testNotificationSchema),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const service = new NotificationService(c.env.DB, c.env);
+    const data = c.get("validatedBody");
+    const service = new NotificationService(c.env.DB, c.env);
 
-      // Send test notification with sample data
-      const result = await service.sendTestNotification(
-        data.type,
-        data.recipientEmail,
-      );
+    // Send test notification with sample data
+    const result = await service.sendTestNotification(
+      data.type,
+      data.recipientEmail,
+    );
 
-      if (result.success) {
-        return c.json(
-          createSuccessResponse({
-            message: "Test notification sent successfully",
-            details: result,
-          }),
-          HTTP_STATUS.OK,
-        );
-      } else {
-        return c.json(
-          createErrorResponse(
-            result.error || "Failed to send test notification",
-          ),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    } catch (error) {
-      console.error("Send test notification error:", error);
+    if (result.success) {
       return c.json(
-        createErrorResponse("Failed to send test notification"),
+        createSuccessResponse({
+          message: "Test notification sent successfully",
+          details: result,
+        }),
+        HTTP_STATUS.OK,
+      );
+    } else {
+      return c.json(
+        {
+          success: false,
+          error: result.error || "Failed to send test notification",
+        },
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
     }
@@ -116,182 +106,174 @@ app.get(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   async (c) => {
-    try {
-      // NotificationService instance available for future use
-      // const _service = new NotificationService(c.env.DB, c.env)
+    // NotificationService instance available for future use
+    // const _service = new NotificationService(c.env.DB, c.env)
 
-      // Get all available templates
-      const templates = [
-        {
-          category: "leave_request_submitted",
-          name: "Leave Request Submitted",
-          description: "Sent when an employee submits a leave request",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "employeeName",
-            "leaveType",
-            "startDate",
-            "endDate",
-            "totalDays",
-          ],
-        },
-        {
-          category: "leave_request_approved",
-          name: "Leave Request Approved",
-          description: "Sent when a leave request is approved",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "employeeName",
-            "leaveType",
-            "startDate",
-            "endDate",
-            "totalDays",
-            "approverName",
-          ],
-        },
-        {
-          category: "leave_request_rejected",
-          name: "Leave Request Rejected",
-          description: "Sent when a leave request is rejected",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "employeeName",
-            "leaveType",
-            "startDate",
-            "endDate",
-            "rejectionReason",
-          ],
-        },
-        {
-          category: "leave_request_cancelled",
-          name: "Leave Request Cancelled",
-          description: "Sent when a leave request is cancelled",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "employeeName",
-            "leaveType",
-            "startDate",
-            "endDate",
-          ],
-        },
-        {
-          category: "schedule_created",
-          name: "Schedule Created",
-          description: "Sent when a new schedule is created for an employee",
-          availableChannels: ["email", "sms"],
-          requiredVariables: [
-            "employeeName",
-            "shiftName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-          ],
-        },
-        {
-          category: "schedule_updated",
-          name: "Schedule Updated",
-          description: "Sent when an existing schedule is modified",
-          availableChannels: ["email", "sms"],
-          requiredVariables: [
-            "employeeName",
-            "shiftName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-          ],
-        },
-        {
-          category: "schedule_cancelled",
-          name: "Schedule Cancelled",
-          description: "Sent when a schedule is cancelled",
-          availableChannels: ["email", "sms"],
-          requiredVariables: [
-            "employeeName",
-            "shiftName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-            "cancellationReason",
-          ],
-        },
-        {
-          category: "swap_request_created",
-          name: "Swap Request Created",
-          description: "Sent when an employee creates a shift swap request",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "requesterName",
-            "targetName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-            "requestType",
-            "reason",
-          ],
-        },
-        {
-          category: "swap_request_approved",
-          name: "Swap Request Approved",
-          description: "Sent when a swap request is approved by manager",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "requesterName",
-            "managerName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-            "requestType",
-          ],
-        },
-        {
-          category: "swap_request_rejected",
-          name: "Swap Request Rejected",
-          description: "Sent when a swap request is rejected by manager",
-          availableChannels: ["email"],
-          requiredVariables: [
-            "requesterName",
-            "managerName",
-            "scheduleDate",
-            "startTime",
-            "endTime",
-            "requestType",
-            "rejectionReason",
-          ],
-        },
-        {
-          category: "shift_reminder",
-          name: "Shift Reminder",
-          description: "Sent as a reminder before an upcoming shift",
-          availableChannels: ["email", "sms"],
-          requiredVariables: [
-            "employeeName",
-            "shiftName",
-            "scheduleDate",
-            "startTime",
-            "hoursUntil",
-          ],
-        },
-      ];
+    // Get all available templates
+    const templates = [
+      {
+        category: "leave_request_submitted",
+        name: "Leave Request Submitted",
+        description: "Sent when an employee submits a leave request",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "employeeName",
+          "leaveType",
+          "startDate",
+          "endDate",
+          "totalDays",
+        ],
+      },
+      {
+        category: "leave_request_approved",
+        name: "Leave Request Approved",
+        description: "Sent when a leave request is approved",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "employeeName",
+          "leaveType",
+          "startDate",
+          "endDate",
+          "totalDays",
+          "approverName",
+        ],
+      },
+      {
+        category: "leave_request_rejected",
+        name: "Leave Request Rejected",
+        description: "Sent when a leave request is rejected",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "employeeName",
+          "leaveType",
+          "startDate",
+          "endDate",
+          "rejectionReason",
+        ],
+      },
+      {
+        category: "leave_request_cancelled",
+        name: "Leave Request Cancelled",
+        description: "Sent when a leave request is cancelled",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "employeeName",
+          "leaveType",
+          "startDate",
+          "endDate",
+        ],
+      },
+      {
+        category: "schedule_created",
+        name: "Schedule Created",
+        description: "Sent when a new schedule is created for an employee",
+        availableChannels: ["email", "sms"],
+        requiredVariables: [
+          "employeeName",
+          "shiftName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+        ],
+      },
+      {
+        category: "schedule_updated",
+        name: "Schedule Updated",
+        description: "Sent when an existing schedule is modified",
+        availableChannels: ["email", "sms"],
+        requiredVariables: [
+          "employeeName",
+          "shiftName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+        ],
+      },
+      {
+        category: "schedule_cancelled",
+        name: "Schedule Cancelled",
+        description: "Sent when a schedule is cancelled",
+        availableChannels: ["email", "sms"],
+        requiredVariables: [
+          "employeeName",
+          "shiftName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+          "cancellationReason",
+        ],
+      },
+      {
+        category: "swap_request_created",
+        name: "Swap Request Created",
+        description: "Sent when an employee creates a shift swap request",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "requesterName",
+          "targetName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+          "requestType",
+          "reason",
+        ],
+      },
+      {
+        category: "swap_request_approved",
+        name: "Swap Request Approved",
+        description: "Sent when a swap request is approved by manager",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "requesterName",
+          "managerName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+          "requestType",
+        ],
+      },
+      {
+        category: "swap_request_rejected",
+        name: "Swap Request Rejected",
+        description: "Sent when a swap request is rejected by manager",
+        availableChannels: ["email"],
+        requiredVariables: [
+          "requesterName",
+          "managerName",
+          "scheduleDate",
+          "startTime",
+          "endTime",
+          "requestType",
+          "rejectionReason",
+        ],
+      },
+      {
+        category: "shift_reminder",
+        name: "Shift Reminder",
+        description: "Sent as a reminder before an upcoming shift",
+        availableChannels: ["email", "sms"],
+        requiredVariables: [
+          "employeeName",
+          "shiftName",
+          "scheduleDate",
+          "startTime",
+          "hoursUntil",
+        ],
+      },
+    ];
 
-      return c.json(
-        createSuccessResponse({
-          templates,
-          totalCount: templates.length,
-          supportedChannels: ["email", "sms"],
-          configuredProviders: {
-            email: !!c.env.RESEND_API_KEY,
-            sms: !!(c.env.TWILIO_ACCOUNT_SID && c.env.TWILIO_AUTH_TOKEN),
-          },
-        }),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Get notification templates error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch notification templates"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse({
+        templates,
+        totalCount: templates.length,
+        supportedChannels: ["email", "sms"],
+        configuredProviders: {
+          email: !!c.env.RESEND_API_KEY,
+          sms: !!(c.env.TWILIO_ACCOUNT_SID && c.env.TWILIO_AUTH_TOKEN),
+        },
+      }),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -304,34 +286,27 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(sendNotificationSchema),
   async (c) => {
-    try {
-      const notificationData = c.get("validatedBody");
-      const service = new NotificationService(c.env.DB, c.env);
+    const notificationData = c.get("validatedBody");
+    const service = new NotificationService(c.env.DB, c.env);
 
-      // Send the notification
-      const result = await service.sendNotification(notificationData);
+    // Send the notification
+    const result = await service.sendNotification(notificationData);
 
-      if (result.success) {
-        return c.json(
-          createSuccessResponse({
-            message: "Notification sent successfully",
-            channel: notificationData.type,
-            category: notificationData.category,
-          }),
-          HTTP_STATUS.OK,
-        );
-      } else {
-        return c.json(
-          createErrorResponse(
-            result.errors.join(", ") || "Failed to send notification",
-          ),
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        );
-      }
-    } catch (error) {
-      console.error("Send notification error:", error);
+    if (result.success) {
       return c.json(
-        createErrorResponse("Failed to send notification"),
+        createSuccessResponse({
+          message: "Notification sent successfully",
+          channel: notificationData.type,
+          category: notificationData.category,
+        }),
+        HTTP_STATUS.OK,
+      );
+    } else {
+      return c.json(
+        {
+          success: false,
+          error: result.errors.join(", ") || "Failed to send notification",
+        },
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
     }
