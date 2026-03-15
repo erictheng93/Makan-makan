@@ -191,7 +191,7 @@ curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/revoke \
 curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token": "<YOUR_TOKEN>"}'
-# 預期回應: {"success": false, "error": "Token has been revoked", "revoked": true}
+# 預期回應: {"success": false, "error": {"code": "TOKEN_BLACKLISTED", "message": "Token has been invalidated"}}
 ```
 
 ### 4. WebSocket 連接測試

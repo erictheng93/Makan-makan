@@ -669,8 +669,11 @@ const LoginResponseSchema = z.object({
 
 const ErrorResponseSchema = z.object({
   success: z.literal(false),
-  error: z.string(),
-  code: z.string().optional(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional(),
+  }),
 });
 
 // 路由定義

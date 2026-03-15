@@ -117,13 +117,12 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": true,
-  "data": {
-    // Response data
-  },
-  "meta": {
+  "data": {},
+  "pagination": {
     "page": 1,
-    "per_page": 20,
-    "total": 100
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```

@@ -18,10 +18,17 @@ Queue Modular API 是 MakanMakan 平台的新一代排隊管理系統，採用�
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
-  timestamp?: string;
-  cached?: boolean;
-  cache_hit?: boolean;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 ```
 

@@ -626,10 +626,15 @@ curl -X POST "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" 
 
 ### Error Response Format
 
+All error responses now use the unified error response format:
+
 ```json
 {
   "success": false,
-  "error": "Error message description"
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message"
+  }
 }
 ```
 

@@ -60,10 +60,16 @@
 - `updateShopQrCodeImage(id: number, imageUrl: string)`
 - `updateShopMode(id: number, enabled: boolean, settings?: any)`
 
-**錯誤訊息**:
+**錯誤訊息** (已更新為統一錯誤格式):
 
-```
-{"success":false,"error":"restaurantsService.getShopQrCodeInfo is not a function"}
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INTERNAL_SERVER_ERROR",
+    "message": "restaurantsService.getShopQrCodeInfo is not a function"
+  }
+}
 ```
 
 **修復狀態**: ✅ **已修復** (2025-10-10)
@@ -108,8 +114,10 @@
 
 ```bash
 Test 2: Get shop QR code info
-Response: {"success":false,"error":"Failed to retrieve shop QR code information"}
+Response: {"success":false,"error":{"code":"INTERNAL_SERVER_ERROR","message":"Failed to retrieve shop QR code information"}}
 ```
+
+> Note: Error format updated to unified error response pattern (`{ code, message }`).
 
 **原因**:
 
@@ -127,10 +135,14 @@ Response: {"success":false,"error":"Failed to retrieve shop QR code information"
 ```json
 {
   "success": false,
-  "error": "API endpoint not found",
-  "path": "/api/v1/qr-codes/verify/shop/SHOP-1-1234567890"
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "API endpoint not found"
+  }
 }
 ```
+
+> Note: Error format updated to unified error response pattern (`{ code, message }`). The original response also contained a `path` field, which is no longer part of the standard error shape.
 
 **期望路由**: `GET /api/v1/qr-codes/verify/shop/:qrCode`
 
