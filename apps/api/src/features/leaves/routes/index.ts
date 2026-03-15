@@ -16,10 +16,12 @@ import {
 } from "../../../shared/middleware";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
+import { createSuccessResponse } from "../../../shared/utils";
 import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "../../../shared/utils";
+  notFound,
+  forbidden,
+  badRequest,
+} from "../../../shared/utils/api-error";
 
 // Import schemas
 import { leaveSchemas, calculateLeaveDays } from "../schemas/validation";
@@ -41,20 +43,12 @@ app.get(
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.restaurantIdParam),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId } = c.get("validatedParams");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const types = await service.getLeaveTypes(restaurantId);
+    const types = await service.getLeaveTypes(restaurantId);
 
-      return c.json(createSuccessResponse(types), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Get leave types error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch leave types"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(createSuccessResponse(types), HTTP_STATUS.OK);
   },
 );
 
@@ -65,27 +59,16 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const type = await service.getLeaveType(id);
+    const type = await service.getLeaveType(id);
 
-      if (!type) {
-        return c.json(
-          createErrorResponse("Leave type not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(createSuccessResponse(type), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Get leave type error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch leave type"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!type) {
+      throw notFound("Leave type not found");
     }
+
+    return c.json(createSuccessResponse(type), HTTP_STATUS.OK);
   },
 );
 
@@ -98,33 +81,21 @@ app.post(
   validateParams(leaveSchemas.restaurantIdParam),
   validateBody(leaveSchemas.createLeaveType),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const type = await service.createLeaveType({
-        ...data,
-        restaurantId,
-        createdBy: user.id,
-      });
+    const type = await service.createLeaveType({
+      ...data,
+      restaurantId,
+      createdBy: user.id,
+    });
 
-      return c.json(
-        createSuccessResponse(type, "Leave type created successfully"),
-        HTTP_STATUS.CREATED,
-      );
-    } catch (error) {
-      console.error("Create leave type error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to create leave type",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(type, "Leave type created successfully"),
+      HTTP_STATUS.CREATED,
+    );
   },
 );
 
@@ -136,32 +107,20 @@ app.put(
   validateParams(leaveSchemas.leaveTypeIdParam),
   validateBody(leaveSchemas.updateLeaveType),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const type = await service.updateLeaveType(id, {
-        ...data,
-        updatedBy: user.id,
-      });
+    const type = await service.updateLeaveType(id, {
+      ...data,
+      updatedBy: user.id,
+    });
 
-      return c.json(
-        createSuccessResponse(type, "Leave type updated successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Update leave type error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to update leave type",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(type, "Leave type updated successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -172,34 +131,19 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const deleted = await service.deleteLeaveType(id);
+    const deleted = await service.deleteLeaveType(id);
 
-      if (!deleted) {
-        return c.json(
-          createErrorResponse("Leave type not found or cannot be deleted"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      return c.json(
-        createSuccessResponse(null, "Leave type deleted successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Delete leave type error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to delete leave type",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!deleted) {
+      throw notFound("Leave type not found or cannot be deleted");
     }
+
+    return c.json(
+      createSuccessResponse(null, "Leave type deleted successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -213,38 +157,24 @@ app.get(
   authMiddleware,
   validateQuery(leaveSchemas.leaveBalanceQuery),
   async (c) => {
-    try {
-      const query = c.get("validatedQuery");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const query = c.get("validatedQuery");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      // Check access: employees can only view their own balances
-      if (
-        user.role !== USER_ROLES.ADMIN &&
-        user.role !== USER_ROLES.SHOP_OWNER
-      ) {
-        if (query.employeeId !== user.id) {
-          return c.json(
-            createErrorResponse("Access denied"),
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
+    // Check access: employees can only view their own balances
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+      if (query.employeeId !== user.id) {
+        throw forbidden("Access denied");
       }
-
-      const year = query.year || new Date().getFullYear();
-      const balances = await service.getEmployeeLeaveBalances(
-        query.employeeId,
-        year,
-      );
-
-      return c.json(createSuccessResponse(balances), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Get leave balances error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch leave balances"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
     }
+
+    const year = query.year || new Date().getFullYear();
+    const balances = await service.getEmployeeLeaveBalances(
+      query.employeeId,
+      year,
+    );
+
+    return c.json(createSuccessResponse(balances), HTTP_STATUS.OK);
   },
 );
 
@@ -255,27 +185,15 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(leaveSchemas.adjustLeaveBalance),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const service = new LeaveService(c.env.DB, c.env);
+    const data = c.get("validatedBody");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const balance = await service.adjustLeaveBalance(data);
+    const balance = await service.adjustLeaveBalance(data);
 
-      return c.json(
-        createSuccessResponse(balance, "Leave balance adjusted successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Adjust leave balance error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to adjust leave balance",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(balance, "Leave balance adjusted successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -288,31 +206,19 @@ app.post(
   validateParams(leaveSchemas.restaurantIdParam),
   validateBody(leaveSchemas.accrueLeaveBalances),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const { year } = c.get("validatedBody");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId } = c.get("validatedParams");
+    const { year } = c.get("validatedBody");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const count = await service.accrueLeaveBalances(restaurantId, year);
+    const count = await service.accrueLeaveBalances(restaurantId, year);
 
-      return c.json(
-        createSuccessResponse(
-          { count },
-          `Successfully accrued leave balances for ${count} employee-leave type combinations`,
-        ),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Accrue leave balances error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to accrue leave balances",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(
+        { count },
+        `Successfully accrued leave balances for ${count} employee-leave type combinations`,
+      ),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -328,42 +234,34 @@ app.get(
   validateParams(leaveSchemas.restaurantIdParam),
   validateQuery(leaveSchemas.leaveRequestFilters),
   async (c) => {
-    try {
-      const query = c.get("validatedQuery");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const query = c.get("validatedQuery");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      // Employees can only view their own requests
-      const filters = {
-        ...query,
-        employeeId:
-          user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
-            ? user.id
-            : query.employeeId,
-      };
+    // Employees can only view their own requests
+    const filters = {
+      ...query,
+      employeeId:
+        user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
+          ? user.id
+          : query.employeeId,
+    };
 
-      const result = await service.getLeaveRequests(filters);
+    const result = await service.getLeaveRequests(filters);
 
-      return c.json(
-        {
-          success: true,
-          data: result.items,
-          pagination: {
-            page: query.page,
-            limit: query.limit,
-            total: result.total,
-            totalPages: Math.ceil(result.total / query.limit),
-          },
+    return c.json(
+      {
+        success: true,
+        data: result.items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / query.limit),
         },
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Get leave requests error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch leave requests"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+      },
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -373,41 +271,24 @@ app.get(
   authMiddleware,
   validateParams(leaveSchemas.leaveRequestIdParam),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const request = await service.getLeaveRequest(id);
+    const request = await service.getLeaveRequest(id);
 
-      if (!request) {
-        return c.json(
-          createErrorResponse("Leave request not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      // Check access
-      if (
-        user.role !== USER_ROLES.ADMIN &&
-        user.role !== USER_ROLES.SHOP_OWNER
-      ) {
-        if (request.employeeId !== user.id) {
-          return c.json(
-            createErrorResponse("Access denied"),
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-      }
-
-      return c.json(createSuccessResponse(request), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Get leave request error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch leave request"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    if (!request) {
+      throw notFound("Leave request not found");
     }
+
+    // Check access
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+      if (request.employeeId !== user.id) {
+        throw forbidden("Access denied");
+      }
+    }
+
+    return c.json(createSuccessResponse(request), HTTP_STATUS.OK);
   },
 );
 
@@ -419,56 +300,41 @@ app.post(
   validateParams(leaveSchemas.restaurantIdParam),
   validateBody(leaveSchemas.createLeaveRequest),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      // Calculate total days
-      const totalDays = calculateLeaveDays(
-        data.startDate,
-        data.endDate,
-        data.startPeriod,
-        data.endPeriod,
-      );
+    // Calculate total days
+    const totalDays = calculateLeaveDays(
+      data.startDate,
+      data.endDate,
+      data.startPeriod,
+      data.endPeriod,
+    );
 
-      // Check if employee has sufficient balance
-      const balance = await service.getLeaveBalance(
-        data.employeeId,
-        data.leaveTypeId,
-        new Date().getFullYear(),
-      );
+    // Check if employee has sufficient balance
+    const balance = await service.getLeaveBalance(
+      data.employeeId,
+      data.leaveTypeId,
+      new Date().getFullYear(),
+    );
 
-      if (balance && balance.remainingDays < totalDays) {
-        return c.json(
-          createErrorResponse(
-            `Insufficient leave balance. Available: ${balance.remainingDays} days, Requested: ${totalDays} days`,
-          ),
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      const request = await service.createLeaveRequest({
-        ...data,
-        restaurantId,
-        totalDays,
-      });
-
-      return c.json(
-        createSuccessResponse(request, "Leave request created successfully"),
-        HTTP_STATUS.CREATED,
-      );
-    } catch (error) {
-      console.error("Create leave request error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to create leave request",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    if (balance && balance.remainingDays < totalDays) {
+      throw badRequest(
+        `Insufficient leave balance. Available: ${balance.remainingDays} days, Requested: ${totalDays} days`,
       );
     }
+
+    const request = await service.createLeaveRequest({
+      ...data,
+      restaurantId,
+      totalDays,
+    });
+
+    return c.json(
+      createSuccessResponse(request, "Leave request created successfully"),
+      HTTP_STATUS.CREATED,
+    );
   },
 );
 
@@ -480,32 +346,16 @@ app.post(
   validateParams(leaveSchemas.leaveRequestIdParam),
   validateBody(leaveSchemas.approveLeaveRequest),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { approverId, comments } = c.get("validatedBody");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const { approverId, comments } = c.get("validatedBody");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const request = await service.approveLeaveRequest(
-        id,
-        approverId,
-        comments,
-      );
+    const request = await service.approveLeaveRequest(id, approverId, comments);
 
-      return c.json(
-        createSuccessResponse(request, "Leave request approved successfully"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Approve leave request error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to approve leave request",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(request, "Leave request approved successfully"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -517,28 +367,16 @@ app.post(
   validateParams(leaveSchemas.leaveRequestIdParam),
   validateBody(leaveSchemas.rejectLeaveRequest),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { approverId, reason } = c.get("validatedBody");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const { approverId, reason } = c.get("validatedBody");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const request = await service.rejectLeaveRequest(id, approverId, reason);
+    const request = await service.rejectLeaveRequest(id, approverId, reason);
 
-      return c.json(
-        createSuccessResponse(request, "Leave request rejected"),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Reject leave request error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to reject leave request",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse(request, "Leave request rejected"),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -549,57 +387,36 @@ app.post(
   validateParams(leaveSchemas.leaveRequestIdParam),
   validateBody(leaveSchemas.cancelLeaveRequest),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { userId, reason } = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { id } = c.get("validatedParams");
+    const { userId, reason } = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      // Check if user is cancelling their own request or is admin/owner
-      const request = await service.getLeaveRequest(id);
-      if (!request) {
-        return c.json(
-          createErrorResponse("Leave request not found"),
-          HTTP_STATUS.NOT_FOUND,
-        );
-      }
-
-      if (
-        user.role !== USER_ROLES.ADMIN &&
-        user.role !== USER_ROLES.SHOP_OWNER
-      ) {
-        if (request.employeeId !== user.id) {
-          return c.json(
-            createErrorResponse("Access denied"),
-            HTTP_STATUS.FORBIDDEN,
-          );
-        }
-      }
-
-      const cancelledRequest = await service.cancelLeaveRequest(
-        id,
-        userId,
-        reason,
-      );
-
-      return c.json(
-        createSuccessResponse(
-          cancelledRequest,
-          "Leave request cancelled successfully",
-        ),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Cancel leave request error:", error);
-      return c.json(
-        createErrorResponse(
-          error instanceof Error
-            ? error.message
-            : "Failed to cancel leave request",
-        ),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+    // Check if user is cancelling their own request or is admin/owner
+    const request = await service.getLeaveRequest(id);
+    if (!request) {
+      throw notFound("Leave request not found");
     }
+
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+      if (request.employeeId !== user.id) {
+        throw forbidden("Access denied");
+      }
+    }
+
+    const cancelledRequest = await service.cancelLeaveRequest(
+      id,
+      userId,
+      reason,
+    );
+
+    return c.json(
+      createSuccessResponse(
+        cancelledRequest,
+        "Leave request cancelled successfully",
+      ),
+      HTTP_STATUS.OK,
+    );
   },
 );
 
@@ -615,21 +432,13 @@ app.get(
   validateParams(leaveSchemas.restaurantIdParam),
   validateQuery(leaveSchemas.holidaysQuery),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedParams");
-      const { year } = c.get("validatedQuery");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId } = c.get("validatedParams");
+    const { year } = c.get("validatedQuery");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const holidays = await service.getHolidays(restaurantId, year);
+    const holidays = await service.getHolidays(restaurantId, year);
 
-      return c.json(createSuccessResponse(holidays), HTTP_STATUS.OK);
-    } catch (error) {
-      console.error("Get holidays error:", error);
-      return c.json(
-        createErrorResponse("Failed to fetch holidays"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(createSuccessResponse(holidays), HTTP_STATUS.OK);
   },
 );
 
@@ -640,23 +449,15 @@ app.get(
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.workingDayParam),
   async (c) => {
-    try {
-      const { restaurantId, date } = c.get("validatedParams");
-      const service = new LeaveService(c.env.DB, c.env);
+    const { restaurantId, date } = c.get("validatedParams");
+    const service = new LeaveService(c.env.DB, c.env);
 
-      const isWorking = await service.isWorkingDay(restaurantId, date);
+    const isWorking = await service.isWorkingDay(restaurantId, date);
 
-      return c.json(
-        createSuccessResponse({ date, isWorkingDay: isWorking }),
-        HTTP_STATUS.OK,
-      );
-    } catch (error) {
-      console.error("Check working day error:", error);
-      return c.json(
-        createErrorResponse("Failed to check working day"),
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return c.json(
+      createSuccessResponse({ date, isWorkingDay: isWorking }),
+      HTTP_STATUS.OK,
+    );
   },
 );
 

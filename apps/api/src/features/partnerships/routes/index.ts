@@ -33,6 +33,7 @@ import {
   memberIdParamSchema,
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
+import { notFound } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{ Bindings: Env }>();
 
@@ -51,33 +52,19 @@ routes.post(
   requireRole([0, 1]), // Admin or Shop Owner
   validateBody(createPartnershipSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const partnership = await service.createPartnership({
-        ...data,
-        createdBy: user.id,
-      });
+    const partnership = await service.createPartnership({
+      ...data,
+      createdBy: user.id,
+    });
 
-      return c.json({
-        success: true,
-        data: partnership,
-      });
-    } catch (error) {
-      console.error("Create partnership error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to create partnership",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: partnership,
+    });
   },
 );
 
@@ -92,30 +79,16 @@ routes.get(
   requireRole([0, 1]),
   validateQuery(partnershipFiltersSchema as any),
   async (c) => {
-    try {
-      const filters = c.get("validatedQuery");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const filters = c.get("validatedQuery");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const { page, limit, ...restFilters } = filters;
-      const result = await service.listPartnerships(restFilters, page, limit);
+    const { page, limit, ...restFilters } = filters;
+    const result = await service.listPartnerships(restFilters, page, limit);
 
-      return c.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      console.error("List partnerships error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to list partnerships",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      ...result,
+    });
   },
 );
 
@@ -130,39 +103,19 @@ routes.get(
   requireRole([0, 1]),
   validateParams(idParamSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const partnership = await service.getPartnership(id);
+    const partnership = await service.getPartnership(id);
 
-      if (!partnership) {
-        return c.json(
-          {
-            success: false,
-            error: "Partnership not found",
-          },
-          404,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: partnership,
-      });
-    } catch (error) {
-      console.error("Get partnership error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to get partnership",
-        },
-        500,
-      );
+    if (!partnership) {
+      throw notFound("Partnership not found");
     }
+
+    return c.json({
+      success: true,
+      data: partnership,
+    });
   },
 );
 
@@ -177,27 +130,15 @@ routes.get(
   requireRole([0, 1]),
   validateParams(idParamSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const stats = await service.getPartnershipStatistics(id);
+    const stats = await service.getPartnershipStatistics(id);
 
-      return c.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      console.error("Get partnership statistics error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to get statistics",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: stats,
+    });
   },
 );
 
@@ -213,30 +154,16 @@ routes.put(
   validateParams(idParamSchema as any),
   validateBody(updatePartnershipSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const partnership = await service.updatePartnership(id, data);
+    const partnership = await service.updatePartnership(id, data);
 
-      return c.json({
-        success: true,
-        data: partnership,
-      });
-    } catch (error) {
-      console.error("Update partnership error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to update partnership",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: partnership,
+    });
   },
 );
 
@@ -251,29 +178,15 @@ routes.delete(
   requireRole([0]), // Admin only
   validateParams(idParamSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      await service.deletePartnership(id);
+    await service.deletePartnership(id);
 
-      return c.json({
-        success: true,
-        message: "Partnership deleted successfully",
-      });
-    } catch (error) {
-      console.error("Delete partnership error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to delete partnership",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: "Partnership deleted successfully",
+    });
   },
 );
 
@@ -292,31 +205,19 @@ routes.post(
   requireRole([0, 1]),
   validateBody(createPlanSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const plan = await service.createPlan({
-        ...data,
-        createdBy: user.id,
-      });
+    const plan = await service.createPlan({
+      ...data,
+      createdBy: user.id,
+    });
 
-      return c.json({
-        success: true,
-        data: plan,
-      });
-    } catch (error) {
-      console.error("Create plan error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to create plan",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: plan,
+    });
   },
 );
 
@@ -329,28 +230,16 @@ routes.get(
   authMiddleware,
   validateQuery(planFiltersSchema as any),
   async (c) => {
-    try {
-      const filters = c.get("validatedQuery");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const filters = c.get("validatedQuery");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const { page, limit, ...restFilters } = filters;
-      const result = await service.listPlans(restFilters, page, limit);
+    const { page, limit, ...restFilters } = filters;
+    const result = await service.listPlans(restFilters, page, limit);
 
-      return c.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      console.error("List plans error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to list plans",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      ...result,
+    });
   },
 );
 
@@ -363,36 +252,19 @@ routes.get(
   authMiddleware,
   validateParams(planIdParamSchema as any),
   async (c) => {
-    try {
-      const { planId } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { planId } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const plan = await service.getPlan(planId);
+    const plan = await service.getPlan(planId);
 
-      if (!plan) {
-        return c.json(
-          {
-            success: false,
-            error: "Plan not found",
-          },
-          404,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: plan,
-      });
-    } catch (error) {
-      console.error("Get plan error:", error);
-      return c.json(
-        {
-          success: false,
-          error: error instanceof Error ? error.message : "Failed to get plan",
-        },
-        500,
-      );
+    if (!plan) {
+      throw notFound("Plan not found");
     }
+
+    return c.json({
+      success: true,
+      data: plan,
+    });
   },
 );
 
@@ -406,33 +278,21 @@ routes.post(
   authMiddleware,
   validateBody(validatePlanSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const result = await service.validatePlan(
-        data.planId,
-        data.memberId,
-        data.orderAmount,
-        data.menuItems,
-        data.categories,
-      );
+    const result = await service.validatePlan(
+      data.planId,
+      data.memberId,
+      data.orderAmount,
+      data.menuItems,
+      data.categories,
+    );
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      console.error("Validate plan error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to validate plan",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: result,
+    });
   },
 );
 
@@ -448,28 +308,16 @@ routes.put(
   validateParams(planIdParamSchema as any),
   validateBody(updatePlanSchema as any),
   async (c) => {
-    try {
-      const { planId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { planId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const plan = await service.updatePlan(planId, data);
+    const plan = await service.updatePlan(planId, data);
 
-      return c.json({
-        success: true,
-        data: plan,
-      });
-    } catch (error) {
-      console.error("Update plan error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to update plan",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: plan,
+    });
   },
 );
 
@@ -484,27 +332,15 @@ routes.delete(
   requireRole([0, 1]),
   validateParams(planIdParamSchema as any),
   async (c) => {
-    try {
-      const { planId } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { planId } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      await service.deletePlan(planId);
+    await service.deletePlan(planId);
 
-      return c.json({
-        success: true,
-        message: "Plan deleted successfully",
-      });
-    } catch (error) {
-      console.error("Delete plan error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to delete plan",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: "Plan deleted successfully",
+    });
   },
 );
 
@@ -521,30 +357,16 @@ routes.post(
   "/members/verify",
   validateBody(memberVerificationSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const member = await service.submitMemberVerification(data);
+    const member = await service.submitMemberVerification(data);
 
-      return c.json({
-        success: true,
-        data: member,
-        message: "Verification request submitted successfully",
-      });
-    } catch (error) {
-      console.error("Submit verification error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to submit verification",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: member,
+      message: "Verification request submitted successfully",
+    });
   },
 );
 
@@ -559,28 +381,16 @@ routes.get(
   requireRole([0, 1]),
   validateQuery(memberFiltersSchema as any),
   async (c) => {
-    try {
-      const filters = c.get("validatedQuery");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const filters = c.get("validatedQuery");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const { page, limit, ...restFilters } = filters;
-      const result = await service.listMembers(restFilters, page, limit);
+    const { page, limit, ...restFilters } = filters;
+    const result = await service.listMembers(restFilters, page, limit);
 
-      return c.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      console.error("List members error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to list members",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      ...result,
+    });
   },
 );
 
@@ -595,37 +405,19 @@ routes.get(
   requireRole([0, 1]),
   validateParams(memberIdParamSchema as any),
   async (c) => {
-    try {
-      const { memberId } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { memberId } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const member = await service.getMember(memberId);
+    const member = await service.getMember(memberId);
 
-      if (!member) {
-        return c.json(
-          {
-            success: false,
-            error: "Member not found",
-          },
-          404,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: member,
-      });
-    } catch (error) {
-      console.error("Get member error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to get member",
-        },
-        500,
-      );
+    if (!member) {
+      throw notFound("Member not found");
     }
+
+    return c.json({
+      success: true,
+      data: member,
+    });
   },
 );
 
@@ -641,34 +433,22 @@ routes.post(
   validateParams(memberIdParamSchema as any),
   validateBody(approveMemberSchema as any),
   async (c) => {
-    try {
-      const { memberId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { memberId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const member = await service.approveMember(
-        memberId,
-        user.id,
-        data.verificationExpiry,
-      );
+    const member = await service.approveMember(
+      memberId,
+      user.id,
+      data.verificationExpiry,
+    );
 
-      return c.json({
-        success: true,
-        data: member,
-        message: "Member approved successfully",
-      });
-    } catch (error) {
-      console.error("Approve member error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to approve member",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: member,
+      message: "Member approved successfully",
+    });
   },
 );
 
@@ -684,29 +464,17 @@ routes.post(
   validateParams(memberIdParamSchema as any),
   validateBody(rejectMemberSchema as any),
   async (c) => {
-    try {
-      const { memberId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { memberId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const member = await service.rejectMember(memberId, data.rejectionReason);
+    const member = await service.rejectMember(memberId, data.rejectionReason);
 
-      return c.json({
-        success: true,
-        data: member,
-        message: "Member rejected",
-      });
-    } catch (error) {
-      console.error("Reject member error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to reject member",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: member,
+      message: "Member rejected",
+    });
   },
 );
 
@@ -722,28 +490,16 @@ routes.put(
   validateParams(memberIdParamSchema as any),
   validateBody(updateMemberSchema as any),
   async (c) => {
-    try {
-      const { memberId } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { memberId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const member = await service.updateMember(memberId, data);
+    const member = await service.updateMember(memberId, data);
 
-      return c.json({
-        success: true,
-        data: member,
-      });
-    } catch (error) {
-      console.error("Update member error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to update member",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: member,
+    });
   },
 );
 
@@ -762,31 +518,20 @@ routes.post(
   requireRole([0, 1, 4]), // Admin, Shop Owner, or Cashier
   validateBody(logUsageSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const user = c.get("user");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const usageLog = await service.logUsage({
-        ...data,
-        verifiedByUserId: user.id,
-      });
+    const usageLog = await service.logUsage({
+      ...data,
+      verifiedByUserId: user.id,
+    });
 
-      return c.json({
-        success: true,
-        data: usageLog,
-        message: "Usage logged successfully",
-      });
-    } catch (error) {
-      console.error("Log usage error:", error);
-      return c.json(
-        {
-          success: false,
-          error: error instanceof Error ? error.message : "Failed to log usage",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: usageLog,
+      message: "Usage logged successfully",
+    });
   },
 );
 
@@ -801,30 +546,16 @@ routes.get(
   requireRole([0, 1]),
   validateQuery(usageLogFiltersSchema as any),
   async (c) => {
-    try {
-      const filters = c.get("validatedQuery");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const filters = c.get("validatedQuery");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const { page, limit, ...restFilters } = filters;
-      const result = await service.listUsageLogs(restFilters, page, limit);
+    const { page, limit, ...restFilters } = filters;
+    const result = await service.listUsageLogs(restFilters, page, limit);
 
-      return c.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      console.error("List usage logs error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to list usage logs",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      ...result,
+    });
   },
 );
 
@@ -840,29 +571,17 @@ routes.post(
   validateParams(idParamSchema as any),
   validateBody(cancelUsageSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const usageLog = await service.cancelUsageLog(id, data.reason);
+    const usageLog = await service.cancelUsageLog(id, data.reason);
 
-      return c.json({
-        success: true,
-        data: usageLog,
-        message: "Usage cancelled successfully",
-      });
-    } catch (error) {
-      console.error("Cancel usage error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to cancel usage",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: usageLog,
+      message: "Usage cancelled successfully",
+    });
   },
 );
 
@@ -877,28 +596,16 @@ routes.post(
   requireRole([0, 1]),
   validateParams(idParamSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-      const usageLog = await service.refundUsageLog(id);
+    const usageLog = await service.refundUsageLog(id);
 
-      return c.json({
-        success: true,
-        data: usageLog,
-        message: "Usage refunded successfully",
-      });
-    } catch (error) {
-      console.error("Refund usage error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to refund usage",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: usageLog,
+      message: "Usage refunded successfully",
+    });
   },
 );
 

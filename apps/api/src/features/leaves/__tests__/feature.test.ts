@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // API Response type for type assertions
 interface ApiResponse {
@@ -117,6 +118,21 @@ describe("Leaves API Feature Tests", () => {
     const { default: leavesRoutes } = await import("../routes/index");
     app = new Hono<{ Bindings: typeof mockEnv }>();
     app.route("/leaves", leavesRoutes);
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          { success: false, error: { code: err.code, message: err.message } },
+          err.status as any,
+        );
+      }
+      return c.json(
+        {
+          success: false,
+          error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+        },
+        500,
+      );
+    });
   });
 
   afterEach(() => {

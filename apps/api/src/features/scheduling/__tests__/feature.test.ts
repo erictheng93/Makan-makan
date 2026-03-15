@@ -12,6 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // Mock database service
 const mockSchedulingService = {
@@ -112,6 +113,21 @@ describe("Scheduling Feature", () => {
     const { default: schedulingRoutes } = await import("../routes/index");
     app = new Hono();
     app.route("/scheduling", schedulingRoutes);
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          { success: false, error: { code: err.code, message: err.message } },
+          err.status as any,
+        );
+      }
+      return c.json(
+        {
+          success: false,
+          error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+        },
+        500,
+      );
+    });
   });
 
   afterEach(() => {
