@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import routes from "../routes";
+import { ApiError } from "../../../shared/utils/api-error";
 
 // Mock auth middleware — pass-through
 vi.mock("../../../middleware/auth", () => ({
@@ -219,6 +220,34 @@ describe("Seats Routes", () => {
 
     app = new Hono();
     app.route("/seats", routes);
+
+    // Mirror the global error handler from index.ts
+    app.onError((err, c) => {
+      if (err instanceof ApiError) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+              ...(err.details !== undefined && { details: err.details }),
+            },
+          },
+          err.status as any,
+        );
+      }
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "INTERNAL_ERROR",
+            message:
+              err instanceof Error ? err.message : "Internal server error",
+          },
+        },
+        500,
+      );
+    });
   });
 
   // ─── GET / — list seats ───────────────────────────────────────────
@@ -247,9 +276,12 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats?tableId=1");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("DB unavailable");
+      expect(json.error.message).toBe("DB unavailable");
     });
   });
 
@@ -273,7 +305,7 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats/stats?tableId=1");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
   });
@@ -305,9 +337,12 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats/qr/INVALID-QR");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Invalid QR code or seat not found");
+      expect(json.error.message).toBe("Invalid QR code or seat not found");
     });
 
     it("returns 500 when service throws", async () => {
@@ -317,7 +352,7 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats/qr/QR-SEAT-001");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
 
@@ -351,9 +386,12 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats/999");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat not found");
+      expect(json.error.message).toBe("Seat not found");
     });
 
     it("returns 500 when service throws", async () => {
@@ -361,7 +399,7 @@ describe("Seats Routes", () => {
       const req = new Request("http://localhost/seats/1");
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
   });
@@ -398,9 +436,12 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Table not found");
+      expect(json.error.message).toBe("Table not found");
     });
   });
 
@@ -424,7 +465,7 @@ describe("Seats Routes", () => {
       expect(json.message).toMatch(/regenerated QR codes/);
     });
 
-    it("returns 500 when service reports failure", async () => {
+    it("returns 400 when service reports failure", async () => {
       mockSeatService.batchGenerateSeatQRCodes.mockResolvedValue({
         success: false,
         error: "QR generation failed",
@@ -435,10 +476,13 @@ describe("Seats Routes", () => {
         body: JSON.stringify({ tableId: 1 }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("QR generation failed");
+      expect(json.error.message).toBe("QR generation failed");
     });
 
     it("returns 500 when service throws", async () => {
@@ -486,9 +530,12 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat not found");
+      expect(json.error.message).toBe("Seat not found");
     });
 
     it("returns 500 when service throws", async () => {
@@ -500,9 +547,12 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Update failed");
+      expect(json.error.message).toBe("Update failed");
     });
   });
 
@@ -525,18 +575,21 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
     });
 
-    it("returns 500 when deleteSeat returns false", async () => {
+    it("returns 400 when deleteSeat returns false", async () => {
       mockSeatService.deleteSeat.mockResolvedValue(false);
       const req = new Request("http://localhost/seats/1", { method: "DELETE" });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Failed to delete seat");
+      expect(json.error.message).toBe("Failed to delete seat");
     });
 
     it("returns 500 when service throws", async () => {
@@ -563,16 +616,19 @@ describe("Seats Routes", () => {
       expect(json.message).toBe("All seats for the table deleted successfully");
     });
 
-    it("returns 500 when deleteSeatsForTable returns false", async () => {
+    it("returns 400 when deleteSeatsForTable returns false", async () => {
       mockSeatService.deleteSeatsForTable.mockResolvedValue(false);
       const req = new Request("http://localhost/seats/table/1", {
         method: "DELETE",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Failed to delete seats");
+      expect(json.error.message).toBe("Failed to delete seats");
     });
 
     it("returns 500 when service throws", async () => {
@@ -614,9 +670,12 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat not found");
+      expect(json.error.message).toBe("Seat not found");
     });
 
     it("returns 400 when seat is already occupied", async () => {
@@ -636,12 +695,15 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(400);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat is already occupied");
+      expect(json.error.message).toBe("Seat is already occupied");
     });
 
-    it("returns 500 when occupySeat returns false", async () => {
+    it("returns 400 when occupySeat returns false", async () => {
       mockSeatService.occupySeat.mockResolvedValue(false);
       const req = new Request("http://localhost/seats/1/occupy", {
         method: "POST",
@@ -649,10 +711,13 @@ describe("Seats Routes", () => {
         body: JSON.stringify({ orderId: 10 }),
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Failed to occupy seat");
+      expect(json.error.message).toBe("Failed to occupy seat");
     });
 
     it("returns 500 when service throws", async () => {
@@ -690,21 +755,27 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat not found");
+      expect(json.error.message).toBe("Seat not found");
     });
 
-    it("returns 500 when releaseSeat returns false", async () => {
+    it("returns 400 when releaseSeat returns false", async () => {
       mockSeatService.releaseSeat.mockResolvedValue(false);
       const req = new Request("http://localhost/seats/1/release", {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Failed to release seat");
+      expect(json.error.message).toBe("Failed to release seat");
     });
 
     it("returns 500 when service throws", async () => {
@@ -745,12 +816,15 @@ describe("Seats Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(404);
-      const json = (await res.json()) as { success: boolean; error: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Seat not found");
+      expect(json.error.message).toBe("Seat not found");
     });
 
-    it("returns 500 when service reports failure", async () => {
+    it("returns 400 when service reports failure", async () => {
       mockSeatService.regenerateSeatQRCode.mockResolvedValue({
         success: false,
         error: "QR generation error",
@@ -759,10 +833,13 @@ describe("Seats Routes", () => {
         method: "POST",
       });
       const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { success: boolean; error: string };
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { message: string };
+      };
       expect(json.success).toBe(false);
-      expect(json.error).toBe("QR generation error");
+      expect(json.error.message).toBe("QR generation error");
     });
 
     it("returns 500 when service throws", async () => {
@@ -781,27 +858,7 @@ describe("Seats Routes", () => {
 
   // ─── Generic error message fallback ───────────────────────────────
 
-  describe("generic error message for non-Error throws", () => {
-    it("GET / uses fallback message when non-Error thrown", async () => {
-      mockSeatService.getSeatsByTableId.mockRejectedValue("plain string error");
-      const req = new Request("http://localhost/seats?tableId=1");
-      const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { error: string };
-      expect(json.error).toBe("Failed to fetch seats");
-    });
-
-    it("POST /batch-create uses fallback message when non-Error thrown", async () => {
-      mockSeatService.createSeatsForTable.mockRejectedValue(42);
-      const req = new Request("http://localhost/seats/batch-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId: 1, seatCount: 2 }),
-      });
-      const res = await app.fetch(req, mockEnv);
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as { error: string };
-      expect(json.error).toBe("Failed to create seats");
-    });
-  });
+  // Note: non-Error throws (strings, numbers) propagate as UnknownError in Hono
+  // and are handled by the global error handler in production. These edge cases
+  // are not tested here as they are implementation details of the global handler.
 });

@@ -41,58 +41,42 @@ app.get(
   requireRole([5]), // Customers only
   validateQuery(myOrdersSchema),
   async (c) => {
-    try {
-      const query = c.get("validatedQuery");
-      const user: AuthUser = c.get("user");
-      const ordersService = new OrdersService(c.env);
+    const query = c.get("validatedQuery");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
 
-      logger.debug("Getting customer orders", { customerId: user.id, query });
+    logger.debug("Getting customer orders", { customerId: user.id, query });
 
-      // Build filters - always filter by current customer
-      const filters: any = {
-        customerId: user.id,
-        page: query.page || 1,
-        limit: query.limit || 20,
-      };
+    // Build filters - always filter by current customer
+    const filters: any = {
+      customerId: user.id,
+      page: query.page || 1,
+      limit: query.limit || 20,
+    };
 
-      if (query.status) {
-        filters.status = query.status;
-      }
-
-      if (query.dateFrom) {
-        filters.dateFrom = new Date(query.dateFrom);
-      }
-
-      if (query.dateTo) {
-        filters.dateTo = new Date(query.dateTo);
-      }
-
-      const result = await ordersService.getOrders(
-        filters,
-        user.id,
-        user.role as any,
-      );
-
-      return c.json({
-        success: true,
-        data: result.orders,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error(
-        "Get customer orders error",
-        error instanceof Error ? error : undefined,
-        {},
-      );
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch orders",
-        },
-        500,
-      );
+    if (query.status) {
+      filters.status = query.status;
     }
+
+    if (query.dateFrom) {
+      filters.dateFrom = new Date(query.dateFrom);
+    }
+
+    if (query.dateTo) {
+      filters.dateTo = new Date(query.dateTo);
+    }
+
+    const result = await ordersService.getOrders(
+      filters,
+      user.id,
+      user.role as any,
+    );
+
+    return c.json({
+      success: true,
+      data: result.orders,
+      pagination: result.pagination,
+    });
   },
 );
 
@@ -105,38 +89,22 @@ app.get(
   authMiddleware,
   requireRole([5]), // Customers only
   async (c) => {
-    try {
-      const user: AuthUser = c.get("user");
+    const user: AuthUser = c.get("user");
 
-      logger.debug("Getting customer profile", { customerId: user.id });
+    logger.debug("Getting customer profile", { customerId: user.id });
 
-      // Return user profile
-      return c.json({
-        success: true,
-        data: {
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          email: user.email || undefined,
-          phone: user.phone || undefined,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      logger.error(
-        "Get customer profile error",
-        error instanceof Error ? error : undefined,
-        {},
-      );
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch profile",
-        },
-        500,
-      );
-    }
+    // Return user profile
+    return c.json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email || undefined,
+        phone: user.phone || undefined,
+        role: user.role,
+      },
+    });
   },
 );
 

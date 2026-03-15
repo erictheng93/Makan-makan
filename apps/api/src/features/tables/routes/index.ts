@@ -13,6 +13,11 @@ import {
 } from "../../../middleware/validation";
 import { USER_ROLES } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
+import {
+  notFound,
+  forbidden,
+  badRequest,
+} from "../../../shared/utils/api-error";
 
 import { TablesService } from "../services/TablesService";
 import { tableSchemas } from "../schemas/validation";
@@ -65,48 +70,30 @@ app.get(
   ]),
   validateQuery(tableSchemas.filters as any),
   async (c) => {
-    try {
-      const filters = c.get("validatedQuery");
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const filters = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      // Permission check: non-admins can only view their own restaurant's tables
-      let restaurantId = filters.restaurantId;
-      if (currentUser.role !== USER_ROLES.ADMIN) {
-        restaurantId = currentUser.restaurantId || "";
-      }
-
-      if (!restaurantId) {
-        return c.json(
-          {
-            success: false,
-            error: "Restaurant ID is required",
-          },
-          400,
-        );
-      }
-
-      const result = await tablesService.getRestaurantTables(restaurantId, {
-        ...filters,
-        restaurantId: undefined, // Remove from filters since it's used as parameter
-      });
-
-      return c.json({
-        success: true,
-        data: result.tables,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      console.error("Get tables error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch tables",
-        },
-        500,
-      );
+    // Permission check: non-admins can only view their own restaurant's tables
+    let restaurantId = filters.restaurantId;
+    if (currentUser.role !== USER_ROLES.ADMIN) {
+      restaurantId = currentUser.restaurantId || "";
     }
+
+    if (!restaurantId) {
+      throw badRequest("Restaurant ID is required");
+    }
+
+    const result = await tablesService.getRestaurantTables(restaurantId, {
+      ...filters,
+      restaurantId: undefined, // Remove from filters since it's used as parameter
+    });
+
+    return c.json({
+      success: true,
+      data: result.tables,
+      pagination: result.pagination,
+    });
   },
 );
 
@@ -126,103 +113,61 @@ app.get(
   ]),
   validateParams(tableSchemas.idParam as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id);
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only view their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          table,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: table,
-      });
-    } catch (error) {
-      console.error("Get table error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch table",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only view their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        table,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    return c.json({
+      success: true,
+      data: table,
+    });
   },
 );
 
 // Handler function for creating tables
 const createTableHandler = async (c: any) => {
   console.log("[TablesRoutes] Create table handler called!");
-  try {
-    const data = c.get("validatedBody") as any;
-    const currentUser = c.get("user");
-    const tablesService = new TablesService(c.env);
+  const data = c.get("validatedBody") as any;
+  const currentUser = c.get("user");
+  const tablesService = new TablesService(c.env);
 
-    // Permission check: non-admins can only create tables for their own restaurant
-    if (
-      !tablesService.validateRestaurantAccess(
-        data.restaurantId,
-        currentUser.restaurantId || "",
-        currentUser.role === USER_ROLES.ADMIN,
-      )
-    ) {
-      return c.json(
-        {
-          success: false,
-          error: "Can only create tables for your own restaurant",
-        },
-        403,
-      );
-    }
-
-    const newTable = await tablesService.createTable(data);
-
-    return c.json(
-      {
-        success: true,
-        data: newTable,
-      },
-      201,
-    );
-  } catch (error) {
-    console.log("[TablesRoutes] Create table error:", error);
-    return c.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to create table",
-      },
-      500,
-    );
+  // Permission check: non-admins can only create tables for their own restaurant
+  if (
+    !tablesService.validateRestaurantAccess(
+      data.restaurantId,
+      currentUser.restaurantId || "",
+      currentUser.role === USER_ROLES.ADMIN,
+    )
+  ) {
+    throw forbidden("Can only create tables for your own restaurant");
   }
+
+  const newTable = await tablesService.createTable(data);
+
+  return c.json(
+    {
+      success: true,
+      data: newTable,
+    },
+    201,
+  );
 };
 
 /**
@@ -249,58 +194,34 @@ app.put(
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.update as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const data = c.get("validatedBody") as any;
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const data = c.get("validatedBody") as any;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const existingTable = await tablesService.getTableById(id);
+    const existingTable = await tablesService.getTableById(id);
 
-      if (!existingTable) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only update their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          existingTable,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const updatedTable = await tablesService.updateTable(id, data);
-
-      return c.json({
-        success: true,
-        data: updatedTable,
-      });
-    } catch (error) {
-      console.error("Update table error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to update table",
-        },
-        500,
-      );
+    if (!existingTable) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only update their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        existingTable,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const updatedTable = await tablesService.updateTable(id, data);
+
+    return c.json({
+      success: true,
+      data: updatedTable,
+    });
   },
 );
 
@@ -314,67 +235,37 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const existingTable = await tablesService.getTableById(id);
+    const existingTable = await tablesService.getTableById(id);
 
-      if (!existingTable) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only delete their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          existingTable,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const success = await tablesService.deleteTable(id);
-
-      if (!success) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to delete table",
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "Table deleted successfully",
-      });
-    } catch (error) {
-      console.error("Delete table error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to delete table",
-        },
-        500,
-      );
+    if (!existingTable) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only delete their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        existingTable,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const success = await tablesService.deleteTable(id);
+
+    if (!success) {
+      throw badRequest("Failed to delete table");
+    }
+
+    return c.json({
+      success: true,
+      message: "Table deleted successfully",
+    });
   },
 );
 
@@ -394,83 +285,47 @@ app.post(
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.occupy as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const { orderId, occupiedBy, estimatedMinutes } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const { orderId, occupiedBy, estimatedMinutes } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id);
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only operate their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          table,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      if (table.isOccupied) {
-        return c.json(
-          {
-            success: false,
-            error: "Table is already occupied",
-          },
-          400,
-        );
-      }
-
-      const success = await tablesService.occupyTable(
-        id,
-        orderId,
-        occupiedBy,
-        estimatedMinutes,
-      );
-
-      if (!success) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to occupy table",
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "Table occupied successfully",
-      });
-    } catch (error) {
-      console.error("Occupy table error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to occupy table",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only operate their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        table,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    if (table.isOccupied) {
+      throw badRequest("Table is already occupied");
+    }
+
+    const success = await tablesService.occupyTable(
+      id,
+      orderId,
+      occupiedBy,
+      estimatedMinutes,
+    );
+
+    if (!success) {
+      throw badRequest("Failed to occupy table");
+    }
+
+    return c.json({
+      success: true,
+      message: "Table occupied successfully",
+    });
   },
 );
 
@@ -489,67 +344,37 @@ app.post(
   ]),
   validateParams(tableSchemas.idParam as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id);
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only operate their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          table,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const success = await tablesService.releaseTable(id);
-
-      if (!success) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to release table",
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "Table released successfully",
-      });
-    } catch (error) {
-      console.error("Release table error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to release table",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only operate their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        table,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const success = await tablesService.releaseTable(id);
+
+    if (!success) {
+      throw badRequest("Failed to release table");
+    }
+
+    return c.json({
+      success: true,
+      message: "Table released successfully",
+    });
   },
 );
 
@@ -564,70 +389,38 @@ app.post(
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.clean as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const { notes } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const { notes } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id);
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only operate their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          table,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const success = await tablesService.markTableCleaned(id, notes);
-
-      if (!success) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to mark table as cleaned",
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        message: "Table marked as cleaned successfully",
-      });
-    } catch (error) {
-      console.error("Mark table cleaned error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to mark table as cleaned",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only operate their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        table,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const success = await tablesService.markTableCleaned(id, notes);
+
+    if (!success) {
+      throw badRequest("Failed to mark table as cleaned");
+    }
+
+    return c.json({
+      success: true,
+      message: "Table marked as cleaned successfully",
+    });
   },
 );
 
@@ -642,73 +435,41 @@ app.post(
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.regenerateQR as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams") as { id: number };
-      const { customData } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const { customData } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id);
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Table not found",
-          },
-          404,
-        );
-      }
-
-      // Permission check: non-admins can only operate their own restaurant's tables
-      if (
-        !tablesService.validateTableAccess(
-          table,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const result = await tablesService.regenerateQRCode(id, customData);
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: {
-          qrCode: result.qrCode,
-        },
-        message: "QR code regenerated successfully",
-      });
-    } catch (error) {
-      console.error("Regenerate QR code error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to regenerate QR code",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Table not found");
     }
+
+    // Permission check: non-admins can only operate their own restaurant's tables
+    if (
+      !tablesService.validateTableAccess(
+        table,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const result = await tablesService.regenerateQRCode(id, customData);
+
+    if (!result.success) {
+      throw badRequest(result.error || "Failed to regenerate QR code");
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        qrCode: result.qrCode,
+      },
+      message: "QR code regenerated successfully",
+    });
   },
 );
 
@@ -722,66 +483,40 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(tableSchemas.bulkQR as any),
   async (c) => {
-    try {
-      const {
+    const {
+      restaurantId,
+      tableIds,
+      options = {},
+    } = c.get("validatedBody") as any;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
+
+    // Permission check: non-admins can only operate their own restaurant's tables
+    if (
+      !tablesService.validateRestaurantAccess(
         restaurantId,
-        tableIds,
-        options = {},
-      } = c.get("validatedBody") as any;
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
-
-      // Permission check: non-admins can only operate their own restaurant's tables
-      if (
-        !tablesService.validateRestaurantAccess(
-          restaurantId,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const result = await tablesService.generateBulkQRCodes(
-        restaurantId,
-        tableIds,
-        options,
-      );
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          500,
-        );
-      }
-
-      return c.json({
-        success: true,
-        data: result.qrCodes,
-        message: "QR codes generated successfully",
-      });
-    } catch (error) {
-      console.error("Generate bulk QR codes error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to generate QR codes",
-        },
-        500,
-      );
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
     }
+
+    const result = await tablesService.generateBulkQRCodes(
+      restaurantId,
+      tableIds,
+      options,
+    );
+
+    if (!result.success) {
+      throw badRequest(result.error || "Failed to generate QR codes");
+    }
+
+    return c.json({
+      success: true,
+      data: result.qrCodes,
+      message: "QR codes generated successfully",
+    });
   },
 );
 
@@ -800,50 +535,30 @@ app.get(
   ]),
   validateQuery(tableSchemas.availableTables as any),
   async (c) => {
-    try {
-      const { restaurantId, capacity } = c.get("validatedQuery") as any;
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { restaurantId, capacity } = c.get("validatedQuery") as any;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      // Permission check: non-admins can only view their own restaurant's tables
-      if (
-        !tablesService.validateRestaurantAccess(
-          restaurantId,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const availableTables = await tablesService.getAvailableTables(
+    // Permission check: non-admins can only view their own restaurant's tables
+    if (
+      !tablesService.validateRestaurantAccess(
         restaurantId,
-        capacity,
-      );
-
-      return c.json({
-        success: true,
-        data: availableTables,
-      });
-    } catch (error) {
-      console.error("Get available tables error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch available tables",
-        },
-        500,
-      );
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
     }
+
+    const availableTables = await tablesService.getAvailableTables(
+      restaurantId,
+      capacity,
+    );
+
+    return c.json({
+      success: true,
+      data: availableTables,
+    });
   },
 );
 
@@ -857,47 +572,27 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(tableSchemas.stats as any),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedQuery") as any;
-      const currentUser = c.get("user");
-      const tablesService = new TablesService(c.env);
+    const { restaurantId } = c.get("validatedQuery") as any;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
 
-      // Permission check: non-admins can only view their own restaurant's statistics
-      if (
-        !tablesService.validateRestaurantAccess(
-          restaurantId,
-          currentUser.restaurantId || "",
-          currentUser.role === USER_ROLES.ADMIN,
-        )
-      ) {
-        return c.json(
-          {
-            success: false,
-            error: "Access denied",
-          },
-          403,
-        );
-      }
-
-      const stats = await tablesService.getTableStats(restaurantId);
-
-      return c.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      console.error("Get table stats error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch table statistics",
-        },
-        500,
-      );
+    // Permission check: non-admins can only view their own restaurant's statistics
+    if (
+      !tablesService.validateRestaurantAccess(
+        restaurantId,
+        currentUser.restaurantId || "",
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
     }
+
+    const stats = await tablesService.getTableStats(restaurantId);
+
+    return c.json({
+      success: true,
+      data: stats,
+    });
   },
 );
 
@@ -909,44 +604,24 @@ app.get(
   "/qr/:qrCode",
   validateParams(tableSchemas.qrCodeParam as any),
   async (c) => {
-    try {
-      const { qrCode } = c.get("validatedParams") as any;
-      const tablesService = new TablesService(c.env);
+    const { qrCode } = c.get("validatedParams") as any;
+    const tablesService = new TablesService(c.env);
 
-      const table = await tablesService.getTableByQRCode(
-        decodeURIComponent(qrCode),
-      );
+    const table = await tablesService.getTableByQRCode(
+      decodeURIComponent(qrCode),
+    );
 
-      if (!table) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid QR code or table not found",
-          },
-          404,
-        );
-      }
-
-      // Return only public information
-      const publicTableInfo = tablesService.getPublicTableInfo(table);
-
-      return c.json({
-        success: true,
-        data: publicTableInfo,
-      });
-    } catch (error) {
-      console.error("Get table by QR code error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch table information",
-        },
-        500,
-      );
+    if (!table) {
+      throw notFound("Invalid QR code or table not found");
     }
+
+    // Return only public information
+    const publicTableInfo = tablesService.getPublicTableInfo(table);
+
+    return c.json({
+      success: true,
+      data: publicTableInfo,
+    });
   },
 );
 

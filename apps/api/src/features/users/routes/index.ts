@@ -19,15 +19,26 @@ import {
   userStatsSchema,
   userSearchSchema,
 } from "../schemas/validation";
+import { ApiError } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
 /**
- * 安全地記錄錯誤，避免循環引用問題
+ * Convert a service result object into a thrown ApiError when unsuccessful.
+ * status defaults to 500 if not provided by the service.
  */
-function logError(operation: string, error: unknown): void {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  console.error(`${operation} error:`, errorMessage);
+function assertResult(result: {
+  success: boolean;
+  error?: string;
+  status?: number;
+}): void {
+  if (!result.success) {
+    throw new ApiError(
+      "SERVICE_ERROR",
+      result.error || "Operation failed",
+      result.status || 500,
+    );
+  }
 }
 
 /**
@@ -40,25 +51,13 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(userFilterSchema as any),
   async (c) => {
-    try {
-      const query = c.get("validatedQuery");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const query = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.getUsers(currentUser, query);
+    const result = await usersService.getUsers(currentUser, query);
 
-      return c.json(result);
-    } catch (error) {
-      logError("Get users", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch users",
-        },
-        500,
-      );
-    }
+    return c.json(result);
   },
 );
 
@@ -79,38 +78,18 @@ app.get(
   ]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.getUserById(currentUser, parseInt(id));
+    const result = await usersService.getUserById(currentUser, parseInt(id));
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      logError("Get user", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch user",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -124,41 +103,21 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(createUserSchema as any),
   async (c) => {
-    try {
-      const data = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const data = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.createUser(currentUser, data);
+    const result = await usersService.createUser(currentUser, data);
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json(
-        {
-          success: true,
-          data: result.data,
-        },
-        (result.status as any) || 200,
-      );
-    } catch (error) {
-      logError("Create user", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to create user",
-        },
-        500,
-      );
-    }
+    return c.json(
+      {
+        success: true,
+        data: result.data,
+      },
+      (result.status as any) || 200,
+    );
   },
 );
 
@@ -172,43 +131,23 @@ app.put(
   validateParams(commonSchemas.idParam as any),
   validateBody(updateUserSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const data = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.updateUser(
-        currentUser,
-        parseInt(id),
-        data,
-      );
+    const result = await usersService.updateUser(
+      currentUser,
+      parseInt(id),
+      data,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        data: result.data,
-      });
-    } catch (error) {
-      logError("Update user", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to update user",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: result.data,
+    });
   },
 );
 
@@ -222,46 +161,24 @@ app.post(
   validateParams(commonSchemas.idParam as any),
   validateBody(updatePasswordSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { currentPassword, newPassword } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const { currentPassword, newPassword } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.changePassword(
-        currentUser,
-        parseInt(id),
-        currentPassword,
-        newPassword,
-      );
+    const result = await usersService.changePassword(
+      currentUser,
+      parseInt(id),
+      currentPassword,
+      newPassword,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      logError("Update password", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to update password",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: result.message,
+    });
   },
 );
 
@@ -276,45 +193,23 @@ app.patch(
   validateParams(commonSchemas.idParam as any),
   validateBody(userStatusSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { isActive } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const { isActive } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.updateUserStatus(
-        currentUser,
-        parseInt(id),
-        isActive,
-      );
+    const result = await usersService.updateUserStatus(
+      currentUser,
+      parseInt(id),
+      isActive,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      logError("Update user status", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to update user status",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: result.message,
+    });
   },
 );
 
@@ -328,38 +223,18 @@ app.patch(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.verifyUser(currentUser, parseInt(id));
+    const result = await usersService.verifyUser(currentUser, parseInt(id));
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      logError("Verify user", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to verify user",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: result.message,
+    });
   },
 );
 
@@ -374,43 +249,23 @@ app.post(
   validateParams(commonSchemas.idParam as any),
   validateBody(resetPasswordSchema as any),
   async (c) => {
-    try {
-      const { id } = c.get("validatedParams");
-      const { newPassword } = c.get("validatedBody");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { id } = c.get("validatedParams");
+    const { newPassword } = c.get("validatedBody");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const result = await usersService.resetPassword(
-        currentUser,
-        parseInt(id),
-        newPassword,
-      );
+    const result = await usersService.resetPassword(
+      currentUser,
+      parseInt(id),
+      newPassword,
+    );
 
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          (result.status as any) || 500,
-        );
-      }
+    assertResult(result);
 
-      return c.json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      logError("Reset password", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to reset password",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      message: result.message,
+    });
   },
 );
 
@@ -424,30 +279,16 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(userStatsSchema as any),
   async (c) => {
-    try {
-      const { restaurantId } = c.get("validatedQuery");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { restaurantId } = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const stats = await usersService.getUserStats(currentUser, restaurantId);
+    const stats = await usersService.getUserStats(currentUser, restaurantId);
 
-      return c.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      console.error("Get user stats error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch user statistics",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: stats,
+    });
   },
 );
 
@@ -461,33 +302,21 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(userSearchSchema as any),
   async (c) => {
-    try {
-      const { query, restaurantId, limit } = c.get("validatedQuery");
-      const currentUser = c.get("user");
-      const usersService = new UsersService(c.env);
+    const { query, restaurantId, limit } = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
 
-      const results = await usersService.searchUsers(
-        currentUser,
-        query,
-        restaurantId,
-        limit,
-      );
+    const results = await usersService.searchUsers(
+      currentUser,
+      query,
+      restaurantId,
+      limit,
+    );
 
-      return c.json({
-        success: true,
-        data: results,
-      });
-    } catch (error) {
-      console.error("Search users error:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to search users",
-        },
-        500,
-      );
-    }
+    return c.json({
+      success: true,
+      data: results,
+    });
   },
 );
 
