@@ -1,10 +1,23 @@
 /**
  * Group Orders Service
  * Business logic for group ordering functionality
+ *
+ * Migrated to Drizzle ORM from raw D1 SQL
  */
 
 import { randomUUID } from "crypto";
 import type { D1Database } from "@cloudflare/workers-types";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, sql, desc, asc, isNull, gte } from "drizzle-orm";
+import {
+  groupOrders,
+  groupMembers,
+  groupCartItems,
+  splitBills,
+  groupActivityLogs,
+} from "@makanmakan/database";
+import { menuItems } from "@makanmakan/database";
+
 // Mock shared utilities - will be replaced with actual implementations
 class ConsoleLogger {
   constructor(
@@ -77,7 +90,7 @@ import type {
 } from "../types";
 
 export class GroupOrdersService implements IGroupOrderService {
-  private db: D1Database;
+  private db;
   private cache: KVCacheService;
   private logger: ConsoleLogger;
   private performance: PerformanceMonitor;
@@ -88,7 +101,7 @@ export class GroupOrdersService implements IGroupOrderService {
     cacheKV?: KVNamespace,
     logLevel: string = "info",
   ) {
-    this.db = database;
+    this.db = drizzle(database);
     this.cache = new KVCacheService(cacheKV);
     this.logger = new ConsoleLogger("group-orders", logLevel);
     this.performance = new PerformanceMonitor("group-orders");
@@ -130,61 +143,39 @@ export class GroupOrdersService implements IGroupOrderService {
         ...data.permissions,
       };
 
-      // Create group order
-      const groupOrderResult = await this.db
-        .prepare(
-          `
-        INSERT INTO group_orders (
-          id, restaurant_id, table_id, share_code, created_by,
-          status, expires_at, settings, total_amount,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
-      `,
-        )
-        .bind(
-          groupOrderId,
-          data.restaurantId,
-          data.tableId || null,
-          shareCode,
-          hostId,
-          "active",
-          expiresAt,
-          JSON.stringify({
-            maxMembers: data.maxMembers || 8,
-            permissions: defaultPermissions,
-          }),
-          0,
-        )
-        .run();
+      const now = new Date();
 
-      if (!groupOrderResult.success) {
-        throw new Error("Failed to create group order");
-      }
+      // Create group order
+      await this.db.insert(groupOrders).values({
+        id: groupOrderId,
+        restaurantId: data.restaurantId,
+        tableId: data.tableId || null,
+        shareCode,
+        createdBy: hostId,
+        status: "active",
+        expiresAt: new Date(expiresAt * 1000),
+        settings: {
+          maxMembers: data.maxMembers || 8,
+          permissions: defaultPermissions,
+        } as any,
+        totalAmount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       // Create host member
       const hostMemberId = randomUUID();
-      const sessionId = randomUUID(); // Generate session ID for host
-      const hostMemberResult = await this.db
-        .prepare(
-          `
-        INSERT INTO group_members (
-          id, group_order_id, session_id, name, role,
-          joined_at, last_active_at, is_active
-        ) VALUES (?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'), 1)
-      `,
-        )
-        .bind(
-          hostMemberId,
-          groupOrderId,
-          sessionId,
-          "Host", // This should be updated with actual host name
-          "creator", // role: creator for host
-        )
-        .run();
-
-      if (!hostMemberResult.success) {
-        throw new Error("Failed to create host member");
-      }
+      const sessionId = randomUUID();
+      await this.db.insert(groupMembers).values({
+        id: hostMemberId,
+        groupOrderId: groupOrderId,
+        sessionId,
+        name: "Host",
+        role: "creator",
+        joinedAt: now,
+        lastActiveAt: now,
+        isActive: true,
+      });
 
       // Log activity
       await this.logActivity(
@@ -200,14 +191,12 @@ export class GroupOrdersService implements IGroupOrderService {
       );
 
       // Get host member data
-      const hostMember = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members WHERE id = ?
-      `,
-        )
-        .bind(hostMemberId)
-        .first()) as any;
+      const hostMemberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.id, hostMemberId));
+
+      const hostMember = hostMemberRows[0];
 
       const response: CreateGroupOrderResponse = {
         groupOrderId,
@@ -253,53 +242,55 @@ export class GroupOrdersService implements IGroupOrderService {
       });
 
       // Get group order by share code
-      const groupOrder = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_orders
-        WHERE share_code = ?
-        AND status = 'active'
-        AND expires_at > unixepoch('now')
-      `,
-        )
-        .bind(shareCode)
-        .first()) as any;
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(
+          and(
+            eq(groupOrders.shareCode, shareCode),
+            eq(groupOrders.status, "active"),
+            gte(groupOrders.expiresAt, new Date()),
+          ),
+        );
+
+      const groupOrder = groupOrderRows[0];
 
       if (!groupOrder) {
         return { success: false, error: "Group order not found or expired" };
       }
 
       // Parse settings to get maxMembers
-      const settings = JSON.parse(groupOrder.settings || "{}");
+      const settings = (groupOrder.settings || {}) as any;
       const maxMembers = settings.maxMembers || 8;
 
       // Check if group is full
-      const memberCount = (await this.db
-        .prepare(
-          `
-        SELECT COUNT(*) as count FROM group_members
-        WHERE group_order_id = ? AND left_at IS NULL
-      `,
-        )
-        .bind(groupOrder.id)
-        .first()) as any;
+      const memberCountResult = await this.db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrder.id),
+            isNull(groupMembers.leftAt),
+          ),
+        );
 
-      if (memberCount.count >= maxMembers) {
+      if (memberCountResult[0].count >= maxMembers) {
         return { success: false, error: "Group order is full" };
       }
 
       // Check if member name already exists in this group
-      const existingMember = await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members
-        WHERE group_order_id = ? AND name = ? AND left_at IS NULL
-      `,
-        )
-        .bind(groupOrder.id, memberData.memberName)
-        .first();
+      const existingMemberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrder.id),
+            eq(groupMembers.name, memberData.memberName),
+            isNull(groupMembers.leftAt),
+          ),
+        );
 
-      if (existingMember) {
+      if (existingMemberRows.length > 0) {
         return {
           success: false,
           error: "Member name already exists in this group",
@@ -308,30 +299,20 @@ export class GroupOrdersService implements IGroupOrderService {
 
       // Create new member
       const memberId = randomUUID();
-      const sessionId = randomUUID(); // Generate session ID for member
-      const memberResult = await this.db
-        .prepare(
-          `
-        INSERT INTO group_members (
-          id, group_order_id, session_id, name, phone, email, role,
-          joined_at, last_active_at, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'), 1)
-      `,
-        )
-        .bind(
-          memberId,
-          groupOrder.id,
-          sessionId,
-          memberData.memberName,
-          memberData.phone || null,
-          memberData.email || null,
-          "member", // role: member for non-host
-        )
-        .run();
-
-      if (!memberResult.success) {
-        throw new Error("Failed to create member");
-      }
+      const sessionId = randomUUID();
+      const now = new Date();
+      await this.db.insert(groupMembers).values({
+        id: memberId,
+        groupOrderId: groupOrder.id,
+        sessionId,
+        name: memberData.memberName,
+        phone: memberData.phone || null,
+        email: memberData.email || null,
+        role: "member",
+        joinedAt: now,
+        lastActiveAt: now,
+        isActive: true,
+      });
 
       // Log activity
       await this.logActivity(
@@ -343,14 +324,12 @@ export class GroupOrdersService implements IGroupOrderService {
       );
 
       // Get the created member
-      const newMember = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members WHERE id = ?
-      `,
-        )
-        .bind(memberId)
-        .first()) as any;
+      const newMemberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.id, memberId));
+
+      const newMember = newMemberRows[0];
 
       const response: JoinGroupResponse = {
         member: this.formatMember(newMember),
@@ -395,76 +374,64 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Get group order
-      const groupOrder = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_orders WHERE id = ?
-      `,
-        )
-        .bind(groupOrderId)
-        .first()) as any;
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+
+      const groupOrder = groupOrderRows[0];
 
       if (!groupOrder) {
         return null;
       }
 
       // Get members
-      const members = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members
-        WHERE group_order_id = ? AND left_at IS NULL
-        ORDER BY role DESC, joined_at ASC
-      `,
+      const members = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            isNull(groupMembers.leftAt),
+          ),
         )
-        .bind(groupOrderId)
-        .all()) as any;
+        .orderBy(desc(groupMembers.role), asc(groupMembers.joinedAt));
 
       // Get cart items with menu item details
-      const cartItems = (await this.db
-        .prepare(
-          `
-        SELECT
-          gci.*,
-          mi.name as menu_item_name,
-          mi.price as menu_item_price,
-          mi.image_url as menu_item_image_url
-        FROM group_cart_items gci
-        JOIN menu_items mi ON gci.menu_item_id = mi.id
-        WHERE gci.group_order_id = ?
-        ORDER BY gci.added_at ASC
-      `,
-        )
-        .bind(groupOrderId)
-        .all()) as any;
+      const cartItemsWithMenu = await this.db
+        .select({
+          cartItem: groupCartItems,
+          menuItemName: menuItems.name,
+          menuItemPrice: menuItems.price,
+          menuItemImageUrl: menuItems.imageUrl,
+        })
+        .from(groupCartItems)
+        .innerJoin(menuItems, eq(groupCartItems.menuItemId, menuItems.id))
+        .where(eq(groupCartItems.groupOrderId, groupOrderId))
+        .orderBy(asc(groupCartItems.addedAt));
 
       // Get recent activities
-      const activities = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_activity_logs
-        WHERE group_order_id = ?
-        ORDER BY created_at DESC
-        LIMIT 20
-      `,
-        )
-        .bind(groupOrderId)
-        .all()) as any;
+      const activities = await this.db
+        .select()
+        .from(groupActivityLogs)
+        .where(eq(groupActivityLogs.groupOrderId, groupOrderId))
+        .orderBy(desc(groupActivityLogs.createdAt))
+        .limit(20);
 
       const summary: GroupOrderSummary = {
         groupOrder: this.formatGroupOrder(groupOrder),
-        members: members.results.map((m: any) => this.formatMember(m)),
-        cartItems: cartItems.results.map((item: any) => ({
-          ...this.formatCartItem(item),
+        members: members.map((m) => this.formatMember(m)),
+        cartItems: cartItemsWithMenu.map((row) => ({
+          ...this.formatCartItem(row.cartItem),
           menuItem: {
-            id: item.menu_item_id,
-            name: item.menu_item_name,
-            price: item.menu_item_price,
-            imageUrl: item.menu_item_image_url,
+            id: row.cartItem.menuItemId,
+            name: row.menuItemName,
+            price: row.menuItemPrice,
+            imageUrl: row.menuItemImageUrl ?? undefined,
           },
         })),
-        totalAmount: groupOrder.total_amount,
-        activities: activities.results.map((a: any) => this.formatActivity(a)),
+        totalAmount: groupOrder.totalAmount,
+        activities: activities.map((a) => this.formatActivity(a)),
       };
 
       // Cache for 5 minutes
@@ -502,16 +469,18 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Get menu item details
-      // Note: Using restaurantId from groupOrder
-      const restaurantId = validation.groupOrder.restaurant_id;
-      const menuItem = (await this.db
-        .prepare(
-          `
-        SELECT * FROM menu_items WHERE id = ? AND restaurant_id = ?
-      `,
-        )
-        .bind(itemData.menuItemId, restaurantId)
-        .first()) as any;
+      const restaurantId = validation.groupOrder!.restaurantId;
+      const menuItemRows = await this.db
+        .select()
+        .from(menuItems)
+        .where(
+          and(
+            eq(menuItems.id, itemData.menuItemId),
+            eq(menuItems.restaurantId, restaurantId),
+          ),
+        );
+
+      const menuItem = menuItemRows[0];
 
       if (!menuItem) {
         return { success: false, error: "Menu item not found" };
@@ -523,33 +492,21 @@ export class GroupOrdersService implements IGroupOrderService {
 
       // Create cart item
       const itemId = randomUUID();
-      const result = await this.db
-        .prepare(
-          `
-        INSERT INTO group_cart_items (
-          id, group_order_id, member_id, menu_item_id, quantity,
-          unit_price, total_price, customizations, special_instructions,
-          status, added_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
-      `,
-        )
-        .bind(
-          itemId,
-          groupOrderId,
-          itemData.memberId,
-          itemData.menuItemId,
-          itemData.quantity,
-          unitPrice,
-          totalPrice,
-          JSON.stringify(itemData.customizations || {}),
-          itemData.specialInstructions || null,
-          "active",
-        )
-        .run();
-
-      if (!result.success) {
-        throw new Error("Failed to add cart item");
-      }
+      const now = new Date();
+      await this.db.insert(groupCartItems).values({
+        id: itemId,
+        groupOrderId,
+        memberId: itemData.memberId,
+        menuItemId: itemData.menuItemId,
+        quantity: itemData.quantity,
+        unitPrice,
+        totalPrice,
+        customizations: (itemData.customizations || {}) as any,
+        specialInstructions: itemData.specialInstructions || null,
+        status: "active",
+        addedAt: now,
+        updatedAt: now,
+      });
 
       // Update member's total amount (via split_bills)
       await this.updateMemberTotal(groupOrderId, itemData.memberId);
@@ -571,14 +528,12 @@ export class GroupOrdersService implements IGroupOrderService {
       );
 
       // Get the created item
-      const cartItem = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_cart_items WHERE id = ?
-      `,
-        )
-        .bind(itemId)
-        .first()) as any;
+      const cartItemRows = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(eq(groupCartItems.id, itemId));
+
+      const cartItem = cartItemRows[0];
 
       if (!cartItem) {
         // Fallback: construct the response from the inserted data
@@ -635,81 +590,70 @@ export class GroupOrdersService implements IGroupOrderService {
 
     try {
       // Get existing cart item
-      const existingItem = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_cart_items WHERE id = ? AND group_order_id = ?
-      `,
-        )
-        .bind(itemId, groupOrderId)
-        .first()) as any;
+      const existingItemRows = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.id, itemId),
+            eq(groupCartItems.groupOrderId, groupOrderId),
+          ),
+        );
+
+      const existingItem = existingItemRows[0];
 
       if (!existingItem) {
         return { success: false, error: "Cart item not found" };
       }
 
-      // Build update query dynamically
-      const updates: string[] = [];
-      const values: any[] = [];
+      // Build update object dynamically
+      const updateObj: Record<string, any> = {
+        updatedAt: new Date(),
+      };
 
       if (updateData.quantity !== undefined) {
-        updates.push("quantity = ?", "total_price = ?");
-        values.push(
-          updateData.quantity,
-          existingItem.unit_price * updateData.quantity,
-        );
+        updateObj.quantity = updateData.quantity;
+        updateObj.totalPrice = existingItem.unitPrice * updateData.quantity;
       }
 
       if (updateData.customizations !== undefined) {
-        updates.push("customizations = ?");
-        values.push(JSON.stringify(updateData.customizations));
+        updateObj.customizations = updateData.customizations;
       }
 
       if (updateData.specialInstructions !== undefined) {
-        updates.push("special_instructions = ?");
-        values.push(updateData.specialInstructions);
+        updateObj.specialInstructions = updateData.specialInstructions;
       }
 
-      updates.push("updated_at = unixepoch('now')");
-      values.push(itemId, groupOrderId);
-
-      const result = await this.db
-        .prepare(
-          `
-        UPDATE group_cart_items
-        SET ${updates.join(", ")}
-        WHERE id = ? AND group_order_id = ?
-      `,
-        )
-        .bind(...values)
-        .run();
-
-      if (!result.success) {
-        throw new Error("Failed to update cart item");
-      }
+      await this.db
+        .update(groupCartItems)
+        .set(updateObj)
+        .where(
+          and(
+            eq(groupCartItems.id, itemId),
+            eq(groupCartItems.groupOrderId, groupOrderId),
+          ),
+        );
 
       // Update totals
-      await this.updateMemberTotal(groupOrderId, existingItem.member_id);
+      await this.updateMemberTotal(groupOrderId, existingItem.memberId);
       await this.updateGroupOrderTotal(groupOrderId);
 
       // Log activity
       await this.logActivity(
         groupOrderId,
-        existingItem.member_id,
+        existingItem.memberId,
         "item_updated",
         "Updated cart item",
         { itemId, changes: updateData },
       );
 
       // Get updated item
-      const updatedItem = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_cart_items WHERE id = ?
-      `,
-        )
-        .bind(itemId)
-        .first()) as any;
+      const updatedItemRows = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(eq(groupCartItems.id, itemId));
+
+      const updatedItem = updatedItemRows[0];
 
       if (!updatedItem) {
         throw new Error("Failed to query updated cart item");
@@ -744,15 +688,18 @@ export class GroupOrdersService implements IGroupOrderService {
 
     try {
       // Verify item belongs to member
-      const cartItem = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_cart_items
-        WHERE id = ? AND group_order_id = ? AND member_id = ?
-      `,
-        )
-        .bind(itemId, groupOrderId, memberId)
-        .first()) as any;
+      const cartItemRows = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.id, itemId),
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.memberId, memberId),
+          ),
+        );
+
+      const cartItem = cartItemRows[0];
 
       if (!cartItem) {
         return {
@@ -762,18 +709,7 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Delete the item
-      const result = await this.db
-        .prepare(
-          `
-        DELETE FROM group_cart_items WHERE id = ?
-      `,
-        )
-        .bind(itemId)
-        .run();
-
-      if (!result.success) {
-        throw new Error("Failed to remove cart item");
-      }
+      await this.db.delete(groupCartItems).where(eq(groupCartItems.id, itemId));
 
       // Update totals
       await this.updateMemberTotal(groupOrderId, memberId);
@@ -821,14 +757,12 @@ export class GroupOrdersService implements IGroupOrderService {
       });
 
       // Validate group order exists and is active
-      const groupOrder = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_orders WHERE id = ?
-      `,
-        )
-        .bind(groupOrderId)
-        .first()) as any;
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+
+      const groupOrder = groupOrderRows[0];
 
       if (!groupOrder) {
         return { success: false, error: "Group order not found" };
@@ -842,41 +776,41 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Get all active members
-      const members = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members
-        WHERE group_order_id = ? AND left_at IS NULL
-        ORDER BY joined_at ASC
-      `,
+      const members = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            isNull(groupMembers.leftAt),
+          ),
         )
-        .bind(groupOrderId)
-        .all()) as any;
+        .orderBy(asc(groupMembers.joinedAt));
 
-      if (!members.results || members.results.length === 0) {
+      if (!members || members.length === 0) {
         return { success: false, error: "No active members found" };
       }
 
       // Get all active cart items
-      const cartItems = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_cart_items
-        WHERE group_order_id = ? AND status = 'active'
-      `,
-        )
-        .bind(groupOrderId)
-        .all()) as any;
+      const cartItems = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.status, "active"),
+          ),
+        );
 
-      const totalCartAmount = cartItems.results.reduce(
-        (sum: number, item: any) => sum + item.total_price,
+      const totalCartAmount = cartItems.reduce(
+        (sum, item) => sum + item.totalPrice,
         0,
       );
 
       const serviceChargeRate = splitData.serviceChargeRate || 0;
       const taxRate = splitData.taxRate || 0;
 
-      const splitBills: Array<{
+      const splitBillsData: Array<{
         memberId: string;
         subtotal: number;
         serviceCharge: number;
@@ -891,35 +825,35 @@ export class GroupOrdersService implements IGroupOrderService {
         splitData.splitType === "individual"
       ) {
         // Each member pays for their own items
-        for (const member of members.results) {
-          const memberItems = cartItems.results.filter(
-            (item: any) => item.member_id === member.id,
+        for (const member of members) {
+          const memberItems = cartItems.filter(
+            (item) => item.memberId === member.id,
           );
           const subtotal = memberItems.reduce(
-            (sum: number, item: any) => sum + item.total_price,
+            (sum, item) => sum + item.totalPrice,
             0,
           );
           const serviceCharge = (subtotal * serviceChargeRate) / 100;
           const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
-          splitBills.push({
+          splitBillsData.push({
             memberId: member.id,
             subtotal,
             serviceCharge,
             taxAmount,
             totalAmount,
-            items: memberItems.map((item: any) => ({
+            items: memberItems.map((item) => ({
               itemId: item.id,
-              menuItemId: item.menu_item_id,
+              menuItemId: item.menuItemId,
               quantity: item.quantity,
-              price: item.total_price,
+              price: item.totalPrice,
             })),
           });
         }
       } else if (splitData.splitType === "equal") {
         // Split equally among all members
-        const memberCount = members.results.length;
+        const memberCount = members.length;
         const subtotalPerMember = totalCartAmount / memberCount;
         const serviceChargePerMember =
           (subtotalPerMember * serviceChargeRate) / 100;
@@ -928,8 +862,8 @@ export class GroupOrdersService implements IGroupOrderService {
         const totalPerMember =
           subtotalPerMember + serviceChargePerMember + taxPerMember;
 
-        for (const member of members.results) {
-          splitBills.push({
+        for (const member of members) {
+          splitBillsData.push({
             memberId: member.id,
             subtotal: subtotalPerMember,
             serviceCharge: serviceChargePerMember,
@@ -948,9 +882,7 @@ export class GroupOrdersService implements IGroupOrderService {
         }
 
         for (const customAmount of splitData.customAmounts) {
-          const member = members.results.find(
-            (m: any) => m.id === customAmount.memberId,
-          );
+          const member = members.find((m) => m.id === customAmount.memberId);
           if (!member) {
             return {
               success: false,
@@ -963,7 +895,7 @@ export class GroupOrdersService implements IGroupOrderService {
           const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
-          splitBills.push({
+          splitBillsData.push({
             memberId: member.id,
             subtotal,
             serviceCharge,
@@ -980,42 +912,34 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Insert split bills into database
-      for (const bill of splitBills) {
+      const now = new Date();
+      for (const bill of splitBillsData) {
         const billId = randomUUID();
-        await this.db
-          .prepare(
-            `
-          INSERT INTO split_bills (
-            id, group_order_id, member_id, subtotal, tax_amount,
-            service_charge, total_amount, items, payment_status,
-            created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
-        `,
-          )
-          .bind(
-            billId,
-            groupOrderId,
-            bill.memberId,
-            bill.subtotal,
-            bill.taxAmount,
-            bill.serviceCharge,
-            bill.totalAmount,
-            JSON.stringify(bill.items),
-            "pending",
-          )
-          .run();
+        await this.db.insert(splitBills).values({
+          id: billId,
+          groupOrderId,
+          memberId: bill.memberId,
+          subtotal: bill.subtotal,
+          taxAmount: bill.taxAmount,
+          serviceCharge: bill.serviceCharge,
+          totalAmount: bill.totalAmount,
+          items: bill.items as any,
+          paymentStatus: "pending",
+          createdAt: now,
+          updatedAt: now,
+        });
       }
 
       // Calculate final amounts for group order
-      const totalServiceCharge = splitBills.reduce(
+      const totalServiceCharge = splitBillsData.reduce(
         (sum, bill) => sum + bill.serviceCharge,
         0,
       );
-      const totalTax = splitBills.reduce(
+      const totalTax = splitBillsData.reduce(
         (sum, bill) => sum + bill.taxAmount,
         0,
       );
-      const finalAmount = splitBills.reduce(
+      const finalAmount = splitBillsData.reduce(
         (sum, bill) => sum + bill.totalAmount,
         0,
       );
@@ -1026,31 +950,18 @@ export class GroupOrdersService implements IGroupOrderService {
 
       // Update group order with split info and status
       await this.db
-        .prepare(
-          `
-        UPDATE group_orders
-        SET
-          status = ?,
-          split_type = ?,
-          total_amount = ?,
-          tax_amount = ?,
-          service_charge = ?,
-          final_amount = ?,
-          locked_at = unixepoch('now'),
-          updated_at = unixepoch('now')
-        WHERE id = ?
-      `,
-        )
-        .bind(
-          "checkout",
-          dbSplitType,
-          totalCartAmount,
-          totalTax,
-          totalServiceCharge,
+        .update(groupOrders)
+        .set({
+          status: "checkout",
+          splitType: dbSplitType,
+          totalAmount: totalCartAmount,
+          taxAmount: totalTax,
+          serviceCharge: totalServiceCharge,
           finalAmount,
-          groupOrderId,
-        )
-        .run();
+          lockedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(groupOrders.id, groupOrderId));
 
       // Log activity
       await this.logActivity(
@@ -1060,7 +971,7 @@ export class GroupOrdersService implements IGroupOrderService {
         `Bill split using ${splitData.splitType} method`,
         {
           splitType: splitData.splitType,
-          memberCount: members.results.length,
+          memberCount: members.length,
           totalAmount: finalAmount,
         },
       );
@@ -1072,13 +983,13 @@ export class GroupOrdersService implements IGroupOrderService {
       this.logger.info("Bill split successfully", {
         groupOrderId,
         splitType: splitData.splitType,
-        billCount: splitBills.length,
+        billCount: splitBillsData.length,
         finalAmount,
       });
 
       return {
         success: true,
-        data: splitBills.map((bill) => ({
+        data: splitBillsData.map((bill) => ({
           memberId: bill.memberId,
           subtotal: bill.subtotal,
           serviceCharge: bill.serviceCharge,
@@ -1113,44 +1024,47 @@ export class GroupOrdersService implements IGroupOrderService {
       this.logger.info("Processing payment", { groupOrderId, memberId });
 
       // Validate group order exists
-      const groupOrder = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_orders WHERE id = ?
-      `,
-        )
-        .bind(groupOrderId)
-        .first()) as any;
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+
+      const groupOrder = groupOrderRows[0];
 
       if (!groupOrder) {
         return { success: false, error: "Group order not found" };
       }
 
       // Validate member exists
-      const member = (await this.db
-        .prepare(
-          `
-        SELECT * FROM group_members
-        WHERE id = ? AND group_order_id = ? AND left_at IS NULL
-      `,
-        )
-        .bind(memberId, groupOrderId)
-        .first()) as any;
+      const memberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.id, memberId),
+            eq(groupMembers.groupOrderId, groupOrderId),
+            isNull(groupMembers.leftAt),
+          ),
+        );
+
+      const member = memberRows[0];
 
       if (!member) {
         return { success: false, error: "Member not found in group" };
       }
 
       // Get the split bill for this member
-      const splitBill = (await this.db
-        .prepare(
-          `
-        SELECT * FROM split_bills
-        WHERE group_order_id = ? AND member_id = ?
-      `,
-        )
-        .bind(groupOrderId, memberId)
-        .first()) as any;
+      const splitBillRows = await this.db
+        .select()
+        .from(splitBills)
+        .where(
+          and(
+            eq(splitBills.groupOrderId, groupOrderId),
+            eq(splitBills.memberId, memberId),
+          ),
+        );
+
+      const splitBill = splitBillRows[0];
 
       if (!splitBill) {
         return {
@@ -1161,7 +1075,7 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Check if already paid
-      if (splitBill.payment_status === "paid") {
+      if (splitBill.paymentStatus === "paid") {
         return {
           success: false,
           error: "Payment already processed for this member",
@@ -1169,13 +1083,13 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Use provided amount or the split bill total
-      const amount = paymentData.amount || splitBill.total_amount;
+      const amount = paymentData.amount || splitBill.totalAmount;
 
       // Validate amount matches split bill (with small tolerance for rounding)
-      if (Math.abs(amount - splitBill.total_amount) > 0.01) {
+      if (Math.abs(amount - splitBill.totalAmount) > 0.01) {
         return {
           success: false,
-          error: `Payment amount (${amount}) does not match split bill amount (${splitBill.total_amount})`,
+          error: `Payment amount (${amount}) does not match split bill amount (${splitBill.totalAmount})`,
         };
       }
 
@@ -1192,49 +1106,43 @@ export class GroupOrdersService implements IGroupOrderService {
         processedAt: new Date().toISOString(),
       });
 
+      const now = new Date();
+
       // Update split bill with payment info
       await this.db
-        .prepare(
-          `
-        UPDATE split_bills
-        SET
-          payment_status = ?,
-          payment_method = ?,
-          payment_reference = ?,
-          paid_at = unixepoch('now'),
-          updated_at = unixepoch('now')
-        WHERE id = ?
-      `,
-        )
-        .bind("paid", paymentData.paymentMethod, paymentReference, splitBill.id)
-        .run();
+        .update(splitBills)
+        .set({
+          paymentStatus: "paid",
+          paymentMethod: paymentData.paymentMethod,
+          paymentReference,
+          paidAt: now,
+          updatedAt: now,
+        })
+        .where(eq(splitBills.id, splitBill.id));
 
       // Check if all members have paid
-      const unpaidMembers = (await this.db
-        .prepare(
-          `
-        SELECT COUNT(*) as count FROM split_bills
-        WHERE group_order_id = ? AND payment_status != 'paid'
-      `,
-        )
-        .bind(groupOrderId)
-        .first()) as any;
+      const unpaidResult = await this.db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(splitBills)
+        .where(
+          and(
+            eq(splitBills.groupOrderId, groupOrderId),
+            sql`${splitBills.paymentStatus} != 'paid'`,
+          ),
+        );
+
+      const unpaidCount = unpaidResult[0].count;
 
       // If all paid, update group order status to completed
-      if (unpaidMembers.count === 0) {
+      if (unpaidCount === 0) {
         await this.db
-          .prepare(
-            `
-          UPDATE group_orders
-          SET
-            status = ?,
-            completed_at = unixepoch('now'),
-            updated_at = unixepoch('now')
-          WHERE id = ?
-        `,
-          )
-          .bind("completed", groupOrderId)
-          .run();
+          .update(groupOrders)
+          .set({
+            status: "completed",
+            completedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(groupOrders.id, groupOrderId));
       }
 
       // Log activity
@@ -1269,8 +1177,7 @@ export class GroupOrdersService implements IGroupOrderService {
           paymentMethod: paymentData.paymentMethod,
           transactionId,
           paidAt: new Date(),
-          groupOrderStatus:
-            unpaidMembers.count === 0 ? "completed" : groupOrder.status,
+          groupOrderStatus: unpaidCount === 0 ? "completed" : groupOrder.status,
         },
       };
     } catch (error) {
@@ -1301,19 +1208,14 @@ export class GroupOrdersService implements IGroupOrderService {
    * Get group activities
    */
   async getActivities(groupOrderId: string): Promise<GroupOrderActivity[]> {
-    const activities = (await this.db
-      .prepare(
-        `
-      SELECT * FROM group_activity_logs
-      WHERE group_order_id = ?
-      ORDER BY created_at DESC
-      LIMIT 50
-    `,
-      )
-      .bind(groupOrderId)
-      .all()) as any;
+    const activities = await this.db
+      .select()
+      .from(groupActivityLogs)
+      .where(eq(groupActivityLogs.groupOrderId, groupOrderId))
+      .orderBy(desc(groupActivityLogs.createdAt))
+      .limit(50);
 
-    return activities.results.map((a: any) => this.formatActivity(a));
+    return activities.map((a) => this.formatActivity(a));
   }
 
   /**
@@ -1356,75 +1258,71 @@ export class GroupOrdersService implements IGroupOrderService {
           startTime = now - 30 * 24 * 60 * 60; // Default to month
       }
 
-      // Build WHERE clause
-      let whereClause = "WHERE created_at >= ?";
-      const params: any[] = [startTime];
+      const startDate = new Date(startTime * 1000);
 
+      // Build dynamic conditions
+      const conditions = [gte(groupOrders.createdAt, startDate)];
       if (restaurantId) {
-        whereClause += " AND restaurant_id = ?";
-        params.push(restaurantId);
+        conditions.push(eq(groupOrders.restaurantId, restaurantId));
       }
 
       // Get total group orders
-      const totalResult = (await this.db
-        .prepare(
-          `
-        SELECT COUNT(*) as total FROM group_orders ${whereClause}
-      `,
-        )
-        .bind(...params)
-        .first()) as any;
+      const totalResult = await this.db
+        .select({ total: sql<number>`COUNT(*)` })
+        .from(groupOrders)
+        .where(and(...conditions));
 
       // Get active group orders
-      const activeResult = (await this.db
-        .prepare(
-          `
-        SELECT COUNT(*) as active FROM group_orders
-        ${whereClause} AND status = 'active'
-      `,
-        )
-        .bind(...params)
-        .first()) as any;
+      const activeConditions = [
+        ...conditions,
+        eq(groupOrders.status, "active"),
+      ];
+      const activeResult = await this.db
+        .select({ active: sql<number>`COUNT(*)` })
+        .from(groupOrders)
+        .where(and(...activeConditions));
 
       // Get average group size
-      const avgSizeResult = (await this.db
-        .prepare(
-          `
-        SELECT AVG(member_count) as avg_size FROM (
-          SELECT group_order_id, COUNT(*) as member_count
-          FROM group_members gm
-          JOIN group_orders go ON gm.group_order_id = go.id
-          ${whereClause.replace("created_at", "go.created_at")}
-          GROUP BY group_order_id
-        )
-      `,
-        )
-        .bind(...params)
-        .first()) as any;
+      const avgSizeResult = await this.db
+        .select({
+          avgSize: sql<number>`AVG(member_count)`,
+        })
+        .from(
+          sql`(
+            SELECT ${groupMembers.groupOrderId}, COUNT(*) as member_count
+            FROM ${groupMembers}
+            JOIN ${groupOrders} ON ${groupMembers.groupOrderId} = ${groupOrders.id}
+            WHERE ${groupOrders.createdAt} >= ${startDate}
+            ${restaurantId ? sql`AND ${groupOrders.restaurantId} = ${restaurantId}` : sql``}
+            GROUP BY ${groupMembers.groupOrderId}
+          )`,
+        );
 
       // Get average order value
-      const avgValueResult = (await this.db
-        .prepare(
-          `
-        SELECT AVG(final_amount) as avg_value FROM group_orders
-        ${whereClause} AND final_amount > 0
-      `,
-        )
-        .bind(...params)
-        .first()) as any;
+      const avgValueConditions = [
+        ...conditions,
+        sql`${groupOrders.finalAmount} > 0`,
+      ];
+      const avgValueResult = await this.db
+        .select({
+          avgValue: sql<number>`AVG(${groupOrders.finalAmount})`,
+        })
+        .from(groupOrders)
+        .where(and(...avgValueConditions));
 
       return {
-        totalGroupOrders: totalResult?.total || 0,
-        activeGroupOrders: activeResult?.active || 0,
-        averageGroupSize: Math.round((avgSizeResult?.avg_size || 0) * 10) / 10,
+        totalGroupOrders: totalResult[0]?.total || 0,
+        activeGroupOrders: activeResult[0]?.active || 0,
+        averageGroupSize:
+          Math.round((avgSizeResult[0]?.avgSize || 0) * 10) / 10,
         averageOrderValue:
-          Math.round((avgValueResult?.avg_value || 0) * 100) / 100,
+          Math.round((avgValueResult[0]?.avgValue || 0) * 100) / 100,
         popularTimeSlots: [],
         conversionRate:
-          totalResult?.total > 0
+          totalResult[0]?.total > 0
             ? Math.round(
-                ((totalResult.total - (activeResult?.active || 0)) /
-                  totalResult.total) *
+                ((totalResult[0].total - (activeResult[0]?.active || 0)) /
+                  totalResult[0].total) *
                   100,
               )
             : 0,
@@ -1463,106 +1361,127 @@ export class GroupOrdersService implements IGroupOrderService {
     groupOrderId: string,
     memberId: string,
   ) {
-    const groupOrder = (await this.db
-      .prepare(
-        `
-      SELECT * FROM group_orders WHERE id = ?
-    `,
-      )
-      .bind(groupOrderId)
-      .first()) as any;
+    const groupOrderRows = await this.db
+      .select()
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+
+    const groupOrder = groupOrderRows[0];
 
     if (!groupOrder) {
-      return { valid: false, error: "Group order not found" };
+      return { valid: false as const, error: "Group order not found" };
     }
 
     if (groupOrder.status !== "active") {
-      return { valid: false, error: "Group order is not active" };
+      return { valid: false as const, error: "Group order is not active" };
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    if (groupOrder.expires_at < now) {
-      return { valid: false, error: "Group order has expired" };
+    const now = new Date();
+    if (groupOrder.expiresAt < now) {
+      return { valid: false as const, error: "Group order has expired" };
     }
 
-    const member = (await this.db
-      .prepare(
-        `
-      SELECT * FROM group_members
-      WHERE id = ? AND group_order_id = ? AND left_at IS NULL
-    `,
-      )
-      .bind(memberId, groupOrderId)
-      .first()) as any;
+    const memberRows = await this.db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.id, memberId),
+          eq(groupMembers.groupOrderId, groupOrderId),
+          isNull(groupMembers.leftAt),
+        ),
+      );
+
+    const member = memberRows[0];
 
     if (!member) {
-      return { valid: false, error: "Member not found in group" };
+      return { valid: false as const, error: "Member not found in group" };
     }
 
-    return { valid: true, groupOrder, member };
+    return { valid: true as const, groupOrder, member };
   }
 
   private async updateMemberTotal(groupOrderId: string, memberId: string) {
-    const total = (await this.db
-      .prepare(
-        `
-      SELECT COALESCE(SUM(total_price), 0) as total
-      FROM group_cart_items
-      WHERE group_order_id = ? AND member_id = ? AND status = 'active'
-    `,
-      )
-      .bind(groupOrderId, memberId)
-      .first()) as any;
+    const totalResult = await this.db
+      .select({
+        total: sql<number>`COALESCE(SUM(${groupCartItems.totalPrice}), 0)`,
+      })
+      .from(groupCartItems)
+      .where(
+        and(
+          eq(groupCartItems.groupOrderId, groupOrderId),
+          eq(groupCartItems.memberId, memberId),
+          eq(groupCartItems.status, "active"),
+        ),
+      );
+
+    const total = totalResult[0]?.total || 0;
+    const now = new Date();
 
     // Update or create split_bill record for this member
-    await this.db
-      .prepare(
-        `
-      INSERT INTO split_bills (
-        id, group_order_id, member_id, subtotal, total_amount,
-        payment_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, unixepoch('now'), unixepoch('now'))
-      ON CONFLICT(group_order_id, member_id) DO UPDATE SET
-        subtotal = ?,
-        total_amount = ?,
-        updated_at = unixepoch('now')
-    `,
-      )
-      .bind(
-        randomUUID(),
+    // Using raw SQL for ON CONFLICT since Drizzle's onConflictDoUpdate needs a unique index target
+    // The split_bills table has a unique constraint on (group_order_id, member_id) in the original SQL
+    // We'll use delete + insert pattern instead
+    const existing = await this.db
+      .select()
+      .from(splitBills)
+      .where(
+        and(
+          eq(splitBills.groupOrderId, groupOrderId),
+          eq(splitBills.memberId, memberId),
+        ),
+      );
+
+    if (existing.length > 0) {
+      await this.db
+        .update(splitBills)
+        .set({
+          subtotal: total,
+          totalAmount: total,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(splitBills.groupOrderId, groupOrderId),
+            eq(splitBills.memberId, memberId),
+          ),
+        );
+    } else {
+      await this.db.insert(splitBills).values({
+        id: randomUUID(),
         groupOrderId,
         memberId,
-        total.total,
-        total.total,
-        "pending",
-        total.total,
-        total.total,
-      )
-      .run();
+        subtotal: total,
+        totalAmount: total,
+        paymentStatus: "pending",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   }
 
   private async updateGroupOrderTotal(groupOrderId: string) {
-    const total = (await this.db
-      .prepare(
-        `
-      SELECT COALESCE(SUM(total_price), 0) as total
-      FROM group_cart_items
-      WHERE group_order_id = ? AND status = 'active'
-    `,
-      )
-      .bind(groupOrderId)
-      .first()) as any;
+    const totalResult = await this.db
+      .select({
+        total: sql<number>`COALESCE(SUM(${groupCartItems.totalPrice}), 0)`,
+      })
+      .from(groupCartItems)
+      .where(
+        and(
+          eq(groupCartItems.groupOrderId, groupOrderId),
+          eq(groupCartItems.status, "active"),
+        ),
+      );
+
+    const total = totalResult[0]?.total || 0;
 
     await this.db
-      .prepare(
-        `
-      UPDATE group_orders
-      SET total_amount = ?, updated_at = unixepoch('now')
-      WHERE id = ?
-    `,
-      )
-      .bind(total.total, groupOrderId)
-      .run();
+      .update(groupOrders)
+      .set({
+        totalAmount: total,
+        updatedAt: new Date(),
+      })
+      .where(eq(groupOrders.id, groupOrderId));
   }
 
   private async logActivity(
@@ -1573,97 +1492,147 @@ export class GroupOrdersService implements IGroupOrderService {
     metadata?: Record<string, any>,
   ) {
     const activityId = randomUUID();
-    await this.db
-      .prepare(
-        `
-      INSERT INTO group_activity_logs (
-        id, group_order_id, member_id, action, description, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, unixepoch('now'))
-    `,
-      )
-      .bind(
-        activityId,
-        groupOrderId,
-        memberId,
-        type,
-        description,
-        JSON.stringify(metadata || {}),
-      )
-      .run();
+    await this.db.insert(groupActivityLogs).values({
+      id: activityId,
+      groupOrderId,
+      memberId,
+      action: type,
+      description,
+      metadata: (metadata || {}) as any,
+      createdAt: new Date(),
+    });
   }
 
   private formatGroupOrder(data: any): GroupOrder {
-    const settings = JSON.parse(data.settings || "{}");
+    // Drizzle returns camelCase properties and handles JSON/timestamp_ms automatically
+    const settings = (data.settings || {}) as any;
+    // expiresAt is a Date object from Drizzle timestamp_ms mode
+    const expiresAt =
+      data.expiresAt instanceof Date
+        ? data.expiresAt
+        : new Date(data.expiresAt * 1000);
+    const lockedAt =
+      data.lockedAt instanceof Date
+        ? data.lockedAt
+        : data.lockedAt
+          ? new Date(data.lockedAt * 1000)
+          : undefined;
+    const completedAt =
+      data.completedAt instanceof Date
+        ? data.completedAt
+        : data.completedAt
+          ? new Date(data.completedAt * 1000)
+          : undefined;
+    const createdAt =
+      data.createdAt instanceof Date
+        ? data.createdAt
+        : new Date(data.createdAt * 1000);
+    const updatedAt =
+      data.updatedAt instanceof Date
+        ? data.updatedAt
+        : new Date(data.updatedAt * 1000);
+
     return {
       id: data.id,
       groupOrderId: data.id, // Keep for backward compatibility
-      restaurantId: data.restaurant_id,
-      tableId: data.table_id,
-      shareCode: data.share_code,
-      createdBy: data.created_by,
+      restaurantId: data.restaurantId,
+      tableId: data.tableId,
+      shareCode: data.shareCode,
+      createdBy: data.createdBy,
       status: data.status as GroupOrderStatus,
-      expiresAt: new Date(data.expires_at * 1000), // Convert Unix timestamp to Date
+      expiresAt,
       maxMembers: settings.maxMembers || 8,
       permissions: settings.permissions || {},
-      totalAmount: data.total_amount,
-      finalizedAt: data.locked_at ? new Date(data.locked_at * 1000) : undefined,
-      paidAt: data.completed_at
-        ? new Date(data.completed_at * 1000)
-        : undefined,
-      createdAt: new Date(data.created_at * 1000),
-      updatedAt: new Date(data.updated_at * 1000),
+      totalAmount: data.totalAmount,
+      finalizedAt: lockedAt,
+      paidAt: completedAt,
+      createdAt,
+      updatedAt,
     };
   }
 
   private formatMember(data: any): GroupOrderMember {
+    const joinedAt =
+      data.joinedAt instanceof Date
+        ? data.joinedAt
+        : new Date(data.joinedAt * 1000);
+    const lastActiveAt =
+      data.lastActiveAt instanceof Date
+        ? data.lastActiveAt
+        : new Date(data.lastActiveAt * 1000);
+    const leftAt =
+      data.leftAt instanceof Date
+        ? data.leftAt
+        : data.leftAt
+          ? new Date(data.leftAt * 1000)
+          : undefined;
+
     return {
       id: data.id,
       memberId: data.id, // Keep for backward compatibility
-      groupOrderId: data.group_order_id,
+      groupOrderId: data.groupOrderId,
       memberName: data.name,
       phone: data.phone,
       email: data.email,
       isHost: data.role === "creator", // Convert role to isHost
-      joinedAt: new Date(data.joined_at * 1000),
-      leftAt: data.left_at ? new Date(data.left_at * 1000) : undefined,
+      joinedAt,
+      leftAt,
       totalAmount: 0, // Will be calculated from split_bills
       paidAmount: 0, // Will be calculated from split_bills
       paymentStatus: "pending" as PaymentStatus,
-      createdAt: new Date(data.joined_at * 1000),
-      updatedAt: new Date(data.last_active_at * 1000),
+      createdAt: joinedAt,
+      updatedAt: lastActiveAt,
     };
   }
 
   private formatCartItem(data: any): GroupOrderCartItem {
+    // Drizzle handles JSON columns automatically (no JSON.parse needed)
+    const customizations = data.customizations || {};
+    const addedAt =
+      data.addedAt instanceof Date
+        ? data.addedAt
+        : new Date(data.addedAt * 1000);
+    const updatedAt =
+      data.updatedAt instanceof Date
+        ? data.updatedAt
+        : new Date(data.updatedAt * 1000);
+
     return {
       id: data.id,
       itemId: data.id, // Keep for backward compatibility
-      groupOrderId: data.group_order_id,
-      memberId: data.member_id,
-      menuItemId: data.menu_item_id,
+      groupOrderId: data.groupOrderId,
+      memberId: data.memberId,
+      menuItemId: data.menuItemId,
       quantity: data.quantity,
-      unitPrice: data.unit_price,
-      totalPrice: data.total_price,
-      customizations: JSON.parse(data.customizations || "{}"),
-      specialInstructions: data.special_instructions,
-      createdAt: new Date(data.added_at * 1000),
-      updatedAt: new Date(data.updated_at * 1000),
+      unitPrice: data.unitPrice,
+      totalPrice: data.totalPrice,
+      customizations,
+      specialInstructions: data.specialInstructions,
+      createdAt: addedAt,
+      updatedAt,
     };
   }
 
   private formatActivity(data: any): GroupOrderActivity {
+    // Drizzle handles JSON columns automatically (no JSON.parse needed)
+    const metadata = data.metadata || {};
+    const createdAt =
+      data.createdAt instanceof Date
+        ? data.createdAt
+        : new Date(data.createdAt * 1000);
+
     return {
       id: data.id,
       activityId: data.id, // Keep for backward compatibility
-      groupOrderId: data.group_order_id,
-      memberId: data.member_id,
+      groupOrderId: data.groupOrderId,
+      memberId: data.memberId,
       memberName: "", // Not stored in activity logs
       type: data.action as ActivityType,
       description: data.description,
-      metadata: JSON.parse(data.metadata || "{}"),
-      timestamp: new Date(data.created_at * 1000),
-      createdAt: new Date(data.created_at * 1000),
-      updatedAt: new Date(data.created_at * 1000),
+      metadata,
+      timestamp: createdAt,
+      createdAt,
+      updatedAt: createdAt,
     };
   }
 }

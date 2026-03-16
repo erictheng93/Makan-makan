@@ -9,6 +9,40 @@ import type { Env } from "../../../shared/types";
 import type { RealtimeAuthTokenRequest } from "@makanmakan/shared-types";
 import * as jwt from "jsonwebtoken";
 
+// ─── Mock Drizzle ────────────────────────────────────────────────────────
+
+const mockDrizzleDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDrizzleDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+  or: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  tables: {
+    id: "id",
+    qrCode: "qrCode",
+    restaurantId: "restaurantId",
+    isActive: "isActive",
+  },
+  seats: {
+    id: "id",
+    qrCode: "qrCode",
+    tableId: "tableId",
+    isActive: "isActive",
+  },
+}));
+
 // Mock dependencies
 vi.mock("../../../core/monitoring", () => ({
   ConsoleLogger: vi.fn(function () {
@@ -27,12 +61,8 @@ describe("RealtimeAuthService", () => {
   let mockDb: any;
 
   beforeEach(() => {
-    // Mock D1 database
-    mockDb = {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      all: vi.fn(),
-    };
+    // Mock D1 database (passed as env.DB, wrapped by drizzle())
+    mockDb = {};
 
     // Mock KV namespace for token blacklist
     const mockTokenBlacklistKV = {
@@ -93,11 +123,11 @@ describe("RealtimeAuthService", () => {
         tableId: "table_1",
       };
 
-      // Mock table existence check - need to reset mock for proper call chain
-      mockDb.prepare = vi.fn().mockReturnThis();
-      mockDb.bind = vi.fn().mockReturnThis();
-      mockDb.all = vi.fn().mockResolvedValue({
-        results: [{ id: 1, restaurant_id: 1 }],
+      // Mock table existence check via Drizzle
+      mockDrizzleDb.select.mockReturnValue({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: 1 }]),
       });
 
       const result = await service.generateWebSocketToken(request);
@@ -122,10 +152,7 @@ describe("RealtimeAuthService", () => {
         sessionId: "session_456",
       };
 
-      // Reset mocks
-      mockDb.prepare = vi.fn().mockReturnThis();
-      mockDb.bind = vi.fn().mockReturnThis();
-      mockDb.all = vi.fn().mockResolvedValue({ results: [] });
+      // No DB queries needed for kitchen/admin rooms (no tableId/seatId)
 
       const result = await service.generateWebSocketToken(request);
 
@@ -145,10 +172,7 @@ describe("RealtimeAuthService", () => {
         sessionId: "session_789",
       };
 
-      // Reset mocks
-      mockDb.prepare = vi.fn().mockReturnThis();
-      mockDb.bind = vi.fn().mockReturnThis();
-      mockDb.all = vi.fn().mockResolvedValue({ results: [] });
+      // No DB queries needed for kitchen/admin rooms (no tableId/seatId)
 
       const result = await service.generateWebSocketToken(request);
 
@@ -168,9 +192,11 @@ describe("RealtimeAuthService", () => {
         tableId: "invalid_table",
       };
 
-      // Mock table not found
-      mockDb.all.mockResolvedValue({
-        results: [],
+      // Mock table not found via Drizzle
+      mockDrizzleDb.select.mockReturnValue({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
       });
 
       const result = await service.generateWebSocketToken(request);
@@ -189,9 +215,12 @@ describe("RealtimeAuthService", () => {
         seatId: "invalid_seat",
       };
 
-      // Mock seat not found
-      mockDb.all.mockResolvedValue({
-        results: [],
+      // Mock seat not found via Drizzle
+      mockDrizzleDb.select.mockReturnValue({
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
       });
 
       const result = await service.generateWebSocketToken(request);
@@ -321,23 +350,26 @@ describe("RealtimeAuthService", () => {
 
   describe("verifyTableExists", () => {
     it("應該驗證存在的桌號", async () => {
-      mockDb.all.mockResolvedValue({
-        results: [{ id: 1, restaurant_id: 1 }],
-      });
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: 1 }]),
+      };
+      mockDrizzleDb.select.mockReturnValue(chain);
 
-      // Access private method via any casting (for testing purposes)
       const exists = await (service as any).verifyTableExists("table_1", "1");
 
       expect(exists).toBe(true);
-      expect(mockDb.prepare).toHaveBeenCalled();
-      // 實際實作使用 .bind(tableId, tableId, restaurantId) - 支持 ID 或 QR code 查詢
-      expect(mockDb.bind).toHaveBeenCalledWith("table_1", "table_1", "1");
+      expect(mockDrizzleDb.select).toHaveBeenCalled();
     });
 
     it("應該拒絕不存在的桌號", async () => {
-      mockDb.all.mockResolvedValue({
-        results: [],
-      });
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDrizzleDb.select.mockReturnValue(chain);
 
       const exists = await (service as any).verifyTableExists(
         "invalid_table",
@@ -348,7 +380,9 @@ describe("RealtimeAuthService", () => {
     });
 
     it("應該在數據庫錯誤時返回 false", async () => {
-      mockDb.all.mockRejectedValue(new Error("Database error"));
+      mockDrizzleDb.select.mockImplementation(() => {
+        throw new Error("Database error");
+      });
 
       const exists = await (service as any).verifyTableExists("table_1", "1");
 
@@ -358,21 +392,28 @@ describe("RealtimeAuthService", () => {
 
   describe("verifySeatExists", () => {
     it("應該驗證存在的座位", async () => {
-      mockDb.all.mockResolvedValue({
-        results: [{ id: 1 }],
-      });
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: 1 }]),
+      };
+      mockDrizzleDb.select.mockReturnValue(chain);
 
       const exists = await (service as any).verifySeatExists("seat_1", "1");
 
       expect(exists).toBe(true);
-      expect(mockDb.prepare).toHaveBeenCalled();
-      expect(mockDb.bind).toHaveBeenCalledWith("seat_1", 1);
+      expect(mockDrizzleDb.select).toHaveBeenCalled();
     });
 
     it("應該拒絕不存在的座位", async () => {
-      mockDb.all.mockResolvedValue({
-        results: [],
-      });
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDrizzleDb.select.mockReturnValue(chain);
 
       const exists = await (service as any).verifySeatExists(
         "invalid_seat",
@@ -383,7 +424,9 @@ describe("RealtimeAuthService", () => {
     });
 
     it("應該在數據庫錯誤時返回 false", async () => {
-      mockDb.all.mockRejectedValue(new Error("Database error"));
+      mockDrizzleDb.select.mockImplementation(() => {
+        throw new Error("Database error");
+      });
 
       const exists = await (service as any).verifySeatExists("seat_1", "1");
 

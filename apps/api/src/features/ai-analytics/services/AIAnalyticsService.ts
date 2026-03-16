@@ -10,7 +10,9 @@ import {
   getDefaultModel,
   getAvailableModels,
 } from "@makanmakan/ai-analytics";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, sql, and } from "drizzle-orm";
+import { aiConfigurations, aiUsageLogs } from "@makanmakan/database";
 import type { LLMConfig } from "@makanmakan/ai-analytics";
 import type {
   AIConfiguration,
@@ -169,68 +171,59 @@ async function decryptApiKey(
 }
 
 export class AIAnalyticsService {
-  private db: D1Database;
+  private db;
+  private d1: D1Database;
   private encryptionKey: string;
 
-  constructor(db: D1Database, encryptionKey: string) {
-    this.db = db;
+  constructor(d1: D1Database, encryptionKey: string) {
+    this.d1 = d1;
+    this.db = drizzle(d1);
     this.encryptionKey = encryptionKey;
   }
 
   async getConfig(restaurantId: string): Promise<AIConfiguration | null> {
-    const query = `
-      SELECT id, restaurant_id, provider, api_key_encrypted, model, custom_base_url, enabled, created_at, updated_at
-      FROM ai_configurations
-      WHERE restaurant_id = ?
-    `;
-
-    const result = await this.db.prepare(query).bind(restaurantId).first<{
-      id: number;
-      restaurant_id: string;
-      provider: string;
-      api_key_encrypted: string;
-      model: string | null;
-      custom_base_url: string | null;
-      enabled: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    const [result] = await this.db
+      .select()
+      .from(aiConfigurations)
+      .where(eq(aiConfigurations.restaurantId, restaurantId))
+      .limit(1);
 
     if (!result) return null;
 
     return {
       id: result.id,
-      restaurantId: result.restaurant_id,
+      restaurantId: result.restaurantId,
       provider: result.provider as AIConfiguration["provider"],
-      apiKeyEncrypted: result.api_key_encrypted,
+      apiKeyEncrypted: result.apiKeyEncrypted,
       model: result.model,
-      customBaseUrl: result.custom_base_url,
-      enabled: result.enabled === 1,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
+      customBaseUrl: result.customBaseUrl,
+      enabled: result.enabled,
+      createdAt: result.createdAt ?? "",
+      updatedAt: result.updatedAt ?? "",
     };
   }
 
   async getLLMConfig(restaurantId: string): Promise<LLMConfig | null> {
-    const query = `
-      SELECT provider, api_key_encrypted, model, custom_base_url
-      FROM ai_configurations
-      WHERE restaurant_id = ?
-        AND enabled = 1
-      LIMIT 1
-    `;
-
-    const result = await this.db.prepare(query).bind(restaurantId).first<{
-      provider: string;
-      api_key_encrypted: string;
-      model: string | null;
-      custom_base_url: string | null;
-    }>();
+    const [result] = await this.db
+      .select({
+        provider: aiConfigurations.provider,
+        apiKeyEncrypted: aiConfigurations.apiKeyEncrypted,
+        model: aiConfigurations.model,
+        customBaseUrl: aiConfigurations.customBaseUrl,
+      })
+      .from(aiConfigurations)
+      .where(
+        and(
+          eq(aiConfigurations.restaurantId, restaurantId),
+          eq(aiConfigurations.enabled, true),
+        ),
+      )
+      .limit(1);
 
     if (!result) return null;
 
     const apiKey = await decryptApiKey(
-      result.api_key_encrypted,
+      result.apiKeyEncrypted,
       this.encryptionKey,
     );
 
@@ -238,7 +231,7 @@ export class AIAnalyticsService {
       provider: result.provider as LLMConfig["provider"],
       apiKey,
       model: result.model || undefined,
-      baseUrl: result.custom_base_url || undefined,
+      baseUrl: result.customBaseUrl || undefined,
     };
   }
 
@@ -258,33 +251,30 @@ export class AIAnalyticsService {
       throw new Error(`Provider test failed: ${testResult.error}`);
     }
 
-    // Save configuration
-    const now = getCurrentTimestamp();
-    const query = `
-      INSERT INTO ai_configurations (
-        restaurant_id, provider, api_key_encrypted, model, custom_base_url, enabled, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 1, ?)
-      ON CONFLICT (restaurant_id)
-      DO UPDATE SET
-        provider = excluded.provider,
-        api_key_encrypted = excluded.api_key_encrypted,
-        model = excluded.model,
-        custom_base_url = excluded.custom_base_url,
-        enabled = 1,
-        updated_at = excluded.updated_at
-    `;
-
+    // Save configuration (upsert on restaurant_id)
+    const now = new Date().toISOString();
     await this.db
-      .prepare(query)
-      .bind(
-        input.restaurantId,
-        input.provider,
-        encryptedKey,
-        input.model || null,
-        input.customBaseUrl || null,
-        now,
-      )
-      .run();
+      .insert(aiConfigurations)
+      .values({
+        restaurantId: input.restaurantId,
+        provider: input.provider,
+        apiKeyEncrypted: encryptedKey,
+        model: input.model || null,
+        customBaseUrl: input.customBaseUrl || null,
+        enabled: true,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: aiConfigurations.restaurantId,
+        set: {
+          provider: sql`excluded.provider`,
+          apiKeyEncrypted: sql`excluded.api_key_encrypted`,
+          model: sql`excluded.model`,
+          customBaseUrl: sql`excluded.custom_base_url`,
+          enabled: sql`1`,
+          updatedAt: sql`excluded.updated_at`,
+        },
+      });
   }
 
   async testProvider(input: TestProviderInput): Promise<{
@@ -322,7 +312,8 @@ export class AIAnalyticsService {
       );
     }
 
-    const service = new AIInsightsService(this.db);
+    // AIInsightsService expects raw D1Database
+    const service = new AIInsightsService(this.d1);
     const report = await service.generateReport(
       restaurantId,
       llmConfig,
@@ -334,23 +325,15 @@ export class AIAnalyticsService {
     );
 
     // Log usage
-    await this.db
-      .prepare(
-        `
-      INSERT INTO ai_usage_logs (
-        restaurant_id, provider, model, operation, tokens_used, latency_ms, success
-      ) VALUES (?, ?, ?, ?, ?, ?, 1)
-    `,
-      )
-      .bind(
-        restaurantId,
-        llmConfig.provider,
-        llmConfig.model || getDefaultModel(llmConfig.provider),
-        "generate_report",
-        report.metadata.tokensUsed || 0,
-        report.metadata.processingTimeMs,
-      )
-      .run();
+    await this.db.insert(aiUsageLogs).values({
+      restaurantId,
+      provider: llmConfig.provider,
+      model: llmConfig.model || getDefaultModel(llmConfig.provider),
+      operation: "generate_report",
+      tokensUsed: report.metadata.tokensUsed || 0,
+      latencyMs: report.metadata.processingTimeMs,
+      success: true,
+    });
 
     return report;
   }
@@ -360,7 +343,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.db);
+    const service = new ProductAnalysisService(this.d1);
     return service.getTrafficDrivers(restaurantId, timeRange, limit);
   }
 
@@ -369,7 +352,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.db);
+    const service = new ProductAnalysisService(this.d1);
     return service.getBestsellers(restaurantId, timeRange, limit);
   }
 
@@ -378,7 +361,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.db);
+    const service = new ProductAnalysisService(this.d1);
     return service.getProfitLeaders(restaurantId, timeRange, limit);
   }
 
@@ -386,7 +369,7 @@ export class AIAnalyticsService {
     restaurantId: string,
     timeRange: TimeRange,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.db);
+    const service = new ProductAnalysisService(this.d1);
     return service.analyzeProducts(restaurantId, timeRange);
   }
 
@@ -395,53 +378,38 @@ export class AIAnalyticsService {
     startDate?: string,
     endDate?: string,
   ): Promise<AIUsageStats[]> {
-    let query = `
-      SELECT
-        provider,
-        model,
-        operation,
-        COUNT(*) AS request_count,
-        SUM(tokens_used) AS total_tokens,
-        AVG(latency_ms) AS avg_latency_ms,
-        SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS successful_requests
-      FROM ai_usage_logs
-      WHERE restaurant_id = ?
-    `;
-
-    const bindings: (string | number)[] = [restaurantId];
+    const conditions = [eq(aiUsageLogs.restaurantId, restaurantId)];
 
     if (startDate) {
-      query += " AND DATE(created_at) >= ?";
-      bindings.push(startDate);
+      conditions.push(sql`DATE(${aiUsageLogs.createdAt}) >= ${startDate}`);
     }
     if (endDate) {
-      query += " AND DATE(created_at) <= ?";
-      bindings.push(endDate);
+      conditions.push(sql`DATE(${aiUsageLogs.createdAt}) <= ${endDate}`);
     }
 
-    query += " GROUP BY provider, model, operation ORDER BY request_count DESC";
-
     const result = await this.db
-      .prepare(query)
-      .bind(...bindings)
-      .all<{
-        provider: string;
-        model: string;
-        operation: string;
-        request_count: number;
-        total_tokens: number;
-        avg_latency_ms: number;
-        successful_requests: number;
-      }>();
+      .select({
+        provider: aiUsageLogs.provider,
+        model: aiUsageLogs.model,
+        operation: aiUsageLogs.operation,
+        requestCount: sql<number>`COUNT(*)`,
+        totalTokens: sql<number>`SUM(${aiUsageLogs.tokensUsed})`,
+        avgLatencyMs: sql<number>`AVG(${aiUsageLogs.latencyMs})`,
+        successfulRequests: sql<number>`SUM(CASE WHEN ${aiUsageLogs.success} = 1 THEN 1 ELSE 0 END)`,
+      })
+      .from(aiUsageLogs)
+      .where(and(...conditions))
+      .groupBy(aiUsageLogs.provider, aiUsageLogs.model, aiUsageLogs.operation)
+      .orderBy(sql`COUNT(*) DESC`);
 
-    return (result.results || []).map((row) => ({
+    return result.map((row) => ({
       provider: row.provider as AIUsageStats["provider"],
       model: row.model,
       operation: row.operation,
-      requestCount: row.request_count,
-      totalTokens: row.total_tokens,
-      avgLatencyMs: row.avg_latency_ms,
-      successfulRequests: row.successful_requests,
+      requestCount: row.requestCount,
+      totalTokens: row.totalTokens,
+      avgLatencyMs: row.avgLatencyMs,
+      successfulRequests: row.successfulRequests,
     }));
   }
 

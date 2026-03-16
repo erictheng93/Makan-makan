@@ -2,29 +2,74 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { IngredientService } from "../services/IngredientService";
 
-function createMockDb() {
+// ─── Mock Drizzle ──────────────────────────────────────────────────────────
+
+const mockDb = {
+  select: vi.fn(),
+  selectDistinct: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+  like: vi.fn(),
+  isNull: vi.fn(),
+  sql: vi.fn(),
+  count: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  ingredientDefinitions: { name: "name", category: "category" },
+}));
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function makeSelectChain(returnValue: unknown) {
   return {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        first: vi.fn().mockResolvedValue(null),
-        run: vi.fn().mockResolvedValue({
-          success: true,
-          meta: { changes: 1, last_row_id: 1 },
-        }),
-      }),
-    }),
-    batch: vi.fn().mockResolvedValue([]),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    offset: vi.fn().mockResolvedValue(returnValue),
   };
 }
 
+function makeCountSelectChain(total: number) {
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue([{ total }]),
+  };
+}
+
+function makeInsertChain(returnValue: unknown) {
+  return {
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue(returnValue),
+  };
+}
+
+function makeUpdateChain(changes: number = 1) {
+  return {
+    set: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue({ meta: { changes } }),
+  };
+}
+
+// ─── Tests ────────────────────────────────────────────────────────────────
+
 describe("IngredientService", () => {
   let service: IngredientService;
-  let mockDb: ReturnType<typeof createMockDb>;
 
   beforeEach(() => {
-    mockDb = createMockDb();
-    service = new IngredientService(mockDb as any);
+    vi.clearAllMocks();
+    service = new IngredientService({} as any);
   });
 
   // ─── list ─────────────────────────────────────────────────────────
@@ -34,42 +79,41 @@ describe("IngredientService", () => {
       const mockRows = [
         {
           id: 1,
-          restaurant_id: "r-1",
+          restaurantId: "r-1",
           name: "Chicken",
           unit: "kg",
           category: "Meat",
-          cost_per_unit: 12.5,
+          costPerUnit: 12.5,
           supplier: "Farm Co",
-          min_stock_level: 10,
-          current_stock: 25,
-          is_active: 1,
-          deleted_at_ms: null,
+          minStockLevel: 10,
+          currentStock: 25,
+          isActive: true,
+          deletedAt: null,
         },
         {
           id: 2,
-          restaurant_id: "r-1",
+          restaurantId: "r-1",
           name: "Rice",
           unit: "kg",
           category: "Grain",
-          cost_per_unit: 3.0,
+          costPerUnit: 3.0,
           supplier: null,
-          min_stock_level: 50,
-          current_stock: 100,
-          is_active: 1,
-          deleted_at_ms: null,
+          minStockLevel: 50,
+          currentStock: 100,
+          isActive: true,
+          deletedAt: null,
         },
       ];
 
-      // first call: COUNT query via .first()
-      // second call: SELECT query via .all()
-      const callCount = 0;
-      mockDb.prepare.mockImplementation(() => ({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ total: 2 }),
-          all: vi.fn().mockResolvedValue({ results: mockRows }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      }));
+      // First call: count query
+      let callCount = 0;
+      mockDb.select.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return makeCountSelectChain(2);
+        }
+        return makeSelectChain(mockRows);
+      });
 
       const result = await service.list("r-1", { page: 1, limit: 10 });
 
@@ -78,33 +122,32 @@ describe("IngredientService", () => {
       expect(result.items[0].name).toBe("Chicken");
       expect(result.items[0].isActive).toBe(true);
       expect(result.items[1].name).toBe("Rice");
-      expect(mockDb.prepare).toHaveBeenCalledTimes(2);
+      expect(mockDb.select).toHaveBeenCalledTimes(2);
     });
 
     it("should filter by category", async () => {
-      mockDb.prepare.mockImplementation(() => ({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ total: 1 }),
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: 1,
-                restaurant_id: "r-1",
-                name: "Chicken",
-                unit: "kg",
-                category: "Meat",
-                cost_per_unit: 12.5,
-                supplier: null,
-                min_stock_level: null,
-                current_stock: null,
-                is_active: 1,
-                deleted_at_ms: null,
-              },
-            ],
-          }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      }));
+      let callCount = 0;
+      mockDb.select.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return makeCountSelectChain(1);
+        }
+        return makeSelectChain([
+          {
+            id: 1,
+            restaurantId: "r-1",
+            name: "Chicken",
+            unit: "kg",
+            category: "Meat",
+            costPerUnit: 12.5,
+            supplier: null,
+            minStockLevel: null,
+            currentStock: null,
+            isActive: true,
+            deletedAt: null,
+          },
+        ]);
+      });
 
       const result = await service.list("r-1", { category: "Meat" });
 
@@ -114,29 +157,28 @@ describe("IngredientService", () => {
     });
 
     it("should filter by search term", async () => {
-      mockDb.prepare.mockImplementation(() => ({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ total: 1 }),
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: 1,
-                restaurant_id: "r-1",
-                name: "Chicken Breast",
-                unit: "kg",
-                category: "Meat",
-                cost_per_unit: 15,
-                supplier: null,
-                min_stock_level: null,
-                current_stock: null,
-                is_active: 1,
-                deleted_at_ms: null,
-              },
-            ],
-          }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      }));
+      let callCount = 0;
+      mockDb.select.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return makeCountSelectChain(1);
+        }
+        return makeSelectChain([
+          {
+            id: 1,
+            restaurantId: "r-1",
+            name: "Chicken Breast",
+            unit: "kg",
+            category: "Meat",
+            costPerUnit: 15,
+            supplier: null,
+            minStockLevel: null,
+            currentStock: null,
+            isActive: true,
+            deletedAt: null,
+          },
+        ]);
+      });
 
       const result = await service.list("r-1", { search: "Chicken" });
 
@@ -149,25 +191,26 @@ describe("IngredientService", () => {
 
   describe("get", () => {
     it("should return a single ingredient", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          {
             id: 1,
-            restaurant_id: "r-1",
+            restaurantId: "r-1",
             name: "Chicken",
             unit: "kg",
             category: "Meat",
-            cost_per_unit: 12.5,
+            costPerUnit: 12.5,
             supplier: "Farm Co",
-            min_stock_level: 10,
-            current_stock: 25,
-            is_active: 1,
-            deleted_at_ms: null,
-          }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+            minStockLevel: 10,
+            currentStock: 25,
+            isActive: true,
+            deletedAt: null,
+          },
+        ]),
+      };
+      mockDb.select.mockReturnValue(chain);
 
       const result = await service.get("r-1", 1);
 
@@ -180,6 +223,13 @@ describe("IngredientService", () => {
     });
 
     it("should return null for non-existent ingredient", async () => {
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDb.select.mockReturnValue(chain);
+
       const result = await service.get("r-1", 999);
 
       expect(result).toBeNull();
@@ -190,16 +240,24 @@ describe("IngredientService", () => {
 
   describe("create", () => {
     it("should create an ingredient successfully", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({
-            success: true,
-            meta: { changes: 1, last_row_id: 5 },
-          }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      });
+      const insertChain = makeInsertChain([
+        {
+          id: 5,
+          restaurantId: "r-1",
+          name: "Soy Sauce",
+          unit: "ml",
+          category: "Condiment",
+          costPerUnit: 0.05,
+          supplier: "Sauce Corp",
+          minStockLevel: 500,
+          currentStock: 2000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        },
+      ]);
+      mockDb.insert.mockReturnValue(insertChain);
 
       const result = await service.create("r-1", {
         name: "Soy Sauce",
@@ -218,7 +276,7 @@ describe("IngredientService", () => {
       expect(result.costPerUnit).toBe(0.05);
       expect(result.supplier).toBe("Sauce Corp");
       expect(result.isActive).toBe(true);
-      expect(mockDb.prepare).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
     });
   });
 
@@ -226,36 +284,31 @@ describe("IngredientService", () => {
 
   describe("update", () => {
     it("should update an ingredient", async () => {
-      const ingredientRow = {
-        id: 1,
-        restaurant_id: "r-1",
-        name: "Chicken",
-        unit: "kg",
-        category: "Meat",
-        cost_per_unit: 12.5,
-        supplier: "Farm Co",
-        min_stock_level: 10,
-        current_stock: 25,
-        is_active: 1,
-        deleted_at_ms: null,
-      };
-
       let callCount = 0;
-      mockDb.prepare.mockImplementation(() => ({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(
-            // First call (existing check) and third call (re-fetch) return the row
+      mockDb.select.mockImplementation(() => {
+        callCount++;
+        return {
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue([
             {
-              ...ingredientRow,
-              name: callCount++ > 0 ? "Organic Chicken" : "Chicken",
+              id: 1,
+              restaurantId: "r-1",
+              name: callCount > 1 ? "Organic Chicken" : "Chicken",
+              unit: "kg",
+              category: "Meat",
+              costPerUnit: 12.5,
+              supplier: "Farm Co",
+              minStockLevel: 10,
+              currentStock: 25,
+              isActive: true,
+              deletedAt: null,
             },
-          ),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi
-            .fn()
-            .mockResolvedValue({ success: true, meta: { changes: 1 } }),
-        }),
-      }));
+          ]),
+        };
+      });
+
+      mockDb.update.mockReturnValue(makeUpdateChain());
 
       const result = await service.update("r-1", 1, {
         name: "Organic Chicken",
@@ -266,7 +319,12 @@ describe("IngredientService", () => {
     });
 
     it("should return null for non-existent ingredient", async () => {
-      // Default mock returns null from .first() — ingredient not found
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      });
+
       const result = await service.update("r-1", 999, { name: "Nope" });
 
       expect(result).toBeNull();
@@ -277,34 +335,16 @@ describe("IngredientService", () => {
 
   describe("delete", () => {
     it("should soft delete by setting deleted_at_ms", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({
-            success: true,
-            meta: { changes: 1 },
-          }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      });
+      mockDb.update.mockReturnValue(makeUpdateChain(1));
 
       const result = await service.delete("r-1", 1);
 
       expect(result).toBe(true);
-      expect(mockDb.prepare).toHaveBeenCalled();
+      expect(mockDb.update).toHaveBeenCalled();
     });
 
     it("should return false for non-existent ingredient", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({
-            success: true,
-            meta: { changes: 0 },
-          }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      });
+      mockDb.update.mockReturnValue(makeUpdateChain(0));
 
       const result = await service.delete("r-1", 999);
 
@@ -315,26 +355,26 @@ describe("IngredientService", () => {
   // ─── bulkImport ───────────────────────────────────────────────────
 
   describe("bulkImport", () => {
-    it("should import multiple ingredients via db.batch", async () => {
+    it("should import multiple ingredients via Drizzle multi-row insert", async () => {
       const ingredients = [
         { name: "Salt", unit: "g" },
         { name: "Pepper", unit: "g" },
         { name: "Oil", unit: "ml" },
       ];
 
-      mockDb.batch.mockResolvedValue([
-        { success: true },
-        { success: true },
-        { success: true },
-      ]);
+      const insertChain = {
+        values: vi.fn().mockResolvedValue(undefined),
+      };
+      mockDb.insert.mockReturnValue(insertChain);
 
       const result = await service.bulkImport("r-1", ingredients);
 
       expect(result.imported).toBe(3);
-      expect(mockDb.batch).toHaveBeenCalledTimes(1);
-      // batch should receive 3 prepared statements
-      const batchArgs = mockDb.batch.mock.calls[0][0];
-      expect(batchArgs).toHaveLength(3);
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
+      expect(insertChain.values).toHaveBeenCalledTimes(1);
+      // Should pass an array of 3 items
+      const valuesArg = insertChain.values.mock.calls[0][0];
+      expect(valuesArg).toHaveLength(3);
     });
   });
 
@@ -342,19 +382,18 @@ describe("IngredientService", () => {
 
   describe("getCategories", () => {
     it("should return distinct categories", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              { category: "Condiment" },
-              { category: "Grain" },
-              { category: "Meat" },
-            ],
-          }),
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+      const chain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi
+          .fn()
+          .mockResolvedValue([
+            { category: "Condiment" },
+            { category: "Grain" },
+            { category: "Meat" },
+          ]),
+      };
+      mockDb.selectDistinct.mockReturnValue(chain);
 
       const result = await service.getCategories("r-1");
 
@@ -366,21 +405,12 @@ describe("IngredientService", () => {
 
   describe("updateStock", () => {
     it("should update stock quantity", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({
-            success: true,
-            meta: { changes: 1 },
-          }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      });
+      mockDb.update.mockReturnValue(makeUpdateChain(1));
 
       const result = await service.updateStock("r-1", 1, 50);
 
       expect(result).toBe(true);
-      expect(mockDb.prepare).toHaveBeenCalled();
+      expect(mockDb.update).toHaveBeenCalled();
     });
   });
 });

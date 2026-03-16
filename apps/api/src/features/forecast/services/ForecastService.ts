@@ -1,4 +1,12 @@
 // apps/api/src/features/forecast/services/ForecastService.ts
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, sql, inArray, isNull } from "drizzle-orm";
+import {
+  forecastCache,
+  menuItems,
+  orders,
+  orderItems,
+} from "@makanmakan/database";
 import type {
   ForecastResult,
   ForecastItemResult,
@@ -23,10 +31,14 @@ interface CachedItemData {
 }
 
 export class ForecastService implements IForecastService {
+  private db;
+
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private kv: KVNamespace,
-  ) {}
+  ) {
+    this.db = drizzle(d1);
+  }
 
   async generateForecast(
     restaurantId: string,
@@ -95,16 +107,25 @@ export class ForecastService implements IForecastService {
     type: string,
   ): Promise<ForecastResult | null> {
     const dbResult = await this.db
-      .prepare(
-        "SELECT data, metadata, generated_by FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = ? LIMIT 1",
+      .select({
+        data: forecastCache.data,
+        metadata: forecastCache.metadata,
+        generatedBy: forecastCache.generatedBy,
+      })
+      .from(forecastCache)
+      .where(
+        and(
+          eq(forecastCache.restaurantId, restaurantId),
+          eq(forecastCache.forecastDate, date),
+          eq(forecastCache.forecastType, type),
+        ),
       )
-      .bind(restaurantId, date, type)
-      .first<{ data: string; metadata: string; generated_by: string }>();
+      .limit(1);
 
-    if (!dbResult) return null;
+    if (!dbResult.length) return null;
 
-    const dataDict =
-      (JSON.parse(dbResult.data) as Record<string, CachedItemData>) || {};
+    const row = dbResult[0];
+    const dataDict = (row.data as Record<string, CachedItemData> | null) || {};
     const items: ForecastItemResult[] = Object.entries(dataDict).map(
       ([id, v]) => ({
         menuItemId: Number(id),
@@ -121,8 +142,8 @@ export class ForecastService implements IForecastService {
       date,
       type: type as "item_level" | "ingredient_level",
       items,
-      generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
-      metadata: JSON.parse(dbResult.metadata),
+      generatedBy: row.generatedBy as "statistical" | "ai_enhanced",
+      metadata: row.metadata as ForecastMetadata,
       stale: true,
     };
   }
@@ -146,23 +167,29 @@ export class ForecastService implements IForecastService {
       }
 
       const dbResult = await this.db
-        .prepare(
-          "SELECT data, metadata, generated_by, expires_at_ms FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = ? LIMIT 1",
+        .select({
+          data: forecastCache.data,
+          metadata: forecastCache.metadata,
+          generatedBy: forecastCache.generatedBy,
+          expiresAt: forecastCache.expiresAt,
+        })
+        .from(forecastCache)
+        .where(
+          and(
+            eq(forecastCache.restaurantId, restaurantId),
+            eq(forecastCache.forecastDate, date),
+            eq(forecastCache.forecastType, type),
+          ),
         )
-        .bind(restaurantId, date, type)
-        .first<{
-          data: string;
-          metadata: string;
-          generated_by: string;
-          expires_at_ms: number;
-        }>();
+        .limit(1);
 
       if (
-        dbResult &&
-        (!dbResult.expires_at_ms || dbResult.expires_at_ms > Date.now())
+        dbResult.length &&
+        (!dbResult[0].expiresAt || dbResult[0].expiresAt.getTime() > Date.now())
       ) {
+        const row = dbResult[0];
         const dataDict =
-          (JSON.parse(dbResult.data) as Record<string, CachedItemData>) || {};
+          (row.data as Record<string, CachedItemData> | null) || {};
         const items: ForecastItemResult[] = Object.entries(dataDict).map(
           ([id, v]) => ({
             menuItemId: Number(id),
@@ -179,8 +206,8 @@ export class ForecastService implements IForecastService {
           date,
           type: type as "item_level" | "ingredient_level",
           items,
-          generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
-          metadata: JSON.parse(dbResult.metadata),
+          generatedBy: row.generatedBy as "statistical" | "ai_enhanced",
+          metadata: row.metadata as ForecastMetadata,
         };
         results.push(forecast);
         await this.kv.put(kvKey, JSON.stringify([forecast]), {
@@ -206,17 +233,25 @@ export class ForecastService implements IForecastService {
     endDate: string,
   ): Promise<ForecastAccuracyItem[]> {
     const forecasts = await this.db
-      .prepare(
-        "SELECT forecast_date, data FROM forecast_cache WHERE restaurant_id = ? AND forecast_date >= ? AND forecast_date <= ? AND forecast_type = 'item_level'",
-      )
-      .bind(restaurantId, startDate, endDate)
-      .all<{ forecast_date: string; data: string }>();
+      .select({
+        forecastDate: forecastCache.forecastDate,
+        data: forecastCache.data,
+      })
+      .from(forecastCache)
+      .where(
+        and(
+          eq(forecastCache.restaurantId, restaurantId),
+          sql`${forecastCache.forecastDate} >= ${startDate}`,
+          sql`${forecastCache.forecastDate} <= ${endDate}`,
+          eq(forecastCache.forecastType, "item_level"),
+        ),
+      );
 
-    if (!forecasts.results.length) return [];
+    if (!forecasts.length) return [];
 
     const menuItemIds = new Set<number>();
-    for (const f of forecasts.results) {
-      const data = JSON.parse(f.data) || {};
+    for (const f of forecasts) {
+      const data = (f.data as Record<string, unknown>) || {};
       for (const id of Object.keys(data)) menuItemIds.add(Number(id));
     }
     const nameMap = new Map<number, string>();
@@ -226,49 +261,56 @@ export class ForecastService implements IForecastService {
       const CHUNK_SIZE = 90;
       for (let i = 0; i < idArray.length; i += CHUNK_SIZE) {
         const chunk = idArray.slice(i, i + CHUNK_SIZE);
-        const placeholders = chunk.map(() => "?").join(",");
         const names = await this.db
-          .prepare(
-            `SELECT id, name FROM menu_items WHERE id IN (${placeholders})`,
-          )
-          .bind(...chunk)
-          .all<{ id: number; name: string }>();
-        for (const row of names.results) nameMap.set(row.id, row.name);
+          .select({ id: menuItems.id, name: menuItems.name })
+          .from(menuItems)
+          .where(inArray(menuItems.id, chunk));
+        for (const row of names) nameMap.set(row.id, row.name);
       }
     }
 
     const actuals = await this.db
-      .prepare(
-        `SELECT oi.menu_item_id, mi.name as item_name, SUM(oi.quantity) as actual_quantity,
-                DATE(o.created_at_ms / 1000, 'unixepoch') as order_date
-         FROM order_items oi
-         JOIN orders o ON oi.order_id = o.id
-         JOIN menu_items mi ON oi.menu_item_id = mi.id
-         WHERE o.restaurant_id = ? AND o.status IN ('confirmed','preparing','ready','delivered','paid')
-         AND oi.status != 'cancelled'
-         AND DATE(o.created_at_ms / 1000, 'unixepoch') >= ? AND DATE(o.created_at_ms / 1000, 'unixepoch') <= ?
-         GROUP BY oi.menu_item_id, order_date`,
+      .select({
+        menuItemId: orderItems.menuItemId,
+        itemName: menuItems.name,
+        actualQuantity: sql<number>`SUM(${orderItems.quantity})`,
+        orderDate: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .innerJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
+      .where(
+        and(
+          eq(orders.restaurantId, restaurantId),
+          inArray(orders.status, [
+            "confirmed",
+            "preparing",
+            "ready",
+            "delivered",
+            "paid",
+          ]),
+          sql`${orderItems.status} != 'cancelled'`,
+          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') >= ${startDate}`,
+          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') <= ${endDate}`,
+        ),
       )
-      .bind(restaurantId, startDate, endDate)
-      .all<{
-        menu_item_id: number;
-        item_name: string;
-        actual_quantity: number;
-        order_date: string;
-      }>();
+      .groupBy(
+        orderItems.menuItemId,
+        sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+      );
 
     const actualMap = new Map<string, Map<number, number>>();
-    for (const row of actuals.results) {
-      if (!actualMap.has(row.order_date))
-        actualMap.set(row.order_date, new Map());
-      actualMap.get(row.order_date)!.set(row.menu_item_id, row.actual_quantity);
+    for (const row of actuals) {
+      if (!actualMap.has(row.orderDate))
+        actualMap.set(row.orderDate, new Map());
+      actualMap.get(row.orderDate)!.set(row.menuItemId, row.actualQuantity);
     }
 
     const accuracyItems: ForecastAccuracyItem[] = [];
-    for (const forecast of forecasts.results) {
+    for (const forecast of forecasts) {
       const predictions: Record<string, { predicted: number }> =
-        JSON.parse(forecast.data) || {};
-      const dateActuals = actualMap.get(forecast.forecast_date) || new Map();
+        (forecast.data as Record<string, { predicted: number }>) || {};
+      const dateActuals = actualMap.get(forecast.forecastDate) || new Map();
 
       for (const [menuItemIdStr, pred] of Object.entries(predictions)) {
         const menuItemId = Number(menuItemIdStr);
@@ -299,14 +341,22 @@ export class ForecastService implements IForecastService {
     const forecasts = await this.getForecast(restaurantId, tomorrow, tomorrow);
     if (!forecasts.length || !forecasts[0].items.length) return [];
 
-    const menuItems = await this.db
-      .prepare(
-        "SELECT id, name, inventory_count FROM menu_items WHERE restaurant_id = ? AND is_available = 1 AND deleted_at_ms IS NULL",
-      )
-      .bind(restaurantId)
-      .all<{ id: number; name: string; inventory_count: number | null }>();
+    const menuItemRows = await this.db
+      .select({
+        id: menuItems.id,
+        name: menuItems.name,
+        inventoryCount: menuItems.inventoryCount,
+      })
+      .from(menuItems)
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(menuItems.isAvailable, true),
+          isNull(menuItems.deletedAt),
+        ),
+      );
 
-    const inventoryMap = new Map(menuItems.results.map((m) => [m.id, m]));
+    const inventoryMap = new Map(menuItemRows.map((m) => [m.id, m]));
 
     for (const item of forecasts[0].items) {
       const menuItem = inventoryMap.get(item.menuItemId);
@@ -324,16 +374,16 @@ export class ForecastService implements IForecastService {
       }
 
       if (
-        menuItem.inventory_count !== null &&
-        item.predicted > menuItem.inventory_count
+        menuItem.inventoryCount !== null &&
+        item.predicted > menuItem.inventoryCount
       ) {
         alerts.push({
           type: "low_stock",
           menuItemId: item.menuItemId,
           menuItemName: item.menuItemName,
-          message: `預估需要 ${Math.ceil(item.predicted)} 份，但庫存只有 ${menuItem.inventory_count} 份`,
+          message: `預估需要 ${Math.ceil(item.predicted)} 份，但庫存只有 ${menuItem.inventoryCount} 份`,
           severity:
-            item.predicted > menuItem.inventory_count * 2
+            item.predicted > menuItem.inventoryCount * 2
               ? "critical"
               : "warning",
         });
@@ -354,14 +404,21 @@ export class ForecastService implements IForecastService {
     // --- Ingredient-level alerts ---
     try {
       const ingredientForecasts = await this.db
-        .prepare(
-          "SELECT data FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = 'ingredient_level' LIMIT 1",
+        .select({
+          data: forecastCache.data,
+        })
+        .from(forecastCache)
+        .where(
+          and(
+            eq(forecastCache.restaurantId, restaurantId),
+            eq(forecastCache.forecastDate, tomorrow),
+            eq(forecastCache.forecastType, "ingredient_level"),
+          ),
         )
-        .bind(restaurantId, tomorrow)
-        .first<{ data: string }>();
+        .limit(1);
 
-      if (ingredientForecasts) {
-        const ingredients = JSON.parse(ingredientForecasts.data) as Array<{
+      if (ingredientForecasts.length) {
+        const ingredients = ingredientForecasts[0].data as unknown as Array<{
           ingredientId: number;
           ingredientName: string;
           unit: string;
@@ -399,7 +456,7 @@ export class ForecastService implements IForecastService {
             });
           }
 
-          // Excess stock: currentStock > predicted × 3
+          // Excess stock: currentStock > predicted x 3
           if (
             ing.currentStock > ing.predictedQuantity * 3 &&
             ing.predictedQuantity > 0
@@ -438,35 +495,43 @@ export class ForecastService implements IForecastService {
     weekday: number,
   ): Promise<Record<string, { name: string; weeklySales: number[] }>> {
     const result = await this.db
-      .prepare(
-        `SELECT oi.menu_item_id, mi.name as item_name, SUM(oi.quantity) as quantity_sum,
-                DATE(o.created_at_ms / 1000, 'unixepoch') as order_date
-         FROM order_items oi
-         JOIN orders o ON oi.order_id = o.id
-         JOIN menu_items mi ON oi.menu_item_id = mi.id
-         WHERE o.restaurant_id = ?
-         AND o.status IN ('confirmed','preparing','ready','delivered','paid')
-         AND oi.status != 'cancelled'
-         AND CAST(strftime('%w', o.created_at_ms / 1000, 'unixepoch') AS INTEGER) = ?
-         AND DATE(o.created_at_ms / 1000, 'unixepoch') >= DATE(?, '-' || ? || ' days')
-         AND DATE(o.created_at_ms / 1000, 'unixepoch') < ?
-         GROUP BY oi.menu_item_id, order_date
-         ORDER BY order_date DESC`,
+      .select({
+        menuItemId: orderItems.menuItemId,
+        itemName: menuItems.name,
+        quantitySum: sql<number>`SUM(${orderItems.quantity})`,
+        orderDate: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .innerJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
+      .where(
+        and(
+          eq(orders.restaurantId, restaurantId),
+          inArray(orders.status, [
+            "confirmed",
+            "preparing",
+            "ready",
+            "delivered",
+            "paid",
+          ]),
+          sql`${orderItems.status} != 'cancelled'`,
+          sql`CAST(strftime('%w', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER) = ${weekday}`,
+          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') >= DATE(${targetDate}, '-' || ${HISTORICAL_WEEKS * 7} || ' days')`,
+          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') < ${targetDate}`,
+        ),
       )
-      .bind(restaurantId, weekday, targetDate, HISTORICAL_WEEKS * 7, targetDate)
-      .all<{
-        menu_item_id: number;
-        item_name: string;
-        quantity_sum: number;
-        order_date: string;
-      }>();
+      .groupBy(
+        orderItems.menuItemId,
+        sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+      )
+      .orderBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch') DESC`);
 
     const grouped: Record<string, { name: string; weeklySales: number[] }> = {};
-    for (const row of result.results) {
-      if (!grouped[row.menu_item_id]) {
-        grouped[row.menu_item_id] = { name: row.item_name, weeklySales: [] };
+    for (const row of result) {
+      if (!grouped[row.menuItemId]) {
+        grouped[row.menuItemId] = { name: row.itemName, weeklySales: [] };
       }
-      grouped[row.menu_item_id].weeklySales.push(row.quantity_sum);
+      grouped[row.menuItemId].weeklySales.push(row.quantitySum);
     }
 
     return grouped;
@@ -539,21 +604,31 @@ export class ForecastService implements IForecastService {
     }
 
     await this.db
-      .prepare(
-        `INSERT OR REPLACE INTO forecast_cache (restaurant_id, forecast_date, forecast_type, data, metadata, generated_by, expires_at_ms, created_at_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(
+      .insert(forecastCache)
+      .values({
         restaurantId,
-        forecast.date,
-        forecast.type,
-        JSON.stringify(dataJson),
-        JSON.stringify(forecast.metadata),
-        forecast.generatedBy,
-        Date.now() + KV_TTL_SECONDS * 1000,
-        Date.now(),
-      )
-      .run();
+        forecastDate: forecast.date,
+        forecastType: forecast.type,
+        data: dataJson as any,
+        metadata: forecast.metadata as any,
+        generatedBy: forecast.generatedBy,
+        expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
+        createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          forecastCache.restaurantId,
+          forecastCache.forecastDate,
+          forecastCache.forecastType,
+        ],
+        set: {
+          data: dataJson as any,
+          metadata: forecast.metadata as any,
+          generatedBy: forecast.generatedBy,
+          expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
+          createdAt: new Date(),
+        },
+      });
   }
 
   private getDateRange(start: string, end: string): string[] {

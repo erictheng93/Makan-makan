@@ -10,6 +10,45 @@ import type { Env } from "../../../shared/types";
 import { ApiError } from "../../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
+// ─── Mock Drizzle (used by RealtimeAuthService) ────────────────────────
+
+const mockDrizzleDb = {
+  select: vi.fn(() => ({
+    from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([{ id: 1 }]),
+  })),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDrizzleDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+  or: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  tables: {
+    id: "id",
+    qrCode: "qrCode",
+    restaurantId: "restaurantId",
+    isActive: "isActive",
+  },
+  seats: {
+    id: "id",
+    qrCode: "qrCode",
+    tableId: "tableId",
+    isActive: "isActive",
+  },
+}));
+
 // Mock dependencies
 vi.mock("../../../core/monitoring", () => ({
   ConsoleLogger: vi.fn(function () {

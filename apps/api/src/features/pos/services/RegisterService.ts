@@ -2,14 +2,17 @@
  * 收銀機管理服務
  */
 
-import { BaseService } from "../../../shared/services/BaseService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and } from "drizzle-orm";
+import { cashRegisters, cashShifts } from "@makanmakan/database";
 import type { CashRegister, CreateRegisterRequest } from "../types";
 import { createRegisterSchema } from "../schemas";
 
-export class RegisterService extends BaseService {
-  constructor(db: any) {
-    super(db);
+export class RegisterService {
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
   }
 
   /**
@@ -22,43 +25,37 @@ export class RegisterService extends BaseService {
     try {
       const validatedData = createRegisterSchema.parse(data);
       const registerId = crypto.randomUUID();
-      const now = getCurrentTimestamp();
+      const now = new Date();
 
-      await this.d1
-        .prepare(
-          `
-        INSERT INTO cash_registers (
-          id, name, location, restaurant_id, is_active,
-          hardware_config, peripherals, settings, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
-      `,
-        )
-        .bind(
-          registerId,
-          validatedData.name,
-          validatedData.location || null,
-          validatedData.restaurantId,
-          JSON.stringify(validatedData.hardwareConfig || {}),
-          JSON.stringify(validatedData.peripherals || {}),
-          JSON.stringify(validatedData.settings || {}),
-          now,
-          now,
-        )
-        .run();
+      await this.db.insert(cashRegisters).values({
+        id: registerId,
+        name: validatedData.name,
+        location: validatedData.location || null,
+        restaurantId: String(validatedData.restaurantId),
+        isActive: true,
+        hardwareConfig: JSON.stringify(validatedData.hardwareConfig || {}),
+        peripherals: JSON.stringify(validatedData.peripherals || {}),
+        settings: JSON.stringify(validatedData.settings || {}),
+        createdAt: now,
+        updatedAt: now,
+      });
 
-      const register = (await this.d1
-        .prepare("SELECT * FROM cash_registers WHERE id = ?")
-        .bind(registerId)
-        .first()) as any;
+      const [register] = await this.db
+        .select()
+        .from(cashRegisters)
+        .where(eq(cashRegisters.id, registerId))
+        .limit(1);
 
       return {
         success: true,
         data: {
           ...register,
-          hardwareConfig: JSON.parse(register.hardware_config || "{}"),
-          peripherals: JSON.parse(register.peripherals || "{}"),
-          settings: JSON.parse(register.settings || "{}"),
-        },
+          hardwareConfig: JSON.parse(
+            (register.hardwareConfig as string) || "{}",
+          ),
+          peripherals: JSON.parse((register.peripherals as string) || "{}"),
+          settings: JSON.parse((register.settings as string) || "{}"),
+        } as any,
       };
     } catch (error) {
       console.error("創建收銀機失敗:", error);
@@ -76,24 +73,17 @@ export class RegisterService extends BaseService {
     restaurantId: string,
   ): Promise<{ success: boolean; data?: CashRegister[]; error?: string }> {
     try {
-      const result = await this.d1
-        .prepare(
-          `
-        SELECT cr.*, cs.id as current_shift_status
-        FROM cash_registers cr
-        LEFT JOIN cash_shifts cs ON cr.current_shift_id = cs.id AND cs.status = 'active'
-        WHERE cr.restaurant_id = ?
-        ORDER BY cr.name
-      `,
-        )
-        .bind(restaurantId)
-        .all();
+      const results = await this.db
+        .select()
+        .from(cashRegisters)
+        .where(eq(cashRegisters.restaurantId, restaurantId))
+        .orderBy(cashRegisters.name);
 
-      const registers = (result.results || []).map((register: any) => ({
+      const registers = results.map((register: any) => ({
         ...register,
-        hardwareConfig: JSON.parse(register.hardware_config || "{}"),
-        peripherals: JSON.parse(register.peripherals || "{}"),
-        settings: JSON.parse(register.settings || "{}"),
+        hardwareConfig: JSON.parse((register.hardwareConfig as string) || "{}"),
+        peripherals: JSON.parse((register.peripherals as string) || "{}"),
+        settings: JSON.parse((register.settings as string) || "{}"),
       })) as CashRegister[];
 
       return {
@@ -116,26 +106,11 @@ export class RegisterService extends BaseService {
     registerId: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const status = await this.d1
-        .prepare(
-          `
-        SELECT
-          cr.*,
-          cs.id as current_shift_id,
-          cs.operator_id,
-          cs.started_at as shift_started,
-          cs.start_amount,
-          cs.total_sales,
-          cs.total_transactions,
-          u.full_name as operator_name
-        FROM cash_registers cr
-        LEFT JOIN cash_shifts cs ON cr.current_shift_id = cs.id AND cs.status = 'active'
-        LEFT JOIN users u ON cs.operator_id = u.id
-        WHERE cr.id = ?
-      `,
-        )
-        .bind(registerId)
-        .first();
+      const [status] = await this.db
+        .select()
+        .from(cashRegisters)
+        .where(eq(cashRegisters.id, registerId))
+        .limit(1);
 
       if (!status) {
         return {
@@ -148,10 +123,10 @@ export class RegisterService extends BaseService {
         success: true,
         data: {
           ...status,
-          hardwareConfig: JSON.parse(status.hardware_config || "{}"),
-          peripherals: JSON.parse(status.peripherals || "{}"),
-          settings: JSON.parse(status.settings || "{}"),
-          isShiftActive: !!status.current_shift_id,
+          hardwareConfig: JSON.parse((status.hardwareConfig as string) || "{}"),
+          peripherals: JSON.parse((status.peripherals as string) || "{}"),
+          settings: JSON.parse((status.settings as string) || "{}"),
+          isShiftActive: !!status.currentShiftId,
         },
       };
     } catch (error) {
@@ -171,70 +146,60 @@ export class RegisterService extends BaseService {
     data: Partial<CreateRegisterRequest>,
   ): Promise<{ success: boolean; data?: CashRegister; error?: string }> {
     try {
-      const updateFields: string[] = [];
-      const updateValues: any[] = [];
+      const updateData: Record<string, any> = {};
 
       if (data.name) {
-        updateFields.push("name = ?");
-        updateValues.push(data.name);
+        updateData.name = data.name;
       }
 
       if (data.location !== undefined) {
-        updateFields.push("location = ?");
-        updateValues.push(data.location);
+        updateData.location = data.location;
       }
 
       if (data.hardwareConfig) {
-        updateFields.push("hardware_config = ?");
-        updateValues.push(JSON.stringify(data.hardwareConfig));
+        updateData.hardwareConfig = JSON.stringify(data.hardwareConfig);
       }
 
       if (data.peripherals) {
-        updateFields.push("peripherals = ?");
-        updateValues.push(JSON.stringify(data.peripherals));
+        updateData.peripherals = JSON.stringify(data.peripherals);
       }
 
       if (data.settings) {
-        updateFields.push("settings = ?");
-        updateValues.push(JSON.stringify(data.settings));
+        updateData.settings = JSON.stringify(data.settings);
       }
 
-      if (updateFields.length === 0) {
+      if (Object.keys(updateData).length === 0) {
         return {
           success: false,
           error: "沒有需要更新的欄位",
         };
       }
 
-      const now = getCurrentTimestamp();
-      updateFields.push("updated_at = ?");
-      updateValues.push(now);
-      updateValues.push(registerId);
+      updateData.updatedAt = new Date();
 
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_registers
-        SET ${updateFields.join(", ")}
-        WHERE id = ?
-      `,
-        )
-        .bind(...updateValues)
-        .run();
+      await this.db
+        .update(cashRegisters)
+        .set(updateData)
+        .where(eq(cashRegisters.id, registerId));
 
-      const updatedRegister = (await this.d1
-        .prepare("SELECT * FROM cash_registers WHERE id = ?")
-        .bind(registerId)
-        .first()) as any;
+      const [updatedRegister] = await this.db
+        .select()
+        .from(cashRegisters)
+        .where(eq(cashRegisters.id, registerId))
+        .limit(1);
 
       return {
         success: true,
         data: {
           ...updatedRegister,
-          hardwareConfig: JSON.parse(updatedRegister.hardware_config || "{}"),
-          peripherals: JSON.parse(updatedRegister.peripherals || "{}"),
-          settings: JSON.parse(updatedRegister.settings || "{}"),
-        },
+          hardwareConfig: JSON.parse(
+            (updatedRegister.hardwareConfig as string) || "{}",
+          ),
+          peripherals: JSON.parse(
+            (updatedRegister.peripherals as string) || "{}",
+          ),
+          settings: JSON.parse((updatedRegister.settings as string) || "{}"),
+        } as any,
       };
     } catch (error) {
       console.error("更新收銀機失敗:", error);
@@ -253,17 +218,13 @@ export class RegisterService extends BaseService {
     isActive: boolean,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const now = getCurrentTimestamp();
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_registers
-        SET is_active = ?, updated_at = ?
-        WHERE id = ?
-      `,
-        )
-        .bind(isActive ? 1 : 0, now, registerId)
-        .run();
+      await this.db
+        .update(cashRegisters)
+        .set({
+          isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(cashRegisters.id, registerId));
 
       return { success: true };
     } catch (error) {
@@ -283,12 +244,16 @@ export class RegisterService extends BaseService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // 檢查是否有活躍班次
-      const activeShift = await this.d1
-        .prepare(
-          'SELECT id FROM cash_shifts WHERE register_id = ? AND status = "active"',
+      const [activeShift] = await this.db
+        .select({ id: cashShifts.id })
+        .from(cashShifts)
+        .where(
+          and(
+            eq(cashShifts.registerId, registerId),
+            eq(cashShifts.status, "active"),
+          ),
         )
-        .bind(registerId)
-        .first();
+        .limit(1);
 
       if (activeShift) {
         return {
@@ -297,10 +262,9 @@ export class RegisterService extends BaseService {
         };
       }
 
-      await this.d1
-        .prepare("DELETE FROM cash_registers WHERE id = ?")
-        .bind(registerId)
-        .run();
+      await this.db
+        .delete(cashRegisters)
+        .where(eq(cashRegisters.id, registerId));
 
       return { success: true };
     } catch (error) {

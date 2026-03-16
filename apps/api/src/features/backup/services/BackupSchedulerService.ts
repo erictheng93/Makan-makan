@@ -1,8 +1,15 @@
 /**
  * Backup Scheduler Service - Handles scheduled backup operations
+ * Migrated to Drizzle ORM
  */
 
 import type { D1Database, AnalyticsEngineDataset } from '@cloudflare/workers-types'
+import { drizzle } from 'drizzle-orm/d1'
+import { eq, and, sql, lte, isNotNull } from 'drizzle-orm'
+import {
+  backupConfigurations,
+  backupSchedules
+} from '@makanmakan/database'
 import { BackupService } from './BackupService'
 import { BackupConfigService } from './BackupConfigService'
 import type { BackupConfiguration, CreateBackupRequest } from '@makanmakan/shared-types'
@@ -18,12 +25,16 @@ export interface ScheduleInfo {
 }
 
 export class BackupSchedulerService {
+  private db;
+
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private backupService: BackupService,
     private configService: BackupConfigService,
     private analytics?: AnalyticsEngineDataset
-  ) {}
+  ) {
+    this.db = drizzle(d1);
+  }
 
   /**
    * Process all scheduled backups that are due to run
@@ -160,22 +171,23 @@ export class BackupSchedulerService {
     try {
       const nextRun = this.calculateNextRun(cronExpression, new Date())
 
-      await this.db.prepare(`
+      // Use raw SQL for INSERT OR REPLACE since Drizzle doesn't support it natively on SQLite
+      await this.db.run(sql`
         INSERT OR REPLACE INTO backup_schedules (
           id, configuration_id, restaurant_id, cron_expression, enabled,
           next_run_at, consecutive_failures, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        crypto.randomUUID(),
-        configId,
-        restaurantId,
-        cronExpression,
-        1, // enabled
-        nextRun?.toISOString(),
-        0, // consecutive_failures
-        new Date().toISOString(),
-        new Date().toISOString()
-      ).run()
+        ) VALUES (
+          ${crypto.randomUUID()},
+          ${configId},
+          ${restaurantId},
+          ${cronExpression},
+          ${1},
+          ${nextRun?.toISOString() ?? null},
+          ${0},
+          ${new Date().toISOString()},
+          ${new Date().toISOString()}
+        )
+      `)
 
     } catch (error) {
       console.error('Error creating/updating backup schedule:', error)
@@ -188,9 +200,12 @@ export class BackupSchedulerService {
    */
   async disableSchedule(configId: string): Promise<void> {
     try {
-      await this.db.prepare(`
-        UPDATE backup_schedules SET enabled = 0, updated_at = ? WHERE configuration_id = ?
-      `).bind(new Date().toISOString(), configId).run()
+      await this.db.update(backupSchedules)
+        .set({
+          enabled: false,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(backupSchedules.configurationId, configId))
 
     } catch (error) {
       console.error('Error disabling backup schedule:', error)
@@ -203,16 +218,37 @@ export class BackupSchedulerService {
    */
   async getScheduledConfigurations(): Promise<BackupConfiguration[]> {
     try {
-      const result = await this.db.prepare(`
-        SELECT bc.* FROM backup_configurations bc
-        JOIN backup_schedules bs ON bc.id = bs.configuration_id
-        WHERE bc.schedule_enabled = 1
-        AND bc.schedule_cron IS NOT NULL
-        AND bs.enabled = 1
-        ORDER BY bc.restaurant_id, bc.name
-      `).all()
+      const results = await this.db.select({
+        id: backupConfigurations.id,
+        restaurantId: backupConfigurations.restaurantId,
+        name: backupConfigurations.name,
+        description: backupConfigurations.description,
+        backupType: backupConfigurations.backupType,
+        scheduleEnabled: backupConfigurations.scheduleEnabled,
+        scheduleCron: backupConfigurations.scheduleCron,
+        retentionDays: backupConfigurations.retentionDays,
+        includeTables: backupConfigurations.includeTables,
+        excludeTables: backupConfigurations.excludeTables,
+        compressionEnabled: backupConfigurations.compressionEnabled,
+        encryptionEnabled: backupConfigurations.encryptionEnabled,
+        storageProvider: backupConfigurations.storageProvider,
+        maxParallelBackups: backupConfigurations.maxParallelBackups,
+        notificationsEnabled: backupConfigurations.notificationsEnabled,
+        notificationChannels: backupConfigurations.notificationChannels,
+        createdBy: backupConfigurations.createdBy,
+        createdAt: backupConfigurations.createdAt,
+        updatedAt: backupConfigurations.updatedAt
+      })
+        .from(backupConfigurations)
+        .innerJoin(backupSchedules, eq(backupConfigurations.id, backupSchedules.configurationId))
+        .where(and(
+          eq(backupConfigurations.scheduleEnabled, true),
+          isNotNull(backupConfigurations.scheduleCron),
+          eq(backupSchedules.enabled, true)
+        ))
+        .orderBy(backupConfigurations.restaurantId, backupConfigurations.name)
 
-      return this.parseConfigurations(result.results as any[])
+      return results.map(row => this.parseConfiguration(row))
 
     } catch (error) {
       console.error('Error fetching scheduled configurations:', error)
@@ -225,11 +261,23 @@ export class BackupSchedulerService {
    */
   async getScheduleInfo(configId: string): Promise<ScheduleInfo | null> {
     try {
-      const result = await this.db.prepare(`
-        SELECT * FROM backup_schedules WHERE configuration_id = ?
-      `).bind(configId).first()
+      const results = await this.db.select()
+        .from(backupSchedules)
+        .where(eq(backupSchedules.configurationId, configId))
+        .limit(1)
 
-      return result as ScheduleInfo | null
+      if (results.length === 0) return null
+
+      const row = results[0]
+      return {
+        id: row.id,
+        configuration_id: row.configurationId,
+        restaurant_id: row.restaurantId,
+        last_run_at: row.lastRunAt ?? undefined,
+        next_run_at: row.nextRunAt ?? undefined,
+        consecutive_failures: row.consecutiveFailures,
+        enabled: row.enabled
+      } as ScheduleInfo
 
     } catch (error) {
       console.error('Error fetching schedule info:', error)
@@ -249,7 +297,8 @@ export class BackupSchedulerService {
       const futureTime = new Date()
       futureTime.setHours(futureTime.getHours() + hours)
 
-      const result = await this.db.prepare(`
+      // Use raw sql for the JOIN with restaurants since we need restaurant name
+      const results = await this.db.run(sql`
         SELECT
           bc.*,
           bs.next_run_at,
@@ -260,11 +309,11 @@ export class BackupSchedulerService {
         WHERE bc.schedule_enabled = 1
         AND bs.enabled = 1
         AND bs.next_run_at IS NOT NULL
-        AND bs.next_run_at <= ?
+        AND bs.next_run_at <= ${futureTime.toISOString()}
         ORDER BY bs.next_run_at ASC
-      `).bind(futureTime.toISOString()).all()
+      `)
 
-      return (result.results as any[]).map(row => ({
+      return ((results as any).results || []).map((row: any) => ({
         configuration: this.parseConfiguration(row),
         scheduled_time: row.next_run_at,
         restaurant_name: row.restaurant_name
@@ -384,43 +433,51 @@ export class BackupSchedulerService {
   }
 
   private async updateScheduleLastRun(configId: string, timestamp: Date): Promise<void> {
-    await this.db.prepare(`
-      UPDATE backup_schedules
-      SET last_run_at = ?, consecutive_failures = 0, updated_at = ?
-      WHERE configuration_id = ?
-    `).bind(timestamp.toISOString(), new Date().toISOString(), configId).run()
+    await this.db.update(backupSchedules)
+      .set({
+        lastRunAt: timestamp.toISOString(),
+        consecutiveFailures: 0,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(backupSchedules.configurationId, configId))
   }
 
   private async updateScheduleNextRun(configId: string, nextRun: Date): Promise<void> {
-    await this.db.prepare(`
-      UPDATE backup_schedules
-      SET next_run_at = ?, updated_at = ?
-      WHERE configuration_id = ?
-    `).bind(nextRun.toISOString(), new Date().toISOString(), configId).run()
+    await this.db.update(backupSchedules)
+      .set({
+        nextRunAt: nextRun.toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(backupSchedules.configurationId, configId))
   }
 
   private async updateConsecutiveFailures(configId: string): Promise<void> {
-    await this.db.prepare(`
+    await this.db.run(sql`
       UPDATE backup_schedules
-      SET consecutive_failures = consecutive_failures + 1, updated_at = ?
-      WHERE configuration_id = ?
-    `).bind(new Date().toISOString(), configId).run()
+      SET consecutive_failures = consecutive_failures + 1, updated_at = ${new Date().toISOString()}
+      WHERE configuration_id = ${configId}
+    `)
   }
 
   private parseConfiguration(row: any): BackupConfiguration {
     return {
       ...row,
-      schedule_enabled: Boolean(row.schedule_enabled),
-      compression_enabled: Boolean(row.compression_enabled),
-      encryption_enabled: Boolean(row.encryption_enabled),
-      notifications_enabled: Boolean(row.notifications_enabled),
-      include_tables: JSON.parse(row.include_tables || '[]'),
-      exclude_tables: JSON.parse(row.exclude_tables || '[]'),
-      notification_channels: JSON.parse(row.notification_channels || '[]')
+      restaurant_id: row.restaurantId ?? row.restaurant_id,
+      backup_type: row.backupType ?? row.backup_type,
+      schedule_enabled: Boolean(row.scheduleEnabled ?? row.schedule_enabled),
+      schedule_cron: row.scheduleCron ?? row.schedule_cron,
+      retention_days: row.retentionDays ?? row.retention_days,
+      compression_enabled: Boolean(row.compressionEnabled ?? row.compression_enabled),
+      encryption_enabled: Boolean(row.encryptionEnabled ?? row.encryption_enabled),
+      storage_provider: row.storageProvider ?? row.storage_provider,
+      max_parallel_backups: row.maxParallelBackups ?? row.max_parallel_backups,
+      notifications_enabled: Boolean(row.notificationsEnabled ?? row.notifications_enabled),
+      include_tables: row.includeTables ?? row.include_tables ?? [],
+      exclude_tables: row.excludeTables ?? row.exclude_tables ?? [],
+      notification_channels: row.notificationChannels ?? row.notification_channels ?? [],
+      created_by: row.createdBy ?? row.created_by,
+      created_at: row.createdAt ?? row.created_at,
+      updated_at: row.updatedAt ?? row.updated_at
     }
-  }
-
-  private parseConfigurations(rows: any[]): BackupConfiguration[] {
-    return rows.map(row => this.parseConfiguration(row))
   }
 }

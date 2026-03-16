@@ -1,9 +1,18 @@
 /**
  * Modular Backup Service - Core backup functionality
  * Refactored from monolithic service to use dependency injection
+ * Migrated to Drizzle ORM
  */
 
 import type { D1Database } from '@cloudflare/workers-types'
+import { drizzle } from 'drizzle-orm/d1'
+import { eq, and, sql, count, desc, asc, gte, lte, sum, avg } from 'drizzle-orm'
+import {
+  backupRecords,
+  backupAlerts,
+  backupAuditLogs,
+  restoreOperations
+} from '@makanmakan/database'
 import { BackupStorageService } from './BackupStorageService'
 import { BackupConfigService } from './BackupConfigService'
 import { BackupValidationService } from './BackupValidationService'
@@ -21,12 +30,16 @@ import type {
 } from '@makanmakan/shared-types'
 
 export class BackupService {
+  private db;
+
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private storageService: BackupStorageService,
     private configService: BackupConfigService,
     private validationService: BackupValidationService
-  ) {}
+  ) {
+    this.db = drizzle(d1);
+  }
 
   /**
    * Create a new backup for a specific restaurant
@@ -63,23 +76,23 @@ export class BackupService {
       }
 
       // Create backup record
-      const backup: Partial<BackupRecord> = {
+      await this.db.insert(backupRecords).values({
         id: backupId,
-        restaurant_id: request.restaurant_id,
-        configuration_id: config.id,
+        restaurantId: request.restaurant_id,
+        configurationId: config.id,
         name: request.name,
-        backup_type: request.backup_type || config.backup_type,
-        status: 'pending' as BackupStatus,
-        file_size: 0,
-        compressed_size: 0,
-        records_count: 0,
-        tables_included: tablesToBackup,
-        storage_provider: config.storage_provider,
-        storage_path: '',
-        encryption_enabled: config.encryption_enabled,
+        backupType: request.backup_type || config.backup_type,
+        status: 'pending',
+        fileSize: 0,
+        compressedSize: 0,
+        recordsCount: 0,
+        tablesIncluded: tablesToBackup,
+        storageProvider: config.storage_provider,
+        storagePath: '',
+        encryptionEnabled: config.encryption_enabled,
         checksum: '',
-        started_at: timestamp,
-        created_by: userId,
+        startedAt: timestamp,
+        createdBy: userId,
         metadata: {
           tables_info: [],
           performance_metrics: {
@@ -94,9 +107,7 @@ export class BackupService {
             total_records: 0
           }
         }
-      }
-
-      await this.saveBackupRecord(backup as BackupRecord)
+      })
 
       // Execute backup immediately if requested
       if (request.force_immediate) {
@@ -159,33 +170,36 @@ export class BackupService {
       const duration = new Date(completedAt).getTime() - new Date(backup.started_at).getTime()
 
       // Update backup record with completion details
-      await this.updateBackupRecord(backupId, {
-        status: 'completed',
-        file_size: backupJson.length,
-        compressed_size: backupJson.length, // TODO: Implement actual compression
-        records_count: totalRecords,
-        storage_path,
-        checksum,
-        completed_at: completedAt,
-        metadata: {
-          tables_info: backup.tables_included.map(table => ({
-            table_name: table,
-            record_count: backupData[table]?.length || 0,
-            estimated_size: JSON.stringify(backupData[table] || []).length
-          })),
-          performance_metrics: {
-            backup_duration_ms: duration,
-            compression_ratio: 1.0, // TODO: Calculate actual compression ratio
-            upload_speed_mbps: backupJson.length > 0 ? (backupJson.length / 1024 / 1024) / (duration / 1000) : 0
+      await this.db.update(backupRecords)
+        .set({
+          status: 'completed',
+          fileSize: backupJson.length,
+          compressedSize: backupJson.length, // TODO: Implement actual compression
+          recordsCount: totalRecords,
+          storagePath: storage_path,
+          checksum,
+          completedAt,
+          metadata: {
+            tables_info: backup.tables_included.map(table => ({
+              table_name: table,
+              record_count: backupData[table]?.length || 0,
+              estimated_size: JSON.stringify(backupData[table] || []).length
+            })),
+            performance_metrics: {
+              backup_duration_ms: duration,
+              compression_ratio: 1.0, // TODO: Calculate actual compression ratio
+              upload_speed_mbps: backupJson.length > 0 ? (backupJson.length / 1024 / 1024) / (duration / 1000) : 0
+            },
+            database_snapshot: {
+              version: '1.0',
+              schema_hash: await this.getSchemaHash(backup.restaurant_id),
+              total_tables: backup.tables_included.length,
+              total_records: totalRecords
+            }
           },
-          database_snapshot: {
-            version: '1.0',
-            schema_hash: await this.getSchemaHash(backup.restaurant_id),
-            total_tables: backup.tables_included.length,
-            total_records: totalRecords
-          }
-        }
-      })
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(backupRecords.id, backupId))
 
       // Create audit log
       await this.createAuditLog({
@@ -205,10 +219,13 @@ export class BackupService {
       await this.updateBackupStatus(backupId, 'failed')
 
       // Update backup record with error message
-      await this.updateBackupRecord(backupId, {
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        completed_at: new Date().toISOString()
-      })
+      await this.db.update(backupRecords)
+        .set({
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          completedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(backupRecords.id, backupId))
 
       throw error
     }
@@ -231,49 +248,58 @@ export class BackupService {
     } = query
 
     try {
-      let sql = `SELECT * FROM backup_records WHERE restaurant_id = ?`
-      const params: any[] = [restaurant_id]
+      const conditions = [eq(backupRecords.restaurantId, restaurant_id)]
 
       if (status) {
-        sql += ` AND status = ?`
-        params.push(status)
+        conditions.push(eq(backupRecords.status, status))
       }
 
       if (backup_type) {
-        sql += ` AND backup_type = ?`
-        params.push(backup_type)
+        conditions.push(eq(backupRecords.backupType, backup_type))
       }
 
       if (date_from) {
-        sql += ` AND started_at >= ?`
-        params.push(date_from)
+        conditions.push(gte(backupRecords.startedAt, date_from))
       }
 
       if (date_to) {
-        sql += ` AND started_at <= ?`
-        params.push(date_to)
+        conditions.push(lte(backupRecords.startedAt, date_to))
       }
 
-      // Validate sort column to prevent SQL injection
-      const validSortColumns = ['started_at', 'completed_at', 'file_size', 'name']
-      const sortColumn = validSortColumns.includes(sort_by) ? sort_by : 'started_at'
+      const whereClause = and(...conditions)
 
-      sql += ` ORDER BY ${sortColumn} ${sort_order.toUpperCase()}`
-      sql += ` LIMIT ? OFFSET ?`
+      // Validate sort column to prevent SQL injection
+      const validSortColumns = ['started_at', 'completed_at', 'file_size', 'name'] as const
+      const sortColumn = validSortColumns.includes(sort_by as any) ? sort_by : 'started_at'
+
+      // Map sort column to drizzle column
+      const sortColumnMap: Record<string, any> = {
+        started_at: backupRecords.startedAt,
+        completed_at: backupRecords.completedAt,
+        file_size: backupRecords.fileSize,
+        name: backupRecords.name
+      }
+
+      const orderByColumn = sortColumnMap[sortColumn] || backupRecords.startedAt
+      const orderFn = sort_order.toUpperCase() === 'ASC' ? asc : desc
 
       const offset = (page - 1) * limit
-      params.push(limit, offset)
 
-      const result = await this.db.prepare(sql).bind(...params).all()
+      const results = await this.db.select()
+        .from(backupRecords)
+        .where(whereClause)
+        .orderBy(orderFn(orderByColumn))
+        .limit(limit)
+        .offset(offset)
 
       // Get total count for pagination
-      const countSql = sql.split('ORDER BY')[0].replace('SELECT *', 'SELECT COUNT(*) as total')
-      const countParams = params.slice(0, -2) // Remove limit and offset
-      const countResult = await this.db.prepare(countSql).bind(...countParams).first()
+      const countResult = await this.db.select({ total: count() })
+        .from(backupRecords)
+        .where(whereClause)
 
       return {
-        backups: this.parseBackupRecords(result.results as any[]),
-        total: (countResult as any)?.total || 0
+        backups: this.parseBackupRecords(results as any[]),
+        total: countResult[0]?.total || 0
       }
 
     } catch (error) {
@@ -325,26 +351,24 @@ export class BackupService {
         throw new Error('Backup file not found in storage')
       }
 
-      const operation: Partial<RestoreOperation> = {
+      await this.db.insert(restoreOperations).values({
         id: operationId,
-        restaurant_id: request.restaurant_id,
-        backup_id: request.backup_id,
+        restaurantId: request.restaurant_id,
+        backupId: request.backup_id,
         status: 'pending',
-        restore_type: request.restore_type,
-        target_tables: request.target_tables || backup.tables_included,
-        overwrite_existing: request.overwrite_existing,
-        started_at: new Date().toISOString(),
-        tables_restored: 0,
-        records_restored: 0,
-        performed_by: userId,
-        safety_checks: {
+        restoreType: request.restore_type,
+        targetTables: request.target_tables || backup.tables_included,
+        overwriteExisting: request.overwrite_existing,
+        startedAt: new Date().toISOString(),
+        tablesRestored: 0,
+        recordsRestored: 0,
+        performedBy: userId,
+        safetyChecks: {
           backup_integrity_verified: request.safety_confirmation.backup_integrity_verified,
           target_compatibility_verified: true,
           data_loss_risk_acknowledged: request.safety_confirmation.data_loss_risk_acknowledged
         }
-      }
-
-      await this.saveRestoreOperation(operation as RestoreOperation)
+      })
 
       // Execute restore in background
       this.executeRestore(operationId).catch(error => {
@@ -373,9 +397,7 @@ export class BackupService {
       await this.storageService.deleteBackup(backup)
 
       // Delete from database
-      await this.db.prepare(`
-        DELETE FROM backup_records WHERE id = ?
-      `).bind(backupId).run()
+      await this.db.delete(backupRecords).where(eq(backupRecords.id, backupId))
 
       // Create audit log
       await this.createAuditLog({
@@ -399,30 +421,32 @@ export class BackupService {
    */
   async getSystemHealth(): Promise<BackupSystemHealth> {
     try {
-      // Get basic statistics
-      const stats = await this.db.prepare(`
-        SELECT
-          COUNT(DISTINCT restaurant_id) as total_restaurants,
-          COUNT(*) as total_backups,
-          COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as running_backups,
-          COUNT(CASE WHEN status = 'failed' AND started_at > datetime('now', '-24 hours') THEN 1 END) as failed_backups_24h,
-          AVG(CASE WHEN status = 'completed' AND file_size > 0 THEN file_size END) as avg_size
-        FROM backup_records
-        WHERE started_at > datetime('now', '-30 days')
-      `).first()
+      // Get basic statistics using raw sql for complex aggregations
+      const stats = await this.db.select({
+        totalRestaurants: sql<number>`COUNT(DISTINCT ${backupRecords.restaurantId})`,
+        totalBackups: count(),
+        runningBackups: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'in_progress' THEN 1 END)`,
+        failedBackups24h: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'failed' AND ${backupRecords.startedAt} > datetime('now', '-24 hours') THEN 1 END)`,
+        avgSize: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' AND ${backupRecords.fileSize} > 0 THEN ${backupRecords.fileSize} END)`
+      })
+        .from(backupRecords)
+        .where(gte(backupRecords.startedAt, sql`datetime('now', '-30 days')`))
+
+      const stat = stats[0] || {}
 
       // Get storage usage
-      const storageStats = await this.db.prepare(`
-        SELECT
-          SUM(file_size) as total_bytes,
-          COUNT(*) as total_files
-        FROM backup_records
-        WHERE status = 'completed'
-      `).first()
+      const storageStats = await this.db.select({
+        totalBytes: sql<number>`COALESCE(SUM(${backupRecords.fileSize}), 0)`,
+        totalFiles: count()
+      })
+        .from(backupRecords)
+        .where(eq(backupRecords.status, 'completed'))
+
+      const storage = storageStats[0] || {}
 
       // Determine overall status
-      const failedBackups = (stats as any)?.failed_backups_24h || 0
-      const runningBackups = (stats as any)?.running_backups || 0
+      const failedBackups = (stat as any)?.failedBackups24h || 0
+      const runningBackups = (stat as any)?.runningBackups || 0
 
       let overallStatus: 'healthy' | 'warning' | 'critical' = 'healthy'
       if (failedBackups > 10) {
@@ -433,12 +457,12 @@ export class BackupService {
 
       return {
         overall_status: overallStatus,
-        total_restaurants: (stats as any)?.total_restaurants || 0,
+        total_restaurants: (stat as any)?.totalRestaurants || 0,
         active_configurations: 0, // TODO: Get from backup_configurations table
         running_backups: runningBackups,
         failed_backups_24h: failedBackups,
         storage_usage: {
-          total_bytes: (storageStats as any)?.total_bytes || 0,
+          total_bytes: (storage as any)?.totalBytes || 0,
           available_bytes: 0, // TODO: Calculate from storage provider
           usage_percentage: 0 // TODO: Calculate based on quota
         },
@@ -480,18 +504,20 @@ export class BackupService {
           break
       }
 
-      const metrics = await this.db.prepare(`
-        SELECT
-          COUNT(*) as total_backups,
-          COUNT(CASE WHEN status = 'completed' THEN 1 END) as successful_backups,
-          COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_backups,
-          AVG(CASE WHEN status = 'completed' AND file_size > 0 THEN file_size END) as avg_backup_size,
-          SUM(file_size) as total_storage_used
-        FROM backup_records
-        WHERE restaurant_id = ? AND started_at >= ${dateFilter}
-      `).bind(restaurantId).first()
+      const metrics = await this.db.select({
+        total_backups: count(),
+        successful_backups: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'completed' THEN 1 END)`,
+        failed_backups: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'failed' THEN 1 END)`,
+        avg_backup_size: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' AND ${backupRecords.fileSize} > 0 THEN ${backupRecords.fileSize} END)`,
+        total_storage_used: sql<number>`COALESCE(SUM(${backupRecords.fileSize}), 0)`
+      })
+        .from(backupRecords)
+        .where(and(
+          eq(backupRecords.restaurantId, restaurantId),
+          gte(backupRecords.startedAt, sql.raw(dateFilter))
+        ))
 
-      return metrics || {
+      return metrics[0] || {
         total_backups: 0,
         successful_backups: 0,
         failed_backups: 0,
@@ -510,17 +536,18 @@ export class BackupService {
    */
   async getRestaurantAlerts(restaurantId: string, unresolvedOnly: boolean = false): Promise<BackupAlert[]> {
     try {
-      let sql = `SELECT * FROM backup_alerts WHERE restaurant_id = ?`
-      const params = [restaurantId]
+      const conditions = [eq(backupAlerts.restaurantId, restaurantId)]
 
       if (unresolvedOnly) {
-        sql += ` AND resolved = 0`
+        conditions.push(eq(backupAlerts.resolved, false))
       }
 
-      sql += ` ORDER BY triggered_at DESC`
+      const results = await this.db.select()
+        .from(backupAlerts)
+        .where(and(...conditions))
+        .orderBy(desc(backupAlerts.triggeredAt))
 
-      const result = await this.db.prepare(sql).bind(...params).all()
-      return this.parseBackupAlerts(result.results as any[]) || []
+      return this.parseBackupAlerts(results as any[]) || []
 
     } catch (error) {
       console.error('Error getting restaurant alerts:', error)
@@ -545,86 +572,41 @@ export class BackupService {
     return tables
   }
 
-  private async saveBackupRecord(backup: BackupRecord): Promise<void> {
-    await this.db.prepare(`
-      INSERT INTO backup_records (
-        id, restaurant_id, configuration_id, name, backup_type, status,
-        file_size, compressed_size, records_count, tables_included,
-        storage_provider, storage_path, encryption_enabled, checksum,
-        started_at, completed_at, error_message, created_by, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      backup.id,
-      backup.restaurant_id,
-      backup.configuration_id,
-      backup.name,
-      backup.backup_type,
-      backup.status,
-      backup.file_size,
-      backup.compressed_size,
-      backup.records_count,
-      JSON.stringify(backup.tables_included),
-      backup.storage_provider,
-      backup.storage_path,
-      backup.encryption_enabled ? 1 : 0,
-      backup.checksum,
-      backup.started_at,
-      backup.completed_at,
-      backup.error_message,
-      backup.created_by,
-      JSON.stringify(backup.metadata)
-    ).run()
-  }
-
   private async updateBackupStatus(backupId: string, status: BackupStatus): Promise<void> {
-    await this.db.prepare(`
-      UPDATE backup_records SET status = ?, updated_at = ? WHERE id = ?
-    `).bind(status, new Date().toISOString(), backupId).run()
-  }
-
-  private async updateBackupRecord(backupId: string, updates: Partial<BackupRecord>): Promise<void> {
-    const updateFields: string[] = []
-    const params: any[] = []
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value !== undefined) {
-        updateFields.push(`${key} = ?`)
-        if (key === 'metadata' || key === 'tables_included') {
-          params.push(JSON.stringify(value))
-        } else if (key === 'encryption_enabled') {
-          params.push(value ? 1 : 0)
-        } else {
-          params.push(value)
-        }
-      }
-    })
-
-    if (updateFields.length > 0) {
-      updateFields.push('updated_at = ?')
-      params.push(new Date().toISOString())
-      params.push(backupId)
-
-      const sql = `UPDATE backup_records SET ${updateFields.join(', ')} WHERE id = ?`
-      await this.db.prepare(sql).bind(...params).run()
-    }
+    await this.db.update(backupRecords)
+      .set({ status, updatedAt: new Date().toISOString() })
+      .where(eq(backupRecords.id, backupId))
   }
 
   private async getBackupRecord(backupId: string): Promise<BackupRecord | null> {
-    const result = await this.db.prepare(`
-      SELECT * FROM backup_records WHERE id = ?
-    `).bind(backupId).first()
+    const results = await this.db.select()
+      .from(backupRecords)
+      .where(eq(backupRecords.id, backupId))
+      .limit(1)
 
-    if (!result) return null
+    if (results.length === 0) return null
 
-    return this.parseBackupRecord(result as any)
+    return this.parseBackupRecord(results[0] as any)
   }
 
   private parseBackupRecord(record: any): BackupRecord {
     return {
       ...record,
-      encryption_enabled: Boolean(record.encryption_enabled),
-      tables_included: JSON.parse(record.tables_included || '[]'),
-      metadata: JSON.parse(record.metadata || '{}')
+      restaurant_id: record.restaurantId ?? record.restaurant_id,
+      configuration_id: record.configurationId ?? record.configuration_id,
+      backup_type: record.backupType ?? record.backup_type,
+      file_size: record.fileSize ?? record.file_size,
+      compressed_size: record.compressedSize ?? record.compressed_size,
+      records_count: record.recordsCount ?? record.records_count,
+      tables_included: record.tablesIncluded ?? record.tables_included ?? [],
+      storage_provider: record.storageProvider ?? record.storage_provider,
+      storage_path: record.storagePath ?? record.storage_path,
+      encryption_enabled: Boolean(record.encryptionEnabled ?? record.encryption_enabled),
+      started_at: record.startedAt ?? record.started_at,
+      completed_at: record.completedAt ?? record.completed_at,
+      error_message: record.errorMessage ?? record.error_message,
+      created_by: record.createdBy ?? record.created_by,
+      metadata: record.metadata ?? {}
     }
   }
 
@@ -634,11 +616,12 @@ export class BackupService {
 
   private async extractTableData(restaurantId: string, tableName: string): Promise<any[]> {
     try {
-      const result = await this.db.prepare(`
-        SELECT * FROM ${tableName} WHERE restaurant_id = ?
-      `).bind(restaurantId).all()
+      // Note: extractTableData needs raw SQL because the table name is dynamic
+      const result = await this.db.run(
+        sql.raw(`SELECT * FROM ${tableName} WHERE restaurant_id = '${restaurantId}'`)
+      )
 
-      return result.results || []
+      return (result as any).results || []
     } catch (error) {
       console.error(`Error extracting data from table ${tableName}:`, error)
       return []
@@ -652,54 +635,16 @@ export class BackupService {
   }
 
   private async createAuditLog(log: Omit<BackupAuditLog, 'id' | 'ip_address' | 'user_agent' | 'timestamp'>): Promise<void> {
-    const auditLog: BackupAuditLog = {
+    await this.db.insert(backupAuditLogs).values({
       id: crypto.randomUUID(),
-      ...log,
-      ip_address: '0.0.0.0', // TODO: Get from request context
-      user_agent: 'MakanMakan-API', // TODO: Get from request context
+      restaurantId: log.restaurant_id,
+      action: log.action,
+      details: log.details as Record<string, unknown>,
+      performedBy: log.performed_by,
+      ipAddress: '0.0.0.0', // TODO: Get from request context
+      userAgent: 'MakanMakan-API', // TODO: Get from request context
       timestamp: new Date().toISOString()
-    }
-
-    await this.db.prepare(`
-      INSERT INTO backup_audit_logs (
-        id, restaurant_id, action, details, performed_by,
-        ip_address, user_agent, timestamp
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      auditLog.id,
-      auditLog.restaurant_id,
-      auditLog.action,
-      JSON.stringify(auditLog.details),
-      auditLog.performed_by,
-      auditLog.ip_address,
-      auditLog.user_agent,
-      auditLog.timestamp
-    ).run()
-  }
-
-  private async saveRestoreOperation(operation: RestoreOperation): Promise<void> {
-    await this.db.prepare(`
-      INSERT INTO restore_operations (
-        id, restaurant_id, backup_id, status, restore_type, target_tables,
-        overwrite_existing, started_at, completed_at, tables_restored,
-        records_restored, error_message, performed_by, safety_checks
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      operation.id,
-      operation.restaurant_id,
-      operation.backup_id,
-      operation.status,
-      operation.restore_type,
-      JSON.stringify(operation.target_tables || []),
-      operation.overwrite_existing ? 1 : 0,
-      operation.started_at,
-      operation.completed_at,
-      operation.tables_restored,
-      operation.records_restored,
-      operation.error_message,
-      operation.performed_by,
-      JSON.stringify(operation.safety_checks)
-    ).run()
+    })
   }
 
   private async executeRestore(operationId: string): Promise<void> {

@@ -5,6 +5,11 @@
 
 import { getCurrentTimestamp } from "@makanmakan/database";
 
+/**
+ * @deprecated Use Drizzle ORM directly instead. New services should initialize
+ * `drizzle(d1)` in their constructor and use Drizzle query builders.
+ * See `apps/api/src/features/pos/services/` for migration examples.
+ */
 export abstract class BaseService {
   protected d1: any;
 

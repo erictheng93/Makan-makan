@@ -2,14 +2,17 @@
  * 班次管理服務
  */
 
-import { BaseService } from "../../../shared/services/BaseService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, sql } from "drizzle-orm";
+import { cashShifts, cashRegisters, cashMovements } from "@makanmakan/database";
 import type { CashShift, StartShiftRequest, EndShiftRequest } from "../types";
 import { startShiftSchema, endShiftSchema } from "../schemas";
 
-export class ShiftService extends BaseService {
-  constructor(db: any) {
-    super(db);
+export class ShiftService {
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
   }
 
   /**
@@ -22,15 +25,16 @@ export class ShiftService extends BaseService {
       const validatedData = startShiftSchema.parse(data);
 
       // 檢查收銀機是否已有活躍班次
-      const existingShift = await this.d1
-        .prepare(
-          `
-        SELECT id FROM cash_shifts
-        WHERE register_id = ? AND status = 'active'
-      `,
+      const [existingShift] = await this.db
+        .select({ id: cashShifts.id })
+        .from(cashShifts)
+        .where(
+          and(
+            eq(cashShifts.registerId, validatedData.registerId),
+            eq(cashShifts.status, "active"),
+          ),
         )
-        .bind(validatedData.registerId)
-        .first();
+        .limit(1);
 
       if (existingShift) {
         return {
@@ -40,34 +44,30 @@ export class ShiftService extends BaseService {
       }
 
       const shiftId = crypto.randomUUID();
-      const startedAt = getCurrentTimestamp();
+      const startedAt = new Date();
 
-      await this.d1
-        .prepare(
-          `
-        INSERT INTO cash_shifts (
-          id, register_id, operator_id, start_amount, expected_amount,
-          total_sales, total_refunds, cash_sales, card_sales, digital_sales,
-          total_transactions, started_at, status, notes
-        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, ?, 'active', ?)
-      `,
-        )
-        .bind(
-          shiftId,
-          validatedData.registerId,
-          validatedData.operatorId,
-          validatedData.startAmount,
-          validatedData.startAmount,
-          startedAt,
-          validatedData.notes || null,
-        )
-        .run();
+      await this.db.insert(cashShifts).values({
+        id: shiftId,
+        registerId: validatedData.registerId,
+        operatorId: validatedData.operatorId,
+        startAmount: validatedData.startAmount,
+        expectedAmount: validatedData.startAmount,
+        totalSales: 0,
+        totalRefunds: 0,
+        cashSales: 0,
+        cardSales: 0,
+        digitalSales: 0,
+        totalTransactions: 0,
+        startedAt,
+        status: "active",
+        notes: validatedData.notes || null,
+      });
 
       // 更新收銀機的當前班次
-      await this.d1
-        .prepare("UPDATE cash_registers SET current_shift_id = ? WHERE id = ?")
-        .bind(shiftId, validatedData.registerId)
-        .run();
+      await this.db
+        .update(cashRegisters)
+        .set({ currentShiftId: shiftId })
+        .where(eq(cashRegisters.id, validatedData.registerId));
 
       // 記錄開班現金操作
       await this.recordCashMovement(shiftId, {
@@ -77,14 +77,15 @@ export class ShiftService extends BaseService {
         recordedBy: validatedData.operatorId,
       });
 
-      const shift = (await this.d1
-        .prepare("SELECT * FROM cash_shifts WHERE id = ?")
-        .bind(shiftId)
-        .first()) as any;
+      const [shift] = await this.db
+        .select()
+        .from(cashShifts)
+        .where(eq(cashShifts.id, shiftId))
+        .limit(1);
 
       return {
         success: true,
-        data: shift,
+        data: shift as any,
       };
     } catch (error) {
       console.error("開班失敗:", error);
@@ -107,10 +108,11 @@ export class ShiftService extends BaseService {
       const validatedData = endShiftSchema.parse(data);
 
       // 獲取班次資訊
-      const shift = (await this.d1
-        .prepare('SELECT * FROM cash_shifts WHERE id = ? AND status = "active"')
-        .bind(shiftId)
-        .first()) as any;
+      const [shift] = await this.db
+        .select()
+        .from(cashShifts)
+        .where(and(eq(cashShifts.id, shiftId), eq(cashShifts.status, "active")))
+        .limit(1);
 
       if (!shift) {
         return {
@@ -121,37 +123,25 @@ export class ShiftService extends BaseService {
 
       // 計算預期金額
       const expectedAmount =
-        parseFloat(shift.start_amount) +
-        parseFloat(shift.total_sales) -
-        parseFloat(shift.total_refunds);
+        (shift.startAmount || 0) +
+        (shift.totalSales || 0) -
+        (shift.totalRefunds || 0);
       const differenceAmount = validatedData.actualAmount - expectedAmount;
 
       // 更新班次狀態
-      const endedAt = getCurrentTimestamp();
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_shifts
-        SET end_amount = ?,
-            actual_amount = ?,
-            expected_amount = ?,
-            difference_amount = ?,
-            ended_at = ?,
-            status = 'closed',
-            closing_notes = ?
-        WHERE id = ?
-      `,
-        )
-        .bind(
-          validatedData.actualAmount,
-          validatedData.actualAmount,
+      const endedAt = new Date();
+      await this.db
+        .update(cashShifts)
+        .set({
+          endAmount: validatedData.actualAmount,
+          actualAmount: validatedData.actualAmount,
           expectedAmount,
           differenceAmount,
           endedAt,
-          validatedData.closingNotes || null,
-          shiftId,
-        )
-        .run();
+          status: "closed",
+          closingNotes: validatedData.closingNotes || null,
+        })
+        .where(eq(cashShifts.id, shiftId));
 
       // 記錄結班現金操作
       await this.recordCashMovement(shiftId, {
@@ -162,12 +152,10 @@ export class ShiftService extends BaseService {
       });
 
       // 清除收銀機的當前班次
-      await this.d1
-        .prepare(
-          "UPDATE cash_registers SET current_shift_id = NULL WHERE id = ?",
-        )
-        .bind(shift.register_id)
-        .run();
+      await this.db
+        .update(cashRegisters)
+        .set({ currentShiftId: null })
+        .where(eq(cashRegisters.id, shift.registerId));
 
       return {
         success: true,
@@ -198,21 +186,20 @@ export class ShiftService extends BaseService {
     registerId: string,
   ): Promise<{ success: boolean; data?: CashShift; error?: string }> {
     try {
-      const shift = (await this.d1
-        .prepare(
-          `
-        SELECT cs.*, u.full_name as operator_name
-        FROM cash_shifts cs
-        LEFT JOIN users u ON cs.operator_id = u.id
-        WHERE cs.register_id = ? AND cs.status = 'active'
-      `,
+      const [shift] = await this.db
+        .select()
+        .from(cashShifts)
+        .where(
+          and(
+            eq(cashShifts.registerId, registerId),
+            eq(cashShifts.status, "active"),
+          ),
         )
-        .bind(registerId)
-        .first()) as any;
+        .limit(1);
 
       return {
         success: true,
-        data: shift || null,
+        data: (shift as any) || null,
       };
     } catch (error) {
       console.error("獲取當前班次失敗:", error);
@@ -231,17 +218,15 @@ export class ShiftService extends BaseService {
     reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_shifts
-        SET status = 'suspended',
-            closing_notes = COALESCE(closing_notes, '') || ? || CHAR(10)
-        WHERE id = ? AND status = 'active'
-      `,
-        )
-        .bind(reason ? `暫停原因: ${reason}` : "班次已暫停", shiftId)
-        .run();
+      await this.db
+        .update(cashShifts)
+        .set({
+          status: "suspended",
+          closingNotes: sql`COALESCE(${cashShifts.closingNotes}, '') || ${reason ? `暫停原因: ${reason}` : "班次已暫停"} || CHAR(10)`,
+        })
+        .where(
+          and(eq(cashShifts.id, shiftId), eq(cashShifts.status, "active")),
+        );
 
       return { success: true };
     } catch (error) {
@@ -260,16 +245,12 @@ export class ShiftService extends BaseService {
     shiftId: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_shifts
-        SET status = 'active'
-        WHERE id = ? AND status = 'suspended'
-      `,
-        )
-        .bind(shiftId)
-        .run();
+      await this.db
+        .update(cashShifts)
+        .set({ status: "active" })
+        .where(
+          and(eq(cashShifts.id, shiftId), eq(cashShifts.status, "suspended")),
+        );
 
       return { success: true };
     } catch (error) {
@@ -299,36 +280,30 @@ export class ShiftService extends BaseService {
   ): Promise<void> {
     const movementId = crypto.randomUUID();
 
-    const shift = (await this.d1
-      .prepare("SELECT register_id FROM cash_shifts WHERE id = ?")
-      .bind(shiftId)
-      .first()) as any;
+    const [shift] = await this.db
+      .select({ registerId: cashShifts.registerId })
+      .from(cashShifts)
+      .where(eq(cashShifts.id, shiftId))
+      .limit(1);
 
-    const now = getCurrentTimestamp();
-    await this.d1
-      .prepare(
-        `
-      INSERT INTO cash_movements (
-        id, shift_id, register_id, type, amount, description,
-        reference_id, reference_type, payment_method, denomination_breakdown,
-        recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', ?)
-    `,
-      )
-      .bind(
-        movementId,
-        shiftId,
-        shift.register_id,
-        movement.type,
-        movement.amount,
-        movement.description,
-        movement.referenceId || null,
-        movement.referenceType || null,
-        movement.paymentMethod || null,
-        JSON.stringify(movement.denominationBreakdown || {}),
-        movement.recordedBy,
-        now,
-      )
-      .run();
+    const now = new Date();
+    await this.db.insert(cashMovements).values({
+      id: movementId,
+      shiftId,
+      registerId: shift.registerId,
+      type: movement.type,
+      amount: movement.amount,
+      description: movement.description,
+      referenceId: movement.referenceId || null,
+      referenceType: movement.referenceType || null,
+      paymentMethod: movement.paymentMethod || null,
+      denominationBreakdown: JSON.stringify(
+        movement.denominationBreakdown || {},
+      ),
+      recordedBy: movement.recordedBy,
+      approvalStatus: "approved",
+      metadata: "{}",
+      createdAt: now,
+    });
   }
 }

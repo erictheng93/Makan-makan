@@ -9,6 +9,9 @@
  */
 
 import { sign, verify } from "jsonwebtoken";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, or } from "drizzle-orm";
+import { tables, seats } from "@makanmakan/database";
 import type { Env } from "../../../shared/types";
 import type { D1Database } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "../../../core/monitoring";
@@ -37,7 +40,7 @@ export interface WebSocketTokenVerification {
  * Realtime 認證服務
  */
 export class RealtimeAuthService {
-  private db: D1Database;
+  private db;
   private logger: ConsoleLogger;
   private env: Env;
   private jwtSecret: string;
@@ -45,7 +48,7 @@ export class RealtimeAuthService {
 
   constructor(env: Env) {
     this.env = env;
-    this.db = env.DB; // 使用原生 D1Database
+    this.db = drizzle(env.DB);
     this.logger = new ConsoleLogger("realtime-auth");
     this.jwtSecret = env.JWT_SECRET;
 
@@ -332,16 +335,19 @@ export class RealtimeAuthService {
     restaurantId: string,
   ): Promise<boolean> {
     try {
-      // 使用原生 SQL 查詢來驗證 - 支持 ID 或 QR code
-      const stmt = this.db
-        .prepare(
-          `SELECT id, restaurant_id FROM tables WHERE (id = ? OR qr_code = ?) AND restaurant_id = ? AND is_active = 1 LIMIT 1`,
+      const result = await this.db
+        .select({ id: tables.id })
+        .from(tables)
+        .where(
+          and(
+            or(eq(tables.id, Number(tableId) || 0), eq(tables.qrCode, tableId)),
+            eq(tables.restaurantId, restaurantId),
+            eq(tables.isActive, true),
+          ),
         )
-        .bind(tableId, tableId, restaurantId);
+        .limit(1);
 
-      const result: any = await stmt.all();
-
-      return result.results && result.results.length > 0;
+      return result.length > 0;
     } catch (error) {
       this.logger.error("Failed to verify table", error as Error);
       return false;
@@ -356,20 +362,20 @@ export class RealtimeAuthService {
     restaurantId: string,
   ): Promise<boolean> {
     try {
-      // 使用原生 SQL 查詢來驗證（需要 JOIN tables）
-      const stmt = this.db
-        .prepare(
-          `SELECT s.id
-         FROM seats s
-         INNER JOIN tables t ON s.table_id = t.id
-         WHERE s.qr_code = ? AND t.restaurant_id = ? AND s.is_active = 1
-         LIMIT 1`,
+      const result = await this.db
+        .select({ id: seats.id })
+        .from(seats)
+        .innerJoin(tables, eq(seats.tableId, tables.id))
+        .where(
+          and(
+            eq(seats.qrCode, seatId),
+            eq(tables.restaurantId, restaurantId),
+            eq(seats.isActive, true),
+          ),
         )
-        .bind(seatId, parseInt(restaurantId));
+        .limit(1);
 
-      const result: any = await stmt.all();
-
-      return result.results && result.results.length > 0;
+      return result.length > 0;
     } catch (error) {
       this.logger.error("Failed to verify seat", error as Error);
       return false;

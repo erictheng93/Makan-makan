@@ -26,6 +26,8 @@ export * from "./platform-menu-mappings";
 export * from "./platform-webhook-logs";
 export * from "./forecast";
 export * from "./discovery";
+export * from "./ai-analytics";
+export * from "./backup";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -98,6 +100,18 @@ export {
   menuItemIngredientsRelations,
 } from "./forecast";
 export { dishSearchIndexRelations } from "./discovery";
+export {
+  aiConfigurationsRelations,
+  aiUsageLogsRelations,
+} from "./ai-analytics";
+export {
+  backupRecordsRelations,
+  backupSchedulesRelations,
+  backupConfigurationsRelations,
+  backupAlertsRelations,
+  backupAuditLogsRelations,
+  restoreOperationsRelations,
+} from "./backup";
 
 // 重新匯出類型
 export type { UserRole } from "./users";

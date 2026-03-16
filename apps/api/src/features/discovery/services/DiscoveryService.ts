@@ -1,3 +1,22 @@
+import { drizzle } from "drizzle-orm/d1";
+import {
+  eq,
+  and,
+  like,
+  gte,
+  lte,
+  inArray,
+  isNull,
+  desc,
+  asc,
+  sql,
+} from "drizzle-orm";
+import {
+  dishSearchIndex,
+  restaurants,
+  menuItems,
+  categories,
+} from "@makanmakan/database";
 import type {
   DishSearchResult,
   RestaurantListItem,
@@ -10,10 +29,16 @@ const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
 
 export class DiscoveryService {
+  private db;
+  private d1: D1Database;
+
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private kv: KVNamespace,
-  ) {}
+  ) {
+    this.db = drizzle(d1);
+    this.d1 = d1;
+  }
 
   async searchDishes(
     filters: SearchFilters,
@@ -35,37 +60,47 @@ export class DiscoveryService {
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
 
+    const conditions = [
+      eq(dishSearchIndex.isAvailable, true),
+      like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+    ];
+
+    if (filters.district) {
+      conditions.push(eq(dishSearchIndex.district, filters.district));
+    }
+    if (filters.priceMin !== undefined) {
+      conditions.push(gte(dishSearchIndex.price, filters.priceMin));
+    }
+    if (filters.priceMax !== undefined) {
+      conditions.push(lte(dishSearchIndex.price, filters.priceMax));
+    }
+    if (filters.takeaway) {
+      conditions.push(eq(dishSearchIndex.supportsTakeaway, true));
+    }
+    if (filters.delivery) {
+      conditions.push(eq(dishSearchIndex.supportsDelivery, true));
+    }
+
     const queryResult = await this.db
-      .prepare(
-        `SELECT dsi.menu_item_id, dsi.dish_name, dsi.price, dsi.category_name,
-                dsi.restaurant_id, r.name as restaurant_name, dsi.district,
-                r.business_hours, dsi.supports_takeaway, dsi.supports_delivery, dsi.tags
-         FROM dish_search_index dsi
-         JOIN restaurants r ON dsi.restaurant_id = r.id
-         WHERE dsi.is_available = 1
-         AND dsi.dish_name_normalized LIKE ?
-         ${filters.district ? "AND dsi.district = ?" : ""}
-         ${filters.priceMin !== undefined ? "AND dsi.price >= ?" : ""}
-         ${filters.priceMax !== undefined ? "AND dsi.price <= ?" : ""}
-         ${filters.takeaway ? "AND dsi.supports_takeaway = 1" : ""}
-         ${filters.delivery ? "AND dsi.supports_delivery = 1" : ""}
-         ORDER BY dsi.price ASC
-         LIMIT ? OFFSET ?`,
-      )
-      .bind(...this.buildBindParams(normalized, filters, limit, offset))
-      .all<{
-        menu_item_id: number;
-        dish_name: string;
-        price: number;
-        category_name: string | null;
-        restaurant_id: string;
-        restaurant_name: string;
-        district: string | null;
-        business_hours: string | null;
-        supports_takeaway: number;
-        supports_delivery: number;
-        tags: string;
-      }>();
+      .select({
+        menuItemId: dishSearchIndex.menuItemId,
+        dishName: dishSearchIndex.dishName,
+        price: dishSearchIndex.price,
+        categoryName: dishSearchIndex.categoryName,
+        restaurantId: dishSearchIndex.restaurantId,
+        restaurantName: restaurants.name,
+        district: dishSearchIndex.district,
+        businessHours: restaurants.businessHours,
+        supportsTakeaway: dishSearchIndex.supportsTakeaway,
+        supportsDelivery: dishSearchIndex.supportsDelivery,
+        tags: dishSearchIndex.tags,
+      })
+      .from(dishSearchIndex)
+      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
+      .where(and(...conditions))
+      .orderBy(asc(dishSearchIndex.price))
+      .limit(limit)
+      .offset(offset);
 
     // 4. KV tag index lookup
     const tagIndex = await this.kv.get("search:tags:index");
@@ -81,44 +116,56 @@ export class DiscoveryService {
     }
 
     // Merge tag matches not already in prefix results (cap at 50 to stay within D1's 100-param limit)
-    const prefixIds = new Set(queryResult.results.map((r) => r.menu_item_id));
+    const prefixIds = new Set(queryResult.map((r) => r.menuItemId));
+    const allRows = [...queryResult];
     if (tagMatches.length > 0) {
       const missingIds = tagMatches
         .filter((id) => !prefixIds.has(id))
         .slice(0, 50);
       if (missingIds.length > 0) {
-        const placeholders = missingIds.map(() => "?").join(",");
         const tagResults = await this.db
-          .prepare(
-            `SELECT dsi.menu_item_id, dsi.dish_name, dsi.price, dsi.category_name,
-                    dsi.restaurant_id, r.name as restaurant_name, dsi.district,
-                    r.business_hours, dsi.supports_takeaway, dsi.supports_delivery, dsi.tags
-             FROM dish_search_index dsi
-             JOIN restaurants r ON dsi.restaurant_id = r.id
-             WHERE dsi.is_available = 1 AND dsi.menu_item_id IN (${placeholders})
-             LIMIT 50`,
+          .select({
+            menuItemId: dishSearchIndex.menuItemId,
+            dishName: dishSearchIndex.dishName,
+            price: dishSearchIndex.price,
+            categoryName: dishSearchIndex.categoryName,
+            restaurantId: dishSearchIndex.restaurantId,
+            restaurantName: restaurants.name,
+            district: dishSearchIndex.district,
+            businessHours: restaurants.businessHours,
+            supportsTakeaway: dishSearchIndex.supportsTakeaway,
+            supportsDelivery: dishSearchIndex.supportsDelivery,
+            tags: dishSearchIndex.tags,
+          })
+          .from(dishSearchIndex)
+          .innerJoin(
+            restaurants,
+            eq(dishSearchIndex.restaurantId, restaurants.id),
           )
-          .bind(...missingIds)
-          .all<any>();
-        queryResult.results.push(...tagResults.results);
+          .where(
+            and(
+              eq(dishSearchIndex.isAvailable, true),
+              inArray(dishSearchIndex.menuItemId, missingIds),
+            ),
+          )
+          .limit(50);
+        allRows.push(...tagResults);
       }
     }
 
     // 5. Map results + openNow filter
-    let results: DishSearchResult[] = queryResult.results.map((row) => ({
-      menuItemId: row.menu_item_id,
-      dishName: row.dish_name,
-      price: row.price,
-      categoryName: row.category_name,
-      restaurantId: row.restaurant_id,
-      restaurantName: row.restaurant_name,
+    let results: DishSearchResult[] = allRows.map((row) => ({
+      menuItemId: row.menuItemId,
+      dishName: row.dishName,
+      price: row.price ?? 0,
+      categoryName: row.categoryName,
+      restaurantId: row.restaurantId,
+      restaurantName: row.restaurantName,
       district: row.district,
-      isOpen: isOpenNow(
-        row.business_hours ? JSON.parse(row.business_hours) : null,
-      ),
-      supportsTakeaway: !!row.supports_takeaway,
-      supportsDelivery: !!row.supports_delivery,
-      tags: row.tags ? JSON.parse(row.tags) : [],
+      isOpen: isOpenNow(row.businessHours ?? null),
+      supportsTakeaway: row.supportsTakeaway,
+      supportsDelivery: row.supportsDelivery,
+      tags: row.tags ?? [],
     }));
 
     if (filters.openNow) {
@@ -146,19 +193,19 @@ export class DiscoveryService {
       const kvKey = `search:restaurants:district:${filters.district}`;
       const cached = await this.kv.get(kvKey);
       if (cached) {
-        let restaurants: RestaurantListItem[] = JSON.parse(cached);
+        let restaurantList: RestaurantListItem[] = JSON.parse(cached);
         if (filters.takeaway)
-          restaurants = restaurants.filter((r) => r.supportsTakeaway);
+          restaurantList = restaurantList.filter((r) => r.supportsTakeaway);
         if (filters.delivery)
-          restaurants = restaurants.filter((r) => r.supportsDelivery);
+          restaurantList = restaurantList.filter((r) => r.supportsDelivery);
         if (filters.priceRange)
-          restaurants = restaurants.filter(
+          restaurantList = restaurantList.filter(
             (r) => r.priceRange === filters.priceRange,
           );
         const start = (page - 1) * limit;
         return {
-          results: restaurants.slice(start, start + limit),
-          total: restaurants.length,
+          results: restaurantList.slice(start, start + limit),
+          total: restaurantList.length,
           page,
           limit,
         };
@@ -167,76 +214,69 @@ export class DiscoveryService {
 
     const offset = (page - 1) * limit;
 
-    const conditions: string[] = ["r.is_active = 1", "r.deleted_at_ms IS NULL"];
-    const params: (string | number)[] = [];
+    const conditions: ReturnType<typeof eq>[] = [
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
+    ];
 
     if (filters.district) {
-      conditions.push("r.district = ?");
-      params.push(filters.district);
+      conditions.push(eq(restaurants.district, filters.district));
     }
     if (filters.city) {
-      conditions.push("r.city = ?");
-      params.push(filters.city);
+      conditions.push(eq(restaurants.city, filters.city));
     }
     if (filters.cuisineType) {
-      conditions.push("r.type = ?");
-      params.push(filters.cuisineType);
+      conditions.push(eq(restaurants.type, filters.cuisineType));
     }
     if (filters.priceRange) {
-      conditions.push("r.price_range = ?");
-      params.push(filters.priceRange);
+      conditions.push(eq(restaurants.priceRange, filters.priceRange));
     }
     if (filters.takeaway) {
-      conditions.push("r.supports_takeaway = 1");
+      conditions.push(eq(restaurants.supportsTakeaway, true));
     }
     if (filters.delivery) {
-      conditions.push("r.supports_delivery = 1");
+      conditions.push(eq(restaurants.supportsDelivery, true));
     }
 
-    const orderBy =
-      filters.sortBy === "rating" ? "r.rating DESC" : "r.total_orders DESC";
+    const orderByClause =
+      filters.sortBy === "rating"
+        ? desc(restaurants.rating)
+        : desc(restaurants.totalOrders);
 
     const result = await this.db
-      .prepare(
-        `SELECT r.id, r.name, r.type, r.category, r.district, r.city,
-                r.price_range, r.rating, r.business_hours,
-                r.supports_takeaway, r.supports_delivery, r.logo_url
-         FROM restaurants r
-         WHERE ${conditions.join(" AND ")}
-         ORDER BY ${orderBy}
-         LIMIT ? OFFSET ?`,
-      )
-      .bind(...params, limit, offset)
-      .all<{
-        id: string;
-        name: string;
-        type: string | null;
-        category: string | null;
-        district: string | null;
-        city: string | null;
-        price_range: number | null;
-        rating: number | null;
-        business_hours: string | null;
-        supports_takeaway: number;
-        supports_delivery: number;
-        logo_url: string | null;
-      }>();
+      .select({
+        id: restaurants.id,
+        name: restaurants.name,
+        type: restaurants.type,
+        category: restaurants.category,
+        district: restaurants.district,
+        city: restaurants.city,
+        priceRange: restaurants.priceRange,
+        rating: restaurants.rating,
+        businessHours: restaurants.businessHours,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        supportsDelivery: restaurants.supportsDelivery,
+        logoUrl: restaurants.logoUrl,
+      })
+      .from(restaurants)
+      .where(and(...conditions))
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset);
 
-    const restaurants: RestaurantListItem[] = result.results.map((row) => ({
+    const restaurantList: RestaurantListItem[] = result.map((row) => ({
       restaurantId: row.id,
       name: row.name,
       type: row.type,
       category: row.category,
       district: row.district,
       city: row.city,
-      priceRange: row.price_range,
+      priceRange: row.priceRange,
       rating: row.rating,
-      isOpen: isOpenNow(
-        row.business_hours ? JSON.parse(row.business_hours) : null,
-      ),
-      supportsTakeaway: !!row.supports_takeaway,
-      supportsDelivery: !!row.supports_delivery,
-      imageUrl: row.logo_url,
+      isOpen: isOpenNow(row.businessHours ?? null),
+      supportsTakeaway: row.supportsTakeaway,
+      supportsDelivery: row.supportsDelivery,
+      imageUrl: row.logoUrl,
     }));
 
     // Cache district results in KV (only when no secondary filters and page=1 to avoid partial cache)
@@ -249,14 +289,14 @@ export class DiscoveryService {
       page === 1
     ) {
       const kvKey = `search:restaurants:district:${filters.district}`;
-      await this.kv.put(kvKey, JSON.stringify(restaurants), {
+      await this.kv.put(kvKey, JSON.stringify(restaurantList), {
         expirationTtl: KV_RESTAURANT_TTL,
       });
     }
 
-    let filtered = restaurants;
+    let filtered = restaurantList;
     if (filters.openNow) {
-      filtered = restaurants.filter((r) => r.isOpen);
+      filtered = restaurantList.filter((r) => r.isOpen);
     }
 
     return { results: filtered, total: filtered.length, page, limit };
@@ -271,34 +311,39 @@ export class DiscoveryService {
     const keywords: string[] = keywordsJson ? JSON.parse(keywordsJson) : [];
 
     const topDishes = await this.db
-      .prepare(
-        `SELECT dsi.menu_item_id, dsi.dish_name, dsi.price, dsi.category_name,
-                dsi.restaurant_id, r.name as restaurant_name, dsi.district,
-                r.business_hours, dsi.supports_takeaway, dsi.supports_delivery, dsi.tags,
-                mi.order_count
-         FROM dish_search_index dsi
-         JOIN restaurants r ON dsi.restaurant_id = r.id
-         JOIN menu_items mi ON dsi.menu_item_id = mi.id
-         WHERE dsi.is_available = 1
-         ORDER BY mi.order_count DESC
-         LIMIT 10`,
-      )
-      .all<any>();
+      .select({
+        menuItemId: dishSearchIndex.menuItemId,
+        dishName: dishSearchIndex.dishName,
+        price: dishSearchIndex.price,
+        categoryName: dishSearchIndex.categoryName,
+        restaurantId: dishSearchIndex.restaurantId,
+        restaurantName: restaurants.name,
+        district: dishSearchIndex.district,
+        businessHours: restaurants.businessHours,
+        supportsTakeaway: dishSearchIndex.supportsTakeaway,
+        supportsDelivery: dishSearchIndex.supportsDelivery,
+        tags: dishSearchIndex.tags,
+        orderCount: menuItems.orderCount,
+      })
+      .from(dishSearchIndex)
+      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
+      .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
+      .where(eq(dishSearchIndex.isAvailable, true))
+      .orderBy(desc(menuItems.orderCount))
+      .limit(10);
 
-    const dishes: DishSearchResult[] = topDishes.results.map((row: any) => ({
-      menuItemId: row.menu_item_id,
-      dishName: row.dish_name,
-      price: row.price,
-      categoryName: row.category_name,
-      restaurantId: row.restaurant_id,
-      restaurantName: row.restaurant_name,
+    const dishes: DishSearchResult[] = topDishes.map((row) => ({
+      menuItemId: row.menuItemId,
+      dishName: row.dishName,
+      price: row.price ?? 0,
+      categoryName: row.categoryName,
+      restaurantId: row.restaurantId,
+      restaurantName: row.restaurantName,
       district: row.district,
-      isOpen: isOpenNow(
-        row.business_hours ? JSON.parse(row.business_hours) : null,
-      ),
-      supportsTakeaway: !!row.supports_takeaway,
-      supportsDelivery: !!row.supports_delivery,
-      tags: row.tags ? JSON.parse(row.tags) : [],
+      isOpen: isOpenNow(row.businessHours ?? null),
+      supportsTakeaway: row.supportsTakeaway,
+      supportsDelivery: row.supportsDelivery,
+      tags: row.tags ?? [],
     }));
 
     const topRestaurants = await this.browseRestaurants({
@@ -317,50 +362,60 @@ export class DiscoveryService {
     const start = Date.now();
 
     const items = await this.db
-      .prepare(
-        `SELECT mi.id as menu_item_id, mi.name, mi.price, mi.is_available,
-                mi.tags, mi.keywords, mi.deleted_at_ms,
-                c.name as category_name,
-                r.id as restaurant_id, r.district, r.type as restaurant_type,
-                r.supports_takeaway, r.supports_delivery, r.deleted_at_ms as restaurant_deleted
-         FROM menu_items mi
-         LEFT JOIN categories c ON mi.category_id = c.id
-         JOIN restaurants r ON mi.restaurant_id = r.id
-         WHERE r.is_active = 1`,
-      )
-      .all<any>();
+      .select({
+        menuItemId: menuItems.id,
+        name: menuItems.name,
+        price: menuItems.price,
+        isAvailable: menuItems.isAvailable,
+        tags: menuItems.tags,
+        keywords: menuItems.keywords,
+        deletedAtMs: menuItems.deletedAt,
+        categoryName: categories.name,
+        restaurantId: restaurants.id,
+        district: restaurants.district,
+        restaurantType: restaurants.type,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        supportsDelivery: restaurants.supportsDelivery,
+        restaurantDeleted: restaurants.deletedAt,
+      })
+      .from(menuItems)
+      .leftJoin(categories, eq(menuItems.categoryId, categories.id))
+      .innerJoin(restaurants, eq(menuItems.restaurantId, restaurants.id))
+      .where(eq(restaurants.isActive, true));
 
     // Build batch statements (D1 supports up to 100 per batch)
+    // We keep the raw D1 reference for batch operations since Drizzle's batch API
+    // doesn't support the same batching semantics as D1's native batch.
     const stmts: D1PreparedStatement[] = [];
-    for (const item of items.results) {
+    for (const item of items) {
       const isAvailable =
-        item.is_available && !item.deleted_at_ms && !item.restaurant_deleted;
+        item.isAvailable && !item.deletedAtMs && !item.restaurantDeleted;
       const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
-      const tags = [
-        ...(item.tags ? JSON.parse(item.tags) : []),
+      const itemTags: string[] = [
+        ...((item.tags as string[] | null) ?? []),
         ...(item.keywords ? JSON.parse(item.keywords) : []),
       ];
 
       stmts.push(
-        this.db
+        this.d1
           .prepare(
             `INSERT OR REPLACE INTO dish_search_index
              (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
-            item.menu_item_id,
-            item.restaurant_id,
+            item.menuItemId,
+            item.restaurantId,
             item.name,
             normalized,
-            item.category_name,
+            item.categoryName,
             item.price,
             isAvailable ? 1 : 0,
-            JSON.stringify(tags),
+            JSON.stringify(itemTags),
             item.district,
-            item.restaurant_type,
-            item.supports_takeaway ? 1 : 0,
-            item.supports_delivery ? 1 : 0,
+            item.restaurantType,
+            item.supportsTakeaway ? 1 : 0,
+            item.supportsDelivery ? 1 : 0,
             Date.now(),
           ),
       );
@@ -368,30 +423,30 @@ export class DiscoveryService {
 
     // Execute in batches of 100
     for (let i = 0; i < stmts.length; i += 100) {
-      await this.db.batch(stmts.slice(i, i + 100));
+      await this.d1.batch(stmts.slice(i, i + 100));
     }
     const dishCount = stmts.length;
 
+    // Delete orphaned index entries
     await this.db
-      .prepare(
-        `DELETE FROM dish_search_index WHERE menu_item_id NOT IN (SELECT id FROM menu_items)`,
-      )
-      .run();
+      .delete(dishSearchIndex)
+      .where(
+        sql`${dishSearchIndex.menuItemId} NOT IN (SELECT ${menuItems.id} FROM ${menuItems})`,
+      );
 
     // Rebuild KV tag index
     const allTags = await this.db
-      .prepare(
-        "SELECT menu_item_id, restaurant_id, dish_name, price, tags FROM dish_search_index WHERE is_available = 1",
-      )
-      .all<{
-        menu_item_id: number;
-        restaurant_id: string;
-        dish_name: string;
-        price: number;
-        tags: string;
-      }>();
+      .select({
+        menuItemId: dishSearchIndex.menuItemId,
+        restaurantId: dishSearchIndex.restaurantId,
+        dishName: dishSearchIndex.dishName,
+        price: dishSearchIndex.price,
+        tags: dishSearchIndex.tags,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.isAvailable, true));
 
-    const tagIndex: Record<
+    const tagIndexMap: Record<
       string,
       {
         menuItemId: number;
@@ -400,27 +455,27 @@ export class DiscoveryService {
         price: number;
       }[]
     > = {};
-    for (const row of allTags.results) {
-      const tags: string[] = row.tags ? JSON.parse(row.tags) : [];
-      for (const tag of tags) {
+    for (const row of allTags) {
+      const rowTags: string[] = row.tags ?? [];
+      for (const tag of rowTags) {
         const normalizedTag = tag.trim().toLowerCase();
-        if (!tagIndex[normalizedTag]) tagIndex[normalizedTag] = [];
-        tagIndex[normalizedTag].push({
-          menuItemId: row.menu_item_id,
-          restaurantId: row.restaurant_id,
-          dishName: row.dish_name,
-          price: row.price,
+        if (!tagIndexMap[normalizedTag]) tagIndexMap[normalizedTag] = [];
+        tagIndexMap[normalizedTag].push({
+          menuItemId: row.menuItemId,
+          restaurantId: row.restaurantId,
+          dishName: row.dishName,
+          price: row.price ?? 0,
         });
       }
     }
-    await this.kv.put("search:tags:index", JSON.stringify(tagIndex), {
+    await this.kv.put("search:tags:index", JSON.stringify(tagIndexMap), {
       expirationTtl: 30 * 60,
     });
 
     const duration_ms = Date.now() - start;
     return {
       dishes: dishCount,
-      restaurants: items.results.length,
+      restaurants: items.length,
       duration_ms,
     };
   }
@@ -443,19 +498,5 @@ export class DiscoveryService {
     parts.push(`p:${filters.page || 1}`);
     parts.push(`l:${filters.limit || 20}`);
     return parts.join(":");
-  }
-
-  private buildBindParams(
-    normalized: string,
-    filters: SearchFilters,
-    limit: number,
-    offset: number,
-  ): (string | number)[] {
-    const params: (string | number)[] = [`${normalized}%`];
-    if (filters.district) params.push(filters.district);
-    if (filters.priceMin !== undefined) params.push(filters.priceMin);
-    if (filters.priceMax !== undefined) params.push(filters.priceMax);
-    params.push(limit, offset);
-    return params;
   }
 }

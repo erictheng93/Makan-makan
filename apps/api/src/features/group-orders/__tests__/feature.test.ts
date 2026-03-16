@@ -3,30 +3,102 @@
  * Comprehensive test suite for group orders functionality
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { CreateGroupOrderRequest, JoinGroupRequest } from "../types";
 
+// Mock drizzle-orm/d1
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+  transaction: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+  or: vi.fn(),
+  desc: vi.fn(),
+  asc: vi.fn(),
+  sql: vi.fn(),
+  count: vi.fn(),
+  isNull: vi.fn(),
+  gte: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  groupOrders: {},
+  groupMembers: {},
+  groupCartItems: {},
+  splitBills: {},
+  groupActivityLogs: {},
+  shareCodes: {},
+  menuItems: {},
+}));
+
+// Helper to set up mock chain for select queries
+function setupSelectChain(returnValue: any) {
+  const chain: any = {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(returnValue),
+    innerJoin: vi.fn().mockReturnThis(),
+  };
+  // If limit is not called, the promise should resolve from where/orderBy/from
+  chain.from.mockReturnValue(chain);
+  chain.where.mockReturnValue(chain);
+  chain.orderBy.mockReturnValue(chain);
+  chain.innerJoin.mockReturnValue(chain);
+  // Make it thenable so await works at any point in the chain
+  chain.then = (resolve: any, reject: any) =>
+    Promise.resolve(returnValue).then(resolve, reject);
+  return chain;
+}
+
+// Helper to set up mock chain for insert queries
+function setupInsertChain() {
+  const chain: any = {
+    values: vi.fn().mockResolvedValue(undefined),
+  };
+  return chain;
+}
+
+// Helper to set up mock chain for update queries
+function setupUpdateChain() {
+  const chain: any = {
+    set: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue(undefined),
+  };
+  chain.set.mockReturnValue(chain);
+  return chain;
+}
+
+// Helper to set up mock chain for delete queries
+function setupDeleteChain() {
+  const chain: any = {
+    where: vi.fn().mockResolvedValue(undefined),
+  };
+  return chain;
+}
+
 describe("Group Orders Feature", () => {
   let groupOrderService: GroupOrdersService;
-  let mockDB: any;
+  let mockD1: any;
   let mockKV: any;
 
   beforeEach(() => {
-    // Mock database
-    mockDB = {
-      prepare: (sql: string) => ({
-        bind: (...params: any[]) => ({
-          run: async () => ({ success: true, meta: { last_row_id: 1 } }),
-          first: async () => ({}),
-          all: async () => ({ results: [] }),
-        }),
-        run: async () => ({ success: true }),
-        first: async () => ({}),
-        all: async () => ({ results: [] }),
-      }),
-    };
+    vi.clearAllMocks();
+
+    // Mock D1 database (passed to drizzle constructor)
+    mockD1 = {};
 
     // Mock KV store
     mockKV = {
@@ -35,11 +107,35 @@ describe("Group Orders Feature", () => {
       delete: async () => {},
     };
 
-    groupOrderService = new GroupOrdersService(mockDB, mockKV, "info");
+    // Default mock behaviors - select returns empty arrays
+    mockDb.select.mockImplementation(() => setupSelectChain([]));
+    mockDb.insert.mockImplementation(() => setupInsertChain());
+    mockDb.update.mockImplementation(() => setupUpdateChain());
+    mockDb.delete.mockImplementation(() => setupDeleteChain());
+
+    groupOrderService = new GroupOrdersService(mockD1, mockKV, "info");
   });
 
   describe("Group Order Creation", () => {
     it("should create a group order successfully", async () => {
+      // Mock: insert succeeds, select returns host member
+      mockDb.insert.mockImplementation(() => setupInsertChain());
+      mockDb.select.mockImplementation(() =>
+        setupSelectChain([
+          {
+            id: "member-001",
+            groupOrderId: "group-001",
+            sessionId: "session-001",
+            name: "Host",
+            role: "creator",
+            joinedAt: new Date(),
+            lastActiveAt: new Date(),
+            isActive: true,
+            leftAt: null,
+          },
+        ]),
+      );
+
       const createData: CreateGroupOrderRequest = {
         restaurantId: "1",
         tableId: 5,
@@ -92,47 +188,53 @@ describe("Group Orders Feature", () => {
         email: "john@example.com",
       };
 
-      // Mock existing group order
-      mockDB.prepare = (sql: string) => ({
-        bind: (...params: any[]) => ({
-          first: async () => {
-            // Return different responses based on query type
-            if (sql.includes("COUNT(*)")) {
-              return { count: 1 }; // Member count
-            } else if (sql.includes("group_members") && sql.includes("name")) {
-              return null; // No existing member with same name
-            } else if (sql.includes("group_orders")) {
-              return {
-                id: "group-001",
-                restaurant_id: 1,
-                status: "active",
-                expires_at: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Unix timestamp
-                settings: JSON.stringify({ maxMembers: 8, permissions: {} }),
-              };
-            } else if (
-              sql.includes("group_members") &&
-              sql.includes("WHERE id")
-            ) {
-              return {
-                id: "member-001",
-                group_order_id: "group-001",
-                session_id: "session-001",
-                name: "John Doe",
-                phone: "123-456-7890",
-                email: "john@example.com",
-                role: "member",
-                joined_at: Math.floor(Date.now() / 1000),
-                last_active_at: Math.floor(Date.now() / 1000),
-                is_active: 1,
-                left_at: null,
-              };
-            }
-            return {};
-          },
-          all: async () => ({ results: [] }),
-          run: async () => ({ success: true }),
-        }),
+      let selectCallCount = 0;
+      mockDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          // Group order lookup
+          return setupSelectChain([
+            {
+              id: "group-001",
+              restaurantId: "1",
+              status: "active",
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              settings: { maxMembers: 8, permissions: {} },
+              shareCode: "ABC12345",
+              createdBy: 1,
+              totalAmount: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ]);
+        } else if (selectCallCount === 2) {
+          // Member count
+          return setupSelectChain([{ count: 1 }]);
+        } else if (selectCallCount === 3) {
+          // Existing member check (empty = no duplicate)
+          return setupSelectChain([]);
+        } else if (selectCallCount === 4) {
+          // Get created member
+          return setupSelectChain([
+            {
+              id: "member-001",
+              groupOrderId: "group-001",
+              sessionId: "session-001",
+              name: "John Doe",
+              phone: "123-456-7890",
+              email: "john@example.com",
+              role: "member",
+              joinedAt: new Date(),
+              lastActiveAt: new Date(),
+              isActive: true,
+              leftAt: null,
+            },
+          ]);
+        }
+        return setupSelectChain([]);
       });
+
+      mockDb.insert.mockImplementation(() => setupInsertChain());
 
       const result = await groupOrderService.joinGroup(shareCode, memberData);
       expect(result.success).toBe(true);
@@ -348,14 +450,10 @@ describe("Group Orders Feature", () => {
 
   describe("Service Integration", () => {
     it("should handle database errors gracefully", async () => {
-      // Mock database error
-      mockDB.prepare = () => ({
-        bind: () => ({
-          run: async () => {
-            throw new Error("Database error");
-          },
-        }),
-      });
+      // Mock database error - insert throws
+      mockDb.insert.mockImplementation(() => ({
+        values: vi.fn().mockRejectedValue(new Error("Database error")),
+      }));
 
       const createData: CreateGroupOrderRequest = {
         restaurantId: "1",
@@ -368,6 +466,24 @@ describe("Group Orders Feature", () => {
 
     it("should generate unique share codes", async () => {
       const codes = new Set();
+
+      // Mock: insert succeeds, select returns host member
+      mockDb.insert.mockImplementation(() => setupInsertChain());
+      mockDb.select.mockImplementation(() =>
+        setupSelectChain([
+          {
+            id: "member-001",
+            groupOrderId: "group-001",
+            sessionId: "session-001",
+            name: "Host",
+            role: "creator",
+            joinedAt: new Date(),
+            lastActiveAt: new Date(),
+            isActive: true,
+            leftAt: null,
+          },
+        ]),
+      );
 
       // Generate multiple share codes and check uniqueness
       for (let i = 0; i < 100; i++) {

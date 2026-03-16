@@ -2,12 +2,25 @@
  * 報表統計服務
  */
 
-import { BaseService } from "../../../shared/services/BaseService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, desc, sql } from "drizzle-orm";
+import {
+  cashShifts,
+  cashRegisters,
+  cashMovements,
+  receipts,
+  orders,
+  refunds,
+  orderItems,
+  menuItems,
+  shiftReports,
+} from "@makanmakan/database";
 
-export class ReportService extends BaseService {
-  constructor(db: any) {
-    super(db);
+export class ReportService {
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
   }
 
   /**
@@ -18,18 +31,11 @@ export class ReportService extends BaseService {
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       // 獲取班次基本資訊
-      const shift = (await this.d1
-        .prepare(
-          `
-        SELECT cs.*, cr.name as register_name, u.full_name as operator_name
-        FROM cash_shifts cs
-        JOIN cash_registers cr ON cs.register_id = cr.id
-        JOIN users u ON cs.operator_id = u.id
-        WHERE cs.id = ?
-      `,
-        )
-        .bind(shiftId)
-        .first()) as any;
+      const [shift] = await this.db
+        .select()
+        .from(cashShifts)
+        .where(eq(cashShifts.id, shiftId))
+        .limit(1);
 
       if (!shift) {
         return {
@@ -39,116 +45,101 @@ export class ReportService extends BaseService {
       }
 
       // 獲取現金流動記錄
-      const movements = await this.d1
-        .prepare(
-          `
-        SELECT * FROM cash_movements
-        WHERE shift_id = ?
-        ORDER BY created_at
-      `,
-        )
-        .bind(shiftId)
-        .all();
+      const movements = await this.db
+        .select()
+        .from(cashMovements)
+        .where(eq(cashMovements.shiftId, shiftId))
+        .orderBy(cashMovements.createdAt);
 
       // 獲取收據記錄
-      const receipts = (await this.d1
-        .prepare(
-          `
-        SELECT COUNT(*) as total_receipts,
-               COUNT(CASE WHEN print_status = 'printed' THEN 1 END) as printed_receipts
-        FROM receipts
-        WHERE shift_id = ?
-      `,
-        )
-        .bind(shiftId)
-        .first()) as any;
+      const [receiptStats] = await this.db
+        .select({
+          totalReceipts: sql<number>`COUNT(*)`,
+          printedReceipts: sql<number>`COUNT(CASE WHEN ${receipts.printStatus} = 'printed' THEN 1 END)`,
+        })
+        .from(receipts)
+        .where(eq(receipts.shiftId, shiftId));
 
       // 獲取訂單統計
-      const orderStats = (await this.d1
-        .prepare(
-          `
-        SELECT
-          COUNT(*) as total_orders,
-          SUM(total_amount) as total_sales,
-          AVG(total_amount) as avg_order_value,
-          COUNT(CASE WHEN payment_method = 'cash' THEN 1 END) as cash_orders,
-          COUNT(CASE WHEN payment_method = 'card' THEN 1 END) as card_orders,
-          COUNT(CASE WHEN payment_method = 'digital_wallet' THEN 1 END) as digital_orders
-        FROM orders
-        WHERE created_at >= ? AND created_at <= ?
-      `,
-        )
-        .bind(shift.started_at, shift.ended_at || new Date().toISOString())
-        .first()) as any;
+      const startedAt = shift.startedAt;
+      const endedAt = shift.endedAt || new Date();
+
+      const [orderStats] = await this.db
+        .select({
+          totalOrders: sql<number>`COUNT(*)`,
+          totalSales: sql<number>`SUM(${orders.totalAmount})`,
+          avgOrderValue: sql<number>`AVG(${orders.totalAmount})`,
+          cashOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 END)`,
+          cardOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'card' THEN 1 END)`,
+          digitalOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'digital_wallet' THEN 1 END)`,
+        })
+        .from(orders)
+        .where(
+          and(
+            sql`${orders.createdAt} >= ${startedAt}`,
+            sql`${orders.createdAt} <= ${endedAt}`,
+          ),
+        );
 
       // 生成報表數據
       const reportData = {
         shift: {
           ...shift,
-          duration: shift.ended_at
+          duration: shift.endedAt
             ? Math.floor(
-                (new Date(shift.ended_at).getTime() -
-                  new Date(shift.started_at).getTime()) /
+                (new Date(shift.endedAt as any).getTime() -
+                  new Date(shift.startedAt as any).getTime()) /
                   60000,
               )
             : null,
         },
         summary: {
-          startAmount: parseFloat(shift.start_amount),
-          endAmount: parseFloat(shift.end_amount || "0"),
-          totalSales: parseFloat(orderStats?.total_sales || "0"),
-          totalRefunds: parseFloat(shift.total_refunds),
-          netSales:
-            parseFloat(orderStats?.total_sales || "0") -
-            parseFloat(shift.total_refunds),
-          expectedAmount: parseFloat(shift.expected_amount || "0"),
-          actualAmount: parseFloat(shift.actual_amount || "0"),
-          difference: parseFloat(shift.difference_amount || "0"),
+          startAmount: shift.startAmount || 0,
+          endAmount: shift.endAmount || 0,
+          totalSales: orderStats?.totalSales || 0,
+          totalRefunds: shift.totalRefunds || 0,
+          netSales: (orderStats?.totalSales || 0) - (shift.totalRefunds || 0),
+          expectedAmount: shift.expectedAmount || 0,
+          actualAmount: shift.actualAmount || 0,
+          difference: shift.differenceAmount || 0,
         },
         breakdown: {
-          cashSales: parseFloat(shift.cash_sales),
-          cardSales: parseFloat(shift.card_sales),
-          digitalSales: parseFloat(shift.digital_sales),
+          cashSales: shift.cashSales || 0,
+          cardSales: shift.cardSales || 0,
+          digitalSales: shift.digitalSales || 0,
         },
         orderStats: {
-          totalOrders: parseInt(orderStats?.total_orders || "0"),
-          avgOrderValue: parseFloat(orderStats?.avg_order_value || "0"),
-          cashOrders: parseInt(orderStats?.cash_orders || "0"),
-          cardOrders: parseInt(orderStats?.card_orders || "0"),
-          digitalOrders: parseInt(orderStats?.digital_orders || "0"),
+          totalOrders: orderStats?.totalOrders || 0,
+          avgOrderValue: orderStats?.avgOrderValue || 0,
+          cashOrders: orderStats?.cashOrders || 0,
+          cardOrders: orderStats?.cardOrders || 0,
+          digitalOrders: orderStats?.digitalOrders || 0,
         },
-        movements: (movements.results || []).map((movement: any) => ({
+        movements: movements.map((movement: any) => ({
           ...movement,
           denominationBreakdown: JSON.parse(
-            movement.denomination_breakdown || "{}",
+            (movement.denominationBreakdown as string) || "{}",
           ),
-          metadata: JSON.parse(movement.metadata || "{}"),
+          metadata: JSON.parse((movement.metadata as string) || "{}"),
         })),
-        receipts: receipts || { total_receipts: 0, printed_receipts: 0 },
+        receipts: receiptStats || {
+          totalReceipts: 0,
+          printedReceipts: 0,
+        },
       };
 
       // 保存報表
       const reportId = crypto.randomUUID();
-      const generatedAt = getCurrentTimestamp();
-      await this.d1
-        .prepare(
-          `
-        INSERT INTO shift_reports (
-          id, shift_id, register_id, operator_id, report_data,
-          summary_data, generated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .bind(
-          reportId,
-          shiftId,
-          shift.register_id,
-          shift.operator_id,
-          JSON.stringify(reportData),
-          JSON.stringify(reportData.summary),
-          generatedAt,
-        )
-        .run();
+      const generatedAt = new Date();
+      await this.db.insert(shiftReports).values({
+        id: reportId,
+        shiftId,
+        registerId: shift.registerId,
+        operatorId: shift.operatorId,
+        reportData: JSON.stringify(reportData),
+        summaryData: JSON.stringify(reportData.summary),
+        generatedAt,
+      });
 
       return {
         success: true,
@@ -174,34 +165,32 @@ export class ReportService extends BaseService {
     dateRange?: { from: Date; to: Date },
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      let dateFilter = "";
-      const params = [restaurantId];
+      const conditions: any[] = [eq(cashRegisters.restaurantId, restaurantId)];
 
       if (dateRange) {
-        dateFilter = " AND cs.started_at >= ? AND cs.started_at <= ?";
-        params.push(dateRange.from.toISOString(), dateRange.to.toISOString());
+        conditions.push(
+          sql`${cashShifts.startedAt} >= ${dateRange.from.toISOString()}`,
+        );
+        conditions.push(
+          sql`${cashShifts.startedAt} <= ${dateRange.to.toISOString()}`,
+        );
       }
 
-      const stats = await this.d1
-        .prepare(
-          `
-        SELECT
-          COUNT(*) as total_shifts,
-          SUM(cs.total_sales) as total_sales,
-          SUM(cs.total_refunds) as total_refunds,
-          AVG(cs.total_sales) as avg_sales_per_shift,
-          SUM(cs.cash_sales) as total_cash_sales,
-          SUM(cs.card_sales) as total_card_sales,
-          SUM(cs.digital_sales) as total_digital_sales,
-          COUNT(CASE WHEN cs.status = 'closed' THEN 1 END) as closed_shifts,
-          AVG(ABS(cs.difference_amount)) as avg_cash_difference
-        FROM cash_shifts cs
-        JOIN cash_registers cr ON cs.register_id = cr.id
-        WHERE cr.restaurant_id = ? ${dateFilter}
-      `,
-        )
-        .bind(...params)
-        .first();
+      const [stats] = await this.db
+        .select({
+          totalShifts: sql<number>`COUNT(*)`,
+          totalSales: sql<number>`SUM(${cashShifts.totalSales})`,
+          totalRefunds: sql<number>`SUM(${cashShifts.totalRefunds})`,
+          avgSalesPerShift: sql<number>`AVG(${cashShifts.totalSales})`,
+          totalCashSales: sql<number>`SUM(${cashShifts.cashSales})`,
+          totalCardSales: sql<number>`SUM(${cashShifts.cardSales})`,
+          totalDigitalSales: sql<number>`SUM(${cashShifts.digitalSales})`,
+          closedShifts: sql<number>`COUNT(CASE WHEN ${cashShifts.status} = 'closed' THEN 1 END)`,
+          avgCashDifference: sql<number>`AVG(ABS(${cashShifts.differenceAmount}))`,
+        })
+        .from(cashShifts)
+        .innerJoin(cashRegisters, eq(cashShifts.registerId, cashRegisters.id))
+        .where(and(...conditions));
 
       return {
         success: true,
@@ -225,98 +214,95 @@ export class ReportService extends BaseService {
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       // 獲取當日班次
-      const shifts = await this.d1
-        .prepare(
-          `
-        SELECT cs.*, cr.name as register_name, u.full_name as operator_name
-        FROM cash_shifts cs
-        JOIN cash_registers cr ON cs.register_id = cr.id
-        JOIN users u ON cs.operator_id = u.id
-        WHERE cr.restaurant_id = ? AND DATE(cs.started_at) = ?
-        ORDER BY cs.started_at
-      `,
+      const shifts = await this.db
+        .select()
+        .from(cashShifts)
+        .innerJoin(cashRegisters, eq(cashShifts.registerId, cashRegisters.id))
+        .where(
+          and(
+            eq(cashRegisters.restaurantId, restaurantId),
+            sql`DATE(${cashShifts.startedAt}) = ${date}`,
+          ),
         )
-        .bind(restaurantId, date)
-        .all();
+        .orderBy(cashShifts.startedAt);
 
       // 獲取當日訂單統計
-      const orderStats = (await this.d1
-        .prepare(
-          `
-        SELECT
-          COUNT(*) as total_orders,
-          SUM(total_amount) as total_sales,
-          SUM(tax_amount) as total_tax,
-          SUM(discount_amount) as total_discounts,
-          AVG(total_amount) as avg_order_value,
-          COUNT(CASE WHEN payment_method = 'cash' THEN 1 END) as cash_orders,
-          COUNT(CASE WHEN payment_method = 'card' THEN 1 END) as card_orders,
-          COUNT(CASE WHEN payment_method = 'digital_wallet' THEN 1 END) as digital_orders
-        FROM orders
-        WHERE restaurant_id = ? AND DATE(created_at) = ?
-      `,
-        )
-        .bind(restaurantId, date)
-        .first()) as any;
+      const [orderStats] = await this.db
+        .select({
+          totalOrders: sql<number>`COUNT(*)`,
+          totalSales: sql<number>`SUM(${orders.totalAmount})`,
+          totalTax: sql<number>`SUM(${orders.taxAmount})`,
+          totalDiscounts: sql<number>`SUM(${orders.discountAmount})`,
+          avgOrderValue: sql<number>`AVG(${orders.totalAmount})`,
+          cashOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 END)`,
+          cardOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'card' THEN 1 END)`,
+          digitalOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'digital_wallet' THEN 1 END)`,
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            sql`DATE(${orders.createdAt}) = ${date}`,
+          ),
+        );
 
       // 獲取退款統計
-      const refundStats = (await this.d1
-        .prepare(
-          `
-        SELECT
-          COUNT(*) as total_refunds,
-          SUM(refund_amount) as total_refund_amount
-        FROM refunds r
-        JOIN cash_registers cr ON r.register_id = cr.id
-        WHERE cr.restaurant_id = ? AND DATE(r.processed_at) = ? AND r.status = 'completed'
-      `,
-        )
-        .bind(restaurantId, date)
-        .first()) as any;
+      const [refundStats] = await this.db
+        .select({
+          totalRefunds: sql<number>`COUNT(*)`,
+          totalRefundAmount: sql<number>`SUM(${refunds.refundAmount})`,
+        })
+        .from(refunds)
+        .innerJoin(cashRegisters, eq(refunds.registerId, cashRegisters.id))
+        .where(
+          and(
+            eq(cashRegisters.restaurantId, restaurantId),
+            sql`DATE(${refunds.processedAt}) = ${date}`,
+            eq(refunds.status, "completed"),
+          ),
+        );
 
       // 獲取熱門商品
-      const topItems = await this.d1
-        .prepare(
-          `
-        SELECT
-          mi.name,
-          SUM(oi.quantity) as total_quantity,
-          SUM(oi.subtotal) as total_revenue
-        FROM order_items oi
-        JOIN menu_items mi ON oi.menu_item_id = mi.id
-        JOIN orders o ON oi.order_id = o.id
-        WHERE o.restaurant_id = ? AND DATE(o.created_at) = ?
-        GROUP BY mi.id, mi.name
-        ORDER BY total_quantity DESC
-        LIMIT 10
-      `,
+      const topItems = await this.db
+        .select({
+          name: menuItems.name,
+          totalQuantity: sql<number>`SUM(${orderItems.quantity})`,
+          totalRevenue: sql<number>`SUM(${orderItems.totalPrice})`,
+        })
+        .from(orderItems)
+        .innerJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            sql`DATE(${orders.createdAt}) = ${date}`,
+          ),
         )
-        .bind(restaurantId, date)
-        .all();
+        .groupBy(menuItems.id, menuItems.name)
+        .orderBy(sql`SUM(${orderItems.quantity}) DESC`)
+        .limit(10);
 
       const reportData = {
         date,
-        shifts: shifts.results || [],
+        shifts: shifts.map((s) => s.cash_shifts),
         summary: {
-          totalOrders: parseInt(orderStats?.total_orders || "0"),
-          totalSales: parseFloat(orderStats?.total_sales || "0"),
-          totalTax: parseFloat(orderStats?.total_tax || "0"),
-          totalDiscounts: parseFloat(orderStats?.total_discounts || "0"),
-          totalRefunds: parseInt(refundStats?.total_refunds || "0"),
-          totalRefundAmount: parseFloat(
-            refundStats?.total_refund_amount || "0",
-          ),
-          avgOrderValue: parseFloat(orderStats?.avg_order_value || "0"),
+          totalOrders: orderStats?.totalOrders || 0,
+          totalSales: orderStats?.totalSales || 0,
+          totalTax: orderStats?.totalTax || 0,
+          totalDiscounts: orderStats?.totalDiscounts || 0,
+          totalRefunds: refundStats?.totalRefunds || 0,
+          totalRefundAmount: refundStats?.totalRefundAmount || 0,
+          avgOrderValue: orderStats?.avgOrderValue || 0,
           netSales:
-            parseFloat(orderStats?.total_sales || "0") -
-            parseFloat(refundStats?.total_refund_amount || "0"),
+            (orderStats?.totalSales || 0) -
+            (refundStats?.totalRefundAmount || 0),
         },
         paymentBreakdown: {
-          cashOrders: parseInt(orderStats?.cash_orders || "0"),
-          cardOrders: parseInt(orderStats?.card_orders || "0"),
-          digitalOrders: parseInt(orderStats?.digital_orders || "0"),
+          cashOrders: orderStats?.cashOrders || 0,
+          cardOrders: orderStats?.cardOrders || 0,
+          digitalOrders: orderStats?.digitalOrders || 0,
         },
-        topItems: topItems.results || [],
+        topItems,
       };
 
       return {
@@ -340,49 +326,47 @@ export class ReportService extends BaseService {
     period: "day" | "week" | "month" = "day",
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      let dateFilter = "";
-      let groupBy = "";
+      let dateFilter: any;
+      let groupByExpr: any;
 
       switch (period) {
         case "day":
-          dateFilter = 'AND cs.started_at >= datetime("now", "-7 days")';
-          groupBy = "DATE(cs.started_at)";
+          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-7 days')`;
+          groupByExpr = sql`DATE(${cashShifts.startedAt})`;
           break;
         case "week":
-          dateFilter = 'AND cs.started_at >= datetime("now", "-4 weeks")';
-          groupBy = 'strftime("%Y-%W", cs.started_at)';
+          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-4 weeks')`;
+          groupByExpr = sql`strftime('%Y-%W', ${cashShifts.startedAt})`;
           break;
         case "month":
-          dateFilter = 'AND cs.started_at >= datetime("now", "-12 months")';
-          groupBy = 'strftime("%Y-%m", cs.started_at)';
+          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-12 months')`;
+          groupByExpr = sql`strftime('%Y-%m', ${cashShifts.startedAt})`;
           break;
       }
 
-      const stats = await this.d1
-        .prepare(
-          `
-        SELECT
-          cr.name as register_name,
-          ${groupBy} as period,
-          COUNT(cs.id) as shift_count,
-          SUM(cs.total_sales) as total_sales,
-          SUM(cs.total_transactions) as total_transactions,
-          AVG(cs.total_sales) as avg_sales_per_shift
-        FROM cash_registers cr
-        LEFT JOIN cash_shifts cs ON cr.id = cs.register_id ${dateFilter}
-        WHERE cr.restaurant_id = ?
-        GROUP BY cr.id, ${groupBy}
-        ORDER BY period DESC, cr.name
-      `,
+      const stats = await this.db
+        .select({
+          registerName: cashRegisters.name,
+          period: groupByExpr,
+          shiftCount: sql<number>`COUNT(${cashShifts.id})`,
+          totalSales: sql<number>`SUM(${cashShifts.totalSales})`,
+          totalTransactions: sql<number>`SUM(${cashShifts.totalTransactions})`,
+          avgSalesPerShift: sql<number>`AVG(${cashShifts.totalSales})`,
+        })
+        .from(cashRegisters)
+        .leftJoin(
+          cashShifts,
+          and(eq(cashRegisters.id, cashShifts.registerId), dateFilter),
         )
-        .bind(restaurantId)
-        .all();
+        .where(eq(cashRegisters.restaurantId, restaurantId))
+        .groupBy(cashRegisters.id, groupByExpr)
+        .orderBy(sql`${groupByExpr} DESC`, cashRegisters.name);
 
       return {
         success: true,
         data: {
           period,
-          stats: stats.results || [],
+          stats,
         },
       };
     } catch (error) {

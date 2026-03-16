@@ -1,98 +1,118 @@
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import {
+  dishSearchIndex,
+  menuItems,
+  categories,
+  restaurants,
+} from "@makanmakan/database";
+
 export class SearchIndexSyncService {
+  private db;
+
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private kv: KVNamespace,
-  ) {}
+  ) {
+    this.db = drizzle(d1);
+  }
 
   async onMenuItemChanged(menuItemId: number): Promise<void> {
-    const item = await this.db
-      .prepare(
-        `SELECT mi.id, mi.name, mi.price, mi.is_available, mi.tags, mi.keywords,
-                mi.deleted_at_ms, mi.restaurant_id, mi.category_id,
-                c.name as category_name,
-                r.district, r.type as restaurant_type,
-                r.supports_takeaway, r.supports_delivery, r.deleted_at_ms as restaurant_deleted
-         FROM menu_items mi
-         LEFT JOIN categories c ON mi.category_id = c.id
-         JOIN restaurants r ON mi.restaurant_id = r.id
-         WHERE mi.id = ?`,
-      )
-      .bind(menuItemId)
-      .first<any>();
+    const [item] = await this.db
+      .select({
+        id: menuItems.id,
+        name: menuItems.name,
+        price: menuItems.price,
+        isAvailable: menuItems.isAvailable,
+        tags: menuItems.tags,
+        keywords: menuItems.keywords,
+        deletedAt: menuItems.deletedAt,
+        restaurantId: menuItems.restaurantId,
+        categoryName: categories.name,
+        district: restaurants.district,
+        restaurantType: restaurants.type,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        supportsDelivery: restaurants.supportsDelivery,
+        restaurantDeleted: restaurants.deletedAt,
+      })
+      .from(menuItems)
+      .leftJoin(categories, eq(menuItems.categoryId, categories.id))
+      .innerJoin(restaurants, eq(menuItems.restaurantId, restaurants.id))
+      .where(eq(menuItems.id, menuItemId))
+      .limit(1);
 
     if (!item) {
       await this.db
-        .prepare("DELETE FROM dish_search_index WHERE menu_item_id = ?")
-        .bind(menuItemId)
-        .run();
+        .delete(dishSearchIndex)
+        .where(eq(dishSearchIndex.menuItemId, menuItemId));
       return;
     }
 
     const isAvailable =
-      item.is_available && !item.deleted_at_ms && !item.restaurant_deleted;
+      item.isAvailable && !item.deletedAt && !item.restaurantDeleted;
     const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
     const tags = [
-      ...(item.tags ? JSON.parse(item.tags) : []),
-      ...(item.keywords ? JSON.parse(item.keywords) : []),
+      ...(item.tags ?? []),
+      ...(item.keywords
+        ? typeof item.keywords === "string"
+          ? JSON.parse(item.keywords)
+          : []
+        : []),
     ];
 
+    // Delete existing + insert (replaces INSERT OR REPLACE without needing unique constraint)
     await this.db
-      .prepare(
-        `INSERT OR REPLACE INTO dish_search_index
-         (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(
-        item.id,
-        item.restaurant_id,
-        item.name,
-        normalized,
-        item.category_name,
-        item.price,
-        isAvailable ? 1 : 0,
-        JSON.stringify(tags),
-        item.district,
-        item.restaurant_type,
-        item.supports_takeaway ? 1 : 0,
-        item.supports_delivery ? 1 : 0,
-        Date.now(),
-      )
-      .run();
+      .delete(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, menuItemId));
+
+    await this.db.insert(dishSearchIndex).values({
+      menuItemId: item.id,
+      restaurantId: item.restaurantId,
+      dishName: item.name,
+      dishNameNormalized: normalized,
+      categoryName: item.categoryName,
+      price: item.price,
+      isAvailable,
+      tags,
+      district: item.district,
+      restaurantType: item.restaurantType,
+      supportsTakeaway: item.supportsTakeaway,
+      supportsDelivery: item.supportsDelivery,
+      updatedAt: new Date(),
+    });
   }
 
   async onRestaurantChanged(restaurantId: string): Promise<void> {
-    const restaurant = await this.db
-      .prepare(
-        "SELECT district, type, supports_takeaway, supports_delivery, deleted_at_ms FROM restaurants WHERE id = ?",
-      )
-      .bind(restaurantId)
-      .first<any>();
+    const [restaurant] = await this.db
+      .select({
+        district: restaurants.district,
+        type: restaurants.type,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        supportsDelivery: restaurants.supportsDelivery,
+        deletedAt: restaurants.deletedAt,
+      })
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId))
+      .limit(1);
 
     if (!restaurant) return;
 
-    if (restaurant.deleted_at_ms) {
+    if (restaurant.deletedAt) {
       await this.db
-        .prepare(
-          "UPDATE dish_search_index SET is_available = 0, updated_at_ms = ? WHERE restaurant_id = ?",
-        )
-        .bind(Date.now(), restaurantId)
-        .run();
+        .update(dishSearchIndex)
+        .set({ isAvailable: false, updatedAt: new Date() })
+        .where(eq(dishSearchIndex.restaurantId, restaurantId));
     } else {
       await this.db
-        .prepare(
-          `UPDATE dish_search_index SET district = ?, restaurant_type = ?,
-           supports_takeaway = ?, supports_delivery = ?, updated_at_ms = ?
-           WHERE restaurant_id = ?`,
-        )
-        .bind(
-          restaurant.district,
-          restaurant.type,
-          restaurant.supports_takeaway ? 1 : 0,
-          restaurant.supports_delivery ? 1 : 0,
-          Date.now(),
-          restaurantId,
-        )
-        .run();
+        .update(dishSearchIndex)
+        .set({
+          district: restaurant.district,
+          restaurantType: restaurant.type,
+          supportsTakeaway: restaurant.supportsTakeaway,
+          supportsDelivery: restaurant.supportsDelivery,
+          updatedAt: new Date(),
+        })
+        .where(eq(dishSearchIndex.restaurantId, restaurantId));
     }
 
     await this.kv.delete(`search:restaurants:district:${restaurant.district}`);

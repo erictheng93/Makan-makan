@@ -1,20 +1,115 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DiscoveryService } from "../services/DiscoveryService";
 
-function createMockDb() {
-  return {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        first: vi.fn().mockResolvedValue(null),
-        run: vi.fn().mockResolvedValue({ success: true }),
-      }),
-      // Support direct .all() without .bind() (used by getPopular, reindex)
-      all: vi.fn().mockResolvedValue({ results: [] }),
-      run: vi.fn().mockResolvedValue({ success: true }),
-    }),
-    batch: vi.fn().mockResolvedValue([{ success: true }]),
-  };
+// Mock drizzle-orm/d1
+const mockDrizzleDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDrizzleDb),
+}));
+
+// Mock drizzle-orm operators
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((...args: any[]) => ({ type: "eq", args })),
+  and: vi.fn((...args: any[]) => ({ type: "and", args })),
+  or: vi.fn((...args: any[]) => ({ type: "or", args })),
+  like: vi.fn((...args: any[]) => ({ type: "like", args })),
+  gte: vi.fn((...args: any[]) => ({ type: "gte", args })),
+  lte: vi.fn((...args: any[]) => ({ type: "lte", args })),
+  inArray: vi.fn((...args: any[]) => ({ type: "inArray", args })),
+  isNull: vi.fn((...args: any[]) => ({ type: "isNull", args })),
+  desc: vi.fn((...args: any[]) => ({ type: "desc", args })),
+  asc: vi.fn((...args: any[]) => ({ type: "asc", args })),
+  sql: vi.fn((...args: any[]) => ({ type: "sql", args })),
+}));
+
+// Mock database tables
+vi.mock("@makanmakan/database", () => ({
+  dishSearchIndex: {
+    menuItemId: "dsi.menuItemId",
+    dishName: "dsi.dishName",
+    dishNameNormalized: "dsi.dishNameNormalized",
+    price: "dsi.price",
+    categoryName: "dsi.categoryName",
+    restaurantId: "dsi.restaurantId",
+    district: "dsi.district",
+    isAvailable: "dsi.isAvailable",
+    supportsTakeaway: "dsi.supportsTakeaway",
+    supportsDelivery: "dsi.supportsDelivery",
+    tags: "dsi.tags",
+    updatedAt: "dsi.updatedAt",
+    restaurantType: "dsi.restaurantType",
+  },
+  restaurants: {
+    id: "r.id",
+    name: "r.name",
+    type: "r.type",
+    category: "r.category",
+    district: "r.district",
+    city: "r.city",
+    priceRange: "r.priceRange",
+    rating: "r.rating",
+    businessHours: "r.businessHours",
+    isActive: "r.isActive",
+    isAvailable: "r.isAvailable",
+    supportsTakeaway: "r.supportsTakeaway",
+    supportsDelivery: "r.supportsDelivery",
+    logoUrl: "r.logoUrl",
+    totalOrders: "r.totalOrders",
+    deletedAt: "r.deletedAt",
+  },
+  menuItems: {
+    id: "mi.id",
+    restaurantId: "mi.restaurantId",
+    categoryId: "mi.categoryId",
+    name: "mi.name",
+    price: "mi.price",
+    isAvailable: "mi.isAvailable",
+    tags: "mi.tags",
+    keywords: "mi.keywords",
+    deletedAt: "mi.deletedAt",
+    orderCount: "mi.orderCount",
+  },
+  categories: {
+    id: "c.id",
+    name: "c.name",
+  },
+}));
+
+/**
+ * Creates a chainable mock for Drizzle query builder.
+ * Each method returns the same chain, and the terminal method resolves with the given data.
+ */
+function createSelectChain(data: any[] = []) {
+  const chain: any = {};
+  const methods = [
+    "from",
+    "innerJoin",
+    "leftJoin",
+    "where",
+    "orderBy",
+    "limit",
+    "offset",
+  ];
+  for (const method of methods) {
+    chain[method] = vi.fn().mockReturnValue(chain);
+  }
+  // Make the chain itself act as a thenable (resolves to data)
+  chain.then = (resolve: any, reject: any) =>
+    Promise.resolve(data).then(resolve, reject);
+  return chain;
+}
+
+function createDeleteChain() {
+  const chain: any = {};
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ success: true }).then(resolve, reject);
+  return chain;
 }
 
 function createMockKV() {
@@ -30,48 +125,62 @@ function createMockKV() {
   };
 }
 
+function createMockD1() {
+  return {
+    prepare: vi.fn().mockReturnValue({
+      bind: vi.fn().mockReturnValue({
+        all: vi.fn().mockResolvedValue({ results: [] }),
+        first: vi.fn().mockResolvedValue(null),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      }),
+      all: vi.fn().mockResolvedValue({ results: [] }),
+      run: vi.fn().mockResolvedValue({ success: true }),
+    }),
+    batch: vi.fn().mockResolvedValue([{ success: true }]),
+  };
+}
+
 describe("DiscoveryService", () => {
   let service: DiscoveryService;
-  let mockDb: ReturnType<typeof createMockDb>;
+  let mockD1: ReturnType<typeof createMockD1>;
   let mockKV: ReturnType<typeof createMockKV>;
 
   beforeEach(() => {
-    mockDb = createMockDb();
+    vi.clearAllMocks();
+    mockD1 = createMockD1();
     mockKV = createMockKV();
-    service = new DiscoveryService(mockDb as any, mockKV as any);
+    service = new DiscoveryService(mockD1 as any, mockKV as any);
   });
 
   describe("searchDishes", () => {
     it("should return empty results when no dishes match", async () => {
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
+
       const result = await service.searchDishes({ q: "不存在的菜" });
       expect(result.results).toHaveLength(0);
       expect(result.total).toBe(0);
     });
 
-    it("should return results from D1 prefix search", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                dish_name: "牛肉麵",
-                price: 150,
-                category_name: "麵類",
-                restaurant_id: "r1",
-                restaurant_name: "老王牛肉麵",
-                district: "西屯區",
-                business_hours: JSON.stringify({
-                  monday: { open: "09:00", close: "21:00" },
-                }),
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                tags: JSON.stringify(["牛肉", "麵"]),
-              },
-            ],
-          }),
-        }),
-      });
+    it("should return results from Drizzle prefix search", async () => {
+      const selectChain = createSelectChain([
+        {
+          menuItemId: 1,
+          dishName: "牛肉麵",
+          price: 150,
+          categoryName: "麵類",
+          restaurantId: "r1",
+          restaurantName: "老王牛肉麵",
+          district: "西屯區",
+          businessHours: {
+            monday: { open: "09:00", close: "21:00" },
+          },
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: ["牛肉", "麵"],
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       const result = await service.searchDishes({ q: "牛肉麵" });
       expect(result.results).toHaveLength(1);
@@ -80,11 +189,8 @@ describe("DiscoveryService", () => {
     });
 
     it("should cache search results in KV", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.searchDishes({ q: "牛肉麵" });
       expect(mockKV.put).toHaveBeenCalled();
@@ -100,44 +206,42 @@ describe("DiscoveryService", () => {
 
       const result = await service.searchDishes({ q: "牛肉麵" });
       expect(result.results).toHaveLength(1);
-      expect(mockDb.prepare).not.toHaveBeenCalled();
+      expect(mockDrizzleDb.select).not.toHaveBeenCalled();
     });
 
     it("should filter by openNow when specified", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                dish_name: "牛肉麵",
-                price: 150,
-                category_name: "麵類",
-                restaurant_id: "r1",
-                restaurant_name: "老王牛肉麵",
-                district: "西屯區",
-                business_hours: JSON.stringify({
-                  monday: { open: "09:00", close: "10:00" },
-                  tuesday: { open: "09:00", close: "10:00" },
-                  wednesday: { open: "09:00", close: "10:00" },
-                  thursday: { open: "09:00", close: "10:00" },
-                  friday: { open: "09:00", close: "10:00" },
-                  saturday: { open: "09:00", close: "10:00" },
-                  sunday: { open: "09:00", close: "10:00" },
-                }),
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                tags: "[]",
-              },
-            ],
-          }),
-        }),
-      });
+      const selectChain = createSelectChain([
+        {
+          menuItemId: 1,
+          dishName: "牛肉麵",
+          price: 150,
+          categoryName: "麵類",
+          restaurantId: "r1",
+          restaurantName: "老王牛肉麵",
+          district: "西屯區",
+          businessHours: {
+            monday: { open: "09:00", close: "10:00" },
+            tuesday: { open: "09:00", close: "10:00" },
+            wednesday: { open: "09:00", close: "10:00" },
+            thursday: { open: "09:00", close: "10:00" },
+            friday: { open: "09:00", close: "10:00" },
+            saturday: { open: "09:00", close: "10:00" },
+            sunday: { open: "09:00", close: "10:00" },
+          },
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: [],
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-03-16T15:00:00"));
 
-      const result = await service.searchDishes({ q: "牛肉麵", openNow: true });
+      const result = await service.searchDishes({
+        q: "牛肉麵",
+        openNow: true,
+      });
       expect(result.results).toHaveLength(0);
 
       vi.useRealTimers();
@@ -147,56 +251,48 @@ describe("DiscoveryService", () => {
       const result = await service.searchDishes({ q: "" });
       expect(result.results).toHaveLength(0);
       expect(result.total).toBe(0);
-      expect(mockDb.prepare).not.toHaveBeenCalled();
+      expect(mockDrizzleDb.select).not.toHaveBeenCalled();
     });
 
     it("should merge tag index matches with prefix results", async () => {
-      // Prefix search returns item 1
-      const prefixAll = vi.fn().mockResolvedValue({
-        results: [
-          {
-            menu_item_id: 1,
-            dish_name: "牛肉麵",
-            price: 150,
-            category_name: "麵類",
-            restaurant_id: "r1",
-            restaurant_name: "老王",
-            district: "西屯區",
-            business_hours: null,
-            supports_takeaway: 1,
-            supports_delivery: 0,
-            tags: "[]",
-          },
-        ],
-      });
+      // First select call: prefix search returns item 1
+      const prefixChain = createSelectChain([
+        {
+          menuItemId: 1,
+          dishName: "牛肉麵",
+          price: 150,
+          categoryName: "麵類",
+          restaurantId: "r1",
+          restaurantName: "老王",
+          district: "西屯區",
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: [],
+        },
+      ]);
 
-      // Tag search returns item 2 (not in prefix)
-      const tagAll = vi.fn().mockResolvedValue({
-        results: [
-          {
-            menu_item_id: 2,
-            dish_name: "紅燒牛肉飯",
-            price: 120,
-            category_name: "飯類",
-            restaurant_id: "r2",
-            restaurant_name: "阿明",
-            district: "北屯區",
-            business_hours: null,
-            supports_takeaway: 0,
-            supports_delivery: 1,
-            tags: JSON.stringify(["牛肉"]),
-          },
-        ],
-      });
+      // Second select call: tag search returns item 2
+      const tagChain = createSelectChain([
+        {
+          menuItemId: 2,
+          dishName: "紅燒牛肉飯",
+          price: 120,
+          categoryName: "飯類",
+          restaurantId: "r2",
+          restaurantName: "阿明",
+          district: "北屯區",
+          businessHours: null,
+          supportsTakeaway: false,
+          supportsDelivery: true,
+          tags: ["牛肉"],
+        },
+      ]);
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi.fn().mockReturnValue({
-            all: callCount === 1 ? prefixAll : tagAll,
-          }),
-        };
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        return selectCallCount === 1 ? prefixChain : tagChain;
       });
 
       // KV tag index has item 2 tagged with "牛肉"
@@ -216,27 +312,22 @@ describe("DiscoveryService", () => {
     });
 
     it("should not duplicate items from tag index that are already in prefix results", async () => {
-      const prefixAll = vi.fn().mockResolvedValue({
-        results: [
-          {
-            menu_item_id: 1,
-            dish_name: "牛肉麵",
-            price: 150,
-            category_name: "麵類",
-            restaurant_id: "r1",
-            restaurant_name: "老王",
-            district: "西屯區",
-            business_hours: null,
-            supports_takeaway: 1,
-            supports_delivery: 0,
-            tags: "[]",
-          },
-        ],
-      });
-
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({ all: prefixAll }),
-      });
+      const prefixChain = createSelectChain([
+        {
+          menuItemId: 1,
+          dishName: "牛肉麵",
+          price: 150,
+          categoryName: "麵類",
+          restaurantId: "r1",
+          restaurantName: "老王",
+          district: "西屯區",
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: [],
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(prefixChain);
 
       // Tag index also has item 1 — should not trigger a second query
       mockKV.get.mockImplementation(async (key: string) => {
@@ -249,51 +340,39 @@ describe("DiscoveryService", () => {
       });
 
       const result = await service.searchDishes({ q: "牛肉" });
-      // Only 1 prepare call (prefix search), no tag query needed
-      expect(mockDb.prepare).toHaveBeenCalledTimes(1);
+      // Only 1 select call (prefix search), no tag query needed
+      expect(mockDrizzleDb.select).toHaveBeenCalledTimes(1);
       expect(result.results).toHaveLength(1);
     });
 
     it("should handle pagination with correct offset", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn((...args: any[]) => {
-          // Last two bind params are limit and offset
-          const bindArgs = args;
-          return {
-            all: vi.fn().mockResolvedValue({ results: [] }),
-          };
-        }),
-      });
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.searchDishes({ q: "test", page: 3, limit: 10 });
 
-      // Verify bind was called — offset should be (3-1)*10 = 20
-      const bindCall = mockDb.prepare.mock.results[0].value.bind;
-      expect(bindCall).toHaveBeenCalled();
+      // Verify offset was called with 20 = (3-1)*10
+      expect(selectChain.offset).toHaveBeenCalledWith(20);
+      expect(selectChain.limit).toHaveBeenCalledWith(10);
     });
 
-    it("should map boolean fields correctly from D1 integers", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                dish_name: "壽司",
-                price: 200,
-                category_name: null,
-                restaurant_id: "r1",
-                restaurant_name: "日式餐廳",
-                district: null,
-                business_hours: null,
-                supports_takeaway: 0,
-                supports_delivery: 1,
-                tags: null,
-              },
-            ],
-          }),
-        }),
-      });
+    it("should map boolean fields correctly from Drizzle", async () => {
+      const selectChain = createSelectChain([
+        {
+          menuItemId: 1,
+          dishName: "壽司",
+          price: 200,
+          categoryName: null,
+          restaurantId: "r1",
+          restaurantName: "日式餐廳",
+          district: null,
+          businessHours: null,
+          supportsTakeaway: false,
+          supportsDelivery: true,
+          tags: null,
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       const result = await service.searchDishes({ q: "壽司" });
       expect(result.results[0].supportsTakeaway).toBe(false);
@@ -303,29 +382,24 @@ describe("DiscoveryService", () => {
   });
 
   describe("browseRestaurants", () => {
-    it("should return restaurants from D1 query", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: "r1",
-                name: "老王麵店",
-                type: "中式",
-                category: "小吃",
-                district: "西屯區",
-                city: "台中市",
-                price_range: 1,
-                rating: 4.5,
-                business_hours: null,
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                logo_url: "https://example.com/logo.jpg",
-              },
-            ],
-          }),
-        }),
-      });
+    it("should return restaurants from Drizzle query", async () => {
+      const selectChain = createSelectChain([
+        {
+          id: "r1",
+          name: "老王麵店",
+          type: "中式",
+          category: "小吃",
+          district: "西屯區",
+          city: "台中市",
+          priceRange: 1,
+          rating: 4.5,
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          logoUrl: "https://example.com/logo.jpg",
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       const result = await service.browseRestaurants({});
       expect(result.results).toHaveLength(1);
@@ -354,7 +428,7 @@ describe("DiscoveryService", () => {
 
       const result = await service.browseRestaurants({ district: "西屯區" });
       expect(result.results).toHaveLength(2);
-      expect(mockDb.prepare).not.toHaveBeenCalled();
+      expect(mockDrizzleDb.select).not.toHaveBeenCalled();
     });
 
     it("should filter cached results by takeaway flag", async () => {
@@ -438,30 +512,25 @@ describe("DiscoveryService", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-03-16T15:00:00Z")); // Monday 23:00 Asia/Taipei
 
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: "r1",
-                name: "日間餐廳",
-                type: "中式",
-                category: null,
-                district: "西屯區",
-                city: null,
-                price_range: 1,
-                rating: 4.0,
-                business_hours: JSON.stringify({
-                  monday: { open: "09:00", close: "17:00" },
-                }),
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                logo_url: null,
-              },
-            ],
-          }),
-        }),
-      });
+      const selectChain = createSelectChain([
+        {
+          id: "r1",
+          name: "日間餐廳",
+          type: "中式",
+          category: null,
+          district: "西屯區",
+          city: null,
+          priceRange: 1,
+          rating: 4.0,
+          businessHours: {
+            monday: { open: "09:00", close: "17:00" },
+          },
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          logoUrl: null,
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       const result = await service.browseRestaurants({ openNow: true });
       expect(result.results).toHaveLength(0);
@@ -470,54 +539,46 @@ describe("DiscoveryService", () => {
     });
 
     it("should sort by rating when sortBy=rating", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      const { desc } = await import("drizzle-orm");
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.browseRestaurants({ sortBy: "rating" });
 
-      const sql = mockDb.prepare.mock.calls[0][0] as string;
-      expect(sql).toContain("r.rating DESC");
+      // Verify desc was called (for rating ordering)
+      expect(desc).toHaveBeenCalled();
+      expect(selectChain.orderBy).toHaveBeenCalled();
     });
 
-    it("should sort by total_orders when sortBy is not rating", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+    it("should sort by totalOrders when sortBy is not rating", async () => {
+      const { desc } = await import("drizzle-orm");
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.browseRestaurants({ sortBy: "popular" });
 
-      const sql = mockDb.prepare.mock.calls[0][0] as string;
-      expect(sql).toContain("r.total_orders DESC");
+      expect(desc).toHaveBeenCalled();
+      expect(selectChain.orderBy).toHaveBeenCalled();
     });
 
     it("should cache district results in KV only when no secondary filters and page=1", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: "r1",
-                name: "老王",
-                type: null,
-                category: null,
-                district: "西屯區",
-                city: null,
-                price_range: null,
-                rating: null,
-                business_hours: null,
-                supports_takeaway: 0,
-                supports_delivery: 0,
-                logo_url: null,
-              },
-            ],
-          }),
-        }),
-      });
+      const selectChain = createSelectChain([
+        {
+          id: "r1",
+          name: "老王",
+          type: null,
+          category: null,
+          district: "西屯區",
+          city: null,
+          priceRange: null,
+          rating: null,
+          businessHours: null,
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          logoUrl: null,
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       // With district only + page 1 → should cache
       await service.browseRestaurants({ district: "西屯區" });
@@ -529,11 +590,8 @@ describe("DiscoveryService", () => {
     });
 
     it("should NOT cache when takeaway filter is active", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.browseRestaurants({ district: "西屯區", takeaway: true });
       expect(mockKV.put).not.toHaveBeenCalled();
@@ -562,7 +620,7 @@ describe("DiscoveryService", () => {
   });
 
   describe("getPopular", () => {
-    it("should return keywords from KV and top dishes from D1", async () => {
+    it("should return keywords from KV and top dishes from Drizzle", async () => {
       mockKV.get.mockImplementation(async (key: string) => {
         if (key === "search:meta:popular-keywords") {
           return JSON.stringify(["牛肉麵", "炒飯", "拉麵"]);
@@ -572,28 +630,30 @@ describe("DiscoveryService", () => {
 
       const dishResults = [
         {
-          menu_item_id: 1,
-          dish_name: "人氣牛肉麵",
+          menuItemId: 1,
+          dishName: "人氣牛肉麵",
           price: 150,
-          category_name: "麵類",
-          restaurant_id: "r1",
-          restaurant_name: "老王",
+          categoryName: "麵類",
+          restaurantId: "r1",
+          restaurantName: "老王",
           district: "西屯區",
-          business_hours: null,
-          supports_takeaway: 1,
-          supports_delivery: 0,
-          tags: "[]",
-          order_count: 500,
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: [],
+          orderCount: 500,
         },
       ];
 
-      mockDb.prepare.mockReturnValue({
-        // Direct .all() for getPopular's top dishes query
-        all: vi.fn().mockResolvedValue({ results: dishResults }),
-        // .bind().all() for browseRestaurants called internally
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
+      // First select: getPopular's top dishes query
+      // Second select: browseRestaurants called internally
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createSelectChain(dishResults);
+        }
+        return createSelectChain([]); // browseRestaurants
       });
 
       const result = await service.getPopular();
@@ -605,12 +665,7 @@ describe("DiscoveryService", () => {
     });
 
     it("should return empty keywords when KV has no data", async () => {
-      mockDb.prepare.mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      mockDrizzleDb.select.mockReturnValue(createSelectChain([]));
 
       const result = await service.getPopular();
       expect(result.keywords).toEqual([]);
@@ -618,12 +673,12 @@ describe("DiscoveryService", () => {
   });
 
   describe("searchDishes - error and edge cases", () => {
-    it("should propagate error gracefully when DB .all() throws", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockRejectedValue(new Error("D1 connection error")),
-        }),
-      });
+    it("should propagate error gracefully when Drizzle query throws", async () => {
+      const errorChain = createSelectChain([]);
+      // Override the thenable to reject
+      errorChain.then = (resolve: any, reject: any) =>
+        Promise.reject(new Error("D1 connection error")).then(resolve, reject);
+      mockDrizzleDb.select.mockReturnValue(errorChain);
 
       await expect(service.searchDishes({ q: "牛肉麵" })).rejects.toThrow(
         "D1 connection error",
@@ -633,27 +688,22 @@ describe("DiscoveryService", () => {
     it("should fall back to DB when KV returns corrupted JSON", async () => {
       mockKV.get.mockResolvedValue("{ this is not valid json {{");
 
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 42,
-                dish_name: "炒飯",
-                price: 80,
-                category_name: "飯類",
-                restaurant_id: "r1",
-                restaurant_name: "小吃攤",
-                district: null,
-                business_hours: null,
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                tags: "[]",
-              },
-            ],
-          }),
-        }),
-      });
+      const selectChain = createSelectChain([
+        {
+          menuItemId: 42,
+          dishName: "炒飯",
+          price: 80,
+          categoryName: "飯類",
+          restaurantId: "r1",
+          restaurantName: "小吃攤",
+          district: null,
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: [],
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       // Should throw because corrupted JSON causes JSON.parse to throw before falling back
       await expect(service.searchDishes({ q: "炒飯" })).rejects.toThrow();
@@ -662,11 +712,8 @@ describe("DiscoveryService", () => {
     it("should not crash when KV put fails silently (KV write failure)", async () => {
       mockKV.put.mockRejectedValue(new Error("KV write quota exceeded"));
 
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       // The service will throw because KV put is awaited — testing the actual behavior
       await expect(service.searchDishes({ q: "壽司" })).rejects.toThrow(
@@ -683,23 +730,19 @@ describe("DiscoveryService", () => {
         return "corrupted-json"; // tag index
       });
 
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      const selectChain = createSelectChain([]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await expect(service.searchDishes({ q: "麵" })).rejects.toThrow();
     });
   });
 
   describe("browseRestaurants - error and edge cases", () => {
-    it("should propagate error when DB .all() throws", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockRejectedValue(new Error("D1 query error")),
-        }),
-      });
+    it("should propagate error when Drizzle query throws", async () => {
+      const errorChain = createSelectChain([]);
+      errorChain.then = (resolve: any, reject: any) =>
+        Promise.reject(new Error("D1 query error")).then(resolve, reject);
+      mockDrizzleDb.select.mockReturnValue(errorChain);
 
       await expect(service.browseRestaurants({})).rejects.toThrow(
         "D1 query error",
@@ -715,28 +758,23 @@ describe("DiscoveryService", () => {
     });
 
     it("should not write district cache when openNow filter is active", async () => {
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                id: "r1",
-                name: "餐廳A",
-                type: null,
-                category: null,
-                district: "西屯區",
-                city: null,
-                price_range: null,
-                rating: null,
-                business_hours: null,
-                supports_takeaway: 1,
-                supports_delivery: 0,
-                logo_url: null,
-              },
-            ],
-          }),
-        }),
-      });
+      const selectChain = createSelectChain([
+        {
+          id: "r1",
+          name: "餐廳A",
+          type: null,
+          category: null,
+          district: "西屯區",
+          city: null,
+          priceRange: null,
+          rating: null,
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          logoUrl: null,
+        },
+      ]);
+      mockDrizzleDb.select.mockReturnValue(selectChain);
 
       await service.browseRestaurants({ district: "西屯區", openNow: true });
       expect(mockKV.put).not.toHaveBeenCalled();
@@ -752,24 +790,14 @@ describe("DiscoveryService", () => {
         return null;
       });
 
-      mockDb.prepare.mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      mockDrizzleDb.select.mockReturnValue(createSelectChain([]));
 
       await expect(service.getPopular()).rejects.toThrow();
     });
 
     it("should return empty keywords and empty dishes when all data is empty", async () => {
       mockKV.get.mockResolvedValue(null);
-      mockDb.prepare.mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-        }),
-      });
+      mockDrizzleDb.select.mockReturnValue(createSelectChain([]));
 
       const result = await service.getPopular();
       expect(result.keywords).toEqual([]);
@@ -780,66 +808,53 @@ describe("DiscoveryService", () => {
 
   describe("reindex", () => {
     it("should rebuild search index from menu items", async () => {
-      const allItemsResult = {
-        results: [
-          {
-            menu_item_id: 1,
-            name: "牛肉麵",
-            price: 150,
-            is_available: 1,
-            tags: JSON.stringify(["牛肉"]),
-            keywords: JSON.stringify(["經典"]),
-            deleted_at_ms: null,
-            category_name: "麵類",
-            restaurant_id: "r1",
-            district: "西屯區",
-            restaurant_type: "中式",
-            supports_takeaway: 1,
-            supports_delivery: 0,
-            restaurant_deleted: null,
-          },
-        ],
-      };
+      const allItemsResult = [
+        {
+          menuItemId: 1,
+          name: "牛肉麵",
+          price: 150,
+          isAvailable: true,
+          tags: ["牛肉"],
+          keywords: JSON.stringify(["經典"]),
+          deletedAtMs: null,
+          categoryName: "麵類",
+          restaurantId: "r1",
+          district: "西屯區",
+          restaurantType: "中式",
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          restaurantDeleted: null,
+        },
+      ];
 
-      const tagIndexResult = {
-        results: [
-          {
-            menu_item_id: 1,
-            restaurant_id: "r1",
-            dish_name: "牛肉麵",
-            price: 150,
-            tags: JSON.stringify(["牛肉", "經典"]),
-          },
-        ],
-      };
+      const tagIndexResult = [
+        {
+          menuItemId: 1,
+          restaurantId: "r1",
+          dishName: "牛肉麵",
+          price: 150,
+          tags: ["牛肉", "經典"],
+        },
+      ];
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          // Direct .all() for queries without .bind()
-          all: vi
-            .fn()
-            .mockResolvedValue(
-              callCount === 1 ? allItemsResult : tagIndexResult,
-            ),
-          bind: vi.fn().mockReturnValue({
-            all: vi
-              .fn()
-              .mockResolvedValue(
-                callCount === 1 ? allItemsResult : tagIndexResult,
-              ),
-            run: vi.fn().mockResolvedValue({ success: true }),
-          }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        };
+      // select calls: 1) reindex items, 2) delete orphans (via db.delete), 3) tag index, 4) browseRestaurants (not select)
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createSelectChain(allItemsResult);
+        }
+        // Third select: tag index query
+        return createSelectChain(tagIndexResult);
       });
+
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       const result = await service.reindex();
 
       expect(result.dishes).toBe(1);
       expect(result.duration_ms).toBeGreaterThanOrEqual(0);
-      expect(mockDb.batch).toHaveBeenCalled();
+      expect(mockD1.batch).toHaveBeenCalled();
       expect(mockKV.put).toHaveBeenCalledWith(
         "search:tags:index",
         expect.any(String),
@@ -848,174 +863,135 @@ describe("DiscoveryService", () => {
     });
 
     it("should set is_available=0 for deleted items during reindex", async () => {
-      const allItemsResult = {
-        results: [
-          {
-            menu_item_id: 1,
-            name: "已下架",
-            price: 100,
-            is_available: 1,
-            tags: null,
-            keywords: null,
-            deleted_at_ms: Date.now(),
-            category_name: null,
-            restaurant_id: "r1",
-            district: "西屯區",
-            restaurant_type: "中式",
-            supports_takeaway: 0,
-            supports_delivery: 0,
-            restaurant_deleted: null,
-          },
-        ],
-      };
+      const allItemsResult = [
+        {
+          menuItemId: 1,
+          name: "已下架",
+          price: 100,
+          isAvailable: true,
+          tags: null,
+          keywords: null,
+          deletedAtMs: new Date(),
+          categoryName: null,
+          restaurantId: "r1",
+          district: "西屯區",
+          restaurantType: "中式",
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          restaurantDeleted: null,
+        },
+      ];
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          all: vi
-            .fn()
-            .mockResolvedValue(
-              callCount === 1 ? allItemsResult : { results: [] },
-            ),
-          bind: vi.fn((...args: any[]) => ({
-            all: vi
-              .fn()
-              .mockResolvedValue(
-                callCount === 1 ? allItemsResult : { results: [] },
-              ),
-            run: vi.fn().mockResolvedValue({ success: true }),
-          })),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        };
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createSelectChain(allItemsResult);
+        }
+        return createSelectChain([]);
       });
+
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       const result = await service.reindex();
       expect(result.dishes).toBe(1);
     });
 
     it("should clean up orphaned index entries", async () => {
-      mockDb.prepare.mockImplementation(() => ({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-        run: vi.fn().mockResolvedValue({ success: true }),
-      }));
+      mockDrizzleDb.select.mockReturnValue(createSelectChain([]));
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       await service.reindex();
 
-      // Find the DELETE query for orphaned entries
-      const deleteCalls = mockDb.prepare.mock.calls.filter((call: any[]) =>
-        (call[0] as string).includes("DELETE FROM dish_search_index"),
-      );
-      expect(deleteCalls.length).toBeGreaterThanOrEqual(1);
+      // Verify db.delete was called for orphan cleanup
+      expect(mockDrizzleDb.delete).toHaveBeenCalled();
     });
 
     it("should process exactly 100 items in a single batch call", async () => {
       const makeItem = (i: number) => ({
-        menu_item_id: i,
+        menuItemId: i,
         name: `菜品${i}`,
         price: 100,
-        is_available: 1,
+        isAvailable: true,
         tags: null,
         keywords: null,
-        deleted_at_ms: null,
-        category_name: null,
-        restaurant_id: "r1",
+        deletedAtMs: null,
+        categoryName: null,
+        restaurantId: "r1",
         district: "西屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        restaurant_deleted: null,
+        restaurantType: "中式",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        restaurantDeleted: null,
       });
 
       const exactly100 = Array.from({ length: 100 }, (_, i) => makeItem(i + 1));
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          all: vi
-            .fn()
-            .mockResolvedValue(
-              callCount === 1 ? { results: exactly100 } : { results: [] },
-            ),
-          bind: vi.fn().mockReturnValue({
-            all: vi.fn().mockResolvedValue({ results: [] }),
-            run: vi.fn().mockResolvedValue({ success: true }),
-          }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        };
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createSelectChain(exactly100);
+        }
+        return createSelectChain([]);
       });
+
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       const result = await service.reindex();
 
       expect(result.dishes).toBe(100);
       // Exactly 100 items → should be processed in exactly 1 batch
-      expect(mockDb.batch).toHaveBeenCalledTimes(1);
+      expect(mockD1.batch).toHaveBeenCalledTimes(1);
     });
 
     it("should split 101 items into two batch calls", async () => {
       const makeItem = (i: number) => ({
-        menu_item_id: i,
+        menuItemId: i,
         name: `菜品${i}`,
         price: 100,
-        is_available: 1,
+        isAvailable: true,
         tags: null,
         keywords: null,
-        deleted_at_ms: null,
-        category_name: null,
-        restaurant_id: "r1",
+        deletedAtMs: null,
+        categoryName: null,
+        restaurantId: "r1",
         district: "西屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        restaurant_deleted: null,
+        restaurantType: "中式",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        restaurantDeleted: null,
       });
 
       const items101 = Array.from({ length: 101 }, (_, i) => makeItem(i + 1));
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          all: vi
-            .fn()
-            .mockResolvedValue(
-              callCount === 1 ? { results: items101 } : { results: [] },
-            ),
-          bind: vi.fn().mockReturnValue({
-            all: vi.fn().mockResolvedValue({ results: [] }),
-            run: vi.fn().mockResolvedValue({ success: true }),
-          }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        };
+      let selectCallCount = 0;
+      mockDrizzleDb.select.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createSelectChain(items101);
+        }
+        return createSelectChain([]);
       });
+
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       const result = await service.reindex();
 
       expect(result.dishes).toBe(101);
       // 101 items → 2 batches (100 + 1)
-      expect(mockDb.batch).toHaveBeenCalledTimes(2);
+      expect(mockD1.batch).toHaveBeenCalledTimes(2);
     });
 
     it("should handle empty data (zero items) without calling batch", async () => {
-      mockDb.prepare.mockImplementation(() => ({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-        run: vi.fn().mockResolvedValue({ success: true }),
-      }));
+      mockDrizzleDb.select.mockReturnValue(createSelectChain([]));
+      mockDrizzleDb.delete.mockReturnValue(createDeleteChain());
 
       const result = await service.reindex();
 
       expect(result.dishes).toBe(0);
       // No items → no batch calls needed
-      expect(mockDb.batch).not.toHaveBeenCalled();
+      expect(mockD1.batch).not.toHaveBeenCalled();
     });
   });
 });

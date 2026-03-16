@@ -1,3 +1,11 @@
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, isNull } from "drizzle-orm";
+import {
+  forecastCache,
+  menuItems,
+  menuItemIngredients,
+  ingredientDefinitions,
+} from "@makanmakan/database";
 import type {
   IngredientForecastItem,
   IngredientForecastResult,
@@ -22,16 +30,18 @@ interface BOMMap {
 const KV_TTL_SECONDS = 6 * 60 * 60; // 6 hours
 
 export class IngredientForecastService {
+  private db;
   private aiEnhancer: AIForecastEnhancer | null = null;
 
   constructor(
-    private db: D1Database,
+    d1: D1Database,
     private kv: KVNamespace,
     private forecastService: ForecastService,
     encryptionKey?: string,
   ) {
+    this.db = drizzle(d1);
     if (encryptionKey) {
-      this.aiEnhancer = new AIForecastEnhancer(db, encryptionKey);
+      this.aiEnhancer = new AIForecastEnhancer(d1, encryptionKey);
     }
   }
 
@@ -126,18 +136,32 @@ export class IngredientForecastService {
 
       // Try DB fallback
       const dbResult = await this.db
-        .prepare(
-          "SELECT data, metadata, generated_by FROM forecast_cache WHERE restaurant_id = ? AND forecast_date = ? AND forecast_type = 'ingredient_level' LIMIT 1",
+        .select({
+          data: forecastCache.data,
+          metadata: forecastCache.metadata,
+          generatedBy: forecastCache.generatedBy,
+        })
+        .from(forecastCache)
+        .where(
+          and(
+            eq(forecastCache.restaurantId, restaurantId),
+            eq(forecastCache.forecastDate, date),
+            eq(forecastCache.forecastType, "ingredient_level"),
+          ),
         )
-        .bind(restaurantId, date)
-        .first<{ data: string; metadata: string; generated_by: string }>();
+        .limit(1);
 
-      if (dbResult) {
+      if (dbResult.length) {
+        const row = dbResult[0];
         const result: IngredientForecastResult = {
           date,
-          ingredients: JSON.parse(dbResult.data),
-          generatedBy: dbResult.generated_by as "statistical" | "ai_enhanced",
-          metadata: JSON.parse(dbResult.metadata),
+          ingredients: row.data as unknown as IngredientForecastItem[],
+          generatedBy: row.generatedBy as "statistical" | "ai_enhanced",
+          metadata: row.metadata as {
+            dataSourceDays: number;
+            model: string;
+            generatedAt: string;
+          },
         };
         results.push(result);
         // Repopulate KV cache
@@ -160,36 +184,38 @@ export class IngredientForecastService {
 
   private async loadBOM(restaurantId: string): Promise<BOMMap> {
     const rows = await this.db
-      .prepare(
-        `SELECT mii.menu_item_id, mii.ingredient_id, mii.quantity_per_serving, mii.unit,
-                id_def.name as ingredient_name, id_def.current_stock
-         FROM menu_item_ingredients mii
-         JOIN ingredient_definitions id_def ON mii.ingredient_id = id_def.id
-         JOIN menu_items mi ON mii.menu_item_id = mi.id
-         WHERE mi.restaurant_id = ?
-         AND id_def.is_active = 1
-         AND id_def.deleted_at_ms IS NULL
-         AND mi.deleted_at_ms IS NULL`,
+      .select({
+        menuItemId: menuItemIngredients.menuItemId,
+        ingredientId: menuItemIngredients.ingredientId,
+        quantityPerServing: menuItemIngredients.quantityPerServing,
+        unit: menuItemIngredients.unit,
+        ingredientName: ingredientDefinitions.name,
+        currentStock: ingredientDefinitions.currentStock,
+      })
+      .from(menuItemIngredients)
+      .innerJoin(
+        ingredientDefinitions,
+        eq(menuItemIngredients.ingredientId, ingredientDefinitions.id),
       )
-      .bind(restaurantId)
-      .all<{
-        menu_item_id: number;
-        ingredient_id: number;
-        quantity_per_serving: number;
-        unit: string;
-        ingredient_name: string;
-        current_stock: number | null;
-      }>();
+      .innerJoin(menuItems, eq(menuItemIngredients.menuItemId, menuItems.id))
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(ingredientDefinitions.isActive, true),
+          isNull(ingredientDefinitions.deletedAt),
+          isNull(menuItems.deletedAt),
+        ),
+      );
 
     const bom: BOMMap = {};
-    for (const row of rows.results) {
-      if (!bom[row.menu_item_id]) bom[row.menu_item_id] = [];
-      bom[row.menu_item_id].push({
-        ingredientId: row.ingredient_id,
-        ingredientName: row.ingredient_name,
+    for (const row of rows) {
+      if (!bom[row.menuItemId]) bom[row.menuItemId] = [];
+      bom[row.menuItemId].push({
+        ingredientId: row.ingredientId,
+        ingredientName: row.ingredientName,
         unit: row.unit,
-        quantityPerServing: row.quantity_per_serving,
-        currentStock: row.current_stock,
+        quantityPerServing: row.quantityPerServing,
+        currentStock: row.currentStock,
       });
     }
     return bom;
@@ -293,20 +319,31 @@ export class IngredientForecastService {
     result: IngredientForecastResult,
   ): Promise<void> {
     await this.db
-      .prepare(
-        `INSERT OR REPLACE INTO forecast_cache (restaurant_id, forecast_date, forecast_type, data, metadata, generated_by, expires_at_ms, created_at_ms)
-         VALUES (?, ?, 'ingredient_level', ?, ?, ?, ?, ?)`,
-      )
-      .bind(
+      .insert(forecastCache)
+      .values({
         restaurantId,
-        date,
-        JSON.stringify(result.ingredients),
-        JSON.stringify(result.metadata),
-        result.generatedBy,
-        Date.now() + KV_TTL_SECONDS * 1000,
-        Date.now(),
-      )
-      .run();
+        forecastDate: date,
+        forecastType: "ingredient_level",
+        data: result.ingredients as any,
+        metadata: result.metadata as any,
+        generatedBy: result.generatedBy,
+        expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
+        createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          forecastCache.restaurantId,
+          forecastCache.forecastDate,
+          forecastCache.forecastType,
+        ],
+        set: {
+          data: result.ingredients as any,
+          metadata: result.metadata as any,
+          generatedBy: result.generatedBy,
+          expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
+          createdAt: new Date(),
+        },
+      });
   }
 
   private getDateRange(start: string, end: string): string[] {

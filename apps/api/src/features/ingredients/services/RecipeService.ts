@@ -1,36 +1,42 @@
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, isNull, notInArray } from "drizzle-orm";
+import {
+  menuItemIngredients,
+  ingredientDefinitions,
+  menuItems,
+} from "@makanmakan/database";
 import type { RecipeEntryResponse } from "../types";
 
-interface RecipeRow {
-  id: number;
-  menu_item_id: number;
-  ingredient_id: number;
-  quantity_per_serving: number;
-  unit: string;
-  is_optional: number;
-  ingredient_name?: string;
-}
-
 export class RecipeService {
-  constructor(private db: D1Database) {}
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
+  }
 
   async getRecipe(menuItemId: number): Promise<RecipeEntryResponse[]> {
     const rows = await this.db
-      .prepare(
-        `SELECT mii.*, id_def.name as ingredient_name
-         FROM menu_item_ingredients mii
-         JOIN ingredient_definitions id_def ON mii.ingredient_id = id_def.id
-         WHERE mii.menu_item_id = ?
-         ORDER BY id_def.name`,
+      .select({
+        ingredientId: menuItemIngredients.ingredientId,
+        ingredientName: ingredientDefinitions.name,
+        quantityPerServing: menuItemIngredients.quantityPerServing,
+        unit: menuItemIngredients.unit,
+        isOptional: menuItemIngredients.isOptional,
+      })
+      .from(menuItemIngredients)
+      .innerJoin(
+        ingredientDefinitions,
+        eq(menuItemIngredients.ingredientId, ingredientDefinitions.id),
       )
-      .bind(menuItemId)
-      .all<RecipeRow>();
+      .where(eq(menuItemIngredients.menuItemId, menuItemId))
+      .orderBy(ingredientDefinitions.name);
 
-    return rows.results.map((row) => ({
-      ingredientId: row.ingredient_id,
-      ingredientName: row.ingredient_name || "",
-      quantityPerServing: row.quantity_per_serving,
+    return rows.map((row) => ({
+      ingredientId: row.ingredientId,
+      ingredientName: row.ingredientName || "",
+      quantityPerServing: row.quantityPerServing,
       unit: row.unit,
-      isOptional: row.is_optional === 1,
+      isOptional: row.isOptional,
     }));
   }
 
@@ -43,29 +49,27 @@ export class RecipeService {
       isOptional?: boolean;
     }[],
   ): Promise<void> {
-    const now = Date.now();
-    const deleteStmt = this.db
-      .prepare("DELETE FROM menu_item_ingredients WHERE menu_item_id = ?")
-      .bind(menuItemId);
+    const now = new Date();
 
-    const insertStatements = entries.map((entry) =>
-      this.db
-        .prepare(
-          `INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_per_serving, unit, is_optional, created_at_ms, updated_at_ms)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(
-          menuItemId,
-          entry.ingredientId,
-          entry.quantityPerServing,
-          entry.unit,
-          entry.isOptional ? 1 : 0,
-          now,
-          now,
-        ),
-    );
+    await this.db.transaction(async (tx) => {
+      await tx
+        .delete(menuItemIngredients)
+        .where(eq(menuItemIngredients.menuItemId, menuItemId));
 
-    await this.db.batch([deleteStmt, ...insertStatements]);
+      if (entries.length > 0) {
+        await tx.insert(menuItemIngredients).values(
+          entries.map((entry) => ({
+            menuItemId,
+            ingredientId: entry.ingredientId,
+            quantityPerServing: entry.quantityPerServing,
+            unit: entry.unit,
+            isOptional: entry.isOptional ?? false,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        );
+      }
+    });
   }
 
   async validateRecipe(
@@ -74,28 +78,30 @@ export class RecipeService {
     const errors: string[] = [];
 
     const recipe = await this.db
-      .prepare(
-        "SELECT mii.ingredient_id, id_def.name, id_def.is_active, id_def.deleted_at_ms FROM menu_item_ingredients mii LEFT JOIN ingredient_definitions id_def ON mii.ingredient_id = id_def.id WHERE mii.menu_item_id = ?",
+      .select({
+        ingredientId: menuItemIngredients.ingredientId,
+        name: ingredientDefinitions.name,
+        isActive: ingredientDefinitions.isActive,
+        deletedAt: ingredientDefinitions.deletedAt,
+      })
+      .from(menuItemIngredients)
+      .leftJoin(
+        ingredientDefinitions,
+        eq(menuItemIngredients.ingredientId, ingredientDefinitions.id),
       )
-      .bind(menuItemId)
-      .all<{
-        ingredient_id: number;
-        name: string | null;
-        is_active: number | null;
-        deleted_at_ms: number | null;
-      }>();
+      .where(eq(menuItemIngredients.menuItemId, menuItemId));
 
-    if (recipe.results.length === 0) {
+    if (recipe.length === 0) {
       errors.push("No recipe entries found for this menu item");
       return { valid: false, errors };
     }
 
-    for (const row of recipe.results) {
+    for (const row of recipe) {
       if (!row.name) {
-        errors.push(`Ingredient #${row.ingredient_id} does not exist`);
-      } else if (row.deleted_at_ms) {
+        errors.push(`Ingredient #${row.ingredientId} does not exist`);
+      } else if (row.deletedAt) {
         errors.push(`Ingredient "${row.name}" has been deleted`);
-      } else if (!row.is_active) {
+      } else if (!row.isActive) {
         errors.push(`Ingredient "${row.name}" is inactive`);
       }
     }
@@ -106,40 +112,42 @@ export class RecipeService {
   async getMenuItemsWithoutRecipes(
     restaurantId: string,
   ): Promise<{ id: number; name: string }[]> {
-    const rows = await this.db
-      .prepare(
-        `SELECT mi.id, mi.name
-         FROM menu_items mi
-         WHERE mi.restaurant_id = ?
-         AND mi.is_available = 1
-         AND mi.deleted_at_ms IS NULL
-         AND mi.id NOT IN (SELECT DISTINCT menu_item_id FROM menu_item_ingredients)
-         ORDER BY mi.name`,
-      )
-      .bind(restaurantId)
-      .all<{ id: number; name: string }>();
+    const usedMenuItemIds = this.db
+      .selectDistinct({ menuItemId: menuItemIngredients.menuItemId })
+      .from(menuItemIngredients);
 
-    return rows.results;
+    return this.db
+      .select({ id: menuItems.id, name: menuItems.name })
+      .from(menuItems)
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(menuItems.isAvailable, true),
+          isNull(menuItems.deletedAt),
+          notInArray(menuItems.id, usedMenuItemIds),
+        ),
+      )
+      .orderBy(menuItems.name);
   }
 
   async getIngredientUsage(
     ingredientId: number,
   ): Promise<{ menuItemId: number; menuItemName: string }[]> {
     const rows = await this.db
-      .prepare(
-        `SELECT mi.id as menu_item_id, mi.name as menu_item_name
-         FROM menu_item_ingredients mii
-         JOIN menu_items mi ON mii.menu_item_id = mi.id
-         WHERE mii.ingredient_id = ?
-         AND mi.deleted_at_ms IS NULL
-         ORDER BY mi.name`,
+      .select({
+        menuItemId: menuItems.id,
+        menuItemName: menuItems.name,
+      })
+      .from(menuItemIngredients)
+      .innerJoin(menuItems, eq(menuItemIngredients.menuItemId, menuItems.id))
+      .where(
+        and(
+          eq(menuItemIngredients.ingredientId, ingredientId),
+          isNull(menuItems.deletedAt),
+        ),
       )
-      .bind(ingredientId)
-      .all<{ menu_item_id: number; menu_item_name: string }>();
+      .orderBy(menuItems.name);
 
-    return rows.results.map((r) => ({
-      menuItemId: r.menu_item_id,
-      menuItemName: r.menu_item_name,
-    }));
+    return rows;
   }
 }

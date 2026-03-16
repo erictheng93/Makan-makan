@@ -2,18 +2,85 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { IngredientForecastService } from "../services/IngredientForecastService";
 
-function createMockDb() {
-  return {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        first: vi.fn().mockResolvedValue(null),
-        run: vi.fn().mockResolvedValue({ success: true }),
-      }),
-    }),
-    batch: vi.fn().mockResolvedValue([]),
-  };
+// ─── Mock drizzle-orm/d1 ──────────────────────────────────────────────────
+
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+  sql: vi.fn(),
+  isNull: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  forecastCache: {
+    restaurantId: {},
+    forecastDate: {},
+    forecastType: {},
+    data: {},
+    metadata: {},
+    generatedBy: {},
+    expiresAt: {},
+    createdAt: {},
+  },
+  menuItems: {
+    id: {},
+    restaurantId: {},
+    deletedAt: {},
+  },
+  menuItemIngredients: {
+    menuItemId: {},
+    ingredientId: {},
+    quantityPerServing: {},
+    unit: {},
+  },
+  ingredientDefinitions: {
+    id: {},
+    name: {},
+    currentStock: {},
+    isActive: {},
+    deletedAt: {},
+  },
+}));
+
+// ─── Chain helpers ──────────────────────────────────────────────────────────
+
+function makeSelectChain(returnValue: unknown[]) {
+  const chain: any = {};
+  const thenFn = (resolve: any) => resolve(returnValue);
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.groupBy = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockImplementation(() => {
+    return { then: thenFn, catch: vi.fn() };
+  });
+  chain.then = thenFn;
+  chain.catch = vi.fn();
+  return chain;
 }
+
+function makeInsertChain() {
+  const chain: any = {};
+  chain.values = vi.fn().mockReturnValue(chain);
+  chain.onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
+  chain.then = (resolve: any) => resolve(undefined);
+  chain.catch = vi.fn();
+  return chain;
+}
+
+// ─── KV mock ───────────────────────────────────────────────────────────────
 
 function createMockKV() {
   const store = new Map<string, string>();
@@ -36,16 +103,15 @@ function createMockForecastService() {
 
 describe("IngredientForecastService", () => {
   let service: IngredientForecastService;
-  let mockDb: ReturnType<typeof createMockDb>;
   let mockKV: ReturnType<typeof createMockKV>;
   let mockForecastService: ReturnType<typeof createMockForecastService>;
 
   beforeEach(() => {
-    mockDb = createMockDb();
+    vi.clearAllMocks();
     mockKV = createMockKV();
     mockForecastService = createMockForecastService();
     service = new IngredientForecastService(
-      mockDb as any,
+      {} as any,
       mockKV as any,
       mockForecastService as any,
     );
@@ -76,33 +142,28 @@ describe("IngredientForecastService", () => {
         },
       ]);
 
-      // Mock DB to return BOM data (menu_item_ingredients joined with ingredient_definitions)
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                ingredient_id: 100,
-                quantity_per_serving: 0.2,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: 15,
-              },
-              {
-                menu_item_id: 1,
-                ingredient_id: 101,
-                quantity_per_serving: 0.15,
-                unit: "kg",
-                ingredient_name: "Rice",
-                current_stock: 20,
-              },
-            ],
-          }),
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+      // Mock DB: loadBOM returns BOM data, saveForecastToDb inserts
+      mockDb.select.mockReturnValue(
+        makeSelectChain([
+          {
+            menuItemId: 1,
+            ingredientId: 100,
+            quantityPerServing: 0.2,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: 15,
+          },
+          {
+            menuItemId: 1,
+            ingredientId: 101,
+            quantityPerServing: 0.15,
+            unit: "kg",
+            ingredientName: "Rice",
+            currentStock: 20,
+          },
+        ]),
+      );
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       const results = await service.generateIngredientForecast("rest-1", {
         startDate: "2026-03-15",
@@ -131,9 +192,6 @@ describe("IngredientForecastService", () => {
     });
 
     it("correctly sums shared ingredients across multiple dishes", async () => {
-      // Dish A: 0.2kg chicken/serving, predicted 50
-      // Dish B: 0.3kg chicken/serving, predicted 30
-      // Total chicken = 0.2*50 + 0.3*30 = 10 + 9 = 19 kg
       mockForecastService.generateForecast.mockResolvedValue([
         {
           date: "2026-03-15",
@@ -163,32 +221,27 @@ describe("IngredientForecastService", () => {
       ]);
 
       // BOM: both dishes use chicken (ingredient_id=100)
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                ingredient_id: 100,
-                quantity_per_serving: 0.2,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: 5,
-              },
-              {
-                menu_item_id: 2,
-                ingredient_id: 100,
-                quantity_per_serving: 0.3,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: 5,
-              },
-            ],
-          }),
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+      mockDb.select.mockReturnValue(
+        makeSelectChain([
+          {
+            menuItemId: 1,
+            ingredientId: 100,
+            quantityPerServing: 0.2,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: 5,
+          },
+          {
+            menuItemId: 2,
+            ingredientId: 100,
+            quantityPerServing: 0.3,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: 5,
+          },
+        ]),
+      );
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       const results = await service.generateIngredientForecast("rest-1", {
         startDate: "2026-03-15",
@@ -205,9 +258,6 @@ describe("IngredientForecastService", () => {
     });
 
     it("calculates weighted confidence based on contribution amounts", async () => {
-      // Dish A: predicted 50, confidence 0.9 -> chicken contribution = 50*0.2 = 10
-      // Dish B: predicted 30, confidence 0.8 -> chicken contribution = 30*0.3 = 9
-      // Weighted confidence = (0.9*10 + 0.8*9) / (10+9) = (9+7.2)/19 = 16.2/19 ≈ 0.85
       mockForecastService.generateForecast.mockResolvedValue([
         {
           date: "2026-03-15",
@@ -236,32 +286,27 @@ describe("IngredientForecastService", () => {
         },
       ]);
 
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                ingredient_id: 100,
-                quantity_per_serving: 0.2,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: null,
-              },
-              {
-                menu_item_id: 2,
-                ingredient_id: 100,
-                quantity_per_serving: 0.3,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: null,
-              },
-            ],
-          }),
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+      mockDb.select.mockReturnValue(
+        makeSelectChain([
+          {
+            menuItemId: 1,
+            ingredientId: 100,
+            quantityPerServing: 0.2,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: null,
+          },
+          {
+            menuItemId: 2,
+            ingredientId: 100,
+            quantityPerServing: 0.3,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: null,
+          },
+        ]),
+      );
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       const results = await service.generateIngredientForecast("rest-1", {
         startDate: "2026-03-15",
@@ -297,7 +342,8 @@ describe("IngredientForecastService", () => {
       ]);
 
       // BOM returns empty — no recipes
-      // Default mockDb already returns { results: [] }
+      mockDb.select.mockReturnValue(makeSelectChain([]));
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       const results = await service.generateIngredientForecast("rest-1", {
         startDate: "2026-03-15",
@@ -332,24 +378,19 @@ describe("IngredientForecastService", () => {
       ]);
 
       // BOM with one ingredient
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({
-            results: [
-              {
-                menu_item_id: 1,
-                ingredient_id: 100,
-                quantity_per_serving: 0.2,
-                unit: "kg",
-                ingredient_name: "Chicken",
-                current_stock: 10,
-              },
-            ],
-          }),
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-      });
+      mockDb.select.mockReturnValue(
+        makeSelectChain([
+          {
+            menuItemId: 1,
+            ingredientId: 100,
+            quantityPerServing: 0.2,
+            unit: "kg",
+            ingredientName: "Chicken",
+            currentStock: 10,
+          },
+        ]),
+      );
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       await service.generateIngredientForecast("rest-1", {
         startDate: "2026-03-15",
@@ -363,8 +404,8 @@ describe("IngredientForecastService", () => {
         expect.objectContaining({ expirationTtl: 21600 }),
       );
 
-      // Verify DB save was called (prepare called for both BOM load and save)
-      expect(mockDb.prepare).toHaveBeenCalled();
+      // Verify DB save was called (insert called for saveForecastToDb)
+      expect(mockDb.insert).toHaveBeenCalled();
     });
   });
 });

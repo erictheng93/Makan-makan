@@ -1,25 +1,35 @@
 /**
  * Backup Configuration Service - Manages backup configurations
+ * Migrated to Drizzle ORM
  */
 
 import type { D1Database } from '@cloudflare/workers-types'
+import { drizzle } from 'drizzle-orm/d1'
+import { eq, and, count, isNotNull, desc } from 'drizzle-orm'
+import {
+  backupConfigurations,
+  backupRecords
+} from '@makanmakan/database'
 import type { BackupConfiguration } from '@makanmakan/shared-types'
 
 export class BackupConfigService {
-  constructor(private db: D1Database) {}
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
+  }
 
   /**
    * Get all configurations for a restaurant
    */
   async getConfigurations(restaurantId: string): Promise<BackupConfiguration[]> {
     try {
-      const result = await this.db.prepare(`
-        SELECT * FROM backup_configurations
-        WHERE restaurant_id = ?
-        ORDER BY created_at DESC
-      `).bind(restaurantId).all()
+      const results = await this.db.select()
+        .from(backupConfigurations)
+        .where(eq(backupConfigurations.restaurantId, restaurantId))
+        .orderBy(desc(backupConfigurations.createdAt))
 
-      return this.parseConfigurations(result.results as any[]) || []
+      return results.map(row => this.parseConfiguration(row)) || []
 
     } catch (error) {
       console.error('Error fetching backup configurations:', error)
@@ -32,12 +42,12 @@ export class BackupConfigService {
    */
   async getConfigurationById(configId: string): Promise<BackupConfiguration | null> {
     try {
-      const result = await this.db.prepare(`
-        SELECT * FROM backup_configurations
-        WHERE id = ?
-      `).bind(configId).first()
+      const results = await this.db.select()
+        .from(backupConfigurations)
+        .where(eq(backupConfigurations.id, configId))
+        .limit(1)
 
-      return result ? this.parseConfiguration(result as any) : null
+      return results.length > 0 ? this.parseConfiguration(results[0]) : null
 
     } catch (error) {
       console.error('Error fetching backup configuration:', error)
@@ -51,14 +61,16 @@ export class BackupConfigService {
   async getDefaultConfiguration(restaurantId: string): Promise<BackupConfiguration | null> {
     try {
       // First try to get an existing default configuration
-      const result = await this.db.prepare(`
-        SELECT * FROM backup_configurations
-        WHERE restaurant_id = ? AND name = 'Default Configuration'
-        LIMIT 1
-      `).bind(restaurantId).first()
+      const results = await this.db.select()
+        .from(backupConfigurations)
+        .where(and(
+          eq(backupConfigurations.restaurantId, restaurantId),
+          eq(backupConfigurations.name, 'Default Configuration')
+        ))
+        .limit(1)
 
-      if (result) {
-        return this.parseConfiguration(result as Record<string, unknown>)
+      if (results.length > 0) {
+        return this.parseConfiguration(results[0])
       }
 
       // If no default exists, create one
@@ -97,35 +109,27 @@ export class BackupConfigService {
    */
   async createConfiguration(config: BackupConfiguration): Promise<BackupConfiguration> {
     try {
-      await this.db.prepare(`
-        INSERT INTO backup_configurations (
-          id, restaurant_id, name, description, backup_type, schedule_enabled,
-          schedule_cron, retention_days, include_tables, exclude_tables,
-          compression_enabled, encryption_enabled, storage_provider,
-          max_parallel_backups, notifications_enabled, notification_channels,
-          created_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        config.id,
-        config.restaurant_id,
-        config.name,
-        config.description,
-        config.backup_type,
-        config.schedule_enabled ? 1 : 0,
-        config.schedule_cron,
-        config.retention_days,
-        JSON.stringify(config.include_tables || []),
-        JSON.stringify(config.exclude_tables || []),
-        config.compression_enabled ? 1 : 0,
-        config.encryption_enabled ? 1 : 0,
-        config.storage_provider,
-        config.max_parallel_backups,
-        config.notifications_enabled ? 1 : 0,
-        JSON.stringify(config.notification_channels || []),
-        config.created_by,
-        config.created_at,
-        config.updated_at
-      ).run()
+      await this.db.insert(backupConfigurations).values({
+        id: config.id,
+        restaurantId: config.restaurant_id,
+        name: config.name,
+        description: config.description,
+        backupType: config.backup_type,
+        scheduleEnabled: config.schedule_enabled,
+        scheduleCron: config.schedule_cron,
+        retentionDays: config.retention_days,
+        includeTables: config.include_tables || [],
+        excludeTables: config.exclude_tables || [],
+        compressionEnabled: config.compression_enabled,
+        encryptionEnabled: config.encryption_enabled,
+        storageProvider: config.storage_provider,
+        maxParallelBackups: config.max_parallel_backups,
+        notificationsEnabled: config.notifications_enabled,
+        notificationChannels: config.notification_channels || [],
+        createdBy: config.created_by,
+        createdAt: config.created_at,
+        updatedAt: config.updated_at
+      })
 
       return config
 
@@ -151,32 +155,25 @@ export class BackupConfigService {
         updated_at: new Date().toISOString()
       }
 
-      await this.db.prepare(`
-        UPDATE backup_configurations SET
-          name = ?, description = ?, backup_type = ?, schedule_enabled = ?,
-          schedule_cron = ?, retention_days = ?, include_tables = ?, exclude_tables = ?,
-          compression_enabled = ?, encryption_enabled = ?, storage_provider = ?,
-          max_parallel_backups = ?, notifications_enabled = ?, notification_channels = ?,
-          updated_at = ?
-        WHERE id = ?
-      `).bind(
-        updated.name,
-        updated.description,
-        updated.backup_type,
-        updated.schedule_enabled ? 1 : 0,
-        updated.schedule_cron,
-        updated.retention_days,
-        JSON.stringify(updated.include_tables || []),
-        JSON.stringify(updated.exclude_tables || []),
-        updated.compression_enabled ? 1 : 0,
-        updated.encryption_enabled ? 1 : 0,
-        updated.storage_provider,
-        updated.max_parallel_backups,
-        updated.notifications_enabled ? 1 : 0,
-        JSON.stringify(updated.notification_channels || []),
-        updated.updated_at,
-        configId
-      ).run()
+      await this.db.update(backupConfigurations)
+        .set({
+          name: updated.name,
+          description: updated.description,
+          backupType: updated.backup_type,
+          scheduleEnabled: updated.schedule_enabled,
+          scheduleCron: updated.schedule_cron,
+          retentionDays: updated.retention_days,
+          includeTables: updated.include_tables || [],
+          excludeTables: updated.exclude_tables || [],
+          compressionEnabled: updated.compression_enabled,
+          encryptionEnabled: updated.encryption_enabled,
+          storageProvider: updated.storage_provider,
+          maxParallelBackups: updated.max_parallel_backups,
+          notificationsEnabled: updated.notifications_enabled,
+          notificationChannels: updated.notification_channels || [],
+          updatedAt: updated.updated_at
+        })
+        .where(eq(backupConfigurations.id, configId))
 
       return updated
 
@@ -237,20 +234,16 @@ export class BackupConfigService {
   async deleteConfiguration(configId: string): Promise<void> {
     try {
       // Check if configuration is in use by any backups
-      const usageCheck = await this.db.prepare(`
-        SELECT COUNT(*) as count
-        FROM backup_records
-        WHERE configuration_id = ?
-      `).bind(configId).first()
+      const usageResult = await this.db.select({ total: count() })
+        .from(backupRecords)
+        .where(eq(backupRecords.configurationId, configId))
 
-      if ((usageCheck as any)?.count > 0) {
+      if ((usageResult[0]?.total || 0) > 0) {
         throw new Error('Cannot delete configuration that is being used by existing backups')
       }
 
-      await this.db.prepare(`
-        DELETE FROM backup_configurations
-        WHERE id = ?
-      `).bind(configId).run()
+      await this.db.delete(backupConfigurations)
+        .where(eq(backupConfigurations.id, configId))
 
     } catch (error) {
       console.error('Error deleting backup configuration:', error)
@@ -263,13 +256,15 @@ export class BackupConfigService {
    */
   async getScheduledConfigurations(): Promise<BackupConfiguration[]> {
     try {
-      const result = await this.db.prepare(`
-        SELECT * FROM backup_configurations
-        WHERE schedule_enabled = 1 AND schedule_cron IS NOT NULL
-        ORDER BY restaurant_id, name
-      `).all()
+      const results = await this.db.select()
+        .from(backupConfigurations)
+        .where(and(
+          eq(backupConfigurations.scheduleEnabled, true),
+          isNotNull(backupConfigurations.scheduleCron)
+        ))
+        .orderBy(backupConfigurations.restaurantId, backupConfigurations.name)
 
-      return this.parseConfigurations(result.results as any[]) || []
+      return results.map(row => this.parseConfiguration(row)) || []
 
     } catch (error) {
       console.error('Error fetching scheduled configurations:', error)
@@ -341,20 +336,22 @@ export class BackupConfigService {
   private parseConfiguration(row: any): BackupConfiguration {
     return {
       ...row,
-      schedule_enabled: Boolean(row.schedule_enabled),
-      compression_enabled: Boolean(row.compression_enabled),
-      encryption_enabled: Boolean(row.encryption_enabled),
-      notifications_enabled: Boolean(row.notifications_enabled),
-      include_tables: JSON.parse(row.include_tables || '[]'),
-      exclude_tables: JSON.parse(row.exclude_tables || '[]'),
-      notification_channels: JSON.parse(row.notification_channels || '[]')
+      restaurant_id: row.restaurantId ?? row.restaurant_id,
+      backup_type: row.backupType ?? row.backup_type,
+      schedule_enabled: Boolean(row.scheduleEnabled ?? row.schedule_enabled),
+      schedule_cron: row.scheduleCron ?? row.schedule_cron,
+      retention_days: row.retentionDays ?? row.retention_days,
+      compression_enabled: Boolean(row.compressionEnabled ?? row.compression_enabled),
+      encryption_enabled: Boolean(row.encryptionEnabled ?? row.encryption_enabled),
+      storage_provider: row.storageProvider ?? row.storage_provider,
+      max_parallel_backups: row.maxParallelBackups ?? row.max_parallel_backups,
+      notifications_enabled: Boolean(row.notificationsEnabled ?? row.notifications_enabled),
+      include_tables: row.includeTables ?? row.include_tables ?? [],
+      exclude_tables: row.excludeTables ?? row.exclude_tables ?? [],
+      notification_channels: row.notificationChannels ?? row.notification_channels ?? [],
+      created_by: row.createdBy ?? row.created_by,
+      created_at: row.createdAt ?? row.created_at,
+      updated_at: row.updatedAt ?? row.updated_at
     }
-  }
-
-  /**
-   * Parse multiple configurations from database results
-   */
-  private parseConfigurations(rows: any[]): BackupConfiguration[] {
-    return rows.map(row => this.parseConfiguration(row))
   }
 }

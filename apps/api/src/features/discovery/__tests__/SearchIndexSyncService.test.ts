@@ -1,20 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SearchIndexSyncService } from "../services/SearchIndexSyncService";
 
-function createMockDb() {
-  const boundStatement = {
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
-    first: vi.fn().mockResolvedValue(null),
-    all: vi.fn().mockResolvedValue({ results: [] }),
-  };
-  return {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnValue(boundStatement),
-      run: boundStatement.run,
-    }),
-    _boundStatement: boundStatement,
-  };
-}
+// ─── Mock Drizzle ──────────────────────────────────────────────────────────
+
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  dishSearchIndex: { menuItemId: "menuItemId", restaurantId: "restaurantId" },
+  menuItems: { id: "id" },
+  categories: {},
+  restaurants: {},
+}));
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
 function createMockKV() {
   return {
@@ -24,16 +35,31 @@ function createMockKV() {
   };
 }
 
+function makeDeleteChain() {
+  return { where: vi.fn().mockResolvedValue(undefined) };
+}
+
+function makeInsertChain() {
+  return { values: vi.fn().mockResolvedValue(undefined) };
+}
+
+function makeUpdateChain() {
+  return {
+    set: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+// ─── Tests ────────────────────────────────────────────────────────────────
+
 describe("SearchIndexSyncService", () => {
   let service: SearchIndexSyncService;
-  let mockDb: ReturnType<typeof createMockDb>;
   let mockKV: ReturnType<typeof createMockKV>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDb = createMockDb();
     mockKV = createMockKV();
-    service = new SearchIndexSyncService(mockDb as any, mockKV as any);
+    service = new SearchIndexSyncService({} as any, mockKV as any);
   });
 
   describe("onMenuItemChanged", () => {
@@ -42,157 +68,132 @@ describe("SearchIndexSyncService", () => {
         id: 101,
         name: "牛肉麵",
         price: 150,
-        is_available: 1,
-        tags: JSON.stringify(["牛肉", "麵"]),
+        isAvailable: true,
+        tags: ["牛肉", "麵"],
         keywords: JSON.stringify(["經典"]),
-        deleted_at_ms: null,
-        restaurant_id: "r1",
-        category_id: "c1",
-        category_name: "麵類",
+        deletedAt: null,
+        restaurantId: "r1",
+        categoryName: "麵類",
         district: "西屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        restaurant_deleted: null,
+        restaurantType: "中式",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        restaurantDeleted: null,
       };
 
-      // First prepare call = SELECT query → returns menuItem
-      const firstBound = {
-        first: vi.fn().mockResolvedValue(menuItem),
-        run: vi.fn().mockResolvedValue({ success: true }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
+      // SELECT query (with joins) returns menuItem
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([menuItem]),
       };
-      // Second prepare call = INSERT OR REPLACE → runs
-      const secondBound = {
-        run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
-        first: vi.fn(),
-        all: vi.fn(),
-      };
+      mockDb.select.mockReturnValue(selectChain);
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        const bound = callCount === 1 ? firstBound : secondBound;
-        return {
-          bind: vi.fn().mockReturnValue(bound),
-        };
-      });
+      // DELETE (clear old index) then INSERT (new index)
+      mockDb.delete.mockReturnValue(makeDeleteChain());
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       await service.onMenuItemChanged(101);
 
-      expect(mockDb.prepare).toHaveBeenCalledTimes(2);
-      // First call: SELECT query
-      expect(mockDb.prepare.mock.calls[0][0]).toContain("SELECT");
-      // Second call: INSERT OR REPLACE
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("INSERT OR REPLACE");
-      expect(secondBound.run).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
+      expect(mockDb.delete).toHaveBeenCalledTimes(1);
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
     });
 
     it("should delete index when menu item does not exist", async () => {
-      // First call: SELECT returns null
-      const selectBound = {
-        first: vi.fn().mockResolvedValue(null),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
       };
-      // Second call: DELETE
-      const deleteBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
-      };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        const bound = callCount === 1 ? selectBound : deleteBound;
-        return {
-          bind: vi.fn().mockReturnValue(bound),
-        };
-      });
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
       await service.onMenuItemChanged(999);
 
-      expect(mockDb.prepare).toHaveBeenCalledTimes(2);
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("DELETE");
-      expect(deleteBound.run).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
+      expect(mockDb.delete).toHaveBeenCalledTimes(1);
+      // No insert for non-existent items
+      expect(mockDb.insert).not.toHaveBeenCalled();
     });
 
-    it("should set is_available=0 when menu item is soft-deleted", async () => {
+    it("should set is_available=false when menu item is soft-deleted", async () => {
       const deletedItem = {
         id: 101,
         name: "牛肉麵",
         price: 150,
-        is_available: 1,
+        isAvailable: true,
         tags: null,
         keywords: null,
-        deleted_at_ms: Date.now(), // soft deleted
-        restaurant_id: "r1",
-        category_id: "c1",
-        category_name: "麵類",
+        deletedAt: new Date(), // soft deleted
+        restaurantId: "r1",
+        categoryName: "麵類",
         district: "西屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        restaurant_deleted: null,
+        restaurantType: "中式",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        restaurantDeleted: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(deletedItem) };
-      const insertBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([deletedItem]),
       };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi.fn((...args: any[]) => {
-            if (callCount === 2) {
-              // Verify is_available is 0 (7th bind param, index 5)
-              expect(args[6]).toBe(0); // is_available = 0 (index 6 in bind params)
-            }
-            return callCount === 1 ? selectBound : insertBound;
-          }),
-        };
-      });
+      const insertChain = makeInsertChain();
+      mockDb.insert.mockReturnValue(insertChain);
 
       await service.onMenuItemChanged(101);
+
+      // Verify the insert values have isAvailable = false
+      const insertValues = insertChain.values.mock.calls[0][0];
+      expect(insertValues.isAvailable).toBe(false);
     });
 
-    it("should set is_available=0 when restaurant is soft-deleted", async () => {
+    it("should set is_available=false when restaurant is soft-deleted", async () => {
       const item = {
         id: 102,
         name: "滷肉飯",
         price: 80,
-        is_available: 1,
+        isAvailable: true,
         tags: null,
         keywords: null,
-        deleted_at_ms: null,
-        restaurant_id: "r1",
-        category_id: "c1",
-        category_name: "飯類",
+        deletedAt: null,
+        restaurantId: "r1",
+        categoryName: "飯類",
         district: "北屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 0,
-        supports_delivery: 0,
-        restaurant_deleted: Date.now(), // restaurant soft deleted
+        restaurantType: "中式",
+        supportsTakeaway: false,
+        supportsDelivery: false,
+        restaurantDeleted: new Date(), // restaurant soft deleted
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(item) };
-      const insertBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([item]),
       };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi.fn((...args: any[]) => {
-            if (callCount === 2) {
-              expect(args[6]).toBe(0); // is_available = 0 (index 6 in bind params)
-            }
-            return callCount === 1 ? selectBound : insertBound;
-          }),
-        };
-      });
+      const insertChain = makeInsertChain();
+      mockDb.insert.mockReturnValue(insertChain);
 
       await service.onMenuItemChanged(102);
+
+      const insertValues = insertChain.values.mock.calls[0][0];
+      expect(insertValues.isAvailable).toBe(false);
     });
 
     it("should merge tags and keywords into combined tags array", async () => {
@@ -200,46 +201,40 @@ describe("SearchIndexSyncService", () => {
         id: 103,
         name: "拉麵",
         price: 200,
-        is_available: 1,
-        tags: JSON.stringify(["日式", "湯麵"]),
+        isAvailable: true,
+        tags: ["日式", "湯麵"],
         keywords: JSON.stringify(["豚骨", "濃厚"]),
-        deleted_at_ms: null,
-        restaurant_id: "r2",
-        category_id: "c2",
-        category_name: "日式",
+        deletedAt: null,
+        restaurantId: "r2",
+        categoryName: "日式",
         district: "南屯區",
-        restaurant_type: "日式",
-        supports_takeaway: 1,
-        supports_delivery: 1,
-        restaurant_deleted: null,
+        restaurantType: "日式",
+        supportsTakeaway: true,
+        supportsDelivery: true,
+        restaurantDeleted: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(item) };
-      const insertBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([item]),
       };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
-      let capturedArgs: any[] = [];
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi.fn((...args: any[]) => {
-            if (callCount === 2) capturedArgs = args;
-            return callCount === 1 ? selectBound : insertBound;
-          }),
-        };
-      });
+      const insertChain = makeInsertChain();
+      mockDb.insert.mockReturnValue(insertChain);
 
       await service.onMenuItemChanged(103);
 
-      // tags param is at index 7 in the bind call (after id, restaurant_id, name, normalized, category_name, price, is_available)
-      const tags = JSON.parse(capturedArgs[7]);
-      expect(tags).toContain("日式");
-      expect(tags).toContain("湯麵");
-      expect(tags).toContain("豚骨");
-      expect(tags).toContain("濃厚");
-      expect(tags).toHaveLength(4);
+      const insertValues = insertChain.values.mock.calls[0][0];
+      expect(insertValues.tags).toContain("日式");
+      expect(insertValues.tags).toContain("湯麵");
+      expect(insertValues.tags).toContain("豚骨");
+      expect(insertValues.tags).toContain("濃厚");
+      expect(insertValues.tags).toHaveLength(4);
     });
   });
 
@@ -248,100 +243,81 @@ describe("SearchIndexSyncService", () => {
       const restaurant = {
         district: "西屯區",
         type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        deleted_at_ms: null,
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        deletedAt: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(restaurant) };
-      const updateBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([restaurant]),
       };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : updateBound),
-        };
-      });
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.update.mockReturnValue(makeUpdateChain());
 
       await service.onRestaurantChanged("r1");
 
-      expect(mockDb.prepare).toHaveBeenCalledTimes(2);
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("UPDATE");
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("district");
-      expect(updateBound.run).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
+      expect(mockDb.update).toHaveBeenCalledTimes(1);
     });
 
     it("should mark all indexes unavailable when restaurant is soft-deleted", async () => {
       const restaurant = {
         district: "西屯區",
         type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        deleted_at_ms: Date.now(),
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        deletedAt: new Date(),
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(restaurant) };
-      const updateBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([restaurant]),
       };
+      mockDb.select.mockReturnValue(selectChain);
 
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : updateBound),
-        };
-      });
+      const updateChain = makeUpdateChain();
+      mockDb.update.mockReturnValue(updateChain);
 
       await service.onRestaurantChanged("r1");
 
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("is_available = 0");
-      expect(updateBound.run).toHaveBeenCalled();
+      // Verify set was called with isAvailable: false
+      const setArg = updateChain.set.mock.calls[0][0];
+      expect(setArg.isAvailable).toBe(false);
     });
 
     it("should do nothing when restaurant does not exist", async () => {
-      const selectBound = { first: vi.fn().mockResolvedValue(null) };
-
-      mockDb.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue(selectBound),
-      });
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDb.select.mockReturnValue(selectChain);
 
       await service.onRestaurantChanged("nonexistent");
 
-      // Only the SELECT query should be called
-      expect(mockDb.prepare).toHaveBeenCalledTimes(1);
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
+      expect(mockDb.update).not.toHaveBeenCalled();
     });
 
     it("should invalidate KV district cache", async () => {
       const restaurant = {
         district: "北屯區",
         type: "日式",
-        supports_takeaway: 0,
-        supports_delivery: 1,
-        deleted_at_ms: null,
+        supportsTakeaway: false,
+        supportsDelivery: true,
+        deletedAt: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(restaurant) };
-      const updateBound = {
-        run: vi.fn().mockResolvedValue({ success: true }),
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([restaurant]),
       };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : updateBound),
-        };
-      });
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.update.mockReturnValue(makeUpdateChain());
 
       await service.onRestaurantChanged("r2");
 
@@ -353,23 +329,20 @@ describe("SearchIndexSyncService", () => {
 
   describe("onMenuItemChanged - batch boundary edge cases", () => {
     it("should handle menuItemId=0 (boundary value) — not found → delete", async () => {
-      const selectBound = { first: vi.fn().mockResolvedValue(null) };
-      const deleteBound = { run: vi.fn().mockResolvedValue({ success: true }) };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : deleteBound),
-        };
-      });
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
       await service.onMenuItemChanged(0);
 
-      expect(mockDb.prepare.mock.calls[1][0]).toContain("DELETE");
-      expect(deleteBound.run).toHaveBeenCalled();
+      expect(mockDb.delete).toHaveBeenCalledTimes(1);
+      expect(mockDb.insert).not.toHaveBeenCalled();
     });
 
     it("should handle very large menuItemId without error", async () => {
@@ -378,36 +351,33 @@ describe("SearchIndexSyncService", () => {
         id: largeId,
         name: "特大號漢堡",
         price: 350,
-        is_available: 1,
+        isAvailable: true,
         tags: null,
         keywords: null,
-        deleted_at_ms: null,
-        restaurant_id: "r-big",
-        category_id: "c1",
-        category_name: "漢堡類",
+        deletedAt: null,
+        restaurantId: "r-big",
+        categoryName: "漢堡類",
         district: "南屯區",
-        restaurant_type: "西式",
-        supports_takeaway: 1,
-        supports_delivery: 1,
-        restaurant_deleted: null,
+        restaurantType: "西式",
+        supportsTakeaway: true,
+        supportsDelivery: true,
+        restaurantDeleted: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(item) };
-      const insertBound = { run: vi.fn().mockResolvedValue({ success: true }) };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : insertBound),
-        };
-      });
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([item]),
+      };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
+      mockDb.insert.mockReturnValue(makeInsertChain());
 
       await service.onMenuItemChanged(largeId);
 
-      expect(insertBound.run).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("should handle item with empty tags and keywords arrays", async () => {
@@ -415,39 +385,36 @@ describe("SearchIndexSyncService", () => {
         id: 50,
         name: "白飯",
         price: 20,
-        is_available: 1,
-        tags: JSON.stringify([]),
+        isAvailable: true,
+        tags: [],
         keywords: JSON.stringify([]),
-        deleted_at_ms: null,
-        restaurant_id: "r1",
-        category_id: "c1",
-        category_name: "主食",
+        deletedAt: null,
+        restaurantId: "r1",
+        categoryName: "主食",
         district: "西屯區",
-        restaurant_type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        restaurant_deleted: null,
+        restaurantType: "中式",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        restaurantDeleted: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(item) };
-      const insertBound = { run: vi.fn().mockResolvedValue({ success: true }) };
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([item]),
+      };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.delete.mockReturnValue(makeDeleteChain());
 
-      let callCount = 0;
-      let capturedArgs: any[] = [];
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi.fn((...args: any[]) => {
-            if (callCount === 2) capturedArgs = args;
-            return callCount === 1 ? selectBound : insertBound;
-          }),
-        };
-      });
+      const insertChain = makeInsertChain();
+      mockDb.insert.mockReturnValue(insertChain);
 
       await service.onMenuItemChanged(50);
 
-      // tags at index 7 should be an empty JSON array
-      expect(JSON.parse(capturedArgs[7])).toEqual([]);
+      const insertValues = insertChain.values.mock.calls[0][0];
+      expect(insertValues.tags).toEqual([]);
     });
   });
 
@@ -456,23 +423,18 @@ describe("SearchIndexSyncService", () => {
       const restaurant = {
         district: null,
         type: "中式",
-        supports_takeaway: 1,
-        supports_delivery: 0,
-        deleted_at_ms: null,
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        deletedAt: null,
       };
 
-      const selectBound = { first: vi.fn().mockResolvedValue(restaurant) };
-      const updateBound = { run: vi.fn().mockResolvedValue({ success: true }) };
-
-      let callCount = 0;
-      mockDb.prepare.mockImplementation(() => {
-        callCount++;
-        return {
-          bind: vi
-            .fn()
-            .mockReturnValue(callCount === 1 ? selectBound : updateBound),
-        };
-      });
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([restaurant]),
+      };
+      mockDb.select.mockReturnValue(selectChain);
+      mockDb.update.mockReturnValue(makeUpdateChain());
 
       await service.onRestaurantChanged("r-no-district");
 

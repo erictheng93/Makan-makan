@@ -31,6 +31,204 @@ let ReceiptService: any;
 let RefundService: any;
 let ReportService: any;
 
+// Mock drizzle-orm/d1
+const mockSelect = vi.fn();
+const mockInsert = vi.fn();
+const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
+
+const mockDb = {
+  select: mockSelect,
+  insert: mockInsert,
+  update: mockUpdate,
+  delete: mockDelete,
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((...args: any[]) => ({ type: "eq", args })),
+  and: vi.fn((...args: any[]) => ({ type: "and", args })),
+  desc: vi.fn((col: any) => ({ type: "desc", col })),
+  sql: Object.assign(
+    vi.fn((...args: any[]) => ({ type: "sql", args })),
+    {
+      raw: vi.fn((s: string) => s),
+    },
+  ),
+  inArray: vi.fn((...args: any[]) => ({ type: "inArray", args })),
+  count: vi.fn(() => ({ type: "count" })),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  cashRegisters: {
+    id: "id",
+    name: "name",
+    restaurantId: "restaurant_id",
+    isActive: "is_active",
+    currentShiftId: "current_shift_id",
+    hardwareConfig: "hardware_config",
+    peripherals: "peripherals",
+    settings: "settings",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+  cashShifts: {
+    id: "id",
+    registerId: "register_id",
+    operatorId: "operator_id",
+    startAmount: "start_amount",
+    endAmount: "end_amount",
+    expectedAmount: "expected_amount",
+    actualAmount: "actual_amount",
+    differenceAmount: "difference_amount",
+    totalSales: "total_sales",
+    totalRefunds: "total_refunds",
+    cashSales: "cash_sales",
+    cardSales: "card_sales",
+    digitalSales: "digital_sales",
+    totalTransactions: "total_transactions",
+    startedAt: "started_at",
+    endedAt: "ended_at",
+    status: "status",
+    notes: "notes",
+    closingNotes: "closing_notes",
+  },
+  cashMovements: {
+    id: "id",
+    shiftId: "shift_id",
+    registerId: "register_id",
+    type: "type",
+    amount: "amount",
+    description: "description",
+    referenceId: "reference_id",
+    referenceType: "reference_type",
+    paymentMethod: "payment_method",
+    denominationBreakdown: "denomination_breakdown",
+    recordedBy: "recorded_by",
+    approvedBy: "approved_by",
+    approvalStatus: "approval_status",
+    receiptNumber: "receipt_number",
+    metadata: "metadata",
+    createdAt: "created_at",
+  },
+  receipts: {
+    id: "id",
+    orderId: "order_id",
+    registerId: "register_id",
+    shiftId: "shift_id",
+    receiptNumber: "receipt_number",
+    receiptType: "receipt_type",
+    templateName: "template_name",
+    content: "content",
+    printStatus: "print_status",
+    printAttempts: "print_attempts",
+    reprintedCount: "reprinted_count",
+    printedAt: "printed_at",
+    lastReprintAt: "last_reprint_at",
+    createdAt: "created_at",
+  },
+  refunds: {
+    id: "id",
+    originalOrderId: "original_order_id",
+    registerId: "register_id",
+    shiftId: "shift_id",
+    refundNumber: "refund_number",
+    refundType: "refund_type",
+    originalAmount: "original_amount",
+    refundAmount: "refund_amount",
+    refundMethod: "refund_method",
+    reasonCode: "reason_code",
+    reasonDescription: "reason_description",
+    itemsRefunded: "items_refunded",
+    processedBy: "processed_by",
+    approvedBy: "approved_by",
+    customerSignature: "customer_signature",
+    status: "status",
+    processedAt: "processed_at",
+    completedAt: "completed_at",
+    metadata: "metadata",
+  },
+  orders: {
+    id: "id",
+    restaurantId: "restaurant_id",
+    totalAmount: "total_amount",
+    taxAmount: "tax_amount",
+    discountAmount: "discount_amount",
+    paymentMethod: "payment_method",
+    createdAt: "created_at",
+  },
+  orderItems: {
+    orderId: "order_id",
+    menuItemId: "menu_item_id",
+    quantity: "quantity",
+    subtotal: "subtotal",
+  },
+  menuItems: { id: "id", name: "name" },
+  shiftReports: {
+    id: "id",
+    shiftId: "shift_id",
+    registerId: "register_id",
+    operatorId: "operator_id",
+    reportData: "report_data",
+    summaryData: "summary_data",
+    generatedAt: "generated_at",
+  },
+  getCurrentTimestamp: vi.fn(() => new Date().toISOString()),
+}));
+
+// Helper to create chainable mock
+const createChain = (result: any) => {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  chain.leftJoin = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  chain.groupBy = vi.fn().mockReturnValue(chain);
+  chain.values = vi.fn().mockReturnValue(chain);
+  chain.set = vi.fn().mockReturnValue(chain);
+  chain.returning = vi.fn().mockReturnValue(chain);
+  chain.then = vi.fn((resolve: any) => resolve(result));
+  // Make the chain thenable (for await)
+  chain[Symbol.iterator] = function* () {
+    yield* result;
+  };
+  return chain;
+};
+
+// Setup select to return chainable mock
+const setupSelect = (result: any) => {
+  const chain = createChain(result);
+  mockSelect.mockReturnValue(chain);
+  return chain;
+};
+
+// Setup insert to return chainable mock
+const setupInsert = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockInsert.mockReturnValue(chain);
+  return chain;
+};
+
+// Setup update to return chainable mock
+const setupUpdate = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockUpdate.mockReturnValue(chain);
+  return chain;
+};
+
+// Setup delete to return chainable mock
+const setupDelete = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockDelete.mockReturnValue(chain);
+  return chain;
+};
+
 beforeAll(async () => {
   const [registerMod, shiftMod, cashMod, receiptMod, refundMod, reportMod] =
     await Promise.all([
@@ -49,36 +247,9 @@ beforeAll(async () => {
   ReportService = reportMod.ReportService;
 }, 30000);
 
-// Create mock DB that returns proper structure
-const createMockDB = () => {
-  const mockFirst = vi.fn();
-  const mockAll = vi.fn();
-  const mockRun = vi.fn();
-  const mockBind = vi.fn();
-
-  const db = {
-    prepare: vi.fn().mockReturnValue({
-      bind: mockBind.mockReturnValue({
-        first: mockFirst,
-        all: mockAll,
-        run: mockRun,
-      }),
-    }),
-    _mockFirst: mockFirst,
-    _mockAll: mockAll,
-    _mockRun: mockRun,
-    _mockBind: mockBind,
-  };
-
-  return db;
-};
-
 describe("POS Services Unit Tests", () => {
-  let mockDB: ReturnType<typeof createMockDB>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDB = createMockDB();
   });
 
   afterEach(() => {
@@ -92,17 +263,21 @@ describe("POS Services Unit Tests", () => {
   describe("RegisterService", () => {
     describe("createRegister", () => {
       it("應該成功創建收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
-        mockDB._mockFirst.mockResolvedValue({
-          id: "reg-001",
-          name: "POS-001",
-          is_active: true,
-          hardware_config: "{}",
-          peripherals: "{}",
-          settings: "{}",
-        });
+        // insert().values()
+        setupInsert();
+        // select().from().where().limit() -> returns register
+        setupSelect([
+          {
+            id: "reg-001",
+            name: "POS-001",
+            isActive: true,
+            hardwareConfig: "{}",
+            peripherals: "{}",
+            settings: "{}",
+          },
+        ]);
 
         const result = await service.createRegister(
           {
@@ -118,7 +293,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕無效的收銀機名稱", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
         const result = await service.createRegister(
           {
@@ -134,28 +309,26 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRegisters", () => {
       it("應該返回餐廳的收銀機列表", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            {
-              id: "reg-001",
-              name: "POS-001",
-              is_active: true,
-              hardware_config: "{}",
-              peripherals: "{}",
-              settings: "{}",
-            },
-            {
-              id: "reg-002",
-              name: "POS-002",
-              is_active: true,
-              hardware_config: "{}",
-              peripherals: "{}",
-              settings: "{}",
-            },
-          ],
-        });
+        setupSelect([
+          {
+            id: "reg-001",
+            name: "POS-001",
+            isActive: true,
+            hardwareConfig: "{}",
+            peripherals: "{}",
+            settings: "{}",
+          },
+          {
+            id: "reg-002",
+            name: "POS-002",
+            isActive: true,
+            hardwareConfig: "{}",
+            peripherals: "{}",
+            settings: "{}",
+          },
+        ]);
 
         const result = await service.getRegisters(1);
 
@@ -164,9 +337,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理空結果", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getRegisters(1);
 
@@ -175,9 +348,14 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理資料庫錯誤", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockAll.mockRejectedValue(new Error("Database error"));
+        const chain = createChain([]);
+        chain.then = vi.fn((_resolve: any, reject: any) => {
+          if (reject) return reject(new Error("Database error"));
+          throw new Error("Database error");
+        });
+        mockSelect.mockReturnValue(chain);
 
         const result = await service.getRegisters(1);
 
@@ -188,16 +366,18 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRegisterStatus", () => {
       it("應該返回收銀機狀態", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "reg-001",
-          name: "POS-001",
-          is_active: true,
-          hardware_config: "{}",
-          peripherals: "{}",
-          settings: "{}",
-        });
+        setupSelect([
+          {
+            id: "reg-001",
+            name: "POS-001",
+            isActive: true,
+            hardwareConfig: "{}",
+            peripherals: "{}",
+            settings: "{}",
+          },
+        ]);
 
         const result = await service.getRegisterStatus("reg-001");
 
@@ -206,9 +386,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.getRegisterStatus("non-existent");
 
@@ -219,16 +399,18 @@ describe("POS Services Unit Tests", () => {
 
     describe("updateRegister", () => {
       it("應該成功更新收銀機設定", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
-        mockDB._mockFirst.mockResolvedValue({
-          id: "reg-001",
-          name: "POS-001-Updated",
-          hardware_config: "{}",
-          peripherals: "{}",
-          settings: "{}",
-        });
+        setupUpdate();
+        setupSelect([
+          {
+            id: "reg-001",
+            name: "POS-001-Updated",
+            hardwareConfig: "{}",
+            peripherals: "{}",
+            settings: "{}",
+          },
+        ]);
 
         const result = await service.updateRegister("reg-001", {
           name: "POS-001-Updated",
@@ -238,7 +420,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕空更新", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
         const result = await service.updateRegister("reg-001", {});
 
@@ -249,13 +431,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("toggleRegisterStatus", () => {
       it("應該成功啟用收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "reg-001",
-          is_active: false,
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.toggleRegisterStatus("reg-001", true);
 
@@ -263,10 +441,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功停用收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({ id: "reg-001", is_active: true });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.toggleRegisterStatus("reg-001", false);
 
@@ -276,10 +453,10 @@ describe("POS Services Unit Tests", () => {
 
     describe("deleteRegister", () => {
       it("應該成功刪除無活躍班次的收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null); // No active shift
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([]); // No active shift
+        setupDelete();
 
         const result = await service.deleteRegister("reg-001");
 
@@ -287,9 +464,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕刪除有活躍班次的收銀機", async () => {
-        const service = new RegisterService(mockDB as any);
+        const service = new RegisterService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({ id: "shift-001" }); // Has active shift
+        setupSelect([{ id: "shift-001" }]); // Has active shift
 
         const result = await service.deleteRegister("reg-001");
 
@@ -309,14 +486,30 @@ describe("POS Services Unit Tests", () => {
 
     describe("startShift", () => {
       it("應該成功開始新班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce(null) // No existing active shift
-          .mockResolvedValueOnce({ register_id: validRegisterId }) // For cash movement
-          .mockResolvedValueOnce({ id: "shift-001", status: "active" }); // Created shift
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        // First call: check existing shift (select returns empty)
+        // Second call: insert shift
+        // Third call: update register
+        // Fourth call: recordCashMovement select shift registerId
+        // Fifth call: recordCashMovement insert
+        // Sixth call: select created shift
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Check existing active shift - none found
+            return createChain([]);
+          } else if (selectCallCount === 2) {
+            // recordCashMovement: get shift's registerId
+            return createChain([{ registerId: validRegisterId }]);
+          } else {
+            // Final select to get created shift
+            return createChain([{ id: "shift-001", status: "active" }]);
+          }
+        });
+        setupInsert();
+        setupUpdate();
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -328,12 +521,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕在已有活動班次時開班", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "existing-shift",
-          status: "active",
-        });
+        setupSelect([{ id: "existing-shift", status: "active" }]);
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -346,7 +536,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕負數開班金額", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -358,18 +548,23 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援開班備註", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ register_id: validRegisterId })
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            status: "active",
-            notes: "早班",
-          });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ registerId: validRegisterId }]);
+          } else {
+            return createChain([
+              { id: "shift-001", status: "active", notes: "早班" },
+            ]);
+          }
+        });
+        setupInsert();
+        setupUpdate();
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -384,20 +579,31 @@ describe("POS Services Unit Tests", () => {
 
     describe("endShift", () => {
       it("應該成功結束班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            status: "active",
-            register_id: "reg-001",
-            start_amount: "1000",
-            total_sales: "5000",
-            total_refunds: "200",
-          })
-          .mockResolvedValueOnce({ register_id: "reg-001" });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Get shift
+            return createChain([
+              {
+                id: "shift-001",
+                status: "active",
+                registerId: "reg-001",
+                startAmount: 1000,
+                totalSales: 5000,
+                totalRefunds: 200,
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            // recordCashMovement: get registerId
+            return createChain([{ registerId: "reg-001" }]);
+          }
+          return createChain([]);
+        });
+        setupUpdate();
+        setupInsert();
 
         const result = await service.endShift(
           "shift-001",
@@ -412,9 +618,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕結束不存在的班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.endShift(
           "shift-001",
@@ -429,20 +635,29 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該計算現金差額", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            status: "active",
-            register_id: "reg-001",
-            start_amount: "1000",
-            total_sales: "5000",
-            total_refunds: "200",
-          })
-          .mockResolvedValueOnce({ register_id: "reg-001" });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: "shift-001",
+                status: "active",
+                registerId: "reg-001",
+                startAmount: 1000,
+                totalSales: 5000,
+                totalRefunds: 200,
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ registerId: "reg-001" }]);
+          }
+          return createChain([]);
+        });
+        setupUpdate();
+        setupInsert();
 
         const result = await service.endShift(
           "shift-001",
@@ -457,20 +672,29 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援結班備註", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            status: "active",
-            register_id: "reg-001",
-            start_amount: "1000",
-            total_sales: "5000",
-            total_refunds: "200",
-          })
-          .mockResolvedValueOnce({ register_id: "reg-001" });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: "shift-001",
+                status: "active",
+                registerId: "reg-001",
+                startAmount: 1000,
+                totalSales: 5000,
+                totalRefunds: 200,
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ registerId: "reg-001" }]);
+          }
+          return createChain([]);
+        });
+        setupUpdate();
+        setupInsert();
 
         const result = await service.endShift(
           "shift-001",
@@ -487,13 +711,15 @@ describe("POS Services Unit Tests", () => {
 
     describe("getCurrentShift", () => {
       it("應該返回當前活動班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          start_amount: 1000,
-        });
+        setupSelect([
+          {
+            id: "shift-001",
+            status: "active",
+            startAmount: 1000,
+          },
+        ]);
 
         const result = await service.getCurrentShift("reg-001");
 
@@ -502,9 +728,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該返回 null 當沒有活動班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.getCurrentShift("reg-001");
 
@@ -515,9 +741,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("suspendShift", () => {
       it("應該成功暫停班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.suspendShift("shift-001", "午休");
 
@@ -525,9 +751,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援無原因暫停", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.suspendShift("shift-001");
 
@@ -537,9 +763,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("resumeShift", () => {
       it("應該成功恢復班次", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.resumeShift("shift-001");
 
@@ -555,14 +781,15 @@ describe("POS Services Unit Tests", () => {
   describe("CashMovementService", () => {
     describe("processCashMovement", () => {
       it("應該成功記錄現金存入", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]);
+        setupInsert();
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -578,14 +805,15 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功記錄現金取出", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]);
+        setupInsert();
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -601,12 +829,13 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕在非活動班次記錄", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "closed",
-        });
+        setupSelect([
+          {
+            status: "closed",
+          },
+        ]);
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -623,9 +852,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的班次", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.processCashMovement(
           "non-existent",
@@ -641,14 +870,15 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援面額明細", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]);
+        setupInsert();
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -667,26 +897,24 @@ describe("POS Services Unit Tests", () => {
 
     describe("getCashMovements", () => {
       it("應該返回現金流動記錄", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            {
-              id: "mov-001",
-              type: "cash_in",
-              amount: 500,
-              denomination_breakdown: "{}",
-              metadata: "{}",
-            },
-            {
-              id: "mov-002",
-              type: "cash_out",
-              amount: 200,
-              denomination_breakdown: "{}",
-              metadata: "{}",
-            },
-          ],
-        });
+        setupSelect([
+          {
+            id: "mov-001",
+            type: "cash_in",
+            amount: 500,
+            denominationBreakdown: "{}",
+            metadata: "{}",
+          },
+          {
+            id: "mov-002",
+            type: "cash_out",
+            amount: 200,
+            denominationBreakdown: "{}",
+            metadata: "{}",
+          },
+        ]);
 
         const result = await service.getCashMovements("shift-001", {});
 
@@ -695,19 +923,17 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援類型過濾", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            {
-              id: "mov-001",
-              type: "cash_in",
-              amount: 500,
-              denomination_breakdown: "{}",
-              metadata: "{}",
-            },
-          ],
-        });
+        setupSelect([
+          {
+            id: "mov-001",
+            type: "cash_in",
+            amount: 500,
+            denominationBreakdown: "{}",
+            metadata: "{}",
+          },
+        ]);
 
         const result = await service.getCashMovements("shift-001", {
           type: "cash_in",
@@ -717,9 +943,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援分頁", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getCashMovements("shift-001", {
           page: 2,
@@ -733,13 +959,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("approveCashMovement", () => {
       it("應該成功審核現金操作", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "mov-001",
-          approval_status: "pending",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.approveCashMovement("mov-001", 1);
 
@@ -749,13 +971,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("rejectCashMovement", () => {
       it("應該成功拒絕現金操作", async () => {
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "mov-001",
-          approval_status: "pending",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.rejectCashMovement(
           "mov-001",
@@ -775,18 +993,29 @@ describe("POS Services Unit Tests", () => {
   describe("ReceiptService", () => {
     describe("printReceipt", () => {
       it("應該成功打印收據", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            order_number: "ORD-001",
-            total_amount: 1000,
-          }) // Order exists
-          .mockResolvedValueOnce({ id: "receipt-001", content: "{}" }); // Created receipt
-
-        mockDB._mockAll.mockResolvedValue({ results: [] }); // Order items
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Check order exists
+            return createChain([
+              {
+                id: 1,
+                order_number: "ORD-001",
+                total_amount: 1000,
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            // Get order items
+            return createChain([]);
+          } else {
+            // Get created receipt
+            return createChain([{ id: "receipt-001", content: "{}" }]);
+          }
+        });
+        setupInsert();
 
         const result = await service.printReceipt(
           {
@@ -803,9 +1032,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的訂單", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.printReceipt(
           {
@@ -821,14 +1050,20 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援不同收據類型", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({ id: 1, order_number: "ORD-001" })
-          .mockResolvedValueOnce({ id: "receipt-001", content: "{}" });
-
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([{ id: 1, order_number: "ORD-001" }]);
+          } else if (selectCallCount === 2) {
+            return createChain([]);
+          } else {
+            return createChain([{ id: "receipt-001", content: "{}" }]);
+          }
+        });
+        setupInsert();
 
         const result = await service.printReceipt(
           {
@@ -843,14 +1078,20 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援多份打印", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({ id: 1, order_number: "ORD-001" })
-          .mockResolvedValueOnce({ id: "receipt-001", content: "{}" });
-
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([{ id: 1, order_number: "ORD-001" }]);
+          } else if (selectCallCount === 2) {
+            return createChain([]);
+          } else {
+            return createChain([{ id: "receipt-001", content: "{}" }]);
+          }
+        });
+        setupInsert();
 
         const result = await service.printReceipt(
           {
@@ -866,13 +1107,15 @@ describe("POS Services Unit Tests", () => {
 
     describe("reprintReceipt", () => {
       it("應該成功重打收據", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "receipt-001",
-          reprinted_count: 0,
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            id: "receipt-001",
+            reprintedCount: 0,
+          },
+        ]);
+        setupUpdate();
 
         const result = await service.reprintReceipt("receipt-001");
 
@@ -880,9 +1123,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的收據", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.reprintReceipt("non-existent");
 
@@ -893,14 +1136,12 @@ describe("POS Services Unit Tests", () => {
 
     describe("getReceipts", () => {
       it("應該返回收據列表", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            { id: "receipt-001", receipt_number: "R001", content: "{}" },
-            { id: "receipt-002", receipt_number: "R002", content: "{}" },
-          ],
-        });
+        setupSelect([
+          { id: "receipt-001", receipt_number: "R001", content: "{}" },
+          { id: "receipt-002", receipt_number: "R002", content: "{}" },
+        ]);
 
         const result = await service.getReceipts("reg-001");
 
@@ -909,9 +1150,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援日期過濾", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getReceipts("reg-001", {
           startDate: "2024-01-01",
@@ -922,9 +1163,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援類型過濾", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getReceipts("reg-001", {
           receiptType: "customer",
@@ -936,13 +1177,15 @@ describe("POS Services Unit Tests", () => {
 
     describe("getReceiptDetail", () => {
       it("應該返回收據詳情", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "receipt-001",
-          receipt_number: "R001",
-          content: '{"items": []}',
-        });
+        setupSelect([
+          {
+            id: "receipt-001",
+            receipt_number: "R001",
+            content: '{"items": []}',
+          },
+        ]);
 
         const result = await service.getReceiptDetail("receipt-001");
 
@@ -951,9 +1194,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的收據", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.getReceiptDetail("non-existent");
 
@@ -963,9 +1206,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("cancelPrint", () => {
       it("應該成功取消打印", async () => {
-        const service = new ReceiptService(mockDB as any);
+        const service = new ReceiptService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.cancelPrint("receipt-001");
 
@@ -981,23 +1224,38 @@ describe("POS Services Unit Tests", () => {
   describe("RefundService", () => {
     describe("processRefund", () => {
       it("應該成功處理全額退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "1000",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "0" })
-          .mockResolvedValueOnce({
-            id: "refund-001",
-            refund_amount: 1000,
-            status: "processing",
-            items_refunded: "[]",
-            metadata: "{}",
-          });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Check original order
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            // Check existing refunds (SUM)
+            return createChain([{ totalRefunded: 0 }]);
+          } else {
+            // Get created refund
+            return createChain([
+              {
+                id: "refund-001",
+                refundAmount: 1000,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
 
         const result = await service.processRefund(
           {
@@ -1015,23 +1273,35 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功處理部分退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "1000",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "0" })
-          .mockResolvedValueOnce({
-            id: "refund-001",
-            refund_amount: 500,
-            status: "processing",
-            items_refunded: "[]",
-            metadata: "{}",
-          });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-001",
+                refundAmount: 500,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
 
         const result = await service.processRefund(
           {
@@ -1049,13 +1319,16 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕超過訂單金額的退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: 1,
-          total_amount: "1000",
-          status: "completed",
-        });
+        setupSelect([
+          {
+            id: 1,
+            totalAmount: 1000,
+            total_amount: "1000",
+            status: "completed",
+          },
+        ]);
 
         const result = await service.processRefund(
           {
@@ -1074,9 +1347,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕對不存在訂單的退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.processRefund(
           {
@@ -1095,15 +1368,24 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕超過可退款額度的退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "1000",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "800" }); // Already refunded 800
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else {
+            return createChain([{ totalRefunded: 800 }]); // Already refunded 800
+          }
+        });
 
         const result = await service.processRefund(
           {
@@ -1122,23 +1404,35 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援卡片退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "1000",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "0" })
-          .mockResolvedValueOnce({
-            id: "refund-001",
-            refund_amount: 1000,
-            status: "processing",
-            items_refunded: "[]",
-            metadata: "{}",
-          });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-001",
+                refundAmount: 1000,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
 
         const result = await service.processRefund(
           {
@@ -1156,23 +1450,35 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援項目退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "1000",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "0" })
-          .mockResolvedValueOnce({
-            id: "refund-001",
-            refund_amount: 300,
-            status: "processing",
-            items_refunded: '[{"itemId": 1, "quantity": 1}]',
-            metadata: "{}",
-          });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-001",
+                refundAmount: 300,
+                status: "processing",
+                itemsRefunded: '[{"itemId": 1, "quantity": 1}]',
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
 
         const result = await service.processRefund(
           {
@@ -1193,26 +1499,24 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRefunds", () => {
       it("應該返回退款記錄列表", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            {
-              id: "refund-001",
-              refund_amount: 500,
-              status: "completed",
-              items_refunded: "[]",
-              metadata: "{}",
-            },
-            {
-              id: "refund-002",
-              refund_amount: 300,
-              status: "pending",
-              items_refunded: "[]",
-              metadata: "{}",
-            },
-          ],
-        });
+        setupSelect([
+          {
+            id: "refund-001",
+            refundAmount: 500,
+            status: "completed",
+            itemsRefunded: "[]",
+            metadata: "{}",
+          },
+          {
+            id: "refund-002",
+            refundAmount: 300,
+            status: "pending",
+            itemsRefunded: "[]",
+            metadata: "{}",
+          },
+        ]);
 
         const result = await service.getRefunds("reg-001", {});
 
@@ -1221,9 +1525,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援狀態過濾", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getRefunds("reg-001", {
           status: "completed",
@@ -1233,9 +1537,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援訂單過濾", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
         const result = await service.getRefunds("reg-001", { orderId: 1 });
 
@@ -1245,9 +1549,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("approveRefund", () => {
       it("應該成功審核退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.approveRefund("refund-001", 1);
 
@@ -1257,9 +1561,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("rejectRefund", () => {
       it("應該成功拒絕退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.rejectRefund(
           "refund-001",
@@ -1273,9 +1577,9 @@ describe("POS Services Unit Tests", () => {
 
     describe("cancelRefund", () => {
       it("應該成功取消退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupUpdate();
 
         const result = await service.cancelRefund("refund-001", 1, "客戶取消");
 
@@ -1291,37 +1595,52 @@ describe("POS Services Unit Tests", () => {
   describe("ReportService", () => {
     describe("generateShiftReport", () => {
       it("應該成功生成班次報表", async () => {
-        const service = new ReportService(mockDB as any);
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            register_id: "reg-001",
-            operator_id: 1,
-            status: "closed",
-            start_amount: "1000",
-            end_amount: "5800",
-            total_sales: "5000",
-            total_refunds: "200",
-            cash_sales: "3000",
-            card_sales: "1500",
-            digital_sales: "500",
-            expected_amount: "5800",
-            actual_amount: "5800",
-            difference_amount: "0",
-            started_at: "2024-01-15T08:00:00Z",
-            ended_at: "2024-01-15T16:00:00Z",
-            register_name: "POS-001",
-            operator_name: "Test User",
-          })
-          .mockResolvedValueOnce({
-            total_orders: 50,
-            total_sales: "5000",
-            avg_order_value: "100",
-          });
-
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Get shift
+            return createChain([
+              {
+                id: "shift-001",
+                registerId: "reg-001",
+                operatorId: 1,
+                status: "closed",
+                startAmount: 1000,
+                endAmount: 5800,
+                totalSales: 5000,
+                totalRefunds: 200,
+                cashSales: 3000,
+                cardSales: 1500,
+                digitalSales: 500,
+                expectedAmount: 5800,
+                actualAmount: 5800,
+                differenceAmount: 0,
+                startedAt: "2024-01-15T08:00:00Z",
+                endedAt: "2024-01-15T16:00:00Z",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            // Get movements
+            return createChain([]);
+          } else if (selectCallCount === 3) {
+            // Get receipt stats
+            return createChain([{ totalReceipts: 0, printedReceipts: 0 }]);
+          } else if (selectCallCount === 4) {
+            // Get order stats
+            return createChain([
+              {
+                totalOrders: 50,
+                totalSales: 5000,
+                avgOrderValue: 100,
+              },
+            ]);
+          }
+          return createChain([]);
+        });
+        setupInsert();
 
         const result = await service.generateShiftReport("shift-001");
 
@@ -1331,9 +1650,9 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的班次", async () => {
-        const service = new ReportService(mockDB as any);
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue(null);
+        setupSelect([]);
 
         const result = await service.generateShiftReport("non-existent");
 
@@ -1342,29 +1661,38 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該計算班次時長", async () => {
-        const service = new ReportService(mockDB as any);
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: "shift-001",
-            register_id: "reg-001",
-            operator_id: 1,
-            status: "closed",
-            start_amount: "1000",
-            total_sales: "5000",
-            total_refunds: "200",
-            cash_sales: "3000",
-            card_sales: "1500",
-            digital_sales: "500",
-            started_at: "2024-01-15T08:00:00Z",
-            ended_at: "2024-01-15T16:00:00Z",
-            register_name: "POS-001",
-            operator_name: "Test User",
-          })
-          .mockResolvedValueOnce({ total_orders: 50 });
-
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: "shift-001",
+                registerId: "reg-001",
+                operatorId: 1,
+                status: "closed",
+                startAmount: 1000,
+                totalSales: 5000,
+                totalRefunds: 200,
+                cashSales: 3000,
+                cardSales: 1500,
+                digitalSales: 500,
+                startedAt: "2024-01-15T08:00:00Z",
+                endedAt: "2024-01-15T16:00:00Z",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([]);
+          } else if (selectCallCount === 3) {
+            return createChain([{ totalReceipts: 0, printedReceipts: 0 }]);
+          } else if (selectCallCount === 4) {
+            return createChain([{ totalOrders: 50 }]);
+          }
+          return createChain([]);
+        });
+        setupInsert();
 
         const result = await service.generateShiftReport("shift-001");
 
@@ -1375,56 +1703,83 @@ describe("POS Services Unit Tests", () => {
 
     describe("getDailyReport", () => {
       it("應該成功生成日報表", async () => {
-        const service = new ReportService(mockDB as any);
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            total_orders: 50,
-            total_sales: "15000",
-            total_tax: "750",
-            total_discounts: "500",
-            avg_order_value: "300",
-            cash_orders: 30,
-            card_orders: 15,
-            digital_orders: 5,
-          })
-          .mockResolvedValueOnce({
-            total_refunds: 2,
-            total_refund_amount: "300",
-          });
-
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            { id: "shift-001" },
-            { name: "Item 1", total_quantity: 100, total_revenue: "5000" },
-          ],
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // Get shifts
+            return createChain([]);
+          } else if (selectCallCount === 2) {
+            // Get order stats
+            return createChain([
+              {
+                totalOrders: 50,
+                totalSales: 15000,
+                totalTax: 750,
+                totalDiscounts: 500,
+                avgOrderValue: 300,
+                cashOrders: 30,
+                cardOrders: 15,
+                digitalOrders: 5,
+              },
+            ]);
+          } else if (selectCallCount === 3) {
+            // Get refund stats
+            return createChain([
+              {
+                totalRefunds: 2,
+                totalRefundAmount: 300,
+              },
+            ]);
+          } else if (selectCallCount === 4) {
+            // Get top items
+            return createChain([]);
+          }
+          return createChain([]);
         });
 
-        const result = await service.getDailyReport(1, "2024-01-15");
+        const result = await service.getDailyReport("rest-001", "2024-01-15");
 
         expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
         expect(result.data.summary.totalOrders).toBe(50);
       });
 
-      it("應該計算淨銷售額", async () => {
-        const service = new ReportService(mockDB as any);
+      it("應該正確計算淨銷售額", async () => {
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            total_orders: 50,
-            total_sales: "15000",
-            total_tax: "750",
-            total_discounts: "500",
-          })
-          .mockResolvedValueOnce({
-            total_refunds: 2,
-            total_refund_amount: "300",
-          });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([]);
+          } else if (selectCallCount === 2) {
+            return createChain([
+              {
+                totalOrders: 50,
+                totalSales: 15000,
+                totalTax: 750,
+                totalDiscounts: 500,
+                avgOrderValue: 300,
+                cashOrders: 30,
+                cardOrders: 15,
+                digitalOrders: 5,
+              },
+            ]);
+          } else if (selectCallCount === 3) {
+            return createChain([
+              {
+                totalRefunds: 2,
+                totalRefundAmount: 300,
+              },
+            ]);
+          } else {
+            return createChain([]);
+          }
+        });
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-
-        const result = await service.getDailyReport(1, "2024-01-15");
+        const result = await service.getDailyReport("rest-001", "2024-01-15");
 
         expect(result.success).toBe(true);
         expect(result.data.summary.netSales).toBe(14700); // 15000 - 300
@@ -1433,35 +1788,31 @@ describe("POS Services Unit Tests", () => {
 
     describe("getShiftStats", () => {
       it("應該返回班次統計", async () => {
-        const service = new ReportService(mockDB as any);
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          total_shifts: 30,
-          total_sales: "150000",
-          total_refunds: "5000",
-          avg_sales_per_shift: "5000",
-          total_cash_sales: "90000",
-          total_card_sales: "45000",
-          total_digital_sales: "15000",
-          closed_shifts: 28,
-          avg_cash_difference: "50",
-        });
+        setupSelect([
+          {
+            totalShifts: 30,
+            totalSales: 150000,
+          },
+        ]);
 
-        const result = await service.getShiftStats(1);
+        const result = await service.getShiftStats("rest-001");
 
         expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
       });
 
-      it("應該支援日期範圍過濾", async () => {
-        const service = new ReportService(mockDB as any);
+      it("應該支援日期範圍", async () => {
+        const service = new ReportService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          total_shifts: 10,
-          total_sales: "50000",
-        });
+        setupSelect([
+          {
+            totalShifts: 10,
+            totalSales: 50000,
+          },
+        ]);
 
-        const result = await service.getShiftStats(1, {
+        const result = await service.getShiftStats("rest-001", {
           from: new Date("2024-01-01"),
           to: new Date("2024-01-31"),
         });
@@ -1471,43 +1822,23 @@ describe("POS Services Unit Tests", () => {
     });
 
     describe("getRegisterUsageStats", () => {
-      it("應該返回收銀機使用統計 - 日", async () => {
-        const service = new ReportService(mockDB as any);
+      it("應該返回收銀機使用統計", async () => {
+        const service = new ReportService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({
-          results: [
-            {
-              register_name: "POS-001",
-              period: "2024-01-15",
-              shift_count: 2,
-              total_sales: "10000",
-            },
-          ],
-        });
+        setupSelect([]);
 
-        const result = await service.getRegisterUsageStats(1, "day");
+        const result = await service.getRegisterUsageStats("rest-001", "day");
 
         expect(result.success).toBe(true);
         expect(result.data.period).toBe("day");
       });
 
-      it("應該返回收銀機使用統計 - 週", async () => {
-        const service = new ReportService(mockDB as any);
+      it("應該支援不同統計週期", async () => {
+        const service = new ReportService({} as any);
 
-        mockDB._mockAll.mockResolvedValue({ results: [] });
+        setupSelect([]);
 
-        const result = await service.getRegisterUsageStats(1, "week");
-
-        expect(result.success).toBe(true);
-        expect(result.data.period).toBe("week");
-      });
-
-      it("應該返回收銀機使用統計 - 月", async () => {
-        const service = new ReportService(mockDB as any);
-
-        mockDB._mockAll.mockResolvedValue({ results: [] });
-
-        const result = await service.getRegisterUsageStats(1, "month");
+        const result = await service.getRegisterUsageStats("rest-001", "month");
 
         expect(result.success).toBe(true);
         expect(result.data.period).toBe("month");

@@ -2,17 +2,20 @@
  * 現金操作管理服務
  */
 
-import { BaseService } from "../../../shared/services/BaseService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { cashMovements, cashShifts } from "@makanmakan/database";
 import type {
   CashMovement as _CashMovement,
   CashMovementRequest,
 } from "../types";
 import { cashMovementSchema } from "../schemas";
 
-export class CashMovementService extends BaseService {
-  constructor(db: any) {
-    super(db);
+export class CashMovementService {
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
   }
 
   /**
@@ -27,10 +30,14 @@ export class CashMovementService extends BaseService {
       const validatedData = cashMovementSchema.parse(data);
 
       // 檢查班次狀態
-      const shift = (await this.d1
-        .prepare("SELECT status, register_id FROM cash_shifts WHERE id = ?")
-        .bind(shiftId)
-        .first()) as any;
+      const [shift] = await this.db
+        .select({
+          status: cashShifts.status,
+          registerId: cashShifts.registerId,
+        })
+        .from(cashShifts)
+        .where(eq(cashShifts.id, shiftId))
+        .limit(1);
 
       if (!shift || shift.status !== "active") {
         return {
@@ -39,7 +46,7 @@ export class CashMovementService extends BaseService {
         };
       }
 
-      await this.recordCashMovement(shiftId, shift.register_id, {
+      await this.recordCashMovement(shiftId, shift.registerId, {
         type: validatedData.type,
         amount: validatedData.amount,
         description: validatedData.description,
@@ -74,46 +81,33 @@ export class CashMovementService extends BaseService {
       const { type, page = 1, limit = 20 } = options || {};
       const offset = (page - 1) * limit;
 
-      let typeFilter = "";
-      const params = [shiftId];
-
+      const conditions = [eq(cashMovements.shiftId, shiftId)];
       if (type) {
-        typeFilter = " AND type = ?";
-        params.push(type);
+        conditions.push(eq(cashMovements.type, type));
       }
 
-      const movements = await this.d1
-        .prepare(
-          `
-        SELECT
-          cm.*,
-          u.full_name as recorded_by_name,
-          ua.full_name as approved_by_name
-        FROM cash_movements cm
-        LEFT JOIN users u ON cm.recorded_by = u.id
-        LEFT JOIN users ua ON cm.approved_by = ua.id
-        WHERE cm.shift_id = ? ${typeFilter}
-        ORDER BY cm.created_at DESC
-        LIMIT ? OFFSET ?
-      `,
-        )
-        .bind(...params, limit, offset)
-        .all();
+      const movements = await this.db
+        .select()
+        .from(cashMovements)
+        .where(and(...conditions))
+        .orderBy(desc(cashMovements.createdAt))
+        .limit(limit)
+        .offset(offset);
 
       return {
         success: true,
         data: {
-          movements: (movements.results || []).map((movement: any) => ({
+          movements: movements.map((movement: any) => ({
             ...movement,
             denominationBreakdown: JSON.parse(
-              movement.denomination_breakdown || "{}",
+              (movement.denominationBreakdown as string) || "{}",
             ),
-            metadata: JSON.parse(movement.metadata || "{}"),
+            metadata: JSON.parse((movement.metadata as string) || "{}"),
           })),
           pagination: {
             page,
             limit,
-            hasMore: (movements.results || []).length === limit,
+            hasMore: movements.length === limit,
           },
         },
       };
@@ -134,40 +128,29 @@ export class CashMovementService extends BaseService {
     date?: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      let dateFilter = "";
-      const params = [registerId, "count"];
+      const conditions = [
+        eq(cashMovements.registerId, registerId),
+        eq(cashMovements.type, "count"),
+      ];
 
       if (date) {
-        dateFilter = " AND DATE(cm.created_at) = ?";
-        params.push(date);
+        conditions.push(sql`DATE(${cashMovements.createdAt}) = ${date}` as any);
       }
 
-      const counts = await this.d1
-        .prepare(
-          `
-        SELECT
-          cm.*,
-          u.full_name as recorded_by_name,
-          cs.start_amount,
-          cs.expected_amount
-        FROM cash_movements cm
-        LEFT JOIN users u ON cm.recorded_by = u.id
-        LEFT JOIN cash_shifts cs ON cm.shift_id = cs.id
-        WHERE cm.register_id = ? AND cm.type = ? ${dateFilter}
-        ORDER BY cm.created_at DESC
-      `,
-        )
-        .bind(...params)
-        .all();
+      const counts = await this.db
+        .select()
+        .from(cashMovements)
+        .where(and(...conditions))
+        .orderBy(desc(cashMovements.createdAt));
 
       return {
         success: true,
-        data: (counts.results || []).map((count: any) => ({
+        data: counts.map((count: any) => ({
           ...count,
           denominationBreakdown: JSON.parse(
-            count.denomination_breakdown || "{}",
+            (count.denominationBreakdown as string) || "{}",
           ),
-          metadata: JSON.parse(count.metadata || "{}"),
+          metadata: JSON.parse((count.metadata as string) || "{}"),
         })),
       };
     } catch (error) {
@@ -196,32 +179,25 @@ export class CashMovementService extends BaseService {
     },
   ): Promise<string> {
     const movementId = crypto.randomUUID();
-    const now = getCurrentTimestamp();
+    const now = new Date();
 
-    await this.d1
-      .prepare(
-        `
-      INSERT INTO cash_movements (
-        id, shift_id, register_id, type, amount, description,
-        reference_id, reference_type, denomination_breakdown,
-        recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', '{}', ?)
-    `,
-      )
-      .bind(
-        movementId,
-        shiftId,
-        registerId,
-        movement.type,
-        movement.amount,
-        movement.description,
-        movement.referenceId || null,
-        movement.referenceType || null,
-        JSON.stringify(movement.denominationBreakdown || {}),
-        movement.recordedBy,
-        now,
-      )
-      .run();
+    await this.db.insert(cashMovements).values({
+      id: movementId,
+      shiftId,
+      registerId,
+      type: movement.type,
+      amount: movement.amount,
+      description: movement.description,
+      referenceId: movement.referenceId || null,
+      referenceType: movement.referenceType || null,
+      denominationBreakdown: JSON.stringify(
+        movement.denominationBreakdown || {},
+      ),
+      recordedBy: movement.recordedBy,
+      approvalStatus: "approved",
+      metadata: "{}",
+      createdAt: now,
+    });
 
     return movementId;
   }
@@ -234,17 +210,18 @@ export class CashMovementService extends BaseService {
     approvedBy: number,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_movements
-        SET approval_status = 'approved',
-            approved_by = ?
-        WHERE id = ? AND approval_status = 'pending'
-      `,
-        )
-        .bind(approvedBy, movementId)
-        .run();
+      await this.db
+        .update(cashMovements)
+        .set({
+          approvalStatus: "approved",
+          approvedBy,
+        })
+        .where(
+          and(
+            eq(cashMovements.id, movementId),
+            eq(cashMovements.approvalStatus, "pending"),
+          ),
+        );
 
       return { success: true };
     } catch (error) {
@@ -269,18 +246,19 @@ export class CashMovementService extends BaseService {
         ? JSON.stringify({ rejection_reason: reason })
         : "{}";
 
-      await this.d1
-        .prepare(
-          `
-        UPDATE cash_movements
-        SET approval_status = 'rejected',
-            approved_by = ?,
-            metadata = ?
-        WHERE id = ? AND approval_status = 'pending'
-      `,
-        )
-        .bind(approvedBy, metadata, movementId)
-        .run();
+      await this.db
+        .update(cashMovements)
+        .set({
+          approvalStatus: "rejected",
+          approvedBy,
+          metadata,
+        })
+        .where(
+          and(
+            eq(cashMovements.id, movementId),
+            eq(cashMovements.approvalStatus, "pending"),
+          ),
+        );
 
       return { success: true };
     } catch (error) {

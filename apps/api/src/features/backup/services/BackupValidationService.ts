@@ -1,9 +1,15 @@
 /**
  * Backup Validation Service - Handles all validation logic for backup operations
+ * Migrated to Drizzle ORM
  */
 
 import { Context } from 'hono'
 import type { D1Database } from '@cloudflare/workers-types'
+import { drizzle } from 'drizzle-orm/d1'
+import { eq, and, sql, count, sum, inArray } from 'drizzle-orm'
+import {
+  backupRecords
+} from '@makanmakan/database'
 import type {
   CreateBackupRequest,
   RestoreBackupRequest,
@@ -11,7 +17,11 @@ import type {
 } from '@makanmakan/shared-types'
 
 export class BackupValidationService {
-  constructor(private db: D1Database) {}
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
+  }
 
   /**
    * Validate create backup request
@@ -135,13 +145,13 @@ export class BackupValidationService {
       return
     }
 
-    // Check if user belongs to this restaurant
-    const result = await this.db.prepare(`
+    // Check if user belongs to this restaurant - use raw sql for restaurant_users table
+    const result = await this.db.run(sql`
       SELECT 1 FROM restaurant_users
-      WHERE user_id = ? AND restaurant_id = ?
-    `).bind(user.id, restaurantId).first()
+      WHERE user_id = ${user.id} AND restaurant_id = ${restaurantId}
+    `)
 
-    if (!result) {
+    if (!result || (result as any).results?.length === 0) {
       throw new Error('Access denied: You do not have permission to access this restaurant')
     }
   }
@@ -231,24 +241,26 @@ export class BackupValidationService {
    */
   async checkBackupLimits(restaurantId: string): Promise<void> {
     // Check for concurrent backups
-    const activeBackups = await this.db.prepare(`
-      SELECT COUNT(*) as count
-      FROM backup_records
-      WHERE restaurant_id = ? AND status IN ('pending', 'in_progress')
-    `).bind(restaurantId).first()
+    const activeResult = await this.db.select({ total: count() })
+      .from(backupRecords)
+      .where(and(
+        eq(backupRecords.restaurantId, restaurantId),
+        inArray(backupRecords.status, ['pending', 'in_progress'])
+      ))
 
-    if ((activeBackups as any)?.count >= 3) {
+    if ((activeResult[0]?.total || 0) >= 3) {
       throw new Error('Maximum number of concurrent backups reached. Please wait for existing backups to complete.')
     }
 
     // Check for recent backup attempts (prevent spam)
-    const recentBackups = await this.db.prepare(`
-      SELECT COUNT(*) as count
-      FROM backup_records
-      WHERE restaurant_id = ? AND started_at > datetime('now', '-1 hour')
-    `).bind(restaurantId).first()
+    const recentResult = await this.db.select({ total: count() })
+      .from(backupRecords)
+      .where(and(
+        eq(backupRecords.restaurantId, restaurantId),
+        sql`${backupRecords.startedAt} > datetime('now', '-1 hour')`
+      ))
 
-    if ((recentBackups as any)?.count >= 10) {
+    if ((recentResult[0]?.total || 0) >= 10) {
       throw new Error('Too many backup attempts in the last hour. Please wait before creating more backups.')
     }
   }
@@ -273,13 +285,16 @@ export class BackupValidationService {
    */
   async checkStorageQuota(restaurantId: string): Promise<void> {
     // Get current storage usage for the restaurant
-    const storageUsage = await this.db.prepare(`
-      SELECT SUM(file_size) as total_size
-      FROM backup_records
-      WHERE restaurant_id = ? AND status = 'completed'
-    `).bind(restaurantId).first()
+    const storageResult = await this.db.select({
+      totalSize: sql<number>`COALESCE(SUM(${backupRecords.fileSize}), 0)`
+    })
+      .from(backupRecords)
+      .where(and(
+        eq(backupRecords.restaurantId, restaurantId),
+        eq(backupRecords.status, 'completed')
+      ))
 
-    const totalSizeBytes = (storageUsage as any)?.total_size || 0
+    const totalSizeBytes = storageResult[0]?.totalSize || 0
     const maxStorageBytes = 10 * 1024 * 1024 * 1024 // 10GB limit per restaurant
 
     if (totalSizeBytes >= maxStorageBytes) {

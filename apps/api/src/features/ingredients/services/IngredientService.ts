@@ -1,39 +1,18 @@
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, like, isNull, sql, count } from "drizzle-orm";
+import { ingredientDefinitions } from "@makanmakan/database";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,
   UpdateIngredientRequest,
 } from "../types";
 
-interface IngredientRow {
-  id: number;
-  restaurant_id: string;
-  name: string;
-  unit: string;
-  category: string | null;
-  cost_per_unit: number | null;
-  supplier: string | null;
-  min_stock_level: number | null;
-  current_stock: number | null;
-  is_active: number;
-  deleted_at_ms: number | null;
-}
-
-function rowToResponse(row: IngredientRow): IngredientDefinitionResponse {
-  return {
-    id: row.id,
-    name: row.name,
-    unit: row.unit,
-    category: row.category,
-    costPerUnit: row.cost_per_unit,
-    supplier: row.supplier,
-    minStockLevel: row.min_stock_level,
-    currentStock: row.current_stock,
-    isActive: row.is_active === 1,
-  };
-}
-
 export class IngredientService {
-  constructor(private db: D1Database) {}
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
+  }
 
   async list(
     restaurantId: string,
@@ -48,38 +27,39 @@ export class IngredientService {
     const { page = 1, limit = 50, category, search, includeInactive } = options;
     const offset = (page - 1) * limit;
 
-    let whereClause = "WHERE restaurant_id = ? AND deleted_at_ms IS NULL";
-    const params: (string | number)[] = [restaurantId];
+    const conditions = [
+      eq(ingredientDefinitions.restaurantId, restaurantId),
+      isNull(ingredientDefinitions.deletedAt),
+    ];
 
     if (!includeInactive) {
-      whereClause += " AND is_active = 1";
+      conditions.push(eq(ingredientDefinitions.isActive, true));
     }
     if (category) {
-      whereClause += " AND category = ?";
-      params.push(category);
+      conditions.push(eq(ingredientDefinitions.category, category));
     }
     if (search) {
-      whereClause += " AND name LIKE ?";
-      params.push(`%${search}%`);
+      conditions.push(like(ingredientDefinitions.name, `%${search}%`));
     }
 
-    const countResult = await this.db
-      .prepare(
-        `SELECT COUNT(*) as total FROM ingredient_definitions ${whereClause}`,
-      )
-      .bind(...params)
-      .first<{ total: number }>();
-    const total = countResult?.total || 0;
+    const where = and(...conditions);
+
+    const [countResult] = await this.db
+      .select({ total: count() })
+      .from(ingredientDefinitions)
+      .where(where);
+    const total = countResult?.total ?? 0;
 
     const rows = await this.db
-      .prepare(
-        `SELECT * FROM ingredient_definitions ${whereClause} ORDER BY name ASC LIMIT ? OFFSET ?`,
-      )
-      .bind(...params, limit, offset)
-      .all<IngredientRow>();
+      .select()
+      .from(ingredientDefinitions)
+      .where(where)
+      .orderBy(ingredientDefinitions.name)
+      .limit(limit)
+      .offset(offset);
 
     return {
-      items: rows.results.map(rowToResponse),
+      items: rows.map(rowToResponse),
       total,
     };
   }
@@ -88,12 +68,17 @@ export class IngredientService {
     restaurantId: string,
     id: number,
   ): Promise<IngredientDefinitionResponse | null> {
-    const row = await this.db
-      .prepare(
-        "SELECT * FROM ingredient_definitions WHERE id = ? AND restaurant_id = ? AND deleted_at_ms IS NULL",
+    const [row] = await this.db
+      .select()
+      .from(ingredientDefinitions)
+      .where(
+        and(
+          eq(ingredientDefinitions.id, id),
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+          isNull(ingredientDefinitions.deletedAt),
+        ),
       )
-      .bind(id, restaurantId)
-      .first<IngredientRow>();
+      .limit(1);
 
     return row ? rowToResponse(row) : null;
   }
@@ -102,41 +87,25 @@ export class IngredientService {
     restaurantId: string,
     data: CreateIngredientRequest,
   ): Promise<IngredientDefinitionResponse> {
-    const now = Date.now();
-    const result = await this.db
-      .prepare(
-        `INSERT INTO ingredient_definitions (restaurant_id, name, unit, category, cost_per_unit, supplier, min_stock_level, current_stock, is_active, created_at_ms, updated_at_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-      )
-      .bind(
+    const now = new Date();
+    const [row] = await this.db
+      .insert(ingredientDefinitions)
+      .values({
         restaurantId,
-        data.name,
-        data.unit,
-        data.category ?? null,
-        data.costPerUnit ?? null,
-        data.supplier ?? null,
-        data.minStockLevel ?? null,
-        data.currentStock ?? null,
-        now,
-        now,
-      )
-      .run();
+        name: data.name,
+        unit: data.unit,
+        category: data.category ?? null,
+        costPerUnit: data.costPerUnit ?? null,
+        supplier: data.supplier ?? null,
+        minStockLevel: data.minStockLevel ?? null,
+        currentStock: data.currentStock ?? null,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-    const id =
-      result.meta?.last_row_id ??
-      (result as unknown as { lastRowId: number }).lastRowId;
-
-    return {
-      id: Number(id),
-      name: data.name,
-      unit: data.unit,
-      category: data.category ?? null,
-      costPerUnit: data.costPerUnit ?? null,
-      supplier: data.supplier ?? null,
-      minStockLevel: data.minStockLevel ?? null,
-      currentStock: data.currentStock ?? null,
-      isActive: true,
-    };
+    return rowToResponse(row);
   }
 
   async update(
@@ -147,60 +116,48 @@ export class IngredientService {
     const existing = await this.get(restaurantId, id);
     if (!existing) return null;
 
-    const fields: string[] = [];
-    const values: (string | number | null)[] = [];
+    const updates: Record<string, unknown> = {};
 
-    if (data.name !== undefined) {
-      fields.push("name = ?");
-      values.push(data.name);
-    }
-    if (data.unit !== undefined) {
-      fields.push("unit = ?");
-      values.push(data.unit);
-    }
-    if (data.category !== undefined) {
-      fields.push("category = ?");
-      values.push(data.category ?? null);
-    }
-    if (data.costPerUnit !== undefined) {
-      fields.push("cost_per_unit = ?");
-      values.push(data.costPerUnit ?? null);
-    }
-    if (data.supplier !== undefined) {
-      fields.push("supplier = ?");
-      values.push(data.supplier ?? null);
-    }
-    if (data.minStockLevel !== undefined) {
-      fields.push("min_stock_level = ?");
-      values.push(data.minStockLevel ?? null);
-    }
-    if (data.currentStock !== undefined) {
-      fields.push("current_stock = ?");
-      values.push(data.currentStock ?? null);
-    }
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.unit !== undefined) updates.unit = data.unit;
+    if (data.category !== undefined) updates.category = data.category ?? null;
+    if (data.costPerUnit !== undefined)
+      updates.costPerUnit = data.costPerUnit ?? null;
+    if (data.supplier !== undefined) updates.supplier = data.supplier ?? null;
+    if (data.minStockLevel !== undefined)
+      updates.minStockLevel = data.minStockLevel ?? null;
+    if (data.currentStock !== undefined)
+      updates.currentStock = data.currentStock ?? null;
 
-    if (fields.length === 0) return existing;
+    if (Object.keys(updates).length === 0) return existing;
 
-    fields.push("updated_at_ms = ?");
-    values.push(Date.now());
+    updates.updatedAt = new Date();
 
     await this.db
-      .prepare(
-        `UPDATE ingredient_definitions SET ${fields.join(", ")} WHERE id = ? AND restaurant_id = ?`,
-      )
-      .bind(...values, id, restaurantId)
-      .run();
+      .update(ingredientDefinitions)
+      .set(updates)
+      .where(
+        and(
+          eq(ingredientDefinitions.id, id),
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+        ),
+      );
 
     return this.get(restaurantId, id);
   }
 
   async delete(restaurantId: string, id: number): Promise<boolean> {
+    const now = new Date();
     const result = await this.db
-      .prepare(
-        "UPDATE ingredient_definitions SET deleted_at_ms = ?, is_active = 0, updated_at_ms = ? WHERE id = ? AND restaurant_id = ? AND deleted_at_ms IS NULL",
-      )
-      .bind(Date.now(), Date.now(), id, restaurantId)
-      .run();
+      .update(ingredientDefinitions)
+      .set({ deletedAt: now, isActive: false, updatedAt: now })
+      .where(
+        and(
+          eq(ingredientDefinitions.id, id),
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+          isNull(ingredientDefinitions.deletedAt),
+        ),
+      );
 
     return (result.meta?.changes ?? 0) > 0;
   }
@@ -209,40 +166,40 @@ export class IngredientService {
     restaurantId: string,
     ingredients: CreateIngredientRequest[],
   ): Promise<{ imported: number }> {
-    const now = Date.now();
-    const statements = ingredients.map((data) =>
-      this.db
-        .prepare(
-          `INSERT INTO ingredient_definitions (restaurant_id, name, unit, category, cost_per_unit, supplier, min_stock_level, current_stock, is_active, created_at_ms, updated_at_ms)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-        )
-        .bind(
-          restaurantId,
-          data.name,
-          data.unit,
-          data.category ?? null,
-          data.costPerUnit ?? null,
-          data.supplier ?? null,
-          data.minStockLevel ?? null,
-          data.currentStock ?? null,
-          now,
-          now,
-        ),
+    const now = new Date();
+    await this.db.insert(ingredientDefinitions).values(
+      ingredients.map((data) => ({
+        restaurantId,
+        name: data.name,
+        unit: data.unit,
+        category: data.category ?? null,
+        costPerUnit: data.costPerUnit ?? null,
+        supplier: data.supplier ?? null,
+        minStockLevel: data.minStockLevel ?? null,
+        currentStock: data.currentStock ?? null,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      })),
     );
-
-    await this.db.batch(statements);
     return { imported: ingredients.length };
   }
 
   async getCategories(restaurantId: string): Promise<string[]> {
     const rows = await this.db
-      .prepare(
-        "SELECT DISTINCT category FROM ingredient_definitions WHERE restaurant_id = ? AND category IS NOT NULL AND deleted_at_ms IS NULL AND is_active = 1 ORDER BY category",
+      .selectDistinct({ category: ingredientDefinitions.category })
+      .from(ingredientDefinitions)
+      .where(
+        and(
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+          sql`${ingredientDefinitions.category} IS NOT NULL`,
+          isNull(ingredientDefinitions.deletedAt),
+          eq(ingredientDefinitions.isActive, true),
+        ),
       )
-      .bind(restaurantId)
-      .all<{ category: string }>();
+      .orderBy(ingredientDefinitions.category);
 
-    return rows.results.map((r) => r.category);
+    return rows.map((r) => r.category!);
   }
 
   async updateStock(
@@ -251,12 +208,32 @@ export class IngredientService {
     quantity: number,
   ): Promise<boolean> {
     const result = await this.db
-      .prepare(
-        "UPDATE ingredient_definitions SET current_stock = ?, updated_at_ms = ? WHERE id = ? AND restaurant_id = ? AND deleted_at_ms IS NULL",
-      )
-      .bind(quantity, Date.now(), id, restaurantId)
-      .run();
+      .update(ingredientDefinitions)
+      .set({ currentStock: quantity, updatedAt: new Date() })
+      .where(
+        and(
+          eq(ingredientDefinitions.id, id),
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+          isNull(ingredientDefinitions.deletedAt),
+        ),
+      );
 
     return (result.meta?.changes ?? 0) > 0;
   }
+}
+
+function rowToResponse(
+  row: typeof ingredientDefinitions.$inferSelect,
+): IngredientDefinitionResponse {
+  return {
+    id: row.id,
+    name: row.name,
+    unit: row.unit,
+    category: row.category,
+    costPerUnit: row.costPerUnit,
+    supplier: row.supplier,
+    minStockLevel: row.minStockLevel,
+    currentStock: row.currentStock,
+    isActive: row.isActive,
+  };
 }

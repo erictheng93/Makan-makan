@@ -982,6 +982,16 @@ function createSharedMockDB(dataStore: SharedDataStore) {
                 };
               }
             },
+            raw: async () => {
+              try {
+                const results = dataStore.query(sql, boundParams);
+                // D1's raw() returns an array of arrays (each row is an array of column values)
+                return results.map((row: any) => Object.values(row));
+              } catch (error) {
+                console.error("[SharedMockDB] RAW error:", error);
+                return [];
+              }
+            },
           };
         },
         run: async () => {
@@ -1356,14 +1366,14 @@ async function runMigrations(db: TestDB) {
     ON queue_events(restaurant_id, queue_id)
   `);
 
-  // Create group orders tables
+  // Create group orders tables (column names match Drizzle schema in packages/database/src/schema/group-orders.ts)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS group_orders (
       id TEXT PRIMARY KEY,
       share_code TEXT UNIQUE NOT NULL,
       master_order_id INTEGER,
       created_by INTEGER NOT NULL,
-      restaurant_id INTEGER NOT NULL,
+      restaurant_id TEXT NOT NULL,
       table_id INTEGER,
       status TEXT DEFAULT 'active' CHECK (status IN ('active', 'ordering', 'checkout', 'completed', 'cancelled')),
       split_type TEXT DEFAULT 'individual' CHECK (split_type IN ('equal', 'proportional', 'individual', 'custom')),
@@ -1371,17 +1381,16 @@ async function runMigrations(db: TestDB) {
       tax_amount REAL DEFAULT 0,
       service_charge REAL DEFAULT 0,
       final_amount REAL DEFAULT 0,
-      expires_at INTEGER NOT NULL,
-      locked_at INTEGER,
-      completed_at INTEGER,
+      expires_at_ms INTEGER NOT NULL,
+      locked_at_ms INTEGER,
+      completed_at_ms INTEGER,
       settings TEXT DEFAULT '{}',
       notes TEXT,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL,
 
       FOREIGN KEY (master_order_id) REFERENCES orders(id) ON DELETE CASCADE,
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
       FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE SET NULL
     )
   `);
@@ -1398,10 +1407,10 @@ async function runMigrations(db: TestDB) {
       avatar_url TEXT,
       role TEXT DEFAULT 'member' CHECK (role IN ('creator', 'admin', 'member')),
       permissions TEXT DEFAULT '{}',
-      joined_at INTEGER NOT NULL,
-      last_active_at INTEGER NOT NULL,
+      joined_at_ms INTEGER NOT NULL,
+      last_active_at_ms INTEGER NOT NULL,
       is_active INTEGER DEFAULT 1,
-      left_at INTEGER,
+      left_at_ms INTEGER,
 
       FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
@@ -1421,8 +1430,8 @@ async function runMigrations(db: TestDB) {
       customizations TEXT DEFAULT '{}',
       special_instructions TEXT,
       status TEXT DEFAULT 'active' CHECK (status IN ('active', 'removed', 'ordered')),
-      added_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
+      added_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL,
 
       FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
       FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE CASCADE,
@@ -1445,9 +1454,9 @@ async function runMigrations(db: TestDB) {
       payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'processing', 'paid', 'failed', 'refunded')),
       payment_method TEXT,
       payment_reference TEXT,
-      paid_at INTEGER,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
+      paid_at_ms INTEGER,
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL,
 
       FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
       FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE CASCADE,
@@ -1464,10 +1473,10 @@ async function runMigrations(db: TestDB) {
       created_by INTEGER NOT NULL,
       usage_limit INTEGER DEFAULT -1,
       usage_count INTEGER DEFAULT 0,
-      expires_at INTEGER,
+      expires_at_ms INTEGER,
       is_active INTEGER DEFAULT 1,
       metadata TEXT DEFAULT '{}',
-      created_at INTEGER NOT NULL,
+      created_at_ms INTEGER NOT NULL,
 
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
     )
@@ -1481,7 +1490,7 @@ async function runMigrations(db: TestDB) {
       action TEXT NOT NULL,
       description TEXT,
       metadata TEXT DEFAULT '{}',
-      created_at INTEGER NOT NULL,
+      created_at_ms INTEGER NOT NULL,
 
       FOREIGN KEY (group_order_id) REFERENCES group_orders(id) ON DELETE CASCADE,
       FOREIGN KEY (member_id) REFERENCES group_members(id) ON DELETE SET NULL

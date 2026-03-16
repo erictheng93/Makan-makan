@@ -27,6 +27,199 @@ let RefundService: any;
 let ReceiptService: any;
 let ReportService: any;
 
+// Mock drizzle-orm/d1
+const mockSelect = vi.fn();
+const mockInsert = vi.fn();
+const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
+
+const mockDb = {
+  select: mockSelect,
+  insert: mockInsert,
+  update: mockUpdate,
+  delete: mockDelete,
+};
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: vi.fn(() => mockDb),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((...args: any[]) => ({ type: "eq", args })),
+  and: vi.fn((...args: any[]) => ({ type: "and", args })),
+  desc: vi.fn((col: any) => ({ type: "desc", col })),
+  sql: Object.assign(
+    vi.fn((...args: any[]) => ({ type: "sql", args })),
+    {
+      raw: vi.fn((s: string) => s),
+    },
+  ),
+  inArray: vi.fn((...args: any[]) => ({ type: "inArray", args })),
+  count: vi.fn(() => ({ type: "count" })),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  cashRegisters: {
+    id: "id",
+    name: "name",
+    restaurantId: "restaurant_id",
+    isActive: "is_active",
+    currentShiftId: "current_shift_id",
+    hardwareConfig: "hardware_config",
+    peripherals: "peripherals",
+    settings: "settings",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+  cashShifts: {
+    id: "id",
+    registerId: "register_id",
+    operatorId: "operator_id",
+    startAmount: "start_amount",
+    endAmount: "end_amount",
+    expectedAmount: "expected_amount",
+    actualAmount: "actual_amount",
+    differenceAmount: "difference_amount",
+    totalSales: "total_sales",
+    totalRefunds: "total_refunds",
+    cashSales: "cash_sales",
+    cardSales: "card_sales",
+    digitalSales: "digital_sales",
+    totalTransactions: "total_transactions",
+    startedAt: "started_at",
+    endedAt: "ended_at",
+    status: "status",
+    notes: "notes",
+    closingNotes: "closing_notes",
+  },
+  cashMovements: {
+    id: "id",
+    shiftId: "shift_id",
+    registerId: "register_id",
+    type: "type",
+    amount: "amount",
+    description: "description",
+    referenceId: "reference_id",
+    referenceType: "reference_type",
+    paymentMethod: "payment_method",
+    denominationBreakdown: "denomination_breakdown",
+    recordedBy: "recorded_by",
+    approvedBy: "approved_by",
+    approvalStatus: "approval_status",
+    receiptNumber: "receipt_number",
+    metadata: "metadata",
+    createdAt: "created_at",
+  },
+  receipts: {
+    id: "id",
+    orderId: "order_id",
+    registerId: "register_id",
+    shiftId: "shift_id",
+    receiptNumber: "receipt_number",
+    receiptType: "receipt_type",
+    templateName: "template_name",
+    content: "content",
+    printStatus: "print_status",
+    printAttempts: "print_attempts",
+    reprintedCount: "reprinted_count",
+    printedAt: "printed_at",
+    lastReprintAt: "last_reprint_at",
+    createdAt: "created_at",
+  },
+  refunds: {
+    id: "id",
+    originalOrderId: "original_order_id",
+    registerId: "register_id",
+    shiftId: "shift_id",
+    refundNumber: "refund_number",
+    refundType: "refund_type",
+    originalAmount: "original_amount",
+    refundAmount: "refund_amount",
+    refundMethod: "refund_method",
+    reasonCode: "reason_code",
+    reasonDescription: "reason_description",
+    itemsRefunded: "items_refunded",
+    processedBy: "processed_by",
+    approvedBy: "approved_by",
+    customerSignature: "customer_signature",
+    status: "status",
+    processedAt: "processed_at",
+    completedAt: "completed_at",
+    metadata: "metadata",
+  },
+  orders: {
+    id: "id",
+    restaurantId: "restaurant_id",
+    totalAmount: "total_amount",
+    taxAmount: "tax_amount",
+    discountAmount: "discount_amount",
+    paymentMethod: "payment_method",
+    createdAt: "created_at",
+  },
+  orderItems: {
+    orderId: "order_id",
+    menuItemId: "menu_item_id",
+    quantity: "quantity",
+    subtotal: "subtotal",
+  },
+  menuItems: { id: "id", name: "name" },
+  shiftReports: {
+    id: "id",
+    shiftId: "shift_id",
+    registerId: "register_id",
+    operatorId: "operator_id",
+    reportData: "report_data",
+    summaryData: "summary_data",
+    generatedAt: "generated_at",
+  },
+  getCurrentTimestamp: vi.fn(() => new Date().toISOString()),
+}));
+
+// Helper to create chainable mock
+const createChain = (result: any) => {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  chain.leftJoin = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  chain.groupBy = vi.fn().mockReturnValue(chain);
+  chain.values = vi.fn().mockReturnValue(chain);
+  chain.set = vi.fn().mockReturnValue(chain);
+  chain.returning = vi.fn().mockReturnValue(chain);
+  chain.then = vi.fn((resolve: any) => resolve(result));
+  chain[Symbol.iterator] = function* () {
+    yield* result;
+  };
+  return chain;
+};
+
+const setupSelect = (result: any) => {
+  const chain = createChain(result);
+  mockSelect.mockReturnValue(chain);
+  return chain;
+};
+
+const setupInsert = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockInsert.mockReturnValue(chain);
+  return chain;
+};
+
+const setupUpdate = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockUpdate.mockReturnValue(chain);
+  return chain;
+};
+
+const setupDelete = (result?: any) => {
+  const chain = createChain(result || { success: true });
+  mockDelete.mockReturnValue(chain);
+  return chain;
+};
+
 beforeAll(async () => {
   const [shiftMod, registerMod, cashMod, refundMod, receiptMod, reportMod] =
     await Promise.all([
@@ -45,36 +238,9 @@ beforeAll(async () => {
   ReportService = reportMod.ReportService;
 }, 30000);
 
-// Create mock DB
-const createMockDB = () => {
-  const mockFirst = vi.fn();
-  const mockAll = vi.fn();
-  const mockRun = vi.fn();
-  const mockBind = vi.fn();
-
-  const db = {
-    prepare: vi.fn().mockReturnValue({
-      bind: mockBind.mockReturnValue({
-        first: mockFirst,
-        all: mockAll,
-        run: mockRun,
-      }),
-    }),
-    _mockFirst: mockFirst,
-    _mockAll: mockAll,
-    _mockRun: mockRun,
-    _mockBind: mockBind,
-  };
-
-  return db;
-};
-
 describe("POS Edge Cases Tests", () => {
-  let mockDB: ReturnType<typeof createMockDB>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDB = createMockDB();
   });
 
   afterEach(() => {
@@ -92,14 +258,18 @@ describe("POS Edge Cases Tests", () => {
   describe("極端數值處理", () => {
     describe("ShiftService", () => {
       it("應該處理零開班金額", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ register_id: validRegisterId })
-          .mockResolvedValueOnce({ id: validShiftId, status: "active" });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return createChain([]);
+          if (selectCallCount === 2)
+            return createChain([{ registerId: validRegisterId }]);
+          return createChain([{ id: validShiftId, status: "active" }]);
+        });
+        setupInsert();
+        setupUpdate();
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -111,14 +281,18 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理大額開班金額", async () => {
-        const service = new ShiftService(mockDB as any);
+        const service = new ShiftService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ register_id: validRegisterId })
-          .mockResolvedValueOnce({ id: validShiftId, status: "active" });
-
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return createChain([]);
+          if (selectCallCount === 2)
+            return createChain([{ registerId: validRegisterId }]);
+          return createChain([{ id: validShiftId, status: "active" }]);
+        });
+        setupInsert();
+        setupUpdate();
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -132,7 +306,7 @@ describe("POS Edge Cases Tests", () => {
 
     describe("RefundService", () => {
       it("應該處理零金額退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
         const result = await service.processRefund(
           {
@@ -151,23 +325,35 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理小數金額退款", async () => {
-        const service = new RefundService(mockDB as any);
+        const service = new RefundService({} as any);
 
-        mockDB._mockFirst
-          .mockResolvedValueOnce({
-            id: 1,
-            total_amount: "100.50",
-            status: "completed",
-          })
-          .mockResolvedValueOnce({ total_refunded: "0" })
-          .mockResolvedValueOnce({
-            id: "refund-001",
-            refund_amount: 50.25,
-            status: "processing",
-            items_refunded: "[]",
-            metadata: "{}",
-          });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 100.5,
+                total_amount: "100.50",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-001",
+                refundAmount: 50.25,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
 
         const result = await service.processRefund(
           {
@@ -187,15 +373,15 @@ describe("POS Edge Cases Tests", () => {
 
     describe("CashMovementService", () => {
       it("應該處理大額現金操作", async () => {
-        // CashMovementService pre-imported
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]);
+        setupInsert();
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -211,15 +397,15 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理複雜面額明細", async () => {
-        // CashMovementService pre-imported
-        const service = new CashMovementService(mockDB as any);
+        const service = new CashMovementService({} as any);
 
-        mockDB._mockFirst.mockResolvedValue({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-        });
-        mockDB._mockRun.mockResolvedValue({ success: true });
+        setupSelect([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]);
+        setupInsert();
 
         const result = await service.processCashMovement(
           "shift-001",
@@ -250,17 +436,26 @@ describe("POS Edge Cases Tests", () => {
 
   describe("並發操作處理", () => {
     it("應該防止同一收銀機同時開兩個班次", async () => {
-      // ShiftService pre-imported
-      const service = new ShiftService(mockDB as any);
+      const service = new ShiftService({} as any);
 
-      // 第一次調用返回無活動班次，第二次返回有活動班次
-      mockDB._mockFirst
-        .mockResolvedValueOnce(null) // First check - no active shift
-        .mockResolvedValueOnce({ register_id: validRegisterId })
-        .mockResolvedValueOnce({ id: validShiftId, status: "active" })
-        .mockResolvedValueOnce({ id: validShiftId, status: "active" }); // Second check - has active shift
-
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      // First startShift: no active shift -> success
+      // Second startShift: has active shift -> failure
+      let startShiftCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        startShiftCallCount++;
+        // First startShift
+        if (startShiftCallCount === 1) return createChain([]); // no active shift
+        if (startShiftCallCount === 2)
+          return createChain([{ registerId: validRegisterId }]); // recordCashMovement
+        if (startShiftCallCount === 3)
+          return createChain([{ id: validShiftId, status: "active" }]); // get created shift
+        // Second startShift
+        if (startShiftCallCount === 4)
+          return createChain([{ id: validShiftId, status: "active" }]); // has active shift
+        return createChain([]);
+      });
+      setupInsert();
+      setupUpdate();
 
       const result1 = await service.startShift({
         registerId: validRegisterId,
@@ -279,33 +474,35 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理同時多個退款請求", async () => {
-      // RefundService pre-imported
-      const service = new RefundService(mockDB as any);
+      const service = new RefundService({} as any);
 
-      // 模擬訂單和已退款金額
-      mockDB._mockFirst.mockResolvedValue({
-        id: 1,
-        total_amount: "1000",
-        status: "completed",
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createChain([
+            {
+              id: 1,
+              totalAmount: 1000,
+              total_amount: "1000",
+              status: "completed",
+            },
+          ]);
+        } else if (selectCallCount === 2) {
+          return createChain([{ totalRefunded: 0 }]);
+        } else {
+          return createChain([
+            {
+              id: "refund-001",
+              refundAmount: 500,
+              status: "processing",
+              itemsRefunded: "[]",
+              metadata: "{}",
+            },
+          ]);
+        }
       });
-
-      // 第一次退款
-      mockDB._mockFirst
-        .mockResolvedValueOnce({
-          id: 1,
-          total_amount: "1000",
-          status: "completed",
-        })
-        .mockResolvedValueOnce({ total_refunded: "0" })
-        .mockResolvedValueOnce({
-          id: "refund-001",
-          refund_amount: 500,
-          status: "processing",
-          items_refunded: "[]",
-          metadata: "{}",
-        });
-
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      setupInsert();
 
       const result1 = await service.processRefund(
         {
@@ -323,15 +520,17 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理快速連續的現金操作", async () => {
-      // CashMovementService pre-imported
-      const service = new CashMovementService(mockDB as any);
+      const service = new CashMovementService({} as any);
 
-      mockDB._mockFirst.mockResolvedValue({
-        id: "shift-001",
-        status: "active",
-        register_id: "reg-001",
-      });
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      mockSelect.mockImplementation(() =>
+        createChain([
+          {
+            status: "active",
+            registerId: "reg-001",
+          },
+        ]),
+      );
+      setupInsert();
 
       const operations = Array(5)
         .fill(null)
@@ -355,13 +554,13 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理同時打印多張收據", async () => {
-      // ReceiptService pre-imported
-      const service = new ReceiptService(mockDB as any);
+      const service = new ReceiptService({} as any);
 
-      mockDB._mockFirst.mockResolvedValue({ id: 1, order_number: "ORD-001" });
-
-      mockDB._mockAll.mockResolvedValue({ results: [] });
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      mockSelect.mockImplementation(() => {
+        // Each printReceipt call needs: order check, order items, get receipt
+        return createChain([{ id: 1, order_number: "ORD-001" }]);
+      });
+      setupInsert();
 
       const printRequests = Array(3)
         .fill(null)
@@ -390,12 +589,14 @@ describe("POS Edge Cases Tests", () => {
 
   describe("錯誤恢復", () => {
     it("應該處理資料庫連接錯誤", async () => {
-      // RegisterService pre-imported
-      const service = new RegisterService(mockDB as any);
+      const service = new RegisterService({} as any);
 
-      mockDB._mockAll.mockRejectedValue(
-        new Error("Database connection failed"),
-      );
+      const chain = createChain([]);
+      chain.then = vi.fn((_resolve: any, reject: any) => {
+        if (reject) return reject(new Error("Database connection failed"));
+        throw new Error("Database connection failed");
+      });
+      mockSelect.mockReturnValue(chain);
 
       const result = await service.getRegisters(1);
 
@@ -404,16 +605,17 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理 JSON 解析錯誤", async () => {
-      // RegisterService pre-imported
-      const service = new RegisterService(mockDB as any);
+      const service = new RegisterService({} as any);
 
-      mockDB._mockFirst.mockResolvedValue({
-        id: "reg-001",
-        name: "POS-001",
-        hardware_config: "invalid-json", // Invalid JSON
-        peripherals: "{}",
-        settings: "{}",
-      });
+      setupSelect([
+        {
+          id: "reg-001",
+          name: "POS-001",
+          hardwareConfig: "invalid-json", // Invalid JSON
+          peripherals: "{}",
+          settings: "{}",
+        },
+      ]);
 
       // 服務應該能夠處理無效 JSON
       const result = await service.getRegisterStatus("reg-001");
@@ -423,17 +625,20 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理班次結束時的計算錯誤", async () => {
-      // ShiftService pre-imported
-      const service = new ShiftService(mockDB as any);
+      const service = new ShiftService({} as any);
 
-      mockDB._mockFirst.mockResolvedValue({
-        id: "shift-001",
-        status: "active",
-        register_id: "reg-001",
-        start_amount: "invalid", // Invalid number
-        total_sales: "5000",
-        total_refunds: "200",
-      });
+      setupSelect([
+        {
+          id: "shift-001",
+          status: "active",
+          registerId: "reg-001",
+          startAmount: NaN, // Invalid number
+          totalSales: 5000,
+          totalRefunds: 200,
+        },
+      ]);
+      setupUpdate();
+      setupInsert();
 
       const result = await service.endShift(
         "shift-001",
@@ -448,30 +653,38 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理報表生成時的資料缺失", async () => {
-      // ReportService pre-imported
-      const service = new ReportService(mockDB as any);
+      const service = new ReportService({} as any);
 
-      mockDB._mockFirst
-        .mockResolvedValueOnce({
-          id: "shift-001",
-          register_id: "reg-001",
-          operator_id: 1,
-          status: "closed",
-          start_amount: "1000",
-          total_sales: null, // Missing data
-          total_refunds: null,
-          cash_sales: null,
-          card_sales: null,
-          digital_sales: null,
-          started_at: "2024-01-15T08:00:00Z",
-          ended_at: "2024-01-15T16:00:00Z",
-          register_name: "POS-001",
-          operator_name: "Test User",
-        })
-        .mockResolvedValueOnce(null); // No order stats
-
-      mockDB._mockAll.mockResolvedValue({ results: [] });
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createChain([
+            {
+              id: "shift-001",
+              registerId: "reg-001",
+              operatorId: 1,
+              status: "closed",
+              startAmount: 1000,
+              totalSales: null, // Missing data
+              totalRefunds: null,
+              cashSales: null,
+              cardSales: null,
+              digitalSales: null,
+              startedAt: "2024-01-15T08:00:00Z",
+              endedAt: "2024-01-15T16:00:00Z",
+            },
+          ]);
+        } else if (selectCallCount === 2) {
+          return createChain([]);
+        } else if (selectCallCount === 3) {
+          return createChain([{ totalReceipts: 0, printedReceipts: 0 }]);
+        } else if (selectCallCount === 4) {
+          return createChain([null]); // No order stats
+        }
+        return createChain([]);
+      });
+      setupInsert();
 
       const result = await service.generateShiftReport("shift-001");
 
@@ -486,16 +699,24 @@ describe("POS Edge Cases Tests", () => {
 
   describe("資料一致性", () => {
     it("應該確保退款金額不超過訂單總額", async () => {
-      // RefundService pre-imported
-      const service = new RefundService(mockDB as any);
+      const service = new RefundService({} as any);
 
-      mockDB._mockFirst
-        .mockResolvedValueOnce({
-          id: 1,
-          total_amount: "1000",
-          status: "completed",
-        })
-        .mockResolvedValueOnce({ total_refunded: "500" }); // Already refunded 500
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createChain([
+            {
+              id: 1,
+              totalAmount: 1000,
+              total_amount: "1000",
+              status: "completed",
+            },
+          ]);
+        } else {
+          return createChain([{ totalRefunded: 500 }]); // Already refunded 500
+        }
+      });
 
       const result = await service.processRefund(
         {
@@ -514,21 +735,29 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該確保班次結束時更新收銀機狀態", async () => {
-      // ShiftService pre-imported
-      const service = new ShiftService(mockDB as any);
+      const service = new ShiftService({} as any);
 
-      mockDB._mockFirst
-        .mockResolvedValueOnce({
-          id: "shift-001",
-          status: "active",
-          register_id: "reg-001",
-          start_amount: "1000",
-          total_sales: "5000",
-          total_refunds: "200",
-        })
-        .mockResolvedValueOnce({ register_id: "reg-001" });
-
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          return createChain([
+            {
+              id: "shift-001",
+              status: "active",
+              registerId: "reg-001",
+              startAmount: 1000,
+              totalSales: 5000,
+              totalRefunds: 200,
+            },
+          ]);
+        } else if (selectCallCount === 2) {
+          return createChain([{ registerId: "reg-001" }]);
+        }
+        return createChain([]);
+      });
+      setupUpdate();
+      setupInsert();
 
       const result = await service.endShift(
         "shift-001",
@@ -539,20 +768,20 @@ describe("POS Edge Cases Tests", () => {
       );
 
       expect(result.success).toBe(true);
-      // 驗證 prepare 被調用來更新收銀機狀態
-      expect(mockDB.prepare).toHaveBeenCalled();
+      // 驗證 update 被調用來更新收銀機狀態
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
     it("應該確保現金操作記錄正確的班次和收銀機", async () => {
-      // CashMovementService pre-imported
-      const service = new CashMovementService(mockDB as any);
+      const service = new CashMovementService({} as any);
 
-      mockDB._mockFirst.mockResolvedValue({
-        id: "shift-001",
-        status: "active",
-        register_id: "reg-001",
-      });
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      setupSelect([
+        {
+          status: "active",
+          registerId: "reg-001",
+        },
+      ]);
+      setupInsert();
 
       const result = await service.processCashMovement(
         "shift-001",
@@ -565,29 +794,16 @@ describe("POS Edge Cases Tests", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(mockDB.prepare).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalled();
     });
 
     it("應該確保收據編號唯一", async () => {
-      // ReceiptService pre-imported
-      const service = new ReceiptService(mockDB as any);
+      const service = new ReceiptService({} as any);
 
-      mockDB._mockFirst
-        .mockResolvedValueOnce({ id: 1, order_number: "ORD-001" })
-        .mockResolvedValueOnce({
-          id: "receipt-001",
-          receipt_number: "R001",
-          content: "{}",
-        })
-        .mockResolvedValueOnce({ id: 1, order_number: "ORD-001" })
-        .mockResolvedValueOnce({
-          id: "receipt-002",
-          receipt_number: "R002",
-          content: "{}",
-        });
-
-      mockDB._mockAll.mockResolvedValue({ results: [] });
-      mockDB._mockRun.mockResolvedValue({ success: true });
+      mockSelect.mockImplementation(() =>
+        createChain([{ id: 1, order_number: "ORD-001" }]),
+      );
+      setupInsert();
 
       const result1 = await service.printReceipt({ orderId: 1 }, "reg-001");
       const result2 = await service.printReceipt({ orderId: 1 }, "reg-001");

@@ -2,14 +2,17 @@
  * 退款管理服務
  */
 
-import { BaseService } from "../../../shared/services/BaseService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { refunds, orders, cashMovements } from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
 
-export class RefundService extends BaseService {
-  constructor(db: any) {
-    super(db);
+export class RefundService {
+  private db;
+
+  constructor(d1: D1Database) {
+    this.db = drizzle(d1);
   }
 
   /**
@@ -25,10 +28,11 @@ export class RefundService extends BaseService {
       const validatedData = processRefundSchema.parse(data);
 
       // 檢查原訂單
-      const originalOrder = (await this.d1
-        .prepare("SELECT * FROM orders WHERE id = ?")
-        .bind(validatedData.originalOrderId)
-        .first()) as any;
+      const [originalOrder] = await this.db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, validatedData.originalOrderId))
+        .limit(1);
 
       if (!originalOrder) {
         return {
@@ -38,7 +42,14 @@ export class RefundService extends BaseService {
       }
 
       // 檢查退款金額是否合理
-      if (validatedData.refundAmount > parseFloat(originalOrder.total_amount)) {
+      const orderTotalAmount = parseFloat(
+        String(
+          (originalOrder as any).total_amount ??
+            (originalOrder as any).totalAmount ??
+            0,
+        ),
+      );
+      if (validatedData.refundAmount > orderTotalAmount) {
         return {
           success: false,
           error: "退款金額不能超過原訂單金額",
@@ -46,18 +57,20 @@ export class RefundService extends BaseService {
       }
 
       // 檢查是否已有退款記錄
-      const existingRefund = (await this.d1
-        .prepare(
-          'SELECT SUM(refund_amount) as total_refunded FROM refunds WHERE original_order_id = ? AND status IN ("completed", "processing")',
-        )
-        .bind(validatedData.originalOrderId)
-        .first()) as any;
+      const [existingRefund] = await this.db
+        .select({
+          totalRefunded: sql<number>`SUM(${refunds.refundAmount})`,
+        })
+        .from(refunds)
+        .where(
+          and(
+            eq(refunds.originalOrderId, validatedData.originalOrderId),
+            inArray(refunds.status, ["completed", "processing"]),
+          ),
+        );
 
-      const totalRefunded = parseFloat(existingRefund?.total_refunded || "0");
-      if (
-        totalRefunded + validatedData.refundAmount >
-        parseFloat(originalOrder.total_amount)
-      ) {
+      const totalRefunded = existingRefund?.totalRefunded || 0;
+      if (totalRefunded + validatedData.refundAmount > orderTotalAmount) {
         return {
           success: false,
           error: "退款金額超過可退款額度",
@@ -67,36 +80,26 @@ export class RefundService extends BaseService {
       const refundId = crypto.randomUUID();
       const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
-      const processedAt = getCurrentTimestamp();
-      await this.d1
-        .prepare(
-          `
-        INSERT INTO refunds (
-          id, original_order_id, register_id, shift_id, refund_number,
-          refund_type, original_amount, refund_amount, refund_method,
-          reason_code, reason_description, items_refunded, processed_by,
-          customer_signature, status, metadata, processed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', '{}', ?)
-      `,
-        )
-        .bind(
-          refundId,
-          validatedData.originalOrderId,
-          registerId,
-          shiftId || null,
-          refundNumber,
-          validatedData.refundType,
-          parseFloat(originalOrder.total_amount),
-          validatedData.refundAmount,
-          validatedData.refundMethod,
-          validatedData.reasonCode,
-          validatedData.reasonDescription || null,
-          JSON.stringify(validatedData.itemsRefunded || []),
-          processedBy,
-          validatedData.customerSignature || null,
-          processedAt,
-        )
-        .run();
+      const processedAt = new Date();
+      await this.db.insert(refunds).values({
+        id: refundId,
+        originalOrderId: validatedData.originalOrderId,
+        registerId,
+        shiftId: shiftId || null,
+        refundNumber,
+        refundType: validatedData.refundType,
+        originalAmount: orderTotalAmount,
+        refundAmount: validatedData.refundAmount,
+        refundMethod: validatedData.refundMethod,
+        reasonCode: validatedData.reasonCode,
+        reasonDescription: validatedData.reasonDescription || null,
+        itemsRefunded: JSON.stringify(validatedData.itemsRefunded || []),
+        processedBy,
+        customerSignature: validatedData.customerSignature || null,
+        status: "processing",
+        metadata: "{}",
+        processedAt,
+      });
 
       // 記錄現金流動（如果是現金退款）
       if (shiftId && validatedData.refundMethod === "cash") {
@@ -113,18 +116,19 @@ export class RefundService extends BaseService {
       // 模擬退款處理完成
       this.processRefundCompletion(refundId);
 
-      const refund = (await this.d1
-        .prepare("SELECT * FROM refunds WHERE id = ?")
-        .bind(refundId)
-        .first()) as any;
+      const [refund] = await this.db
+        .select()
+        .from(refunds)
+        .where(eq(refunds.id, refundId))
+        .limit(1);
 
       return {
         success: true,
         data: {
           ...refund,
-          itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
-          metadata: JSON.parse(refund.metadata || "{}"),
-        },
+          itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
+          metadata: JSON.parse((refund.metadata as string) || "{}"),
+        } as any,
       };
     } catch (error) {
       console.error("處理退款失敗:", error);
@@ -160,65 +164,46 @@ export class RefundService extends BaseService {
       } = options || {};
       const offset = (page - 1) * limit;
 
-      const filters = [];
-      const params = [registerId];
+      const conditions: any[] = [eq(refunds.registerId, registerId)];
 
       if (startDate) {
-        filters.push("DATE(r.processed_at) >= ?");
-        params.push(startDate);
+        conditions.push(
+          sql`DATE(${refunds.processedAt}) >= ${startDate}` as any,
+        );
       }
 
       if (endDate) {
-        filters.push("DATE(r.processed_at) <= ?");
-        params.push(endDate);
+        conditions.push(sql`DATE(${refunds.processedAt}) <= ${endDate}` as any);
       }
 
       if (status) {
-        filters.push("r.status = ?");
-        params.push(status);
+        conditions.push(eq(refunds.status, status));
       }
 
       if (orderId) {
-        filters.push("r.original_order_id = ?");
-        params.push(orderId.toString());
+        conditions.push(eq(refunds.originalOrderId, orderId));
       }
 
-      const whereClause =
-        filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "";
-
-      const refunds = await this.d1
-        .prepare(
-          `
-        SELECT
-          r.*,
-          o.order_number,
-          o.customer_name,
-          u.full_name as processed_by_name,
-          ua.full_name as approved_by_name
-        FROM refunds r
-        LEFT JOIN orders o ON r.original_order_id = o.id
-        LEFT JOIN users u ON r.processed_by = u.id
-        LEFT JOIN users ua ON r.approved_by = ua.id
-        WHERE r.register_id = ? ${whereClause}
-        ORDER BY r.processed_at DESC
-        LIMIT ? OFFSET ?
-      `,
-        )
-        .bind(...params, limit, offset)
-        .all();
+      const refundList = await this.db
+        .select()
+        .from(refunds)
+        .where(and(...conditions))
+        .orderBy(desc(refunds.processedAt))
+        .limit(limit)
+        .offset(offset);
 
       return {
         success: true,
         data: {
-          refunds: (refunds.results || []).map((refund: any) => ({
+          refunds: refundList.map((refund: any) => ({
             ...refund,
-            itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
-            metadata: JSON.parse(refund.metadata || "{}"),
+            itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
+            metadata: JSON.parse((refund.metadata as string) || "{}"),
           })),
           pagination: {
             page,
             limit,
-            hasMore: (refunds.results || []).length === limit,
+            hasMore: refundList.length === limit,
           },
         },
       };
@@ -238,27 +223,11 @@ export class RefundService extends BaseService {
     refundId: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const refund = await this.d1
-        .prepare(
-          `
-        SELECT
-          r.*,
-          o.order_number,
-          o.customer_name,
-          o.total_amount as original_order_amount,
-          u.full_name as processed_by_name,
-          ua.full_name as approved_by_name,
-          cr.name as register_name
-        FROM refunds r
-        LEFT JOIN orders o ON r.original_order_id = o.id
-        LEFT JOIN users u ON r.processed_by = u.id
-        LEFT JOIN users ua ON r.approved_by = ua.id
-        LEFT JOIN cash_registers cr ON r.register_id = cr.id
-        WHERE r.id = ?
-      `,
-        )
-        .bind(refundId)
-        .first();
+      const [refund] = await this.db
+        .select()
+        .from(refunds)
+        .where(eq(refunds.id, refundId))
+        .limit(1);
 
       if (!refund) {
         return {
@@ -271,8 +240,8 @@ export class RefundService extends BaseService {
         success: true,
         data: {
           ...refund,
-          itemsRefunded: JSON.parse(refund.items_refunded || "[]"),
-          metadata: JSON.parse(refund.metadata || "{}"),
+          itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
+          metadata: JSON.parse((refund.metadata as string) || "{}"),
         },
       };
     } catch (error) {
@@ -297,18 +266,19 @@ export class RefundService extends BaseService {
         ? JSON.stringify({ cancellation_reason: reason })
         : "{}";
 
-      await this.d1
-        .prepare(
-          `
-        UPDATE refunds
-        SET status = 'cancelled',
-            metadata = ?,
-            approved_by = ?
-        WHERE id = ? AND status IN ('pending', 'processing')
-      `,
-        )
-        .bind(metadata, cancelledBy, refundId)
-        .run();
+      await this.db
+        .update(refunds)
+        .set({
+          status: "cancelled",
+          metadata,
+          approvedBy: cancelledBy,
+        })
+        .where(
+          and(
+            eq(refunds.id, refundId),
+            inArray(refunds.status, ["pending", "processing"]),
+          ),
+        );
 
       return { success: true };
     } catch (error) {
@@ -328,19 +298,15 @@ export class RefundService extends BaseService {
     approvedBy: number,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const completedAt = getCurrentTimestamp();
-      await this.d1
-        .prepare(
-          `
-        UPDATE refunds
-        SET status = 'completed',
-            approved_by = ?,
-            completed_at = ?
-        WHERE id = ? AND status = 'processing'
-      `,
-        )
-        .bind(approvedBy, completedAt, refundId)
-        .run();
+      const completedAt = new Date();
+      await this.db
+        .update(refunds)
+        .set({
+          status: "completed",
+          approvedBy,
+          completedAt,
+        })
+        .where(and(eq(refunds.id, refundId), eq(refunds.status, "processing")));
 
       return { success: true };
     } catch (error) {
@@ -365,18 +331,14 @@ export class RefundService extends BaseService {
         ? JSON.stringify({ rejection_reason: reason })
         : "{}";
 
-      await this.d1
-        .prepare(
-          `
-        UPDATE refunds
-        SET status = 'failed',
-            approved_by = ?,
-            metadata = ?
-        WHERE id = ? AND status = 'processing'
-      `,
-        )
-        .bind(rejectedBy, metadata, refundId)
-        .run();
+      await this.db
+        .update(refunds)
+        .set({
+          status: "failed",
+          approvedBy: rejectedBy,
+          metadata,
+        })
+        .where(and(eq(refunds.id, refundId), eq(refunds.status, "processing")));
 
       return { success: true };
     } catch (error) {
@@ -404,31 +366,23 @@ export class RefundService extends BaseService {
     },
   ): Promise<void> {
     const movementId = crypto.randomUUID();
-    const now = getCurrentTimestamp();
+    const now = new Date();
 
-    await this.d1
-      .prepare(
-        `
-      INSERT INTO cash_movements (
-        id, shift_id, register_id, type, amount, description,
-        reference_id, reference_type, denomination_breakdown,
-        recorded_by, approval_status, metadata, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, 'approved', '{}', ?)
-    `,
-      )
-      .bind(
-        movementId,
-        shiftId,
-        registerId,
-        movement.type,
-        movement.amount,
-        movement.description,
-        movement.referenceId || null,
-        movement.referenceType || null,
-        movement.recordedBy,
-        now,
-      )
-      .run();
+    await this.db.insert(cashMovements).values({
+      id: movementId,
+      shiftId,
+      registerId,
+      type: movement.type,
+      amount: movement.amount,
+      description: movement.description,
+      referenceId: movement.referenceId || null,
+      referenceType: movement.referenceType || null,
+      denominationBreakdown: "{}",
+      recordedBy: movement.recordedBy,
+      approvalStatus: "approved",
+      metadata: "{}",
+      createdAt: now,
+    });
   }
 
   /**
@@ -437,30 +391,25 @@ export class RefundService extends BaseService {
   private processRefundCompletion(refundId: string): void {
     setTimeout(async () => {
       try {
-        const completedAt = getCurrentTimestamp();
-        await this.d1
-          .prepare(
-            `
-          UPDATE refunds
-          SET status = 'completed', completed_at = ?
-          WHERE id = ? AND status = 'processing'
-        `,
-          )
-          .bind(completedAt, refundId)
-          .run();
+        const completedAt = new Date();
+        await this.db
+          .update(refunds)
+          .set({
+            status: "completed",
+            completedAt,
+          })
+          .where(
+            and(eq(refunds.id, refundId), eq(refunds.status, "processing")),
+          );
       } catch (error) {
         console.error("更新退款狀態失敗:", error);
         try {
-          await this.d1
-            .prepare(
-              `
-            UPDATE refunds
-            SET status = 'failed'
-            WHERE id = ? AND status = 'processing'
-          `,
-            )
-            .bind(refundId)
-            .run();
+          await this.db
+            .update(refunds)
+            .set({ status: "failed" })
+            .where(
+              and(eq(refunds.id, refundId), eq(refunds.status, "processing")),
+            );
         } catch (updateError) {
           console.error("更新失敗狀態失敗:", updateError);
         }
