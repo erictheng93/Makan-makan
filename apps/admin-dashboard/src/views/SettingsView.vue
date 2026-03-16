@@ -107,17 +107,32 @@
               v-model="settings.restaurant.timezone"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="Asia/Taipei">
+                {{ t("settings.general.timezones.taiwan") }}
+              </option>
               <option value="Asia/Kuala_Lumpur">
                 {{ t("settings.general.timezones.malaysia") }}
               </option>
               <option value="Asia/Singapore">
                 {{ t("settings.general.timezones.singapore") }}
               </option>
-              <option value="Asia/Bangkok">
-                {{ t("settings.general.timezones.thailand") }}
+              <option value="Asia/Tokyo">
+                {{ t("settings.general.timezones.japan") }}
+              </option>
+              <option value="Asia/Shanghai">
+                {{ t("settings.general.timezones.china") }}
+              </option>
+              <option value="Asia/Ho_Chi_Minh">
+                {{ t("settings.general.timezones.vietnam") }}
               </option>
               <option value="Asia/Jakarta">
                 {{ t("settings.general.timezones.indonesia") }}
+              </option>
+              <option value="America/New_York">
+                {{ t("settings.general.timezones.usEast") }}
+              </option>
+              <option value="America/Los_Angeles">
+                {{ t("settings.general.timezones.usWest") }}
               </option>
             </select>
           </div>
@@ -145,9 +160,10 @@
             >
               <option value="zh-TW">繁體中文</option>
               <option value="zh-CN">简体中文</option>
-              <option value="en">English</option>
-              <option value="ms">Bahasa Malaysia</option>
-              <option value="th">ไทย</option>
+              <option value="en-US">English</option>
+              <option value="ja-JP">日本語</option>
+              <option value="vi-VN">Tiếng Việt</option>
+              <option value="id-ID">Bahasa Indonesia</option>
             </select>
           </div>
 
@@ -169,9 +185,6 @@
               </option>
               <option value="TWD">
                 {{ t("settings.general.currencies.twd") }}
-              </option>
-              <option value="VND">
-                {{ t("settings.general.currencies.vnd") }}
               </option>
             </select>
           </div>

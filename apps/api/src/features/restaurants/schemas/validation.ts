@@ -51,12 +51,7 @@ const restaurantSettingsSchema = z
 
 // Common parameter schemas
 const idParam = z.object({
-  id: z
-    .string()
-    .transform(Number)
-    .refine((val) => Number.isInteger(val) && val > 0, {
-      message: "ID must be a positive integer",
-    }),
+  id: z.string().min(1, "ID is required"),
 });
 
 const districtParam = z.object({

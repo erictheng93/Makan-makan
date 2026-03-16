@@ -14,6 +14,27 @@ const CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_TOKEN_LENGTH = 32;
 const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Build CSRF cookie options string.
+ * Omits `Secure` flag in development (HTTP on localhost).
+ */
+function buildCookieOptions(
+  token: string,
+  env: Record<string, unknown>,
+): string {
+  const isDev =
+    (env.NODE_ENV as string) === "development" ||
+    ((env.API_BASE_URL as string) || "").includes("localhost");
+  const parts = [
+    `${CSRF_COOKIE_NAME}=${token}`,
+    ...(isDev ? [] : ["Secure"]),
+    "SameSite=Lax",
+    `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
+    "Path=/",
+  ];
+  return parts.join("; ");
+}
+
 interface CSRFOptions {
   /**
    * HTTP methods to protect with CSRF validation
@@ -62,6 +83,12 @@ function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
   const referer = c.req.header("Referer");
   const host = c.req.header("Host");
 
+  // Allow configured CORS origins (covers Vite dev proxy and deployment)
+  const corsOrigin = (c.env as Record<string, string>).CORS_ORIGIN;
+  const allowedOrigins = corsOrigin
+    ? corsOrigin.split(",").map((o) => o.trim())
+    : [];
+
   // If Origin header exists, validate it
   if (origin) {
     try {
@@ -70,8 +97,10 @@ function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
       if (originUrl.host === host) {
         return true;
       }
-      // Add allowed origins from environment if needed
-      // For now, only allow same-origin
+      // Allow configured CORS origins
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        return true;
+      }
       return false;
     } catch {
       return false;
@@ -83,6 +112,12 @@ function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
     try {
       const refererUrl = new URL(referer);
       if (refererUrl.host === host) {
+        return true;
+      }
+      if (
+        allowedOrigins.includes("*") ||
+        allowedOrigins.includes(refererUrl.origin)
+      ) {
         return true;
       }
       return false;
@@ -223,18 +258,10 @@ export async function generateCSRFTokenHandler(c: Context<{ Bindings: Env }>) {
   }
 
   // Set cookie for double-submit pattern
-  // NOTE: Cookie is NOT HttpOnly to allow JavaScript to read it for the double-submit pattern
-  // This is intentional and safe because:
-  // 1. The token is random and unpredictable
-  // 2. SameSite=Strict prevents cross-site cookie sending
-  // 3. Origin validation provides additional protection
-  const cookieOptions = [
-    `${CSRF_COOKIE_NAME}=${token}`,
-    "Secure",
-    "SameSite=Strict",
-    `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
-    "Path=/",
-  ].join("; ");
+  const cookieOptions = buildCookieOptions(
+    token,
+    c.env as Record<string, unknown>,
+  );
 
   return c.json(
     {
@@ -278,14 +305,10 @@ export function attachCSRFToken() {
         c.res.headers.set("X-CSRF-Token", token);
 
         // Set cookie (NOT HttpOnly for double-submit pattern)
-        const cookieOptions = [
-          `${CSRF_COOKIE_NAME}=${token}`,
-          "Secure",
-          "SameSite=Strict",
-          `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
-          "Path=/",
-        ].join("; ");
-
+        const cookieOptions = buildCookieOptions(
+          token,
+          c.env as Record<string, unknown>,
+        );
         c.res.headers.append("Set-Cookie", cookieOptions);
       }
     },

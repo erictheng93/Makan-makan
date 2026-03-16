@@ -85,7 +85,7 @@ export const corsMiddleware = async (
   // 暴露自定義 headers 給前端
   c.res.headers.set(
     "Access-Control-Expose-Headers",
-    "X-Token-Refresh-Recommended, X-RateLimit-Remaining, X-RateLimit-Reset",
+    "X-Token-Refresh-Recommended, X-RateLimit-Remaining, X-RateLimit-Reset, X-CSRF-Token",
   );
 
   // 減少 preflight 快取時間以提高安全性

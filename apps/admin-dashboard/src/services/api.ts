@@ -12,8 +12,12 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+const CSRF_HEADER = "X-CSRF-Token";
+const CSRF_PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
+
 class ApiService {
   private instance: AxiosInstance;
+  private csrfToken: string | null = null;
 
   constructor() {
     this.instance = axios.create({
@@ -34,13 +38,32 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Attach CSRF token to state-changing requests (double-submit cookie pattern)
+        const method = (config.method || "").toUpperCase();
+        if (CSRF_PROTECTED_METHODS.includes(method)) {
+          // Prefer in-memory token; fall back to reading from cookie
+          const csrf =
+            this.csrfToken || document.cookie.match(/csrf_token=([^;]+)/)?.[1];
+          if (csrf) {
+            config.headers[CSRF_HEADER] = csrf;
+          }
+        }
+
         return config;
       },
       (error) => Promise.reject(error),
     );
 
     this.instance.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        // Capture CSRF token from any response that provides one
+        const csrfToken = response.headers[CSRF_HEADER.toLowerCase()];
+        if (csrfToken) {
+          this.csrfToken = csrfToken;
+        }
+        return response;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
