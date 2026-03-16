@@ -12,7 +12,11 @@ import type {
   DeploymentType,
   DeploymentStatus,
 } from "../types";
+import { decrypt } from "@makanmakan/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
+import { BundleService } from "./BundleService";
+import { MigrationService } from "./MigrationService";
+import type { MigrationFile } from "./MigrationService";
 
 interface ProvisionResult {
   success: boolean;
@@ -240,18 +244,134 @@ export class ProvisioningService {
         );
       }
 
-      // TODO: Actual deployment logic
-      // This would involve:
-      // 1. Fetch the worker bundle for targetVersion from our bundle storage
-      // 2. Deploy to tenant's Cloudflare account
-      // 3. Run any database migrations
-      // 4. Update tenant's deployed_version
+      // 1. Get bundle from R2
+      const bundleService = new BundleService(this.env);
+      const bundle = await bundleService.getBundle(targetVersion);
+      if (!bundle) {
+        await this.updateDeploymentLog(
+          deploymentId,
+          "failed",
+          `Bundle not found for version ${targetVersion}`,
+        );
+        return {
+          success: false,
+          deploymentId,
+          error: `Bundle not found for version ${targetVersion}`,
+        };
+      }
 
-      // For now, simulate successful deployment
+      // 2. Get tenant resources (D1 database ID needed for migrations)
+      const resources = await this.env.MANAGEMENT_DB.prepare(
+        `SELECT resource_type, resource_id FROM tenant_resources
+         WHERE tenant_id = ? AND status = 'ready'`,
+      )
+        .bind(tenantId)
+        .all<{ resource_type: string; resource_id: string }>();
+
+      const resourceMap = new Map(
+        resources.results.map((r) => [r.resource_type, r.resource_id]),
+      );
+
+      // 3. Decrypt API token
+      const apiToken = await this.decryptToken(tenant.cf_api_token_enc);
+      const accountId = tenant.cf_account_id;
+
+      // 4. Apply pending migrations if D1 resource exists
+      const d1ResourceId = resourceMap.get("d1");
+      if (d1ResourceId && bundle.migrations.length > 0) {
+        const migrationService = new MigrationService(this.env);
+        const migrationFiles: MigrationFile[] = bundle.migrations.map((m) => ({
+          name: m.name,
+          sql: m.sql,
+          checksum: MigrationService.computeChecksum(m.sql),
+        }));
+
+        const migrationResult = await migrationService.applyPendingMigrations(
+          tenantId,
+          apiToken,
+          accountId,
+          d1ResourceId,
+          migrationFiles,
+        );
+
+        if (migrationResult.totalFailed > 0) {
+          const failedMigration = migrationResult.migrations.find(
+            (m) => m.status === "failed",
+          );
+          await this.updateDeploymentLog(
+            deploymentId,
+            "failed",
+            `Migration failed: ${failedMigration?.error || "Unknown error"}`,
+          );
+          return {
+            success: false,
+            deploymentId,
+            error: `Migration failed: ${failedMigration?.error || "Unknown error"}`,
+          };
+        }
+      }
+
+      // 5. Build bindings array for the worker
+      const bindings: Record<string, unknown>[] = [];
+
+      if (d1ResourceId) {
+        bindings.push({
+          type: "d1",
+          name: "DB",
+          id: d1ResourceId,
+        });
+      }
+
+      const kvResourceId = resourceMap.get("kv");
+      if (kvResourceId) {
+        bindings.push({
+          type: "kv_namespace",
+          name: "CACHE_KV",
+          namespace_id: kvResourceId,
+        });
+      }
+
+      const r2ResourceId = resourceMap.get("r2");
+      if (r2ResourceId) {
+        bindings.push({
+          type: "r2_bucket",
+          name: "STORAGE",
+          bucket_name: r2ResourceId,
+        });
+      }
+
+      // Add environment variable bindings
+      bindings.push(
+        { type: "plain_text", name: "NODE_ENV", text: "production" },
+        { type: "plain_text", name: "API_VERSION", text: targetVersion },
+      );
+
+      // 6. Deploy worker to tenant's Cloudflare account
+      const scriptName = `makanmakan-${tenant.subdomain}-api`;
+      const deployResult = await this.cfClient.deployWorker(
+        apiToken,
+        accountId,
+        scriptName,
+        bundle.script,
+        bindings,
+      );
+
+      if (!deployResult.success) {
+        await this.updateDeploymentLog(
+          deploymentId,
+          "failed",
+          `Worker deployment failed: ${deployResult.error}`,
+        );
+        return {
+          success: false,
+          deploymentId,
+          error: `Worker deployment failed: ${deployResult.error}`,
+        };
+      }
+
+      // 7. Update tenant's deployed version
       await this.env.MANAGEMENT_DB.prepare(
-        `
-        UPDATE tenants SET deployed_version = ?, updated_at = ? WHERE id = ?
-      `,
+        `UPDATE tenants SET deployed_version = ?, updated_at = ? WHERE id = ?`,
       )
         .bind(targetVersion, new Date().toISOString(), tenantId)
         .run();
@@ -475,8 +595,7 @@ export class ProvisioningService {
   // ============================================================
 
   private async decryptToken(encryptedToken: string): Promise<string> {
-    // In production, use proper decryption with ENCRYPTION_KEY
-    return atob(encryptedToken);
+    return decrypt(encryptedToken, this.env.ENCRYPTION_KEY);
   }
 
   private getResourceName(prefix: string, type: ResourceType): string {

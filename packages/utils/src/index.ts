@@ -79,3 +79,16 @@ export {
   isMilliseconds,
   isSeconds,
 } from "./timestamp";
+
+// Encryption utilities
+export { encrypt, decrypt } from "./encryption";
+
+// API Error utilities
+export {
+  ApiError,
+  notFound,
+  badRequest,
+  unauthorized,
+  forbidden,
+  conflict,
+} from "./api-error";

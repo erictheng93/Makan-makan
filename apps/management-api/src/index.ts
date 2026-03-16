@@ -10,8 +10,10 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { timing } from "hono/timing";
+import { ApiError } from "@makanmakan/utils";
 
 import type { ManagementEnv } from "./types";
+import { managementAuthMiddleware } from "./middleware/auth";
 import tenantsRouter from "./routes/tenants";
 import deploymentsRouter from "./routes/deployments";
 import licensesRouter from "./routes/licenses";
@@ -62,6 +64,20 @@ app.use("*", async (c, next) => {
 // ============================================================
 
 app.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: err.code,
+          message: err.message,
+          details: err.details,
+        },
+      },
+      err.status as 400 | 401 | 403 | 404 | 409 | 500,
+    );
+  }
+
   console.error("[ManagementAPI] Error:", err);
 
   const isDev = c.env.NODE_ENV === "development";
@@ -69,8 +85,10 @@ app.onError((err, c) => {
   return c.json(
     {
       success: false,
-      error: isDev ? err.message : "Internal server error",
-      code: "INTERNAL_ERROR",
+      error: {
+        code: "INTERNAL_ERROR",
+        message: isDev ? err.message : "Internal server error",
+      },
     },
     500,
   );
@@ -80,9 +98,10 @@ app.notFound((c) => {
   return c.json(
     {
       success: false,
-      error: "Endpoint not found",
-      code: "NOT_FOUND",
-      path: c.req.path,
+      error: {
+        code: "NOT_FOUND",
+        message: "Endpoint not found",
+      },
     },
     404,
   );
@@ -141,19 +160,23 @@ app.get("/", (c) => c.redirect("/info"));
 // API Routes
 // ============================================================
 
-const apiV1 = new Hono<{ Bindings: ManagementEnv }>();
+// Public routes (no auth required)
+const publicApi = new Hono<{ Bindings: ManagementEnv }>();
+publicApi.route("/onboarding", onboardingRouter);
+publicApi.route("/health", healthRouter);
 
-// Mount feature routes
-apiV1.route("/tenants", tenantsRouter);
-apiV1.route("/deployments", deploymentsRouter);
-apiV1.route("/licenses", licensesRouter);
-apiV1.route("/health", healthRouter);
-apiV1.route("/monitoring", monitoringRouter);
-apiV1.route("/updates", updatesRouter);
-apiV1.route("/onboarding", onboardingRouter);
+// Protected routes (auth required)
+const protectedApi = new Hono<{ Bindings: ManagementEnv }>();
+protectedApi.use("*", managementAuthMiddleware);
+protectedApi.route("/tenants", tenantsRouter);
+protectedApi.route("/deployments", deploymentsRouter);
+protectedApi.route("/licenses", licensesRouter);
+protectedApi.route("/monitoring", monitoringRouter);
+protectedApi.route("/updates", updatesRouter);
 
-// Mount API version
-app.route("/api/v1", apiV1);
+// Mount API versions
+app.route("/api/v1", publicApi);
+app.route("/api/v1", protectedApi);
 
 // ============================================================
 // Export

@@ -13,6 +13,7 @@ import {
 import { drizzle } from "drizzle-orm/d1";
 import { eq, sql, and } from "drizzle-orm";
 import { aiConfigurations, aiUsageLogs } from "@makanmakan/database";
+import { encrypt, decrypt } from "@makanmakan/utils";
 import type { LLMConfig } from "@makanmakan/ai-analytics";
 import type {
   AIConfiguration,
@@ -26,149 +27,7 @@ import type {
   AIAnalyticsReport,
 } from "@makanmakan/ai-analytics";
 
-/**
- * AES-256-GCM encryption for API keys using Web Crypto API
- * Format: base64(iv):base64(encrypted):base64(authTag)
- */
-
-// Helper to convert string to Uint8Array
-function stringToUint8Array(str: string): Uint8Array {
-  const encoder = new TextEncoder();
-  return encoder.encode(str);
-}
-
-// Helper to convert ArrayBuffer to string
-function arrayBufferToString(buffer: ArrayBuffer): string {
-  const decoder = new TextDecoder();
-  return decoder.decode(buffer);
-}
-
-// Helper to convert ArrayBuffer to base64
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-// Helper to convert base64 to ArrayBuffer
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-// Derive a 256-bit key from the encryption key string
-async function deriveKey(keyString: string): Promise<CryptoKey> {
-  // Use the key string as password and derive a proper AES key
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    stringToUint8Array(keyString),
-    { name: "PBKDF2" },
-    false,
-    ["deriveKey"],
-  );
-
-  // Use a fixed salt (in production, consider storing salt per-encryption)
-  const salt = stringToUint8Array("makanmakan-api-key-encryption-salt");
-
-  return crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations: 100000,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
-}
-
-async function encryptApiKey(
-  apiKey: string,
-  encryptionKey: string,
-): Promise<string> {
-  try {
-    // Generate a random 12-byte IV
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    // Derive AES key from encryption key string
-    const key = await deriveKey(encryptionKey);
-
-    // Encrypt the API key
-    const encrypted = await crypto.subtle.encrypt(
-      {
-        name: "AES-GCM",
-        iv,
-        tagLength: 128, // 128-bit auth tag
-      },
-      key,
-      stringToUint8Array(apiKey),
-    );
-
-    // The encrypted result includes the ciphertext and auth tag
-    // Format: base64(iv):base64(encryptedWithTag)
-    const ivBase64 = arrayBufferToBase64(iv.buffer);
-    const encryptedBase64 = arrayBufferToBase64(encrypted);
-
-    return `${ivBase64}:${encryptedBase64}`;
-  } catch (error) {
-    console.error("Encryption error:", error);
-    throw new Error("Failed to encrypt API key");
-  }
-}
-
-async function decryptApiKey(
-  encryptedKey: string,
-  encryptionKey: string,
-): Promise<string> {
-  try {
-    // Check if it's the old base64-only format (for backward compatibility)
-    if (!encryptedKey.includes(":")) {
-      // Legacy format - just base64 encoded
-      console.warn(
-        "Using legacy base64 decoding for API key - please re-save configuration to use encryption",
-      );
-      return atob(encryptedKey);
-    }
-
-    // Parse the encrypted format: base64(iv):base64(encryptedWithTag)
-    const [ivBase64, encryptedBase64] = encryptedKey.split(":");
-
-    if (!ivBase64 || !encryptedBase64) {
-      throw new Error("Invalid encrypted key format");
-    }
-
-    const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
-    const encrypted = base64ToArrayBuffer(encryptedBase64);
-
-    // Derive AES key from encryption key string
-    const key = await deriveKey(encryptionKey);
-
-    // Decrypt
-    const decrypted = await crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv,
-        tagLength: 128,
-      },
-      key,
-      encrypted,
-    );
-
-    return arrayBufferToString(decrypted);
-  } catch (error) {
-    console.error("Decryption error:", error);
-    throw new Error("Failed to decrypt API key");
-  }
-}
+const AI_KEY_ENCRYPTION_SALT = "makanmakan-api-key-encryption-salt";
 
 export class AIAnalyticsService {
   private db;
@@ -222,9 +81,10 @@ export class AIAnalyticsService {
 
     if (!result) return null;
 
-    const apiKey = await decryptApiKey(
+    const apiKey = await decrypt(
       result.apiKeyEncrypted,
       this.encryptionKey,
+      AI_KEY_ENCRYPTION_SALT,
     );
 
     return {
@@ -237,7 +97,11 @@ export class AIAnalyticsService {
 
   async saveConfig(input: AIConfigInput): Promise<void> {
     // Encrypt API key
-    const encryptedKey = await encryptApiKey(input.apiKey, this.encryptionKey);
+    const encryptedKey = await encrypt(
+      input.apiKey,
+      this.encryptionKey,
+      AI_KEY_ENCRYPTION_SALT,
+    );
 
     // Test the provider first
     const testResult = await this.testProvider({

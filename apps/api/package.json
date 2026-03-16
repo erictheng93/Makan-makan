@@ -23,6 +23,7 @@
     "@makanmakan/queue-core": "workspace:*",
     "@makanmakan/queue-service": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
+    "@makanmakan/utils": "workspace:*",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "hono": "^4.9.6",

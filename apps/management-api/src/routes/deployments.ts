@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { ManagementEnv } from "../types";
 import { ProvisioningService } from "../services/ProvisioningService";
+import { MigrationService } from "../services/MigrationService";
 
 const router = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -324,6 +325,42 @@ router.post("/batch", async (c) => {
         success: false,
         error: "Failed to batch deploy",
         code: "BATCH_DEPLOY_FAILED",
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * Get migration history for a tenant
+ * GET /api/v1/deployments/:tenantId/migrations
+ */
+router.get("/:tenantId/migrations", async (c) => {
+  const tenantId = c.req.param("tenantId");
+
+  try {
+    const migrationService = new MigrationService(c.env);
+    const migrations = await migrationService.getAppliedMigrations(tenantId);
+
+    return c.json({
+      success: true,
+      data: {
+        tenantId,
+        migrations,
+        total: migrations.length,
+        lastApplied:
+          migrations.length > 0
+            ? migrations[migrations.length - 1].appliedAt
+            : null,
+      },
+    });
+  } catch (error) {
+    console.error("[Deployments] Get migrations error:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get migration history",
+        code: "GET_MIGRATIONS_FAILED",
       },
       500,
     );

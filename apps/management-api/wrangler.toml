@@ -39,6 +39,12 @@ binding = "DEPLOYMENT_STATUS_KV"
 id = "makanmakan-deployment-status-dev"
 preview_id = "makanmakan-deployment-status-preview"
 
+# R2 bucket for worker bundles
+[[r2_buckets]]
+binding = "BUNDLE_STORAGE"
+bucket_name = "makanmakan-management-bundles-dev"
+preview_bucket_name = "makanmakan-management-bundles-preview"
+
 # === STAGING ENVIRONMENT ===
 [env.staging]
 name = "makanmakan-management-api-staging"
@@ -62,6 +68,10 @@ id = "makanmakan-management-cache-staging"
 binding = "DEPLOYMENT_STATUS_KV"
 id = "makanmakan-deployment-status-staging"
 
+[[env.staging.r2_buckets]]
+binding = "BUNDLE_STORAGE"
+bucket_name = "makanmakan-management-bundles-staging"
+
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmakan-management-api-prod"
@@ -84,6 +94,10 @@ id = "makanmakan-management-cache-prod"
 [[env.production.kv_namespaces]]
 binding = "DEPLOYMENT_STATUS_KV"
 id = "makanmakan-deployment-status-prod"
+
+[[env.production.r2_buckets]]
+binding = "BUNDLE_STORAGE"
+bucket_name = "makanmakan-management-bundles-prod"
 
 # Smart placement for production
 [env.production.placement]

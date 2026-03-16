@@ -257,6 +257,9 @@ importers:
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@makanmakan/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -561,6 +564,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.5.0
         version: 0.5.0(hono@4.11.4)(zod@3.25.76)
+      '@makanmakan/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       hono:
         specifier: ^4.7.8
         version: 4.11.4
@@ -12264,7 +12270,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@25.0.7)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.1)
+      vitest: 1.6.1(@types/node@20.19.28)(@vitest/ui@1.6.1)(jsdom@23.2.0)(terser@5.44.1)
 
   '@vitest/ui@3.2.4(vitest@0.34.6)':
     dependencies:

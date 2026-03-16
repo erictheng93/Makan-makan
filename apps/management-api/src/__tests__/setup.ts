@@ -83,6 +83,28 @@ export function createMockKV(): MockKVNamespace {
 }
 
 // ============================================================
+// R2 Bucket Mock
+// ============================================================
+
+export interface MockR2Bucket {
+  get: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  list: ReturnType<typeof vi.fn>;
+  head: ReturnType<typeof vi.fn>;
+}
+
+export function createMockR2Bucket(): MockR2Bucket {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    put: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+    list: vi.fn().mockResolvedValue({ objects: [], truncated: false }),
+    head: vi.fn().mockResolvedValue(null),
+  };
+}
+
+// ============================================================
 // Environment Mock
 // ============================================================
 
@@ -103,6 +125,7 @@ export function createMockEnv(
     MANAGEMENT_DB: createMockD1Database() as unknown as D1Database,
     CACHE_KV: createMockKV() as unknown as KVNamespace,
     DEPLOYMENT_STATUS_KV: createMockKV() as unknown as KVNamespace,
+    BUNDLE_STORAGE: createMockR2Bucket() as unknown as R2Bucket,
     ...overrides,
   } as ManagementEnv;
 }
@@ -196,3 +219,29 @@ export function createTestHealthCheckRow(overrides?: Record<string, unknown>) {
 // Suppress console.error in tests
 vi.spyOn(console, "error").mockImplementation(() => {});
 vi.spyOn(console, "log").mockImplementation(() => {});
+
+// ============================================================
+// Auth Test Helpers
+// ============================================================
+
+/**
+ * Creates a valid JWT token for testing protected endpoints.
+ */
+export async function createTestAuthHeader(
+  jwtSecret: string = "test-jwt-secret",
+  overrides?: Record<string, unknown>,
+): Promise<string> {
+  const { sign } = await import("hono/jwt");
+  const now = Math.floor(Date.now() / 1000);
+  const token = await sign(
+    {
+      id: "admin-001",
+      email: "admin@makanmakan.app",
+      iat: now,
+      exp: now + 3600,
+      ...overrides,
+    },
+    jwtSecret,
+  );
+  return `Bearer ${token}`;
+}

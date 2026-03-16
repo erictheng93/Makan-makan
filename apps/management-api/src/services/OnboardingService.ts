@@ -12,6 +12,7 @@ import type {
   LicenseTier,
   CloudflareVerificationResult,
 } from "../types";
+import { encrypt, decrypt } from "@makanmakan/utils";
 import { TenantService } from "./TenantService";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 
@@ -381,14 +382,11 @@ export class OnboardingService {
   }
 
   private async encryptToken(token: string): Promise<string> {
-    // In production, use proper encryption with ENCRYPTION_KEY
-    // For now, use base64 encoding as placeholder
-    return btoa(token);
+    return encrypt(token, this.env.ENCRYPTION_KEY);
   }
 
   private async decryptToken(encrypted: string): Promise<string> {
-    // In production, use proper decryption with ENCRYPTION_KEY
-    return atob(encrypted);
+    return decrypt(encrypted, this.env.ENCRYPTION_KEY);
   }
 
   private mapRowToApplication(

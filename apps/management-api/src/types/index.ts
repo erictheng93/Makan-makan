@@ -35,6 +35,9 @@ export interface ManagementEnv {
   // KV namespaces
   CACHE_KV: KVNamespace;
   DEPLOYMENT_STATUS_KV: KVNamespace;
+
+  // R2 bucket for worker bundles
+  BUNDLE_STORAGE: R2Bucket;
 }
 
 // ============================================================

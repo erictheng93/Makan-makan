@@ -12,6 +12,7 @@ import type {
   UpdateTenantRequest,
   TenantStatus,
 } from "../types";
+import { encrypt } from "@makanmakan/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 
 export class TenantService {
@@ -334,9 +335,7 @@ export class TenantService {
   }
 
   private async encryptToken(token: string): Promise<string> {
-    // In production, use proper encryption with ENCRYPTION_KEY
-    // For now, use base64 encoding as placeholder
-    return btoa(token);
+    return encrypt(token, this.env.ENCRYPTION_KEY);
   }
 
   private mapRowToTenant(row: Record<string, unknown>): Tenant {

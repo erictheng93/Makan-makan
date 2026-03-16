@@ -9,12 +9,15 @@ import app from "../../index";
 import {
   createMockEnv,
   createMockD1Statement,
+  createMockR2Bucket,
   createTestTenantRow,
   createTestDeploymentLogRow,
+  createTestAuthHeader,
 } from "../setup";
 import type { ManagementEnv } from "../../types";
 
 let env: ManagementEnv;
+let authHeader: string;
 
 function mockDb() {
   return env.MANAGEMENT_DB as unknown as {
@@ -22,8 +25,33 @@ function mockDb() {
   };
 }
 
+function mockR2() {
+  return env.BUNDLE_STORAGE as unknown as ReturnType<typeof createMockR2Bucket>;
+}
+
+/** Configure R2 mock to return a valid bundle for the given version */
+function mockBundleExists(version: string) {
+  const r2 = mockR2();
+  r2.get.mockImplementation(async (key: string) => {
+    if (key === `bundles/${version}/worker.js`) {
+      return { text: () => Promise.resolve("// worker script") };
+    }
+    if (key === `bundles/${version}/migrations.json`) {
+      return { text: () => Promise.resolve("[]") };
+    }
+    return null;
+  });
+}
+
 async function fetchApp(path: string, options?: RequestInit) {
-  const request = new Request(`http://localhost${path}`, options);
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", authHeader);
+  }
+  const request = new Request(`http://localhost${path}`, {
+    ...options,
+    headers,
+  });
   return app.fetch(request, env);
 }
 
@@ -36,9 +64,10 @@ function jsonBody(data: unknown) {
 }
 
 describe("Deployment Routes", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     env = createMockEnv();
+    authHeader = await createTestAuthHeader(env.JWT_SECRET);
   });
 
   // ============================================================
@@ -220,7 +249,7 @@ describe("Deployment Routes", () => {
       const db = mockDb();
       const stmt = createMockD1Statement();
 
-      // createDeploymentLog -> get tenant -> updateDeploymentLogFromVersion -> updateVersion -> updateDeploymentLog
+      // createDeploymentLog -> get tenant -> updateDeploymentLogFromVersion -> tenant_resources -> updateVersion -> updateDeploymentLog
       const tenantRow = createTestTenantRow({
         cf_account_id: "acc-123",
         cf_api_token_enc: btoa("test-token"),
@@ -228,21 +257,42 @@ describe("Deployment Routes", () => {
 
       stmt.first.mockResolvedValue(tenantRow);
       stmt.run.mockResolvedValue({ success: true });
+      stmt.all.mockResolvedValue({ results: [], success: true });
       db.prepare.mockReturnValue(stmt);
 
-      const res = await fetchApp(
-        "/api/v1/deployments/deploy",
-        jsonBody({
-          tenantId: "T-20240101-ABC",
-          targetVersion: "1.2.0",
-        }),
-      );
+      // Mock R2 to return a valid bundle
+      mockBundleExists("1.2.0");
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.success).toBe(true);
-      expect(body.data.version).toBe("1.2.0");
-      expect(body.data.deploymentId).toBeDefined();
+      // Mock fetch for deployWorker Cloudflare API call
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            errors: [],
+            messages: [],
+            result: {},
+          }),
+      });
+
+      try {
+        const res = await fetchApp(
+          "/api/v1/deployments/deploy",
+          jsonBody({
+            tenantId: "T-20240101-ABC",
+            targetVersion: "1.2.0",
+          }),
+        );
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.success).toBe(true);
+        expect(body.data.version).toBe("1.2.0");
+        expect(body.data.deploymentId).toBeDefined();
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
 
     it("should return 400 for missing tenantId", async () => {
@@ -266,6 +316,7 @@ describe("Deployment Routes", () => {
       // rollbackDeployment -> getLastDeployment -> deployToTenant flow
       stmt.first.mockResolvedValueOnce({ from_version: "1.0.0" }); // last deployment
       stmt.run.mockResolvedValue({ success: true });
+      stmt.all.mockResolvedValue({ results: [], success: true });
 
       // deployToTenant flow: createLog, getTenant, updateVersion, updateLog
       const tenantRow = createTestTenantRow({
@@ -276,15 +327,35 @@ describe("Deployment Routes", () => {
 
       db.prepare.mockReturnValue(stmt);
 
-      const res = await fetchApp(
-        "/api/v1/deployments/T-20240101-ABC/rollback",
-        jsonBody({}),
-      );
+      // Mock R2 to return a valid bundle for the rollback version
+      mockBundleExists("1.0.0");
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.success).toBe(true);
-      expect(body.data.status).toBe("rolled_back");
+      // Mock fetch for deployWorker Cloudflare API call
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            errors: [],
+            messages: [],
+            result: {},
+          }),
+      });
+
+      try {
+        const res = await fetchApp(
+          "/api/v1/deployments/T-20240101-ABC/rollback",
+          jsonBody({}),
+        );
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.success).toBe(true);
+        expect(body.data.status).toBe("rolled_back");
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
 
     it("should return 500 when no previous version exists", async () => {

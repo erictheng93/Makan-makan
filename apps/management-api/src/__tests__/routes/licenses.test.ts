@@ -6,10 +6,15 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import app from "../../index";
-import { createMockEnv, createMockD1Statement } from "../setup";
+import {
+  createMockEnv,
+  createMockD1Statement,
+  createTestAuthHeader,
+} from "../setup";
 import type { ManagementEnv } from "../../types";
 
 let env: ManagementEnv;
+let authHeader: string;
 
 function mockDb() {
   return env.MANAGEMENT_DB as unknown as {
@@ -18,7 +23,14 @@ function mockDb() {
 }
 
 async function fetchApp(path: string, options?: RequestInit) {
-  const request = new Request(`http://localhost${path}`, options);
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", authHeader);
+  }
+  const request = new Request(`http://localhost${path}`, {
+    ...options,
+    headers,
+  });
   return app.fetch(request, env);
 }
 
@@ -31,9 +43,10 @@ function jsonBody(data: unknown, method = "POST") {
 }
 
 describe("License Routes", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     env = createMockEnv();
+    authHeader = await createTestAuthHeader(env.JWT_SECRET);
   });
 
   // ============================================================

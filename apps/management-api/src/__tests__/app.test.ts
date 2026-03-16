@@ -6,15 +6,25 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import app from "../index";
-import { createMockEnv } from "./setup";
+import { createMockEnv, createTestAuthHeader } from "./setup";
 import type { ManagementEnv } from "../types";
+
+let defaultEnv: ManagementEnv;
+let authHeader: string;
 
 function createRequest(
   path: string,
   options?: RequestInit & { env?: ManagementEnv },
 ) {
-  const env = options?.env || createMockEnv();
-  const request = new Request(`http://localhost${path}`, options);
+  const env = options?.env || defaultEnv;
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", authHeader);
+  }
+  const request = new Request(`http://localhost${path}`, {
+    ...options,
+    headers,
+  });
   return { request, env };
 }
 
@@ -27,8 +37,10 @@ async function fetchApp(
 }
 
 describe("Management API - App", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    defaultEnv = createMockEnv();
+    authHeader = await createTestAuthHeader(defaultEnv.JWT_SECRET);
   });
 
   describe("GET /health", () => {
@@ -94,8 +106,7 @@ describe("Management API - App", () => {
       expect(res.status).toBe(404);
       const body = await res.json();
       expect(body.success).toBe(false);
-      expect(body.code).toBe("NOT_FOUND");
-      expect(body.path).toBe("/api/v1/nonexistent");
+      expect(body.error.code).toBe("NOT_FOUND");
     });
   });
 

@@ -467,7 +467,7 @@ describe("TenantService", () => {
         // Verify the token was stored (base64 encoded)
         const bindArgs = stmt.bind.mock.calls[0];
         expect(bindArgs[0]).toBe("valid-account"); // accountId
-        expect(bindArgs[1]).toBe(btoa("valid-token")); // encrypted token
+        expect(bindArgs[1]).toContain(":"); // AES-256-GCM format: base64(iv):base64(encrypted)
       } finally {
         globalThis.fetch = originalFetch;
       }
